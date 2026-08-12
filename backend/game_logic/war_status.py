@@ -342,6 +342,12 @@ def build_active_wars(world) -> Dict[str, Any]:
 
         wars.append({
             "opponent": opponent,
+            # PT-B2 drive-by, same screen: the war row renders the backend's
+            # `formed_display_name` while the armistice card ran the raw key
+            # through the client's own map — so a nation that formed under
+            # NA-6 appeared under its NEW name two rows above its DEAD one.
+            # One producer for both.
+            "opponent_display": formed_display_name(world, opponent),
             "war_score": 0,
             "breakdown": None,
             "duration": 0,
@@ -497,9 +503,31 @@ def _collapse_shared_war_instance_rows(
         enemy_side = "defenders" if france_side == "attackers" else "attackers"
         leader_key = "defender_leader" if enemy_side == "defenders" else "attacker_leader"
         enemy_leader = str(instance.get(leader_key, "") or "")
+        # ── PT-B2 ────────────────────────────────────────────────────────
+        # The war HUD used to outlive the peace. `side_by_nation` is war
+        # MEMBERSHIP, not belligerency: `side_by_nation.pop` fires only
+        # when a nation has no remaining active pair ANYWHERE, so a court
+        # that signs with France but stays at war with somebody else keeps
+        # its entry forever. Measured: the notification read "France and
+        # Hesse have signed a Peace Treaty", `France|Hesse` was gone from
+        # `active_diplo_keys`, and the SAME payload's `opponent_display`
+        # read "Britain + Austria + Hesse + Russia". It stayed wrong for
+        # twelve consecutive responses, to the end of the campaign.
+        #
+        # The score two lines below already solved this — the [A-F5]
+        # comment names the armistice-suspended member explicitly — but it
+        # fixed only the number and left the NAMES reading membership. One
+        # card, two belligerent sets. They read the same one now.
+        #
+        # `rows` is the live-WAR set by construction (`:482` admits only
+        # `status == "war"` rows), so it is the predicate, not a copy of it.
+        # ─────────────────────────────────────────────────────────────────
+        live_opponents = {str(row.get("opponent", "")) for row in rows
+                          if row.get("opponent")}
         enemy_participants = [
             nation for nation, side in side_by_nation.items()
             if side == enemy_side and nation != france
+            and nation in live_opponents
         ]
         if not enemy_participants:
             enemy_participants = [str(row.get("opponent", "")) for row in rows]

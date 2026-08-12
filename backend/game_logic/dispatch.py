@@ -1830,6 +1830,19 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         world, player_nation,
         income_data=(getattr(world, "_income_phase_results", None) or {}).get(
             player_nation))["net"])
+    # PT-C4: CA9-N11 is not fully closed, and this is its definitional half.
+    # Every NAMED component agrees with the end-turn banner on all 18 turns
+    # of the played campaign; only the total differs, because this surface
+    # SUMS DECLARED COMPONENTS and the banner MEASURES the treasury. The
+    # EC-W3 Butcher's Bill is charged outside Net by design (the plunder-gold
+    # precedent), so the two can be individually correct and still disagree
+    # — measured on 10 of 18 turns, this one always the more optimistic.
+    #
+    # The banner now names Materiel inside its own window. This surface says
+    # what it is instead of claiming to be an observation: it is the ledger's
+    # account of the turn, and a battle can still take gold it never
+    # promised to predict.
+    treasury_delta_label = "by the accounts"
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
     # expectation exceeds his estate income, with the eroding flag once the
@@ -1906,6 +1919,7 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "enemy_regions": int(enemy_regions),
         "treasury": treasury,
         "treasury_delta": treasury_delta,
+        "treasury_delta_label": treasury_delta_label,
         "trade_income": trade_income,
         # ES-2 (S6): occupation detail rides the dispatch like the ES-3
         # surcharge — the morning projection can explain the drain

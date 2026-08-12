@@ -95,7 +95,12 @@ func _on_dispatch_received(response):
 
 	var delta_sign = "+" if treasury_delta >= 0 else ""
 	var delta_color = Utils.COLOR_SUCCESS if treasury_delta >= 0 else Utils.COLOR_ERROR
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]\n"
+	# PT-C4: this figure SUMS the declared components; the end-turn banner
+	# MEASURES the treasury. Both can be right and still disagree — measured
+	# on 10 of 18 turns — so it says which one it is.
+	var delta_label = str(situation.get("treasury_delta_label", ""))
+	var delta_suffix = "" if delta_label == "" else " " + delta_label
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + delta_suffix + ")[/color]\n"
 
 	if bankrupt:
 		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"

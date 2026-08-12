@@ -172,6 +172,15 @@ func send_redemption_response(choice: String, callback: Callable):
 	_send_post("/respond_to_redemption", {"choice": choice}, callback)
 
 
+# PT-B1: the belt-and-braces recovery. `GET /pending_redemption` has existed
+# at `main.py:3019` since the feature landed and NOTHING ever called it, so a
+# redemption dropped by a response collision was gone for good — the backend
+# latches `redemption_pending = True` at GENERATION, and only answering the
+# dialog or a trust recovery above 20 clears it. Polled once per turn.
+func get_pending_redemption(callback: Callable):
+	_send_get("/pending_redemption", callback)
+
+
 func send_capture_choice_response(choice: String, callback: Callable, dialogue_id: int = -1):
 	var body = {"choice": choice}
 	if dialogue_id >= 0:

@@ -211,6 +211,8 @@ var reward_dialog = null  # ES-7 second pass (§0.6.8): the Marshal's Reward dia
 var marshal_petition_dialog = null  # Jealousy v3.2: the marshal-petition channel (layer 114)
 var proclamation_popup = null  # NA-6b: The Proclamation, a formation landmark (layer 117)
 var pending_proclamation_data = null  # NA-6b: stashed card, shown when control returns
+var pending_redemption_data = null  # PT-B1: stashed redemption, shown when control returns
+var _redemption_recheck_turn: int = -1  # PT-B1: once-per-turn recovery poll
 
 # BD: the Battle Diorama tableau (layer 121)
 var battle_diorama = null
@@ -1404,6 +1406,71 @@ func _stash_proclamation(response: Dictionary) -> void:
 		pending_proclamation_data = response.nation_proclamation
 
 
+# ── PT-B1: the redemption stash ───────────────────────────────────────────
+# `_route_response_ui` returns on the FIRST match and `redemption_event` is
+# the LAST of twelve routes, so any of the eleven above it — measured with
+# Denmark's standing non-aggression pact at index 4 — discarded the whole
+# response and the redemption with it. There was no recovery:
+# `check_redemption_threshold` returns None forever once `redemption_pending`
+# is set, and it is set at GENERATION. Bernadotte reached trust 2 on turn 12
+# and never asked again in the following 19 responses.
+#
+# Same property as the Proclamation, the letter-book and the diorama: popped
+# server-side, so a response that drops it loses the moment permanently.
+# Same discipline, therefore — stash on arrival, raise on control return.
+func _stash_redemption(response: Dictionary) -> void:
+	# `enemy_phase` responses are excluded deliberately: that path has its own
+	# handler (`_on_enemy_phase_dismissed`), and `_response_has_redemption_route`
+	# carries the identical guard. Stashing here would double-show.
+	if response.has("enemy_phase"):
+		return
+	if response.has("redemption_event") and response.redemption_event != null:
+		pending_redemption_data = response.redemption_event
+
+
+func _show_pending_redemption() -> bool:
+	"""Raise a stashed redemption. True when shown — the caller must then NOT
+	re-enable input; the redemption dialog's own handler owns that."""
+	if pending_redemption_data == null or redemption_dialog == null:
+		return false
+	if _is_modal_dialog_open():
+		return false
+	var data = pending_redemption_data
+	_show_redemption_dialog(data)
+	return true
+
+
+func _maybe_recover_dropped_redemption() -> void:
+	"""Once per turn, ask the backend whether a redemption is still waiting.
+
+	The stash above closes the routes this review measured; this closes the
+	ones it did not. The endpoint was written for exactly this and never
+	called."""
+	if _redemption_recheck_turn == current_turn:
+		return
+	_redemption_recheck_turn = current_turn
+	if pending_redemption or pending_redemption_data != null:
+		return
+	if api_client == null:
+		return
+	api_client.get_pending_redemption(_on_pending_redemption_checked)
+
+
+func _on_pending_redemption_checked(response) -> void:
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	if not response.get("has_pending", false):
+		return
+	if pending_redemption or _is_modal_dialog_open():
+		return
+	_show_redemption_dialog({
+		"marshal": response.get("marshal", "Marshal"),
+		"trust": response.get("trust", 0),
+		"message": response.get("message", ""),
+		"options": response.get("options", []),
+	})
+
+
 # ── BD: the Battle Diorama stash-and-raise (the NA-6b discipline) ──────────
 # The tableau is STASHED at response arrival and raised only when control
 # returns, after the whole response has rendered — never above it.
@@ -1485,6 +1552,9 @@ func _on_battle_diorama_dismissed():
 		return
 	if _show_pending_envoy_digest():
 		return
+	if _show_pending_redemption():
+		return  # PT-B1
+	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -1529,6 +1599,9 @@ func _on_marshal_petition_deferred():
 		return
 	if _show_pending_envoy_digest():
 		return  # _on_mailbox_panel_closed re-enables input
+	if _show_pending_redemption():
+		return  # PT-B1: the redemption dialog's handler re-enables input
+	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -1539,6 +1612,9 @@ func _on_proclamation_dismissed():
 		return
 	if _show_pending_envoy_digest():
 		return  # _on_mailbox_panel_closed re-enables input
+	if _show_pending_redemption():
+		return  # PT-B1: the redemption dialog's handler re-enables input
+	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -1559,6 +1635,9 @@ func _return_control_to_player() -> void:
 		return  # _on_proclamation_dismissed re-enables input
 	if _show_pending_envoy_digest():
 		return  # _on_mailbox_panel_closed re-enables input
+	if _show_pending_redemption():
+		return  # PT-B1: the redemption dialog's handler re-enables input
+	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -1727,6 +1806,7 @@ func _on_command_result(response):
 		_stash_proclamation(response)
 		_stash_envoy_digest(response)
 		_stash_diorama(response)  # BD: same discipline — stash before routing
+		_stash_redemption(response)  # PT-B1: same discipline, same reason
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry
@@ -1898,6 +1978,11 @@ func _on_command_result(response):
 	# IGR-F: the letter-book, likewise after the whole response has rendered.
 	if _show_pending_envoy_digest():
 		return  # _on_mailbox_panel_closed re-enables input
+
+	# PT-B1: and the audience a higher-priority route would have discarded.
+	if _show_pending_redemption():
+		return  # the redemption dialog's handler re-enables input
+	_maybe_recover_dropped_redemption()
 
 	# Auto-focus input
 	command_input.grab_focus()
@@ -2562,7 +2647,10 @@ func _display_morning_dispatch(data: Dictionary):
 	# Treasury line
 	var delta_sign = "+" if treasury_delta >= 0 else ""
 	var delta_color = Utils.COLOR_SUCCESS if treasury_delta >= 0 else Utils.COLOR_ERROR
-	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]")
+	# PT-C4: a component sum, not an observed delta — say so.
+	var delta_label = str(situation.get("treasury_delta_label", ""))
+	var delta_suffix = "" if delta_label == "" else " " + delta_label
+	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + delta_suffix + ")[/color]")
 
 	# Enemy regions + estimated strength
 	if bankrupt:
@@ -3338,6 +3426,12 @@ func _on_objection_response(response):
 func _show_redemption_dialog(redemption_event: Dictionary):
 	"""Display redemption popup dialog when trust hits critical low."""
 	print("REDEMPTION DIALOG - showing popup for event: ", redemption_event)
+
+	# PT-B1: ONE chokepoint clears the stash, so whichever path shows the
+	# audience first wins and a double-show is structurally impossible —
+	# the inline handlers (`_on_objection_response`, the disobey branch,
+	# `_on_enemy_phase_dismissed`) show it directly and never touch the stash.
+	pending_redemption_data = null
 
 	var marshal_name = redemption_event.get("marshal", "Marshal")
 

@@ -2315,6 +2315,12 @@ class CombatExecutor:
                     if bill > 0 and m_nation:
                         world.nation_gold[m_nation] = int(
                             world.nation_gold.get(m_nation, 0) - bill)
+                        # PT-C4: and TALLY it, so the end-turn banner can
+                        # name a charge it was previously hiding in `Other`.
+                        _tally = getattr(world, "materiel_spent_this_turn", None)
+                        if _tally is None:
+                            _tally = world.materiel_spent_this_turn = {}
+                        _tally[m_nation] = int(_tally.get(m_nation, 0)) + bill
                         # NA-6 §11.8-3: a FORMED nation must not be
                         # billed under its dead name (and the camelCase
                         # split also mangles it to "Kingdom Of Italy").

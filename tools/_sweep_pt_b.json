@@ -1,0 +1,43 @@
+[
+ {"id": "PT-B2 names filter by live belligerency",
+  "file": "backend/game_logic/war_status.py",
+  "old": "            if side == enemy_side and nation != france\n            and nation in live_opponents\n        ]",
+  "new": "            if side == enemy_side and nation != france\n        ]",
+  "tests": "tests/test_pt_b_silent_losses.py"},
+
+ {"id": "PT-B2 the armistice row carries a display name",
+  "file": "backend/game_logic/war_status.py",
+  "old": "            \"opponent_display\": formed_display_name(world, opponent),",
+  "new": "",
+  "tests": "tests/test_pt_b_silent_losses.py"},
+
+ {"id": "PT-B1 the stash exists",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t_stash_redemption(response)  # PT-B1: same discipline, same reason",
+  "new": "",
+  "tests": "tests/test_pt_b_silent_losses.py"},
+
+ {"id": "PT-B1 the enemy-phase guard",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif response.has(\"enemy_phase\"):\n\t\treturn\n\tif response.has(\"redemption_event\") and response.redemption_event != null:",
+  "new": "\tif response.has(\"redemption_event\") and response.redemption_event != null:",
+  "tests": "tests/test_pt_b_silent_losses.py"},
+
+ {"id": "PT-B1 one chokepoint clears the stash",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tpending_redemption_data = null\n\n\tvar marshal_name = redemption_event.get(\"marshal\", \"Marshal\")",
+  "new": "\n\tvar marshal_name = redemption_event.get(\"marshal\", \"Marshal\")",
+  "tests": "tests/test_pt_b_silent_losses.py"},
+
+ {"id": "PT-B1 the recovery endpoint is wired",
+  "file": "godot-client/project-sovereign/scripts/api_client.gd",
+  "old": "func get_pending_redemption(callback: Callable):\n\t_send_get(\"/pending_redemption\", callback)",
+  "new": "func get_pending_redemption_disabled(callback: Callable):\n\tpass",
+  "tests": "tests/test_pt_b_silent_losses.py"},
+
+ {"id": "PT-B1 the poll is once per turn",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif _redemption_recheck_turn == current_turn:\n\t\treturn\n\t_redemption_recheck_turn = current_turn",
+  "new": "\tif false:\n\t\treturn",
+  "tests": "tests/test_pt_b_silent_losses.py"}
+]

@@ -1,0 +1,103 @@
+[
+ {"id": "PT-C1 the surcharge is named",
+  "file": "backend/commands/defiance.py",
+  "old": "RELUCTANT_OBEDIENCE_PENALTY = -3",
+  "new": "RELUCTANT_OBEDIENCE_PENALTY = -4",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C1 the tactical path discloses",
+  "file": "backend/commands/meta_executor.py",
+  "old": "                    + outcome_result[\"berthier_text\"] + \" \"\n                    + describe_reluctant_obedience_cost(\n                        response_result.get(\"trust_change\", 0))",
+  "new": "                    + outcome_result[\"berthier_text\"]",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C1 the strategic path discloses",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                _failed_roll_berthier = (\n                    outcome_result[\"berthier_text\"] + \" \"\n                    + describe_reluctant_obedience_cost(\n                        int(v2_insist_penalty or 0)\n                        + int(outcome_result[\"trust_change\"])))",
+  "new": "                _failed_roll_berthier = outcome_result[\"berthier_text\"]",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C1 the sentence splits base from surcharge",
+  "file": "backend/commands/defiance.py",
+  "old": "    return (f\"(Trust {total:+d} in all — {base:+d} for the order pressed \"\n            f\"home, {surcharge:+d} more for the manner of his obedience.)\")",
+  "new": "    return f\"(Trust {total:+d}.)\"",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C2 proceed quotes the tier penalty",
+  "file": "backend/commands/disobedience.py",
+  "old": "        \"trust_change\": insist_penalty,",
+  "new": "        \"trust_change\": -10,",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C2 trust quotes the scaled gain",
+  "file": "backend/commands/disobedience.py",
+  "old": "            \"trust_change\": trust_gain,",
+  "new": "            \"trust_change\": 12,",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C2 the literal's own price",
+  "file": "backend/commands/disobedience.py",
+  "old": "    proceed_ap = 1 if getattr(marshal, \"personality\", \"\") == \"literal\" else 2",
+  "new": "    proceed_ap = 2",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C2 the real concern reaches the builder",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                                concern=strategic_concern,",
+  "new": "",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py tests/test_ca9_row3_q2_council_command.py"},
+
+ {"id": "PT-C2 the SUPPORT fallback carries numbers",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                                    \"type\": \"proceed\",\n                                    \"text\": f\"Insist: SUPPORT {target} as ordered\",",
+  "new": "                                    \"type\": \"insist\",\n                                    \"text\": f\"Insist: SUPPORT {target} as ordered\",",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C3 Upkeep prints its sign",
+  "file": "backend/commands/meta_executor.py",
+  "old": " | Upkeep: -{upkeep_val}g{surcharge_str}",
+  "new": " | Upkeep: {upkeep_val}g{surcharge_str}",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 the materiel window opens with the banner's",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        world.materiel_spent_this_turn = {}",
+  "new": "        pass",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 the charge site tallies",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        _tally[m_nation] = int(_tally.get(m_nation, 0)) + bill",
+  "new": "                        pass",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 materiel leaves the residual",
+  "file": "backend/commands/meta_executor.py",
+  "old": "                               - admiralty_val - blockade_val - upkeep_val\n                               - materiel_val)",
+  "new": "                               - admiralty_val - blockade_val - upkeep_val)",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 materiel is printed",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        materiel_str = f\" | Materiel: -{materiel_val}g\" if materiel_val > 0 else \"\"",
+  "new": "        materiel_str = \"\"",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 the tally serializes",
+  "file": "backend/models/world_state.py",
+  "old": "            \"materiel_spent_this_turn\": self.materiel_spent_this_turn.copy(),",
+  "new": "",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 the dispatch names its basis",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    treasury_delta_label = \"by the accounts\"",
+  "new": "    treasury_delta_label = \"\"",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"},
+
+ {"id": "PT-C4 both client surfaces render it",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar delta_label = str(situation.get(\"treasury_delta_label\", \"\"))\n\tvar delta_suffix = \"\" if delta_label == \"\" else \" \" + delta_label\n\tadd_output(",
+  "new": "\tvar delta_suffix = \"\"\n\tadd_output(",
+  "tests": "tests/test_pt_c_numbers_on_buttons.py"}
+]

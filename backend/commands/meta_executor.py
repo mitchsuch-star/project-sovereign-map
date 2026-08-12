@@ -171,6 +171,15 @@ class MetaExecutor:
         # Previously three surfaces each showed a different partial net and none
         # reconciled to the actual 800 -> 4,252 style jump.
         treasury_before_turn = world.nation_gold.get(world.player_nation, 0)
+        # PT-C4: open the materiel window at exactly the same instant. The
+        # EC-W3 Butcher's Bill mutates the treasury directly and declares no
+        # component, so the enemy phase's copy landed inside this window and
+        # vanished into the `Other` residual — the one term that keeps the
+        # banner arithmetically true while explaining nothing. Reset HERE,
+        # not in `advance_turn`: the enemy phase runs BEFORE it
+        # (`turn_manager.end_turn` :222 vs :292), so resetting there would
+        # wipe the very charges this window is meant to name.
+        world.materiel_spent_this_turn = {}
 
         # Use TurnManager to process everything including ENEMY AI
         from backend.game_logic.turn_manager import TurnManager
@@ -281,11 +290,16 @@ class MetaExecutor:
         # so Income - Occupation - Contributions - War Effort - Dotations -
         # Rentes - Infrastructure - Upkeep + Other == Net == the real delta.
         net_val = treasury - treasury_before_turn
+        # PT-C4: the Butcher's Bill charged during turn processing is INSIDE
+        # this window, so it is named here and removed from the residual.
+        materiel_val = int(getattr(world, "materiel_spent_this_turn", {})
+                           .get(nation, 0))
         other_val = net_val - (income_val + requisitions_val + overseas_val
                                - occupation_val - contributions_val
                                - state_charges_val - dotation_val
                                - rente_val - infrastructure_val
-                               - admiralty_val - blockade_val - upkeep_val)
+                               - admiralty_val - blockade_val - upkeep_val
+                               - materiel_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
         other_str = ""
@@ -301,6 +315,7 @@ class MetaExecutor:
         infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
         admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
         blockade_str = f" | Blockade: -{blockade_val}g" if blockade_val > 0 else ""
+        materiel_str = f" | Materiel: -{materiel_val}g" if materiel_val > 0 else ""
         # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure.
         # EC-U3: the Grande Armée premium is part of that surcharge — name it
         # separately so a France paying a big army-size premium sees why.
@@ -317,7 +332,11 @@ class MetaExecutor:
             surcharge_str = f" (incl. {surcharge_val}g over-limit)"
         else:
             surcharge_str = ""
-        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        # PT-C3: Upkeep was the ONE subtractive term printed bare, sitting
+        # mid-line between nine explicitly-negative siblings — so it read as
+        # an addition. (`Income:` is unsigned too and stays that way: it is
+        # the positive base the line opens on, not a term in a signed run.)
+        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str} | Upkeep: -{upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -1734,12 +1753,27 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             else:
                 # ═══ DEFIANCE ROLL FAILS — marshal obeys reluctantly ═══
                 print(f"  [DEFIANCE] Roll failed for {marshal_name} (roll={defiance_roll:.2f} >= chance={defiance_chance:.2f})")
-                from backend.commands.defiance import apply_defiance_outcome
+                from backend.commands.defiance import (
+                    apply_defiance_outcome,
+                    describe_reluctant_obedience_cost,
+                )
                 outcome_result = apply_defiance_outcome(marshal, "failed_roll", world)
 
                 response_result["trust_change"] = response_result.get("trust_change", 0) + outcome_result["trust_change"]
+                # PT-C1: say the number. The client renders `trust_change`
+                # in exactly one place — inside `_display_defiance_result`,
+                # gated on a `"defiance": True` key this branch never sets —
+                # so the surcharge for obeying resentfully was charged in
+                # silence on the 95% path. Disclosed in the message, which
+                # `_display_result` always renders, rather than by faking
+                # the defiance key: defiance did not fire, and routing it
+                # there would narrate an act of insubordination that did
+                # not happen.
                 response_result["message"] = (
-                    response_result.get("message", "") + "\n\n" + outcome_result["berthier_text"]
+                    response_result.get("message", "") + "\n\n"
+                    + outcome_result["berthier_text"] + " "
+                    + describe_reluctant_obedience_cost(
+                        response_result.get("trust_change", 0))
                 )
 
         # ════════════════════════════════════════════════════════════

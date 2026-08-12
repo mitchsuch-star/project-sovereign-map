@@ -2229,9 +2229,47 @@ def _build_strategic_options(
     compromise: Optional[Dict],
     proceed_text: str,
     compromise_text: Optional[str],
-    strategic_type: str
+    strategic_type: str,
+    concern=None,
 ) -> List[Dict]:
-    """Build options list for strategic objection popup."""
+    """Build options list for strategic objection popup.
+
+    ══════════════════════════════════════════════════════════════════
+    PT-C2 — the buttons quote what the engine will do.
+
+    These three numbers used to be authored constants (-10 / +12 / +3)
+    while the response handler applied the TIER-SCALED values off the
+    same objection dict (`strategic_executor.py:2106-2108` reads
+    `insist_penalty` and `trust_gain`; the options were never consulted).
+    For a WARY marshal at STRONG concern the button read "Proceed -10"
+    and charged -12, and read "Trust +12" and paid +6. -10 is correct
+    only at TRUSTING; +12 only at HOSTILE+EXTREME.
+
+    They are now derived from the marshal through `objection_v2`'s own
+    functions — the same ones the handler resolves against — so the
+    surface calls the executor's predicate instead of keeping a second
+    opinion. `concern` is optional because the eight V1 call sites do
+    not carry one; MODERATE is the floor at which a strategic objection
+    can be raised at all, so it is the honest default rather than a
+    guess.
+    ══════════════════════════════════════════════════════════════════
+    """
+    from backend.commands.objection_v2 import (
+        COMPROMISE_TRUST_GAIN,
+        ConcernLevel,
+        calculate_trust_gain,
+        get_insist_penalty,
+        get_trust_tier,
+    )
+
+    trust_tier = get_trust_tier(marshal.trust.value)
+    insist_penalty = get_insist_penalty(trust_tier)
+    trust_gain = calculate_trust_gain(concern or ConcernLevel.MODERATE,
+                                      trust_tier)
+    # `strategic_executor.py:1424` — a literal marshal's strategic order is
+    # priced at 1, and the button said 2 for everyone.
+    proceed_ap = 1 if getattr(marshal, "personality", "") == "literal" else 2
+
     options = []
 
     # Proceed option (always available)
@@ -2239,8 +2277,8 @@ def _build_strategic_options(
         "type": "proceed",
         "text": proceed_text,
         "description": f"Override {marshal.name}'s objection and execute the order.",
-        "trust_change": -10,
-        "ap_cost": 2,
+        "trust_change": insist_penalty,
+        "ap_cost": proceed_ap,
     })
 
     # Preferred option (if available)
@@ -2265,7 +2303,7 @@ def _build_strategic_options(
             "type": "preferred",
             "text": f"Trust: {desc}",
             "description": f"Accept {marshal.name}'s judgment.",
-            "trust_change": 12,
+            "trust_change": trust_gain,
             "ap_cost": 1,
             "action": preferred.get("action"),
             "target": preferred.get("target"),
@@ -2278,7 +2316,8 @@ def _build_strategic_options(
             "type": "compromise",
             "text": compromise_text,
             "description": f"Find middle ground with {marshal.name}.",
-            "trust_change": 3,
+            # The one number that was already honest — it is flat.
+            "trust_change": COMPROMISE_TRUST_GAIN,
             "ap_cost": 2,
             "compromise": compromise,
         })

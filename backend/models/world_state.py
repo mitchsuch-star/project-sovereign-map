@@ -739,6 +739,12 @@ class WorldState:
         # Reset at start of each turn in advance_turn()
         # Format: {nation: total_gold_spent_this_turn}
         self.gold_spent_this_turn: Dict[str, int] = {}
+        # PT-C4: the EC-W3 Butcher's Bill, tallied per nation for the span
+        # of one end-turn report. The bill mutates the treasury directly and
+        # declares no Net component, so the enemy-phase copy landed inside
+        # the banner's measured window and disappeared into `Other`. Opened
+        # (reset) at the same instant the window opens, in `_execute_end_turn`.
+        self.materiel_spent_this_turn: Dict[str, int] = {}
 
         # Future expansion hooks (not yet used)
 
@@ -6029,6 +6035,7 @@ class WorldState:
 
             # ═══════ ECONOMY TRACKING ═══════
             "gold_spent_this_turn": self.gold_spent_this_turn.copy(),
+            "materiel_spent_this_turn": self.materiel_spent_this_turn.copy(),
 
             # ═══════ ENEMY AI ═══════
             "nation_starting_regions": {k: list(v) for k, v in self.nation_starting_regions.items()},
@@ -6612,6 +6619,8 @@ class WorldState:
         world.mild_concerns_this_turn = [c.copy() for c in data.get("mild_concerns_this_turn", [])]
         world.objection_popups_this_turn = set(data.get("objection_popups_this_turn", []))
         world.gold_spent_this_turn = data.get("gold_spent_this_turn", {}).copy()
+        world.materiel_spent_this_turn = data.get(
+            "materiel_spent_this_turn", {}).copy()
 
         # ═══════ ENEMY AI ═══════
         starting_regions_data = data.get("nation_starting_regions")

@@ -916,21 +916,47 @@ class StrategicExecutor:
                             )
                         if relationship_concern >= ConcernLevel.MODERATE and not v1_options:
                             # Build relationship-specific options with timed SUPPORT compromise
+                            #
+                            # PT-C2, found by the verification fleet: these
+                            # three used the type names `insist`/`trust`/
+                            # `compromise` while `_setup_strategic_buttons`
+                            # matches on `proceed`/`preferred`, and they
+                            # carried NO `trust_change` and NO `ap_cost` at
+                            # all — so Insist and Trust rendered with no
+                            # numbers whatsoever and Compromise fell back to
+                            # the client's own literals. Same names, same
+                            # derived numbers as every other strategic
+                            # objection.
+                            from backend.commands.objection_v2 import (
+                                COMPROMISE_TRUST_GAIN as _CTG,
+                                calculate_trust_gain as _ctg,
+                                get_insist_penalty as _gip,
+                                get_trust_tier as _gtt,
+                            )
+                            _tier = _gtt(marshal.trust.value)
+                            _literal = getattr(marshal, "personality", "") == "literal"
                             v1_options = [
                                 {
-                                    "type": "insist",
+                                    "type": "proceed",
                                     "text": f"Insist: SUPPORT {target} as ordered",
+                                    "trust_change": _gip(_tier),
+                                    "ap_cost": 1 if _literal else 2,
                                 },
                                 {
-                                    "type": "trust",
+                                    "type": "preferred",
                                     "text": "Trust: Cancel the SUPPORT order",
                                     "action": "cancel",
                                     "target": target,
+                                    "trust_change": _ctg(relationship_concern,
+                                                         _tier),
+                                    "ap_cost": 1,
                                 },
                                 {
                                     "type": "compromise",
                                     "text": "Compromise: Timed SUPPORT (3 turns)",
                                     "compromise": {"max_turns": 3},
+                                    "trust_change": _CTG,
+                                    "ap_cost": 2,
                                 },
                             ]
 
@@ -947,7 +973,11 @@ class StrategicExecutor:
                                 compromise,
                                 f"Proceed with {display_type}",
                                 f"Accept: Timed {display_type} (3 turns)",
-                                strategic_type
+                                strategic_type,
+                                # PT-C2: this is the one site that knows the
+                                # real concern, so it hands it over rather
+                                # than letting the builder assume the floor.
+                                concern=strategic_concern,
                             )
 
                         # V2b: Use relationship message if this is a relationship-triggered SUPPORT objection
@@ -2270,9 +2300,19 @@ class StrategicExecutor:
                 # ═══ STRATEGIC DEFIANCE ROLL FAILS — marshal obeys reluctantly ═══
                 print(f"  [DEFIANCE] Strategic roll failed for {marshal_name} "
                       f"(roll={defiance_roll:.2f} >= chance={defiance_chance:.2f})")
-                from backend.commands.defiance import apply_defiance_outcome
+                from backend.commands.defiance import (
+                    apply_defiance_outcome,
+                    describe_reluctant_obedience_cost,
+                )
                 outcome_result = apply_defiance_outcome(marshal, "failed_roll", world)
-                _failed_roll_berthier = outcome_result["berthier_text"]
+                # PT-C1, the strategic twin: the same undisclosed surcharge,
+                # the same silence. `_display_defiance_result` is unreachable
+                # here too — this branch sets no `"defiance"` key.
+                _failed_roll_berthier = (
+                    outcome_result["berthier_text"] + " "
+                    + describe_reluctant_obedience_cost(
+                        int(v2_insist_penalty or 0)
+                        + int(outcome_result["trust_change"])))
 
             # Trust penalty was already applied above — zero out to prevent
             # _handle_strategic_objection_response from applying it again.

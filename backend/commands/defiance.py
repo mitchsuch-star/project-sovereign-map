@@ -17,6 +17,27 @@ from typing import Optional
 
 from backend.commands.objection_v2 import ConcernLevel
 
+# ══════════════════════════════════════════════════════════════════════
+# PT-C1 — the surcharge for obeying resentfully, named.
+#
+# It was an anonymous `-3` applied inside `apply_defiance_outcome`, on
+# top of the `insist_penalty` the button quoted. Nothing disclosed it:
+# the failed-roll result never writes `"defiance": True`, and
+# `main.gd:3198` gates the only `trust_change` render in the entire
+# client on exactly that key — so the branch that would have shown the
+# number is unreachable on the path that charges it.
+#
+# It is not an edge case. `calculate_defiance_chance` is 0.05 at
+# MODERATE, so the failed roll — the branch carrying this surcharge —
+# is what happens 95% of the time.
+#
+# Measured consequence: Bernadotte at trust 17 lands on 2 at the quoted
+# -15 and on 0 at the real -18, and 0 is what fires the redemption event
+# that PT-B1 then destroyed. Which is why the spec says fix them
+# together — the second bug hid the first.
+# ══════════════════════════════════════════════════════════════════════
+RELUCTANT_OBEDIENCE_PENALTY = -3
+
 
 def calculate_defiance_chance(marshal, concern_level, world) -> float:
     """Calculate probability of marshal defying a direct order.
@@ -225,6 +246,21 @@ def get_berthier_defiance_text(outcome_type: str, marshal_name: str, action_desc
 # DEFIANCE OUTCOME TABLE — apply consequences after defiance resolves
 # ════════════════════════════════════════════════════════════════════════════
 
+def describe_reluctant_obedience_cost(total_trust_change: int) -> str:
+    """PT-C1: one sentence, one source, for the cost the button did not quote.
+
+    Reads the TOTAL applied change rather than re-deriving it, so the
+    sentence cannot drift from the charge — and names the surcharge
+    separately, because the base penalty is the one the player already
+    accepted on the button.
+    """
+    total = int(total_trust_change)
+    surcharge = RELUCTANT_OBEDIENCE_PENALTY
+    base = total - surcharge
+    return (f"(Trust {total:+d} in all — {base:+d} for the order pressed "
+            f"home, {surcharge:+d} more for the manner of his obedience.)")
+
+
 def apply_defiance_outcome(marshal, outcome, world):
     """Apply the 4-row defiance outcome table.
 
@@ -247,13 +283,13 @@ def apply_defiance_outcome(marshal, outcome, world):
 
     if outcome == "failed_roll":
         # Roll fails, marshal obeys reluctantly
-        result["trust_change"] = -3
+        result["trust_change"] = RELUCTANT_OBEDIENCE_PENALTY
         result["authority_change"] = 0
         result["cooldown_turns"] = 1
         result["outcome_type"] = "failed_roll"
 
         # Apply
-        marshal.modify_trust(-3)
+        marshal.modify_trust(RELUCTANT_OBEDIENCE_PENALTY)
         old_v = marshal.vindication_score
         marshal.vindication_score = 0  # Reset
         result["vindication_change"] = marshal.vindication_score - old_v
