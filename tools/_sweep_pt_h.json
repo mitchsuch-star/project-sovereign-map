@@ -1,0 +1,93 @@
+[
+ {
+  "id": "PT-H1 the suggestion is appended",
+  "file": "backend/main.py",
+  "old": "    return f\"{message}\\n{suggestion}\" if message else suggestion",
+  "new": "    return message",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H1 it is never doubled",
+  "file": "backend/main.py",
+  "old": "    if not suggestion or suggestion in message:",
+  "new": "    if not suggestion:",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H1 the main path runs it",
+  "file": "backend/main.py",
+  "old": "        message=_message_with_suggestion(result) or \"Command executed\",",
+  "new": "        message=result.get(\"message\", \"Command executed\"),",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H3 the demonym is remembered",
+  "file": "backend/commands/parser.py",
+  "old": "                    _hint = demonym_to_nation(command_text, world)\n                    if _hint:\n                        result[\"command\"][\"target_nation_hint\"] = _hint",
+  "new": "                    pass",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H3 the inverse resolves",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "        if demonym in tokens or (demonym + \"s\") in tokens:\n            return str(nation)",
+  "new": "        if False:\n            return str(nation)",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H3 the executor filters on the hint",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if _nation_hint and enemy.nation != _nation_hint:\n                        return False",
+  "new": "                    if False:\n                        return False",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H3 it says so when nobody is in reach",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if result is None and _nation_hint:",
+  "new": "                if False:",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H4 the levy asks for a recipient",
+  "file": "backend/commands/economy_executor.py",
+  "old": "                     and recipient),",
+  "new": "                     ),",
+  "tests": "tests/test_pt_h_parser_affordance.py tests/test_ec_levy_and_camp.py"
+ },
+ {
+  "id": "PT-H4 the recipient is looked up",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        recipient = world.find_nearest_marshal_to_region(capital)",
+  "new": "        recipient = True",
+  "tests": "tests/test_pt_h_parser_affordance.py tests/test_ec_levy_and_camp.py"
+ },
+ {
+  "id": "PT-H4 the escalated variants keep the condition",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        \"{amount} foot in the line at {capital}, where a marshal must \"\n        \"stand to receive them; the conscripts do not improve with \"\n        \"keeping.\",",
+  "new": "        \"{amount} foot in the line; the conscripts do not improve with \"\n        \"keeping.\",",
+  "tests": "tests/test_pt_h_parser_affordance.py tests/test_ec_levy_and_camp.py"
+ },
+ {
+  "id": "PT-H5 the refusal names the blocker",
+  "file": "backend/main.py",
+  "old": "                    refusal_msg += (\n                        f\"\\n\\n{_objector} still awaits your answer, Sire. \"\n                        f\"Reply {_answer_words(_choices)}.\")",
+  "new": "                    pass",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H5 the import is aliased",
+  "file": "backend/main.py",
+  "old": "                        format_answer_words as _answer_words,",
+  "new": "                        format_answer_words,",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ },
+ {
+  "id": "PT-H6 counter-punch promises one turn",
+  "file": "backend/commands/combat_executor.py",
+  "old": "Use it THIS turn or the opportunity expires.",
+  "new": "Use within 2 turns or the opportunity expires.",
+  "tests": "tests/test_pt_h_parser_affordance.py"
+ }
+]

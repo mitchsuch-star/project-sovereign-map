@@ -54,9 +54,27 @@ def _french(world):
 
 
 def _maul(world, factor=0.38):
-    """Take France down to roughly the turn-12 state of the played campaign."""
+    """Take France down to roughly the turn-12 state of the played campaign.
+
+    PT-H4 (August 12, 2026): this now also brings one marshal home.
+
+    `open` acquired the executor's DECISIVE gate — is there a marshal who
+    can actually receive the men — and on the 1805 boot the answer is no:
+    every French marshal is in Germany or Italy and infantry
+    `movement_range` is 1. That is not a fixture inconvenience, it is
+    CA8-11's measured failure ("10,000 foot cost 450 gold at Paris" ->
+    "No marshal is available…"), and these pins were asserting an offer
+    the executor would refuse.
+
+    Stationing a marshal at the capital is the player's own remedy, so
+    the fixture now models a board on which the offer is real.
+    """
     for m in _french(world):
         m.strength = int(m.strength * factor)
+    capital = world.get_nation_capital("France")
+    french = _french(world)
+    if capital and french:
+        french[0].location = capital
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -104,6 +122,22 @@ class TestLevyStatus:
         _maul(world)
         world.manpower_pools["France"]["infantry"] = 0
         assert get_levy_status(world)["open"] is False
+
+    def test_no_marshal_in_reach_keeps_the_gate_shut(self):
+        """PT-H4. Headroom and a full pool are not an offer if nobody can
+        collect: `find_nearest_marshal_to_region` filters on
+        `distance > movement_range`, and infantry range is 1."""
+        world = _europe()
+        _maul(world)
+        assert get_levy_status(world)["open"] is True
+        for m in _french(world):
+            m.location = "Naples"          # every marshal far from Paris
+        levy = get_levy_status(world)
+        assert levy["open"] is False
+        assert levy["recipient_in_range"] is False
+        assert levy["headroom"] > 0, (
+            "the gate must be shut by the RECIPIENT, not by headroom — "
+            "otherwise this pins the wrong term")
 
     def test_the_legacy_world_has_no_establishment(self):
         """force_limit 0 is the existing 'do not render' sentinel (GR2)."""
@@ -158,7 +192,13 @@ class TestLevyHeadline:
         assert all(t for t in seen)
         # Two at the base wording, then the ladder must say something new.
         assert len(set(seen)) >= 3, seen
-        assert any("nobody has asked for them" in t for t in seen), seen
+        # PT-H4: "nobody has asked for them" -> "nobody has gone to collect
+        # them". CA8-11 added the recipient condition to the BASE template
+        # and the escalated variants dropped it — and from run 3 onward the
+        # escalated wording is what the player sees, forever. Every variant
+        # now names the place a marshal must stand.
+        assert any("nobody has gone to collect them" in t for t in seen), seen
+        assert all("Paris" in t for t in seen), seen
 
     def test_it_never_outranks_a_wound(self):
         """An opportunity sits below every crisis — pin 13's discipline."""

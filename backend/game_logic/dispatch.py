@@ -200,11 +200,12 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
     ],
     "levy_open": [
         "Sire — {turns} turns now with the establishment under the ordinance "
-        "and the depots standing full. {headroom} men, and nobody has asked "
-        "for them.",
+        "and the depots standing full. {headroom} men at {capital}, and "
+        "nobody has gone to collect them.",
         "Sire — the levy has stood open {turns} turns. {price} gold puts "
-        "{amount} foot in the line at {capital}; the conscripts do not "
-        "improve with keeping.",
+        "{amount} foot in the line at {capital}, where a marshal must "
+        "stand to receive them; the conscripts do not improve with "
+        "keeping.",
     ],
 }
 

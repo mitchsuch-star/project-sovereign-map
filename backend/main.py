@@ -461,10 +461,15 @@ def _build_result_response(result: dict, world, drain_popups: bool = True) -> di
         cleaned_phase = _build_visible_enemy_phase(extra.pop("enemy_phase"), world)
         if cleaned_phase is not None:
             extra["enemy_phase"] = cleaned_phase
+    # PT-H1: the early-return paths reach the wire with `suggestion`
+    # intact and no client reads it. Same seam, same treatment. Computed
+    # BEFORE the pops, because it reads both keys.
+    _message = _message_with_suggestion(extra)
+    extra.pop("message", None)
     response = build_base_response(
         world,
         success=extra.pop("success", False),
-        message=extra.pop("message", ""),
+        message=_message,
         events=extra.pop("events", []),
         include_popup_passthroughs=drain_popups,
         **extra
@@ -485,7 +490,7 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     response = build_base_response(
         world,
         success=result.get("success", False),
-        message=result.get("message", "Command executed"),
+        message=_message_with_suggestion(result) or "Command executed",
         events=result.get("events", []),
         include_popup_passthroughs=False,
         queue_informational_notices=False,
@@ -497,6 +502,31 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     if feedback:
         response["feedback"] = feedback
     return response
+
+
+def _message_with_suggestion(result: dict) -> str:
+    """PT-H1 — the executor's recovery hint finally reaches the player.
+
+    43 `"suggestion":` literals across nine backend files build a
+    concrete next step — "Try 'move to Rhineland' to get closer first",
+    "Targets in range: Mack, Charles" — and there is NO consumer, on
+    either side. `main.py` contains the word exactly once, in a comment;
+    `main.gd` contains it zero times. On the main path it does not even
+    reach the wire: `_copy_truthy_result_fields` reads a fixed allowlist
+    that omits it, so the key is discarded at the API boundary. One of
+    108 responses in the campaign contained the word at all.
+
+    Appended to the MESSAGE rather than wired as a new field, because
+    that covers all 43 producers at one seam and needs no client change —
+    and because PT-H1 is PT-H2's root cause: the refusal that told the
+    player "Range: 1, Distance: 2" and nothing else was carrying the
+    working synonym the whole time.
+    """
+    message = str(result.get("message", "") or "")
+    suggestion = str(result.get("suggestion", "") or "").strip()
+    if not suggestion or suggestion in message:
+        return message
+    return f"{message}\n{suggestion}" if message else suggestion
 
 
 _COMMAND_RESULT_SIMPLE_FIELDS = (
@@ -2381,8 +2411,42 @@ def execute_command(request: CommandRequest):
                         "out, Sire — I have relayed nothing. If a standing "
                         "order is to be stood down, say 'cancel his order'; "
                         "otherwise tell me what the marshal IS to do.\"")
+                # ══════════════════════════════════════════════════════
+                # PT-H5: this path bypassed CA9-N5's option-naming helper.
+                #
+                # It returns BEFORE `executor.execute`, so the block at
+                # `executor.py:531-562` — the one that names the objecting
+                # marshal and quotes "'trust', 'insist' or 'compromise'" —
+                # is never reached. With an objection pending, a
+                # clause-guard-refused sentence got "Then no order goes
+                # out, Sire…" while every real order stayed blocked, and
+                # the words that clear the block were stated nowhere in
+                # the response. Same shape as the bug the `:2175` comment
+                # calls gaslighting, one branch over.
+                # ══════════════════════════════════════════════════════
+                _pending_obj = getattr(world, "pending_objection", None)
+                if _pending_obj:
+                    # ALIASED deliberately: a bare local import here binds
+                    # the name for the WHOLE function, and the objection
+                    # re-prompt at `:2347` already uses the module-level
+                    # `format_answer_words` — which a local import turns
+                    # into an UnboundLocalError at a line that had not
+                    # changed.
+                    from backend.commands.dialogue_routing import (
+                        format_answer_words as _answer_words,
+                    )
+                    _choices = ["trust", "insist"]
+                    if (_pending_obj.get("suggested_alternative")
+                            or _pending_obj.get("compromise")
+                            or _pending_obj.get("alternative")):
+                        _choices.append("compromise")
+                    _objector = _pending_obj.get("marshal", "A marshal")
+                    refusal_msg += (
+                        f"\n\n{_objector} still awaits your answer, Sire. "
+                        f"Reply {_answer_words(_choices)}.")
                 return build_base_response(
                     world, success=False, message=refusal_msg,
+                    objection=_pending_obj if _pending_obj else None,
                     action_info={
                         "cost": 0,
                         "remaining": int(world.actions_remaining),

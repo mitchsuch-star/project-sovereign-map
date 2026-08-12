@@ -80,6 +80,34 @@ NON_REGION_TARGET_PHRASES = (
 from backend.display_names import NATION_DEMONYMS as _NATION_DEMONYM_OVERRIDES
 
 
+def demonym_to_nation(token: str, world) -> str:
+    """PT-H3: the nation a demonym names, or "".
+
+    The inverse of `_nation_demonyms`, built from the same roster and the
+    same overrides so the two cannot drift. The parser drops a demonym
+    target to None BY DESIGN (the "Austrians" -> Asturias fix); this is
+    what lets the executor still honour the nation the player named.
+    """
+    if not token or world is None:
+        return ""
+    get_nations = getattr(world, "get_active_nations", None)
+    if not callable(get_nations):
+        return ""
+    try:
+        nations = get_nations() or []
+    except Exception:
+        return ""
+    tokens = {t for t in re.findall(r"[A-Za-z]+", str(token).lower())}
+    for nation in nations:
+        base = str(nation).lower()
+        demonym = _NATION_DEMONYM_OVERRIDES.get(base)
+        if demonym is None:
+            demonym = base + "n" if base.endswith("a") else base + "ian"
+        if demonym in tokens or (demonym + "s") in tokens:
+            return str(nation)
+    return ""
+
+
 def _nation_demonyms(world) -> list:
     """Demonym forms ("austrian", "austrians") for the live nation roster.
 

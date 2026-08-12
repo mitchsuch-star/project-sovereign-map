@@ -17,7 +17,9 @@ from backend.ai.clause_guards import strip_negated_clauses
 from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.nation_names import resolve_typed_nation
-from backend.ai.strategic_parser import detect_strategic_command, _nation_demonyms
+from backend.ai.strategic_parser import (
+    detect_strategic_command, _nation_demonyms, demonym_to_nation,
+)
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
 # CR-0: split camelCase scenario keys ("ArchdukeCharles") into their typed
@@ -170,6 +172,17 @@ def _plausible_name_typo(word: str, candidate: str) -> bool:
         return False
     limit = 2 if len(word) >= 6 else 1
     return _edit_distance_at_most(word.lower(), candidate.lower(), limit)
+
+
+# PT-H3: promoted from a method local so the demonym-hint stamp at the
+# end of `parse` reads the SAME set the drop rules read, rather than a
+# second copy that could drift.
+VASSAL_FAMILY_ACTIONS = ("invest_vassal", "release_vassal",
+                         "make_vassal", "change_autonomy",
+                         "grant_region_to_vassal",
+                         # AI-2b: instrument targets are nations too
+                         "sponsor_design", "buy_off_design",
+                         "guarantee_nation")
 
 
 def _is_nation_demonym(target: Optional[str], world) -> bool:
@@ -708,12 +721,7 @@ class CommandParser:
         # CR-0: vassal-family targets are NATION names — never rewrite them
         # to regions/enemies ("invest in Austria" must not become the
         # Spanish region Asturias)
-        _VASSAL_ACTIONS = ("invest_vassal", "release_vassal",
-                           "make_vassal", "change_autonomy",
-                           "grant_region_to_vassal",
-                           # AI-2b: instrument targets are nations too
-                           "sponsor_design", "buy_off_design",
-                           "guarantee_nation")
+        _VASSAL_ACTIONS = VASSAL_FAMILY_ACTIONS
         # IGR-A3: a bare NATION name ("move to Austria") is neither a province
         # nor a demonym. It must not be fuzzy-rewritten — that marched Ney to
         # Asturias, and "Britain" to Brittany — and it must NOT be nulled
@@ -742,6 +750,19 @@ class CommandParser:
                 and not _typed_nation
                 and llm_result.get("action") not in _VASSAL_ACTIONS
                 and _is_nation_demonym(llm_result["target"], world)):
+            # ══════════════════════════════════════════════════════════
+            # PT-H3. ⚠ The DROP is correct and stays — it is the fix for
+            # "the Austrians" -> the Spanish province Asturias. What was
+            # missing is that the nation the player NAMED was discarded
+            # with it and never re-applied, so `Murat, attack the
+            # Austrians` sent him at Shrapnel (British) one turn after an
+            # armistice with Austria, and said nothing about it.
+            #
+            # The nation he named is stamped ONCE at the end of `parse`,
+            # from the raw sentence — not here. Two drop sites plus a mock
+            # parser that never produces a demonym at all is three places
+            # to keep in step; the tail stamp is path-independent.
+            # ══════════════════════════════════════════════════════════
             llm_result["target"] = None
         if (llm_result.get("target")
                 and not _typed_nation
@@ -1216,6 +1237,27 @@ class CommandParser:
                     result["warning"] = (f"{result['warning']} {sequel_note}"
                                          if result.get("warning") else sequel_note)
                     result["dropped_sequel"] = dropped_sequel
+
+                # ══════════════════════════════════════════════════════
+                # PT-H3: stamp the court the player NAMED, from the raw
+                # sentence, once — here rather than beside either drop
+                # site, because the two paths drop a demonym in different
+                # ways and the MOCK parser never produces one at all
+                # (it omits the target deliberately, mirroring the LLM
+                # rule). A stamp beside the drops covers the live path
+                # only, which is exactly what the mutation sweep caught.
+                #
+                # The DROP itself is untouched — it is the fix for
+                # "the Austrians" -> the Spanish province Asturias.
+                # ══════════════════════════════════════════════════════
+                if (world is not None
+                        and isinstance(result.get("command"), dict)
+                        and not result["command"].get("target")
+                        and result["command"].get("action")
+                        not in VASSAL_FAMILY_ACTIONS):
+                    _hint = demonym_to_nation(command_text, world)
+                    if _hint:
+                        result["command"]["target_nation_hint"] = _hint
 
                 return result
             else:

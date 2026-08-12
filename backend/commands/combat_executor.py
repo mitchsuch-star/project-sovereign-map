@@ -1900,7 +1900,15 @@ class CombatExecutor:
                         notification_type=COUNTER_PUNCH_EARNED,
                         priority=NotificationPriority.HIGH,
                         title=f"{defender.name} — free attack!",
-                        message=f"{defender.name} earned a free attack from their defensive victory. Use within 2 turns or the opportunity expires.",
+                        # PT-H6: ONE usable turn, not two. The notification
+                        # fires on an ENEMY-PHASE defensive win, and
+                        # `_process_tactical_states` ticks the counter
+                        # inside the same `advance_turn` — so `turns` is
+                        # already 1 when the player regains control and
+                        # 0 at his next end turn. `combat.py:701`'s own
+                        # comment says "Survives one turn transition"; the
+                        # copy said two.
+                        message=f"{defender.name} earned a free attack from their defensive victory. Use it THIS turn or the opportunity expires.",
                         turn_created=int(world.current_turn),
                         details={"marshal": defender.name},
                     ))
@@ -3816,16 +3824,45 @@ class CombatExecutor:
         # only on a SPECIFIC name the player typed that resolution overrode.
         _target_auto_resolved = False
 
+        # PT-H3: the nation the player NAMED. `parser.py` drops a demonym
+        # target to None by design (the "Austrians" -> Asturias fix) and
+        # nothing ever re-applied the nation, so `Murat, attack the
+        # Austrians` sent him at Shrapnel — BRITISH — one turn after
+        # signing an armistice with Austria, and never said so.
+        # `find_nearest_enemy` has no nation parameter on either side.
+        _nation_hint = str((command or {}).get("target_nation_hint", "") or "")
+
         # Handle None target - find nearest enemy for this marshal
         if not target:
             # Find the nearest enemy to this specific marshal
             # FOG-AWARE (Session 37): Player marshals only auto-target visible enemies
             if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
                 from backend.models.intel import FULL as _FULL, PARTIAL as _PARTIAL
+
+                def _visible_and_named(enemy) -> bool:
+                    if world.get_region_intel(enemy.location).visibility \
+                            not in (_FULL, _PARTIAL):
+                        return False
+                    if _nation_hint and enemy.nation != _nation_hint:
+                        return False
+                    return True
+
                 result = world.find_nearest_enemy(
-                    marshal.location,
-                    filter_fn=lambda e: world.get_region_intel(e.location).visibility in (_FULL, _PARTIAL)
-                )
+                    marshal.location, filter_fn=_visible_and_named)
+                if result is None and _nation_hint:
+                    # He named a court with nobody in reach. Say THAT,
+                    # rather than silently attacking somebody else.
+                    from backend.display_names import display_nation
+
+                    return {
+                        "success": False,
+                        "message": (
+                            f"No {display_nation(_nation_hint)} force is "
+                            f"within {marshal.name}'s reach, Sire."),
+                        "suggestion": (
+                            "Name the marshal you mean, or move him closer "
+                            "first."),
+                    }
             else:
                 # C2 fix: Use nation-aware lookup for AI marshals to prevent same-nation targeting
                 result = world._find_nearest_enemy_for_nation(marshal.location, marshal.nation)

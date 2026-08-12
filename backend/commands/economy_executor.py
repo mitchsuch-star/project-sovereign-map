@@ -1651,7 +1651,30 @@ def get_levy_status(world, nation: str = None) -> dict:
             nation=nation))
 
     headroom = max(0, limit - total) if limit else 0
+    # ══════════════════════════════════════════════════════════════════
+    # PT-H4: the gate must include the executor's DECISIVE gate.
+    #
+    # `open` checked headroom and pool and never asked the question
+    # `_execute_recruit` asks FIRST: is there a marshal who can reach the
+    # depot? `find_nearest_marshal_to_region` filters on strength >= 1000
+    # AND `distance > movement_range` — infantry range is 1 — so in the
+    # state a Napoleonic campaign is normally in, every marshal in Germany
+    # or Italy, the answer is no.
+    #
+    # This is CA8-11's own measured failure: the headline advertised
+    # "10,000 foot cost 450 gold at Paris" and `recruit 10000 infantry at
+    # Paris` answered "No marshal is available…". The base template was
+    # fixed to name the condition; the PREDICATE never was, so the
+    # headline still fired.
+    # ══════════════════════════════════════════════════════════════════
+    # `find_nearest_marshal_to_region` takes the REGION only and is
+    # player-scoped, so the recipient term applies to the player's own
+    # levy — which is the only levy this status renders.
+    recipient = None
+    if capital and nation == world.player_nation:
+        recipient = world.find_nearest_marshal_to_region(capital)
     return {
+        "recipient_in_range": bool(recipient),
         "force_limit": int(limit),
         "army_strength": int(total),
         # Positive only on ONE side each — the two are never both non-zero,
@@ -1666,5 +1689,6 @@ def get_levy_status(world, nation: str = None) -> dict:
         # campaign had headroom from turn 12 and a full pool, and was told
         # about neither.
         "open": bool(limit and headroom >= INFANTRY_RECRUIT_AMOUNT
-                     and pool >= INFANTRY_RECRUIT_AMOUNT),
+                     and pool >= INFANTRY_RECRUIT_AMOUNT
+                     and recipient),
     }
