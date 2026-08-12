@@ -9,12 +9,20 @@
 > **All eight slices landed in spec order**, commits `297b939`..`769a3cb`.
 > **Landing record = `docs/PLAYTEST_FIXES_SPEC.md` §7, authoritative.**
 >
-> **Suite 17,144 → 17,347 / 3 skipped · ruff clean · Godot parse harness
+> **Suite 17,144 → 17,356 / 3 skipped · ruff clean · Godot parse harness
 > EXIT=0 · boot smoke 0 `SCRIPT ERROR` · M1–M7 and `BASELINE_SERIES`
 > byte-identical throughout, no re-record on any slice.**
-> 192 new tests across `tests/test_pt_{a..h}_*.py`; **122 mutations swept,
+> 201 new tests across `tests/test_pt_{a..h}_*.py`; **122 mutations swept,
 > 122 killed, 0 inert at close** (harness committed at
 > `tools/mutation_sweep.py`, sets at `tools/_sweep_pt_*.json`).
+>
+> **A 76-agent find-then-refute review then took nine more seams** (spec
+> §7.5a) — and the headline is the row's own joke on itself: **PT-F1 had
+> shipped PRODUCTION-DEAD**, because its five pins asserted the producer, the
+> forwarder and the renderer as source text in three separate files and
+> nothing exercised the joint. PT-E1 double-rendered by one frame; PT-D6's
+> clamp was inert on every coordinated battle; and three raw-key renders
+> survived in blocks this row had just fixed.
 >
 > **The through-line is closed.** All eight of the spec's §1 rows — an honest
 > computation destroyed one seam downstream — are fixed, and PT-A's three

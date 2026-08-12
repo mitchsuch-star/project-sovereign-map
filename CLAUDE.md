@@ -44,13 +44,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 12, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,347 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,356 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
 > **▶ ROW PT IS BUILD-COMPLETE (August 12, 2026).** All eight slices landed in
 > spec order, commits `297b939`..`769a3cb`; **landing record =
 > `docs/PLAYTEST_FIXES_SPEC.md` §7, authoritative**; routing =
-> `docs/STATUS.md` §NEXT UP. 192 new tests; **122 mutations swept, 122 killed,
-> 0 inert at close** (`tools/mutation_sweep.py` + `tools/_sweep_pt_*.json`);
+> `docs/STATUS.md` §NEXT UP. 201 new tests; **122 mutations swept, 122 killed,
+> 0 inert at close**, plus a 76-agent find-then-refute review that took NINE
+> more seams the row's own pins did not bind (spec §7.5a — headline: PT-F1 had
+> shipped production-dead) (`tools/mutation_sweep.py` + `tools/_sweep_pt_*.json`);
 > M1–M7 and `BASELINE_SERIES` byte-identical throughout, no re-record on any
 > slice. The CA9 through-line — *every system computes the right answer and
 > then tells the player a different one* — is closed at all eight seams the

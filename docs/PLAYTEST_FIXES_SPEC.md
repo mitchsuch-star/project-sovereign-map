@@ -702,6 +702,31 @@ Lannes and Ney on one line; a `*31` polynomial collapsed back to that sum mod 3
 and five of six French marshals still shared a line), and **PT-E5's first draft
 read a `region_captured` event that never reaches the executor's `events` list**.
 
+### 7.5a The review round — nine more seams, and the row's own joke on itself
+
+A **76-agent find→refute fleet** over the whole diff (commit `87bc137`).
+35 findings, ~21 distinct; those below survived two refuters each and several
+were reproduced by live probe. **Every one is this row's own subject** — a right
+computation dropped at a seam — which is the argument for running the fleet
+after the build as well as before it.
+
+* **P1 — PT-F1 shipped PRODUCTION-DEAD.** `_execute_end_turn` does not forward
+  `turn_result`; it builds a fresh dict and hand-copies a fixed key set, and
+  `jealousy_attacks` was not in it. **Five green pins missed it because they
+  asserted the producer, the forwarder and the renderer as source text in three
+  separate files and nothing exercised the joint.** The auto-advance mirror had
+  the identical hole.
+* **P1 — PT-E1 double-rendered.** The prune ran one frame early: it fires BEFORE
+  the increment, so an event queued by a system *inside* `advance_turn` carries
+  the new turn and survived the next cycle's prune too. The queue is now retired
+  **where it is consumed**, which is exact by construction.
+* **P1 — PT-D6's clamp was inert on every coordinated battle.** `combat.py` has
+  two `log_battle_event` builders; only the solo one was stamped.
+* **P2** — `route_fogged` was a flag nothing read; PT-A1's own re-serve handed
+  back the RAW petition and re-created IGR-1 on the way out; PT-C2 still split
+  shown from applied in two places; and three raw-key renders survived **in
+  blocks this row had just fixed**.
+
 ### 7.6 Still open, unchanged by this row
 
 * **§4's four items still need a user ruling** — PT-I1 (the armistice ejects the
