@@ -4343,6 +4343,23 @@ class CombatExecutor:
 
                     # Move attacker to captured region
                     marshal.move_to(resolved_target)
+                    # ══════════════════════════════════════════════════
+                    # PT-F2: taking a province is not idling.
+                    #
+                    # This arm calls `move_to` and never touched the
+                    # counter, while `movement_executor.py:497` does it
+                    # for a plain march and the "march one step closer"
+                    # arm of THIS function does it at `:3712`. So the
+                    # counter carried the entire PRE-capture history
+                    # across the conquest. Measured: Massena took
+                    # Provence on turn 5, the truthful values at turns
+                    # 6/7/8 are 0/1/2 — all below the `idle_restless`
+                    # gate of >= 3 — so all three renders were spurious.
+                    # `idle_turns` feeds two jealousy gates as well as
+                    # the dispatch and the marshal card.
+                    # ══════════════════════════════════════════════════
+                    marshal.idle_turns = 0
+                    marshal._acted_this_turn = True
 
                     # Movement attrition (Phase 6.2.F)
                     attrition_info = self._executor._calculate_movement_attrition(marshal, resolved_target, world)

@@ -1916,6 +1916,16 @@ func _on_command_result(response):
 		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions
 		# (e.g. debug freeze_enemies). The dialog handles 0-action case with
 		# "No enemy actions this turn." message.
+		# ═══ PT-F1: the autonomous glory attacks ═══
+		# Rendered BEFORE the enemy phase, which is the order they were
+		# fought in (`turn_manager.end_turn` fires them, then the enemy
+		# answers). Reuses `_display_battle_result` deliberately: that is
+		# the render chokepoint where the "⚔ View the field" link and the
+		# diorama stash live, structurally inseparable since BD §14.1 —
+		# so the marquee beat of the Jealousy system gets the same
+		# treatment as any battle the player ordered himself.
+		_display_jealousy_attacks(response)
+
 		if response.has("enemy_phase"):
 			if DEBUG_VERBOSE:
 				print("ENEMY PHASE DETECTED - showing dialog")
@@ -4044,6 +4054,47 @@ func _on_glorious_charge_response(response):
 # ════════════════════════════════════════════════════════════════════════════
 # STRATEGIC COMMAND UI (Phase J)
 # ════════════════════════════════════════════════════════════════════════════
+
+func _display_jealousy_attacks(response) -> void:
+	"""PT-F1: show the battle a marshal fought without being ordered to.
+
+	`process_autonomous_attacks` returns the full executor result for
+	every attack it fires and it was assigned to a local nothing read.
+	The player was told "Murat, hungry for glory, has attacked Archduke
+	John on his own initiative." and shown nothing else — no battle, no
+	report, no casualties, no diorama — while Murat lost 3,387 men with
+	no event to explain it. Reproduced on all four of the campaign's
+	autonomous attacks.
+	"""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var attacks = response.get("jealousy_attacks", [])
+	if typeof(attacks) != TYPE_ARRAY or attacks.is_empty():
+		return
+	for attack in attacks:
+		if typeof(attack) != TYPE_DICTIONARY:
+			continue
+		var who = str(attack.get("jealousy_autonomous", "A marshal"))
+		add_output("")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]⚔ "
+			+ Utils.humanize_nation_keys_in_text(who)
+			+ " went in without orders:[/color]")
+		var events = attack.get("events", [])
+		var battle_event = {}
+		if typeof(events) == TYPE_ARRAY:
+			for evt in events:
+				if typeof(evt) == TYPE_DICTIONARY and str(evt.get("type", "")) == "battle":
+					battle_event = evt
+					break
+		# The chokepoint: link + stash ride this call.
+		_display_battle_result(str(attack.get("message", "")), battle_event, {})
+		if attack.has("reinforcement_messages"):
+			var reinf = attack.get("reinforcement_messages", [])
+			if typeof(reinf) == TYPE_ARRAY and not reinf.is_empty():
+				_display_reinforcement_messages(reinf)
+		if attack.has("battle_report") and attack.battle_report != null:
+			_display_berthier_report(attack.battle_report)
+
 
 func _show_strategic_reports(response):
 	"""Show strategic order reports popup after enemy phase."""

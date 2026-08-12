@@ -1727,31 +1727,82 @@ class TestV2aIdleTurnsIntegration:
 
         assert davout.idle_turns == 2
 
-    def test_idle_turns_reset_on_attack(self):
-        """idle_turns resets to 0 when marshal attacks."""
-        from backend.models.marshal import Marshal
+    def test_idle_turns_reset_when_a_marshal_takes_a_province(self):
+        """REPLACED, NOT EXTENDED — PT-F2, August 12, 2026.
 
-        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        The old `test_idle_turns_reset_on_attack` set `idle_turns = 5`,
+        then under a comment reading "# Simulate what executor does after
+        attack" HAND-ASSIGNED it to 0 and asserted it was 0. No executor,
+        no world, no production call — it could not fail unless Python's
+        assignment broke, and it did not catch the arm that never did the
+        reset at all. Its sibling `test_idle_turns_reset_on_move` was
+        inert in exactly the same way.
+
+        This drives the real executor down the unopposed-capture path —
+        `marshal.move_to` followed by `_attempt_region_capture` — which is
+        the arm that carried the entire pre-capture history across the
+        conquest. Measured: Massena took Provence on turn 5, and all three
+        subsequent `idle_restless` renders were spurious.
+        """
+        from backend.commands.executor import CommandExecutor
+        from tests.conftest import MarshalFactory, WorldFactory
+
+        davout = MarshalFactory.infantry(name="Davout", location="Paris",
+                                         strength=30000,
+                                         personality="cautious")
+        world = WorldFactory.with_marshals([davout])
+        target = next(r for r in world.regions.values()
+                      if r.name != "Paris"
+                      and r.controller not in (None, "France"))
+        key = world._make_diplo_key("France", target.controller)
+        world.diplomatic_states[key] = "WAR"
+        world.war_start_turns[key] = world.current_turn
+        paris = world.get_region("Paris")
+        if target.name not in (paris.adjacent_regions or []):
+            paris.adjacent_regions = list(paris.adjacent_regions or []) + [
+                target.name]
+            target.adjacent_regions = list(target.adjacent_regions or []) + [
+                "Paris"]
+        target.garrison_strength = 0
+        target.garrison_detachment = None
+        world.calculate_visibility()
+        world.actions_remaining = 4
+
         davout.idle_turns = 5
+        executor = CommandExecutor()
+        result = executor._combat._execute_attack(
+            world.marshals["Davout"], target.name, world,
+            {"world": world, "executor": executor})
 
-        # Simulate what executor does after attack
-        davout.idle_turns = 0
-        davout._acted_this_turn = True
-
-        assert davout.idle_turns == 0
+        assert result.get("success"), result.get("message")
+        assert world.marshals["Davout"].idle_turns == 0, (
+            "taking a province is not idling")
+        assert world.marshals["Davout"]._acted_this_turn is True
 
     def test_idle_turns_reset_on_move(self):
-        """idle_turns resets to 0 when marshal moves."""
-        from backend.models.marshal import Marshal
+        """The move path already did it correctly
+        (`movement_executor.py:497`) — driven through the real executor
+        so the pin actually observes it."""
+        from backend.commands.executor import CommandExecutor
+        from tests.conftest import MarshalFactory, WorldFactory
 
-        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout = MarshalFactory.infantry(name="Davout", location="Paris",
+                                         strength=30000,
+                                         personality="cautious")
+        world = WorldFactory.with_marshals([davout])
+        world.calculate_visibility()
+        world.actions_remaining = 4
         davout.idle_turns = 3
+        destination = (world.get_region("Paris").adjacent_regions or [])[0]
 
-        # Simulate what executor does after move
-        davout.idle_turns = 0
-        davout._acted_this_turn = True
+        executor = CommandExecutor()
+        result = executor._movement._execute_move(
+            world.marshals["Davout"], destination, world,
+            {"world": world, "executor": executor})
 
-        assert davout.idle_turns == 0
+        assert result.get("success"), result.get("message")
+        assert world.marshals["Davout"].idle_turns == 0
+        assert world.marshals["Davout"]._acted_this_turn is True
 
     def test_idle_turns_incremented_for_enemy_too(self):
         """Jealousy v3.2 §0.2 item 6 CONSCIOUSLY FLIPPED this pin: idle

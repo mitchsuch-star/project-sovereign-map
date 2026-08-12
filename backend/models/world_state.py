@@ -10716,7 +10716,29 @@ class WorldState:
                     "type": "trust_warning",
                     "marshal": marshal.name,
                     "trust": int(trust_val),
-                    "message": f"[!] {marshal.name}'s trust is faltering ({int(trust_val)}). Consider giving them more independence."
+                    # ══════════════════════════════════════════════════
+                    # PT-F6: name a lever the player can actually pull.
+                    #
+                    # This advised "giving them more independence", and
+                    # the ONLY thing that grants a marshal independence is
+                    # the redemption event's `grant_autonomy` arm, which
+                    # `check_redemption_threshold` gates at trust <= 20.
+                    # There is no player verb — `change_autonomy` is the
+                    # VASSAL action, and `parser.py:471-477` explicitly
+                    # excludes marshal-matching for that family. So
+                    # between trust 39 and 21 the advice named an action
+                    # the player could not take.
+                    #
+                    # What DOES move a marshal's trust at this band: not
+                    # insisting past his objections, and letting him fight
+                    # (a won battle is the reliable earner). Both are
+                    # things the player does today.
+                    # ══════════════════════════════════════════════════
+                    "message": (
+                        f"[!] {marshal.name}'s trust is faltering "
+                        f"({int(trust_val)}). Trust his judgment when he "
+                        f"objects, and give him a battle he can win — at "
+                        f"20 he will ask to be released.")
                 })
                 debug_print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")
 

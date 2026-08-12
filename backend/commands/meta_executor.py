@@ -1888,6 +1888,26 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
         execution_result = self._execute_post_objection(parsed_command, game_state, marshal_name)
 
+        # PT-F5, the third arm. The stand-down hook lives inside
+        # `CommandExecutor.execute`, and this path never re-enters it —
+        # `_execute_post_objection` calls the sub-executors directly. So the
+        # player could answer a marshal's objection, watch the order go out,
+        # and still lose him to his own attack on the same turn. The §6
+        # petition command arm already calls this explicitly for the
+        # identical reason and says so in its own docstring; the objection
+        # path simply never got the same treatment.
+        if execution_result.get("success") and marshal_name:
+            _warned = world.get_marshal(marshal_name)
+            if _warned is not None:
+                from backend.game_logic.jealousy import (
+                    cancel_autonomous_warning_on_order,
+                )
+                _stand_down = cancel_autonomous_warning_on_order(world, _warned)
+                if _stand_down:
+                    execution_result["message"] = (
+                        execution_result.get("message", "") + "\n"
+                        + _stand_down)
+
         if execution_result.get("success"):
             final_message = f"{result_message}\n\n{execution_result.get('message', '')}"
         else:

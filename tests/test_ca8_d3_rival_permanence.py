@@ -158,7 +158,25 @@ class TestRivalMemory:
         events = J.process_turn(world)
         assert murat.jealous_of is None
         assert murat.jealousy_surge_turns == 1
-        assert any(e.get("type") == "jealousy_ladder_shift" for e in events)
+        # PIN FLIPPED CONSCIOUSLY — PT-F7, August 12, 2026.
+        #
+        # The arc used to be narrated TWICE: `clear_jealousy` appended
+        # `jealousy_resolved`, whose message interpolates the very reason
+        # string this path passes it ("...he has surpassed Davout in
+        # glory"), and then the caller appended a second
+        # `jealousy_ladder_shift` bullet saying the same thing in
+        # different words, in the same dispatch, on the same turn.
+        #
+        # The surviving beat is the one carrying `by_action: True`, which
+        # its own comment flags as "the beat a narration cap must never
+        # collapse". `jealousy_ladder_shift` had exactly one producer, so
+        # its two `dispatch.py` entries went with it rather than becoming
+        # dead code.
+        resolved = [e for e in events if e.get("type") == "jealousy_resolved"]
+        assert len(resolved) == 1
+        assert "surpassed Davout" in resolved[0].get("message", "")
+        assert not any(e.get("type") == "jealousy_ladder_shift"
+                       for e in events)
 
 
 # ═══════════════════ Q2 — PETITION PER ESCALATION LEVEL ════════════════════

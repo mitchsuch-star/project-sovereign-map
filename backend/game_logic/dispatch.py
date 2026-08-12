@@ -2280,7 +2280,6 @@ _DISPATCH_EVENT_TYPES = {
     "jealousy_autonomous_attack",
     "jealousy_escalation",
     "jealousy_resolved",
-    "jealousy_ladder_shift",
     "jealousy_separation_warning",
     "glory_crowned",
     "glory_crown_lost",
@@ -2338,7 +2337,7 @@ def _build_turn_events(
                             "drill_complete",
                             "garrison_regen", "broken_recovered",
                             "marshal_released",
-                            "jealousy_resolved", "jealousy_ladder_shift",
+                            "jealousy_resolved",
                             "glory_crowned", "marshal_commissioned"):
             severity = "good"
         elif event_type == "order_voided_by_battle":

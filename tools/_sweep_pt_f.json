@@ -1,0 +1,135 @@
+[
+ {
+  "id": "PT-F1 the results are carried",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                result[\"jealousy_attacks\"] = _autonomous",
+  "new": "                pass",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F1 new_state is stripped",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                    if key != \"new_state\"",
+  "new": "                    if True",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F1 the endpoint passes it through",
+  "file": "backend/main.py",
+  "old": "        response[\"jealousy_attacks\"] = result[\"jealousy_attacks\"]",
+  "new": "        pass",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F1 the client renders it",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t_display_jealousy_attacks(response)",
+  "new": "",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F1 through the battle chokepoint",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t_display_battle_result(str(attack.get(\"message\", \"\")), battle_event, {})",
+  "new": "\t\tadd_output(str(attack.get(\"message\", \"\")))",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F9 the voided order is announced",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if _voided is not None and marshal.nation == world.player_nation:",
+  "new": "        if False:",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F9 it names what was voided",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            _what = (f\"his standing order to {_verb} {_object}\".rstrip()\n                     if _verb else \"his standing order\")",
+  "new": "            _what = \"his standing order\"",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F2 the capture clears idle_turns",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    marshal.idle_turns = 0\n                    marshal._acted_this_turn = True",
+  "new": "                    pass",
+  "tests": "tests/test_pt_f_jealousy_channel.py tests/test_objection_v2.py"
+ },
+ {
+  "id": "PT-F3 let_be states the personality band",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "             \"detail\": _let_be_detail(marshal),",
+  "new": "             \"detail\": \"Most likely they simmer; it may yet escalate \u2014 or mend.\",",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F3 mediate states the authority band",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "             \"detail\": _mediate_detail(_authority),",
+  "new": "             \"detail\": \"Your authority decides whether they listen.\",",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F3 reprimand discloses the extra -5",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "             \"detail\": (\"Trust -3 on both, at once. Then 60% the breach \"\n                        \"mends outright, 30% nothing changes, and 10% the \"\n                        \"hotter head takes a further -5 trust.\"),",
+  "new": "             \"detail\": \"Trust -3 on both \u2014 anger redirected at you may mend the breach.\",",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F3 accept_breach names the defiance unlock",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "             \"detail\": (\"Free. 80% they settle into cold war; 20% the \"\n                        \"hotter head turns openly discontent \u2014 -3 trust, \"\n                        \"and his defiance cooldown lifts at once.\"),",
+  "new": "             \"detail\": \"They settle into cold war; one may turn openly discontent.\",",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F3 force_reconciliation states the partial thaw",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "             \"detail\": _force_detail(_authority),",
+  "new": "             \"detail\": \"A public gamble on your authority.\",",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F5 an objected order stands him down",
+  "file": "backend/commands/executor.py",
+  "old": "                and (result.get(\"success\")\n                     or result.get(\"pending_objection\"))):",
+  "new": "                and result.get(\"success\")\n                and not result.get(\"pending_objection\")):",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F5 answering the objection stands him down",
+  "file": "backend/commands/meta_executor.py",
+  "old": "                _stand_down = cancel_autonomous_warning_on_order(world, _warned)\n                if _stand_down:\n                    execution_result[\"message\"] = (",
+  "new": "                _stand_down = None\n                if _stand_down:\n                    execution_result[\"message\"] = (",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F5 the promise is honest",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                        f\"for orders, Sire \u2014 give him something to do and \"\n                        f\"he will stand down.\"),",
+  "new": "                        f\"for orders, Sire \u2014 any command would restrain him.\"),",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F6 the trust warning names a real lever",
+  "file": "backend/models/world_state.py",
+  "old": "                        f\"({int(trust_val)}). Trust his judgment when he \"\n                        f\"objects, and give him a battle he can win \u2014 at \"\n                        f\"20 he will ask to be released.\")",
+  "new": "                        f\"({int(trust_val)}). Consider giving them more independence.\")",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ },
+ {
+  "id": "PT-F7 the duplicate bullet is gone",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"jealousy_resolved\",\n    \"jealousy_separation_warning\",",
+  "new": "    \"jealousy_resolved\",\n    \"jealousy_ladder_shift\",\n    \"jealousy_separation_warning\",",
+  "tests": "tests/test_pt_f_jealousy_channel.py tests/test_jealousy_v32.py"
+ },
+ {
+  "id": "PT-F8 the clause reads his own glory",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            _own_clause = (\"has not seen laurels\" if _own_glory <= 0\n                           else \"sees his own laurels counted smaller\")",
+  "new": "            _own_clause = \"has not seen laurels\"",
+  "tests": "tests/test_pt_f_jealousy_channel.py"
+ }
+]

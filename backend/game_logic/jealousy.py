@@ -1804,21 +1804,79 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
     })
 
 
+def _let_be_detail(marshal) -> str:
+    """PT-F3: `_apply_rivalry_choice` bands this on PERSONALITY, and an
+    aggressive marshal is at 40% to escalate — twice the ordinary rate,
+    and the copy never said so."""
+    personality = getattr(marshal, "personality", "")
+    if personality == "aggressive":
+        return ("Free, and he is the hot-tempered sort: 50% they simmer, "
+                "40% it deepens to open hostility, 10% they mend it "
+                "themselves.")
+    if personality == "cautious":
+        return ("Free. 80% they simmer, 15% it deepens, 5% they mend it "
+                "themselves.")
+    return ("Free. 70% they simmer, 20% it deepens to open hostility, "
+            "10% they mend it themselves.")
+
+
+def _mediate_detail(authority: float) -> str:
+    """PT-F3: authority-banded, and the failure costs were never stated."""
+    if authority >= 70:
+        return ("Your word carries: 70% the breach is mended outright, "
+                "30% they listen politely and nothing changes.")
+    if authority >= 40:
+        return ("Your word carries some weight: 40% mended, 50% nothing, "
+                "10% one of them turns openly discontent (-3 trust).")
+    return ("Your word carries little: 20% mended, 40% nothing, and 40% "
+            "the attempt costs you 3 authority.")
+
+
+def _force_detail(authority: float) -> str:
+    """PT-F3: the same band, and the SUCCESS is a partial thaw — the pair
+    goes from hostile to merely rivalrous, never to friendly."""
+    if authority >= 80:
+        return ("A public gamble. 50% they shake hands and the breach "
+                "eases to a rivalry; otherwise cold correctness.")
+    if authority >= 60:
+        return ("A public gamble. 30% the breach eases to a rivalry, 50% "
+                "nothing, 20% it costs you 3 authority.")
+    return ("A public gamble you will probably lose: 10% the breach eases "
+            "to a rivalry, 30% nothing, and 60% it costs you 5 authority.")
+
+
 def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
     """§6b rivalry confrontation on a downward transition."""
     ap = _player_ap(world)
+    # ══════════════════════════════════════════════════════════════════
+    # PT-F3: the rivalry arms are priced like their siblings.
+    #
+    # The §3 pricing work landed on `jealousy_confrontation` only, so
+    # these still read in adjectives while the code underneath is
+    # authority-banded and probabilistic. Next to the confrontation
+    # card's "For 2 more turns he brings NONE of his 22,000 men" they
+    # read like a different game. State the band, the odds and the
+    # failure cost, and state the outcome in STATE terms — the measured
+    # success moved the pair −2 -> −1 and never said so.
+    #
+    # Read off `get_authority_proxy`, the same value `_apply_rivalry_choice`
+    # bands on, so the card cannot quote a tier the resolver will not use.
+    # ══════════════════════════════════════════════════════════════════
+    _authority = get_authority_proxy(world, marshal.nation)
     if new_value == -1:
         body = (f"Sire, harsh words were exchanged between {marshal.name} "
                 f"and {other.name} before the general staff.")
         options = [
             {"id": "let_be", "label": "Let Them Sort It Out",
-             "detail": "Most likely they simmer; it may yet escalate — or mend.",
+             "detail": _let_be_detail(marshal),
              "cost_note": "", "enabled": True},
             {"id": "mediate", "label": "Mediate",
-             "detail": "Your authority decides whether they listen.",
+             "detail": _mediate_detail(_authority),
              "cost_note": "1 AP", "ap_cost": 1, "enabled": ap >= 1},
             {"id": "reprimand", "label": "Reprimand Both",
-             "detail": "Trust -3 on both — anger redirected at you may mend the breach.",
+             "detail": ("Trust -3 on both, at once. Then 60% the breach "
+                        "mends outright, 30% nothing changes, and 10% the "
+                        "hotter head takes a further -5 trust."),
              "cost_note": "", "enabled": True},
         ]
     else:
@@ -1826,10 +1884,12 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
                 f"{other.name} is present. The breach may be beyond repair.")
         options = [
             {"id": "accept_breach", "label": "Accept the Breach",
-             "detail": "They settle into cold war; one may turn openly discontent.",
+             "detail": ("Free. 80% they settle into cold war; 20% the "
+                        "hotter head turns openly discontent — -3 trust, "
+                        "and his defiance cooldown lifts at once."),
              "cost_note": "", "enabled": True},
             {"id": "force_reconciliation", "label": "Force Reconciliation",
-             "detail": "A public gamble on your authority.",
+             "detail": _force_detail(_authority),
              "cost_note": "2 AP", "ap_cost": 2, "enabled": ap >= 2},
             {"id": "separate", "label": "Separate Them",
              "detail": ("Not a fix — Berthier will warn you whenever their "
@@ -2625,14 +2685,15 @@ def process_turn(world) -> List[Dict]:
                            events=events,
                            reason=f"he has surpassed {target_name} in glory")
             cooled_this_pass.add((marshal.name, target_name))
-            if marshal.nation == world.player_nation:
-                events.append({
-                    "type": "jealousy_ladder_shift",
-                    "message": (f"{marshal.name} has proven himself beyond "
-                                f"{target_name}. The grievance fades."),
-                    "nation": marshal.nation,
-                    "marshal": marshal.name,
-                })
+            # PT-F7: NO second bullet. `clear_jealousy` has already
+            # appended `_action_resolution_event`, whose message
+            # interpolates the very `reason` string passed above — "…his
+            # grievance is satisfied — he has surpassed X in glory." The
+            # local `jealousy_ladder_shift` said the same thing in
+            # different words, in the same dispatch, on the same turn.
+            # The resolution event is the one that carries `by_action:
+            # True`, flagged in its own comment as "the beat a narration
+            # cap must never collapse" — so this is the redundant one.
             continue
         marshal.jealousy_turns_remaining -= 1
         if marshal.jealousy_turns_remaining <= 0:
@@ -2736,12 +2797,30 @@ def process_turn(world) -> List[Dict]:
         threshold, requires_idle = gate
         if requires_idle and getattr(marshal, "idle_turns", 0) < HOSTILE_IDLE_TURNS:
             continue
-        delta = get_glory_score(target, turn) - get_glory_score(marshal, turn)
+        _own_glory = get_glory_score(marshal, turn)
+        delta = get_glory_score(target, turn) - _own_glory
         if delta == threshold - 1:
+            # ══════════════════════════════════════════════════════════
+            # PT-F8. The subject's glory entered this beat ONLY as a
+            # subtrahend — his absolute windowed score was never compared
+            # to anything — while the sentence asserted "he has not seen
+            # laurels" about him. A marshal with six points in the window
+            # and a target six-plus-threshold above satisfies the gate
+            # exactly, and Berthier said it of a man who had.
+            #
+            # ⚠ The audit's FIRST wording ("names a comparator who is not
+            # winning") is REFUTED and is not what is fixed here:
+            # `find_jealousy_target` draws only from peers strictly above
+            # on the ladder, so the comparator necessarily banked glory in
+            # the window. The clause that was structurally false is the
+            # SUBJECT's, and it now reads his own score.
+            # ══════════════════════════════════════════════════════════
+            _own_clause = ("has not seen laurels" if _own_glory <= 0
+                           else "sees his own laurels counted smaller")
             events.append({
                 "type": "jealousy_restlessness",
                 "message": (f"Berthier notes that {marshal.name} has grown "
-                            f"restless — he has not seen laurels while "
+                            f"restless — he {_own_clause} while "
                             f"{target.name} wins them. I recommend giving "
                             f"him meaningful orders soon."),
                 "nation": marshal.nation,
@@ -2776,7 +2855,8 @@ def process_turn(world) -> List[Dict]:
             "message": (f"{humanize_entity_name(marshal.name)} is eyeing "
                         f"{humanize_entity_name(enemy.name)}'s position "
                         f"at {region_name}. I cannot guarantee he will wait "
-                        f"for orders, Sire — any command would restrain him."),
+                        f"for orders, Sire — give him something to do and "
+                        f"he will stand down."),
             "nation": marshal.nation,
             "marshal": marshal.name,
         })
@@ -2944,9 +3024,39 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             continue
         enemy, _region = target_info
         # He acts on his own initiative — clears any standing order (EC-B).
+        #
+        # PT-F9: SAY SO. This is the exact case CA9-F13's own comment
+        # claims to have fixed — "a standing order died here SILENTLY…
+        # no event, message or log line ever said so — the player found
+        # out by giving him an order two turns later. Say what was
+        # voided, and by what." F13 applied that rule to the arrived-
+        # reinforcement seam only, while the row it was filed against
+        # names the jealousy autonomous attack in its own one-liner. The
+        # player's plan disappeared with no notice, and the marshal who
+        # lost it is the SUBJECT of the beat, not a bystander.
+        #
+        # `order_voided_by_battle` already has four consumers
+        # (`campaign_log.py:251`/`:1520`, `dispatch.py:2241`/`:2331`), so
+        # this needs no new type and no client change.
+        _voided = getattr(marshal, "strategic_order", None)
         marshal.strategic_order = None
         marshal.holding_position = False
         marshal.hold_region = ""
+        if _voided is not None and marshal.nation == world.player_nation:
+            _verb = str(getattr(_voided, "command_type", "") or "").lower()
+            _object = str(getattr(_voided, "target", "") or "")
+            _what = (f"his standing order to {_verb} {_object}".rstrip()
+                     if _verb else "his standing order")
+            _pending_events(world).append({
+                "type": "order_voided_by_battle",
+                "nation": marshal.nation,
+                "marshal": marshal.name,
+                "message": (
+                    f"{humanize_entity_name(marshal.name)} went at "
+                    f"{humanize_entity_name(enemy.name)} on his own "
+                    f"initiative — {_what} is void. He awaits fresh "
+                    f"orders."),
+            })
         command = {
             "command": {
                 "marshal": marshal.name,

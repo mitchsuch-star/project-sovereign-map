@@ -379,6 +379,41 @@ class TurnManager:
                         "message": report.get("message", ""),
                     })
 
+        # ════════════════════════════════════════════════════════════
+        # PT-F1 — THE AUTONOMOUS ATTACK STOPS BEING A RUMOUR.
+        #
+        # `process_autonomous_attacks` returns the full executor result
+        # for every battle it fires — message, `events[0]` of type
+        # `battle` with `.diorama` nested, `battle_report`,
+        # `reinforcement_messages` — and it was assigned to a local
+        # NOTHING read. Measured turn 5->6: the player was told "Murat,
+        # hungry for glory, has attacked Archduke John on his own
+        # initiative." and nothing else. No battle event, no report, no
+        # casualties, no diorama. Murat went 21,384 -> 17,997 men and
+        # morale 100 -> 81 with no supply event to explain it. Reproduced
+        # on ALL FOUR autonomous attacks of the campaign.
+        #
+        # This is the marquee payoff of the whole Jealousy system — a
+        # marshal defying the Emperor — and it landed as hearsay.
+        #
+        # Threaded in the ENEMY-PHASE shape (Route B), because that is
+        # the transport whose renderers already read `battle_report` and
+        # `events[*].diorama`; the strategic-report renderer, the other
+        # candidate, shows only `message` and would silently drop both.
+        # `new_state` is stripped — the standing serialization rule.
+        # ════════════════════════════════════════════════════════════
+        if jealousy_attack_results:
+            _autonomous = []
+            for _res in jealousy_attack_results:
+                if not isinstance(_res, dict):
+                    continue
+                _autonomous.append({
+                    key: value for key, value in _res.items()
+                    if key != "new_state"
+                })
+            if _autonomous:
+                result["jealousy_attacks"] = _autonomous
+
         if all_events:
             result["events"] = all_events
 

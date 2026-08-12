@@ -1076,10 +1076,16 @@ class TestSerializationAndSurfaces:
         from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
         for etype in ("jealousy_restlessness", "jealousy_fired",
                       "jealousy_autonomous_warning", "jealousy_escalation",
-                      "jealousy_resolved", "jealousy_ladder_shift",
+                      "jealousy_resolved",
                       "glory_crowned", "fontainebleau_petition",
                       "marshal_commissioned"):
             assert etype in _DISPATCH_EVENT_TYPES
+        # PT-F7: `jealousy_ladder_shift` is RETIRED. It had exactly one
+        # producer, and that producer was a second bullet restating the
+        # cause `jealousy_resolved` already carries verbatim — two
+        # dispatch lines, same event, same turn. The whitelist entry went
+        # with the producer rather than becoming dead code.
+        assert "jealousy_ladder_shift" not in _DISPATCH_EVENT_TYPES
 
     def test_campaign_log_formatters(self):
         from backend.campaign_log import (CAMPAIGN_LOG_TYPES, CATEGORY_MAP,

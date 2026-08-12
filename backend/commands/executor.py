@@ -1851,9 +1851,16 @@ class CommandExecutor:
         # warned of an impending autonomous attack calls the attack off for
         # this cycle (the jealousy itself persists). Skips the autonomous
         # re-issue itself (_jealousy_autonomous) and objection waits.
-        if (result.get("success") and is_player_action and marshal_name
+        # PT-F5: an order that REACHED him stands him down — including one
+        # he objected to. The `pending_objection` exclusion meant the
+        # marshal most likely to be warned (aggressive, jealous, and so
+        # the likeliest to object) was the one the stand-down could not
+        # reach. A REFUSED order still does not count, and the warning's
+        # copy no longer promises that it does: nothing reached him.
+        if (is_player_action and marshal_name
                 and not command.get("_jealousy_autonomous")
-                and not result.get("pending_objection")):
+                and (result.get("success")
+                     or result.get("pending_objection"))):
             _warned_marshal = world.get_marshal(marshal_name)
             if _warned_marshal is not None:
                 from backend.game_logic.jealousy import (

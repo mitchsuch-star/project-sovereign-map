@@ -1160,6 +1160,12 @@ def _apply_command_result_layers(response: dict, result: dict, world) -> None:
     _include_command_redemption_event(response, result, world)
     _include_command_enemy_phase(response, result, world)
     _include_command_strategic_reports(response, result)
+    # PT-F1: the autonomous glory attacks, carried whole (minus
+    # `new_state`, stripped at the producer) so the client's existing
+    # battle renderers can show the battle the player was only TOLD
+    # about.
+    if result.get("jealousy_attacks"):
+        response["jealousy_attacks"] = result["jealousy_attacks"]
     _include_command_tactical_events(response, result, world)
     _include_command_independent_report(response, result)
     _apply_command_popup_contract(response, result, world)
