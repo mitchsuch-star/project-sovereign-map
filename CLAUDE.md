@@ -42,9 +42,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 10, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,634 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
+> **suite 17,144 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0.**
+>
+> **▶ NEXT = ROW PT, THE PLAYTEST FIXES. Build spec = `docs/PLAYTEST_FIXES_SPEC.md`
+> (v1.0, authoritative); routing = `docs/STATUS.md` §NEXT UP.** Queued August 10,
+> 2026 from a **19-turn France/1805 campaign** driven live over HTTP
+> (`LLM_MODE=anthropic`, master `26bbcbe`, 108 request/response pairs) plus a
+> **47-agent verify → refute → sweep → score** fleet that killed five findings and
+> downgraded eight. Evidence of record = `docs/audits/PLAYTEST_CA9_2026_08_09.md`
+> (authoritative) + `..._FLEET_REPORT.md`. **CA9 row 1 PASS end to end** (war-age
+> penalty −30/−15/0, the farm loop shut); **row 2 FAIL — structurally unreachable**
+> (the gate never armed once; it reads an odds band built from an all-will-join
+> figure that over-promised 24%); **row 3 PASS on content, FAIL on its flagship
+> arm** (the delivery-seam AP refresher overwrites honest availability; 6 of 10
+> petitions shipped it enabled with the reason erased, and pressing it destroys the
+> petition). **Three of the five P1s are regressions introduced by the August 9
+> fixes** — the through-line did not close, it MIGRATED to the seam downstream of
+> an honest computation, which is why **PT-A is indivisible and first**. Pillars
+> ≈6.4 (was ≈6.9), **narration the only one that rose**. Economy: the ledger
+> arithmetic is EXACT on all 18 turns and EB-1 IS converging, but Net was positive
+> 18 of 18, the treasury rose ×34.5, and losing 76,361 men was worth +1,236g/turn
+> — spec §4 PT-I3. Four items need a user ruling (§4); no visual pass was taken and
+> the three owed sign-offs stand.
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy

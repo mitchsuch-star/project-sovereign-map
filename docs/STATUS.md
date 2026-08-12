@@ -4,13 +4,62 @@
 
 ## ▶ NEXT UP
 
-> ## ⚠ NEXT SESSION STARTS HERE
+> ## ⚠ NEXT SESSION STARTS HERE — **ROW PT, THE PLAYTEST FIXES**
 >
-> **▶ HANDOFF PROMPT (consume-once): `docs/audits/CA9_ROW3_NEXT_SESSION_PROMPT.md`**
-> — the remaining row-3 queue in order (A7 · A11 · A12 · Q2a · Q3b · A13 ·
-> A14), then the full playtest, plus the per-commit verification protocol and
-> the ten traps this session paid for. Rows 1 and 2 are DONE; row 3 is four
-> batches in with all five rulings taken.
+> **▶ BUILD SPEC: `docs/PLAYTEST_FIXES_SPEC.md` (v1.0, authoritative).**
+> Build order **PT-A → PT-B → PT-E → PT-D → PT-C → PT-F → PT-G → PT-H**; the four
+> items that need a user ruling are §4; the five traps are §6. **PT-A is
+> indivisible and goes first.**
+>
+> **Evidence of record:** `docs/audits/PLAYTEST_CA9_2026_08_09.md`
+> (authoritative) + `docs/audits/PLAYTEST_CA9_2026_08_09_FLEET_REPORT.md` (the
+> review fleet's verbatim report). A **19-turn France/1805 campaign** driven live
+> over HTTP, `LLM_MODE=anthropic`, master `26bbcbe`, 108 request/response pairs;
+> then a **47-agent verify → refute → sweep → score → synthesise** fleet
+> (~10.4M tokens) which **killed five findings and downgraded eight**.
+>
+> ### The playtest verdict, in four lines
+>
+> - **CA9 row 1 (war-age acceptance) — PASS, end to end.** −30 at war age 0, −15
+>   at 4, 0 at 8; the rejection reads *"the war is barely begun — no court signs
+>   away a province over one skirmish."* The Hesse war started to farm it ended
+>   **−8 on points, white peace, turn 14**.
+> - **CA9 row 2 (the cautious-marshal confirm) — FAIL, structurally unreachable.**
+>   The gate is built exactly as ruled and **never armed once**; it reads an odds
+>   band computed from an all-will-join figure that over-promised by **24%**.
+> - **CA9 row 3 (the grievance channel) — PASS on content, FAIL on its flagship
+>   arm.** `_command_option` builds honest availability; the delivery-seam AP
+>   refresher overwrites it. **6 of 10 petitions** shipped the arm enabled with its
+>   reason erased, and pressing it destroys the petition.
+> - **Three of the five P1s are regressions introduced by the August 9 fixes.**
+>   CA9's through-line did not close, it **migrated**: the defects now live at the
+>   seam *downstream* of an honest computation.
+>
+> **Pillars** (seven independent judges; calibration in brackets): marshal drama
+> 7.0 [7.5] · narration **6.5 [6.0] — the only one that rose** · command 6.5 [7.0] ·
+> AI aliveness 6.5 [7.0] · combat 6.0 [6.5] · economy 6.0 [6.5] · diplomacy
+> 6.0 [6.5]. **Directional ≈6.4 [≈6.9]**, and every point of the drop is trust in
+> what the game *says*, not in what it does.
+>
+> **The economy answer, measured:** the ledger arithmetic is **exact** — all 18
+> turns reconcile to the gold. EB-1 **is** converging (Charges 0 → 2,643, Net
+> +2,191 → +626, fixed point ≈32,600g near turn 30–35). But Net was positive
+> **18 of 18** turns, the treasury rose **×34.5**, and **losing 76,361 men was
+> worth +1,236g/turn**. The brake is keyed to the chest, so the Emperor pays least
+> exactly when he is losing → **spec §4 PT-I3**.
+>
+> ⚠ **No visual pass was taken** (HTTP + `.gd` source reading only). The three
+> owed sign-offs stand, and **PT-E4** and **PT-B1** are both things one session in
+> the client would have caught in a minute.
+>
+> ---
+>
+> ### ✅ CLOSED — the three answered design rows, and the playtest that covered them
+>
+> Rows 1 and 2 landed August 9; row 3's remaining queue (A7 · A11 · A12 · Q2a ·
+> Q3b · A13 · A14) landed the same day through commit `26bbcbe`; the playtest that
+> was owed on all of it ran August 9–10 and is recorded above. The handoff prompt
+> `docs/audits/CA9_ROW3_NEXT_SESSION_PROMPT.md` is **consumed**.
 >
 > ### The original framing, kept for context — THREE ANSWERED DESIGN ROWS, THEN ONE PLAYTEST
 >
