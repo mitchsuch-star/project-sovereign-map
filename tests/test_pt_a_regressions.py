@@ -184,7 +184,15 @@ class TestARefusalDoesNotDestroyTheDecision:
             game_state={"world": world, "executor": executor})
         assert result["success"] is False
         assert world.pending_marshal_petition is petition
-        assert result.get("marshal_petition") is petition
+        # The card handed BACK is the delivered one — refreshed against
+        # current AP, not the raw stored dict whose flags were baked
+        # during the turn pass. (Review-fleet correction: the first cut
+        # returned the raw petition and re-created IGR-1 on the re-serve.)
+        served = result.get("marshal_petition")
+        assert served is not None
+        assert served["kind"] == petition["kind"]
+        assert {o["id"] for o in served["options"]} == {
+            o["id"] for o in petition["options"]}
         assert world.actions_remaining == 4
 
     def test_and_the_second_attempt_can_still_succeed(self, petition_board):

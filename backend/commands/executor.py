@@ -1978,6 +1978,12 @@ class CommandExecutor:
             # turn auto-advances from actions being exhausted.
             if turn_result.get("strategic_reports"):
                 result["strategic_reports"] = turn_result["strategic_reports"]
+            # PT-F1: the auto-advance mirror had the identical hole — it
+            # reads a fixed key set off `turn_result` and this was not in
+            # it, so a player whose last AP ends the turn would have lost
+            # the battle just as thoroughly.
+            if turn_result.get("jealousy_attacks"):
+                result["jealousy_attacks"] = turn_result["jealousy_attacks"]
 
             # Add Independent Command Report (Phase 2.5) — was missing on auto-advance
             if turn_result.get("show_independent_command_report"):

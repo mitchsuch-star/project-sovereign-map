@@ -335,3 +335,50 @@ class TestConstructionIsFogClassedAsABuilding:
             "France")
         assert len(rows) == 1
         assert rows[0]["severity"] == "good"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# THE REVIEW-FLEET ROUND
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheBriefingRetiresWhatItReports:
+    """PT-E1's first cut pruned on the TURN STAMP inside `advance_turn`,
+    and that is one frame off: the prune runs BEFORE the increment, so an
+    event queued by a system INSIDE `advance_turn` carries the NEW turn
+    number and survived the next cycle's prune as well.
+
+    Probed: `diplomatic_dp_regen` stamped turn 2 was still queued at turn
+    3 — narrated in two consecutive briefings. The queue is now retired
+    where it is CONSUMED, which is exact by construction.
+    """
+
+    def test_a_reported_event_is_not_reported_again(self):
+        from backend.game_logic.dispatch import build_morning_dispatch
+
+        world = WorldFactory.basic()
+        queue_dispatch_event(world, "diplomatic_war_declared",
+                             {"nation": "Austria", "target": "France"},
+                             "always")
+        first = build_morning_dispatch(world)
+        assert any("Austria" in e.get("text", "")
+                   for e in first["diplomatic_events"])
+        second = build_morning_dispatch(world)
+        assert not any("Austria" in e.get("text", "")
+                       for e in second["diplomatic_events"])
+
+    def test_an_event_queued_inside_advance_turn_is_reported_once(self):
+        """The exact probe case: `diplomatic_dp_regen` is queued by a
+        system running AFTER the increment, so it carries the new turn."""
+        from backend.game_logic.dispatch import build_morning_dispatch
+
+        world = WorldFactory.basic()
+        world.advance_turn()
+        assert world.pending_dispatch_events, (
+            "the fixture needs an event queued inside advance_turn or it "
+            "pins nothing")
+        build_morning_dispatch(world)
+        assert world.pending_dispatch_events == []
+        world.advance_turn()
+        stale = [e for e in world.pending_dispatch_events
+                 if int(e.get("queued_turn", 0)) < world.current_turn]
+        assert not stale

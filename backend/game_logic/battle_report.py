@@ -9,6 +9,8 @@ get_defense_modifier() consume one-shot bonuses (strategic combat bonus, etc.).
 """
 
 import random
+
+from backend.display_names import humanize_entity_name
 from typing import Dict, List
 
 from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
@@ -994,11 +996,17 @@ def generate_battle_report(battle_result: Dict, player_nation: str = "France") -
             "defender": modifier_snapshot.get("defender", []),
         },
         "casualty_summary": {
-            "attacker_name": str(attacker_data.get("name", "Attacker")),
+            # PT-G5(f), completed by the review fleet: `_fill` was
+            # humanized and these three renders in the SAME block were
+            # not, so Berthier's observation said "Archduke Charles" and
+            # the casualty line under it said "ArchdukeCharles".
+            "attacker_name": humanize_entity_name(
+                str(attacker_data.get("name", "Attacker"))),
             "attacker_original": int(attacker_original),
             "attacker_casualties": int(attacker_casualties),
             "attacker_remaining": int(attacker_remaining),
-            "defender_name": str(defender_data.get("name", "Defender")),
+            "defender_name": humanize_entity_name(
+                str(defender_data.get("name", "Defender"))),
             "defender_original": int(defender_original),
             "defender_casualties": int(defender_casualties),
             "defender_remaining": int(defender_remaining),

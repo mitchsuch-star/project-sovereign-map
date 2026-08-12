@@ -1549,10 +1549,29 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                     if _origin:
                         _from_intel = world_state.get_region_intel(_origin)
                         if _from_intel.visibility != FULL:
-                            # We saw him arrive, not where he came from.
-                            # Report the arrival, not the road.
+                            # We saw him arrive, not where he came from —
+                            # so report the arrival and DROP the road.
+                            #
+                            # The first cut set a `route_fogged` flag and
+                            # showed the action unchanged; the review fleet
+                            # proved the flag had no reader anywhere, which
+                            # is the same dead field this row is about.
+                            # Blanking the origin is what actually stops the
+                            # over-show: the renderer builds "X moves from
+                            # A to B" from these keys.
                             action = dict(action)
-                            action["route_fogged"] = True
+                            _events = [dict(e) if isinstance(e, dict) else e
+                                       for e in (action.get("events") or [])]
+                            for _e in _events:
+                                if isinstance(_e, dict) and _e.get("from"):
+                                    _e.pop("from", None)
+                            if _events:
+                                action["events"] = _events
+                            _ai = action.get("ai_action")
+                            if isinstance(_ai, dict) and _ai.get("from"):
+                                _ai = dict(_ai)
+                                _ai.pop("from", None)
+                                action["ai_action"] = _ai
                     filtered_actions.append(action)
                     continue
             # Missing region or below FULL -> suppress (safe default)

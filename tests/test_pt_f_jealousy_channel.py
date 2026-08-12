@@ -316,3 +316,70 @@ class TestTheRestlessnessClauseReadsHisOwnGlory:
             encoding="utf-8")
         block = src.split("PT-F8")[1].split("warned += 1")[0]
         assert "{target.name} wins them" in block
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# THE REVIEW-FLEET ROUND: the seams the first cut's pins did not bind
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestF1ActuallyReachesTheClient:
+    """PT-F1 shipped PRODUCTION-DEAD and five green pins did not notice.
+
+    The producer, the forwarder and the renderer were each asserted as
+    SOURCE TEXT, in three separate files, and nothing exercised the joint
+    — `_execute_end_turn` builds a FRESH result dict and hand-copies a
+    fixed key set, of which `jealousy_attacks` was not one. This drives a
+    real end turn instead.
+    """
+
+    def test_the_payload_survives_the_executor_seam(self, board, monkeypatch):
+        from backend.commands.executor import CommandExecutor
+
+        executor = CommandExecutor()
+        sentinel = [{"jealousy_autonomous": "Ney",
+                     "message": "Ney went in without orders.",
+                     "battle_report": {"observation": "SENTINEL"},
+                     "events": [{"type": "battle"}],
+                     "new_state": object()}]
+        monkeypatch.setattr(
+            "backend.game_logic.jealousy.process_autonomous_attacks",
+            lambda *_a, **_k: [dict(s) for s in sentinel])
+        result = executor._meta._execute_end_turn(
+            {"action": "end_turn"}, {"world": board, "executor": executor})
+        assert "jealousy_attacks" in result, (
+            "the end-turn executor must forward it — it builds a fresh "
+            "dict and copies a fixed key set")
+        assert result["jealousy_attacks"][0]["battle_report"][
+            "observation"] == "SENTINEL"
+        assert "new_state" not in result["jealousy_attacks"][0]
+
+    def test_the_auto_advance_mirror_forwards_it_too(self):
+        """A player whose last AP ends the turn takes the other path."""
+        src = (REPO / "backend" / "commands" / "executor.py").read_text(
+            encoding="utf-8")
+        assert 'result["jealousy_attacks"] = turn_result["jealousy_attacks"]' in src
+
+
+class TestTheVoidedOrderLineIsHumanized:
+    def test_it_does_not_emit_raw_keys(self, board):
+        from backend.commands.executor import CommandExecutor
+        from backend.models.marshal import StrategicOrder
+
+        ney = board.marshals["Ney"]
+        ney.jealous_of = "Murat"
+        ney.jealousy_autonomous_warned = True
+        ney.strategic_order = StrategicOrder(
+            command_type="MOVE_TO", target="ArchdukeCharles",
+            target_type="marshal", started_turn=board.current_turn,
+            original_command="x")
+        executor = CommandExecutor()
+        random.seed(5)
+        J.process_autonomous_attacks(
+            board, executor, {"world": board, "executor": executor})
+        voided = [e for e in J._pending_events(board)
+                  if e.get("type") == "order_voided_by_battle"]
+        assert voided
+        message = voided[0]["message"]
+        assert "move_to" not in message
+        assert "ArchdukeCharles" not in message
+        assert "Archduke Charles" in message

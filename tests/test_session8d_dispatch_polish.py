@@ -641,10 +641,24 @@ class TestAIAIDiplomacy:
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
         _ratify_via_world("Britain", "Prussia", proposal, world)
-        build_morning_dispatch(world)
-        # Should be visible because at least some enemy marshals are in visible regions
-        # May or may not be visible depending on fog; test the queuing
+        # PIN FLIPPED CONSCIOUSLY — PT-E1 (corrected), August 12, 2026.
+        #
+        # This asserted the event was still in the queue AFTER the
+        # briefing was built. The dispatch now RETIRES the queue where it
+        # consumes it: the first cut pruned on the turn stamp inside
+        # `advance_turn`, which is one frame off — events queued by
+        # systems INSIDE `advance_turn` carry the new turn number and
+        # survived the next cycle's prune too, so they were narrated in
+        # two consecutive briefings.
+        #
+        # The test's own comment says it is testing the QUEUING, so it
+        # now checks that before the build, and that the briefing
+        # consumed it after — which is strictly more than it asserted.
         assert len(world.pending_dispatch_events) >= 1
+        build_morning_dispatch(world)
+        assert world.pending_dispatch_events == [], (
+            "an event the briefing has reported must not be reported again "
+            "in the next one")
 
     def test_ai_ai_treaty_changes_diplomatic_state(self):
         world = _make_world()

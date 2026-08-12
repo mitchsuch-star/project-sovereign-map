@@ -939,7 +939,14 @@ class StrategicExecutor:
                                 {
                                     "type": "proceed",
                                     "text": f"Insist: SUPPORT {target} as ordered",
-                                    "trust_change": _gip(_tier),
+                                    # Review-fleet fix: quote the values
+                                    # the objection dict CARRIES (`:896`,
+                                    # `:897`), not a re-derivation — the
+                                    # handler reads those, and this arm was
+                                    # banding on `relationship_concern`
+                                    # while the engine paid
+                                    # `strategic_concern`.
+                                    "trust_change": insist_penalty,
                                     "ap_cost": 1 if _literal else 2,
                                 },
                                 {
@@ -947,8 +954,7 @@ class StrategicExecutor:
                                     "text": "Trust: Cancel the SUPPORT order",
                                     "action": "cancel",
                                     "target": target,
-                                    "trust_change": _ctg(relationship_concern,
-                                                         _tier),
+                                    "trust_change": trust_gain,
                                     "ap_cost": 1,
                                 },
                                 {
@@ -2134,8 +2140,26 @@ class StrategicExecutor:
         original_command["compromise"] = compromise_option.get("compromise") if isinstance(compromise_option, dict) else None
 
         # V2: Pass scaled trust values through to response handler
-        original_command["v2_insist_penalty"] = objection.get("insist_penalty", -10)
-        original_command["v2_trust_gain"] = objection.get("trust_gain", 3)
+        # ══════════════════════════════════════════════════════════════
+        # PT-C2, completed by the review fleet. The eight V1 objection
+        # sites in `disobedience.py` build a dict with NO `insist_penalty`
+        # and NO `trust_gain`, so these two defaulted to -10 / +3 while
+        # `_build_strategic_options` had begun quoting the tier-scaled
+        # values on the buttons — the same shown-vs-applied split PT-C2
+        # was landed to close, moved one dict over.
+        #
+        # Where the objection states its own values they still win. Where
+        # it does not, the BUTTON the player pressed is the source of
+        # truth, which is the only reading under which the quote cannot
+        # be wrong.
+        # ══════════════════════════════════════════════════════════════
+        _quoted = {o.get("type"): o for o in (objection.get("options") or [])
+                   if isinstance(o, dict)}
+        original_command["v2_insist_penalty"] = objection.get(
+            "insist_penalty",
+            _quoted.get("proceed", {}).get("trust_change", -10))
+        original_command["v2_trust_gain"] = objection.get(
+            "trust_gain", _quoted.get("preferred", {}).get("trust_change", 3))
         original_command["v2_compromise_gain"] = objection.get("compromise_gain", COMPROMISE_TRUST_GAIN)
 
         # Clear the pending strategic objection BEFORE re-execution

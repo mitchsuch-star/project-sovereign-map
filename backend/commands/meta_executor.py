@@ -422,6 +422,22 @@ class MetaExecutor:
         if strategic_reports:
             result["strategic_reports"] = strategic_reports
 
+        # ══════════════════════════════════════════════════════════════
+        # PT-F1, THE SEAM. `_execute_end_turn` does not forward
+        # `turn_result` — it builds a FRESH dict above and hand-copies a
+        # fixed key set, of which this was not one. So the payload
+        # `TurnManager.end_turn` stamps was produced and then destroyed
+        # one frame later, and `main.py`'s forward could never fire.
+        #
+        # Found by the review fleet, and it is this row's own lesson
+        # again: PT-F1's five pins asserted the producer, the forwarder
+        # and the renderer as SOURCE TEXT, in three separate files, and
+        # nothing exercised the joint between them. `TestF1ReachesTheClient`
+        # now drives a real end turn.
+        # ══════════════════════════════════════════════════════════════
+        if turn_result.get("jealousy_attacks"):
+            result["jealousy_attacks"] = turn_result["jealousy_attacks"]
+
         # V2a: Include saved mild concerns (captured before advance_turn cleared them)
         if saved_mild_concerns:
             result["mild_concerns"] = saved_mild_concerns

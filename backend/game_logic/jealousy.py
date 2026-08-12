@@ -2144,7 +2144,13 @@ def handle_petition_response(world, choice: str, executor=None,
             if queue is not None:
                 queue.set("pending_marshal_petition", None)
     else:
-        result.setdefault("marshal_petition", petition)
+        # PT-A1, corrected by the review fleet: hand back the DELIVERED
+        # card, not the stored one. The raw petition carries the `enabled`
+        # flags baked during the turn pass — the very IGR-1 defect the
+        # refresher exists to fix — so a refused answer re-rendered every
+        # priced arm greyed at full AP with no reason given.
+        result.setdefault("marshal_petition",
+                          refresh_petition_affordability(petition, world))
     return result
 
 
@@ -3086,8 +3092,14 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         marshal.holding_position = False
         marshal.hold_region = ""
         if _voided is not None and marshal.nation == world.player_nation:
-            _verb = str(getattr(_voided, "command_type", "") or "").lower()
-            _object = str(getattr(_voided, "target", "") or "")
+            # PT-G5 discipline, applied here too (review fleet): the
+            # marshal and the enemy are humanized two lines below and
+            # these two were not — "his standing order to move_to
+            # ArchdukeCharles", in the same sentence.
+            _verb = str(getattr(_voided, "command_type", "") or "").lower(
+                ).replace("_", " ")
+            _object = humanize_entity_name(
+                str(getattr(_voided, "target", "") or ""))
             _what = (f"his standing order to {_verb} {_object}".rstrip()
                      if _verb else "his standing order")
             _pending_events(world).append({

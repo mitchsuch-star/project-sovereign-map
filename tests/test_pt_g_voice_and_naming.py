@@ -291,7 +291,34 @@ class TestNoRawKeysInProse:
         }, "France")
         assert "{enemy}" not in observation
         assert "ArchdukeCharles" not in observation
-        assert "Archduke Charles" in observation
+
+    def test_no_observation_ever_prints_the_raw_key(self):
+        """Swept over the bank rather than one draw: only two of the three
+        `won_decisively` lines carry `{enemy}` at all, so a single seeded
+        call can pass while the repair is absent."""
+        import random as _r
+
+        from backend.game_logic.battle_report import _pick_observation
+
+        spaced = 0
+        for seed in range(30):
+            _r.seed(seed)
+            observation = _pick_observation({
+                "outcome": "attacker_victory",
+                "attacker_nation": "France", "defender_nation": "Austria",
+                "attacker": {"name": "Ney", "casualties": 1000,
+                             "remaining": 19000, "forced_retreat": False},
+                "defender": {"name": "ArchdukeCharles", "casualties": 9000,
+                             "remaining": 12000, "forced_retreat": False},
+                "attacker_original_strength": 20000,
+                "defender_original_strength": 21000,
+                "modifier_snapshot": {"attacker": [], "defender": []},
+            }, "France")
+            assert "ArchdukeCharles" not in observation
+            spaced += int("Archduke Charles" in observation)
+        assert spaced > 0, (
+            "the sweep must actually exercise an {enemy} template, or it "
+            "pins nothing")
 
     def test_the_mailbox_row_and_its_popup_agree(self):
         """The row read "Armistice Losing" while the popup for the SAME
@@ -393,3 +420,33 @@ class TestTheRecoveryPromptForbidsMarkdown:
                                 "nation": "Austria"}}})
         assert "ArchdukeCharles" not in formatted
         assert "Archduke Charles" in formatted
+
+
+class TestTheReviewFleetRound:
+    """Three raw renders the first cut left in blocks it had just fixed."""
+
+    def test_the_casualty_summary_names_are_humanized(self):
+        """`_fill` was routed and these three were not, so Berthier's
+        observation said "Archduke Charles" and the casualty line under it
+        said "ArchdukeCharles"."""
+        from backend.game_logic.battle_report import generate_battle_report
+
+        report = generate_battle_report({
+            "outcome": "attacker_victory",
+            "attacker_nation": "France", "defender_nation": "Austria",
+            "attacker": {"name": "Ney", "casualties": 1000,
+                         "remaining": 19000, "forced_retreat": False},
+            "defender": {"name": "ArchdukeCharles", "casualties": 9000,
+                         "remaining": 12000, "forced_retreat": False},
+            "attacker_original_strength": 20000,
+            "defender_original_strength": 21000,
+            "modifier_snapshot": {"attacker": [], "defender": []},
+        }, "France")
+        assert report["casualty_summary"]["defender_name"] == "Archduke Charles"
+
+    def test_the_enemy_dialog_humanizes_the_target_too(self):
+        """`marshal_name` was humanized at :129 and `target` read raw at
+        :131, then interpolated into every verb arm three lines later."""
+        src = (SCRIPTS / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
+        assert 'var target = ai_action.get("target", "")' not in src
+        assert 'var target = Utils.humanize_entity_name(' in src

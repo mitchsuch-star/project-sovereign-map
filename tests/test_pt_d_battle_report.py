@@ -336,3 +336,21 @@ class TestNoArmyLosesMoreMenThanItHad:
             "}")[0]
         assert '"defender_casualties": int(defender_casualties)' in block
         assert '"defender_strength_before"' in block
+
+
+class TestTheClampCoversBothBuilders:
+    """Review-fleet correction. `combat.py` has TWO `log_battle_event`
+    builders — the solo one at `:1057` and `_build_deferred_result`'s at
+    `:1486`, which is the COORDINATED path. PT-D6 stamped only the first,
+    so the clamp (conditional on those keys) was inert on exactly the
+    multi-marshal battles the audit measured."""
+
+    def test_both_builders_stamp_pre_battle_strength(self):
+        src = (REPO / "backend" / "game_logic" / "combat.py").read_text(
+            encoding="utf-8")
+        builders = src.split('"type": "battle",')
+        assert len(builders) >= 3, "expected two log_battle_event builders"
+        for body in builders[1:]:
+            head = body.split("}")[0]
+            assert '"defender_strength_before"' in head, (
+                "a builder without the pair silently disables the clamp")

@@ -1495,6 +1495,14 @@ class CombatResolver:
             "outcome": outcome,
             "attacker_casualties": int(attacker_casualties),
             "defender_casualties": int(defender_casualties),
+            # PT-D6: the COORDINATED path's builder. The first cut stamped
+            # only the solo one at `:1057`, so the clamp — which is
+            # conditional on these keys being present — was inert on
+            # exactly the battles the audit measured. Found by the review
+            # fleet; the symptom (`Mack 15,815` from 15,437 men) still
+            # rendered on every multi-marshal battle.
+            "attacker_strength_before": int(attacker_original_strength),
+            "defender_strength_before": int(defender_original_strength),
             # FINAL-8: int() for Godot
             "fortification_degraded": fortification_degraded,
             "fortification_old": int(fortification_old * 100),

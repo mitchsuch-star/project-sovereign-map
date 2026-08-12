@@ -128,7 +128,8 @@ func _format_action(action: Dictionary) -> String:
 	# `enemy_voice` — which the BACKEND humanizes.
 	var marshal_name = Utils.humanize_entity_name(str(ai_action.get("marshal", "")))
 	var action_type = ai_action.get("action", "unknown")
-	var target = ai_action.get("target", "")
+	# PT-G5(a): humanized with the marshal, not left raw beside it.
+	var target = Utils.humanize_entity_name(str(ai_action.get("target", "")))
 	var nation = action.get("nation", "")
 
 	# Basic action line — admin actions (build/repair/recruit) may not have a marshal

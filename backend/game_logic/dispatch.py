@@ -1730,6 +1730,25 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
 
     dispatch["diplomatic_events"] = diplomatic_events
 
+    # ══════════════════════════════════════════════════════════════════
+    # PT-E1, CORRECTED: the queue is retired where it is CONSUMED.
+    #
+    # The first cut pruned in `_advance_turn_internal` on the turn stamp,
+    # and that is one frame off: the prune runs BEFORE the increment, so
+    # events queued by systems INSIDE `advance_turn` — after it — carry
+    # the NEW turn number and survived the next cycle's prune as well.
+    # Probed: `diplomatic_dp_regen` stamped turn 2 was still in the queue
+    # at turn 3, i.e. narrated in two consecutive briefings.
+    #
+    # Clearing at consumption is exact by construction: everything queued
+    # since the last briefing is reported once, whether it was queued by
+    # one of `end_turn`'s five phases or by a system inside `advance_turn`.
+    # The turn-stamp prune stays as the safety net for the direct
+    # `advance_turn()` callers that never build a dispatch.
+    # ══════════════════════════════════════════════════════════════════
+    if getattr(world, "pending_dispatch_events", None):
+        world.pending_dispatch_events = []
+
     # Lapsed offers from previous turn-end
     if lapsed_offers:
         dispatch["lapsed_offers"] = [
