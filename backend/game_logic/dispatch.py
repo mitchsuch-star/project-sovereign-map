@@ -1641,6 +1641,9 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
 
     dispatch = {
         "turn": int(world.current_turn),
+        # HC-0: dated header ("" without an anchor — the client appends
+        # only when non-empty, so legacy renders exactly as before).
+        "calendar_label": world.get_calendar_label(),
         "situation": _build_situation(world, player_nation),
         "marshals": _build_marshal_status(world, player_nation),
         "intelligence": _build_intelligence(world, player_nation),

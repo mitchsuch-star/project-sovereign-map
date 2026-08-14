@@ -69,6 +69,8 @@ def build_active_wars(world) -> Dict[str, Any]:
             # renders — shown = applied.
             "campaign": int(components.get("campaign", 0)),
             "blood": int(components.get("blood", 0)),
+            # HC-1: sustained naval denial (shown = applied).
+            "blockade": int(components.get("blockade", 0)),
             "ticking": int(components.get("ticking", 0)),
         }
 
@@ -579,6 +581,8 @@ def _collapse_shared_war_instance_rows(
             "capital": int(side_components["capital"]),
             "campaign": int(side_components.get("campaign", 0)),
             "blood": int(side_components.get("blood", 0)),
+            # HC-1: sustained naval denial (shown = applied).
+            "blockade": int(side_components.get("blockade", 0)),
             "ticking": int(side_components["ticking"]),
         }
         combined["battles_fought"] = int(

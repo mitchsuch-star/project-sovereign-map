@@ -2326,6 +2326,12 @@ func _display_berthier_report(report: Dictionary):
 	if observation != "":
 		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + observation + "\"[/color]")
 
+	# HC-2 "The Butcher's Ledger Speaks": past the dead threshold the
+	# report closes on the war's running cost (stateless, backend-derived).
+	var cost_note = str(report.get("campaign_cost_note", ""))
+	if cost_note != "":
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + cost_note + "[/color]")
+
 	add_output("")
 
 func _display_reinforcement_messages(messages: Array):
@@ -3104,9 +3110,10 @@ func _update_status(action_summary: Dictionary):
 		admin_value.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))  # Blue when available
 	admin_value.text = str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions))
 
-	# Update top bar turn counter
+	# Update top bar turn counter (HC-0: dated when the campaign carries
+	# a calendar anchor; "" keeps the plain "Turn N").
 	if top_bar:
-		top_bar.update_turn(current_turn)
+		top_bar.update_turn(current_turn, str(action_summary.get("calendar_label", "")))
 
 
 func _update_diplomatic_top_bar(response: Dictionary):

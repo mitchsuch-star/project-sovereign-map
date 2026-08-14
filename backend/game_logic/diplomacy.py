@@ -3036,6 +3036,16 @@ CAMPAIGN_CAPTURE_SCORE = 2    # per unique province taken this war
 CAMPAIGN_CAPTURE_CAP = 10
 BLOOD_DIFF_DIVISOR = 2500     # 1 point per 2,500 net enemy dead
 BLOOD_DIFF_CAP = 15
+# HC-1 "The Silver Blockade" (gate §2): sustained naval trade denial is
+# the war score's eighth component, on the same ledger substrate — a
+# per-side `blockade_turns` counter accrued once per turn in the naval
+# tick (blockade posture pinning the opponent, or CS closure at the
+# tier-1 notch suffered at that side's hands). min(cap, turns // divisor)
+# per side, differenced, clamped — sustained pressure, not a light
+# switch. Blessed, in-band tunable; setting the cap to 0 reproduces the
+# pre-slice score byte-identically (the flip experiment's lever).
+BLOCKADE_SCORE_CAP = 15
+BLOCKADE_TURNS_DIVISOR = 2    # 1 point per 2 turns of denial
 
 
 def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
@@ -3044,11 +3054,12 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     Components: territory (±40), battles (±BATTLE_SCORE_CAP), decisive
     (±DECISIVE_SCORE_CAP), capital (±30), campaign captures
     (±CAMPAIGN_CAPTURE_CAP), blood differential (±BLOOD_DIFF_CAP),
-    ticking objective score. Total capped at ±100.
+    blockade (±BLOCKADE_SCORE_CAP — HC-1), ticking objective score.
+    Total capped at ±100.
 
     If return_components=True, returns {"total": int, "territory": int,
     "battles": int, "decisive": int, "capital": int, "campaign": int,
-    "blood": int, "ticking": int} instead of int.
+    "blood": int, "blockade": int, "ticking": int} instead of int.
     """
     # Territory score (cap ±40)
     territory_score = 0
@@ -3106,6 +3117,20 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     blood_score = int(_blood_diff / BLOOD_DIFF_DIVISOR)
     blood_score = max(-BLOOD_DIFF_CAP, min(BLOOD_DIFF_CAP, blood_score))
 
+    # HC-1: the silver blockade — sustained naval denial on the same
+    # ledger. Each side's accrual saturates at its own cap FIRST, then
+    # the difference is clamped (a mutual blockade washes toward zero;
+    # derivable to zero on fleetless worlds because nothing ever accrues).
+    _blockade = ledger.get("blockade_turns") or {}
+    blockade_score = (
+        min(BLOCKADE_SCORE_CAP,
+            int(_blockade.get(nation_a, 0)) // BLOCKADE_TURNS_DIVISOR)
+        - min(BLOCKADE_SCORE_CAP,
+              int(_blockade.get(nation_b, 0)) // BLOCKADE_TURNS_DIVISOR)
+    )
+    blockade_score = max(-BLOCKADE_SCORE_CAP,
+                         min(BLOCKADE_SCORE_CAP, blockade_score))
+
     # Capital score (cap ±30). World-scoped capital reads (1805 pre-slice
     # item 7) — the legacy global silently zeroed this component for every
     # Europe-only nation (Vienna's capture must move war score).
@@ -3137,7 +3162,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     ticking_score = int(ticking_a - ticking_b)
 
     total = (territory_score + battle_score + decisive_score + capital_score
-             + campaign_score + blood_score + ticking_score)
+             + campaign_score + blood_score + blockade_score + ticking_score)
     total = int(max(-100, min(100, total)))
 
     if return_components:
@@ -3149,6 +3174,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             "capital": int(capital_score),
             "campaign": int(campaign_score),
             "blood": int(blood_score),
+            "blockade": int(blockade_score),
             "ticking": int(ticking_score),
         }
     return total
@@ -3164,7 +3190,7 @@ def calculate_side_war_score(nation: str, opponents, world,
     opposing participant and each component is re-clamped at its own pair
     cap (territory ±40, battles ±BATTLE_SCORE_CAP, decisive
     ±DECISIVE_SCORE_CAP, capital ±30, campaign ±CAMPAIGN_CAPTURE_CAP,
-    blood ±BLOOD_DIFF_CAP; total ±100).
+    blood ±BLOOD_DIFF_CAP, blockade ±BLOCKADE_SCORE_CAP; total ±100).
 
     Single source: each pair term IS `calculate_war_score(nation, opp)` —
     for a single opponent this reduces byte-identically to the pair helper
@@ -3172,7 +3198,8 @@ def calculate_side_war_score(nation: str, opponents, world,
     construction. Positive = `nation` winning the war at large.
     """
     sums = {"territory": 0, "battles": 0, "decisive": 0,
-            "capital": 0, "campaign": 0, "blood": 0, "ticking": 0}
+            "capital": 0, "campaign": 0, "blood": 0, "blockade": 0,
+            "ticking": 0}
     for opponent in opponents:
         if not opponent or opponent == nation:
             continue
@@ -3191,6 +3218,8 @@ def calculate_side_war_score(nation: str, opponents, world,
         "campaign": max(-CAMPAIGN_CAPTURE_CAP,
                         min(CAMPAIGN_CAPTURE_CAP, sums["campaign"])),
         "blood": max(-BLOOD_DIFF_CAP, min(BLOOD_DIFF_CAP, sums["blood"])),
+        "blockade": max(-BLOCKADE_SCORE_CAP,
+                        min(BLOCKADE_SCORE_CAP, sums["blockade"])),
         "ticking": int(sums["ticking"]),
     }
     total = int(max(-100, min(100, sum(components.values()))))

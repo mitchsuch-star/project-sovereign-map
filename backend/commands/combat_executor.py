@@ -6255,6 +6255,25 @@ class CombatExecutor:
                             f"{get_satisfaction(_exp_winner, world)}g).")
                     break
 
+            # HC-2 "The Butcher's Ledger Speaks" (gate §3): past the dead
+            # threshold the report closes on the war's running cost —
+            # stateless, player side only, the expectation_note pattern.
+            from backend.game_logic.battle_report import (
+                compose_campaign_cost_note,
+            )
+            _hc2_own = None
+            _hc2_foe = None
+            if marshal is not None and marshal.nation == world.player_nation:
+                _hc2_own, _hc2_foe = marshal, enemy_marshal
+            elif (enemy_marshal is not None
+                    and enemy_marshal.nation == world.player_nation):
+                _hc2_own, _hc2_foe = enemy_marshal, marshal
+            if _hc2_own is not None and _hc2_foe is not None:
+                _hc2_note = compose_campaign_cost_note(
+                    world, _hc2_own.nation, _hc2_foe.nation)
+                if _hc2_note:
+                    result["battle_report"]["campaign_cost_note"] = _hc2_note
+
         # Jealousy v3.2 (spec §11): Berthier notes jealous conduct on the
         # field — display-only rider on the battle report (GR6), player
         # marshals only. Mirrors the expectation_note glue above.

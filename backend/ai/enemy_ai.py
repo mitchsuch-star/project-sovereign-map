@@ -16,19 +16,19 @@ Design principles:
 
 FUTURE IMPROVEMENTS (tied to ROADMAP.md):
 - Alliance Coordination: Britain/Prussia share intel and coordinate
-  → Phase 8 (Diplomacy: Alliances, Coalition Trigger)
+  â†’ Phase 8 (Diplomacy: Alliances, Coalition Trigger)
   Partial: P4.75/P4.77 cross-nation support already works (Session 63)
 - Strategic Objectives: AI picks high-level goals ("Capture Belgium", "Defend Capital")
-  → Phase 8.5 (National Goals) + 1805 (AI Enhancements for Scale)
+  â†’ Phase 8.5 (National Goals) + 1805 (AI Enhancements for Scale)
 - Nation-Level Strategy Layer: Allocate resources between defense and offense
-  → 1805 (AP Scaling, Tiered Nation AI)
+  â†’ 1805 (AP Scaling, Tiered Nation AI)
 - Flanking Coordination: Multiple marshals deliberately attack same target
-  → Post-EA (Advanced AI). Partial: P4.6 coordinated attack setup (Session 63)
+  â†’ Post-EA (Advanced AI). Partial: P4.6 coordinated attack setup (Session 63)
 - Round-Robin Action Distribution: Spread actions among marshals
-  → 1805 (AP Scaling section: "tiered actions for idle marshals")
+  â†’ 1805 (AP Scaling section: "tiered actions for idle marshals")
   Partial: _marshals_done_this_turn prevents monopolization
 - Retreat Awareness: AI uses retreat strategically to reposition
-  → Post-EA (Advanced AI)
+  â†’ Post-EA (Advanced AI)
 
 IMPLEMENTED:
 - P0 Engagement Check: When engaged with enemy in same region, AI MUST:
@@ -42,9 +42,9 @@ IMPLEMENTED:
   friendly territory or allies for mutual support
 - Smart Retreat: Retreat destination prefers region closer to capital
 - Controlled Randomness: Personality-weighted mood variance on attack thresholds
-  - Aggressive: ±15% variance (Blucher might be cautious OR reckless)
-  - Cautious: ±10% variance (Wellington usually careful, occasionally bold)
-  - Others: ±12% variance
+  - Aggressive: Â±15% variance (Blucher might be cautious OR reckless)
+  - Cautious: Â±10% variance (Wellington usually careful, occasionally bold)
+  - Others: Â±12% variance
   - Tests use seeded random for determinism
 """
 
@@ -68,6 +68,15 @@ AI_DEBUG = _os.environ.get("AI_DEBUG", "").lower() in ("1", "true", "yes")
 # Set to False to disable for performance testing
 AI_SCORING_ENABLED = True
 
+# HC-4b "The Admiralty's bill" (gate Â§5b) â€” flip lever for the
+# BASELINE_SERIES attribution experiment: False reproduces the flat
+# 1-AP admin billing byte-identically. When True, naval_expedition /
+# naval_diversion bill at the `world._action_costs` table price (2 / 1)
+# against the AI's 2-AP admin budget, and the expedition rung is
+# affordability-gated at that price â€” the parity the dead table entry
+# always intended (the player's expedition costs 2 MILITARY AP).
+AI_NAVAL_AP_PARITY = True
+
 def ai_debug(msg: str):
     """Print debug message if AI_DEBUG is enabled."""
     if AI_DEBUG:
@@ -79,19 +88,19 @@ def ai_debug(msg: str):
 
 def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState"]) -> str:
     """
-    Personality for AI decision-making — the single source (MC-V-2 fix,
+    Personality for AI decision-making â€” the single source (MC-V-2 fix,
     MC exit review July 11, 2026).
 
     Enemy-nation literal marshals play their authored character (MC-4:
-    personality = character, zero exceptions — both sides). Their profile is
+    personality = character, zero exceptions â€” both sides). Their profile is
     the authored table rows: attacks at even odds (1.0), low mood variance
-    (±8%), and NONE of the cautious reflexes — no fall-back when threatened,
+    (Â±8%), and NONE of the cautious reflexes â€” no fall-back when threatened,
     no fortify/defensive-stance initiative, no drill. In P7 they hold their
     standing disposition until the stagnation breaker represents new orders
     arriving (Mack sits at Ulm; Buxhowden is always late).
 
-    The literal→cautious alias survives ONLY for the player's own literal
-    marshals gone autonomous — the case the original rationale was written
+    The literalâ†’cautious alias survives ONLY for the player's own literal
+    marshals gone autonomous â€” the case the original rationale was written
     for: losing literal precision IS the consequence of going autonomous.
     """
     personality = getattr(marshal, 'personality', 'balanced')
@@ -123,9 +132,9 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
     personality = get_effective_ai_personality(marshal, world)
 
     # Base score by personality (MC-V-3: dead balanced/loyal rows removed
-    # post-MC-4 — the .get() default is the save-compat floor)
+    # post-MC-4 â€” the .get() default is the save-compat floor)
     BASE_SCORES = {
-        "aggressive": 55,  # Blücher's "Vorwärts!" energy
+        "aggressive": 55,  # BlÃ¼cher's "VorwÃ¤rts!" energy
         "cautious": 40,    # Professional, measured
         "literal": 30,     # By-the-book, uninspiring
     }
@@ -143,21 +152,21 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
         if getattr(target, 'drilling', False) or getattr(target, 'drilling_locked', False):
             score += 10
 
-        # Blücher moment: aggressive attacking against odds
+        # BlÃ¼cher moment: aggressive attacking against odds
         if ratio < 0.8 and personality == "aggressive":
             score += 15
 
-    # Random variance ±10
+    # Random variance Â±10
     score += random.randint(-10, 10)
 
     # Clamp to 0-100
     return max(0, min(100, score))
 
 
-# ════════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # MARSHAL PRIORITY SYSTEM
 # Determines turn order within a nation. Lower priority = acts first.
-# ════════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def has_enemy_in_same_region(marshal: Marshal, world: WorldState) -> bool:
     """
@@ -259,7 +268,7 @@ def get_marshal_priority(marshal: Marshal, world: WorldState) -> int:
     # --- PERSONALITY (minor factor) ---
 
     # Aggressive marshals are eager to act (single-source effective
-    # personality — MC-V-2)
+    # personality â€” MC-V-2)
     personality = get_effective_ai_personality(marshal, world)
     if personality == "aggressive":
         priority -= 10
@@ -298,12 +307,12 @@ class EnemyAI:
     ATTACK_THRESHOLDS = {
         "aggressive": 0.7,   # Attacks even slightly outnumbered
         "cautious": 1.3,     # Needs clear advantage
-        "literal": 1.0,      # Even odds — by the book
+        "literal": 1.0,      # Even odds â€” by the book
     }
 
     # DEPRECATED: No longer used to prevent oscillation
     # Thresholds to ABANDON FORTIFICATION for attack opportunity were causing
-    # Wellington to oscillate: fortify → unfortify → no attack → fortify
+    # Wellington to oscillate: fortify â†’ unfortify â†’ no attack â†’ fortify
     # Attack opportunities are now handled by normal attack priority (P4) only
     # FORTIFICATION_ABANDON_THRESHOLD = {
     #     "aggressive": 1.0,   # Even odds (but aggressive rarely fortify anyway)
@@ -337,9 +346,9 @@ class EnemyAI:
     # Mood variance by personality (controlled randomness)
     # Higher variance = more unpredictable behavior
     MOOD_VARIANCE = {
-        "aggressive": 0.15,  # ±15% (threshold 0.7 becomes 0.595-0.805)
-        "cautious": 0.10,    # ±10% (threshold 1.3 becomes 1.17-1.43)
-        "literal": 0.08,     # ±8% (more predictable, follows orders)
+        "aggressive": 0.15,  # Â±15% (threshold 0.7 becomes 0.595-0.805)
+        "cautious": 0.10,    # Â±10% (threshold 1.3 becomes 1.17-1.43)
+        "literal": 0.08,     # Â±8% (more predictable, follows orders)
     }
 
     def __init__(self, executor):
@@ -363,21 +372,21 @@ class EnemyAI:
         self._indexed_scope_turn: Optional[int] = None
         self._indexed_scope_active: bool = False
 
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # FAILED ACTION COOLDOWN SYSTEM
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # Prevents AI from retrying failed actions immediately.
-        # Example: Attack fails due to path blocked → 2 turn cooldown on attack
+        # Example: Attack fails due to path blocked â†’ 2 turn cooldown on attack
         # This avoids repetitive failed attempts and encourages varied behavior.
         # Cooldown of 2 turns chosen to allow situation to change before retry.
         # Stored on WorldState (world.ai_failed_action_cooldowns) so it persists
         # across turns. EnemyAI is recreated each turn but reads/writes
         # cooldowns from WorldState (same pattern as ai_stagnation_turns).
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # GRADUATED STAGNATION COUNTER (Fix #1)
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # Stored on WorldState (world.ai_stagnation_turns) so it persists
         # across turns. EnemyAI is recreated each turn but reads/writes
         # the counter from WorldState.
@@ -385,14 +394,14 @@ class EnemyAI:
         #   Turn 2: Unfortify + move toward nearest enemy regardless of risk
         #   Turn 3+: Lower attack threshold by 20% + 10% per additional turn (floor 0.3)
         # Resets on any meaningful action.
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def _get_effective_personality(self, marshal: Marshal, world: WorldState) -> str:
         """
         Get personality for AI decision-making.
 
         MC-V-2 (MC exit review, July 11, 2026): enemy-nation literals play
-        LITERAL — their authored rows (threshold 1.0, variance ±8%) are live
+        LITERAL â€” their authored rows (threshold 1.0, variance Â±8%) are live
         and they inherit none of the cautious reflexes. Only the player's
         own literal marshals gone autonomous still convert to cautious
         (losing literal precision IS the consequence of going autonomous).
@@ -404,14 +413,14 @@ class EnemyAI:
         """
         Get attack threshold with personality-based mood variance.
 
-        This creates controlled unpredictability — marshals are generally
+        This creates controlled unpredictability â€” marshals are generally
         consistent with their personality but occasionally surprise you.
 
         INTENTIONAL CROSSOVER: An aggressive marshal (base 0.7) with max
         negative variance (0.85 * 0.7 = 0.60) attacks recklessly, while
         max positive variance (1.15 * 0.7 = 0.81) makes them cautious-ish.
         A cautious marshal (base 1.3) with positive variance can reach 1.5+.
-        This is by design — "bad days" and "feeling bold" moments.
+        This is by design â€” "bad days" and "feeling bold" moments.
 
         Args:
             marshal: The marshal making the decision
@@ -424,7 +433,7 @@ class EnemyAI:
         base_threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
         variance = self.MOOD_VARIANCE.get(personality, 0.10)
 
-        # Apply random variance: threshold * (1 ± variance)
+        # Apply random variance: threshold * (1 Â± variance)
         mood_modifier = random.uniform(1.0 - variance, 1.0 + variance)
         adjusted = base_threshold * mood_modifier
 
@@ -441,7 +450,7 @@ class EnemyAI:
         self._enemy_query_world_id = id(world) if world is not None else None
         self._enemy_query_turn = getattr(world, "current_turn", None) if world is not None else None
         # Slice 8: the coarse strategic-target memo shares this evaluation
-        # scope — reset together so a reused EnemyAI instance can never leak
+        # scope â€” reset together so a reused EnemyAI instance can never leak
         # another world's region list (same-turn key collisions across worlds).
         self._strategic_enemy_regions_cache = None
 
@@ -576,7 +585,7 @@ class EnemyAI:
         """Return hostile-controlled regions as coarse targets when no enemies are visible.
 
         Golden Rule 8: fires per AI action with no visible contacts (common in
-        the 1805 opening's isolated fronts) — memoized per (nation, turn) and
+        the 1805 opening's isolated fronts) â€” memoized per (nation, turn) and
         built from the cached active-nation/region indexes, never a raw O(R)
         scan (Slice 8 audit). Controller changes bump the per-turn caches via
         invalidate_active_nations_cache(), but within one nation-turn the
@@ -595,7 +604,7 @@ class EnemyAI:
             if not world.is_at_war(nation, controller):
                 continue
             regions.extend(world.get_nation_regions(controller))
-        # NA-3 §5.6: agenda target regions first — min-by-distance callers
+        # NA-3 Â§5.6: agenda target regions first â€” min-by-distance callers
         # resolve ties to first-seen, so the court's design wins equal-hop
         # picks (deckless worlds: covets empty, order byte-identical).
         covets = self._agenda_covet_set(nation, world)
@@ -605,16 +614,16 @@ class EnemyAI:
         return list(regions)
 
     def _agenda_covet_set(self, nation: str, world: WorldState) -> frozenset:
-        """NA-3 §5.6 — the nation's active design's MILITARY targets
+        """NA-3 Â§5.6 â€” the nation's active design's MILITARY targets
         (agendas.get_agenda_military_targets: acquire-type unmet targets
-        ONLY — §3.1 pins deny to "never self-conquest", so a deny court's
+        ONLY â€” Â§3.1 pins deny to "never self-conquest", so a deny court's
         listed regions never bias its own corps). Empty on deckless/legacy
-        worlds and for posture/deny agendas — every bias below degrades
+        worlds and for posture/deny agendas â€” every bias below degrades
         to a no-op.
 
         Memoized per (nation, turn) on the _strategic_enemy_regions_cache
         idiom (GR8): the P4/P7 pick keys consult this per candidate.
-        Same staleness contract as the region index — within one
+        Same staleness contract as the region index â€” within one
         nation-turn a momentarily stale covet list is acceptable."""
         cache = getattr(self, '_agenda_covet_cache', None)
         key = (nation, world.current_turn)
@@ -627,7 +636,7 @@ class EnemyAI:
 
     def _agenda_biased_distance(self, from_region: str, to_region: str,
                                 nation: str, world: WorldState) -> int:
-        """NA-3 §5.6 — hop distance minus AGENDA_TARGET_DISTANCE_BONUS when
+        """NA-3 Â§5.6 â€” hop distance minus AGENDA_TARGET_DISTANCE_BONUS when
         the destination is an agenda covet. Used ONLY inside target-CHOICE
         keys; the P7 hop loop's must-reduce-distance gate keeps reading the
         real distance to the chosen target (credit never fakes a hop)."""
@@ -637,9 +646,9 @@ class EnemyAI:
             return distance - AGENDA_TARGET_DISTANCE_BONUS
         return distance
 
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # FAILED ACTION COOLDOWN HELPERS
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def _is_action_on_cooldown(self, marshal_name: str, action_type: str) -> bool:
         """Check if a marshal's action is on cooldown from a previous failure.
@@ -670,7 +679,7 @@ class EnemyAI:
         """Decrement ALL cooldowns once per turn (V2-20/21 fix).
 
         Must be called ONCE in turn_manager before the per-nation loop,
-        NOT inside process_nation_turn (which runs per-nation → 4x tick bug).
+        NOT inside process_nation_turn (which runs per-nation â†’ 4x tick bug).
         """
         self._decrement_cooldowns(world)
 
@@ -728,7 +737,7 @@ class EnemyAI:
         ai_debug(f"=== AUTONOMOUS ACTION: {marshal.name} ({nation}) ===")
 
         # Ensure tracking sets exist (normally initialized by process_nation_turn,
-        # but decide_single_action can be called standalone — Bug 4E-1)
+        # but decide_single_action can be called standalone â€” Bug 4E-1)
         if not hasattr(self, '_stance_changed_this_turn'):
             self._stance_changed_this_turn = set()
         if not hasattr(self, '_pending_intents'):
@@ -786,7 +795,7 @@ class EnemyAI:
         # _autonomous_execution marks the AI-execution context: the marshal
         # is acting on his OWN decision, so the executor must skip the
         # "cannot command autonomous marshal" gate, objections, and the
-        # player AP charge (July 2026 AI audit — the gate previously
+        # player AP charge (July 2026 AI audit â€” the gate previously
         # bounced EVERY autonomous action, making autonomy a no-op).
         command = {
             "command": {
@@ -800,9 +809,9 @@ class EnemyAI:
 
         result = self.executor.execute(command, game_state)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # AI STRATEGIC SCORING (Phase 5): Apply bonuses to autonomous marshals
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ai_score = None
         if AI_SCORING_ENABLED and result.get("success", False):
             # Get target marshal if exists
@@ -866,11 +875,11 @@ class EnemyAI:
 
         # PT-F6: a marshal forms square at most ONCE per phase. His own next
         # action (attack/move/stance change) breaks it silently via
-        # _auto_break_square, which sets no ai_square_cooldown — without this
+        # _auto_break_square, which sets no ai_square_cooldown â€” without this
         # latch P2.5 re-forms it and the phase reads form/break/re-form farce.
         self._squares_formed_this_turn: set = set()
 
-        # NOTE: Cooldown decrements moved to decrement_all_cooldowns() — called once
+        # NOTE: Cooldown decrements moved to decrement_all_cooldowns() â€” called once
         # per turn in turn_manager.py, NOT per-nation (V2-20/21 fix).
 
         # Clear pending intents at start of each nation's turn (safety)
@@ -887,7 +896,7 @@ class EnemyAI:
         self._marshals_done_this_turn: set = set()
 
         # Fix #2: Track marshals who advanced toward enemy via P7 this turn
-        # Prevents P8 from immediately retreating them back (advance→retreat oscillation)
+        # Prevents P8 from immediately retreating them back (advanceâ†’retreat oscillation)
         self._advanced_this_turn: set = set()
 
         # Fix: Track (attacker, target) pairs attacked this turn to prevent repetitive attacks
@@ -902,7 +911,7 @@ class EnemyAI:
         # Homeland defense: track regions claimed for recapture this turn (prevent duplication)
         self._recapture_targets_claimed: set = set()
 
-        # Homeland defense: track marshal→target assignments (prevents deathball)
+        # Homeland defense: track marshalâ†’target assignments (prevents deathball)
         self._recapture_marshal_assignments: Dict[str, str] = {}
 
         # Threat response: limit to 1 marshal per nation when 2+ regions lost
@@ -974,9 +983,9 @@ class EnemyAI:
                 print(f"  No valid actions remaining for {nation}")
                 break
 
-            # V2-22: Skip aggressive stance change on last AP — without follow-up
+            # V2-22: Skip aggressive stance change on last AP â€” without follow-up
             # budget, the stance change is wasted (aggressive only helps attacks).
-            # Defensive stance changes are fine — they provide immediate combat value.
+            # Defensive stance changes are fine â€” they provide immediate combat value.
             if (actions_remaining == 1
                     and selected_action.get("action") == "stance_change"
                     and selected_action.get("target") == "aggressive"):
@@ -1024,7 +1033,7 @@ class EnemyAI:
                 failed_actions.add((selected_marshal.name, selected_action["action"]))
                 # Record cross-turn cooldown (2 turns before retrying same action)
                 self._record_failed_action(selected_marshal.name, selected_action["action"])
-                # Clear any pending intent — the multi-step plan failed
+                # Clear any pending intent â€” the multi-step plan failed
                 self._pending_intents.pop(selected_marshal.name, None)
                 consecutive_skips += 1
                 if consecutive_skips >= max_consecutive_skips:
@@ -1045,13 +1054,13 @@ class EnemyAI:
             if selected_action["action"] == "stance_change":
                 self._stance_changed_this_turn.add(selected_action["marshal"])
 
-            # PT-F6: latch on the EXECUTED formation (never during evaluation —
+            # PT-F6: latch on the EXECUTED formation (never during evaluation â€”
             # the ai_square_cooldown stamp inside _evaluate_marshal is the
             # documented anti-pattern this deliberately avoids).
             if selected_action["action"] == "form_square":
                 self._squares_formed_this_turn.add(selected_action["marshal"])
 
-            # Track successful attacks to prevent same attacker→target repetition
+            # Track successful attacks to prevent same attackerâ†’target repetition
             if selected_action["action"] == "attack" and selected_action.get("target"):
                 self._attacked_targets_this_turn.add(
                     (selected_action["marshal"], selected_action["target"])
@@ -1093,7 +1102,7 @@ class EnemyAI:
                 is_free_action = (actual_cost == 0)
             else:
                 # July 2026 AI audit (Golden Rule 5): read the SAME cost
-                # table the player pays through — the flat literal 1 gave
+                # table the player pays through â€” the flat literal 1 gave
                 # the AI garrison at half the player's 2-AP price and would
                 # silently diverge on any future retuning
                 if is_free_action_type or is_free_action_result:
@@ -1112,7 +1121,7 @@ class EnemyAI:
                 # V2-81: Cap free actions to prevent infinite wait/retreat loops
                 if free_action_count >= max_free_actions:
                     print(f"    [FREE CAP] {nation} hit free action limit ({max_free_actions})")
-                    # Don't break — only skip further free actions, paid actions still proceed
+                    # Don't break â€” only skip further free actions, paid actions still proceed
 
             # Consume action(s) based on actual cost
             if actual_cost > 0:
@@ -1138,10 +1147,10 @@ class EnemyAI:
                         defender_name = e.get("defender", {}).get("name", "")
                         key = f"{m_name}:{defender_name}"
                         if e.get("victor") == m_name or e.get("region_conquered") or e.get("enemy_destroyed"):
-                            # Success — reset futility
+                            # Success â€” reset futility
                             world.ai_attack_futility.pop(key, None)
                         else:
-                            # Failed attack — increment futility counter
+                            # Failed attack â€” increment futility counter
                             world.ai_attack_futility[key] = world.ai_attack_futility.get(key, 0) + 1
                             count = world.ai_attack_futility[key]
                             if count >= 3:
@@ -1170,10 +1179,10 @@ class EnemyAI:
                 meaningful_actions.add(m_name)
             elif action == "fortify":
                 # Balance patch: fortify is only meaningful if an enemy is
-                # within 2 regions — fortifying with no nearby threat is
+                # within 2 regions â€” fortifying with no nearby threat is
                 # stalling, not defending. (July 2026 AI audit: the old
                 # guard also required the marshal to NOT be fortified AFTER
-                # a successful fortify — impossible — so this branch was
+                # a successful fortify â€” impossible â€” so this branch was
                 # dead code and defensive AI lines self-dismantled through
                 # stagnation-forced unfortify on a ~3-turn cycle.)
                 marshal_obj = next((m for m in world.get_marshals_by_nation(nation) if m.name == m_name), None)
@@ -1203,7 +1212,7 @@ class EnemyAI:
                         print(f"  [STAGNATION RESET] {m.name} took meaningful action - counter reset")
                     world.ai_stagnation_turns[m.name] = 0
             elif m.name not in marshals_who_acted:
-                # Marshal was SKIPPED entirely (priority 999) — still counts as idle
+                # Marshal was SKIPPED entirely (priority 999) â€” still counts as idle
                 old = world.ai_stagnation_turns.get(m.name, 0)
                 world.ai_stagnation_turns[m.name] = old + 1
                 if world.ai_stagnation_turns[m.name] >= 2:
@@ -1231,18 +1240,18 @@ class EnemyAI:
         """
         Select the next marshal to act using round-robin fairness + turn order.
 
-        Selection logic (AUD-e canonized — this is the SHIPPED sort, held Enemy
+        Selection logic (AUD-e canonized â€” this is the SHIPPED sort, held Enemy
         AI at 8.0 across five sweeps; the sort key is ``sort_key`` below):
-        1. PAID actions (attack/move/fortify/…) sort before FREE ones
-           (wait/status/help) — a marshal who can make progress beats a waiter.
-        2. Within a tier: round-robin fairness — fewer actions-used first.
-        3. Then marshal_priority (lower = more urgent — "great powers move
+        1. PAID actions (attack/move/fortify/â€¦) sort before FREE ones
+           (wait/status/help) â€” a marshal who can make progress beats a waiter.
+        2. Within a tier: round-robin fairness â€” fewer actions-used first.
+        3. Then marshal_priority (lower = more urgent â€” "great powers move
            first" + survival situations, from _get_marshal_priority_for_turn_order).
         4. Tiebreaker: alphabetical by name.
 
         NOTE: ``action_priority`` (the second element _evaluate_marshal returns)
         is passed back to the caller for its own gating/logging, but is
-        deliberately NOT a sort key — the paid/free tier + round-robin +
+        deliberately NOT a sort key â€” the paid/free tier + round-robin +
         marshal_priority ordering is authoritative. A marshal is skipped for
         the rest of the turn only after it waits twice or takes the survival
         defend-once fallback (see _marshals_done_this_turn).
@@ -1294,14 +1303,14 @@ class EnemyAI:
                 if action.get("action") == "stance_change":
                     if self._should_skip_stance_change(action.get("marshal")):
                         continue
-                    # PT-F6: a marshal standing in square holds his posture —
+                    # PT-F6: a marshal standing in square holds his posture â€”
                     # a stance change would break the formation he just paid
                     # for (the S5-1 fortify guards' missing sibling). P2.5's
                     # break rung owns the deliberate exit; attack/move breaks
                     # stay legal (abandoning the square for a blow is a
                     # choice, fidgeting out of it is farce).
                     if getattr(marshal, 'square_formation', False):
-                        ai_debug(f"  [SKIP] {marshal.name} in square — stance change would break it")
+                        ai_debug(f"  [SKIP] {marshal.name} in square â€” stance change would break it")
                         continue
 
                 marshal_priority = self._get_marshal_priority_for_turn_order(marshal, world)
@@ -1357,32 +1366,32 @@ class EnemyAI:
             Tuple of (action_dict, priority) or (None, 999)
         """
         self._ensure_marshal_indexes(world)
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # DECISION FLOW (called from _select_next_marshal_action)
-        # ═══════════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # process_nation_turn()
-        #   └── _select_next_marshal_action() [picks WHO acts]
-        #       └── _evaluate_marshal() [picks WHAT they do] ← YOU ARE HERE
-        #           └── Returns (action_dict, priority) tuple
-        #               └── Executed via command_executor (same as player!)
+        #   â””â”€â”€ _select_next_marshal_action() [picks WHO acts]
+        #       â””â”€â”€ _evaluate_marshal() [picks WHAT they do] â† YOU ARE HERE
+        #           â””â”€â”€ Returns (action_dict, priority) tuple
+        #               â””â”€â”€ Executed via command_executor (same as player!)
         #
         # Priority evaluation order (first valid action wins):
-        #   INTENT  → Pending multi-step action (e.g., unfortify→capture)
-        #   P-1     → Capture current region (standing on undefended enemy territory)
-        #   P0      → Engagement (enemy in same region: attack/retreat/wait)
-        #   P1      → Retreat recovery (limited actions while recovering)
-        #   P2      → Critical survival (<25% strength: flee or defend)
-        #   P3      → Threat response (stronger enemy adjacent)
-        #   P3.25   → Counter-punch (free attack after defending, cautious only)
-        #   P3.5    → Fortification opportunity (unfortify for high-value target)
-        #   P4      → Attack opportunity (ratio >= personality threshold)
-        #   P4.5    → Capture undefended enemy region (adjacent)
-        #   P4.75   → Ally support (move toward outnumbered ally)
-        #   P5      → Fortify (cautious personality only)
-        #   P6      → Drill for shock bonus (aggressive personality only)
-        #   P7      → Strategic movement (advance or fall back)
-        #   P8      → Default (stance adjustment or wait)
-        # ═══════════════════════════════════════════════════════════════════
+        #   INTENT  â†’ Pending multi-step action (e.g., unfortifyâ†’capture)
+        #   P-1     â†’ Capture current region (standing on undefended enemy territory)
+        #   P0      â†’ Engagement (enemy in same region: attack/retreat/wait)
+        #   P1      â†’ Retreat recovery (limited actions while recovering)
+        #   P2      â†’ Critical survival (<25% strength: flee or defend)
+        #   P3      â†’ Threat response (stronger enemy adjacent)
+        #   P3.25   â†’ Counter-punch (free attack after defending, cautious only)
+        #   P3.5    â†’ Fortification opportunity (unfortify for high-value target)
+        #   P4      â†’ Attack opportunity (ratio >= personality threshold)
+        #   P4.5    â†’ Capture undefended enemy region (adjacent)
+        #   P4.75   â†’ Ally support (move toward outnumbered ally)
+        #   P5      â†’ Fortify (cautious personality only)
+        #   P6      â†’ Drill for shock bonus (aggressive personality only)
+        #   P7      â†’ Strategic movement (advance or fall back)
+        #   P8      â†’ Default (stance adjustment or wait)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         personality = self._get_effective_personality(marshal, world)
 
         # Debug: Log marshal state at start of evaluation
@@ -1391,18 +1400,18 @@ class EnemyAI:
         ai_debug(f"  Stance: {getattr(marshal, 'stance', 'unknown')}")
         ai_debug(f"  Drilling: {getattr(marshal, 'drilling', False)}, Fortified: {getattr(marshal, 'fortified', False)}")
 
-        # ─── OCCUPATION CHECK (Phase 6.2.F) ─────────────────────────────
-        # Marshal occupying a fortified region should not act — let occupation tick handle
+        # â”€â”€â”€ OCCUPATION CHECK (Phase 6.2.F) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # Marshal occupying a fortified region should not act â€” let occupation tick handle
         if getattr(marshal, 'occupation_region', None):
-            ai_debug(f"  {marshal.name}: OCCUPYING {marshal.occupation_region} — skipping evaluation")
+            ai_debug(f"  {marshal.name}: OCCUPYING {marshal.occupation_region} â€” skipping evaluation")
             return None, 999
 
-        # ─── INTENT + P-1: IMMEDIATE OBLIGATIONS ─────────────────────────────
+        # â”€â”€â”€ INTENT + P-1: IMMEDIATE OBLIGATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # INTENT CHECK (Bug #1 Fix): Execute pending intent from previous action
         # If we unfortified to capture a region, now CAPTURE it!
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if marshal.name in self._pending_intents:
             intent = self._pending_intents.pop(marshal.name)
             intent_type = intent.get("intent")
@@ -1444,7 +1453,7 @@ class EnemyAI:
                 else:
                     print(f"  [INTENT CANCELLED] {intent_target} no longer valid target")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY -1: CAPTURE CURRENT REGION
         # If standing on enemy territory with no enemy marshal present,
         # capture it immediately! (e.g., Prussia starts at British Netherlands)
@@ -1453,27 +1462,27 @@ class EnemyAI:
         # routed this turn. This rung sat ABOVE the `retreated_this_turn`
         # limiter below and jumped it, so the played campaign produced:
         #   "Deroy retreats from Hungary to Bohemia. No friendly ground lies
-        #    open, Sire — Deroy falls back on Bohemia through hostile
+        #    open, Sire â€” Deroy falls back on Bohemia through hostile
         #    country. (44 lost to march) Army begins recovery (currently at
         #    -35% effectiveness)"
         #   "Deroy marches from Bohemia into Bohemia unopposed! Captured:
         #    Austria -> Bavaria"
-        # — one line apart, in the same phase. The player's own equivalent
+        # â€” one line apart, in the same phase. The player's own equivalent
         # guard ("is recovering from retreat and cannot attack") is nested
         # inside a player-nation branch in executor.py and is doubly
         # unreachable for an AI marshal, so this is the seam where the two
         # sides come back into line (GR5). Gating here rather than
-        # reordering the block keeps the limiter's own returns — the
+        # reordering the block keeps the limiter's own returns â€” the
         # stance_change/wait pair whose appearance in the transcript proved
-        # it was live — exactly as they were.
-        # ════════════════════════════════════════════════════════════
+        # it was live â€” exactly as they were.
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         current_region = world.get_region(marshal.location)
         if (current_region and current_region.controller != nation
                 and current_region.controller != "Neutral"
                 and not getattr(marshal, "retreated_this_turn", False)
                 and world.is_at_war(nation, current_region.controller)):
             enemies_here = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
-            # Region with garrison >= 5000 is NOT undefended — requires assault via P4
+            # Region with garrison >= 5000 is NOT undefended â€” requires assault via P4
             has_garrison = current_region.garrison_strength >= 5000
             if not enemies_here and not has_garrison:
                 # Standing on undefended enemy territory - capture it!
@@ -1497,10 +1506,10 @@ class EnemyAI:
                         "target": marshal.location
                     }, 0)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # CHECK: Already retreated this turn - limited options
         # Cannot retreat again, but can wait or change to defensive stance
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if getattr(marshal, 'retreated_this_turn', False):
             ai_debug("  Already retreated this turn - limited options")
             print(f"  [RETREATED THIS TURN] {marshal.name} - can only wait/stance change")
@@ -1514,13 +1523,13 @@ class EnemyAI:
             # Already defensive - just wait
             return ({"marshal": marshal.name, "action": "wait"}, 5)
 
-        # ─── P0-P2: SURVIVAL PRIORITIES ──────────────────────────────────────
+        # â”€â”€â”€ P0-P2: SURVIVAL PRIORITIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 0: ENGAGEMENT CHECK (HIGHEST PRIORITY!)
         # When engaged with enemy in same region, MUST fight or flee.
         # Cannot fortify, drill, change stance, or do anything else!
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         enemies_in_region = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
 
         print(f"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}")
@@ -1532,9 +1541,9 @@ class EnemyAI:
             weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
             # Use combined allied strength for decision (allies in same region will follow up)
             combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
-            # ── CA9-N6: divide by the FIELD, not by one man ─────────────
+            # â”€â”€ CA9-N6: divide by the FIELD, not by one man â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             # This summed the AI's whole army and divided it by the
-            # WEAKEST enemy corps present — so three enemy corps in one
+            # WEAKEST enemy corps present â€” so three enemy corps in one
             # province read as a 7:1 walkover, and the AI charged into
             # the other two. Measured across the campaign: twelve failed
             # assaults for a 4.7:1 exchange against ITSELF, which is why
@@ -1543,7 +1552,7 @@ class EnemyAI:
             # This is the same defender-invisibility defect as CA9-F1 on
             # the other side of the board: the player's muster preview
             # modelled the enemy as one man too. Both now price the
-            # committed field. Target choice is unchanged — the weakest
+            # committed field. Target choice is unchanged â€” the weakest
             # is still the sensible man to hit; what changes is what the
             # decision COSTS.
             defenders = self._defending_strength_in_region(
@@ -1637,9 +1646,9 @@ class EnemyAI:
                         "action": "wait"
                     }, 0)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 1: RETREAT RECOVERY CHECK
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
         if retreat_recovery > 0:
             ai_debug(f"  P1: In retreat recovery ({retreat_recovery} turns)")
@@ -1652,26 +1661,26 @@ class EnemyAI:
                 return (action, 1)
             return (None, 999)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 2 (ARTILLERY): SCREEN CHECK
         # Artillery exposed to enemy cavalry without infantry screen
         # must retreat toward nearest friendly infantry for protection.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if getattr(marshal, 'artillery', False):
             if not self._artillery_has_screen(marshal, nation, world):
                 if self._enemy_cavalry_within_range(marshal, nation, world, max_range=2):
                     retreat_dest = self._find_nearest_friendly_infantry(marshal, nation, world)
                     if retreat_dest and retreat_dest != marshal.location:
-                        ai_debug(f"  P2: ARTILLERY SCREEN — {marshal.name} exposed to cavalry, retreating to screen at {retreat_dest}")
+                        ai_debug(f"  P2: ARTILLERY SCREEN â€” {marshal.name} exposed to cavalry, retreating to screen at {retreat_dest}")
                         return ({
                             "marshal": marshal.name,
                             "action": "move",
                             "target": retreat_dest
                         }, 2)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 2: CRITICAL SURVIVAL
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         starting_strength = getattr(marshal, 'starting_strength', marshal.strength)
         if starting_strength > 0:
             strength_ratio = marshal.strength / starting_strength
@@ -1680,13 +1689,13 @@ class EnemyAI:
                 if action:
                     return (action, 2)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 2.5: SQUARE FORMATION (Session 67)
         # Infantry-only (not cavalry, not artillery).
         # Form square when cavalry adjacent and no artillery adjacent.
         # Break square when no cavalry adjacent.
         # Anti-oscillation: ai_square_cooldown blocks re-forming for 2 turns.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         is_infantry = (not getattr(marshal, 'cavalry', False)
                        and not getattr(marshal, 'artillery', False))
         if is_infantry:
@@ -1708,7 +1717,7 @@ class EnemyAI:
             if in_square:
                 # BREAK square if no cavalry threat
                 if not adj_cavalry:
-                    ai_debug("  P2.5: No cavalry threat — breaking square")
+                    ai_debug("  P2.5: No cavalry threat â€” breaking square")
                     marshal.ai_square_cooldown = 2  # Anti-oscillation cooldown
                     return ({
                         "marshal": marshal.name,
@@ -1716,7 +1725,7 @@ class EnemyAI:
                     }, 2)
             else:
                 # FORM square if cavalry adjacent, no artillery, and not on cooldown.
-                # PT-F6: and never twice in one phase — if this marshal already
+                # PT-F6: and never twice in one phase â€” if this marshal already
                 # formed square this phase, his own later action broke it
                 # (attack/move/stance change through _auto_break_square), and
                 # re-forming is the square-thrash the transcript reads as farce.
@@ -1725,20 +1734,20 @@ class EnemyAI:
                     self, '_squares_formed_this_turn', set())
                 if (adj_cavalry and not adj_artillery and cooldown <= 0
                         and not formed_this_phase):
-                    ai_debug("  P2.5: Cavalry threat, no artillery — forming square")
+                    ai_debug("  P2.5: Cavalry threat, no artillery â€” forming square")
                     return ({
                         "marshal": marshal.name,
                         "action": "form_square",
                     }, 2)
 
-        # ─── P3-P4: DEFENSIVE & TACTICAL PRIORITIES ──────────────────────────
+        # â”€â”€â”€ P3-P4: DEFENSIVE & TACTICAL PRIORITIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
-        # CAPITAL RECAPTURE (elevated P3.7 → priority 2)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        # CAPITAL RECAPTURE (elevated P3.7 â†’ priority 2)
         # When the nation has lost its capital, homeland defense fires
         # BEFORE P3 threat response to ensure capital recapture is
         # never blocked by cautious marshals fortifying.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         capital_lost = self._is_capital_lost(nation, world)
         regions_lost = self._count_lost_regions(nation, world)
 
@@ -1748,26 +1757,26 @@ class EnemyAI:
                 ai_debug(f"  -> P3.7 CAPITAL RECAPTURE (elevated): {homeland_action}")
                 return (homeland_action, 2)  # Priority 2 = survival-level
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 3: THREAT RESPONSE
         # When 2+ regions lost, only 1 marshal per nation stays on P3
-        # defense — the rest fall through to P3.7 homeland defense.
-        # ════════════════════════════════════════════════════════════
+        # defense â€” the rest fall through to P3.7 homeland defense.
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         threat_action = self._check_threats(marshal, nation, world)
         if threat_action:
             if regions_lost >= 2 and self._nation_has_threat_responder(nation):
-                # Already have a threat responder — this marshal should recapture instead
-                ai_debug("  P3: Threat detected but nation already has responder — falling through to P3.7")
+                # Already have a threat responder â€” this marshal should recapture instead
+                ai_debug("  P3: Threat detected but nation already has responder â€” falling through to P3.7")
             else:
                 if regions_lost >= 2:
                     self._threat_responder_assigned.add(nation)
                 return (threat_action, 3)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 3.25: COUNTER-PUNCH (FREE ATTACK AFTER DEFENDING)
         # Cautious marshals (Wellington, Davout) get a free attack after
         # successfully defending. This expires at turn end, so use it!
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if getattr(marshal, 'counter_punch_available', False) and personality == 'cautious':
             counter_punch_action = self._get_counter_punch_action(marshal, nation, world)
             if counter_punch_action:
@@ -1777,50 +1786,50 @@ class EnemyAI:
             else:
                 ai_debug("  P3.25: Counter-punch available but no adjacent targets")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 3.5: FORTIFICATION OPPORTUNITY CHECK
         # If fortified, check if there's a high-value opportunity worth
         # abandoning fortification for (undefended region, overwhelming odds)
         # RESOLVED: 2-turn refortify cooldown (ai_refortify_cooldown) now set
         # on every unfortify path (CHECK 0/1/2/3 + stagnation). Prevents
         # next-turn re-fortify oscillation. Stagnation counter is the backstop.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
         if fortification_opportunity:
             self._unfortified_this_turn.add(marshal.name)
             return (fortification_opportunity, 3)  # High priority - unlocks attack/capture
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 3.7: HOMELAND DEFENSE (Balance Patch)
         # Recapture lost territory the nation started with.
         # Higher priority than opportunistic attacks (P4) but lower
         # than immediate threats (P3) and fortification opportunities (P3.5).
         # Now reachable for cautious marshals when 2+ regions lost
         # (P3 only claims 1 threat responder per nation).
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         homeland_action = self._find_homeland_defense(marshal, nation, world)
         if homeland_action:
             ai_debug(f"  -> P3.7 Homeland Defense: {homeland_action}")
             return (homeland_action, 3)
 
-        # ════════════════════════════════════════════════════════════
-        # PRIORITY 3.8: LIBERATION PRIORITY (WPS-D §13.5)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        # PRIORITY 3.8: LIBERATION PRIORITY (WPS-D Â§13.5)
         # Coalition members with liberation objectives prioritize
         # attacking vassal capitals held by the target nation.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         liberation_action = self._find_liberation_target(marshal, nation, world)
         if liberation_action:
             ai_debug(f"  -> P3.8 Liberation Priority: {liberation_action}")
             return (liberation_action, 3)
 
-        # ════════════════════════════════════════════════════════════
-        # PRIORITY 3.9: JEALOUSY GLORY ATTACK (v3.2, spec §9b + EC-N re-pin)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        # PRIORITY 3.9: JEALOUSY GLORY ATTACK (v3.2, spec Â§9b + EC-N re-pin)
         # A jealous AGGRESSIVE enemy marshal attacks the WEAKEST adjacent
-        # at-war enemy — glory-seeking, not strategic (survival priorities
-        # P1-P3 already ran above; spec §0.2 item 8). Same +15% solo buff
+        # at-war enemy â€” glory-seeking, not strategic (survival priorities
+        # P1-P3 already ran above; spec Â§0.2 item 8). Same +15% solo buff
         # applies through get_attack_modifier (GR5). No advance warning
         # (the warning is a player-facing courtesy).
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if (getattr(marshal, 'jealous_of', None)
                 and marshal.personality == "aggressive"
                 and not getattr(marshal, 'fortified', False)
@@ -1838,9 +1847,9 @@ class EnemyAI:
                     "target": glory_enemy.name,
                 }, 4)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 4: ATTACK OPPORTUNITY
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ai_debug("  P4: Checking attack opportunities...")
         attack_action = self._find_attack_opportunity(marshal, nation, world)
         if attack_action:
@@ -1848,11 +1857,11 @@ class EnemyAI:
             return (attack_action, 4)
         ai_debug("  P4: No attack opportunity found")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 4.25: GARRISON ASSAULT
         # Attack a capital garrison if adjacent and strength ratio is favorable.
-        # Uses attack command — executor handles garrison combat.
-        # ════════════════════════════════════════════════════════════
+        # Uses attack command â€” executor handles garrison combat.
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if not getattr(marshal, 'fortified', False) and not (
             getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
         ):
@@ -1861,11 +1870,11 @@ class EnemyAI:
                 ai_debug(f"  -> P4.25 Garrison Assault: {garrison_action}")
                 return (garrison_action, 4)
 
-        # ─── P4.5-P5: OPPORTUNISTIC PRIORITIES ────────────────────────────────
+        # â”€â”€â”€ P4.5-P5: OPPORTUNISTIC PRIORITIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 4.5: CAPTURE UNDEFENDED ENEMY REGION
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ai_debug("  P4.5: Checking undefended captures...")
         capture_action = self._find_undefended_capture(marshal, nation, world)
         if capture_action:
@@ -1873,10 +1882,10 @@ class EnemyAI:
             return (capture_action, 4)  # Same priority as attack
         ai_debug("  P4.5: No capture opportunity found")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 4.6: COORDINATED ATTACK SETUP
         # Move to stage coordinated attack when solo can't but combined could
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ai_debug("  P4.6: Checking coordinated attack opportunities...")
         coord_action = self._find_coordinated_attack(marshal, nation, world)
         if coord_action:
@@ -1884,11 +1893,11 @@ class EnemyAI:
             return (coord_action, 4)
         ai_debug("  P4.6: No coordination opportunity found")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 4.75: ALLY SUPPORT
         # If an ally is in combat or outnumbered, move to support them
         # This is higher priority than fortifying/drilling
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ai_debug("  P4.75: Checking ally support opportunities...")
         support_action = self._find_ally_support_opportunity(marshal, nation, world)
         if support_action:
@@ -1896,20 +1905,20 @@ class EnemyAI:
             return (support_action, 4)  # Same priority as attack - helping ally is important
         ai_debug("  P4.75: No ally needs support")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 4.8: CONSOLIDATE WITH ALLIES (weak marshals)
         # If too weak to attack alone, move toward strongest ally
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         consolidate_action = self._consider_consolidation(marshal, nation, world)
         if consolidate_action:
             ai_debug(f"  -> P4.8 Consolidate: {consolidate_action}")
             return (consolidate_action, 5)
         ai_debug("  P4.8: No consolidation needed")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 5: FORTIFICATION (cautious marshals, or any marshal
-        # when coalition is active with defensive/cautious posture — R122)
-        # ════════════════════════════════════════════════════════════
+        # when coalition is active with defensive/cautious posture â€” R122)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         from backend.game_logic.coalition import is_coalition_member, is_coalition_active
         coalition_defensive = (
             is_coalition_active(world)
@@ -1918,7 +1927,7 @@ class EnemyAI:
         )
         if personality == "cautious" or coalition_defensive:
             # Don't re-fortify if stagnation system just forced unfortify this turn
-            # or if re-fortify cooldown is active (prevents fortify→unfortify oscillation)
+            # or if re-fortify cooldown is active (prevents fortifyâ†’unfortify oscillation)
             refortify_blocked = (
                 marshal.name in getattr(self, '_unfortified_this_turn', set())
                 or world.ai_refortify_cooldown.get(marshal.name, 0) > 0
@@ -1928,12 +1937,12 @@ class EnemyAI:
                 if fortify_action:
                     return (fortify_action, 5)
 
-        # ─── P6-P7: OFFENSIVE & POSITIONING PRIORITIES ─────────────────────────
+        # â”€â”€â”€ P6-P7: OFFENSIVE & POSITIONING PRIORITIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 6: DRILLING (aggressive marshals, or any marshal
-        # when coalition is active with aggressive posture — R122)
-        # ════════════════════════════════════════════════════════════
+        # when coalition is active with aggressive posture â€” R122)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         coalition_aggressive = (
             is_coalition_active(world)
             and is_coalition_member(nation, world)
@@ -1947,13 +1956,13 @@ class EnemyAI:
                 return (drill_action, 6)
             ai_debug("  P6: Drill not available")
 
-        # ════════════════════════════════════════════════════════════
-        # PRIORITY 6.5: SUPPLY AWARENESS (mild — relocate if over-supplied)
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        # PRIORITY 6.5: SUPPLY AWARENESS (mild â€” relocate if over-supplied)
         # Not a panic reaction. AI attacks, retreats, and responds to threats
         # first. If nothing else to do, consider moving to a better-supplied
         # region. If attrition weakens the marshal enough, they'll recruit
         # back to full through the normal admin phase.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if current_region:
             supply_cap = current_region.supply_capacity
             total_troops_here = sum(
@@ -1996,48 +2005,48 @@ class EnemyAI:
                         "target": best_supply_region
                     }, 6)
                 else:
-                    ai_debug("  P6.5: No better supply region adjacent — staying")
+                    ai_debug("  P6.5: No better supply region adjacent â€” staying")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 6.75: AI GARRISON PLACEMENT
-        # Defensive luxury — garrison vulnerable border regions with
+        # Defensive luxury â€” garrison vulnerable border regions with
         # excess strength. Max 1 per nation per turn (AP conservation).
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if not self._garrison_placed_this_turn:
             garrison_action = self._consider_garrison(marshal, nation, world)
             if garrison_action:
                 ai_debug(f"  -> P6.75 Garrison: {garrison_action}")
                 return (garrison_action, 7)  # Score 7 (between drill/supply and strategic move)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 7: STRATEGIC MOVEMENT
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         move_action = self._consider_strategic_move(marshal, nation, world)
         if move_action:
             return (move_action, 7)
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 7.4: DEFENSIVE REINFORCEMENT POSITIONING
         # Move adjacent to threatened ally for reinforcement readiness.
         # AI-1: this rung was historically labelled "P4.78" but has always been
-        # EVALUATED here — after P7 strategic movement, before P7.5 stagnation —
+        # EVALUATED here â€” after P7 strategic movement, before P7.5 stagnation â€”
         # so the 4.78 label misrepresented the decision order (the tier was
         # "decoupled from evaluation order"). Relabelled to P7.4 to match its
         # true position; the returned score stays 7 (load-bearing: the caller's
         # P8-retreat suppression keys off `action_priority == 7`), and the code
         # position is unchanged, so this is a behavior-preserving relabel only.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         reinforce_action = self._find_defensive_reinforcement_position(marshal, nation, world)
         if reinforce_action:
             ai_debug(f"  -> P7.4 Defensive Reinforcement: {reinforce_action}")
             return (reinforce_action, 7)
 
-        # ─── P7.5: STAGNATION ESCALATION ──────────────────────────────────────
+        # â”€â”€â”€ P7.5: STAGNATION ESCALATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 7.5: STAGNATION BREAKER (Fix #1)
         # If marshal has been idle for multiple turns, escalate behavior
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
         if stagnation >= 2:
             stagnation_action = self._get_stagnation_action(marshal, nation, world, stagnation, personality)
@@ -2045,12 +2054,12 @@ class EnemyAI:
                 ai_debug(f"  -> P7.5 STAGNATION (turn {stagnation}): {stagnation_action}")
                 return (stagnation_action, 7)
 
-        # ─── P8: FALLBACK ────────────────────────────────────────────────────
+        # â”€â”€â”€ P8: FALLBACK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # PRIORITY 8: DEFAULT (stance adjustment or wait)
         # Returns None if marshal is already in optimal state - ends turn early
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         default_action = self._get_default_action(marshal, world)
         if default_action:
             return (default_action, 8)
@@ -2072,9 +2081,9 @@ class EnemyAI:
 
         Bug #2 Fix: Lock recovery destination on first calculation to prevent oscillation.
         """
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # BUG #2 FIX: Check for locked recovery destination
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         recovery_dest = getattr(marshal, '_recovery_destination', None)
 
         # If destination is locked, use it
@@ -2096,12 +2105,12 @@ class EnemyAI:
                 }
             else:
                 # Not yet arrived - continue moving toward locked destination
-                # DLF-12: Check diplomatic permission — armistice may have been declared
+                # DLF-12: Check diplomatic permission â€” armistice may have been declared
                 if not self._can_ai_move_to(world, marshal.nation, recovery_dest, origin=marshal.location):
-                    ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now diplomatically blocked — clearing lock")
+                    ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now diplomatically blocked â€” clearing lock")
                     # IGR-X1 (P1): `del` REMOVED the attribute, and
                     # `Marshal.to_dict` reads `self._recovery_destination`
-                    # directly — so the next save or autosave died with
+                    # directly â€” so the next save or autosave died with
                     # AttributeError. Clear by assignment, the form
                     # `world_state.py` already uses at its own clear site.
                     marshal._recovery_destination = None
@@ -2114,9 +2123,9 @@ class EnemyAI:
                         "target": recovery_dest
                     }
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # No locked destination - check if enemies threatening
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
         enemies_threatening = False
 
@@ -2347,7 +2356,7 @@ class EnemyAI:
                     or world.ai_refortify_cooldown.get(marshal.name, 0) > 0
                 )
                 if not refortify_blocked:
-                    # Artillery should bombard, not fortify — let P4 handle
+                    # Artillery should bombard, not fortify â€” let P4 handle
                     if getattr(marshal, 'artillery', False):
                         return None
                     # PC-3 balance half (quiet-France played campaign, Aug 3
@@ -2359,18 +2368,18 @@ class EnemyAI:
                     # P0 unfortifies an engaged fortified marshal
                     # UNCONDITIONALLY, so the pair was self-cancelling by
                     # construction: fortify, then unfortify, 2 of 4 AP spent
-                    # for no state change — 41 occurrences in 42 turns.
+                    # for no state change â€” 41 occurrences in 42 turns.
                     #
                     # This is not the reverted latch. That one blocked the
                     # UNFORTIFY, taking away the AI's escape from a fortified
-                    # position and collapsing the AI-V §4.7 variance
+                    # position and collapsing the AI-V Â§4.7 variance
                     # signature. This blocks a fortify that P0 was always
-                    # going to undo, so no reachable state is removed — only
+                    # going to undo, so no reachable state is removed â€” only
                     # the round trip to it. Exactly the S5-1 argument one
                     # line below, applied to the same rung.
                     if self._get_hostile_marshals_in_same_region(marshal, world):
                         return None
-                    # S5-1: never fortify while holding square — breaking a valid
+                    # S5-1: never fortify while holding square â€” breaking a valid
                     # square to fortify (then re-forming next turn) is a
                     # self-cancelling loop that burns nation-turns.
                     if (not getattr(marshal, 'fortified', False)
@@ -2401,7 +2410,7 @@ class EnemyAI:
             return None
 
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
-        ai_debug(f"    🎯 Valid targets for {nation}: {[e.name for e in enemies]}")
+        ai_debug(f"    ðŸŽ¯ Valid targets for {nation}: {[e.name for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
 
         if not marshal_region:
@@ -2413,7 +2422,7 @@ class EnemyAI:
             if enemy.strength > 0 and enemy.location in marshal_region.adjacent_regions:
                 # NV-4 review: `adjacent_regions` includes sea links, so a
                 # cautious marshal in London kept offering a counter-punch
-                # across the Channel — refused at the executor every time
+                # across the Channel â€” refused at the executor every time
                 # (the square-thrash log's own failure shape). The crossing
                 # gate reads the host rule too, so the retaliation stays a
                 # LAND reflex unless the water is genuinely open.
@@ -2456,7 +2465,7 @@ class EnemyAI:
     def _get_combined_strength_in_region(self, marshal: Marshal, nation: str, world: WorldState) -> int:
         """Get total strength of all friendly marshals in marshal's region.
 
-        Used for attack DECISION-MAKING only — the actual attack is still
+        Used for attack DECISION-MAKING only â€” the actual attack is still
         single marshal. This prevents AI from thinking it's too weak when
         it has allies ready to follow up.
         """
@@ -2479,7 +2488,7 @@ class EnemyAI:
         The mirror of `_get_combined_strength_in_region`, and the AI's half
         of the same defender-invisibility defect CA9-F1 fixed on the
         player's muster preview: both rungs summed the acting nation's
-        WHOLE army and divided it by ONE enemy marshal — P4 by the named
+        WHOLE army and divided it by ONE enemy marshal â€” P4 by the named
         target, P0 by the WEAKEST corps present. Three enemy corps in a
         province therefore read as a walkover, and the AI charged into the
         other two: twelve failed assaults over the played campaign, for a
@@ -2518,18 +2527,18 @@ class EnemyAI:
         # P0 handles same-region engagement; at P4, all artillery targets are ranged
         if getattr(marshal, 'artillery', False):
             if getattr(marshal, 'bombardments_this_turn', 0) >= 2:
-                ai_debug(f"    P4: {marshal.name} at bombardment limit — skipping ranged attack")
+                ai_debug(f"    P4: {marshal.name} at bombardment limit â€” skipping ranged attack")
                 return None  # Fall through to P5+ (positioning)
 
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
-        ai_debug(f"    🎯 All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
+        ai_debug(f"    ðŸŽ¯ All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
         self._ensure_marshal_indexes(world)
 
         if not marshal_region:
             return None
 
-        # EC-9: Filter out coalition allies from targets (COALITION_SPEC §11.9)
+        # EC-9: Filter out coalition allies from targets (COALITION_SPEC Â§11.9)
         from backend.game_logic.coalition import is_coalition_member, is_coalition_active
         _coalition_active = is_coalition_active(world)
         _is_member = _coalition_active and is_coalition_member(nation, world)
@@ -2556,7 +2565,7 @@ class EnemyAI:
 
             # FINAL-20: Skip nations in armistice
             if world.get_diplomatic_state(nation, enemy.nation) == "ARMISTICE":
-                ai_debug(f"    P4: Skipping {enemy.name} ({enemy.nation}) — armistice")
+                ai_debug(f"    P4: Skipping {enemy.name} ({enemy.nation}) â€” armistice")
                 continue
 
             # Check if in range
@@ -2564,14 +2573,14 @@ class EnemyAI:
             movement_range = getattr(marshal, 'movement_range', 1)
 
             if distance <= movement_range and enemy.strength > 0:
-                # ════════════════════════════════════════════════════════════
+                # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 # ARTILLERY: Skip broken/retreating targets (waste of ammo)
-                # ════════════════════════════════════════════════════════════
+                # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 if getattr(marshal, 'artillery', False) and distance > 0:
                     if getattr(enemy, 'broken', False) or getattr(enemy, 'retreating', False):
                         ai_debug(f"    P4: Skipping broken/retreating target {enemy.name} for bombardment")
                         continue
-                    # NV-4 review: guns do not carry across a strait —
+                    # NV-4 review: guns do not carry across a strait â€”
                     # even UNCONTESTED water (where the crossing gate below
                     # passes, the ferry rule). The executor's bombardment
                     # seam refuses this physically; skipping here keeps the
@@ -2579,13 +2588,13 @@ class EnemyAI:
                     if getattr(world, "fleets", None):
                         from backend.game_logic.naval import is_sea_link
                         if is_sea_link(world, marshal.location, enemy.location):
-                            ai_debug(f"    P4: {enemy.name} is across open water — no bombardment")
+                            ai_debug(f"    P4: {enemy.name} is across open water â€” no bombardment")
                             continue
 
-                # ════════════════════════════════════════════════════════════
+                # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 # BUG #3 FIX: Validate path for distance > 1 attacks
                 # Cavalry charges can be blocked by intermediate enemies
-                # ════════════════════════════════════════════════════════════
+                # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 if distance > 1:
                     path = self._get_path_to_target(marshal.location, enemy.location, world)
                     is_blocked, blocker = self._path_is_blocked(path, nation, world)
@@ -2594,7 +2603,7 @@ class EnemyAI:
                         ai_debug(f"    SKIPPING {enemy.name} - path blocked by {blocker}")
                         continue
 
-                # DEF-5 naval §4.1 — the crossing gate. The THIRD rung NV-2's
+                # DEF-5 naval Â§4.1 â€” the crossing gate. The THIRD rung NV-2's
                 # candidate threading missed (after P4.5 capture and P4.25
                 # garrison assault, both fixed at NV-5): an amphibious assault
                 # on a marshal across a sea link was scored, ordered, refused
@@ -2603,7 +2612,7 @@ class EnemyAI:
                 # were Moore and Shrapnel ordered onto Castanos across the
                 # Channel. Origin-aware, so it reads the host rule too.
                 if getattr(world, "fleets", None):
-                    # NV-9: the REACH form — a cavalry candidate at range 2
+                    # NV-9: the REACH form â€” a cavalry candidate at range 2
                     # may put the water on its middle leg, which the direct
                     # pair cannot see.
                     from backend.game_logic.naval import crossing_check_reach
@@ -2615,7 +2624,7 @@ class EnemyAI:
                 # Calculate base strength ratio using combined allied strength for decision
                 combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
                 # CA9-N6: against the FIELD standing with him, not against
-                # him alone — see the P0 rung for the measurement.
+                # him alone â€” see the P0 rung for the measurement.
                 _defenders = self._defending_strength_in_region(
                     world.get_live_visible_enemies_in_region(
                         enemy.location, nation))
@@ -2625,7 +2634,7 @@ class EnemyAI:
                 effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
 
                 # +8% coordination estimate per co-located ally (inflate perceived ratio)
-                # Cross-nation coalition allies modulated by friction (§5c)
+                # Cross-nation coalition allies modulated by friction (Â§5c)
                 if co_located_allies:
                     from backend.game_logic.coalition import get_coalition_friction
                     coord_bonus = 0.0
@@ -2674,7 +2683,7 @@ class EnemyAI:
             key = f"{marshal.name}:{e.name}"
             # CA9-N7: the brake was gated on `fortified`, and the shape
             # that actually happens is an UNFORTIFIED stack that simply
-            # outnumbers the attacker — so the brake could not fire on the
+            # outnumbers the attacker â€” so the brake could not fire on the
             # twelve assaults it exists to stop. Three failures against the
             # same man is the evidence, whatever he is standing behind.
             if futility.get(key, 0) >= 3:
@@ -2694,7 +2703,7 @@ class EnemyAI:
         threshold = self._get_mood_adjusted_threshold(marshal, world)
 
         # Coalition posture bonus: Aggressive lowers threshold (more attacks),
-        # Defensive raises it (fewer risky attacks). COALITION_SPEC §4c.
+        # Defensive raises it (fewer risky attacks). COALITION_SPEC Â§4c.
         from backend.game_logic.coalition import is_coalition_member, is_coalition_active
         if is_coalition_active(world) and is_coalition_member(nation, world):
             posture = world.active_coalition.get("strategic_posture", "defensive")
@@ -2705,10 +2714,10 @@ class EnemyAI:
 
         ai_debug(f"    Attack threshold for {personality}: {threshold:.2f} (mood-adjusted)")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # ENGAGEMENT RULE: Must attack enemies in same region first!
         # Cannot attack elsewhere while engaged with enemy forces.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # Separate targets in same region (engaged) from those at range
         engaged_targets = [(e, br, er, d) for e, br, er, d in valid_targets if d == 0]
         ai_debug(f"    P4: {len(valid_targets)} valid targets, {len(engaged_targets)} engaged, threshold={threshold:.2f}")
@@ -2727,14 +2736,14 @@ class EnemyAI:
                 return None
         else:
             # No enemies in same region - can attack elsewhere
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             # ARTILLERY RATIO BYPASS: Ranged bombardment costs only 1.5%
-            # of own strength — always worth it regardless of ratio.
+            # of own strength â€” always worth it regardless of ratio.
             # Same-region combat (handled by P0) still uses normal thresholds.
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             if getattr(marshal, 'artillery', False):
                 attackable = valid_targets  # Bypass threshold for ranged artillery
-                ai_debug(f"    P4: Artillery ratio bypass — bombardment is low-risk ({len(attackable)} targets)")
+                ai_debug(f"    P4: Artillery ratio bypass â€” bombardment is low-risk ({len(attackable)} targets)")
             else:
                 # Filter by EFFECTIVE ratio against threshold (smarter decision)
                 attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]
@@ -2743,9 +2752,9 @@ class EnemyAI:
                 ai_debug(f"    No targets meet threshold (need effective ratio >= {threshold})")
                 return None
 
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             # CAVALRY PREFERENCE: Prefer exposed artillery targets (+30% counter)
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             if getattr(marshal, 'cavalry', False):
                 for enemy, br, er, d in attackable:
                     if getattr(enemy, 'artillery', False):
@@ -2762,11 +2771,11 @@ class EnemyAI:
                     target = self._pick_personality_target(
                         attackable, personality, nation, world)
 
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             # ARTILLERY SORT: Prefer fortified > dense > open-terrain targets
             # Fort value (crack forts), force density (collateral opportunity),
             # terrain bombardment modifier (open ground = more damage)
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             elif getattr(marshal, 'artillery', False):
                 from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
 
@@ -2830,14 +2839,14 @@ class EnemyAI:
     def _pick_personality_target(self, attackable, personality: str,
                                  nation: str, world: WorldState):
         """P4 personality pick over threshold-cleared candidates, with the
-        NA-3 §5.6 agenda target bias. The ratio/threshold gates already ran
-        — this only orders VALID targets, never admits an invalid one:
+        NA-3 Â§5.6 agenda target bias. The ratio/threshold gates already ran
+        â€” this only orders VALID targets, never admits an invalid one:
 
         - aggressive: highest effective ratio; an agenda-target location
           breaks exact-ratio ties (pure tiebreak).
         - otherwise: nearest, with AGENDA_TARGET_DISTANCE_BONUS hops of
           distance-equivalent credit for an enemy standing on a region the
-          court's design wants — Austria's corps drift toward Milan.
+          court's design wants â€” Austria's corps drift toward Milan.
         """
         from backend.game_logic.agendas import AGENDA_TARGET_DISTANCE_BONUS
         covets = self._agenda_covet_set(nation, world)
@@ -2852,11 +2861,11 @@ class EnemyAI:
                                   if x[0].location in covets else 0),
         )[0]
 
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # P3.7: HOMELAND DEFENSE (Balance Patch)
     # When a nation has lost regions it originally controlled, redirect
     # the nearest available marshal to recapture them.
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def _is_capital_lost(self, nation: str, world: WorldState) -> bool:
         """Check if this nation has lost its capital region."""
@@ -2908,7 +2917,7 @@ class EnemyAI:
             return None
 
         # Filter out regions already claimed by another marshal this turn.
-        # July 2026 AI audit: a marshal's OWN claim must not lock him out —
+        # July 2026 AI audit: a marshal's OWN claim must not lock him out â€”
         # candidate evaluation runs for every marshal each selection
         # iteration, so the claimant's re-evaluation previously returned
         # None and the nation's recapture never executed that turn.
@@ -2956,7 +2965,7 @@ class EnemyAI:
                 continue
             if other.strength <= 0:
                 continue
-            # Skip unavailable marshals — they can't actually recapture
+            # Skip unavailable marshals â€” they can't actually recapture
             if getattr(other, 'fortified', False):
                 continue
             if getattr(other, 'drilling', False) or getattr(other, 'drilling_locked', False):
@@ -2977,14 +2986,14 @@ class EnemyAI:
 
         # Determine action: move toward or attack/capture if adjacent
         if best_dist == 0:
-            # Standing on a lost region that we don't control — shouldn't happen
+            # Standing on a lost region that we don't control â€” shouldn't happen
             # (region controller would have changed on capture), but safety fallback
             return None
 
         lost_region = world.get_region(best_target)
 
         if best_dist == 1:
-            # Adjacent — check if defended
+            # Adjacent â€” check if defended
             defenders = self._get_hostile_marshals_in_region(best_target, nation, world)
 
             if not defenders:
@@ -2992,21 +3001,21 @@ class EnemyAI:
                 garrison = getattr(lost_region, 'garrison_strength', 0) or 0
                 detachment = getattr(lost_region, 'garrison_detachment', False)
                 if garrison >= 5000 or (detachment and garrison > 0):
-                    # Garrisoned — only attack if strong enough
+                    # Garrisoned â€” only attack if strong enough
                     if marshal.strength >= garrison * 1.5:
                         print(f"  [HOMELAND DEFENSE] {marshal.name} assaulting garrison at {best_target} ({garrison:,} troops)")
                         self._recapture_targets_claimed.add(best_target)
                         return {"marshal": marshal.name, "action": "attack", "target": best_target}
                     return None
-                # Undefended — capture it
+                # Undefended â€” capture it
                 print(f"  [HOMELAND DEFENSE] {marshal.name} recapturing undefended {best_target}")
                 self._recapture_targets_claimed.add(best_target)
                 return {"marshal": marshal.name, "action": "attack", "target": best_target}
             else:
-                # Defended — evaluate attack if ratio favorable
+                # Defended â€” evaluate attack if ratio favorable
                 total_enemy = sum(d.strength for d in defenders)
                 # July 2026 AI audit: Marshal stores `personality` (a plain
-                # string) — `personality_type` never existed, so every
+                # string) â€” `personality_type` never existed, so every
                 # marshal read 'balanced' and aggressive marshals never got
                 # their 0.8 recapture threshold
                 personality_name = getattr(marshal, 'personality', None) or 'balanced'
@@ -3018,7 +3027,7 @@ class EnemyAI:
                     return {"marshal": marshal.name, "action": "attack", "target": best_target}
                 return None
         else:
-            # 2+ hops away — move toward it
+            # 2+ hops away â€” move toward it
             # Find best adjacent region that reduces distance
             best_step = None
             best_step_score = -999
@@ -3032,7 +3041,7 @@ class EnemyAI:
             for adj_name in marshal_region.adjacent_regions:
                 if adj_name in visited:
                     continue
-                # DLF-12: diplomatic permission (skip for capital recapture — sovereign right)
+                # DLF-12: diplomatic permission (skip for capital recapture â€” sovereign right)
                 if not is_capital_target and not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue
                 # Check for enemy-occupied region
@@ -3046,7 +3055,7 @@ class EnemyAI:
                     total_enemy = sum(e.strength for e in enemies_there)
                     if marshal.strength < total_enemy * 0.5:
                         continue  # Too weak even for desperate march
-                    # Otherwise allow — P0 will handle the fight when we arrive
+                    # Otherwise allow â€” P0 will handle the fight when we arrive
                 adj_dist = world.get_distance(adj_name, best_target)
                 if adj_dist >= best_dist:
                     continue  # Must reduce distance
@@ -3070,7 +3079,7 @@ class EnemyAI:
         return None
 
     def _find_liberation_target(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
-        """WPS-D §13.5: Coalition members with liberation objectives prioritize vassal capitals."""
+        """WPS-D Â§13.5: Coalition members with liberation objectives prioritize vassal capitals."""
         if getattr(marshal, 'fortified', False):
             return None
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
@@ -3194,14 +3203,14 @@ class EnemyAI:
                 ai_debug(f"        -> Skip: not at war with {adj_region.controller}")
                 continue
 
-            # DEF-5 naval §4.1 — the crossing gate. This rung was MISSED by
+            # DEF-5 naval Â§4.1 â€” the crossing gate. This rung was MISSED by
             # NV-2's 18 threaded candidate sites: an undefended enemy
             # province across a sea link was offered as an ordinary capture
             # with no naval check at all, so the order was issued, refused
             # at the executor, and logged as a turn-back. Measured on the
             # NV-4 probe: Britain re-ordered Moore across the Channel every
             # other turn for sixteen turns. Origin-aware, so it reads the
-            # host rule too (GR5 — the same predicate the player meets).
+            # host rule too (GR5 â€” the same predicate the player meets).
             if getattr(world, "fleets", None):
                 from backend.game_logic.naval import crossing_allowed
                 if not crossing_allowed(world, nation, marshal.location,
@@ -3233,7 +3242,7 @@ class EnemyAI:
             if is_safe:
                 # Calculate value (capitals worth more)
                 is_capital = self._is_enemy_capital(adj_name, nation, world)
-                # July 2026 AI audit: the Region attribute is income_value —
+                # July 2026 AI audit: the Region attribute is income_value â€”
                 # `income` never existed, so every non-capital collapsed to
                 # the flat fallback 10 and income prioritization was dead
                 # (the exact attribute trap CLAUDE.md's troubleshooting
@@ -3267,11 +3276,11 @@ class EnemyAI:
 
         Evaluates garrison strength against marshal's attack threshold.
         Handles both capital garrisons (>= 5k) and detachment garrisons (any size).
-        Uses the attack command — executor handles garrison combat resolution.
+        Uses the attack command â€” executor handles garrison combat resolution.
         """
-        # Artillery cannot bombard garrisons — garrison combat requires same-region presence
+        # Artillery cannot bombard garrisons â€” garrison combat requires same-region presence
         if getattr(marshal, 'artillery', False):
-            ai_debug(f"    P4.25: {marshal.name} is artillery — cannot assault garrisons from range")
+            ai_debug(f"    P4.25: {marshal.name} is artillery â€” cannot assault garrisons from range")
             return None
 
         from backend.models.region import TERRAIN_DEFENSE_BONUS
@@ -3293,11 +3302,11 @@ class EnemyAI:
             if adj_region.controller and not world.is_at_war(nation, adj_region.controller):
                 continue
 
-            # DEF-5 naval §4.1 — the crossing gate. The SECOND rung NV-2's
+            # DEF-5 naval Â§4.1 â€” the crossing gate. The SECOND rung NV-2's
             # candidate threading missed: an amphibious assault on a
             # garrison across a sea link was offered, ordered, refused at
             # the executor and logged as a turn-back. Measured on the NV-4
-            # probe: Moore was re-ordered London→Normandy every other turn
+            # probe: Moore was re-ordered Londonâ†’Normandy every other turn
             # for twenty turns. Origin-aware (reads the host rule too).
             if getattr(world, "fleets", None):
                 from backend.game_logic.naval import crossing_allowed
@@ -3429,7 +3438,7 @@ class EnemyAI:
                 continue
 
             # If ally was at our current location and left, don't chase them
-            # (they left here for a reason - prevents A→B, B→A swap)
+            # (they left here for a reason - prevents Aâ†’B, Bâ†’A swap)
             ally_visited = getattr(self, '_marshal_visited_locations', {}).get(ally.name, set())
             if marshal.location in ally_visited:
                 ai_debug(f"    [OSCILLATION BLOCKED] {ally.name} was at {marshal.location} and left - not chasing")
@@ -3468,7 +3477,7 @@ class EnemyAI:
             best_distance = world.get_distance(marshal.location, ally.location)
 
             for adj_name in marshal_region.adjacent_regions:
-                # Skip visited locations to prevent oscillation (A→B then B→A).
+                # Skip visited locations to prevent oscillation (Aâ†’B then Bâ†’A).
                 # Each action is one hop, so revisiting a location = backtracking.
                 if adj_name in my_visited:
                     continue
@@ -3517,7 +3526,7 @@ class EnemyAI:
         if getattr(marshal, 'broken', False) or getattr(marshal, 'retreat_recovery', 0) > 0:
             return None
 
-        # ── TURN 2+: Force unfortify to reposition ──
+        # â”€â”€ TURN 2+: Force unfortify to reposition â”€â”€
         if stagnation >= 2:
             if getattr(marshal, 'fortified', False):
                 print(f"  [STAGNATION] {marshal.name}: Force unfortify after {stagnation} idle turns")
@@ -3593,7 +3602,7 @@ class EnemyAI:
                             "target": fallback
                         }
 
-                    # Can't move anywhere (surrounded) — try attacking weakest adjacent enemy
+                    # Can't move anywhere (surrounded) â€” try attacking weakest adjacent enemy
                     if stagnation >= 3:
                         weakest_adjacent = None
                         weakest_strength = float('inf')
@@ -3610,7 +3619,7 @@ class EnemyAI:
                                 "target": weakest_adjacent.name
                             }
 
-        # ── TURN 3+: Lower attack threshold and try attacking ──
+        # â”€â”€ TURN 3+: Lower attack threshold and try attacking â”€â”€
         if stagnation >= 3:
             enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
             if enemies:
@@ -3636,7 +3645,7 @@ class EnemyAI:
                                 "target": enemy.name
                             }
 
-        # Stagnation breaker exhausted all options — return wait so the marshal
+        # Stagnation breaker exhausted all options â€” return wait so the marshal
         # is visible to the stagnation tracker (None causes it to be skipped)
         return {"marshal": marshal.name, "action": "wait"}
 
@@ -3669,7 +3678,7 @@ class EnemyAI:
         nearest_enemy = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
         nearest_dist = world.get_distance(marshal.location, nearest_enemy.location)
 
-        # Only consolidate if enemy is within threatening range (≤3)
+        # Only consolidate if enemy is within threatening range (â‰¤3)
         if nearest_dist > 3:
             return None
 
@@ -3741,8 +3750,8 @@ class EnemyAI:
         """Consider fortifying (cautious marshals prefer this)."""
         # S5-1: a marshal already in square formation must NOT fortify. The two
         # are mutually-exclusive defensive postures (TACTICAL_TRIANGLE_SPEC
-        # §239-240); fortifying auto-breaks the square, and P2.5 re-forms it the
-        # next turn vs the same cavalry — a self-cancelling loop (Moore, live).
+        # Â§239-240); fortifying auto-breaks the square, and P2.5 re-forms it the
+        # next turn vs the same cavalry â€” a self-cancelling loop (Moore, live).
         # Hold the square that P2.5 already chose.
         if getattr(marshal, 'square_formation', False):
             return None
@@ -3753,10 +3762,10 @@ class EnemyAI:
             max_bonus = get_max_fortify_bonus(personality)
             current_bonus = getattr(marshal, 'defense_bonus', 0)
 
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             # DECAY CHECK (Phase 3): Don't stay fortified if decaying to nothing
             # If already fortified and decaying with low bonus, unfortify instead
-            # ════════════════════════════════════════════════════════════
+            # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             turns_fortified = getattr(marshal, 'turns_fortified', 0)
             is_cavalry = getattr(marshal, 'cavalry', False)
 
@@ -3787,10 +3796,10 @@ class EnemyAI:
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # DON'T fortify if engaged with enemy in same region!
         # Must fight them first, not hide behind walls.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         enemies_in_region = self._get_hostile_marshals_in_same_region(marshal, world)
         if enemies_in_region:
             ai_debug(f"    P5: Can't fortify - engaged with {[e.name for e in enemies_in_region]}")
@@ -3843,7 +3852,7 @@ class EnemyAI:
         """
         Consider garrisoning the marshal's current region (P6.75).
 
-        Defensive luxury — garrison vulnerable border regions with excess strength.
+        Defensive luxury â€” garrison vulnerable border regions with excess strength.
         Uses same _execute_garrison as the player (Building Blocks principle).
 
         Conditions:
@@ -3855,7 +3864,7 @@ class EnemyAI:
         - No other friendly marshal in current region (they can defend instead)
         - 1 per nation per turn cap (checked before calling this method)
 
-        TODO (1805): Check HOLD orders — "no other friendly marshal" should
+        TODO (1805): Check HOLD orders â€” "no other friendly marshal" should
         ideally be "no other friendly marshal with HOLD order" to avoid
         garrisoning when all friendlies are passing through.
         """
@@ -3869,7 +3878,7 @@ class EnemyAI:
             ai_debug(f"    P6.75: {marshal.name} cannot garrison - fortified")
             return None
 
-        # Nation garrison cap check (same cap as player — Building Blocks).
+        # Nation garrison cap check (same cap as player â€” Building Blocks).
         # Golden Rule 8: count over the cached region index (Slice 8 audit).
         from backend.commands.executor import CommandExecutor
         nation_garrisons = sum(
@@ -3880,7 +3889,7 @@ class EnemyAI:
             ai_debug(f"    P6.75: {nation} at garrison cap ({nation_garrisons}/{CommandExecutor.GARRISON_MAX_PER_NATION})")
             return None
 
-        # Strength check — need excess troops to detach
+        # Strength check â€” need excess troops to detach
         if marshal.strength < self.AI_GARRISON_MIN_STRENGTH:
             ai_debug(f"    P6.75: {marshal.name} too weak to garrison "
                      f"({marshal.strength:,} < {self.AI_GARRISON_MIN_STRENGTH:,})")
@@ -3932,7 +3941,7 @@ class EnemyAI:
             ai_debug(f"    P6.75: {current_region.name} fully surrounded by friendly territory")
             return None
 
-        # All conditions met — garrison this region
+        # All conditions met â€” garrison this region
         print(f"  [AI GARRISON] {marshal.name} garrisoning {current_region.name} "
               f"(strength {marshal.strength:,}, border region)")
         return {
@@ -3954,16 +3963,16 @@ class EnemyAI:
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # ARTILLERY ANTI-OSCILLATION: If artillery has adjacent targets
-        # and hasn't moved this turn, DO NOT move — stay and bombard.
-        # ════════════════════════════════════════════════════════════
+        # and hasn't moved this turn, DO NOT move â€” stay and bombard.
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if getattr(marshal, 'artillery', False) and not getattr(marshal, 'moved_this_turn', False):
             marshal_region = world.get_region(marshal.location)
             if marshal_region:
                 adj_enemies = self._get_hostile_marshals_in_adjacent_regions(marshal, world)
                 if adj_enemies:
-                    ai_debug(f"  P7: Artillery {marshal.name} has adjacent targets — staying to bombard")
+                    ai_debug(f"  P7: Artillery {marshal.name} has adjacent targets â€” staying to bombard")
                     return None  # Skip P7, let P4 handle attack
 
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
@@ -3971,11 +3980,11 @@ class EnemyAI:
         if not enemies:
             strategic_targets = self._get_strategic_enemy_regions(nation, world)
 
-        # AI-3c (§13.1 — "the army agrees with the ledger"): a court whose
+        # AI-3c (Â§13.1 â€” "the army agrees with the ledger"): a court whose
         # war council holds a live crisis masses on its design's frontier
-        # BEFORE the declaration — the fore-warned war visible on the map.
+        # BEFORE the declaration â€” the fore-warned war visible on the map.
         # The bias rides the SAME movement scoring every marshal uses (GR5)
-        # and releases the turn the crisis cools (the store empties — no
+        # and releases the turn the crisis cools (the store empties â€” no
         # latch). Deckless worlds: war_intents is empty, byte-identical.
         # A court fighting a real war ignores it (enemies win the rung).
         if not enemies and not strategic_targets:
@@ -3989,17 +3998,17 @@ class EnemyAI:
         # Get visited locations to prevent oscillation
         visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # P4.76: CO-LOCATION PERSISTENCE GUARD
         # Don't move away from co-located ally when threat is nearby
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if self._should_maintain_co_location(marshal, nation, world):
-            ai_debug(f"  P4.76: {marshal.name} maintaining co-location with ally — skipping P7 movement")
+            ai_debug(f"  P4.76: {marshal.name} maintaining co-location with ally â€” skipping P7 movement")
             return None
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # ARTILLERY P7: Use position scoring for destination selection
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if getattr(marshal, 'artillery', False):
             marshal_region = world.get_region(marshal.location)
             if not marshal_region:
@@ -4033,7 +4042,7 @@ class EnemyAI:
 
         if personality == "aggressive":
             # Move toward nearest enemy contact or hostile-controlled region
-            # (NA-3 §5.6: agenda targets get distance-equivalent credit).
+            # (NA-3 Â§5.6: agenda targets get distance-equivalent credit).
             if enemies:
                 target_region = min(
                     enemies,
@@ -4057,7 +4066,7 @@ class EnemyAI:
             current_distance = world.get_distance(marshal.location, target_region)
 
             for adj_name in marshal_region.adjacent_regions:
-                # Skip visited locations — one hop per action, revisiting = backtracking
+                # Skip visited locations â€” one hop per action, revisiting = backtracking
                 if adj_name in visited:
                     ai_debug(f"    P7: Skipping {adj_name} - already visited this turn")
                     continue
@@ -4079,7 +4088,7 @@ class EnemyAI:
                 score = (current_distance - dist) * 1000
                 score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
                 score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
-                # Coalition convergence bias (§5b)
+                # Coalition convergence bias (Â§5b)
                 score += self._get_convergence_bias_score(adj_name, nation, world)
 
                 if score > best_score:
@@ -4110,7 +4119,7 @@ class EnemyAI:
                 best_score = -999
 
                 for adj_name in marshal_region.adjacent_regions:
-                    # Skip visited locations — one hop per action, revisiting = backtracking
+                    # Skip visited locations â€” one hop per action, revisiting = backtracking
                     if adj_name in visited:
                         continue
                     adj_region = world.get_region(adj_name)
@@ -4153,19 +4162,19 @@ class EnemyAI:
                         "target": best_dest
                     }
             else:
-                # ═══════════════════════════════════════════════════════════
+                # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 # CAUTIOUS ADVANCE: When not threatened and not fortified,
                 # advance toward nearest enemy at a measured pace.
                 # This prevents cautious AI from sitting in place forever.
                 # Only advances when stagnation >= 1 (gave the AI one turn to
                 # fortify/drill first, then it starts moving).
-                # ═══════════════════════════════════════════════════════════
+                # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                 stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
                 is_fortified = getattr(marshal, 'fortified', False)
 
                 if not is_fortified and stagnation >= 1:
-                    # NA-3 §5.6: the same agenda distance credit as the
-                    # aggressive arm — a cautious court still advances on
+                    # NA-3 Â§5.6: the same agenda distance credit as the
+                    # aggressive arm â€” a cautious court still advances on
                     # its design when hops are otherwise comparable.
                     if enemies:
                         target_region = min(
@@ -4201,7 +4210,7 @@ class EnemyAI:
                         score = (current_dist - dist) * 1000
                         score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
                         score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
-                        # Coalition convergence bias (§5b)
+                        # Coalition convergence bias (Â§5b)
                         score += self._get_convergence_bias_score(adj_name, nation, world)
 
                         if score > best_score:
@@ -4257,11 +4266,11 @@ class EnemyAI:
 
         ai_debug(f"  P8: Default action check - {personality}, stance={current_stance}")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # SAFETY NET: Universal engagement check
         # NOTE: P0 now handles engagement at start of _evaluate_marshal
         # This is redundant but kept as a safety net in case P0 is bypassed
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         enemies_in_region = self._get_hostile_marshals_in_same_region(marshal, world)
         print(f"  [P8 UNIVERSAL] {marshal.name} at {marshal.location}: enemies_in_region = {[e.name for e in enemies_in_region]}")
 
@@ -4287,9 +4296,9 @@ class EnemyAI:
                     "action": "wait"
                 }
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # RETREAT RECOVERY CHECK: Block certain actions during recovery
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
         if retreat_recovery > 0:
             ai_debug(f"  P8: In retreat recovery ({retreat_recovery} turns) - limited options")
@@ -4347,13 +4356,13 @@ class EnemyAI:
                 ai_debug(f"  -> P8: Suppressing retreat - {marshal.name} advanced via P7 this turn")
 
             # Already aggressive with no retreat needed and no adjacent enemies.
-            # If no adjacent enemies at all, marshal is in optimal aggressive state —
+            # If no adjacent enemies at all, marshal is in optimal aggressive state â€”
             # return None to signal "nothing useful" and end turn early (like cautious P8).
             if not adjacent_enemies:
                 ai_debug("  -> P8: Already aggressive, no adjacent enemies, nothing to do")
                 print(f"  [P8 OPTIMAL] {marshal.name} is aggressive with nothing to do - ending turn")
                 return None
-            # Adjacent enemies exist but not badly outnumbered — wait for next evaluation
+            # Adjacent enemies exist but not badly outnumbered â€” wait for next evaluation
             ai_debug("  -> P8: Already aggressive, waiting (enemies nearby)")
             return {
                 "marshal": marshal.name,
@@ -4407,7 +4416,7 @@ class EnemyAI:
                     "marshal": marshal.name,
                     "action": "fortify"
                 }
-            # Can't fortify (cooldown/unfortified this turn) — wait instead of ending turn
+            # Can't fortify (cooldown/unfortified this turn) â€” wait instead of ending turn
             if not getattr(marshal, 'fortified', False) and refortify_blocked:
                 ai_debug("  -> P8: Can't fortify (cooldown), waiting")
                 return {
@@ -4436,9 +4445,9 @@ class EnemyAI:
         Wraps diplomacy.can_enter_territory with region lookup.
         Returns True for own/unclaimed territory, WAR, or OPEN_MOVEMENT_STATES.
 
-        DEF-5 naval §4.1 (the AI-3c pattern): when `origin` is given and the
+        DEF-5 naval Â§4.1 (the AI-3c pattern): when `origin` is given and the
         hop is a covered sea link, the candidate is filtered OUT here so the
-        AI never selects a crossing the shared movement gate would refuse —
+        AI never selects a crossing the shared movement gate would refuse â€”
         no AP burned on a doomed order, no thrash. Every call site passes
         its deciding marshal's location.
         """
@@ -4474,11 +4483,11 @@ class EnemyAI:
             if not adj_region:
                 continue
 
-            # DEF-5 naval §4.1: a retreat prefers land routes — a covered
+            # DEF-5 naval Â§4.1: a retreat prefers land routes â€” a covered
             # strait is skipped here; the executor's Corunna clause still
             # exists for the player path, and an AI corps with only water
             # left falls through to the desperation walk below (which the
-            # threaded _can_ai_move_to now also gates — it breaks in place
+            # threaded _can_ai_move_to now also gates â€” it breaks in place
             # rather than swimming, the honest outcome for a trapped army).
             if getattr(world, "fleets", None):
                 from backend.game_logic.naval import crossing_allowed
@@ -4503,7 +4512,7 @@ class EnemyAI:
 
         # No safe friendly region - try any adjacent region without enemies.
         # W6-1 retreat doctrine (GR5 mirror of get_safe_retreat_destination's
-        # tier 5): soil of a nation we are AT WAR with is desperation-only —
+        # tier 5): soil of a nation we are AT WAR with is desperation-only â€”
         # chosen when the alternative is encirclement, never over a neutral
         # option (the live audit's Bernadotte chain marched hop after hop
         # deeper into at-war territory).
@@ -4694,8 +4703,8 @@ class EnemyAI:
         # BUT: relax threshold if marshal has been fortified and idle too long
         if personality == "cautious" and adjacent_enemy_strength > 0:
             # Stale fortification relaxation: after N turns fortified, accept more risk
-            # Stale fortification: idle too long → accept more risk to break deadlock
-            # Floor at 0.9 — cautious marshals never ignore a near-equal threat
+            # Stale fortification: idle too long â†’ accept more risk to break deadlock
+            # Floor at 0.9 â€” cautious marshals never ignore a near-equal threat
             turns_fortified = getattr(marshal, 'turns_fortified', 0)
             # Tuned: base 1.5x, decay 0.15/turn after 3 turns, floor 0.9
             # Turn 4: 1.35, Turn 5: 1.20, Turn 6: 1.05, Turn 7+: 0.9 (floor)
@@ -4760,10 +4769,10 @@ class EnemyAI:
         if not marshal_region:
             return None
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # CHECK 0: ENGAGED with enemy in same region (must unfortify!)
         # If enemy is in our region, we MUST fight them.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         enemies_in_region = world.get_hostile_marshals_in_region_indexed(marshal.location, nation)
         if enemies_in_region:
             ai_debug(f"    P3.5: ENGAGED while fortified! Enemies in region: {[e.name for e in enemies_in_region]}")
@@ -4783,11 +4792,11 @@ class EnemyAI:
             else:
                 ai_debug(f"    -> Staying fortified (ratio {ratio:.2f} < threshold {threshold * 0.8:.2f})")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # CHECK 1: Undefended enemy region nearby (always capture)
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         safe_capture_candidates = []
-        # World-scoped starting map (1805 pre-slice item 7 family) — Europe
+        # World-scoped starting map (1805 pre-slice item 7 family) â€” Europe
         # province names always miss the legacy 19-region dict.
         from backend.models.region import get_starting_controllers
         starting_controllers = (
@@ -4804,14 +4813,14 @@ class EnemyAI:
                 continue
 
             # July 2026 AI audit: mirror P4.5's filters. On the 20-nation
-            # 1805 map most neighbors are AT PEACE — without this check the
+            # 1805 map most neighbors are AT PEACE â€” without this check the
             # AI perpetually unfortified to "capture" peaceful regions
             # (phantom intents, wasted AP, permanent fortify/unfortify
             # oscillation on peace-heavy fronts).
             if not world.is_at_war(nation, adj_region.controller):
                 continue
 
-            # Garrisoned regions are P4.25's job (personality ratio gate) —
+            # Garrisoned regions are P4.25's job (personality ratio gate) â€”
             # the intent path has no ratio check, so never target them here
             if (getattr(adj_region, 'garrison_strength', 0) >= 5000
                     or getattr(adj_region, 'garrison_detachment', None)):
@@ -4853,12 +4862,12 @@ class EnemyAI:
                 "action": "unfortify"
             }
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # CHECK 2: "Defending nothing" - no enemies adjacent
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # If no enemy marshals are adjacent, MAYBE unfortify to reposition.
         # BUT: Only unfortify if there's actually somewhere useful to go!
-        # Otherwise we get an infinite loop: unfortify → nowhere to go → fortify
+        # Otherwise we get an infinite loop: unfortify â†’ nowhere to go â†’ fortify
         adjacent_enemies = []
         for adj_name in marshal_region.adjacent_regions:
             enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
@@ -4938,12 +4947,12 @@ class EnemyAI:
             else:
                 print(f"  [FORTIFICATION CHECK] {marshal.name}: No enemies adjacent BUT no valid destination - staying fortified")
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # CHECK 3: ALLY NEEDS HELP (unfortify to support)
         # If no enemies adjacent AND ally is in combat/threatened, unfortify.
         # IMPORTANT: Only if WE are safe (no adjacent enemies) - don't abandon
         # defensive position to help ally.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         if not adjacent_enemies:
             allies = [
                 m for m in world.get_marshals_by_nation(nation)
@@ -4993,27 +5002,27 @@ class EnemyAI:
                             "action": "unfortify"
                         }
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # NOTE: We do NOT check for attack opportunities here!
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # Reason: Attack opportunities are speculative. Even with overwhelming
         # odds, the AI might not attack due to stance changes, priorities, or
-        # other factors. This causes oscillation: unfortify → no attack → fortify.
+        # other factors. This causes oscillation: unfortify â†’ no attack â†’ fortify.
         #
         # Undefended captures are different - they're always executed immediately
         # with no combat risk. Attack opportunities should be handled by the
         # normal attack priority (P4) instead.
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
         # Enemies are adjacent - stay fortified for defense
         return None
 
 
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # AI ADMIN PHASE (Phase 6.2.G)
     # After military actions, AI uses admin AP for economic decisions.
     # Same executor as player (building blocks principle).
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def execute_admin_phase(self, nation: str, world, game_state: Dict) -> List[Dict]:
         """Execute admin actions (recruit, build, repair) for one enemy nation.
@@ -5055,7 +5064,7 @@ class EnemyAI:
             }
             # VP-D6: the vassal shore-up arms carry structured fields the
             # shared executor reads (the VS-3 grant's region pick, the
-            # autonomy arm's explicit level) — never re-derived from text.
+            # autonomy arm's explicit level) â€” never re-derived from text.
             # NV-5 adds `confirmed`: the expedition's quote-then-confirm
             # channel is a PLAYER affordance (the odds are shown before the
             # corps sails). The council has already read the same odds
@@ -5073,7 +5082,20 @@ class EnemyAI:
             result["ai_action"] = action
 
             if result.get("success"):
-                admin_ap -= 1
+                # HC-4b "The Admiralty's bill" (gate Â§5b): the two naval
+                # verbs bill at the `_action_costs` TABLE price (2 / 1)
+                # against the admin budget â€” a descent consumes the whole
+                # admin phase, mirroring the player's half-military-turn.
+                # Scoped to these two verbs ONLY (re-pricing the whole
+                # admin chain would reopen the admin-economy design);
+                # every other action keeps the flat 1.
+                if (AI_NAVAL_AP_PARITY
+                        and action["action"] in ("naval_expedition",
+                                                 "naval_diversion")):
+                    admin_ap -= int(world._action_costs.get(
+                        action["action"], 1))
+                else:
+                    admin_ap -= 1
                 actions_taken += 1
                 result["nation"] = nation
                 result["action_number"] = actions_taken
@@ -5136,7 +5158,7 @@ class EnemyAI:
             region = world.get_region(weakest.location)
             # W6-11: price through the SAME executor helper the recruit
             # will actually pay (war x3 + over-limit multipliers included)
-            # — an inline copy here goes optimistic the moment the real
+            # â€” an inline copy here goes optimistic the moment the real
             # price moves, making the AI attempt-and-fail. MC-2b: including
             # the marshal's Intendance modifier, for the same reason.
             recruit_cost = (
@@ -5148,7 +5170,7 @@ class EnemyAI:
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
                 # CO-4: the field-regen cap is applied symmetrically in the
                 # shared recruit executor keyed on the recruit region's supply
-                # (GR5) — the enemy rung needs no special wiring; a forward
+                # (GR5) â€” the enemy rung needs no special wiring; a forward
                 # corps is capped for both sides alike.
                 return {
                     "action": "recruit",
@@ -5157,11 +5179,11 @@ class EnemyAI:
                 }
 
         # Priority 1.5: ES-7 estate endowment / rente (Economy Revisit S7 +
-        # §0.6.8 second pass, GR5) — below urgent recruit, above generic
+        # Â§0.6.8 second pass, GR5) â€” below urgent recruit, above generic
         # build. Endow the nation's most-shortfalling marshal with a spare
         # conquered province before his loyalty erodes further; when no
         # province is eligible, pension him instead if the treasury can
-        # carry the premium. Fees are deducted in the executor (never here —
+        # carry the premium. Fees are deducted in the executor (never here â€”
         # the leftover-AP gold bonus is applied directly in
         # execute_admin_phase, so a fee modeled as a negative bonus would
         # double-count).
@@ -5172,14 +5194,14 @@ class EnemyAI:
             if grant:
                 return grant
 
-        # Priority 1.6: VASSAL SHORE-UP (VP-D6, July 16, 2026 — GR5). A
+        # Priority 1.6: VASSAL SHORE-UP (VP-D6, July 16, 2026 â€” GR5). A
         # spiralling AI lord steadies its own satellites before they are
-        # courted or bribed away (VS-6): invest → cede a province (VS-3's
-        # helper) → grant autonomy, in escalating desperation. Same
+        # courted or bribed away (VS-6): invest â†’ cede a province (VS-3's
+        # helper) â†’ grant autonomy, in escalating desperation. Same
         # executor, same DP/gold prices as the player (Slice-0 nation-
         # neutral substrate); fees are deducted in the domain functions,
         # never here (the leftover-AP bonus double-count warning above).
-        # Latent at the 1805 boot (no enemy lord holds a satellite) — live
+        # Latent at the 1805 boot (no enemy lord holds a satellite) â€” live
         # the moment one acquires a vassal by settlement or conquest.
         if getattr(world, 'vassals', None) and not {
                 "invest_vassal", "grant_region_to_vassal",
@@ -5191,7 +5213,7 @@ class EnemyAI:
 
         # Priority 1.75: COMMISSION A MARSHAL (Jealousy v3.2 final phase,
         # GR5). An at-war, under-officered, solvent nation reaches for its
-        # authored candidate pool — Austria replaces a lost Mack with
+        # authored candidate pool â€” Austria replaces a lost Mack with
         # Schwarzenberg; Russia calls up Bagration. Same executor, same
         # gold price, same manpower draw as the player.
         if "recruit_marshal" not in skip_actions:
@@ -5200,9 +5222,9 @@ class EnemyAI:
             if commission:
                 return commission
 
-        # Priority 1.8: LAY DOWN A SHIP (DEF-5 naval §6, the P1.75 idiom).
-        # At war + treasury > 2× cost + a live naval want (blockaded, or its
-        # own blockade outmatched) — the SAME priced verb the player types;
+        # Priority 1.8: LAY DOWN A SHIP (DEF-5 naval Â§6, the P1.75 idiom).
+        # At war + treasury > 2Ã— cost + a live naval want (blockaded, or its
+        # own blockade outmatched) â€” the SAME priced verb the player types;
         # the gate is naval.check_build_fleet, shown = applied.
         if "build_fleet" not in skip_actions and getattr(world, "fleets", None):
             from backend.game_logic.naval import find_ai_build_fleet
@@ -5210,13 +5232,19 @@ class EnemyAI:
             if fleet_order:
                 return fleet_order
 
-        # Priority 1.85: THE EXPEDITION (NV-5, promoting the naval §10 NV-D8
-        # arm). How a sea power's army reaches a war it cannot march to —
+        # Priority 1.85: THE EXPEDITION (NV-5, promoting the naval Â§10 NV-D8
+        # arm). How a sea power's army reaches a war it cannot march to â€”
         # the door NV-4's host rule left open. Britain embarks for a shore
         # that will RECEIVE it (Portugal 1808) rather than storming the
         # Norman coast. Same verb, same odds, same executor as the player.
+        # HC-4b: the rung is affordability-gated at the TABLE price â€” a
+        # 2-AP descent is never picked with 1 AP left (the bill must be
+        # payable, not overdrawn into a hidden discount).
         if ("naval_expedition" not in skip_actions
-                and getattr(world, "fleets", None)):
+                and getattr(world, "fleets", None)
+                and (not AI_NAVAL_AP_PARITY
+                     or admin_ap >= int(world._action_costs.get(
+                         "naval_expedition", 1)))):
             from backend.game_logic.naval import find_ai_expedition
             expedition = find_ai_expedition(world, nation)
             if expedition:
@@ -5224,7 +5252,7 @@ class EnemyAI:
 
         # Priority 1.9: THE GRAND DIVERSION (NV-5). A court whose invasion
         # army is staged and whose ports are shut has one card to play.
-        # Dormant on the shipped board — France is the player — and live the
+        # Dormant on the shipped board â€” France is the player â€” and live the
         # moment anyone else wears that shoe (GR5).
         if ("naval_diversion" not in skip_actions
                 and getattr(world, "fleets", None)):
@@ -5292,7 +5320,7 @@ class EnemyAI:
             }
 
         # Priority 6.5: Build watchtower at border region (Phase 6 Fog - Session 35)
-        # Below repair priorities — fix infrastructure before building new watchtowers
+        # Below repair priorities â€” fix infrastructure before building new watchtowers
         if "build" not in skip_actions and treasury >= 250:
             watchtower_region = self._find_best_watchtower_region(nation, world)
             if watchtower_region:
@@ -5347,18 +5375,18 @@ class EnemyAI:
                               skip_actions: Optional[set] = None) -> Optional[Dict]:
         """VP-D6 (July 16, 2026): keep the AI lord's satellite web from
         unravelling. Triggers when its weakest satellite slips under 40
-        loyalty OR its own imperial grip spirals (<30 — reachable for an
+        loyalty OR its own imperial grip spirals (<30 â€” reachable for an
         enemy lord mainly via capital loss). Arms in escalating
         desperation, all through the shared executor at player prices:
 
-        1. INVEST (loyalty < 40): the cheap steady lever — 1 nation-DP +
+        1. INVEST (loyalty < 40): the cheap steady lever â€” 1 nation-DP +
            200g for +10 (grip-blunted like the player's).
         2. CEDE A PROVINCE (loyalty < 30): the VS-3 land grant via the same
-           lord-neutral helper — the one lever the spiral never blunts.
-        3. GRANT AUTONOMY (loyalty < 25): last resort — a permanent tribute
+           lord-neutral helper â€” the one lever the spiral never blunts.
+        3. GRANT AUTONOMY (loyalty < 25): last resort â€” a permanent tribute
            cut to flip the drift positive.
 
-        "Subsidize" is deliberately NOT an arm — it is not an action (the
+        "Subsidize" is deliberately NOT an arm â€” it is not an action (the
         recovery hint stopped naming it for the same reason, playtest F1).
         Fees are charged in the domain functions (double-count warning).
         """
@@ -5415,14 +5443,14 @@ class EnemyAI:
 
     def _find_dotation_grant(self, nation: str, world, treasury: int,
                              skip_actions: Optional[set] = None) -> Optional[Dict]:
-        """ES-7 (S7) + §0.6.8: reward the nation's most-shortfalling marshal (GR5).
+        """ES-7 (S7) + Â§0.6.8: reward the nation's most-shortfalling marshal (GR5).
 
-        Land first — an eligible conquered province at the richest slot
+        Land first â€” an eligible conquered province at the richest slot
         (better rate, and it appreciates under the Steward). When NO
         province is eligible (post-peace, defensive war), fall back to the
         rente IF the treasury can carry the premium bill
-        (RENTE_AI_TREASURY_MULT × per-turn cost, floor
-        RENTE_AI_TREASURY_FLOOR) — the same portfolio the player faces.
+        (RENTE_AI_TREASURY_MULT Ã— per-turn cost, floor
+        RENTE_AI_TREASURY_FLOOR) â€” the same portfolio the player faces.
         Both arms run through the shared executor.
         """
         from backend.game_logic.dotation import (
@@ -5440,7 +5468,7 @@ class EnemyAI:
         for marshal in world.marshals.values():
             if marshal.nation != nation or marshal.strength <= 0:
                 continue
-            # W6-7: a captured marshal's expectations are frozen — never
+            # W6-7: a captured marshal's expectations are frozen â€” never
             # spend on a household that cannot receive (the pension
             # executor refuses captured marshals outright).
             if getattr(marshal, "captured_by", ""):
@@ -5452,7 +5480,7 @@ class EnemyAI:
         if neediest is None:
             return None
 
-        # Arm 1 — land (better rate; appreciates).
+        # Arm 1 â€” land (better rate; appreciates).
         if ("grant_dotation" not in skip_actions
                 and treasury >= compute_investiture_fee(neediest)):
             # CA8-20: filter, do not re-sort. The list is ALREADY sorted
@@ -5461,7 +5489,7 @@ class EnemyAI:
             # Measured on the ambient 40-turn board: 6 of 9 AI grants alienated
             # a province for 0g of the marshal's gap, and because arm 1 returns
             # unconditionally on a NON-EMPTY list, the rente below was
-            # unreachable while any worthless province remained — Austria ended
+            # unreachable while any worthless province remained â€” Austria ended
             # 1,761g/turn in household bills with one marshal endowed to
             # 1,137g against a 300 expectation cap. Filtered here rather than
             # in `list_eligible_estates`: that list is three player surfaces
@@ -5472,10 +5500,10 @@ class EnemyAI:
                 return {
                     "action": "grant_dotation",
                     "marshal": neediest.name,
-                    "target": eligible[0],   # richest first — closes the gap fastest
+                    "target": eligible[0],   # richest first â€” closes the gap fastest
                 }
 
-        # Arm 2 — the rente (§0.6.8): premium-priced, so only when the
+        # Arm 2 â€” the rente (Â§0.6.8): premium-priced, so only when the
         # treasury can carry the recurring bill.
         if "grant_pension" not in skip_actions:
             face = compute_rente_face(neediest, world)
@@ -5491,9 +5519,9 @@ class EnemyAI:
     # AI Recruitment Thresholds (Phase 6.2 Audit)
     #
     # Two-tier system: urgency controls priority, not whether recruitment happens.
-    # Below URGENT → Priority 1 (recruit before buildings)
-    # Between URGENT and 1.0 → Priority 7 (rebuild when nothing better to do)
-    # At or above 1.0 → Don't recruit
+    # Below URGENT â†’ Priority 1 (recruit before buildings)
+    # Between URGENT and 1.0 â†’ Priority 7 (rebuild when nothing better to do)
+    # At or above 1.0 â†’ Don't recruit
     #
     # This means enemies CAN rebuild to 100% if left alone, but prioritize
     # urgent recruitment when critically weak. Victories still matter for
@@ -5685,7 +5713,7 @@ class EnemyAI:
                 if self._borders_enemy(region, nation, world):
                     return region_name
 
-            # No border candidate — fall back to first valid in this tier
+            # No border candidate â€” fall back to first valid in this tier
             return candidates[0]
 
         return None
@@ -5701,7 +5729,7 @@ class EnemyAI:
     def _find_best_watchtower_region(self, nation: str, world) -> Optional[str]:
         """Find the best border region for a watchtower (Phase 6 Fog - Session 35).
 
-        Watchtowers don't use building slots — every region type can have one.
+        Watchtowers don't use building slots â€” every region type can have one.
         Prefer border regions (adjacent to enemy territory) for maximum strategic value.
         """
         best_region = None
@@ -5747,9 +5775,9 @@ class EnemyAI:
         pool = world.manpower_pools.get(nation, {})
         return pool.get("cavalry", 0) < MAX_CAVALRY_POOL * 0.6
 
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ARTILLERY AI HELPERS (Session 2)
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def _artillery_has_screen(self, marshal: Marshal, nation: str, world: WorldState) -> bool:
         """Check if artillery has friendly non-cavalry, non-artillery marshal in same or adjacent region."""
@@ -5881,7 +5909,7 @@ class EnemyAI:
         if region.controller == nation:
             score += 10
 
-        # ── Frontline avoidance ──────────────────────────────────
+        # â”€â”€ Frontline avoidance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Artillery should NOT advance onto the front line.  It is
         # safer and tactically superior one region behind, where it
         # can still provide adjacent support fire (+2% per S60) and
@@ -5891,7 +5919,7 @@ class EnemyAI:
         stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
         if is_frontline:
             if stagnation >= 3:
-                # Stagnation override — reduced penalty
+                # Stagnation override â€” reduced penalty
                 if has_local_infantry:
                     score -= 10  # Reduced from -30
                 else:
@@ -5899,15 +5927,15 @@ class EnemyAI:
                 ai_debug(f"    Artillery stagnation override: reduced frontline penalty (stagnation={stagnation})")
             else:
                 if has_local_infantry:
-                    # Infantry screens this position — mild penalty
+                    # Infantry screens this position â€” mild penalty
                     score -= 30
                 else:
-                    # No infantry screen on the enemy border — very exposed
+                    # No infantry screen on the enemy border â€” very exposed
                     score -= 50
 
-        # ── Behind-screen bonus ──────────────────────────────────
+        # â”€â”€ Behind-screen bonus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # If friendly infantry holds an adjacent front-line region,
-        # this position is safely behind the screen — ideal for
+        # this position is safely behind the screen â€” ideal for
         # artillery bombardment support.
         if not is_frontline:
             for adj_name in region.adjacent_regions:
@@ -5994,9 +6022,9 @@ class EnemyAI:
         candidates.sort(reverse=True)
         return candidates[0][1]
 
-    # ════════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # SESSION 63: AI COORDINATION ENHANCEMENTS
-    # ════════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def _should_maintain_co_location(self, marshal: Marshal, nation: str, world: WorldState) -> bool:
         """P4.76: Should marshal stay co-located with ally near a threat?
@@ -6035,7 +6063,7 @@ class EnemyAI:
         # War enemy in adjacent region
         for adj_name in marshal_region.adjacent_regions:
             if world.get_hostile_marshals_in_region_indexed(adj_name, nation):
-                ai_debug(f"    P4.76: {marshal.name} maintaining co-location — threat at {adj_name}")
+                ai_debug(f"    P4.76: {marshal.name} maintaining co-location â€” threat at {adj_name}")
                 return True
 
         return False
@@ -6063,7 +6091,7 @@ class EnemyAI:
         for adj_name in marshal_region.adjacent_regions:
             enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
             if not enemies_there:
-                continue  # Skip undefended — P4.5 handles
+                continue  # Skip undefended â€” P4.5 handles
 
             enemy_strength = sum(e.strength for e in enemies_there)
             if enemy_strength == 0:
@@ -6131,7 +6159,7 @@ class EnemyAI:
             if combined_ratio < 1.5:
                 continue  # Even combined, not enough
 
-            # Need to bring in nearby allies — move toward the nearest one
+            # Need to bring in nearby allies â€” move toward the nearest one
             if nearby_allies:
                 best_ally = min(nearby_allies, key=lambda a: world.get_distance(marshal.location, a.location))
                 visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
@@ -6157,7 +6185,7 @@ class EnemyAI:
                             best_move = move_adj
 
                 if best_move:
-                    ai_debug(f"    P4.6: {marshal.name} staging coordinated attack — moving toward {best_ally.name} at {best_ally.location}")
+                    ai_debug(f"    P4.6: {marshal.name} staging coordinated attack â€” moving toward {best_ally.name} at {best_ally.location}")
                     return {
                         "marshal": marshal.name,
                         "action": "move",
@@ -6316,7 +6344,7 @@ class EnemyAI:
                     raw_bonus = 5
                 # Rival (-1) or Hostile (-2): no bonus
 
-                # Apply coalition friction for cross-nation allies (§5c)
+                # Apply coalition friction for cross-nation allies (Â§5c)
                 if m.nation != nation:
                     friction = get_coalition_friction(m.nation, nation, world)
                     bonus += int(raw_bonus * friction)
@@ -6326,11 +6354,11 @@ class EnemyAI:
         return bonus
 
     def _get_convergence_bias_score(self, region_name: str, nation: str, world: WorldState) -> int:
-        """Coalition convergence bias for P7 movement (COALITION_SPEC §5b).
+        """Coalition convergence bias for P7 movement (COALITION_SPEC Â§5b).
 
         Returns score bonus for regions adjacent to the coalition TARGET's
-        territory. §4.4b (Stage D review fix [r6]): the target is read from
-        the coalition record — an eclipse coalition's members converge on
+        territory. Â§4.4b (Stage D review fix [r6]): the target is read from
+        the coalition record â€” an eclipse coalition's members converge on
         the eclipsed power's borders, not France's (legacy records default
         to the player, byte-identical).
         """
@@ -6467,16 +6495,16 @@ class EnemyAI:
         result = self.executor.execute(command, game_state)
         result["ai_action"] = action
 
-        # DEF-5 naval §9: a notable AI turn-back at a covered strait renders
+        # DEF-5 naval Â§9: a notable AI turn-back at a covered strait renders
         # as an ordinary campaign-log line, never a popup. The candidate
-        # filters make this rare — it fires only when the world changed
+        # filters make this rare â€” it fires only when the world changed
         # between decision and execution (a posture flip mid-phase).
         if (not result.get("success") and result.get("blocked_naval")):
             world = game_state.get("world")
             if world is not None:
                 marshal_obj = world.get_marshal(action.get("marshal") or "")
                 # NV-4 review: an ATTACK's target is a MARSHAL name, and
-                # the raw value produced log lines like "the London–Castanos
+                # the raw value produced log lines like "the Londonâ€“Castanos
                 # crossing" (measured on the 24-turn probe). Resolve to the
                 # target's REGION so the line names a real stretch of water.
                 far_end = str(action.get("target") or "")
@@ -6493,10 +6521,10 @@ class EnemyAI:
                     "coverer": str(result.get("blocked_naval") or ""),
                 })
 
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         # AI STRATEGIC SCORING (Phase 5): Apply bonuses to AI marshals
         # Same system as player commands for fairness
-        # ════════════════════════════════════════════════════════════
+        # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ai_score = None
         if AI_SCORING_ENABLED and result.get("success", False):
             world = game_state.get("world")

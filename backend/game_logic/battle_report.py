@@ -957,6 +957,37 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     return _fill(random.choice(_OBSERVATIONS["default"]))
 
 
+# HC-2 "The Butcher's Ledger Speaks" (gate §3): past this many of a
+# side's own recorded dead, every battle report in that war closes on
+# the running cost. Blessed, in-band tunable.
+CAMPAIGN_COST_NOTE_THRESHOLD = 25000
+
+
+def compose_campaign_cost_note(world, own_nation: str,
+                               enemy_nation: str) -> str:
+    """Stateless closing clause reading the PT-J2 campaign ledger —
+    the SAME figure the war-detail popup renders (own recorded dead
+    only, the [PTJ-D1] attribution-safe half). Empty below the
+    threshold, outside a live ledger, or off the Europe campaign.
+
+    `generate_battle_report` itself has no world access by design —
+    this helper takes the world and is glued on at the combat
+    executor's after-action seam, the expectation_note pattern.
+    """
+    if world is None:
+        return ""
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return ""
+    if not own_nation or not enemy_nation:
+        return ""
+    ledger = getattr(world, "campaign_ledgers", {}).get(
+        world._make_diplo_key(own_nation, enemy_nation), {})
+    own_dead = int((ledger.get("casualties") or {}).get(own_nation, 0))
+    if own_dead < CAMPAIGN_COST_NOTE_THRESHOLD:
+        return ""
+    return f"The war's cost now stands at {own_dead:,} of our men."
+
+
 def generate_battle_report(battle_result: Dict, player_nation: str = "France") -> Dict:
     """
     Generate a structured battle report from a resolve_battle() return dict.

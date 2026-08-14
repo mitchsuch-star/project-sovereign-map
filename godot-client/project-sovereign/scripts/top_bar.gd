@@ -234,9 +234,16 @@ func get_active_screen() -> String:
 	return active_screen
 
 
-func update_turn(turn_number: int):
-	"""Update the turn counter label."""
-	turn_label.text = "Turn " + str(int(turn_number))
+func update_turn(turn_number: int, calendar_label: String = ""):
+	"""Update the turn counter label.
+
+	HC-0: an anchored campaign shows the dated turn beside the counter
+	("Turn 5 — Late November 1805"); worlds without an anchor pass ""
+	and keep the plain "Turn N" byte-identically."""
+	if calendar_label != "":
+		turn_label.text = "Turn " + str(int(turn_number)) + " — " + calendar_label
+	else:
+		turn_label.text = "Turn " + str(int(turn_number))
 
 
 func _open_screen(screen_name: String):

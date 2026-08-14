@@ -947,6 +947,21 @@ def validate_scenario(
         if not isinstance(data["player_nation"], str):
             result.add_error("player_nation", f"Must be a string, got {type(data['player_nation']).__name__}")
 
+    # HC-0: optional calendar anchor — display-only, but a malformed date
+    # must hard-fail at authoring time, never silently un-date a campaign.
+    if "start_date" in data:
+        if not isinstance(data["start_date"], str):
+            result.add_error(
+                "start_date",
+                f"Must be a string, got {type(data['start_date']).__name__}")
+        else:
+            from backend.game_logic.calendar import parse_start_date
+            if parse_start_date(data["start_date"]) is None:
+                result.add_error(
+                    "start_date",
+                    f"Must be a valid 'YYYY-MM-DD' date, got "
+                    f"'{data['start_date']}'")
+
     # Validate marshals
     all_marshal_locations: Set[str] = set()
     if "marshals" in data:

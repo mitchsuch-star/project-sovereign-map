@@ -31,6 +31,23 @@ August 9 — which also discharges the owed visual sign-off on `Supply: Unknown`
 
 ---
 
+## HC-D1 — Glory as a diplomatic TERM (the mechanical half of HC-3)
+
+> **Filed August 14, 2026 by the health-check design gate**
+> (`docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §4). HC-3 built the
+> FLAVOR half only: envoy refusal/capitulation variants naming the opposing
+> crowned (★) marshal (`diplomatic_templates.crowned_name_clause` /
+> `crowned_incoming_clause`, display-only, GR6). **The mechanical half — an
+> acceptance/intent term that READS glory (a crowned marshal on the border
+> pricing into a court's willingness to sign or to fight) — is deliberately
+> NOT built.**
+
+| Row | Owner / landing | Done when |
+|---|---|---|
+| **HC-D1** glory → acceptance/intent term | **The Victory & Objectives Pass gate (ROADMAP positions 12–13)** rules it in or out | A gate ruling that BUILDS it (named acceptance component + shown-in-breakdown + test file named there) or REJECTS it with reasons recorded in that gate's record; either disposition closes this row |
+
+---
+
 ## Summary
 
 | Category | Count | Status |

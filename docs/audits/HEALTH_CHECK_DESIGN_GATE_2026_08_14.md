@@ -426,3 +426,120 @@ long a turn is".)*
 
 Landing records accumulate in this file (§9+, one per slice, the
 standing pattern).
+
+---
+
+## §9 Landing records
+
+### §9.0 HC-0 "The Calendar" — ✅ LANDED August 14, 2026
+
+`backend/game_logic/calendar.py` (pure `(anchor, turn) → "Early/Late
+{Month} {Year}"`, half-month arithmetic, AST-pinned world-free);
+`WorldState.start_date` rides the scenario_name from_dict funnel
+(**ONE serialized field** — the anchor must survive save/load; the gate's
+"zero new serialized fields" is honored for the LABEL, which is derived
+by `get_calendar_label()` and never stored); scenario JSONs author
+`"start_date": "1805-09-25"` (validator block hard-fails malformed
+dates); label rides `get_action_summary` + `get_filtered_game_state_
+summary` + the dispatch dict + the ledger payload + save METADATA
+(`calendar_label`). Godot: top-bar counter ("Turn 5 — Late November
+1805"), dispatch header, per-book ledger dateline (`_dated_line`),
+main-menu Continue slot. Legacy world: label "" → every surface renders
+byte-identically. Acceptance measured: turn 1 "Late September 1805" /
+turn 6 "Early December 1805" / turn 25 "Late September 1806".
+`tests/test_hc0_calendar.py` (28).
+
+### §9.1 HC-1 "The Silver Blockade" — ✅ LANDED August 14, 2026
+
+`BLOCKADE_SCORE_CAP = 15` / `BLOCKADE_TURNS_DIVISOR = 2` beside the
+PT-J2 constants; the eighth component in `calculate_war_score` +
+`calculate_side_war_score` (per-side saturation THEN difference, so a
+mutual blockade washes); `WorldState.record_blockade_turn` mirrors
+`record_campaign_casualties` (war-gated); accrual =
+`naval._record_blockade_pressure` at tick step 5b — arm 1 the
+`blockader_against` verdict, arm 2 CS closure ≥ the tier-1 notch (0.40)
+with the denier's own ports counted, one credit per (denier, victim)
+per turn. **The ledger's third key is serialized SPARSE** (written only
+when non-empty) so a land war's ledger round-trips byte-identically to
+its pre-slice shape — the PT-J2 round-trip pin holds unmodified.
+Rendered: war-detail popup (only-when-nonzero row), war_status both
+breakdown sites, diplomatic ledger (conditional key). Boot facts
+pinned: Britain credits vs France every tick; the closure arm does NOT
+fire at boot (0.385 < 0.40). M1–M7 + `BASELINE_SERIES` byte-identical
+WITHOUT re-record (proved again as HC-4's control arm).
+`tests/test_hc1_blockade_war_score.py` (19).
+
+### §9.2 HC-2 "The Butcher's Ledger Speaks" — ✅ LANDED August 14, 2026
+
+The war-room rung rides `_assess_situation`'s per-war loop (aggregating
+pair ledgers across a collapsed coalition row's opponents); the
+battle-report closing clause is `battle_report.compose_campaign_cost_
+note` (threshold `CAMPAIGN_COST_NOTE_THRESHOLD = 25000`, Europe-scoped,
+own recorded dead only — the [PTJ-D1] attribution-safe half) glued at
+the combat executor's after-action seam (the expectation_note pattern,
+player side only) and rendered by main.gd after Berthier's observation.
+Stateless both halves — zero new fields, no latch; a fresh war says
+nothing. `tests/test_hc2_ledger_narration.py` (11).
+
+### §9.3 HC-3 "The Crowned Name Abroad" — ✅ LANDED August 14, 2026
+
+Flavor half only. `jealousy.get_crowned_marshal` (settled-flag
+accessor); `diplomatic_templates.CROWNED_SETTLEMENT_CLAUSES` (per-cast
+suffix registers + chancery neutral, reported-speech continuations of
+the settlement-table frames) + `CROWNED_INCOMING_CLAUSES` (first-person,
+register-neutral); wired at (1) the multi-court settlement voice's
+HOLDOUT arm only (a signing/leaning court is not refusing) and (2)
+`compose_incoming_diplomat_line`'s `war_overload` motive (the
+capitulation surface). Append-only banks (XR-5), deterministic turn
+rotation, no crown → byte-identical lines (pinned both wires). No
+epithet map exists — the clauses name "Marshal {name}" + location.
+**The mechanical half is HC-D1** (`DESIGN_REFINEMENT.md`, owner = the
+Victory & Objectives Pass gate). `tests/test_hc3_crowned_name_abroad.py`
+(16).
+
+### §9.4 HC-4 "The Lifeline and the Bill" — ✅ LANDED August 14, 2026
+
+**(a)** `naval.shore_supply_state` — presence semantics, contract-
+literal: friendly afloat + no hostile projecting → 'lifeline'; hostile
+projecting (blockade posture) + NO friendly coverage → 'strangled';
+both afloat = contested → None. **The water is the abstraction's water**
+(one fleet store, no naval map — §12): a fleet reaches a shore by
+projecting; a side's pooled fleet convoys in any posture. The
+sea-link derivation was tried and REJECTED — Lisbon carries no drawn
+link, so the gate's own motivating case would have read None. Boot
+facts measured + pinned: French coast CONTESTED (the Combined Fleet is
+outmatched but afloat — boot-neutral by construction), Britain ashore
+'lifeline', post-Trafalgar France 'strangled'. The arm sits in
+`process_supply_attrition`'s marshal loop (coastal + at-war gates,
+per-(nation, region) turn cache), granting/stripping the SAME 1.5×
+multiplier — zero new constants, GR5 one loop both boards.
+**(b)** `enemy_ai.AI_NAVAL_AP_PARITY` — the two naval verbs bill at the
+`world._action_costs` TABLE price (2/1) against the AI's 2-AP admin
+budget; the expedition rung is affordability-gated (never picked with
+1 AP — no overdraw discount). **Correction to this record's §5b:** no
+`EXPEDITION_AP_COST = 2` constant ever existed on master — the dead
+price was the `_action_costs` table entry itself, which the AI path
+never read; the parity now reads THE TABLE (single source).
+**The ONE sanctioned `BASELINE_SERIES` re-record, 4-arm flip
+experiment:** control (both levers off) reproduces the prior series
+BYTE-FOR-BYTE (proving HC-0..HC-3 move nothing); lifeline-only =
+byte-identical to control (the ambient board never meets a one-sided
+shore in 40 turns); **parity-only reproduces the new series exactly —
+SOLE CAUSE, divergence index 12**; both = parity-only. **Cadence probe
+(30 turns, both arms): Britain's descents are BYTE-IDENTICAL — lands
+turn 12 (Corsica) and 16 (Flanders) under either billing. The NV-5
+shape SURVIVES exactly; what moves is the second admin action the flat
+bill used to leave room for.** `tests/test_hc4_naval_balance_duo.py`
+(15).
+
+### §9.5 HC-5 "The School Names the Fleet" — ✅ LANDED August 14, 2026
+
+Step XIV's body extended in Berthier's voice: THE ADMIRALTY (the
+ledger's seventh book), F1 + the Formable Nations button, the Generals
+card's Reward chip, the ledger's Design rows. **No new suggest chip**
+(the tutorial world has no navy authored — a naval chip would be a
+dishonest pointer and T-B1 would rightly refuse it); the T/G/D/R
+originals stay named; `docs/TUTORIAL_SCRIPT.md` row 10+ updated. "The
+Congress" second lesson stays with its owner (the Pre-EA Onboarding &
+Teaching Pass row). Parse harness EXIT=0 (tutorial_overlay.gd already
+listed). `tests/test_hc5_tutorial_names_fleet.py` (7).

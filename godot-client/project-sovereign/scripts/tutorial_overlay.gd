@@ -171,7 +171,7 @@ const STEPS := [
 		"id": "free_books",
 		"turn_gate": 10,
 		"title": "XIV. The Instruments",
-		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger, [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again. The treasury now carries occupation costs and the charges of empire — read them in the ledger.",
+		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger, [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again. The treasury now carries occupation costs and the charges of empire — read them in the ledger. Four more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_12",

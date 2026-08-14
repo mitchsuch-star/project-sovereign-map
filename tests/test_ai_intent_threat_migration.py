@@ -363,9 +363,43 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # defensible on its face — but "Europe's alarm flattens" is exactly the
 # direction the Q5(c) refuter warned about, and the harness cannot see an
 # ACTIVE France. The playtest owns that question.
+# ── RE-RECORDED August 14, 2026 — HC-4 "The Lifeline and the Bill", the
+# ONE re-record the health-check gate sanctions (gate record
+# `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §5). Prior series:
+#   [70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 59, 57, 55, 53, 51,
+#    48, 49, 47, 45, 46, 44, 42, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0,
+#    0, 0, 0, 0, 0, 0]
+#
+# ATTRIBUTION — 4-arm flip experiment (the two levers:
+# `naval.SHORE_SUPPLY_ACTIVE`, `enemy_ai.AI_NAVAL_AP_PARITY`):
+#   control (both False)    -> reproduces the prior series BYTE-FOR-BYTE
+#                              (and thereby proves HC-0 calendar, HC-1
+#                              blockade accrual, HC-2 narration and HC-3
+#                              flavor move nothing — they were all in the
+#                              tree for the control run);
+#   lifeline only           -> BYTE-IDENTICAL to control (the ambient
+#                              board's coastal armies never meet a
+#                              one-sided shore inside 40 turns);
+#   AP parity only          -> reproduces THIS series byte-for-byte,
+#                              diverging at INDEX 12 (59 -> 56) —
+#                              THE SOLE CAUSE;
+#   both                    -> identical to parity-only.
+#
+# WHY it moves: Britain's descent now consumes her whole 2-AP admin
+# phase (table price 2, was flat 1). MEASURED (30-turn cadence probe,
+# both arms): the DESCENTS THEMSELVES are byte-identical — Britain
+# lands at turn 12 (Corsica) and 16 (Flanders) under either billing —
+# so the NV-5 shape SURVIVES exactly ("Britain still lands"; not even
+# later). What changes is what Britain does BESIDE the descent: the
+# second admin action (or the 25g unused-AP conversion) the flat bill
+# used to leave room for is now foreclosed, and that treasury/army
+# delta cascades — divergence index 12 IS the first descent turn. The
+# mid-war shape loses its +1 sawtooth, the tail reaches 0 four turns
+# earlier (index 30 vs 34), and the endgame threat_by_target flattens
+# (control ends Austria 47 / Russia 6; parity ends all zeros).
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 59, 57, 55, 53, 51,
-    48, 49, 47, 45, 46, 44, 42, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0,
+    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48,
+    45, 42, 39, 36, 33, 30, 27, 24, 26, 23, 20, 17, 14, 6, 3, 0, 0, 0,
     0, 0, 0, 0, 0, 0,
 ]
 

@@ -349,7 +349,7 @@ mock-parse-verified against the tutorial roster in
 | 7 | The depots | `Soult, recruit troops` | 450g at Paris (200 × 0.75 capital × 3 war; admin-7 neutral Intendance — pinned); second admin action: `build watchtower in Lorraine` |
 | 8+ | The fog | `Davout, scout Bohemia` | The telegraphed Austrian counter-blow (P3.7 pulls the Vienna pair west ~T8-10) |
 | 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs ~50k cautious Austrians |
-| 10+ | The instruments | *(hotkeys)* | T / G / D / R — the R159 lines name each screen's mechanic |
+| 10+ | The instruments | *(hotkeys)* | T / G / D / R — the R159 lines name each screen's mechanic. **HC-5:** step XIV also names THE ADMIRALTY (ledger book 7), the F1 wizard + its Formable Nations button, the Generals card's Reward chip, and the ledger's Design rows — honest pointers, no new lessons (the R159 self-teaching screens carry the depth) |
 | 12 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
 
 **Design rules (pinned):** the tutorial steers the player into REAL system

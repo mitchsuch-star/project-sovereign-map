@@ -537,7 +537,12 @@ func _apply_backend_state() -> void:
 				if has_saves:
 					var meta: Dictionary = _saves[0].get("metadata", {})
 					var turn := int(meta.get("turn", 0))
-					b.text = "Continue" + ("  ·  Turn %d" % turn if turn > 0 else "")
+					# HC-0: dated slot when the save carries a calendar label.
+					var cal := str(meta.get("calendar_label", ""))
+					if turn > 0 and cal != "":
+						b.text = "Continue  ·  %s" % cal
+					else:
+						b.text = "Continue" + ("  ·  Turn %d" % turn if turn > 0 else "")
 			"load":
 				b.disabled = not (_backend_up and has_saves)
 	if not _backend_up:

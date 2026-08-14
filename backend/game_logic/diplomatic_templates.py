@@ -650,6 +650,15 @@ def compose_incoming_diplomat_line(
     motive = motive.format(nation=nation_name)
     ask = _INCOMING_ASK_LINES.get(str(proposal_type or ""), "")
     quote = f"{motive} {ask}".strip()
+    # HC-3 "The Crowned Name Abroad": a court suing under the weight of
+    # the war (war_overload — the capitulation motive) acknowledges the
+    # opposing crown when one stands. Register-neutral, inside the
+    # quote; "" (byte-identical) without a crown.
+    if reason == "war_overload":
+        _crown = crowned_incoming_clause(
+            world, str(getattr(world, "player_nation", "") or ""))
+        if _crown:
+            quote = f"{quote} {_crown}".strip()
     return f"{attribution} \"{quote}\""
 
 
@@ -2466,6 +2475,82 @@ _SETTLEMENT_TABLE_VOICE_SUFFIX = {
 }
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# HC-3 "The Crowned Name Abroad" (gate §4) — display-only (GR6): a court
+# refusing the player's terms, or suing while worn down, may name the
+# opposing side's crowned (★) marshal. Sourced from the glory ladder's
+# settled flag at render (jealousy.get_crowned_marshal), deterministic
+# rotation, APPEND-ONLY banks (the XR-5 idiom — grow by adding rows,
+# index 0 anchored). No crown → every line is byte-identical to today.
+# Registers per the Voice Bible: the four cast suffixes speak in their
+# own manner (reported speech, matching the settlement-table frames);
+# every other court gets the register-neutral chancery variant. The
+# mechanical acceptance term is NOT here — deferred as HC-D1 (owner:
+# the Victory & Objectives Pass gate).
+CROWNED_SETTLEMENT_CLAUSES: Dict[str, List[str]] = {
+    "castlereagh": [
+        "He adds that London has read the bulletins from {location} — "
+        "Marshal {marshal}'s laurels do not alter the arithmetic.",
+    ],
+    "hardenberg": [
+        "He does not pretend Prussia is ignorant of Marshal {marshal}, "
+        "or of the field that crowned him.",
+    ],
+    "metternich": [
+        "He offers Vienna's compliments on Marshal {marshal}'s laurels "
+        "at {location} — compliments, he notes, are not a signature.",
+    ],
+    "einsiedel": [
+        "He adds, with apology, that even Marshal {marshal}'s crown "
+        "cannot yet move Saxony's hand.",
+    ],
+    "chancery": [
+        "The court marks that Marshal {marshal} stands crowned in "
+        "glory at {location}.",
+    ],
+}
+
+# Spoken INSIDE the incoming envoy's quoted line (first person plural,
+# register-neutral — every court can carry it without a Bible violation).
+CROWNED_INCOMING_CLAUSES: List[str] = [
+    "We will not pretend Marshal {marshal}'s laurels at {location} "
+    "count for nothing in this.",
+]
+
+
+def _crowned_slots(world, opposing_nation: str):
+    """(marshal_name, location) of the opposing crown, or None."""
+    from backend.game_logic.jealousy import get_crowned_marshal
+    crowned = get_crowned_marshal(world, str(opposing_nation or ""))
+    if crowned is None:
+        return None
+    location = str(getattr(crowned, "location", "") or "") or "the field"
+    return str(crowned.name), location
+
+
+def crowned_name_clause(world, opposing_nation: str,
+                        suffix: str = "chancery") -> str:
+    """The settlement-table refusal clause — "" without a crown."""
+    slots = _crowned_slots(world, opposing_nation)
+    if slots is None:
+        return ""
+    variants = (CROWNED_SETTLEMENT_CLAUSES.get(str(suffix or ""))
+                or CROWNED_SETTLEMENT_CLAUSES["chancery"])
+    turn = int(getattr(world, "current_turn", 0))
+    line = variants[turn % len(variants)]
+    return line.format(marshal=slots[0], location=slots[1])
+
+
+def crowned_incoming_clause(world, opposing_nation: str) -> str:
+    """The incoming-envoy capitulation clause — "" without a crown."""
+    slots = _crowned_slots(world, opposing_nation)
+    if slots is None:
+        return ""
+    turn = int(getattr(world, "current_turn", 0))
+    line = CROWNED_INCOMING_CLAUSES[turn % len(CROWNED_INCOMING_CLAUSES)]
+    return line.format(marshal=slots[0], location=slots[1])
+
+
 def spoken_blocker_phrase(component: str, fallback: str = "") -> str:
     """The spoken form of a top-blocking acceptance component (CA8-17).
 
@@ -2550,6 +2635,19 @@ def resolve_multi_court_settlement_voice(
                 war_label=war_label or "this war",
                 top_blocker=top_blocker,
             )
+        # HC-3 "The Crowned Name Abroad": a court REFUSING the player's
+        # terms may name the opposing crown — one appended sentence in
+        # the speaker's own register, "" (byte-identical line) without
+        # a crown. Holdout arm only: a signing or leaning court is not
+        # refusing, and a hard-stopped court has no quarrel to speak of.
+        if (line
+                and template_key == "settlement_multi_court_court_holds_out"):
+            _crown_suffix = _SETTLEMENT_TABLE_VOICE_SUFFIX.get(
+                court, "chancery")
+            _crown_clause = crowned_name_clause(
+                world, getattr(world, "player_nation", ""), _crown_suffix)
+            if _crown_clause:
+                line = f"{line} {_crown_clause}"
         per_court_voice.append({
             "nation": court,
             "speaker": speaker,

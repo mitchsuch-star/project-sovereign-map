@@ -67,6 +67,9 @@ def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optiona
                 "save_name": save_name,
                 "saved_at": datetime.now(timezone.utc).isoformat(),
                 "turn": int(world.current_turn),
+                # HC-0: dated save-slot label ("" without an anchor —
+                # the menu renders it only when non-empty).
+                "calendar_label": world.get_calendar_label(),
                 "player_nation": world.player_nation,
                 # AI-0b display affordance: the campaign's seed on the save
                 # slot (the authoritative copy rides world_state.campaign_seed).

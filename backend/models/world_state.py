@@ -1477,6 +1477,14 @@ class WorldState:
         # this field — it exists so the client can recognize the world.
         self.scenario_name: str = ""
 
+        # HC-0 "The Calendar": display-only anchor date ("YYYY-MM-DD")
+        # authored top-level in the scenario JSON; "" = no anchor (the
+        # legacy fixture world keeps plain "Turn N" byte-identically).
+        # Rides the same from_dict funnel as scenario_name; the derived
+        # label is NEVER stored (get_calendar_label) and no mechanic
+        # reads it before the HC-6 seasons gate.
+        self.start_date: str = ""
+
         self._apply_smoke_start_preset()
 
         # R9: Build marshal-by-region index before visibility calc uses it
@@ -3547,6 +3555,27 @@ class WorldState:
             cas[nation_a] = int(cas.get(nation_a, 0)) + int(a_dead)
         if int(b_dead) > 0:
             cas[nation_b] = int(cas.get(nation_b, 0)) + int(b_dead)
+
+    def record_blockade_turn(self, denier: str, victim: str) -> None:
+        """HC-1: accrue one turn of naval trade denial onto the pair's
+        campaign ledger.
+
+        Called once per turn from the naval tick for each war where the
+        denier's fleets deny the victim's trade (blockade posture pinning
+        them, or CS closure at the tier-1 notch with the denier's ports
+        in the numerator). Feeds the war score's blockade component —
+        sustained pressure, never a light switch. War-gated like every
+        ledger producer; survives armistice exactly as captures do.
+        """
+        if not denier or not victim or denier == victim:
+            return
+        if not self.is_at_war(denier, victim):
+            return
+        key = self._make_diplo_key(denier, victim)
+        ledger = self.campaign_ledgers.setdefault(
+            key, {"captures": {}, "casualties": {}})
+        turns = ledger.setdefault("blockade_turns", {})
+        turns[denier] = int(turns.get(denier, 0)) + 1
 
     def get_campaign_dead(self, nation: str) -> int:
         """PT-J3: the nation's own dead across every LIVE campaign ledger.
@@ -5787,6 +5816,10 @@ class WorldState:
             humanize_entity_name as _hum_marshal,
         )
 
+        # HC-4a: per-turn cache of naval shore verdicts, keyed
+        # (nation, region) — see the arm inside the marshal loop.
+        _shore_cache: dict = {}
+
         # R9: Rebuild index to ensure freshness (O(N) cost, avoids O(R*N) linear scans)
         self._build_marshal_index()
         events = []
@@ -5807,6 +5840,31 @@ class WorldState:
             for m in marshals_here:
                 is_home = (region.controller == m.nation)
                 cap = int(base_cap * 1.5) if is_home else base_cap
+                # HC-4a "The Royal Navy's lifeline" (gate §5a): on a
+                # COASTAL province, an AT-WAR army's shore verdict can
+                # grant or strip the SAME 1.5× home-turf treatment —
+                # zero new constants. Friendly-dominated water feeds a
+                # landed army like home soil (Britain's Lisbon
+                # expedition); hostile-dominated water strips the home
+                # bonus (the strangled shore). Contested or empty water
+                # → today's numbers byte-identically. GR5: this loop is
+                # both boards. Verdicts cached per (nation, region) —
+                # the fleet store is ≤15 rows, but no need to re-derive
+                # per co-located marshal.
+                if (self.fleets and getattr(region, "is_coastal", False)
+                        and self.get_nations_at_war_with(m.nation)):
+                    _shore_key = (m.nation, region.name)
+                    if _shore_key not in _shore_cache:
+                        from backend.game_logic.naval import (
+                            shore_supply_state,
+                        )
+                        _shore_cache[_shore_key] = shore_supply_state(
+                            self, m.nation, region.name)
+                    _verdict = _shore_cache[_shore_key]
+                    if _verdict == "lifeline" and not is_home:
+                        cap = int(base_cap * 1.5)
+                    elif _verdict == "strangled" and is_home:
+                        cap = base_cap
                 if cap <= 0 or total <= cap:
                     # Even under capacity, stacking penalty applies for death-balling
                     if stacking_penalty > 0 and num_marshals >= 3:
@@ -6151,6 +6209,8 @@ class WorldState:
             "campaign_seed": str(getattr(self, "campaign_seed", "historical")),
             # POSITION 7: display-only scenario identity ("" = bare/default).
             "scenario_name": str(getattr(self, "scenario_name", "")),
+            # HC-0: the calendar anchor (display-only; label derived).
+            "start_date": str(getattr(self, "start_date", "")),
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
@@ -6285,10 +6345,15 @@ class WorldState:
             "battle_records": {k: [r.copy() for r in v] for k, v in self.battle_records.items()},
             "decisive_battles": {k: [r.copy() for r in v] for k, v in self.decisive_battles.items()},
             # PT-J2: the campaign ledger (captures lists + casualty ints).
+            # HC-1 adds the third key, SPARSE — written only when denial
+            # was recorded, so a land war's ledger round-trips
+            # byte-identically to its pre-slice shape.
             "campaign_ledgers": {
                 k: {
                     "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
                     "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
+                    **({"blockade_turns": {n: int(t) for n, t in v["blockade_turns"].items()}}
+                       if v.get("blockade_turns") else {}),
                 }
                 for k, v in self.campaign_ledgers.items()
             },
@@ -6617,6 +6682,11 @@ class WorldState:
         # without any from_scenario change.
         world.scenario_name = str(data.get("scenario_name") or "")
 
+        # HC-0: the calendar anchor rides the same funnel — a pre-field
+        # save (or a scenario without the key) reads "" and every "Turn N"
+        # surface renders exactly as before.
+        world.start_date = str(data.get("start_date") or "")
+
         # ═══════ CORE GAME STATE ═══════
         # 1805 pre-slice item 3: omitted-key fallbacks read the WORLD'S OWN
         # construction-time values (already correct per `sovereign_map`), not
@@ -6918,10 +6988,14 @@ class WorldState:
         world.decisive_battles = {k: [r.copy() for r in v] for k, v in data.get("decisive_battles", {}).items()}
         # PT-J2: pre-ledger saves default to {} — the war simply has no
         # memory yet, which is exactly what it had before the slice.
+        # HC-1: the third key is SPARSE — absent on pre-blockade saves
+        # and land-war ledgers (the score read treats absent as zero).
         world.campaign_ledgers = {
             k: {
                 "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
                 "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
+                **({"blockade_turns": {n: int(t) for n, t in v["blockade_turns"].items()}}
+                   if v.get("blockade_turns") else {}),
             }
             for k, v in data.get("campaign_ledgers", {}).items()
         }
@@ -7853,6 +7927,9 @@ class WorldState:
             # overlay arms on "tutorial". Rides every response via
             # build_base_response and the /test connection payload.
             "scenario_name": str(getattr(self, "scenario_name", "")),
+            # HC-0: the dated turn ("" without an anchor — legacy worlds
+            # keep their plain "Turn N" surfaces byte-identically).
+            "calendar_label": self.get_calendar_label(),
             # "The Levy is Open" (econ spec review §6): nation-level, computed
             # ONCE per summary — deliberately not per-region, so the region
             # panel can say what the establishment allows without this
@@ -11794,6 +11871,14 @@ class WorldState:
             "gold": int(self.gold)
         }
 
+    def get_calendar_label(self) -> str:
+        """HC-0: the derived half-month date ("Late September 1805"), ""
+        without an anchor. Display-only — never stored, never read by a
+        mechanic (`current_turn` stays the single source of time)."""
+        from backend.game_logic.calendar import calendar_label
+        return calendar_label(getattr(self, "start_date", ""),
+                              self.current_turn)
+
     def get_action_summary(self) -> Dict:
         """
         Get action economy summary for UI display.
@@ -11810,6 +11895,10 @@ class WorldState:
             "max_admin_actions": int(self.max_admin_actions),
             "turn": int(self.current_turn),
             "max_turns": 0 if self.sandbox_mode else int(self.max_turns),
+            # HC-0: dated turn label ("" on worlds without an anchor —
+            # the top bar keeps plain "Turn N" there). A separate string
+            # key, never a replacement of the int `turn` (Godot int pin).
+            "calendar_label": self.get_calendar_label(),
         }
 
     def check_and_execute_retreats(self) -> List[Dict]:

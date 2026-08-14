@@ -396,6 +396,28 @@ def _assess_situation(world) -> Dict:
                 f"  Against {opponent}: the war {phrase} ({score:+d}) — "
                 f"{battles} battle{'s' if battles != 1 else ''} across "
                 f"{duration} turn{'s' if duration != 1 else ''}.")
+            # HC-2 "The Butcher's Ledger Speaks" (gate §3): the SAME
+            # figures the war-detail popup renders — own recorded dead
+            # + unique captures, stateless, [PTJ-D1]-safe (own dead
+            # only, never the pooled allied figure). A collapsed
+            # coalition row aggregates its pair ledgers; a fresh war
+            # (empty ledger) says nothing.
+            _foes = [n for n in (row.get("opponents")
+                                 or [row.get("opponent", "")]) if n]
+            _own_dead = 0
+            _own_takes = 0
+            for _foe in _foes:
+                _ledger = getattr(world, "campaign_ledgers", {}).get(
+                    world._make_diplo_key(player, _foe), {})
+                _own_dead += int((_ledger.get("casualties") or {}).get(
+                    player, 0))
+                _own_takes += len((_ledger.get("captures") or {}).get(
+                    player, []))
+            if _own_dead > 0 or _own_takes > 0:
+                lines.append(
+                    f"    This war has taken {_own_dead:,} of our men "
+                    f"and yielded {_own_takes} "
+                    f"province{'s' if _own_takes != 1 else ''}, Sire.")
             # NA-1: name each belligerent's design so the war has a WHY —
             # a coalition row carries every participant in `opponents`.
             from backend.game_logic.agendas import build_agenda_payload

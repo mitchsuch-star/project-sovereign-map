@@ -170,6 +170,15 @@ func _update_tab_highlights():
 			tab_buttons[i].add_theme_stylebox_override("normal", _normal_tab_style)
 
 
+func _dated_line() -> String:
+	# HC-0: the ledger's dateline under each book's header — "" (no line)
+	# on worlds without a calendar anchor, so legacy renders unchanged.
+	var cal = str(cached_data.get("calendar_label", ""))
+	if cal == "":
+		return ""
+	return "[color=#" + Utils.COLOR_DIMMED + "]" + cal + "[/color]\n"
+
+
 func _render_current_tab():
 	if cached_data.is_empty():
 		return
@@ -198,6 +207,7 @@ func _render_forces():
 	var forces = cached_data.get("forces", [])
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]\n"
+	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1-7 turn the ledger's books; press T to close it.[/color]\n\n"
 
@@ -292,6 +302,7 @@ func _render_territories():
 	var territories = cached_data.get("territories", [])
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ TERRITORIES ═══[/color]\n"
+	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
 
 	if territories.size() == 0:
@@ -354,6 +365,7 @@ func _render_economy():
 	var econ = cached_data.get("economy", {})
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ ECONOMY ═══[/color]\n"
+	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The treasury's books — income against upkeep, and every charge with its name on it.[/color]\n\n"
 
 	var treasury = int(econ.get("treasury", 0))
@@ -547,6 +559,7 @@ func _render_economy():
 func _render_admiralty_tab():
 	# NV-12: the naval theatre's own book.
 	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
+	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1-7 turn the ledger's books.[/color]\n"
 	var adm = cached_data.get("admiralty", {})
@@ -724,6 +737,7 @@ func _render_intel():
 	var intel_data = cached_data.get("intel", {})
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ INTELLIGENCE ═══[/color]\n"
+	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]What the fog concedes — enemy armies as your scouts and towers last saw them, aging as reports go stale.[/color]\n\n"
 
 	var enemies = intel_data.get("known_enemies", [])
@@ -789,6 +803,7 @@ func _render_manpower():
 	var mp = cached_data.get("manpower", {})
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ MANPOWER ═══[/color]\n"
+	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The levy pools your recruits draw on — spent men return with time, not gold.[/color]\n\n"
 
 	for pool_type in ["infantry", "cavalry", "artillery"]:
@@ -837,6 +852,7 @@ func _render_orders():
 	var can_cancel = ap_remaining > 0
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n"
+	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]Orders that march without you — each executes itself at dawn until done, or cancelled here.[/color]\n\n"
 
 	if orders.size() == 0:

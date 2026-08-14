@@ -58,6 +58,8 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         "manpower": _build_manpower(world, player),
         "orders": _build_orders(world, player),
         "admiralty": admiralty_report,
+        # HC-0: dated header for the ledger screen ("" without an anchor).
+        "calendar_label": world.get_calendar_label(),
         "authority": int(authority),
         "authority_label": authority_label,
         "actions_remaining": int(world.actions_remaining),

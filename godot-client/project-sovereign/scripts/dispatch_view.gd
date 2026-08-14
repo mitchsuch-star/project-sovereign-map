@@ -67,7 +67,12 @@ func _on_dispatch_received(response):
 
 	# ═══ DISPATCH HEADER ═══
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]\n"
+	# HC-0: dated header on anchored campaigns ("" keeps plain "Turn N").
+	var calendar_label = str(data.get("calendar_label", ""))
+	var turn_text = "Turn " + str(turn_num)
+	if calendar_label != "":
+		turn_text += " — " + calendar_label
+	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — " + turn_text + "[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.

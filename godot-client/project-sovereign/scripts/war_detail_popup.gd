@@ -370,6 +370,11 @@ func _render_war_detail(w: Dictionary):
 		# retaken) and the blood differential. Shown = applied.
 		bbcode += "  Campaign:   " + _signed(int(breakdown.get("campaign", 0))) + "\n"
 		bbcode += "  Blood:      " + _signed(int(breakdown.get("blood", 0))) + "\n"
+		# HC-1: the silver blockade — rendered only when nonzero (most
+		# wars are land wars; the row earns its place by having a value).
+		var _blockade = int(breakdown.get("blockade", 0))
+		if _blockade != 0:
+			bbcode += "  Blockade:   " + _signed(_blockade) + "\n"
 		bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
 
 	var tier_display = str(w.get("settlement_tier_display", ""))

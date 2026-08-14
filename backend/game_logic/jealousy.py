@@ -330,6 +330,25 @@ def get_nation_ladder(world, nation: str) -> List[Tuple[object, int]]:
     return entries
 
 
+def get_crowned_marshal(world, nation: str):
+    """HC-3: the nation's STANDING crowned marshal, or None.
+
+    Reads the settled serialized flag (`glory_crowned` — the truth
+    between `recompute_crowns` passes), never re-derives the ladder.
+    Read-only accessor for display surfaces (the envoy's "crowned name
+    abroad" clauses); a captured or destroyed crown-holder reads None.
+    """
+    for marshal in world.marshals.values():
+        if marshal.nation != nation:
+            continue
+        if not getattr(marshal, "glory_crowned", False):
+            continue
+        if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
+            continue
+        return marshal
+    return None
+
+
 def find_jealousy_target(marshal, world):
     """The marshal's envy object (spec §1 v3, amended by CA8-D3 — spec §0.5).
 
