@@ -218,3 +218,23 @@ token-funnel problem this game deliberately does not have) and would
 re-architect the local client/backend for months to compete on someone
 else's terms. Queue impact: none — LLC+Steamworks position 2, page 14;
 Round 0 (position 11) ships via itch or direct zip.
+
+---
+
+## 9. Addendum (Aug 14, second session) — review-bomb exposure of the v2.1 local model, examined at the owner's question
+
+**Verdict: built to its gate, local parsing REMOVES the classic bomb
+vectors** (nothing sold, nothing metered, nothing taken away, no servers
+to die — it strengthens the "works forever" claim) **and carries exactly
+one: quality.** Portopia is the named cautionary tale — a shipped local
+parser that understood nothing, 15% positive. Our structure neutralizes
+it (mechanical corpus gate before ship; the deterministic floor beneath
+it; opt-in; grammar-constrained to real actions only). **Two scope pins
+added for the future slice:** (1) the local model does PARSING ONLY —
+never the CR-5b flavor line (small-model prose beside Haiku's is the
+"speak like robots" downgrade perception in miniature); (2) it NEVER
+silently replaces a connected key — local is a rung the player chooses,
+below BYOK; a silent swap is the Suck Up 1.0 pattern. First move when
+the slice opens: the one-session corpus spike (run the live rows through
+candidate GGUFs with the constrained grammar; ship/no-ship becomes a
+measured number).
