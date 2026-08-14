@@ -944,6 +944,13 @@ class WorldState:
         # Consumed by Campaign Log (Phase 6.5), Gazette (Phase 8.5), etc.
         self.event_log: List[Dict[str, Any]] = []
 
+        # HC-G "Le Moniteur": the serialized back-issue archive — issues
+        # are COMPOSED at publish time and STORED (cap gazette.MAX_ISSUES,
+        # oldest evicted), never recomposed from the 500-capped event log
+        # later (the IGR-B eviction trap, named at the gate). Dormant
+        # without a calendar anchor (legacy world never prints).
+        self.gazette_issues: List[Dict[str, Any]] = []
+
         # ============================================================
         # NOTIFICATION SYSTEM - EU4-style persistent alerts (Phase 6.5)
         # ============================================================
@@ -6311,6 +6318,9 @@ class WorldState:
             # ═══════ EVENT LOG ═══════
             "event_log": [e.copy() for e in self.event_log],
 
+            # ═══════ HC-G LE MONITEUR ═══════
+            "gazette_issues": [copy.deepcopy(i) for i in self.gazette_issues],
+
             # ═══════ NOTIFICATIONS (Phase 6.5) ═══════
             "notifications": self.notifications.to_list(),
             "last_bankruptcy_notification_tier": int(self.last_bankruptcy_notification_tier),
@@ -6948,6 +6958,13 @@ class WorldState:
         # ═══════ MORNING DISPATCH (Session A) ═══════
         world.last_morning_dispatch = data.get("last_morning_dispatch", {})
         world.headline_lead_memory = data.get("headline_lead_memory", {}) or {}
+
+        # ═══════ HC-G LE MONITEUR ═══════
+        # Pre-gazette saves read [] — the paper simply has no archive yet.
+        # deepcopy: issues nest section lists (the health-check's
+        # shallow-on-load aliasing lesson).
+        world.gazette_issues = [
+            copy.deepcopy(i) for i in data.get("gazette_issues", [])]
 
         # ═══════ COORDINATION TUTORIAL (Session 66) ═══════
         world.coordination_tutorial_shown = data.get("coordination_tutorial_shown", False)
@@ -8890,6 +8907,15 @@ class WorldState:
         # Append fog intel events to tactical events (Session 34B)
         if getattr(self, '_intel_events_this_turn', None):
             self._last_tactical_events.extend(self._intel_events_this_turn)
+
+        # ════════════════════════════════════════════════════════════
+        # HC-G LE MONITEUR — the publication check runs AFTER the fog
+        # recompute (the paper's filter must read the NEW turn's
+        # visibility, never last turn's). Display-only store + one rail
+        # notification; dormant without a calendar anchor.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.gazette import process_gazette
+        process_gazette(self)
 
         # ════════════════════════════════════════════════════════════
         # SNAPSHOT WAR SCORES (Audit 4 Fix 2)

@@ -3796,6 +3796,22 @@ def get_dispatch():
     return payload
 
 
+@app.get("/gazette")
+def get_gazette():
+    """HC-G "Le Moniteur": the stored back-issue archive (newest last).
+    Issues were composed fog-honest at publish time — this is a pure
+    read of the serialized store, never a recomposition."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    payload = {
+        "success": True,
+        "issues": [dict(i) for i in getattr(world, "gazette_issues", [])],
+        "calendar_label": world.get_calendar_label(),
+    }
+    _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
+
+
 # ════════════════════════════════════════════════════════════
 # STRATEGIC LEDGER ENDPOINT (Session B)
 # ════════════════════════════════════════════════════════════

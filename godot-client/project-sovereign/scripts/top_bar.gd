@@ -15,6 +15,8 @@ signal screen_changed(screen_name: String)
 @onready var generals_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/GeneralsBtn
 @onready var diplo_ledger_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/DiploLedgerBtn
 @onready var dispatch_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/DispatchBtn
+# HC-G: Le Moniteur — the Gazette's archive screen.
+@onready var gazette_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/GazetteBtn
 @onready var notification_area: Control = $NotificationArea
 @onready var turn_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TurnLabel
 
@@ -101,6 +103,7 @@ func _ready():
 	generals_btn.pressed.connect(_on_button_pressed.bind("generals"))
 	diplo_ledger_btn.pressed.connect(_on_button_pressed.bind("diplomatic_ledger"))
 	dispatch_btn.pressed.connect(_on_button_pressed.bind("dispatch"))
+	gazette_btn.pressed.connect(_on_button_pressed.bind("gazette"))
 
 	# Map buttons to screen names
 	button_map = {
@@ -109,6 +112,7 @@ func _ready():
 		"generals": generals_btn,
 		"diplomatic_ledger": diplo_ledger_btn,
 		"dispatch": dispatch_btn,
+		"gazette": gazette_btn,
 	}
 
 	# Generals button — wired to Marshal Management screen (Phase 6.5)
@@ -124,6 +128,9 @@ func _ready():
 	Utils.apply_button_icon(generals_btn, Utils.ICON_PHOSPHOR + "users-three.svg")
 	Utils.apply_button_icon(diplo_ledger_btn, Utils.ICON_PHOSPHOR + "handshake.svg")
 	Utils.apply_button_icon(dispatch_btn, Utils.ICON_PHOSPHOR + "scroll.svg")
+	# (no newspaper glyph in the curated set — the open book reads as
+	# the periodical's archive)
+	Utils.apply_button_icon(gazette_btn, Utils.ICON_PHOSPHOR + "book-open.svg")
 
 	# UI-6: nav hover/pressed match the flat bar look — without these the
 	# theme's gold-bordered navy stylebox flashed in on hover (style-jump).

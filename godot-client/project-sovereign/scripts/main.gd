@@ -514,6 +514,7 @@ func _ready():
 		["ledger", "res://scenes/strategic_ledger.tscn"],
 		["generals", "res://scenes/marshal_management.tscn"],
 		["diplomatic_ledger", "res://scenes/diplomatic_ledger.tscn"],
+		["gazette", "res://scenes/gazette_view.tscn"],
 	]
 	for config in _screen_configs:
 		var scene = load(config[1])
@@ -979,6 +980,13 @@ func _unhandled_input(event):
 			if not _is_hotkey_blocked():
 				if top_bar:
 					top_bar.toggle_screen("dispatch")
+				get_viewport().set_input_as_handled()
+			return
+		# HC-G: N for the newspaper — Le Moniteur's back-issue archive.
+		if event.keycode == KEY_N:
+			if not _is_hotkey_blocked():
+				if top_bar:
+					top_bar.toggle_screen("gazette")
 				get_viewport().set_input_as_handled()
 			return
 

@@ -120,6 +120,9 @@ MARSHAL_COMMISSIONED = "marshal_commissioned"        # NORMAL: new marshal
 # commission the executor's gate would grant, one notification says so —
 # once per campaign (world.commission_hint_shown latch), never a nag.
 COMMISSION_AVAILABLE = "commission_available"        # NORMAL: once-latched
+# HC-G "Le Moniteur": an issue published — the one-line notice on the
+# rail (no popup class, no queue slot, never a modal).
+GAZETTE_PUBLISHED = "gazette_published"              # NORMAL: new issue
 
 
 def create_notification(

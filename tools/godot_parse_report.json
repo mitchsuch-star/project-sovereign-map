@@ -39,6 +39,12 @@
       "instantiate_ok": true,
       "load_ok": true,
       "path": "res://scenes/tutorial_overlay.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/gazette_view.tscn"
     }
   ],
   "scripts": [
@@ -274,6 +280,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/gazette_view.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -319,5 +331,5 @@
       "path": "res://scenes/map_connection_layer.gd"
     }
   ],
-  "timestamp": "2026-08-14T22:41:53Z"
+  "timestamp": "2026-08-14T22:52:29Z"
 }

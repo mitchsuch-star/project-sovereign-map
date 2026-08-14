@@ -80,6 +80,9 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# dialog_manager (the IGR-E gap class: covered by neither main.tscn nor
 	# the script list unless named here).
 	"res://scripts/tutorial_overlay.gd",
+	# HC-G: Le Moniteur — the Gazette archive screen (XR-1: every touched
+	# script parses in the harness).
+	"res://scripts/gazette_view.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -115,6 +118,8 @@ const SCENE_INSTANTIATION_CHECKS = [
 	"res://scenes/settings_panel.tscn",
 	# POSITION 7: the School of War tutor card (runtime-registered).
 	"res://scenes/tutorial_overlay.tscn",
+	# HC-G: the Gazette screen (top_bar-registered at runtime).
+	"res://scenes/gazette_view.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"

@@ -106,6 +106,10 @@ func get_dispatch(callback: Callable):
 	_send_get("/dispatch", callback)
 
 
+func get_gazette(callback: Callable):
+	_send_get("/gazette", callback)
+
+
 func get_ledger(callback: Callable):
 	_send_get("/ledger", callback)
 

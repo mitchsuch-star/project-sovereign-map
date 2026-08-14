@@ -543,3 +543,59 @@ originals stay named; `docs/TUTORIAL_SCRIPT.md` row 10+ updated. "The
 Congress" second lesson stays with its owner (the Pre-EA Onboarding &
 Teaching Pass row). Parse harness EXIT=0 (tutorial_overlay.gd already
 listed). `tests/test_hc5_tutorial_names_fleet.py` (7).
+
+### §9.6 HC-G "Le Moniteur" — ✅ LANDED August 14, 2026
+
+`backend/game_logic/gazette.py` — deterministic v1, zero LLM.
+`process_gazette(world)` runs in the advance-turn tail AFTER the fog
+recompute (the filter must read the NEW turn's visibility);
+`ISSUE_INTERVAL = 5` + forced specials (capital stormed — re-derived
+from `region_captured` + the capital read, the dispatch.py:409 idiom,
+since no `capital_stormed` event type exists; nation eliminated;
+`nation_formed`; great-power war declared/settled — great-power =
+`get_power_tier == "major"` with the canonical-five fallback; player
+marshal captured / last stand). One issue max per turn (a special IS
+the last issue, so it resets the clock). Composition: the section rows
+ARE `format_event_oneliner` over `filter_campaign_log`'s output — the
+paper can never scoop a fogged battle (pinned); the press register
+lives in the LEAD (VICTOIRE!/delicacy — triumphalist on French
+victories, delicate on reverses) and the Bourse line reads standing
+facts only (treasury + `is_blockaded`), never a recomputed net (the
+CA9-N11 caveat honored). **ONE new serialized store `gazette_issues`**
+(cap 20, oldest evicted, deepcopy both normalizers — composed at
+publish time, never recomposed from the 500-capped log: the IGR-B trap
+named and closed by construction). Dormant without a calendar anchor —
+the legacy world never prints, byte-identically (pinned through real
+`advance_turn`s). Surfaces: `GET /gazette` (identity-overrides
+attached), `gazette_view.tscn/.gd` (dispatch_view clone + client-local
+back-issue paging), top-bar "Moniteur (N)" button (book-open glyph —
+no newspaper in the curated set), KEY_N hotkey, `GAZETTE_PUBLISHED`
+rail notification (no popup class, no queue slot, never a modal).
+Parse harness EXIT=0 (script + scene added to the lists); boot smoke
+via `--log-file` — 0 SCRIPT ERROR; **live HTTP-verified on a fresh
+backend: issue №1 published turn 5 dated "Late November 1805",
+triumphal lead, 8 war rows, blockade-aware Bourse; the calendar read
+"Early December 1805" on turn 6.** M1–M7 + the re-recorded
+`BASELINE_SERIES` byte-identical (display-only store).
+`tests/test_hc_g_gazette.py` (23). ⚠ The visual sign-off on the
+screen (button placement, paging feel) rides the standing play-session
+convention.
+
+### §9.7 HC-6 Seasons & Weather — ✅ SPEC AUTHORED August 14, 2026 — ⚠ USER GATE PENDING
+
+`docs/SEASONS_WEATHER_SPEC.md` v1.0: the season derivation consumes
+HC-0 (6-turn seasons; the boot opens autumn; winter turn ~6 — 
+Austerlitz weather on time); winter arms at the three existing
+chokepoints (supply ×0.75 with winter-quarters shelter, march +1%,
+naval drill ceiling −15) + the council's season sense (±war-weight,
+the ONE AI arm); dormancy = no anchor → no seasons (legacy
+byte-identical); §4 re-record protocol per baseline; §5 slices
+SW-0..SW-V; **§6 = seven numbered questions at recommended defaults —
+THE GATE. Nothing lands before the user rules them** (incl. Q6:
+whether seasons build before or after the played 20-turn campaign).
+
+### §9.8 HC-L — NOT ATTEMPTED this session (deliberate)
+
+The spike needs candidate GGUF downloads + a llama.cpp toolchain — a
+dedicated session per the §7b contract (one session, no product code).
+Queue position unchanged.

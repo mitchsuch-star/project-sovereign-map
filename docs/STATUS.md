@@ -4,6 +4,72 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ ROW HC SLICES HC-0..HC-5 + HC-G BUILT, HC-6 SPEC AUTHORED — August 14, 2026 (second session)
+>
+> **Seven of the eight HC slices are DONE in one session under the user's
+> "do as much of the hc changes as you feel comfortable" grant** (commits
+> `c6d63c6` HC-0..HC-5 + the HC-G/HC-6 commit; **landing records =
+> `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §9.0–§9.8,
+> authoritative**). Suite **17,558/3** · ruff clean · parse harness
+> EXIT=0 (incl. the new gazette scene) · boot smoke 0 SCRIPT ERROR ·
+> M1–M7 byte-identical · **`BASELINE_SERIES` re-recorded ONCE (HC-4's
+> sanctioned re-record) with a 4-arm flip experiment: control reproduced
+> the prior series byte-for-byte (proving HC-0..HC-3 move nothing);
+> AP-parity-only reproduced the new series exactly — SOLE CAUSE,
+> divergence index 12; measured cadence: Britain's descents
+> byte-identical both arms (turns 12+16) — the NV-5 shape survives.**
+> In one line each:
+>
+> - **HC-0 The Calendar** — turn 1 = "Late September 1805" live on the
+>   top bar / dispatch / ledger datelines / save slots; ONE serialized
+>   anchor `start_date` (the label itself is derived, never stored);
+>   legacy world byte-identical.
+> - **HC-1 The Silver Blockade** — the war score's eighth component
+>   (±15) on the PT-J2 ledger; `blockade_turns` accrues in the naval
+>   tick (posture + CS-closure arms); serialized SPARSE so land wars
+>   round-trip byte-identically; the A2 strangler stops reading 0.
+> - **HC-2 The Butcher's Ledger Speaks** — the war-room rung ("This war
+>   has taken 12,000 of our men and yielded 2 provinces, Sire.") + the
+>   25k-dead battle-report closing clause; stateless, own-dead only.
+> - **HC-3 The Crowned Name Abroad** — crowned-marshal clauses at the
+>   settlement HOLDOUT voice (per-cast registers) + the incoming
+>   war_overload motive; no crown = byte-identical (pinned). Mechanical
+>   half = HC-D1 in DESIGN_REFINEMENT.md (Victory-gate owner).
+> - **HC-4 The Lifeline and the Bill** — shore_supply_state (presence
+>   semantics: boot French coast CONTESTED = neutral, Britain ashore
+>   'lifeline', post-Trafalgar 'strangled'; the sea-link derivation was
+>   tried and REJECTED — Lisbon has no drawn link) + the AI's naval
+>   verbs billed at the table price with an affordability-gated rung.
+>   Both halves carry flip levers (`SHORE_SUPPLY_ACTIVE`,
+>   `AI_NAVAL_AP_PARITY`).
+> - **HC-5 The School Names the Fleet** — step XIV names THE ADMIRALTY /
+>   F1 + Formables / Reward chip / Design rows; no new chip.
+> - **HC-G Le Moniteur** — deterministic Gazette LIVE end to end:
+>   `gazette.py` (5-turn cadence + forced specials, fog-honest by
+>   construction — the rows ARE `format_event_oneliner` over the
+>   filtered log), ONE serialized `gazette_issues` store (cap 20),
+>   `GET /gazette`, gazette_view screen + top-bar "Moniteur (N)" +
+>   KEY_N, rail notification. **HTTP-verified: issue №1 published turn
+>   5 dated "Late November 1805" with a triumphal lead and a
+>   blockade-aware Bourse line.**
+> - **HC-6 Seasons & Weather — SPEC AUTHORED, ⚠ USER GATE PENDING:**
+>   `docs/SEASONS_WEATHER_SPEC.md` (6-turn seasons on the HC-0
+>   calendar, winter ~turn 6; supply ×0.75 + winter quarters / march
+>   +1% / naval ceiling −15 / the council's season sense; §6 = SEVEN
+>   questions at recommended defaults incl. Q6 sequencing vs the played
+>   campaign). **Nothing lands before the user rules §6.**
+>
+> **⚠ Open items:** (1) the **HC-6 user gate** (§6 of the seasons spec);
+> (2) **HC-L Smart Parsing — Offline** — NOT attempted (the spike needs
+> GGUF downloads + a llama.cpp toolchain; a dedicated session per gate
+> §7b); (3) the **played 20-turn campaign** (queue position 9 — PT row-2
+> arm + naval pillar + ALL standing visual sign-offs, now including the
+> calendar surfaces, HC-1's Blockade row, and the Gazette screen);
+> (4) the standing **visual sign-off** on the new HC surfaces rides that
+> session.
+>
+> ---
+>
 > ## ▶ ROW HC — THE HEALTH-CHECK DESIGN PROGRAM (GATE HELD August 14, 2026)
 >
 > **The design gaps the health check surfaced were RULED August 14, 2026
