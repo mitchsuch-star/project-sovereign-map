@@ -116,6 +116,10 @@ RENTE_DEFAULTED = "rente_defaulted"                  # HIGH: rente lapsed
 # Marshal recruitment: a new commander joined the roster (both the player's
 # commissions and — fog willing — word of enemy ones).
 MARSHAL_COMMISSIONED = "marshal_commissioned"        # NORMAL: new marshal
+# PT-J4 "The Bench Speaks": the FIRST time the treasury covers a bench
+# commission the executor's gate would grant, one notification says so —
+# once per campaign (world.commission_hint_shown latch), never a nag.
+COMMISSION_AVAILABLE = "commission_available"        # NORMAL: once-latched
 
 
 def create_notification(

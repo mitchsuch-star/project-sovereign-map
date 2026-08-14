@@ -308,8 +308,14 @@ class TestWarScoreEdgeCases:
         assert len(decisive) == 2, f"Max 2 decisive battles, got {len(decisive)}"
 
         score = calculate_war_score("France", "Prussia", world)
-        # Decisive: 2 * 10 = 20, Battle: 3 * 3 = 9
-        assert score == 29, f"Expected 29, got {score}"
+        # Re-blessed August 14, 2026 (PT-J2 re-weight, gate record
+        # PLAYTEST_FIXES_SPEC.md §4): decisive 2×10 = 20 now CAPS at
+        # DECISIVE_SCORE_CAP 15; battles 3×3 = 9; and the same three
+        # record_battle calls now feed the campaign ledger, whose blood
+        # differential (45,000 − 9,000 = 36,000 → //2500 = 14) is the
+        # weight the re-weight moved OUT of raw battle counts. The
+        # max-2-decisive structural claim above is unchanged.
+        assert score == 15 + 9 + 14, f"Expected 38, got {score}"
 
     def test_capital_hold_cancels_out(self):
         """Hold enemy capital while they hold yours -> net 0."""

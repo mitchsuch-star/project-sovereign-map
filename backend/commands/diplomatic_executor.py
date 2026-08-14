@@ -4532,6 +4532,25 @@ class DiplomaticExecutor:
             suggestion = terms.get("suggestion") or {}
             kind = suggestion.get("kind", "")
             world.dialogue_manager.pop()
+
+            # PT-J4 (found in passing): invest_vassal and recruit_marshal
+            # are ADMIN_ACTIONS — the typed route charges 1 admin AP at
+            # executor.py's pre-flight, but this arm calls the
+            # sub-executors DIRECTLY, so the war room's button rode
+            # CHEAPER than the same order typed. That is the CA9
+            # through-line (two implementations of one price, only one
+            # maintained); the arm now mirrors the pre-flight exactly.
+            # request_terms is DP-priced in-executor and stays untouched.
+            _ADMIN_AP_KINDS = ("invest_vassal", "commission_marshal")
+            if kind in _ADMIN_AP_KINDS:
+                if world.admin_actions_remaining < 1:
+                    return {
+                        "success": False,
+                        "message": ("No administrative actions remaining "
+                                    "this turn — the counsel stands, but "
+                                    "the chancellery's day is spent."),
+                    }
+
             if kind == "request_terms":
                 result = self._execute_request_terms(
                     {"target_nation": suggestion.get("target_nation", "")},
@@ -4542,6 +4561,22 @@ class DiplomaticExecutor:
                 result = self._executor._vassal._execute_invest_vassal(
                     {"target": suggestion.get("target", "")},
                     {"world": world})
+                if result.get("success"):
+                    world.admin_actions_remaining = int(
+                        world.admin_actions_remaining) - 1
+                result.pop("new_state", None)
+                return result
+            if kind == "commission_marshal":
+                # PT-J4: the war room's bench counsel executes through the
+                # SAME gate as the typed "commission <name>" (GR5/GR6) —
+                # the economy executor re-validates and charges its own
+                # costs, so a stale recommendation refuses honestly.
+                result = self._executor._economy._execute_recruit_marshal(
+                    {"target": suggestion.get("target", "")},
+                    {"world": world})
+                if result.get("success"):
+                    world.admin_actions_remaining = int(
+                        world.admin_actions_remaining) - 1
                 result.pop("new_state", None)
                 return result
             return {"success": False,

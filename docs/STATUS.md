@@ -38,21 +38,36 @@
 >    toward `unfavorable`, pinned as a monotonicity property); it cannot prove
 >    the gate fires in the wild without play.
 > 2. ~~**§4's four items still need a user ruling**~~ **✅ ALL FOUR RULED
->    August 12, 2026 — gate record = `docs/PLAYTEST_FIXES_SPEC.md` §4
->    (authoritative), build contracts = §4.1, slices PT-J1..J4, NOTHING CODED
->    YET:** PT-I1 → eject + betray on formal PEACE only (truce keeps
->    membership; collapse resumes the coalition war; the widened arm also
->    closes the masked ARMISTICE→PEACE never-ejects hole); PT-I2 → the
->    **campaign ledger + re-weight** (serialized per-war unique-captures +
->    casualties per side feeding two bounded score components, battle-count
->    weight DOWN per CA9 row 1; numbers at a build mini-gate); PT-I3 → the
->    named **"pensions of the fallen"** EB-1 condition term reading the SAME
->    ledger substrate (EC-U1 stands — dead men stop drawing pay, their
->    pensions bill the crown); PT-I4 → three advisory surfaces (counsel rung,
->    death/capture dispatch beat, once-latched first-affordable notification;
->    the levy-nag cross-sell DECLINED at the gate). **Build order PT-J1 →
->    PT-J2 → PT-J3 → PT-J4, then the played 20-turn campaign** that also
->    discharges item 1 and the visual sign-offs.
+>    August 12, 2026 AND ✅ ALL FOUR BUILT August 14, 2026 — gate record =
+>    `docs/PLAYTEST_FIXES_SPEC.md` §4, build contracts = §4.1, landing
+>    record = §4.2 (authoritative);** suite 17,356 → **17,404/3**
+>    (`tests/test_pt_j_rulings.py`, 48), ruff clean, parse harness
+>    regenerated EXIT=0, **M1–M7 + `BASELINE_SERIES` byte-identical
+>    WITHOUT re-record** (a fact about the harness — no ambient armistice
+>    turns, no flipped decision points). In one line each: **PT-J1** the
+>    ejection lives at the `set_diplomatic_state` chokepoint (PEACE/VASSAL
+>    from WAR **or ARMISTICE**; truce keeps membership; the
+>    `check_dissolution` WAR-only member count — which would have
+>    dissolved the coalition on the truce anyway — now counts ARMISTICE
+>    as standing); **PT-J2** `world.campaign_ledgers` (unique captures +
+>    own dead per side, recorded at `capture_region`/the auto-charge
+>    bypass/`record_battle` pre-floor) feeds `campaign` ±10 + `blood` ±15
+>    while battles 30→15 and decisive 20→15, ledger SURVIVES armistice,
+>    shown=applied on war-detail/HUD/diplomatic-ledger; **found in
+>    passing:** the Gate-4 relax pass floored only demand courts while
+>    package harshness presses every covered court — widened, with the
+>    strip falling back to the package's harshest demand clause;
+>    **PT-J3** `pensions_of_the_fallen` = `min(150, dead//750)` on the
+>    same ledger (76k dead ≈ +1,236g/turn at the measured chest — the
+>    exact measured absurdity, neutralized; EC-U1 stands); **PT-J4**
+>    `first_affordable_commission`/`commission_counsel_need` wrap
+>    `check_commission` as the ONE predicate behind the counsel rung 3.5,
+>    the capture-beat bench note, and the once-latched serialized
+>    notification; **found in passing:** the W6-9 `execute_suggestion`
+>    arm skipped the typed route's 1 admin AP — both admin kinds now
+>    mirror the pre-flight. **Remaining on row PT = the played 20-turn
+>    campaign** (CA9 row-2 gate arm at least once) **+ the visual
+>    sign-offs** (item 3).
 > 3. **The three owed visual sign-offs stand**, and this row adds to them: one
 >    fog sentence instead of nine, a DIPLOMATIC EVENTS rail in the terminal,
 >    collapsed turn events, the autonomous attack drawing a real battle, and the

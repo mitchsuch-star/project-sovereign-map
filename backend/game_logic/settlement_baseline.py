@@ -1195,13 +1195,27 @@ def _relax_baseline_demands_for_package_harshness(
     terms = [dict(t) for t in combined_terms]
     # Bounded: at most one demand clause is removed per pass.
     for _ in range(len(terms) + 1):
+        # PT-J2 widening (gate record PLAYTEST_FIXES_SPEC.md §4): package
+        # harshness is SHARED, so a demand on Britain presses a demand-free
+        # Prussia too — the exact mechanism this pass's own docstring names
+        # — yet the floor loop only ever scored DEMAND courts. Under the
+        # old battle-heavy score arithmetic every covered court happened to
+        # clear anyway; the re-weight surfaced the gap (the Gate-4 smoke's
+        # winning war opened with Prussia at 29 under a package whose only
+        # demand was on Britain). Every covered court is now floored while
+        # any covered demand clause remains to strip.
+        package_demand_idxs = [
+            i for i, c in enumerate(terms)
+            if isinstance(c, Mapping) and c.get("type") != "peace"
+            and str(c.get("from") or "") in covered_set
+        ]
+        if not package_demand_idxs:
+            break  # bare shared peace — nothing left to relax for anyone
         below: List[tuple] = []
         for court in sorted_covered:
-            entry = per_court_baseline.get(court) or {}
-            if entry.get("direction") != "demand":
-                continue
-            if not any(_is_demand_clause(c, court) for c in terms):
-                continue  # nothing left to relax for this court
+            # Every covered court is scored — a demand court whose own
+            # slice is already bare stays in as a PRESSED court (the
+            # package-wide strip arm below is what serves it now).
             score = _score_court_for_baseline(
                 world, war_id=war_id, war_instance=war_instance,
                 proposer_side=proposer_side, accepting_side=accepting_side,
@@ -1216,13 +1230,22 @@ def _relax_baseline_demands_for_package_harshness(
         below.sort()  # lowest score first; court name breaks ties
         worst = below[0][1]
         worst_idxs = [i for i, c in enumerate(terms) if _is_demand_clause(c, worst)]
+        if not worst_idxs:
+            # The pressed court carries no demand of its own — the
+            # package's shared harshness is what rejects it, so strip
+            # from the package (any covered court's demand clauses).
+            worst_idxs = package_demand_idxs
         # Territory cession is the harshest lever — drop it before gold.
         territory_idxs = [
             i for i in worst_idxs if terms[i].get("type") == "territory_cede"
         ]
         drop_idx = (territory_idxs or worst_idxs)[-1]
         dropped = terms.pop(drop_idx)
-        entry = per_court_baseline.get(worst)
+        # Lockstep sync keys on the DROPPED clause's own court — identical
+        # to `worst` on the old arm (a court's own clauses carry
+        # from==court), and the right entry when the package-wide arm
+        # stripped another court's clause.
+        entry = per_court_baseline.get(str(dropped.get("from") or worst))
         if isinstance(entry, dict):
             kept: List[Dict[str, Any]] = []
             removed = False

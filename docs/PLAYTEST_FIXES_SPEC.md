@@ -628,6 +628,87 @@ PT-J3 → PT-J4** (J3 consumes J2's substrate; J1 and J4 are independent).
   derived. Completion: a campaign that loses a marshal while rich HEARS about
   the bench within a turn, pinned at the producer and the render.
 
+### 4.2 Landing record — **PT-J1..J4 BUILT August 14, 2026** (authoritative)
+
+All four slices landed in contract order, one session. Suite **17,356 →
+17,404 / 3 skipped** (+48, `tests/test_pt_j_rulings.py`), ruff clean, Godot
+parse harness regenerated EXIT=0, **M1–M7 AND `BASELINE_SERIES`
+byte-identical WITHOUT re-record** — recorded as a fact about the harness
+(the ambient run holds no armistice turns and its decision points did not
+flip under the re-weighted scores), not proof of safety.
+
+* **PT-J1** — the ejection arm now lives at the `set_diplomatic_state`
+  chokepoint (`diplomacy.py`, the W6-7 prisoner-release idiom: every road
+  to PEACE runs it), firing on `new_state in (PEACE, VASSAL)` from
+  WAR/ARMISTICE for the coalition's own `target_nation` pair; the old
+  ratify-path arm is retired in place (`world_state.py` §6a comment). The
+  build found and closed a SECOND structural seam the ruling implied but
+  did not name: `check_dissolution` counted only WAR pairs as members, so
+  a truce would have dissolved the coalition via `insufficient_members`
+  and resurrected the cheese one seam over — an ARMISTICE pair now counts
+  as a STANDING member (Pläswitz: the whole war truced, the coalition
+  held). Common-peace ratifications now eject EACH transitioned court
+  (the old single-counterpart arm left co-signers as members-at-peace);
+  the sequential −15s among co-signers of one joint peace are a known
+  bounded quirk, in kind pre-existing.
+* **PT-J2** — `world.campaign_ledgers` (serialized, diplo_key-keyed like
+  `battle_records`): unique captures per side + own dead per side.
+  Recording seams: `capture_region` (the funnel every conquest route
+  calls) + the ONE auto-charge bare-assignment bypass at its PT-F1-mirror
+  guard, and `record_battle` BEFORE its 1,000-casualty floor (one seam,
+  both combat copies). Score: two bounded components `campaign`
+  (±CAMPAIGN_CAPTURE_CAP 10, +2/unique — churn washes symmetric, farm-
+  proof by uniqueness) and `blood` (±BLOOD_DIFF_CAP 15, 1/2,500 net,
+  truncation toward zero), while battles ±30→**±15** and decisive
+  ±20→**±15** (constants extracted; the flip experiment's lever: caps
+  back to 30/20 + new caps to 0 reproduces the pre-slice score).
+  Battle-farmable share ≈24% of the component space — the EU4-shaped
+  answer CA9 row 1 asked for. Lifecycle: cleared in `cleanup_war_end`
+  only when `conclude_objectives` — **survives armistice**, a deliberate,
+  commented divergence from `battle_records` (a truce must not amnesty
+  four provinces of blood; collapse resumes the same war_id). Shown =
+  applied: the two components render in the war-detail popup, the
+  war-status breakdown (solo + collapsed coalition row), and the
+  diplomatic ledger's R17a line. Fallout re-blessed with dated comments:
+  the CA8-D2 cap pin and `test_audit_2_3`'s decisive arithmetic now read
+  the constants; the multilateral smoke seed gained the ledger its own
+  battle records imply (and its Prussia exhaustion 35→40 — acceptance
+  moved without moving the score, keeping the fixture family's
+  gold-demand/both-courts-hold-out contract). **Found in passing, a real
+  production gap the re-weight exposed:** the Gate-4 relax pass
+  (`_relax_baseline_demands_for_package_harshness`) floor-checked only
+  DEMAND courts while package harshness presses every covered court — a
+  demand on Britain left a demand-free Prussia at 29 under the package
+  with nothing re-checking her. Every covered court is now floored, and
+  when the pressed court carries no demand of its own the strip falls
+  back to the package's harshest demand clause (lockstep sync keyed on
+  the dropped clause's own court).
+* **PT-J3** — `pensions_of_the_fallen` in `get_state_charges_rate`:
+  `min(150, dead // 750)` reading `get_campaign_dead` (own dead across
+  live ledgers; a truce keeps paying, a formal peace demobilizes). The
+  divisor is derived from the measured campaign: 76k dead at the measured
+  chest ≈ +1,236g/turn — neutralizing exactly the upkeep saving the
+  playtest called out, without touching EC-U1's fielded-strength ruling.
+  Boot-neutral by construction; GR5 (every nation's charges read its own
+  ledgers); renders through the existing named-terms loop with zero
+  client change.
+* **PT-J4** — `first_affordable_commission` +
+  `commission_counsel_need` in `recruitment.py` wrap `check_commission`
+  (the executor's own gate — never a copy) as the ONE availability
+  predicate all three surfaces read: the war-room counsel rung 3.5
+  (below every crisis rung, above the generic opening; executable
+  through the same `execute_suggestion` arm and the same economy
+  executor as the typed command), the `marshal_captured` Berthier-note
+  bench sentence (the loss moment teaches the recovery path), and the
+  once-latched `COMMISSION_AVAILABLE` notification (serialized
+  `commission_hint_shown`, judged on the turn's final chest after
+  income + manpower regen). **Found in passing: the W6-9
+  `execute_suggestion` arm skipped the 1 admin AP the typed route
+  charges at executor pre-flight** — the war room's invest button rode
+  cheaper than the same order typed, the CA9 through-line's exact shape;
+  both admin kinds now mirror the pre-flight (check before, deduct on
+  success), pinned for invest and commission alike.
+
 **UNDETERMINED, not a row:** whether the `foreign_wars` HUD panel is reachable at
 all on this scenario — empty in **102 of 102** payloads carrying `active_wars`, but
 nobody read the producer's skip condition, so "structurally unreachable at boot" is
@@ -802,9 +883,9 @@ after the build as well as before it.
 ### 7.6 Still open, unchanged by this row
 
 * ~~**§4's four items still need a user ruling**~~ **✅ ALL FOUR RULED August 12,
-  2026** — gate record = §4, build contracts = §4.1 (slices PT-J1..J4: the
-  truce holds · the campaign ledger + re-weight · the pensions of the fallen ·
-  the bench speaks). Nothing coded yet; the build is the next session's queue.
+  2026 AND ✅ ALL FOUR BUILT August 14, 2026** — gate record = §4, build
+  contracts = §4.1, **landing record = §4.2 (authoritative)**. Suite
+  17,404/3; M1–M7 + `BASELINE_SERIES` byte-identical without re-record.
 * **The three owed visual sign-offs stand**, and this row adds surfaces to them:
   F7's per-court fog line is now ONE sentence (PT-E4), the terminal has a
   DIPLOMATIC EVENTS rail (PT-E2), turn events collapse (PT-E3), the autonomous

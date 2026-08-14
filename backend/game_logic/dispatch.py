@@ -2546,6 +2546,26 @@ def _pick_berthier_note(
     and not something this row changes. Widening either belongs at a gate.
     """
     if headline_class and headline_class in _HEADLINE_BERTHIER_NOTES:
+        # PT-J4 "The Bench Speaks": when the headline is OUR marshal taken
+        # and the executor's own commission gate would grant a replacement
+        # RIGHT NOW, Berthier's answer names the bench and a price — the
+        # loss moment is the teaching moment (the Marshalate was built as
+        # W6-7's recovery path and no surface ever said so: "commission"
+        # appeared zero times in 108 measured responses). Availability is
+        # first_affordable_commission — the gate itself, never a copy —
+        # so the sentence can never promise what the executor refuses.
+        if headline_class == "marshal_captured":
+            from backend.game_logic.recruitment import (
+                first_affordable_commission,
+            )
+            bench = first_affordable_commission(world, player_nation)
+            if bench is not None:
+                return (
+                    f"{_HEADLINE_BERTHIER_NOTES[headline_class]} And the "
+                    f"Marshalate holds men yet, Sire — "
+                    f"{bench.get('name', '?')} awaits a commission at "
+                    f"{int(bench.get('cost', 0)):,}g."
+                )
         return _HEADLINE_BERTHIER_NOTES[headline_class]
     # 1. Broken marshal — pick strongest broken one
     broken = [m for m in marshals_data if m["status"] == "broken"]

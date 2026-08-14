@@ -111,6 +111,49 @@ def find_spawn_region(world, nation: str) -> Optional[str]:
     return best
 
 
+def first_affordable_commission(world, nation: str) -> Optional[Dict]:
+    """PT-J4 "The Bench Speaks" (gate record PLAYTEST_FIXES_SPEC.md §4):
+    the cheapest bench candidate the executor's own gate would commission
+    RIGHT NOW — the ONE availability predicate every advisory surface
+    reads (counsel rung, capture-beat note, first-affordable
+    notification). CA9's lesson made law: the advisory surface calls
+    `check_commission`, it never keeps a copy of the rule. Returns the
+    candidate dict, or None when nothing on the bench clears the gate."""
+    best = None
+    for candidate in get_marshal_pool(world, nation):
+        if check_commission(world, nation, candidate) is not None:
+            continue
+        if best is None or int(candidate.get("cost", 0)) < int(best.get("cost", 0)):
+            best = candidate
+    return best
+
+
+# PT-J4: the counsel rung's need test — blessed, in-band tunable. Thin
+# roster mirrors the AI's own P1.75 commission rung (standing < 3); the
+# under-strength arm reads the levy single source (total fielded strength
+# under 60% of the force limit).
+COMMISSION_COUNSEL_ROSTER = 3
+COMMISSION_COUNSEL_STRENGTH_FRAC = 0.6
+
+
+def commission_counsel_need(world, nation: str) -> bool:
+    """True when the roster is thin OR the army is under-strength — the
+    gate's two need arms from the PT-I4 ruling. Availability is separate
+    (first_affordable_commission)."""
+    if _standing_count(world, nation) < COMMISSION_COUNSEL_ROSTER:
+        return True
+    limit = world.get_force_limit(nation)
+    if limit:
+        total = sum(
+            int(m.strength) for m in world.marshals.values()
+            if m.nation == nation and m.strength > 0
+            and not getattr(m, "captured_by", "")
+        )
+        if total < int(limit * COMMISSION_COUNSEL_STRENGTH_FRAC):
+            return True
+    return False
+
+
 def check_commission(world, nation: str, candidate: Dict) -> Optional[str]:
     """Refusal reason for commissioning this candidate, or None when clear.
     Player-facing copy; the AI rung reads the same gate (GR5)."""

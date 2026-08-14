@@ -257,6 +257,19 @@ CHARGES_GRIP_RATE = 50        # B5: imperial grip < 70 — "the Emperor's grip f
 CHARGES_ILL_SCORE = -20       # war-score threshold for the ILL term
 CHARGES_GRIP_THRESHOLD = 70   # grip threshold for the GRIP term
 CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is restless
+# PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
+# a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
+# campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
+# a dead soldier stops drawing pay — but his pension, his invalid brothers
+# and his replacement's levy bill the crown. Kills the measured absurdity
+# that losing 76,361 men was worth +1,236g/turn: at that campaign's chest
+# (≈30,600 above the floor), 76k dead → rate +101 → ≈1,236g/turn — the
+# blessed divisor is derived to neutralize exactly that measurement.
+# Blessed numbers, in-band tunable; the SHAPE (a term that scales with
+# blood, so 10k and 76k dead price differently — the reason the flat-term
+# retune was REJECTED at the gate) escalates.
+CHARGES_PENSIONS_DIVISOR = 750   # +1 rate per 750 fallen in live campaigns
+CHARGES_PENSIONS_CAP = 150       # saturates ≈112k dead
 # EC-W3 "The Butcher's Bill": one-time materiel charge per battle — the guns,
 # horses and stores lost with each side's casualties. 0.05 g/man = 50g per
 # 1,000, deliberately BELOW the war recruit price (60g/1,000) so replacing
@@ -970,6 +983,9 @@ class WorldState:
         # marshal a delegation verb ("deal with X") — teaches that delegation
         # exists and that each marshal acts to his character.
         self.delegation_hint_shown: bool = False
+        # PT-J4 "The Bench Speaks": once per campaign, the first time the
+        # treasury covers a commission the executor's gate would grant.
+        self.commission_hint_shown: bool = False
 
         # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
@@ -1042,6 +1058,21 @@ class WorldState:
 
         # Decisive battle tracking (max 2 per war)
         self.decisive_battles: Dict[str, List] = {}
+
+        # PT-J2 "The Campaign Ledger" (gate record PLAYTEST_FIXES_SPEC.md
+        # §4): the war's MEMORY, keyed like battle_records by diplo_key —
+        # {key: {"captures": {nation: [region names]}, "casualties":
+        # {nation: int}}}. `captures` lists every province a side has taken
+        # by force in this war, ONCE per province per war (unique — a
+        # province churning hands credits each side at most once, so the
+        # component cannot be farmed by trading soil); `casualties` is each
+        # side's own dead. Cleared at cleanup_war_end ONLY on a concluding
+        # peace — it SURVIVES an armistice (WPS-A: a truce pauses the war,
+        # it does not conclude it; a collapse resumes the same war_id and
+        # its memory, so a truce cannot amnesty four provinces of blood).
+        # That is a deliberate divergence from battle_records' lifecycle,
+        # which armistice wipes (pre-existing, untouched).
+        self.campaign_ledgers: Dict[str, Dict] = {}
 
         # W6-2 Dynamic Battle Naming: region -> count of NAMED field battles
         # fought there ("Battle of X" -> "Second Battle of X" -> ...).
@@ -1534,6 +1565,22 @@ class WorldState:
                 {"turn": 1, "winner": "France", "location": location}
                 for _ in range(2)
             ]
+            # PT-J2: the same war, recorded the way the ledger now
+            # records it — casualties are the battle records' own sums
+            # (10×1,000 vs 10×2,500) plus the sub-1,000 skirmish tail
+            # battle_records never kept. Without this the fixture's
+            # "clearly winning war" silently lost the blood component the
+            # re-weight moved the score's weight INTO, and the per-court
+            # floor probe read a war France won decisively as a
+            # near-stalemate. Deliberately NO capture memory: +2 more
+            # score tips the authored baseline from the gold demand into
+            # a territory cession, which changes the story every
+            # carry-guidance pin rides (near-acceptable GOLD demand,
+            # both courts holding out below the carry bar).
+            self.campaign_ledgers[pair] = {
+                "captures": {},
+                "casualties": {"France": 12000, opponent: 32000},
+            }
             live_score = int(calculate_war_score("France", opponent, self))
             pair_parts = pair.split("|")
             self.war_scores[pair] = (
@@ -1542,7 +1589,15 @@ class WorldState:
             self.previous_war_scores[pair] = int(self.war_scores[pair])
             self.war_score_history[pair] = [int(self.war_scores[pair])]
         self.war_exhaustion["Britain"] = 60
-        self.war_exhaustion["Prussia"] = 35
+        # PT-J2 re-bless (August 14, 2026): 35 → 40. Under the re-weighted
+        # score the gold-demand package priced Prussia at 34 — one point
+        # under the near-acceptance floor — so the widened relax pass
+        # stripped the demand to bare peace and Britain CARRIED, breaking
+        # the fixture family's contract (near-acceptable DEMAND, both
+        # courts holding out below the carry bar). Exhaustion moves
+        # ACCEPTANCE without moving the SCORE, so the authored package is
+        # unchanged: Britain 43 / Prussia 36, gold demand intact.
+        self.war_exhaustion["Prussia"] = 40
 
     def _set_smoke_war_pressure(
         self,
@@ -3437,6 +3492,65 @@ class WorldState:
                 return marshal
         return None
 
+    def record_campaign_capture(self, old_controller: str,
+                                capturing_nation: str,
+                                region_name: str) -> None:
+        """PT-J2: credit a wartime conquest to the pair's campaign ledger.
+
+        Unique per (pair, side, province) for the whole war — a province
+        taken, lost and retaken credits each side once, so mutual churn
+        washes to zero and the DIFFERENTIATING memory is blood. No-op
+        unless the two nations are at war (an open-borders walk-in or a
+        treaty cession is not a conquest).
+        """
+        if not old_controller or not capturing_nation:
+            return
+        if old_controller == capturing_nation:
+            return
+        if not self.is_at_war(old_controller, capturing_nation):
+            return
+        key = self._make_diplo_key(old_controller, capturing_nation)
+        ledger = self.campaign_ledgers.setdefault(
+            key, {"captures": {}, "casualties": {}})
+        taken = ledger.setdefault("captures", {}).setdefault(
+            capturing_nation, [])
+        if region_name not in taken:
+            taken.append(region_name)
+
+    def record_campaign_casualties(self, nation_a: str, nation_b: str,
+                                   a_dead: int, b_dead: int) -> None:
+        """PT-J2: accrue each side's own dead onto the pair's ledger.
+
+        Called from `record_battle` BEFORE its 1,000-casualty floor — the
+        ledger remembers every skirmish's dead even though only real
+        battles earn a battle_records row. Feeds the war score's blood
+        differential and PT-J3's pensions term.
+        """
+        if not self.is_at_war(nation_a, nation_b):
+            return
+        key = self._make_diplo_key(nation_a, nation_b)
+        ledger = self.campaign_ledgers.setdefault(
+            key, {"captures": {}, "casualties": {}})
+        cas = ledger.setdefault("casualties", {})
+        if int(a_dead) > 0:
+            cas[nation_a] = int(cas.get(nation_a, 0)) + int(a_dead)
+        if int(b_dead) > 0:
+            cas[nation_b] = int(cas.get(nation_b, 0)) + int(b_dead)
+
+    def get_campaign_dead(self, nation: str) -> int:
+        """PT-J3: the nation's own dead across every LIVE campaign ledger.
+
+        Ledgers exist only for wars not yet formally concluded (a truce
+        keeps the ledger — and the pensions with it: the dead do not come
+        back because the guns fell silent). A formal peace clears the
+        ledger and demobilizes the charge — the recorded mercy.
+        """
+        total = 0
+        for key, ledger in self.campaign_ledgers.items():
+            if nation in key.split("|"):
+                total += int((ledger.get("casualties") or {}).get(nation, 0))
+        return total
+
     def capture_region(self, region_name: str, capturing_nation: str) -> bool:
         """Capture a region (change controller).
 
@@ -3457,6 +3571,11 @@ class WorldState:
         region.controller = capturing_nation
         self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
+
+        # PT-J2: the campaign ledger remembers the conquest even if the
+        # province is later retaken (war-gated inside the helper).
+        self.record_campaign_capture(
+            old_controller, capturing_nation, region_name)
 
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation:
@@ -4693,6 +4812,19 @@ class WorldState:
             terms.append({"key": "grip_falters",
                           "label": "the Emperor's grip falters",
                           "amount": CHARGES_GRIP_RATE})
+        # PT-J3 "The Pensions of the Fallen": the campaign's own dead,
+        # read from the PT-J2 ledger, price the rate — so 10,000 and
+        # 76,000 dead price DIFFERENTLY (the reason the flat-term retune
+        # was rejected at the gate). Boot-neutral by construction (no
+        # ledger, no dead); a truce keeps paying (the dead do not come
+        # back); a formal peace clears the ledger and demobilizes the
+        # charge. GR5: every nation's charges read its own ledgers.
+        fallen = self.get_campaign_dead(nation)
+        if fallen >= CHARGES_PENSIONS_DIVISOR:
+            terms.append({"key": "pensions_of_the_fallen",
+                          "label": "the pensions of the fallen",
+                          "amount": min(CHARGES_PENSIONS_CAP,
+                                        fallen // CHARGES_PENSIONS_DIVISOR)})
         return {"rate": int(sum(t["amount"] for t in terms)), "terms": terms}
 
     def calculate_state_charges(self, nation: str) -> int:
@@ -6092,6 +6224,7 @@ class WorldState:
             "opening_attack_guidance_shown": self.opening_attack_guidance_shown,
             "delegation_hint_shown": self.delegation_hint_shown,
             "muster_hint_shown": self.muster_hint_shown,
+            "commission_hint_shown": self.commission_hint_shown,
 
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
@@ -6109,6 +6242,14 @@ class WorldState:
             "war_scores": {k: int(v) for k, v in self.war_scores.items()},
             "battle_records": {k: [r.copy() for r in v] for k, v in self.battle_records.items()},
             "decisive_battles": {k: [r.copy() for r in v] for k, v in self.decisive_battles.items()},
+            # PT-J2: the campaign ledger (captures lists + casualty ints).
+            "campaign_ledgers": {
+                k: {
+                    "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
+                    "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
+                }
+                for k, v in self.campaign_ledgers.items()
+            },
             "battle_counts": {k: int(v) for k, v in self.battle_counts.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
             "armistice_turns": {k: int(v) for k, v in self.armistice_turns.items()},
@@ -6699,6 +6840,7 @@ class WorldState:
         world.opening_attack_guidance_shown = data.get("opening_attack_guidance_shown", False)
         world.delegation_hint_shown = data.get("delegation_hint_shown", False)
         world.muster_hint_shown = data.get("muster_hint_shown", False)
+        world.commission_hint_shown = data.get("commission_hint_shown", False)
 
         # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
         # Backward compat: old saves have no intel key → empty dict
@@ -6730,6 +6872,15 @@ class WorldState:
         world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
         world.battle_records = {k: [r.copy() for r in v] for k, v in data.get("battle_records", {}).items()}
         world.decisive_battles = {k: [r.copy() for r in v] for k, v in data.get("decisive_battles", {}).items()}
+        # PT-J2: pre-ledger saves default to {} — the war simply has no
+        # memory yet, which is exactly what it had before the slice.
+        world.campaign_ledgers = {
+            k: {
+                "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
+                "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
+            }
+            for k, v in data.get("campaign_ledgers", {}).items()
+        }
         world.battle_counts = {k: int(v) for k, v in data.get("battle_counts", {}).items()}
         world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
         world.armistice_turns = {k: int(v) for k, v in data.get("armistice_turns", {}).items()}
@@ -8421,6 +8572,42 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         self._process_manpower_regen()
 
+        # ════════════════════════════════════════════════════════════
+        # PT-J4 "The Bench Speaks" — the FIRST time the treasury covers a
+        # commission the executor's own gate would grant, ONE notification
+        # says so, then the latch closes for the campaign. Sited after
+        # income + manpower regen so "affordable" is judged on the turn's
+        # final chest and pools. The measured gap: "commission" appeared
+        # zero times in 108 responses while an army at 48% strength sat on
+        # 24,415g being nagged for 450g.
+        # ════════════════════════════════════════════════════════════
+        if not self.commission_hint_shown:
+            from backend.game_logic.recruitment import (
+                first_affordable_commission,
+            )
+            _bench = first_affordable_commission(self, self.player_nation)
+            if _bench is not None:
+                from backend.notifications import (
+                    COMMISSION_AVAILABLE, NotificationPriority,
+                    create_notification,
+                )
+                self.commission_hint_shown = True
+                self.notifications.add(create_notification(
+                    notification_type=COMMISSION_AVAILABLE,
+                    priority=NotificationPriority.NORMAL,
+                    title="The Marshalate awaits",
+                    message=(
+                        f"The treasury could commission a new marshal — "
+                        f"{_bench.get('name', '?')} waits at "
+                        f"{int(_bench.get('cost', 0)):,}g. Open the "
+                        f"Generals screen (press G) and see the Commission "
+                        f"bench, or order it by name."
+                    ),
+                    turn_created=int(self.current_turn),
+                    details={"candidate": _bench.get("name", ""),
+                             "cost": int(_bench.get("cost", 0))},
+                ))
+
         # Reset admin actions (Phase 6.2.B)
         self.admin_actions_remaining = int(self.max_admin_actions)
 
@@ -9733,12 +9920,14 @@ class WorldState:
                 if france_war_score > 20 and has_sweeteners and not has_territory_demands:
                     _reduce_threat(self, 3, "generous_peace")
 
-            # Coalition: remove member on separate peace (§6a)
-            if current_state == "WAR" and target_state != "WAR":
-                from backend.game_logic.coalition import is_coalition_member, remove_coalition_member
-                coalition_counterpart = player_counterpart or target_nation
-                if is_coalition_member(coalition_counterpart, self):
-                    remove_coalition_member(coalition_counterpart, self)
+            # Coalition ejection (§6a) — RE-SITED by PT-J1 "The Truce
+            # Holds" to the set_diplomatic_state chokepoint (the W6-7
+            # prisoner-release idiom), where it fires on formal PEACE or
+            # VASSAL only, never on a truce, and covers the roads this
+            # seam missed (armistice expiry, headless pair peaces). Gate
+            # record = PLAYTEST_FIXES_SPEC.md §4. Nothing to do here: the
+            # set_diplomatic_state call earlier in this ratification
+            # already ran the arm for every transitioned pair.
 
             # BPH-D §11: Build ratification summary and store in log
             peace_ratification_summary = None
@@ -11218,6 +11407,14 @@ class WorldState:
                                     f"{cap_region.controller}'s soil — the charge "
                                     f"was against the enemy, not the province.")
                         elif not remaining and not cap_region.has_building("fortification"):
+                            # PT-J2: this bare assignment deliberately
+                            # bypasses capture_region (see the PT-F1
+                            # mirror note above) — the ledger hook rides
+                            # here directly so the auto-charge conquest
+                            # is remembered like every other.
+                            self.record_campaign_capture(
+                                cap_region.controller, marshal.nation,
+                                auto_charge_battle_region)
                             cap_region.controller = marshal.nation
                             self.invalidate_active_nations_cache()
                             conquered = True

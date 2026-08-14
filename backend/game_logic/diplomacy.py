@@ -2748,6 +2748,34 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     if new_state == "PEACE" and old_state in ("WAR", "ARMISTICE"):
         world.release_mutual_prisoners(nation_a, nation_b)
 
+    # PT-J1 "The Truce Holds" (gate record PLAYTEST_FIXES_SPEC.md §4): a
+    # court leaves the coalition when it leaves the war FOR GOOD — the
+    # formal peace, or subjugation as the target's vassal — never the
+    # truce. Pläswitz 1813 paused the whole coalition war with the
+    # coalition intact; Austria left the Third Coalition at Pressburg.
+    # Sited at this chokepoint for the same reason the prisoner release
+    # above is: every road to PEACE must eject exactly once. The old seam
+    # (the ratify path, gated on current_state == "WAR") ejected on a
+    # mere ARMISTICE and never fired on ARMISTICE→PEACE at all — masked
+    # only because the truce itself had already done the ejecting.
+    # ARMISTICE→WAR collapse therefore resumes the coalition war with
+    # membership intact (nothing here matches it), which kills the
+    # measured cheese: a truce that collapsed five turns later used to
+    # leave a permanent free coalition fracture standing.
+    if (new_state in ("PEACE", "VASSAL")
+            and old_state in ("WAR", "ARMISTICE")):
+        _coalition = getattr(world, "active_coalition", None)
+        if _coalition:
+            _tgt = _coalition.get("target_nation") or getattr(
+                world, "player_nation", None)
+            if _tgt in (nation_a, nation_b):
+                _counterpart = nation_b if nation_a == _tgt else nation_a
+                from backend.game_logic.coalition import (
+                    is_coalition_member, remove_coalition_member,
+                )
+                if is_coalition_member(_counterpart, world):
+                    remove_coalition_member(_counterpart, world)
+
     # War start tracking
     if new_state == "WAR" and old_state != "WAR":
         war_start_turns = getattr(world, 'war_start_turns', {})
@@ -2957,15 +2985,43 @@ def _besieges(marshal, nation: str, capital: str) -> bool:
             and not getattr(marshal, "captured_by", ""))
 
 
+# ── PT-J2 "The Campaign Ledger" (gate record PLAYTEST_FIXES_SPEC.md §4):
+# the war score gains MEMORY. `calculate_war_score` was a live board read,
+# so losing four provinces and retaking them netted to zero and every
+# settlement sample across an 18-turn playtest resolved to "White Peace".
+# Two new bounded components read the serialized per-pair campaign ledger:
+# campaign captures (+CAMPAIGN_CAPTURE_SCORE per UNIQUE province a side
+# has taken by force this war — churn washes symmetric, so it cannot be
+# farmed by trading soil) and the blood differential (net enemy dead over
+# own dead — a bled-out enemy at status-quo territory SHOULD concede;
+# Austerlitz → Pressburg is Austria losing the ARMY, not the map). To pay
+# for the new weight, the raw battle-count caps come DOWN, honoring CA9
+# row 1's farm guard (battles + decisive were ±50 of a ±100 score with
+# zero territory taken; EU4 caps battles at 25% — here 30 of a possible
+# 125, ≈24%). Blessed at the build mini-gate, in-band tunable; setting
+# the caps back to (30, 20) and the two new caps to 0 reproduces the
+# pre-slice score byte-identically (the flip experiment's lever).
+BATTLE_SCORE_PER_WIN = 3
+BATTLE_SCORE_CAP = 15         # was 30 inline
+DECISIVE_SCORE_PER_WIN = 10
+DECISIVE_SCORE_CAP = 15       # was 20 inline
+CAMPAIGN_CAPTURE_SCORE = 2    # per unique province taken this war
+CAMPAIGN_CAPTURE_CAP = 10
+BLOOD_DIFF_DIVISOR = 2500     # 1 point per 2,500 net enemy dead
+BLOOD_DIFF_CAP = 15
+
+
 def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
     """Calculate war score between two nations. Positive = nation_a winning.
 
-    Components: territory (±40), battles (±30), decisive (±20),
-    capital (±30), ticking objective score. Total capped at ±100.
+    Components: territory (±40), battles (±BATTLE_SCORE_CAP), decisive
+    (±DECISIVE_SCORE_CAP), capital (±30), campaign captures
+    (±CAMPAIGN_CAPTURE_CAP), blood differential (±BLOOD_DIFF_CAP),
+    ticking objective score. Total capped at ±100.
 
     If return_components=True, returns {"total": int, "territory": int,
-    "battles": int, "decisive": int, "capital": int, "ticking": int}
-    instead of int.
+    "battles": int, "decisive": int, "capital": int, "campaign": int,
+    "blood": int, "ticking": int} instead of int.
     """
     # Territory score (cap ±40)
     territory_score = 0
@@ -2981,27 +3037,47 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             territory_score -= 5  # B holds A's starting region
     territory_score = max(-40, min(40, territory_score))
 
-    # Battle score (cap ±30). Quiet-turn decay applies to this component only.
+    # Battle score (cap ±BATTLE_SCORE_CAP — PT-J2 re-weight, was ±30).
+    # Quiet-turn decay applies to this component only.
     battle_score = 0
     diplo_key = world._make_diplo_key(nation_a, nation_b)
     records = getattr(world, 'battle_records', {}).get(diplo_key, [])
     for record in records:
         if record.get("winner") == nation_a:
-            battle_score += 3
+            battle_score += BATTLE_SCORE_PER_WIN
         elif record.get("winner") == nation_b:
-            battle_score -= 3
-    battle_score = max(-30, min(30, battle_score))
+            battle_score -= BATTLE_SCORE_PER_WIN
+    battle_score = max(-BATTLE_SCORE_CAP, min(BATTLE_SCORE_CAP, battle_score))
     battle_score = _decay_battle_score(int(battle_score), records, world.current_turn)
 
-    # Decisive battle bonus (cap ±20)
+    # Decisive battle bonus (cap ±DECISIVE_SCORE_CAP — PT-J2, was ±20)
     decisive_score = 0
     decisive_records = getattr(world, 'decisive_battles', {}).get(diplo_key, [])
     for d in decisive_records:
         if d.get("winner") == nation_a:
-            decisive_score += 10
+            decisive_score += DECISIVE_SCORE_PER_WIN
         elif d.get("winner") == nation_b:
-            decisive_score -= 10
-    decisive_score = max(-20, min(20, decisive_score))
+            decisive_score -= DECISIVE_SCORE_PER_WIN
+    decisive_score = max(-DECISIVE_SCORE_CAP, min(DECISIVE_SCORE_CAP, decisive_score))
+
+    # PT-J2: the campaign ledger's two memory components. Unlike every
+    # component above, these survive the board returning to status quo —
+    # the war remembers what it cost.
+    ledger = getattr(world, 'campaign_ledgers', {}).get(diplo_key, {})
+    _captures = ledger.get("captures") or {}
+    campaign_score = (
+        CAMPAIGN_CAPTURE_SCORE * len(_captures.get(nation_a, []))
+        - CAMPAIGN_CAPTURE_SCORE * len(_captures.get(nation_b, []))
+    )
+    campaign_score = max(-CAMPAIGN_CAPTURE_CAP,
+                         min(CAMPAIGN_CAPTURE_CAP, campaign_score))
+    _casualties = ledger.get("casualties") or {}
+    _blood_diff = (int(_casualties.get(nation_b, 0))
+                   - int(_casualties.get(nation_a, 0)))
+    # int(x / d), not x // d: floor division on a negative differential
+    # would score −1 for a single man's deficit.
+    blood_score = int(_blood_diff / BLOOD_DIFF_DIVISOR)
+    blood_score = max(-BLOOD_DIFF_CAP, min(BLOOD_DIFF_CAP, blood_score))
 
     # Capital score (cap ±30). World-scoped capital reads (1805 pre-slice
     # item 7) — the legacy global silently zeroed this component for every
@@ -3033,7 +3109,8 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     ticking_b = war_obj.get(nation_b, {}).get("accumulated_ticking", 0)
     ticking_score = int(ticking_a - ticking_b)
 
-    total = territory_score + battle_score + decisive_score + capital_score + ticking_score
+    total = (territory_score + battle_score + decisive_score + capital_score
+             + campaign_score + blood_score + ticking_score)
     total = int(max(-100, min(100, total)))
 
     if return_components:
@@ -3043,6 +3120,8 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             "battles": int(battle_score),
             "decisive": int(decisive_score),
             "capital": int(capital_score),
+            "campaign": int(campaign_score),
+            "blood": int(blood_score),
             "ticking": int(ticking_score),
         }
     return total
@@ -3054,9 +3133,11 @@ def calculate_side_war_score(nation: str, opponents, world,
     UNION of `opponents` (the whole opposing side of one war instance).
 
     Twelve turns of victory over Austria must press on Britain's table when
-    they share a war: the five pair components are summed across every
+    they share a war: the pair components are summed across every
     opposing participant and each component is re-clamped at its own pair
-    cap (territory ±40, battles ±30, decisive ±20, capital ±30; total ±100).
+    cap (territory ±40, battles ±BATTLE_SCORE_CAP, decisive
+    ±DECISIVE_SCORE_CAP, capital ±30, campaign ±CAMPAIGN_CAPTURE_CAP,
+    blood ±BLOOD_DIFF_CAP; total ±100).
 
     Single source: each pair term IS `calculate_war_score(nation, opp)` —
     for a single opponent this reduces byte-identically to the pair helper
@@ -3064,7 +3145,7 @@ def calculate_side_war_score(nation: str, opponents, world,
     construction. Positive = `nation` winning the war at large.
     """
     sums = {"territory": 0, "battles": 0, "decisive": 0,
-            "capital": 0, "ticking": 0}
+            "capital": 0, "campaign": 0, "blood": 0, "ticking": 0}
     for opponent in opponents:
         if not opponent or opponent == nation:
             continue
@@ -3075,9 +3156,14 @@ def calculate_side_war_score(nation: str, opponents, world,
 
     components = {
         "territory": max(-40, min(40, sums["territory"])),
-        "battles": max(-30, min(30, sums["battles"])),
-        "decisive": max(-20, min(20, sums["decisive"])),
+        "battles": max(-BATTLE_SCORE_CAP,
+                       min(BATTLE_SCORE_CAP, sums["battles"])),
+        "decisive": max(-DECISIVE_SCORE_CAP,
+                        min(DECISIVE_SCORE_CAP, sums["decisive"])),
         "capital": max(-30, min(30, sums["capital"])),
+        "campaign": max(-CAMPAIGN_CAPTURE_CAP,
+                        min(CAMPAIGN_CAPTURE_CAP, sums["campaign"])),
+        "blood": max(-BLOOD_DIFF_CAP, min(BLOOD_DIFF_CAP, sums["blood"])),
         "ticking": int(sums["ticking"]),
     }
     total = int(max(-100, min(100, sum(components.values()))))
@@ -4696,6 +4782,14 @@ def cleanup_war_end(world, diplo_key: str, *,
     # ARMISTICE pauses ticking but must allow objectives to resume if war resumes.
     if conclude_objectives:
         _conclude_war_objectives(world, diplo_key)
+        # PT-J2: the campaign ledger follows the OBJECTIVES lifecycle, not
+        # battle_records' — a truce pauses the war (same war_id on
+        # collapse, Slice A2 §7.3) and must not amnesty its captures and
+        # blood, so the memory clears only on a concluding peace. This is
+        # a deliberate divergence from the four pops above, which armistice
+        # wipes (pre-existing, untouched). Clearing here also demobilizes
+        # PT-J3's pensions term for the pair.
+        getattr(world, 'campaign_ledgers', {}).pop(diplo_key, None)
 
     # R49: Reset war_exhaustion only for nations with no other active wars
     parts = diplo_key.split("|")
@@ -9147,6 +9241,15 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         return  # Only record battles between nations at war
 
     diplo_key = world._make_diplo_key(attacker_nation, defender_nation)
+
+    # PT-J2: the campaign ledger accrues each side's dead BEFORE the
+    # 1,000-casualty floor below — the war remembers every skirmish even
+    # though only real battles earn a battle_records row. One seam covers
+    # both combat copies (the executor pipeline's step 8 and the
+    # auto-charge's record_battle call both land here).
+    world.record_campaign_casualties(
+        attacker_nation, defender_nation,
+        int(attacker_casualties), int(defender_casualties))
 
     # Ensure data structures exist
     if not hasattr(world, 'battle_records'):

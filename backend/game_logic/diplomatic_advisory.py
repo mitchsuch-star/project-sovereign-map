@@ -299,6 +299,33 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                 "text": (f"{name} drifts toward revolt — a little gold now "
                          f"is cheaper than a garrison later."),
             }
+    # 3.5 (PT-J4 "The Bench Speaks"): the army lacks generals and the
+    # chest covers one — the ONLY sink whose price matches a rich chest,
+    # and the thing the measured campaign actually lacked ("commission"
+    # appeared zero times in 108 responses while an army at 48% strength
+    # sat on 24,415g). Availability is the executor's OWN gate
+    # (first_affordable_commission wraps check_commission — never a
+    # copy); need is thin-roster-or-under-strength. Below the crisis
+    # rungs deliberately: a losing war, a crackable design, a bearing
+    # coalition and a revolting vassal all outrank a hiring.
+    from backend.game_logic.recruitment import (
+        commission_counsel_need, first_affordable_commission,
+    )
+    bench = first_affordable_commission(world, player)
+    if bench is not None and commission_counsel_need(world, player):
+        bench_name = bench.get("name", "?")
+        bench_cost = int(bench.get("cost", 0))
+        return {
+            "kind": "commission_marshal",
+            "target": bench_name,
+            "label": f"Commission {bench_name}",
+            "description": (f"Raise {bench_name} to the marshalate "
+                            f"({bench_cost:,}g + a corps from the pool)."),
+            "text": (f"the army wants for commanders more than for "
+                     f"anything gold can otherwise buy — the Marshalate's "
+                     f"bench holds men yet, and {bench_name} would take "
+                     f"the baton for {bench_cost:,}g."),
+        }
     # 4. The highest-value diplomatic opening (relation −10..40, no war,
     #    open proposal cooldown).
     cooldowns = world.player_proposal_cooldowns

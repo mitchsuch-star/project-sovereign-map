@@ -366,6 +366,10 @@ func _render_war_detail(w: Dictionary):
 		bbcode += "  Battles:    " + _signed(int(breakdown.get("battles", 0))) + "\n"
 		bbcode += "  Decisive:   " + _signed(int(breakdown.get("decisive", 0))) + "\n"
 		bbcode += "  Capital:    " + _signed(int(breakdown.get("capital", 0))) + "\n"
+		# PT-J2: the war's memory — provinces taken this war (even if
+		# retaken) and the blood differential. Shown = applied.
+		bbcode += "  Campaign:   " + _signed(int(breakdown.get("campaign", 0))) + "\n"
+		bbcode += "  Blood:      " + _signed(int(breakdown.get("blood", 0))) + "\n"
 		bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
 
 	var tier_display = str(w.get("settlement_tier_display", ""))

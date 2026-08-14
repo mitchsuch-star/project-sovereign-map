@@ -65,6 +65,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             "battles": int(components["battles"]),
             "decisive": int(components["decisive"]),
             "capital": int(components["capital"]),
+            # PT-J2: the war's memory rides the same breakdown the popup
+            # renders — shown = applied.
+            "campaign": int(components.get("campaign", 0)),
+            "blood": int(components.get("blood", 0)),
             "ticking": int(components.get("ticking", 0)),
         }
 
@@ -573,6 +577,8 @@ def _collapse_shared_war_instance_rows(
             "battles": int(side_components["battles"]),
             "decisive": int(side_components["decisive"]),
             "capital": int(side_components["capital"]),
+            "campaign": int(side_components.get("campaign", 0)),
+            "blood": int(side_components.get("blood", 0)),
             "ticking": int(side_components["ticking"]),
         }
         combined["battles_fought"] = int(

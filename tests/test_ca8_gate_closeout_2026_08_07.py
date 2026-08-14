@@ -78,8 +78,18 @@ class TestSideWarScoreSingleSource:
 
     def test_component_caps_reapply_on_the_sum(self):
         """Each component re-clamps at its own pair cap — a two-front
-        battle streak cannot exceed the ±30 battle cap, nor two decisive
-        streaks the ±20 decisive cap."""
+        battle streak cannot exceed the battle cap, nor two decisive
+        streaks the decisive cap.
+
+        Re-blessed August 14, 2026 (PT-J2, gate record
+        PLAYTEST_FIXES_SPEC.md §4): the caps were literals 30/20 here;
+        the campaign-ledger re-weight brought them DOWN (CA9 row 1's
+        farm guard) and this pin now reads the named constants so the
+        NEXT re-tune is a one-place change. The structural claim — the
+        sum re-clamps at the pair cap — is unchanged."""
+        from backend.game_logic.diplomacy import (
+            BATTLE_SCORE_CAP, DECISIVE_SCORE_CAP,
+        )
         world = self._world_with_battles()
         key_a = world._make_diplo_key("France", "Austria")
         key_p = world._make_diplo_key("France", "Prussia")
@@ -95,8 +105,8 @@ class TestSideWarScoreSingleSource:
         }
         side = calculate_side_war_score("France", ["Austria", "Prussia"],
                                         world, return_components=True)
-        assert side["battles"] == 30, side
-        assert side["decisive"] == 20, side
+        assert side["battles"] == BATTLE_SCORE_CAP, side
+        assert side["decisive"] == DECISIVE_SCORE_CAP, side
 
     def test_the_total_clamps_hold_on_both_aggregates(self):
         """[Probe B] both docstrings promise ±100; both are reachable."""

@@ -147,11 +147,36 @@
 
 ### Rows still open after the tiers-1-and-2 pass
 
+> **STATE AS OF August 14, 2026 (the PT-J landing).** Since this block was
+> written: **row PT closed the through-line at all eight measured seams**
+> (August 12, `PLAYTEST_FIXES_SPEC.md` §7) and **the four §4 design rows
+> were ruled August 12 and BUILT August 14 as PT-J1..J4**
+> (`PLAYTEST_FIXES_SPEC.md` §4.2) — which discharges **CA9 row 1's
+> deferred option-A retune** (the battle-vs-territory re-weight is live:
+> battles ±15 / decisive ±15 / campaign ±10 / blood ±15 on the new
+> serialized campaign ledger), the peace-memory complaint (every sample
+> "White Peace" — the war now remembers captures and blood), the EB-1
+> condition-term row (the pensions of the fallen), and the
+> commissioning-surfacing row (three surfaces on the executor's own
+> gate). **What remains open below is UNCHANGED in ownership:** the
+> **grievances-and-popups REVISIT slice** (user-ruled August 9 — "revisit
+> grievances and popups in general … mark it as next, don't code yet" —
+> owns **N4 (P1)**, N21, N8, the IGR-X7 family, the PopupQueue-order
+> audit, the stash-and-raise centralization and the objection
+> module-global leak; starting list =
+> `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` §3), the tier-3 gated
+> rows, and the enumerated unranked P2/P3 backlog. **The section does not
+> close until those are disposed** — the CA8 precedent closed only when
+> every gated row had been ruled.
+
 **Gated (tier 3, needs a design gate — do not build):** F9's leverage question ·
 N19 Requisitions · N20 · F4's general form · N10.
-**Design questions (memo §9):** **N4** (petition TTL / re-validation — Q8) ·
-N21 (drama budget — Q9) · N13 (rename the ENEMY PHASE — Q7) · N19/N20 (Q3).
-**Unranked P2/P3, not in either tier and not attempted:** N8 · N12 · N14 · N15 ·
+**Design questions (memo §9):** **N4** (petition TTL / re-validation — Q8 →
+**answered August 9: the grievances-and-popups REVISIT slice owns it**) ·
+N21 (drama budget — Q9 → the same revisit slice) · N13 (rename the ENEMY
+PHASE — Q7) · N19/N20 (Q3).
+**Unranked P2/P3, not in either tier and not attempted:** N8 (→ the revisit
+slice) · N12 · N14 · N15 ·
 N16 · N18 · N22 · N23 · N29 · N30 · N33 · N34 · N35 · N36 · N38 · N39 · N41 ·
 N42 (merges with open S5-2) · N43 · N44 · N45 · N46 · F2 · F3 · F8's mechanic
 half.

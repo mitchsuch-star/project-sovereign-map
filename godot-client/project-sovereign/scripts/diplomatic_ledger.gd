@@ -495,7 +495,8 @@ func _render_nations():
 			var ws_sign = "+" if total > 0 else ""
 			bbcode += "  War Score: [color=#" + ws_color + "][" + ws_sign + str(total) + "][/color]  ("
 			var ws_parts = []
-			for ws_key in ["territory", "battles", "decisive", "capital"]:
+			# PT-J2: campaign + blood are the war's memory components.
+			for ws_key in ["territory", "battles", "decisive", "capital", "campaign", "blood"]:
 				var ws_val = int(war_score.get(ws_key, 0))
 				var comp_sign = "+" if ws_val > 0 else ""
 				var comp_color = Utils.COLOR_SUCCESS if ws_val > 0 else (COLOR_RED if ws_val < 0 else Utils.COLOR_GREY)

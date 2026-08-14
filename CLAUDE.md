@@ -58,28 +58,39 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > then tells the player a different one* — is closed at all eight seams the
 > playtest measured, and PT-A's three regressions cannot recur.
 >
-> **✅ THE FOUR §4 RULINGS WERE TAKEN August 12, 2026** (all at recommended
-> defaults; **gate record = `docs/PLAYTEST_FIXES_SPEC.md` §4, authoritative;
-> build contracts = §4.1, slices PT-J1..J4; NOTHING CODED YET**): PT-I1 →
-> eject + betray on **formal PEACE only** (truce keeps membership, collapse
-> resumes the coalition war; the widened arm also closes the masked
-> ARMISTICE→PEACE never-ejects hole at `world_state.py:9737`); PT-I2 → the
-> **campaign ledger + re-weight** (serialized per-war unique-captures +
-> casualties per side → two bounded score components, battle-count weight
-> DOWN per CA9 row 1's farm guard; numbers at a build mini-gate); PT-I3 →
-> the **"pensions of the fallen"** EB-1 condition term on the SAME ledger
-> substrate (EC-U1 stands: dead men stop drawing pay, their pensions bill
-> the crown — kills "losing 76,361 men was worth +1,236g/turn"); PT-I4 →
-> three advisory surfaces (counsel rung, death/capture dispatch beat,
-> once-latched first-affordable notification; the levy-nag cross-sell
-> DECLINED at the gate, not deferred).
+> **✅ THE FOUR §4 RULINGS WERE TAKEN August 12, 2026 AND BUILT August 14,
+> 2026** (**gate record = `docs/PLAYTEST_FIXES_SPEC.md` §4; build contracts
+> = §4.1; landing record = §4.2, authoritative**; suite **17,404/3**,
+> `test_pt_j_rulings.py` 48; M1–M7 + `BASELINE_SERIES` byte-identical
+> WITHOUT re-record): **PT-J1 "The Truce Holds"** — ejection + the −15
+> betrayal live at the `set_diplomatic_state` chokepoint (PEACE or VASSAL
+> from WAR **or ARMISTICE**; a truce keeps membership, collapse resumes
+> the coalition war, the masked ARMISTICE→PEACE hole is closed, and
+> `check_dissolution` counts an ARMISTICE pair as a STANDING member — the
+> WAR-only count would have dissolved the coalition on the truce anyway);
+> **PT-J2 "The Campaign Ledger"** — serialized `campaign_ledgers` (unique
+> captures + own dead per side; seams = `capture_region`, the auto-charge
+> bypass, `record_battle` before its 1,000 floor) feeding `campaign` ±10 +
+> `blood` ±15 while battles ±30→±15 and decisive ±20→±15 (flip lever
+> pinned); the ledger SURVIVES armistice by design; shown=applied on the
+> war-detail popup + HUD breakdown + diplomatic ledger; found in passing —
+> the Gate-4 relax pass floored only DEMAND courts while package harshness
+> presses every covered court (widened, package-fallback strip); **PT-J3
+> "The Pensions of the Fallen"** — `min(150, dead//750)` charge term on
+> the same ledger (≈+1,236g/turn at the measured campaign = the exact
+> measured absurdity neutralized; EC-U1 stands); **PT-J4 "The Bench
+> Speaks"** — `first_affordable_commission` wraps `check_commission` as
+> the ONE predicate behind the war-room rung 3.5, the capture-beat bench
+> note, and the once-latched serialized notification; found in passing —
+> the W6-9 `execute_suggestion` arm skipped the typed route's 1 admin AP
+> (both admin kinds now mirror the pre-flight).
 >
-> **▶ NEXT = build PT-J1 → PT-J2 → PT-J3 → PT-J4, then the played campaign.**
-> The row's own acceptance owes a played 20-turn campaign showing the CA9
-> row-2 gate arm at least once, plus the three standing visual sign-offs — to
-> which row PT adds one fog sentence instead of nine, a DIPLOMATIC EVENTS
-> rail, collapsed turn events, the autonomous attack drawing a real battle,
-> and the redemption raising on control return.
+> **▶ NEXT = the played 20-turn campaign** (the row's acceptance owes the
+> CA9 row-2 gate arm firing at least once) **+ the standing visual
+> sign-offs** — one fog sentence instead of nine, the DIPLOMATIC EVENTS
+> rail, collapsed turn events, the autonomous attack drawing a real
+> battle, the redemption raising on control return, and now PT-J2's
+> Campaign/Blood rows on the war-detail popup.
 >
 > <details><summary>The row's queueing record, kept for context</summary>
 >

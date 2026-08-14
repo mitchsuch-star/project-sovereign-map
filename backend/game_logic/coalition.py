@@ -1716,8 +1716,19 @@ def check_dissolution(world) -> Optional[str]:
     france = coalition.get("target_nation") or world.player_nation
     members = coalition.get("members", [])
 
-    # Check: < 2 members
-    active_members = [m for m in members if _get_diplo_state(world, france, m) == "WAR"]
+    # Check: < 2 members. PT-J1 "The Truce Holds": an ARMISTICE pair
+    # counts as a STANDING member — the truce pauses the coalition war
+    # (same war_id on collapse), it does not leave it. Counting WAR alone
+    # here would have dissolved the coalition on the truce and
+    # resurrected the measured cheese one seam over: membership survived
+    # the truce only for insufficient_members to erase the coalition
+    # anyway. A member leaves via formal PEACE (the set_diplomatic_state
+    # chokepoint ejects it from `members`), so the Pläswitz case — the
+    # WHOLE war truced — holds the coalition standing.
+    active_members = [
+        m for m in members
+        if _get_diplo_state(world, france, m) in ("WAR", "ARMISTICE")
+    ]
     if len(active_members) < 2:
         return "insufficient_members"
 
