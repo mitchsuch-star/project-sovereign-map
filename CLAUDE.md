@@ -42,9 +42,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 12, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 14, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,356 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,439 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE WHOLE-GAME HEALTH CHECK RAN August 14, 2026** (user-directed "are we
+> truly at build stage" audit + fix + feature sweep; ultracode): a six-agent
+> audit fleet + a six-refuter verify fleet; **~50 confirmed findings fixed
+> across two commits** (`359577f` + `830405e` — record = `docs/STATUS.md` top
+> entry; pins = `tests/test_health_check_audit_2026_08_14.py`). Headlines:
+> the Continental System conjured gold; the AI-guarantee arm was dead; five
+> popup-draining endpoints; three CA8-25 combat-carry seams; the ledger
+> identity broken on bankruptcy-flip/auto-advance/insolvent-transfer turns
+> (now applied-record threaded end to end); `load_game` wiped two serialized
+> mid-turn stores. **The LLM/token monetization plan of record now exists:
+> `docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`** (v1 = mock-default
+> + reframed BYOK, sell nothing AI-related in EA, token packs never; ROADMAP
+> position 14 carries the ruling + six owner questions). **Build-stage
+> verdict: NOT yet — 1–2 sessions, all gaps P0/P1 with known seams, owned by
+> position 10** (launcher key-mandatory, stale .pck, cheats armed in
+> keyless-mock, CWD saves, stale README_TESTER; the deploy spec's fatal
+> missing-datas gap is FIXED). Report-only design rows (each needs its
+> gate): naval↔war-score, seasons/weather (the big one), campaign-ledger
+> narration, glory↔diplomacy, RN shore-supply interdiction, AI expedition
+> AP asymmetry, tutorial drift.
 >
 > **▶ ROW PT IS BUILD-COMPLETE (August 12, 2026).** All eight slices landed in
 > spec order, commits `297b939`..`769a3cb`; **landing record =
