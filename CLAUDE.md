@@ -65,18 +65,25 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > missing-datas gap is FIXED).
 >
 > **▶ NEXT = ROW HC, the health-check design program (GATE HELD August 14,
-> 2026 under the user's delegated grant — record + build contracts =
+> 2026 under the user's delegated grant; AMENDED same day by user
+> direction — HC-0 + HC-G inserted. Record + build contracts =
 > `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`, authoritative;
-> ordered queue = `docs/STATUS.md` ▶ NEXT UP).** Six slices in order:
-> HC-1 The Silver Blockade (naval → war score, ±15 on the PT-J2 ledger) →
-> HC-2 The Butcher's Ledger Speaks (stateless ledger narration) → HC-3
-> The Crowned Name Abroad (glory flavor; mechanical term = HC-D1 →
-> Victory gate) → HC-4 The Lifeline and the Bill (RN shore supply + AI
-> expedition AP parity; the ONE sanctioned BASELINE_SERIES re-record) →
-> HC-5 The School Names the Fleet (tutorial step XIV) → HC-6 Seasons &
-> Weather SPEC + **USER GATE** (deliberately not ruled — the user holds
-> this one). Then the played 20-turn campaign (PT row-2 acceptance +
-> naval pillar + all visual sign-offs), then position 10.
+> ordered queue = `docs/STATUS.md` ▶ NEXT UP).** Eight slices in order:
+> **HC-0 The Calendar (RULED: one turn = HALF A MONTH, ~15 days; turn 1 =
+> "Late September 1805"; display-only `calendar_label`, legacy world
+> byte-identical — gate §2a)** → HC-1 The Silver Blockade (naval → war
+> score, ±15 on the PT-J2 ledger) → HC-2 The Butcher's Ledger Speaks
+> (stateless ledger narration) → HC-3 The Crowned Name Abroad (glory
+> flavor; mechanical term = HC-D1 → Victory gate) → HC-4 The Lifeline
+> and the Bill (RN shore supply + AI expedition AP parity; the ONE
+> sanctioned BASELINE_SERIES re-record) → HC-5 The School Names the
+> Fleet (tutorial step XIV) → **HC-G Le Moniteur (the Gazette UN-CUT:
+> deterministic v1, zero LLM, 5-turn cadence + forced specials,
+> serialized `gazette_issues` cap 20, dated by HC-0 — gate §7a)** →
+> HC-6 Seasons & Weather SPEC + **USER GATE** (deliberately not ruled —
+> consumes HC-0: 6-turn seasons, winter ~turn 6). Then the played
+> 20-turn campaign (PT row-2 acceptance + naval pillar + all visual
+> sign-offs), then position 10.
 >
 > **▶ ROW PT IS BUILD-COMPLETE (August 12, 2026).** All eight slices landed in
 > spec order, commits `297b939`..`769a3cb`; **landing record =

@@ -8,14 +8,29 @@
 >
 > **The design gaps the health check surfaced were RULED August 14, 2026
 > under the user's delegated grant** ("make decision on design gaps …
-> assure these session are next up and ordered well"). **Gate record +
-> build contracts = `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`
-> (authoritative).** Six slices, take them IN ORDER — the three
-> byte-identity-preserving legibility slices land first so their pins
-> anchor against the unmoved baseline; HC-4 is the ONE sanctioned
-> `BASELINE_SERIES` re-record (flip-experiment attribution mandatory);
-> the seasons spec closes the program at a USER gate:
+> assure these session are next up and ordered well"), **and AMENDED the
+> same day by user direction: "include gazette as well as part of plan
+> and figure out how long a turn is" — HC-0 (the Calendar) and HC-G (the
+> Gazette) inserted.** **Gate record + build contracts =
+> `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` (authoritative,
+> §2a = the turn-length ruling, §7a = the Gazette contract).** Eight
+> slices, take them IN ORDER — the byte-identity-preserving legibility
+> slices land first so their pins anchor against the unmoved baseline;
+> HC-4 is the ONE sanctioned `BASELINE_SERIES` re-record
+> (flip-experiment attribution mandatory); the seasons spec closes the
+> program at a USER gate:
 >
+> 0. **HC-0 "The Calendar" — RULED: one turn = HALF A MONTH (~15 days)**,
+>    2 turns/month, 24/year; turn 1 = "Late September 1805" (the Sept 25
+>    scenario anchor). Pinned by the game's own numbers: infantry range 1
+>    province ≈ 2 weeks at historical march rates, cavalry range 2 ≈
+>    30–40 km/day, Ulm ~turn 2, Austerlitz ~turn 5, the measured 19–42
+>    turn campaigns = the Third-and-Fourth-Coalition canvas, AGEOD
+>    precedent. Display-only slice (derived `calendar_label` through the
+>    R7 chokepoints — top bar, dispatch header, ledger header, save
+>    metadata; legacy world keeps "Turn N" byte-identically; NO mechanic
+>    reads it before the HC-6 gate). Build FIRST — everything downstream
+>    carries dates.
 > 1. **HC-1 "The Silver Blockade"** — a signed, capped (±15) war-score
 >    component from sustained naval denial, on the PT-J2 ledger substrate
 >    (one new `blockade_turns` counter, backfill 0), rendered beside
@@ -40,19 +55,35 @@
 >    names the Admiralty tab, the F1 wizard + Formables button, the
 >    Reward chip and the Design rows. "The Congress" second lesson stays
 >    with its owner (the Pre-EA Onboarding & Teaching Pass row).
-> 6. **HC-6 Seasons & Weather — SPEC + USER GATE.** Deliberately the one
+> 6. **HC-G "Le Moniteur" — the Gazette, UN-CUT by user direction.** The
+>    Aug-3 objections honored by re-scope, not overridden: v1 is
+>    DETERMINISTIC (zero LLM — the monetization ruling makes
+>    no-AI-required the spine; LLM polish is a later BYOK-gated slice)
+>    and it is NOT the Dispatch (staff briefing = actionable now;
+>    Gazette = the dated periodical + the back-issue ARCHIVE the
+>    Dispatch structurally cannot be). Issue every 5 turns + forced
+>    specials (capital stormed / nation eliminated or proclaimed /
+>    great-power war opened or settled / player marshal lost); composed
+>    at generation time into ONE new serialized store `gazette_issues`
+>    (cap 20 — never recomposed from the 500-capped event log, the
+>    IGR-B trap named); masthead dated by HC-0; fog-honest by
+>    construction (reads only already-filtered surfaces); a screen on
+>    the existing framework + a notification line, never a modal.
+> 7. **HC-6 Seasons & Weather — SPEC + USER GATE.** Deliberately the one
 >    item NOT ruled under the delegation: author
->    `docs/SEASONS_WEATHER_SPEC.md` (4-turn seasons / autumn 1805 boot /
->    winter supply-movement-readiness arms / authored-bounds idiom /
->    re-record protocol) and put the questions to the user. NO mechanic
->    lands before that gate returns.
+>    `docs/SEASONS_WEATHER_SPEC.md` (**consuming HC-0: 6-turn seasons,
+>    autumn boot, winter ~turn 6 — Austerlitz weather on time** / winter
+>    supply-movement-readiness arms / authored-bounds idiom / re-record
+>    protocol) and put the questions to the user. NO mechanic lands
+>    before that gate returns.
 >
-> **Then the standing owed items, in order:** 7. the played 20-turn
+> **Then the standing owed items, in order:** 8. the played 20-turn
 > campaign (discharges PT row-2's gate-arm acceptance, the naval pillar
 > score, the A2 sue-path, and ALL standing visual sign-offs — now
-> including HC-1's Blockade row and the PT-J2 Campaign/Blood rows) → 8.
-> **position 10, THE SHIPPABLE BUILD** (the road-to-EA spine resumes; its
-> P0/P1 gap list is in the health-check entry below).
+> including HC-1's Blockade row, the HC-0 calendar surfaces, the Gazette,
+> and the PT-J2 Campaign/Blood rows) → 9. **position 10, THE SHIPPABLE
+> BUILD** (the road-to-EA spine resumes; its P0/P1 gap list is in the
+> health-check entry below).
 >
 > ---
 >
