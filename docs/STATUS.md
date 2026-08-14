@@ -92,9 +92,24 @@
 > **A six-agent audit fleet (serialization / API↔Godot wiring / shown-vs-applied
 > + GR5 / build-stage readiness / economy ledger identity / integration &
 > missing features) swept the game under the user's "are we truly at build
-> stage" directive, then ~35 confirmed findings were verified and FIXED in one
-> session.** Suite green, ruff clean, parse harness EXIT=0; landing record =
-> this entry + `tests/test_health_check_audit_2026_08_14.py` (the pin file).
+> stage" directive; ~35 confirmed findings were verified and FIXED
+> (`359577f`), then a SIX-REFUTER adversarial verify fleet re-derived every
+> fix against the real code paths and took 15 MORE confirmed findings, all
+> fixed (`830405e`)** — headline: the first cut of the ledger's solvency
+> mirrors read the payer's chest AFTER the transfer debited it (a solvent
+> 300g clause displayed as 114), replaced with the applied-transfer idiom
+> (the engines record what they actually moved into transient
+> `_applied_income_transfers`; `_build_economy` prefers the record); plus
+> the newly-live guarantee arm's double-log, a THIRD CA8-25 combat-carry
+> seam (the defiance arm), the objection-sync drain, three dead
+> COMMITMENTS_ROUTES arms surviving in dispatch, and the naval
+> embark-predicate half-fix (`embark_ready`/near-miss/gate copy all
+> mirrored). **Final gates: suite 17,439/3 · ruff clean · parse harness
+> EXIT=0 · boot smoke 0 SCRIPT ERROR · M1–M7 + `BASELINE_SERIES`
+> byte-identical WITHOUT re-record** (a fact about the harness — the
+> ambient runs never enter the fixed branches; the behavior fixes are
+> pinned directly). Landing record = this entry +
+> `tests/test_health_check_audit_2026_08_14.py` (the pin file, 29 pins).
 >
 > **The headline fixes, one line each:**
 > - **The Continental System conjured gold** — `max(0, gold − blocked)`
@@ -176,22 +191,20 @@
 > supervision. Plus: move the stray 265MB `assets/movies.avi` out of `res://`
 > before any export.
 >
-> **REPORT-ONLY (design-owned, NOT built — each needs its gate):** AI naval
-> expedition costs 1 admin AP vs the player's 2 military AP (GR5 question for
-> the naval/econ gate); naval dominance is invisible to the war score (the A2
-> strangulation arc reads 0 on the bar — recommend a capped signed component,
-> gate-sized M); PT-J2 campaign ledgers feed no narration ("this war has
-> taken 41,000 men" is one rung, S); glory never reaches a foreign court (S
-> flavor / M term); RN cannot interdict shore supply (M, one arm in the
-> supply seam); **seasons/weather do not exist** — the one large expansion
-> the codebase is structurally ready for (L, own gate); tutorial teaches
-> nothing landed after July 17 (S extend step XIV / M second lesson);
-> `dialogue_manager.replace()` can orphan a hybrid dialogue's popup (W7 —
-> fix candidate: preempt() for HYBRID types, needs a dialogue-stack review);
-> B4's ~14 zero-reader payload fields (delete candidates, some test-pinned).
->
-> **Suite after this session: see the gate figures in the commit message.**
-> M1–M7 and `BASELINE_SERIES` checked — see commit for byte-identity status.
+> **~~REPORT-ONLY (design-owned, NOT built — each needs its gate)~~ — ✅ ALL
+> GIVEN THEIR GATE THE SAME DAY: these rows became ROW HC (the entry above
+> this one — gate record `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`).**
+> The mapping: naval↔war-score → HC-1 · ledger narration → HC-2 ·
+> glory↔diplomacy → HC-3 (+HC-D1 deferred) · RN shore supply + AI
+> expedition AP asymmetry → HC-4 · tutorial drift → HC-5 (+The Congress
+> homed) · seasons/weather → HC-6 (user gate). **Two rows stayed
+> report-only, owners named here:** `dialogue_manager.replace()` can orphan
+> a hybrid dialogue's popup (W7 — fix candidate: preempt() for HYBRID
+> types; owner = the CA9-D3 grievances/popup REVISIT slice, whose scope is
+> exactly the queue/retirement audit this belongs to) · B4's ~14
+> zero-reader payload fields (delete candidates, some test-pinned; owner =
+> the next architecture/hygiene sweep — carry into `ARCHITECTURE_REFACTORING_PLAN.md`
+> triage when it next opens).
 >
 > ---
 >
