@@ -30,6 +30,7 @@
 | HC-6 | Seasons/weather do not exist | **PROMOTED, NOT RULED** — the HC-6 session AUTHORS `docs/SEASONS_WEATHER_SPEC.md` and puts its questions to the USER; build only after that gate |
 | HC-0 | *(added by user direction, Aug 14 second session)* No calendar — "Turn N" is timeless | **RULED + BUILD FIRST** — **one turn = HALF A MONTH (~15 days)**, displayed "Early/Late {Month} {Year}", anchor Sept 25, 1805 → turn 1 = "Late September 1805"; §2a below is the full derivation |
 | HC-G | *(added by user direction, Aug 14 second session)* The Gazette — cut to post-EA Aug 3 | **UN-CUT + BUILD as slice HC-G** — "Le Moniteur" re-scoped DETERMINISTIC-first (the Aug-3 objection was aimed at the LLM version, and the monetization ruling makes no-LLM-required the product's spine); §7a below is the contract |
+| HC-L | *(added by user direction, Aug 14 third session — "slot this after all fixes and weather")* Local model parsing, the memo's v2.1 flagship | **PROMOTED from post-EA into row HC at position 8** — spike-first (ship/no-ship is a measured corpus score), build only on a pass; §7b below is the contract; memo addendum-§9 pins carry (parsing only, never silently replace BYOK) |
 
 **Build order: HC-1 → HC-2 → HC-3 → HC-4 → HC-5 → HC-6(spec) → the played
 20-turn campaign → position 10.** Rationale: the three
@@ -325,6 +326,50 @@ campaign (queue position 8) evaluates it.
 
 ---
 
+## §7b HC-L — "Smart Parsing — Offline" (the local model, slotted by user direction)
+
+**User direction (Aug 14, third session): "slot this after all fixes and
+weather."** This PROMOTES the monetization memo's §5-v2.1 flagship
+(`docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`, incl. the
+addendum-§9 scope pins) from post-EA into row HC, at queue position 8 —
+after HC-6.
+
+**The slice is TWO halves with a mechanical gate between them:**
+
+1. **The spike (one session, no product code):** a standalone script runs
+   the golden corpus's live-parse rows through candidate quantized GGUFs
+   (Qwen 0.5B/1.5B, Llama-3.2-1B/3B, Gemma-2-2B class) via llama.cpp
+   with a grammar constrained from the existing `PARSE_TOOL` schema
+   (roster names injected as enums per world). Output = a measured
+   score per candidate vs the cloud rows. **Ship/no-ship is that
+   number** — if no candidate beats-or-matches the live rows, the build
+   half DOES NOT RUN and the row closes with the measurement recorded
+   (the game is unaffected; the Portopia failure mode is structurally
+   unreachable).
+2. **The gated build (only on a passing spike):** a `local` provider on
+   the existing `providers.py` seam (the reserved-slot idiom —
+   `LLM_MODE` gains `local`); llama-cpp-python CPU-only;
+   PyInstaller/native-lib packaging folded with position 10's deploy
+   machinery; model delivery = free "Smart Parsing — Offline" DLC or
+   optional download so the base build stays lean while "works offline"
+   stays true; a Settings rung UNDER the BYOK key (ladder: key > local
+   > mock, the player chooses); Steam AI-disclosure line updated.
+
+**Carried pins (memo addendum §9, non-negotiable):** the local model
+does **PARSING ONLY** — never the CR-5b flavor line; it **never silently
+replaces a connected key**. Named decision at build time (recommended
+default recorded now): local counts as "live" for the CR-5 personality
+arms ONLY if it also passes the corpus's `live_only` rows — otherwise
+those arms keep degrading to ASK exactly as mock does (guardrail (e)
+extends, never weakens).
+
+**Acceptance:** spike memo with per-candidate scores committed to
+`docs/audits/`; if built — corpus green under `LLM_MODE=local`, parse
+latency ≤ the cloud round-trip on a mid CPU, `tests/test_hc_l_local_parsing.py`,
+and the keyless-mock experience byte-identical when the rung is off.
+
+---
+
 ## §7 HC-6 — Seasons & Weather: the spec-and-gate session
 
 **Deliberately NOT ruled here.** The integration audit's verdict stands:
@@ -371,10 +416,13 @@ long a turn is".)*
 6. **HC-G** Le Moniteur — the Gazette *(deterministic v1, dated by HC-0)*
 7. **HC-6** Seasons & Weather spec → **USER GATE** *(consumes HC-0:
    6-turn seasons)*
-8. → the played 20-turn campaign (PT row-2 arm + naval pillar + the
+8. **HC-L** Smart Parsing — Offline *(slotted by user direction Aug 14
+   "after all fixes and weather": the corpus SPIKE first, the build only
+   on a passing score — §7b)*
+9. → the played 20-turn campaign (PT row-2 arm + naval pillar + the
    standing visual sign-offs — now including HC-1's Blockade row, the
    calendar surfaces, and the Gazette)
-9. → **position 10, THE SHIPPABLE BUILD** (the road-to-EA spine resumes)
+10. → **position 10, THE SHIPPABLE BUILD** (the road-to-EA spine resumes)
 
 Landing records accumulate in this file (§9+, one per slice, the
 standing pattern).

@@ -81,7 +81,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > deterministic v1, zero LLM, 5-turn cadence + forced specials,
 > serialized `gazette_issues` cap 20, dated by HC-0 — gate §7a)** →
 > HC-6 Seasons & Weather SPEC + **USER GATE** (deliberately not ruled —
-> consumes HC-0: 6-turn seasons, winter ~turn 6). Then the played
+> consumes HC-0: 6-turn seasons, winter ~turn 6) → **HC-L Smart Parsing
+> — Offline (slotted by user direction Aug 14: the local-model flagship
+> promoted from post-EA; SPIKE first — ship/no-ship is a measured
+> corpus score — build only on a pass; parsing only, never silently
+> replaces BYOK; gate §7b)**. Then the played
 > 20-turn campaign (PT row-2 acceptance + naval pillar + all visual
 > sign-offs), then position 10.
 >

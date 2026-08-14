@@ -76,12 +76,22 @@
 >    supply-movement-readiness arms / authored-bounds idiom / re-record
 >    protocol) and put the questions to the user. NO mechanic lands
 >    before that gate returns.
+> 8. **HC-L "Smart Parsing — Offline" — slotted by user direction Aug 14
+>    ("after all fixes and weather"),** promoting the monetization memo's
+>    v2.1 flagship into row HC (gate record §7b). **Spike FIRST** (one
+>    session, no product code: the golden corpus's live rows run through
+>    candidate GGUFs under a `PARSE_TOOL`-constrained grammar —
+>    ship/no-ship is the measured score); the build (a `local` provider
+>    on the `providers.py` seam, CPU-only, free-DLC model delivery,
+>    Settings rung UNDER the key) runs ONLY on a pass. Carried pins:
+>    parsing only — never the flavor line; never silently replaces a
+>    connected key; keyless-mock byte-identical when the rung is off.
 >
-> **Then the standing owed items, in order:** 8. the played 20-turn
+> **Then the standing owed items, in order:** 9. the played 20-turn
 > campaign (discharges PT row-2's gate-arm acceptance, the naval pillar
 > score, the A2 sue-path, and ALL standing visual sign-offs — now
 > including HC-1's Blockade row, the HC-0 calendar surfaces, the Gazette,
-> and the PT-J2 Campaign/Blood rows) → 9. **position 10, THE SHIPPABLE
+> and the PT-J2 Campaign/Blood rows) → 10. **position 10, THE SHIPPABLE
 > BUILD** (the road-to-EA spine resumes; its P0/P1 gap list is in the
 > health-check entry below).
 >
