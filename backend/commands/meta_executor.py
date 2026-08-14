@@ -1776,8 +1776,13 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     "action_summary": world.get_action_summary(),
                     "new_state": game_state,
                 }
-                if defiant_execution.get("battle_report"):
-                    result["battle_report"] = defiant_execution["battle_report"]
+                # Verify-fleet correction (Aug 2026): the defiance arm is a
+                # THIRD seam of the CA8-25 class — a defiant attack that
+                # conquers set pending_capture_choice/battle_diorama and this
+                # hand-built dict dropped both. Same carry as the two arms
+                # fixed below.
+                from backend.commands.strategic import _carry_combat_fields
+                _carry_combat_fields(result, defiant_execution)
                 if authority_event:
                     result["authority_event"] = authority_event
                 if _redemption_event:

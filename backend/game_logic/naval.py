@@ -1720,11 +1720,15 @@ def build_admiralty_report(world) -> Dict:
             f"{int(smallest.strength) - EXPEDITION_MAX_TROOPS:,} first")
     else:
         corps_detail = "march a corps to a yard"
+    # Verify-fleet copy corrections (Aug 2026): term 1 is scoped to HOME
+    # embarkation (the executor's abroad arm has no yard requirement), and
+    # term 2 names both lawful embark states.
     expedition_terms = [
-        {"text": "a dockyard under our flag", "met": bool(yards),
+        {"text": "a dockyard under our flag (to embark from home soil)",
+         "met": bool(yards),
          "detail": ", ".join(yards) if yards else "take or build one"},
-        {"text": (f"a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer "
-                  "standing at a yard"),
+        {"text": (f"a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer at a "
+                  "yard, or on a foreign shore"),
          "met": bool(ready_corps), "detail": corps_detail},
     ]
     report["expedition_terms"] = expedition_terms
@@ -1837,13 +1841,14 @@ def build_admiralty_report(world) -> Dict:
     # destination is chosen — so its chip lives on the region panel (see
     # `expedition_landings` in map_naval_overlay) and the Admiralty block
     # only names the corps that are ready to sail and where from.
+    # Verify-fleet correction (Aug 2026): built from the SAME mirrored
+    # predicate as the gate term above — the old yards-only read made the
+    # Admiralty tab disagree with itself (term said Ney ready on a foreign
+    # beach, this list omitted him).
     report["embark_ready"] = [
         {"marshal": m.name, "strength": int(m.strength),
          "location": m.location}
-        for m in sorted(world.get_marshals_by_nation(player),
-                        key=lambda m: -int(m.strength))
-        if (0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-            and m.location in yards)]
+        for m in ready_corps]
     return report
 
 
@@ -1954,15 +1959,25 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
                      or (_controller(world, m.location) != nation
                          and getattr(world.regions.get(m.location),
                                      "is_coastal", False)))]
-    # The one region-independent near-miss, computed once: a corps standing
-    # in a yard but over the transports' lift.
+    # The one region-independent near-miss, computed once: a corps in an
+    # embark-legal position but over the transports' lift. Verify-fleet
+    # correction (Aug 2026): the near-miss reads the SAME embark predicate
+    # as `eligible` (yards OR abroad-coastal) — the old yards-only read told
+    # a player whose only corps was oversized on a foreign beach to "march
+    # one to a yard" when the executor's real refusal is "detach the excess".
+    def _embark_position_ok(m) -> bool:
+        return (m.location in yards
+                or (_controller(world, m.location) != nation
+                    and getattr(world.regions.get(m.location),
+                                "is_coastal", False)))
+
     no_corps_reason = ""
     if not eligible:
-        over_at_yard = [m for m in all_corps
-                        if int(m.strength) > EXPEDITION_MAX_TROOPS
-                        and m.location in yards]
-        if over_at_yard:
-            m = min(over_at_yard, key=lambda m: int(m.strength))
+        over_embarkable = [m for m in all_corps
+                           if int(m.strength) > EXPEDITION_MAX_TROOPS
+                           and _embark_position_ok(m)]
+        if over_embarkable:
+            m = min(over_embarkable, key=lambda m: int(m.strength))
             no_corps_reason = (
                 f"the transports lift {EXPEDITION_MAX_TROOPS:,} — "
                 f"{m.name} commands {int(m.strength):,}; detach "
@@ -1970,7 +1985,8 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
         elif yards:
             no_corps_reason = (
                 f"no corps of {EXPEDITION_MAX_TROOPS:,} or fewer stands at "
-                f"a yard ({', '.join(sorted(yards))}) — march one there")
+                f"a yard ({', '.join(sorted(yards))}) or on a foreign "
+                f"shore — march one there")
         else:
             no_corps_reason = "we control no dockyard to embark from"
     blocked: Dict[str, str] = {}

@@ -19,7 +19,6 @@ A future save/load system should use this as the specification.
 
 ```json
 {
-  "format_version": "1.1",
 
   "player_nation": "France",
   "current_turn": 1,
@@ -165,7 +164,7 @@ A future save/load system should use this as the specification.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `format_version` | string | "1.1" | Save format version for compatibility |
+| ~~`format_version`~~ | — | — | **REMOVED (Aug 2026 health-check audit).** The world payload's `"format_version"` string was dead — read by nothing. The REAL version is the integer `metadata.format_version` written by `save_manager.py` (`FORMAT_VERSION = 3`); the load gate refuses both older AND newer values. |
 | `player_nation` | string | "France" | Nation controlled by player |
 | `sovereign_map` | string | "legacy" | Which map the world was built on: "legacy" (19-region fixture) or "europe" (126-province game map). `from_dict` rebuilds the matching region set + roster (Map Slice 4/5). |
 | `campaign_seed` | string | "historical" | **AI-0b (`AI_INTENT_SPEC.md` §3.8, D7):** the campaign's serialized variance seed. `from_dict` restores the stored value EXACTLY — never a fresh or env-derived one (§5 pin 14c); a pre-seed save reads "historical". "historical" (or unset `SOVEREIGN_SEED`) reproduces today's boot byte-for-byte; any other string resolves the scenario's authored variance bands deterministically. Also mirrored into save METADATA for slot display. |
@@ -305,6 +304,7 @@ A future save/load system should use this as the specification.
 | `talleyrand_redemption_popup` | dict\|null | null | **Session 8C.** Pending Talleyrand redemption popup. Set by trust<=20 check, cleared after read in /command response. |
 | `diplomatic_objection_popup` | dict\|null | null | **Session 8C.** Pending diplomatic objection popup. Set by pre-proposal objection, cleared after read in /command response. |
 | `incoming_proposal_popup` | dict\|null | null | **Session 8C.** Pending AI proposal popup data. Set by deliver_ai_proposal, cleared after read in /command response. |
+| `incoming_settlement_offer_popup` | dict\|null | null | **Aug 2026 health-check audit.** The auto-show card for an unopened incoming settlement offer — the one PopupQueue slot that previously had no serialization pair (the offer survived in the mailbox; the card did not). Property-backed on the queue like its siblings. |
 | `diplomatic_trust_applied` | dict | {} | **V2-16.** Per-turn cap tracking for diplomatic trust changes. {marshal_name: amount_applied}. Cleared at start of each turn. Replaces dynamic attrs that didn't survive save/load. |
 | `last_advanced_turn` | int | 0 | **R20.** Idempotency guard for advance_turn(). Stores the pre-increment turn number of the last successful advance_turn call. Prevents double-processing (double income/attrition) on retry after crash. |
 | `ai_stagnation_turns` | dict | {} | **Enemy AI.** Per-marshal stagnation counter. Keys: marshal name. Values: int (consecutive turns with no action). At 2+, AI forces aggressive fallback. Decrements on action taken. |
@@ -1040,7 +1040,7 @@ Suggested file structure for actual save/load:
 ```json
 {
   "metadata": {
-    "format_version": "1.1",
+    "format_version": 3,
     "game_version": "0.8.0-dev",
     "saved_at": "2026-01-28T12:34:56Z",
     "save_name": "Campaign Turn 15",

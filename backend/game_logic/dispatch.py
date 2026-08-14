@@ -1802,7 +1802,10 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     # surface built before a turn has been processed.
     income_data = (getattr(world, "_income_phase_results", None) or {}).get(
         player_nation) or world.calculate_turn_income(player_nation)
-    upkeep_data = world.calculate_turn_upkeep(player_nation)
+    # Verify-fleet correction (Aug 2026): prefer the APPLIED upkeep too —
+    # a recompute here reads post-_update_bankruptcy state (the F1 class).
+    upkeep_data = income_data.get("upkeep_data") \
+        or world.calculate_turn_upkeep(player_nation)
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
     # ES-2 (S6): occupation cost on non-homeland provinces — a separate
@@ -3779,22 +3782,12 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     if event_type == "settlement_digest":
         return compose_digest_oneliner(template_vars)
 
-    if event_type == "diplomatic_treaty_broken":
-        nation = template_vars.get("nation", "Unknown")
-        target = template_vars.get("target", "")
-        treaty_type = template_vars.get("treaty_type", "treaty")
-        reason_phrase = template_vars.get("reason_phrase", "")
-        end_reason_family = template_vars.get("end_reason_family", "")
-        # Classify forced / opportunistic ruptures distinctly so presentation
-        # can tell "France abandoned Prussia" from "Prussia was dragged into war."
-        if end_reason_family == "obsolescence_or_external" and target:
-            return f"{nation} was forced to break the {treaty_type} with {target} {reason_phrase}.".strip()
-        if end_reason_family == "counterparty_reversal" and target:
-            return f"{target} broke the {treaty_type} with {nation} first."
-        if target and reason_phrase:
-            return f"{nation} has broken the {treaty_type} with {target} {reason_phrase}."
-        if target:
-            return f"{nation} has broken the {treaty_type} with {target}."
+    # NOTE (verify fleet, Aug 2026 health check): as in campaign_log, every
+    # COMMITMENTS_ROUTES type except witness_strike_recorded is formatted by
+    # the early format_commitments_notice return above — the dead per-type
+    # arms that sat below (diplomatic_treaty_broken, both
+    # hard_reject_posture_* types) were removed; format_commitments_notice
+    # owns their copy.
 
     if event_type == "diplomatic_war_declared":
         nation = template_vars.get("nation", "Unknown")
@@ -3828,20 +3821,6 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         if scope_phrase:
             return f"{witness} has taken note of {perpetrator}'s breach against {victim} {scope_phrase}."
         return f"{witness} has taken note of {perpetrator}'s breach against {victim}."
-
-    if event_type == "hard_reject_posture_triggered":
-        victim = template_vars.get("victim_nation", "Unknown")
-        perpetrator = template_vars.get("perpetrator_nation", "Unknown")
-        return (
-            f"{victim} has shut the chancery to {perpetrator} after repeated betrayals."
-        )
-
-    if event_type == "hard_reject_posture_cleared":
-        victim = template_vars.get("victim_nation", "Unknown")
-        perpetrator = template_vars.get("perpetrator_nation", "Unknown")
-        return (
-            f"{victim} has reopened deeper diplomacy with {perpetrator}."
-        )
 
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:

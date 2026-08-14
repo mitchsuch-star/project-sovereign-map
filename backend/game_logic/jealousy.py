@@ -2527,12 +2527,16 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
             message = ("\"I will find the means.\" Rentes are granted: "
                        + "; ".join(granted) + ". The treasury will feel it.")
         else:
-            # Aug 2026 health-check audit: with every face at 0 (estates
-            # already cover expectation) the old string degenerated to
-            # "Rentes are granted: ." — say what actually happened.
+            # Verify-fleet wording (Aug 2026): face==0 while eroding is
+            # reachable ONLY when the petitioners' estates are DISRUPTED by
+            # hostile armies (compute_rente_face ignores disruption; erosion
+            # does not) — so name the occupation, never claim the men are
+            # provided for while the petition itself says they are not.
             message = ("\"I will find the means.\" The books are opened — "
-                       "and every petitioner's estates already meet his "
-                       "expectation. No new rente is required.")
+                       "every petitioner's estates would meet his "
+                       "expectation, were they not under a hostile army's "
+                       "boot. No rente can price an occupied province; "
+                       "liberate their lands, Sire.")
     elif choice == "refuse":
         for marshal in marshals:
             marshal.modify_trust(FONTAINEBLEAU_REFUSE_TRUST)

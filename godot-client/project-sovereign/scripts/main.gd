@@ -2623,7 +2623,9 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	# PT-C3 mirror (verify fleet, Aug 2026): Upkeep signs like its siblings
+	# so the banner's terms sum legibly to Net.
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: -" + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

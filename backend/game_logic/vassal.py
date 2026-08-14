@@ -1035,6 +1035,14 @@ def process_vassal_tribute(world) -> dict:
                 "lord": lord,
             }
 
+        # Record the APPLIED tribute for the ledger mirror (verify-fleet
+        # correction, Aug 2026 health check — a view-time balance re-read
+        # is post-debit and understates).
+        applied = getattr(world, "_applied_income_transfers", None)
+        if applied is not None:
+            bucket = applied.setdefault("vassal_tribute", {})
+            bucket[lord] = bucket.get(lord, 0) + int(actual_tribute)
+
     return tribute_events
 
 

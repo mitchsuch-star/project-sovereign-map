@@ -307,22 +307,26 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         admin_bonus = int(world._calculate_admin_bonus(player))
 
     # Treaty gold/turn income (clauses where we receive gold)
-    treaty_gold = 0
-    for pair_key, treaty in world.active_treaties.items():
-        for clause in treaty.get("clauses", []):
-            if clause.get("type") == "gold_per_turn" and clause.get("to") == player:
-                # Mirror _process_treaty_clauses' solvency cap: an insolvent
-                # payer moves only what it has (shown = applied).
-                payer = str(clause.get("from") or "")
-                amount = abs(clause.get("amount", 0))
-                if payer and payer != player:
-                    amount = min(
-                        amount, max(0, int(world.nation_gold.get(payer, 0)))
-                    )
-                treaty_gold += amount
-            elif clause.get("type") == "gold_per_turn" and clause.get("from") == player:
-                treaty_gold -= abs(clause.get("amount", 0))
-    treaty_gold = int(treaty_gold)
+    # Verify-fleet correction (Aug 2026 health check): shown = applied via
+    # the ENGINES' own recorded transfers, never a view-time balance re-read
+    # (the chest is post-debit at read time, so a cap here understated a
+    # fully-solvent 300g clause as 114). Applied mode = the caller passed
+    # the phase result (it carries "upkeep_data"); projection mode keeps the
+    # face-amount computation byte-identical to pre-audit behavior.
+    _applied_mode = isinstance(income_data, dict) and "upkeep_data" in income_data
+    _transfers = getattr(world, "_applied_income_transfers", None) or {}
+
+    if _applied_mode and "treaty_gold" in _transfers:
+        treaty_gold = int(_transfers["treaty_gold"].get(player, 0))
+    else:
+        treaty_gold = 0
+        for pair_key, treaty in world.active_treaties.items():
+            for clause in treaty.get("clauses", []):
+                if clause.get("type") == "gold_per_turn" and clause.get("to") == player:
+                    treaty_gold += abs(clause.get("amount", 0))
+                elif clause.get("type") == "gold_per_turn" and clause.get("from") == player:
+                    treaty_gold -= abs(clause.get("amount", 0))
+        treaty_gold = int(treaty_gold)
 
     # Vassal tribute income
     # Golden Rule 8: mirror process_vassal_tribute's cached-index derivation —
@@ -330,7 +334,10 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # EC-W1: mirror the disruption skip too (a vassal province with a hostile
     # army on it pays nobody), so the shown tribute matches the applied one.
     vassal_tribute = 0
-    if world.vassals:
+    if _applied_mode and "vassal_tribute" in _transfers and world.vassals:
+        # The tribute engine recorded what it actually moved this turn.
+        vassal_tribute = int(_transfers["vassal_tribute"].get(player, 0))
+    elif world.vassals:
         tribute_disrupted = world.get_disrupted_regions()
         for vassal_name, state in world.vassals.items():
             if state.get("lord") == player:
@@ -340,13 +347,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
                     for name in world.get_nation_regions(vassal_name)
                     if name not in tribute_disrupted
                 )
-                # Mirror process_vassal_tribute's solvency cap: an insolvent
-                # vassal pays only what it has (shown = applied — Aug 2026
-                # health-check audit).
-                vassal_tribute += min(
-                    int(v_income * tribute_rate),
-                    max(0, int(world.nation_gold.get(vassal_name, 0))),
-                )
+                vassal_tribute += int(v_income * tribute_rate)
 
     # SC-33 recurring settlement streams (G4F smoke follow-up): the
     # ratified gold_per_turn obligations the income phase actually moves —
@@ -367,12 +368,8 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         if player not in (payer, recipient):
             continue
         incoming = recipient == player
-        if incoming and payer:
-            # Mirror the recurring-payment engine's partial-payment cap: an
-            # insolvent payer delivers only what it has (shown = applied).
-            stream_amount = min(
-                stream_amount, max(0, int(world.nation_gold.get(payer, 0)))
-            )
+        # `stream_amount` stays the CONTRACTUAL face for the row display;
+        # the aggregate below prefers the engine's applied record.
         settlement_gold += stream_amount if incoming else -stream_amount
         counterparty = payer if incoming else recipient
         settlement_streams.append({
@@ -387,6 +384,10 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
             ),
         })
     settlement_gold = int(settlement_gold)
+    if _applied_mode and "settlement_gold" in _transfers:
+        # Prefer the engine's applied per-turn record (partial payments) —
+        # the rows above keep the contractual face for display.
+        settlement_gold = int(_transfers["settlement_gold"].get(player, 0))
 
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute

@@ -3007,6 +3007,13 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
         transfer = min(int(amount), max(0, balance))
         nation_gold[payer] = balance - transfer
         nation_gold[recipient] = int(nation_gold.get(recipient, 0) or 0) + transfer
+        # Record the APPLIED transfer for the ledger mirror (verify-fleet
+        # correction, Aug 2026 health check; signed: recipient +, payer −).
+        applied = getattr(world, "_applied_income_transfers", None)
+        if applied is not None:
+            bucket = applied.setdefault("settlement_gold", {})
+            bucket[recipient] = bucket.get(recipient, 0) + transfer
+            bucket[payer] = bucket.get(payer, 0) - transfer
         turns_remaining -= 1
         record = dict(entry)
         record["turns_remaining"] = int(turns_remaining)

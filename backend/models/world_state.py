@@ -8553,6 +8553,15 @@ class WorldState:
         # Transient by design (display cache, never serialized — a loaded
         # save recomputes on its next turn; readers must fall back).
         self._income_phase_results = {}
+        # Verify-fleet correction (Aug 2026 health check): the APPLIED
+        # per-nation transfer totals for the three min(amount, balance)
+        # engines — treaty gold, vassal tribute, recurring settlement gold.
+        # The first cut of the ledger's "solvency mirror" re-read the
+        # payer's chest at VIEW time, i.e. AFTER the transfer debited it,
+        # so a fully-solvent 300g clause displayed as 114. Same transient
+        # discipline as _income_phase_results: reset here, never serialized.
+        self._applied_income_transfers = {
+            "treaty_gold": {}, "vassal_tribute": {}, "settlement_gold": {}}
         for nation in all_nations:
             self._income_phase_results[nation] = self.process_income_phase(nation)
 
@@ -10177,6 +10186,16 @@ class WorldState:
                         self.nation_gold[from_nation] = available - transfer
                         if to_nation in self.nation_gold:
                             self.nation_gold[to_nation] += transfer
+                        # Record the APPLIED transfer for the ledger mirror
+                        # (signed: recipient +, payer −).
+                        applied = getattr(
+                            self, "_applied_income_transfers", None)
+                        if applied is not None:
+                            bucket = applied.setdefault("treaty_gold", {})
+                            bucket[to_nation] = (
+                                bucket.get(to_nation, 0) + transfer)
+                            bucket[from_nation] = (
+                                bucket.get(from_nation, 0) - transfer)
                         # Fire dispatch event if unable to pay full amount
                         if transfer < int(amount):
                             from backend.game_logic.dispatch import queue_dispatch_event

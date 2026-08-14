@@ -318,6 +318,111 @@ class TestIncomingSettlementOfferPopupSerializes:
         assert restored.incoming_settlement_offer_popup == {"probe": 1}
 
 
+class TestAppliedTransferMirrors:
+    """Verify-fleet round 2: the ledger's treaty/tribute/settlement figures
+    come from the ENGINES' recorded applied transfers, never a view-time
+    balance re-read (which is post-debit — a fully-solvent 300g clause
+    displayed as 114 in the first cut)."""
+
+    def test_solvent_treaty_clause_shows_full_transfer(self):
+        world = WorldState()
+        player = world.player_nation
+        payer = next(n for n in world.nation_gold if n != player)
+        pair_key = world._make_diplo_key(player, payer)
+        world.active_treaties[pair_key] = {
+            "clauses": [{"type": "gold_per_turn", "amount": 300,
+                         "from": payer, "to": player}],
+        }
+        world.nation_gold[payer] = 5000
+        before = world.nation_gold[player] = int(world.gold)
+        world.advance_turn()
+        delta = world.nation_gold[player] - before
+        from backend.game_logic.ledger import _build_economy
+
+        applied = world._income_phase_results.get(player)
+        econ = _build_economy(world, player, income_data=applied)
+        assert econ["treaty_gold"] == 300, (
+            f"solvent 300g clause displayed as {econ['treaty_gold']}")
+        assert econ["net"] == delta, (
+            f"shown net {econ['net']} != measured delta {delta}")
+
+    def test_engines_record_applied_transfers(self):
+        world = WorldState()
+        world.advance_turn()
+        transfers = getattr(world, "_applied_income_transfers", None)
+        assert transfers is not None
+        assert set(transfers) >= {"treaty_gold", "vassal_tribute",
+                                  "settlement_gold"}
+
+
+class TestOneLoggerPerInstrumentEvent:
+    """Verify-fleet round 2: pledge_guarantee / create_compensation_bargain
+    log their own events — the war_council producer must only APPEND for the
+    turn surface, never log a second copy of the same row."""
+
+    def test_pledge_guarantee_logs_exactly_once(self):
+        from backend.game_logic.instruments import pledge_guarantee
+
+        world = WorldState()
+        nations = [n for n in world.nation_gold if n != world.player_nation]
+        pledge_guarantee(world, guarantor=nations[0], protected=nations[1])
+        count = sum(1 for e in world.event_log
+                    if e.get("type") == "guarantee_pledged")
+        assert count == 1, f"guarantee_pledged logged {count} times"
+
+    def test_producer_arms_do_not_log(self):
+        import inspect
+        from backend.game_logic import war_council
+
+        src = inspect.getsource(war_council._run_ai_instrument_producers)
+        assert "world.log_event" not in src, (
+            "the instrument producer must append-only — its helpers "
+            "(pledge_guarantee / create_compensation_bargain) own the log")
+
+
+class TestCombatCarryOnEveryObjectionArm:
+    """Verify-fleet round 2: all THREE re-entry arms (insist, disobey-
+    alternative, defiance) and both endpoint mirrors carry the combat
+    allowlist; the objection response never drains popups it can pre-empt."""
+
+    def test_meta_executor_carries_on_three_arms(self):
+        import inspect
+        from backend.commands import meta_executor
+
+        src = inspect.getsource(meta_executor)
+        assert src.count("_carry_combat_fields") >= 3
+
+    def test_objection_sync_non_draining(self):
+        import inspect
+        from backend import main as main_module
+
+        src = inspect.getsource(main_module._respond_to_objection_sync)
+        assert "include_popup_passthroughs=False" in src
+        assert "_fill_popup_keys_without_draining" in src
+        assert "_carry_combat_fields" in src
+
+    def test_glorious_charge_carries_combat_fields(self):
+        import inspect
+        from backend import main as main_module
+
+        src = inspect.getsource(main_module.respond_to_glorious_charge)
+        assert "_carry_combat_fields" in src
+
+
+class TestAdmiraltyEmbarkSelfConsistency:
+    """Verify-fleet round 2: embark_ready is built FROM ready_corps (the
+    mirrored predicate), so the gate term and the Orders list can never
+    disagree about who can sail."""
+
+    def test_embark_ready_built_from_ready_corps(self):
+        import inspect
+        from backend.game_logic import naval
+
+        src = inspect.getsource(naval.build_admiralty_report)
+        assert "for m in ready_corps]" in src.replace("\n", "").replace(
+            "  ", "") or "for m in ready_corps" in src
+
+
 class TestManpowerPanelQuotesTheLivePrice:
     """The MANPOWER panel carries the executor-priced figure beside the base
     price, and the false '±25% stability' note is gone."""

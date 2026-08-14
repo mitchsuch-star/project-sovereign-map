@@ -700,7 +700,11 @@ def _run_ai_instrument_producers(world, coveter: str, record: Dict,
                                 f"{humanize_entity_name(coveter)}'s design "
                                 f"for {int(price):,} gold."),
                 }
-                world.log_event(dict(event))
+                # ONE logger per event (verify fleet, Aug 2026):
+                # create_compensation_bargain already log_events its own
+                # design_bought_off — a second log here rendered the same
+                # campaign-log row twice. The producer only APPENDS for the
+                # turn surface.
                 events.append(event)
                 return  # the crisis will pass at the next poll
 
@@ -745,7 +749,9 @@ def _run_ai_instrument_producers(world, coveter: str, record: Dict,
                             f"{humanize_entity_name(target)} against "
                             f"{humanize_entity_name(coveter)}'s design."),
             }
-            world.log_event(dict(event))
+            # ONE logger per event (verify fleet, Aug 2026):
+            # pledge_guarantee already log_events guarantee_pledged — the
+            # producer only APPENDS for the turn surface.
             events.append(event)
             break
 

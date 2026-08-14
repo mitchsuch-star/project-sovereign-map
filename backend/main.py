@@ -2863,6 +2863,12 @@ def _respond_to_objection_sync(choice: str):
         # Handle the objection response through executor
         result = executor.handle_objection_response(choice, game_state)
 
+        # Non-draining (verify-fleet correction, Aug 2026): this response can
+        # now carry pending_capture_choice via the combat allowlist below,
+        # and the capture route pre-empts every popup route in
+        # _route_response_ui — a drained one-shot popup riding the same
+        # response would be destroyed unread. Same convention as the
+        # /command capture early-return (drain_popups=False).
         response = build_base_response(
             world,
             success=result.get("success", False),
@@ -2875,7 +2881,9 @@ def _respond_to_objection_sync(choice: str):
             disobeyed=result.get("disobeyed", False),
             action_info=result.get("action_info", {}),
             strategic_reports=result.get("strategic_reports", []),
+            include_popup_passthroughs=False,
         )
+        _fill_popup_keys_without_draining(response)
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
 
@@ -3299,6 +3307,13 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         _fill_popup_keys_without_draining(response)
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
+        # Verify-fleet correction (Aug 2026): BOTH charge arms can conquer —
+        # the hand-enumerated build dropped pending_capture_choice /
+        # capture_data (and the restrain arm's reinforcement messages), so a
+        # conquering charge's capture question was invisible until the next
+        # command was eaten by the executor's capture block.
+        from backend.commands.strategic import _carry_combat_fields
+        _carry_combat_fields(response, result)
         return response
     except Exception as e:
         print(f"[ERROR] handling Glorious Charge response: {e}")
