@@ -200,6 +200,15 @@ class TestMarshalSerializationEnforcement:
         'is_reckless_cavalry',     # Computed property
         'in_strategic_mode',       # Computed property
         'strategic_command_type',  # Computed property
+        # Aug 2026 health-check audit: these two are created LAZILY during
+        # combat (CA8-19(i) COORDINATION_TRANSIENT_FIELDS, marshal.py) and
+        # deliberately transient — cleared after every battle, read via
+        # getattr(..., 0.0) so a load correctly sees 0. They are invisible
+        # to the vars()-on-fresh-object sweep above; named here so the next
+        # lazily-created field has a documented precedent to follow (add it
+        # HERE with a reason, or serialize it).
+        'total_coordination_attack_bonus',   # deliberately transient
+        'total_coordination_defense_bonus',  # deliberately transient
     }
 
     def test_all_marshal_fields_serialized(self):

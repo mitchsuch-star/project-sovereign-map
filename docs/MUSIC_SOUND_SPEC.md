@@ -265,8 +265,12 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
    (user)**: the live play session was held; no cue failed audition, no trims or
    re-fetches were requested. The original-quality freesound re-fetch arm (§4) was
    not needed and is closed with the gate.
-6. **The pool (sourced, deliberately not yet wired — each needs a seam the audition
-   session picks, or stays a variant):** `command_ack` (order-executed feedback —
+6. **The pool — DISPOSED WITH THE CLOSED GATE (Aug 14, 2026 health-check
+   reconciliation): these files stay in the repo as VARIANTS ONLY.** The §3.5
+   audition gate they were waiting on PASSED Aug 7, 2026 and requested no new
+   wirings, so no seam-decision remains open and no future session owes them
+   one; any later wiring is a fresh decision on its own merits, not a standing
+   promise. Original sourcing note kept below for context: `command_ack` (order-executed feedback —
    the flick already marks the send; decide at audition), `coins_small` (awaits a
    clean payment-result seam), `musket_shot_1-3` (diorama cascade shots — audition
    call), `tick_subtle`/`latch_close`/`first_call`/`campfire_loop`/

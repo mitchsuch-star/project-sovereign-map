@@ -259,22 +259,17 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 - Strategic commands cost 1 action (not 2)
 - +15% effectiveness for explicit, unambiguous orders
 
-#### BALANCED Personality
+#### BALANCED / LOYAL — RETIRED BY CONTRACT (MC-4, July 10, 2026)
 
-**Current marshals:** None (placeholder for future)
-
-- No special bonuses or penalties
-- Uses baseline stance modifiers only
-- Standard fortify rate (+2%/turn, max 12%) *(B1: was 15%)*
-- Moderate objection thresholds; will object to suicidal orders (3:1+ odds)
-
-#### LOYAL Personality
-
-**Current marshals:** None (placeholder for future, e.g., Lannes)
-
-- Extreme obedience (only objects at 5:1+ odds)
-- Always obeys on INSIST
-- Potential: Inspiring Presence affects nearby marshals
+These two types are **not implemented and cannot boot**: the MC-4 gate
+retired them behind a three-arm guard (`personality.IMPLEMENTED_PERSONALITIES`
+is the single source; the scenario validator hard-fails `balanced`/`loyal`;
+`create_marshal_from_data` raises). The re-open owners are the Jealousy-gate /
+MC-exit-review lineage, and a revived type must never be named "loyal" (the
+diplomat `loyalist` collision). See `MARSHAL_CONTENT_PASS_SPEC.md` §9.
+Historical design notes for the retired types live in the git history of this
+file — they are deliberately not reproduced here so no scenario author reads
+them as authorable (Aug 2026 health-check audit).
 
 ### Fortify Mechanics
 
@@ -597,32 +592,18 @@ Random variance is applied based on severity level:
 | `aggressive_stance` | 0.40 | Mild | Adopt aggressive stance |
 | `aggressive_stance_outnumbered` | 0.60 | Major | Aggressive stance when outnumbered |
 
-#### LITERAL (Grouchy)
+#### LITERAL — never objects (W6-5 Literal Doctrine)
 
-| Trigger | Severity | Type | Description |
-|---------|----------|------|-------------|
-| `ambiguous_order` | 0.50 | Major | Unclear command (TODO: Phase 3) |
-| `contradictory_orders` | 0.60 | Major | Conflicts with previous order (TODO) |
-| `change_of_plans` | 0.35 | Mild | Frequent order changes (TODO) |
+The literal marshal **does not object by design** — "generals who do what
+they're ordered" is the fantasy (Wave 6 gate, July 10, 2026; supersedes the
+old R59/R153 literal-objection trigger table that stood here). His texture
+is elsewhere: the verbatim-quote doctrine, the CR-5 ASK arm, Immovable holds,
+and the Jealousy Vindicated Garrison. Soult is LITERAL (reassigned at the
+CR-5 gate — canonized as character at MC-4), not "balanced".
 
-#### BALANCED (Soult)
-
-| Trigger | Severity | Type | Description |
-|---------|----------|------|-------------|
-| `certain_death` | 0.70 | Major | Attack at 5:1+ odds |
-| `expose_capital` | 0.55 | Major | Leave capital undefended |
-| `suicidal_order` | 0.65 | Major | Certain death order (TODO: expand) |
-| `attack_outnumbered_3to1` | 0.60 | Major | Very bad odds |
-| `abandon_allies` | 0.50 | Major | Leave ally exposed (TODO) |
-
-#### LOYAL (Lannes)
-
-| Trigger | Severity | Type | Description |
-|---------|----------|------|-------------|
-| `suicidal_order` | 0.40 | Mild | Even suicidal orders = mild |
-| `certain_death` | 0.55 | Major | Even loyal marshals object to 5:1+ |
-| `betray_emperor` | 0.95 | Major | Orders harming Napoleon (TODO) |
-| `expose_capital` | 0.35 | Mild | Trusts Emperor's judgment |
+*(The BALANCED/LOYAL trigger tables that stood here described types retired
+by MC-4 — removed in the Aug 2026 health-check audit so no builder
+resurrects them from this page; see the retirement note above.)*
 
 ### Quick Reference: Who Objects to What
 

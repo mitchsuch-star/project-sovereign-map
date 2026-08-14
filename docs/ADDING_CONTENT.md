@@ -140,7 +140,7 @@ Answer these questions BEFORE writing any code:
 | | +5% instant fortify bonus on first turn | |
 | **literal** | **Immovable:** +15% defense when holding position | `personality_modifiers.py` |
 | | Use `hold` command to activate `holding_position=True` | `marshal.py` |
-| **balanced** | No special bonuses (baseline modifiers only) | - |
+| *(balanced)* | *Retired type (MC-4) — row kept only to document the baseline no-bonus row the modifiers table defaults to; NOT authorable* | - |
 
 #### Mechanics by Unit Type
 
@@ -851,9 +851,14 @@ Marshal(
 |-------------|-----------------|------------------|---------|
 | `aggressive` | +15% base attack | -5% in aggressive stance | Cavalry leaders, glory-seekers |
 | `cautious` | -5% in aggressive stance | +5% in defensive stance | Defensive generals, staff officers |
-| `literal` | Normal | +15% when holding | By-the-book officers (Grouchy) |
-| `balanced` | Normal | Normal | Well-rounded generals |
-| `loyal` | Normal | Normal | Absolutely obedient (placeholder) |
+| `literal` | Normal | +15% when holding | By-the-book officers (Grouchy, Soult, Mack) |
+
+> **`balanced` and `loyal` are RETIRED (MC-4, July 10, 2026) and the
+> validator HARD-FAILS a scenario that authors them.** Only the three types
+> above are authorable — `personality.IMPLEMENTED_PERSONALITIES` is the
+> single source. (Aug 2026 health-check audit: this table used to list all
+> five as usable, one labeled "placeholder", while the loader refused two
+> of them.)
 
 #### Skill Value Guidelines
 
@@ -888,17 +893,21 @@ Marshal(
 
 > **July 1, 2026:** Murat, Lannes, Soult, Massena, and Bernadotte (plus, from the enemy table below, Archduke Charles, Kutuzov, and Moore) **SHIPPED in the 1805 roster** — with personalities as authored in `europe_1805.json`, several of which differ from these tables' suggestions. The tables remain useful for marshals not yet in any roster.
 
+> Suggestions below use only the three AUTHORABLE types (aggressive /
+> cautious / literal — see the retirement note above; the old `loyal`/
+> `balanced` suggestions would hard-fail the validator today).
+
 | Marshal | Suggested Personality | Notes |
 |---------|----------------------|-------|
 | Murat | aggressive | Cavalry genius, King of Naples — **SHIPPED (1805 roster)** |
-| Lannes | loyal | "Roland of the Army" — **SHIPPED (1805 roster)** |
-| Soult | balanced | "Hand of Iron" — **SHIPPED (1805 roster)** |
-| Massena | cautious | Defensive expert — **SHIPPED (1805 roster)** |
+| Lannes | aggressive | "Roland of the Army" — **SHIPPED (1805 roster)** |
+| Soult | literal | "Hand of Iron" — **SHIPPED (1805 roster; CR-5 gate canonized literal)** |
+| Massena | cautious | Defensive expert — **SHIPPED (1805 roster; personality-is-character: authored aggressive in-game)** |
 | Bernadotte | cautious | Future Swedish king — **SHIPPED (1805 roster)** |
-| Bessieres | loyal | Imperial Guard commander |
-| Mortier | balanced | Artillery expert |
-| Oudinot | aggressive | "Bayard of the Army" |
-| Marmont | cautious | Artillery, later traitor |
+| Bessieres | literal | Imperial Guard commander |
+| Mortier | cautious | Artillery expert — **SHIPPED (Marshalate bench)** |
+| Oudinot | aggressive | "Bayard of the Army" — **SHIPPED (Marshalate bench)** |
+| Marmont | cautious | Artillery, later traitor — **SHIPPED (Marshalate bench)** |
 | Poniatowski | aggressive | Polish prince |
 
 #### Historical Enemy Commanders (For Future Addition)
@@ -909,7 +918,7 @@ Marshal(
 | Archduke Charles | Austria | cautious — **SHIPPED (1805 roster, July 1, 2026)** |
 | Kutuzov | Russia | cautious — **SHIPPED (1805 roster, July 1, 2026)** |
 | Bagration | Russia | aggressive |
-| Moore | Britain | balanced — **SHIPPED (1805 roster, July 1, 2026)** |
+| Moore | Britain | cautious — **SHIPPED (1805 roster; authored `cautious` in `europe_1805.json` — the old "balanced" label here described a retired type)** |
 
 ---
 

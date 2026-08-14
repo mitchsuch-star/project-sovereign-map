@@ -128,10 +128,10 @@ AI_EXPEDITION_MIN_ODDS = 55      # below this the council will not risk a corps
 AI_EXPEDITION_MIN_TROOPS = 3000  # a corps, not a raiding party
 AI_EXPEDITION_HOST_RELATION = 25  # a shore that will actually receive an army
 
-# AP prices (blessed defaults; build_fleet additionally sits in ADMIN_ACTIONS)
-EXPEDITION_AP_COST = 2
-DIVERSION_AP_COST = 1
-POSTURE_AP_COST = 1
+# AP prices live in world_state._action_costs (the ONLY cost table — the
+# three documented-looking constants that used to sit here were referenced
+# by nothing and were removed in the Aug 2026 health-check audit; retuning
+# them changed nothing, which is worse than absent documentation).
 
 # The dunder meta key inside world.fleets (jealousy `__levels__` idiom).
 META_KEY = "__naval__"
@@ -1687,14 +1687,28 @@ def build_admiralty_report(world) -> Dict:
     # honest availability: it names who qualifies, or who is over the lift
     # and by exactly how much.
     player_corps = list(world.get_marshals_by_nation(player))
+
+    # Mirror the EXECUTOR's embark rule exactly (Aug 2026 health-check
+    # audit): from home soil an expedition assembles at a controlled yard;
+    # from ABROAD any coastal shore serves (the §4.3 beachhead return). The
+    # old yards-only read told a player whose corps stood on a foreign
+    # beach "march a corps to a yard" while the region panel offered him
+    # the landing chip.
+    def _embark_ok(m) -> bool:
+        loc = world.regions.get(m.location)
+        ctrl = getattr(loc, "controller", None)
+        if ctrl == m.nation:
+            return m.location in yards
+        return bool(getattr(loc, "is_coastal", False))
+
     ready_corps = sorted(
         (m for m in player_corps
          if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-         and m.location in yards),
+         and _embark_ok(m)),
         key=lambda m: -int(m.strength))
     over_corps = [m for m in player_corps
                   if int(m.strength) > EXPEDITION_MAX_TROOPS
-                  and m.location in yards]
+                  and _embark_ok(m)]
     if ready_corps:
         corps_detail = "ready: " + ", ".join(
             f"{m.name} ({int(m.strength):,} at {m.location})"
@@ -1719,9 +1733,14 @@ def build_admiralty_report(world) -> Dict:
     report["expedition_notes"] = [
         ("odds fall with corps size and the hostile fleet's effective "
          "strength — effective = sail × readiness"),
+        # Shown = applied (Aug 2026 health-check audit): only the TURNED-BACK
+        # arm pays the readiness penalty (NAVAL_SPEC §Descent); the
+        # intercepted arm fights a fleet action instead. The old "either
+        # way" promised a charge the resolver never applies.
         (f"a failed run: intercepted ~{int(EXPEDITION_INTERCEPT_LOSS * 100)}% "
          f"of the corps lost, turned back ~{int(EXPEDITION_TURNBACK_LOSS * 100)}% "
-         f"— and the fleet's readiness −{EXPEDITION_TURNBACK_READINESS} either way"),
+         f"— and the fleet's readiness −{EXPEDITION_TURNBACK_READINESS} if she "
+         f"is turned back"),
     ]
     # Payload-driven client numbers (the client's hardcoded fallbacks were
     # duplicated backend constants — trap 8 of the NV-12 recon).
@@ -1969,6 +1988,22 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
                 "her to friendship (25), ally, or make it war")
         elif no_corps_reason:
             blocked[region_name] = no_corps_reason
+        else:
+            # Aug 2026 health-check audit: the land-adjacency refusal was
+            # the ONE executor gate this map never named — a lawful target
+            # whose every eligible corps stands land-adjacent without a sea
+            # link got no chip AND no reason (absence as the only signal,
+            # the exact NV-12 gap). Mirror the options builder's skip.
+            away = [m for m in eligible if m.location != region_name]
+            if away and all(
+                (world.regions.get(m.location) is not None
+                 and region_name in (getattr(world.regions.get(m.location),
+                                             "adjacent_regions", []) or [])
+                 and not is_sea_link(world, m.location, region_name))
+                    for m in away):
+                blocked[region_name] = (
+                    "adjacent by land — march there; the fleet is for "
+                    "what feet cannot reach")
     return blocked
 
 
@@ -2104,7 +2139,10 @@ def find_ai_expedition(world, nation: str) -> Optional[Dict]:
         if (m.strength >= AI_EXPEDITION_MIN_TROOPS
             and m.strength <= EXPEDITION_MAX_TROOPS
             and m.location in yards
-            and not getattr(m, "is_captured", False))]
+            # the capture field is `captured_by` (Aug 2026 audit — the old
+            # `is_captured` read was a dead guard; harmless only because
+            # capture also zeroes strength)
+            and not getattr(m, "captured_by", ""))]
     if not embarkable:
         return None
     marshal = max(embarkable, key=lambda m: m.strength)

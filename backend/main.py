@@ -2879,6 +2879,13 @@ def _respond_to_objection_sync(choice: str):
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
 
+        # CA8-25 sibling (Aug 2026 health-check audit): the insist path
+        # re-enters _execute_attack, which can produce a diorama and a
+        # capture choice — this second hand-enumerated allowlist dropped
+        # both. Carry the same combat allowlist the interrupt route uses.
+        from backend.commands.strategic import _carry_combat_fields
+        _carry_combat_fields(response, result)
+
         # V2b: Defiance passthrough
         if result.get("defiance"):
             response["defiance"] = True
@@ -3198,7 +3205,10 @@ def respond_to_redemption(request: RedemptionResponse):
         # Clear pending redemption
         world.pending_redemption = None
 
-        return build_base_response(
+        # Non-draining (Aug 2026 health-check audit): main.gd's
+        # _on_redemption_response never routes popup keys, so a draining
+        # build here destroyed any queued choice popup.
+        response = build_base_response(
             world,
             success=result.get("success", False),
             message=result.get("message", "Redemption processed"),
@@ -3210,7 +3220,10 @@ def respond_to_redemption(request: RedemptionResponse):
             new_max_actions=result.get("new_max_actions", 0),
             troops_frozen=result.get("troops_frozen", 0),
             authority_bonus=result.get("authority_bonus", 0),
+            include_popup_passthroughs=False,
         )
+        _fill_popup_keys_without_draining(response)
+        return response
     except Exception as e:
         print(f"[ERROR] handling redemption response: {e}")
         import traceback
@@ -3272,13 +3285,18 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         # Process the response through executor
         result = executor.respond_to_glorious_charge(request.choice, world)
 
+        # Non-draining (Aug 2026 health-check audit): main.gd's
+        # _on_glorious_charge_response never routes popup keys, so a
+        # draining build here destroyed any queued choice popup.
         response = build_base_response(
             world,
             success=result.get("success", False),
             message=result.get("message", "Charge processed"),
             events=result.get("events", []),
             choice=request.choice,
+            include_popup_passthroughs=False,
         )
+        _fill_popup_keys_without_draining(response)
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
         return response
@@ -3566,7 +3584,16 @@ async def save_endpoint(request: SaveRequest):
         return build_base_response(world, success=False, message="Invalid save name")
     try:
         result = save_game(world, save_name=request.save_name)
-        return build_base_response(world, **{k: v for k, v in result.items() if k != "new_state"})
+        # Non-draining (Aug 2026 health-check audit): the pause-menu save
+        # callback reads only success/message — a draining build here
+        # destroyed any queued choice popup from the LIVE session (the save
+        # file kept it; the running game lost it).
+        response = build_base_response(
+            world,
+            include_popup_passthroughs=False,
+            **{k: v for k, v in result.items() if k != "new_state"})
+        _fill_popup_keys_without_draining(response)
+        return response
     except Exception as e:
         print(f"[ERROR] handling save: {e}")
         import traceback
@@ -4367,7 +4394,10 @@ async def cancel_order(request: Request):
         if result.get("success") and not result.get("no_action_cost"):
             world.use_action("cancel")
 
-        return _build_result_response(result, world)
+        # Non-draining (Aug 2026 health-check audit): the ledger's cancel
+        # callback ignores the response body and just refreshes the ledger,
+        # so a draining build here destroyed any queued choice popup.
+        return _build_result_response(result, world, drain_popups=False)
     except Exception as e:
         print(f"[ERROR] handling cancel_order: {e}")
         import traceback
@@ -4432,12 +4462,22 @@ async def dismiss_notification(request: Request):
     notification_id = data.get("id")
     if not notification_id:
         return {"success": False, "message": "Missing notification id"}
+    # Non-draining (Aug 2026 health-check audit — the IGR-X7 family): the
+    # client's dismiss callback is a discard lambda, so a default
+    # build_base_response here POPPED the queued choice popup and destroyed
+    # it. Dismissing a notification must never consume an unrelated popup.
     if notification_id == "all":
         count = world.notifications.dismiss_all()
-        return build_base_response(world, dismissed=int(count))
+        response = build_base_response(
+            world, dismissed=int(count), include_popup_passthroughs=False)
+        _fill_popup_keys_without_draining(response)
+        return response
     dismissed = world.notifications.dismiss(notification_id)
-    return build_base_response(
-        world, success=dismissed, dismissed=1 if dismissed else 0)
+    response = build_base_response(
+        world, success=dismissed, dismissed=1 if dismissed else 0,
+        include_popup_passthroughs=False)
+    _fill_popup_keys_without_draining(response)
+    return response
 
 
 @app.get("/notifications")

@@ -257,17 +257,19 @@ class DiplomaticExecutor:
                             f"would be reneging on our word.\""),
             }
 
+        from backend.game_logic.instruments import (
+            DEFAULT_SPONSOR_AMOUNT, SPONSOR_SUSTAIN_MULT)
         amount = self._scan_amount(raw_text)
         is_licence_verb = any(v in raw_text for v in ("licence", "license"))
         if amount is None:
-            amount = 0 if is_licence_verb else 200
+            amount = 0 if is_licence_verb else DEFAULT_SPONSOR_AMOUNT
         if amount > 0:
             treasury = int(world.nation_gold.get(player, 0))
             # Review fix (the paper-bid hole): the AI branch requires a
             # sustainable purse (×4); the player's promise is held to
             # the same bar — a bid the treasury cannot carry is refused,
             # not weighed at face value.
-            if treasury < amount * 4:
+            if treasury < amount * SPONSOR_SUSTAIN_MULT:
                 return {
                     "success": False,
                     "message": (f"The treasury holds {treasury} gold — "

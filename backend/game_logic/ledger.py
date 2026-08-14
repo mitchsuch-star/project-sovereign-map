@@ -229,7 +229,13 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     """
     if income_data is None:
         income_data = world.calculate_turn_income(player)
-    upkeep_data = world.calculate_turn_upkeep(player)
+    # Same prefer-applied contract for upkeep: calculate_turn_upkeep reads
+    # nation_bankruptcy_turns, which _update_bankruptcy mutates AFTER the
+    # income phase — recomputing on a bankruptcy-flip turn is off by half
+    # the upkeep (Aug 2026 health-check audit). The applied phase result
+    # carries the charged breakdown as "upkeep_data"; a projection caller
+    # (income_data=None) recomputes, byte-identical to before.
+    upkeep_data = income_data.get("upkeep_data") or world.calculate_turn_upkeep(player)
 
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
@@ -290,15 +296,30 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         from backend.game_logic.naval import blockade_trade_loss
         blockade = int(blockade_trade_loss(world).get(player, 0))
 
-    # Admin bonus (unused AP → gold)
-    admin_bonus = int(world._calculate_admin_bonus(player))
+    # Admin bonus (unused AP → gold). Prefer the APPLIED figure when
+    # describing a turn that already ran — _advance_turn_internal refills
+    # admin AP after the income phase, so a live recompute reports the full
+    # bonus on every turn the player actually spent admin AP (Aug 2026
+    # health-check audit). Projection callers keep the live read.
+    if "admin_bonus" in income_data:
+        admin_bonus = int(income_data.get("admin_bonus") or 0)
+    else:
+        admin_bonus = int(world._calculate_admin_bonus(player))
 
     # Treaty gold/turn income (clauses where we receive gold)
     treaty_gold = 0
     for pair_key, treaty in world.active_treaties.items():
         for clause in treaty.get("clauses", []):
             if clause.get("type") == "gold_per_turn" and clause.get("to") == player:
-                treaty_gold += abs(clause.get("amount", 0))
+                # Mirror _process_treaty_clauses' solvency cap: an insolvent
+                # payer moves only what it has (shown = applied).
+                payer = str(clause.get("from") or "")
+                amount = abs(clause.get("amount", 0))
+                if payer and payer != player:
+                    amount = min(
+                        amount, max(0, int(world.nation_gold.get(payer, 0)))
+                    )
+                treaty_gold += amount
             elif clause.get("type") == "gold_per_turn" and clause.get("from") == player:
                 treaty_gold -= abs(clause.get("amount", 0))
     treaty_gold = int(treaty_gold)
@@ -319,7 +340,13 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
                     for name in world.get_nation_regions(vassal_name)
                     if name not in tribute_disrupted
                 )
-                vassal_tribute += int(v_income * tribute_rate)
+                # Mirror process_vassal_tribute's solvency cap: an insolvent
+                # vassal pays only what it has (shown = applied — Aug 2026
+                # health-check audit).
+                vassal_tribute += min(
+                    int(v_income * tribute_rate),
+                    max(0, int(world.nation_gold.get(vassal_name, 0))),
+                )
 
     # SC-33 recurring settlement streams (G4F smoke follow-up): the
     # ratified gold_per_turn obligations the income phase actually moves —
@@ -340,6 +367,12 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         if player not in (payer, recipient):
             continue
         incoming = recipient == player
+        if incoming and payer:
+            # Mirror the recurring-payment engine's partial-payment cap: an
+            # insolvent payer delivers only what it has (shown = applied).
+            stream_amount = min(
+                stream_amount, max(0, int(world.nation_gold.get(payer, 0)))
+            )
         settlement_gold += stream_amount if incoming else -stream_amount
         counterparty = payer if incoming else recipient
         settlement_streams.append({
@@ -576,6 +609,16 @@ def _build_manpower(world, player: str) -> dict:
         },
     }
 
+    # Shown = applied (Aug 2026 health-check audit): the panel used to quote
+    # the BASE price with a "±25% stability" note describing a rule the
+    # executor does not have — while at war the real charge is up to 2.25×
+    # the quoted figure. Price each arm through the executor's OWN
+    # _calculate_recruit_cost at the capital (the levy-headline idiom), so
+    # this panel and the charge agree.
+    from backend.commands.economy_executor import _levy_pricer
+    capital = world.get_nation_capital(player)
+    capital_region = world.get_region(capital) if capital else None
+
     result = {}
     for pool_type, config in pool_configs.items():
         current = int(pools.get(pool_type, 0))
@@ -590,13 +633,24 @@ def _build_manpower(world, player: str) -> dict:
         else:
             turns_until_full = -1
 
+        live_price = int(config["recruit_base_cost"])
+        if capital_region is not None:
+            live_price = int(_levy_pricer()._calculate_recruit_cost(
+                capital_region, world,
+                base_cost=int(config["recruit_base_cost"]),
+                nation=player))
+
         result[pool_type] = {
             "current": current,
             "max": max_val,
             "regen_rate": regen,
             "recruit_amount": int(config["recruit_amount"]),
             "recruit_base_cost": int(config["recruit_base_cost"]),
-            "cost_note": "Modified by region stability (+/-25%)",
+            # the executor's own figure, priced at the capital
+            "recruit_price": int(live_price),
+            "cost_note": (
+                "Live price at the capital — war, stability, force limit "
+                "and the recruiting marshal all move it"),
             "turns_until_full": int(turns_until_full),
         }
 

@@ -118,14 +118,50 @@ class TestFix3ObjectionClearOnReentry:
 # ═══════════════════════════════════════════════════════════
 
 class TestFix7NotificationDismissPassthroughs:
-    """POST /notifications/dismiss must use build_base_response (structurally guarantees popups)."""
+    """POST /notifications/dismiss must fill popup keys WITHOUT draining.
+
+    Aug 2026 health-check audit re-point: the old pin asserted only that
+    build_base_response appeared in the source — which stayed green while
+    the default drain destroyed the queued choice popup (the client's
+    dismiss callback is a discard lambda). The pin now covers the drain
+    semantics themselves.
+    """
 
     def test_dismiss_includes_passthroughs(self):
-        """Verify build_base_response is used in dismiss endpoint (R4: structural popup guarantee)."""
+        """build_base_response is used AND the drain is disabled."""
         import inspect
         from backend import main as main_module
         source = inspect.getsource(main_module.dismiss_notification)
         assert "build_base_response" in source
+        assert "include_popup_passthroughs=False" in source
+        assert "_fill_popup_keys_without_draining" in source
+
+    def test_dismiss_does_not_drain_queued_popup(self):
+        """A queued popup survives a notification dismiss (behavioral)."""
+        from backend import main as main_module
+        world = main_module.world
+        try:
+            world._popup_queue.push(
+                "diplomatic_sabotage_popup", {"probe": "audit"})
+            import asyncio
+
+            class _Req:
+                async def json(self):
+                    return {"id": "nonexistent-audit-probe"}
+
+            response = asyncio.run(
+                main_module.dismiss_notification(_Req()))
+            # The non-draining contract: the key is PRESENT (None — the
+            # popup rides the player's next /command, per
+            # _fill_popup_keys_without_draining's docstring) and the queue
+            # STILL HOLDS the popup. The old draining build returned the
+            # popup here and destroyed it.
+            # RESPONSE_KEYS maps the slot to the wire key "diplomatic_sabotage"
+            assert "diplomatic_sabotage" in response
+            assert world._popup_queue.get("diplomatic_sabotage_popup") == {
+                "probe": "audit"}
+        finally:
+            world._popup_queue.clear_type("diplomatic_sabotage_popup")
 
 
 # ═══════════════════════════════════════════════════════════

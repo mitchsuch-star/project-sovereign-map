@@ -1,7 +1,13 @@
 # Top Bar & Information Screens Spec
 
 > **Authored:** February 21, 2026
-> **Status:** APPROVED — audited, amendments applied, ready for implementation
+> **Status:** ✅ SHIPPED — HISTORICAL RECORD (reconciled Aug 14, 2026 health-check
+> audit). Both sessions landed long ago and the framework has since been extended
+> far past this spec (Generals screen with the Laurels ladder + Commission bench,
+> Diplomatic Ledger, War Status HUD, UI Visual Foundation sweep). Task lists below
+> — including the "Generals Placeholder / built in a future session" rows — are
+> the plan AS WRITTEN in February 2026, all long since superseded by shipped work.
+> Do not treat any row here as open.
 > **Sessions:** 2 (A: Top Bar Framework + Dispatch, B: Strategic Ledger)
 > **Audit:** Data layer verified against marshal.py, region.py, world_state.py, intel.py, dispatch.py. All field names, types, and derivation logic confirmed against source.
 

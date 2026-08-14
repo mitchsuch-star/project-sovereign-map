@@ -260,7 +260,12 @@ class MetaExecutor:
         # and any path that did not run the phase.
         income_data = (getattr(world, "_income_phase_results", None) or {}).get(nation) \
             or world.calculate_turn_income(nation)
-        upkeep_data = world.calculate_turn_upkeep(nation)
+        # Prefer the APPLIED upkeep breakdown too (rides the phase result as
+        # "upkeep_data") — a recompute reads nation_bankruptcy_turns AFTER
+        # _update_bankruptcy mutated it, so a bankruptcy-flip turn showed an
+        # upkeep that was never charged (Aug 2026 health-check audit).
+        upkeep_data = income_data.get("upkeep_data") \
+            or world.calculate_turn_upkeep(nation)
         # Admin bonus was already applied during process_income_phase in advance_turn
         # Use 0 here since AP was already consumed/saved
         treasury = world.nation_gold.get(nation, 0)
@@ -366,6 +371,12 @@ class MetaExecutor:
             "rente_cost": int(rente_val),
             "admiralty": int(admiralty_val),
             "blockade": int(blockade_val),
+            # PT-C4 / EC-U2 mirror (Aug 2026 health-check audit): both were
+            # named in the text banner and subtracted from `other`, but never
+            # keyed on the event — so main.gd's line sum could not reconcile
+            # to Net.
+            "materiel": int(materiel_val),
+            "infrastructure": int(infrastructure_val),
             "upkeep": int(upkeep_val),
             "other": int(other_val),
             "spent": int(spent_val),
@@ -1836,8 +1847,12 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     "action_summary": world.get_action_summary(),
                     "new_state": game_state
                 }
-                if execution_result.get("battle_report"):
-                    result["battle_report"] = execution_result["battle_report"]
+                # CA8-25 sibling (Aug 2026 health-check audit): carry the
+                # full combat allowlist — the hand-built dict above dropped
+                # battle_diorama / pending_capture_choice / capture_data on
+                # the disobey-alternative arm.
+                from backend.commands.strategic import _carry_combat_fields
+                _carry_combat_fields(result, execution_result)
             else:
                 print("  [WARN] No alternative available - marshal refuses entirely")
                 result = {
@@ -1942,8 +1957,11 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             "action_summary": world.get_action_summary(),
             "new_state": game_state
         }
-        if execution_result.get("battle_report"):
-            result["battle_report"] = execution_result["battle_report"]
+        # CA8-25 sibling (Aug 2026 health-check audit): carry the full
+        # combat allowlist — insisting on an objected attack built and then
+        # discarded the diorama, and dropped the capture-choice keys.
+        from backend.commands.strategic import _carry_combat_fields
+        _carry_combat_fields(result, execution_result)
 
         if response_result.get("redemption_event"):
             result["redemption_event"] = response_result["redemption_event"]

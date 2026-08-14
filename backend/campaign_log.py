@@ -1229,33 +1229,14 @@ def format_event_oneliner(event: dict) -> str:
         target = event.get("target", "Unknown")
         return f"War declared: {aggressor} -> {target} (shattering {event.get('breached_treaty')})"
 
-    if event_type == "diplomatic_treaty_broken":
-        nation = event.get("breaker") or event.get("nation", "Unknown")
-        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
-        target = event.get("other") or event.get("target") or "Unknown"
-        reason_phrase = event.get("reason_phrase", "")
-        family = event.get("end_reason_family", "")
-        # Distinguish forced / counterparty-led ruptures from voluntary breach
-        # so the log one-liner carries the fault classification.
-        if family == "obsolescence_or_external":
-            return f"Treaty dragged apart: {nation} - {treaty_type} with {target} (cascade)"
-        if family == "counterparty_reversal":
-            return f"Treaty broken by counterparty: {target} - {treaty_type} with {nation}"
-        if reason_phrase:
-            return f"Treaty broken: {nation} - {treaty_type} with {target} {reason_phrase}"
-        return f"Treaty broken: {nation} - {treaty_type} with {target}"
-
-    if event_type == "commitment_paradox_resolved":
-        chosen = event.get("chosen_nation", "Unknown")
-        spurned = event.get("spurned_nation", "Unknown")
-        reliability_before = event.get("reliability_before")
-        reliability_after = event.get("reliability_after")
-        if reliability_before is not None and reliability_after is not None:
-            return (
-                f"Commitment paradox resolved: chose {chosen} over {spurned} "
-                f"({reliability_before} -> {reliability_after} reliability)"
-            )
-        return f"Commitment paradox resolved: chose {chosen} over {spurned}"
+    # NOTE (Aug 2026 health-check audit): every event type in
+    # COMMITMENTS_ROUTES (except witness_strike_recorded) is formatted by the
+    # early format_commitments_notice() return above — per-type arms for
+    # routed types below that point are unreachable and were removed
+    # (diplomatic_treaty_broken, commitment_paradox_resolved, the five
+    # bargain_* route types, amends_offered, the three call_to_arms_* types,
+    # both hard_reject_posture_* types). Pinned by
+    # tests/test_health_check_audit_2026_08_14.py.
 
     if event_type == "battle":
         # Humanized at binding, not only at _name_tag: the outcome clause
@@ -1696,36 +1677,6 @@ def format_event_oneliner(event: dict) -> str:
         if former_lord:
             return f"Liberation: {vassal} freed from {former_lord} by {liberator}"
         return f"Liberation: {vassal} freed from vassalage by {liberator}"
-
-    if event_type == "bargain_ratified":
-        promiser = event.get("promiser", "France")
-        beneficiary = event.get("beneficiary", "Unknown")
-        target_enemy = event.get("target_enemy", "Unknown")
-        claim_region = event.get("claim_region", "Unknown")
-        return f"{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}."
-
-    if event_type == "bargain_triggered":
-        beneficiary = event.get("beneficiary", "Unknown")
-        target_enemy = event.get("target_enemy", "Unknown")
-        claim_region = event.get("claim_region", "Unknown")
-        return f"{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active."
-
-    if event_type == "bargain_fulfilled":
-        promiser = event.get("promiser", "Unknown")
-        claim_region = event.get("claim_region", "Unknown")
-        return f"{promiser} honored the bargain: {claim_region} secured under France's claim."
-
-    if event_type == "bargain_breached":
-        fault_nation = event.get("fault_nation", "Unknown")
-        beneficiary = event.get("beneficiary", "Unknown")
-        claim_region = event.get("claim_region", "Unknown")
-        return f"{fault_nation} broke the bargain with {beneficiary} over {claim_region}."
-
-    if event_type == "bargain_voided":
-        beneficiary = event.get("beneficiary", "Unknown")
-        claim_region = event.get("claim_region", "Unknown")
-        end_reason = (event.get("end_reason") or "external").replace("_", " ")
-        return f"Bargain with {beneficiary} over {claim_region} lapsed ({end_reason})."
 
     if event_type == "settlement_summary":
         from backend.game_logic.settlement_presentation import (
@@ -2292,54 +2243,6 @@ def format_event_oneliner(event: dict) -> str:
         return (f"An envoy from {source} has arrived with "
                 f"{with_indefinite_article(proposal_type)} proposal{_decision_reason_suffix(event)}")
 
-    if event_type == "amends_offered":
-        # B-B7 (spec §8.6.1) + B-B4 (spec §8.6.1a grievance variant) —
-        # France's repair gesture toward target_nation. `actor_nation` is
-        # always France in v0.1, kept on the event for forward-compat with
-        # §8.6.1 design intent that allows other actors in later phases.
-        actor = event.get("actor_nation", "France")
-        target = event.get("target_nation") or event.get("nation", "Unknown")
-        gold_spent = int(event.get("gold_spent", 0) or 0)
-        dp_spent = int(event.get("dp_spent", 0) or 0)
-        variant = str(event.get("amends_variant") or "standard").lower()
-        # Spec §8.6.1 / §8.6.1a require deterministic deltas in the payload;
-        # reflect them on the one-liner so the public log carries the
-        # political price. The grievance variant adds the "for the
-        # abandoned alliance" qualifier so the ledger disambiguates at a
-        # glance.
-        if variant == "grievance":
-            return (
-                f"{actor} offered amends to {target} for the abandoned alliance "
-                f"({gold_spent}g, {dp_spent} DP)"
-            )
-        return (
-            f"{actor} offered amends to {target} "
-            f"({gold_spent}g, {dp_spent} DP)"
-        )
-
-    if event_type == "call_to_arms_refused_defensive":
-        # Spec §8.8 substrate one-liner. Rich notice copy now routes through
-        # commitments metadata; this public-log fallback records who refused
-        # whom and whether the refusal ended an alliance (§8.8.7a).
-        breaker = event.get("breaker", "Unknown")
-        victim = event.get("victim", "Unknown")
-        if event.get("alliance_terminated"):
-            return (
-                f"{breaker} refused the defensive call from {victim}, "
-                "ending the alliance"
-            )
-        return f"{breaker} refused the defensive call from {victim}"
-
-    if event_type == "call_to_arms_refused_offensive":
-        breaker = event.get("breaker", "Unknown")
-        victim = event.get("victim", "Unknown")
-        return f"{breaker} refused the offensive call from {victim}"
-
-    if event_type == "call_to_arms_honored_costly":
-        honorer = event.get("honorer", "Unknown")
-        victim = event.get("victim", "Unknown")
-        return f"{honorer} honored a costly defensive call from {victim}"
-
     if event_type == "oathbreaker_posture_triggered":
         nation = event.get("nation", "Unknown")
         return f"{nation} is marked as an oathbreaker after repeated refusals"
@@ -2357,15 +2260,6 @@ def format_event_oneliner(event: dict) -> str:
             f"({len(entries)} call path{'' if len(entries) == 1 else 's'})"
         )
 
-    if event_type == "hard_reject_posture_triggered":
-        victim = event.get("victim_nation", "Unknown")
-        perpetrator = event.get("perpetrator_nation", "France")
-        return f"{victim} has shut the chancery to {perpetrator} after repeated betrayals"
-
-    if event_type == "hard_reject_posture_cleared":
-        victim = event.get("victim_nation", "Unknown")
-        perpetrator = event.get("perpetrator_nation", "France")
-        return f"{victim} has reopened deeper diplomacy with {perpetrator}"
 
     if event_type == "proposal_expired_unseen":
         source = event.get("source", "Unknown")

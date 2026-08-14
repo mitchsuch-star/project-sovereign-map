@@ -123,6 +123,20 @@ all_hidden = list(set(
 
 # Data files
 all_datas = uvicorn_datas + fastapi_datas + starlette_datas
+
+# Aug 2026 health-check audit (shippable-build P0-1): since the July-2 map
+# cutover the backend HARD-REQUIRES three JSONs at repo-relative paths —
+# europe.json (the region registry, backend/models/region.py) plus the
+# europe_1805.json default scenario and tutorial_1805.json (backend/main.py).
+# Under PyInstaller, Path(__file__)-derived paths resolve inside _internal/,
+# so without these datas the frozen server CRASHES ON BOOT (the March 2026
+# build only worked because the pre-cutover game needed no scenario file).
+_MAPS_SRC = os.path.join(
+    PROJECT_ROOT, 'godot-client', 'project-sovereign', 'assets', 'maps')
+_MAPS_DST = os.path.join(
+    'godot-client', 'project-sovereign', 'assets', 'maps')
+for _map_file in ('europe.json', 'europe_1805.json', 'tutorial_1805.json'):
+    all_datas.append((os.path.join(_MAPS_SRC, _map_file), _MAPS_DST))
 all_binaries = uvicorn_binaries + fastapi_binaries + starlette_binaries
 
 a = Analysis(

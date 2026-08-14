@@ -310,11 +310,10 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             visibility = _get_nation_visibility(nation, world)
             army_strength = _format_army_strength(total_strength, visibility)
 
-        # Regions controlled (always visible — map control is public)
-        regions_controlled = sum(
-            1 for r in world.regions.values()
-            if r.controller == nation
-        )
+        # Regions controlled (always visible — map control is public).
+        # GR8: cached helper, not a raw scan — this sits inside the
+        # per-nation loop (O(N×R) before the Aug 2026 health-check audit).
+        regions_controlled = len(world.get_nation_regions(nation))
 
         # PF-9: Active treaty between the PLAYER and this nation only, hidden
         # while at WAR. Treaties are keyed by the canonical pair key, so the

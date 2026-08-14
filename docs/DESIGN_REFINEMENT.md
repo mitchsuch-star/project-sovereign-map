@@ -250,7 +250,8 @@ These refine existing systems and are still implementation-ready later, but they
 - **Status:** **Fully covered** by the Memory and Pressure substrate (shipped April 15-16, 2026). `world.betrayal_history` with severity-scaled decay, per-episode strike caps, bilateral `bilateral_betrayal_mod` in acceptance formula, hard-reject posture at 3 active strikes, witness scoping, Make Amends active-redemption verb (v2.1). The original R119 design (flat -10/-20/-30 with half-witness, 20-turn redemption) was superseded by the spec's graded model. No further work needed on R119 itself.
 - **Files:** `diplomacy.py`
 
-### R131: Cooldown Pre-Check Warning
+### ~~R131: Cooldown Pre-Check Warning~~ ✅ LANDED
+- **Status:** **LANDED** (`diplomatic_executor.py` cooldown pre-check — recorded shipped at 8.EVAL queue-item-6 below; this row was left open by drift, reconciled Aug 2026 health-check audit).
 - **Category:** Player Feedback
 - **Summary:** Warn player of proposal cooldowns before opening negotiation dialogue.
 - **Details:** Pre-check cooldown before dialogue opens. Show remaining turns + Talleyrand message.
@@ -276,20 +277,20 @@ These refine existing systems and are still implementation-ready later, but they
 - **Details:** Lower warning threshold to 30. Show delta when |change| >= 2. Store `prev_loyalty`. Trend arrow in ledger. **Landed shape:** `vassal_loyalty` events carry the dominant-cause `reason` at emission (W6-3 §5.4); the W6-9 assessment renders loyalty + drift trend + the most recent cause per vassal. The residual (ledger trend arrow, threshold tune) stays queue-item-6 (8.EVAL).
 - **Files:** `dispatch.py`, `vassal.py`, `diplomatic_ledger.py`, `diplomatic_advisory.py`
 
-### R17d: DP Breakdown Display
+### ~~R17d: DP Breakdown Display~~ ✅ LANDED
+- **Status:** **LANDED** in `diplomatic_ledger.py` (recorded shipped at 8.EVAL queue-item-6 below; row reconciled Aug 2026 health-check audit).
 - **Category:** QoL
 - **Summary:** Show DP source/cost components in ledger.
-- **Files:** `diplomatic_ledger.py`
 
-### R17e: Relation Trend Arrows
+### ~~R17e: Relation Trend Arrows~~ ✅ LANDED
+- **Status:** **LANDED** in `diplomatic_ledger.py` (same 8.EVAL record; reconciled Aug 2026).
 - **Category:** QoL
 - **Summary:** 3-turn history showing direction of relationships in ledger.
-- **Files:** `diplomatic_ledger.py`
 
-### R17f: Mission Progress Projection
+### ~~R17f: Mission Progress Projection~~ ✅ LANDED
+- **Status:** **LANDED** in `diplomatic_ledger.py` (same 8.EVAL record; reconciled Aug 2026).
 - **Category:** QoL
 - **Summary:** Estimated completion turn for active missions.
-- **Files:** `diplomatic_ledger.py`
 
 ### Memory and Pressure interaction notes (updated for v2.4.3)
 

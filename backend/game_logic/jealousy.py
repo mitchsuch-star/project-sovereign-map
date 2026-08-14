@@ -1958,8 +1958,13 @@ def queue_fontainebleau_petition(world, eroding: List) -> None:
     names = [m.name for m in eroding]
     roll = ", ".join(names[:-1]) + f" and {names[-1]}" if len(names) > 1 else names[0]
     total_shortfall = sum(dotation.get_shortfall(m, world) for m in eroding)
-    rente_bill = sum(dotation.get_rente_cost(dotation.get_shortfall(m, world))
-                     for m in eroding)
+    # Shown = applied (Aug 2026 health-check audit): the concede arm grants
+    # via compute_rente_face — the EWC-F2 rule, which ignores disruption and
+    # subtracts estate worth, NOT get_shortfall. Price the quoted bill off
+    # the executor's own predicate so the card promises what the arm pays.
+    faces = [dotation.compute_rente_face(m, world) for m in eroding]
+    granted_count = sum(1 for f in faces if f > 0)
+    rente_bill = sum(dotation.get_rente_cost(f) for f in faces if f > 0)
     _push_petition(world, {
         "kind": "fontainebleau",
         "title": "The marshals petition the Emperor",
@@ -1971,9 +1976,12 @@ def queue_fontainebleau_petition(world, eroding: List) -> None:
         "speaker": names[0],
         "options": [
             {"id": "concede", "label": "\"I will find the means\"",
-             "detail": (f"Every petitioner receives a rente at his shortfall "
-                        f"(+{FONTAINEBLEAU_CONCEDE_TRUST} trust each). The "
-                        f"treasury will carry ~{rente_bill}g/turn."),
+             "detail": (
+                 (f"{granted_count} of {len(eroding)} petitioners receive a "
+                  if granted_count < len(eroding) else "Every petitioner receives a ")
+                 + f"rente at the gap his estates leave "
+                 + f"(+{FONTAINEBLEAU_CONCEDE_TRUST} trust to each man granted). "
+                 + f"The treasury will carry ~{rente_bill}g/turn."),
              "cost_note": "", "enabled": True},
             {"id": "refuse", "label": "\"The Empire does not beg\"",
              "detail": f"Trust {FONTAINEBLEAU_REFUSE_TRUST} on every "
@@ -2515,8 +2523,16 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
                 "cost": int(dotation.get_rente_cost(face)),
                 "source": "fontainebleau",
             })
-        message = ("\"I will find the means.\" Rentes are granted: "
-                   + "; ".join(granted) + ". The treasury will feel it.")
+        if granted:
+            message = ("\"I will find the means.\" Rentes are granted: "
+                       + "; ".join(granted) + ". The treasury will feel it.")
+        else:
+            # Aug 2026 health-check audit: with every face at 0 (estates
+            # already cover expectation) the old string degenerated to
+            # "Rentes are granted: ." — say what actually happened.
+            message = ("\"I will find the means.\" The books are opened — "
+                       "and every petitioner's estates already meet his "
+                       "expectation. No new rente is required.")
     elif choice == "refuse":
         for marshal in marshals:
             marshal.modify_trust(FONTAINEBLEAU_REFUSE_TRUST)

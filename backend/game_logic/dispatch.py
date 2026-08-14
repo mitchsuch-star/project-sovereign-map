@@ -1960,6 +1960,10 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         # the briefing announces WHEN a marshal starts expecting more
         "rente_cost": rente_cost,
         "expectation_rises": expectation_rises,
+        # EC-U2: infrastructure maintenance — computed above since the EC-U2
+        # slice but never returned until the Aug 2026 health-check audit, so
+        # the briefing named every sibling drain except this one.
+        "infrastructure": infrastructure,
         # DEF-5 naval: the blockade's trade loss + the Admiralty upkeep —
         # both in treasury_delta above, both named here so the briefing can
         # explain the squeeze

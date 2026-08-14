@@ -925,6 +925,23 @@ def validate_scenario(
         result.add_error("root", f"Scenario must be a JSON object, got {type(data).__name__}")
         return result
 
+    # Schema-version gate (mirrors WorldState.from_scenario): version 1 is
+    # the only shape this validator/loader era understands. A newer version
+    # must fail loudly here rather than boot silently against the v1 loader.
+    if "scenario_schema_version" in data:
+        version = data["scenario_schema_version"]
+        if not isinstance(version, int) or version < 1:
+            result.add_error(
+                "scenario_schema_version",
+                f"Must be a positive integer, got {version!r}",
+            )
+        elif version > 1:
+            result.add_error(
+                "scenario_schema_version",
+                f"Schema version {version} is newer than this validator "
+                f"supports (max 1)",
+            )
+
     # Validate player_nation
     if "player_nation" in data:
         if not isinstance(data["player_nation"], str):

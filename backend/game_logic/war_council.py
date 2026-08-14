@@ -728,7 +728,13 @@ def _run_ai_instrument_producers(world, coveter: str, record: Dict,
         if rel_target < 40 or rel_coveter > 0:
             continue
         pledge = pledge_guarantee(world, guarantor=candidate, protected=target)
-        if pledge.get("success", True) and pledge.get("id"):
+        # Aug 2026 health-check audit: pledge_guarantee returns
+        # {"success", "record", "event"} — the old `pledge.get("id")` guard
+        # read a key that never existed, so this whole block was dead: the
+        # one-per-turn stamp never landed, the break never fired (EVERY
+        # qualifying candidate silently pledged), and the player-facing
+        # narration event was never emitted.
+        if pledge.get("success") and pledge.get("record"):
             world._ai_guarantee_this_turn = int(world.current_turn)
             from backend.display_names import humanize_entity_name
             event = {

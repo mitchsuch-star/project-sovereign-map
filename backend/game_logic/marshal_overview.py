@@ -133,7 +133,7 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         **_build_combat_stats(marshal, world),
 
         # ═══════ TRUST & STANDING ═══════
-        **_build_trust_standing(marshal),
+        **_build_trust_standing(marshal, world),
 
         # ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7) ═══════
         **_build_estates(marshal, world),
@@ -286,15 +286,17 @@ def _build_combat_stats(marshal: Marshal, world=None) -> Dict[str, Any]:
     }
 
 
-def _build_trust_standing(marshal: Marshal) -> Dict[str, Any]:
+def _build_trust_standing(marshal: Marshal, world) -> Dict[str, Any]:
     """Trust and standing section."""
     return {
         "trust_value": int(marshal.trust.value),
         "trust_label": marshal.trust.get_label(),
         "vindication_score": int(marshal.vindication_score),
+        # Aug 2026 health-check audit: the tracker lives on the WORLD, not
+        # the marshal — the old hasattr(marshal, ...) read was permanently
+        # False. Same computation the map payload already uses.
         "has_pending_vindication": bool(
-            hasattr(marshal, 'vindication_tracker')
-            and marshal.vindication_tracker is not None
+            world.vindication_tracker.has_pending(marshal.name)
         ),
         "orders_overridden": int(marshal.orders_overridden),
         "battles_won": int(marshal.battles_won),

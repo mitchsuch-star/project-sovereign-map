@@ -41,6 +41,14 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	# §16.1 incoming-offer voice.
 	"incoming_settlement_offer",
 	"ally_settlement_petition",
+	# Aug 2026 health-check audit: the paradox backstop — when an answer to
+	# a commitment paradox is unrecognised, diplomatic_executor re-attaches
+	# the dialogue as a HARD_STOP diplomatic_dialogue. Neither dtype was
+	# whitelisted, so the backstop fired the "Unknown dtype" warning on its
+	# way to the generic popup. Rendering still falls to _build_content
+	# (the dialogue carries talleyrand_text + options).
+	"commitment_paradox",
+	"alliance_paradox",
 ]
 const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"confirm_settlement",
@@ -2593,6 +2601,18 @@ func _display_turn_change(event: Dictionary):
 	var blockade_str = ""
 	if blockade > 0:
 		blockade_str = " | Blockade: -" + str(int(blockade)) + "g"
+	# PT-C4 / EC-U2 mirror (Aug 2026 health-check audit): the backend banner
+	# named Materiel and Infrastructure and subtracted both from `other`, but
+	# never keyed them on the event — so this banner's lines could not sum
+	# to the Net beside them (the SC-33 class again).
+	var materiel = int(event.get("materiel", 0))
+	var materiel_str = ""
+	if materiel > 0:
+		materiel_str = " | Materiel: -" + str(int(materiel)) + "g"
+	var infrastructure = int(event.get("infrastructure", 0))
+	var infrastructure_str = ""
+	if infrastructure > 0:
+		infrastructure_str = " | Infrastructure: -" + str(int(infrastructure)) + "g"
 	var other_val = int(event.get("other", 0))
 	var other_str = ""
 	if other_val != 0:
@@ -2603,7 +2623,7 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + admiralty_str + blockade_str + other_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning
@@ -4724,7 +4744,11 @@ func _on_pending_envoy_result(response: Dictionary):
 	elif dtype in ["conflict_alert", "settlement_confirm", "ally_settlement_petition"]:
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
-		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
+		# R7 (Aug 2026 health-check audit): never show a raw snake_case
+		# dtype — humanize before it can reach the terminal. This arm is
+		# unreachable today (the backend only sets dialogue_type for the
+		# handled families) but is the trap the next dtype would spring.
+		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % str(dtype).replace("_", " ").capitalize())
 
 func _on_mailbox_row_action(mailbox_id: int, action: String):
 	"""IGR-F: Accept / Decline one letter without leaving the letter-book."""

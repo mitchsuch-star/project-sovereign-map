@@ -67,11 +67,18 @@ class TestTransientStateClearingOnLoad:
         loaded = _save_and_load(world, tmp_path)
         assert loaded.gold_spent_this_turn == {}
 
-    def test_attacks_this_turn_cleared_on_load(self, tmp_path):
+    def test_attacks_this_turn_survives_load(self, tmp_path):
+        """Aug 2026 health-check audit re-point: attacks_this_turn is
+        serialized under an explicit 'PER-TURN TRACKING (for mid-turn
+        saves)' contract in to_dict — it is the SOLE input to the flanking
+        bonus, so the old load-side clear silently cost the player the
+        pincer bonus on any mid-turn save/load. The real turn boundary
+        (reset_attack_tracking in advance_turn) still clears it."""
         world = _make_world()
         world.attacks_this_turn = {"Saxony": [{"attacker": "Ney", "defender": "Blucher"}]}
         loaded = _save_and_load(world, tmp_path)
-        assert loaded.attacks_this_turn == {}
+        assert loaded.attacks_this_turn == {
+            "Saxony": [{"attacker": "Ney", "defender": "Blucher"}]}
 
 
 # ============================================================================

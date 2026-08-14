@@ -274,9 +274,10 @@ def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
 
 
 def route_arm(personality: str, parse_resolved: bool) -> str:
-    """The arm the router acts on, applying the phase gate: an aggressive
-    delegation degrades to ASK until the Phase-3 lethal-seam gate lands and
-    Phase 4 flips AGGRESSIVE_ATTACK_ARM_ENABLED."""
+    """The arm the router acts on, applying the phase gate: with
+    AGGRESSIVE_ATTACK_ARM_ENABLED True (Phase 4, landed July 7, 2026) an
+    aggressive delegation engages; flipping it False re-degrades the arm to
+    the safe ASK clarification."""
     arm = classify_arm(personality, parse_resolved)
     if arm == "aggressive" and not AGGRESSIVE_ATTACK_ARM_ENABLED:
         return "ask"

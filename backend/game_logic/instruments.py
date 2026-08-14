@@ -56,6 +56,10 @@ GUARANTEE_RELATION_BONUS = 5        # guarantor↔protected on pledge
 GUARANTEE_GRACE_TURNS = 2           # turns the guarantor has to enter the war
 RENEGE_RELATION_PENALTY = -25       # breaker↔victim on any renege
 INSTRUMENT_DP_COST = 1              # player verbs (charged in-executor)
+DEFAULT_SPONSOR_AMOUNT = 200        # sponsor verb/chip default g/turn (Aug 2026
+                                    # audit: was duplicated as a bare 200 in
+                                    # the executor AND the wizard chip)
+SPONSOR_SUSTAIN_MULT = 4            # treasury must hold amount × this to pledge
 
 # Consumed by intent.py (§3.3 / D5-3 — the numbers the ledger shows):
 GUARANTEE_WEIGHT_DETERRENT = 8      # coveter's weight drop vs a guaranteed holder

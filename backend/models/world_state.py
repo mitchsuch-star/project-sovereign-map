@@ -2001,6 +2001,17 @@ class WorldState:
 
     # PL-23: talleyrand_redemption_popup property removed (trust system deleted)
 
+    # Aug 2026 health-check audit: this was the ONE PopupQueue slot with no
+    # serialization pair — an unopened settlement offer's auto-show card was
+    # dropped on save/load (the offer itself survived in the mailbox).
+    @property
+    def incoming_settlement_offer_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("incoming_settlement_offer_popup")
+
+    @incoming_settlement_offer_popup.setter
+    def incoming_settlement_offer_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("incoming_settlement_offer_popup", value)
+
     @property
     def diplomatic_objection_popup(self) -> Optional[Dict]:
         return self._popup_queue.get("diplomatic_objection_popup")
@@ -5366,6 +5377,14 @@ class WorldState:
             "admiralty": admiralty,
             "upkeep": upkeep_data["total"],
             "upkeep_halved": upkeep_data["halved"],
+            # The WHOLE applied upkeep breakdown rides along so a caller
+            # describing a turn that already ran (ledger/dispatch/banners via
+            # _income_phase_results) renders the upkeep that was CHARGED —
+            # calculate_turn_upkeep reads nation_bankruptcy_turns, which
+            # _update_bankruptcy mutates AFTER this phase, so a recompute on
+            # a bankruptcy-flip turn is off by half the upkeep (Aug 2026
+            # health-check audit).
+            "upkeep_data": upkeep_data,
             "admin_bonus": int(admin_bonus),
             "net": int(net),
             "treasury": int(self.nation_gold[nation]),
@@ -5674,6 +5693,17 @@ class WorldState:
                 refund = get_rente_cost(face)
                 defaulter.pension = 0
                 self.nation_gold[nation] = self.nation_gold.get(nation, 0) + refund
+                # Shown = applied (Aug 2026 health-check audit): the charge
+                # BOUNCED, so the turn's applied description must not still
+                # claim it — fold the refund into the cached income-phase
+                # result the ledger/dispatch/banners read, else their Net
+                # diverges from the measured delta by exactly the refund.
+                applied = (getattr(self, "_income_phase_results", None)
+                           or {}).get(nation)
+                if applied:
+                    applied["rente_cost"] = max(
+                        0, int(applied.get("rente_cost", 0)) - int(refund))
+                    applied["net"] = int(applied.get("net", 0)) + int(refund)
                 self.log_event({
                     "type": "rente_defaulted",
                     "marshal": defaulter.name,
@@ -6109,8 +6139,10 @@ class WorldState:
             Dict containing all game state that can be saved to disk.
         """
         return {
-            # ═══════ FORMAT VERSION ═══════
-            "format_version": "1.0",
+            # (Aug 2026 health-check audit: the dead in-payload
+            # `"format_version": "1.0"` string was removed — nothing ever
+            # read it, and the REAL save format version is the integer
+            # save_manager.FORMAT_VERSION in the metadata block.)
 
             # ═══════ CORE GAME STATE ═══════
             "player_nation": self.player_nation,
@@ -6185,7 +6217,8 @@ class WorldState:
 
             # ═══════ V2a OBJECTION SYSTEM ═══════
             "mild_concerns_this_turn": [c.copy() for c in self.mild_concerns_this_turn],
-            "objection_popups_this_turn": list(self.objection_popups_this_turn),
+            # A10 idiom: sorted so the save is byte-stable across runs
+            "objection_popups_this_turn": sorted(str(k) for k in self.objection_popups_this_turn),
 
             # ═══════ ECONOMY TRACKING ═══════
             "gold_spent_this_turn": self.gold_spent_this_turn.copy(),
@@ -6221,7 +6254,8 @@ class WorldState:
             # ═══════ NOTIFICATIONS (Phase 6.5) ═══════
             "notifications": self.notifications.to_list(),
             "last_bankruptcy_notification_tier": int(self.last_bankruptcy_notification_tier),
-            "eliminated_nations_notified": list(self.eliminated_nations_notified),
+            # A10 idiom: sorted so the save is byte-stable across runs
+            "eliminated_nations_notified": sorted(str(k) for k in self.eliminated_nations_notified),
 
             # ═══════ MORNING DISPATCH (Session A) ═══════
             "last_morning_dispatch": self.last_morning_dispatch.copy() if self.last_morning_dispatch else {},
@@ -6318,7 +6352,8 @@ class WorldState:
             "vassals": {k: v.copy() for k, v in self.vassals.items()},
             "vassal_investment_cooldowns": {k: int(v) for k, v in self.vassal_investment_cooldowns.items()},
             "vassal_release_cooldowns": {k: int(v) for k, v in self.vassal_release_cooldowns.items()},
-            "cascade_triggered": list(self.cascade_triggered),
+            # A10 idiom: sorted so the save is byte-stable across runs
+            "cascade_triggered": sorted(str(k) for k in self.cascade_triggered),
             "continental_system_members": list(self.continental_system_members),
 
             # ═══════ DIPLOMACY Session 6 ═══════
@@ -6535,6 +6570,7 @@ class WorldState:
             "nation_proclamation_popups": [p.copy() for p in self.nation_proclamation_popups],
             "diplomatic_objection_popup": self.diplomatic_objection_popup,
             "incoming_proposal_popup": self.incoming_proposal_popup,
+            "incoming_settlement_offer_popup": self.incoming_settlement_offer_popup,
             "proposal_result_popup": self.proposal_result_popup,
 
             # V2-16: Diplomatic trust cap tracking
@@ -6892,7 +6928,10 @@ class WorldState:
         world.battle_counts = {k: int(v) for k, v in data.get("battle_counts", {}).items()}
         world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
         world.armistice_turns = {k: int(v) for k, v in data.get("armistice_turns", {}).items()}
-        world.previous_treaties = {k: [t.copy() for t in v] for k, v in data.get("previous_treaties", {}).items()}
+        # deepcopy mirrors to_dict's depth — treaty records nest clause lists
+        # (Aug 2026 health-check audit: shallow-on-load aliased nested
+        # containers for any in-memory from_dict(to_dict()) clone)
+        world.previous_treaties = {k: [copy.deepcopy(t) for t in v] for k, v in data.get("previous_treaties", {}).items()}
         world.turns_below_threshold = {k: int(v) for k, v in data.get("turns_below_threshold", {}).items()}
 
         # ═══════ DIPLOMACY Session 3 (R12: DialogueManager) ═══════
@@ -6982,8 +7021,9 @@ class WorldState:
         world.directed_sponsorships = [
             dict(r) for r in (data.get("directed_sponsorships") or [])
         ]
+        # deepcopy: bargain records nest a `granted` dict (Aug 2026 audit)
         world.compensation_bargains = [
-            dict(r) for r in (data.get("compensation_bargains") or [])
+            copy.deepcopy(r) for r in (data.get("compensation_bargains") or [])
         ]
         world.diplomatic_guarantees = [
             dict(r) for r in (data.get("diplomatic_guarantees") or [])
@@ -7006,7 +7046,10 @@ class WorldState:
 
         # ═══════ VASSAL SYSTEM (Session 5) ═══════
         if "vassals" in data:
-            world.vassals = {k: v.copy() for k, v in data["vassals"].items()}
+            # deepcopy: vassal rows nest `regions`/`granted_regions` lists —
+            # a shallow copy aliased them on an in-memory clone (Aug 2026
+            # health-check audit)
+            world.vassals = {k: copy.deepcopy(v) for k, v in data["vassals"].items()}
         # else: keep the constructor's vassals (Europe seeds the 3 French
         # satellites; legacy starts empty) — item 3, an omitted key must not
         # wipe the seeded satellite web.
@@ -7347,6 +7390,9 @@ class WorldState:
         # PL-23: talleyrand_redemption_popup removed (silently ignored from old saves)
         world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
         world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)
+        # Aug 2026 health-check audit: pre-existing saves have no key → None
+        world.incoming_settlement_offer_popup = data.get(
+            "incoming_settlement_offer_popup", None)
         world.proposal_result_popup = data.get("proposal_result_popup", None)
 
         # V2-16: Diplomatic trust cap tracking
@@ -7427,6 +7473,24 @@ class WorldState:
         # Validate basic structure
         if not isinstance(scenario_data, dict):
             raise ValueError(f"Scenario must be a JSON object, got {type(scenario_data).__name__}")
+
+        # Schema-version gate: `scenario_schema_version` is authored in every
+        # shipped scenario and documented in MODDING_FORMAT.md, but until the
+        # Aug 2026 health-check audit nothing read it — a future-schema
+        # scenario booted silently against the v1 loader. Version 1 is the
+        # only shape this loader understands; refuse anything newer loudly.
+        schema_version = scenario_data.get("scenario_schema_version", 1)
+        if not isinstance(schema_version, int) or schema_version < 1:
+            raise ValueError(
+                f"Scenario 'scenario_schema_version' must be a positive integer, "
+                f"got {schema_version!r}"
+            )
+        if schema_version > 1:
+            raise ValueError(
+                f"Scenario schema version {schema_version} is newer than this "
+                f"loader supports (max 1). Update the game, or author the "
+                f"scenario against schema version 1 (see docs/MODDING_FORMAT.md)."
+            )
 
         # 1805 pre-slice item 2: the default map is world-scoped. A scenario
         # declaring `sovereign_map: "europe"` gets the validated 126-province

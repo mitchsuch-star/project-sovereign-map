@@ -6843,20 +6843,25 @@ def ai_should_propose_bargain(
             return {"feasible": False, "decision_reason": "participation_blocked", "claim_region": None}
         return {"feasible": False, "decision_reason": "hard_blocked", "claim_region": None}
 
-    # Target must have at least one marshal and sufficient strength
+    # Target must have at least one marshal and sufficient strength.
+    # Aug 2026 health-check audit: this block read `m.troops` and `m.alive`,
+    # neither of which exists on Marshal (the field is `strength`; capture
+    # zeroes it) — so proposer_strength was ALWAYS 0 and the §11.1
+    # "militarily irrelevant target" gate had never once fired, while
+    # annihilated marshals still counted as a standing army.
     target_marshals = [
         m for m in getattr(world, "marshals", {}).values()
-        if getattr(m, "nation", "") == target_nation and getattr(m, "alive", True)
+        if getattr(m, "nation", "") == target_nation and m.strength > 0
     ]
     if not target_marshals:
         return {"feasible": False, "decision_reason": "strength_insufficient", "claim_region": None}
 
-    target_strength = sum(getattr(m, "troops", 0) for m in target_marshals)
+    target_strength = sum(m.strength for m in target_marshals)
     proposer_marshals = [
         m for m in getattr(world, "marshals", {}).values()
-        if getattr(m, "nation", "") == proposer and getattr(m, "alive", True)
+        if getattr(m, "nation", "") == proposer and m.strength > 0
     ]
-    proposer_strength = sum(getattr(m, "troops", 0) for m in proposer_marshals)
+    proposer_strength = sum(m.strength for m in proposer_marshals)
     if proposer_strength > 0 and target_strength < proposer_strength * 0.25:
         if not _has_bargain_participation_access(world, proposer, target_nation, named_enemy):
             return {"feasible": False, "decision_reason": "strength_insufficient", "claim_region": None}
@@ -8580,6 +8585,10 @@ def _process_war_cascade(
             if returned_war_id and returned_war_id != ctx.war_id:
                 ctx.war_id = returned_war_id
             return result
+        # Deliberately absent from CAMPAIGN_LOG_TYPES: this is an internal
+        # invariant-failure diagnostic carrying a raw error code — the
+        # campaign-log whitelist drops it by design (R7: no raw error keys
+        # reach the player). It stays in the event log for debugging.
         blocked = {
             "type": "war_cascade_blocked",
             "entry_path": entry_path,
@@ -9687,6 +9696,10 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 reason="armistice collapse",
             )
             if not war_instance_result.get("ok"):
+                # Deliberately absent from CAMPAIGN_LOG_TYPES: internal
+                # invariant-failure diagnostic with a raw error code — the
+                # whitelist drops it by design (R7). Kept in the event log
+                # for debugging only.
                 blocked = {
                     "type": "armistice_expired_war_blocked",
                     "nations": [nation_a, nation_b],
@@ -10237,10 +10250,19 @@ def apply_continental_system(world) -> None:
         trade = TRADE_INCOME.get(member_state, 0)
         if trade > 0:
             blocked = min(75, trade, max_total_cap - total_blocked)
+            # Floor the DEDUCTION at the payer's positive balance, never the
+            # balance itself: the old `max(0, gold - blocked)` form silently
+            # erased any pre-existing debt (a nation at -3,000 was lifted to 0
+            # every turn), conjuring gold outside every ledger component
+            # (Aug 2026 health-check audit).
             if member in world.nation_gold:
-                world.nation_gold[member] = max(0, world.nation_gold[member] - int(blocked))
+                world.nation_gold[member] -= min(
+                    int(blocked), max(0, world.nation_gold[member])
+                )
             if "Britain" in world.nation_gold:
-                world.nation_gold["Britain"] = max(0, world.nation_gold["Britain"] - int(blocked))
+                world.nation_gold["Britain"] -= min(
+                    int(blocked), max(0, world.nation_gold["Britain"])
+                )
             total_blocked += blocked
 
     world.continental_system_members = members
@@ -10960,6 +10982,7 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
     honesty. The guarantee is world-agnostic like the D5 record itself.
     """
     from backend.game_logic.instruments import (
+        GUARANTEE_WEIGHT_DETERRENT,
         INSTRUMENT_DP_COST,
         compute_buyoff_price,
         guarantors_of,
@@ -10998,7 +11021,9 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         # Gate ORDER mirrors the executor: the DP preflight refuses
         # before any verb-specific gate does (shown = what the click
         # would actually say first).
-        amount = 200  # the chip's default subsidy; the typed verb takes any
+        from backend.game_logic.instruments import (
+            DEFAULT_SPONSOR_AMOUNT, SPONSOR_SUSTAIN_MULT)
+        amount = DEFAULT_SPONSOR_AMOUNT  # single-sourced with the executor
         if dp_available < INSTRUMENT_DP_COST:
             sponsor_ok, reason = False, "Insufficient DP (need 1)."
         elif at_war:
@@ -11020,10 +11045,10 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
                  and r.get("aim") == aim
                  for r in getattr(world, "directed_sponsorships", []) or []):
             sponsor_ok, reason = False, "The compact already stands."
-        elif treasury < amount * 4:
+        elif treasury < amount * SPONSOR_SUSTAIN_MULT:
             sponsor_ok, reason = (
                 False, f"The treasury cannot sustain the subsidy "
-                       f"(needs {amount * 4}g in hand).")
+                       f"(needs {amount * SPONSOR_SUSTAIN_MULT}g in hand).")
         else:
             sponsor_ok, reason = True, ""
         from backend.display_names import display_nation as _dn
@@ -11079,7 +11104,10 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         "guarantee_nation",
         "Guarantee Their Borders",
         guarantee_ok, reason,
-        "Raises every coveter's bar for war (-8 weight) — and stakes "
+        # single-sourced (Aug 2026 audit): quote the applied constant, never
+        # a hardcoded copy that drifts on retune
+        f"Raises every coveter's bar for war "
+        f"(-{int(GUARANTEE_WEIGHT_DETERRENT)} weight) — and stakes "
         "French credibility on the pledge being honoured.",
     ))
     return actions

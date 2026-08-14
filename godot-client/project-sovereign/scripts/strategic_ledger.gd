@@ -797,7 +797,10 @@ func _render_manpower():
 		var max_val = int(pool.get("max", 0))
 		var regen = int(pool.get("regen_rate", 0))
 		var recruit_amt = int(pool.get("recruit_amount", 0))
-		var recruit_cost = int(pool.get("recruit_base_cost", 0))
+		# Aug 2026 health-check audit: render the LIVE executor-priced figure
+		# (war ×3, stability bands, force limit, marshal) — the base price
+		# understated the real charge by up to 2.25× at the wartime boot.
+		var recruit_cost = int(pool.get("recruit_price", int(pool.get("recruit_base_cost", 0))))
 		var cost_note = str(pool.get("cost_note", ""))
 		var turns_full = int(pool.get("turns_until_full", 0))
 

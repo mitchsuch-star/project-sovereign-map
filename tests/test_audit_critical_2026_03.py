@@ -286,12 +286,19 @@ class TestC4CancelOrderEndpoint:
     """Tests for /cancel_order endpoint hardening."""
 
     def test_cancel_order_has_popup_passthrough(self):
-        """Source code must use build_base_response or _build_result_response (structurally guarantees popups)."""
+        """Must use the response builders WITHOUT draining the popup queue.
+
+        Aug 2026 health-check audit re-point: the builder-presence assert
+        stayed green while the default drain destroyed queued popups (the
+        ledger's cancel callback never reads the body).
+        """
         import inspect
         from backend.main import cancel_order
         source = inspect.getsource(cancel_order)
         assert "build_base_response" in source or "_build_result_response" in source, \
             "/cancel_order must use build_base_response or _build_result_response"
+        assert "drain_popups=False" in source, \
+            "/cancel_order must not drain the popup queue (Aug 2026 audit)"
 
     def test_cancel_order_has_try_except(self):
         """Source code must have try/except wrapper."""

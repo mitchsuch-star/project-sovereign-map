@@ -4,6 +4,114 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE WHOLE-GAME HEALTH CHECK — August 14, 2026
+>
+> **A six-agent audit fleet (serialization / API↔Godot wiring / shown-vs-applied
+> + GR5 / build-stage readiness / economy ledger identity / integration &
+> missing features) swept the game under the user's "are we truly at build
+> stage" directive, then ~35 confirmed findings were verified and FIXED in one
+> session.** Suite green, ruff clean, parse harness EXIT=0; landing record =
+> this entry + `tests/test_health_check_audit_2026_08_14.py` (the pin file).
+>
+> **The headline fixes, one line each:**
+> - **The Continental System conjured gold** — `max(0, gold − blocked)`
+>   floored the BALANCE not the deduction, erasing any member's debt every
+>   turn (12,000g created in the probe). Now floors the deduction.
+> - **The AI-guarantee arm was structurally dead** (`pledge.get("id")` read a
+>   key `pledge_guarantee` never returns): no one-per-turn cap, no `break`
+>   (every qualifying candidate silently pledged), no narration event. Live.
+> - **Three popup-drain endpoints** (`/notifications/dismiss`, `/cancel_order`,
+>   `/save`) + redemption/glorious-charge destroyed any queued choice popup
+>   (the IGR-X7 family — verified live); all five now fill-without-draining.
+>   The two tests that "pinned" them asserted builder PRESENCE and stayed
+>   green through the bug — re-pointed at drain semantics.
+> - **The objection-insist path discarded the battle diorama and the capture
+>   choice** (the CA8-25 shape at two more seams) — `_carry_combat_fields`
+>   now runs at both `meta_executor` sites + `_respond_to_objection_sync`.
+> - **Ledger identity:** `_build_economy` recomputed upkeep/admin-bonus after
+>   the phase mutated their inputs (bankruptcy-flip ±half-upkeep; +25g/AP
+>   overstatement) — both now prefer the APPLIED phase result; the
+>   auto-advance banner's partial Net (605g understated) now uses the
+>   measured-delta + `Other` formula; `turn_end_event` carries
+>   materiel/infrastructure and `main.gd` renders them; the ESP-4 rente
+>   refund folds into the applied result; insolvent counterparties render
+>   capped tribute/treaty/settlement streams; dispatch returns the
+>   `infrastructure` it computed and threw away.
+> - **The MANPOWER panel quoted 200g against a 450g charge** with a "±25%
+>   stability" note describing a rule that does not exist — now carries the
+>   executor-priced `recruit_price` (war ×3 etc.) and honest copy.
+> - **The Fontainebleau concede card priced off `get_shortfall`** while the
+>   executor grants via `compute_rente_face` (wrong bill, "every petitioner"
+>   false, degenerate "Rentes are granted: ." message) — surface now calls
+>   the executor's own predicate.
+> - **`ai_should_propose_bargain` read `m.troops`/`m.alive`** (neither exists
+>   on Marshal — the §11.1 strength gate had never fired once); now reads
+>   `strength`. Same shape fixed: `marshal_overview.has_pending_vindication`
+>   (tracker lives on the WORLD — was permanently False) and naval's
+>   `is_captured` dead guard.
+> - **`load_game` wiped two deliberately-serialized mid-turn stores** (the
+>   ±5/turn diplomatic-trust cap — its own comment says "survives save/load"
+>   — and the flanking `attacks_this_turn`); both preserved now, and the
+>   version gate refuses NEWER saves with a clear message instead of feeding
+>   them to `from_dict`.
+> - **13 provably-dead arms deleted from `format_event_oneliner`** (all
+>   shadowed by the `COMMITMENTS_ROUTES` early return); the two
+>   whitelist-dropped diagnostics documented as deliberate (raw error codes,
+>   R7); `scenario_schema_version` finally VALIDATED (was authored +
+>   documented + read by nobody); `incoming_settlement_offer_popup` gained
+>   the serialization pair it never had; three unsorted set serializations
+>   now byte-stable (A10); naval Admiralty embark terms mirror the
+>   executor's coastal-abroad arm and the land-adjacency refusal is named;
+>   instrument constants single-sourced (guarantee −8 / sponsor 200 /
+>   BROKER_ASK_MARGIN); the dead naval AP constants deleted.
+> - **Doc drift reconciled:** SYSTEMS_REFERENCE no longer teaches the
+>   MC-4-retired balanced/loyal or a literal-objection table W6-5 superseded
+>   (Soult correctly literal); ADDING_CONTENT's authoring table stops
+>   presenting validator-refused types; DESIGN_REFINEMENT's R131/R17d/e/f
+>   marked LANDED per their own 8.EVAL record; TOP_BAR_SPEC headed
+>   SHIPPED-HISTORICAL; MUSIC_SOUND_SPEC's audio pool disposed with its
+>   closed gate; deploy `ink_iron.spec` gains the three scenario-JSON
+>   `datas` without which the frozen server crashes on boot (build P0-1).
+>
+> **THE LLM/TOKEN PLAN NOW EXISTS — `docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`**
+> (5-agent research workflow: 12+ shipped Steam AI games surveyed, Valve
+> policy, cost model — ~$0.003/parse, <$2 a campaign — and sentiment):
+> **v1 = mock-default + reframed BYOK, sell nothing AI-related in EA; token
+> packs NEVER (the AI2U retreat); local-model parsing is the v2 flagship.**
+> ROADMAP position 14 carries the ruling + the six open owner questions.
+>
+> **BUILD-STAGE VERDICT (the question asked): NOT yet at shippable-build
+> stage, but the row is honestly 1–2 sessions, matching its estimate.** The
+> pipeline is real (PyInstaller spec now boot-viable, export preset, licensing
+> ship-ready, no hardcoded paths, mock default). What remains, all P0/P1 with
+> known seams, owned by position 10: launch.bat contradicts the mock-mode DoD
+> (hard-requires a key); the shipped `.pck` is the pre-cutover game (fresh
+> export + verify JSONs in pck); **cheats are armed in exactly the keyless-
+> mock config a build ships** (`meta_executor` `key_source != "none"` gate —
+> re-gate on explicit debug); saves are CWD-relative (`%APPDATA%` move);
+> README_TESTER describes the deleted 19-region game; no client-side backend
+> supervision. Plus: move the stray 265MB `assets/movies.avi` out of `res://`
+> before any export.
+>
+> **REPORT-ONLY (design-owned, NOT built — each needs its gate):** AI naval
+> expedition costs 1 admin AP vs the player's 2 military AP (GR5 question for
+> the naval/econ gate); naval dominance is invisible to the war score (the A2
+> strangulation arc reads 0 on the bar — recommend a capped signed component,
+> gate-sized M); PT-J2 campaign ledgers feed no narration ("this war has
+> taken 41,000 men" is one rung, S); glory never reaches a foreign court (S
+> flavor / M term); RN cannot interdict shore supply (M, one arm in the
+> supply seam); **seasons/weather do not exist** — the one large expansion
+> the codebase is structurally ready for (L, own gate); tutorial teaches
+> nothing landed after July 17 (S extend step XIV / M second lesson);
+> `dialogue_manager.replace()` can orphan a hybrid dialogue's popup (W7 —
+> fix candidate: preempt() for HYBRID types, needs a dialogue-stack review);
+> B4's ~14 zero-reader payload fields (delete candidates, some test-pinned).
+>
+> **Suite after this session: see the gate figures in the commit message.**
+> M1–M7 and `BASELINE_SERIES` checked — see commit for byte-identity status.
+>
+> ---
+>
 > ## ✅ ROW PT IS BUILD-COMPLETE (August 12, 2026)
 >
 > **All eight slices landed in spec order**, commits `297b939`..`769a3cb`.

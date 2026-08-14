@@ -1945,6 +1945,15 @@ class CommandExecutor:
             saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
             saved_gold_spent = world.gold_spent_this_turn.copy()
 
+            # Mirror _execute_end_turn's F6/PT-C4 measurement window (Aug 2026
+            # health-check audit): snapshot the treasury and open the materiel
+            # window BEFORE turn processing, so this banner's Net is the TRUE
+            # measured change with an `Other` residual — not a partial
+            # component sum that omitted trade/tribute/treaty/admin (it
+            # understated Net by 605g at the 1805 boot).
+            treasury_before_turn = world.nation_gold.get(world.player_nation, 0)
+            world.materiel_spent_this_turn = {}
+
             turn_manager = TurnManager(world, executor=self)
             turn_result = turn_manager.end_turn(game_state)
 
@@ -2002,7 +2011,11 @@ class CommandExecutor:
             # figure shown was never the one charged.
             income_data = (getattr(world, "_income_phase_results", None) or {}).get(nation) \
                 or world.calculate_turn_income(nation)
-            upkeep_data = world.calculate_turn_upkeep(nation)
+            # Prefer the APPLIED upkeep breakdown (rides the phase result) —
+            # a recompute reads post-_update_bankruptcy state, off by half
+            # the upkeep on a bankruptcy-flip turn (Aug 2026 audit).
+            upkeep_data = income_data.get("upkeep_data") \
+                or world.calculate_turn_upkeep(nation)
             treasury = world.nation_gold.get(nation, 0)
             income_val = income_data["income"]
             upkeep_val = upkeep_data["total"]
@@ -2029,10 +2042,27 @@ class CommandExecutor:
             # ES-7 second pass (§0.6.8): the rente bill
             rente_val = int(income_data.get("rente_cost", 0))
             spent_val = saved_gold_spent.get(nation, 0)
-            net_val = (income_val + requisitions_val + overseas_val
-                       - occupation_val - contributions_val
-                       - state_charges_val - dotation_val - rente_val
-                       - infrastructure_val - admiralty_val - upkeep_val)
+            # DEF-5 naval: the blockade's trade suspension — its meta sibling
+            # carries it; this banner omitted it (Aug 2026 audit).
+            blockade_val = 0
+            if getattr(world, "fleets", None):
+                from backend.game_logic.naval import blockade_trade_loss
+                blockade_val = int(blockade_trade_loss(world).get(nation, 0))
+            # PT-C4: the Butcher's Bill charged inside this window.
+            materiel_val = int(getattr(world, "materiel_spent_this_turn", {})
+                               .get(nation, 0))
+            # F6 formula (Aug 2026 health-check audit — mirrors
+            # _execute_end_turn): Net is the MEASURED treasury change, and
+            # `Other` is the reconciling residual (trade, tribute, treaty
+            # clauses, admin bonus). The old partial component sum was
+            # neither the measured delta nor the ledger's Net.
+            net_val = treasury - treasury_before_turn
+            other_val = net_val - (income_val + requisitions_val + overseas_val
+                                   - occupation_val - contributions_val
+                                   - state_charges_val - dotation_val
+                                   - rente_val - infrastructure_val
+                                   - admiralty_val - blockade_val - upkeep_val
+                                   - materiel_val)
             bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
             turn_end_event = {
                 "type": "turn_end",
@@ -2047,7 +2077,11 @@ class CommandExecutor:
                 "dotation_skim": int(dotation_val),
                 "rente_cost": int(rente_val),
                 "admiralty": int(admiralty_val),
+                "blockade": int(blockade_val),
+                "materiel": int(materiel_val),
+                "infrastructure": int(infrastructure_val),
                 "upkeep": int(upkeep_val),
+                "other": int(other_val),
                 "spent": int(spent_val),
                 "net": int(net_val),
                 "treasury": int(treasury),
@@ -2068,10 +2102,15 @@ class CommandExecutor:
             admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
             dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
             rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
+            blockade_str = f" | Blockade: -{blockade_val}g" if blockade_val > 0 else ""
+            materiel_str = f" | Materiel: -{materiel_val}g" if materiel_val > 0 else ""
+            other_str = ""
+            if other_val != 0:
+                other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 

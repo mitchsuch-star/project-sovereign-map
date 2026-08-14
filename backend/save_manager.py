@@ -36,7 +36,9 @@ AUTOSAVE_FILENAME = "autosave.json"
 #   2 — 19-region map (pre-Europe-cutover)
 #   3 — 126-province Europe map cutover (Map Slice 5); region keys changed
 FORMAT_VERSION = 3
-MAX_MANUAL_SAVES = 10
+# (Aug 2026 health-check audit: the dead `MAX_MANUAL_SAVES = 10` constant was
+# removed — no code ever enforced a manual-save cap; if a cap is wanted it
+# belongs in save_game with an oldest-non-autosave prune, as its own slice.)
 
 
 def ensure_save_dir():
@@ -118,13 +120,28 @@ def load_game(filepath: Path) -> Dict:
         # v1 = 13-region map, v2 = 19-region map; the 126-province Europe
         # cutover (format v3) changed every region key, so older saves
         # cannot load — fail with a clear versioned message, never crash.
-        save_version = metadata.get("format_version", 1)
+        # Aug 2026 health-check audit: coerce defensively (a null/string
+        # format_version used to raise TypeError into the generic "Load
+        # failed: '<' not supported…" handler) and reject NEWER saves too —
+        # feeding a future-format save to from_dict mis-loads silently.
+        try:
+            save_version = int(metadata.get("format_version") or 1)
+        except (TypeError, ValueError):
+            save_version = 0
         if save_version < FORMAT_VERSION:
             return {"success": False,
                     "message": (
                         f"This save (format v{save_version}) predates the "
                         f"126-province Europe map (format v{FORMAT_VERSION}) "
                         "and is incompatible with the current version."
+                    ),
+                    "world": None, "metadata": metadata}
+        if save_version > FORMAT_VERSION:
+            return {"success": False,
+                    "message": (
+                        f"This save (format v{save_version}) was written by a "
+                        f"NEWER version of the game (this build reads "
+                        f"v{FORMAT_VERSION}). Update the game to load it."
                     ),
                     "world": None, "metadata": metadata}
 
@@ -140,9 +157,15 @@ def load_game(filepath: Path) -> Dict:
         world.objection_popups_this_turn = set()
         world.mild_concerns_this_turn = []
         world.gold_spent_this_turn = {}
-        world.diplomatic_trust_applied = {}
+        # Aug 2026 health-check audit — two deliberate NON-clears:
+        # `diplomatic_trust_applied` is the ±5/turn diplomatic trust cap
+        # ("survives save/load" is its in-code contract; wiping it here let
+        # a mid-turn save/load refresh every marshal's budget), and
+        # `attacks_this_turn` is serialized under an explicit "for mid-turn
+        # saves" contract (wiping it cost the player the flanking bonus).
+        # Both are restored by from_dict and cleared at the real turn
+        # boundary by _advance_turn_internal / reset_attack_tracking.
         world.threat_sources_this_turn = []
-        world.attacks_this_turn = {}
 
         # Fog of War: recalculate visibility after load (Phase 6 Session 33)
         # Handles backward compat for old saves that have no intel data —

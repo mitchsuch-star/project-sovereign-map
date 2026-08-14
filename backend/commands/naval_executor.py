@@ -229,8 +229,8 @@ class NavalExecutor:
                     f"corps if intercepted, "
                     f"~{int(naval.EXPEDITION_TURNBACK_LOSS * 100)}% turned "
                     f"back — and the fleet's readiness "
-                    f"−{naval.EXPEDITION_TURNBACK_READINESS} either way. "
-                    f"Sail? (yes / no)"),
+                    f"−{naval.EXPEDITION_TURNBACK_READINESS} if she is "
+                    f"turned back. Sail? (yes / no)"),
                 "interpreted_target": target,
                 "options": [
                     {"label": f"Sail for {target}", "command": reissue,

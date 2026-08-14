@@ -191,7 +191,9 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
                             (defenders_leader, attackers_leader)):
         score = int(get_war_score_for(world, proposer, other))
         threshold = effective_peace_threshold(proposer, other, world)
-        margin = 10 if force else 0
+        # single-sourced (Aug 2026 audit): the force margin IS the broker
+        # ask band — a bare literal here desynced on retune
+        margin = BROKER_ASK_MARGIN if force else 0
         if score < threshold + margin:
             candidates.append((score, proposer, other))
     if not candidates:
@@ -261,7 +263,7 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         winner_threshold = effective_peace_threshold(winner, loser, world)
         mutual_exhaustion = (not material
                              and winner_score < winner_threshold + (
-                                 10 if force else 0))
+                                 BROKER_ASK_MARGIN if force else 0))
         if not surrender_shaped and not mutual_exhaustion and not force:
             return None
 
