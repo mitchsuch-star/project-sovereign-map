@@ -81,9 +81,19 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > measured absurdity neutralized; EC-U1 stands); **PT-J4 "The Bench
 > Speaks"** — `first_affordable_commission` wraps `check_commission` as
 > the ONE predicate behind the war-room rung 3.5, the capture-beat bench
-> note, and the once-latched serialized notification; found in passing —
-> the W6-9 `execute_suggestion` arm skipped the typed route's 1 admin AP
-> (both admin kinds now mirror the pre-flight).
+> note, and the once-latched serialized notification (the commission arm
+> mirrors the typed route's 1 admin AP + `should_end_turn`; invest stays
+> FREE per R72). **A same-session three-lens review round took SIX
+> confirmed findings, ALL FIXED (record = spec §4.2.1)** — headline: the
+> ledger's demobilize rule moved to the `set_diplomatic_state` chokepoint
+> (typed conquest-vassalization and the forced-alliance ARMISTICE arm
+> never reach `cleanup_war_end`; elimination leaks by design), drawn
+> battles now bleed into the ledger (all three producers gated on a
+> WINNER — the blood component's founding case recorded nothing), the
+> relax pass gained a bare-peace futility guard, the invest-AP "mirror"
+> was INVERTED and is reverted with parity pins, and eliminating a
+> non-player coalition target no longer brands the victors traitors;
+> [P3-5] pooled allied dead → an EC-2 pass-2 rider in DESIGN_REFINEMENT.
 >
 > **▶ NEXT = the played 20-turn campaign** (the row's acceptance owes the
 > CA9 row-2 gate arm firing at least once) **+ the standing visual

@@ -3696,6 +3696,14 @@ class WorldState:
             if not self.get_nations_at_war_with(we_nation):
                 self.war_exhaustion.pop(we_nation, None)
 
+        # PT-J2: the dead nation's campaign ledgers demobilize via the
+        # set_diplomatic_state chokepoint — the PEACE teardown loop above
+        # transits every pair through it, and the ledger arm there is
+        # deliberately reason-blind (elimination is the war concluded
+        # ABSOLUTELY; a leaked ledger would bill PT-J3's pensions forever
+        # for a war that no longer exists — pinned in
+        # test_elimination_demobilizes_the_pair_ledger).
+
         # Remove from coalition if member
         from backend.game_logic.coalition import remove_coalition_member
         remove_coalition_member(nation, self)
@@ -11179,6 +11187,14 @@ class WorldState:
                         defender_participants=(theater or {}).get("defender_participants"),
                         nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                     )
+                else:
+                    # PT-J2 review round [P2-3]: the drawn charge's dead
+                    # accrue to the campaign ledger (the auto-charge is
+                    # its own combat copy — mirrored arm).
+                    self.record_campaign_casualties(
+                        marshal.nation, enemy.nation,
+                        int(combat_result.get("attacker", {}).get("casualties", 0)),
+                        int(combat_result.get("defender", {}).get("casualties", 0)))
 
                 # Only reset recklessness when the charge actually executed.
                 # If terrain blocked the charge, recklessness should persist —

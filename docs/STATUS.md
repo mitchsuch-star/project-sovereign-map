@@ -63,9 +63,23 @@
 >    `first_affordable_commission`/`commission_counsel_need` wrap
 >    `check_commission` as the ONE predicate behind the counsel rung 3.5,
 >    the capture-beat bench note, and the once-latched serialized
->    notification; **found in passing:** the W6-9 `execute_suggestion`
->    arm skipped the typed route's 1 admin AP — both admin kinds now
->    mirror the pre-flight. **Remaining on row PT = the played 20-turn
+>    notification (the commission suggestion arm mirrors the typed
+>    route's 1 admin AP + `should_end_turn`; invest stays FREE per R72).
+>    **A three-lens review round the same session took SIX confirmed
+>    findings, ALL FIXED — record = spec §4.2.1**, headline: the ledger's
+>    demobilize seam moved to the `set_diplomatic_state` chokepoint
+>    (two formal-end roads — typed conquest-vassalization and the
+>    forced-alliance ARMISTICE arm — never reach `cleanup_war_end`, and
+>    elimination leaks by design), drawn battles now bleed into the
+>    ledger (all three producers gated on a WINNER — the blood
+>    component's founding case recorded nothing), the widened relax
+>    pass gained a bare-peace futility guard (an unhelpable holdout
+>    could drain every court's demands), the first cut of the invest-AP
+>    "mirror" was INVERTED and is reverted with parity pins, and
+>    eliminating a non-player coalition target no longer brands the
+>    victors traitors. [P3-5] pooled allied dead billing the primary
+>    nations' pensions is homed as an EC-2 pass-2 rider in
+>    `DESIGN_REFINEMENT.md`. **Remaining on row PT = the played 20-turn
 >    campaign** (CA9 row-2 gate arm at least once) **+ the visual
 >    sign-offs** (item 3).
 > 3. **The three owed visual sign-offs stand**, and this row adds to them: one

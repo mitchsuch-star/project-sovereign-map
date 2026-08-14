@@ -38,7 +38,6 @@ from backend.game_logic.diplomacy import (
     DECISIVE_SCORE_CAP,
     calculate_side_war_score,
     calculate_war_score,
-    cleanup_war_end,
     record_battle,
     set_diplomatic_state,
 )
@@ -288,6 +287,45 @@ class TestCampaignBlood:
         assert components["blood"] == 0
 
 
+class TestDrawnBattleAccrues:
+    def test_a_drawn_battle_still_bleeds_into_the_ledger(self):
+        """Review round [P2-3]: every battle-record producer gated the
+        record_battle call on a WINNER, so mutual destruction and
+        stalemate — the bloodiest outcomes, and the blood component's
+        own founding case (the DR-1 out-bled stalemate) — accrued
+        nothing. The draw arms feed the ledger directly while
+        battle_records stays winner-only."""
+        from tests.conftest import MarshalFactory
+        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                      strength=30000, nation="France")
+        mack = MarshalFactory.enemy(name="Mack", location="Belgium",
+                                    nation="Austria", strength=30000,
+                                    personality="cautious")
+        world = WorldFactory.with_marshals([ney, mack])
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "WAR"
+        world.war_start_turns[key] = world.current_turn
+        result = CommandExecutor().execute(
+            {"success": True,
+             "command": {"marshal": "Ney", "action": "attack",
+                         "target": "Mack"}},
+            {"world": world})
+        assert result.get("success"), result.get("message")
+        event = next(e for e in world.event_log
+                     if e.get("type") == "battle")
+        # The general contract: the ledger holds each side's dead from
+        # the battle regardless of outcome…
+        cas = world.campaign_ledgers[key]["casualties"]
+        assert cas.get("France", 0) == int(event["attacker_casualties"])
+        assert cas.get("Austria", 0) == int(event["defender_casualties"])
+        assert cas.get("France", 0) > 0 and cas.get("Austria", 0) > 0
+        # …and when the field produced no victor, the winner-only
+        # battle_records row correctly does not exist while the ledger
+        # does (the pre-fix code dropped BOTH).
+        if "victory" not in str(event.get("outcome", "")):
+            assert world.battle_records.get(key, []) == []
+
+
 class TestBattleReweight:
     def test_battle_component_caps_at_the_new_cap(self):
         world = WorldFactory.with_war("France", "Prussia")
@@ -369,15 +407,20 @@ class TestTheWhitePeaceFix:
 
 
 class TestLedgerLifecycle:
+    """The ledger's ONE demobilize seam is the set_diplomatic_state
+    chokepoint (review round [P1-2/P3-4]: two formal-end roads never
+    reach cleanup_war_end, so the rule cannot live there) — every test
+    here drives the delivered transition, not a helper."""
+
     def test_formal_peace_clears_the_pair_ledger(self):
         world = WorldFactory.with_war("France", "Prussia")
         key = world._make_diplo_key("France", "Prussia")
         world.campaign_ledgers[key] = {
             "captures": {}, "casualties": {"France": 5000}}
-        cleanup_war_end(world, key, conclude_objectives=True)
+        set_diplomatic_state(world, "France", "Prussia", "PEACE")
         assert key not in world.campaign_ledgers
 
-    def test_armistice_keeps_the_ledger(self):
+    def test_armistice_keeps_the_ledger_and_collapse_keeps_it_too(self):
         """A truce pauses the war (same war_id on collapse) — it must not
         amnesty four provinces of blood. Deliberate divergence from
         battle_records, which armistice wipes (pre-existing)."""
@@ -385,8 +428,25 @@ class TestLedgerLifecycle:
         key = world._make_diplo_key("France", "Prussia")
         world.campaign_ledgers[key] = {
             "captures": {}, "casualties": {"France": 5000}}
-        cleanup_war_end(world, key, conclude_objectives=False)
+        set_diplomatic_state(world, "France", "Prussia", "ARMISTICE")
         assert key in world.campaign_ledgers
+        set_diplomatic_state(world, "France", "Prussia", "WAR")
+        assert key in world.campaign_ledgers
+
+    def test_typed_conquest_vassalization_demobilizes(self):
+        """[P1-2] the typed `make X a vassal` conquest road never runs
+        cleanup_war_end — the settlement road does — so before the
+        chokepoint arm the ledger survived vassalization forever: both
+        sides paid pensions for a concluded war, and a later REBELLION
+        war opened preloaded with the dead war's captures and blood."""
+        world = WorldFactory.with_war("France", "Prussia")
+        key = world._make_diplo_key("France", "Prussia")
+        world.campaign_ledgers[key] = {
+            "captures": {"France": ["R1"]},
+            "casualties": {"France": 5000, "Prussia": 9000}}
+        set_diplomatic_state(
+            world, "France", "Prussia", "VASSAL", "conquest_vassalization")
+        assert key not in world.campaign_ledgers
 
     def test_ledger_round_trips_through_serialization(self):
         world = WorldFactory.with_war("France", "Prussia")
@@ -491,6 +551,19 @@ class TestPensionsOfTheFallen:
         europe.campaign_ledgers["Britain|France"] = {
             "captures": {}, "casualties": {"France": 4500}}
         assert europe.get_campaign_dead("France") == 7500
+
+    def test_elimination_demobilizes_the_pair_ledger(self):
+        """Elimination ends wars WITHOUT cleanup_war_end (the EC-W2
+        mirror), so the teardown clears the dead nation's pair ledgers
+        itself — a leaked ledger would bill pensions forever for a war
+        that no longer exists."""
+        world = _coalition_world()
+        key = world._make_diplo_key("France", "Austria")
+        world.campaign_ledgers[key] = {
+            "captures": {}, "casualties": {"France": 9000}}
+        world._eliminate_nation("Austria")
+        assert key not in world.campaign_ledgers
+        assert world.get_campaign_dead("France") == 0
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -622,8 +695,14 @@ class TestExecutableArm:
         assert result["success"] is False
         assert "administrative" in result["message"].lower()
 
-    def test_invest_arm_charges_admin_ap_too(self, europe):
-        """The pre-existing half of the same seam."""
+    def test_invest_arm_stays_free_like_the_typed_route(self, europe):
+        """Review-round correction [P2-1]: `invest_vassal` is NOT an
+        ADMIN_ACTION — it sits in `free_actions` (R72: vassal commands
+        cost DP/gold, never AP), so the typed route charges NO admin AP
+        and the war-room button must not either. The first cut of this
+        test pinned the opposite without ever comparing to the typed
+        route — the exact inert-pin shape §3 rule 2 forbids. Parity is
+        the pin now: the button's price equals the typed price."""
         self_quiet = TestCounselRung()
         self_quiet._quiet_crises(europe)
         europe.diplomatic_points = 3
@@ -638,10 +717,46 @@ class TestExecutableArm:
             "invest_vassal"
         europe.dialogue_manager.replace(dialogue)
         ap_before = int(europe.admin_actions_remaining)
+        dp_before = int(europe.diplomatic_points)
         result = CommandExecutor().handle_diplomatic_dialogue_response(
             1, {"world": europe})
         assert result["success"] is True, result.get("message")
-        assert int(europe.admin_actions_remaining) == ap_before - 1
+        assert int(europe.admin_actions_remaining) == ap_before  # free (R72)
+        assert int(europe.diplomatic_points) == dp_before - 1  # DP-priced
+
+    def test_invest_arm_works_at_zero_admin_ap(self, europe):
+        """The inverted mirror's failure scenario, pinned in the
+        direction the review proved: with the chancellery's day spent,
+        the war-room invest button must still work exactly as the typed
+        free-action order would."""
+        self_quiet = TestCounselRung()
+        self_quiet._quiet_crises(europe)
+        europe.diplomatic_points = 3
+        europe.nation_gold["France"] = 1000
+        europe.vassals["Switzerland"] = {
+            "lord": "France", "loyalty": 30, "autonomy": 1,
+            "path": "conquest", "created_turn": 1, "tribute_rate": 0.5,
+            "regions": [],
+        }
+        dialogue = generate_advisory(None, "assess_situation", europe)
+        europe.dialogue_manager.replace(dialogue)
+        europe.admin_actions_remaining = 0
+        result = CommandExecutor().handle_diplomatic_dialogue_response(
+            1, {"world": europe})
+        assert result["success"] is True, result.get("message")
+
+    def test_commission_arm_mirrors_should_end_turn(self, europe):
+        """[P3-1] executor.py's admin deduct auto-ends the turn when
+        BOTH pools exhaust; the button mirrors the whole shape, not just
+        the price."""
+        dialogue = self._bench_dialogue(europe)
+        europe.dialogue_manager.replace(dialogue)
+        europe.actions_remaining = 0
+        europe.admin_actions_remaining = 1
+        result = CommandExecutor().handle_diplomatic_dialogue_response(
+            1, {"world": europe})
+        assert result["success"] is True, result.get("message")
+        assert result.get("should_end_turn") is True
 
 
 class TestCaptureBeatNote:

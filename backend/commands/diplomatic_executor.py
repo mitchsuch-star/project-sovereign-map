@@ -4533,15 +4533,21 @@ class DiplomaticExecutor:
             kind = suggestion.get("kind", "")
             world.dialogue_manager.pop()
 
-            # PT-J4 (found in passing): invest_vassal and recruit_marshal
-            # are ADMIN_ACTIONS — the typed route charges 1 admin AP at
-            # executor.py's pre-flight, but this arm calls the
-            # sub-executors DIRECTLY, so the war room's button rode
-            # CHEAPER than the same order typed. That is the CA9
-            # through-line (two implementations of one price, only one
-            # maintained); the arm now mirrors the pre-flight exactly.
-            # request_terms is DP-priced in-executor and stays untouched.
-            _ADMIN_AP_KINDS = ("invest_vassal", "commission_marshal")
+            # PT-J4: `recruit_marshal` is an ADMIN_ACTION — the typed
+            # route charges 1 admin AP at executor.py's pre-flight, but
+            # this arm calls the sub-executor DIRECTLY, so the war room's
+            # button would ride CHEAPER than the same order typed (the
+            # CA9 through-line: two implementations of one price, only
+            # one maintained). The arm mirrors the pre-flight exactly:
+            # check before, deduct on success, auto-end when both pools
+            # exhaust. REVIEW-ROUND CORRECTION (August 14, 2026): the
+            # first cut put `invest_vassal` behind the same mirror — but
+            # invest is NOT an ADMIN_ACTION; it sits in `free_actions`
+            # (R72: vassal commands cost DP/gold, never AP), so the
+            # "mirror" INVERTED the divergence it claimed to close. Only
+            # the commission kind is admin-priced. request_terms is
+            # DP-priced in-executor and stays untouched.
+            _ADMIN_AP_KINDS = ("commission_marshal",)
             if kind in _ADMIN_AP_KINDS:
                 if world.admin_actions_remaining < 1:
                     return {
@@ -4558,12 +4564,11 @@ class DiplomaticExecutor:
                 result.pop("new_state", None)  # circular refs (R4 warning)
                 return result
             if kind == "invest_vassal":
+                # R72 parity: the typed invest route is a free action —
+                # 1 DP + 200g in-executor, never AP. No mirror here.
                 result = self._executor._vassal._execute_invest_vassal(
                     {"target": suggestion.get("target", "")},
                     {"world": world})
-                if result.get("success"):
-                    world.admin_actions_remaining = int(
-                        world.admin_actions_remaining) - 1
                 result.pop("new_state", None)
                 return result
             if kind == "commission_marshal":
@@ -4577,6 +4582,12 @@ class DiplomaticExecutor:
                 if result.get("success"):
                     world.admin_actions_remaining = int(
                         world.admin_actions_remaining) - 1
+                    # executor.py:1806's mirror: spending the last admin
+                    # AP with 0 military AP auto-ends the turn on the
+                    # typed route; the button matches.
+                    result["should_end_turn"] = bool(
+                        world.actions_remaining <= 0
+                        and world.admin_actions_remaining <= 0)
                 result.pop("new_state", None)
                 return result
             return {"success": False,

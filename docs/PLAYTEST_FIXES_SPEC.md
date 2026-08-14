@@ -702,12 +702,103 @@ flip under the re-weighted scores), not proof of safety.
   bench sentence (the loss moment teaches the recovery path), and the
   once-latched `COMMISSION_AVAILABLE` notification (serialized
   `commission_hint_shown`, judged on the turn's final chest after
-  income + manpower regen). **Found in passing: the W6-9
+  income + manpower regen). ~~**Found in passing: the W6-9
   `execute_suggestion` arm skipped the 1 admin AP the typed route
   charges at executor pre-flight** — the war room's invest button rode
   cheaper than the same order typed, the CA9 through-line's exact shape;
   both admin kinds now mirror the pre-flight (check before, deduct on
-  success), pinned for invest and commission alike.
+  success), pinned for invest and commission alike.~~ **← HALF-FALSE,
+  corrected by the review round (§4.2.1 [P2-1]): only `recruit_marshal`
+  is an ADMIN_ACTION. `invest_vassal` sits in `free_actions` (R72 —
+  vassal commands cost DP/gold, never AP), so the "mirror" on the invest
+  kind INVERTED the divergence it claimed to close. The commission kind
+  keeps the mirror; the invest kind is free, matching the typed route,
+  and parity itself is the pin now.**
+
+### 4.2.1 The review round (August 14, 2026) — three agents, six confirmed findings, ALL FIXED
+
+A three-lens find→refute fleet ran over commit `c29e24f` the same session
+(coalition seams · ledger/score/charges · advisory/relax-pass), each lens
+instructed to refute its own candidates before filing. Six findings
+survived; every one is fixed in the follow-up commit, and two of them
+correct claims §4.2 itself made — kept struck-through above rather than
+edited away.
+
+* **[P2-1] The invest-arm "AP mirror" was inverted** (see the struck
+  claim above). The wrongly-directioned test —
+  `test_invest_arm_charges_admin_ap_too`, which pinned the button's
+  price without ever comparing it to the typed route, the exact
+  inert-pin shape §3 rule 2 forbids — is replaced by parity pins
+  (`test_invest_arm_stays_free_like_the_typed_route`,
+  `test_invest_arm_works_at_zero_admin_ap`), and the commission arm
+  additionally mirrors `should_end_turn` on a both-pools-exhausted
+  spend ([P3-1], `test_commission_arm_mirrors_should_end_turn`).
+* **[P1-2 + P3-4 + P1-1] The ledger's demobilize seam was
+  caller-enumerated, and two formal-end roads never reach it.** The
+  typed `make X a vassal` conquest road (`create_vassal_conquest`)
+  never runs `cleanup_war_end` — the ledger survived vassalization
+  forever: both sides billed pensions for a concluded war, and a later
+  REBELLION war opened preloaded with the dead war's captures and blood
+  (up to ±25 phantom points). The forced-alliance arm's ARMISTICE case
+  stranded a live ledger on ALLIANCE, a state no cleanup ever reaches.
+  And elimination ends wars without `cleanup_war_end` at all (the
+  EC-W2 comment says so), leaking dead-nation ledgers into
+  `get_campaign_dead` forever. **Fix: the demobilize rule moved to the
+  `set_diplomatic_state` chokepoint** — leaving the war-family
+  (WAR/ARMISTICE) for ANY terminal state clears the pair's ledger;
+  staying within it (truce, collapse) keeps the memory. The
+  `cleanup_war_end` pop was retired for it (pointer comment left), and
+  the lifecycle pins now drive the delivered transition, never the
+  helper.
+* **[P2-3] Drawn battles recorded zero campaign casualties.** All three
+  battle-record producers gate on a WINNER, so `mutual_destruction`
+  and `stalemate` — the bloodiest outcomes, and the blood component's
+  own founding case (the DR-1 out-bled stalemate) — never reached
+  `record_battle`, and "the ledger remembers every skirmish's dead" was
+  false for exactly the battles that bleed most. Draw arms now accrue
+  the ledger directly at all three sites (pipeline step 8, the inline
+  `_execute_attack` copy, the auto-charge copy); `battle_records`
+  stays winner-only by design (its counts and decay must not see a
+  winnerless row). Pinned through the REAL attack executor
+  (`test_a_drawn_battle_still_bleeds_into_the_ledger`).
+* **[P2-2] The widened relax pass could drain every court's demands to
+  bare peace.** A covered court whose score at the BARE shared peace is
+  already below the floor can never be helped by stripping — yet it
+  landed in `below` every pass and, having no demand clauses of its
+  own, drove the package-fallback strip until nothing remained: a
+  decisively winning war's baseline reduced to `[{"type": "peace"}]`
+  while the holdout still held out (confirmed by experiment at the
+  patched-scorer seam). **Fix: the futility guard** — a demand-free
+  below-floor court is admitted only if its bare-peace score clears the
+  floor (i.e. package harshness is genuinely what presses it); an
+  unhelpable holdout never drives strips. Demand-owning courts keep the
+  pre-widening drain-own-slice semantics.
+* **[F1] Eliminating a non-player coalition TARGET fired a betrayal
+  cascade among the victors** — the teardown loop walks every
+  dead-nation pair through the chokepoint as PEACE, so an eclipse
+  coalition's members would each be ejected with "signed a separate
+  peace" −15s as their OWN victory was processed. The ejection arm now
+  exempts `reason == "nation_eliminated"`; the teardown's explicit
+  `remove_coalition_member` keeps handling a dead MEMBER exactly as
+  before.
+* **Accuracy corrections to §4.2's own prose, filed by the coalition
+  lens:** the "known bounded quirk, in kind pre-existing" sentence on
+  common-peace sequential −15s is only half-true — the MULTILATERAL
+  ratification path previously ejected nobody at all (no coalition code
+  exists in `settlement_ratify.py`), so per-pair ejection there is new
+  in degree and site, not merely relocated; and a leader ejected first
+  also triggers the §4b leader-transition −5 among remaining pairs,
+  possibly more than once in one ratification. Both stand as recorded
+  behavior: a common peace IS every court leaving the war for good.
+* **Noted, not fixed (homed):** [P3-5] coordinated battles bill POOLED
+  side casualties (the CA8-1 whole-army figure, including allied dead)
+  to the two primary nations' ledger rows — France's pensions can bill
+  Bavarian dead. The figure shape is pre-existing; PT-J2/J3 make it
+  economically visible for the first time. Proper attribution needs
+  `casualty_distribution` threading through the record seam — owned as
+  a rider on the next econ pass (EC-2 pass 2), not silently deferred.
+* **Cheat paths now eject on PEACE/VASSAL** (debug-only, consistent
+  with every-road semantics) — recorded, accepted.
 
 **UNDETERMINED, not a row:** whether the `foreign_wars` HUD panel is reachable at
 all on this scenario — empty in **102 of 102** payloads carrying `active_wars`, but

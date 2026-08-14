@@ -2748,6 +2748,23 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     if new_state == "PEACE" and old_state in ("WAR", "ARMISTICE"):
         world.release_mutual_prisoners(nation_a, nation_b)
 
+    # PT-J2 review round [P1-2/P3-4] (August 14, 2026): the campaign
+    # ledger demobilizes HERE, at the one centralized setter, when the
+    # pair leaves the war-family for ANY terminal state — formal peace,
+    # vassalization (both routes: the settlement arm ran cleanup, the
+    # typed `make X a vassal` conquest arm never did, leaking pensions
+    # forever and preloading a future rebellion war with the dead war's
+    # captures and blood), forced ALLIANCE (whose ARMISTICE arm stranded
+    # a live ledger on a state no cleanup ever reaches), and elimination
+    # (every dead nation's pair transits here as PEACE). Staying WITHIN
+    # the family — WAR→ARMISTICE truce, ARMISTICE→WAR collapse — keeps
+    # the memory, which is the PT-I2 design. cleanup_war_end's pop was
+    # retired for this arm: enumerating cleanup callers is exactly how
+    # two roads got missed.
+    if (old_state in ("WAR", "ARMISTICE")
+            and new_state not in ("WAR", "ARMISTICE")):
+        getattr(world, "campaign_ledgers", {}).pop(key, None)
+
     # PT-J1 "The Truce Holds" (gate record PLAYTEST_FIXES_SPEC.md §4): a
     # court leaves the coalition when it leaves the war FOR GOOD — the
     # formal peace, or subjugation as the target's vassal — never the
@@ -2762,8 +2779,18 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     # membership intact (nothing here matches it), which kills the
     # measured cheese: a truce that collapsed five turns later used to
     # leave a permanent free coalition fracture standing.
+    # Review round [F1] (August 14, 2026): elimination teardown is
+    # exempt — `_eliminate_nation` sets every dead-nation pair to PEACE
+    # through this setter BEFORE its own explicit remove_coalition_member
+    # call, and when the DEAD nation is the coalition's TARGET (an
+    # eclipse coalition), this arm would eject each victorious member
+    # with a "separate peace" betrayal −15 as the teardown walked the
+    # pairs. Old behavior — teardown silent, the explicit removal
+    # handling a dead MEMBER, clean dissolution on the next tick — is
+    # preserved by the reason guard.
     if (new_state in ("PEACE", "VASSAL")
-            and old_state in ("WAR", "ARMISTICE")):
+            and old_state in ("WAR", "ARMISTICE")
+            and reason != "nation_eliminated"):
         _coalition = getattr(world, "active_coalition", None)
         if _coalition:
             _tgt = _coalition.get("target_nation") or getattr(
@@ -4782,14 +4809,14 @@ def cleanup_war_end(world, diplo_key: str, *,
     # ARMISTICE pauses ticking but must allow objectives to resume if war resumes.
     if conclude_objectives:
         _conclude_war_objectives(world, diplo_key)
-        # PT-J2: the campaign ledger follows the OBJECTIVES lifecycle, not
-        # battle_records' — a truce pauses the war (same war_id on
-        # collapse, Slice A2 §7.3) and must not amnesty its captures and
-        # blood, so the memory clears only on a concluding peace. This is
-        # a deliberate divergence from the four pops above, which armistice
-        # wipes (pre-existing, untouched). Clearing here also demobilizes
-        # PT-J3's pensions term for the pair.
-        getattr(world, 'campaign_ledgers', {}).pop(diplo_key, None)
+    # PT-J2: the campaign ledger is NOT popped here. It follows the
+    # OBJECTIVES lifecycle (a truce pauses the war and must not amnesty
+    # its captures and blood), and its ONE demobilize seam is the
+    # set_diplomatic_state chokepoint — leaving the war-family for any
+    # terminal state clears it. The review round [P1-2/P3-4] found two
+    # formal-end roads (typed conquest-vassalization; the forced-alliance
+    # ARMISTICE arm) that never reach this function, which is why the
+    # rule does not live in a caller-enumerated seam like this one.
 
     # R49: Reset war_exhaustion only for nations with no other active wars
     parts = diplo_key.split("|")

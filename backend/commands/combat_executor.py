@@ -2115,6 +2115,18 @@ class CombatExecutor:
                     defender_participants=(theater or {}).get("defender_participants"),
                     nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                 )
+            else:
+                # PT-J2 review round [P2-3]: a DRAWN battle
+                # (mutual_destruction / stalemate) never reaches
+                # record_battle — no winner, no row — but its dead are
+                # the bloodiest the war produces, and the out-bled 2:1
+                # stalemate is the blood component's own founding case
+                # (DR-1). The ledger accrues directly; battle_records
+                # stays winner-only (its counts and decay must not see
+                # a winnerless row).
+                world.record_campaign_casualties(
+                    attacker.nation, defender_nation,
+                    int(atk_casualties), int(def_casualties))
 
         # ── 9. Set last_combat_result ──
         if not is_bombardment and not ctx.get('skip_last_combat_result'):
@@ -5808,6 +5820,15 @@ class CombatExecutor:
                 nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                 battle_name=battle_name,
             )
+        else:
+            # PT-J2 review round [P2-3]: the drawn battle's dead still
+            # accrue to the campaign ledger (this copy skips the
+            # pipeline's step 8 via skip_diplo_record, so it needs its
+            # own arm, mirrored).
+            world.record_campaign_casualties(
+                marshal.nation, enemy_marshal.nation,
+                int(battle_result.get("attacker", {}).get("casualties", 0)),
+                int(battle_result.get("defender", {}).get("casualties", 0)))
 
         # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
         if atk_won:

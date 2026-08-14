@@ -1193,6 +1193,8 @@ def _relax_baseline_demands_for_package_harshness(
         )
 
     terms = [dict(t) for t in combined_terms]
+    # [P2-2] bare-peace scores are term-independent — cache per call.
+    _bare_peace_scores: Dict[str, Any] = {}
     # Bounded: at most one demand clause is removed per pass.
     for _ in range(len(terms) + 1):
         # PT-J2 widening (gate record PLAYTEST_FIXES_SPEC.md §4): package
@@ -1224,6 +1226,36 @@ def _relax_baseline_demands_for_package_harshness(
                 side_pressure_result=side_pressure_result, direct_scores=direct_scores,
             )
             if score is not None and int(score) < int(near_acceptance_floor):
+                # Review-round futility guard [P2-2] (August 14, 2026):
+                # stripping only ever REMOVES harshness, so a court whose
+                # score at the BARE shared peace is already below the
+                # floor cannot be helped by stripping anything — it is a
+                # genuine holdout (the "court eases in conversation"
+                # shape `_demand_terms_for_court` documents). Without
+                # this guard, one such demand-free court drove the
+                # package-fallback strip every pass and drained EVERY
+                # other court's demands to bare peace — a decisively
+                # winning war's baseline reduced to nothing while the
+                # holdout still held out. Guard scope: only courts with
+                # no demand clauses of their own (a demand court's own
+                # slice draining to bare is the pre-widening semantics,
+                # kept).
+                if not any(_is_demand_clause(c, court) for c in terms):
+                    if court not in _bare_peace_scores:
+                        _bare_peace_scores[court] = _score_court_for_baseline(
+                            world, war_id=war_id, war_instance=war_instance,
+                            proposer_side=proposer_side,
+                            accepting_side=accepting_side,
+                            court=court,
+                            proposer_side_leader=proposer_side_leader,
+                            covered=sorted_covered,
+                            settlement_terms=[{"type": "peace"}],
+                            side_pressure_result=side_pressure_result,
+                            direct_scores=direct_scores,
+                        )
+                    bare = _bare_peace_scores[court]
+                    if bare is None or int(bare) < int(near_acceptance_floor):
+                        continue  # unhelpable holdout — never drives strips
                 below.append((int(score), court))
         if not below:
             break
