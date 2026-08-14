@@ -200,3 +200,21 @@ skeleton, marshal banter, alt-history campaign narration; dev-paid,
 bounded per campaign, sold as deluxe/DLC — a content tier, not a
 meter on orders). That is a candidate for the position-14 gate's §6
 list, NOT a v1 item; recorded here so the door has a name.
+
+---
+
+## 8. Addendum (Aug 14, second session) — distribution venues, ruled at the owner's question
+
+*"Should I list elsewhere than Steam?"* **Steam stays primary; the plan
+is engineered for its review culture and the grand-strategy audience is
+Steam-native. itch.io becomes the NAMED Round-0 channel** (instant
+upload, no review gate, BYOK-comfortable — spend the tester round there,
+not the Steam page's one first impression). **GOG is a post-EA option**
+(the DRM-free "no account, no AI, yours forever" catalog fit; curated,
+so apply with EA review proof in hand). **Epic: skip** (no indie
+strategy discovery). **A web version is REJECTED as a listing choice**
+— it is a different business (Pax Historia's venue solves the F2P
+token-funnel problem this game deliberately does not have) and would
+re-architect the local client/backend for months to compete on someone
+else's terms. Queue impact: none — LLC+Steamworks position 2, page 14;
+Round 0 (position 11) ships via itch or direct zip.
