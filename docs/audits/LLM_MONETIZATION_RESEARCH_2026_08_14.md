@@ -145,3 +145,58 @@ The decisive facts: our LLM is a garnish on a deterministic product (the market'
 4. **Local model appetite:** is v2.1 (bundled GGUF) worth a design gate now so it can be specced against the golden corpus, or does it wait for post-EA evidence that players ask for it? (AI Roguelite's forums say they will ask.)
 5. **The CR-5b flavor line under the live-AI report tool:** comfortable shipping it as-is under the register gate, or do we want a settings toggle ("plain acknowledgments") as an extra guardrail to cite in the Content Survey?
 6. **Anthropic terms re-check at ship time:** BYOK sidesteps the commercial terms today; if the v2 courtesy tier is ever built, we should re-read the then-current terms (resale clause D.4, flow-down obligations) before the proxy goes live — flagging now so it lands on that slice's gate, not as a surprise.
+---
+
+## 7. Addendum (Aug 14, second session) — the Pax Historia comp, examined at the owner's challenge
+
+**The challenge:** *"what about Pax Historia, they do well — but you think
+this won't play on Steam?"* Researched rather than answered from memory.
+
+**What Pax Historia is (verified Aug 14, 2026):** a YC-backed,
+BROWSER-based alternate-history sandbox (paxhistoria.co, **not on Steam**)
+where **the LLM is the entire game engine** — every turn ships the whole
+world state to the model (~100 BILLION tokens/week across the player
+base). Monetization: consumable tokens (~$1 ≈ 15–20 min of play, one free
+per day) + a "Pax Patron" subscription ($6–$56/mo) + a 10% creator
+rev-share on popular presets. Quality reviews are mixed ("prompt
+engineering dressed up as a grand strategy game"; one outlet scored it
+59) — the MODEL does well; the craft reception is contested.
+
+**Why their token model works there and would fail here — four
+structural facts, each inverted in our case:**
+
+1. **Tokens are their COGS pass-through; ours would be a markup on
+   nothing.** Their compute IS the game and it is genuinely expensive —
+   players understand buying fuel. Our whole campaign costs ~$2 of
+   parser calls; metering that reads as a shakedown, and the AI2U
+   retreat is what that looks like on Steam.
+2. **F2P web funnel vs premium purchase.** Their players pay $0 up
+   front and opt into spend; a Steam buyer has already paid $20–30, and
+   the premium contract ("I bought the game") is exactly what metered
+   AI violates — the documented review-bomb pattern (AI2U, Suck Up!,
+   Whispers).
+3. **The web is what makes $1 microtokens possible.** Direct payments,
+   no 30% cut, no Steam Wallet MTX plumbing, no consumable-refund
+   claw-backs, no external-payment-link ban. On Steam every one of
+   those constraints applies.
+4. **They are not on Steam — and that is the evidence, not an
+   accident.** AI Dungeon runs the same shape (sub + credits) and
+   sustains a real business off-platform while its Steam presence sits
+   at Mixed. Same product, two venues, opposite reception. The model
+   lives where its funnel and rails exist.
+
+**So the claim is narrower than "AI monetization can't play on Steam":
+metering the PARSER in a premium single-player title is the failure
+pattern; metering AI CONTENT in an F2P web sandbox is Pax Historia's
+success pattern.** The §5 ruling stands unchanged.
+
+**What IS transferable (the owner's instinct is right about this half):**
+Pax Historia proves players pay real money for AI-driven strategy
+CONTENT when the model generates the value. The Ink & Iron-shaped
+version of that is already reserved by §5-v2-3's "quality, never
+capability" line — concretely, a post-EA **"Campaign Chronicler"
+premium tier** (LLM-written Gazette prose over the HC-G deterministic
+skeleton, marshal banter, alt-history campaign narration; dev-paid,
+bounded per campaign, sold as deluxe/DLC — a content tier, not a
+meter on orders). That is a candidate for the position-14 gate's §6
+list, NOT a v1 item; recorded here so the door has a name.
