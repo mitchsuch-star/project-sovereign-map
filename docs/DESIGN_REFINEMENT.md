@@ -6,12 +6,18 @@
 
 ---
 
-## CA9 Design Answers — ANSWERED August 9, 2026, BUILD NEXT SESSION
+## CA9 Design Answers — ✅ ANSWERED Aug 9, BUILT Aug 9–10, REGRESSIONS CLOSED BY ROW PT
 
 > **Record = `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` (authoritative).**
-> The user answered all three and instructed: document now, build next session,
-> then playtest everything including the 31 CA9 rows already landed. **Nothing
-> is coded for these three.** GR9 owners, landings and completion definitions:
+> **Routing reconciled Aug 14, 2026 (health-check gate):** all three WERE
+> built before the Aug-10 playtest that then measured them (the war-age
+> penalty PASSED live −30/−15/0; the D2 gate's input defect and the D3
+> delivery-seam AP refresher were the playtest's row-2/row-3 findings, both
+> closed by row PT Aug 12–14, with PT-J2 landing D1's battle/territory
+> re-weight). **The only outstanding acceptance is the played 20-turn
+> campaign showing the D2 gate arm fire once — owned by row PT / the HC
+> queue** (`docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §8). The
+> table below is the historical contract:
 
 | Row | Decision | Owner / landing | Done when |
 |---|---|---|---|
@@ -41,6 +47,33 @@ August 9 — which also discharges the owed visual sign-off on `Supply: Unknown`
 | **Wave 6 — Creative Capstone (July 10, 2026)** | 14 | **✅ APPROVED IN FULL July 10** (6 expansions + 6 escalations + 2 gate additions: Dynamic Battle Naming, Literal Doctrine); owner = `WAVE6_FUN_FACTOR_SPEC.md` (12 build slices W6-0..W6-11) |
 | **Estate Second Pass deferrals (July 11, 2026)** | 4 | **ESP-1 + ESP-2 + ESP-4 ✅ LANDED July 11, 2026 with the Jealousy v3.2 build** (ESP-4 folded per its own row's fold-in clause; record = `JEALOUSY_SPEC.md` §0.3/§0.4, tests `test_estate_riders_esp.py`); ESP-3 respect-by-treaty → diplomacy gate (unchanged) |
 | **Total** | **63** | |
+
+---
+
+## Health-Check Design Gate — Deferred Riders (August 14, 2026)
+
+> **Gate record = `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`
+> (authoritative — row HC, six slices HC-1..HC-6, queued NEXT).** These are
+> the halves that gate DEFERRED with owners (GR9):
+
+### HC-D1: Glory as a Diplomatic Term (the mechanical half)
+- **Category:** Diplomacy depth
+- **Summary:** An acceptance/intent modifier reading the opposing side's
+  top-glory (★ crowned) marshal on the relevant front — courts genuinely
+  priced Napoleon's marshals into negotiations. The FLAVOR half (envoy
+  lines naming the crowned marshal) is HC-3, building now; this row is
+  the term that would move numbers.
+- **Owner / landing:** the Victory & Objectives Pass gate (ROADMAP
+  positions 12–13) — glory pricing belongs with the campaign-arc pass.
+  Fits the existing `agenda_settlement_mod` pattern (a named ±N component
+  on the acceptance breakdown, shown = applied).
+- **Done when:** that gate builds it (named component + breakdown row +
+  `test_hc_d1_glory_term.py`) or explicitly rejects it with the reason
+  recorded here.
+
+*(HC-5's "The Congress" second lesson is homed on the Pre-EA Onboarding &
+Teaching Pass row below; HC-6 Seasons & Weather is not a deferral — it is
+queue position 6 of row HC, ending in its own USER gate.)*
 
 ---
 
@@ -227,7 +260,7 @@ This queue records the April 16 diplomacy rescope. It is no longer the live impl
 | **Pre-EA AI Correctness Pass** | AUD-f `_evaluate_marshal` deferred-commit refactor (threat-responder claims + serialized `ai_refortify_cooldown` writes during candidate evaluation) | Evaluation is side-effect-free; M1–M7 harness + `test_ai_audit_2026_07.py` green |
 | **Pre-EA AI Depth Pass** | MC-V-4 cautious force-husbanding (design gate FIRST — must coexist with the anti-stagnation machinery); the ROADMAP 8c trio (AI-AI wars, AI vassalization, cross-AI threat) stays at its own 8c row | Gate-blessed design lands with liveness metrics held; **if no pass materializes pre-EA, drop cleanly — no player promise outstanding** |
 | **Pre-EA Dialogue Robustness** | S5-4 queue-cap overflow-to-mailbox (push + preempt together) | No dialogue silently dropped at cap; docstring already fixed in Batch Q |
-| **Pre-EA Onboarding & Teaching Pass** | R159 (screens teach mechanics) — companion to `TUTORIAL_SCRIPT.md` | Each core screen names the mechanic it displays; new-player path verified |
+| **Pre-EA Onboarding & Teaching Pass** | R159 (screens teach mechanics) — companion to `TUTORIAL_SCRIPT.md`; **+ "The Congress" candidate (Aug 14 health-check gate, HC-5 deferral): a second authored lesson — a diplomacy/settlement miniature — considered at this pass's gate** | Each core screen names the mechanic it displays; new-player path verified; The Congress built or explicitly dropped at the gate |
 | **Pre-EA Diplomacy Polish Pass** | AUD-d M3 territory-sweetener rebuild (reuse VS-3 worth-scaling + the BPH `territory_cede` seam; delete the 2 dead `NATION_DESIRES` territory rows either way) | AI counters can cede real regions with correct direction; ratification live-verified |
 | **Pre-EA Diplomacy & Flavor Content Menu** | R22 marriage alliances · R25 vassal personality events · R27 secret treaties · R35 player counter-offers on bilateral incoming offers · R118 acceptance preview · R127 nation-specific advisory intel · R133 point-of-no-return popup · Gneisenau Staff Work | Per-item R-row definitions; user picks the menu at the pass's gate |
 | **Next refactoring slice** | S5-D3 hygiene batch (edit-distance triplication, VS-4 predicate single-sourcing = priority, lazy-import documentation, AUD-a's dead `QUEUE_MAX_SIZE`) | Byte-identical behavior, existing VS-4/muster pins green |

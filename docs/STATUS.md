@@ -4,6 +4,58 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ ROW HC — THE HEALTH-CHECK DESIGN PROGRAM (GATE HELD August 14, 2026)
+>
+> **The design gaps the health check surfaced were RULED August 14, 2026
+> under the user's delegated grant** ("make decision on design gaps …
+> assure these session are next up and ordered well"). **Gate record +
+> build contracts = `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`
+> (authoritative).** Six slices, take them IN ORDER — the three
+> byte-identity-preserving legibility slices land first so their pins
+> anchor against the unmoved baseline; HC-4 is the ONE sanctioned
+> `BASELINE_SERIES` re-record (flip-experiment attribution mandatory);
+> the seasons spec closes the program at a USER gate:
+>
+> 1. **HC-1 "The Silver Blockade"** — a signed, capped (±15) war-score
+>    component from sustained naval denial, on the PT-J2 ledger substrate
+>    (one new `blockade_turns` counter, backfill 0), rendered beside
+>    Campaign/Blood on the war-detail popup. The A2 strangulation arc
+>    stops reading 0 on the bar.
+> 2. **HC-2 "The Butcher's Ledger Speaks"** — stateless war-room +
+>    battle-report lines voicing the per-war dead/captures the war-detail
+>    popup already shows (zero new fields; own-dead only, the
+>    attribution-safe half — [PTJ-D1] referenced).
+> 3. **HC-3 "The Crowned Name Abroad"** — envoy line variants naming the
+>    opposing crowned (★) marshal; display-only, Voice Bible discipline,
+>    XR-5 bank rules. The mechanical acceptance term is DEFERRED as
+>    `DESIGN_REFINEMENT.md` HC-D1 → the Victory Pass gate.
+> 4. **HC-4 "The Lifeline and the Bill"** — the naval-balance duo: (a)
+>    the RN lifeline/strangled-shore arm in `process_supply_attrition`
+>    reusing the existing 1.5× home-turf multiplier (zero new constants,
+>    GR5 both boards); (b) the AI bills `naval_expedition`/`naval_diversion`
+>    at the `_action_costs` table price against its admin budget (the
+>    intended-but-never-wired parity the dead constant proved). Britain's
+>    Lisbon shape must SURVIVE; measured cadence before/after recorded.
+> 5. **HC-5 "The School Names the Fleet"** — tutorial step XIV honestly
+>    names the Admiralty tab, the F1 wizard + Formables button, the
+>    Reward chip and the Design rows. "The Congress" second lesson stays
+>    with its owner (the Pre-EA Onboarding & Teaching Pass row).
+> 6. **HC-6 Seasons & Weather — SPEC + USER GATE.** Deliberately the one
+>    item NOT ruled under the delegation: author
+>    `docs/SEASONS_WEATHER_SPEC.md` (4-turn seasons / autumn 1805 boot /
+>    winter supply-movement-readiness arms / authored-bounds idiom /
+>    re-record protocol) and put the questions to the user. NO mechanic
+>    lands before that gate returns.
+>
+> **Then the standing owed items, in order:** 7. the played 20-turn
+> campaign (discharges PT row-2's gate-arm acceptance, the naval pillar
+> score, the A2 sue-path, and ALL standing visual sign-offs — now
+> including HC-1's Blockade row and the PT-J2 Campaign/Blood rows) → 8.
+> **position 10, THE SHIPPABLE BUILD** (the road-to-EA spine resumes; its
+> P0/P1 gap list is in the health-check entry below).
+>
+> ---
+>
 > ## ✅ THE WHOLE-GAME HEALTH CHECK — August 14, 2026
 >
 > **A six-agent audit fleet (serialization / API↔Godot wiring / shown-vs-applied

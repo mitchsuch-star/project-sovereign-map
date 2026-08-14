@@ -62,10 +62,21 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > verdict: NOT yet — 1–2 sessions, all gaps P0/P1 with known seams, owned by
 > position 10** (launcher key-mandatory, stale .pck, cheats armed in
 > keyless-mock, CWD saves, stale README_TESTER; the deploy spec's fatal
-> missing-datas gap is FIXED). Report-only design rows (each needs its
-> gate): naval↔war-score, seasons/weather (the big one), campaign-ledger
-> narration, glory↔diplomacy, RN shore-supply interdiction, AI expedition
-> AP asymmetry, tutorial drift.
+> missing-datas gap is FIXED).
+>
+> **▶ NEXT = ROW HC, the health-check design program (GATE HELD August 14,
+> 2026 under the user's delegated grant — record + build contracts =
+> `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`, authoritative;
+> ordered queue = `docs/STATUS.md` ▶ NEXT UP).** Six slices in order:
+> HC-1 The Silver Blockade (naval → war score, ±15 on the PT-J2 ledger) →
+> HC-2 The Butcher's Ledger Speaks (stateless ledger narration) → HC-3
+> The Crowned Name Abroad (glory flavor; mechanical term = HC-D1 →
+> Victory gate) → HC-4 The Lifeline and the Bill (RN shore supply + AI
+> expedition AP parity; the ONE sanctioned BASELINE_SERIES re-record) →
+> HC-5 The School Names the Fleet (tutorial step XIV) → HC-6 Seasons &
+> Weather SPEC + **USER GATE** (deliberately not ruled — the user holds
+> this one). Then the played 20-turn campaign (PT row-2 acceptance +
+> naval pillar + all visual sign-offs), then position 10.
 >
 > **▶ ROW PT IS BUILD-COMPLETE (August 12, 2026).** All eight slices landed in
 > spec order, commits `297b939`..`769a3cb`; **landing record =
@@ -116,12 +127,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > non-player coalition target no longer brands the victors traitors;
 > [P3-5] pooled allied dead → an EC-2 pass-2 rider in DESIGN_REFINEMENT.
 >
-> **▶ NEXT = the played 20-turn campaign** (the row's acceptance owes the
-> CA9 row-2 gate arm firing at least once) **+ the standing visual
-> sign-offs** — one fog sentence instead of nine, the DIPLOMATIC EVENTS
-> rail, collapsed turn events, the autonomous attack drawing a real
-> battle, the redemption raising on control return, and now PT-J2's
-> Campaign/Blood rows on the war-detail popup.
+> **The played 20-turn campaign** (the row's acceptance owes the CA9
+> row-2 gate arm firing at least once) **+ the standing visual sign-offs**
+> — one fog sentence instead of nine, the DIPLOMATIC EVENTS rail,
+> collapsed turn events, the autonomous attack drawing a real battle, the
+> redemption raising on control return, and now PT-J2's Campaign/Blood
+> rows on the war-detail popup — **are queue positions 7–8 of row HC
+> (Aug 14 re-order): the HC slices land first so the campaign evaluates
+> the fixed naval game.**
 >
 > <details><summary>The row's queueing record, kept for context</summary>
 >
