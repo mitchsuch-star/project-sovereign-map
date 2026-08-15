@@ -1,13 +1,36 @@
 # Seasons & Weather — "The General Winter" (HC-6)
 
-> **Status: SPEC AUTHORED August 14, 2026 — ⚠ USER GATE PENDING. NO
-> MECHANIC LANDS BEFORE THE GATE RETURNS.** This is the one item of the
-> health-check design program deliberately NOT ruled under the user's
-> delegation (gate record `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md`
-> §7): it is the largest balance change since naval — it will move every
-> band, M1–M7, and `BASELINE_SERIES` — and it deserves the user's own
-> eyes. §6 below is the numbered question list, each with a recommended
-> default; blessing them (or amending them) IS the gate.
+> **Status: ✅ GATE RETURNED August 14, 2026 — THE BUILD IS DEFERRED
+> PAST ROUND 0 (user ruling: "push it out").** The system is approved
+> in principle; the slot is not. The session's argued recommendation —
+> *"yes to the system, no to the slot: ship first, winter later"* — was
+> accepted: seasons is the largest balance mover since naval (every
+> band, M1–M7, `BASELINE_SERIES`), it competes directly with the
+> shippable build (ROADMAP position 10) and the played campaign, it
+> deepens the game's strongest pillar while the weak ones (narration,
+> vassals, UI legibility) want the sessions more, and the AI gets only
+> one season-sense term — symmetric rules are not symmetric competence.
+>
+> **The deferral's HOME and LANDING (GR9):** this spec is the owner;
+> the landing slot is **the first post-Round-0 content slice — "The
+> General Winter" as an EA content-update candidate** (ROADMAP row HC
+> carries the ruling; Round 0 = position 11). Q6 is thereby RULED
+> beyond its option (a): seasons builds after Round 0, so tester data
+> on supply-pressure feel tunes Q1 before it is spent. **The remaining
+> §6 questions are NOT ruled** — the recommended defaults stand as
+> recommendations and are re-put to the user at the build session
+> (tester evidence in hand). Completion = the SW-0..SW-V slices landing
+> per §5 with the §4 re-record protocol, or an explicit cut recorded
+> here. **Recorded pull-forward option:** SW-0 alone (display-only
+> season names in dispatch/war room/gazette) moves no baseline and may
+> land in any earlier session on the user's word — it is not blessed to
+> land by default.
+>
+> *(Original gate framing, kept for provenance: this was the one item
+> of the health-check program deliberately NOT ruled under the Aug-14
+> delegation — gate record
+> `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7 — because it
+> deserved the user's own eyes. It got them.)*
 
 ---
 

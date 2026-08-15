@@ -581,7 +581,18 @@ triumphal lead, 8 war rows, blockade-aware Bourse; the calendar read
 screen (button placement, paging feel) rides the standing play-session
 convention.
 
-### §9.7 HC-6 Seasons & Weather — ✅ SPEC AUTHORED August 14, 2026 — ⚠ USER GATE PENDING
+### §9.7 HC-6 Seasons & Weather — ✅ SPEC AUTHORED August 14, 2026 — ✅ GATE RETURNED SAME DAY: BUILD DEFERRED PAST ROUND 0
+
+**The user ruled the same day ("is weather worth it?" → the argued
+recommendation → "push it out"): the system is approved in principle,
+the build is DEFERRED past Round 0** — the landing slot is the first
+post-Round-0 content slice ("The General Winter", an EA content-update
+candidate), so tester data on supply-pressure feel tunes Q1 before it
+is spent. Q6 is thereby ruled beyond its option (a); the remaining §6
+questions are re-put at the build session with the defaults standing
+as recommendations. SW-0 (display-only season names) is the recorded
+pull-forward option, on the user's word only. Owner spec =
+`docs/SEASONS_WEATHER_SPEC.md` (ruling in its header, authoritative).
 
 `docs/SEASONS_WEATHER_SPEC.md` v1.0: the season derivation consumes
 HC-0 (6-turn seasons; the boot opens autumn; winter turn ~6 — 

@@ -74,14 +74,24 @@
 > the pre-HC-4a cap (ONE `get_effective_supply_cap` source now serves
 > the attrition pass AND the dispatch — shown = applied).
 >
-> **⚠ Open items:** (1) the **HC-6 user gate** (§6 of the seasons spec);
-> (2) **HC-L Smart Parsing — Offline** — NOT attempted (the spike needs
-> GGUF downloads + a llama.cpp toolchain; a dedicated session per gate
-> §7b); (3) the **played 20-turn campaign** (queue position 9 — PT row-2
-> arm + naval pillar + ALL standing visual sign-offs, now including the
-> calendar surfaces, HC-1's Blockade row, and the Gazette screen);
-> (4) the standing **visual sign-off** on the new HC surfaces rides that
-> session.
+> **✅ THE HC-6 SEASONS GATE RETURNED August 14, 2026 (third exchange):
+> BUILD DEFERRED PAST ROUND 0** (user: "is weather worth it?" → the
+> argued "yes to the system, no to the slot" recommendation → "push it
+> out"). The ruling lives in `docs/SEASONS_WEATHER_SPEC.md`'s header
+> (authoritative) + gate record §9.7: landing slot = the first
+> post-Round-0 content slice ("The General Winter" EA-update
+> candidate); Q6 ruled beyond option (a); the other §6 questions re-put
+> at the build session with tester data in hand; SW-0 (display-only
+> season names) is the recorded pull-forward option, on the user's word
+> only. **Row HC is therefore CLOSED except HC-L.**
+>
+> **⚠ Open items:** (1) **HC-L Smart Parsing — Offline** — NOT
+> attempted (the spike needs GGUF downloads + a llama.cpp toolchain; a
+> dedicated session per gate §7b); (2) the **played 20-turn campaign**
+> (next in queue — PT row-2 arm + naval pillar + ALL standing visual
+> sign-offs, now including the calendar surfaces, HC-1's Blockade row,
+> and the Gazette screen); (3) then **position 10, THE SHIPPABLE
+> BUILD**; (4) seasons waits at its post-Round-0 slot.
 >
 > ---
 >

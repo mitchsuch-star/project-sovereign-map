@@ -60,12 +60,16 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > cadence + forced specials, fog-honest rows, GET /gazette + screen +
 > KEY_N, live HTTP-verified). **Landing records =
 > `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §9.0–§9.8.**
-> **⚠ OPEN: the HC-6 SEASONS USER GATE** (`docs/SEASONS_WEATHER_SPEC.md`
-> §6 — seven questions at recommended defaults; NOTHING lands before the
-> user rules them) · **HC-L Smart Parsing spike** (dedicated session —
+> **✅ THE HC-6 SEASONS GATE RETURNED same day: BUILD DEFERRED PAST
+> ROUND 0** (user ruling "push it out"; record =
+> `docs/SEASONS_WEATHER_SPEC.md` header, authoritative — landing slot =
+> the first post-Round-0 content slice, "The General Winter"; SW-0
+> display-only names = the recorded pull-forward option, user's word
+> only). **⚠ OPEN: HC-L Smart Parsing spike** (dedicated session —
 > needs GGUF + llama.cpp toolchain) · the **played 20-turn campaign**
-> (queue position 9) · the standing **visual sign-off** on the new HC
-> surfaces (calendar labels, Blockade row, Gazette screen).
+> (next in queue) · the standing **visual sign-off** on the new HC
+> surfaces (calendar labels, Blockade row, Gazette screen) · then
+> position 10, the shippable build.
 >
 > **▶ THE WHOLE-GAME HEALTH CHECK RAN August 14, 2026** (user-directed "are we
 > truly at build stage" audit + fix + feature sweep; ultracode): a six-agent
