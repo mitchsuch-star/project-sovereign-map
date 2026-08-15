@@ -10,7 +10,7 @@
 > "do as much of the hc changes as you feel comfortable" grant** (commits
 > `c6d63c6` HC-0..HC-5 + the HC-G/HC-6 commit; **landing records =
 > `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §9.0–§9.8,
-> authoritative**). Suite **17,558/3** · ruff clean · parse harness
+> authoritative**). Suite **17,567/3** · ruff clean · parse harness
 > EXIT=0 (incl. the new gazette scene) · boot smoke 0 SCRIPT ERROR ·
 > M1–M7 byte-identical · **`BASELINE_SERIES` re-recorded ONCE (HC-4's
 > sanctioned re-record) with a 4-arm flip experiment: control reproduced
@@ -58,6 +58,21 @@
 >   +1% / naval ceiling −15 / the council's season sense; §6 = SEVEN
 >   questions at recommended defaults incl. Q6 sequencing vs the played
 >   campaign). **Nothing lands before the user rules §6.**
+>
+> **A same-session review round (6 find lenses; refuters hand-verified
+> after a usage-limit kill) took TEN distinct issues — 8 FIXED, 2
+> accepted + recorded (gate record §9.9, authoritative).** Headlines:
+> the HC-4 flip-experiment PowerShell had double-encoded
+> naval.py/enemy_ai.py (recovered byte-exactly; standing lesson —
+> `-Encoding UTF8` on BOTH ends of any Get/Set-Content round-trip);
+> gazette specials were structurally DEAD (pre-increment stamps vs a
+> post-increment scan — now pinned through a real advance_turn) and the
+> capital-storm join read a field no producer stamps; the press lead
+> claimed third-party battles for France; every fifth campaign turn
+> vanished from the archive (inclusive window + dedupe now); issue
+> numbering froze at №21 past the cap; the supply_strain headline read
+> the pre-HC-4a cap (ONE `get_effective_supply_cap` source now serves
+> the attrition pass AND the dispatch — shown = applied).
 >
 > **⚠ Open items:** (1) the **HC-6 user gate** (§6 of the seasons spec);
 > (2) **HC-L Smart Parsing — Offline** — NOT attempted (the spike needs

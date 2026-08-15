@@ -24,11 +24,16 @@ TURNS_PER_YEAR = 24  # two half-month turns per month
 
 _DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
-# Days-per-month for anchor validation (Feb 29 accepted in leap years —
-# the derivation itself only cares whether the day falls before/after
-# the 15th, but a scenario authoring "1805-02-30" should hard-fail at
-# the validator, not silently date the campaign).
-_MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+# Days-per-month for anchor validation. February is leap-checked (review
+# round [14]): the derivation itself only cares whether the day falls
+# before/after the 15th, but a scenario authoring an impossible date
+# ("1805-02-29" — 1805 is no leap year) must hard-fail at the validator,
+# never silently date the campaign.
+_MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+
+def _is_leap_year(year: int) -> bool:
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
 
 def parse_start_date(start_date: str) -> Optional[Tuple[int, int, int]]:
@@ -41,7 +46,10 @@ def parse_start_date(start_date: str) -> Optional[Tuple[int, int, int]]:
     year, month, day = int(match.group(1)), int(match.group(2)), int(match.group(3))
     if not (1 <= month <= 12):
         return None
-    if not (1 <= day <= _MONTH_DAYS[month - 1]):
+    max_day = _MONTH_DAYS[month - 1]
+    if month == 2 and _is_leap_year(year):
+        max_day = 29
+    if not (1 <= day <= max_day):
         return None
     return year, month, day
 

@@ -62,7 +62,8 @@ class TestCadence:
         europe.current_turn = ISSUE_INTERVAL
         issue = process_gazette(europe)
         assert issue is not None and issue["number"] == 1
-        assert europe.gazette_issues[-1] is not issue or True
+        # The returned issue IS the stored one — no divergent copy.
+        assert europe.gazette_issues[-1] is issue
         assert len(europe.gazette_issues) == 1
 
     def test_one_issue_max_per_turn(self, europe):
@@ -107,15 +108,37 @@ class TestCadence:
 
 class TestSpecials:
     def test_capital_storm_forces_an_edition(self, europe):
+        # Review round [17]: the event carries the PRODUCTION shape —
+        # `captured_from` (capture_executor/movement_executor/AI arms),
+        # never the invented previous_controller key.
         europe.current_turn = 2  # off-cadence
         europe.log_event({
             "type": "region_captured", "region": "Vienna",
-            "nation": "France", "previous_controller": "Austria",
-            "message": "Vienna captured by France",
+            "captured_by": "France", "captured_from": "Austria",
+            "method": "secure",
         })
         issue = process_gazette(europe)
         assert issue is not None and issue["special"]
         assert issue["special_reason"] == "a capital stormed"
+
+    def test_capital_storm_fires_through_the_real_advance_seam(self, europe):
+        """Review round [6/11/16/22]: events are stamped with the
+        PRE-increment turn while the publication check runs
+        post-increment — the special must fire for the JUST-PLAYED
+        campaign turn, driven through the real advance_turn."""
+        # The player storms Vienna during campaign turn 1 (stamped 1)...
+        europe.log_event({
+            "type": "region_captured", "region": "Vienna",
+            "captured_by": "France", "captured_from": "Austria",
+            "method": "secure",
+        })
+        assert europe.event_log[-1]["turn"] == europe.current_turn
+        # ...and ends the turn: the tick runs at current_turn == 2.
+        europe.advance_turn()
+        assert europe.gazette_issues, "the special never published"
+        assert europe.gazette_issues[-1]["special"]
+        assert europe.gazette_issues[-1]["special_reason"] == \
+            "a capital stormed"
 
     def test_nation_eliminated_forces_an_edition(self, europe):
         europe.current_turn = 2
@@ -186,6 +209,25 @@ class TestComposition:
         assert "VICTOIRE" not in issue["lead"]
         assert "delicacy" in issue["lead"]
 
+    def test_third_party_battle_never_makes_the_lead(self, europe):
+        # Review round [10/19]: a fog-visible AI-vs-AI field is news for
+        # the sections, never a French triumph or reverse — the paper
+        # claims only battles France actually fought.
+        europe.current_turn = 4
+        europe.log_event({
+            "type": "battle", "attacker": "Hohenlohe",
+            "defender": "Kutuzov",
+            "attacker_nation": "Prussia", "defender_nation": "Russia",
+            "nations": ["Prussia", "Russia"], "location": "Silesia",
+            "outcome": "defender_victory",
+            "attacker_casualties": 2000, "defender_casualties": 1000,
+            "battle_name": "the Battle of Silesia",
+        })
+        europe.current_turn = ISSUE_INTERVAL
+        issue = process_gazette(europe)
+        assert "VICTOIRE" not in issue["lead"]
+        assert "delicacy" not in issue["lead"]
+
     def test_bourse_line_reads_standing_facts(self, europe):
         europe.current_turn = ISSUE_INTERVAL
         issue = process_gazette(europe)
@@ -240,6 +282,50 @@ class TestArchive:
         # The newest survives; the oldest five were evicted.
         assert europe.gazette_issues[-1]["turn"] == europe.current_turn
         assert europe.gazette_issues[0]["number"] != 1
+
+    def test_numbering_continues_past_the_cap(self, europe):
+        # Review round [1/4/7/20]: № 25 is followed by № 26 — the number
+        # continues from the last ISSUE, never from the capped length.
+        for i in range(MAX_ISSUES + 5):
+            europe.gazette_issues.append(
+                {"number": i + 1, "turn": i + 1, "dateline": "x",
+                 "masthead": "m", "special": False, "special_reason": "",
+                 "lead": "", "war": [], "courts": [], "army": [],
+                 "bourse": ""})
+        europe.current_turn = MAX_ISSUES + 5 + ISSUE_INTERVAL
+        issue = process_gazette(europe)
+        assert issue["number"] == MAX_ISSUES + 5 + 1
+        europe.current_turn += ISSUE_INTERVAL
+        assert process_gazette(europe)["number"] == MAX_ISSUES + 5 + 2
+
+    def test_no_campaign_turn_is_lost_between_issues(self, europe):
+        """Review round [18]: the campaign turn played AFTER a
+        publication carries the SAME stamp as that issue's advance-tail
+        rows — the next issue must still print its fighting."""
+        # Issue N publishes at the advance into turn 5.
+        europe.current_turn = ISSUE_INTERVAL
+        first = process_gazette(europe)
+        assert first is not None
+        # The player then fights DURING campaign turn 5 (stamped 5)...
+        _log_battle(europe, ISSUE_INTERVAL, location="Franconia")
+        # ...and issue N+1 publishes at the advance into turn 10.
+        europe.current_turn = ISSUE_INTERVAL * 2
+        second = process_gazette(europe)
+        assert any("Franconia" in line for line in second["war"]), \
+            "the fifth turn's fighting vanished from the archive"
+
+    def test_tail_rows_never_print_twice(self, europe):
+        # The inclusive window re-reads the last issue's stamp turn —
+        # rows the previous issue already printed are dropped.
+        _log_battle(europe, 4, location="Swabia")
+        europe.current_turn = ISSUE_INTERVAL
+        first = process_gazette(europe)
+        swabia_rows = [ln for ln in first["war"] if "Swabia" in ln]
+        assert swabia_rows
+        europe.current_turn = ISSUE_INTERVAL * 2
+        second = process_gazette(europe)
+        for line in swabia_rows:
+            assert line not in second["war"]
 
     def test_save_load_round_trips_the_archive(self, europe):
         europe.current_turn = ISSUE_INTERVAL

@@ -1506,8 +1506,11 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
     here = [m for m in world.get_marshals_in_region(region_name)
             if m.nation == player_nation and m.strength > 0]
     total = sum(int(m.strength) for m in here)
-    is_home = region.controller == player_nation
-    cap = int(region.supply_capacity * 1.5) if is_home else int(region.supply_capacity)
+    # HC-4a (review round [13]): the SAME effective cap the attrition
+    # pass applies — home turf AND the naval shore verdict. A strangled
+    # home coast must headline as the strain it is; the old inline
+    # formula read 1.5× and reported "no strain" while men died.
+    cap = int(world.get_effective_supply_cap(player_nation, region))
     over = max(0, total - cap)
     # CA8-2 (a): the template said "stand MORE men over what X can feed" —
     # a word that fired precisely when the overage was ZERO. There is no

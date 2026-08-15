@@ -74,12 +74,16 @@ class TestPureDerivation:
 
     def test_parse_start_date_shapes(self):
         assert parse_start_date("1805-09-25") == (1805, 9, 25)
-        assert parse_start_date("1805-02-29") is None or parse_start_date(
-            "1805-02-29") == (1805, 2, 29)
-        # Leap-day acceptance is a validator concern, not a display one —
-        # what matters here is that garbage never parses.
         assert parse_start_date("") is None
         assert parse_start_date("1805/09/25") is None
+
+    def test_leap_day_is_leap_checked(self):
+        # Review round [5/14]: 1805 is no leap year — an impossible
+        # authored date hard-fails; a real leap day parses.
+        assert parse_start_date("1805-02-29") is None
+        assert parse_start_date("1808-02-29") == (1808, 2, 29)
+        assert parse_start_date("1900-02-29") is None  # century rule
+        assert parse_start_date("2000-02-29") == (2000, 2, 29)
 
     def test_month_table_is_complete(self):
         assert len(MONTH_NAMES) == 12

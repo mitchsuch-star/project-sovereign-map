@@ -5809,6 +5809,38 @@ class WorldState:
             if region.war_damage > 0:
                 region.recover_war_damage(0.02)
 
+    def get_effective_supply_cap(self, nation: str, region,
+                                 _shore_cache: Optional[dict] = None) -> int:
+        """HC-4a single source: the supply capacity an army of `nation`
+        standing on `region` is actually held to — the 1.5× home-turf
+        multiplier, with the naval shore verdict granting it to a
+        convoyed landing or stripping it from a strangled home coast.
+
+        Consumed by `process_supply_attrition` (applied) AND the
+        dispatch's supply_strain headline (shown) — shown = applied by
+        construction (review round [13]). `_shore_cache` lets the
+        attrition pass reuse one verdict per (nation, region) per turn.
+        """
+        base_cap = region.supply_capacity
+        is_home = (region.controller == nation)
+        cap = int(base_cap * 1.5) if is_home else base_cap
+        if (self.fleets and getattr(region, "is_coastal", False)
+                and self.get_nations_at_war_with(nation)):
+            from backend.game_logic.naval import shore_supply_state
+            if _shore_cache is not None:
+                key = (nation, region.name)
+                if key not in _shore_cache:
+                    _shore_cache[key] = shore_supply_state(
+                        self, nation, region.name)
+                verdict = _shore_cache[key]
+            else:
+                verdict = shore_supply_state(self, nation, region.name)
+            if verdict == "lifeline" and not is_home:
+                cap = int(base_cap * 1.5)
+            elif verdict == "strangled" and is_home:
+                cap = base_cap
+        return cap
+
     def process_supply_attrition(self) -> list:
         """Apply supply attrition to over-capacity regions. Returns event list.
 
@@ -5845,33 +5877,17 @@ class WorldState:
             stacking_penalty = max(0, num_marshals - 1) * 0.01  # +1% per extra marshal
 
             for m in marshals_here:
-                is_home = (region.controller == m.nation)
-                cap = int(base_cap * 1.5) if is_home else base_cap
-                # HC-4a "The Royal Navy's lifeline" (gate §5a): on a
-                # COASTAL province, an AT-WAR army's shore verdict can
-                # grant or strip the SAME 1.5× home-turf treatment —
-                # zero new constants. Friendly-dominated water feeds a
-                # landed army like home soil (Britain's Lisbon
-                # expedition); hostile-dominated water strips the home
-                # bonus (the strangled shore). Contested or empty water
-                # → today's numbers byte-identically. GR5: this loop is
-                # both boards. Verdicts cached per (nation, region) —
-                # the fleet store is ≤15 rows, but no need to re-derive
-                # per co-located marshal.
-                if (self.fleets and getattr(region, "is_coastal", False)
-                        and self.get_nations_at_war_with(m.nation)):
-                    _shore_key = (m.nation, region.name)
-                    if _shore_key not in _shore_cache:
-                        from backend.game_logic.naval import (
-                            shore_supply_state,
-                        )
-                        _shore_cache[_shore_key] = shore_supply_state(
-                            self, m.nation, region.name)
-                    _verdict = _shore_cache[_shore_key]
-                    if _verdict == "lifeline" and not is_home:
-                        cap = int(base_cap * 1.5)
-                    elif _verdict == "strangled" and is_home:
-                        cap = base_cap
+                # HC-4a "The Royal Navy's lifeline" (gate §5a): the
+                # effective cap is the ONE shared source — home turf
+                # 1.5×, the naval shore verdict granting it to a
+                # convoyed landing (Britain's Lisbon corps) or
+                # stripping it from a strangled home coast; contested
+                # or empty water → today's numbers byte-identically.
+                # GR5: this loop is both boards; the dispatch's
+                # supply_strain headline reads the SAME helper (shown =
+                # applied). Verdicts cached per (nation, region).
+                cap = self.get_effective_supply_cap(
+                    m.nation, region, _shore_cache=_shore_cache)
                 if cap <= 0 or total <= cap:
                     # Even under capacity, stacking penalty applies for death-balling
                     if stacking_penalty > 0 and num_marshals >= 3:

@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 14, 2026, second session). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,558 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,567 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
 > **▶ ROW HC IS BUILT THROUGH HC-G (August 14, 2026, second session):**
 > HC-0 calendar (turn 1 = "Late September 1805", ONE serialized

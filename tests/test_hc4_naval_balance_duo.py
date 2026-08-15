@@ -143,7 +143,52 @@ class TestLifelineArm:
         assert with_arm == without_arm
 
 
-class TestAdmiraltysBill:
+class TestShownEqualsAppliedCap:
+    """Review round [13]: the dispatch's supply_strain headline and the
+    attrition pass read ONE effective-cap source."""
+
+    def test_effective_cap_is_shore_aware(self, europe):
+        region = europe.regions["Brittany"]
+        base = int(region.supply_capacity)
+        # Contested boot water: home turf keeps its 1.5x.
+        assert europe.get_effective_supply_cap("France", region) == \
+            int(base * 1.5)
+        # Post-Trafalgar: the strangled home coast loses it.
+        for nation in ("France", "Spain", "Holland"):
+            naval.get_fleets(europe)[nation]["ships"] = 0
+        assert europe.get_effective_supply_cap("France", region) == base
+        # The convoyed landing eats like a home army.
+        assert europe.get_effective_supply_cap("Britain", region) == \
+            int(base * 1.5)
+
+    def test_dispatch_strain_reads_the_strangled_cap(self, europe):
+        """A stack legal under the OLD inline 1.5x formula but over the
+        strangled cap must HEADLINE — the old dispatch read 'no strain'
+        while the attrition pass was killing men."""
+        from backend.game_logic.dispatch import _supply_strain_candidate
+        for nation in ("France", "Spain", "Holland"):
+            naval.get_fleets(europe)[nation]["ships"] = 0
+        region = europe.regions["Brittany"]
+        base = int(region.supply_capacity)
+        strength = int(base * 1.2)  # between base and 1.5x base
+        m = MarshalFactory.infantry(
+            name="HC4Strain", location="Brittany", strength=strength,
+            nation="France", personality="cautious")
+        europe.marshals.clear()
+        europe.marshals[m.name] = m
+        turn = int(europe.current_turn)
+        for stamp in (turn - 1, turn):
+            europe.event_log.append({
+                "type": "supply_attrition", "turn": stamp,
+                "marshal": m.name, "nation": "France",
+                "region": "Brittany", "losses": 500,
+                "message": "Supply shortage at Brittany",
+            })
+        candidate = _supply_strain_candidate(europe, "France")
+        assert candidate is not None, (
+            "the strangled strain never headlined — the dispatch is "
+            "still reading the pre-HC-4a inline cap")
+        assert candidate["region"] == "Brittany"
     """(b) — the billing seam and the affordability gate."""
 
     def _ai_with_stub_executor(self):

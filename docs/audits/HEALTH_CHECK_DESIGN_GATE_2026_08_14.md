@@ -599,3 +599,64 @@ whether seasons build before or after the played 20-turn campaign).
 The spike needs candidate GGUF downloads + a llama.cpp toolchain — a
 dedicated session per the §7b contract (one session, no product code).
 Queue position unchanged.
+
+### §9.9 The review round — ✅ August 14, 2026, same session
+
+A 6-lens find fleet swept the two commits (23 raw findings); the refute
+fleet died on a session usage limit, so every claim was verified BY HAND
+against the real code and producers. **Ten distinct issues; 8 FIXED, 2
+accepted + recorded:**
+
+1. **[P1, FIXED] The mojibake.** The HC-4 flip-experiment PowerShell
+   script read `naval.py`/`enemy_ai.py` without `-Encoding` (cp1252)
+   and wrote them back UTF-8 — double-encoding every non-ASCII char
+   (207/177 mojibake sequences; ~27 player-facing naval strings
+   corrupted: crossing refusals, the Admiralty's Crossings block, the
+   blockade effect line). Recovered by the exact reverse transform
+   (UTF-8 → cp1252 with C1 passthrough → UTF-8); verified: 0 mojibake
+   sequences and the diff vs the parent commit is EXACTLY the intended
+   HC edits (+116/+32 lines). **Standing lesson: any PowerShell
+   `Get-Content`/`Set-Content` round-trip on repo text MUST pass
+   `-Encoding UTF8` on BOTH ends — the flip script passed it only on
+   write.**
+2. **[P1, FIXED] Gazette specials were structurally dead.** Events are
+   stamped with the PRE-increment turn; the detector scanned only the
+   post-increment stamp — a stormed capital could never force an
+   edition (the tests had masked it by hand-setting current_turn). The
+   scan floor is now `max(last_issue_turn+1, turn-1)`; pinned through
+   a REAL `advance_turn` end to end.
+3. **[P2, FIXED] The capital-storm join was dead a second way** — it
+   read `previous_controller`/`old_controller`; every production
+   producer stamps `captured_from`. Now read first; test uses the
+   production shape.
+4. **[P1, FIXED] The press lead claimed third-party battles for
+   France** (an Austria-vs-Prussia defender victory led as VICTOIRE).
+   The lead now requires French participation; pinned.
+5. **[P2, FIXED] Every fifth campaign turn vanished from the archive**
+   — the compose window opened at last_turn+1 while the turn played
+   after publication shares the last issue's stamp. The window is now
+   inclusive with textual dedupe vs the previous issue; both the
+   no-lost-turn and no-double-print cases pinned.
+6. **[P3, FIXED] Issue numbering froze at № 21** once the cap evicted
+   — numbering now continues from the last issue, pinned past the cap.
+7. **[P2, FIXED] The supply_strain dispatch headline read the
+   pre-HC-4a inline cap** (a strangled home coast reported "no strain"
+   while the attrition pass killed men). Extracted
+   `WorldState.get_effective_supply_cap` as the ONE source read by
+   both the attrition pass and the headline; pinned with a stack legal
+   under 1.5× but over the strangled cap.
+8. **[P3, FIXED] Two inert test assertions** — the gazette aliasing
+   tautology (`… or True`) and the leap-day disjunction; plus the
+   calendar now leap-checks February (1805-02-29 hard-fails,
+   1808-02-29 parses).
+9. **[P3, ACCEPTED + RECORDED] The shore verdict reads last tick's
+   postures** (supply runs before this turn's naval tick) — one-turn
+   lag on posture flips, consistent with the tick's stored-state
+   baselines idiom; not worth reordering the advance sequence.
+10. **[P3, ACCEPTED + RECORDED] `derive_ai_postures` gives blockade
+    posture to island fleets only**, so a non-island AI navy can never
+    produce 'strangled', and a Descent window (Britain flipped to
+    guard) reads the invader's convoys as a lifeline — the latter is
+    arguably the Grand Diversion working as designed; the posture
+    POLICY predates HC-4 and belongs to the naval spec's AI section if
+    it is ever widened.

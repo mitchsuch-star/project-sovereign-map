@@ -91,7 +91,11 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
             if sum(1 for p in parties if _is_great_power(world, p)) >= 2:
                 return "peace between the great powers"
         if etype == "region_captured":
-            prev = str(event.get("previous_controller")
+            # Review round [17]: every production producer stamps
+            # `captured_from` (capture_executor, movement_executor, the
+            # AI capture arms) — the older keys stay as fallbacks only.
+            prev = str(event.get("captured_from")
+                       or event.get("previous_controller")
                        or event.get("old_controller") or "")
             region = str(event.get("region") or "")
             if prev and region \
@@ -114,12 +118,17 @@ def _press_lead(world, war_rows: List[Dict]) -> str:
         if str(event.get("type", "")) != "battle":
             continue
         outcome = str(event.get("outcome", ""))
-        attacker_nation = str(event.get("attacker_nation")
-                              or event.get("nations", [""])[0] or "")
+        attacker_nation = str(event.get("attacker_nation") or "")
+        defender_nation = str(event.get("defender_nation") or "")
+        # Review round [10/19]: the paper claims a triumph or a reverse
+        # ONLY for a battle France actually fought — a fog-visible
+        # third-party field is news for the sections, never the lead.
+        if player not in (attacker_nation, defender_nation):
+            continue
         won = ("victory" in outcome
                and ((attacker_nation == player
                      and "attacker" in outcome)
-                    or (attacker_nation != player
+                    or (defender_nation == player
                         and "defender" in outcome)))
         lost = ("victory" in outcome and not won)
         if won and triumph is None:
@@ -160,22 +169,44 @@ def _bourse_line(world) -> str:
 
 
 def compose_issue(world, since_turn: int,
-                  special_reason: Optional[str] = None) -> Dict:
-    """Compose one issue from the fog-filtered events of
-    (since_turn, current_turn]. Pure read — the caller stores it."""
+                  special_reason: Optional[str] = None,
+                  previous_issue: Optional[Dict] = None) -> Dict:
+    """Compose one issue from the fog-filtered events stamped
+    `since_turn` ONWARD (inclusive). Pure read — the caller stores it.
+
+    Review round [18]: events are stamped with the PRE-increment turn,
+    so the campaign turn played AFTER the last publication carries the
+    SAME stamp as that issue's advance-tail rows. The window therefore
+    re-opens AT the last issue's turn (inclusive) and rows already
+    printed in `previous_issue` are dropped textually — no fifth turn
+    of the campaign is ever lost, and no tail row prints twice.
+    """
     events = filter_campaign_log(
-        world.get_events_since_turn(since_turn + 1), world)
+        world.get_events_since_turn(max(1, int(since_turn))), world)
     war_rows = [e for e in events if str(e.get("type", "")) in _WAR_TYPES]
     court_rows = [e for e in events
                   if str(e.get("type", "")) in _COURT_TYPES]
     army_rows = [e for e in events if str(e.get("type", "")) in _ARMY_TYPES]
 
-    number = len(getattr(world, "gazette_issues", []) or []) + 1
+    # Review round [1/4]: the number continues from the last ISSUE, not
+    # from the eviction-capped archive length — № 21 is followed by
+    # № 22, not by № 21 forever.
+    if previous_issue:
+        number = int(previous_issue.get("number", 0)) + 1
+    else:
+        number = len(getattr(world, "gazette_issues", []) or []) + 1
     label = ""
     get_label = getattr(world, "get_calendar_label", None)
     if callable(get_label):
         label = str(get_label() or "")
     dateline = label or f"Turn {int(world.current_turn)}"
+
+    def _section(rows: List[Dict], key: str) -> List[str]:
+        lines = [format_event_oneliner(e) for e in rows]
+        if previous_issue:
+            already = set(previous_issue.get(key) or [])
+            lines = [ln for ln in lines if ln not in already]
+        return lines[-_SECTION_CAP:]
 
     issue = {
         "number": int(number),
@@ -188,11 +219,9 @@ def compose_issue(world, since_turn: int,
         # The section rows ARE the campaign log's own lines (fog-honest,
         # R7-humanized by the shared formatter) — the paper never claims
         # a battle the log cannot show.
-        "war": [format_event_oneliner(e) for e in war_rows[-_SECTION_CAP:]],
-        "courts": [format_event_oneliner(e)
-                   for e in court_rows[-_SECTION_CAP:]],
-        "army": [format_event_oneliner(e)
-                 for e in army_rows[-_SECTION_CAP:]],
+        "war": _section(war_rows, "war"),
+        "courts": _section(court_rows, "courts"),
+        "army": _section(army_rows, "army"),
         "bourse": _bourse_line(world),
     }
     return issue
@@ -217,16 +246,24 @@ def process_gazette(world) -> Optional[Dict]:
     if last_turn >= turn:
         return None  # one issue max per turn
 
+    # Review round [6/11/16/22]: the campaign's own events (player phase
+    # + enemy phase) are stamped with the PRE-increment turn, and this
+    # check runs post-increment — a detector scanning only the NEW stamp
+    # would never see a stormed capital. The scan floor is therefore the
+    # just-played turn, clamped above the last issue's turn so a
+    # tail-stamped special (a congress peace, a proclamation) never
+    # forces two editions off one event.
+    scan_floor = max(last_turn + 1, turn - 1)
     turn_events = filter_campaign_log(
-        [e for e in world.get_events_since_turn(turn)
-         if int(e.get("turn", 0)) == turn], world)
+        world.get_events_since_turn(scan_floor), world)
     special = _special_reason(world, turn_events)
     due = (turn - last_turn) >= ISSUE_INTERVAL if issues \
         else turn >= ISSUE_INTERVAL
     if not special and not due:
         return None
 
-    issue = compose_issue(world, last_turn, special)
+    issue = compose_issue(world, last_turn, special,
+                          previous_issue=issues[-1] if issues else None)
     issues.append(issue)
     del issues[:-MAX_ISSUES]
 
