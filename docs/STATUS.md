@@ -4,6 +4,63 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE PRE-BUILD FIX PASS — August 15, 2026
+>
+> **The health check's shippable-build P0/P1 gaps are CLOSED at their seams**
+> (user: *"finish fixes for prebuild"*) — position 10 now starts from a fresh
+> export, not from fixes. Suite **17,595/3** · ruff clean. Pins =
+> `tests/test_prebuild_fixes_2026_08_14.py` (28).
+>
+> - **The cheat surface is re-gated on EXPLICIT debug**
+>   (`meta_executor._execute_cheat`): the CR-3(d) `key_source != "none"`
+>   gate is RETIRED — it armed cheats in exactly the keyless-mock config a
+>   shipped build runs. The gate is now `game_state["debug_mode"]` OR
+>   `DEBUG_MODE=true` env, nothing else (LLM mode and key_source are
+>   irrelevant to it). Dev keeps cheats via the repo `.env`'s
+>   `DEBUG_MODE=true` (gitignored, never ships); launch.bat never sets it —
+>   pinned. **Conscious pin flips:** `TestCheatGateKeySource` re-pins the
+>   new gate (the old "key_source none allows" pin was the hole itself);
+>   `test_audit_part2._make_game_state` passes `debug_mode`.
+> - **Saves move to `%APPDATA%\InkAndIron\saves` when frozen**
+>   (`save_manager._resolve_save_dir`: `INK_IRON_SAVE_DIR` env override →
+>   `sys.frozen` → APPDATA, home-dir fallback → dev repo `saves/`
+>   unchanged); `ensure_save_dir` gains `parents=True`. The suite's
+>   `patch("backend.save_manager.SAVE_DIR", …)` seam is untouched, and the
+>   menu's Continue/Load arms ride `/saves` → SAVE_DIR, so they follow for
+>   free.
+> - **launch.bat REGENERATED mock-default** (ROADMAP-10's Aug-3 "do not
+>   patch piecemeal" note is DISCHARGED — this is the regeneration, pulled
+>   forward by the user's directive): missing config.txt / placeholder key
+>   → `LLM_MODE=mock` and the game just runs (the monetization ruling's
+>   "default = full game, offline, no AI"); a real key → the anthropic arm
+>   unchanged. **Supervision:** the fixed 3-second hope is now a 30×1s
+>   `GET /test` poll (curl, ships with Win10/11) with an honest failure
+>   branch naming the server window, plus a port-8005-already-answering
+>   reuse guard (the stale-backend trap, now a launcher behavior).
+> - **README_TESTER.txt REWRITTEN for the shipping game** — the old file
+>   taught the deleted 19-region world (Drouot/Grouchy starting roster,
+>   "8 of 19 regions", key-required setup, D = dispatch). Now: the 1805
+>   campaign, the seven-marshal roster, mock-default + "Smarter Parsing
+>   (optional)" framing per the monetization memo, verified hotkeys
+>   (D = diplomatic ledger, **R** = dispatch, N = Le Moniteur), APPDATA
+>   saves, the School of War, glory/rewards, the Admiralty.
+>   `dist_template/config.txt` reframed OPTIONAL (placeholder string kept
+>   — the launcher's guard matches it, drift-pinned); `build.bat`
+>   next-steps now demand a FRESH export (the March .pck predates the
+>   cutover) + a keyless mock smoke before zipping.
+> - **The stray 265MB `assets/movies.avi` is OUT of res://** (untracked +
+>   ignored; parked at gitignored `local_archive/`), with a
+>   no-`*.avi`-under-res:// hygiene pin.
+>
+> **Position 10's remainder:** the fresh Godot export itself (verify
+> `europe_1805.json` inside the new `.pck`), the memo's v1 LLM-access
+> touchpoints (settings rename / three-fears copy / status / hint /
+> failure notice), optional client-side process supervision beyond the
+> launcher's, and the stranger-unzips-it run on a Python-less machine.
+> HC-L and the played 20-turn campaign stay queued as before.
+>
+> ---
+>
 > ## ✅ ROW HC SLICES HC-0..HC-5 + HC-G BUILT, HC-6 SPEC AUTHORED — August 14, 2026 (second session)
 >
 > **Seven of the eight HC slices are DONE in one session under the user's
@@ -291,6 +348,11 @@
 > README_TESTER describes the deleted 19-region game; no client-side backend
 > supervision. Plus: move the stray 265MB `assets/movies.avi` out of `res://`
 > before any export.
+> **→ ✅ CLOSED August 15, 2026 (the pre-build fix pass — see the top
+> entry): launcher mock-default + health-poll supervision, cheat re-gate on
+> explicit debug, `%APPDATA%` saves, README_TESTER rewritten, movies.avi out
+> of res://. Still position 10's: the fresh export itself (+ verify the
+> JSONs inside the new .pck) and the memo's v1 LLM-access touchpoints.**
 >
 > **~~REPORT-ONLY (design-owned, NOT built — each needs its gate)~~ — ✅ ALL
 > GIVEN THEIR GATE THE SAME DAY: these rows became ROW HC (the entry above

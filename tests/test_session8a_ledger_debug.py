@@ -11,6 +11,8 @@ Tests cover:
 """
 
 import os
+from unittest import mock
+
 import pytest
 
 # Ensure mock mode for tests
@@ -717,24 +719,23 @@ class TestCheatCommands:
         assert has_hard_reject_posture(world, "France", "Austria") is False
         assert len(world.betrayal_history["France|Austria"]["strikes"]) == 2
 
-    def test_cheat_guard_rejects_non_mock(self):
-        """Cheat should be rejected when not in mock/debug mode."""
+    def test_cheat_guard_rejects_without_debug(self):
+        """Cheat is rejected without an explicit debug opt-in.
+
+        CONSCIOUS PIN FLIP (Aug 15, 2026, shippable-build P0): the old pin
+        asserted rejection under LLM_MODE=anthropic — the retired CR-3(d)
+        gate. The gate now reads ONLY the debug switches, so DEBUG_MODE
+        must be pinned false explicitly (the dev .env sets it true).
+        """
         world = _make_world()
         executor = CommandExecutor()
         gs = {"world": world, "debug_mode": False}
-        # Temporarily set LLM_MODE to non-mock
-        old_mode = os.environ.get("LLM_MODE")
-        os.environ["LLM_MODE"] = "anthropic"
-        try:
-            command = {"action": "cheat", "cheat_type": "set_threat", "cheat_args": ["50"]}
+        command = {"action": "cheat", "cheat_type": "set_threat", "cheat_args": ["50"]}
+        with mock.patch.dict(os.environ, {"LLM_MODE": "anthropic",
+                                          "DEBUG_MODE": "false"}):
             result = executor._execute_cheat(command, gs)
-            assert result["success"] is False
-            assert "mock/debug" in result["message"]
-        finally:
-            if old_mode:
-                os.environ["LLM_MODE"] = old_mode
-            else:
-                os.environ["LLM_MODE"] = "mock"
+        assert result["success"] is False
+        assert "debug" in result["message"].lower()
 
     def test_unknown_cheat_type(self):
         world = _make_world()

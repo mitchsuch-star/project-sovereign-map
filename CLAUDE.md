@@ -42,9 +42,25 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 14, 2026, second session). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,567 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,595 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE PRE-BUILD FIX PASS LANDED August 15, 2026** (user: "finish
+> fixes for prebuild"; record = STATUS top entry; pins =
+> `tests/test_prebuild_fixes_2026_08_14.py` 28): the health check's
+> shippable-build P0/P1 gaps are closed — launch.bat regenerated
+> mock-default (missing/placeholder key → `LLM_MODE=mock`, real key →
+> anthropic) with a 30s `GET /test` health poll + honest failure +
+> stale-server reuse guard; cheats re-gated on EXPLICIT debug
+> (`debug_mode`/`DEBUG_MODE=true` only — the CR-3(d) `key_source` gate
+> RETIRED, dev keeps cheats via the gitignored `.env`); saves →
+> `%APPDATA%\InkAndIron\saves` when frozen (`_resolve_save_dir`, env
+> override `INK_IRON_SAVE_DIR`; dev `saves/` unchanged, test seam
+> intact); README_TESTER + config.txt template rewritten for the 1805
+> mock-default game; the 265MB movies.avi out of res:// (hygiene pin).
+> **Position 10's remainder: the fresh export + verify JSONs in the
+> .pck, the memo's v1 LLM touchpoints, the clean-machine run.**
 >
 > **▶ ROW HC IS BUILT THROUGH HC-G (August 14, 2026, second session):**
 > HC-0 calendar (turn 1 = "Late September 1805", ONE serialized
@@ -69,7 +85,16 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > needs GGUF + llama.cpp toolchain) · the **played 20-turn campaign**
 > (next in queue) · the standing **visual sign-off** on the new HC
 > surfaces (calendar labels, Blockade row, Gazette screen) · then
-> position 10, the shippable build.
+> position 10, the shippable build — **whose P0/P1 pre-build gaps
+> CLOSED August 15, 2026** (the pre-build fix pass, STATUS top entry:
+> launcher regenerated mock-default + 30s health poll + stale-server
+> reuse guard, cheats re-gated on explicit debug — `key_source` retired
+> from the gate, dev keeps them via the gitignored `.env`'s
+> `DEBUG_MODE=true` — saves → `%APPDATA%\InkAndIron\saves` when frozen,
+> README_TESTER rewritten for 1805, the 265MB movies.avi out of res://;
+> `tests/test_prebuild_fixes_2026_08_14.py` 28; suite **17,595/3**;
+> position 10's remainder = the fresh export + verify JSONs in the
+> .pck, the memo's v1 LLM touchpoints, the clean-machine run).
 >
 > **▶ THE WHOLE-GAME HEALTH CHECK RAN August 14, 2026** (user-directed "are we
 > truly at build stage" audit + fix + feature sweep; ultracode): a six-agent

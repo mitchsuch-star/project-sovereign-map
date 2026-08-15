@@ -51,7 +51,10 @@ def _make_world():
 def _make_game_state(world=None):
     if world is None:
         world = _make_world()
-    return {"world": world}
+    # debug_mode: the AL-1/AL-2 cases below exercise cheat handlers, and the
+    # Aug 2026 shippable-build P0 re-gated cheats on explicit debug (mock
+    # mode alone no longer opens the gate).
+    return {"world": world, "debug_mode": True}
 
 
 def _make_executor():

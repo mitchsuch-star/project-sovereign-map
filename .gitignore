@@ -53,6 +53,10 @@ htmlcov/
 # Claude Code local settings
 .claude/settings.local.json
 
+# Local media parked OUTSIDE res:// so Godot never scans/exports it
+# (Aug 2026 shippable-build P0: a stray 265MB movies.avi lived in assets/)
+local_archive/
+
 # Local agent state and scratch outputs
 .claude/
 .pytest_tmp*/

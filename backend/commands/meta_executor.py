@@ -2173,23 +2173,23 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         if not world:
             return {"success": False, "message": "No active game."}
 
-        # Guard: only available in mock/debug mode.
-        # CR-3(d): key off the parse result's key_source ("none" = no live
-        # key armed) rather than the LLM_MODE env var — a BYOK player runs
-        # live parsing while the server env still says "mock", which the
-        # old gate would have waved through. Hand-built command dicts
-        # (tests, direct executor calls) carry no key_source and keep the
-        # historical env-var behavior.
-        debug_mode = game_state.get("debug_mode", False)
-        key_source = command.get("key_source")
-        if key_source is not None:
-            live_client_armed = key_source != "none"
-        else:
-            live_client_armed = os.getenv("LLM_MODE", "mock") != "mock"
-        if live_client_armed and not debug_mode:
+        # Guard: cheats require an EXPLICIT debug opt-in (Aug 2026 health-check
+        # shippable-build P0). The old CR-3(d) gate armed cheats whenever no
+        # live LLM key was in play (key_source == "none" / LLM_MODE == mock) —
+        # which is exactly the keyless-mock configuration a shipped build
+        # runs, so every tester had the whole cheat surface. Debug is now an
+        # affirmative switch, never a default: game_state["debug_mode"]
+        # (main.py wires it from DEBUG_MODE, tests set it directly) or
+        # DEBUG_MODE=true in the environment for hand-built game_states.
+        # key_source and LLM_MODE are irrelevant to the gate — a mock player
+        # is not a debugger any more than a BYOK player is.
+        debug_mode = game_state.get("debug_mode", False) or (
+            os.getenv("DEBUG_MODE", "false").lower() == "true"
+        )
+        if not debug_mode:
             return {
                 "success": False,
-                "message": "Cheat commands only available in mock/debug mode.",
+                "message": "Cheat commands are disabled outside debug mode.",
             }
 
         cheat_type = (command.get("cheat_type") or command.get("target") or "").strip()

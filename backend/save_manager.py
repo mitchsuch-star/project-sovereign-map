@@ -22,13 +22,40 @@ with .get(key, default) for backward compatibility.
 
 import json
 import os  # noqa: E402 - used in atomic save write
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
 
 from backend.models.world_state import WorldState
 
-SAVE_DIR = Path("saves")
+
+def _resolve_save_dir() -> Path:
+    """Resolve where saves live (Aug 2026 shippable-build P0).
+
+    A bare ``Path("saves")`` is CWD-relative — fine for the dev repo, but a
+    frozen (PyInstaller) build writes saves wherever the exe happened to be
+    launched from: Desktop, a zip-extract temp dir, Program Files (where the
+    write may silently fail). Precedence:
+
+    1. ``INK_IRON_SAVE_DIR`` env — explicit override, wins everywhere.
+    2. Frozen build (``sys.frozen``) — ``%APPDATA%/InkAndIron/saves`` on
+       Windows, ``~/.ink_iron/saves`` where APPDATA is absent.
+    3. Dev default — repo-relative ``saves/`` (unchanged; the whole test
+       suite patches ``backend.save_manager.SAVE_DIR`` and keeps working).
+    """
+    env_dir = os.getenv("INK_IRON_SAVE_DIR")
+    if env_dir:
+        return Path(env_dir)
+    if getattr(sys, "frozen", False):
+        appdata = os.getenv("APPDATA")
+        if appdata:
+            return Path(appdata) / "InkAndIron" / "saves"
+        return Path.home() / ".ink_iron" / "saves"
+    return Path("saves")
+
+
+SAVE_DIR = _resolve_save_dir()
 AUTOSAVE_FILENAME = "autosave.json"
 # Format history (DEF-2 — every bump invalidates older saves with a clear
 # message rather than a silent crash):
@@ -42,8 +69,12 @@ FORMAT_VERSION = 3
 
 
 def ensure_save_dir():
-    """Create saves directory if it doesn't exist."""
-    SAVE_DIR.mkdir(exist_ok=True)
+    """Create saves directory if it doesn't exist.
+
+    parents=True: the frozen-build location (%APPDATA%/InkAndIron/saves)
+    is two levels deep on first run.
+    """
+    SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optional[Path] = None) -> Dict:

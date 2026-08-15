@@ -68,10 +68,14 @@ echo.
 echo Output: deploy\dist\ink_iron_server\
 echo.
 echo Next steps:
-echo   1. Export the Godot project as InkAndIron.exe
+echo   1. Export the Godot project as InkAndIron.exe (FRESH export -
+echo      the March 2026 .pck predates the 126-province map cutover;
+echo      verify europe_1805.json is inside the new .pck)
 echo   2. Copy InkAndIron.exe + .pck into deploy\dist\ink_iron_server\
-echo   3. Edit config.txt with the tester's Anthropic API key
+echo   3. Smoke it: run launch.bat WITHOUT editing config.txt - the
+echo      game must boot and play in mock mode with no key
 echo   4. Zip the ink_iron_server folder and send to tester
-echo   5. Tester unzips, edits config.txt, runs launch.bat
+echo   5. Tester unzips and runs launch.bat (no key needed; a key in
+echo      config.txt or the in-game Settings enables Smarter Parsing)
 echo.
 pause

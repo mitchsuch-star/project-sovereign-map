@@ -437,23 +437,33 @@ class TestCheatGateKeySource:
             command["key_source"] = key_source
         return command
 
-    def test_key_source_none_allows_even_under_live_env(self):
+    # CONSCIOUS PIN FLIP (Aug 14, 2026, shippable-build P0): the CR-3(d)
+    # key_source gate is RETIRED. It armed cheats in exactly the keyless-mock
+    # configuration a shipped build runs. Cheats now require an explicit
+    # debug opt-in (game_state["debug_mode"] or DEBUG_MODE=true env);
+    # key_source and LLM_MODE no longer open the gate for anyone.
+    def test_key_source_none_refused_without_debug(self):
+        # The flipped pin: keyless-mock (the SHIPPED config) no longer
+        # arms cheats. This was the health check's build P0.
         executor, gs = self._executor_and_state()
-        with patch.dict(os.environ, {"LLM_MODE": "anthropic"}):
+        with patch.dict(os.environ, {"LLM_MODE": "mock", "DEBUG_MODE": "false"}):
             result = executor._execute_cheat(self._cheat("none"), gs)
-        assert result["success"] is True
+        assert result["success"] is False
+        assert "debug" in result["message"].lower()
 
     def test_key_source_byok_denies_even_under_mock_env(self):
-        # The latent BYOK hole: env says mock, but the player armed a key.
+        # The latent BYOK hole stays closed: env says mock, player armed a
+        # key — still refused (now because nothing but debug opens the gate).
         executor, gs = self._executor_and_state()
-        with patch.dict(os.environ, {"LLM_MODE": "mock"}):
+        with patch.dict(os.environ, {"LLM_MODE": "mock", "DEBUG_MODE": "false"}):
             result = executor._execute_cheat(self._cheat("byok"), gs)
         assert result["success"] is False
-        assert "mock/debug" in result["message"]
+        assert "debug" in result["message"].lower()
 
     def test_key_source_inhouse_denied_without_debug(self):
         executor, gs = self._executor_and_state()
-        result = executor._execute_cheat(self._cheat("inhouse"), gs)
+        with patch.dict(os.environ, {"DEBUG_MODE": "false"}):
+            result = executor._execute_cheat(self._cheat("inhouse"), gs)
         assert result["success"] is False
 
     def test_key_source_inhouse_allowed_with_debug(self):
@@ -461,11 +471,13 @@ class TestCheatGateKeySource:
         result = executor._execute_cheat(self._cheat("inhouse"), gs)
         assert result["success"] is True
 
-    def test_legacy_command_without_key_source_uses_env(self):
+    def test_debug_env_opens_gate_for_handbuilt_state(self):
+        # A dev launching the real server opts in with DEBUG_MODE=true;
+        # LLM_MODE plays no part in the decision either way.
         executor, gs = self._executor_and_state()
-        with patch.dict(os.environ, {"LLM_MODE": "mock"}):
+        with patch.dict(os.environ, {"LLM_MODE": "anthropic", "DEBUG_MODE": "true"}):
             allowed = executor._execute_cheat(self._cheat(), gs)
-        with patch.dict(os.environ, {"LLM_MODE": "anthropic"}):
+        with patch.dict(os.environ, {"LLM_MODE": "mock", "DEBUG_MODE": "false"}):
             denied = executor._execute_cheat(self._cheat(), gs)
         assert allowed["success"] is True
         assert denied["success"] is False
