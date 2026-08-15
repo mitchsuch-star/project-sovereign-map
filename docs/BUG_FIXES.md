@@ -92,16 +92,24 @@
 > pair-substitute chooser is answerable by policy ("keep"), and
 > PLAYTESTING.md documents the loop-index/world-turn trap.
 >
-> **STILL OPEN with reasons: PC15-5** (neutral-soil family — design-gated,
-> `DESIGN_REFINEMENT.md` PC15-D1) · **PC15-8** (live-parse literal ASK arm
+> **STILL OPEN with reasons: PC15-8** (live-parse literal ASK arm
 > — needs a live-API probe session; the mock guardrail is pinned, the live
 > prompt table is not verifiable offline) · **PC15-10** (CA9-D3's owned
-> revisit slice) · **PC15-15** (truce floor — design-gated, PC15-D4) ·
-> **PC15-16 + PC15-18** (client `.gd` surfaces — belong to the next
-> visual-pass session with `saves/flagship_visual_t12.json`, where the fix
-> can be SEEN; the parse-harness half of any such change is free but the
-> behavior half is not verifiable headlessly).
+> revisit slice) · **PC15-16 + PC15-18** (client `.gd` surfaces — belong
+> to the next visual-pass session with `saves/flagship_visual_t12.json`,
+> where the fix can be SEEN; the parse-harness half of any such change is
+> free but the behavior half is not verifiable headlessly).
 > Tests: `tests/test_pc15_fix_slice_2026_08_15.py` (53).
+>
+> **PC15-5 and PC15-15 CLOSED August 15, 2026 (same day, second slice) by
+> the PC15-D gate rulings** — gate record = `DESIGN_REFINEMENT.md`
+> §Comprehensive Playtest (D1 "The Closed Frontier" closes the whole
+> PC15-5 family: retreat scan obeys the movement law, the glory-hunt
+> respects neutrality, the autonomous war-purpose theater never stages,
+> the DP-shortage exit is a visible receipt; D4 "The Congress Holds"
+> closes PC15-15: truce floor 8 + P3.7's war filter + the unheld-homeland
+> return + the congress-beat dedupe). Tests =
+> `tests/test_pc15_d_rulings_2026_08_15.py` (34).
 
 | ID | P | Finding | Evidence | Where to look |
 |---|---|---|---|---|

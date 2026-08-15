@@ -2553,7 +2553,7 @@ Four building types, constructed via `build <type> at <region>`:
 
 Supply depot adds +10,000 to base. Terrain modifier applied (mountains 0.5x, urban 1.2x, etc.). Capacity is a computed property — not serialized.
 
-**Home Territory Supply Bonus:** Marshals in their own nation's territory get 1.5x effective supply capacity. This means defending home territory is more sustainable than invading, and reduces turtling advantage since defenders take less attrition. Calculated per-marshal based on whether the region's controller matches the marshal's nation.
+**Home Territory Supply Bonus + The Ally's Table (PC15-D2, Aug 15 2026):** Marshals in their own nation's territory — or on soil controlled by an `ALLIANCE`/`DEFENSIVE_ALLIANCE`/`VASSAL` host (`WorldState.ALLY_SUPPLY_STATES`) — get `HOME_SUPPLY_MULTIPLIER` (1.5×) effective supply capacity via the single seam `get_effective_supply_cap` (HC-4a's naval shore verdicts key off the same fed predicate). NON_AGGRESSION/OPEN_BORDERS hosts feed nobody: transit rights are not magazines (the Ansbach line). Defending home or allied ground is sustainable; invading is not; the supply-strain dispatch headline names the legal dispersal split with real numbers, and the AI's P6.5 dispersal rung reads the same effective cap (shown = applied both directions).
 
 **Supply Attrition:** Runs during turn resolution (after stability/war damage recovery, before bankruptcy). Calculated per-marshal with individual effective capacity. When total troops in a region exceed a marshal's effective capacity, attrition is continuous: `min(0.03, excess_ratio * 0.015)` where `excess_ratio = (total_troops - capacity) / capacity`. This replaces the old tiered system (1%/3%/5%) with a smooth curve that caps at 3%.
 

@@ -2172,9 +2172,29 @@ class DiplomaticExecutor:
         # DP check (1 DP)
         dp_cost = 1
         if world.diplomatic_points < dp_cost:
+            # PC15-D1(c): this refusal can land AFTER the war-purpose /
+            # objection / confirm modal chain (select_war_objective POPS
+            # the dialogue before entering this funnel), where a bare
+            # text return was invisible — the measured "three modals of
+            # theater, no war, no receipt". The refusal now rides the
+            # result popup so the chain always ENDS on screen, with
+            # Talleyrand saying why.
+            _dp_refusal = (
+                f"Sire, the declaration cannot be sent — a declaration "
+                f"of war costs {dp_cost} Diplomatic Point and the "
+                f"chancery holds {int(world.diplomatic_points)}. The "
+                f"province stands; nothing was relayed to "
+                f"{target_nation}.")
+            world.proposal_result_popup = {
+                "type": "proposal_result",
+                "result": "refused",
+                "proposal_type": "declare_war",
+                "target_nation": target_nation,
+                "message": _dp_refusal,
+            }
             return {
                 "success": False,
-                "message": f"Insufficient Diplomatic Points. War declaration costs {dp_cost} DP, but we have {int(world.diplomatic_points)}.",
+                "message": _dp_refusal,
                 "diplomatic_dialogue": None,
                 "awaiting_diplomatic_response": False,
             }

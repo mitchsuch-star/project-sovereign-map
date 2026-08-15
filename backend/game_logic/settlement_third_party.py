@@ -48,6 +48,18 @@ BROKER_ASK_COOLDOWN = 6             # per-war courier cadence
 PAIR_EXIT_WE_FLOOR = 120            # both sides this weary
 PAIR_EXIT_MIN_TURNS = 10            # the pair fought this long
 PAIR_EXIT_STAGNANT_SCORE = 15       # |pair war score| within this band
+# PC15-D4 (gate ruling, Aug 15 2026): a pair that white-peaced out of
+# exhaustion holds its truce this long — written into the SAME
+# `armistice_cooldowns` store every war-entry gate already consults
+# (declare_war R99 / war_council / ai_diplomacy / the ally-entry blocks),
+# so one write floors every channel. 8 turns = 4 months at HC-0's
+# half-month turn: longer than a negotiated armistice's 5 (a collapse
+# holds longer than a choice), shorter than PAIR_EXIT_MIN_TURNS, so the
+# worst-case churn period is >= 18 turns — a campaign season, not zero.
+# KNOWN GAP, deliberate: declare_war's ally CASCADE does not read the
+# pair cooldown — a floored pair can be re-welded by a third court's
+# fresh war; owner = the PC15-15 row's residual in DESIGN_REFINEMENT.
+PAIR_EXIT_TRUCE_FLOOR_TURNS = 8
 
 
 def _side_leader_active(war: Dict, side: str) -> Optional[str]:
@@ -365,6 +377,51 @@ def process_third_party_settlements(world) -> List[Dict]:
     return events
 
 
+def _return_unheld_homeland(world, war_id: str, a: str, b: str) -> List[str]:
+    """PC15-D4 piece 3: build territory_cede terms for each direction —
+    provinces of one court's HOMELAND (nation_starting_regions) held by
+    the other with NO standing marshal of the holder — and run them
+    through `settlement_ratify._apply_settlement_terms` (the negotiated
+    path's own applier). Returns the region names actually transferred."""
+    from backend.game_logic import settlement_ratify
+
+    terms = []
+    for holder, owner in ((a, b), (b, a)):
+        home = set(
+            (getattr(world, "nation_starting_regions", {}) or {}).get(
+                owner, []) or [])
+        give_back = []
+        for region_name in home:
+            region = world.regions.get(region_name)
+            if region is None or region.controller != holder:
+                continue
+            standing = [
+                m for m in world.get_marshals_in_region(region_name)
+                if m.nation == holder and m.strength > 0
+                and not getattr(m, "captured_by", "")]
+            if standing:
+                continue
+            give_back.append(region_name)
+        if give_back:
+            terms.append({"type": "territory_cede", "value": 1,
+                          "from": holder, "to": owner,
+                          "regions": sorted(give_back)})
+    if not terms:
+        return []
+    applied = settlement_ratify._apply_settlement_terms(
+        world, settlement_terms=terms, war_id=str(war_id),
+        settlement_route_id=(
+            f"pair_exit:{war_id}:{int(world.current_turn)}"))
+    returned: List[str] = []
+    for clause in applied or []:
+        regions = clause.get("regions")
+        if regions:
+            returned.extend(str(r) for r in regions)
+        elif clause.get("region"):
+            returned.append(str(clause["region"]))
+    return returned
+
+
 def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                                   events: List[Dict]) -> None:
     """The mutual-exhaustion white peace for a non-player sub-pair inside
@@ -406,11 +463,27 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
 
         set_diplomatic_state(world, a, b, "PEACE", "mutual_exhaustion")
         cleanup_war_end(world, pair_key, conclude_objectives=True)
+        # PC15-D4 piece 3 — status-quo-ante-lite: each court returns the
+        # OTHER's homeland provinces it holds with no standing army (the
+        # measured Moravia shape: a 1-troop detachment, no marshal). The
+        # unreturned homeland was the landmine that GUARANTEED re-entry —
+        # Austria's P3.7 homeland defense marched straight back through
+        # the peace the same turn. Army-occupied ground stays (uti
+        # possidetis for ground actually held). Runs through the SAME
+        # applier the negotiated third-party path uses, so garrison /
+        # cache / threat / event invariants are inherited.
+        returned_regions = _return_unheld_homeland(world, war_id, a, b)
+        # PC15-D4 piece 1 — the truce floor (constant above).
+        world.armistice_cooldowns[pair_key] = PAIR_EXIT_TRUCE_FLOOR_TURNS
         world._pair_exit_this_turn = int(world.current_turn)
 
         from backend.display_names import humanize_entity_name
         consequence = ("Both courts are spent; their side of the war ends "
                        "while the greater war goes on.")
+        if returned_regions:
+            consequence += (
+                " Unheld homeland returns to its crown: "
+                + ", ".join(sorted(returned_regions)) + ".")
         event = {
             "type": "third_party_peace",
             "war_id": war_id,

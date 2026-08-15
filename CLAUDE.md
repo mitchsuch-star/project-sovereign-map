@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,662 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,696 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
 > **▶ THE COMPREHENSIVE PLAYTEST RAN August 15, 2026 (third session
 > that day) — the played campaign the queue owed. Memo of record =
@@ -59,6 +59,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > visual surfaces walked with screenshots (`docs/audits/
 > PLAYTEST_F_*_2026_08_15.jpg`; the USER's own sign-off pass still
 > owed — `saves/flagship_visual_t12.json` staged for it).
+> **▶ ~~THE PC15-D DESIGN GATE~~ ✅ RULED + BUILT August 15, 2026 (sixth
+> session that day, user's delegated grant, three-counselor panel) —
+> gate record = `DESIGN_REFINEMENT.md` §Comprehensive Playtest,
+> authoritative; `tests/test_pc15_d_rulings_2026_08_15.py` (34).**
+> D1 "The Closed Frontier" (retreat scan obeys the movement law — flip
+> flag `RETREAT_MOVEMENT_LAW_ACTIVE`; cornered = capitulation in place,
+> the 1805-exact outcome; internment homed as "The Interned Column" →
+> NP exit review; glory-hunt neutrality filter; the autonomous
+> war-purpose theater dead; DP-shortage refusal = visible receipt) ·
+> D2 "The Ally's Table" (`ALLY_SUPPLY_STATES` ALLIANCE/DEF_ALLIANCE/
+> VASSAL feed a guest at the single-sourced `HOME_SUPPLY_MULTIPLIER`
+> 1.5×; NON_AGGRESSION/OPEN_BORDERS feed nobody — the Ansbach line;
+> Berthier names the legal dispersal split with numbers via
+> `move_refusal_probe`; P6.5 reads the effective cap — its raw read
+> was shown≠applied; the tutorial famine ends with zero script edits) ·
+> D3 (expectation dormancy in the School: `dotation_dormant` folded
+> into the ONE `is_dotation_world` chokepoint, the processor's inline
+> duplicate replaced — state gated, beats follow, glory still accrues) ·
+> D4 "The Congress Holds" (`PAIR_EXIT_TRUCE_FLOOR_TURNS = 8` into
+> `armistice_cooldowns` — one write floors every war-entry gate; P3.7
+> gets its siblings' war filter — it was the ONLY unfiltered attack
+> rung, the real re-declaration cause; unheld homeland returns at the
+> exit through the negotiated applier — the Moravia landmine; congress
+> beat renders once). **`BASELINE_SERIES` re-recorded ONCE, two-stage
+> flip-attributed (census proven complete both stages); M1–M7
+> byte-identical.** PC15-5 + PC15-15 CLOSED by these rulings.
+>
 > **▶ ~~THE PC15 FIX SLICE~~ ✅ LANDED August 15, 2026 (fifth session
 > that day) — the Round-0 gate is CLEARED. NEXT = ROW NP (NAPOLEON),
 > THEN POSITION 10.** Landing record = `BUG_FIXES.md` §Comprehensive

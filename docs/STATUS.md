@@ -4,6 +4,67 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE PC15-D DESIGN GATE — RULED AND BUILT August 15, 2026 (sixth
+> ## entry that day, under the user's delegated grant "make decisions for
+> ## design gate items … consult other agents")
+>
+> **All four PC15-D questions ruled by a three-counselor panel (each
+> agent investigated the seams and argued the options; rulings mine
+> under the grant), then built in the same session. Gate record =
+> `DESIGN_REFINEMENT.md` §Comprehensive Playtest (authoritative);
+> tests = `tests/test_pc15_d_rulings_2026_08_15.py` (34). PC15-5 and
+> PC15-15 are closed by these rulings — the ENTIRE PC15 section is now
+> disposed except PC15-8 (live-API session), PC15-10 (CA9-D3's), and
+> PC15-16/-18 (next visual pass). NEXT = ROW NP (Napoleon), then
+> position 10.**
+>
+> - **D1 "The Closed Frontier"**: the forced-retreat scan was the one
+>   mover exempt from the movement law — it now admits foreign refuge
+>   only under `OPEN_MOVEMENT_STATES` (both the main scan and the
+>   Corunna sea-exit; flip flag `RETREAT_MOVEMENT_LAW_ACTIVE`). A
+>   cornered army capitulates in place — the 1805-exact outcome (Ulm;
+>   internment is a Hague-1907 institution, homed as "The Interned
+>   Column" rider owned by the row NP exit review). Riders: the
+>   glory-hunt skips enemies on neutral soil (Berlin is safe from
+>   Lannes), a jealousy-autonomous attack never stages the war-purpose
+>   dialogue, and the DP-shortage declaration refusal is a visible
+>   receipt (the "three modals, no war, no receipt" theater is dead).
+> - **D2 "The Ally's Table"**: `ALLY_SUPPLY_STATES =
+>   {ALLIANCE, DEFENSIVE_ALLIANCE, VASSAL}` soil feeds a guest at the
+>   home 1.5× (`HOME_SUPPLY_MULTIPLIER`, single-sourced) — the alliance
+>   opened the border; now it opens the granary (Bogenhausen was a
+>   supply convention). NON_AGGRESSION/OPEN_BORDERS feed nobody (the
+>   Ansbach line). Berthier's famine counsel names the legal split with
+>   numbers ("X can feed N more — a corps marched there ends it";
+>   headroom from the applied cap, legality from `move_refusal_probe`);
+>   the AI's P6.5 rung reads the same effective cap (its raw read was a
+>   shown≠applied gap — it fled provinces that fed it). The tutorial's
+>   scripted famine ends with zero script edits. The 4-corps death-ball
+>   still starves — the concentration tax is design.
+> - **D3 (tutorial expectations)**: gate the STATE, not the beats —
+>   `dotation_dormant` folded into the ONE `is_dotation_world`
+>   chokepoint; the processor's inline duplicate of the rule replaced
+>   by the chokepoint call. No grace clock, no erosion, no nag in the
+>   School; glory still accrues; campaign worlds untouched (pinned both
+>   directions + a mutation-style consult pin).
+> - **D4 "The Congress Holds"** (the counsel reconstructed the real
+>   re-declaration from run artifacts — unreturned Moravia + P3.7, the
+>   only attack rung with no war filter): truce floor
+>   `PAIR_EXIT_TRUCE_FLOOR_TURNS = 8` written into `armistice_cooldowns`
+>   (one write floors every war-entry gate) · P3.7 gets its siblings'
+>   filter · status-quo-ante-lite (unheld homeland returns through the
+>   negotiated path's own applier; army-held ground stays) · the
+>   congress beat renders exactly once. Deferred with owners: the ally
+>   CASCADE doesn't read the pair floor (this row's residual); the
+>   negotiated-peace floor check (same owner).
+> - **`BASELINE_SERIES` re-recorded ONCE** for the whole gate slice with
+>   a TWO-STAGE flip-experiment attribution (stage 1: the D1/D2 lever
+>   census proved complete, all-off reproduces the prior series
+>   byte-for-byte, the index-8 jump = the P6.5 unification; stage 2: D4
+>   levers off reproduces the stage-1 intermediate byte-for-byte,
+>   divergence index 20 = the first exhaustion floors). M1–M7
+>   byte-identical throughout. Suite green, ruff clean.
+
 > ## ✅ THE PC15 FIX SLICE — August 15, 2026 (fifth entry that day)
 >
 > **The Round-0 gate is CLEARED: the ⛔ P1 trio+1 and nine more PC15 rows

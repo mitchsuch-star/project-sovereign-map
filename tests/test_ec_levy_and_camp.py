@@ -405,7 +405,11 @@ class TestSupplyStrainHeadline:
         assert _reason in text, (
             f"the headline paraphrased the gate instead of quoting it: "
             f"{text!r} vs {_reason!r}")
-        assert "Move a corps" in text
+        # PC15-D2: the dispersal counsel now NAMES the legal split with
+        # numbers when a fed neighbour has headroom; the bare "Move a
+        # corps" survives only as the no-legal-neighbour fallback.
+        assert ("Move a corps" in text
+                or "a corps marched there ends it" in text)
 
     def test_it_names_the_depot_where_one_is_legal(self):
         world, loc = self._starving(region_type="city")

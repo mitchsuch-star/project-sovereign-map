@@ -100,7 +100,11 @@ class TestWarDeclaration:
         }
         result = executor._execute_diplomatic(command, game_state)
         assert not result.get("success")
-        assert "insufficient" in result.get("message", "").lower()
+        # PC15-D1(c): the refusal is now the visible-receipt copy
+        # ("the declaration cannot be sent … the chancery holds 0").
+        msg = result.get("message", "").lower()
+        assert "cannot be sent" in msg
+        assert "diplomatic point" in msg
 
     def test_declare_war_high_threat_objection(self, executor, world, game_state):
         """Talleyrand objects when threat > 50."""

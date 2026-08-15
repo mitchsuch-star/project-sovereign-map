@@ -124,9 +124,18 @@ class TestMixedNationsSameRegion:
         assert len(wellington_events) > 0, "Invader over base cap should suffer"
 
     def test_both_nations_invading_neutral(self):
-        """When both nations are in non-home territory, both use base cap."""
+        """When both nations are on a STRANGER's soil, both use base cap.
+
+        PC15-D2 (The Ally's Table): an ALLY/VASSAL host's soil now feeds a
+        guest at the home 1.5× — the legacy boot has Britain|Prussia
+        allied, so this fixture must make the host neutral to BOTH courts
+        for its own premise to hold.
+        """
         belgium = self.world.get_region("Belgium")
         belgium.controller = "Prussia"  # Neither France nor Britain
+        for guest in ("France", "Britain"):
+            key = self.world._make_diplo_key(guest, "Prussia")
+            self.world.diplomatic_states[key] = "PEACE"
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"

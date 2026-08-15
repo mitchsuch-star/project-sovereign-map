@@ -669,9 +669,17 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                  target=formed_display_name(world, e.get("target", "?")),
                  cause=_crisis_cause_headline(e.get("cause", "starved")))
         elif etype == "third_party_peace":
-            _add("europe_congress",
-                 proposer=formed_display_name(world, e.get("proposer", "?")),
-                 accepter=formed_display_name(world, e.get("accepter", "?")))
+            # PC15-D4 piece 4: the peace is stamped DURING advance (new
+            # turn) and the dispatch builds after advance in the same
+            # call, so the -1 event window rendered the identical
+            # sentence at turn N AND N+1 (diplomacy-latewar T22-23).
+            # Current-news gate — advance-stamped beats render once.
+            # (The enemy-phase-stamped classes above are stamped
+            # PRE-increment and must NOT get this gate.)
+            if int(e.get("turn", -1)) == int(world.current_turn):
+                _add("europe_congress",
+                     proposer=formed_display_name(world, e.get("proposer", "?")),
+                     accepter=formed_display_name(world, e.get("accepter", "?")))
         elif etype in ("coalition_formed", "coalition_brewing_started"):
             # Stage D review fix [r1/r6]: an ECLIPSE coalition's events
             # carry target_nation != player — those must never render as
@@ -1585,9 +1593,50 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
     from backend.models.region import can_build
     depot_legal, depot_refusal, depot_remedy = can_build(
         world, region, "supply_depot", player_nation)
+
+    # ────────────────────────────────────────────────────────────────────
+    # PC15-D2: NAME THE SPLIT. "Move a corps" never once named a
+    # destination while the legal remedy sat one province away all six
+    # turns of the measured famine — the AI's own P6.5 dispersal rung
+    # computes exactly this arithmetic. Headroom from the SAME
+    # `get_effective_supply_cap` the attrition applies (shown = applied);
+    # legality from the executor's own pure probe (CA9-F10 discipline —
+    # an engaged marshal or a SHUT crossing is never counseled). Runs
+    # once per dispatch on the ONE strained region: GR8-clean.
+    # ────────────────────────────────────────────────────────────────────
+    split_line = ""
+    if here:
+        from backend.commands.movement_executor import MovementExecutor
+        probe_marshal = min(here, key=lambda m: int(m.strength))
+        options = []
+        for adj_name in getattr(region, "adjacent_regions", []) or []:
+            adj_region = world.get_region(adj_name)
+            if adj_region is None:
+                continue
+            adj_cap = int(world.get_effective_supply_cap(
+                player_nation, adj_region))
+            adj_occupancy = sum(
+                int(m.strength) for m in world.get_marshals_in_region(
+                    adj_name))
+            headroom = adj_cap - adj_occupancy
+            if headroom <= 0:
+                continue
+            if MovementExecutor.move_refusal_probe(
+                    world, probe_marshal, adj_region, adj_name) is not None:
+                continue
+            options.append((headroom, adj_name))
+        options.sort(reverse=True)
+        if options:
+            named = " and ".join(
+                f"{name} can feed {headroom:,} more"
+                for headroom, name in options[:2])
+            split_line = (f"{named} — a corps marched there ends it.")
+
+    disperse_clause = split_line or "Move a corps, or continue to pay."
+
     if depot_legal:
         remedy = (f"A supply depot at {region_name} would ease it; "
-                  f"dispersing a corps would end it.")
+                  f"{split_line or 'dispersing a corps would end it.'}")
     elif depot_remedy == "repair":
         # The gate that made this row a lie: a DAMAGED depot reads as
         # absent to `has_building()` and blocks a build in the executor.
@@ -1598,7 +1647,18 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
             "turns_remaining", 0))
         remedy = (f"{region_name}'s depot is already going up "
                   f"({turns} turn{'s' if turns != 1 else ''} yet). "
-                  f"Move a corps, or continue to pay.")
+                  f"{disperse_clause}")
+    elif (region.controller and region.controller != player_nation
+          and world.get_diplomatic_state(player_nation, region.controller)
+          in world.ALLY_SUPPLY_STATES):
+        # PC15-D2: on FED ally/vassal soil "not controlled by France" is
+        # the wrong story — the host's magazines already feed us as our
+        # own (the cap said so); the army is simply too large for the
+        # province.
+        from backend.game_logic.formations import formed_display_name
+        remedy = (f"{formed_display_name(world, region.controller)}'s "
+                  f"magazines feed us as our own — the army is simply too "
+                  f"large for the province. {disperse_clause}")
     else:
         # CA9 review round, two defects in one sentence:
         #   (a) STUTTER — several of the executor's refusals open with
@@ -1619,11 +1679,11 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
         if _refusal.startswith(region_name):
             # Already a complete sentence about this province; prefixing
             # it would only repeat the name.
-            remedy = f"{_refusal}. Move a corps, or continue to pay."
+            remedy = f"{_refusal}. {disperse_clause}"
         else:
             remedy = (f"No depot may be laid at {region_name} — "
                       f"{_lower_first(_refusal)}. "
-                      f"Move a corps, or continue to pay.")
+                      f"{disperse_clause}")
 
     # ────────────────────────────────────────────────────────────────────
     # CA8-2 (b)+(c): NAME THE MEN WHO ARE THERE. `slot["marshals"]`

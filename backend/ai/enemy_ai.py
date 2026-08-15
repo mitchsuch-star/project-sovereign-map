@@ -1964,7 +1964,12 @@ class EnemyAI:
         # back to full through the normal admin phase.
         # ════════════════════════════════════════════════════════════
         if current_region:
-            supply_cap = current_region.supply_capacity
+            # PC15-D2 rider: the SAME effective cap the attrition applies
+            # (home/ally 1.5×, naval shore verdict) — the rung read raw
+            # `supply_capacity`, a pre-existing shown≠applied gap that
+            # made the AI flee provinces that actually fed it.
+            supply_cap = world.get_effective_supply_cap(
+                nation, current_region)
             total_troops_here = sum(
                 m.strength for m in world.get_marshals_in_region_indexed(marshal.location)
                 if m.strength > 0
@@ -1986,7 +1991,9 @@ class EnemyAI:
                     if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                         continue  # DLF-12: diplomatic permission check
 
-                    adj_cap = adj_region.supply_capacity
+                    # PC15-D2 rider: effective cap here too (see above).
+                    adj_cap = world.get_effective_supply_cap(
+                        nation, adj_region)
                     troops_at_dest = sum(
                         m.strength for m in world.get_marshals_in_region_indexed(adj_name)
                         if m.strength > 0
@@ -2907,10 +2914,23 @@ class EnemyAI:
             return None
 
         # Find lost regions (started as ours, now controlled by someone else)
+        # PC15-D4 piece 2: P3.7 was the ONLY attack rung with no
+        # diplomatic filter — its three siblings (P4 / P4.25 / P4.5) all
+        # gate on being AT WAR with the holder, so homeland defense
+        # marched through a fresh white peace and re-declared via the
+        # combat-seam auto-declaration the same turn it was signed
+        # (Austria→Bavaria over Moravia, the measured weightless-congress
+        # case). Recovering peace-held homeland belongs to the war
+        # council / settlement machinery, never to a pursuit rung — the
+        # §4.3a-4 doctrine ("a refused declaration is a fail-safe, not
+        # the normal path").
         lost_regions = []
         for region_name in starting_regions:
             region = world.get_region(region_name)
             if region and region.controller != nation:
+                if (region.controller
+                        and not world.is_at_war(nation, region.controller)):
+                    continue
                 lost_regions.append(region_name)
 
         if not lost_regions:

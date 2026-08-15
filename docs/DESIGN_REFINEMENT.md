@@ -11,6 +11,133 @@
 > **Evidence memo = `docs/audits/PLAYTEST_COMPREHENSIVE_2026_08_15.md`**
 > (digest named per row). Design questions only — the correctness rows are
 > `BUG_FIXES.md` §Comprehensive Playtest PC15.
+>
+> ### ✅ GATE RECORD — all four questions RULED + BUILT August 15, 2026
+> ### under the user's delegated grant ("make decisions for design gate
+> ### items … consult other agents"). Three design-counsel agents argued
+> ### the options; the rulings below are AUTHORITATIVE. Tests =
+> ### `tests/test_pc15_d_rulings_2026_08_15.py`.
+>
+> **D1 RULED: "The Closed Frontier" — option (a), the movement law.** The
+> forced-retreat scan was the ONE mover exempt from `can_enter_territory`;
+> it now admits a foreign candidate only under `OPEN_MOVEMENT_STATES`
+> (PEACE/ARMISTICE soil drops below tier 5 — never chosen), in both the
+> main scan and the Corunna sea-exit re-check; flip flag
+> `RETREAT_MOVEMENT_LAW_ACTIVE` (the HOST_RULE_ACTIVE idiom). A cornered
+> army capitulates in place — the fate machinery's capture arm, which is
+> the historically exact 1805 outcome (Ulm, Prenzlau, Ratekau; even
+> Blücher's neutral-soil crossing at Lübeck ended in surrender to the
+> FRENCH). "Internment" is a 1907 institution (Hague V) — REJECTED for
+> 1805 as a mechanic, and homed instead: **"The Interned Column" rider →
+> owner = the row NP exit review** (rides the capture-worth/captivity
+> machinery NP-5/NP-6 builds; completion = an army that would be captured
+> on strictly-neutral soil is held by the NEUTRAL court and released at
+> peace or by clause, behavior test named at filing). Option (c)
+> neutral-protest REJECTED outright (redundant under (a); deliberate entry
+> is already illegal at the movement seam; the Ansbach trap keeps its
+> authored scope). Riders built with it: the jealousy glory-hunt skips an
+> enemy standing on soil the marshal can neither fight on nor legally
+> enter (Berlin is safe from Lannes); a jealousy-AUTONOMOUS attack never
+> stages the war-purpose dialogue (PT-F1's own principle — war decisions
+> never ride a pursuit's momentum; the frontier line still prints); and
+> the DP-shortage declaration refusal now rides `proposal_result_popup`
+> so the modal chain always ENDS on screen (the "three modals of theater,
+> no receipt" case). Pre-existing shape pinned consciously: the
+> auto-charge combat copy shatters where the executor path would capture
+> (no fate check there — the combat-copy-unification backlog owns it).
+>
+> **D2 RULED: "The Ally's Table" — hybrid of (ii)-collapsed-into-the-state
+> + (iii); option (i) ally-depot REJECTED as dominated** (slow, weakest in
+> mountains where the wound is, unfixable for the tutorial, new machinery
+> for a number the multiplier reaches free). The alliance already opens
+> the border (`OPEN_MOVEMENT_STATES`); it now opens the granary:
+> `ALLY_SUPPLY_STATES = {ALLIANCE, DEFENSIVE_ALLIANCE, VASSAL}` soil feeds
+> a guest army at the home `HOME_SUPPLY_MULTIPLIER` (1.5×, single-sourced)
+> in `get_effective_supply_cap` — DELIBERATELY narrower than open
+> movement: NON_AGGRESSION/OPEN_BORDERS hosts feed nobody (transit rights
+> are not magazines — the Ansbach line). The naval verdicts follow the fed
+> predicate (a strangled allied coast starves the guest; the lifeline arm
+> unchanged for non-fed landings). The counsel half: Berthier's famine
+> headline now NAMES the legal dispersal split with numbers ("X can feed
+> N more — a corps marched there ends it"), headroom from the SAME
+> effective cap the attrition applies and legality from the executor's own
+> `move_refusal_probe` (CA9-F10 discipline); on fed ally soil the "not
+> controlled by France" depot refusal is replaced by the honest "their
+> magazines feed us as our own — the army is simply too large". Rider:
+> the AI's P6.5 dispersal rung reads `get_effective_supply_cap` (its raw
+> read was a pre-existing shown≠applied gap — it fled provinces that fed
+> it). The tutorial's scripted famine ends with ZERO script edits (the
+> lesson already authors France|Bavaria ALLIANCE; Swabia now feeds
+> 60,000). The measured 4-corps Munich death-ball still starves at ~5.5%
+> — the concentration tax is DESIGN and stands; what changed is that the
+> remedy is named. Both `is_fed` flows are GR5-symmetric by construction.
+> Deferred with owners: negotiable supply rights with a NEUTRAL host + the
+> fund-an-ally's-depot verb → the next diplomacy/instruments (D5-family)
+> gate; a region-panel "feeds your army: N" line → the standing visual
+> sign-off pass.
+>
+> **D3 RULED: gate the STATE, not the beats.** The counsel's decisive
+> finding: the expectation machine has real TEETH inside the 12-turn
+> lesson (grace opens at 2 turns, `modify_trust` then erodes up to
+> −3/turn — Ney's "9 turns old" escalation ≈ −15..−21 trust, which is
+> exactly why his objection cited unrewarded victories), so a
+> display-only mute would keep the bleed and remove its explanation.
+> Built as the TUT-F5 PATTERN extended, not the TUT-F5 function:
+> `dotation.dotation_dormant(world)` (the serialized `scenario_name ==
+> "tutorial"` discriminator, same as TUT-F2/F5) folded into the ONE
+> existing chokepoint `is_dotation_world` — every ES-7 surface (both
+> dispatch blocks, the battle note, the card block, the reward/rente
+> dialogs, the AI grant rung, the ESP arm) inherits the dormancy in one
+> line — and `_process_dotation_state`'s inline duplicate of the rule
+> replaced by the chokepoint call (the CA9 two-implementations trap,
+> closed). Glory and `battles_won` still accrue (TUT-F5's own honesty
+> rule: the record stays true, the claim DERIVED from it sleeps). NO
+> reward beat added to the lesson — the syllabus is over-full and the
+> school's doctrine for un-taught systems is dormancy; deliberately no
+> player-facing promise, so nothing is deferred (GR9).
+>
+> **D4 RULED: the floor is necessary but was treating the SYMPTOM — four
+> pieces built.** The counsel reconstructed the actual re-declaration
+> from the committed run artifacts: the white peace left Bavaria holding
+> MORAVIA (Austrian homeland, a 1-troop garrison detachment, no army),
+> and P3.7 homeland defense — the ONLY AI attack rung with no
+> diplomatic filter (its three siblings all gate on war) — marched back
+> through the peace to the combat-seam auto-declaration the same turn.
+> The filed hint's "war-entry reroll memory" is the WRONG store (a
+> same-turn determinism cache); the RIGHT one is `armistice_cooldowns`,
+> already consulted by every war-entry gate. Built: **(1)** the truce
+> floor — `PAIR_EXIT_TRUCE_FLOOR_TURNS = 8` (4 months at HC-0's
+> half-month turn; longer than a negotiated armistice's 5 — a collapse
+> holds longer than a choice; worst-case churn ≥ 18 turns, a campaign
+> season) written into `armistice_cooldowns` at the [r5] exit — one
+> write floors every channel, zero new serialized fields,
+> GR5-symmetric; **(2)** P3.7 gets its siblings' filter (recovering
+> peace-held homeland belongs to the war council, never a pursuit rung —
+> §4.3a-4); **(3)** status-quo-ante-lite — at the exit each court
+> returns the OTHER's homeland provinces it holds with NO standing army
+> (the Moravia shape), built as `territory_cede` terms through the
+> negotiated path's own applier (`_apply_settlement_terms` — garrison /
+> cache / threat / event invariants inherited); army-occupied ground
+> stays (uti possidetis), and the congress beat now names what returned;
+> **(4)** the dispatch dedupe — advance-stamped `third_party_peace`
+> beats render exactly once (the T22–23 verbatim repeat). Deferred with
+> owners: the declare-war ally CASCADE does not read the pair cooldown
+> (a floored pair can be re-welded by a third court's fresh war —
+> documented at the constant, owner = this row's residual); extending
+> the floor to NEGOTIATED third-party peaces (same exposure, own quick
+> check, same owner); `_pair_exit_this_turn` unserialized (pre-existing
+> one-line note); the crisis_brewing/crisis_passed beats share the
+> advance-stamped double-render SHAPE but carry pin-21 obligations —
+> checked, left to their own owner if measured live.
+>
+> **BASELINE_SERIES: re-recorded ONCE for the whole gate slice** with a
+> TWO-STAGE flip-experiment attribution (record = the constant's comment
+> block in `test_ai_intent_threat_migration.py`): stage 1 proved the
+> D1/D2 lever census complete (all-off reproduces the prior series
+> byte-for-byte; the index-8 jump is the P6.5 shown≠applied
+> unification); stage 2 attributes the D4 delta the same way. M1–M7
+> byte-identical throughout (fixture single-front worlds — a fact about
+> the harness, verified not assumed).
 
 | Row | Question | Evidence | Notes |
 |---|---|---|---|

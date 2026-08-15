@@ -3075,6 +3075,19 @@ def find_autonomous_attack_target(world, marshal):
             continue
         if enemy.location not in reachable:
             continue
+        # PC15-D1: an at-war enemy standing on a NEUTRAL court's soil is
+        # out of a glory-hunt's reach — attacking him means marching where
+        # the movement law forbids (Ney fought at Frankfurt; Lannes
+        # stormed BERLIN at peace with Prussia). Legal ground = ours, the
+        # enemy's own war soil, or an open-movement court's.
+        enemy_region = world.regions.get(enemy.location)
+        controller = getattr(enemy_region, "controller", None)
+        if (controller is not None and controller != marshal.nation
+                and not world.is_at_war(marshal.nation, controller)):
+            from backend.game_logic.diplomacy import OPEN_MOVEMENT_STATES
+            if (world.get_diplomatic_state(marshal.nation, controller)
+                    not in OPEN_MOVEMENT_STATES):
+                continue
         # Sort key: design-frontier enemies first (0 < 1), weakest within
         # each band — so a court with no design keeps today's pure
         # weakest-first ordering byte-identically.

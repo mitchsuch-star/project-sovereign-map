@@ -291,9 +291,12 @@ class TestR89DPFailureDialogueState:
             {"target_nation": "Austria", "war_objective": "conquest"}, world
         )
         assert result["success"] is False
-        assert "Insufficient" in result["message"]
+        # PC15-D1(c): the refusal is the visible-receipt copy, and it now
+        # ALSO rides the result popup so the modal chain ends on screen.
+        assert "cannot be sent" in result["message"]
         assert result["diplomatic_dialogue"] is None
         assert result["awaiting_diplomatic_response"] is False
+        assert world.proposal_result_popup is not None
 
     def test_ultimatum_dp_failure_includes_dialogue_fields(self, executor, world, game_state):
         """Ultimatum DP failure includes dialogue state fields."""

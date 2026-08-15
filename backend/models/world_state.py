@@ -4127,6 +4127,25 @@ class WorldState:
 
             # Foreign-controlled territory we are NOT at war with
             elif controller is not None and controller != marshal_nation:
+                # PC15-D1 (gate ruling, Aug 15 2026): the retreat scan obeys
+                # the MOVEMENT LAW. `can_enter_territory` forbids marching
+                # into a PEACE/ARMISTICE court, but a routed army fled there
+                # freely — Mack toured Frankfurt→Berlin→Dresden, three
+                # neutral courts, two of them great powers. A foreign
+                # candidate is a legal refuge only under an open-movement
+                # state (ally/open-borders/etc.); strictly neutral soil is
+                # dropped BELOW tier 5 — never chosen, so a cornered army
+                # capitulates in place (Ulm, as it happened) instead of
+                # violating a neutrality the player cannot.
+                from backend.game_logic.diplomacy import OPEN_MOVEMENT_STATES
+                _retreat_state = self.get_diplomatic_state(
+                    marshal_nation, controller)
+                if (self.RETREAT_MOVEMENT_LAW_ACTIVE
+                        and _retreat_state not in OPEN_MOVEMENT_STATES):
+                    debug_print(
+                        "      -> Skip: neutral court "
+                        f"({_retreat_state}) — the frontier is closed")
+                    continue
                 if allied_marshals:
                     # Priority 3: Foreign territory but we have an ally there
                     entry["ally"] = allied_marshals[0].name
@@ -4178,6 +4197,18 @@ class WorldState:
             if (controller is not None and controller != marshal_nation
                     and self.is_at_war(marshal_nation, controller)):
                 continue
+            # PC15-D1: the sea exit obeys the same movement law — a
+            # NEUTRAL port across the strait is no more open to a routed
+            # army than a neutral land frontier.
+            if (self.RETREAT_MOVEMENT_LAW_ACTIVE
+                    and controller is not None
+                    and controller != marshal_nation):
+                from backend.game_logic.diplomacy import (
+                    OPEN_MOVEMENT_STATES,
+                )
+                if (self.get_diplomatic_state(marshal_nation, controller)
+                        not in OPEN_MOVEMENT_STATES):
+                    continue
             debug_print(f"  [RETREAT RESULT] {marshal_name} evacuates by sea to {candidate_name} (Corunna clause)")
             return candidate_name
 
@@ -5536,7 +5567,12 @@ class WorldState:
         BEFORE _update_bankruptcy. Europe-scoped (N1): the legacy fixture
         world has no dotation economy.
         """
-        if getattr(self, "sovereign_map", "legacy") != "europe":
+        # PC15-D3: the ONE chokepoint (`is_dotation_world`) instead of an
+        # inline duplicate of its rule — the exact two-implementations
+        # trap the CA9 through-line names. This is what stops the
+        # MECHANICS in the School of War: no grace clock, no erosion.
+        from backend.game_logic.dotation import is_dotation_world
+        if not is_dotation_world(self):
             return
         # Idempotency pin (§0.6.2): a duplicate same-turn call must not
         # double-erode. Transient guard — deliberately not serialized (a
@@ -5881,12 +5917,28 @@ class WorldState:
             if region.war_damage > 0:
                 region.recover_war_damage(0.02)
 
+    # PC15-D2 "The Ally's Table" (gate ruling, Aug 15 2026): the states
+    # whose soil FEEDS a guest army as its own. The alliance already opens
+    # the border (OPEN_MOVEMENT_STATES); for these three it opens the
+    # granary too — Bogenhausen was substantially a supply convention, and
+    # the Confederation satellites existed to host the lord's army.
+    # DELIBERATELY narrower than open movement: transit rights are not
+    # magazines — an army camped on a NON_AGGRESSION/OPEN_BORDERS host
+    # eats as a stranger (the Ansbach line).
+    ALLY_SUPPLY_STATES = frozenset({"ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"})
+    # The one home/fed multiplier, single-sourced (was two inline 1.5s).
+    HOME_SUPPLY_MULTIPLIER = 1.5
+    # PC15-D1 flip flag (the HOST_RULE_ACTIVE idiom): False reproduces the
+    # pre-ruling retreat scan for BASELINE_SERIES attribution experiments.
+    RETREAT_MOVEMENT_LAW_ACTIVE = True
+
     def get_effective_supply_cap(self, nation: str, region,
                                  _shore_cache: Optional[dict] = None) -> int:
         """HC-4a single source: the supply capacity an army of `nation`
         standing on `region` is actually held to — the 1.5× home-turf
-        multiplier, with the naval shore verdict granting it to a
-        convoyed landing or stripping it from a strangled home coast.
+        multiplier (PC15-D2: an ALLY/VASSAL host's soil counts as fed
+        too), with the naval shore verdict granting it to a convoyed
+        landing or stripping it from a strangled fed coast.
 
         Consumed by `process_supply_attrition` (applied) AND the
         dispatch's supply_strain headline (shown) — shown = applied by
@@ -5895,7 +5947,13 @@ class WorldState:
         """
         base_cap = region.supply_capacity
         is_home = (region.controller == nation)
-        cap = int(base_cap * 1.5) if is_home else base_cap
+        is_fed = is_home
+        if (not is_fed and region.controller
+                and self.get_diplomatic_state(nation, region.controller)
+                in self.ALLY_SUPPLY_STATES):
+            is_fed = True
+        cap = (int(base_cap * self.HOME_SUPPLY_MULTIPLIER)
+               if is_fed else base_cap)
         if (self.fleets and getattr(region, "is_coastal", False)
                 and self.get_nations_at_war_with(nation)):
             from backend.game_logic.naval import shore_supply_state
@@ -5907,9 +5965,9 @@ class WorldState:
                 verdict = _shore_cache[key]
             else:
                 verdict = shore_supply_state(self, nation, region.name)
-            if verdict == "lifeline" and not is_home:
-                cap = int(base_cap * 1.5)
-            elif verdict == "strangled" and is_home:
+            if verdict == "lifeline" and not is_fed:
+                cap = int(base_cap * self.HOME_SUPPLY_MULTIPLIER)
+            elif verdict == "strangled" and is_fed:
                 cap = base_cap
         return cap
 

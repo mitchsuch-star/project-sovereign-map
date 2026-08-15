@@ -144,9 +144,31 @@ def derive_estate_noun(region_name: str) -> str:
 
 # ═══════════════════════════ CORE QUERIES ═════════════════════════════════
 
+def dotation_dormant(world) -> bool:
+    """PC15-D3 (gate ruling, Aug 15 2026 — the TUT-F5 pattern extended,
+    not the TUT-F5 function): the School of War keeps the reward economy
+    out of the classroom. TUT-F5 silenced the jealousy machine but the
+    EXPECTATION machine is separate, and it has real teeth inside the
+    12-turn lesson — grace opens at 2 turns and `modify_trust` then
+    erodes every turn, so "Ney's grievance is 9 turns old" fired mid-
+    lesson and his objection cited victories the school never taught him
+    to expect rewards for. Gate the STATE, not the beats: no grace
+    clock, no erosion, no rail notices, no card block. Glory and
+    `battles_won` still accrue (the Generals screen stays honest — the
+    claim DERIVED from the record sleeps, the record does not). GR5:
+    both sides go quiet together. Same serialized discriminator as
+    TUT-F2/TUT-F5. No reward beat is added to the lesson (the syllabus
+    is over-full; the school's doctrine for un-taught systems is
+    dormancy) — deliberately no player-facing promise, so nothing is
+    deferred (GR9)."""
+    return getattr(world, "scenario_name", "") == "tutorial"
+
+
 def is_dotation_world(world) -> bool:
-    """ES-7 is Europe-scoped — the legacy fixture world has no dotations."""
-    return getattr(world, "sovereign_map", "legacy") == "europe"
+    """ES-7 is Europe-scoped — the legacy fixture world has no dotations,
+    and the School of War (PC15-D3) keeps them out of the lesson."""
+    return (getattr(world, "sovereign_map", "legacy") == "europe"
+            and not dotation_dormant(world))
 
 
 def get_expectation(marshal) -> int:

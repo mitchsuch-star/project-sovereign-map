@@ -5026,8 +5026,16 @@ class CombatExecutor:
                 if pursuit_block is not None and not remaining_defenders:
                     if pursuit_block["arm"] == "ally":
                         conquest_msg = pursuit_block["message"]
+                    # PC15-D1(c): a JEALOUSY-AUTONOMOUS attack never stages
+                    # the war-purpose dialogue — the marshal went on his
+                    # own initiative, so a war-declaration modal the player
+                    # never asked for is pure theater (PT-F1's own
+                    # principle: war decisions never ride a pursuit's
+                    # momentum). The frontier line still prints; the
+                    # province stands.
                     if (pursuit_block["arm"] == "neutral"
-                            and marshal.nation == world.player_nation):
+                            and marshal.nation == world.player_nation
+                            and not (command or {}).get("_jealousy_autonomous")):
                         staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg = (
@@ -6048,9 +6056,12 @@ class CombatExecutor:
                 # silent annexation.
                 if not pursuit_halted:
                     conquest_msg = pursuit_block["message"]
+                # PC15-D1(c): never staged for a jealousy-autonomous attack
+                # (see the auto-bombardment site above — same rule).
                 if (pursuit_block["arm"] == "neutral"
                         and marshal.nation == world.player_nation
-                        and can_advance and marshal.strength > 0):
+                        and can_advance and marshal.strength > 0
+                        and not (command or {}).get("_jealousy_autonomous")):
                     staged_war_purpose = self._stage_war_purpose_selection(
                         world, marshal.nation, pursuit_block["owner"])
                     conquest_msg += (

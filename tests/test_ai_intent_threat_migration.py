@@ -397,10 +397,51 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # mid-war shape loses its +1 sawtooth, the tail reaches 0 four turns
 # earlier (index 30 vs 34), and the endgame threat_by_target flattens
 # (control ends Austria 47 / Russia 6; parity ends all zeros).
+# ── RE-RECORDED August 15, 2026 — the PC15-D gate rulings (D1 "The
+# Closed Frontier" + D2 "The Ally's Table" + D4 "The Congress Holds"),
+# the ONE re-record that gate sanctions (gate record
+# `docs/DESIGN_REFINEMENT.md` §Comprehensive Playtest). Prior series:
+#   [70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48,
+#    45, 42, 39, 36, 33, 30, 27, 24, 26, 23, 20, 17, 14, 6, 3, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0]
+#
+# ATTRIBUTION — TWO-STAGE flip experiment.
+# Stage 1 (D1/D2, 4 arms; the three levers:
+# `WorldState.RETREAT_MOVEMENT_LAW_ACTIVE`, `ALLY_SUPPLY_STATES`
+# emptied, the P6.5 effective-cap rider reverted to raw caps):
+#   all three off           -> reproduces the prior series BYTE-FOR-BYTE
+#                              (the lever census is COMPLETE; the
+#                              player-only D1 riders are inert on the
+#                              ambient board by construction);
+#   retreat law off (rest on)  -> diverges at INDEX 8 (79 vs 64);
+#   ally table off (rest on)   -> diverges at INDEX 8 (79 vs 64);
+#   P6.5 rider off (rest on)   -> diverges at INDEX 26 (28 vs 23).
+# So the INDEX-8 JUMP is the P6.5 shown≠applied unification — the AI
+# stops fleeing provinces that actually feed it (home/ally 1.5×), keeps
+# its concentrations, fights more and alarms Europe sooner — while the
+# closed frontier (Mack capitulates instead of touring Berlin) and the
+# ally table shape the later run. Stage-1 intermediate series:
+#   [70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 72, 75, 73, 71,
+#    69, 67, 65, 62, 59, 56, 53, 40, 37, 34, 31, 28, 25, 22, 19, 16, 13,
+#    10, 7, 4, 1, 0, 0, 0]
+# Stage 2 (D4, 2 arms; the three levers: the P3.7 war filter, the
+# pair-exit homeland return, the truce floor):
+#   all three off (D1/D2 on) -> reproduces the stage-1 intermediate
+#                               BYTE-FOR-BYTE (the D4 delta is exactly
+#                               these levers, nothing else);
+#   final tree               -> THIS series, diverging from the
+#                               intermediate at INDEX 20 (63 vs 62) —
+#                               the turn the first exhaustion floors
+#                               trip: pairs that used to churn
+#                               peace-and-redeclare now hold their
+#                               truce, homeland returns credit the
+#                               receiver's threat slot, and the tail
+#                               decays slower (ends 5, not 0). All
+#                               RULED design; none is a leak.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48,
-    45, 42, 39, 36, 33, 30, 27, 24, 26, 23, 20, 17, 14, 6, 3, 0, 0, 0,
-    0, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 72, 75, 73, 71,
+    69, 67, 65, 63, 61, 59, 62, 60, 48, 46, 44, 41, 38, 35, 32, 29, 26,
+    23, 20, 17, 14, 11, 8, 5,
 ]
 
 
