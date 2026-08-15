@@ -119,7 +119,9 @@ def world1805():
 def test_scenario_loads_full_1805_world(world1805):
     assert world1805.sovereign_map == "europe"
     assert len(world1805.regions) == 126
-    assert len(world1805.marshals) == 21
+    # NP-A (Aug 15, 2026): 21 -> 22 — the Emperor takes the field
+    # (NAPOLEON_SPEC §3.2; conscious flip).
+    assert len(world1805.marshals) == 22
     assert world1805.player_nation == "France"
     assert world1805.current_turn == 1
     assert world1805.max_turns == 60
@@ -210,7 +212,9 @@ def test_marshal_statlines_match_blessed_roster(world1805):
     assert ney.movement_range == 1
     for name, marshal in world1805.marshals.items():
         assert isinstance(marshal.strength, int), name
-        assert str(marshal.personality) in {"aggressive", "cautious", "literal"}, name
+        # NP-A: "sovereign" is the 4th implemented personality (gate §14.1).
+        assert str(marshal.personality) in {
+            "aggressive", "cautious", "literal", "sovereign"}, name
 
     def national_total(nation):
         return sum(m.strength for m in world1805.marshals.values() if m.nation == nation)
@@ -385,7 +389,7 @@ def test_turn_advances_cleanly_with_mack_on_hostile_swabia():
         world.advance_turn()
     assert world.current_turn == 4
     assert not world.game_over
-    assert len(world.marshals) == 21  # nobody eliminated by scenario data alone
+    assert len(world.marshals) == 22  # nobody eliminated by scenario data alone (NP-A: 22)
     mack = world.marshals["Mack"]
     assert mack.location == "Swabia"
     assert 0 < mack.strength < 52_000  # invasion strain applied, army intact
@@ -506,7 +510,7 @@ def test_scenario_boots_via_sovereign_scenario_env(monkeypatch):
         world = main_module._reset_world_state()
         assert world.sovereign_map == "europe"
         assert len(world.regions) == 126
-        assert len(world.marshals) == 21
+        assert len(world.marshals) == 22  # NP-A: the Emperor joins
         assert world.active_coalition is not None
         assert main_module.world is world
     finally:

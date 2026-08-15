@@ -52,6 +52,15 @@ BLESSED_PAIRS = [
     ("Kutuzov", "Buxhowden", -1),
     ("ArchdukeCharles", "ArchdukeJohn", 1),
     ("Brunswick", "Hohenlohe", -1),
+    # NP-A (Aug 15, 2026, NAPOLEON_SPEC §3.2 Q6◆): the Emperor's four
+    # authored edges — Lannes the friend, Davout and Murat trusted,
+    # Bernadotte the man who never forgave him (the A-D4 hostile no-show
+    # now applies to the Emperor himself: Wagram, by machinery). 13 -> 17
+    # pairs, 26 -> 34 directed edges; conscious flip.
+    ("Napoleon", "Lannes", 1),
+    ("Napoleon", "Davout", 1),
+    ("Napoleon", "Murat", 1),
+    ("Napoleon", "Bernadotte", -2),
 ]
 
 FRENCH = {"Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte", "Massena"}
@@ -73,11 +82,12 @@ class TestBlessedWeb:
         assert world.get_marshal(b).get_relationship(a) == value, (b, a)
 
     def test_exactly_26_directed_edges(self, world):
-        # 13 pairs x 2 directions — no stray edge beyond the blessed table.
+        # 17 pairs x 2 directions — no stray edge beyond the blessed table.
+        # (26 at MC-3; 34 since NP-A authored the Emperor's four pairs.)
         edges = {(m.name, other): v
                  for m in world.marshals.values()
                  for other, v in m.relationships.items()}
-        assert len(edges) == 26
+        assert len(edges) == 34
         blessed = {(a, b): v for a, b, v in BLESSED_PAIRS}
         blessed.update({(b, a): v for a, b, v in BLESSED_PAIRS})
         assert edges == blessed
@@ -145,7 +155,8 @@ class TestWebShape:
         for a, b, v in BLESSED_PAIRS:
             nation = world.get_marshal(a).nation
             by_nation.setdefault(nation, []).append((a, b, v))
-        assert len(by_nation["France"]) == 9
+        # NP-A: France 9 -> 13 (the Emperor's four authored pairs).
+        assert len(by_nation["France"]) == 13
         assert len(by_nation["Austria"]) == 2   # Charles-Mack, Charles-John
         assert len(by_nation["Russia"]) == 1    # Kutuzov-Buxhowden
         assert len(by_nation["Prussia"]) == 1   # Brunswick-Hohenlohe

@@ -113,13 +113,13 @@
                 "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
             },
             "biography": "III Corps - crossed the Rhine at Mannheim on September 26. The iron marshal, exacting and incorruptible.",
-            "relationships": { "Murat": -1, "Bernadotte": -2 }
+            "relationships": { "Murat": -1, "Bernadotte": -2, "Napoleon": 1 }
         },
         "Soult": {
             "name": "Soult",
             "nation": "France",
             "location": "Lorraine",
-            "strength": 40000,
+            "strength": 30000,
             "personality": "literal",
             "skills": { "tactical": 9, "shock": 6, "defense": 7, "logistics": 6, "administration": 7, "command": 6 },
             "tactical_skill": 9,
@@ -130,7 +130,7 @@
                 "trigger": "when_drilling",
                 "effect": "Drill completes in 1 turn (not 2) and never locks him out of your orders"
             },
-            "biography": "IV Corps, the largest in the army - marching for the Speyer crossing from its Lorraine camps. A superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour.",
+            "biography": "IV Corps - marching for the Speyer crossing from its Lorraine camps, 10,000 of its best carved away to form the Emperor's Guard. A superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour.",
             "relationships": { "Ney": -1, "Massena": 1 }
         },
         "Lannes": {
@@ -149,7 +149,7 @@
                 "effect": "+15 reinforcement arrival score"
             },
             "biography": "V Corps - crossed at Kehl on September 25, pressing the Black Forest feint.",
-            "relationships": { "Ney": 1, "Murat": -1 }
+            "relationships": { "Ney": 1, "Murat": -1, "Napoleon": 1 }
         },
         "Murat": {
             "name": "Murat",
@@ -169,7 +169,7 @@
                 "effect": "+5,000 pursuit casualties when an enemy he defeats is forced to retreat (cavalry, leading the attack)"
             },
             "biography": "The Cavalry Reserve - screening the Black Forest feint while the army wheels north of the Danube.",
-            "relationships": { "Ney": -1, "Davout": -1, "Lannes": -1, "Bernadotte": -2 }
+            "relationships": { "Ney": -1, "Davout": -1, "Lannes": -1, "Bernadotte": -2, "Napoleon": 1 }
         },
         "Bernadotte": {
             "name": "Bernadotte",
@@ -187,7 +187,7 @@
                 "effect": "+10% defiance after insisted objections; -15 reinforcement arrival score (a written support order mostly cancels it)"
             },
             "biography": "I Corps at Wuerzburg, marched down from occupied Hanover - standing on allied Bavarian soil across Mack's rear.",
-            "relationships": { "Ney": -1, "Davout": -2, "Murat": -2 }
+            "relationships": { "Ney": -1, "Davout": -2, "Murat": -2, "Napoleon": -2 }
         },
         "Massena": {
             "name": "Massena",
@@ -206,6 +206,24 @@
             },
             "biography": "The Army of Italy on the Adige, facing Archduke Charles - the dear child of victory, chafing on the defensive: set to hold the second front, but itching to throw his corps across the river at the Austrians.",
             "relationships": { "Soult": 1 }
+        },
+        "Napoleon": {
+            "name": "Napoleon",
+            "nation": "France",
+            "location": "Paris",
+            "strength": 10000,
+            "personality": "sovereign",
+            "skills": { "tactical": 10, "shock": 7, "defense": 7, "logistics": 8, "administration": 9, "command": 10 },
+            "tactical_skill": 10,
+            "trust": { "value": 100 },
+            "ability": {
+                "name": "The Presence",
+                "description": "His presence on the field was worth forty thousand men - Wellington",
+                "trigger": "when_present_in_battle",
+                "effect": "Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal."
+            },
+            "biography": "Emperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.",
+            "relationships": { "Lannes": 1, "Davout": 1, "Murat": 1, "Bernadotte": -2 }
         },
         "Deroy": {
             "name": "Deroy",

@@ -96,10 +96,13 @@ def gs_legacy(legacy_world):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 1. The P0: all seven 1805 French marshals are commandable
+# 1. The P0: all eight 1805 French commanders are commandable
+# (seven marshals + the Emperor himself since NP-A, Aug 15 2026 —
+# conscious flip; the parametrize below auto-extends to him)
 # ═══════════════════════════════════════════════════════════════════
 
-FRENCH_1805 = ["Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte", "Massena"]
+FRENCH_1805 = ["Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte",
+               "Massena", "Napoleon"]
 BROKEN_FIVE = ["Soult", "Lannes", "Murat", "Bernadotte", "Massena"]
 
 

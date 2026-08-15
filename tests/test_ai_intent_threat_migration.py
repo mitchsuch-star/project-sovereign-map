@@ -438,10 +438,46 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #                               receiver's threat slot, and the tail
 #                               decays slower (ends 5, not 0). All
 #                               RULED design; none is a leak.
+# ── RE-RECORDED August 15, 2026 — row NP (Napoleon), the ONE re-record
+# that row sanctions (NAPOLEON_SPEC §12.3; landing record §15). Prior
+# series:
+#   [70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 72, 75, 73, 71,
+#    69, 67, 65, 63, 61, 59, 62, 60, 48, 46, 44, 41, 38, 35, 32, 29, 26,
+#    23, 20, 17, 14, 11, 8, 5]
+#
+# ATTRIBUTION — 4-arm flip experiment (levers:
+# `combat_executor.SOVEREIGN_PRESENCE_ACTIVE`,
+# `enemy_ai.SOVEREIGN_FEAR_ACTIVE`, and the AUTHORING itself — the
+# `Napoleon` entry in europe_1805.json + the Soult 40k->30k carve):
+#   arm 0  authoring ABSENT, both levers on  -> reproduces the PRIOR
+#                                               series BYTE-FOR-BYTE.
+#          => every NP mechanism (NP-0..NP-5) is dormant by
+#             construction on a sovereign-free board, which is the
+#             row's central claim, measured rather than asserted.
+#   arm 1  authoring, both levers OFF        -> THIS series.
+#   arm 2  authoring + fear on               -> IDENTICAL to arm 1.
+#   arm 3  full tree (both levers on)        -> IDENTICAL to arm 1.
+#
+# So the WHOLE divergence is the AUTHORING, and both behaviour levers are
+# provably INERT on this board — reported, not buried: the ambient
+# harness is an AI-vs-AI run in which the Emperor never leaves Paris and
+# is never attacked, so the aura never stamps and the fear term never
+# reaches a decision. The Presence and the Fear are measured by
+# `test_napoleon_np2_presence.py` directly (band test, grip-fade table,
+# both-sides arms), and their live behaviour belongs to a PLAYED
+# campaign, not to this control series.
+#
+# The authoring's own mechanism: Soult 40,000 -> 30,000 changes the
+# outcome of the battles his corps fights, and the 22nd marshal changes
+# the per-turn marshal loops. Divergence from the prior series is INDEX
+# 13 — the mid-war shape loses the +1 sawtooth at index 13-14 and the
+# tail decays smoothly (both series end at 5). France's national total
+# is unchanged at 189,000 and the E1/ES-3/EC-U3 economy pins are
+# byte-identical by construction (§12.1).
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 72, 75, 73, 71,
-    69, 67, 65, 63, 61, 59, 62, 60, 48, 46, 44, 41, 38, 35, 32, 29, 26,
-    23, 20, 17, 14, 11, 8, 5,
+    70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 69, 67, 65, 63,
+    61, 59, 57, 55, 53, 51, 49, 37, 35, 33, 31, 29, 27, 25, 23, 21, 19,
+    17, 15, 13, 11, 9, 7, 5,
 ]
 
 

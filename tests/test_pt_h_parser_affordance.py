@@ -231,9 +231,17 @@ class TestTheLevyGateAsksTheRealQuestion:
         assert "recipient_in_range" in get_levy_status(world)
 
     def test_the_boot_board_cannot_receive(self):
-        """Every French marshal is in Germany or Italy and infantry
-        `movement_range` is 1 — CA8-11's measured state."""
+        """Every French MARSHAL is in Germany or Italy and infantry
+        `movement_range` is 1 — CA8-11's measured state. NP-A (Aug 15,
+        2026) consciously flipped this pin: the Emperor and his Guard now
+        boot AT Paris, so the boot board genuinely CAN receive — the Seat
+        working as designed. The field-army half of the old premise is
+        pinned by isolating him below."""
         world = _europe()
+        assert get_levy_status(world)["recipient_in_range"] is True
+        # The old measured state survives for the field army: with the
+        # sovereign afield, no marshal is in range of the depots.
+        world.get_marshal("Napoleon").location = "Swabia"
         assert get_levy_status(world)["recipient_in_range"] is False
 
     def test_bringing_a_marshal_home_opens_it(self):

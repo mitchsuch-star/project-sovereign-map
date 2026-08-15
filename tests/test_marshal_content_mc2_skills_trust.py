@@ -102,7 +102,14 @@ class TestAuthoredSkillsAndTrust:
         assert m.tactical_skill == m.skills["tactical"], name
 
     def test_all_21_marshals_covered(self, world):
-        assert set(BLESSED_TABLE) == set(world.marshals.keys())
+        # NP-A (Aug 15, 2026): the SOVEREIGN is exempt from the balance
+        # frame, not averaged into it — the frame exists to balance the
+        # competitive roster, and the Emperor sits deliberately above it
+        # (NAPOLEON_SPEC §12.2; the means/peaks below keep reading the
+        # 21-row table untouched).
+        competitive = {name for name, m in world.marshals.items()
+                       if not getattr(m, "is_sovereign", False)}
+        assert set(BLESSED_TABLE) == competitive
 
 
 # ════════════════════════════════════════════════════════════════════════

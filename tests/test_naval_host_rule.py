@@ -751,6 +751,11 @@ class TestCounterPunchStaysALandReflex:
         french = world.get_marshals_by_nation("France")[0]
         french.location = "Maine"          # land-adjacent to Normandy
         french.strength = 15000
+        # NP-A (Aug 15, 2026): Napoleon's Guard at Paris is ALSO
+        # land-adjacent to Normandy and a better ratio than the planted
+        # target — isolate him; this test is about the reflex, not the
+        # sovereign.
+        world.get_marshal("Napoleon").location = "Lorraine"
         world._build_marshal_index()
         action = ai._get_counter_punch_action(moore, "Britain", world)
         assert action is not None and action.get("target") == french.name
