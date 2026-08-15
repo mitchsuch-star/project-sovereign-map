@@ -1,0 +1,22 @@
+{
+  "name": "naval-descent",
+  "seed": "historical",
+  "llm": "anthropic",
+  "turns": {
+    "1": ["Ney, march to Flanders", "Davout, march to Normandy", "build ships"],
+    "2": ["Soult, march to Normandy", "build ships"],
+    "3": ["status", "build ships"],
+    "4": ["blockade Britain", "build ships"],
+    "5": ["order the diversion"],
+    "6": ["Ney, march to London"],
+    "7": ["order the diversion"],
+    "8": ["Ney, march to London", "Davout, march to London"],
+    "9": ["build ships", "status"],
+    "10": ["order the diversion"],
+    "11": ["Ney, march to London"],
+    "12": ["land Soult in Munster with 12,000 men"],
+    "13": ["land Soult in Munster confirmed"],
+    "14": ["Ney, march to London", "status"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline"}
+}

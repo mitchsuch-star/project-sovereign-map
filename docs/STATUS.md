@@ -4,6 +4,64 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE COMPREHENSIVE STATE-OF-THE-GAME PLAYTEST — August 15, 2026 (third entry that day)
+>
+> **The played campaign the queue owed — run on the day-old harness, all
+> pillars, six arms, ~120 turns. Memo of record =
+> `docs/audits/PLAYTEST_COMPREHENSIVE_2026_08_15.md` (authoritative);
+> defects = `BUG_FIXES.md` §Comprehensive Playtest PC15 (18 game rows + 1
+> harness row, ALL OPEN — report-only session); design questions =
+> `DESIGN_REFINEMENT.md` §Comprehensive Playtest (PC15-D1..D4).
+> Screenshots ×8 = `docs/audits/PLAYTEST_F_*_2026_08_15.jpg`.**
+>
+> - **Directional ≈6.7 — the first rise since July** (Aug 8 ≈6.3 · Aug 9
+>   ≈6.4), and on a LONGER evidence base than either baseline. Pillars:
+>   command 6.5 · drama 7.0 · combat legibility 6.5 · narration 7.0 ·
+>   economy 6.5 · diplomacy 6.0 · AI aliveness 7.0 · vassals 6.5 · naval
+>   6.5 · UI/UX 7.0. The PT/HC trust work is visibly paying rent on every
+>   surface.
+> - **Round-0 verdict: NOT YET — a fixable P1 trio first, then GO** (all
+>   hit by an unattended robot inside 25 turns): **PC15-1** a destroyed
+>   marshal vanishes silently (no event type exists — Ney and Murat died
+>   unannounced); **PC15-2** a pending order-bound interrupt swallows
+>   every typed command (`[INTERRUPT ROUTE] 'Murat, attack Buxhowden' →
+>   Soult … response: attack`, 3 hits); **PC15-3** a stale settlement
+>   pair-substitute confirm wedges all later proposals (8 confirm popups,
+>   no send); plus **PC15-4** a dead marshal's name silently commands a
+>   different marshal. All four are the CA9 through-line one seam down.
+> - **DISCHARGED: the PT row-2 acceptance clause** — the attack-confirm
+>   gate ARMED in the wild (flagship T2, cautious Davout, unfavorable
+>   muster) · **the naval pillar is scored on played evidence** (Descent
+>   reached a real Trafalgar; the played A2 WIN + an actual landing stay
+>   open per `NAVAL_SPEC.md` §14/§15) · **CA9 §9 Q10 answered** (AI
+>   commissions fire — 2 events) · **the D7 variance contract
+>   re-confirmed on 4 seeds** with AI wars starting AND ending
+>   (`third_party_peace` on every seed; re-declarations on two — and the
+>   same-turn peace-then-redeclare churn is PC15-15/PC15-D4).
+> - **The owed visual surfaces ALL WALKED with screenshots** (Mode C pair
+>   on `SOVEREIGN_PORT=8006`; no 8005 session existed; pair shut down
+>   after): HC-0 calendar labels · PT-J2 Campaign/Blood + HC-1 Blockade
+>   rows on the war detail · the Gazette screen (button — the N hotkey
+>   under terminal focus is PC15-18) · the letter-book with its
+>   envoy-lapse End-Turn guard · `Supply: Unknown` on region panel +
+>   tooltip · the per-court fog line · the diorama auto-raise with the
+>   awaits-orders shelf · the marshal-voice trio in the enemy phase.
+>   **Standing convention: these are my reports, not the user's
+>   sign-offs — `saves/flagship_visual_t12.json` is staged for the
+>   user's own eyeball pass via the menu's Load.**
+> - **One sanctioned in-session fix (harness, not game):**
+>   `settlement_confirm` added to the driver's `DIALOGUE_TYPE_ANSWERS`
+>   (Arm D was structurally blocked by its absence) + pin in
+>   `test_playtest_harness_2026_08_15.py`. Driver follow-ups routed as
+>   PC15-H (the "0 attacks" counter reads a nonexistent key; script turn
+>   keys are loop-indexed, undocumented).
+>
+> **▶ NEXT: the PC15 P1 trio (+PC15-4) as one fix slice, the tutorial
+> beat-IV anchor (PC15-9 — Round 0 leads with the School), then position
+> 10, the shippable build.** HC-L stays a dedicated session.
+>
+> ---
+>
 > ## ✅ THE PLAYTEST HARNESS — August 15, 2026 (second entry that day)
 >
 > **User re-ordered the queue: "make the test easier first … then we will

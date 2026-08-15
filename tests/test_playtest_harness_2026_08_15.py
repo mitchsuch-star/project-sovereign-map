@@ -175,3 +175,23 @@ class TestDocumentationContract:
     def test_claude_md_points_at_the_doc(self):
         claude = _read(REPO_ROOT / "CLAUDE.md")
         assert "PLAYTESTING.md" in claude
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 5. The answer table covers the settlement confirm
+# ═══════════════════════════════════════════════════════════════════
+
+class TestAnswerTableCoversSettlementConfirm:
+    def test_settlement_confirm_is_answerable(self):
+        # Found in the Aug-15 comprehensive playtest: accepting an
+        # incoming settlement offer stages a settlement_confirm hard stop
+        # that ships WITHOUT an options list, so a driver run with
+        # --diplomacy accept blocked on its own acceptance. The type must
+        # stay in DIALOGUE_TYPE_ANSWERS to reach the keyword-less
+        # fallback ("1" under accept).
+        sys.path.insert(0, str(REPO_ROOT / "tools"))
+        try:
+            import playtest_driver
+        finally:
+            sys.path.pop(0)
+        assert "settlement_confirm" in playtest_driver.DIALOGUE_TYPE_ANSWERS

@@ -1,0 +1,32 @@
+{
+  "name": "flagship-1805",
+  "seed": "historical",
+  "llm": "anthropic",
+  "turns": {
+    "1": ["Bernadotte, attack Mack", "Marshal Ney, attack Mack", "status"],
+    "2": ["Davout, attack Mack", "Soult, move to Alsace"],
+    "3": ["Murat, attack Mack", "Talleyrand, assess our situation"],
+    "4": ["Soult, deal with the Austrians", "Lannes, move to Swabia"],
+    "5": ["Ney, attack Mack", "Davout, attack Mack"],
+    "6": ["Massena, attack Archduke Charles", "Bernadotte, move to Swabia"],
+    "7": ["endow Ney with the Duchy of Swabia", "Murat, march to Munich"],
+    "8": ["Ney, march to Munich", "Davout, march to Munich"],
+    "9": ["Talleyrand, assess our situation", "Soult, march to Swabia"],
+    "10": ["grant Murat a rente", "Lannes, march to Munich"],
+    "11": ["Ney, march to Vienna", "Davout, march to Vienna"],
+    "12": ["Murat, march to Vienna", "recruit 10000 infantry"],
+    "13": ["build depot in Swabia", "Bernadotte, attack Archduke John"],
+    "14": ["Ney, attack Archduke Charles", "status"],
+    "15": ["Talleyrand, request terms from Austria"],
+    "16": ["Soult, march to Vienna", "Massena, march to Tyrol"],
+    "17": ["Ney, attack Kutuzov", "Davout, attack Kutuzov"],
+    "18": ["offer peace to Austria"],
+    "19": ["Murat, attack Buxhowden", "Lannes, attack Buxhowden"],
+    "20": ["Talleyrand, assess our situation", "endow Davout with an estate"],
+    "21": ["Ney, march to Vienna", "Davout, march to Vienna"],
+    "22": ["status"],
+    "23": ["Ney, attack Archduke Charles"],
+    "24": ["Talleyrand, assess our situation"]
+  },
+  "policy": {"objection": "insist", "diplomacy": "decline"}
+}

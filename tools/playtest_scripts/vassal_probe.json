@@ -1,0 +1,10 @@
+{
+  "name": "vassal-probe",
+  "llm": "mock",
+  "turns": {
+    "1": ["invest in Switzerland", "grant Switzerland autonomy"],
+    "2": ["invest in Switzerland", "status"],
+    "3": ["reduce Switzerland's autonomy"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline"}
+}

@@ -1,0 +1,17 @@
+{
+  "name": "diplomacy-latewar",
+  "llm": "anthropic",
+  "turns": {
+    "1": ["Talleyrand, assess our situation", "status"],
+    "2": ["invest in Switzerland", "Talleyrand, request terms from Austria"],
+    "3": ["propose peace to Austria"],
+    "4": ["guarantee Bavaria"],
+    "5": ["sponsor Austria's design"],
+    "6": ["grant Switzerland more autonomy"],
+    "7": ["buy off Britain's design"],
+    "8": ["Talleyrand, assess our situation"],
+    "9": [],
+    "10": []
+  },
+  "policy": {"objection": "trust", "diplomacy": "accept"}
+}

@@ -1,0 +1,20 @@
+{
+  "name": "tutorial-lesson",
+  "seed": "historical",
+  "llm": "mock",
+  "turns": {
+    "1": ["economy", "Senarmont, move to Munich"],
+    "2": ["Ney, defend"],
+    "3": ["Ney, attack Kienmayer"],
+    "4": ["Senarmont, bombard Jellacic"],
+    "5": ["Davout, march to Franconia"],
+    "6": ["Ney, attack Jellacic"],
+    "7": ["Soult, recruit troops", "build watchtower in Lorraine"],
+    "8": ["Davout, scout Bohemia"],
+    "9": ["Ney, fortify"],
+    "10": ["status"],
+    "11": [],
+    "12": []
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline"}
+}

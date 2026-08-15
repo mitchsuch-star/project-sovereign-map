@@ -118,6 +118,12 @@ DIALOGUE_TYPE_ANSWERS = {
     # after Talleyrand's objection was answered "proceed") — confirming
     # is the only coherent continuation of the script's order.
     "proposal_confirm": "confirm",
+    # The settlement sibling of proposal_confirm ("the terms on the
+    # table"): ships WITHOUT an options list, so it must be in this table
+    # to reach the keyword-less fallback ("1" under accept, "decline"
+    # under decline). Found blocked in the Aug-15 comprehensive playtest
+    # (diplomacy arm, fixture_t20 + --diplomacy accept).
+    "settlement_confirm": "diplomacy",
 }
 
 # Popup keys that are DISPLAY-ONLY: delivered popped (the queue clears on
