@@ -13,7 +13,7 @@ from backend.ai.llm_client import (
     CONDITION_CLAUSE_RE,
 )
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
-from backend.ai.clause_guards import strip_negated_clauses
+from backend.ai.clause_guards import is_question, strip_negated_clauses
 from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.nation_names import resolve_typed_nation
@@ -54,6 +54,96 @@ def _split_sequential_orders(command_text: str):
     if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail):
         return None
     return (first, tail)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# NP-1 — THE EMPEROR'S HAND (NAPOLEON_SPEC.md §4.1)
+# Sovereign address normalization: orders to the sovereign are the player's
+# own will, so they accept first-person phrasing. A raw-string rewrite at
+# the TOP of parse (the CR-4 precedent) so the fast parser, the LLM, fuzzy
+# matching and detect_strategic_command all agree by construction. Fires
+# ONLY when a sovereign exists in the player roster — every other world
+# parses byte-identically (the NP dormancy pin).
+# ══════════════════════════════════════════════════════════════════════════
+
+# "(the) Emperor, attack Vienna" — today this hard-errors
+# "Marshal 'Emperor' not found".
+_SOVEREIGN_EMPEROR_COMMA_RE = re.compile(
+    r"^\s*(?:the\s+)?emperor\s*[,:]\s*", re.IGNORECASE)
+# "the Emperor will take Vienna" — the no-comma form requires the article
+# so a bare "emperor" noun mid-thought never rewrites.
+_SOVEREIGN_EMPEROR_LEAD_RE = re.compile(
+    r"^\s*the\s+emperor\s+", re.IGNORECASE)
+# Leading first person with a military/movement verb ONLY (gate b) —
+# "I will march to Ulm", "I'll attack Vienna", "I ride for the Rhine".
+# Diplomacy keeps its verbs (no "I offer/I propose" forms rewrite).
+_SOVEREIGN_FIRST_PERSON_RE = re.compile(
+    r"^\s*i(?:['’]ll)?\s+(?:(?:will|shall|must|am\s+going\s+to)\s+)?"
+    r"(?P<verb>attack|march|move|ride|advance|withdraw|retreat|fortify|"
+    r"hold|scout|charge|bombard|defend|pursue|assault|storm|drill)\b",
+    re.IGNORECASE)
+# "march to Ulm myself" / "take the field in person" — trailing marker.
+_SOVEREIGN_SELF_MARKER_RE = re.compile(
+    r"\b(?:myself|in\s+person)\s*[.!]?\s*$", re.IGNORECASE)
+
+
+def _find_player_sovereign(world=None, game_state=None) -> Optional[str]:
+    """The player roster's standing sovereign marshal name, or None.
+
+    Live world first (the CR-0 discipline); the LLM game_state's
+    player-only marshals dict as the fallback so mock-only parses see the
+    same roster. A captured sovereign still resolves — the downstream
+    prisoner guard answers the order honestly ("he sits in a foreign
+    capital") instead of a phantom-marshal error.
+    """
+    if world is not None:
+        player_nation = getattr(world, "player_nation", None)
+        for m in getattr(world, "marshals", {}).values():
+            if m.nation == player_nation and getattr(m, "is_sovereign", False):
+                return m.name
+        return None
+    if game_state:
+        marshals = game_state.get("marshals")
+        if isinstance(marshals, dict):
+            for name, info in marshals.items():
+                if (isinstance(info, dict)
+                        and info.get("personality") == "sovereign"):
+                    return info.get("name", name)
+    return None
+
+
+def normalize_sovereign_address(command_text: str,
+                                sovereign_name: str) -> str:
+    """Rewrite sovereign-address forms to a canonical marshal address.
+
+    Order of rules matters:
+      1. Emperor forms first — "Emperor," IS a leading address token today
+         (a failed name attempt), so they must run before the gate below.
+      2. An explicit address token always wins (gate a: "Ney, I want you
+         to move to Lorraine" is Ney's order — corpus row pinned).
+      3. The question detector runs before the first-person arm (gate c:
+         "Can I attack Vienna?" stays help) — structurally redundant since
+         an interrogative lead never matches the first-person regex, but
+         kept as the belt the spec names.
+    """
+    if not sovereign_name or not command_text:
+        return command_text
+    match = _SOVEREIGN_EMPEROR_COMMA_RE.match(command_text)
+    if match:
+        return f"{sovereign_name}, {command_text[match.end():]}"
+    match = _SOVEREIGN_EMPEROR_LEAD_RE.match(command_text)
+    if match:
+        return f"{sovereign_name}, {command_text[match.end():]}"
+    if _leading_addressed_token(command_text):
+        return command_text
+    if is_question(command_text):
+        return command_text
+    match = _SOVEREIGN_FIRST_PERSON_RE.match(command_text)
+    if match:
+        return f"{sovereign_name}, {command_text[match.start('verb'):]}"
+    if _SOVEREIGN_SELF_MARKER_RE.search(command_text):
+        return f"{sovereign_name}, {command_text}"
+    return command_text
 
 
 def _leading_addressed_token(command_text: str) -> Optional[str]:
@@ -118,6 +208,7 @@ _NON_TARGET_WORDS = frozenset({
     # pronouns / possessives beyond the existing deixis list
     "his", "hers", "its", "ours", "yours", "theirs", "who", "whom", "whose",
     "what", "which", "why", "how", "when", "where", "whether",
+    "myself", "ourselves", "himself", "herself", "themselves", "itself",
     # auxiliaries / modals / common verbs that are never place names
     "are", "was", "were", "been", "being", "has", "have", "had", "does",
     "did", "done", "will", "would", "shall", "should", "can", "could",
@@ -826,6 +917,10 @@ class CommandParser:
                 "here", "there", "this", "that", "those", "these",
                 "someone", "somebody", "anyone", "anybody", "whoever",
                 "enemy", "enemies", "foe", "foes", "target", "yourself",
+                # NP-1: the sovereign self-marker ("march to Ulm myself")
+                # was fuzzy-matchable into a province — the PARSE-NEG
+                # phantom family. Closed regardless of the sovereign gate.
+                "myself", "ourselves", "person",
             ]
             # July 18, 2026: the same rule for combat-idiom filler. "Ney, give
             # them hell" now parses as an attack, so the gate above no longer
@@ -949,6 +1044,17 @@ class CommandParser:
         fields are missing, feedback will silently fail to generate.
         """
         try:
+            # NP-1: sovereign address normalization — "(the) Emperor, ...",
+            # leading first person ("I will march to Ulm") and the trailing
+            # self-marker ("... myself") rewrite to a canonical address
+            # BEFORE every downstream stage, so the fast parser, LLM,
+            # fuzzy matching and strategic detection agree by construction.
+            # Dormant unless the player roster holds a sovereign.
+            _sovereign = _find_player_sovereign(world, game_state)
+            if _sovereign:
+                command_text = normalize_sovereign_address(
+                    command_text, _sovereign)
+
             # CR-2: sequential compound orders — parse the FIRST clause and
             # report the dropped tail instead of letting the second clause
             # leak into target extraction / strategic detection ("attack

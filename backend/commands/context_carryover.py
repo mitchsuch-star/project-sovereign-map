@@ -127,6 +127,13 @@ _SAME_ENEMY_NOUNS = frozenset({"enemy", "foe"})
 _SAME_PLACE_NOUNS = frozenset({"place", "position", "province", "city", "town", "spot"})
 _PERSON_PRONOUN_RE = re.compile(r'\b(?:him|her|them)\b', re.IGNORECASE)
 _PLACE_DEIXIS_RE = re.compile(r'\bthere\b', re.IGNORECASE)
+# NP-1 (NAPOLEON_SPEC §4.1): first-person object pronouns resolve to the
+# SOVEREIGN — "Ney, support me" is an order to support the Emperor. Same
+# anchor discipline as the enemy pronouns (object position only), its own
+# resolution function (_player_sovereign_name, never _last_enemy_target).
+# him/her/them can never resolve TO the sovereign — the enemy filter in
+# _last_enemy_target is structural (he is never "him" to the player).
+_FIRST_PERSON_OBJECT_RE = re.compile(r'\b(?:me|myself|us)\b', re.IGNORECASE)
 
 # A person pronoun / "there" is only a REFERENCE when it sits in object /
 # destination position — immediately after a targeting or movement verb (or
@@ -149,6 +156,14 @@ _MOVEMENT_ANCHORS = frozenset({
     "ride", "redeploy", "reinforce", "station", "hold", "defend", "garrison",
     "fortify", "attack", "scout", "pursue", "regroup", "rally", "to",
     "toward", "towards", "at", "into",
+})
+# NP-1: anchors for the first-person object reference — deliberately
+# NARROWER than the enemy set: only support-flavoured verbs, so "move to
+# me" never fabricates a region-shaped marshal name and "attack me" stays
+# nonsense the friendly-fire guard would refuse anyway.
+_FIRST_PERSON_SUPPORT_ANCHORS = frozenset({
+    "support", "reinforce", "join", "assist", "protect", "cover",
+    "guard", "screen", "follow",
 })
 
 # Multi-marshal / collective addressees — focus must NOT silently collapse
@@ -247,6 +262,21 @@ def _last_region_target(world) -> Optional[str]:
     for target in _recent_targets(world):
         if _is_region(world, target):
             return target
+    return None
+
+
+def _player_sovereign_name(world) -> Optional[str]:
+    """NP-1: the player's STANDING sovereign, or None. A captured sovereign
+    is not on the map — "support me" stays unresolved and routes to the
+    ordinary clarification instead of a prisoner-shaped error."""
+    if world is None:
+        return None
+    player_nation = getattr(world, "player_nation", None)
+    for m in getattr(world, "marshals", {}).values():
+        if (m.nation == player_nation
+                and getattr(m, "is_sovereign", False)
+                and not getattr(m, "captured_by", "")):
+            return m.name
     return None
 
 
@@ -422,6 +452,21 @@ def resolve_context_references(command_text: str, world) -> Dict:
                            + working[person_match.end():])
                 changed = True
             break
+
+    # NP-1: first-person object pronouns resolve to the sovereign ("Ney,
+    # support me" -> SUPPORT Napoleon). Object position only — the same
+    # anchor rule as the enemy pronouns — and support/defend-flavoured
+    # anchors: "attack me" stays unresolved (the friendly-fire refusal
+    # would answer it anyway, but the reference itself is nonsense).
+    _sovereign = _player_sovereign_name(world)
+    if _sovereign:
+        for fp_match in _FIRST_PERSON_OBJECT_RE.finditer(working):
+            _prev = _preceding_word(working, fp_match.start())
+            if _prev in _FIRST_PERSON_SUPPORT_ANCHORS:
+                working = (working[:fp_match.start()] + _sovereign
+                           + working[fp_match.end():])
+                changed = True
+                break
 
     # "there" resolves only in destination position after a movement/positional
     # verb or "to"/"at"/"into" (finding-1: not the expletive "is there time" or

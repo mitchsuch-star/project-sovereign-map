@@ -748,10 +748,14 @@ class CommandExecutor:
                 if (not is_strategic_execution and
                         parsed_command.get("is_strategic") and
                         parsed_command.get("strategic_type")):
-                    # Strategic commands cost 2 (1 for literal personality)
+                    # Strategic commands cost 2 (1 for literal personality;
+                    # NP-1: 1 for the sovereign — the Emperor does not
+                    # persuade himself, NAPOLEON_SPEC §4.2)
                     marshal_for_cost = world.get_marshal(command.get("marshal", ""))
-                    is_literal = marshal_for_cost and getattr(marshal_for_cost, 'personality', '') == 'literal'
-                    required_actions = 1 if is_literal else 2
+                    is_discounted = marshal_for_cost and (
+                        getattr(marshal_for_cost, 'personality', '') == 'literal'
+                        or getattr(marshal_for_cost, 'is_sovereign', False))
+                    required_actions = 1 if is_discounted else 2
 
                 if world.actions_remaining < required_actions:
                     return {
@@ -855,9 +859,17 @@ class CommandExecutor:
         # Phase M: Strategic commands use strategic objection, not tactical
         is_strategic_command = parsed_command.get("is_strategic", False)
 
+        # NP-1 (NAPOLEON_SPEC §4.2): the sovereign never objects — skip the
+        # whole evaluation (objection_v2's head guard is the belt; this is
+        # the seam the spec names, and it saves the evaluation call).
+        _obj_marshal = world.get_marshal(marshal_name) if marshal_name else None
+        _is_sovereign_order = bool(
+            _obj_marshal and getattr(_obj_marshal, "is_sovereign", False))
+
         should_check_objection = (
             action in objection_actions and
             marshal_name is not None and
+            not _is_sovereign_order and
             not is_strategic_execution and  # Phase 5.2-C: marshal can't object to own decision
             not is_strategic_command and  # Phase M: strategic objection handled separately
             # July 2026 AI audit: an autonomous marshal executing his OWN

@@ -839,6 +839,10 @@ class StrategicExecutor:
                 should_check = False
             if marshal.nation != world.player_nation:
                 should_check = False
+            # NP-1 (NAPOLEON_SPEC §4.2): the sovereign never objects to his
+            # own strategic will (objection_v2's head guard is the belt).
+            if getattr(marshal, 'is_sovereign', False):
+                should_check = False
 
             if should_check:
                 # V2 evaluation: deterministic concern level + mood variance
@@ -1455,9 +1459,12 @@ class StrategicExecutor:
 
         # Strategic commands cost 2 actions (1 for literal — they follow orders efficiently)
         # Auto-upgrades (e.g., attack→PURSUE) cost 1 (player didn't ask for strategic)
+        # NP-1: 1 for the sovereign — his orders are the player's own will
+        # (NAPOLEON_SPEC §4.2; matches the executor.py pre-check).
         is_literal = getattr(marshal, 'personality', '') == 'literal'
+        is_sovereign = getattr(marshal, 'is_sovereign', False)
         is_auto_upgrade = parsed_command.get("auto_upgrade", False)
-        strategic_cost = 1 if (is_literal or is_auto_upgrade) else 2
+        strategic_cost = 1 if (is_literal or is_sovereign or is_auto_upgrade) else 2
 
         # W6-5 The Literal Doctrine (§7.2.2 + §7.2.5): a literal marshal
         # acknowledges by quoting the order's own words (the verbatim text
@@ -1486,6 +1493,10 @@ class StrategicExecutor:
                 marshal_name=marshal.name)
             if _ack and marshal.nation == world.player_nation:
                 msg += f" {marshal.name}: {_ack}"
+            # NP-1: the sovereign's discount is captioned like the
+            # literal's, so 1 AP reads as doctrine, not accounting.
+            if is_sovereign and not is_auto_upgrade:
+                msg += " (1 AP — the Emperor commands in his own name.)"
             if strategic_type == "HOLD" and strategic_cost == 2:
                 # PF-6: a tactical-sounding "hold your ground" is upgraded
                 # to a 2-AP standing strategic HOLD for a non-literal
