@@ -4,6 +4,39 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE NAPOLEON SPEC + GATE — August 15, 2026 (fourth entry that day)
+>
+> **Row NP inserted by user direction ("we need to add Napoleon before
+> build — the biggest item yet"): the queue is now PC15 fix slice → ROW
+> NP → position 10.** Spec of record = `docs/NAPOLEON_SPEC.md` v0.2 —
+> authored from a five-reader seam survey, **gate RETURNED same day
+> (record = spec §14.1, authoritative)**: Q2 capture-only with the
+> Guard-buys-escape refinement (capture only by true encirclement,
+> `GUARD_ESCAPE_TOLL` 30%, captivity = Brétigny-style peace leverage) ·
+> Q4 glory Shadow ×0.5 + the Petition for Independent Command · Q5 Seat
+> +1 DP · Q8 delegated and ruled as the user's middle path (no Crowned
+> Heads gate — field monarchs only, capture-worth the headline, owned
+> slice NP-6 "The Three Emperors" post-NP-V, strikeable) · Q1/Q3/Q6/Q7/Q9
+> at recommended defaults, unobjected. Design spine: `"sovereign"` as the
+> 4th implemented personality (consciously re-opens the MC-4 guard),
+> **zero new serialized fields**, Napoleon boots at Paris with a 10,000
+> Guard **carved from Soult** (economy pins byte-identical), aura/fear
+> behind flip-flags for the ONE sanctioned `BASELINE_SERIES` re-record.
+> Slices NP-0..NP-V (+NP-6), est. 2–3 sessions.
+>
+> **Same session: the marshal-fate investigation** (user: "do their
+> armies disappear and are odds too high?"). Findings: capture returns
+> HALF the corps to the manpower pool and is narrated + reversible
+> (probe: ~3 captures/40 ambient turns board-wide, all low-strength
+> triggers, encirclement 0/80 turns; both early captives released at
+> peace); **annihilation is the silent, total path — PC15-1 is the felt
+> problem, not the 40% roll (verdict: no retune)**. Two leads: a
+> **prisoner-pop defect** (Bernadotte captured T40, silently deleted T41,
+> historical seed — the strength-0-filter trap; task chip filed, fix
+> alongside PC15-1, BEFORE NP-4 which builds on this seam) and the
+> release cadre's un-debited 5,000 (noted, bounded, no action). Probe
+> script preserved in the session scratchpad; results in the chip.
+
 > ## ✅ THE COMPREHENSIVE STATE-OF-THE-GAME PLAYTEST — August 15, 2026 (third entry that day)
 >
 > **The played campaign the queue owed — run on the day-old harness, all

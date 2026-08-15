@@ -59,15 +59,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > visual surfaces walked with screenshots (`docs/audits/
 > PLAYTEST_F_*_2026_08_15.jpg`; the USER's own sign-off pass still
 > owed — `saves/flagship_visual_t12.json` staged for it).
-> **▶ NEXT = THE PC15 FIX SLICE (Round-0 gate), THEN POSITION 10:**
-> `BUG_FIXES.md` §Comprehensive Playtest PC15 — the ⛔ P1 trio+1
-> (PC15-1 silent marshal destruction · PC15-2 the interrupt route
-> swallows addressed commands · PC15-3 the settlement-confirm wedge ·
-> PC15-4 dead-name silent substitution) + the tutorial beat-IV anchor
-> (PC15-9 — Round 0 leads with the School). Design questions =
+> **▶ NEXT = THE PC15 FIX SLICE (Round-0 gate), THEN ROW NP (NAPOLEON),
+> THEN POSITION 10:** `BUG_FIXES.md` §Comprehensive Playtest PC15 — the
+> ⛔ P1 trio+1 (PC15-1 silent marshal destruction · PC15-2 the interrupt
+> route swallows addressed commands · PC15-3 the settlement-confirm
+> wedge · PC15-4 dead-name silent substitution) + the tutorial beat-IV
+> anchor (PC15-9 — Round 0 leads with the School). Design questions =
 > `DESIGN_REFINEMENT.md` §PC15-D1..D4 (neutral-soil retreats, ally
 > supply, tutorial expectation dormancy, the exhausted-pair truce
-> floor).
+> floor). The PC15-1 family gained a probe-found sibling Aug 15 (a
+> captured strength-0 marshal silently deleted the turn after capture —
+> chip filed; fix with PC15-1, BEFORE NP-4 builds on that seam).
+>
+> **▶ ROW NP — NAPOLEON, "The Emperor Takes the Field" (inserted
+> August 15, 2026 by user direction, before position 10; spec + gate
+> record = `docs/NAPOLEON_SPEC.md` v0.2 §14.1, authoritative; ✅ GATE
+> RETURNED same day).** The player embodied: a `"sovereign"` 4th
+> implemented personality (MC-4 guard consciously re-opened), zero new
+> serialized fields, boots at Paris with a 10,000 Guard carved from
+> Soult (economy pins byte-identical by construction); the Presence
+> aura + enemy-AI fear + discipline dampening; the glory Shadow ×0.5 +
+> the Petition for Independent Command; capture-only Peril (Guard buys
+> escape at 30% toll, encirclement is the only road to the Eagle in
+> Chains, captivity = peace leverage); Seat +1 DP in the capital;
+> emperor map piece; NP-6 "The Three Emperors" (Alexander/Francis,
+> capture-worth) post-NP-V, strikeable. Slices NP-0..NP-V, est. 2–3
+> sessions; `BASELINE_SERIES` re-record ONCE flip-attributed at NP-V.
+> The owed played 20-turn campaign runs AFTER NP (Q9 ruling).
 >
 > **▶ THE PLAYTEST HARNESS LANDED August 15, 2026** (user: "make the
 > test easier first and document somewhere clear how future sessions
