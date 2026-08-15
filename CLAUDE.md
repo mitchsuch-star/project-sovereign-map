@@ -44,7 +44,26 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,696 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,748 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE PC15 REMAINDER LANDED August 15, 2026 (eighth session that
+> day; record = STATUS top entry): PC15-16 + PC15-18 fixed AND seen**
+> (fog sentinels to income/stability on panel+tooltip; Alt+screen-key
+> hotkeys reachable under terminal focus; the NV-P1 wheel-eater class
+> closed by census — 10 members PASS incl. the terminal scrollback, a
+> structural pin over every .tscn; Mode-C evidence
+> `docs/audits/PC15_16_*.jpg` + `PC15_18_*.jpg`), **PC15-8 fixed live**
+> (the CR-5 router was innocent — `_resolve_target` gained the
+> fog-honest at-war NATION arm so "the Austrians" → Mack@Swabia reaches
+> the literal ASK; prompt+schema no-guess pair for the residue; live
+> compliance measured, corpus literal live row consciously retired for a
+> mock_only row), **and PC15-10 slice B0 landed**
+> (`PETITION_POPUP_REVISIT_SPEC.md` §9 row = landing record: F4 central
+> channel gate + F3 no-silent-losses lines + F5 latents S1/S4/S6/S9 +
+> F7 three drain fixes with the 22-route POST census).
+> `BASELINE_SERIES` + M1–M7 byte-identical, verified. **The PC15 table
+> is disposed except PC15-10's slices B1–B5 (B1 "The Antechamber" =
+> its own session). NEXT = ROW NP (Napoleon), then position 10.**
 >
 > **▶ THE COMPREHENSIVE PLAYTEST RAN August 15, 2026 (third session
 > that day) — the played campaign the queue owed. Memo of record =
