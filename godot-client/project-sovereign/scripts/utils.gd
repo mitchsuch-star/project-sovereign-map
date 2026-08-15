@@ -8,6 +8,26 @@ class_name Utils
 # helpers. Referenced as Utils.COLOR_* from any script (class_name autoload).
 # =============================================================================
 
+# === Backend origin (Golden Rule 7 + SOVEREIGN_PORT override) ===
+# THE single source for the backend URL on the client side. Default stays
+# 127.0.0.1:8005; a SOVEREIGN_PORT env var moves BOTH sides at once
+# (backend/main.py reads the same variable), so a test client can run
+# beside the player's live session without fighting over one port.
+# Every script that talks to the backend derives from this — never
+# hardcode the origin again.
+
+static func backend_url() -> String:
+	var port := OS.get_environment("SOVEREIGN_PORT")
+	if port == "" or not port.is_valid_int():
+		port = "8005"
+	return "http://127.0.0.1:" + port
+
+
+static func backend_origin_label() -> String:
+	"""The origin without the scheme — for status lines."""
+	return backend_url().trim_prefix("http://")
+
+
 # === Shared Color Palette (hex strings for BBCode) ===
 const COLOR_GOLD = "d9c08c"
 const COLOR_COMMAND = "7eb8da"

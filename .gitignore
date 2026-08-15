@@ -83,3 +83,7 @@ smoke_logs/*.out
 
 # PSD region-key generator working output (promoted copies live in assets/maps)
 tools/mapgen_out/
+
+# Playtest driver run outputs (digests, sandboxed saves, server consoles) —
+# the COMMITTED fixtures live in tests/fixtures/playtest_saves/ instead
+tools/playtest_runs/

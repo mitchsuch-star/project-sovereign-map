@@ -15,7 +15,7 @@ extends Control
 # (buttons disabled with the reason stated while the backend is down).
 # =============================================================================
 
-const BACKEND_URL := "http://127.0.0.1:8005"   # Golden Rule 7 — api_client.gd's origin
+var BACKEND_URL: String = Utils.backend_url()   # Golden Rule 7 — the one origin
 const GAME_SCENE := "res://scenes/main.tscn"
 const PAINTINGS_DIR := "res://assets/ui/paintings/"
 
@@ -521,7 +521,7 @@ func _apply_backend_state() -> void:
 	if _status_label == null:
 		return
 	if _backend_up:
-		_status_label.text = "✓ The war office answers.  ·  127.0.0.1:8005"
+		_status_label.text = "✓ The war office answers.  ·  " + Utils.backend_origin_label()
 		_status_label.add_theme_color_override("font_color", Color(0.55, 0.72, 0.55, 0.9))
 	else:
 		_status_label.text = "The war office does not answer — start the backend:  .venv\\Scripts\\python.exe -m backend.main"

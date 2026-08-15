@@ -146,7 +146,7 @@ func _on_overlay_input(event):
 # HTTP REQUESTS
 # =============================================================================
 
-const API_URL = "http://127.0.0.1:8005"
+var API_URL: String = Utils.backend_url()  # Golden Rule 7 single source
 
 func _fetch_nations():
 	"""Fetch categorized nation list for Step 1."""

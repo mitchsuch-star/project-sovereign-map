@@ -29,8 +29,8 @@ class_name SettingsPanel
 
 signal ui_scale_changed(value: float, persist: bool)
 
-# Golden Rule 7: same origin as api_client.gd.
-const BACKEND_URL := "http://127.0.0.1:8005"
+# Golden Rule 7: same origin as api_client.gd — one source, env-overridable.
+var BACKEND_URL: String = Utils.backend_url()
 
 var _scale_dragging := false
 var _scale_slider: HSlider

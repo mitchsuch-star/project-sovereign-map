@@ -4,6 +4,64 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE PLAYTEST HARNESS — August 15, 2026 (second entry that day)
+>
+> **User re-ordered the queue: "make the test easier first … then we will
+> do a playtest before build … document somewhere clear how future
+> sessions can playtest game." Built and documented; the playtest runs on
+> this harness next, THEN the build.** Doc of record =
+> **`docs/PLAYTESTING.md`** (CLAUDE.md Document Map row added — future
+> sessions start there); pins =
+> `tests/test_playtest_harness_2026_08_15.py` (11); memory pointer
+> written. Suite **17,606/3** · ruff clean · parse harness EXIT=0 · boot
+> smoke 0 SCRIPT ERROR.
+>
+> - **`tools/playtest_driver.py`** — the scripted player: drives seeded
+>   campaigns at the REAL `/command` surface in-process (TestClient — no
+>   server, no port, no stale-backend trap), answers blocking
+>   popups/dialogues by a stated, logged policy (objection→trust ·
+>   diplomacy→decline · war purpose→Conquest · ultimatum→defy ·
+>   capture→secure · petitions→first-enabled · confirm→confirm), and
+>   writes ONE readable `digest.md` + `digest.jsonl` + `meta.json` per
+>   run. A 2-turn campaign runs in under 2 seconds; a 20-turn ambient
+>   campaign in under a minute. Replaces the raw-JSON hand-driving loop
+>   (CA9 was 108 pairs). `--http URL` drives a LIVE server with the same
+>   digest (wire tests); `--strict` fails on unknown blockers; `--llm
+>   anthropic` is explicit-only (mock forced by default — the dev .env
+>   can never make an unattended run spend tokens); saves are SANDBOXED
+>   per run via `INK_IRON_SAVE_DIR` (the /new_game autosave never touches
+>   the player's slot). The smoke run already exposed and answered the
+>   war-purpose hard stop, an objection, petitions, a settlement offer
+>   and Talleyrand's declare-war objection unattended, and a blocked end
+>   turn STOPS the run with status `blocked` instead of spinning.
+> - **Fixture saves** — `tests/fixtures/playtest_saves/`
+>   `fixture_t10_ambient.json` + `fixture_t20_ambient.json` (committed,
+>   ~450–512 KB, v3): start a playtest MID-CAMPAIGN via `--from-save`
+>   instead of replaying the opening. Regen =
+>   `tools/gen_playtest_fixtures.py` (after FORMAT_VERSION bumps or
+>   deliberate balance refreshes). The dir name deliberately dodges the
+>   bare `saves/` gitignore pattern — pinned.
+> - **`SOVEREIGN_PORT` moves BOTH sides** — `backend/main.py` reads it at
+>   the uvicorn seam; the client derives every origin from NEW
+>   `Utils.backend_url()` (api_client / diplomacy_wizard / main_menu /
+>   settings_panel migrated; a no-hardcoded-origin scan pins the whole
+>   scripts+scenes tree). **Golden Rule 7 amended in CLAUDE.md.** A test
+>   backend+client pair now runs beside the player's live 8005 session —
+>   the collision that cost CA9 its visual half is closed.
+> - **Deliberate limits recorded in the doc:** the driver is a camera
+>   with reflexes, not a strategist (campaign-quality evaluation scripts
+>   its arc or hand-drives); the Godot renderer stays Mode C's job
+>   (per-surface screenshot scenes extended on demand — the
+>   settlement_popup_screenshot.gd pattern, no all-surfaces harness by
+>   design).
+>
+> **▶ NEXT: the played campaign on this harness (PT row-2 arm + naval
+> pillar + the standing visual sign-offs), THEN position 10, the
+> shippable build + itch Restricted upload (user's itch page + password
+> are the user's half).** HC-L stays a dedicated session.
+>
+> ---
+>
 > ## ✅ THE PRE-BUILD FIX PASS — August 15, 2026
 >
 > **The health check's shippable-build P0/P1 gaps are CLOSED at their seams**

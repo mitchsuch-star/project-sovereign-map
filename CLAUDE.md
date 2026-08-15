@@ -10,7 +10,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 4. **State clearing: AFTER reading** — get the value, use it, then clear.
 5. **Enemy AI uses SAME executor as player** (Building Blocks principle — same systems, different input values. See `docs/SYSTEMS_REFERENCE.md` §23).
 6. **LLM never affects mechanics** — parsing only, executor is deterministic.
-7. **Port 8005** (not 8000!) — change in BOTH `backend/main.py` AND `godot-client/.../api_client.gd`.
+7. **Port 8005 default; `SOVEREIGN_PORT` env overrides BOTH sides at once** (Aug 15, 2026) — `backend/main.py` reads it, every `.gd` derives its origin from `Utils.backend_url()`. Never hardcode the origin in a `.gd` again; run a test pair beside the player's live 8005 session via `SOVEREIGN_PORT=8006`.
 8. **Scale-ready code: NO per-region scans in hot paths** — Map is scaling to full 1805 Europe. Never iterate `world.regions.values()` in loops called multiple times per turn. Use cached helpers (e.g. `get_active_nations()` is per-turn cached, `get_nation_regions()` for region lookups). If adding a new helper that scans regions, cache the result per-turn and invalidate via `invalidate_active_nations_cache()` pattern.
 9. **No open-ended deferrals** — any hidden, cut, deferred, later, v2, or polish player-facing work must name a concrete owner row/spec, landing slice, completion definition, STATUS tracking line, and behavior test. If the work is not going to land, remove the player-facing promise explicitly. Do not leave "future work" labels, disabled placeholders, or vague backlog notes in active specs.
 
@@ -44,7 +44,25 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,595 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,606 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE PLAYTEST HARNESS LANDED August 15, 2026** (user: "make the
+> test easier first and document somewhere clear how future sessions
+> can playtest game"; **doc of record = `docs/PLAYTESTING.md` — future
+> sessions START THERE**): `tools/playtest_driver.py` drives seeded
+> campaigns at the real `/command` surface in-process (TestClient, no
+> server/port/stale-backend), answers blocking popups/dialogues by a
+> STATED logged policy (objection→trust, diplomacy→decline, war
+> purpose→Conquest, ultimatum→defy, capture→secure…), sandboxes saves
+> via `INK_IRON_SAVE_DIR`, and writes ONE readable `digest.md` (+
+> jsonl/meta) per run — replaces the 108-raw-JSON-pairs loop; `--http`
+> drives a live server with the same digest; `--from-save` starts
+> mid-campaign from the committed fixtures
+> `tests/fixtures/playtest_saves/fixture_t{10,20}_ambient.json`
+> (regen = `tools/gen_playtest_fixtures.py`); **`SOVEREIGN_PORT` now
+> moves BOTH sides** (main.py + `Utils.backend_url()` — golden rule 7
+> amended, no `.gd` hardcodes the origin). **The playtest BEFORE the
+> build (user-ordered) runs on this harness next.**
 >
 > **▶ THE PRE-BUILD FIX PASS LANDED August 15, 2026** (user: "finish
 > fixes for prebuild"; record = STATUS top entry; pins =
@@ -1036,6 +1054,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Need | Read |
 |------|------|
 | Session state / what's next | `docs/STATUS.md` |
+| **PLAYTEST / live-verify / evaluate the game (START HERE for any of those)** | **`docs/PLAYTESTING.md`** — Mode A `tools/playtest_driver.py` (in-process, seeded, popup-answering, digest output) is the default; Mode B live-HTTP (`SOVEREIGN_PORT`), Mode C client visual pass; fixtures in `tests/fixtures/playtest_saves/` |
 | **UI Visual Foundation Sweep (▶ NEXT — take slices UI-0→UI-3 in order)** | **`docs/UI_VISUAL_FOUNDATION_SPEC.md`** (queued July 12, 2026; assets in `assets/` + credits at repo-root `THIRD_PARTY_LICENSES.md`) |
 | Wave 6 fun-factor build (✅ COMPLETE July 10, 2026) | `docs/WAVE6_FUN_FACTOR_SPEC.md` (§15 DoD; audit evidence in `docs/audits/CREATIVE_AUDIT_2026_07_10.md`) |
 | **Open bugs (consolidated)** | **`docs/BUG_FIXES.md`** |

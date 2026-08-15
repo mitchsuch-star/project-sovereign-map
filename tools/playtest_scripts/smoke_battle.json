@@ -1,0 +1,12 @@
+{
+  "name": "smoke-battle",
+  "seed": "historical",
+  "llm": "mock",
+  "turns": {
+    "1": ["Murat, scout Swabia", "Davout, attack Mack", "status"],
+    "2": ["Ney, attack Mack", "Soult, move to Alsace"],
+    "3": ["Murat, attack Mack"],
+    "4": ["Talleyrand, assess our situation"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline"}
+}

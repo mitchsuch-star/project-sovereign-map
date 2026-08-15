@@ -1,6 +1,8 @@
 extends Node
 
-const API_URL = "http://127.0.0.1:8005"
+# Golden Rule 7: the origin comes from ONE source — Utils.backend_url()
+# (default 8005; SOVEREIGN_PORT env overrides both sides at once).
+var API_URL: String = Utils.backend_url()
 
 var http_request: HTTPRequest
 var _request_in_flight: bool = false

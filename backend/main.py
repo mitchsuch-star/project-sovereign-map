@@ -4928,6 +4928,13 @@ def debug_proposal_queue():
 if __name__ == "__main__":
     import uvicorn
 
+    # SOVEREIGN_PORT (Aug 2026 test-harness pass): lets a SECOND backend run
+    # beside the player's live session on 8005 — the CA9 audit had to skip
+    # its visual half because the client and the driver fought over one
+    # port. Default stays 8005 (Golden Rule 7); the Godot side reads the
+    # same env var through Utils.backend_url().
+    _port = int(os.getenv("SOVEREIGN_PORT", "8005"))
+
     print("=" * 60)
     print("[*] GAME INITIALIZED")
     print(f"[*] DEBUG MODE: {'ENABLED' if DEBUG_MODE else 'DISABLED'}")
@@ -4937,8 +4944,8 @@ if __name__ == "__main__":
     print(f"Gold: {world.gold}")
     print(f"Regions: {len(world.get_player_regions())}")
     print("=" * 60)
-    print("[*] Server: http://127.0.0.1:8005")
-    print("[*] API Docs: http://127.0.0.1:8005/docs")
+    print(f"[*] Server: http://127.0.0.1:{_port}")
+    print(f"[*] API Docs: http://127.0.0.1:{_port}/docs")
     print("=" * 60)
 
-    uvicorn.run(app, host="127.0.0.1", port=8005)
+    uvicorn.run(app, host="127.0.0.1", port=_port)
