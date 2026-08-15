@@ -234,6 +234,14 @@ def _voice_rotation_key(world, region_name: str) -> int:
     return max(0, int(getattr(world, "battle_counts", {}).get(region_name, 1)) - 1)
 
 
+# NP-2 The Presence (NAPOLEON_SPEC §5.1) — flip lever for the NP-V
+# BASELINE_SERIES attribution experiment: False reproduces the pre-slice
+# behavior byte-identically (the HOST_RULE_ACTIVE idiom). Guards ONLY the
+# stamp in _calculate_coordination_context; the modifier reads see 0.0
+# when nothing was stamped.
+SOVEREIGN_PRESENCE_ACTIVE = True
+
+
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
 
@@ -534,8 +542,21 @@ class CombatExecutor:
                     and not getattr(m, 'retreated_this_turn', False)
                     and getattr(m, 'retreat_recovery', 0) == 0]
 
+        # NP-2 The Presence (NAPOLEON_SPEC §5.1): a sovereign among the
+        # eligible set (himself included — he carries his own presence)
+        # stamps every member. Both call sites compute both sides
+        # independently, so an enemy-authored sovereign works identically
+        # (GR5 by construction). The stamp inherits coordination's exact
+        # behavior at every seam — incl. the enemy-phase auto-charge's
+        # deliberate clear (that path fights without transients BY DESIGN,
+        # pinned) and the field's registration in
+        # COORDINATION_TRANSIENT_FIELDS for every clear path.
+        sovereign_here = SOVEREIGN_PRESENCE_ACTIVE and any(
+            getattr(m, 'is_sovereign', False) for m in eligible)
+
         # Each marshal gets their OWN coordination based on their relationships
         for m in eligible:
+            m.sovereign_presence = 1.0 if sovereign_here else 0.0
             allies_for_m = [a for a in eligible if a.name != m.name]
             coord_atk, coord_def = self._calculate_per_ally_coordination(m, allies_for_m)
 
@@ -1066,6 +1087,21 @@ class CombatExecutor:
             "rows": rows,
             "shared_casualty_note": shared_casualty_note,
         }
+
+        # NP-2 §5.1 shown=applied: the muster names the Presence when a
+        # sovereign stands with the assault (computed live — the transient
+        # is only stamped at battle time). Percentage derives from the
+        # consumed constant.
+        if SOVEREIGN_PRESENCE_ACTIVE and any(
+                getattr(m, "is_sovereign", False)
+                for m in world.marshals.values()
+                if m.location == marshal.location
+                and m.nation == marshal.nation and m.strength > 0
+                and not getattr(m, "broken", False)):
+            _pct = int(round(Marshal.SOVEREIGN_PRESENCE_ATTACK * 100))
+            preview["presence_note"] = (
+                f"The Emperor commands in person — every corps on this "
+                f"field fights +{_pct}% harder.")
 
         # First-use tutorial line about standing orders — latch-on-surface
         # (shown once per campaign, even if this attack is then cancelled).
@@ -2283,6 +2319,17 @@ class CombatExecutor:
                 player_won = (player_is_attacker and atk_won_auth) or (player_is_defender and def_won_auth)
                 player_lost = (player_is_attacker and def_won_auth) or (player_is_defender and atk_won_auth)
 
+                # NP-2 §5.4: the Emperor's prestige rides his own battles.
+                # A battle the sovereign PERSONALLY commanded (battle lead)
+                # moves the throne: +2 on victory, -5 on defeat (N4/N5) —
+                # alongside the existing outnumbered/capital arms, and the
+                # cascade (defiance floors, trust rates, vassal drift,
+                # jealousy acceleration) rides existing derivations free.
+                _player_lead = attacker if player_is_attacker else defender
+                _emperor_led = bool(
+                    _player_lead is not None
+                    and getattr(_player_lead, 'is_sovereign', False))
+
                 if player_won:
                     outnumbered = pre_atk < pre_def
                     if player_is_defender:
@@ -2294,6 +2341,8 @@ class CombatExecutor:
                             capital_captured = True
                     if outnumbered or capital_captured:
                         world.authority_tracker.modify_authority(+5)
+                    if _emperor_led:
+                        world.authority_tracker.modify_authority(+2)
                 elif player_lost:
                     outnumbering = pre_atk > pre_def
                     if player_is_defender:
@@ -2304,6 +2353,8 @@ class CombatExecutor:
                         if cap_reg.controller != player_nation:
                             capital_lost = True
                     if outnumbering or capital_lost:
+                        world.authority_tracker.modify_authority(-5)
+                    if _emperor_led:
                         world.authority_tracker.modify_authority(-5)
 
         # ── 13. Coalition: threat + war exhaustion ──

@@ -135,6 +135,16 @@ def snapshot_attacker_modifiers(
         mods.append({"label": f"Iron Resolve ({_iron_stacks} stack{_plural})",
                      "value": _iron_pct, "type": "bonus"})
 
+    # --- The Presence (NP-2: the Emperor commands in person) ---
+    # Deliberately SHOWN unlike coordination — the aura is its own factor
+    # outside the coordination caps, and the report names it (shown =
+    # applied, percentage derived from the consumed constant).
+    if getattr(attacker, "sovereign_presence", 0.0):
+        from backend.models.marshal import Marshal as _M
+        mods.append({"label": "The Emperor commands in person",
+                     "value": int(round(_M.SOVEREIGN_PRESENCE_ATTACK * 100)),
+                     "type": "bonus"})
+
     # --- Glorious Charge ---
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})
@@ -253,6 +263,13 @@ def snapshot_defender_modifiers(
             # MC-1: Massena — the report names why the outnumbered wall held.
             # Mirrors marshal.get_defense_modifier's is_outnumbered gate.
             mods.append({"label": "Child of Victory (outnumbered)", "value": 10, "type": "bonus"})
+
+    # --- The Presence (NP-2: the Emperor stands with the defence) ---
+    if getattr(defender, "sovereign_presence", 0.0):
+        from backend.models.marshal import Marshal as _M
+        mods.append({"label": "The Emperor commands in person",
+                     "value": int(round(_M.SOVEREIGN_PRESENCE_DEFENSE * 100)),
+                     "type": "bonus"})
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().

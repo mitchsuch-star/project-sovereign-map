@@ -544,9 +544,23 @@ def _is_standing(marshal) -> bool:
 
 # ═══════════════════════ TRIGGER EVALUATION ═══════════════════════════════
 
-def _threshold_for(marshal, target, authority: int) -> Optional[Tuple[int, bool]]:
+def _sovereign_locations(world) -> Dict[str, str]:
+    """{nation: location} for STANDING sovereigns — one pass per turn
+    (NP-2 §5.3, the update_literal_hold_counters per-nation map idiom).
+    A captured sovereign disciplines nobody — the court frays without him."""
+    locs: Dict[str, str] = {}
+    for m in world.marshals.values():
+        if (getattr(m, "is_sovereign", False) and m.strength > 0
+                and not getattr(m, "captured_by", "")):
+            locs[m.nation] = m.location
+    return locs
+
+
+def _threshold_for(marshal, target, authority: int,
+                   under_the_eye: bool = False) -> Optional[Tuple[int, bool]]:
     """(threshold, requires_idle) for this pair, or None when immune.
-    Relationship-scaled (spec §1), idle-accelerated, authority-shaped."""
+    Relationship-scaled (spec §1), idle-accelerated, authority-shaped,
+    presence-disciplined (NP-2 §5.3)."""
     rel = marshal.get_relationship(target.name)
     base = THRESHOLDS.get(rel, 2)
     if base is None:
@@ -571,6 +585,13 @@ def _threshold_for(marshal, target, authority: int) -> Optional[Tuple[int, bool]
     if authority > AUTHORITY_SUPPRESS_ABOVE and not hair_trigger:
         # Winning calms the professionals (+1 to their threshold) — it does not
         # anesthetize the army (§0.2 build amendment, DR-3 refinement).
+        base += 1
+    if under_the_eye and not hair_trigger:
+        # NP-2 §5.3: discipline under the Emperor's eye — a marshal
+        # co-located with his sovereign holds his tongue at headquarters
+        # (+1 threshold), mirroring the authority-softening idiom above.
+        # The DR-3 exemption stands: Bernadotte seethes in the Emperor's
+        # own tent.
         base += 1
     return base, requires_idle
 
@@ -2884,6 +2905,10 @@ def process_turn(world) -> List[Dict]:
     update_literal_hold_counters(world)
 
     # 3) trigger evaluation — snapshot first (EC-J), then rate-limit apply
+    # NP-2 §5.3: one pass resolves each nation's sovereign location — a
+    # marshal co-located with his sovereign gets +1 on his grievance
+    # threshold (discipline at headquarters; DR-3 hair-triggers exempt).
+    sovereign_locs = _sovereign_locations(world)
     candidates: List[Tuple[object, object, int, int]] = []
     for marshal in world.marshals.values():
         if getattr(marshal, "jealous_of", None):
@@ -2916,7 +2941,10 @@ def process_turn(world) -> List[Dict]:
         target = find_jealousy_target(marshal, world)
         if target is None:
             continue
-        gate = _threshold_for(marshal, target, authority)
+        gate = _threshold_for(
+            marshal, target, authority,
+            under_the_eye=(
+                sovereign_locs.get(marshal.nation) == marshal.location))
         if gate is None:
             continue
         threshold, requires_idle = gate
@@ -2970,7 +2998,10 @@ def process_turn(world) -> List[Dict]:
         if target is None:
             continue
         authority = get_authority_proxy(world, marshal.nation)
-        gate = _threshold_for(marshal, target, authority)
+        gate = _threshold_for(
+            marshal, target, authority,
+            under_the_eye=(
+                sovereign_locs.get(marshal.nation) == marshal.location))
         if gate is None:
             continue
         threshold, requires_idle = gate

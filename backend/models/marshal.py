@@ -667,6 +667,7 @@ class Marshal:
         '_display_adjacent_atk',
         'overwatch_penalty',        # Session 68: enemy artillery suppression
         '_jealousy_solo_attack',    # Jealousy v3.2: +15% solo-attack stamp
+        'sovereign_presence',       # NP-2: the Emperor stands with this corps
     )
 
     def clear_coordination_transients(self) -> None:
@@ -1134,6 +1135,17 @@ class Marshal:
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_attack_bonus', 0.0))
 
+        # NP-2 The Presence (NAPOLEON_SPEC §5.1): the Emperor commands in
+        # person — every friendly corps in his province fights harder.
+        # Deliberately its OWN factor, never folded into the capped
+        # coordination totals (a well-coordinated stack would eat the aura
+        # invisibly). Stamped by _calculate_coordination_context alongside
+        # the coordination transients; non-consuming (a presence, not a
+        # one-shot); registered in COORDINATION_TRANSIENT_FIELDS so every
+        # clear path inherits it (the CA8-19(i) lesson).
+        if getattr(self, 'sovereign_presence', 0.0):
+            modifier *= (1.0 + self.SOVEREIGN_PRESENCE_ATTACK)
+
         # Overwatch penalty (Phase 7b: enemy artillery suppression)
         # Transient field set by _calculate_overwatch() in executor.py.
         # NOT serialized — read via getattr, cleared after combat.
@@ -1231,10 +1243,27 @@ class Marshal:
         if self.jealousy_surge_turns > 0 and self.personality == "cautious":
             modifier *= (1.0 + self.JEALOUSY_SURGE_BONUS)
 
+        # NP-2 The Presence (NAPOLEON_SPEC §5.1): the defensive half of the
+        # aura, before the global cap — in a maximal fortified+coordinated
+        # stack the aura partially saturates; the cap is the older rule and
+        # wins (accepted at the gate).
+        if getattr(self, 'sovereign_presence', 0.0):
+            modifier *= (1.0 + self.SOVEREIGN_PRESENCE_DEFENSE)
+
         # Hard cap: no marshal can exceed 1.75x total defense (prevents invincible turtling)
         modifier = min(modifier, 1.75)
 
         return modifier
+
+    # NP-2 The Presence (Aug 15, 2026 gate, NAPOLEON_SPEC §11 N1/N2 —
+    # in-band tunable; structural changes re-escalate): "his presence on
+    # the field made the difference of forty thousand men." Read by
+    # get_attack_modifier / get_defense_modifier off the transient
+    # sovereign_presence stamp; every display surface (battle-report row,
+    # muster note, AI reasoning tag) derives its percentage from these two
+    # constants — shown = applied.
+    SOVEREIGN_PRESENCE_ATTACK = 0.10
+    SOVEREIGN_PRESENCE_DEFENSE = 0.10
 
     # MC-1 (July 10, 2026 gate): Habsburg Resolve's personal rout threshold —
     # in-band tunable, ~10 morale points of extra staying power vs the global 25.

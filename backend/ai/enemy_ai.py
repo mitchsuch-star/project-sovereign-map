@@ -86,6 +86,45 @@ def ai_debug(msg: str):
             print(f"[AI DEBUG] {msg.encode('ascii', 'replace').decode('ascii')}")
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# NP-2 THE FEAR (NAPOLEON_SPEC §5.2, N3) — flip lever for the NP-V
+# BASELINE_SERIES attribution experiment: False reproduces pre-slice
+# behavior byte-identically (the HOST_RULE_ACTIVE idiom).
+# ══════════════════════════════════════════════════════════════════════════
+SOVEREIGN_FEAR_ACTIVE = True
+
+# N3 (in-band tunable): the enemy needs ~1.33x its normal appetite to
+# attack the Emperor's army at full aura — a cautious court wants ~1.73x.
+SOVEREIGN_FEAR_FACTOR = 0.75
+# The aura of invincibility is EARNED state (user direction, Aug 15 2026:
+# "his losses have weight"): fear reads the sovereign nation's imperial
+# grip — full at >= FEAR_GRIP_FULL, fading linearly to NONE at
+# <= FEAR_GRIP_BROKEN. Grip already encodes the collapse signals (emperor-
+# led defeats via authority, capital lost, losing war score, capture -40),
+# per-nation and GR5-symmetric (models/authority.py get_imperial_grip).
+SOVEREIGN_FEAR_GRIP_FULL = 70
+SOVEREIGN_FEAR_GRIP_BROKEN = 30
+
+
+def sovereign_fear_factor(world: Optional["WorldState"], nation: str) -> float:
+    """The ratio multiplier an AI applies against a sovereign's stack.
+
+    1.0 = no fear (the aura is broken); SOVEREIGN_FEAR_FACTOR = full fear.
+    Pure derived read — no serialized field, no RNG.
+    """
+    if world is None:
+        return SOVEREIGN_FEAR_FACTOR
+    from backend.models.authority import get_imperial_grip
+    grip = get_imperial_grip(world, nation)
+    if grip >= SOVEREIGN_FEAR_GRIP_FULL:
+        return SOVEREIGN_FEAR_FACTOR
+    if grip <= SOVEREIGN_FEAR_GRIP_BROKEN:
+        return 1.0
+    span = SOVEREIGN_FEAR_GRIP_FULL - SOVEREIGN_FEAR_GRIP_BROKEN
+    depth = (grip - SOVEREIGN_FEAR_GRIP_BROKEN) / span
+    return 1.0 - (1.0 - SOVEREIGN_FEAR_FACTOR) * depth
+
+
 def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState"]) -> str:
     """
     Personality for AI decision-making — the single source (MC-V-2 fix,
@@ -2310,6 +2349,33 @@ class EnemyAI:
             if capped_art > 0:
                 effective_ratio *= (1.0 - capped_art * 0.03)
                 bonuses_applied.append(f"OVERWATCH -{capped_art * 3}%")
+
+        # NP-2 THE FEAR (NAPOLEON_SPEC §5.2 — the Trachenberg Plan,
+        # seventeen years early): the AI avoids battle where a sovereign
+        # stands. Property-keyed (GR5 — a French AI corps fears an enemy
+        # sovereign identically); covers every rung that prices a defended
+        # stack through this evaluator (P4 engaged+ranged, P3.25). P0
+        # (already-engaged) deliberately untouched — a battle already
+        # joined is not re-litigated by fear. The factor READS the
+        # sovereign's imperial grip: full fear while the throne stands,
+        # fading to nothing as his authority collapses — the aura of
+        # invincibility is EARNED state, and losses erode it (user
+        # direction, Aug 15 2026: "his losses have weight").
+        if world and SOVEREIGN_FEAR_ACTIVE:
+            sovereign_in_stack = None
+            for m in world.get_friendly_marshals_in_region_indexed(
+                    target.location, target.nation):
+                if getattr(m, 'is_sovereign', False) and m.strength > 0:
+                    sovereign_in_stack = m
+                    break
+            if sovereign_in_stack is not None:
+                fear = sovereign_fear_factor(world, sovereign_in_stack.nation)
+                if fear < 1.0:
+                    effective_ratio *= fear
+                    bonuses_applied.append(
+                        f"EMPEROR_PRESENT -{round((1.0 - fear) * 100)}%")
+                else:
+                    bonuses_applied.append("EMPEROR_AURA_BROKEN +0%")
 
         # Floor at 0 (shouldn't happen, but be safe)
         effective_ratio = max(0.0, effective_ratio)
