@@ -44,7 +44,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,606 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,607 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE COMPREHENSIVE PLAYTEST RAN August 15, 2026 (third session
+> that day) — the played campaign the queue owed. Memo of record =
+> `docs/audits/PLAYTEST_COMPREHENSIVE_2026_08_15.md`; STATUS top entry
+> = the summary.** Six arms, ~120 turns (4-seed variance sweep +
+> 24-turn anthropic flagship + naval/diplomacy/tutorial + the Mode-C
+> visual walk on `SOVEREIGN_PORT=8006`). **Directional 6.3→≈6.7 — the
+> first rise since July.** DISCHARGED: the PT row-2 acceptance (the
+> attack-confirm gate ARMED in the wild, flagship T2), the naval
+> pillar score (6.5, played Trafalgar evidence), CA9 Q10 (AI
+> commissions fire), the D7 4-seed variance re-confirm, and all owed
+> visual surfaces walked with screenshots (`docs/audits/
+> PLAYTEST_F_*_2026_08_15.jpg`; the USER's own sign-off pass still
+> owed — `saves/flagship_visual_t12.json` staged for it).
+> **▶ NEXT = THE PC15 FIX SLICE (Round-0 gate), THEN POSITION 10:**
+> `BUG_FIXES.md` §Comprehensive Playtest PC15 — the ⛔ P1 trio+1
+> (PC15-1 silent marshal destruction · PC15-2 the interrupt route
+> swallows addressed commands · PC15-3 the settlement-confirm wedge ·
+> PC15-4 dead-name silent substitution) + the tutorial beat-IV anchor
+> (PC15-9 — Round 0 leads with the School). Design questions =
+> `DESIGN_REFINEMENT.md` §PC15-D1..D4 (neutral-soil retreats, ally
+> supply, tutorial expectation dormancy, the exhausted-pair truce
+> floor).
 >
 > **▶ THE PLAYTEST HARNESS LANDED August 15, 2026** (user: "make the
 > test easier first and document somewhere clear how future sessions
@@ -62,7 +85,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (regen = `tools/gen_playtest_fixtures.py`); **`SOVEREIGN_PORT` now
 > moves BOTH sides** (main.py + `Utils.backend_url()` — golden rule 7
 > amended, no `.gd` hardcodes the origin). **The playtest BEFORE the
-> build (user-ordered) runs on this harness next.**
+> build ran on this harness August 15 (see the top entry) — script
+> `turns` keys are the driver's 1-based loop index, NOT world turns,
+> and the digest's enemy-phase attack counter under-reads (PC15-H).**
 >
 > **▶ THE PRE-BUILD FIX PASS LANDED August 15, 2026** (user: "finish
 > fixes for prebuild"; record = STATUS top entry; pins =
