@@ -106,6 +106,13 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
         if marshal.nation != player:
             continue
         card = _build_marshal_card(marshal, world)
+        # NP-3 (NAPOLEON_SPEC §6.5): the sovereign's card is the apex
+        # variant — the .gd renders "THE EMPEROR" above the ladder, no
+        # glory bar, no rank, no envy arrow, and the Reward chip becomes
+        # the stated refusal. Flag follows the W6-7 captured idiom.
+        if getattr(marshal, "is_sovereign", False):
+            card["sovereign"] = True
+            card["sovereign_note"] = "The Empire is his estate."
         # W6-7: a captured marshal's card names his fate front and center.
         if getattr(marshal, "captured_by", ""):
             card["captured"] = True

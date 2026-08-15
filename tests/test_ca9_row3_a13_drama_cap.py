@@ -163,6 +163,10 @@ class TestBeatsAreNeverCollapsed:
         # no-silent-losses lines join the exempt set — each replaces a
         # petition card the occupied channel swallowed, so collapsing them
         # into the tail would re-silence the loss they exist to mark.
+        # Pin flipped consciously again (NP-3, Aug 15 2026):
+        # "shadow_petition" joins — the Petition for Independent Command's
+        # arrival beat, exempt for the same reason fontainebleau_petition
+        # is (a petition arriving must never collapse into the tail).
         assert J.JEALOUSY_NARRATION_EXEMPT == (
             "glory_crowned",
             "glory_crown_lost",
@@ -170,6 +174,7 @@ class TestBeatsAreNeverCollapsed:
             "jealousy_autonomous_attack",
             "jealousy_separation_warning",
             "fontainebleau_petition",
+            "shadow_petition",
             "marshal_commissioned",
             "rivalry_blocked_note",
             "war_weary_blocked_note",

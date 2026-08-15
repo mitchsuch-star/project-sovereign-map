@@ -57,6 +57,17 @@ STALEMATE_GLORY = 1                 # DR-1 (Phase 3): partial glory for a
 #   before a decisive rout — the "ground them down over six assaults" campaign
 #   the Field Review saw earns laurels. Symmetric (GR5).
 
+GLORY_SHADOW_MULT = 0.5             # NP-3 THE SHADOW (NAPOLEON_SPEC §6.2,
+#   N6): battles fought under the sovereign's eye are HIS victories — every
+#   non-sovereign marshal on a side that includes a sovereign accrues
+#   int(points × 0.5), BOTH polarities. int() truncates toward zero, so a
+#   ±1 halves to 0 symmetrically — serving under him shields reputation in
+#   defeat exactly as it dims it in victory (the honest reading of
+#   "shields in both directions"; math.floor would have rounded −0.5 to −1
+#   and shielded only the winners — recorded decision). The court's engine:
+#   the ambitious man wants a DETACHED command, and the existing jealousy
+#   ladder prices the legend he builds out there.
+
 # Trigger thresholds by relationship with the target (spec §1).
 # None = immune. Hostile additionally requires idle >= HOSTILE_IDLE_TURNS.
 THRESHOLDS = {2: None, 1: 4, 0: 2, -1: 1, -2: 1}
@@ -111,6 +122,17 @@ FONTAINEBLEAU_PROMISE_AUTHORITY = -2
 WAR_WEARY_EXPECTATION_FLOOR = 160
 WAR_WEARY_MARCH_TRUST = -4
 WAR_WEARY_HEED_TRUST = 3
+
+# NP-3 §6.3: the Petition for Independent Command (NAPOLEON_SPEC N7).
+# A marshal who has spent SHADOW_PETITION_TURNS consecutive turns under
+# the sovereign's eye, with glory below the ladder median and skills
+# worth using, asks for a front of his own. Latched per marshal per
+# campaign (`shadow@<name>` in jealousy_confrontations_seen — the CA8-D3
+# key idiom); the B0 status contract stamps the latch only on QUEUED.
+SHADOW_PETITION_TURNS = 4
+SHADOW_PETITION_SKILL_FLOOR = 7     # tactical OR shock — skills worth using
+SHADOW_PROMISE_AP = 1               # mirror of the confrontation Promise arm
+SHADOW_PROMISE_TRUST = 2            # the promise is an honor, and he banks it
 
 # Confrontation popup (spec §6)
 CONFRONT_PROMISE_AP = 1
@@ -265,25 +287,43 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     atk_outnumbered = pre_attacker_strength < pre_defender_strength
     def_outnumbered = pre_defender_strength < pre_attacker_strength
 
+    # NP-3 THE SHADOW (§6.2, N6): a sovereign among a side's men (primary
+    # or participant) halves every OTHER marshal's accrual on that side —
+    # both polarities. His own accrual is already dead at the
+    # _append_glory chokepoint (NP-0).
+    def _side_shadowed(primary, participants) -> bool:
+        pool = list(participants or [])
+        if primary is not None:
+            pool.append(primary)
+        return any(getattr(m, "is_sovereign", False) for m in pool)
+
+    atk_shadow = _side_shadowed(attacker, attacker_participants)
+    def_shadow = _side_shadowed(defender, defender_participants)
+
+    def _shadowed(points: int, shadow: bool) -> int:
+        return int(points * GLORY_SHADOW_MULT) if shadow else points
+
     if attacker is not None:
         if attacker_won:
-            _append_glory(attacker, turn, _victory_points(
+            _append_glory(attacker, turn, _shadowed(_victory_points(
                 attacker_casualties, defender_casualties,
-                conquered, atk_outnumbered))
+                conquered, atk_outnumbered), atk_shadow))
         elif defender_won:
-            _append_glory(attacker, turn, _defeat_points(
+            _append_glory(attacker, turn, _shadowed(_defeat_points(
                 attacker_casualties, defender_casualties,
-                territory_lost=False, outnumbered=atk_outnumbered))
+                territory_lost=False, outnumbered=atk_outnumbered),
+                atk_shadow))
 
     if defender is not None:
         if defender_won:
-            _append_glory(defender, turn, _victory_points(
+            _append_glory(defender, turn, _shadowed(_victory_points(
                 defender_casualties, attacker_casualties,
-                conquered=False, outnumbered=def_outnumbered))
+                conquered=False, outnumbered=def_outnumbered), def_shadow))
         elif attacker_won:
-            _append_glory(defender, turn, _defeat_points(
+            _append_glory(defender, turn, _shadowed(_defeat_points(
                 defender_casualties, attacker_casualties,
-                territory_lost=conquered, outnumbered=def_outnumbered))
+                territory_lost=conquered, outnumbered=def_outnumbered),
+                def_shadow))
 
     # DR-1 (Phase 3, spec §3.2): a hard-fought INCONCLUSIVE battle still feeds
     # the ladder. Neither primary achieved a decisive result, but the commander
@@ -295,26 +335,30 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
         if attacker is not None and (
                 conquered
                 or _out_bled(attacker_casualties, defender_casualties)):
-            _append_glory(attacker, turn, STALEMATE_GLORY)
+            _append_glory(attacker, turn,
+                          _shadowed(STALEMATE_GLORY, atk_shadow))
         elif defender is not None and _out_bled(defender_casualties,
                                                 attacker_casualties):
-            _append_glory(defender, turn, STALEMATE_GLORY)
+            _append_glory(defender, turn,
+                          _shadowed(STALEMATE_GLORY, def_shadow))
 
     # Non-primary participants: base +/-1 (shared the field, not the command).
+    # Under the Shadow the ±1 truncates to 0 — a supporting corps at the
+    # Emperor's side neither shines nor stains (§6.2).
     for participant in (attacker_participants or []):
         if attacker is not None and participant.name == attacker.name:
             continue
         if attacker_won:
-            _append_glory(participant, turn, 1)
+            _append_glory(participant, turn, _shadowed(1, atk_shadow))
         elif defender_won:
-            _append_glory(participant, turn, -1)
+            _append_glory(participant, turn, _shadowed(-1, atk_shadow))
     for participant in (defender_participants or []):
         if defender is not None and participant.name == defender.name:
             continue
         if defender_won:
-            _append_glory(participant, turn, 1)
+            _append_glory(participant, turn, _shadowed(1, def_shadow))
         elif attacker_won:
-            _append_glory(participant, turn, -1)
+            _append_glory(participant, turn, _shadowed(-1, def_shadow))
 
 
 # ═══════════════════════════ THE LADDER ═══════════════════════════════════
@@ -2158,6 +2202,173 @@ def check_fontainebleau(world, events: List[Dict]) -> None:
     })
 
 
+def _frontier_posting(world, marshal) -> str:
+    """A player-controlled province adjacent to at-war enemy soil, nearest
+    to the marshal — the counsel's named posting (NP-3 §6.3). Runs ONCE per
+    petition build (latched, single-slot), never in a hot path (GR8)."""
+    best, best_d = "", 999
+    regions = getattr(world, "regions", {}) or {}
+    for region in regions.values():
+        if getattr(region, "controller", None) != marshal.nation:
+            continue
+        on_frontier = False
+        for adj in getattr(region, "adjacent_regions", []):
+            neighbor = regions.get(adj)
+            if neighbor is None:
+                continue
+            holder = getattr(neighbor, "controller", None)
+            if holder and holder != marshal.nation and \
+                    world.is_at_war(marshal.nation, holder):
+                on_frontier = True
+                break
+        if not on_frontier:
+            continue
+        try:
+            d = world.get_distance(marshal.location, region.name)
+        except Exception:
+            d = 0
+        if d is None:
+            continue
+        if d < best_d:
+            best, best_d = region.name, d
+    return best
+
+
+def _shadow_turns(marshal) -> int:
+    rec = getattr(marshal, "jealousy_history", {}).get("__shadow__") or {}
+    return int(rec.get("turns", 0)) if isinstance(rec, dict) else 0
+
+
+def queue_shadow_petition(world, marshal) -> str:
+    """NP-3 §6.3: 'Sire — give me a command of my own.' Returns the F4
+    channel status; the caller stamps the latch only on QUEUED."""
+    turns = _shadow_turns(marshal)
+    frontier = _frontier_posting(world, marshal)
+    detach_detail = (
+        f"Free — counsel, not an order: give him a front of his own"
+        + (f" ({frontier} watches an enemy border)" if frontier else "")
+        + ". March him there and the laurels he wins are HIS.")
+    return _push_petition(world, {
+        "kind": "shadow_command",
+        "title": f"Marshal {marshal.name} asks for a command",
+        "body": (f"{marshal.name} has stood {turns} turns at your side, "
+                 f"Sire, while other men win their laurels in the field. "
+                 f"Under the Emperor's eye every victory is the Emperor's."),
+        "speaker": marshal.name,
+        "speaker_line": "\"Sire — give me a command of my own.\"",
+        "options": [
+            {"id": "detach", "label": "Give him a front",
+             "detail": detach_detail,
+             "cost_note": "", "enabled": True},
+            {"id": "stays", "label": "He stays with me",
+             "detail": ("His shadow continues — and the ordinary "
+                        "grievance machinery may yet pick him up."),
+             "cost_note": "", "enabled": True},
+            {"id": "promise", "label": "Promise him the next campaign",
+             "detail": (f"He holds you to your word — trust "
+                        f"+{SHADOW_PROMISE_TRUST}."),
+             "cost_note": "1 AP", "ap_cost": SHADOW_PROMISE_AP,
+             "enabled": True},
+        ],
+        "context": {"marshal": marshal.name, "frontier": frontier},
+        "turn": int(world.current_turn),
+    })
+
+
+def check_shadow_petitions(world, events: List[Dict]) -> None:
+    """NP-3 §6.3 trigger: SHADOW_PETITION_TURNS consecutive co-located
+    turns + glory below the ladder median + tactical or shock >= 7.
+    Player marshals only (the petition channel is the player's court);
+    once per marshal per campaign; the latch stamps only on QUEUED (B0)."""
+    sovereign_locs = _sovereign_locations(world)
+    player = world.player_nation
+    if player not in sovereign_locs:
+        return
+    ladder = get_nation_ladder(world, player)
+    if not ladder:
+        return
+    scores = sorted(s for _, s in ladder)
+    median = scores[len(scores) // 2]
+    # The serialized store is a sorted LIST — read into a set, write back
+    # sorted (the apply_jealousy idiom).
+    seen = set(getattr(world, "jealousy_confrontations_seen", []) or [])
+    best = None
+    for marshal, score in ladder:
+        if marshal.nation != player:
+            continue
+        if getattr(marshal, "is_sovereign", False):
+            continue
+        if _shadow_turns(marshal) < SHADOW_PETITION_TURNS:
+            continue
+        if score >= median:
+            continue
+        skills = getattr(marshal, "skills", {}) or {}
+        if max(int(skills.get("tactical", 0)),
+               int(skills.get("shock", 0))) < SHADOW_PETITION_SKILL_FLOOR:
+            continue
+        if f"shadow@{marshal.name}" in seen:
+            continue
+        key = (_shadow_turns(marshal),
+               int(skills.get("tactical", 0)) + int(skills.get("shock", 0)),
+               marshal.name)
+        if best is None or key > best[0]:
+            best = (key, marshal)
+    if best is None:
+        return
+    marshal = best[1]
+    status = queue_shadow_petition(world, marshal)
+    if status != PETITION_QUEUED:
+        return
+    seen.add(f"shadow@{marshal.name}")
+    world.jealousy_confrontations_seen = sorted(seen)
+    # Dispatch beat only — deliberately NO world.log_event: a new
+    # campaign-log type costs the 158-count registry pins in five files,
+    # and the modal + dispatch line + response message already carry the
+    # story (recorded decision, NP-3 landing record).
+    events.append({
+        "type": "shadow_petition",
+        "message": (f"{marshal.name} seeks an audience, Sire — he asks "
+                    f"for a command of his own."),
+        "nation": player,
+        "marshal": marshal.name,
+    })
+
+
+def _apply_shadow_choice(world, choice: str, context: Dict) -> Dict:
+    """NP-3 §6.3 arms. Detach is COUNSEL, not an order — the player still
+    issues the march himself (the gate's ruling; the confrontation
+    command-arm precedent deliberately NOT reused here)."""
+    marshal = world.marshals.get(context.get("marshal"))
+    if marshal is None:
+        return {"success": True, "message": "The moment has passed."}
+    if choice == "detach":
+        frontier = context.get("frontier") or _frontier_posting(world, marshal)
+        posting = (f"March him to {frontier} and the front is his"
+                   if frontier else
+                   "Name him a front of his own when one opens")
+        return {"success": True,
+                "message": (f"{marshal.name} straightens. \"You will not "
+                            f"regret it, Sire.\" {posting} — the order is "
+                            f"yours to give.")}
+    if choice == "stays":
+        return {"success": True,
+                "message": (f"{marshal.name} bows and returns to his "
+                            f"place at headquarters. The shadow over his "
+                            f"laurels continues.")}
+    if choice == "promise":
+        if not _spend_player_ap(world, SHADOW_PROMISE_AP):
+            return {"success": False,
+                    "message": "Not enough action points to give your word."}
+        marshal.modify_trust(SHADOW_PROMISE_TRUST)
+        rec = marshal.jealousy_history.setdefault("__shadow__", {"turns": 0})
+        rec["turns"] = 0
+        return {"success": True,
+                "message": (f"{marshal.name} bows. \"The next campaign, "
+                            f"Sire — I will hold you to it.\" "
+                            f"(trust +{SHADOW_PROMISE_TRUST})")}
+    return {"success": False, "message": f"Unknown answer '{choice}'."}
+
+
 def find_war_weary_objector(world):
     """ESP-2: the highest-expectation marshal whose expectation is fully
     met AND large — the man with the duchy who wants no new war."""
@@ -2265,6 +2476,8 @@ def handle_petition_response(world, choice: str, executor=None,
         result = _apply_war_weary_choice(world, choice, context,
                                          executor=executor,
                                          game_state=game_state)
+    elif kind == "shadow_command":
+        result = _apply_shadow_choice(world, choice, context)
     else:
         result = {"success": False,
                   "message": f"Unknown petition kind '{kind}'."}
@@ -2749,6 +2962,7 @@ JEALOUSY_NARRATION_EXEMPT = (
     "jealousy_autonomous_attack",    # ...and the attack actually landing
     "jealousy_separation_warning",   # the one arm the player OPTED INTO
     "fontainebleau_petition",        # a petition arriving
+    "shadow_petition",               # NP-3: ...and this one too
     "marshal_commissioned",
     # PC15-10 B0 (F3): the no-silent-losses lines. Each REPLACES a lost
     # petition card — collapsing them into the "…further matters" tail
@@ -2904,11 +3118,31 @@ def process_turn(world) -> List[Dict]:
     # 2) literal sidelining counters (uses live per-turn flags)
     update_literal_hold_counters(world)
 
-    # 3) trigger evaluation — snapshot first (EC-J), then rate-limit apply
-    # NP-2 §5.3: one pass resolves each nation's sovereign location — a
-    # marshal co-located with his sovereign gets +1 on his grievance
-    # threshold (discipline at headquarters; DR-3 hair-triggers exempt).
+    # NP-2 §5.3 / NP-3 §6.3: one pass resolves each nation's sovereign
+    # location — read by the discipline term below AND the shadow counter.
     sovereign_locs = _sovereign_locations(world)
+
+    # 2b) NP-3 §6.3: the shadow counter — consecutive turns spent under
+    # the sovereign's eye, kept in the already-serialized jealousy_history
+    # dict (dunder key, DICT-valued: the serializer round-trips containers,
+    # a bare int would crash its list() arm). ZERO writes in a
+    # sovereign-free world — the whole block is gated, so no save grows
+    # the key until a sovereign exists.
+    if sovereign_locs:
+        for marshal in world.marshals.values():
+            if marshal.nation not in sovereign_locs:
+                continue
+            if not _is_standing(marshal) or getattr(
+                    marshal, "is_sovereign", False):
+                continue
+            rec = marshal.jealousy_history.setdefault(
+                "__shadow__", {"turns": 0})
+            if sovereign_locs[marshal.nation] == marshal.location:
+                rec["turns"] = int(rec.get("turns", 0)) + 1
+            else:
+                rec["turns"] = 0
+
+    # 3) trigger evaluation — snapshot first (EC-J), then rate-limit apply
     candidates: List[Tuple[object, object, int, int]] = []
     for marshal in world.marshals.values():
         if getattr(marshal, "jealous_of", None):
@@ -3176,6 +3410,12 @@ def process_turn(world) -> List[Dict]:
 
     # 8) ESP-1 Fontainebleau
     check_fontainebleau(world, events)
+
+    # 8b) NP-3 the Petition for Independent Command — AFTER Fontainebleau
+    # deliberately: if both fire on one turn the collective crisis holds
+    # the slot and the shadow petition is BLOCKED, retrying next turn with
+    # its latch unburned (the B0 status contract).
+    check_shadow_petitions(world, events)
 
     # clear the per-cycle rebuke latch
     for marshal in world.marshals.values():

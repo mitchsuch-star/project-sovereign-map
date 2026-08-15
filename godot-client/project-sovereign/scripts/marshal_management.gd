@@ -219,9 +219,27 @@ func _render_all_cards():
 	# pin is a source grep, and a comment quoting it would satisfy the
 	# assertion while the screen said something else.)
 	var bbcode = "[color=#" + Utils.COLOR_DIMMED + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.[/color]\n\n"
+
+	# NP-3 (NAPOLEON_SPEC §6.5): the sovereign renders ABOVE the ladder as
+	# a fixed apex block — THE EMPEROR header, his character sheet, no
+	# glory bar, no rank, no envy arrow. The ladder itself never contains
+	# him (the backend excludes him at get_nation_ladder).
+	var apex_index := -1
+	for i in range(cached_data.size()):
+		if bool(cached_data[i].get("sovereign", false)):
+			apex_index = i
+			break
+	if apex_index >= 0:
+		bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
+		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE EMPEROR[/color]\n"
+		bbcode += _render_card(cached_data[apex_index], apex_index)
+		bbcode += "[color=#" + Utils.COLOR_GREY + "]════════════════════════════════════════[/color]\n\n"
+
 	bbcode += _render_glory_ladder()
 
 	for i in range(cached_data.size()):
+		if i == apex_index:
+			continue
 		var m = cached_data[i]
 		bbcode += _render_card(m, i)
 		if i < cached_data.size() - 1:
@@ -488,7 +506,15 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var shortfall = int(m.get("expectation_shortfall", 0))
 	var estate_title = str(m.get("estate_title", ""))
 	var is_dotation = bool(m.get("is_dotation_world", false))
-	if expectation > 0 or estate_income > 0 or pension > 0:
+	# NP-3 (NAPOLEON_SPEC §6.5): the sovereign is never rewarded — the
+	# chip renders his stated refusal, never options ("The Empire is his
+	# estate."). Branch FIRST so the fresh-marshal line below can never
+	# promise the Emperor an expectation.
+	if bool(m.get("sovereign", false)):
+		if is_dotation:
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+				+ "  [color=#" + COLOR_DIM + "]" + str(m.get("sovereign_note", "The Empire is his estate.")) + "[/color]\n"
+	elif expectation > 0 or estate_income > 0 or pension > 0:
 		if estate_title != "":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
 		var exp_color = Utils.COLOR_SUCCESS

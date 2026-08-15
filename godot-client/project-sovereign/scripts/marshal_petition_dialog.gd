@@ -35,6 +35,7 @@ const KIND_TITLES = {
 	"rivalry_confrontation": "A RIVALRY AMONG THE MARSHALS",
 	"fontainebleau": "THE MARSHALS PETITION THE EMPEROR",
 	"war_weary": "A MARSHAL COUNSELS PEACE",
+	"shadow_command": "A MARSHAL ASKS FOR A COMMAND",  # NP-3 §6.3
 }
 
 
@@ -88,9 +89,10 @@ func show_petition(petition: Dictionary):
 			_add_option(option)
 
 	# Fontainebleau and war-weary petitions demand an answer NOW — the
-	# moment does not keep. Grievance/rivalry petitions may wait a turn.
+	# moment does not keep. Grievance/rivalry petitions (and NP-3's
+	# request for a command) may wait a turn.
 	if later_button:
-		later_button.visible = kind in ["jealousy_confrontation", "rivalry_confrontation"]
+		later_button.visible = kind in ["jealousy_confrontation", "rivalry_confrontation", "shadow_command"]
 
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
