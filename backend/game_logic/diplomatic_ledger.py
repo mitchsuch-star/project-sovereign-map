@@ -1143,11 +1143,17 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     dp_skill_bonus = 1 if talleyrand and talleyrand.skill >= 8 else 0
     dp_authority_bonus = 1 if authority >= 60 else (-1 if authority < 30 else 0)
     dp_capital_penalty = -1 if not controls_capital else 0
+    # NP-5 THE SEAT (N11) — the tick's duplicate computation, kept in step
+    # (the survey flagged this pair as the seam to update in BOTH places).
+    from backend.game_logic.diplomacy import sovereign_seat_bonus
+    dp_seat_bonus = sovereign_seat_bonus(world, player)
     dp_breakdown = {
         "base": dp_base,
         "skill_bonus": dp_skill_bonus,
         "authority_bonus": dp_authority_bonus,
         "capital_penalty": dp_capital_penalty,
+        # NP-5: the .gd renders the Tuileries line off this key.
+        "seat_bonus": dp_seat_bonus,
     }
 
     # Active mission

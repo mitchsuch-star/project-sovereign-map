@@ -703,7 +703,8 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	# Left side: locket outboard-left, text flows right toward the line.
 	# Right side mirrored: text right-aligned, locket outboard-right.
 	var locket := PortraitLocket.new()
-	locket.setup(str(c.get("name", "")), 38.0, bool(c.get("crowned", false)))
+	locket.setup(str(c.get("name", "")), 38.0, bool(c.get("crowned", false)),
+			bool(c.get("sovereign", false)))
 	locket.position = Vector2(-86.0 if is_left else 48.0, -158.0)
 	block.add_child(locket)
 

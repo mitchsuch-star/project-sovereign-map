@@ -63,7 +63,7 @@
             "name": "Napoleon",
             "location": "Charleroi",
             "strength": 73000,
-            "personality": "aggressive",
+            "personality": "sovereign",
             "nation": "France",
             "tactical_skill": 10,
             "skills": {

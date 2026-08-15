@@ -3647,6 +3647,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "{nation} is erected upon the map, a client of {sponsor}."
     ),
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
+    # NP-5 §8: once per war, the first dispatch after the Emperor rides out.
+    "sovereign_takes_field": "The Emperor has taken the field — Talleyrand holds the portfolio at the capital.",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
     "diplomatic_armistice_expired_peace": "The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
@@ -3791,6 +3793,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_coalition_brewing": "MEDIUM",
     "balance_of_europe_shifted": "NORMAL",
     "diplomatic_dp_regen": "LOW",
+    "sovereign_takes_field": "MEDIUM",
     "diplomatic_we_threshold": "MEDIUM",
     "diplomatic_relation_shift": "MEDIUM",
     "diplomatic_armistice_expired_peace": "HIGH",

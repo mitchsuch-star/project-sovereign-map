@@ -9596,6 +9596,17 @@ def _process_dp_regen(world) -> None:
 
         dp = calculate_dp(diplomat, authority, controls_capital)
 
+        # NP-5 THE SEAT (NAPOLEON_SPEC §8, N11): +1 DP while the nation's
+        # standing sovereign holds court in its own capital — the Emperor
+        # receives the ambassadors himself. Applied ABOVE calculate_dp's
+        # 1-5 clamp deliberately: France boots at the clamp ceiling, and a
+        # Seat that vanished exactly at the height of empire would make
+        # Paris worth nothing (the house style already shows honest
+        # over-establishment numbers — the levy's 189,000/130,000).
+        # GR5: an enemy-authored sovereign seats his own court identically.
+        seat = sovereign_seat_bonus(world, nation)
+        dp += seat
+
         if nation == world.player_nation:
             world.diplomatic_points = int(dp)
             # S1: Queue DP breakdown for morning dispatch
@@ -9609,14 +9620,56 @@ def _process_dp_regen(world) -> None:
                 parts.append("-1 low authority")
             if not controls_capital:
                 parts.append("-1 no capital")
+            if seat:
+                parts.append("+1 the Emperor holds court in the capital")
             breakdown_str = ", ".join(parts)
             queue_dispatch_event(world, "diplomatic_dp_regen",
                                 {"dp": int(dp), "breakdown": breakdown_str}, "always")
+
+            # NP-5 §8: the first time the Emperor takes the field in each
+            # war, the dispatch says so ONCE — latched on the war-instance
+            # record (keys inside war_instances ride serialization free;
+            # zero new fields).
+            if seat == 0 and _standing_sovereign(world, nation) is not None:
+                for _war in getattr(world, "war_instances", {}).values():
+                    if _war.get("ended_turn") is not None:
+                        continue
+                    if nation not in (_war.get("active_participants") or []):
+                        continue
+                    if _war.get("emperor_field_noted"):
+                        continue
+                    _war["emperor_field_noted"] = True
+                    queue_dispatch_event(
+                        world, "sovereign_takes_field", {}, "always")
+                    break
         else:
             # Store AI DP for AI diplomacy consumption
             if not hasattr(world, 'nation_dp'):
                 world.nation_dp = {}
             world.nation_dp[nation] = int(dp)
+
+
+def _standing_sovereign(world, nation: str):
+    """NP-5: the nation's standing (uncaptured, armed) sovereign, or None."""
+    for m in world.marshals.values():
+        if (m.nation == nation and getattr(m, "is_sovereign", False)
+                and not getattr(m, "captured_by", "") and m.strength > 0):
+            return m
+    return None
+
+
+def sovereign_seat_bonus(world, nation: str) -> int:
+    """NP-5 THE SEAT (NAPOLEON_SPEC §8, N11): 1 while the nation's standing
+    sovereign holds court in its own capital, else 0. Pure derived read —
+    zero state; a captured or fielded sovereign seats nothing, so the bonus
+    dies of itself the turn he rides out (or is taken)."""
+    capital = world.get_nation_capital(nation)
+    if not capital:
+        return 0
+    sovereign = _standing_sovereign(world, nation)
+    if sovereign is not None and sovereign.location == capital:
+        return 1
+    return 0
 
 
 def calculate_trade_income(world) -> Dict[str, int]:

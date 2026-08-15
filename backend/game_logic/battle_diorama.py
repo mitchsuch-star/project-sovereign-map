@@ -82,7 +82,13 @@ ABSENT_STATUSES = ("failed_arrive", "refused", "out_of_reach")
 def marshal_arm(marshal) -> str:
     """Dominant arm for display — the same derivation the map summary uses
     (world_state.py map-summary block): mutually-exclusive flags, cavalry
-    read first. Display-only."""
+    read first. Display-only.
+
+    NP-5 (NAPOLEON_SPEC §9): the SOVEREIGN branch runs FIRST — the emperor
+    piece, never cavalry=True (that flag silently drags recklessness,
+    charge mechanics and combined-arms type counts; GR6 display-only)."""
+    if getattr(marshal, "is_sovereign", False):
+        return "emperor"
     if getattr(marshal, "cavalry", False):
         return "cavalry"
     if getattr(marshal, "artillery", False):
@@ -134,6 +140,9 @@ def _contingent(marshal, committed: int, casualties: int, remaining: int,
         "status": status,
         "lead": bool(lead),
         "crowned": bool(getattr(marshal, "glory_crowned", False)),
+        # NP-5: the locket wears the imperial mark (its own glyph, the
+        # crowned-star discipline — never minted by this battle).
+        "sovereign": bool(getattr(marshal, "is_sovereign", False)),
     }
     # An assimilated ex-vassal contingent still marches under its own
     # colours — the one true mixed-standards read the engine produces
@@ -387,4 +396,12 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
     enemy_voice = battle_result.get("enemy_voice")
     if enemy_voice:
         payload["enemy_voice"] = str(enemy_voice)
+    # NP-5 (NAPOLEON_SPEC §9): when a sovereign stood on this field, the
+    # typed-last verdict acknowledges the register before Berthier's
+    # observation — display-only, both sides' sovereigns alike.
+    _shown = (attacker_side.get("contingents", [])
+              + defender_side.get("contingents", []))
+    if any(c.get("sovereign") for c in _shown) and payload["observation"]:
+        payload["observation"] = (
+            "The Emperor watched this field. " + payload["observation"])
     return payload

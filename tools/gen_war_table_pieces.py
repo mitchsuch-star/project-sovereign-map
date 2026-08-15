@@ -701,9 +701,100 @@ def add_relief(body, coat):
     return Image.alpha_composite(body, fx_img)
 
 
+# =============================================================================
+#  EMPEROR (NP-5, NAPOLEON_SPEC §9) — the sovereign's own map piece: ONE
+#  figure where infantry is a rank, because the man IS the piece. The
+#  silhouette is the two things Europe recognised at a mile: the bicorne
+#  worn athwart (en bataille) and the long plain redingote with the hand
+#  tucked. Same turned base, same carved-timber language, same faction
+#  accents (coat mass + painted base rim). The backend arm derivation
+#  branches on Marshal.is_sovereign FIRST — never cavalry=True, which
+#  silently drags recklessness/charge/combined-arms (survey warning).
+# =============================================================================
+def build_emperor():
+    body, coat = new_layer(), new_layer()
+    u = SS
+    gy, cx = GY, CX
+    s = 1.45   # the tallest figure on the table — he must read at 64px
+
+    # --- legs: standing at ease, breeches + boots ---
+    smooth_fill(body, [
+        (cx - 3 * u * s, gy - 38 * u * s), (cx - 7 * u * s, gy - 20 * u * s),
+        (cx - 7 * u * s, gy - 3 * u * s), (cx - 2 * u * s, gy - 2 * u * s),
+        (cx - 1 * u * s, gy - 20 * u * s), (cx + 1 * u * s, gy - 34 * u * s),
+    ], BREECH_DK)
+    hard_fill(body, [(cx - 8 * u * s, gy - 12 * u * s), (cx - 8 * u * s, gy),
+                     (cx - 1 * u * s, gy), (cx - 1 * u * s, gy - 12 * u * s)],
+              BLACK_GEAR)
+    smooth_fill(body, [
+        (cx + 2 * u * s, gy - 38 * u * s), (cx + 6 * u * s, gy - 20 * u * s),
+        (cx + 7 * u * s, gy - 3 * u * s), (cx + 2 * u * s, gy - 2 * u * s),
+        (cx + 1 * u * s, gy - 20 * u * s),
+    ], BREECH)
+    hard_fill(body, [(cx + 1 * u * s, gy - 12 * u * s), (cx + 1 * u * s, gy),
+                     (cx + 9 * u * s, gy), (cx + 9 * u * s, gy - 12 * u * s)],
+              BLACK_GEAR)
+
+    # --- the redingote: one long carved mass to the knee, slightly
+    #     flared — grey-wood like the man's own famous coat; the faction
+    #     hue rides the grand cordon + base rim below ---
+    coat_pts = [
+        (cx - 9 * u * s, gy - 64 * u * s),    # back shoulder
+        (cx + 10 * u * s, gy - 64 * u * s),   # front shoulder
+        (cx + 13 * u * s, gy - 46 * u * s),   # breast
+        (cx + 14 * u * s, gy - 26 * u * s),   # front skirt
+        (cx + 4 * u * s, gy - 22 * u * s),    # hem centre
+        (cx - 12 * u * s, gy - 24 * u * s),   # back skirt flare
+        (cx - 12 * u * s, gy - 44 * u * s),
+    ]
+    paint_wood_coat(body, coat_pts,
+                    groove=[[(cx + 1 * u * s, gy - 62 * u * s),
+                             (cx + 3 * u * s, gy - 30 * u * s)]])
+    # the grand cordon: the faction's sash from right shoulder to left
+    # hip — the tint mass that owns the figure at 64px (with the rim).
+    # body composites ABOVE coat, and ImageDraw.polygon REPLACES pixels,
+    # so the band is PUNCHED out of the carved coat (transparent fill)
+    # to reveal the tint-mask below — the flag/shabraque trick, worn.
+    sash = [
+        (cx + 6 * u * s, gy - 63 * u * s),
+        (cx + 12 * u * s, gy - 58 * u * s),
+        (cx - 5 * u * s, gy - 30 * u * s),
+        (cx - 11 * u * s, gy - 35 * u * s),
+    ]
+    smooth_fill(body, sash, (0, 0, 0, 0))
+    faction_fill(coat, sash)
+    # the tucked right hand at the breast — THE gesture (over the sash)
+    disc(body, cx + 8 * u * s, gy - 50 * u * s, 3.4 * u * s, 3.0 * u * s,
+         FLESH)
+
+    # --- head, sitting proud of the collar ---
+    disc(body, cx + 1 * u * s, gy - 71 * u * s, 6.0 * u * s, 6.6 * u * s,
+         FLESH)
+
+    # --- THE BICORNE, worn athwart (en bataille): a dark lens seated ON
+    #     the head, tips just past the shoulders ---
+    smooth_fill(body, [
+        (cx - 15 * u * s, gy - 78 * u * s),   # left tip
+        (cx - 7 * u * s, gy - 86 * u * s),
+        (cx + 1 * u * s, gy - 88 * u * s),    # crown
+        (cx + 9 * u * s, gy - 86 * u * s),
+        (cx + 17 * u * s, gy - 78 * u * s),   # right tip
+        (cx + 8 * u * s, gy - 77 * u * s),
+        (cx + 1 * u * s, gy - 76 * u * s),    # brim seats on the brow
+        (cx - 6 * u * s, gy - 77 * u * s),
+    ], BLACK_GEAR)
+    disc(body, cx + 10 * u * s, gy - 81 * u * s, 2.0 * u * s, 2.0 * u * s,
+         BREECH)  # the cockade at the cock of the hat
+
+    faction_base_rim(coat, 0.80)
+    return {"base": make_base(0.80), "shadow": make_shadow(0.80),
+            "body": body, "coat": coat}
+
+
 # ── assembly / export ───────────────────────────────────────────────────────
 ARMS = {"infantry": build_infantry, "cavalry": build_cavalry,
-        "artillery": build_artillery, "ship": build_ship}
+        "artillery": build_artillery, "ship": build_ship,
+        "emperor": build_emperor}
 LAYER_ORDER = ["shadow", "base", "coat", "body"]  # bottom -> top (body edges over coat)
 
 

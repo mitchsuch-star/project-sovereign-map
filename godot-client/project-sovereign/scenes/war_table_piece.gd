@@ -28,9 +28,12 @@ const SPRITE_GROUND_Y := 210.0
 # keeps the naval model to one national fleet record, so there is nothing on
 # the map for a ship standee to be, and `arm` on the map summary never
 # carries it.
-const VALID_ARMS := ["infantry", "cavalry", "artillery", "ship"]
+# NP-5 adds "emperor" — the sovereign's own piece (bicorne, redingote, the
+# faction grand cordon), keyed off the map summary's is_sovereign-first arm
+# derivation. Display-only (GR6): the man IS the piece.
+const VALID_ARMS := ["infantry", "cavalry", "artillery", "ship", "emperor"]
 
-# Texture cache shared across every piece — the 24 sprites load at most once.
+# Texture cache shared across every piece — the sprites load at most once.
 static var _texture_cache := {}
 
 var arm: String = "infantry"

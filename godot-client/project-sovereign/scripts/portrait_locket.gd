@@ -46,6 +46,10 @@ static var _portrait_paths := {}   # name -> path or "" (probe once)
 
 var marshal_name := ""
 var crowned := false
+# NP-5: the sovereign's own rim mark — the imperial "N" cipher in gold,
+# the crowned-star discipline (a dignity he ALREADY wears, never minted
+# by this battle). Set via setup()'s optional fourth argument.
+var sovereign := false
 var _dead := 0.0
 var _portrait: TextureRect = null
 var _material: ShaderMaterial = null
@@ -64,9 +68,11 @@ static func _portrait_path(name_key: String) -> String:
 	return found
 
 
-func setup(name_key: String, diameter: float, is_crowned: bool) -> void:
+func setup(name_key: String, diameter: float, is_crowned: bool,
+		is_sovereign: bool = false) -> void:
 	marshal_name = name_key
 	crowned = is_crowned
+	sovereign = is_sovereign
 	custom_minimum_size = Vector2(diameter, diameter)
 	size = Vector2(diameter, diameter)
 	pivot_offset = size / 2.0
@@ -143,10 +149,12 @@ func _draw() -> void:
 		draw_arc(c, radius - 2.2, PI * 0.75, PI * 1.35, 20, RING_SHINE, 1.4, true)
 
 	# The standing star — worn INTO the rim, not floated above it.
-	if crowned:
+	# NP-5: the sovereign wears the imperial "N" cipher instead — his own
+	# mark, riding the same discipline (already worn, never minted here).
+	if crowned or sovereign:
 		var star_pos := Vector2(c.x, c.y - radius + 1.0)
 		var font: Font = get_theme_default_font()
-		var s := "★"
+		var s := "N" if sovereign else "★"
 		var ss := font.get_string_size(s, HORIZONTAL_ALIGNMENT_CENTER, -1, 13)
 		draw_string(font, Vector2(star_pos.x - ss.x / 2.0, star_pos.y + 4.0),
 				s, HORIZONTAL_ALIGNMENT_CENTER, -1, 13,

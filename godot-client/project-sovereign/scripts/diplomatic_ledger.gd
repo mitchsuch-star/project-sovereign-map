@@ -988,7 +988,13 @@ func _render_talleyrand():
 			bbcode += " + Authority " + au_sign + str(bp_auth)
 		if bp_cap != 0:
 			bbcode += " + Capital [color=#" + COLOR_RED + "]" + str(bp_cap) + "[/color]"
+		# NP-5 THE SEAT (N11): the Emperor holds court in the capital.
+		var bp_seat = int(dp_breakdown.get("seat_bonus", 0))
+		if bp_seat != 0:
+			bbcode += " + The Seat [color=#" + Utils.COLOR_GOLD + "]+" + str(bp_seat) + "[/color]"
 		bbcode += ")\n"
+		if bp_seat != 0:
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]The Emperor is at the Tuileries — the courts attend him.[/color]\n"
 	bbcode += "\n"
 
 	# UI-6: the W6-9 assessment verb as a chip — the war room + executable

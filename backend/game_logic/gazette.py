@@ -147,6 +147,17 @@ def _press_lead(world, war_rows: List[Dict]) -> str:
             reverse = event
     if triumph is not None:
         location = str(triumph.get("location") or "the field")
+        # NP-5 (NAPOLEON_SPEC §9): the standing lead credits "the
+        # Emperor's genius" by convention — when the sovereign PERSONALLY
+        # led the winning side, the paper says so as fact.
+        _outcome = str(triumph.get("outcome", ""))
+        _lead_name = str(triumph.get(
+            "attacker" if "attacker" in _outcome else "defender") or "")
+        _lead = getattr(world, "marshals", {}).get(_lead_name)
+        if _lead is not None and getattr(_lead, "is_sovereign", False):
+            return (f"VICTOIRE! The Emperor himself carries the day at "
+                    f"{location} — France has seen his genius with her "
+                    f"own eyes.")
         return (f"VICTOIRE! The eagles of France carry the day at "
                 f"{location} — the Emperor's genius shines upon the army.")
     if reverse is not None:

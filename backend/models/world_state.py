@@ -8173,8 +8173,11 @@ class WorldState:
                     # the filtered summary only keeps enemy marshals in
                     # marshals[] at FULL visibility; PARTIAL/STALE reduce to
                     # fogged_forces (name/nation/band only), so arm never leaks.
+                    # NP-5: the SOVEREIGN branch first — the emperor piece
+                    # (battle_diorama.marshal_arm is this block's twin).
                     "arm": (
-                        "cavalry" if getattr(m, "cavalry", False)
+                        "emperor" if getattr(m, "is_sovereign", False)
+                        else "cavalry" if getattr(m, "cavalry", False)
                         else "artillery" if getattr(m, "artillery", False)
                         else "infantry"
                     ),
