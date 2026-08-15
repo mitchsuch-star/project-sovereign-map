@@ -8230,18 +8230,22 @@ class WorldState:
                 filtered_region["watchtower"] = region_data.get("watchtower", "none")
                 filtered_region["watchtower_turns_remaining"] = region_data.get("watchtower_turns_remaining", 0)
             else:
-                # Hidden economic data — send safe defaults so Godot doesn't crash on missing keys
-                filtered_region["income_value"] = 0
-                filtered_region["effective_income"] = 0
-                filtered_region["stability"] = 0
-                filtered_region["stability_label"] = "Unknown"
-                filtered_region["war_damage"] = 0
-                # CA9-F5: -1 means "not known", never a fabricated 0.
+                # Hidden economic data — send sentinels so Godot doesn't crash on missing keys
+                # CA9-F5 / PC15-16: -1 means "not known", never a fabricated 0.
                 # A province at PARTIAL shipped supply_capacity 0 against a
                 # true 40,000 — on the one surface a player reads BEFORE
-                # marching an army in. Mirrors the `garrison_strength`
-                # sentinel a few lines below; BOTH .gd readers must branch,
-                # because `format_number(-1)` renders "-1".
+                # marching an army in. PC15-16 extended the sentinel to
+                # income/stability: the region panel and map tooltip rendered
+                # "Income: 0g / Stability: 0%" as FACTS on PARTIAL provinces
+                # while Supply correctly read Unknown. Mirrors the
+                # `garrison_strength` sentinel a few lines below; BOTH .gd
+                # readers must branch, because `format_number(-1)` renders
+                # "-1".
+                filtered_region["income_value"] = -1
+                filtered_region["effective_income"] = -1
+                filtered_region["stability"] = -1
+                filtered_region["stability_label"] = "Unknown"
+                filtered_region["war_damage"] = 0
                 filtered_region["supply_capacity"] = -1
                 filtered_region["buildings"] = []
                 filtered_region["building_under_construction"] = None

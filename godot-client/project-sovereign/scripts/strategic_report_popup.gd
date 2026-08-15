@@ -28,6 +28,10 @@ const STATUS_ICONS = {
 
 func _ready():
 	continue_button.pressed.connect(_on_continue_pressed)
+	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
+	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
+	# before its parent can scroll. PASS still delivers _gui_input.
+	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	hide()
 
 func show_reports(reports: Array, turn: int):

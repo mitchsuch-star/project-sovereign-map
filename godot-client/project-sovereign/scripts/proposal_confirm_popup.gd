@@ -53,6 +53,11 @@ func _ready():
 	hide()
 	if per_court_table:
 		per_court_table.meta_clicked.connect(_on_per_court_meta_clicked)
+		# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside
+		# a ScrollContainer defaults to MOUSE_FILTER_STOP and eats the
+		# wheel before its parent can scroll. PASS keeps the [url=…]
+		# expanders working.
+		per_court_table.mouse_filter = Control.MOUSE_FILTER_PASS
 	# IGR-G1: the per-court table is the PRIMARY settlement content — mark it
 	# so clamp_centered_panel's relax pass shrinks it LAST. The old
 	# headroom-proportional pass charged the largest floor the largest share,

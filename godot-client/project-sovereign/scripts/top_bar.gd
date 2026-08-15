@@ -118,6 +118,18 @@ func _ready():
 	# Generals button — wired to Marshal Management screen (Phase 6.5)
 	generals_btn.disabled = false
 
+	# PC15-18: name the focus-safe hotkey form. The bare letter works only
+	# while the command line is unfocused (typing must type); Alt+<key>
+	# works even mid-sentence (main.gd _on_command_input_gui_input).
+	var _hotkey_hints := {
+		"event_log": "L", "ledger": "T", "generals": "G",
+		"diplomatic_ledger": "D", "dispatch": "R", "gazette": "N",
+	}
+	for sname in _hotkey_hints:
+		var key: String = _hotkey_hints[sname]
+		button_map[sname].tooltip_text = (
+			key + " — or Alt+" + key + " while typing")
+
 	# Apply normal style to all buttons
 	for btn in button_map.values():
 		btn.add_theme_stylebox_override("normal", _normal_style)

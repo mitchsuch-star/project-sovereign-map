@@ -2560,23 +2560,32 @@ func _draw_region_tooltip():
 	elif visibility == "stale":
 		_push_tooltip_line(lines, "Intel: Stale (outdated)", Color(0.8, 0.6, 0.4))
 
+	# PC15-16: -1 is the fog sentinel on income/stability too (same CA9-F5
+	# idiom as Supply below) — a PARTIAL province rendered a fabricated
+	# "Income: 0" and "Stability: 0% (Unknown)" as fact.
 	var income_value = int(data.get("income_value", 0))
 	var effective_income = int(data.get("effective_income", 0))
-	var income_text = "Income: %s" % effective_income
-	if effective_income != income_value:
-		income_text += " (base %s)" % income_value
-	_push_tooltip_line(lines, income_text, Color(0.9, 0.85, 0.4))
+	if effective_income < 0:
+		_push_tooltip_line(lines, "Income: Unknown", Color(0.55, 0.55, 0.6))
+	else:
+		var income_text = "Income: %s" % effective_income
+		if effective_income != income_value:
+			income_text += " (base %s)" % income_value
+		_push_tooltip_line(lines, income_text, Color(0.9, 0.85, 0.4))
 
 	var stability = int(data.get("stability", 100))
 	var stability_label = str(data.get("stability_label", "Stable"))
-	var stability_color = Color(0.5, 0.85, 0.5)
-	if stability <= 25:
-		stability_color = Color(0.85, 0.3, 0.3)
-	elif stability <= 50:
-		stability_color = Color(0.85, 0.5, 0.3)
-	elif stability <= 75:
-		stability_color = Color(0.85, 0.75, 0.4)
-	_push_tooltip_line(lines, "Stability: %s%% (%s)" % [stability, stability_label], stability_color)
+	if stability < 0:
+		_push_tooltip_line(lines, "Stability: Unknown", Color(0.55, 0.55, 0.6))
+	else:
+		var stability_color = Color(0.5, 0.85, 0.5)
+		if stability <= 25:
+			stability_color = Color(0.85, 0.3, 0.3)
+		elif stability <= 50:
+			stability_color = Color(0.85, 0.5, 0.3)
+		elif stability <= 75:
+			stability_color = Color(0.85, 0.75, 0.4)
+		_push_tooltip_line(lines, "Stability: %s%% (%s)" % [stability, stability_label], stability_color)
 
 	# CA9-F5: -1 is the fog sentinel (see region_panel.gd).
 	var supply_cap := int(data.get("supply_capacity", 0))

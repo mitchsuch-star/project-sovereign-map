@@ -77,6 +77,10 @@ func _ready():
 	close_button.pressed.connect(close_panel)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	content_area.meta_clicked.connect(_on_meta_clicked)
+	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
+	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
+	# before its parent can scroll. PASS keeps the action chips working.
+	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	hide()
 
@@ -174,8 +178,17 @@ func _render() -> void:
 			bbcode += "[color=#" + Utils.COLOR_ORANGE + "]Intel: Stale (outdated)[/color]\n"
 		var effective_income = int(data.get("effective_income", 0))
 		var stability = int(data.get("stability", 100))
-		bbcode += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
-		bbcode += "   Stability: " + str(stability) + "%"
+		# PC15-16: -1 is the fog sentinel on income/stability too (same
+		# CA9-F5 idiom as Supply below) — PARTIAL provinces rendered a
+		# fabricated "Income: 0g / Stability: 0%" as fact.
+		if effective_income < 0:
+			bbcode += "Income: [color=#" + Utils.COLOR_GREY + "]Unknown[/color]"
+		else:
+			bbcode += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
+		if stability < 0:
+			bbcode += "   Stability: [color=#" + Utils.COLOR_GREY + "]Unknown[/color]"
+		else:
+			bbcode += "   Stability: " + str(stability) + "%"
 		# CA9-F5: -1 is the fog sentinel. `format_number(-1)` renders
 		# "-1", so both readers of this key must branch — the garrison
 		# sibling just below already does.

@@ -297,7 +297,13 @@ class TestFilteredGameStateSummary:
                 assert rd["stability"] > 0 or True  # Could be 0 legitimately
 
     def test_enemy_region_unknown_hides_economic_data(self):
-        """Enemy regions with UNKNOWN visibility hide economic data."""
+        """Enemy regions with UNKNOWN visibility hide economic data.
+
+        Pin flipped consciously (PC15-16, Aug 15 2026): hidden econ keys
+        carry the CA9-F5 ``-1`` "not known" sentinel, never a fabricated
+        0 — the region panel and map tooltip were rendering "Income: 0g /
+        Stability: 0%" as facts on PARTIAL provinces.
+        """
         world = make_world()
         summary = world.get_filtered_game_state_summary()
         for region_name in world.regions:
@@ -305,7 +311,9 @@ class TestFilteredGameStateSummary:
             region = world.regions[region_name]
             if intel.visibility == UNKNOWN and region.controller != world.player_nation:
                 rd = summary["map_data"].get(region_name, {})
-                assert rd["income_value"] == 0
+                assert rd["income_value"] == -1
+                assert rd["effective_income"] == -1
+                assert rd["stability"] == -1
                 assert rd["stability_label"] == "Unknown"
 
     def test_controller_and_terrain_always_public(self):

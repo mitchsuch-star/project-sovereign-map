@@ -104,10 +104,36 @@
 > budget constant; centerpiece fix F1 "The Antechamber" tier-splits
 > routine audiences off the modal path; BUILD-READY per §9, no gate
 > outstanding) ·
-> **PC15-16 + PC15-18** (client `.gd` surfaces — belong
-> to the next visual-pass session with `saves/flagship_visual_t12.json`,
-> where the fix can be SEEN; the parse-harness half of any such change is
-> free but the behavior half is not verifiable headlessly).
+> ~~**PC15-16 + PC15-18**~~ ✅ **FIXED August 15, 2026 (the visual-pass
+> session, eighth that day)** —
+> `tests/test_pc15_16_18_visual_fixes_2026_08_15.py` (13); all four
+> surfaces driven live in the client against
+> `saves/flagship_visual_t12.json` on `SOVEREIGN_PORT=8006`, evidence =
+> `docs/audits/PC15_16_*.jpg` + `PC15_18_*.jpg` (5 shots). **PC15-16**:
+> the CA9-F5 `-1` sentinel extended from `supply_capacity` to
+> `income_value` / `effective_income` / `stability` in the hidden-econ
+> block of `get_filtered_game_state_summary`, with BOTH `.gd` readers
+> branching (region panel + map tooltip now read "Income: Unknown /
+> Stability: Unknown" beside Supply; one `test_intel_report` pin flipped
+> consciously). **PC15-18(a)**: N had NO special block — every letter
+> screen hotkey was dead in the game's dominant state, because the
+> client re-grabs command-input focus at every control-return tail and a
+> focused LineEdit consumes printable keys before `_unhandled_input`;
+> fix = the F1 precedent, `Alt+<screen key>` intercepted in
+> `_on_command_input_gui_input` for all six screens (bare letters must
+> keep typing — "ney…" starts with n; bare keys still work unfocused),
+> nav-button tooltips name the form; verified live (Alt+N opened the
+> Moniteur with the input focused). **PC15-18(b)**: the enemy-phase
+> dialog got the NV-6 `MOUSE_FILTER_PASS` fix — and the class is now
+> CLOSED BY CENSUS: a fit_content RichTextLabel directly under a
+> ScrollContainer must let the wheel through (scene-side or
+> script-side), enforced over every `.tscn`. The census found and fixed
+> **eight more latent members** (diplomatic ledger, dispatch, gazette,
+> marshal management, proclamation, region panel, strategic report
+> popup, the settlement per-court table, AND the terminal scrollback
+> itself — the July-25 R4 fix set `scroll_active=false`, which the
+> ledger and enemy-dialog evidence proves was insufficient);
+> wheel-scroll verified live on the enemy phase (before/after pair).
 > Tests: `tests/test_pc15_fix_slice_2026_08_15.py` (53).
 >
 > **PC15-5 and PC15-15 CLOSED August 15, 2026 (same day, second slice) by
@@ -137,9 +163,9 @@
 | PC15-13 | P3 | 'Alsace' did-you-mean offers "Wales, Balearics, Ulster" — string-distance suggestions with no geographic sanity. | flagship-1805 T2 | movement-target nearby suggester |
 | PC15-14 | P3 | "Davout's army is recovering. Effectiveness penalty: 0% (recovered)." — a non-event as a dispatch headline. | flagship-1805 T18, naval-descent T4 | recovery-notice producer gate |
 | PC15-15 | P3 | The exhausted-pair peace has no weight: Austria↔Bavaria `third_party_peace` and Austria's RE-declaration on the SAME turn (austerlitz T17; jena peace T15 → re-declare T16); plus "Austria and Bavaria have made peace without us" rendered verbatim two turns running (diplomacy-latewar T22–23). | variance_austerlitz/jena saves; diplomacy-latewar digest | pair-peace cooldown vs the AI war ladder; dispatch dedupe |
-| PC15-16 | P3 | PARTIAL-intel regions render "Income: 0g / Stability: 0%" as facts on the region panel while Supply correctly reads Unknown (tooltip says "0% (Unknown)" for stability but income "0" everywhere). | PLAYTEST_F_SUPPLY_UNKNOWN_PARTIAL jpg | `region_panel.gd` / tooltip unknown-sentinel rendering (F5's residue) |
+| ~~PC15-16~~ ✅ | P3 | **FIXED Aug 15, 2026** (landing note above). PARTIAL-intel regions rendered "Income: 0g / Stability: 0%" as facts — the `-1` sentinel now covers income/stability and both `.gd` readers branch. | PLAYTEST_F_SUPPLY_UNKNOWN_PARTIAL jpg → PC15_16_*.jpg | `region_panel.gd` / `map_renderer_base.gd` / `world_state.py` hidden-econ block |
 | PC15-17 | P3 | fixture_t20 load pops `vassal_rebellion_imminent: Switzerland` while Switzerland is already NOT a vassal ("invest" refuses); no rebellion narrative existed in the ambient log — the silent-vassal-loss family (IGR-A) plus a stale popup surviving in the save. | diplomacy-latewar boot + T21 | vassal rebellion event narration + popup retirement on serialization |
-| PC15-18 | P3 | Client checks from the visual pass: the N hotkey did not open the Moniteur under terminal focus (button works); the enemy-phase dialog ignored the mouse wheel (thumb-drag scrolls — NV-P1 family, unconfirmed). | PLAYTEST_F screenshots session | `top_bar.gd` hotkey block rules; `enemy_phase_dialog.gd` wheel handling |
+| ~~PC15-18~~ ✅ | P3 | **FIXED Aug 15, 2026** (landing note above). (a) NO N-specific block existed — all letter hotkeys die under the auto-re-grabbed terminal focus; `Alt+<key>` route added for all six screens. (b) Enemy-phase wheel = the NV-P1 class, now closed by census (10 members PASS + a structural pin). | PLAYTEST_F screenshots → PC15_18_*.jpg | `main.gd` `_on_command_input_gui_input` / the NV-P1 census in `test_pc15_16_18_visual_fixes_2026_08_15.py` |
 | PC15-H | — | **Harness (tools, not game):** the driver's enemy-phase "N attacks" counter reads `action_type` which does not exist (real key: `ai_action.action`) so every digest reads "0 attacks"; script `turns` keys are the driver's 1-based loop index, not world turn numbers (undocumented — cost one probe run); `settlement_pair_substitute_confirm` is still unanswerable by policy (left standing by design this session). One fix landed in-session under the blocker exception: `settlement_confirm` added to `DIALOGUE_TYPE_ANSWERS` + pin. | vassal-probe (first run), diplomacy-latewar (first run) | `tools/playtest_driver.py` + `docs/PLAYTESTING.md` |
 
 

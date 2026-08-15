@@ -24,6 +24,10 @@ func _ready():
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 	open_envoys_button.pressed.connect(_on_open_envoys_pressed)
+	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
+	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
+	# before its parent can scroll. PASS still delivers _gui_input.
+	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	hide()
 
 func open(api_client):

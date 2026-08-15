@@ -68,6 +68,10 @@ func _ready():
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 	content_area.meta_clicked.connect(_on_content_meta_clicked)
+	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
+	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
+	# before its parent can scroll. PASS keeps meta_clicked chips working.
+	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 
 	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab, bargains_tab, vassals_tab]
 	for i in range(tab_buttons.size()):

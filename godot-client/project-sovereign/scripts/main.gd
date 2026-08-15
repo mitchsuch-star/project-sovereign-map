@@ -356,6 +356,13 @@ func _ready():
 		battle_diorama.dismissed.connect(_on_battle_diorama_dismissed)
 	# BD: the terminal's own "⚔ View the field" replay link.
 	output_display.meta_clicked.connect(_on_output_meta_clicked)
+	# PC15-18 (NV-P1 family census): the July-25 R4 fix set
+	# scroll_active=false on OutputDisplay, but a MOUSE_FILTER_STOP
+	# RichTextLabel still consumes the wheel before its ScrollContainer —
+	# the ledger (NV-6) and the enemy-phase dialog both proved
+	# scroll_active alone insufficient. PASS keeps the ⚔ replay links
+	# working and lets OutputScroll actually scroll the scrollback.
+	output_display.mouse_filter = Control.MOUSE_FILTER_PASS
 
 	glorious_charge_dialog = dialog_manager.register("glorious_charge", "res://scenes/glorious_charge_dialog.tscn")
 	if glorious_charge_dialog:
@@ -828,11 +835,36 @@ func _on_command_submitted(_text: String):
 	"""Handle enter key in command input."""
 	_execute_command()
 
+# PC15-18: the screen hotkeys, reachable while typing. The command input
+# holds focus after nearly every action (the client re-grabs it at every
+# control-return tail), and a focused LineEdit consumes printable keys
+# before _unhandled_input ever sees them — so the advertised letter
+# hotkeys (the button labels say "(N)", "(L)", …) were dead in the game's
+# dominant state; the playtest hit it on N/Moniteur. A bare letter must
+# keep typing ("ney…" starts with n), so the focus-safe form is
+# Alt+<key>, intercepted here on the F1 precedent below. The bare keys
+# still work whenever the input is unfocused (_unhandled_input path).
+const _SCREEN_HOTKEYS := {
+	KEY_L: "event_log",
+	KEY_T: "ledger",
+	KEY_G: "generals",
+	KEY_D: "diplomatic_ledger",
+	KEY_R: "dispatch",
+	KEY_N: "gazette",
+}
+
 func _on_command_input_gui_input(event):
 	"""Handle special keys in command input."""
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_F1:
 			_open_diplomacy_wizard()
+			command_input.accept_event()
+		elif event.alt_pressed and _SCREEN_HOTKEYS.has(event.keycode):
+			# PC15-18: Alt+screen-key works even while typing — the modal
+			# gate still holds (same rule _is_hotkey_blocked enforces on
+			# the unfocused path).
+			if not _is_modal_dialog_open() and top_bar:
+				top_bar.toggle_screen(_SCREEN_HOTKEYS[event.keycode])
 			command_input.accept_event()
 		elif event.keycode == KEY_UP:
 			_history_previous()

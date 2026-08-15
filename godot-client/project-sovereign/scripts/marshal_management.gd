@@ -71,6 +71,10 @@ func _ready():
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
+	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
+	# before its parent can scroll. PASS keeps the [url=…] chips working.
+	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 	# §0.6.8: bbcode [url=reward:N] affordances (strategic_ledger pattern)
 	content_area.meta_clicked.connect(_on_meta_clicked)
 	hide()

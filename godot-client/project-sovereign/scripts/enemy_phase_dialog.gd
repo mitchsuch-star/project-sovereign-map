@@ -32,6 +32,14 @@ func _ready():
 	# BD: battle lines carry [url=diorama:N] view-field links.
 	content_label.meta_clicked.connect(_on_content_meta_clicked)
 
+	# PC15-18 (NV-P1 family): the dialog ignored the mouse wheel. The
+	# RichTextLabel defaults to MOUSE_FILTER_STOP, so it consumed the wheel
+	# event before its own ScrollContainer parent ever saw it — the same
+	# defect the Strategic Ledger fixed in NV-6. PASS still delivers
+	# _gui_input (the ⚔ View-the-field meta links keep working) and then
+	# lets the parent scroll.
+	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
+
 	# Hide by default
 	hide()
 
