@@ -4,6 +4,62 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE PC15 FIX SLICE — August 15, 2026 (fifth entry that day)
+>
+> **The Round-0 gate is CLEARED: the ⛔ P1 trio+1 and nine more PC15 rows
+> landed in one session under the user's "do the queued bug fixes"
+> direction. Landing record = `BUG_FIXES.md` §Comprehensive Playtest
+> PC15 (authoritative); tests = `tests/test_pc15_fix_slice_2026_08_15.py`
+> (53). NEXT = ROW NP (Napoleon), then position 10.**
+>
+> - **PC15-1 + the prisoner-pop sibling** — `WorldState.destroy_marshal`
+>   is the ONE marshal-removal seam: tombstones in serialized
+>   `world.fallen_marshals`, a new `marshal_destroyed` campaign-log type
+>   (**157→158, 8 pins flipped consciously**; `marshal_eliminated`
+>   retired — it was never renderable), the dispatch three-arm ladder
+>   (own w96 / our-kill w89 / third-party none per CA8-D6) with the PT-J4
+>   bench note on both loss classes, gazette + turn-events rail. The
+>   glorious-charge and coordinated-cleanup pops ran AFTER the capture
+>   arm set strength=0 and deleted the prisoner (Bernadotte T40→T41) —
+>   destroy_marshal skips prisoners, and a census pin forbids bare pops
+>   backend-wide. NP-4's seam is now safe to build on.
+> - **PC15-2** — the interrupt route's addressed-other guard is
+>   roster-free (a DEAD name's leading address token now falls through to
+>   the parser) + `_addressed_fresh_order_elsewhere` (an addressed order
+>   naming foreign ground is an order, not an answer). Bare answers
+>   ("press on") and own-enemy answers still route — Sweep-5 pins green.
+> - **PC15-3** — the pair-substitute chooser: named HARD_STOP, typed
+>   "confirm"/"keep" resolve it, `dialogue_court` reads
+>   `selected_target_nation`, `turn_created` stamped, and
+>   **`clear_stale` now sweeps the dialogue QUEUE** (the displaced-stale
+>   immortality behind the 8-deep confirm loop is closed structurally).
+> - **PC15-4** — the pre-parse lost-marshal guard: a fallen marshal's
+>   name refuses ("lost to us … destroyed at Ulm"; bench named only when
+>   `first_affordable_commission` grants), a prisoner refuses with his
+>   captor, never roster-nearest substitution; enemy-side
+>   `attack <destroyed>` answers from the tombstone.
+> - **PC15-9** — tutorial beat VI gate 3→2 + fallback copy. Root cause
+>   found by probe: the variance is the GLOBAL combat RNG (Kienmayer's
+>   fate), which no campaign-seed pin covers — that is why the pins held
+>   while the live run drifted; a 3-seed ambient-RNG window pin binds it.
+> - **The P2/P3 sweep** — PC15-6 (request-terms names the leader
+>   substitution + why) · PC15-7 (typed Grand Diversion quote-confirms,
+>   AI rung GR5-untouched) · PC15-11 (every structural refusal code has a
+>   sentence + remedy) · PC15-12 (supply-headline {stand}/{have}
+>   agreement) · PC15-13 (garbage-tier did-you-mean answers with the
+>   marshal's own roads) · PC15-14 (the 0%-recovery non-event yields to
+>   the completion beat; one test_mc_q3 pin flipped consciously) ·
+>   PC15-17 (stale rebellion popups retired at load) · PC15-H (driver
+>   attack counter reads `action`; the chooser answerable by policy;
+>   PLAYTESTING.md documents the loop-index trap).
+> - **Still open with reasons**: PC15-5/-15 design-gated (PC15-D1/D4),
+>   PC15-8 needs a live-API probe session, PC15-10 is CA9-D3's, and
+>   PC15-16/-18 are client `.gd` surfaces for the next visual pass with
+>   `saves/flagship_visual_t12.json`.
+> - Suite green, ruff clean, Godot parse harness EXIT=0 (report
+>   regenerated), M1–M7 untouched by construction (no combat-math or AI
+>   change; the interrupt/parse guards run only on typed player input).
+
 > ## ✅ THE NAPOLEON SPEC + GATE — August 15, 2026 (fourth entry that day)
 >
 > **Row NP inserted by user direction ("we need to add Napoleon before

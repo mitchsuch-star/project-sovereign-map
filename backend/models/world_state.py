@@ -587,6 +587,14 @@ class WorldState:
             self.marshals.update(create_starting_marshals())  # Add French marshals
             self.marshals.update(create_enemy_marshals())  # Add enemy marshals
 
+        # PC15-1/PC15-4: the roster of the DEAD — name -> {nation, turn,
+        # location, cause}. Every marshal removal funnels through
+        # destroy_marshal(), which writes the tombstone here; the parser's
+        # fallen-name guard reads it so "Ney, attack ..." after Ney's corps
+        # was annihilated refuses by name instead of silently commanding
+        # whichever marshal stood nearest. Serialized.
+        self.fallen_marshals: Dict[str, Dict] = {}
+
         # R9: Transient marshal-by-region index for O(1) region lookups.
         # Rebuilt at turn start, after from_dict(), and after __init__.
         # NOT serialized — always rebuilt from live marshal data.
@@ -2391,6 +2399,55 @@ class WorldState:
         if len(self.event_log) > self.MAX_EVENT_LOG_SIZE:
             self.event_log = self.event_log[-self.MAX_EVENT_LOG_SIZE:]
 
+    def destroy_marshal(self, marshal, cause: str, victor: str = "",
+                        log: bool = True) -> bool:
+        """PC15-1: the ONE marshal-destruction seam.
+
+        Every removal of a marshal from `world.marshals` funnels through
+        here so the fall is never silent: a tombstone lands in
+        `fallen_marshals` (the roster of the dead — PC15-4's addressed-name
+        refusal reads it) and, unless `log=False` (nation elimination and
+        voluntary dismissal announce themselves already), a
+        `marshal_destroyed` event reaches the campaign log / dispatch /
+        gazette.
+
+        A PRISONER is never destroyed here — capture already decided his
+        fate and set his strength to 0 by design (W6-7). This closes the
+        PC15-1 sibling: the glorious-charge and coordinated-cleanup pops ran
+        AFTER the forced-retreat arm could capture a marshal, and deleted
+        the prisoner the same tick his capture event was written.
+
+        Returns True when the marshal was actually removed.
+        """
+        if isinstance(marshal, str):
+            marshal = self.marshals.get(marshal)
+        if marshal is None:
+            return False
+        if getattr(marshal, "captured_by", ""):
+            return False
+        if marshal.name not in self.marshals:
+            return False
+        self.marshals.pop(marshal.name, None)
+        self.fallen_marshals[marshal.name] = {
+            "nation": marshal.nation,
+            "turn": int(self.current_turn),
+            "location": marshal.location,
+            "cause": str(cause),
+        }
+        if log:
+            self.log_event({
+                "type": "marshal_destroyed",
+                "marshal": marshal.name,
+                "nation": marshal.nation,
+                "location": marshal.location,
+                "cause": str(cause),
+                "victor": str(victor or ""),
+                "message": (
+                    f"Marshal {marshal.name}'s corps has been destroyed "
+                    f"at {marshal.location}"),
+            })
+        return True
+
     def get_events_for_turn(self, turn: int) -> List[Dict]:
         """Get all events from a specific turn."""
         return [e for e in self.event_log if e.get("turn") == turn]
@@ -3690,9 +3747,24 @@ class WorldState:
         latched.add(nation)
 
         # Remove all marshals
+        # PC15-1: tombstoned but NOT per-marshal logged — the nation's fall
+        # is its own announced event, and a dozen marshal_destroyed rows on
+        # one elimination would drown it. A PRISONER of this nation held
+        # elsewhere is still swept (his court no longer exists to ransom
+        # him); destroy_marshal skips prisoners, so pop those directly with
+        # a tombstone of their own.
         to_remove = [name for name, m in self.marshals.items() if m.nation == nation]
         for name in to_remove:
-            self.marshals.pop(name, None)
+            if not self.destroy_marshal(name, cause="nation_eliminated",
+                                        log=False):
+                dead = self.marshals.pop(name, None)
+                if dead is not None:
+                    self.fallen_marshals[name] = {
+                        "nation": dead.nation,
+                        "turn": int(self.current_turn),
+                        "location": dead.location,
+                        "cause": "nation_eliminated",
+                    }
 
         # Cancel strategic orders targeting removed marshals
         removed_set = set(to_remove)
@@ -5927,16 +5999,22 @@ class WorldState:
         # V2-29: Eliminate marshals reduced to 0 strength by attrition.
         # W6-7: captured marshals sit at strength 0 BY DESIGN (held at the
         # captor's capital awaiting ransom/release) — never sweep them.
+        # PC15-1: funnels through destroy_marshal (tombstone + the
+        # `marshal_destroyed` log event — the old `marshal_eliminated` type
+        # was never in CAMPAIGN_LOG_TYPES, so the sweep's kills were
+        # invisible in the campaign log; the type is retired).
         eliminated = [m_name for m_name, m in self.marshals.items()
                       if m.strength <= 0 and not getattr(m, "captured_by", "")]
         for m_name in eliminated:
-            dead = self.marshals.pop(m_name)
+            dead = self.marshals[m_name]
+            dead_location = dead.location
+            self.destroy_marshal(dead, cause="attrition")
             events.append({
-                "type": "marshal_eliminated",
+                "type": "marshal_destroyed",
                 "marshal": dead.name,
                 "nation": dead.nation,
-                "region": dead.location,
-                "message": f"{dead.name} has been eliminated by supply attrition at {dead.location}"
+                "region": dead_location,
+                "message": f"{dead.name} has been eliminated by supply attrition at {dead_location}"
             })
 
         return events
@@ -6259,6 +6337,8 @@ class WorldState:
             # dicts and would stringify (the §11.1 Dict[str, str] shape
             # was amended to Dict[str, dict] by §11.10 decision 1).
             "nation_formations": copy.deepcopy(self.nation_formations),
+            # PC15-1: the roster of the dead (tombstones are flat dicts).
+            "fallen_marshals": copy.deepcopy(self.fallen_marshals),
             # NA-6c: the carve catalogue. deepcopy for the same aliasing
             # reason as `agendas` — templates nest province LISTS and decks.
             "formable_nations": copy.deepcopy(self.formable_nations),
@@ -6782,6 +6862,12 @@ class WorldState:
         world.nation_formations = {
             str(k): copy.deepcopy(dict(v or {}))
             for k, v in (data.get("nation_formations") or {}).items()
+        }
+        # PC15-1: the roster of the dead. Absent on pre-PC15 saves = no
+        # recorded falls (the guard simply has nothing to refuse on).
+        world.fallen_marshals = {
+            str(k): copy.deepcopy(dict(v or {}))
+            for k, v in (data.get("fallen_marshals") or {}).items()
         }
         # NA-6c: the carve catalogue (scenario data, same shape either way —
         # `from_scenario` funnels through here, so the scenario key and the
@@ -7490,6 +7576,41 @@ class WorldState:
         world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
         world.vassal_rebellion_imminent_popups = [p.copy() for p in data.get("vassal_rebellion_imminent_popups", [])]
+        # PC15-17: a rebellion-imminent popup whose court is NO LONGER the
+        # player's vassal is stale theater — fixture_t20 loaded a
+        # "Switzerland teeters on rebellion" modal while "invest" refused
+        # because Switzerland had already left vassalage. Retire at load:
+        # both the queued-slot copy and the V2-90 list, and any
+        # vassal_rebellion_imminent dialogue in the manager (current or
+        # queued) naming a non-vassal.
+        def _stale_rebellion_court(name) -> bool:
+            # Retire only on POSITIVE evidence: a NAMED court that is not
+            # a live player vassal. An unnamed record is left standing —
+            # absence of a name is not staleness.
+            if not name:
+                return False
+            row = (world.vassals or {}).get(str(name))
+            if not row:
+                return True
+            lord = str(row.get("lord") or row.get("overlord")
+                       or world.player_nation)
+            return lord != world.player_nation
+        _stale_pop = world.vassal_rebellion_imminent_popup
+        if isinstance(_stale_pop, dict) and _stale_rebellion_court(
+                _stale_pop.get("nation")):
+            world.vassal_rebellion_imminent_popup = None
+        world.vassal_rebellion_imminent_popups = [
+            p for p in world.vassal_rebellion_imminent_popups
+            if not _stale_rebellion_court(p.get("nation"))]
+        _dm = world._dialogue_manager
+        if (_dm.peek() or {}).get("type") == "vassal_rebellion_imminent" \
+                and _stale_rebellion_court(
+                    (_dm.peek() or {}).get("target_nation")):
+            _dm.pop()
+        _dm._queue = [
+            q for q in _dm._queue
+            if not (q.get("type") == "vassal_rebellion_imminent"
+                    and _stale_rebellion_court(q.get("target_nation")))]
         world.nation_proclamation_popup = data.get("nation_proclamation_popup", None)
         world.nation_proclamation_popups = [
             p.copy() for p in (data.get("nation_proclamation_popups") or [])
@@ -10758,10 +10879,7 @@ class WorldState:
                     rally_stages = marshal.get_rally_stages_per_turn()
                     marshal.retreat_recovery = min(3, recovery_stage + rally_stages)
                     new_stage = marshal.retreat_recovery
-                    if new_stage >= 3:
-                        penalty_str = "0% (recovered)"
-                    else:
-                        penalty_str = f"-{int(round(marshal.get_retreat_stage_penalty(new_stage) * 100))}%"
+                    penalty_str = f"-{int(round(marshal.get_retreat_stage_penalty(new_stage) * 100))}%"
                     rally_note = ""
                     if rally_stages > 1 and new_stage < 3:
                         rally_note = f" {marshal.name} rallies the survivors — the ranks reform ahead of schedule."
@@ -10769,21 +10887,28 @@ class WorldState:
                           and marshal.skills.get("command", 5) <= marshal.RALLY_POOR_COMMAND):
                         rally_note = " The rout's disorder lingers in the ranks."
                     debug_print(f"  [TACTICAL] RETREAT RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
-                    events.append({
-                        "type": "retreat_recovery",
-                        "marshal": marshal.name,
-                        "nation": marshal.nation,
-                        "stage": new_stage,
-                        "penalty": penalty_str,
-                        # N37 (CA9): no sentence terminator, so the rally
-                        # note ran straight on — "penalty: -40% The rout's
-                        # disorder lingers". Both notes above open with a
-                        # space and their own capital; the bare arm ended
-                        # with no full stop at all.
-                        "message": (f"{marshal.name}'s army is recovering. "
-                                    f"Effectiveness penalty: "
-                                    f"{penalty_str}.{rally_note}")
-                    })
+                    # PC15-14: when the recovery COMPLETES this tick, the
+                    # "recovering… penalty: 0% (recovered)" line was a
+                    # non-event stapled to the real news — the
+                    # `retreat_recovered` event ten lines below carries the
+                    # completion. Only a recovery still in progress (a real
+                    # penalty) reports here.
+                    if new_stage < 3:
+                        events.append({
+                            "type": "retreat_recovery",
+                            "marshal": marshal.name,
+                            "nation": marshal.nation,
+                            "stage": new_stage,
+                            "penalty": penalty_str,
+                            # N37 (CA9): no sentence terminator, so the rally
+                            # note ran straight on — "penalty: -40% The rout's
+                            # disorder lingers". Both notes above open with a
+                            # space and their own capital; the bare arm ended
+                            # with no full stop at all.
+                            "message": (f"{marshal.name}'s army is recovering. "
+                                        f"Effectiveness penalty: "
+                                        f"{penalty_str}.{rally_note}")
+                        })
 
                     # Check if fully recovered
                     if new_stage >= 3:
@@ -11586,14 +11711,18 @@ class WorldState:
                     marshal.clear_combat_transient_state()
 
                 # Check if enemy destroyed - remove from world
+                # PC15-1: through destroy_marshal (tombstone + event; a
+                # prisoner is never destroyed by a strength check).
                 enemy_destroyed_msg = ""
                 if enemy.strength <= 0:
-                    enemy_destroyed_msg = f" {enemy.name}'s army is destroyed!"
-                    self.marshals.pop(enemy.name, None)
+                    if self.destroy_marshal(enemy, cause="charge",
+                                            victor=marshal.nation):
+                        enemy_destroyed_msg = f" {enemy.name}'s army is destroyed!"
 
                 # Check if attacker destroyed
                 if marshal.strength <= 0:
-                    self.marshals.pop(marshal.name, None)
+                    self.destroy_marshal(marshal, cause="charge",
+                                         victor=enemy.nation)
 
                 # ── Territory capture (simplified, no fort occupation) ──
                 # V2-53: Intentionally skips fortified region capture. Auto-charge is a

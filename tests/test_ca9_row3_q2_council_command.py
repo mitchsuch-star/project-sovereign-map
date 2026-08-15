@@ -430,7 +430,7 @@ class TestItCannotCrashOrLieOnRefusal:
 
 class TestSizing:
     def test_no_new_campaign_log_type(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 157
+        assert len(CAMPAIGN_LOG_TYPES) == 158  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`
 
     def test_the_log_does_not_call_an_army_a_hearing(self, board):
         """Without its own row the shared `choice_str` map falls through

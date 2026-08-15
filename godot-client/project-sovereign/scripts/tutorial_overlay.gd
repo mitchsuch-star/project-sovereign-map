@@ -97,9 +97,13 @@ const STEPS := [
 	},
 	{
 		"id": "bombardment",
-		"turn_gate": 3,
+		# PC15-9: gate 3 -> 2. Jellacic's hold on Tyrol is only guaranteed
+		# until Austria reacts to Kienmayer's fate (ambient combat RNG), so
+		# the beat opens the FIRST turn the guns can legally fire (marched
+		# T1, laid overnight) — two guaranteed turns instead of one.
+		"turn_gate": 2,
 		"title": "VI. The Guns Speak",
-		"body": "Senarmont's batteries at Munich range the Tyrol passes, where Jellacic digs in. Artillery fires one province distant — but never on the day it marched; the guns must be laid. Bombard him while he still holds the pass; Austria rotates her corps within days.",
+		"body": "Senarmont's batteries at Munich range the Tyrol passes, where Jellacic digs in. Artillery fires one province distant — but never on the day it marched; the guns must be laid. Bombard him while he still holds the pass; Austria rotates her corps within days. Should he slip away first, any enemy corps one province out serves the lesson — or end the turn and the school will move on.",
 		"suggest": "Senarmont, bombard Jellacic",
 		"suggest_action": "attack",
 		"advance": "_pred_bombardment",

@@ -384,6 +384,53 @@ class NavalExecutor:
         if not naval.has_naval_layer(world):
             return {"success": False, "message": (
                 "This campaign has no naval theatre, Sire.")}
+        # ── PC15-7: quote-then-confirm, the expedition's own idiom ──
+        # The typed Grand Diversion resolved IRREVERSIBLY on one line
+        # ("order the diversion" at readiness 53 → "caught coming home …
+        # loses 46 sail") while its sibling naval_expedition quotes and
+        # confirms. Same two-step now: the once-per-war 45% gamble states
+        # its terms first. AI callers pass `_acting_nation` and confirm
+        # implicitly (the rung already weighed it — GR5 unchanged).
+        if actor == getattr(world, 'player_nation', 'France'):
+            raw = (command.get("raw_input") or command.get("original_command")
+                   or command.get("raw_command") or "").lower()
+            confirmed = bool(command.get("confirmed")) or bool(
+                re.search(r'\bconfirm(ed)?\b|\bset sail\b', raw))
+            if not confirmed:
+                rec = naval.get_fleet(world, actor)
+                if not rec or int(rec.get("ships", 0) or 0) <= 0:
+                    return {"success": False,
+                            "message": "We have no fleet to sail, Sire."}
+                if rec.get("diversion_used"):
+                    return {"success": False, "message": (
+                        "The fleet has already attempted its grand "
+                        "diversion this war — the squadrons cannot repeat "
+                        "the feint while the enemy watches for it.")}
+                readiness = int(rec.get("readiness", 0) or 0)
+                return {
+                    "success": True,
+                    "free_action": True,
+                    "state": "awaiting_clarification",
+                    "type": "clarification",
+                    "naval_confirm": True,
+                    "original_command": command.get("raw_command", ""),
+                    "message": (
+                        f"The Grand Diversion is drawn up, Sire — once, "
+                        f"and once only, this war. The fleet sails to draw "
+                        f"the enemy squadrons off station: "
+                        f"{naval.DIVERSION_SUCCESS_PCT} times in 100 the "
+                        f"strait opens for {naval.WINDOW_TURNS} turns; "
+                        f"otherwise she is caught coming home and fights "
+                        f"at her current readiness ({readiness}). "
+                        f"Sail? (yes / no)"),
+                    "options": [
+                        {"label": "Order the diversion",
+                         "command": "order the diversion confirmed",
+                         "aliases": ["sail", "set sail", "yes", "go"]},
+                        {"label": "Stand down", "command": "cancel",
+                         "aliases": ["stand down", "no"]},
+                    ],
+                }
         outcome = naval.resolve_diversion(world, actor)
         result = dict(outcome)
         if outcome.get("success"):

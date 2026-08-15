@@ -43,6 +43,7 @@ _COURT_TYPES = {
 _ARMY_TYPES = {
     "glory_crowned", "glory_crown_lost", "dotation_granted",
     "estate_confiscated", "marshal_captured", "last_stand",
+    "marshal_destroyed",
     "marshal_petition",
 }
 
@@ -101,7 +102,7 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
             if prev and region \
                     and world.get_nation_capital(prev) == region:
                 return "a capital stormed"
-        if etype in ("marshal_captured", "last_stand"):
+        if etype in ("marshal_captured", "last_stand", "marshal_destroyed"):
             if str(event.get("nation") or "") == player:
                 return "a marshal of France lost"
     return None

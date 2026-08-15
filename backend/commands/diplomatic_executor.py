@@ -2525,9 +2525,13 @@ class DiplomaticExecutor:
         if state != "available":
             from backend.display_names import settlement_disabled_reason_display
             reason = str(affordance.get("reason") or "request_terms_ineligible")
+            # PC15-11: the reason CODE now resolves to its own sentence
+            # (war_not_multi_party, offer_already_pending, ...) — the old
+            # fallback flattened every structural refusal to "not
+            # available for this pair" with no reason and no remedy.
             display = (
                 str(affordance.get("reason_display") or "")
-                or settlement_disabled_reason_display("request_terms_ineligible")
+                or settlement_disabled_reason_display(reason)
             )
             return {
                 "success": False,
@@ -2584,10 +2588,22 @@ class DiplomaticExecutor:
         from backend.game_logic.diplomatic_templates import (
             resolve_settlement_voice_line,
         )
-        line = resolve_settlement_voice_line(
-            "settlement_request_terms_sent_talleyrand",
-            court=answering_leader, war_label=war_label,
-        )
+        # PC15-6: the player may have NAMED a covered court that is not
+        # the coalition's leader ("request terms from Austria" in the
+        # Britain-led war). Leader-authored terms are the design — but the
+        # substitution must say itself, or it reads as a misroute.
+        named_court = str(target_nation or "")
+        if named_court and named_court != answering_leader:
+            line = resolve_settlement_voice_line(
+                "settlement_request_terms_sent_for_court_talleyrand",
+                court=answering_leader, named_court=named_court,
+                war_label=war_label,
+            )
+        else:
+            line = resolve_settlement_voice_line(
+                "settlement_request_terms_sent_talleyrand",
+                court=answering_leader, war_label=war_label,
+            )
         return {
             "success": True,
             "message": line,

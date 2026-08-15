@@ -70,6 +70,13 @@ class DialogueManager:
         "commitment_paradox",
         "war_purpose_selection",
         "settlement_confirm",
+        # PC15-3: the pair-substitute chooser was in NO taxonomy set — not
+        # a hard stop, so typed commands passed through it silently while
+        # its presence blocked proposals (the wedge). It is the same
+        # family and same modal surface as settlement_confirm; it now
+        # blocks with a NAMED subject and is answerable by typed word
+        # ("confirm" / "keep") as well as by button.
+        "settlement_pair_substitute_confirm",
     })
     # Current-turn offer types: AI-initiated offers that lapse at end of turn.
     # Visible via envoy badge. Do NOT block ordinary commands or end-turn.
@@ -143,6 +150,8 @@ class DialogueManager:
         "alliance_paradox": 0,
         "commitment_paradox": 0,
         "settlement_confirm": 0,
+        # PC15-3: same tier as its parent confirm.
+        "settlement_pair_substitute_confirm": 0,
         "vassal_rebellion_imminent": 1,
         # SC-5 reversal commit 2: incoming settlement offers sit above
         # ordinary proposals because they touch entire wars and persist
@@ -562,6 +571,30 @@ class DialogueManager:
         - Non-blocking non-offer: dismiss if turn_created < current_turn
         - Blocking: force-clear if turn_created + BLOCKING_TIMEOUT_TURNS < current_turn
         """
+        # PC15-3: the QUEUE is swept by the same rules. A stale dialogue
+        # displaced into the queue was immortal — clear_stale only ever
+        # inspected the active slot — and was promoted turns later, where
+        # its confirm vocabulary consumed every subsequent "confirm" (the
+        # settlement pair-substitute wedge). Mailbox types keep their own
+        # lifecycle, exactly as in the active-slot arms below.
+        if self._queue:
+            kept = []
+            for queued in self._queue:
+                q_type = queued.get("type", "")
+                if q_type in self.SOFT_STOP_MAILBOX_TYPES:
+                    kept.append(queued)
+                    continue
+                q_created = queued.get("turn_created", 0)
+                q_blocking = queued.get("blocking", False)
+                if not q_blocking and q_created < current_turn:
+                    continue
+                if (q_blocking
+                        and q_created + self.BLOCKING_TIMEOUT_TURNS
+                        < current_turn):
+                    continue
+                kept.append(queued)
+            self._queue = kept
+
         if not self._current:
             return None
 

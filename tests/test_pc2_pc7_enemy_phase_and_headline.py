@@ -161,6 +161,12 @@ def test_escalation_copy_is_formattable():
     for cls, variants in dispatch_mod._STANDING_ESCALATION.items():
         base = dispatch_mod._HEADLINE_TEMPLATES[cls]
         allowed = _placeholders(base) | {"marshal", "turns"}
+        if cls == "supply_strain":
+            # PC15-12: the candidate builder supplies BOTH agreement verbs
+            # ({stand}/{have}); the base template uses only {stand}, so the
+            # base-placeholder proxy under-approximates this class's own
+            # field set.
+            allowed |= {"have", "stand"}
         for text in variants:
             used = _placeholders(text)
             assert used <= allowed, (

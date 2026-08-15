@@ -151,7 +151,7 @@ class TestA13Discriminator:
         """A key on an existing event, per the house pattern — the type count
         is pinned in five files."""
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
-        assert len(CAMPAIGN_LOG_TYPES) == 157
+        assert len(CAMPAIGN_LOG_TYPES) == 158  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`
 
 
 # ════════════════════════════════════════════════════════════════════════

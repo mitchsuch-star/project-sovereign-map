@@ -4993,8 +4993,9 @@ class CombatExecutor:
             # keep the stamp forever. Name the origin now, while it is still
             # the attacker's location.
             auto_kill_stamp_region = marshal.location
-            # Remove destroyed defender
-            world.marshals.pop(enemy_marshal.name, None)
+            # Remove destroyed defender (PC15-1: tombstone + event)
+            world.destroy_marshal(enemy_marshal, cause="bombardment",
+                                  victor=marshal.nation)
 
             # PT-F1: same guard as the main battle-advance — the soil of a
             # court we are not at war with never transfers by pursuit.
@@ -5844,17 +5845,21 @@ class CombatExecutor:
             marshal.last_combat_result = "stalemate"
             enemy_marshal.last_combat_result = "stalemate"
 
-        # Check if enemy was destroyed
+        # Check if enemy was destroyed (PC15-1: tombstone + event — this
+        # site runs BEFORE the forced-retreat/fate arm, so no capture can
+        # have happened yet; the guard inside destroy_marshal is belt.)
         enemy_destroyed = enemy_marshal.strength <= 0
         if enemy_destroyed:
             destroyed_msg = f" {enemy_marshal.name}'s army is destroyed!"
-            world.marshals.pop(enemy_marshal.name, None)
+            world.destroy_marshal(enemy_marshal, cause="battle",
+                                  victor=marshal.nation)
         else:
             destroyed_msg = ""
 
         # ALSO check if attacker was destroyed
         if marshal.strength <= 0:
-            world.marshals.pop(marshal.name, None)
+            world.destroy_marshal(marshal, cause="battle",
+                                  victor=enemy_marshal.nation)
 
         # ============================================================
         # FORCED RETREAT: Handle broken armies (morale <= 25%)
@@ -5929,9 +5934,16 @@ class CombatExecutor:
                             f"\n{p.name} withdraws to {origin} after the battle.")
 
             # Clean up destroyed non-primary participants
+            # PC15-1 sibling seam: the [S62] rout loop above can CAPTURE a
+            # participant (capture sets strength=0 by design), and this pop
+            # then deleted the prisoner the same tick his capture event was
+            # written. destroy_marshal skips prisoners and tombstones the
+            # truly destroyed.
             for p in atk_participants + def_participants:
                 if p.name not in (marshal.name, enemy_marshal.name) and p.strength <= 0:
-                    world.marshals.pop(p.name, None)
+                    p_victor = (enemy_marshal.nation if p in atk_participants
+                                else marshal.nation)
+                    world.destroy_marshal(p, cause="battle", victor=p_victor)
 
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
         conquered = False
@@ -6969,14 +6981,20 @@ class CombatExecutor:
                     movement_msg += charge_march_note
 
         # Check if enemy was destroyed - remove from world
+        # PC15-1 sibling seam: _handle_forced_retreat above can CAPTURE
+        # either primary (capture sets strength=0 by design) — the old bare
+        # pops deleted the prisoner 30 lines after his capture event was
+        # written. destroy_marshal skips prisoners and tombstones the dead.
         enemy_destroyed_msg = ""
         if target_marshal.strength <= 0:
-            enemy_destroyed_msg = f" {target_marshal.name}'s army is destroyed!"
-            world.marshals.pop(target_marshal.name, None)
+            if world.destroy_marshal(target_marshal, cause="charge",
+                                     victor=marshal.nation):
+                enemy_destroyed_msg = f" {target_marshal.name}'s army is destroyed!"
 
         # Check if attacker was destroyed
         if marshal.strength <= 0:
-            world.marshals.pop(marshal.name, None)
+            world.destroy_marshal(marshal, cause="charge",
+                                  victor=target_marshal.nation)
 
         # ════════════════════════════════════════════════════════════
         # TERRITORY CAPTURE: Check if charge won empty territory
@@ -7665,6 +7683,22 @@ class CombatExecutor:
 
         # FIRST: Try to find target as enemy marshal name
         enemy = world.get_enemy_by_name(target)
+        if not enemy:
+            # PC15-4 (enemy side): a DESTROYED enemy is popped from the
+            # roster entirely, so "attack Mack" after his annihilation fell
+            # through to region fuzzy-matching ("Region 'Mack' not
+            # found..."). The roster of the dead answers honestly.
+            fallen = getattr(world, "fallen_marshals", None) or {}
+            for f_name, f_tomb in fallen.items():
+                if (f_tomb or {}).get("nation") == world.player_nation:
+                    continue
+                if f_name.lower() == str(target).strip().lower():
+                    return {"kind": "error", "error": {
+                        "success": False,
+                        "message": (
+                            f"{f_name}'s corps no longer exists, Sire — "
+                            f"it was destroyed at "
+                            f"{(f_tomb or {}).get('location') or 'the field'}.")}}
         if enemy:
             if enemy.strength <= 0:
                 return {"kind": "error", "error": {

@@ -37,23 +37,35 @@ from typing import Dict, List, Optional
 # the AI-proposal accept before the player-proposal send).
 DIALOGUE_ACTION_KEYWORDS: Dict[str, List[str]] = {
     "dismiss": ["dismiss"],
-    "cancel": ["cancel_pushback", "cancel_mission", "dismiss"],
+    # PC15-3: keep_joint_settlement rides LAST — it only wins on the
+    # pair-substitute chooser, whose other option is confirm_pair_substitute.
+    "cancel": ["cancel_pushback", "cancel_mission", "dismiss",
+               "keep_joint_settlement"],
     "never mind": ["dismiss"],
     "nudge": ["accept_nudge"],
     "insist": ["insist_original"],
     "send": ["send_override", "send", "execute_proposal"],
+    # PC15-3: typed "confirm" could not resolve the pair-substitute
+    # chooser at all (none of its actions were in this list), so the word
+    # fell through to the parser while the chooser stayed mounted — the
+    # measured eight-deep confirm loop. confirm_pair_substitute rides
+    # LAST: it never co-occurs with the other confirm actions.
     "confirm": ["confirm_settlement", "send_override", "execute_proposal",
-                "force_declare_war"],
+                "force_declare_war", "confirm_pair_substitute"],
     "ratify": ["confirm_settlement"],
     # W6-9: execute_suggestion rides LAST in each list — it only wins on
     # the advisory dialogue, whose only other option is dismiss.
     "proceed": ["confirm_settlement", "send_override", "execute_proposal",
-                "force_declare_war", "execute_suggestion"],
+                "force_declare_war", "execute_suggestion",
+                "confirm_pair_substitute"],
     "do it": ["execute_suggestion"],
     "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal",
-            "accept_ai_ultimatum", "force_declare_war", "execute_suggestion"],
-    "reconsider": ["back_out_settlement", "reconsider"],
-    "no": ["back_out_settlement", "reconsider"],
+            "accept_ai_ultimatum", "force_declare_war", "execute_suggestion",
+            "confirm_pair_substitute"],
+    "keep": ["keep_joint_settlement"],
+    "reconsider": ["back_out_settlement", "reconsider",
+                   "keep_joint_settlement"],
+    "no": ["back_out_settlement", "reconsider", "keep_joint_settlement"],
     "wait": ["reconsider"],
     # PT-A3: the war-purpose dialogue is RAISED with the sentence
     # "…choose our purpose, or let the province stand." That phrase was
@@ -142,6 +154,9 @@ _HARD_STOP_SUBJECT = {
     "commitment_paradox": "The conflict between your commitments",
     "war_purpose_selection": "Our purpose in this war",
     "settlement_confirm": "The terms on the table",
+    # PC15-3: the chooser names itself instead of silently eating commands.
+    "settlement_pair_substitute_confirm":
+        "The choice between the joint settlement and a separate peace",
 }
 
 
@@ -225,6 +240,11 @@ def dialogue_court(dialogue: Optional[dict]) -> str:
         dialogue.get("target_nation")
         or dialogue.get("proposer_nation")
         or dialogue.get("ally_nation")
+        # PC15-3: the pair-substitute chooser carries its court under
+        # `selected_target_nation` — with none of the keys above set,
+        # dialogue_court returned "" and the CA9 typed court guard was a
+        # no-op for this dtype.
+        or dialogue.get("selected_target_nation")
         or context.get("source_nation")
         or context.get("source")
         or dialogue.get("nation")

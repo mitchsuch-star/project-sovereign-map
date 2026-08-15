@@ -747,6 +747,110 @@ def _interrupt_choice_from_text(cmd_lower: str, options) -> Optional[str]:
     return None
 
 
+def _addressed_fresh_order_elsewhere(command_text: str, cmd_lower: str,
+                                     pending: dict, world) -> bool:
+    """PC15-2(b): the typed line explicitly addresses the interrupt's OWN
+    marshal but names ground the interrupt is not about — a fresh ORDER,
+    not an answer.
+
+    Live case: 'Davout, march to London' while Davout held a cannon_fire
+    interrupt resolved as "investigate" and the order to London was eaten.
+    An explicitly-addressed command naming a region or enemy outside the
+    interrupt's own context (its location / enemy / blocked destination)
+    falls through to the parser; the executor's override-cancel then clears
+    an order-bound interrupt with the order it replaces (TUT-F4a).
+
+    Un-addressed answers ("press on", "hold", "investigate the guns") keep
+    the current keyword behaviour by construction — no leading address
+    token, no fresh-order reading.
+    """
+    from backend.commands.parser import _leading_addressed_token
+
+    if not _leading_addressed_token(command_text):
+        return False
+    own_ground = {
+        str(pending.get("location") or "").lower(),
+        str(pending.get("enemy") or "").lower(),
+        str(pending.get("destination") or "").lower(),
+    }
+    own_ground.discard("")
+    for region_name in world.regions.keys():
+        rl = region_name.lower()
+        if rl in own_ground:
+            continue
+        if _mentions_whole(cmd_lower, rl):
+            return True
+    player_nation = world.player_nation
+    for em in world.marshals.values():
+        if em.nation == player_nation:
+            continue
+        el = em.name.lower()
+        if el in own_ground:
+            continue
+        if _mentions_whole(cmd_lower, el):
+            return True
+    return False
+
+
+def _addressed_lost_marshal_refusal(command_text: str, world):
+    """PC15-4: an order addressed to a FALLEN or CAPTURED marshal refuses
+    by name — never roster-nearest substitution.
+
+    Live case: 'Ney, attack Archduke Charles' with Ney destroyed → the LLM
+    parse failed validation ("Unknown marshal: Ney"), fell back to the
+    fast parser's bare `attack`, and Soult's muster/battle ran. The roster
+    of the dead IS knowable (world.fallen_marshals, PC15-1) — the address
+    seam now reads it. Never-existed names keep the CR-2 unknown-name
+    clarify; living names keep the normal path.
+
+    Returns the refusal sentence, or None to proceed.
+    """
+    from backend.ai.validation import _marshal_mentioned
+    from backend.commands.parser import _leading_addressed_token
+    from backend.game_logic.formations import formed_display_name
+
+    token = _leading_addressed_token(command_text)
+    if not token:
+        return None
+    # A living player marshal owns the normal path — unless he is a
+    # PRISONER: captured marshals stay on the roster at strength 0 by
+    # design (W6-7), so an addressed order used to bind to a 0-strength
+    # corps in a foreign capital and fail with a generic strength message.
+    for m in world.get_player_marshals():
+        if _marshal_mentioned(token, m.name):
+            captor = getattr(m, "captured_by", "")
+            if captor:
+                return (f"Marshal {m.name} is a prisoner of "
+                        f"{formed_display_name(world, captor)}, Sire — no "
+                        f"order can reach him until his release.")
+            return None
+    fallen = getattr(world, "fallen_marshals", None) or {}
+    for name, tomb in fallen.items():
+        if (tomb or {}).get("nation") != world.player_nation:
+            continue
+        if _marshal_mentioned(token, name):
+            location = (tomb or {}).get("location") or "the field"
+            line = (f"Marshal {name} is lost to us, Sire — his corps was "
+                    f"destroyed at {location}. His name cannot lead the "
+                    f"army again.")
+            # PT-J4 discipline: the recovery path is named only when the
+            # executor's own commission gate would grant it RIGHT NOW.
+            try:
+                from backend.game_logic.recruitment import (
+                    first_affordable_commission,
+                )
+                bench = first_affordable_commission(
+                    world, world.player_nation)
+            except Exception:
+                bench = None
+            if bench is not None:
+                line += (f" The Marshalate holds men yet — "
+                         f"{bench.get('name', '?')} awaits a commission "
+                         f"at {int(bench.get('cost', 0)):,}g.")
+            return line
+    return None
+
+
 def _collapse_enemy_phase_composition(cleaned_phase: dict) -> dict:
     """PC-3/PC-7 composition collapse, plus CA8-15's empty-nation prune.
 
@@ -1903,6 +2007,15 @@ def execute_command(request: CommandRequest):
                 # ── Guard: if command addresses a DIFFERENT marshal, skip ──
                 # "grouchy march to brittany" should NOT be routed as
                 # Davout's interrupt response just because "march to" matches.
+                #
+                # PC15-2: the check was ROSTER-BOUND, so a command
+                # addressing a name no longer on the roster ('Murat, attack
+                # Buxhowden' with Murat destroyed) read as un-addressed and
+                # was consumed as Soult's destination_blocked answer. The
+                # leading address token is now honoured whether or not the
+                # name still lives — any explicit address that is not THIS
+                # marshal falls through to the parser (where the CR-2 /
+                # PC15-4 guards own the unknown/fallen-name reply).
                 known_marshal_names = [
                     pm.name.lower() for pm in world.get_player_marshals()
                 ]
@@ -1911,6 +2024,24 @@ def execute_command(request: CommandRequest):
                     for name in known_marshal_names
                     if name != m.name.lower()
                 )
+                if not addressed_other:
+                    from backend.ai.validation import _marshal_mentioned
+                    from backend.commands.parser import (
+                        _leading_addressed_token,
+                    )
+                    _addr_token = _leading_addressed_token(command_text)
+                    if _addr_token and not _marshal_mentioned(
+                            _addr_token, m.name):
+                        addressed_other = True
+                # PC15-2(b): the command explicitly addresses the
+                # interrupt's OWN marshal but names ground the interrupt is
+                # not about — a fresh ORDER, not an answer ('Davout, march
+                # to London' was consumed as a cannon-fire "investigate").
+                # Bare un-addressed answers ("press on") keep the current
+                # behaviour.
+                if not addressed_other and _addressed_fresh_order_elsewhere(
+                        command_text, cmd_lower, pending, world):
+                    addressed_other = True
                 if addressed_other:
                     # Command is for a different marshal — let it parse
                     # normally. Clear a STALE informational interrupt, but
@@ -2070,6 +2201,24 @@ def execute_command(request: CommandRequest):
         if carryover["kind"] == "rewrite":
             print(f"[CARRYOVER] '{command_text}' -> '{carryover['command']}'")
             command_text = carryover["command"]
+
+        # ════════════════════════════════════════════════════════════
+        # PC15-4: FALLEN/CAPTURED NAME GUARD — an order addressed to a
+        # marshal who is dead or a prisoner refuses BY NAME before any
+        # parser can substitute the nearest living man. Runs on the FINAL
+        # command text (after carryover rewrites), before the parse.
+        # ════════════════════════════════════════════════════════════
+        _lost_refusal = _addressed_lost_marshal_refusal(command_text, world)
+        if _lost_refusal:
+            print(f"[LOST-MARSHAL GUARD] refused: {command_text!r}")
+            return build_base_response(
+                world, success=False, message=_lost_refusal,
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
 
         # Parse command
         # Build LLM-compatible game state for command parsing

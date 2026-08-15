@@ -805,7 +805,47 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "pair_already_resolved": "The selected pair has already been resolved.",
     "editor_cannot_change_blocker": "The settlement editor cannot change this blocker.",
     "no_peace_seeking_control": "War detail has no current peace-seeking control for this pair.",
-    "request_terms_ineligible": "Requesting enemy terms is not available for this pair.",
+    # PC15-11 (N5 discipline): the generic arm names its remedy, and the
+    # structural codes the affordance actually returns each name their
+    # reason — "not available for this pair" alone answered nothing.
+    "request_terms_ineligible": (
+        "Requesting enemy terms is not available for this pair, Sire — "
+        "seek a bilateral peace through the war detail, or address the "
+        "court directly."
+    ),
+    "war_not_multi_party": (
+        "This is a war of two courts, Sire — there is no coalition "
+        "chancery to name joint terms. Negotiate peace with them "
+        "directly through the war detail."
+    ),
+    "player_not_participant": (
+        "France is not a belligerent in that war, Sire — there are no "
+        "terms to request."
+    ),
+    "player_side_unknown": (
+        "France's side in that war is not established, Sire — there are "
+        "no terms to request."
+    ),
+    "opposing_leader_unknown": (
+        "No single court leads the enemy side of that war, Sire — ask a "
+        "court directly for a bilateral peace."
+    ),
+    "opposing_leader_side_mismatch": (
+        "The enemy side of that war has no settled leader, Sire — ask a "
+        "court directly for a bilateral peace."
+    ),
+    "no_covered_enemy": (
+        "No enemy court stands opposite us in that war, Sire."
+    ),
+    "offer_already_pending": (
+        "Their terms are already on the desk, Sire — answer the offer in "
+        "the mailbox."
+    ),
+    "offer_already_promoted": (
+        "Their terms are already on the desk, Sire — answer the offer in "
+        "the mailbox."
+    ),
+    "war_unknown": "I find no such war in the ledgers, Sire.",
     "active_participant_changed": "A participant changed sides or left the war.",
     "no_resolvable_pairs": "No covered hostile pair can be resolved by these terms.",
     "unknown_settlement_action": "That settlement choice is not recognized.",

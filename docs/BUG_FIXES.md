@@ -38,7 +38,7 @@
 ---
 
 
-## Comprehensive Playtest PC15 — filed August 15, 2026 (**ALL OPEN — report-only session**)
+## Comprehensive Playtest PC15 — filed August 15, 2026 (**THE FIX SLICE LANDED August 15, 2026 — 13 rows FIXED**)
 
 > **Evidence memo = `docs/audits/PLAYTEST_COMPREHENSIVE_2026_08_15.md`
 > (authoritative; per-row digest named below — digests live in
@@ -47,6 +47,61 @@
 > 24-turn anthropic flagship + naval/diplomacy/tutorial arms + a Mode-C
 > visual pass. **The three P1s marked ⛔ are the Round-0 gate** (memo §1).
 > Directional score ≈6.7 — the first rise since July.
+>
+> ### ✅ LANDING RECORD — the PC15 fix slice, August 15, 2026
+>
+> **FIXED (13): PC15-1** (+ the probe-found prisoner-deletion sibling) —
+> `WorldState.destroy_marshal` is now the ONE marshal-removal seam
+> (tombstone registry `world.fallen_marshals`, serialized; a
+> `marshal_destroyed` campaign-log type, 157→158 pins flipped consciously;
+> the dispatch three-arm ladder `marshal_destroyed` w96 /
+> `enemy_marshal_destroyed` w89 / third-party-no-candidate per CA8-D6; the
+> PT-J4 bench note rides both loss classes; gazette + turn-events rail;
+> `marshal_eliminated` retired — it was never in CAMPAIGN_LOG_TYPES; the
+> glorious-charge and coordinated-cleanup pops no longer delete a marshal
+> the forced-retreat arm just CAPTURED, and a census pin forbids bare pops
+> backend-wide) · **PC15-2** — the interrupt route's addressed-other guard
+> is roster-FREE (leading address token honoured for dead names) and an
+> addressed command naming foreign ground falls through as a fresh order
+> (`_addressed_fresh_order_elsewhere`) · **PC15-3** — the pair-substitute
+> chooser is a NAMED hard stop answerable by typed word ("confirm"/"keep"
+> keyword rows; `dialogue_court` reads `selected_target_nation`;
+> `turn_created` stamped at the mount; `clear_stale` now sweeps the QUEUE
+> by the same rules — the displaced-stale-dialogue immortality is closed
+> structurally) · **PC15-4** — the pre-parse LOST-MARSHAL guard: an order
+> addressed to a fallen marshal refuses by name ("lost to us … destroyed
+> at {place}", bench named only when `first_affordable_commission` grants
+> it), a PRISONER refuses with his captor, and the enemy-side
+> `attack <destroyed name>` answers from the tombstone · **PC15-6** —
+> request-terms names the leader substitution and its why
+> (`settlement_request_terms_sent_for_court_talleyrand`) · **PC15-7** —
+> the typed Grand Diversion quote-then-confirms (the expedition's own
+> idiom; AI rung untouched, GR5) · **PC15-9** — tutorial beat VI gate 3→2
+> (the window was ONE player turn; root cause = ambient combat RNG driving
+> Kienmayer's fate, which no campaign-seed pin covers — a 3-seed
+> ambient-RNG window pin now binds it) · **PC15-11** — every structural
+> request-terms refusal code has its own sentence with a remedy ·
+> **PC15-12** — supply-headline subject-verb agreement ({stand}/{have}
+> fields) · **PC15-13** — the low-confidence did-you-mean answers with the
+> marshal's own roads ("From Paris the roads lead to …") instead of
+> string-distance noise · **PC15-14** — the "recovering: 0% (recovered)"
+> non-event yields to the completion beat (one `test_mc_q3` pin flipped
+> consciously) · **PC15-17** — stale `vassal_rebellion_imminent`
+> popups/dialogues naming a non-vassal are retired at load · **PC15-H** —
+> the driver's enemy-phase attack counter reads `action`, the
+> pair-substitute chooser is answerable by policy ("keep"), and
+> PLAYTESTING.md documents the loop-index/world-turn trap.
+>
+> **STILL OPEN with reasons: PC15-5** (neutral-soil family — design-gated,
+> `DESIGN_REFINEMENT.md` PC15-D1) · **PC15-8** (live-parse literal ASK arm
+> — needs a live-API probe session; the mock guardrail is pinned, the live
+> prompt table is not verifiable offline) · **PC15-10** (CA9-D3's owned
+> revisit slice) · **PC15-15** (truce floor — design-gated, PC15-D4) ·
+> **PC15-16 + PC15-18** (client `.gd` surfaces — belong to the next
+> visual-pass session with `saves/flagship_visual_t12.json`, where the fix
+> can be SEEN; the parse-harness half of any such change is free but the
+> behavior half is not verifiable headlessly).
+> Tests: `tests/test_pc15_fix_slice_2026_08_15.py` (53).
 
 | ID | P | Finding | Evidence | Where to look |
 |---|---|---|---|---|

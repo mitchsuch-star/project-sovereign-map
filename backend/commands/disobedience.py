@@ -1668,9 +1668,11 @@ class DisobedienceSystem:
                 transfer_message = f"{troop_count:,} troops dispersed - no nearby commanders within 3 regions."
                 print("  [REDEMPTION] Troops dispersed (no ally within 3 regions)")
 
-            # Remove marshal from world
+            # Remove marshal from world (PC15-1: tombstone, log=False —
+            # the redemption arc announces the dismissal itself)
             if marshal_name in world.marshals:
-                del world.marshals[marshal_name]
+                world.destroy_marshal(marshal_name, cause="dismissed",
+                                      log=False)
 
             # Grant authority bonus for difficult command decision
             authority_bonus = 10

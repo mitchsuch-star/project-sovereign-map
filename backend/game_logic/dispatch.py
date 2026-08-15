@@ -54,6 +54,9 @@ BAND_MIDPOINTS: Dict[str, int] = {
 # rendered as one prose sentence, plus up to 2 sub-beats.
 HEADLINE_WEIGHTS: Dict[str, int] = {
     "home_captured": 100,       # own homeland region captured by enemy
+    # PC15-1: annihilation outranks capture — a prisoner can be ransomed,
+    # a destroyed corps is gone for good. One above marshal_captured.
+    "marshal_destroyed": 96,
     "marshal_captured": 95,     # W6-7 capture events (top-weight per spec)
     # ── CA8-26 / gate CA8-D6 (close-out gate 10.2, Aug 7 2026) ──────────
     # The dispatch finally has headline classes for a FRENCH SUCCESS. The
@@ -85,6 +88,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # `enemy_eliminated` (93) so the triumph ladder stays ordered by its
     # own scale. In-band tunable.
     "enemy_marshal_captured": 88,
+    # PC15-1: the destroyed mirror — permanent, so one above the capture
+    # mirror; still below own_broken 90 (at equal scale the wound leads).
+    "enemy_marshal_destroyed": 89,
     "own_mauled": 85,           # own marshal lost >=25% strength
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
     # CA8-22 (creative audit, Aug 4 2026): the same province, when it was a
@@ -195,8 +201,10 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
     "supply_strain": [
         "Sire — {turns} turns of famine at {region} now. {losses} gone, and "
         "not one of them to the enemy. {remedy}",
-        "Sire — {who} have been {turns} turns over what {region} can feed. "
-        "{losses}. The country will ask where the army went. {remedy}",
+        # PC15-12: {have} agrees with the subject — "Massena has been",
+        # "Ney and Soult have been".
+        "Sire — {who} {have} been {turns} turns over what {region} can "
+        "feed. {losses}. The country will ask where the army went. {remedy}",
     ],
     "levy_open": [
         "Sire — {turns} turns now with the establishment under the ordinance "
@@ -215,6 +223,10 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
     # because the captive court and the field are both optional.
     "enemy_marshal_captured": "Sire — {line}",
+    # PC15-1: both destruction arms composed backend-side (field and
+    # victor are optional keys on the event).
+    "marshal_destroyed": "Sire — {line}",
+    "enemy_marshal_destroyed": "Sire — {line}",
     # CA8-9: the joined arc. The whole sentence is composed backend-side by
     # `_compose_reversal_line` because its shape varies with how many acts
     # the campaign actually produced (crowned / endowed / beaten /
@@ -230,9 +242,11 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
                            "not forget it."),
     # CA8-2: states the establishment, the capacity and the overage, so the
     # remedy "move a corps" finally has a target size.
-    "supply_strain": ("Sire — {who} stand {strength} men at {region}, which "
-                      "feeds {capacity}. {over} too many. {losses} lost in "
-                      "{turns} turns. {remedy}"),
+    # PC15-12: {stand} agrees with the subject — one marshal "stands",
+    # several "stand" (the played line read "Massena stand 21,858 men").
+    "supply_strain": ("Sire — {who} {stand} {strength} men at {region}, "
+                      "which feeds {capacity}. {over} too many. {losses} "
+                      "lost in {turns} turns. {remedy}"),
     "war_touches_us": "Sire — {line}",
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
@@ -291,6 +305,10 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # (`_pick_berthier_note`), so splitting the class by direction is the
     # whole fix; this is its other half.
     "enemy_marshal_captured": "A commander is not replaced like a battalion, Sire. Press them before they find another.",
+    # PC15-1: the fall is permanent — the note answers with the recovery
+    # path that actually exists (the bench; PT-J4's commission arm rides it).
+    "marshal_destroyed": "France does not replace such men by decree, Sire. The army fights one corps short until another is raised.",
+    "enemy_marshal_destroyed": "Their order of battle is one commander shorter — permanently, Sire. Press the advantage while their line is headless.",
     # CA8-9: Berthier closes on the man, not the ledger — the note answers
     # the arc the headline opened.
     #
@@ -512,6 +530,36 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                      line=(f"Marshal {cap_marshal}{_of} is taken{_at} — he "
                            f"is our prisoner, and their order of battle is "
                            f"one commander shorter."))
+        elif etype == "marshal_destroyed":
+            # ── PC15-1: annihilation gets the same direction ladder the
+            # capture split earned (CA9 F12 + N2): own loss / our kill /
+            # third party = no candidate (gate CA8-D6 — a third party's
+            # kill is never our triumph, and is not our wound either).
+            des_nation = e.get("nation", "")
+            des_victor = e.get("victor", "")
+            des_marshal = humanize_entity_name(e.get("marshal", "?"))
+            des_at = (f" at {e['location']}" if e.get("location") else "")
+            if des_nation == player_nation:
+                if e.get("cause") == "attrition":
+                    des_line = (f"Marshal {des_marshal}'s corps has wasted "
+                                f"away{des_at} — starved out to the last "
+                                f"man. He will not return to the order of "
+                                f"battle.")
+                else:
+                    des_line = (f"Marshal {des_marshal}'s corps has been "
+                                f"DESTROYED{des_at}. He will not return to "
+                                f"the order of battle.")
+                _add("marshal_destroyed",
+                     f"marshal_destroyed:{e.get('marshal', '?')}",
+                     line=des_line)
+            elif des_victor == player_nation:
+                _of = (f" of {with_definite_article(formed_display_name(world, des_nation))}"
+                       if des_nation else "")
+                _add("enemy_marshal_destroyed",
+                     f"enemy_marshal_destroyed:{e.get('marshal', '?')}",
+                     line=(f"Marshal {des_marshal}{_of} is destroyed{des_at} "
+                           f"— his corps annihilated, his name struck from "
+                           f"their order of battle."))
         elif etype in ("marshal_broken", "retreat"):
             # ────────────────────────────────────────────────────────────
             # CA8-5 (creative audit, Aug 4 2026): `own_broken` carries the
@@ -1594,6 +1642,10 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
         "region": region_name,
         "fields": {
             "who": _join_marshal_names(names),
+            # PC15-12: subject-verb agreement — the fallback "our corps"
+            # (empty names) reads singular too.
+            "stand": "stand" if len(names) > 1 else "stands",
+            "have": "have" if len(names) > 1 else "has",
             "over": f"{over:,}",
             "strength": f"{total:,}",
             # CA8-2: the capacity is stated. It appears on no screen the
@@ -2304,6 +2356,8 @@ _DISPATCH_EVENT_TYPES = {
     "marshal_captured",
     "last_stand",
     "marshal_released",
+    # PC15-1: annihilation reaches the briefing's turn-events rail too.
+    "marshal_destroyed",
     # Jealousy v3.2 (docs/JEALOUSY_SPEC.md §11): the grievance arc — from
     # Berthier's restlessness warning through fire, autonomous attack,
     # escalation, resolution, and the glory crown changing heads.
@@ -2361,6 +2415,7 @@ def _build_turn_events(
                           "capital_proximity_alert", "auto_glorious_charge",
                           "reckless_move", "reckless_no_target",
                           "marshal_captured", "last_stand",
+                          "marshal_destroyed",
                           "jealousy_fired", "jealousy_autonomous_warning",
                           "jealousy_autonomous_attack", "jealousy_escalation",
                           "jealousy_separation_warning", "glory_crown_lost",
@@ -2567,7 +2622,10 @@ def _pick_berthier_note(
         # appeared zero times in 108 measured responses). Availability is
         # first_affordable_commission — the gate itself, never a copy —
         # so the sentence can never promise what the executor refuses.
-        if headline_class == "marshal_captured":
+        # PC15-1: a DESTROYED marshal shares the capture's recovery path —
+        # the bench is the only way back, so the same commission arm rides
+        # both loss classes.
+        if headline_class in ("marshal_captured", "marshal_destroyed"):
             from backend.game_logic.recruitment import (
                 first_affordable_commission,
             )

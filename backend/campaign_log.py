@@ -102,6 +102,8 @@ CAMPAIGN_LOG_TYPES = {
     "marshal_captured",
     "last_stand",
     "marshal_released",
+    # PC15-1: corps annihilation — the fall was silent before this type
+    "marshal_destroyed",
     # Territory
     "region_captured",
     # Economy
@@ -355,6 +357,7 @@ CATEGORY_MAP = {
     "marshal_commissioned": "command",
     "order_voided_by_battle": "command",
     "marshal_captured": "combat",
+    "marshal_destroyed": "combat",
     "last_stand": "combat",
     "marshal_released": "diplomacy",
     # Diplomacy (Session 8D)
@@ -682,6 +685,20 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             if region:
                 intel = world_state.get_region_intel(region)
                 if intel.visibility == FULL:
+                    filtered.append(event)
+            continue
+
+        # PC15-1: marshal_destroyed — the player's own falls passed the
+        # player-event gate above; an enemy corps destroyed BY the player's
+        # army is the player's own battle (victor arm); a third party's fall
+        # needs eyes on the field (region PARTIAL+).
+        if event_type == "marshal_destroyed":
+            if event.get("victor") == player_nation:
+                filtered.append(event)
+                continue
+            if region:
+                intel = world_state.get_region_intel(region)
+                if intel.visibility in (FULL, PARTIAL):
                     filtered.append(event)
             continue
 
@@ -1604,6 +1621,19 @@ def format_event_oneliner(event: dict) -> str:
         captor = event.get("captor", "the enemy")
         location = event.get("location", "the field")
         return f"Marshal {marshal} CAPTURED by {captor} at {location}"
+
+    if event_type == "marshal_destroyed":
+        marshal = event.get("marshal", "Unknown")
+        location = event.get("location", "the field")
+        victor = event.get("victor") or ""
+        cause = event.get("cause") or ""
+        if cause == "attrition":
+            return (f"Marshal {marshal}'s corps DESTROYED at {location} — "
+                    f"starved out by supply attrition")
+        if victor:
+            return (f"Marshal {marshal}'s corps DESTROYED at {location} "
+                    f"by {victor}")
+        return f"Marshal {marshal}'s corps DESTROYED at {location}"
 
     if event_type == "last_stand":
         marshal = event.get("marshal", "Unknown")

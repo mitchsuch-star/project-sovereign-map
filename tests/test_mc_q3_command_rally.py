@@ -438,14 +438,21 @@ class TestReviewPassSurfaces:
         assert isinstance(states["Tooltip"]["broken_turns_left"], int)
         assert states["Tooltip Poor"]["retreat_penalty"] == "-55%"
 
-    def test_no_rally_note_on_the_recovered_tick(self):
-        """The 'rallies the survivors' note never rides the final
-        '0% (recovered)' event (mirrors the broken-side guard)."""
+    def test_no_recovering_line_on_the_recovered_tick(self):
+        """PC15-14 (flipped consciously from the old '0% (recovered)'
+        pin): when recovery COMPLETES this tick there is NO 'recovering…
+        penalty: 0%' non-event at all — the `retreat_recovered` completion
+        event alone carries the news. The rally-note guard this pin
+        originally held is subsumed: no recovering line, no note."""
         m = make_marshal(name="Guard", command=9)
         m.retreating = True
         m.retreat_recovery = 2
         w = make_world(m)
-        events = [e for e in tick(w) if e.get("type") == "retreat_recovery"]
-        assert len(events) == 1
-        assert events[0]["penalty"] == "0% (recovered)"
-        assert "rallies the survivors" not in events[0]["message"]
+        events = tick(w)
+        recovering = [e for e in events
+                      if e.get("type") == "retreat_recovery"]
+        recovered = [e for e in events
+                     if e.get("type") == "retreat_recovered"]
+        assert recovering == [], (
+            "the 0% 'recovering' non-event returned (PC15-14)")
+        assert len(recovered) == 1

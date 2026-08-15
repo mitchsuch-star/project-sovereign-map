@@ -322,7 +322,7 @@ class TestZombieMarshalCleanup:
         events = world.process_supply_attrition()
 
         # Check for elimination event
-        elim_events = [e for e in events if e["type"] == "marshal_eliminated"]
+        elim_events = [e for e in events if e["type"] == "marshal_destroyed"]
         if "Ney" not in world.marshals:
             # Ney was eliminated
             assert any(e["marshal"] == "Ney" for e in elim_events)
@@ -348,7 +348,7 @@ class TestZombieMarshalCleanup:
             assert world.marshals["Ney"].strength > 0
         else:
             # Was eliminated — check event exists
-            assert any(e.get("type") == "marshal_eliminated" and e["marshal"] == "Ney"
+            assert any(e.get("type") == "marshal_destroyed" and e["marshal"] == "Ney"
                        for e in events)
 
 

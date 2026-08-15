@@ -299,8 +299,10 @@ class MovementExecutor:
                             f"Name a destination.")
             }
 
-        # Use fuzzy matching for region lookup
-        target_region, error = self._executor._fuzzy_match_region(target, world)
+        # Use fuzzy matching for region lookup (PC15-13: the marshal's own
+        # province anchors the low-confidence suggestions geographically)
+        target_region, error = self._executor._fuzzy_match_region(
+            target, world, near=marshal.location)
         if error:
             return error
 

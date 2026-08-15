@@ -377,4 +377,7 @@ class TestSerializationEnforcement:
                 # Jealousy v3.2: the petition channel + recruitment pool
                 # are DELIBERATELY serialized world state, not indexes.
                 "pending_marshal_petition", "marshal_pool",
+                # PC15-1: the roster of the dead is deliberately
+                # serialized state (tombstones), not an index.
+                "fallen_marshals",
             ), f"Unexpected marshal-related key in save: {key}"

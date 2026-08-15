@@ -631,9 +631,18 @@ class TestSection12Serialization:
         assert world2.vassals["Saxony"]["loyalty"] == 60
 
     def test_ae7_popup_fields_roundtrip(self):
-        """AE-7: Popup fields survive save/load."""
+        """AE-7: Popup fields survive save/load.
+
+        PC15-17: the rebellion popup survives ONLY while its court is a
+        live player vassal — a stale popup naming a non-vassal is retired
+        at load (fixture_t20 shipped a "Switzerland teeters" modal while
+        "invest" refused). Saxony is made a real vassal here so the
+        round-trip half of the pin still binds.
+        """
         world = _make_world()
         world.coalition_popup = {"message": "Coalition formed!"}
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 8,
+                                   "regions": []}
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony"}
         data = world.to_dict()
         world2 = WorldState.from_dict(data)

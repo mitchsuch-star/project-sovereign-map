@@ -2130,6 +2130,17 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "I shall ask {court}'s chancery to name its terms for {war_label}, "
         "Sire. Expect an answer with the next dispatches."
     ),
+    # PC15-6: when the player NAMED a court that is not the coalition's
+    # leader, the substitution must say itself — "request terms from
+    # Austria" answered by Britain with no explanation read as the typed-
+    # router misroute class CA9 fixed. Leader-authored terms ARE the
+    # design at settlement tier; the sentence now carries the why.
+    "settlement_request_terms_sent_for_court_talleyrand": (
+        "{named_court} fights under {court}'s lead in {war_label}, Sire — "
+        "the coalition's terms are the leader's to name, not each "
+        "court's own. I shall ask {court}'s chancery to speak for their "
+        "alliance. Expect an answer with the next dispatches."
+    ),
     "settlement_request_terms_refused_court": (
         "{speaker} answers for {court}: the court sees no need to name "
         "terms while the war runs in its favor. The request may be "

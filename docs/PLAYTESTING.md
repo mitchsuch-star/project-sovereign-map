@@ -76,6 +76,13 @@ console to stdout instead of `server_console.log`).
 Turns not listed just end. The driver always ends the turn after a
 turn's list runs.
 
+> **⚠ `turns` keys are the driver's own 1-based LOOP INDEX, not world
+> turn numbers** (PC15-H — this cost one probe run). With `--from-save`
+> the world may already be at turn 20 while the script's `"1"` fires on
+> the first loop; blocking popups answered mid-loop can also let the
+> world turn drift ahead of the index. Anchor a script to loop order,
+> never to the calendar; the digest prints both.
+
 ### The answer policy (what an unattended run does at each fork)
 
 Every default is logged in the digest next to the popup it answered —

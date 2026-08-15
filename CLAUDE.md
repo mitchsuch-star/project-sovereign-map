@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,607 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,662 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
 > **▶ THE COMPREHENSIVE PLAYTEST RAN August 15, 2026 (third session
 > that day) — the played campaign the queue owed. Memo of record =
@@ -59,17 +59,29 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > visual surfaces walked with screenshots (`docs/audits/
 > PLAYTEST_F_*_2026_08_15.jpg`; the USER's own sign-off pass still
 > owed — `saves/flagship_visual_t12.json` staged for it).
-> **▶ NEXT = THE PC15 FIX SLICE (Round-0 gate), THEN ROW NP (NAPOLEON),
-> THEN POSITION 10:** `BUG_FIXES.md` §Comprehensive Playtest PC15 — the
-> ⛔ P1 trio+1 (PC15-1 silent marshal destruction · PC15-2 the interrupt
-> route swallows addressed commands · PC15-3 the settlement-confirm
-> wedge · PC15-4 dead-name silent substitution) + the tutorial beat-IV
-> anchor (PC15-9 — Round 0 leads with the School). Design questions =
-> `DESIGN_REFINEMENT.md` §PC15-D1..D4 (neutral-soil retreats, ally
-> supply, tutorial expectation dormancy, the exhausted-pair truce
-> floor). The PC15-1 family gained a probe-found sibling Aug 15 (a
-> captured strength-0 marshal silently deleted the turn after capture —
-> chip filed; fix with PC15-1, BEFORE NP-4 builds on that seam).
+> **▶ ~~THE PC15 FIX SLICE~~ ✅ LANDED August 15, 2026 (fifth session
+> that day) — the Round-0 gate is CLEARED. NEXT = ROW NP (NAPOLEON),
+> THEN POSITION 10.** Landing record = `BUG_FIXES.md` §Comprehensive
+> Playtest PC15 (authoritative); `tests/test_pc15_fix_slice_2026_08_15.py`
+> (53). **13 rows FIXED in one session**: the ⛔ P1 trio+1 — PC15-1
+> (`WorldState.destroy_marshal` = the ONE removal seam: serialized
+> `fallen_marshals` tombstones, `marshal_destroyed` log type 157→158
+> pins flipped, dispatch three-arm ladder w96/w89/none + PT-J4 bench
+> note, gazette; the prisoner-pop sibling closed — the glorious-charge /
+> coordinated-cleanup pops no longer delete a marshal the fate arm just
+> captured; census pin forbids bare pops; NP-4's seam is safe) · PC15-2
+> (interrupt route: roster-free address guard + fresh-order-elsewhere
+> fall-through) · PC15-3 (pair-substitute chooser = named HARD_STOP,
+> typed confirm/keep resolve it, `clear_stale` sweeps the dialogue
+> QUEUE) · PC15-4 (pre-parse lost-marshal guard — fallen names refuse by
+> tombstone, prisoners by captor, never nearest-substitution) — plus
+> PC15-9 (tutorial beat VI gate 3→2; root cause = ambient combat RNG,
+> which no campaign-seed pin covers; 3-seed window pin) and the sweep
+> PC15-6/7/11/12/13/14/17/H. **Still open with reasons**: PC15-5/-15
+> design-gated (`DESIGN_REFINEMENT.md` §PC15-D1..D4 unanswered), PC15-8
+> needs a live-API probe session, PC15-10 is CA9-D3's, PC15-16/-18 are
+> client `.gd` surfaces for the next visual pass
+> (`saves/flagship_visual_t12.json` staged).
 >
 > **▶ ROW NP — NAPOLEON, "The Emperor Takes the Field" (inserted
 > August 15, 2026 by user direction, before position 10; spec + gate

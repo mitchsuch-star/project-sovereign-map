@@ -2850,6 +2850,12 @@ def _handle_pair_peace_substitute_action(
         selected_target=selected_target,
         eligibility=eligibility,
     )
+    # PC15-3: the chooser was the only staged dialogue with no
+    # turn_created — clear_stale read it as turn 0, so a chooser that held
+    # the ACTIVE slot at a turn boundary was force-popped silently
+    # (losing its prior_dialogue snapshot), while one displaced into the
+    # queue was immortal. Stamped like every sibling.
+    confirm_dialogue["turn_created"] = int(world.current_turn)
     world.dialogue_manager.replace(confirm_dialogue)
     return {
         "success": True,

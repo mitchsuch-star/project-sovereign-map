@@ -250,9 +250,16 @@ class CommandExecutor:
                 "suggestions": result["suggestions"]
             })
 
-    def _fuzzy_match_region(self, region_name: str, world: WorldState) -> Tuple[Optional[object], Optional[Dict]]:
+    def _fuzzy_match_region(self, region_name: str, world: WorldState,
+                            near: Optional[str] = None) -> Tuple[Optional[object], Optional[Dict]]:
         """
         Try to find region with fuzzy matching for typo tolerance.
+
+        `near` (PC15-13): the ordering marshal's own province, when the
+        caller knows it. Only the LOW-confidence branch reads it — when
+        string distance has nothing real to offer ('Alsace' → "Wales,
+        Balearics, Ulster"), the honest answer is the roads that actually
+        lead out of {near}, not the closest-spelled name on the map.
 
         Returns:
             Tuple of (region_object, error_dict)
@@ -305,6 +312,23 @@ class CommandExecutor:
             })
         else:
             # Low confidence - show suggestions
+            # PC15-13: when string distance has nothing real ('Alsace' →
+            # Wales/Balearics/Ulster) and the caller told us where the
+            # marshal STANDS, name the roads out of his province instead —
+            # geographic sense over spelling distance.
+            near_region = world.get_region(near) if near else None
+            if near_region is not None:
+                roads = [r for r in getattr(near_region, "adjacent_regions", [])
+                         if world.get_region(r) is not None][:4]
+                if roads:
+                    return (None, {
+                        "success": False,
+                        "message": (
+                            f"Region '{region_name}' not found. From "
+                            f"{near_region.name} the roads lead to: "
+                            f"{', '.join(roads)}."),
+                        "suggestions": roads,
+                    })
             suggestions_text = ", ".join(result["suggestions"][:3]) if result["suggestions"] else "none"
             return (None, {
                 "success": False,

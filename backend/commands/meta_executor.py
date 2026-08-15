@@ -1482,7 +1482,9 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             else:
                 transfer_msg = f"{troop_count:,} troops dispersed (no ally within 3 regions)."
 
-            del world.marshals[marshal.name]
+            # PC15-1: tombstone (log=False — the dismissal announces
+            # itself) so a later addressed order refuses by name.
+            world.destroy_marshal(marshal, cause="dismissed", log=False)
 
             return {
                 "success": True,

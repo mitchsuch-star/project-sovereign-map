@@ -231,6 +231,10 @@ class TestCooldownSerializationCharacterization:
         world = WorldFactory.basic()
         world.coalition_popup = {"name": "test"}
         world.diplomatic_sabotage_popup = {"target": "Prussia"}
+        # PC15-17: the rebellion popup survives the round-trip only while
+        # its court is a LIVE player vassal (stale ones retire at load).
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 8,
+                                   "regions": []}
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony"}
         world.diplomatic_objection_popup = {"severity": "STRONG"}
         world.incoming_proposal_popup = {"from_nation": "Austria"}

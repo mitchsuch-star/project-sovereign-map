@@ -124,6 +124,10 @@ DIALOGUE_TYPE_ANSWERS = {
     # under decline). Found blocked in the Aug-15 comprehensive playtest
     # (diplomacy arm, fixture_t20 + --diplomacy accept).
     "settlement_confirm": "diplomacy",
+    # PC15-3/PC15-H: the pair-substitute chooser — previously unanswerable
+    # by policy (the Aug-15 wedge). An unattended run stays with the joint
+    # settlement; typed "keep" resolves keep_joint_settlement.
+    "settlement_pair_substitute_confirm": "keep",
 }
 
 # Popup keys that are DISPLAY-ONLY: delivered popped (the queue clears on
@@ -323,9 +327,14 @@ class Digest:
     def enemy_phase(self, actions):
         if not actions:
             return
+        # PC15-H: enemy-phase rows carry the verb under `action` (the
+        # ai_action dict), never `action_type` — every digest read
+        # "0 attacks" while the log showed battles.
         attacks = [a for a in actions
-                   if "attack" in str(a.get("action_type", ""))]
-        lines = [first_line(a.get("message") or a.get("action_type"), 120)
+                   if "attack" in str(a.get("action")
+                                      or a.get("action_type") or "")]
+        lines = [first_line(a.get("message") or a.get("action")
+                            or a.get("action_type"), 120)
                  for a in attacks[:4]]
         summary = f"enemy phase: {len(actions)} actions, {len(attacks)} attacks"
         if lines:
@@ -543,6 +552,11 @@ class Answerer:
             policy_key = DIALOGUE_TYPE_ANSWERS[dtype]
             if policy_key == "confirm":
                 return find("confirm", "yes", "proceed", "send") or "confirm"
+            # PC15-3/PC15-H: the pair-substitute chooser — stay with the
+            # joint settlement (option id when listed, else the typed
+            # keyword the router now resolves).
+            if policy_key == "keep":
+                return find("keep") or "keep"
             if policy_key in ("war_purpose", "ultimatum"):
                 answer = self.policy[policy_key]
                 if answer == "defy":

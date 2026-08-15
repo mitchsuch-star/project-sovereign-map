@@ -413,6 +413,12 @@ class TestV2_90_VassalRebellionPopupList:
     def test_popup_list_serializes(self):
         """Popup list roundtrips through save/load."""
         world = _make_world()
+        # PC15-17: rebellion popups survive the round-trip only while
+        # their courts are LIVE player vassals (stale ones retire at load).
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 5,
+                                   "regions": []}
+        world.vassals["Bavaria"] = {"lord": "France", "loyalty": 8,
+                                    "regions": []}
         world.vassal_rebellion_imminent_popups = [
             {"nation": "Saxony", "loyalty": 5},
             {"nation": "Bavaria", "loyalty": 8},
