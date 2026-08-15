@@ -439,9 +439,14 @@ above) and pick ONE intent action:
 - CAUTIOUS marshal -> he looks before he leaps. For EVERY delegated phrasing
   above, resolve to action "scout". A cautious marshal never launches an assault
   on a vague order — if in doubt, he scouts.
-- LITERAL marshal -> he will not presume your intent; the game asks the Emperor
-  directly, so do not force a guess for him.
+- LITERAL marshal -> he will not presume your intent, and neither may you:
+  for a delegated task addressed to a LITERAL marshal, set action "unknown"
+  and confidence 0.3 or lower. NEVER resolve his delegation to attack, scout,
+  move, or any other action — the game asks the Emperor directly.
 - AGGRESSIVE marshal -> he is eager for battle.
+The same rule applies when the marshal's personality is not shown or you are
+unsure: a delegation you cannot classify resolves to action "unknown", never
+to attack.
 Resolve to the INTENT action only — the game decides the rest (an immediate blow
 vs. an advance to contact) from the live map. Never invent a target the order
 did not name.

@@ -163,7 +163,14 @@ PARSE_TOOL = {
             },
             "action": {
                 "type": "string",
-                "description": "One of the Valid Actions listed in the prompt.",
+                "description": (
+                    "One of the Valid Actions listed in the prompt — or the "
+                    "string \"unknown\" when the prompt's rules forbid "
+                    "guessing (a delegated task addressed to a LITERAL "
+                    "marshal, or an order you cannot map to any action). "
+                    "\"unknown\" is a legitimate answer; never substitute a "
+                    "guessed action for it."
+                ),
             },
             "target": {
                 "type": ["string", "null"],

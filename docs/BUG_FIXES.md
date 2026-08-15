@@ -92,9 +92,35 @@
 > pair-substitute chooser is answerable by policy ("keep"), and
 > PLAYTESTING.md documents the loop-index/world-turn trap.
 >
-> **STILL OPEN with reasons: PC15-8** (live-parse literal ASK arm
-> — needs a live-API probe session; the mock guardrail is pinned, the live
-> prompt table is not verifiable offline) · **PC15-10** (CA9-D3's owned
+> ~~**PC15-8**~~ ✅ **FIXED August 15, 2026 (the live-probe session, eighth
+> that day)** — `tests/test_pc15_8_delegation_nation_arm.py` (14). The
+> live probe REPRODUCED the flagship failure (live parse → `attack` at
+> 0.85 for literal Soult) and found the root cause was NOT the router:
+> `_resolve_target` knew officers and provinces but not NATION references,
+> so "the Austrians" made `detect_delegation` return None and the whole
+> CR-5 router — literal ASK included — was bypassed. Fix at three seams,
+> router untouched (guardrail (e) pinned): (1) the deterministic NATION
+> arm — demonym/nation-name → nearest VISIBLE enemy of that nation
+> (fog-honest R5, at-war-only so a delegation never hands the aggressive
+> arm a friendly officer, region table still shadows "Hanover");
+> "the Austrians" now resolves to **Mack at Swabia** — the 1805-exact
+> answer — and every personality gets its blessed arm; (2) the prompt's
+> literal row gained a concrete no-guess instruction (action "unknown");
+> (3) PARSE_TOOL's `action` description had said "One of the Valid
+> Actions", OVERRIDING the prompt — it now names the "unknown" escape
+> hatch. **Live compliance measured, not assumed** (temp-0 probes: 2/3
+> unknown + 1/3 scout on the resolvable case, 2/2 unknown on the
+> unresolvable case, never attack; the deterministic router forced ASK in
+> every probe) — so no parse-tier live pin is written: the corpus row
+> `cr5-deleg-literal-soult-resolves-live` (which pinned success:true off
+> the model resolving an action) is RETIRED for a `mock_only` row, and the
+> definitive literal→ASK stays deterministic at the endpoint tier.
+> Endpoint verified LIVE end to end: the ASK fired for Soult and the
+> aggressive PURSUE + bad-odds interrupt fired for Ney, both on the
+> nation phrasing; the two surviving live corpus rows re-ran green twice;
+> mock corpus 516/516.
+>
+> **STILL OPEN with reasons: PC15-10** (CA9-D3's owned
 > revisit slice — **✅ EVALUATED + SPEC'D August 15, 2026, seventh session
 > that day, AND THE §6 GATE RULED THE SAME DAY at the recommended defaults
 > under the user's delegated grant: fix design + gate record =
@@ -155,7 +181,7 @@
 | PC15-5 | P2 | **The neutral-soil family.** (a) Forced retreats route broken armies through NEUTRAL territory including foreign capitals — Mack fled Frankfurt→Berlin→Dresden (three neutral courts) with `[RETREAT DEBUG] allies=0, enemies=0` treating neutral soil as valid; (b) autonomous glory-attacks pursue him there (Ney fought at Frankfurt, Lannes stormed BERLIN at peace with Prussia); (c) the resulting war-purpose→Conquest→Talleyrand-objection→proceed→confirm chain produced **no war, no state change, and no receipt** — three modals of theater, in three separate runs, twice re-firing for the same court. Either the declaration should happen or the chain should not start. | variance_jena T17–19 · flagship-1805 T2/T5 · naval-descent T5–6/T10 | retreat destination scan (neutral exclusion or internment rule); jealousy autonomous-attack target filter; the incursion declare-war pipeline's terminal arm |
 | PC15-6 | P2 | **`request terms from Austria` answered by BRITAIN.** The named court is silently replaced by the coalition war's leader ("I shall ask Britain's chancery to name its terms for France + … vs Britain + Austria + Russia"). If leader-authored terms are the design, the response must say why Austria cannot answer; today it reads as the typed-router class CA9 fixed for dialogue answers. | diplomacy-latewar T21 | `request_terms` court resolution in `diplomatic_executor`/`settlement_offers` |
 | PC15-7 | P2 | **The typed Grand Diversion resolves irreversibly with no quote or confirm.** `order the diversion` at readiness 53 with no staged camp executed instantly: "caught coming home … loses 46 sail." The sibling `naval_expedition` quote-confirms; the client chip warns — the typed path just fires. One line cost the fleet. | naval-descent T5 | `naval_executor.naval_diversion` — the expedition's quote-then-confirm idiom |
-| PC15-8 | P2 | **CR-5 literal ASK arm did not fire on live parse.** "Soult, deal with the Austrians" (canonical delegation phrasing, literal marshal) executed a full attack ("MUSTER — Soult … favorable" → battle) instead of asking. Mock-mode guardrail (e) forces ASK; the live prompt table's literal→ask row either wasn't applied or the LLM overrode it. `test_cr5_literal_arm_player_reachable` pins the mock arm only. | flagship-1805 T4 | `prompt_builder` delegation table + the live-parse delegation classification |
+| ~~PC15-8~~ ✅ | P2 | **FIXED Aug 15, 2026** (landing note above). The router was innocent — nation references never reached it: `_resolve_target` gained the fog-honest at-war NATION arm ("the Austrians" → Mack@Swabia), plus the prompt/schema no-guess pair for the residual unresolvable case. Live-verified end to end. | flagship-1805 T4 → live probes Aug 15 | `delegation.py` `_resolve_nation_reference` + `prompt_builder`/`providers.py` |
 | PC15-9 | P2 | **Tutorial beat IV's anchor is broken.** `Senarmont, bombard Jellacic` → "Target out of range" — Jellacic was not adjacent to Munich when the script's beat fires (he was at Bohemia by T6). The S5 anchor-drift class again (S5 re-authored Jellacic cautious to hold him); the school's suggest chip now teaches a refusal. Round 0 leads with the School. | tutorial-lesson T4 digest | `tutorial_1805.json` choreography + `test_tutorial_scenario` beat arithmetic (why did the pins hold while the live run drifted?) |
 | PC15-10 | P2 | **The petition firehose, measured: 19 petitions in 24 turns** (13 jealousy confrontations, 4 rivalry, 2 Fontainebleau) — a modal nearly every turn in a winning multi-marshal campaign. This is CA9-D3's revisit slice (`DESIGN_REFINEMENT.md` §CA9 Design Answers) with its number attached; not a new owner. **Evaluated + spec'd Aug 15, 2026 → `docs/PETITION_POPUP_REVISIT_SPEC.md` (fix design F1–F10; §6 gate ✅ RULED same day at recommended defaults, user-delegated; build order §9, no gate outstanding).** | flagship-1805 jsonl popup counts | CA9-D3 slice → `PETITION_POPUP_REVISIT_SPEC.md` |
 | PC15-11 | P3 | "Requesting enemy terms is not available for this pair." names no reason and no remedy (N5 discipline gap on one refusal). | flagship-1805 T15 | `settlement_offers` request_terms gate copy |

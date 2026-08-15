@@ -117,15 +117,19 @@ class DelegationMatch:
         self.clause = clause                # e.g. 'deal with Mack' (verbatim-ish)
 
 
-def _resolve_target(world, remainder: str) -> Optional[tuple]:
+def _resolve_target(world, remainder: str,
+                    for_marshal=None) -> Optional[tuple]:
     """Resolve the text after the delegation verb to a concrete target.
 
     Prefers an enemy marshal (the §6.2 "target = enemy" table), then a region
-    (the "target = objective" table). Returns (attack_target, scout_target,
-    display) or None. For an enemy marshal, scout_target is his LOCATION (you
-    scout a place); for a region they coincide. Matches the LONGEST known
-    entity name in the remainder so "ArchdukeCharles" beats a "Charles"
-    fragment. Backend uses raw names; Godot humanizes camelCase at render.
+    (the "target = objective" table), then a NATION reference resolved to the
+    nearest visible enemy of that nation (PC15-8). Returns (attack_target,
+    scout_target, display) or None. For an enemy marshal, scout_target is his
+    LOCATION (you scout a place); for a region they coincide. Matches the
+    LONGEST known entity name in the remainder so "ArchdukeCharles" beats a
+    "Charles" fragment. Backend uses raw names; Godot humanizes camelCase at
+    render. ``for_marshal`` (the addressed marshal) anchors the nation arm's
+    nearest-enemy pick.
     """
     if not remainder:
         return None
@@ -179,7 +183,76 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
     _match({r: r for r in getattr(world, "regions", {})})
     if best is not None:
         return best[1], best[2], humanize_entity_name(best[1])
-    return None
+
+    # ── PC15-8: the NATION arm ("deal with the Austrians") ──────────────────
+    # The flagship playtest's canonical literal-delegation phrasing named a
+    # nation's army, not an officer or a province — detection returned None,
+    # the whole CR-5 router (including the literal ASK) was bypassed, and the
+    # live LLM's guessed `attack` executed. A nation reference resolves to the
+    # nearest VISIBLE enemy marshal of that nation (fog-honest, R5 — you
+    # cannot be handed a quarry your staff cannot see), so every arm gets the
+    # same concrete target the other two tables produce. Runs LAST so it can
+    # never shadow an officer or province match ("deal with Hanover" stays
+    # the province). At-peace nations do not resolve — a delegation is not a
+    # declaration of war, and the aggressive arm's PURSUE must never be
+    # handed a friendly court's officer.
+    return _resolve_nation_reference(world, remainder, for_marshal)
+
+
+def _resolve_nation_reference(world, remainder: str,
+                              for_marshal=None) -> Optional[tuple]:
+    """Resolve a nation demonym/name in ``remainder`` to a concrete enemy.
+
+    Returns the same (attack_target, scout_target, display) tuple as
+    ``_resolve_target``, or None when no at-war nation is named or none of
+    its marshals are visible through fog.
+    """
+    from backend.ai.strategic_parser import demonym_to_nation
+
+    nation = demonym_to_nation(remainder, world)
+    if not nation:
+        # The nation NAME itself ("deal with Austria") — word-bounded so a
+        # province that merely contains it cannot match (the region table
+        # above already claimed real province names like Hanover).
+        hay = (remainder or "").lower()
+        get_nations = getattr(world, "get_active_nations", None)
+        for cand in (get_nations() or []) if callable(get_nations) else []:
+            if re.search(r"\b" + re.escape(str(cand).lower()) + r"\b", hay):
+                nation = str(cand)
+                break
+    if not nation:
+        return None
+
+    player = getattr(world, "player_nation", None)
+    if not player or nation == player:
+        return None
+    at_war = getattr(world, "get_nations_at_war_with", None)
+    if not callable(at_war) or nation not in (at_war(player) or []):
+        return None
+
+    # Fog-honest candidate set (R5): visible enemies of the named nation.
+    visible = [m for m in world.get_visible_enemies(player)
+               if getattr(m, "nation", None) == nation
+               and getattr(m, "strength", 0) > 0]
+    if not visible:
+        return None
+
+    def _grid(region_name):
+        region = getattr(world, "regions", {}).get(region_name)
+        return getattr(region, "grid_position", None)
+
+    anchor = _grid(getattr(for_marshal, "location", None)) if for_marshal else None
+
+    def _distance(m):
+        pos = _grid(getattr(m, "location", None))
+        if anchor is None or pos is None:
+            return float("inf")
+        return (pos[0] - anchor[0]) ** 2 + (pos[1] - anchor[1]) ** 2
+
+    # Nearest to the addressed marshal; deterministic name tie-break.
+    best = min(visible, key=lambda m: (_distance(m), m.name))
+    return best.name, (getattr(best, "location", best.name) or best.name), \
+        humanize_entity_name(best.name)
 
 
 def detect_delegation(world, raw_command: str,
@@ -221,7 +294,7 @@ def detect_delegation(world, raw_command: str,
     if marshal.name not in {fm.name for fm in world.get_field_marshals()}:
         return None
 
-    resolved = _resolve_target(world, remainder)
+    resolved = _resolve_target(world, remainder, for_marshal=marshal)
     if resolved is None:
         # No concrete target ("handle the situation") — fall through to the
         # existing pipeline (CR-4 carryover already ran; Berthier recovers).
