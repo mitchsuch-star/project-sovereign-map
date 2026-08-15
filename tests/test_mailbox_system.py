@@ -574,7 +574,13 @@ class TestMailboxPopupIdentity:
         assert result["success"] is True
         assert result["incoming_proposal"]["from_nation"] == "Austria"
         assert world.pending_diplomatic_dialogue["target_nation"] == "Austria"
-        assert world.incoming_proposal_popup["from_nation"] == "Austria"
+        # Pin flipped consciously (PC15-10 B0, F7-3): activation is
+        # RETURN-ONLY. The old contract wrote the activated payload into
+        # `world.incoming_proposal_popup`, which both re-delivered the same
+        # envoy on the next /command AND clobbered whatever popup was
+        # already queued there (here: Britain's, silently destroyed). The
+        # queued copy must survive untouched.
+        assert world.incoming_proposal_popup["from_nation"] == "Britain"
 
 
 # ═══════════════════════════════════════════════════════════════

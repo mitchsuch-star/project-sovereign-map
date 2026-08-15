@@ -2263,42 +2263,45 @@ class DiplomaticExecutor:
                 _ww_seen = set(getattr(world, "war_weary_petitions_seen", set()))
                 _ww_key = f"{objector.name}|{target_nation}"
                 # ════════════════════════════════════════════════════════
-                # A4 (CA9 row 3). Two defects, one shape.
-                #
-                # This is the ONLY petition producer with no pending guard,
-                # while `jealousy._push_petition` assigns
-                # `pending_marshal_petition` unconditionally. So declaring
-                # war on top of a queued §6 confrontation DESTROYED it —
-                # and because the confrontation's `pair@L{level}` latch is
-                # stamped when it is queued, that beat was deleted for the
-                # rest of the campaign, not deferred.
-                #
-                # And the `_ww_seen` stamp was written BEFORE the push, so
-                # any path that did not deliver still burned the
-                # once-per-(marshal, target) promise.
-                #
-                # Fix: skip while the channel is occupied, and stamp only
-                # after a push that is actually returned. Skipping is safe
-                # and deliberate — control falls through to the ally-entry
-                # preview and the declaration proceeds. The marshal keeps
-                # his objection for the next war he is asked to march to.
+                # A4 (CA9 row 3) → PC15-10 B0 (F4 + F3). A4's two defects
+                # (the missing pending guard; the stamp written before the
+                # push) are now enforced by the CHANNEL's own contract:
+                # `_push_petition` decides occupancy/dormancy and returns
+                # the status, and the `_ww_seen` stamp burns ONLY on
+                # QUEUED — so the dormancy belt can no longer eat the
+                # once-per-(marshal, target) promise either (the S8
+                # residue). On BLOCKED the war proceeds (control falls
+                # through to the ally-entry preview) and the marshal keeps
+                # his key for the next war — but the moment is no longer
+                # SILENT: one dispatch line records that the counsel
+                # existed (F3).
                 # ════════════════════════════════════════════════════════
-                _channel_busy = getattr(
-                    world, "pending_marshal_petition", None) is not None
-                if _ww_key not in _ww_seen and not _channel_busy:
+                if _ww_key not in _ww_seen:
                     resume_data = dict(diplomatic_data)
                     resume_data["_war_weary_resolved"] = True
-                    petition = _jealousy.queue_war_weary_petition(
+                    _status = _jealousy.queue_war_weary_petition(
                         world, objector, target_nation,
                         original_command=resume_data)
-                    _ww_seen.add(_ww_key)
-                    world.war_weary_petitions_seen = _ww_seen
-                    return {
-                        "success": True,
-                        "message": petition["body"],
-                        "marshal_petition": petition,
-                        "awaiting_diplomatic_response": False,
-                    }
+                    if _status == _jealousy.PETITION_QUEUED:
+                        petition = world.pending_marshal_petition
+                        _ww_seen.add(_ww_key)
+                        world.war_weary_petitions_seen = _ww_seen
+                        return {
+                            "success": True,
+                            "message": petition["body"],
+                            "marshal_petition": petition,
+                            "awaiting_diplomatic_response": False,
+                        }
+                    if _status == _jealousy.PETITION_BLOCKED:
+                        _jealousy._pending_events(world).append({
+                            "type": "war_weary_blocked_note",
+                            "message": (
+                                f"{objector.name} bit back his counsel as "
+                                f"the order went out — the war was declared "
+                                f"with his objection unheard."),
+                            "nation": world.player_nation,
+                            "marshal": objector.name,
+                        })
 
         # WB-C: Ally-entry preview with bargain warnings
         from backend.game_logic.diplomacy import (

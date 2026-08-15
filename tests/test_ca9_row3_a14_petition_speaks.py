@@ -100,8 +100,13 @@ class TestTheMarshalSpeaks:
         every kind works the same way rather than this one being
         accidentally good."""
         world, ney, _ = pair
-        petition = J.queue_war_weary_petition(
+        # Pin flipped consciously (PC15-10 B0, F4): queue_* returns the
+        # channel STATUS like its siblings; on QUEUED the petition lives
+        # in world.pending_marshal_petition.
+        status = J.queue_war_weary_petition(
             world, ney, "Austria", {"action": "declare_war"})
+        assert status == J.PETITION_QUEUED
+        petition = world.pending_marshal_petition
         assert petition["kind"] == "war_weary"
         assert "I have my duchy, Sire" in petition["speaker_line"]
         # ...and it is no longer buried in the staff prose, where the

@@ -159,6 +159,10 @@ class TestBeatsAreNeverCollapsed:
             "level": J.ESCALATION_PERMANENT_LEVEL})
 
     def test_the_whole_exempt_set_is_one_auditable_tuple(self):
+        # Pin flipped consciously (PC15-10 B0, Aug 15 2026): the two F3
+        # no-silent-losses lines join the exempt set — each replaces a
+        # petition card the occupied channel swallowed, so collapsing them
+        # into the tail would re-silence the loss they exist to mark.
         assert J.JEALOUSY_NARRATION_EXEMPT == (
             "glory_crowned",
             "glory_crown_lost",
@@ -167,6 +171,8 @@ class TestBeatsAreNeverCollapsed:
             "jealousy_separation_warning",
             "fontainebleau_petition",
             "marshal_commissioned",
+            "rivalry_blocked_note",
+            "war_weary_blocked_note",
         )
 
 

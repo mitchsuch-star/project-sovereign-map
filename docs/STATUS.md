@@ -4,6 +4,67 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE PC15 REMAINDER — August 15, 2026 (eighth session that day):
+> ## PC15-16 + PC15-18 FIXED AND SEEN · PC15-8 FIXED LIVE · petition B0 LANDED
+>
+> **Three commits under the standing "do the remaining PC15 fixes"
+> direction. THE ENTIRE PC15 TABLE IS NOW DISPOSED except PC15-10's
+> remaining slices B1–B5 (their owner spec is authoritative). The queue
+> is unchanged: NEXT = ROW NP (Napoleon), then position 10; the CA9-D3
+> build's B1 "The Antechamber" is the first `.gd`-touching slice and its
+> own session.**
+>
+> - **PC15-16 + PC15-18 (the visual-pass pair)** — the CA9-F5 `-1`
+>   sentinel extended to `income_value`/`effective_income`/`stability`
+>   with BOTH `.gd` readers branching ("Income: Unknown" beside Supply);
+>   the N-hotkey investigation found NO N-specific block — every letter
+>   screen hotkey was dead under the auto-re-grabbed terminal focus
+>   (33 `grab_focus` sites), fixed on the F1 precedent as `Alt+<key>` in
+>   `_on_command_input_gui_input` for all six screens; the enemy-phase
+>   wheel got the NV-6 `MOUSE_FILTER_PASS` fix and the NV-P1 wheel-eater
+>   class is CLOSED BY CENSUS — a structural pin over every `.tscn` found
+>   and fixed EIGHT more latent members incl. the terminal scrollback
+>   (the July-25 `scroll_active=false` fix was proved insufficient) and
+>   the settlement per-court table. All four surfaces driven live in the
+>   client (Mode C, `SOVEREIGN_PORT=8006`, flagship_visual_t12):
+>   evidence `docs/audits/PC15_16_*.jpg` + `PC15_18_*.jpg`. Parse harness
+>   EXIT=0, boot smoke 0 SCRIPT ERROR.
+>   `test_pc15_16_18_visual_fixes_2026_08_15.py` (13). ⚠ NOTE: the Mode-C
+>   session's end-turns overwrote `saves/autosave.json` (now flagship
+>   T14); named saves untouched.
+> - **PC15-8 (live literal ASK)** — reproduced live first (parse resolved
+>   "Soult, deal with the Austrians" to attack at 0.85): the router was
+>   INNOCENT — `_resolve_target` knew officers and provinces but never a
+>   NATION reference, so detection returned None and the whole CR-5
+>   router incl. the literal ASK was bypassed. Fixed at detection: the
+>   fog-honest at-war NATION arm ("the Austrians" → Mack at Swabia, the
+>   1805-exact answer; region names still shadow — "deal with Hanover"
+>   stays the province), plus the prompt literal row's concrete no-guess
+>   ("unknown") and PARSE_TOOL's `action` description naming the escape
+>   hatch it previously overrode. Live compliance MEASURED (2/3 unknown +
+>   1/3 scout resolvable, 2/2 unknown unresolvable, never attack; the
+>   deterministic router forced ASK every time) — so the corpus live row
+>   pinning success:true off a resolved literal parse was RETIRED for a
+>   mock_only row, not weakened. Endpoint verified live both arms (Soult
+>   ASK; Ney PURSUE + bad-odds interrupt). Mock corpus 516/516.
+>   `test_pc15_8_delegation_nation_arm.py` (14).
+> - **PC15-10 slice B0 (the petition-channel opener)** — landing note =
+>   `PETITION_POPUP_REVISIT_SPEC.md` §9 (authoritative): F4's central
+>   occupancy guard in `_push_petition` (status vocabulary
+>   queued/blocked/dormant; producers stamp trigger latches only on
+>   QUEUED — S8's `_ww_seen` burn closed), F3's two no-silent-losses
+>   dispatch lines (cap-exempt, whitelisted, no CAMPAIGN_LOG_TYPES
+>   change), F5's four latents (S1 the mutual-spiral level key · S4
+>   stored-not-derived rivalry normalization · S6 the retirement-burst
+>   collapse · S9 the load-time queue re-prime + the main.py:1448 comment
+>   correction), F7's three drain fixes (/load non-drain+fill,
+>   /strategic_response non-drain after verifying the capture/charge
+>   follow-ons ride the executor result's own keys, /mailbox/activate
+>   return-only) + the 22-route POST census pin. Three pins flipped
+>   consciously, one test helper adjusted; **`BASELINE_SERIES` + M1–M7
+>   verified byte-identical (control arm + harness), not assumed.**
+>   `test_pc15_10_b0_petition_channel.py` (24).
+
 > ## ✅ PC15-10 EVALUATED + THE CA9-D3 FIX SPEC AUTHORED — August 15, 2026
 > ## (seventh entry that day; EVALUATION + DOCUMENTATION ONLY, nothing built)
 >

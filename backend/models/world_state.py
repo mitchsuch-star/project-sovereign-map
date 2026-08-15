@@ -7047,6 +7047,16 @@ class WorldState:
 
         # ═══════ JEALOUSY v3.2 — PETITION CHANNEL ═══════
         world.pending_marshal_petition = data.get("pending_marshal_petition")
+        # PC15-10 B0 (F5-S9): re-prime the delivery queue. This is the only
+        # PRIORITY_ORDER member that is a plain attribute rather than a
+        # queue-backed property, so restoring the field alone left the card
+        # undeliverable until the next end-turn's re-push — a loaded
+        # petition was invisible exactly when the player resumed to answer
+        # it. (Under the F1 tier split this re-prime narrows to the crisis
+        # tier — spec §4-F5-4.)
+        if world.pending_marshal_petition is not None:
+            world._popup_queue.push("pending_marshal_petition",
+                                    world.pending_marshal_petition)
         world.jealousy_confrontations_seen = list(
             data.get("jealousy_confrontations_seen", []) or [])
         world.rivalry_transitions_seen = list(

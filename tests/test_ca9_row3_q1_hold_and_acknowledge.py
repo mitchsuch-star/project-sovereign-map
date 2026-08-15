@@ -248,6 +248,9 @@ class TestTheArmsNoLongerConverge:
 
 class TestAcknowledgeBecomesLetItStand:
     def _arm(self, world, marshal, target):
+        # PC15-10 B0 (F4): the channel no longer overwrites an occupied
+        # slot, so a helper that rebuilds the card must clear it first.
+        world.pending_marshal_petition = None
         J.queue_confrontation_petition(world, marshal, target, level=0)
         by_id = {o["id"]: o
                  for o in world.pending_marshal_petition["options"]}

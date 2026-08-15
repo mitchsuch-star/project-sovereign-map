@@ -2437,6 +2437,10 @@ _DISPATCH_EVENT_TYPES = {
     "jealousy_drama_tail",
     # Marshal recruitment: a new commander joins the roster.
     "marshal_commissioned",
+    # PC15-10 B0 (F3): a petition moment the occupied channel swallowed —
+    # the card is lost (WAD), the MOMENT must not be (no silent losses).
+    "rivalry_blocked_note",
+    "war_weary_blocked_note",
 }
 
 

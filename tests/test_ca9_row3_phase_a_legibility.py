@@ -333,6 +333,9 @@ class TestA8ThePetitionNamesTheSulker:
         # The change record arrives from NEY's side, which is the whole bug:
         # Murat's own delta returns 0 because `modify_relationship` reads the
         # derived value.
+        # PC15-10 B0 (F5-S4): the transition value is re-read from STORED,
+        # so the claimed -1 must be backed by a real write.
+        ney.set_relationship("Murat", -1)
         J.check_rivalry_transitions(world, [{
             "marshal": "Ney", "toward": "Murat", "change": -1,
             "new_value": -1, "nation": "France",
@@ -347,6 +350,8 @@ class TestA8ThePetitionNamesTheSulker:
         """FALSIFIABLE NEGATIVE: the swap must be driven by `jealous_of`, not
         applied to every transition."""
         world, ex, ney, murat, _ = field
+        # F5-S4: back the claimed transition with the stored write.
+        ney.set_relationship("Murat", -1)
         J.check_rivalry_transitions(world, [{
             "marshal": "Ney", "toward": "Murat", "change": -1,
             "new_value": -1, "nation": "France",
@@ -357,6 +362,8 @@ class TestA8ThePetitionNamesTheSulker:
         world, ex, ney, murat, _ = field
         ney.jealous_of = "Murat"
         murat.jealous_of = "Ney"
+        # F5-S4: back the claimed transition with the stored write.
+        ney.set_relationship("Murat", -1)
         J.check_rivalry_transitions(world, [{
             "marshal": "Ney", "toward": "Murat", "change": -1,
             "new_value": -1, "nation": "France",

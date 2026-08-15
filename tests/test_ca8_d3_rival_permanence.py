@@ -228,6 +228,11 @@ class TestPetitionPerLevel:
         ney, davout = world.marshals["Ney"], world.marshals["Davout"]
         J.queue_confrontation_petition(world, ney, davout, 2)
         assert "entrenched" in world.pending_marshal_petition["body"]
+        # Pin flipped consciously (PC15-10 B0, F4): the channel no longer
+        # overwrites an occupied slot (that unconditional overwrite is how
+        # a declare-war once DESTROYED a queued confrontation), so clear
+        # it between queues — this test is about the level REGISTERS.
+        world.pending_marshal_petition = None
         J.queue_confrontation_petition(world, ney, davout, 3)
         body = world.pending_marshal_petition["body"]
         assert "mutual" in body and "Davout" in body

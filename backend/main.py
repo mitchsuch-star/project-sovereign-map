@@ -1445,7 +1445,12 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     # R6: Pop highest-priority popup from queue (clears from world automatically)
     winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
 
-    # Include the winner in response (Golden Rule 4: already cleared by pop)
+    # Include the winner in response. Golden Rule 4 (cleared by pop) holds
+    # for the queue-backed property slots; NOT for marshal_petition, whose
+    # durable state is the plain world field `pending_marshal_petition` —
+    # the pop clears only the delivery entry, and the per-turn re-push
+    # (jealousy.process_turn) re-queues it until it is ANSWERED
+    # (PC15-10 B0, F5-S9 comment correction).
     if winner_key is not None:
         if winner_key == "incoming_proposal" and isinstance(winner_value, dict):
             from backend.display_names import (
@@ -3503,8 +3508,18 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         # (plunder/secure capture choice, glorious charge, battle report,
         # reinforcement narration) instead of dropping them and then blocking
         # the next command with "you must decide how to handle the captured
-        # region first!". build_base_response runs popup passthroughs.
-        response = _build_result_response(result, world)
+        # region first!".
+        #
+        # PC15-10 B0 (F7-2): NON-draining. Those follow-on surfaces all ride
+        # the EXECUTOR RESULT's own keys (pending_capture_choice,
+        # pending_glorious_charge, battle_report, …) through **extra — the
+        # client's _post_hud_response_routes matchers read exactly those keys,
+        # so they are untouched by the queue. What the default drain ALSO
+        # popped was the highest-priority QUEUE popup — and the interrupt
+        # route renders only its 12-family table, so a queued Proclamation
+        # (formation-latched: it never re-fires) delivered here was lost
+        # FOREVER. Held in the queue instead; it rides the next /command.
+        response = _build_result_response(result, world, drain_popups=False)
         # Redemption event from strategic trust penalty
         if result.get("redemption_event"):
             response["state"] = "awaiting_redemption_choice"
@@ -3818,15 +3833,29 @@ async def new_game_endpoint(request: Optional[NewGameRequest] = None):
 
 @app.post("/load")
 async def load_endpoint(request: LoadRequest):
-    """Load a saved game. Replaces current game state."""
+    """Load a saved game. Replaces current game state.
+
+    PC15-10 B0 (F7-1): NON-draining. The client handler
+    (`_apply_world_swap_response`) reads no popup keys, so the default
+    drain destroyed the highest-priority popup `from_dict` had just
+    RESTORED — one popup lost per load, silently. Keys stay present
+    (filled without draining); the restored popup rides the player's
+    first `/command`.
+    """
     if not _validate_save_filename(request.filename):
         return {"success": False, "message": "Invalid save filename"}
     filepath = save_manager.SAVE_DIR / request.filename
     result = load_game(filepath)
     if result["success"]:
         _set_active_world(result["world"])
-        return build_base_response(world, message=result["message"])
-    return build_base_response(world, success=False, message=result["message"])
+        response = build_base_response(world, message=result["message"],
+                                       include_popup_passthroughs=False)
+    else:
+        response = build_base_response(world, success=False,
+                                       message=result["message"],
+                                       include_popup_passthroughs=False)
+    _fill_popup_keys_without_draining(response)
+    return response
 
 
 @app.get("/saves")
@@ -4221,7 +4250,12 @@ def activate_mailbox_item(request: MailboxActivateRequest):
                  "counter_offer_response", "incoming_ultimatum"):
         popup = _build_pending_envoy_popup_from_dialogue(world, dialogue)
         dialogue["popup_payload"] = popup.copy()
-        world.incoming_proposal_popup = popup
+        # PC15-10 B0 (F7-3): return-only — the client shows THIS payload
+        # immediately, so writing `world.incoming_proposal_popup` as well
+        # queued a second copy that the next /command delivered AGAIN
+        # (double-delivery of the same envoy). The PL-14 safety valve reads
+        # `pending_diplomatic_dialogue`, not this field, so answerability
+        # is untouched.
         result["incoming_proposal"] = popup
     elif dtype == "incoming_settlement_offer":
         # REBUILD every activation, exactly like the proposal arm above. The

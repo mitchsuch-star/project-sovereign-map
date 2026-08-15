@@ -826,6 +826,12 @@ class TestRivalryPetition:
         petition = world.pending_marshal_petition
         assert petition is not None and petition["kind"] == "rivalry_confrontation"
         J.handle_petition_response(world, "let_be")
+        # Pin flipped consciously (PC15-10 B0, F5-S4): the transition value
+        # is re-read from STORED, and let_be's probabilistic arm may have
+        # deepened the pair to -2 — which would legitimately queue the @-2
+        # card (a NEW transition, not the same one). Pin the pair back to
+        # -1 so this test exercises the seen-set alone.
+        world.marshals["Massena"].set_relationship("Ney", -1)
         # same transition again: seen-set blocks
         J.check_rivalry_transitions(world, [{
             "marshal": "Massena", "toward": "Ney", "change": -1,

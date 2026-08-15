@@ -828,10 +828,16 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         level = get_escalation_level(marshal, target.name)
         key = f"{pair}@L{level}"
         already = key in seen or (level == 0 and pair in seen)
-        if not already and getattr(world, "pending_marshal_petition", None) is None:
-            queue_confrontation_petition(world, marshal, target, level)
-            seen.add(key)
-            world.jealousy_confrontations_seen = sorted(seen)
+        if not already:
+            # PC15-10 B0 (F4): occupancy is the CHANNEL's decision now —
+            # stamp only on QUEUED, so a blocked key keeps its retry (the
+            # documented semantics: the level's card retries on the next
+            # fire of that pair at that level).
+            status = queue_confrontation_petition(world, marshal, target,
+                                                  level)
+            if status == PETITION_QUEUED:
+                seen.add(key)
+                world.jealousy_confrontations_seen = sorted(seen)
 
 
 def _check_escalation(world, marshal, target, events: List[Dict],
@@ -996,6 +1002,12 @@ def _check_escalation(world, marshal, target, events: List[Dict],
                     "nation": marshal.nation,
                     "marshal": marshal.name,
                     "target": target.name,
+                    # PC15-10 B0 (F5-S1): without this key the drama-cap
+                    # exemption test read level 0 and filed the channel's
+                    # single most dramatic sentence under ROUTINE —
+                    # collapsible into the "…further matters" tail,
+                    # directly contradicting the documented exemption.
+                    "level": level,
                 })
     world.log_event({
         "type": "jealousy_escalation",
@@ -1364,14 +1376,22 @@ def check_rivalry_transitions(world, changes: Optional[List[Dict]]) -> None:
             continue
         if int(change.get("change", 0)) >= 0:
             continue
-        new_value = int(change.get("new_value", 0))
-        if new_value not in (-1, -2):
-            continue
         name_a = change.get("marshal")
         name_b = change.get("toward")
         marshal = world.marshals.get(name_a)
         other = world.marshals.get(name_b)
         if marshal is None or other is None:
+            continue
+        # PC15-10 B0 (F5-S4): the two call chains disagreed on what
+        # `new_value` means — the battle path passed the DERIVED value
+        # (get_relationship subtracts 1 for a live grievance) while the
+        # escalation path passed STORED, so a battle-path transition could
+        # queue the @-2 card and stamp the @-2 latch on a pair whose
+        # stored standing is -1. A transition is an event on the STORED
+        # value: re-read it here and both chains agree by construction.
+        # Player-pair-gated below, so this cannot move AI behavior.
+        new_value = int(marshal.relationships.get(name_b, 0))
+        if new_value not in (-1, -2):
             continue
         if marshal.nation != world.player_nation \
                 or other.nation != world.player_nation:
@@ -1380,10 +1400,6 @@ def check_rivalry_transitions(world, changes: Optional[List[Dict]]) -> None:
         key = f"{_pair_key(name_a, name_b)}@{new_value}"
         if key in seen:
             continue
-        if getattr(world, "pending_marshal_petition", None) is not None:
-            continue            # one petition at a time; transition stays unseen
-        seen.add(key)
-        world.rivalry_transitions_seen = sorted(seen)
         # ══════════════════════════════════════════════════════════════
         # A8 (CA9 row 3): queue from the man who is ACTUALLY aggrieved.
         #
@@ -1409,7 +1425,26 @@ def check_rivalry_transitions(world, changes: Optional[List[Dict]]) -> None:
         if (getattr(other, "jealous_of", None) == marshal.name
                 and getattr(marshal, "jealous_of", None) != other.name):
             marshal, other = other, marshal
-        queue_rivalry_petition(world, marshal, other, new_value)
+        # PC15-10 B0 (F4 + F3): the channel decides occupancy; stamp only
+        # on QUEUED. A BLOCKED transition loses its card as WAD (a
+        # transition is an event, not a state — it recurs only if the pair
+        # mends and re-breaks, and the unstamped key keeps that door open)
+        # but the MOMENT must never be silent: one dispatch line marks it.
+        status = queue_rivalry_petition(world, marshal, other, new_value)
+        if status == PETITION_QUEUED:
+            seen.add(key)
+            world.rivalry_transitions_seen = sorted(seen)
+        elif status == PETITION_BLOCKED:
+            _pending_events(world).append({
+                "type": "rivalry_blocked_note",
+                "message": (
+                    f"Harsh words between {marshal.name} and {other.name} "
+                    f"before the general staff — with the court occupied, "
+                    f"the moment passes unanswered."),
+                "nation": marshal.nation,
+                "marshal": marshal.name,
+                "target": other.name,
+            })
 
 
 # ═══════════════════ PETITION CHANNEL (spec §0.2 item 10) ═════════════════
@@ -1647,16 +1682,45 @@ def _command_option(world, marshal) -> Dict:
     }
 
 
-def _push_petition(world, petition: Dict) -> None:
-    # TUT-F5 belt: EVERY petition kind passes through here — the lesson world
-    # never shows one, whatever produced it (apply_jealousy is gated too, but
-    # rivalry/Fontainebleau/war-weary producers live elsewhere).
+# PC15-10 B0 (F4): the channel-status vocabulary _push_petition returns.
+# Producers branch on it for their TRIGGER latch stamps — stamp only on
+# QUEUED, so a latch can never burn on a push the channel swallowed (the
+# S8 residue: `_ww_seen` burned on dormant worlds for a month). The F1
+# tier split adds "evicted_audience" / "superseded" to this vocabulary
+# (spec §4-F1/F2); B0 deliberately does not.
+PETITION_QUEUED = "queued"
+PETITION_BLOCKED = "blocked"
+PETITION_DORMANT = "dormant"
+
+
+def _push_petition(world, petition: Dict) -> str:
+    """THE petition-channel gate (PC15-10 B0, F4).
+
+    Occupancy/dormancy policy lives HERE, not at the call sites — it had
+    grown four divergent copies (jealousy §6 / §6b / ESP-1 /
+    diplomatic_executor ESP-2), and ESP-2 shipped without one for a month.
+    Producers keep their own trigger latches; they stop carrying channel
+    policy. Returns PETITION_QUEUED / PETITION_BLOCKED / PETITION_DORMANT.
+
+    TUT-F5 belt: EVERY petition kind passes through here — the lesson world
+    never shows one, whatever produced it (apply_jealousy is gated too, but
+    rivalry/Fontainebleau/war-weary producers live elsewhere).
+
+    The per-turn re-pusher (and the S9 load-time re-prime) re-push the
+    OBJECT already holding the slot — identity, not equality, is what
+    exempts them from the occupancy check; PopupQueue.push overwrites its
+    keyed slot, so a re-push never duplicates.
+    """
     if jealousy_dormant(world):
-        return
+        return PETITION_DORMANT
+    pending = getattr(world, "pending_marshal_petition", None)
+    if pending is not None and pending is not petition:
+        return PETITION_BLOCKED
     world.pending_marshal_petition = petition
     queue = getattr(world, "_popup_queue", None)
     if queue is not None:
         queue.push("pending_marshal_petition", petition)
+    return PETITION_QUEUED
 
 
 def refresh_petition_affordability(petition: Dict, world) -> Dict:
@@ -1767,7 +1831,7 @@ def _standing_cost_detail(marshal, target) -> str:
             f"{weight}, and the quarrel may harden further.")
 
 
-def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None:
+def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
     """Jealousy confrontation (spec §6; CA8-D3 Q2 re-fires it once per
     escalation level, so `level` >= 1 carries the escalation register —
     the audience must hear that this is the SAME feud, grown worse)."""
@@ -1802,7 +1866,7 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
             f"knows it. He asks, plainly, where the Emperor stands."),
     }.get(int(level), "")
     body += escalation_clause
-    _push_petition(world, {
+    return _push_petition(world, {
         "kind": "jealousy_confrontation",
         "title": f"Marshal {marshal.name} seeks an audience",
         "body": body,
@@ -1907,7 +1971,7 @@ def _force_detail(authority: float) -> str:
             "to a rivalry, 30% nothing, and 60% it costs you 5 authority.")
 
 
-def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
+def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
     """§6b rivalry confrontation on a downward transition."""
     ap = _player_ap(world)
     # ══════════════════════════════════════════════════════════════════
@@ -1958,7 +2022,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
                         "commands stand together."),
              "cost_note": "", "enabled": True},
         ]
-    _push_petition(world, {
+    return _push_petition(world, {
         "kind": "rivalry_confrontation",
         "title": "A rivalry among the marshals",
         "body": body,
@@ -1971,7 +2035,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
     })
 
 
-def queue_fontainebleau_petition(world, eroding: List) -> None:
+def queue_fontainebleau_petition(world, eroding: List) -> str:
     """ESP-1: the collective petition — the moment the parallel silent
     trust bleeds find one voice."""
     names = [m.name for m in eroding]
@@ -1984,7 +2048,7 @@ def queue_fontainebleau_petition(world, eroding: List) -> None:
     faces = [dotation.compute_rente_face(m, world) for m in eroding]
     granted_count = sum(1 for f in faces if f > 0)
     rente_bill = sum(dotation.get_rente_cost(f) for f in faces if f > 0)
-    _push_petition(world, {
+    return _push_petition(world, {
         "kind": "fontainebleau",
         "title": "The marshals petition the Emperor",
         "body": (f"Sire, the marshals come together: {roll} stand unrewarded "
@@ -2040,11 +2104,15 @@ def check_fontainebleau(world, events: List[Dict]) -> None:
     last = int(getattr(world, "fontainebleau_last_turn", -999))
     if not armed or world.current_turn - last < FONTAINEBLEAU_COOLDOWN:
         return
-    if getattr(world, "pending_marshal_petition", None) is not None:
+    # PC15-10 B0 (F4): the channel decides occupancy; the armed-latch and
+    # cooldown are written ONLY on a push that actually queued (the A4
+    # stamp-after-push rule, now enforced by the return contract) — a
+    # blocked or dormant tick genuinely retries next turn.
+    status = queue_fontainebleau_petition(world, eroding)
+    if status != PETITION_QUEUED:
         return
     world.fontainebleau_last_turn = int(world.current_turn)
     world.fontainebleau_armed = False
-    queue_fontainebleau_petition(world, eroding)
     events.append({
         "type": "fontainebleau_petition",
         "message": ("The marshals have come together, Sire — a collective "
@@ -2073,9 +2141,10 @@ def find_war_weary_objector(world):
 
 
 def queue_war_weary_petition(world, marshal, target_nation: str,
-                             original_command: Dict) -> Dict:
-    """ESP-2 petition, returned into the command result (the declare-war
-    command does not execute until answered)."""
+                             original_command: Dict) -> str:
+    """ESP-2 petition. Returns the F4 channel status; on QUEUED the caller
+    reads the petition from `world.pending_marshal_petition` (the
+    declare-war command does not execute until answered)."""
     title = dotation.derive_title(marshal.dotation_regions[0]) \
         if getattr(marshal, "dotation_regions", []) else "his rente"
     petition = {
@@ -2105,8 +2174,9 @@ def queue_war_weary_petition(world, marshal, target_nation: str,
                     "original_command": original_command or {}},
         "turn": int(world.current_turn),
     }
-    _push_petition(world, petition)
-    return petition
+    # PC15-10 B0 (F4): the status IS the contract, like every sibling —
+    # on QUEUED the petition lives in world.pending_marshal_petition.
+    return _push_petition(world, petition)
 
 
 def handle_petition_response(world, choice: str, executor=None,
@@ -2643,6 +2713,11 @@ JEALOUSY_NARRATION_EXEMPT = (
     "jealousy_separation_warning",   # the one arm the player OPTED INTO
     "fontainebleau_petition",        # a petition arriving
     "marshal_commissioned",
+    # PC15-10 B0 (F3): the no-silent-losses lines. Each REPLACES a lost
+    # petition card — collapsing them into the "…further matters" tail
+    # would make the loss semi-silent again, defeating their only purpose.
+    "rivalry_blocked_note",
+    "war_weary_blocked_note",
 )
 
 # `jealousy_escalation` is NOT exempt wholesale — the memo's list says
@@ -2976,6 +3051,10 @@ def process_turn(world) -> List[Dict]:
     #     presence pin asserts.
     # ══════════════════════════════════════════════════════════════════
     _turn_now = int(getattr(world, "current_turn", 0) or 0)
+    # PC15-10 B0 (F5-S6): retirements COLLECT and emit as ONE line. The
+    # retirement line is narration-exempt AND uncooldowned, so a bulk-mend
+    # turn (a treaty, a mediation sweep) emitted one bullet per pair.
+    _retired_pairs: List[tuple] = []
     for marshal in world.marshals.values():
         if marshal.nation != world.player_nation:
             continue
@@ -3001,15 +3080,7 @@ def process_turn(world) -> List[Dict]:
                 marshal.separation_warned_turn.pop(other_name, None)
                 other.separation_flagged.pop(marshal.name, None)
                 other.separation_warned_turn.pop(marshal.name, None)
-                events.append({
-                    "type": "jealousy_separation_warning",
-                    "message": (f"Berthier closes the file on {marshal.name} "
-                                f"and {other_name}: whatever stood between "
-                                f"them is settled. You will not be warned "
-                                f"about them again."),
-                    "nation": marshal.nation,
-                    "marshal": marshal.name,
-                })
+                _retired_pairs.append((marshal.name, other_name))
                 continue
             region = world.regions.get(marshal.location)
             adjacent = set(getattr(region, "adjacent_regions", []) or []) \
@@ -3029,6 +3100,32 @@ def process_turn(world) -> List[Dict]:
                     "nation": marshal.nation,
                     "marshal": marshal.name,
                 })
+
+    # PC15-10 B0 (F5-S6): one closing line for the whole turn's mended
+    # files — names at most two pairs, counts the rest. A single mend
+    # keeps the original sentence verbatim.
+    if _retired_pairs:
+        if len(_retired_pairs) == 1:
+            a, b = _retired_pairs[0]
+            _msg = (f"Berthier closes the file on {a} and {b}: whatever "
+                    f"stood between them is settled. You will not be "
+                    f"warned about them again.")
+        else:
+            named = " and ".join(
+                f"{a} with {b}" for a, b in _retired_pairs[:2])
+            rest = len(_retired_pairs) - 2
+            tail = (f", and {rest} other pair{'s' if rest != 1 else ''}"
+                    if rest > 0 else "")
+            _msg = (f"Berthier closes the files: {named}{tail} — whatever "
+                    f"stood between them is settled. You will not be "
+                    f"warned about them again.")
+        events.append({
+            "type": "jealousy_separation_warning",
+            "message": _msg,
+            "nation": world.player_nation,
+            "marshal": _retired_pairs[0][0],
+            "retired_pairs": len(_retired_pairs),
+        })
 
     # 8) ESP-1 Fontainebleau
     check_fontainebleau(world, events)
