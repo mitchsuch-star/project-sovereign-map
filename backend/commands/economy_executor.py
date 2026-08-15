@@ -1028,6 +1028,15 @@ class EconomyExecutor:
         if error:
             return error
 
+        # NP-0: the sovereign is never endowed — he grants, he does not
+        # receive (NAPOLEON_SPEC §6.1, in-character refusal).
+        if getattr(marshal, "is_sovereign", False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} needs no estate, Sire — "
+                           f"the Empire is his estate."
+            }
+
         acting_nation = command.get("_acting_nation") or marshal.nation
         if marshal.nation != acting_nation:
             return {
@@ -1200,6 +1209,15 @@ class EconomyExecutor:
         marshal, error = self._executor._fuzzy_match_marshal(marshal_name, world)
         if error:
             return error
+
+        # NP-0: the sovereign draws no rente — the treasury is already his
+        # (NAPOLEON_SPEC §6.1, in-character refusal).
+        if getattr(marshal, "is_sovereign", False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} draws no rente, Sire — "
+                           f"the treasury is already his."
+            }
 
         acting_nation = command.get("_acting_nation") or marshal.nation
         if marshal.nation != acting_nation:

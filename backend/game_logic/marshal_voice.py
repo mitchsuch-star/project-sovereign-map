@@ -367,6 +367,12 @@ def pick_marshal_voice(name: str, personality: str, situation: str,
     count, the enemy_voice idiom)."""
     if situation not in OWN_VOICE_SITUATIONS:
         return ""
+    # NP-0: the sovereign NEVER speaks a voice line — the player speaks AS
+    # him and Berthier narrates him (NAPOLEON_SPEC §2 pillar 1). Without
+    # this head guard the cautious fallback below would put words in the
+    # Emperor's mouth.
+    if personality == "sovereign":
+        return ""
     bank = _OWN_NAMED_LINES.get(name, {}).get(situation)
     if not bank:
         bank = _OWN_PERSONALITY_LINES.get(personality, {}).get(situation)

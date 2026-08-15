@@ -172,7 +172,15 @@ def is_dotation_world(world) -> bool:
 
 
 def get_expectation(marshal) -> int:
-    """Per-turn income the marshal feels owed (deterministic, GR6)."""
+    """Per-turn income the marshal feels owed (deterministic, GR6).
+
+    NP-0 (NAPOLEON_SPEC §6.1): a sovereign's expectation is 0 FOREVER —
+    the Empire is his estate. Every downstream claim (shortfall, erosion,
+    Unmet Marshals, Fontainebleau, war-weary, the AI grant rung) cascades
+    from this single return.
+    """
+    if getattr(marshal, "is_sovereign", False):
+        return 0
     return int(min(REP_STEP * int(getattr(marshal, "battles_won", 0)),
                    EXPECTATION_CAP))
 

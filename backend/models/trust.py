@@ -97,6 +97,27 @@ class Trust:
         return cls(data.get("value", 70))
 
 
+class SovereignTrust(Trust):
+    """NP-0 (Aug 15, 2026): the sovereign's trust NEVER moves.
+
+    He is the player embodied — he does not audit himself. The freeze
+    lives HERE, on the object, because 22 call sites across the backend
+    mutate ``marshal.trust`` directly (``.trust.modify(...)``) and a guard
+    in ``Marshal.modify_trust`` alone would cover only one of them.
+    Installed by ``Marshal.__init__`` and re-installed by
+    ``Marshal.from_dict`` whenever ``personality == "sovereign"``;
+    serializes identically to ``Trust`` (``{"value": N}``), so saves are
+    shape-stable. ``from_dict`` inherits via ``cls`` and returns a frozen
+    instance. Never-do pin: test_napoleon_np0_substrate.py.
+    """
+
+    def modify(self, delta: int) -> int:
+        return 0
+
+    def set(self, value: int) -> None:
+        return None
+
+
 def calculate_obedience_chance(trust_value: int) -> float:
     """
     Calculate probability of obeying an order based on trust.

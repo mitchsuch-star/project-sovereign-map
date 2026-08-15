@@ -628,6 +628,7 @@ PERSONALITY_DISPLAY = {
     "aggressive": "Aggressive",
     "cautious": "Cautious",
     "literal": "Literal",
+    "sovereign": "Sovereign",  # NP-0: the player embodied (NAPOLEON_SPEC)
     "balanced": "Balanced",
     "loyal": "Loyal",
 }

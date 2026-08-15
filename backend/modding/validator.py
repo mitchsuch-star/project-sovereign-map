@@ -1050,6 +1050,14 @@ def validate_scenario(
                             f"{path}.personality",
                             f"Invalid personality '{personality}'. "
                             f"Valid: {sorted(VALID_PERSONALITIES)}")
+                    # NP-0 never-do pin: a sovereign is never benched — he
+                    # cannot be authored into a recruitment pool
+                    # (NAPOLEON_SPEC §2; the roster entry is the only home).
+                    if personality == "sovereign":
+                        result.add_error(
+                            f"{path}.personality",
+                            "A sovereign cannot sit a recruitment bench — "
+                            "author him into the starting roster instead.")
                     cost = candidate.get("cost")
                     if not isinstance(cost, int) or cost <= 0:
                         result.add_error(

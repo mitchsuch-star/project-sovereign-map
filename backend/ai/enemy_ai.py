@@ -104,6 +104,13 @@ def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState
     for: losing literal precision IS the consequence of going autonomous.
     """
     personality = getattr(marshal, 'personality', 'balanced')
+    # NP-0 (NAPOLEON_SPEC §3.1/§10): a sovereign under AI control plays
+    # AGGRESSIVE — the honest read of a monarch who forces battle over his
+    # own generals' advice (Alexander at Austerlitz). Content-inert while
+    # the sovereign's nation is the player (the AI never drives him — he
+    # is never jealous, never autonomous); ships for GR5 symmetry.
+    if personality == "sovereign":
+        return "aggressive"
     if personality != "literal" or world is None:
         return personality
     player_nation = getattr(world, 'player_nation', 'France')

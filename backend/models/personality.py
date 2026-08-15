@@ -77,10 +77,20 @@ class Personality(Enum):
     insufficient. A revived fourth type must NOT be named "loyal" — the
     diplomat ``loyalist`` type collides (several files getattr
     ``personality`` on both object kinds).
+
+    NP-0 (August 15, 2026): the MC-4 guard is CONSCIOUSLY RE-OPENED by its
+    successor gate of record (NAPOLEON_SPEC.md §14.1) for exactly ONE new
+    type: SOVEREIGN — the player embodied. A sovereign is not a subordinate
+    character: he never objects, never defies, never clarifies, never
+    petitions, never speaks (Berthier narrates him), accrues no glory,
+    expects no reward, and his trust never moves. The type exists so those
+    guards can key on ONE derived property (``Marshal.is_sovereign``)
+    instead of the name "Napoleon". BALANCED/LOYAL stay retired.
     """
     AGGRESSIVE = "aggressive"
     CAUTIOUS = "cautious"
     LITERAL = "literal"
+    SOVEREIGN = "sovereign"  # NP-0: the player embodied (NAPOLEON_SPEC §3.1)
     BALANCED = "balanced"  # Retired reserved value — fallback only (MC-4)
     LOYAL = "loyal"  # Retired reserved value — fallback only (MC-4)
 
@@ -89,7 +99,10 @@ class Personality(Enum):
 # AUTHORED with. Consumed by the modding validator (scenario boot hard-fails
 # on anything else via from_scenario) and create_marshal_from_data (the
 # data-driven roster path).
-IMPLEMENTED_PERSONALITIES = frozenset({"aggressive", "cautious", "literal"})
+# NP-0 (Aug 15, 2026): "sovereign" added under the §14.1 gate record — the
+# MC-4 pins in test_marshal_content_mc4_personality_guard.py flip with it.
+IMPLEMENTED_PERSONALITIES = frozenset(
+    {"aggressive", "cautious", "literal", "sovereign"})
 
 
 # Personality descriptions for UI/narrative
@@ -120,6 +133,16 @@ PERSONALITY_DESCRIPTIONS = {
         'strengths': ['Reliable execution', 'No surprises'],
         'weaknesses': ['No initiative', 'May fail if orders become obsolete'],
         'examples': ['Grouchy'],
+    },
+    Personality.SOVEREIGN: {
+        'name': 'Sovereign',
+        'summary': 'The player embodied',
+        'description': 'The reigning head of state in the field. His orders '
+                      'are your orders — he never objects, never asks, and '
+                      'never competes with his own marshals.',
+        'strengths': ['Total obedience', 'The Presence on the field'],
+        'weaknesses': ['Can only be in one place', 'The Empire rides with him'],
+        'examples': ['Napoleon'],
     },
 }
 
@@ -168,6 +191,13 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
     # fired and never will; the disobedience layer bypasses literal
     # entirely (pinned by test_w6_literal_doctrine.py).
     Personality.LITERAL: {},
+
+    # NP-0 (Aug 15, 2026): the SOVEREIGN never objects — he IS the player,
+    # and any surface where he would address the player is a defect
+    # (NAPOLEON_SPEC §2 pillar 1). Empty by design, like literal; the
+    # belt-and-braces head guards live in objection_v2.evaluate_situation /
+    # evaluate_strategic_situation and executor.should_check_objection.
+    Personality.SOVEREIGN: {},
 
     # BALANCED/LOYAL: RETIRED reserved values (MC-4, July 10, 2026 — the
     # "1805 expansion" framing is closed; no marshal ships with these and

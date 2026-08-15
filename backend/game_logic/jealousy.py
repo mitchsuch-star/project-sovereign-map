@@ -188,7 +188,10 @@ def prune_glory_events(marshal, current_turn: int) -> None:
 
 
 def _append_glory(marshal, turn: int, points: int) -> None:
-    if marshal is None or points == 0:
+    # NP-0 (NAPOLEON_SPEC §6.1): a sovereign accrues NO glory, ever — his
+    # victories are the Empire's. This is the single accrual chokepoint,
+    # so the whole ladder/crown/envy economy inherits the exemption.
+    if marshal is None or points == 0 or getattr(marshal, "is_sovereign", False):
         return
     marshal.glory_events.append({"turn": int(turn), "points": int(points)})
 
@@ -325,6 +328,12 @@ def get_nation_ladder(world, nation: str) -> List[Tuple[object, int]]:
             continue
         if getattr(marshal, "captured_by", ""):
             continue
+        # NP-0: the sovereign holds no ladder rank and wears no crown —
+        # marshals compete NEAR him, never AGAINST him (spec pillar 3).
+        # Excluding him here also bars the crown (recompute_crowns reads
+        # ladder[0]) with zero further code.
+        if getattr(marshal, "is_sovereign", False):
+            continue
         entries.append((marshal, get_glory_score(marshal, world.current_turn)))
     entries.sort(key=lambda pair: -pair[1])
     return entries
@@ -367,6 +376,9 @@ def find_jealousy_target(marshal, world):
     targets the tied marshal he has the WORSE relationship with, then
     alphabetical (spec §1 Ties).
     """
+    # NP-0: a sovereign envies no one — his marshals' laurels are his own.
+    if getattr(marshal, "is_sovereign", False):
+        return None
     my_glory = get_glory_score(marshal, world.current_turn)
     candidates = []
     for other in world.marshals.values():
@@ -374,7 +386,11 @@ def find_jealousy_target(marshal, world):
                 or other.strength <= 0
                 or getattr(other, "captured_by", "")
                 or getattr(other, "broken", False)
-                or getattr(other, "retreated_this_turn", False)):
+                or getattr(other, "retreated_this_turn", False)
+                # NP-0: no one envies the sovereign — he holds no rung to
+                # covet (spec §6.1; the ladder already excludes him, this
+                # is the belt for injected/legacy glory events).
+                or getattr(other, "is_sovereign", False)):
             continue
         other_glory = get_glory_score(other, world.current_turn)
         if other_glory <= my_glory:

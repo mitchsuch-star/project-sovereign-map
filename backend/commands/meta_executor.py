@@ -1460,6 +1460,16 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     "message": f"{marshal.name} is not a {world.player_nation} marshal."
                 }
 
+            # NP-0 never-do pin: the sovereign cannot be dismissed — he IS
+            # the player (the redemption-arc dismissal is unreachable for
+            # him by the trust freeze; this closes the debug arm too).
+            if getattr(marshal, "is_sovereign", False):
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} cannot be dismissed — "
+                               f"the Empire does not dismiss its Emperor."
+                }
+
             field_marshals = world.get_field_marshals()
             if len(field_marshals) <= 1:
                 return {

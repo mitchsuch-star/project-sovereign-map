@@ -244,6 +244,11 @@ def pick_enemy_voice(enemy_name: str, personality: str, situation: str,
     """
     if situation not in VOICE_SITUATIONS:
         return ""
+    # NP-0: a sovereign never speaks through the commander-voice banks —
+    # not even an ENEMY one (a Kaiser/Tsar authored later gets a named row
+    # or silence, never the cautious filler below). NAPOLEON_SPEC §2/§10.
+    if personality == "sovereign":
+        return ""
     bank = _NAMED_LINES.get(enemy_name, {}).get(situation)
     if not bank:
         bank = _PERSONALITY_LINES.get(personality, {}).get(situation)

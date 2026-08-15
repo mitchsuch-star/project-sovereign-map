@@ -28,7 +28,7 @@ Implemented fields:
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Dict, List, Mapping, Sequence
-from backend.models.trust import Trust
+from backend.models.trust import SovereignTrust, Trust
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -306,7 +306,10 @@ class Marshal:
 
 
         # Disobedience System (Phase 2)
-        self.trust: Trust = Trust(int(starting_trust))
+        # NP-0: a sovereign's trust is structurally frozen (SovereignTrust
+        # no-ops modify/set) — he is the player and does not audit himself.
+        trust_cls = SovereignTrust if personality == "sovereign" else Trust
+        self.trust: Trust = trust_cls(int(starting_trust))
         self.vindication_score: int = 0  # -5 to +5, affects objection boldness
         self.recent_battles: List[str] = []  # Last 3 battle results
         self.recent_overrides: List[bool] = []  # Last 5 override events
@@ -801,6 +804,20 @@ class Marshal:
     # ════════════════════════════════════════════════════════════
     # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
     # ════════════════════════════════════════════════════════════
+
+    @property
+    def is_sovereign(self) -> bool:
+        """NP-0 (NAPOLEON_SPEC §3.1): the reigning head of state in the field.
+
+        Derived from the already-serialized personality string — ZERO new
+        serialized fields (spec pillar 5). Every sovereign guard in the
+        backend keys on THIS property, never on the name "Napoleon", so an
+        authored enemy sovereign (a Kaiser, a Tsar) inherits the whole kit
+        (GR5). A sovereign never objects/defies/clarifies/petitions/speaks,
+        accrues no glory, expects no reward, and his trust never moves —
+        the never-do pins live in test_napoleon_np0_substrate.py.
+        """
+        return self.personality == "sovereign"
 
     @property
     def is_reckless_cavalry(self) -> bool:
@@ -1314,6 +1331,13 @@ class Marshal:
         Returns:
             Actual change applied (may be less if capped)
         """
+        # NP-0: a sovereign's trust never moves. SovereignTrust already
+        # no-ops (the structural freeze covering the 22 direct
+        # `.trust.modify` call sites); this early-out keeps the intent
+        # legible at the named seam.
+        if self.is_sovereign:
+            return 0
+
         actual_change = self.trust.modify(delta)
 
         # Clear redemption_pending if trust recovered above threshold (>20)
@@ -1654,7 +1678,10 @@ class Marshal:
 
         # ═══════ DISOBEDIENCE SYSTEM ═══════
         if data.get("trust"):
-            marshal.trust = Trust.from_dict(data["trust"])
+            # NP-0: re-install the frozen trust for a sovereign — the ctor
+            # already picked the class, but this branch REPLACES the object.
+            trust_cls = SovereignTrust if marshal.is_sovereign else Trust
+            marshal.trust = trust_cls.from_dict(data["trust"])
         marshal.vindication_score = data.get("vindication_score", 0)
         marshal.recent_battles = data.get("recent_battles", []).copy()
         marshal.recent_overrides = data.get("recent_overrides", []).copy()

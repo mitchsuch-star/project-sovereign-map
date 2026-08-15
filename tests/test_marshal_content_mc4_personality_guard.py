@@ -8,6 +8,12 @@ Jealousy v3.1 gate (v3.2 roster addendum) or the MC exit review, on
 evidence three types are expressively insufficient. A revived fourth type
 must not be named "loyal" (diplomat `loyalist` namespace collision).
 
+NP-0 (August 15, 2026): the guard was CONSCIOUSLY RE-OPENED by its
+successor gate of record — NAPOLEON_SPEC.md §14.1 — for exactly ONE new
+type, "sovereign" (the player embodied; not named "loyal", honoring the
+collision rule). The single-source pins below flipped 3→4 with it.
+BALANCED/LOYAL stay retired; the three boot-guard arms are unchanged.
+
 The boot guard has three arms, pinned here:
   1. Validator hard-error — `VALID_PERSONALITIES` == the implemented three;
      because `from_scenario` raises on validator errors, an explicit
@@ -53,8 +59,11 @@ def _minimal_marshal(personality=None):
 # ════════════════════════════════════════════════════════════════════════
 
 class TestSingleSource:
-    def test_implemented_set_is_exactly_the_three(self):
-        assert IMPLEMENTED_PERSONALITIES == {"aggressive", "cautious", "literal"}
+    def test_implemented_set_is_exactly_the_four(self):
+        # NP-0 (Aug 15, 2026): "sovereign" joined under the NAPOLEON_SPEC
+        # §14.1 gate record — the conscious flip this pin's re-open demanded.
+        assert IMPLEMENTED_PERSONALITIES == {
+            "aggressive", "cautious", "literal", "sovereign"}
 
     def test_validator_consumes_the_single_source(self):
         # The validator set IS the boot guard (from_scenario hard-fails on
@@ -150,7 +159,7 @@ class TestLogArm:
         )
 
     def test_shipped_scenario_boots_silently(self, caplog):
-        # All 21 shipped marshals author an implemented type — no log line.
+        # Every shipped marshal authors an implemented type — no log line.
         with caplog.at_level(logging.WARNING, logger="backend.models.world_state"):
             world = build_world("1805")
         for m in world.marshals.values():

@@ -1273,6 +1273,12 @@ def evaluate_situation(marshal, action: str, order: Dict, game_state) -> Concern
     Returns:
         ConcernLevel for this situation
     """
+    # NP-0: a sovereign never objects — not even the universal form_square
+    # MILD below (the Emperor does not grumble at his own order). One head
+    # guard covers the universal arm AND the personality dispatch.
+    if getattr(marshal, "is_sovereign", False):
+        return ConcernLevel.NONE
+
     # Intentional: universal MILD fires before personality evaluator when BOTH
     # cavalry AND artillery adjacent. Ambiguous tactical situation = grumble only.
     # Aggressive MODERATE only fires for cavalry-only threat (clear bad call).
@@ -1680,6 +1686,11 @@ def evaluate_strategic_situation(
     Returns:
         ConcernLevel for this situation
     """
+    # NP-0: a sovereign never objects to his own strategic will — covers
+    # the relationship-SUPPORT arm below as well as the personality arms.
+    if getattr(marshal, "is_sovereign", False):
+        return ConcernLevel.NONE
+
     # V2b: Relationship-based SUPPORT objection (fires before personality)
     relationship_concern = ConcernLevel.NONE
     if order_type == "SUPPORT":
