@@ -102,6 +102,15 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
             if prev and region \
                     and world.get_nation_capital(prev) == region:
                 return "a capital stormed"
+        if etype == "marshal_captured" and event.get("sovereign"):
+            # NP-4 (NAPOLEON_SPEC §9): the Eagle in Chains outranks every
+            # other cause on this page — checked before the generic
+            # marshal-lost arm so the sovereign's capture never prints as
+            # one more marshal.
+            if str(event.get("nation") or "") == player:
+                return "THE EMPEROR TAKEN"
+            if str(event.get("captor") or "") == player:
+                return "a crowned head taken"
         if etype in ("marshal_captured", "last_stand", "marshal_destroyed"):
             if str(event.get("nation") or "") == player:
                 return "a marshal of France lost"

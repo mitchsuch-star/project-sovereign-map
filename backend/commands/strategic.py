@@ -316,11 +316,22 @@ class StrategicOrderProcessor:
             escape_chance = (combat.MARSHAL_FATE_ESCAPE_CHANCE
                              - combat.LAST_STAND_BREAKOUT_PENALTY)
             if random.random() < escape_chance:
+                # NP-4 (NAPOLEON_SPEC §7.0): the Emperor's breakout is the
+                # Guard's — success still burns GUARD_ESCAPE_TOLL of the
+                # corps. The squares die so the berline gets out.
+                toll_note = ""
+                if getattr(marshal, "is_sovereign", False):
+                    toll = int(marshal.strength * combat.GUARD_ESCAPE_TOLL)
+                    if toll > 0:
+                        marshal.take_casualties(toll)
+                    toll_note = (f" The Guard bought the road with its own "
+                                 f"ranks — {toll:,} men fall covering the "
+                                 f"escape.")
                 msg = combat._apply_forced_retreat_or_break(
                     marshal, enemy, world, skip_fate=True)
                 return {"success": True, "no_action_cost": True,
-                        "message": (f"{marshal.name} cuts his way out! "
-                                    f"{msg}")}
+                        "message": (f"{marshal.name} cuts his way out!"
+                                    f"{toll_note} {msg}")}
             msg = combat._capture_marshal(
                 marshal, getattr(enemy, "nation", "") or
                 pending.get("enemy_nation", ""), world,

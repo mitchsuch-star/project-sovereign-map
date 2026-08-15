@@ -2785,6 +2785,12 @@ class CombatExecutor:
     MARSHAL_FATE_ESCAPE_CHANCE = 0.60    # captured 40%; band ±15
     LAST_STAND_BONUS = 0.25              # band 15-35%
     LAST_STAND_BREAKOUT_PENALTY = 0.10   # breakout escape = 60% - 10%
+    # NP-4 (NAPOLEON_SPEC §7.0, N15): the Guard covers the Emperor's
+    # escape — a cornered-but-not-encircled sovereign NEVER rolls the
+    # escape coin; he gets out, and the extraction burns this fraction of
+    # his corps' remaining strength (the squares die so the berline gets
+    # out). Only true encirclement can take him.
+    GUARD_ESCAPE_TOLL = 0.30
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,
@@ -2833,6 +2839,69 @@ class CombatExecutor:
 
         if not (low_strength or encircled or desperation_only):
             return None
+
+        # ══════════════════════════════════════════════════════════════
+        # NP-4 THE PERIL (NAPOLEON_SPEC §7.0/§7.1): the sovereign's fate
+        # is never a coin. Cornered but NOT encircled -> the Guard buys
+        # the road at GUARD_ESCAPE_TOLL and the normal retreat proceeds.
+        # TRUE encirclement -> the last-stand interrupt fires for him with
+        # its own copy (player), or the deterministic last stand (AI) —
+        # capture is always legible as an operational failure the player
+        # authored: he was surrounded.
+        # ══════════════════════════════════════════════════════════════
+        if getattr(marshal, "is_sovereign", False):
+            if not encircled:
+                toll = int(marshal.strength * self.GUARD_ESCAPE_TOLL)
+                if toll > 0:
+                    marshal.take_casualties(toll)
+                # Read by _apply_forced_retreat_or_break (the only caller)
+                # and cleared there — golden rule 4.
+                marshal._sovereign_toll_note = (
+                    f"The Guard bought the road with its own ranks — "
+                    f"{toll:,} men fall covering the withdrawal.")
+                return None
+            if marshal.nation == world.player_nation:
+                interrupt = {
+                    "interrupt_type": "last_stand",
+                    "marshal": marshal.name,
+                    "enemy": getattr(enemy, "name", ""),
+                    "enemy_nation": captor_nation,
+                    "options": ["fight_to_the_last", "attempt_breakout"],
+                    "sovereign": True,
+                    "message": (
+                        f"{marshal.name} is ENCIRCLED at {marshal.location} "
+                        f"with {int(marshal.strength):,} men, Sire — the "
+                        f"Guard dies; it does not surrender. Fight to the "
+                        f"last, or cut our way out."
+                    ),
+                }
+                marshal.pending_interrupt = interrupt
+                try:
+                    from backend.notifications import (
+                        NotificationPriority, create_notification,
+                    )
+                    world.notifications.add(create_notification(
+                        notification_type="marshal_last_stand",
+                        priority=NotificationPriority.CRITICAL,
+                        title=f"{marshal.name} is encircled",
+                        message=(
+                            f"The Emperor is surrounded at "
+                            f"{marshal.location} — type 'fight to the "
+                            f"last' or 'attempt breakout' before he is "
+                            f"taken."
+                        ),
+                        turn_created=int(getattr(world, "current_turn", 0)),
+                        details={"marshal": marshal.name},
+                    ))
+                except Exception:
+                    pass
+                return (f"[!] {marshal.name} is ENCIRCLED at "
+                        f"{marshal.location} — awaiting your word: fight "
+                        f"to the last, or cut our way out.")
+            # An AI sovereign encircled fights the last stand — the
+            # deterministic read of a monarch with no road home (and the
+            # capture consequences fire inside capture_marshal).
+            return self._resolve_last_stand_fight(marshal, enemy, world)
 
         # Pure encirclement: nowhere to run — captured outright.
         if encircled:
@@ -2937,68 +3006,11 @@ class CombatExecutor:
 
     def _capture_marshal(self, marshal, captor_nation: str,
                          world: 'WorldState', context: str = "") -> str:
-        """W6-7 §9.1: the marshal is taken. He leaves the map (held at the
-        captor's capital, strength 0), his remaining troops disband — half
-        make their way home to the owner's manpower pool."""
-        owner = marshal.nation
-        old_location = marshal.location
-        remaining = int(marshal.strength)
-
-        # 50% of remaining troops filter home to the manpower pool.
-        returned = remaining // 2
-        pools = getattr(world, "manpower_pools", None)
-        if returned > 0 and isinstance(pools, dict) and owner in pools:
-            pool = pools[owner]
-            if getattr(marshal, "cavalry", False):
-                pool["cavalry"] = int(pool.get("cavalry", 0)) + returned
-            elif getattr(marshal, "artillery", False):
-                pool["artillery"] = int(pool.get("artillery", 0)) + returned
-            else:
-                pool["infantry"] = int(pool.get("infantry", 0)) + returned
-
-        # The captured state: off the map, held at the captor's capital.
-        marshal.captured_by = captor_nation
-        marshal.captured_turn = int(world.current_turn)
-        marshal.strength = 0
-        marshal.pending_interrupt = None
-        # PC-9: the "is cornered — decide his fate" rail notice is an ASK.
-        # Once he is taken there is nothing left to decide, and a notice that
-        # outlives its decision is what left a turn-3 alert live at turn 42.
-        try:
-            world.notifications.dismiss_by_type(
-                "marshal_last_stand",
-                lambda n: n.get("details", {}).get("marshal") == marshal.name)
-        except Exception:
-            pass
-        marshal.strategic_order = None
-        marshal.holding_position = False
-        marshal.hold_region = ""
-        marshal.occupation_region = None
-        marshal.occupation_turns_held = 0
-        marshal.occupation_turns_required = 0
-        marshal.retreating = False
-        marshal.broken = False
-        marshal.clear_iron_resolve()  # MC-1c: captured — the coil is gone
-        captor_capital = world.get_nation_capital(captor_nation)
-        if captor_capital:
-            marshal.location = captor_capital
-
-        world.log_event({
-            "type": "marshal_captured",
-            "marshal": marshal.name,
-            "nation": owner,
-            "captor": captor_nation,
-            "location": old_location,
-            "returned_troops": int(returned),
-            "context": context,
-            "message": (
-                f"Marshal {marshal.name} has been CAPTURED by "
-                f"{captor_nation} at {old_location}."
-            ),
-        })
-        return (f"[!] MARSHAL CAPTURED — {marshal.name} is taken by "
-                f"{captor_nation} at {old_location}! "
-                f"{returned:,} of his men escape home to the depots.")
+        """W6-7 §9.1: the marshal is taken. NP-4 moved the body to
+        WorldState.capture_marshal so the destroy_marshal death-guard and
+        this fate path share ONE capture seam (the sovereign consequences
+        fire there for every road into captivity)."""
+        return world.capture_marshal(marshal, captor_nation, context=context)
 
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
                                        skip_fate: bool = False) -> str:
@@ -3020,6 +3032,13 @@ class CombatExecutor:
             fate_msg = self._check_marshal_fate(marshal, enemy, world)
             if fate_msg is not None:
                 return fate_msg
+
+        # NP-4: the Guard's toll note (stamped by the sovereign escape arm
+        # in _check_marshal_fate; read once, then cleared — golden rule 4).
+        # Prefixed onto whatever retreat message the flow below builds.
+        _toll_note = getattr(marshal, "_sovereign_toll_note", "")
+        if _toll_note:
+            marshal._sovereign_toll_note = ""
 
         # Try to find safe retreat location using threat-aware pathfinding
         # Pass attacker location to prioritize retreating AWAY from the threat
@@ -3084,7 +3103,11 @@ class CombatExecutor:
             # Recovery duration is command-aware (MC gate Q3): 3 turns baseline,
             # 2 for a high-command marshal who rallies 2 stages/turn.
             recovery_turns = -(-3 // marshal.get_rally_stages_per_turn())
-            return f"[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
+            # NP-4: the Guard's blood price leads the sentence — the toll
+            # note only ever rides THIS branch (the sovereign escape arm
+            # fires only when a retreat destination exists).
+            _toll_prefix = f"[!] {_toll_note} " if _toll_note else ""
+            return f"{_toll_prefix}[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible

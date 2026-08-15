@@ -2427,6 +2427,25 @@ class WorldState:
             return False
         if marshal.name not in self.marshals:
             return False
+        # NP-4 THE PERIL (NAPOLEON_SPEC §7.1): a sovereign never dies in
+        # v1 — every seam that would remove him (post-battle strength-0
+        # pops, the attrition sweep, nation teardown) converts to CAPTURE
+        # here, at the ONE removal seam, so the whole PC15-1 census
+        # inherits the guard. Dismissal is refused upstream (NP-0). Death
+        # — the Réunion cannonball — is explicitly the Victory Pass's.
+        # Returns False: he was NOT removed, he was taken.
+        if getattr(marshal, "is_sovereign", False):
+            captor = victor if (victor and victor != marshal.nation) else ""
+            if not captor:
+                captor = self._sovereign_captor_fallback(marshal)
+            if captor:
+                self.capture_marshal(marshal, captor,
+                                     context=f"death_guard:{cause}")
+                return False
+            # No other armed court exists to take him — unreachable in
+            # shipped content (every road here implies a live enemy);
+            # fall through to the normal removal rather than leave a
+            # zombie 0-strength marshal on the map.
         self.marshals.pop(marshal.name, None)
         self.fallen_marshals[marshal.name] = {
             "nation": marshal.nation,
@@ -3708,6 +3727,21 @@ class WorldState:
                 turn=int(self.current_turn),
             )
 
+        # NP-4 §7.3 (BUILT — the spec's "may already work" claim was
+        # FALSE, survey-verified): military rescue. Taking the city where
+        # a SOVEREIGN of the capturing nation is held frees him — the
+        # storming column reaches the cell. Deliberately sovereign-only in
+        # v1: a general prisoner-rescue rule would change ambient behavior
+        # on sovereign-free worlds (routed as a follow-up row instead).
+        if old_controller and old_controller != capturing_nation:
+            for _prisoner in list(self.marshals.values()):
+                if (getattr(_prisoner, "is_sovereign", False)
+                        and _prisoner.captured_by == old_controller
+                        and _prisoner.location == region_name
+                        and _prisoner.nation == capturing_nation):
+                    self.release_captured_marshal(
+                        _prisoner.name, reason="rescued_by_storm")
+
         # R81: Check for elimination after capture
         if (old_controller and old_controller != capturing_nation
                 and old_controller != self.player_nation):
@@ -3755,8 +3789,24 @@ class WorldState:
         # a tombstone of their own.
         to_remove = [name for name, m in self.marshals.items() if m.nation == nation]
         for name in to_remove:
+            # NP-4: a SOVEREIGN prisoner of the eliminated nation is never
+            # swept — capture-only v1 means the prisoner arm below may not
+            # delete him either. He stays in his captor's capital, a crown
+            # without a court (destroy_marshal's own guard covers the
+            # standing sovereign by converting him to capture).
+            _m = self.marshals.get(name)
+            if (_m is not None and getattr(_m, "is_sovereign", False)
+                    and getattr(_m, "captured_by", "")):
+                continue
             if not self.destroy_marshal(name, cause="nation_eliminated",
                                         log=False):
+                # NP-4: destroy_marshal now returns False for a STANDING
+                # sovereign too — it just CONVERTED him to capture. The
+                # prisoner-sweep fallback below must not delete the fresh
+                # prisoner it created.
+                _m2 = self.marshals.get(name)
+                if _m2 is not None and getattr(_m2, "is_sovereign", False):
+                    continue
                 dead = self.marshals.pop(name, None)
                 if dead is not None:
                     self.fallen_marshals[name] = {
@@ -4304,6 +4354,127 @@ class WorldState:
     # W6-7 Marshal Fates: a released prisoner reforms with a cadre.
     RANSOM_RETURN_STRENGTH = 5000
 
+    # NP-4 THE PERIL (NAPOLEON_SPEC §7, N8): the throne shakes when the
+    # man is taken — the shock cascades through EXISTING derivations
+    # (authority < 30 → hair-trigger jealousy, defiance floors drop,
+    # imperial grip craters → vassal drift, courting blunted, and the
+    # NP-2 fear term washes out: the aura of invincibility dies with the
+    # capture). In-band tunable.
+    SOVEREIGN_CAPTURE_AUTHORITY_SHOCK = 40
+
+    def capture_marshal(self, marshal, captor_nation: str,
+                        context: str = "") -> str:
+        """W6-7 §9.1 (moved from CombatExecutor._capture_marshal at NP-4 so
+        the destroy_marshal death-guard and the fate machinery share ONE
+        capture seam): the marshal is taken. He leaves the map (held at
+        the captor's capital, strength 0), his remaining troops disband —
+        half make their way home to the owner's manpower pool."""
+        owner = marshal.nation
+        old_location = marshal.location
+        remaining = int(marshal.strength)
+
+        # 50% of remaining troops filter home to the manpower pool.
+        returned = remaining // 2
+        pools = getattr(self, "manpower_pools", None)
+        if returned > 0 and isinstance(pools, dict) and owner in pools:
+            pool = pools[owner]
+            if getattr(marshal, "cavalry", False):
+                pool["cavalry"] = int(pool.get("cavalry", 0)) + returned
+            elif getattr(marshal, "artillery", False):
+                pool["artillery"] = int(pool.get("artillery", 0)) + returned
+            else:
+                pool["infantry"] = int(pool.get("infantry", 0)) + returned
+
+        # The captured state: off the map, held at the captor's capital.
+        marshal.captured_by = captor_nation
+        marshal.captured_turn = int(self.current_turn)
+        marshal.strength = 0
+        marshal.pending_interrupt = None
+        # PC-9: the "is cornered — decide his fate" rail notice is an ASK.
+        # Once he is taken there is nothing left to decide, and a notice that
+        # outlives its decision is what left a turn-3 alert live at turn 42.
+        try:
+            self.notifications.dismiss_by_type(
+                "marshal_last_stand",
+                lambda n: n.get("details", {}).get("marshal") == marshal.name)
+        except Exception:
+            pass
+        marshal.strategic_order = None
+        marshal.holding_position = False
+        marshal.hold_region = ""
+        marshal.occupation_region = None
+        marshal.occupation_turns_held = 0
+        marshal.occupation_turns_required = 0
+        marshal.retreating = False
+        marshal.broken = False
+        marshal.clear_iron_resolve()  # MC-1c: captured — the coil is gone
+        captor_capital = self.get_nation_capital(captor_nation)
+        if captor_capital:
+            marshal.location = captor_capital
+
+        is_sovereign = bool(getattr(marshal, "is_sovereign", False))
+        self.log_event({
+            "type": "marshal_captured",
+            "marshal": marshal.name,
+            "nation": owner,
+            "captor": captor_nation,
+            "location": old_location,
+            "returned_troops": int(returned),
+            "context": context,
+            # NP-4: the gazette special + the dispatch crisis headline both
+            # branch on this key — the Eagle in Chains is not one more
+            # marshal lost.
+            "sovereign": is_sovereign,
+            "message": (
+                f"Marshal {marshal.name} has been CAPTURED by "
+                f"{captor_nation} at {old_location}."
+            ),
+        })
+
+        if is_sovereign:
+            self._apply_sovereign_capture_consequences(marshal, captor_nation)
+            return (f"[!] THE EAGLE IN CHAINS — {marshal.name} is TAKEN by "
+                    f"{captor_nation} at {old_location}! The Empire reels; "
+                    f"{returned:,} of the Guard escape home to the depots.")
+        return (f"[!] MARSHAL CAPTURED — {marshal.name} is taken by "
+                f"{captor_nation} at {old_location}! "
+                f"{returned:,} of his men escape home to the depots.")
+
+    def _apply_sovereign_capture_consequences(self, marshal,
+                                              captor_nation: str) -> None:
+        """NP-4 §7.2: one number, and the rest cascades. Authority -40
+        through the tracker (player) or nation_authority (enemy sovereign —
+        GR5 symmetric); the Captive Eagle war-score component is derived
+        LIVE from captured_by (diplomacy.calculate_war_score), so nothing
+        is written here and release clears it automatically."""
+        if marshal.nation == self.player_nation:
+            if hasattr(self, "authority_tracker"):
+                self.authority_tracker.modify_authority(
+                    -self.SOVEREIGN_CAPTURE_AUTHORITY_SHOCK)
+        else:
+            current = int(self.nation_authority.get(marshal.nation, 75))
+            self.nation_authority[marshal.nation] = max(
+                0, current - self.SOVEREIGN_CAPTURE_AUTHORITY_SHOCK)
+
+    def _sovereign_captor_fallback(self, marshal) -> str:
+        """NP-4 §7.1: no live captor on the field (pure attrition, nation
+        teardown) — the strongest at-war nation takes him; failing that,
+        the strongest other armed court."""
+        def _nation_strength(nation: str) -> int:
+            return sum(int(m.strength) for m in self.marshals.values()
+                       if m.nation == nation and not m.captured_by)
+        # Candidate courts: everyone with soil OR an army (fixture worlds
+        # field marshals of nations that hold no regions).
+        courts = set(self.get_active_nations()) | {
+            m.nation for m in self.marshals.values()
+            if not getattr(m, "captured_by", "")}
+        courts.discard(marshal.nation)
+        at_war = [n for n in courts if self.is_at_war(marshal.nation, n)]
+        pool = at_war or [n for n in courts if _nation_strength(n) > 0]
+        if not pool:
+            return ""
+        return max(pool, key=lambda n: (_nation_strength(n), n))
+
     def release_captured_marshal(self, marshal_name: str,
                                  reason: str = "ransom") -> bool:
         """W6-7 §9.2: return a captured marshal to his own capital at
@@ -4311,6 +4482,17 @@ class WorldState:
         when a release actually happened."""
         marshal = self.marshals.get(marshal_name)
         if marshal is None or not getattr(marshal, "captured_by", ""):
+            return False
+        # NP-4: a sovereign whose court no longer exists cannot be
+        # "released" — the elimination teardown's WAR->PEACE would
+        # otherwise free him to a capital that is no longer his (found by
+        # the NP-4 tests: _eliminate_nation captures him, then its own
+        # diplomatic teardown released him the same tick). He remains his
+        # captor's guest — a crown without a court. Player-nation exempt
+        # (player elimination is game-over territory, handled elsewhere).
+        if (getattr(marshal, "is_sovereign", False)
+                and marshal.nation != self.player_nation
+                and not self.get_nation_regions(marshal.nation)):
             return False
         captor = marshal.captured_by
         marshal.captured_by = ""

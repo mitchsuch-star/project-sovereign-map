@@ -375,6 +375,11 @@ func _render_war_detail(w: Dictionary):
 		var _blockade = int(breakdown.get("blockade", 0))
 		if _blockade != 0:
 			bbcode += "  Blockade:   " + _signed(_blockade) + "\n"
+		# NP-4: the Captive Eagle — a sovereign in an enemy cell weighs on
+		# the score. Render-when-nonzero, the blockade row's idiom.
+		var _captive = int(breakdown.get("captive", 0))
+		if _captive != 0:
+			bbcode += "  Captive:    " + _signed(_captive) + "\n"
 		bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
 
 	var tier_display = str(w.get("settlement_tier_display", ""))

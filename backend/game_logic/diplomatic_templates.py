@@ -3579,6 +3579,29 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         commentary = f"{commentary}\n\n{flavor}"
     terms["talleyrand_commentary"] = commentary
 
+    # --- Stage 4b (NP-4 §7.2, the Brétigny rule): the Eagle leads ---
+    # A held SOVEREIGN outranks every other clause on the table between
+    # these two courts. If the target holds ours, his return is the FIRST
+    # demand of any draft; if we hold theirs, his release is the FIRST
+    # sweetener — the leverage made legible, priced at SOVEREIGN_RANSOM in
+    # the acceptance formula (diplomacy.py N10). Runs LAST deliberately:
+    # the economic-feasibility and estimate-convergence stages rebuild the
+    # term lists and would silently drop a clause they cannot price.
+    for _held in world.marshals.values():
+        if not getattr(_held, "is_sovereign", False):
+            continue
+        _captor = getattr(_held, "captured_by", "")
+        if _held.nation == player_nation and _captor == target_nation:
+            _demands = terms.setdefault("demands", [])
+            if not any(d.get("type") == "prisoner_return" for d in _demands):
+                _demands.insert(0, {"type": "prisoner_return",
+                                    "marshal": _held.name})
+        elif _held.nation == target_nation and _captor == player_nation:
+            _sweets = terms.setdefault("sweeteners", [])
+            if not any(s.get("type") == "prisoner_return" for s in _sweets):
+                _sweets.insert(0, {"type": "prisoner_return",
+                                   "marshal": _held.name})
+
     # --- Stage 5: Return ---
     return terms
 

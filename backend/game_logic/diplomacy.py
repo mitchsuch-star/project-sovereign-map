@@ -3046,6 +3046,17 @@ BLOOD_DIFF_CAP = 15
 # pre-slice score byte-identically (the flip experiment's lever).
 BLOCKADE_SCORE_CAP = 15
 BLOCKADE_TURNS_DIVISOR = 2    # 1 point per 2 turns of denial
+# NP-4 "The Captive Eagle" (NAPOLEON_SPEC §7.2, N9): a SOVEREIGN held
+# prisoner weighs on the war score — the Brétigny rule: captivity is
+# peace LEVERAGE, and every acceptance formula that reads the score now
+# reads the cell. Derived LIVE from captured_by (no ledger key; release
+# clears it automatically; zero on sovereign-free worlds by
+# construction). Setting the cap to 0 reproduces the pre-slice score
+# byte-identically (the flip experiment's lever).
+CAPTIVE_EAGLE_SCORE = 15
+# The sovereign ransom (N10): a reigning head of state prices like a
+# war, not like a marshal (Francis I at Pavia; John II at Poitiers).
+SOVEREIGN_RANSOM = 5000
 
 
 def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
@@ -3131,6 +3142,20 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     blockade_score = max(-BLOCKADE_SCORE_CAP,
                          min(BLOCKADE_SCORE_CAP, blockade_score))
 
+    # NP-4 "The Captive Eagle" (N9): a sovereign in the enemy's keeping.
+    # Live derivation — the component appears the turn he is taken and
+    # vanishes the turn he comes home.
+    captive_score = 0
+    for _m in world.marshals.values():
+        if not getattr(_m, "is_sovereign", False):
+            continue
+        if _m.nation == nation_b and getattr(_m, "captured_by", "") == nation_a:
+            captive_score += CAPTIVE_EAGLE_SCORE
+        elif _m.nation == nation_a and getattr(_m, "captured_by", "") == nation_b:
+            captive_score -= CAPTIVE_EAGLE_SCORE
+    captive_score = max(-CAPTIVE_EAGLE_SCORE,
+                        min(CAPTIVE_EAGLE_SCORE, captive_score))
+
     # Capital score (cap ±30). World-scoped capital reads (1805 pre-slice
     # item 7) — the legacy global silently zeroed this component for every
     # Europe-only nation (Vienna's capture must move war score).
@@ -3162,7 +3187,8 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     ticking_score = int(ticking_a - ticking_b)
 
     total = (territory_score + battle_score + decisive_score + capital_score
-             + campaign_score + blood_score + blockade_score + ticking_score)
+             + campaign_score + blood_score + blockade_score + captive_score
+             + ticking_score)
     total = int(max(-100, min(100, total)))
 
     if return_components:
@@ -3175,6 +3201,7 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             "campaign": int(campaign_score),
             "blood": int(blood_score),
             "blockade": int(blockade_score),
+            "captive": int(captive_score),
             "ticking": int(ticking_score),
         }
     return total
@@ -3199,7 +3226,7 @@ def calculate_side_war_score(nation: str, opponents, world,
     """
     sums = {"territory": 0, "battles": 0, "decisive": 0,
             "capital": 0, "campaign": 0, "blood": 0, "blockade": 0,
-            "ticking": 0}
+            "captive": 0, "ticking": 0}
     for opponent in opponents:
         if not opponent or opponent == nation:
             continue
@@ -3220,6 +3247,8 @@ def calculate_side_war_score(nation: str, opponents, world,
         "blood": max(-BLOOD_DIFF_CAP, min(BLOOD_DIFF_CAP, sums["blood"])),
         "blockade": max(-BLOCKADE_SCORE_CAP,
                         min(BLOCKADE_SCORE_CAP, sums["blockade"])),
+        "captive": max(-CAPTIVE_EAGLE_SCORE,
+                       min(CAPTIVE_EAGLE_SCORE, sums["captive"])),
         "ticking": int(sums["ticking"]),
     }
     total = int(max(-100, min(100, sum(components.values()))))
@@ -7211,6 +7240,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
                     and world.get_capital_garrison_target(held.nation)
                     >= 25000):
                 ransom_worth = 800
+            # NP-4 (N10): a SOVEREIGN prices like a war, not a marshal —
+            # the Brétigny rule (Madrid 1526, Brétigny 1360).
+            if held is not None and getattr(held, "is_sovereign", False):
+                ransom_worth = SOVEREIGN_RANSOM
             demand_total += -3 * ransom_worth / 100
         elif dtype == "create_client":
             # NA-6c / IGR-D. The registry row alone would be a NO-OP: the

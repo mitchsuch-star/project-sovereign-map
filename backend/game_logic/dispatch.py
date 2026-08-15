@@ -53,6 +53,10 @@ BAND_MIDPOINTS: Dict[str, int] = {
 # The dispatch opens with the top-scored fog-visible event of the turn
 # rendered as one prose sentence, plus up to 2 sub-beats.
 HEADLINE_WEIGHTS: Dict[str, int] = {
+    # NP-4 (NAPOLEON_SPEC §7.2): the Eagle in Chains outranks even a
+    # fallen homeland province — the Empire is a PERSON, and the person is
+    # in an enemy cell (the Malet coup ran on a rumor of less).
+    "sovereign_captured": 101,
     "home_captured": 100,       # own homeland region captured by enemy
     # PC15-1: annihilation outranks capture — a prisoner can be ransomed,
     # a destroyed corps is gone for good. One above marshal_captured.
@@ -218,6 +222,10 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
 }
 
 _HEADLINE_TEMPLATES: Dict[str, str] = {
+    # NP-4: Berthier writes to the imperial government the cell cannot
+    # reach — the style holds (the campaign log's chronicle rule is
+    # untouched; this is the staff's own dispatch).
+    "sovereign_captured": "Sire — the Emperor himself is TAKEN. {captor} holds him, and the Empire holds its breath.",
     "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
     # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
@@ -297,6 +305,8 @@ def _crisis_cause_headline(cause: str) -> str:
 
 # Headline-aware Berthier closing notes (W6-3 §5.4) — one per class.
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
+    # NP-4: the Brétigny counsel — the fastest road home is the table.
+    "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
     "home_captured": "France herself is under the enemy's boot, Sire. Every other matter is secondary.",
     "marshal_captured": "We must consider his ransom, Sire — or make his captors regret the keeping.",
     # CA9-N2: the same note fired when FRANCE was the captor — "consider
@@ -507,8 +517,13 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             cap_captor = e.get("captor", "")
             cap_marshal = humanize_entity_name(e.get("marshal", "?"))
             if cap_nation == player_nation:
-                _add("marshal_captured",
-                     f"marshal_captured:{e.get('marshal', '?')}",
+                # NP-4: the sovereign's capture is its OWN crisis class —
+                # weight above home_captured; the event's `sovereign` key
+                # is stamped by WorldState.capture_marshal.
+                _cls = ("sovereign_captured" if e.get("sovereign")
+                        else "marshal_captured")
+                _add(_cls,
+                     f"{_cls}:{e.get('marshal', '?')}",
                      marshal=cap_marshal,
                      # CA8 sweep 4: `captor` is a NATION TAG (combat_executor
                      # stamps `captor_nation`), so `humanize_entity_name` — a
