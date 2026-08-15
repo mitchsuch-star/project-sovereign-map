@@ -4,6 +4,73 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ PC15-10 EVALUATED + THE CA9-D3 FIX SPEC AUTHORED — August 15, 2026
+> ## (seventh entry that day; EVALUATION + DOCUMENTATION ONLY, nothing built)
+>
+> **User directive: "evaluate and find answers to PC15-10 and document how
+> the fixes should be done, be thorough." Deliverable =
+> `docs/PETITION_POPUP_REVISIT_SPEC.md` v1.0, now AUTHORITATIVE for the
+> CA9-D3 grievances-and-popups revisit slice (row + PC15-10 pointers
+> updated in DESIGN_REFINEMENT / BUG_FIXES). ⚠ USER GATE PENDING at spec
+> §6 (Q1–Q5); slice B0 of §9 is gate-free and may build first.**
+>
+> - **The evaluation** re-mined the flagship run's raw jsonl
+>   (`tools/playtest_runs/flagship-1805/`): a petition modal on **19 of 24
+>   turns, exactly one per turn** (streak of 11 straight), 13
+>   confrontations (Bernadotte ×3, Lannes ×3, Murat/Davout ×2) + 4 rivalry
+>   (3 of them @−2 breaches) + 2 Fontainebleau; 17 of 19 answerable by a
+>   free arm (driver policy `first_enabled` — caveat recorded; the CA9
+>   human campaign reported the same lean). Two read-only audit fleets
+>   (popup plumbing; petition producer census) verified every claim
+>   against master with current line numbers.
+> - **Root cause** (spec §3): ~2.3 candidate petitions/turn — 7
+>   hair-trigger authored pairs (DR-3's blessed exemption) × a ~3-turn
+>   fire cycle × the CA8-D3 ×4 per-pair key budget (26 hot keys; the
+>   campaign ran out of turns, not keys) — against a serve-per-answer
+>   single-slot channel with **no budget constant anywhere**. The Aug-9
+>   investigation's "starvation not frequency" premise and PC15-10's
+>   firehose are the SAME arithmetic seen passive vs engaged (spec §1.2);
+>   its §6.2 no-rarity-budget ruling is NARROWED, not overturned (§5.2).
+> - **The fix design** (spec §4, ten fixes): **F1 "The Antechamber"** —
+>   tier-split AUDIENCE (confrontation L0/L1, rivalry @−1 → persistent
+>   notification + Generals chip, same card/dialog/handler, non-blocking;
+>   wires the two zero-emitter notification types declared since v3) vs
+>   CRISIS (L2/L3, @−2, Fontainebleau, war-weary → today's modal path
+>   unchanged); crisis evicts audience WITH latch un-stamp so no level
+>   loses its audience (CA8-D3 strengthened); expected ≈7–9 modals/24
+>   turns (was 19). Plus F2 subject-linked retirement + receipts (the N4
+>   "TTL" answer — no numeric TTL), F3 narration fallbacks for the two
+>   loss modes, F4 the central occupancy guard (4 divergent copies today),
+>   **F5 four latents found this session** (the mutual-spiral beat lacks
+>   its `level` key and is silently cappable; derived-vs-stored
+>   `new_value` can stamp a @−2 latch on a −1 pair; the separation
+>   retirement line is exempt+uncooldowned; a loaded petition is invisible
+>   until next end turn), F6 W7 `preempt()` (exists with 2 call sites —
+>   the hybrid-displacing `replace()` never adopted it) + hybrid
+>   `dialogue_id`, **F7 three surviving drain-family holes**
+>   (`/load` destroys a restored popup per load; `/strategic_response`
+>   can lose a Proclamation FOREVER; `/mailbox/activate` double-delivers)
+>   + a route-census pin, F8 the justified PopupQueue order (+2 dead-slot
+>   removals under Q5; `proposal_result` has NO .gd reader — verify then
+>   wire-or-retire), F9 the stash-and-raise chokepoint (only 2 of ~14
+>   control-return tails run the full raise chain), F10 load-validity
+>   generalized from PC15-17's one-slot model.
+> - **The already-landed ledger** (spec §2) prevents rebuilds: N4 half-
+>   fixed (A3/PT-A1), N8 fixed (A9), N21 half-fixed (A13 — exempt classes
+>   still stack), A4/A10/Q1b/Q2a/Q3b/PT-G3/A14 all in, and the Aug-9
+>   "objection module-global leak" item **REFUTED on master** (world-owned,
+>   reset at `world_state.py:9016`, serialized — retire the audit item,
+>   pin the reset).
+> - Acceptance (spec §8) = re-run the same flagship arm: ≤9 blocking
+>   modals/24 turns, zero silent losses, audience liveness; build order
+>   (spec §9) B0 gate-free latents/drains → B1 Antechamber after the gate
+>   → B2 retirement → B3 W7 → B4 queue/stash → B5 acceptance re-run.
+> - Suite untouched (no production code changed); the two audit fleets
+>   were read-only. **The queue is unchanged: NEXT = ROW NP (Napoleon),
+>   then position 10 — the CA9-D3 build slots at the user's discretion
+>   (its §6 gate can return whenever; B0 is a small gap-filler candidate
+>   between NP slices).**
+
 > ## ✅ THE PC15-D DESIGN GATE — RULED AND BUILT August 15, 2026 (sixth
 > ## entry that day, under the user's delegated grant "make decisions for
 > ## design gate items … consult other agents")
