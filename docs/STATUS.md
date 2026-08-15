@@ -9,10 +9,14 @@
 >
 > **User directive: "evaluate and find answers to PC15-10 and document how
 > the fixes should be done, be thorough." Deliverable =
-> `docs/PETITION_POPUP_REVISIT_SPEC.md` v1.0, now AUTHORITATIVE for the
+> `docs/PETITION_POPUP_REVISIT_SPEC.md`, now AUTHORITATIVE for the
 > CA9-D3 grievances-and-popups revisit slice (row + PC15-10 pointers
-> updated in DESIGN_REFINEMENT / BUG_FIXES). ⚠ USER GATE PENDING at spec
-> §6 (Q1–Q5); slice B0 of §9 is gate-free and may build first.**
+> updated in DESIGN_REFINEMENT / BUG_FIXES). ✅ THE §6 GATE WAS RULED THE
+> SAME DAY under a second user grant ("establish recommendation yourself
+> and commit and push spec updates") — all five questions at the
+> recommended defaults, ruling record = spec §6 (v1.1), one named re-open
+> condition on Q1 riding the §8 acceptance run. THE SLICE IS BUILD-READY
+> per §9 (B0 → B1 → … B5), no gate outstanding.**
 >
 > - **The evaluation** re-mined the flagship run's raw jsonl
 >   (`tools/playtest_runs/flagship-1805/`): a petition modal on **19 of 24
@@ -62,14 +66,16 @@
 >   reset at `world_state.py:9016`, serialized — retire the audit item,
 >   pin the reset).
 > - Acceptance (spec §8) = re-run the same flagship arm: ≤9 blocking
->   modals/24 turns, zero silent losses, audience liveness; build order
->   (spec §9) B0 gate-free latents/drains → B1 Antechamber after the gate
->   → B2 retirement → B3 W7 → B4 queue/stash → B5 acceptance re-run.
+>   modals/24 turns, zero silent losses, audience liveness, + the Q1
+>   re-open count (L1 audiences dying unopened → tier line moves to
+>   Q1(b)); build order (spec §9, ALL CLEAR) B0 latents/drains → B1
+>   Antechamber → B2 retirement → B3 W7 → B4 queue/stash → B5 acceptance
+>   re-run.
 > - Suite untouched (no production code changed); the two audit fleets
 >   were read-only. **The queue is unchanged: NEXT = ROW NP (Napoleon),
 >   then position 10 — the CA9-D3 build slots at the user's discretion
->   (its §6 gate can return whenever; B0 is a small gap-filler candidate
->   between NP slices).**
+>   (gate CLEAR; B0 is a small gap-filler candidate between NP slices,
+>   B1 "The Antechamber" is the first `.gd`-touching slice).**
 
 > ## ✅ THE PC15-D DESIGN GATE — RULED AND BUILT August 15, 2026 (sixth
 > ## entry that day, under the user's delegated grant "make decisions for

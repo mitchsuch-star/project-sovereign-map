@@ -107,12 +107,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > PC15-6/7/11/12/13/14/17/H. **Still open with reasons**: PC15-5/-15
 > design-gated (`DESIGN_REFINEMENT.md` §PC15-D1..D4 unanswered), PC15-8
 > needs a live-API probe session, **PC15-10 is CA9-D3's — ✅ EVALUATED +
-> SPEC'D August 15, 2026 (seventh session that day): fix design + user
-> gate = `docs/PETITION_POPUP_REVISIT_SPEC.md`, authoritative for the
-> whole grievances-and-popups revisit slice** (F1 "The Antechamber" tier
-> split + nine structural fixes; §6 gate Q1–Q5 pending; §9 slice B0 is
-> gate-free), PC15-16/-18 are client `.gd` surfaces for the next visual
-> pass (`saves/flagship_visual_t12.json` staged).
+> SPEC'D + GATE RULED August 15, 2026 (seventh session that day; rulings
+> at the recommended defaults under the user's delegated grant): fix
+> design + gate record = `docs/PETITION_POPUP_REVISIT_SPEC.md` v1.1,
+> authoritative for the whole grievances-and-popups revisit slice** (F1
+> "The Antechamber" tier split + nine structural fixes; §6 RULED
+> Q1(a)/Q2(a)/Q3/Q4/Q5 with the Q1 L1-liveness re-open condition;
+> **BUILD-READY per §9**, slots at the user's discretion around row NP),
+> PC15-16/-18 are client `.gd` surfaces for the next visual pass
+> (`saves/flagship_visual_t12.json` staged).
 >
 > **▶ ROW NP — NAPOLEON, "The Emperor Takes the Field" (inserted
 > August 15, 2026 by user direction, before position 10; spec + gate

@@ -96,11 +96,14 @@
 > — needs a live-API probe session; the mock guardrail is pinned, the live
 > prompt table is not verifiable offline) · **PC15-10** (CA9-D3's owned
 > revisit slice — **✅ EVALUATED + SPEC'D August 15, 2026, seventh session
-> that day: fix design + gate = `docs/PETITION_POPUP_REVISIT_SPEC.md`**,
-> authoritative for the slice; root cause = ~2.3 candidate petitions/turn
-> from 7 hair-trigger authored pairs against a serve-per-answer single-slot
-> channel with no budget constant; centerpiece fix F1 "The Antechamber"
-> tier-splits routine audiences off the modal path, gate questions §6) ·
+> that day, AND THE §6 GATE RULED THE SAME DAY at the recommended defaults
+> under the user's delegated grant: fix design + gate record =
+> `docs/PETITION_POPUP_REVISIT_SPEC.md` v1.1**, authoritative for the
+> slice; root cause = ~2.3 candidate petitions/turn from 7 hair-trigger
+> authored pairs against a serve-per-answer single-slot channel with no
+> budget constant; centerpiece fix F1 "The Antechamber" tier-splits
+> routine audiences off the modal path; BUILD-READY per §9, no gate
+> outstanding) ·
 > **PC15-16 + PC15-18** (client `.gd` surfaces — belong
 > to the next visual-pass session with `saves/flagship_visual_t12.json`,
 > where the fix can be SEEN; the parse-harness half of any such change is
@@ -128,7 +131,7 @@
 | PC15-7 | P2 | **The typed Grand Diversion resolves irreversibly with no quote or confirm.** `order the diversion` at readiness 53 with no staged camp executed instantly: "caught coming home … loses 46 sail." The sibling `naval_expedition` quote-confirms; the client chip warns — the typed path just fires. One line cost the fleet. | naval-descent T5 | `naval_executor.naval_diversion` — the expedition's quote-then-confirm idiom |
 | PC15-8 | P2 | **CR-5 literal ASK arm did not fire on live parse.** "Soult, deal with the Austrians" (canonical delegation phrasing, literal marshal) executed a full attack ("MUSTER — Soult … favorable" → battle) instead of asking. Mock-mode guardrail (e) forces ASK; the live prompt table's literal→ask row either wasn't applied or the LLM overrode it. `test_cr5_literal_arm_player_reachable` pins the mock arm only. | flagship-1805 T4 | `prompt_builder` delegation table + the live-parse delegation classification |
 | PC15-9 | P2 | **Tutorial beat IV's anchor is broken.** `Senarmont, bombard Jellacic` → "Target out of range" — Jellacic was not adjacent to Munich when the script's beat fires (he was at Bohemia by T6). The S5 anchor-drift class again (S5 re-authored Jellacic cautious to hold him); the school's suggest chip now teaches a refusal. Round 0 leads with the School. | tutorial-lesson T4 digest | `tutorial_1805.json` choreography + `test_tutorial_scenario` beat arithmetic (why did the pins hold while the live run drifted?) |
-| PC15-10 | P2 | **The petition firehose, measured: 19 petitions in 24 turns** (13 jealousy confrontations, 4 rivalry, 2 Fontainebleau) — a modal nearly every turn in a winning multi-marshal campaign. This is CA9-D3's revisit slice (`DESIGN_REFINEMENT.md` §CA9 Design Answers) with its number attached; not a new owner. **Evaluated + spec'd Aug 15, 2026 → `docs/PETITION_POPUP_REVISIT_SPEC.md` (fix design F1–F10 + gate §6; build order §9).** | flagship-1805 jsonl popup counts | CA9-D3 slice → `PETITION_POPUP_REVISIT_SPEC.md` |
+| PC15-10 | P2 | **The petition firehose, measured: 19 petitions in 24 turns** (13 jealousy confrontations, 4 rivalry, 2 Fontainebleau) — a modal nearly every turn in a winning multi-marshal campaign. This is CA9-D3's revisit slice (`DESIGN_REFINEMENT.md` §CA9 Design Answers) with its number attached; not a new owner. **Evaluated + spec'd Aug 15, 2026 → `docs/PETITION_POPUP_REVISIT_SPEC.md` (fix design F1–F10; §6 gate ✅ RULED same day at recommended defaults, user-delegated; build order §9, no gate outstanding).** | flagship-1805 jsonl popup counts | CA9-D3 slice → `PETITION_POPUP_REVISIT_SPEC.md` |
 | PC15-11 | P3 | "Requesting enemy terms is not available for this pair." names no reason and no remedy (N5 discipline gap on one refusal). | flagship-1805 T15 | `settlement_offers` request_terms gate copy |
 | PC15-12 | P3 | Supply-headline grammar: "Massena stand 21,858 men… Massena have been 4 turns over" — plural verb for a single marshal. | variance_austerlitz T3–6, vassal-probe | `dispatch.py` supply-strain headline pluralization |
 | PC15-13 | P3 | 'Alsace' did-you-mean offers "Wales, Balearics, Ulster" — string-distance suggestions with no geographic sanity. | flagship-1805 T2 | movement-target nearby suggester |

@@ -1,8 +1,12 @@
 # The Petition & Popup Revisit — row CA9-D3 / PC15-10
 
-**v1.0 — authored August 15, 2026 (evaluation session; NOTHING BUILT).**
-**⚠ USER GATE PENDING at §6.** Everything in §4 marked *gate-free* may be built
-before the gate returns; F1 (the centerpiece) and the §6 questions may not.
+**v1.1 — authored August 15, 2026 (evaluation session; NOTHING BUILT).**
+**✅ THE §6 GATE IS RULED — August 15, 2026, same day, under the user's
+delegated grant (*"establish recommendation yourself and commit and push spec
+updates"*): all five questions taken at the recommended defaults, ruling
+record inline at §6 (authoritative). BUILD MAY PROCEED in the §9 order —
+no gate stands between this spec and the build.** v1.0 → v1.1 changed the
+gate status only; no fix design changed.
 
 > **Authority chain, in order:**
 > 1. `docs/BUG_FIXES.md` §Comprehensive Playtest row **PC15-10** — the measured
@@ -48,8 +52,9 @@ multi-marshal campaign. This session:
 - wrote the fix design (§4), the carried prohibitions (§5), the gate questions
   (§6), and the test/acceptance plan (§7–§8).
 
-**Nothing was coded.** The next session builds §4 in the §9 order, after the §6
-gate returns.
+**Nothing was coded.** The §6 gate was ruled the same day under the user's
+delegated grant; the next session builds §4 in the §9 order with no gate
+outstanding.
 
 ---
 
@@ -210,13 +215,14 @@ risk of everything in §4 (see §7).
 
 ## §4 The fix design
 
-Ten fixes. F1 is the centerpiece and is **gated** (§6). F5–F8 and F10 are
-gate-free mechanical corrections; F2/F3 are gate-free but carry one §6
-sub-question each; F9 is gate-free `.gd` engineering. Mapping to the owner
-row's "Done when": *retirement paths* = F2 + F10 · *nothing blocks
-indefinitely* = F1 + F3 + F4 · *order justified* = F8.
+Ten fixes. F1 is the centerpiece; its gate questions were **RULED at the
+recommended defaults** (§6). F5–F8 and F10 are gate-free mechanical
+corrections; F2/F3's sub-questions are likewise ruled; F9 is gate-free `.gd`
+engineering. Mapping to the owner row's "Done when": *retirement paths* =
+F2 + F10 · *nothing blocks indefinitely* = F1 + F3 + F4 · *order justified*
+= F8.
 
-### F1 — "The Antechamber": the tier split (GATED — §6 Q1/Q2)
+### F1 — "The Antechamber": the tier split (✅ RULED — §6 Q1(a)/Q2(a))
 
 **Rule:** every petition is classified at build time as **AUDIENCE** (routine)
 or **CRISIS** (drama). Crisis petitions keep today's path unchanged — the
@@ -225,7 +231,7 @@ petitions stop interrupting: they are announced by a **persistent
 notification + a Generals-screen chip** and the player opens the SAME card
 from there at a moment of their choosing.
 
-**Recommended tier table (Q1):**
+**The tier table (Q1 — RULED as tabled):**
 
 | Kind | Tier | Why |
 |---|---|---|
@@ -294,7 +300,7 @@ construction: fires, latches, and `jealous_of` writes are unchanged; only
 delivery routing and player-side seen-list contents in the eviction edge case
 move, and every producer is player-nation-gated. Verify, do not assume — §7.)
 
-### F2 — Subject-linked retirement (the N4 "TTL" answer; gate-free, Q3 confirms shape)
+### F2 — Subject-linked retirement (the N4 "TTL" answer; Q3 ✅ CONFIRMED)
 
 **No numeric TTL.** A petition expires when **its subject dies**, checked at
 the one seam that already touches every unanswered card each turn — the
@@ -450,7 +456,7 @@ these remain), then the pin that ends the class:
    IGR-E call-site census). A new endpoint that forgets to declare itself
    fails the suite instead of shipping the fourth generation of this bug.
 
-### F8 — The PopupQueue order, justified (gate-free build; §6 Q5 confirms the two removals)
+### F8 — The PopupQueue order, justified (Q5 ✅ RULED — both removals confirmed)
 
 The audit found the ORDER itself defensible but the list dirty. The justified
 table becomes a comment block at `PRIORITY_ORDER` (`cooldown_manager.py:
@@ -591,43 +597,70 @@ path — deferral IS loss in practice, which is also why F1 rejects the
 
 ---
 
-## §6 The gate — user rulings required before F1 builds
+## §6 The gate — ✅ RULED August 15, 2026 (authoritative gate record)
 
-**Q1 — The tier table.** Is §4-F1's assignment right — in particular, are
-L0 **and** L1 confrontations both routine? (L1 is the "no longer a passing
-mood" register; arguable either way.)
-- **(a) Recommended:** as tabled — audience = {L0, L1, rivalry @−1}; crisis =
-  {L2, L3, rivalry @−2, Fontainebleau, war-weary}. Expected ≈7–9 modals/24
-  turns on the flagship shape.
-- (b) Stricter: only L0 is audience → ≈+4 modals over (a).
-- (c) Looser: everything but war-weary and Fontainebleau is audience → ≈5
-  modals; the @−2 breach loses its stage (not recommended — it was the best
-  drama in the run).
+> **Held the same day the spec was authored, under the user's delegated
+> grant — verbatim: *"ESTABLISH RECCOMENDATION YOURSELF AND COMMIT AND PUSH
+> SPEC UPDAYTES."* All five questions are taken at the recommended defaults;
+> the considered alternatives are kept below for the record. One re-open
+> condition is named on Q1 and carried into §8.**
 
-**Q2 — The audience surface.**
-- **(a) Recommended:** notification rail + Generals-card chip + top-bar badge
-  opening the existing dialog via `GET /marshal_petition`. Smallest diff;
-  reuses the reward-chip discoverability pattern; one card at a time.
-- (b) The letter-book shape: audiences as rows on the mailbox panel
-  (IGR-F machinery, `POST /mailbox/respond`-style per-row open). Heavier;
-  better only if the user wants MULTIPLE simultaneous audiences visible.
-- (c) Keep the modal, add hard spacing (min N turns between petition modals).
-  **Not recommended** — deferral ages cards into stale-retirement; it is the
-  lossy budget §5.2 forbids, wearing a scheduler's hat.
+**Q1 — The tier table. RULED (a): as tabled** — audience = {L0, L1, rivalry
+@−1}; crisis = {L2, L3, rivalry @−2, Fontainebleau, war-weary}. Expected
+≈7–9 modals/24 turns on the flagship shape.
 
-**Q3 — Retirement receipts (F2).** Confirm: no numeric TTL; subject-linked
-retirement + supersede-by-same-pair; every retirement emits a one-line
-receipt. (The alternative — silent retirement — is exactly the "silent
-vassal loss" family IGR-A closed elsewhere.)
+The judgment call inside (a), decided and recorded: **L1 rides the audience
+tier.** L1's register ("no longer a passing mood") is escalation *narration*,
+but its arms, prices, and stakes are byte-identical to L0's — the decision
+moments of this system are L2 (the damage goes permanent) and L3 (the feud
+goes mutual), and those keep the stage. The arithmetic seconds it: L0-only
+audience (option b) leaves ≈13 modals/24 turns, which fails the §8 bar this
+gate exists to set. Option (c) was rejected because the @−2 breach was the
+best drama in the measured run and loses its stage under it.
+- *Alternatives on the record:* (b) stricter, only L0 audience → ≈+4 modals;
+  (c) looser, everything but war-weary/Fontainebleau audience → ≈5 modals.
+- **Named re-open condition (rides §8):** if the acceptance re-run (or the
+  next played campaign) shows L1 audiences systematically dying unopened —
+  superseded by their own L2 before the player ever views them — the tier
+  line moves to (b) and L1 returns to the modal path. That is the one
+  observable that would prove L1's moment needed the interrupt after all.
 
-**Q4 — The acceptance bar (§8).** Confirm the numbers: ≤9 blocking petition
-modals per 24 flagship turns; zero silent petition losses; audience
-throughput unbounded but non-blocking.
+**Q2 — The audience surface. RULED (a):** notification rail + Generals-card
+chip + top-bar badge opening the existing dialog via `GET /marshal_petition`.
+Smallest diff; reuses the reward-chip discoverability pattern (the standing
+"reactive but discoverable" feedback ruling); one card at a time.
+- *Alternatives on the record:* (b) the letter-book shape (IGR-F machinery,
+  per-row open) — rejected for now because the channel is one-card-at-a-time
+  by design (§5.3) and a multi-row surface earns its weight only if F1 ever
+  goes multi-card; re-open WITH that change or not at all. (c) keep the
+  modal + hard spacing — rejected as the lossy budget §5.2 forbids wearing a
+  scheduler's hat (deferral ages cards into stale-retirement).
 
-**Q5 — PopupQueue hygiene (F8).** Confirm the two removals (dead
-`coalition_popup` slot; unreachable `alliance_paradox_popup` order entry —
-alias map retained), and rule on `proposal_result` after the client
-measurement: wire it or retire it.
+**Q3 — Retirement receipts (F2). CONFIRMED as specified:** no numeric TTL;
+subject-linked retirement + supersede-by-same-pair; every retirement emits a
+one-line receipt. Silent retirement stays forbidden — it is the "silent
+vassal loss" family IGR-A closed elsewhere, and the receipt is what makes
+F2's retirement distinguishable from a bug.
+
+**Q4 — The acceptance bar (§8). CONFIRMED as specified:** ≤9 blocking
+petition modals per 24 flagship turns; no consecutive-modal streak longer
+than 2; zero silent petition losses; audience throughput unbounded but
+non-blocking. These are the numbers the build is judged against, on the same
+driver arm and seed.
+
+**Q5 — PopupQueue hygiene (F8). RULED:** both removals confirmed — the dead
+`coalition_popup` slot and the unreachable `alliance_paradox_popup` order
+entry go (the `LEGACY_ALIASES` map is retained for old saves); the three
+`len == 11` / order pins flip consciously with the removal commit.
+`proposal_result` gets the written **decision procedure** rather than a
+guess: at slice B4, measure in the running client whether any surface
+renders the key. If nothing reads it AND proposal outcomes demonstrably
+reach the player through the terminal/dialogue prose, retire the key, its
+queue slot, and the `_apply_command_popup_contract` bypass arm together; if
+outcomes are otherwise invisible, wire the orphan scene instead. Either
+way the bypass folds into the documented contract (F8's last paragraph) —
+what is forbidden is leaving a nine-producer response key in a third,
+undocumented state.
 
 ---
 
@@ -701,7 +734,11 @@ build:
 3. **Audience liveness**: ≥1 audience chip served and answered by the
    driver's new policy row; the answered audience applies identically to a
    modal answer (same handler, same state writes).
-4. The §1.1 per-kind table re-derived and recorded beside the old one in the
+4. **The Q1 re-open observable** (§6): count L1 audiences that died unopened
+   — superseded by their own pair's L2 before any view. If that is the
+   systematic fate of L1 cards (not an occasional edge), the tier line moves
+   to Q1(b) and L1 returns to the modal path; record the count either way.
+5. The §1.1 per-kind table re-derived and recorded beside the old one in the
    next playtest memo — the before/after is the row's exit evidence, and the
    `apply_mood_variance` caveat from the gate answers (10% concern
    promotion) is pinned by the driver's fixed seed.
@@ -712,12 +749,12 @@ build:
 
 | Slice | Contents | Gate? | Touches |
 |---|---|---|---|
-| **B0** | F5 latents (S1, S4, S6, S9) + F4 central guard + F3 narration fallbacks + F7 drains (3 endpoints + census pin) | gate-free | backend only |
-| **B1** | **F1 The Antechamber** — backend tier/routing/notification + `GET /marshal_petition`; then the chip/badge/dialog-open client half | **after §6 Q1/Q2** | backend + `.gd` |
-| **B2** | F2 retirement + supersede + receipts; F10 load-validity generalization | Q3 confirms shape | backend |
-| **B3** | F6 W7 preempt + hybrid `dialogue_id` | gate-free | backend + `.gd` |
-| **B4** | F9 stash-and-raise chokepoint + F8 order/justification (+ Q5 removals + the `proposal_result` verify) | Q5 for removals | `.gd` + backend |
-| **B5** | §8 acceptance re-run + driver policy row + doc updates | — | tools/docs |
+| **B0** | F5 latents (S1, S4, S6, S9) + F4 central guard + F3 narration fallbacks + F7 drains (3 endpoints + census pin) | clear | backend only |
+| **B1** | **F1 The Antechamber** — backend tier/routing/notification + `GET /marshal_petition`; then the chip/badge/dialog-open client half | **clear — Q1(a)/Q2(a) RULED** | backend + `.gd` |
+| **B2** | F2 retirement + supersede + receipts; F10 load-validity generalization | clear — Q3 confirmed | backend |
+| **B3** | F6 W7 preempt + hybrid `dialogue_id` | clear | backend + `.gd` |
+| **B4** | F9 stash-and-raise chokepoint + F8 order/justification (Q5 removals ruled; run the `proposal_result` decision procedure) | clear — Q5 ruled | `.gd` + backend |
+| **B5** | §8 acceptance re-run (incl. the Q1 re-open count) + driver policy row + doc updates | — | tools/docs |
 
 One commit per lettered slice minimum; B0's four latents may land as
 individual commits (each has its own pin). Every slice: suite green, ruff
