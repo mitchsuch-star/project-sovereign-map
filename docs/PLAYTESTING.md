@@ -139,8 +139,9 @@ client/server integration, a bug that only reproduces under uvicorn) —
 not for routine campaign evaluation.
 
 ```bash
-# Second server on its own port — NEVER fight the player's 8005 session:
-SOVEREIGN_PORT=8006 .venv/Scripts/python.exe -m backend.main
+# Second server on its own port AND its own save dir — never fight the
+# player's 8005 session, and never touch their saves:
+SOVEREIGN_PORT=8006 INK_IRON_SAVE_DIR=/tmp/ink_wire .venv/Scripts/python.exe -m backend.main
 # then drive it with the same driver, same digest:
 .venv/Scripts/python.exe tools/playtest_driver.py --http http://127.0.0.1:8006 --turns 5 --name wire
 ```
@@ -150,6 +151,14 @@ Rules:
   every Godot script derives its origin from `Utils.backend_url()`, which
   reads the same variable. Launch a paired test client by setting the env
   var before starting Godot.
+- ⚠ **ALWAYS set `INK_IRON_SAVE_DIR` for Mode B too.** Mode A sandboxes it
+  for you; Mode B does not. A backend started from the repo root writes to
+  the real `saves/`, and **merely BOOTING it refreshes `saves/autosave.json`**
+  — which is what the main menu's *Continue* row reads. Learned the
+  expensive way on Aug 16, 2026: a wire session opened on 8006 to verify
+  payloads silently replaced the player's Early-October-1805 autosave with a
+  fresh Turn 1. The driver's `--http` banner warns that `/new_game` will do
+  this; the boot doing it as well was undocumented.
 - **The target server's state IS modified** — `/new_game` refreshes that
   server's autosave. The driver prints this warning; believe it.
 - **Stale-backend hygiene:** a failed restart leaves the OLD process
