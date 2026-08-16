@@ -9630,7 +9630,16 @@ def _process_dp_regen(world) -> None:
             # war, the dispatch says so ONCE — latched on the war-instance
             # record (keys inside war_instances ride serialization free;
             # zero new fields).
+            #
+            # ⚠ NP promise audit (Aug 15, 2026): the loop used to `break`
+            # after stamping the FIRST unnoted war, so a court fighting
+            # two live war INSTANCES got the same beat on N consecutive
+            # turns — one per instance — while the Emperor simply stayed
+            # afield. §15.8 filed that as latent; it is one line to close,
+            # so it is closed. Every live war he is in is stamped in the
+            # one pass and the beat is queued at most once per departure.
             if seat == 0 and _standing_sovereign(world, nation) is not None:
+                _newly_noted = False
                 for _war in getattr(world, "war_instances", {}).values():
                     if _war.get("ended_turn") is not None:
                         continue
@@ -9639,9 +9648,10 @@ def _process_dp_regen(world) -> None:
                     if _war.get("emperor_field_noted"):
                         continue
                     _war["emperor_field_noted"] = True
+                    _newly_noted = True
+                if _newly_noted:
                     queue_dispatch_event(
                         world, "sovereign_takes_field", {}, "always")
-                    break
         else:
             # Store AI DP for AI diplomacy consumption
             if not hasattr(world, 'nation_dp'):
@@ -9656,6 +9666,26 @@ def _standing_sovereign(world, nation: str):
                 and not getattr(m, "captured_by", "") and m.strength > 0):
             return m
     return None
+
+
+def displayed_dp_ceiling(world, nation: str = "") -> int:
+    """The DP ceiling to SHOW — the base clamp plus the Seat.
+
+    NP promise audit (Aug 15, 2026): the Seat's +1 is applied ABOVE
+    `calculate_dp`'s 1-5 clamp deliberately (NP-5's recorded reasoning:
+    France boots AT the ceiling, and a Seat that vanished at the height of
+    empire would make Paris worth nothing). But the HUD's denominator kept
+    reading the bare `max_diplomatic_points`, so holding court in the
+    capital rendered as **"DP: 6/5"** — a number over its own maximum.
+    §15.8 routed it as cosmetic; it is a shown-vs-applied divergence in the
+    top bar of every screen, and the sixth point IS spendable, so the
+    honest fix is to show the ceiling the Emperor actually raised.
+    """
+    base = int(getattr(world, "max_diplomatic_points", 3) or 0)
+    nation = nation or getattr(world, "player_nation", "")
+    if not nation:
+        return base
+    return base + sovereign_seat_bonus(world, nation)
 
 
 def sovereign_seat_bonus(world, nation: str) -> int:

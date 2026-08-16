@@ -288,6 +288,17 @@ def _player_coalition_brewing(w):
     return brewing
 
 
+def _dp_ceiling(w) -> int:
+    """The DP denominator the top bar shows — the base clamp plus the Seat.
+
+    NP promise audit: the Emperor holding court in his capital adds +1
+    ABOVE `calculate_dp`'s 1-5 clamp (NP-5's deliberate choice), so the
+    HUD read "DP: 6/5". Single source in `diplomacy.displayed_dp_ceiling`.
+    """
+    from backend.game_logic.diplomacy import displayed_dp_ceiling
+    return int(displayed_dp_ceiling(w))
+
+
 def _get_talleyrand_state_label(w) -> str:
     """Get Talleyrand state label for top bar (authority-based, PL-23)."""
     if not hasattr(w, 'authority_tracker'):
@@ -395,7 +406,7 @@ def build_base_response(world, success: bool = True, message: str = "",
         "active_wars": build_active_wars(world),
         # Diplomatic top-bar fields — present in EVERY gameplay response
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
-        "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+        "max_diplomatic_points": _dp_ceiling(world),
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": int(getattr(world, 'threat_level', 0)),
@@ -1868,7 +1879,7 @@ def test_connection():
         "game_state": world.get_filtered_game_state_summary(),
         # Diplomatic top-bar fields (Session 8A)
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
-        "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+        "max_diplomatic_points": _dp_ceiling(world),
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": int(getattr(world, 'threat_level', 0)),
@@ -4899,7 +4910,7 @@ def debug_diplomatic_status():
         "active_treaties": active_treaties,
         "vassals": vassals,
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
-        "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+        "max_diplomatic_points": _dp_ceiling(world),
         "talleyrand": diplomats_data.get(get_player_nation(world), {}),
     }
 

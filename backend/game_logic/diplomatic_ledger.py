@@ -1128,7 +1128,10 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     authority_label = world.authority_tracker.get_authority_label() if hasattr(world, 'authority_tracker') else "Unknown"
 
     dp_remaining = int(getattr(world, 'diplomatic_points', 0) or 0)
-    dp_max = int(getattr(world, 'max_diplomatic_points', 3) or 0)
+    # NP promise audit: includes the Seat's +1, which is applied above
+    # calculate_dp's clamp — otherwise the ledger reads "DP: 6/5" too.
+    from backend.game_logic.diplomacy import displayed_dp_ceiling
+    dp_max = int(displayed_dp_ceiling(world, player))
 
     # TA3: DP breakdown (world-scoped capital — 1805 pre-slice item 7 family)
     player_capital = world.get_nation_capital(player) or "Paris"

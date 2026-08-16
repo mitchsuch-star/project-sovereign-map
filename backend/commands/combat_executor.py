@@ -7263,11 +7263,17 @@ class CombatExecutor:
         # either primary (capture sets strength=0 by design) — the old bare
         # pops deleted the prisoner 30 lines after his capture event was
         # written. destroy_marshal skips prisoners and tombstones the dead.
+        # NP promise audit: this copy already GATED on the return — it was
+        # the one that got it right — but it composed the sentence itself,
+        # so "one home each" was still false. Routed through the shared
+        # clause, which also gives the charge path the captured-sovereign
+        # line the other two now carry.
         enemy_destroyed_msg = ""
         if target_marshal.strength <= 0:
-            if world.destroy_marshal(target_marshal, cause="charge",
-                                     victor=marshal.nation):
-                enemy_destroyed_msg = f" {target_marshal.name}'s army is destroyed!"
+            enemy_destroyed_msg = self._fall_clause(
+                world, target_marshal,
+                world.destroy_marshal(target_marshal, cause="charge",
+                                      victor=marshal.nation))
 
         # Check if attacker was destroyed
         if marshal.strength <= 0:
