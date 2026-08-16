@@ -145,13 +145,20 @@ def snapshot_attacker_modifiers(
     _pres_a = float(getattr(attacker, "sovereign_presence", 0.0) or 0.0)
     if _pres_a:
         from backend.models.marshal import Marshal as _M
-        mods.append({"label": ("The Emperor commands in person"
-                               if _pres_a >= 0.999 else
-                               "The Emperor commands in person "
-                               "(his star dims)"),
-                     "value": int(round(
-                         _M.SOVEREIGN_PRESENCE_ATTACK * _pres_a * 100)),
-                     "type": "bonus"})
+        # NP promise audit (Aug 15, 2026): gate on the PERCENTAGE, not the
+        # float. Grip is an int over a span of 55, so the smallest non-zero
+        # aura is 1/55 — and grip 31-32 rendered a bonus row reading
+        # "+0%". §15.4 promises "+10%" becomes "+9%" becomes NOTHING, and
+        # the sibling producer already carries this exact guard
+        # (combat_executor.py's `if _pct > 0`).
+        _pct_a = int(round(_M.SOVEREIGN_PRESENCE_ATTACK * _pres_a * 100))
+        if _pct_a > 0:
+            mods.append({"label": ("The Emperor commands in person"
+                                   if _pres_a >= 0.999 else
+                                   "The Emperor commands in person "
+                                   "(his star dims)"),
+                         "value": _pct_a,
+                         "type": "bonus"})
 
     # --- Glorious Charge ---
     if glorious_charge:
@@ -276,13 +283,15 @@ def snapshot_defender_modifiers(
     _pres_d = float(getattr(defender, "sovereign_presence", 0.0) or 0.0)
     if _pres_d:
         from backend.models.marshal import Marshal as _M
-        mods.append({"label": ("The Emperor commands in person"
-                               if _pres_d >= 0.999 else
-                               "The Emperor commands in person "
-                               "(his star dims)"),
-                     "value": int(round(
-                         _M.SOVEREIGN_PRESENCE_DEFENSE * _pres_d * 100)),
-                     "type": "bonus"})
+        # NP promise audit: see the attacker half — gate on the percentage.
+        _pct_d = int(round(_M.SOVEREIGN_PRESENCE_DEFENSE * _pres_d * 100))
+        if _pct_d > 0:
+            mods.append({"label": ("The Emperor commands in person"
+                                   if _pres_d >= 0.999 else
+                                   "The Emperor commands in person "
+                                   "(his star dims)"),
+                         "value": _pct_d,
+                         "type": "bonus"})
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().

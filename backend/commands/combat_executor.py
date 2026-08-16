@@ -1110,33 +1110,51 @@ class CombatExecutor:
         # sovereign stands with the assault (computed live — the transient
         # is only stamped at battle time). Percentage derives from the
         # consumed constant.
-        # NP-V: the predicate MIRRORS the applied `eligible` set
-        # (retreated/recovering marshals grant nothing — the NP-4 Guard
-        # toll sets `retreated_this_turn`, so this arm is live on the
-        # row's own retreat path). Shown = applied, both directions.
-        # ⚠ NP promise audit (Aug 15, 2026): the percentage must be the
-        # APPLIED one. §15.4 scaled the modifier and the battle-report row
-        # by `sovereign_aura_strength` and left this producer reading the
-        # bare constant, so the muster promised "+10% harder" and the
-        # report that followed said "+6%" — a preview contradicting the
-        # battle it previews, under a comment claiming shown = applied.
+        # ⚠ NP promise audit (Aug 15, 2026) — TWO defects, one comment.
+        #
+        # (1) The PERCENTAGE must be the applied one. §15.4 scaled the
+        #     modifier and the battle-report row by
+        #     `sovereign_aura_strength` and left this producer reading the
+        #     bare constant, so the muster promised "+10% harder" and the
+        #     report that followed said "+6%".
+        #
+        # (2) The PREDICATE scanned the ATTACKER'S ORIGIN — it mirrored
+        #     `_calculate_coordination_context`'s `eligible` set, which
+        #     NP-V had already stopped being the applied set on this path.
+        #     The aura is stamped from `_get_casualty_participants` at the
+        #     BATTLE REGION, after relocation and after the A-D4 hostile
+        #     filter. Reproduced end to end: with the Emperor fortified,
+        #     or having moved this turn, or on HOLD, or at −2 with the
+        #     attacker, the SAME SCREEN printed
+        #         "WILL NOT — Napoleon: [fortified / has already marched]"
+        #     two lines above
+        #         "The Emperor commands in person — +10% harder"
+        #     and the battle that followed carried no Emperor row at all.
+        #     It was silent in the other direction too: an adjacent
+        #     Emperor who marches IS stamped and the note said nothing.
+        #
+        # The honest roster is the one this function already computed —
+        # `will_join_marshals` (built off `_muster_reason`, which mirrors
+        # `_get_casualty_participants` in both directions), plus the
+        # attacker himself, who is always a participant.
         _sov_present = next(
-            (m for m in world.marshals.values()
-             if m.location == marshal.location
-             and m.nation == marshal.nation and m.strength > 0
-             and getattr(m, "is_sovereign", False)
-             and not getattr(m, "broken", False)
-             and not getattr(m, "retreated_this_turn", False)
-             and getattr(m, "retreat_recovery", 0) == 0), None)
+            (m for m in [marshal] + will_join_marshals
+             if getattr(m, "is_sovereign", False) and m.strength > 0
+             and not getattr(m, "broken", False)), None)
         if SOVEREIGN_PRESENCE_ACTIVE and _sov_present is not None:
             from backend.models.authority import sovereign_aura_strength
             _aura = sovereign_aura_strength(world, _sov_present.nation)
             _pct = int(round(Marshal.SOVEREIGN_PRESENCE_ATTACK * _aura * 100))
             if _pct > 0:
                 _dims = "" if _aura >= 0.999 else " — though his star dims"
+                # Arrival is a roll (PT-A2), so hedge exactly as the
+                # muster's own "if all march" idiom does when he is not
+                # already standing on the field.
+                _hedge = ("" if _sov_present.location == battle_region
+                          else ", if he marches")
                 preview["presence_note"] = (
                     f"The Emperor commands in person{_dims} — every corps "
-                    f"on this field fights +{_pct}% harder.")
+                    f"on this field fights +{_pct}% harder{_hedge}.")
 
         # First-use tutorial line about standing orders — latch-on-surface
         # (shown once per campaign, even if this attack is then cancelled).
@@ -5091,19 +5109,38 @@ class CombatExecutor:
         # visibly erode the Presence they were supposed to cost him.
         from backend.models.authority import sovereign_aura_strength
 
-        def _side_presence(participants) -> float:
-            if not SOVEREIGN_PRESENCE_ACTIVE:
-                return 0.0
+        def _side_sovereign(participants):
+            """The sovereign standing with THIS side of THIS battle, or None.
+
+            An identity question — WHERE HE IS — deliberately separate
+            from how strong his myth is. See `_side_presence` below.
+            """
             for p in participants:
                 if (getattr(p, 'is_sovereign', False) and p.strength > 0
                         and not getattr(p, 'broken', False)):
-                    return sovereign_aura_strength(world, p.nation)
-            return 0.0
+                    return p
+            return None
+
+        def _side_presence(participants) -> float:
+            """The aura's STRENGTH for this side — a magnitude (§15.4)."""
+            if not SOVEREIGN_PRESENCE_ACTIVE:
+                return 0.0
+            sov = _side_sovereign(participants)
+            return sovereign_aura_strength(world, sov.nation) if sov else 0.0
 
         _atk_presence = _side_presence(atk_participants)
         _def_presence = _side_presence(def_participants)
-        _atk_sovereign = _atk_presence > 0.0
-        _def_sovereign = _def_presence > 0.0
+        # ⚠ NP promise audit (Aug 15, 2026): these two were
+        # `_atk_presence > 0.0`, which routed a MAGNITUDE change into a
+        # BOOLEAN IDENTITY. §15.4 made the aura decay with imperial grip
+        # and floors it at 0.0 below AURA_GRIP_BROKEN — so in a
+        # collapsing empire the §6.2 SHADOW switched off entirely and
+        # marshals fighting at the Emperor's side banked FULL glory
+        # again. §15.4 changed the aura's size; it never said the Shadow
+        # lifts. The Shadow is about whose field it is, and that does not
+        # depend on whether Europe still fears him.
+        _atk_sovereign = _side_sovereign(atk_participants) is not None
+        _def_sovereign = _side_sovereign(def_participants) is not None
         # The assignment is UNCONDITIONAL, and that closes the mirror
         # defect: `_calculate_coordination_context` stamps co-location at
         # the primary's ORIGIN, so a marshal who mustered in the Emperor's
@@ -7213,6 +7250,47 @@ class CombatExecutor:
         self._calculate_coordination_context(marshal, world)
         self._calculate_coordination_context(target_marshal, world)
 
+        # ⚠ NP promise audit (Aug 15, 2026) — THE CHARGE WAS THE ONE
+        # GLORY-PRODUCING PATH WITHOUT THE NP-V ROSTER OVERRIDE, and the
+        # two halves disagreed in the exploitable direction. The aura is
+        # stamped by `_calculate_coordination_context` above, which scans
+        # the charger's ORIGIN (`primary.location`, before the advance),
+        # while the pipeline's glory step falls back to a participant
+        # scan at the TARGET province — so a cavalryman charging out of
+        # the Emperor's headquarters carried the Presence into the battle
+        # AND banked full glory. That is the "stacking with the Emperor is
+        # strictly dominant" outcome the gate rejected option (c) to
+        # avoid, and it falsifies §15.3's written claim that the NP-V fix
+        # "also closed the mirror case". It runs both ways: the Emperor
+        # standing on the CONTESTED province gave the charger no aura and
+        # halved his glory anyway.
+        #
+        # Re-derive both sides on the true battle roster, exactly as
+        # `_execute_attack` does, and re-stamp over the origin scan. The
+        # charger has not advanced yet, so he is added explicitly.
+        _charge_atk_roster = [marshal] + [
+            m for m in world.marshals.values()
+            if m.nation == marshal.nation and m.name != marshal.name
+            and m.location == charge_battle_region and m.strength > 0]
+        _charge_def_roster = self._get_casualty_participants(
+            target_marshal, charge_battle_region, target_marshal.nation, world)
+
+        def _charge_side(roster):
+            sov = next((m for m in roster
+                        if getattr(m, 'is_sovereign', False) and m.strength > 0
+                        and not getattr(m, 'broken', False)), None)
+            if sov is None or not SOVEREIGN_PRESENCE_ACTIVE:
+                return 0.0, sov is not None
+            from backend.models.authority import sovereign_aura_strength
+            return sovereign_aura_strength(world, sov.nation), True
+
+        _chg_atk_presence, _chg_atk_sovereign = _charge_side(_charge_atk_roster)
+        _chg_def_presence, _chg_def_sovereign = _charge_side(_charge_def_roster)
+        for _p in _charge_atk_roster:
+            _p.sovereign_presence = _chg_atk_presence
+        for _p in _charge_def_roster:
+            _p.sovereign_presence = _chg_def_presence
+
         # Get combat result with glorious charge flag
         combat_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
@@ -7340,6 +7418,11 @@ class CombatExecutor:
             'battle_result': combat_result,
             'conquered': conquered,
             'is_glorious_charge': True,
+            # NP promise audit: the Shadow reads the SAME roster the aura
+            # was stamped from (above), instead of falling back to a
+            # participant scan at a different province.
+            'attacker_sovereign_present': _chg_atk_sovereign,
+            'defender_sovereign_present': _chg_def_sovereign,
         }, world)
 
         # Clear the CHARGE ORIGIN's coordination too. The charge computed

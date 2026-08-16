@@ -231,14 +231,48 @@ class TestAuraShownEqualsApplied:
         assert not any("Emperor" in r["label"] for r in rows)
 
     def test_muster_preview_note(self):
-        s = make_sovereign()
-        a = make_marshal("Ney", personality="aggressive")
+        # Fixture CORRECTED (NP promise audit, Aug 15 2026). It stood the
+        # sovereign and the attacker at Belgium and the enemy at Bavaria —
+        # provinces that are not adjacent, so the Emperor was not even a
+        # muster candidate. The note fired anyway, because its predicate
+        # scanned the attacker's ORIGIN rather than the roster that
+        # actually reaches the field. Rhineland IS adjacent to Bavaria, so
+        # he genuinely marches and the note is genuinely true.
+        s = make_sovereign(location="Rhineland")
+        a = make_marshal("Ney", personality="aggressive",
+                         location="Rhineland")
         e = make_marshal("Mack", nation="Austria", location="Bavaria")
         w = make_world(s, a, e)
         preview = CE()._build_muster_preview(
             a, e, w, {"world": w})
         assert "The Emperor commands in person" in preview.get(
             "presence_note", "")
+        # He is not on the field yet — the sentence must say so.
+        assert "if he marches" in preview["presence_note"]
+
+    @pytest.mark.parametrize("state,setter", [
+        ("fortified", lambda m: setattr(m, "fortified", True)),
+        ("moved_this_turn", lambda m: setattr(m, "moved_this_turn", True)),
+        ("holding_position", lambda m: setattr(m, "holding_position", True)),
+    ])
+    def test_the_note_is_silent_when_he_will_not_march(self, state, setter):
+        """The defect this predicate fix closes, at the values that broke:
+        the SAME screen printed "WILL NOT — Napoleon: [fortified / has
+        already marched]" two lines above "The Emperor commands in person
+        — +10% harder", and the battle carried no Emperor row at all."""
+        s = make_sovereign(location="Rhineland")
+        setter(s)
+        a = make_marshal("Ney", personality="aggressive",
+                         location="Rhineland")
+        e = make_marshal("Mack", nation="Austria", location="Bavaria")
+        w = make_world(s, a, e)
+        preview = CE()._build_muster_preview(a, e, w, {"world": w})
+        joining = {r["marshal"] for r in preview.get("rows", [])
+                   if r["will_join"]}
+        assert "Napoleon" not in joining, state
+        assert not preview.get("presence_note"), (
+            f"the muster promised the Presence from a sovereign who "
+            f"will not join ({state})")
 
     def test_muster_preview_silent_without_sovereign(self):
         a = make_marshal("Ney", personality="aggressive")

@@ -1513,6 +1513,7 @@ class StrategicOrderProcessor:
         - AGGRESSIVE: Sally out to attack adjacent enemies, RETURN after
         - CAUTIOUS: Auto-fortify, passive defense
         - LITERAL: Immovable (+15% defense via holding_position), NEVER leaves
+        - SOVEREIGN: holds, and only holds — see below.
         """
         order = marshal.strategic_order
         personality = marshal.personality
@@ -1663,6 +1664,34 @@ class StrategicOrderProcessor:
                 "location": marshal.location,
                 "order_status": "continues",
                 "message": f"{marshal.name} fortifies {marshal.location}."
+            }
+
+        elif getattr(marshal, "is_sovereign", False):
+            # ⚠ NP promise audit (Aug 15, 2026). Before this arm the
+            # sovereign fell through to the `else:  # aggressive` branch
+            # below and SALLIED OUT unordered: reproduced through the real
+            # player path — "Napoleon, hold Paris" answered "Holding
+            # position", and the next turn reported *"Napoleon sallies
+            # forth to attack Mack, then returns to Paris!"* with the Guard
+            # down 10,000 → 9,737. The Emperor committed his army to a
+            # battle the player never ordered, on a verb whose whole
+            # meaning is "stay put", and the loss path from there runs into
+            # §7's capture machinery.
+            #
+            # This is exactly the class §3.1's mandated sweep exists to
+            # find — an `else:` arm authored for another personality that a
+            # sovereign silently executes. He is the player's own hand
+            # (§2 pillar 1): HOLD means hold. He keeps the ordinary
+            # defensive posture without the literal's Immovable bonus,
+            # which is a marshal's trait, not a rule of the game.
+            return {
+                "marshal": marshal.name,
+                "command": "HOLD",
+                "action": "hold_position",
+                "location": marshal.location,
+                "order_status": "continues",
+                "message": (f"The Emperor holds {marshal.location}. "
+                            f"He will not move until you say so.")
             }
 
         else:  # aggressive (and balanced/loyal)

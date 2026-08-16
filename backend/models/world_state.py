@@ -6266,7 +6266,29 @@ class WorldState:
         for m_name in eliminated:
             dead = self.marshals[m_name]
             dead_location = dead.location
-            self.destroy_marshal(dead, cause="attrition")
+            # ⚠ NP promise audit (Aug 15, 2026): the FOURTH copy of the
+            # destruction sentence, and the last un-routed one. The NP-4
+            # death guard inside destroy_marshal CAPTURES a sovereign and
+            # returns False; this caller ignored the return and announced
+            # his death anyway — the event rides `tactical_events` to the
+            # client and main.gd prints its `message` verbatim. §7.1 says
+            # a sovereign cannot die in v1.
+            if not self.destroy_marshal(dead, cause="attrition"):
+                if getattr(dead, "captured_by", ""):
+                    from backend.display_names import (
+                        humanize_entity_name, marshal_honorific)
+                    events.append({
+                        "type": "marshal_captured",
+                        "marshal": dead.name,
+                        "nation": dead.nation,
+                        "region": dead_location,
+                        "message": (
+                            f"{marshal_honorific(self, dead.name)}'s corps "
+                            f"starved out at {dead_location} — "
+                            f"{humanize_entity_name(dead.captured_by)} "
+                            f"holds him prisoner."),
+                    })
+                continue
             events.append({
                 "type": "marshal_destroyed",
                 "marshal": dead.name,
@@ -11936,6 +11958,26 @@ class WorldState:
                 # Jealousy v3.2: glory AFTER relationships (spec §0.2 item 4;
                 # the reckless path forgoes the territory bonus — capture is
                 # decided further down this block) + §6b transition check.
+                #
+                # NP promise audit (Aug 15, 2026) — RULE STATED, not an
+                # oversight. On this path the Shadow (§6.2) fires while the
+                # aura (§5.1) does not, because the block above clears every
+                # combat transient on BOTH sides and `sovereign_presence` is
+                # one of them. That asymmetry is deliberate and it is the
+                # coherent reading: the aura is a transient buff, and this
+                # path forgoes ALL of them (the charger loses his
+                # coordination bonuses here too — CA8-19(i)); the Shadow is
+                # not a buff but a fact about whose field it was, and the
+                # Emperor was standing on it. A marshal who auto-charges at
+                # the Emperor's side therefore wins half the laurels and
+                # none of the help — which is the Marshalate's whole
+                # complaint. Suppressing the Shadow here would instead make
+                # "charge beside the Emperor" the one way to bank FULL glory
+                # under his eye, i.e. the strictly-dominant stacking the
+                # gate rejected option (c) to avoid. The underlying oddity
+                # — that this is the one resolve_battle site with no
+                # coordination recompute — is pre-existing and belongs to
+                # CA8-19, not to row NP.
                 _jealousy.record_battle_glory(
                     self, marshal, enemy, _ac_atk_won, _ac_def_won,
                     int(combat_result.get("attacker", {}).get("casualties", 0)),
