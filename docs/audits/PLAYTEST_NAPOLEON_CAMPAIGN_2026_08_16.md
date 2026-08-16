@@ -161,9 +161,19 @@ calls: **`DESIGN_REFINEMENT.md` §Napoleon Campaign** (NPC-D1..D4).
 Method: nine verifiers, each required to point at `file:line` with a
 reproduction before a row could be filed; then two independent refuters per
 surviving claim. **The verifiers corrected four of the session's own
-"verified in play" claims** (§5) and refuted three candidate defects outright.
-The two P1s marked ⛔ were additionally reproduced by hand, independently of
-the fleet.
+"verified in play" claims** (§5) and refuted three candidate defects outright;
+**the refuters then killed two more rows, corrected one root cause and split
+the severity on two** — all folded into the routing table rather than
+appended. The two P1s marked ⛔ were additionally reproduced by hand,
+independently of the fleet.
+
+Two corrections worth carrying here because they change what a fixer would do:
+NPC-2's cause is **not** "TUT-F4a implemented at 1 of ~38 seams" — the clear
+IS written and is *unreachable for strategic orders* (`executor.py:873`
+excludes `is_strategic_command`); and the session's claim that NPC-9 is "not
+the retirement of `take`" was **refuted for its first input** — restoring
+`take` to the verb set does bind that sentence, so the real fix is the
+`$`-anchored self-marker regex, not the verb list.
 
 **Five P1s.** ⛔ NPC-1 typing an enemy's name *the way the game prints it*
 fights a different enemy and wins · ⛔ NPC-2 the stale interrupt that makes
