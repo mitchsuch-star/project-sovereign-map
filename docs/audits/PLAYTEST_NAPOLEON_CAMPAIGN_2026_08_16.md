@@ -46,37 +46,57 @@ correct**. It is weighted through *territory*, not through battles, and it is
 **invisible**. That is the one thing this campaign changes about the row's
 status, and it is a narration slice, not a mechanics one.
 
-Second finding, and it turned out to be the **larger** one — it is not about
-the Emperor at all: **`attack <marshal>` out of range is a null action.**
-Across 68 turns the player fought 11 battles; the live arm fought **zero in
-14**. An out-of-range attack is silently auto-upgraded to a multi-turn PURSUE
-(`combat_executor.py:4302-4346`), and a PURSUE advances at exactly the
-quarry's own `movement_range` — measured **closing at 0 provinces per turn**,
-distance pinned at 2 for three consecutive turns while both armies marched.
-A +10% aura the player cannot bring to bear reads as absent, not as powerful;
-but the mechanic is sovereign-neutral and every marshal has always had it.
-Two more defects sit on the same order: the acceptance line **names an unseen
-enemy's exact province from omniscient data** and the same order is then
-cancelled two turns later for having no intelligence on him
-(`strategic_executor.py:1400-1403` vs `_execute_pursue`), and a sovereign on
-a PURSUE **inherits the cautious branch** of the cannon-fire interrupt — the
-game asks the player whether the Emperor should go and look, when the player
-*is* the Emperor. That last one is audit finding B4's exact class
-(`§3.1`: no sovereign silently executes another personality's behaviour)
-surviving at a second seam.
+**A correction this memo owes its own first draft.** The second headline it
+originally carried — *"`attack <marshal>` out of range is a null action; a
+PURSUE closes at zero provinces per turn"* — is **FALSE, and was killed by
+its own refuters.** The pursuit closes normally, at the pursuer's
+`movement_range`: measured three times independently, Paris→Swabia goes
+**4 → 3 → 2**, and the refuters' samples reached combat in 2 of 5 runs, once
+with a capture. It is struck (`BUG_FIXES.md` ~~NPC-4~~) rather than deleted,
+because it was this session's headline and the next reader deserves to see
+it was tested and killed.
+
+**The observation behind it was real, and its true cause is worse for this
+memo than the wrong one was for the game.** The player fought 11 battles
+across 68 turns and the live arm fought **zero in 14** — because a strategic
+interrupt raised during *end-turn* processing is never promoted to the
+top-level response key. The unattended driver cannot see it, so the marshal
+freezes and then the turn loop does too. Measured on the ordinary input
+`Napoleon, attack Mack`: the pursuit closes 4 → 3 → 3 through turn 4, a
+`cannon_fire` interrupt is raised on turn 5, and Napoleon never moves again
+while `current_turn` stops advancing at 7. Only **one** `strategic_interrupt`
+popup appears across all four digests.
+
+**So every battle-count figure in this playtest understates the game**, and
+the "does he *feel* strong" answer below is bounded by that (§4). A human
+player is unaffected — the Godot client derives the interrupt from
+`strategic_reports` — which makes this **P1 for anything that evaluates the
+game unattended and P3 for the player** (`BUG_FIXES.md` NPC-16).
+
+One defect on that same order survives at P1 and is real: the PURSUE
+acceptance line **names an unseen enemy's exact province from omniscient
+data** and the same order is then cancelled two turns later for having no
+intelligence on him (`strategic_executor.py:1400-1403` vs `_execute_pursue`)
+— confirmed 2/2.
 
 ## 2. Pillar scores
 
 Against the August 15 comprehensive playtest (directional ≈6.7).
 
+⚠ **Read these with NPC-16 in mind.** The harness froze marshals holding
+strategic orders from the turn an end-turn interrupt fired, so this campaign
+saw fewer battles than the game would have shown a human. Combat legibility
+and marshal drama are scored on what *did* render, which is sound; but no
+pillar here is scored on battle *frequency*, and none should be.
+
 | Pillar | Aug 9 | Aug 15 | **Aug 16** | Δ | Why |
 |---|---|---|---|---|---|
-| Command & parsing | 6.5 | 6.5 | **6.5** | = | The Hand works on 6 of 8 live forms and PC15-8's literal ASK is fixed; but PC15-2's family is alive (NPC-1) and a prisoner refusal answers with geometry (NPC-5) |
+| Command & parsing | 6.5 | 6.5 | **6.5** | = | The Hand works on 6 of 8 live forms and PC15-8's literal ASK is fixed; but PC15-2's family is alive (NPC-1) and a prisoner refusal answers with another province's geometry (NPC-7) |
 | Marshal drama | 7.0 | 7.0 | **7.5** | ▲ | The Shadow + the Petition for Independent Command firing *organically*, twice, unprompted — a genuinely new axis. The petition firehose still caps it |
 | Combat legibility | 6.0 | 6.5 | **7.0** | ▲ | The aura row with its own decay caption, WILL JOIN / WILL NOT with stated reasons, diorama `absence_reason`, "[The Emperor] He commanded in person, and Europe saw it. (Authority +2)" |
-| Narration & briefing | 6.5 | 7.0 | **6.5** | ▼ | Paris fell and got Nivernais's sentence. No Seat-lost beat, no myth-cracking beat, and the aura's whole arc is unnarrated (NPC-2) |
+| Narration & briefing | 6.5 | 7.0 | **6.5** | ▼ | Paris fell and got Nivernais's sentence. No Seat-lost beat, no myth-cracking beat, and the aura's whole arc is unnarrated (NPC-14/NPC-15, design half NPC-D1) |
 | Economy | 6.0 | 6.5 | **6.5** | = | Convergence re-confirmed: arm 1 ran +2,272/turn → −551/turn as the empire overreached; arm 2 plateaued at +42. War grinds the purse, correctly |
-| Diplomacy & settlement | 6.0 | 6.0 | **6.0** | = | Little new evidence; the confirm chain recurred once (NPC-4, downgraded) |
+| Diplomacy & settlement | 6.0 | 6.0 | **6.0** | = | Little new evidence; the confirm chain recurred once (NPC-21, downgraded) |
 | AI aliveness | 6.5 | 7.0 | **7.5** | ▲ | Europe took **thirteen** French homeland provinces including Paris while the player pushed east. Overextension punished beautifully and without cheating |
 | Vassals | — | 6.5 | **6.5** | = | no new evidence |
 | Naval | — | 6.5 | **6.5** | = | no new evidence |
@@ -87,16 +107,16 @@ Against the August 15 comprehensive playtest (directional ≈6.7).
 
 | Arm | Shape | Result |
 |---|---|---|
-| **1 — the Emperor takes the field** | 22 turns, mock, scripted | Completed. 65 commands, 39 popups, 4 player battles. He marched Paris→Lorraine in four turns, joined the concentration, reinforced Davout at Tyrol and led at Bohemia. Meanwhile **Europe took 13 French homeland provinces including Paris (T15)**. Aura 1.000 → 0.400. The turn-22 "sixteen `proposal_confirm` popups" that looked like a soft-lock is **mostly a harness artefact** — see NPC-14/H1–H3 |
-| **2 — the Emperor alone** | 20 turns, mock | Completed. The design intent (every marshal fortified out of the muster so the 10,000-man Guard fights alone) was **defeated by the game being good**: the marshals' objections overrode three fortify orders and won the war in three turns — Mack was *captured on turn 3*. The arm then became an unintended and very valuable test of what happens when you order an attack on your own prisoner: **fifteen consecutive turns of "cannot reach Mack … Distance: 7"** (NPC-5). The `shadow_command` petition fired here, turn 9, unprompted. |
+| **1 — the Emperor takes the field** | 22 turns, mock, scripted | Completed. 65 commands, 39 popups, 4 player battles. He marched Paris→Lorraine in four turns, joined the concentration, reinforced Davout at Tyrol and led at Bohemia. Meanwhile **Europe took 13 French homeland provinces including Paris (T15)**. Aura 1.000 → 0.400. The turn-22 "sixteen `proposal_confirm` popups" that looked like a soft-lock is **mostly a harness artefact** — see NPC-21 + NPC-H1/H3 |
+| **2 — the Emperor alone** | 20 turns, mock | Completed. The design intent (every marshal fortified out of the muster so the 10,000-man Guard fights alone) was **defeated by the game being good**: the marshals' objections overrode three fortify orders and won the war in three turns — Mack was *captured on turn 3*. The arm then became an unintended and very valuable test of what happens when you order an attack on your own prisoner: **fifteen consecutive turns of "cannot reach Mack … Distance: 7"** (NPC-7). The `shadow_command` petition fired here, turn 9, unprompted. |
 | **3 — the Seat** | 12 turns, mock | Completed. "Napoleon, hold Paris" on turn 1 and he never moved for twelve turns; DP 6/6 throughout. ⚠ **the stillness is vacuous as evidence** — the run's own autosave shows no enemy was ever adjacent to Paris, so nothing ever tempted him. The B4 fix is confirmed by falsification probe instead (§5) |
-| **4 — live parse** | 14 turns, `LLM_MODE=anthropic` | Completed. 42 commands, **0 player battles** (the pursuit problem, NPC-6). Six of eight sovereign address forms bound correctly on sentences absent from the golden corpus; the two A4 negative controls both held. |
+| **4 — live parse** | 14 turns, `LLM_MODE=anthropic` | Completed. 42 commands, **0 player battles — caused by the harness freeze (NPC-16), not by the game.** Six of eight sovereign address forms bound correctly on sentences absent from the golden corpus; the two A4 negative controls both held. |
 
 ## 4. What only play could answer — the seven NP questions
 
 | Question | Answer |
 |---|---|
-| **Does the Emperor feel strong?** | **Mechanically yes, experientially no** — and the cause is not the size of N1/N2 (correctly sized, must not be raised) but that he rarely fights (NPC-6). When he *does*, the screen is unambiguous: "The Emperor commands in person — every corps on this field fights +10% harder", the modifier row, the authority beat. |
+| **Does the Emperor feel strong?** | **Mechanically yes; experientially NOT ANSWERED, and this memo should not pretend otherwise.** When he fights, the screen is unambiguous: "The Emperor commands in person — every corps on this field fights +10% harder", the modifier row, the authority beat. He fought rarely — but the cause was the harness freeze (NPC-16), not the game, so the felt answer is **owed to a human-played session**. N1/N2 are correctly sized and must not be raised on this evidence. |
 | **Do his losses have weight?** | **The mechanism yes, the delivery no.** Measured on the arm-1 t22 save: authority **100**, grip **52**, aura **0.400**, battle row **"+4% (his star dims)"**. The number moved. Nothing ever said so outside a modifier row (NPC-2). |
 | **Does the Shadow reshape the court?** | Partly. It fires (measured: a marshal's 3 laurels become 1 under his eye; 4 → 2 for Ney), and it produced the Petition — which is the intended court pressure. But it never changed *my* play, because stacking never became the dominant thing to do: he is too slow to stack with. |
 | **Does the Petition for Independent Command fire in ordinary play?** | **YES — unprompted, in two of four arms** (arm 2 turn 9, Soult; live arm turn 13, Soult). Not dead content. |
@@ -175,14 +195,22 @@ the retirement of `take`" was **refuted for its first input** — restoring
 `take` to the verb set does bind that sentence, so the real fix is the
 `$`-anchored self-marker regex, not the verb list.
 
-**Five P1s.** ⛔ NPC-1 typing an enemy's name *the way the game prints it*
-fights a different enemy and wins · ⛔ NPC-2 the stale interrupt that makes
-NPC-1 possible is left armed by ~37 of 38 order-clearing seams (TUT-F4a
-implemented once) · NPC-3 `attack Archduke John` silently attacks Archduke
-Charles (shared title disarms the guessed-target guard) · NPC-4 `attack
-<marshal>` out of range closes at **zero** provinces per turn · NPC-5 the
-PURSUE acceptance leaks an unseen enemy's exact province and the same order is
-then cancelled for having no intelligence on him.
+**Four P1s** (a fifth was filed and killed — see below). ⛔ NPC-1 typing an
+enemy's name *the way the game prints it* fights a different enemy and wins ·
+⛔ NPC-2 the stale interrupt that makes NPC-1 possible survives a replacement
+order (TUT-F4a's clear is unreachable for strategic orders) · NPC-3 `attack
+Archduke John` silently attacks Archduke Charles · NPC-5 the PURSUE
+acceptance leaks an unseen enemy's exact province and the same order is then
+cancelled for having no intelligence on him · ⛔ NPC-16 the end-turn interrupt
+freeze, **P1 for evidence and P3 for the player**.
+
+**Two rows were filed and then killed by their own refuters, and both were
+this session's claims rather than someone else's:** ~~NPC-4~~ the "null
+pursuit" (the pursuit closes — measured three ways) and ~~NPC-22~~ the
+sovereign's cannon-fire ask, which is a **recorded, dated, census-pinned NP-V
+decision** with Berthier speaking, not a silent inheritance. NPC-22 had been
+written up here as "the only NP-shaped mechanical defect the campaign found";
+it is not a defect at all, and the campaign found **none**.
 
 **Eleven P2s** — a dead marshal's name retargets a living one; an attack on
 our own prisoner answers with Spain's geometry and has an executing arm;
@@ -194,13 +222,17 @@ fallen homeland province forgotten after one turn; Paris given Nivernais's
 sentence with no captor named; an end-turn interrupt never promoted to the
 response.
 
-**Eleven P3s**, including the one sovereign-specific row worth naming:
-**NPC-22** — a sovereign on a strategic order inherits the *cautious* branch of
-the cannon-fire interrupt, so the game asks the player whether the Emperor
-should go and look at the guns. That is audit finding B4's exact class
-(§3.1: no sovereign silently executes another personality's behaviour)
-surviving at a second seam, and it is the only NP-shaped mechanical defect the
-campaign found.
+**Ten P3s** — the muster hedge and "this marshal"; the title-as-referent gap;
+two more answers to "what about our prisoner?"; the cannon_fire `own_ground`
+key mismatch; the dead `proposal_confirm` button; the retreat-that-does-not-
+exist; the enemy-incursion grammar; the bare famine number; the charge
+threshold never named; and the raw-authority-vs-derived-grip contradiction.
+
+**And the finding that is not a defect at all: the campaign found ZERO
+NP-shaped mechanical defects.** Every sovereign-specific row it produced is
+copy (the hedge, "this marshal", the title as referent) — and the one that
+looked mechanical, ~~NPC-22~~, turned out to be a recorded NP-V ruling. Row NP
+came through a played campaign with its mechanics intact.
 
 **The through-line, stated once.** Almost every P1 and P2 here is one defect
 in five costumes: **the player names a thing the way the game printed it, and

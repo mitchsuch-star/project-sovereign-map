@@ -1012,18 +1012,25 @@ dead weight**, and if the former, whether anything should *tell* the player
 the wager exists before it is taken. Related: the enemy-side capture is the
 only realistic route, which NP-6 would supply. **Owner: the NP-6 gate.**
 
-### NPC-D4 — the pursuit is not a mechanic, and it is the biggest single
-lever on how the game feels
+### NPC-D4 — what a pursuit should promise (REDUCED, after its premise was killed)
 
-Routed as a defect (NPC-4/NPC-5) because it is measurably broken, but the
-*design* question underneath is real and belongs here: **should `attack
-<distant marshal>` exist at all?** It currently accepts an order it cannot
-fulfil, spends AP, and closes at zero. The three coherent designs are: refuse
-it up front and make the player move ("Mack is five provinces away — march to
-Swabia first"), give the pursuer a closing bonus so a pursuit is a real chase
-with a real resolution, or keep it as a standing intent that only resolves
-when the quarry stops. **Owner: whoever takes NPC-4** — the fix is not
-separable from the design choice.
+**This row was filed on a false premise and is kept, much smaller, only
+because one real question survives it.** The session claimed `attack <distant
+marshal>` closes at zero and is therefore a null action; two independent
+refuters and a third measurement killed that (~~`BUG_FIXES.md` NPC-4~~) — the
+pursuit closes at the pursuer's own `movement_range`, and reached combat in 2
+of 5 refuter samples. Nothing about the pursuit RATE needs designing.
+
+What survives is narrower and is a **disclosure** question, not a balance one:
+`attack <marshal>` at range silently becomes a multi-turn PURSUE, and the
+player is told "Napoleon pursues Mack (at Swabia)" without being told that
+this is now a standing order that may take five turns, may be diverted by an
+interrupt, and may self-cancel if intelligence lapses (the last of which is
+NPC-5's live P1). **The question: should the auto-upgrade announce its own
+terms at issue time** — the honest-availability convention this project
+already applies to naval chips and the Reward chip — rather than reading like
+an attack order that happened to move? **Owner: whoever takes NPC-5**, since
+both live at the same acceptance seam (`strategic_executor.py:1400-1403`).
 
 ---
 

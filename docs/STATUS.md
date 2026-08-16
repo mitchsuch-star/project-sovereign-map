@@ -38,22 +38,40 @@
 > arms ever produced the dimming battle row. The user's brief is built,
 > correct, and invisible (NPC-D1).
 >
-> **The larger finding is not about the Emperor at all: `attack
-> <marshal>` out of range is a null action** — auto-upgraded to a PURSUE
-> that closes at **zero provinces per turn** (measured; distance pinned
-> at 2 for three consecutive turns). 4 player battles in 22 turns, **0 in
-> 14** on the live arm.
+> ⚠ **THE SESSION'S OWN SECOND HEADLINE WAS WRONG AND IS STRUCK.** It
+> filed *"`attack <marshal>` out of range is a null action — a PURSUE
+> closing at zero provinces/turn"*; **two independent refuters and a
+> third measurement killed it** (Paris→Swabia closes 4 → 3 → 2 at the
+> pursuer's own movement range; the refuters' samples reached combat 2 of
+> 5, once with a capture). Recorded as ~~NPC-4~~ rather than deleted.
+> **The real cause of the low battle count is NPC-16:** a strategic
+> interrupt raised during END-TURN processing is never promoted to the
+> top-level response key, so the unattended driver cannot see it and the
+> marshal — then the turn loop — FREEZES. Measured: the pursuit closes
+> through turn 4, a `cannon_fire` fires on turn 5, Napoleon never moves
+> again and `current_turn` stops at 7. Only ONE `strategic_interrupt`
+> popup appears across all four digests. **So every battle-count figure
+> in this playtest understates the game, and "does he feel strong" is
+> NOT answered — it is owed to a human-played session.** P1 for
+> unattended evaluation, P3 for the player (the Godot client derives it).
 >
-> **FIVE P1s, two reproduced by hand:** ⛔ typing an enemy's name *the way
+> **FOUR P1s, two reproduced by hand:** ⛔ typing an enemy's name *the way
 > the game prints it* ("Archduke Charles") routes into a stale interrupt
-> and **fights a different enemy and wins** · ⛔ that stale interrupt is
-> left armed by ~37 of 38 order-clearing seams (TUT-F4a implemented once)
-> · `attack Archduke John` silently attacks Archduke **Charles** · the
-> null pursuit · the PURSUE line **leaks an unseen enemy's exact
-> province** and is then cancelled for having no intelligence on him.
-> **The through-line: the player names a thing the way the game printed
-> it, and the game acts on something else** — CA9's defect moved one step
-> earlier, from delivery to *referent resolution*.
+> and **fights a different enemy and wins** · ⛔ that stale interrupt
+> survives a replacement order (TUT-F4a's clear is *unreachable* for
+> strategic orders — `executor.py:873`) · `attack Archduke John` silently
+> attacks Archduke **Charles** · the PURSUE line **leaks an unseen
+> enemy's exact province** and is then cancelled for having no
+> intelligence on him. **The through-line: the player names a thing the
+> way the game printed it, and the game acts on something else** — CA9's
+> defect moved one step earlier, from delivery to *referent resolution*.
+>
+> **A second row was filed and killed: ~~NPC-22~~**, the sovereign's
+> cannon-fire "ask", which the memo had called the campaign's only
+> NP-shaped mechanical defect. It is a **recorded, dated, census-pinned
+> NP-V ruling** with Berthier speaking, not a silent inheritance. **The
+> campaign found ZERO NP-shaped mechanical defects** — every
+> sovereign-specific row it produced is copy.
 >
 > **NP-6:** four of five kit halves work on a foreign sovereign today,
 > free. The fifth is wrong on its face — an authored Tsar's **first**
@@ -78,8 +96,8 @@
 >
 > **NEXT = position 10, the shippable build** — unless the user wants the
 > NPC P1 cluster closed first, which is a defensible re-order: NPC-1/2/3
-> are Round-0-class ("the game stopped listening to me") and NPC-4 governs
-> how the whole game feels.
+> are Round-0-class ("the game stopped listening to me") and NPC-16 has to
+> land before ANY future unattended playtest can be believed.
 
 > ## ✅ ROW NP — THE PROMISE AUDIT (THE EXIT REVIEW) — August 15, 2026
 > ## (tenth session that day): 450 PROMISES CHECKED, 18 FIXED, 11 ROUTED

@@ -68,16 +68,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > invisible:** the aura fell +10% → +4% over 22 turns (grip 100 → 52; 13
 > homeland provinces and **Paris** lost) with no beat anywhere, `authority`
 > never moving off 100, and no arm ever producing the dimming battle row
-> (NPC-D1). **The larger finding is not about the Emperor: `attack
-> <marshal>` out of range is a null action** — a PURSUE closing at ZERO
-> provinces/turn (4 battles in 22 turns; 0 in 14 live). **Five P1s, two
-> reproduced by hand**, sharing one root — *the player names a thing the
-> way the game printed it and the game acts on something else*: typing
-> "Archduke Charles" routes into a stale interrupt and **fights Mack and
-> wins**; that interrupt is left armed by ~37 of 38 order-clearing seams
-> (TUT-F4a implemented once); `attack Archduke John` attacks **Charles**;
-> the PURSUE line leaks an unseen enemy's province then cancels for want
-> of intelligence on him. **NP-6 = a memo, not a build**: four of five kit
+> (NPC-D1). ⚠ **the session's own second headline was WRONG and is
+> STRUCK**: it filed "`attack <marshal>` out of range is a null action —
+> a PURSUE closing at ZERO provinces/turn" and **two independent refuters
+> plus a third measurement killed it** (Paris→Swabia closes 4 → 3 → 2;
+> the refuters reached combat 2 of 5 samples, once with a capture) —
+> recorded as ~~NPC-4~~ rather than deleted. **The real cause of the low
+> battle count is NPC-16**: an end-turn strategic interrupt is never
+> promoted to the top-level response key, so the unattended driver cannot
+> see it and the marshal, then the TURN LOOP, freezes (measured: pursuit
+> closes to turn 4, `cannon_fire` on turn 5, `current_turn` stops at 7;
+> one `strategic_interrupt` popup across all four digests). **So every
+> battle-count figure understates the game and "does he feel strong" is
+> NOT answered — it is owed to a human-played session**; P1 for unattended
+> evaluation, P3 for the player. **Four P1s, two reproduced by hand**,
+> sharing one root — *the player names a thing the way the game printed it
+> and the game acts on something else*: typing "Archduke Charles" routes
+> into a stale interrupt and **fights Mack and wins**; that interrupt
+> survives a replacement order (TUT-F4a's clear is UNREACHABLE for
+> strategic orders, `executor.py:873`); `attack Archduke John` attacks
+> **Charles**; the PURSUE line leaks an unseen enemy's province then
+> cancels for want of intelligence on him. **A second row was filed and
+> killed — ~~NPC-22~~**, the sovereign's cannon-fire ask, a recorded
+> census-pinned NP-V ruling: **the campaign found ZERO NP-shaped
+> mechanical defects.** **NP-6 = a memo, not a build**: four of five kit
 > halves work on a foreign sovereign free, the fifth prints *"(his star
 > dims)"* at **+8% on turn one** because a non-player court's grip is a
 > flat 75 against an 85 window — and **`world.nation_authority` already
