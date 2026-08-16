@@ -102,8 +102,26 @@
 > rides the key `diplomatic_dialogue`, so declining two different
 > letters tripped it and stopped a live chain.
 >
-> **NEXT = unchanged: position 10, the shippable build** — unless the user
-> prefers the NPC P1 cluster or the remaining WIN-D rows first.
+> **✅ TWO WIN-D ROWS RULED August 16, 2026 (user), design authored, ⚠ BUILD
+> GATE PENDING — `docs/WAR_WITHDRAWAL_SPEC.md` "The Road Home" §7.**
+> **WIN-D3:** ending a war grants a temporary right of transit (one arm on
+> `can_enter_territory`, so all ~25 movement seams inherit it) plus an
+> automatic 0-AP MOVE_TO home for every stranded marshal, both sides;
+> ONE new serialized field `evacuation_grants`; the corridor **stays open
+> while you march and closes if you stop**, so the duration number is not
+> load-bearing and expiry means loitering (consequence = internment on the
+> PC15-1 `destroy_marshal` seam, the harshest thing in the design and
+> flagged as such at the gate). **WIN-D5:** Napoleon boots at **Lorraine**
+> — adjacent to Swabia, beside Soult whose corps his Guard was carved
+> from, and where he historically was in late September 1805; a sovereign
+> movement allowance was considered and rejected. ⚠ the row's premise is
+> CORRECTED — he *can* reach the front from Paris, it just costs ~10
+> turns. Expect the Seat inactive at boot (argued in §9.2) and ONE
+> attributed `BASELINE_SERIES` re-record.
+>
+> **NEXT = the user's call: build "The Road Home" (answer spec §7's four
+> questions, or delegate them), or position 10 the shippable build, or
+> the NPC P1 cluster.**
 
 > ## ✅ THE PLAYED CAMPAIGN + THE NP-6 EVALUATION — August 16, 2026
 >
