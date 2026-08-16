@@ -32,7 +32,28 @@
 > owner = the row NP exit review** (rides the capture-worth/captivity
 > machinery NP-5/NP-6 builds; completion = an army that would be captured
 > on strictly-neutral soil is held by the NEUTRAL court and released at
-> peace or by clause, behavior test named at filing). Option (c)
+> peace or by clause, behavior test named at filing).
+>
+> ⚠ **STATUS August 15, 2026 — the owner arrived, and the rider is PUT TO
+> THE USER rather than silently carried.** The row NP promise audit
+> surfaced it (record `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md` §6)
+> with a finding that changes the question: **D1's own ruling
+> substantially narrowed the premise.** The forced-retreat scan now obeys
+> the movement law, so an army can no longer retreat ONTO neutral soil at
+> all — measured live, the scan prints *"Skip: neutral court (PEACE) — the
+> frontier is closed"* and falls through either to a desperation retreat
+> into at-war soil or to capitulation in place. The rider's case therefore
+> survives only for an army ALREADY STANDING on neutral soil when it is
+> cornered (it entered legally under `OPEN_MOVEMENT_STATES` and the state
+> then changed) — rare. Live options: **(a)** build it for that narrow
+> case; **(b)** CLOSE the row — capitulation in place is the 1805-exact
+> outcome D1 already blessed, and a neutral-court holder adds a party with
+> no other mechanics attached to it; **(c)** re-home to the Victory Pass,
+> which owns endings and prisoners. **Recommendation: (b)**, with (c) as
+> the fallback if the flavour is wanted later. Nothing built pending the
+> user's word.
+>
+> Option (c)
 > neutral-protest REJECTED outright (redundant under (a); deliberate entry
 > is already illegal at the movement seam; the Ansbach trap keeps its
 > authored scope). Riders built with it: the jealousy glory-hunt skips an

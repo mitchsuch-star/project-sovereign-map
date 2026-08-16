@@ -38,6 +38,24 @@
 ---
 
 
+## Row NP — the promise audit (August 15, 2026) — **7 FIXED, 5 ROUTED**
+
+> **Record = `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md` (authoritative);
+> landing record = `docs/NAPOLEON_SPEC.md` §15.9.** Every commitment in the
+> spec and in the 13 NP commit messages, extracted and verified against
+> code. The seven fixed rows are in the landing record; these five are
+> ROUTED with owners, per GR9.
+
+| ID | Sev | Summary | Owner / landing |
+|----|-----|---------|-----------------|
+| NP-X1 | P3 | **The trailing self-marker still reaches the destination extraction in SOVEREIGN-FREE worlds.** `"Ney, march to Belgium myself"` parses the phantom province `Belgium Myself`. The audit's strip is inside `normalize_sovereign_address`, which is content-gated by design (the NP dormancy pin), so it cannot run on a board with no Emperor. NP-1's claim that adding "myself" to the two fuzzy skip lists closed this family is false by construction — the destination regex reads to end-of-string and never consults them. The general fix belongs at the destination-extraction seam and is corpus-moving. | **CR-6 *proper*** (the parser gate). Completion: a trailing reflexive never becomes a destination token on ANY board, pinned by a corpus row in the sovereign-free arm. |
+| NP-X2 | P3 | **The general prisoner-rescue rule was routed nowhere.** NP-4 scoped "storm the city and free him" to sovereigns deliberately — "a general prisoner-rescue rule would change ambient behavior" — and its commit says "routed as a follow-up". It was not routed. Today an ordinary marshal is NOT freed when his own nation retakes the city holding him. | **EC-2 pass 2 / the Victory gate**, whichever reaches prisoners first. Completion: either ordinary prisoners are freed by recapture (with a measured ambient delta) or the sovereign-only rule is CANONIZED at the resolver head with its reason. |
+| NP-X3 | P3 | **`sovereign_takes_field` still notes a war DECLARED while the Emperor is already afield.** The per-war-instance re-fire is fixed (one beat per departure), but a fresh war instance created later is unnoted and fires once. | **ACCEPTED, not deferred** — the sentence is true news for that war. Pinned in `test_napoleon_promise_audit_2026_08_15.py`; re-open only if a played campaign finds it reads wrong. |
+| NP-X4 | P2 | **The test suite can reach the live Anthropic API.** `.env` sets `LLM_MODE=anthropic` and `conftest.py` does not pin it, so any phrasing the fast parser scores below 0.7 escalates for real — observed during this session (`AnthropicProvider: request_id=…` inside a pytest run). Pre-existing and unrelated to row NP, but it makes every parser test non-hermetic and costs money on a full run. | **position 10 (the shippable build)** — it already owns the key/mock-default surface. Completion: `conftest` pins `LLM_MODE=mock` suite-wide with an explicit `live_only` opt-in, and a pin asserts no provider call escapes a default run. |
+| NP-X5 | P3 | **The §10 "modding reference" fails the validator.** `mods/examples/battle_of_waterloo.json` errors on two capitals missing from its scenario regions. **Verified pre-existing and byte-identical before row NP** (`git show 4550ccb`), so NP-5's sovereign upgrade did not cause it — but §10 names this file as the reference a modder reads. | **DEF-1 / the modding-docs row.** Completion: the example validates clean, or the validator's partial-scenario mode is documented and the example is marked as one. |
+
+---
+
 ## Comprehensive Playtest PC15 — filed August 15, 2026 (**THE FIX SLICE LANDED August 15, 2026 — 13 rows FIXED**)
 
 > **Evidence memo = `docs/audits/PLAYTEST_COMPREHENSIVE_2026_08_15.md`

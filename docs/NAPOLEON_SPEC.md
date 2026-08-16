@@ -20,7 +20,7 @@
 > §4 the hand (command) · §5 the presence (combat/AI) · §6 the court
 > (glory/jealousy) · §7 the peril (capture) · §8 the seat (Paris) · §9 the
 > stage (UI) · §10 symmetry · §11 blessed numbers · §12 blast radius &
-> conscious pin flips · §13 slices · **§14 THE GATE** · §15 deferrals.
+> conscious pin flips · §13 slices · **§14 THE GATE** · §15D deferrals · **§15 LANDING RECORD**.
 
 ---
 
@@ -225,9 +225,16 @@ exists in the player roster**:
   `Napoleon <verb>...`, **gated three ways**: (a) no other addressee in the
   sentence (corpus row 3953 `"Ney, I want you to move to Lorraine"` is
   pinned unchanged — an address token always wins); (b) military/movement
-  verbs only (attack, march, move, ride, advance, withdraw, fortify, hold,
-  scout...) — diplomacy keeps its verbs, and the survey confirmed the
+  verbs only — diplomacy keeps its verbs, and the survey confirmed the
   corpus has zero "I offer/I propose" diplomatic forms to collide with;
+  **the authoritative list is `parser._SOVEREIGN_ORDER_VERBS`, and every
+  member of it must PARSE** — `ride` and `advance` were named here in
+  v0.2 and neither is a verb this game has, so both were retired (§15.8
+  item 4), as were `take`/`besiege` when measured. `test_every_sovereign_
+  order_verb_actually_parses` is the standing guard, and **gate (b) binds
+  all three arms** — the Emperor-lead arm shipped with no verb gate
+  (§15.8 item 3) and the self-marker arm shipped with none either
+  (§15.9 A4);
   (c) the question detector runs FIRST, so "Can I attack Vienna?" stays
   `help` (the `is_question` interrogative-lead + first-person second-signal
   contract is pinned in both directions).
@@ -276,7 +283,7 @@ seam, both sites — executor.py:724-730 pre-check and
 strategic_executor.py:1458-1460 charge — gain `or is_sovereign`). The
 Emperor does not persuade himself. Tactical costs unchanged. No AP change
 for OTHER marshals near him in v1 (the Courier Delay row owns command-range
-economics; §15).
+economics; §15D).
 
 ## §5 The Presence — combat and fear
 
@@ -534,7 +541,7 @@ the correct currency (diplomacy is the Seat's business), it is scarce
 (France boots at 5), and it creates the campaign rhythm: winter in Paris
 banking DP and receiving envoys, spring on the Rhine spending the army.
 Intrigue-while-absent (Talleyrand–Fouché 1809) is deliberately deferred
-with an owner (§15, NP-D2) — it needs the Events machinery this game
+with an owner (§15D, NP-D2) — it needs the Events machinery this game
 doesn't have yet.
 
 ## §9 The Stage
@@ -812,7 +819,11 @@ The questions as put (kept for provenance):
    the pre-Napoleon balance, but the campaign's findings partly expire when
    NP reshapes the court).
 
-## §15 Deferred with owners (GR9)
+## §15D Deferred with owners (GR9)
+
+> Renumbered §15 → §15D by the promise audit (Aug 15, 2026): this section
+> and the landing record below were BOTH numbered §15, so every
+> cross-reference to "§15" was ambiguous. The landing record keeps §15.
 
 | Item | Owner / landing | Completion definition |
 |---|---|---|
@@ -950,7 +961,7 @@ dated in-file).
   casualty-laundering property of a small battle lead is PRE-EXISTING
   (CO-1/[S62]) and belongs to the combat-copy-unification backlog.
 
-### §15.8 The finish pass — four things §15 had left undone
+### §15.8 The finish pass — four things the landing record had left undone
 
 Recorded because the user was right to ask. The row was reported
 build-complete while four items the spec (or my own commit messages)
@@ -996,3 +1007,93 @@ read "6/5" while the Emperor holds the Seat (the accrual is correct and
 the ceiling is cosmetic — routed rather than papered over); and
 `sovereign_takes_field` can re-fire once per war instance rather than
 once per war, which is latent and needs a played campaign to judge.
+
+### §15.9 THE PROMISE AUDIT — the exit review (August 15, 2026)
+
+**Record = `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md` (authoritative).**
+Commits `4638a85` + `55ec497` + the docs commit. Suite **18,032 / 3**.
+
+§15.8 was written because the user asked whether the row was finished and
+four forgotten promises fell out in ten minutes. This section is what
+happened when that question was asked *systematically*: every commitment
+in this spec and in all 13 NP commit messages extracted as a row and
+verified against code at current line numbers — a promise that could not
+be pointed at with `file:line` counted as MISSING until proven otherwise.
+11 parallel extraction agents (one per promise surface) with an
+independent refuter per non-LANDED row, run alongside a hand-verification
+pass that was deliberately not told what the fleet was doing.
+
+**The row is substantially as advertised** — every §2 never-do pin holds,
+zero new serialized fields, no name-keyed guard (GR5), the Peril's three
+roads home work end to end, the Petition fires end to end, all 19 rewrite
+verbs parse, the assets are git-tracked.
+
+**Seven defects, and three of them share one root:**
+
+> §15.4's amendment made `sovereign_aura_strength` "the single source" for
+> the aura and the fear — and updated two of its four readers. The
+> **garrison assault**, the **cavalry charge** and the **muster preview**
+> kept the old constant. Measured with the myth wholly broken
+> (`sovereign_aura_strength == 0.0`) the Emperor still stormed a capital
+> at the full +10% — attack modifier `1.2320` where the design intends
+> `1.1200`. That is the split brain the amendment's own commit said it was
+> retiring, surviving one seam over, inside the mechanic the user's brief
+> was about.
+
+The second theme is a **returned value three of four callers ignored**:
+`destroy_marshal` returns False when it converts a sovereign to capture,
+and only the charge copy read it — so the battle and auto-bombardment
+copies announced that the Emperor had been **destroyed**. §15.8's note
+that the auto-bombardment line "is a debug `print()`, not player-facing"
+is true of `combat_executor.py:5166` and misses the player-facing sibling
+seventy lines below it; the record is corrected rather than defended.
+This slice's own structural pin then found a **fourth** copy on its first
+run — the charge path, which had the gating right but composed its
+sentence independently and so carried no captured-sovereign line at all.
+
+**The three items §15.8 left unfixed were judged, not accepted.** Two were
+cheaper to close than to carry (the DP ceiling, now single-sourced in
+`diplomacy.displayed_dp_ceiling`; the departure beat, which `break`ed
+after the first unnoted war and so repeated once per war instance). The
+third's stated reason was half true, above.
+
+**Pins corrected:** a THIRD surviving pin asserting a broken rewrite
+(`"take the field in person"` → `"Napoleon, take the field"`, which parses
+to `success=False`) — §15.8 item 4 said it found two of these; it found
+two of three. And the enemy-sovereign stamp pin asserted `1.0` where
+§15.4 had already recorded that a foreign court's flat-75 grip means
+~0.82: it was pinning the inconsistency this audit closed.
+
+**All eight golden-corpus rows were vacuous about the one thing they pin.**
+They landed in §15.8 but every one omits the `marshal` key that 64 other
+rows use — the only field distinguishing "the sovereign was addressed"
+from "somebody was". Mutation-proven: with the theft simulated,
+`addressed-i-want-unchanged` still PASSED.
+
+**Corrections to this document:** §4.1's verb list still named `ride` and
+`advance` (retired in §15.8 item 4) and now defers to
+`parser._SOVEREIGN_ORDER_VERBS`; the deferral table was renumbered §15D
+because it and this landing record were both "§15".
+
+**Routed, not fixed — `BUG_FIXES.md` §Row NP:** NP-X1 (the marker still
+reaches the destination extraction in sovereign-FREE worlds → CR-6) ·
+NP-X2 (the general prisoner-rescue rule NP-4 said it routed, and did not
+→ EC-2 pass 2 / Victory) · NP-X3 (a war declared while he is already
+afield still notes itself — ACCEPTED, pinned) · NP-X4 (the suite can
+reach the live Anthropic API; pre-existing, non-hermetic → position 10) ·
+NP-X5 (the §10 modding reference fails the validator; pre-existing,
+verified byte-identical before this row → DEF-1).
+
+`tests/test_napoleon_promise_audit_2026_08_15.py` (28) +
+`test_napoleon_np1_hand.py` corpus class. `BASELINE_SERIES` and M1–M7
+byte-identical throughout, run rather than assumed.
+
+**Still open and NOT this session's:** NP-6 (strikeable) · the live visual
+sign-off (the user's own pass) · the played 20-turn campaign · and two
+questions the user owns — the sovereign's missing attack-confirm, and
+**"The Interned Column"**, which `DESIGN_REFINEMENT.md` §PC15-D1 homes to
+*"the row NP exit review"*, i.e. this session. It is surfaced with the
+finding that PC15-D1's own ruling substantially narrowed its premise: the
+retreat scan now obeys the movement law, so an army can no longer retreat
+ONTO neutral soil at all, and the rider's case survives only for an army
+already standing there when it is cornered.
