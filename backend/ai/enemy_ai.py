@@ -102,8 +102,13 @@ SOVEREIGN_FEAR_FACTOR = 0.75
 # <= FEAR_GRIP_BROKEN. Grip already encodes the collapse signals (emperor-
 # led defeats via authority, capital lost, losing war score, capture -40),
 # per-nation and GR5-symmetric (models/authority.py get_imperial_grip).
-SOVEREIGN_FEAR_GRIP_FULL = 70
-SOVEREIGN_FEAR_GRIP_BROKEN = 30
+# NP-V: the grip window MOVED to authority.AURA_GRIP_FULL/BROKEN — one
+# curve for the fear and the aura alike (they are two readings of the
+# same myth). Kept here as the historical record of the values this row
+# shipped with, and deliberately NOT read: a second copy is how the two
+# halves drifted apart in the first place.
+_RETIRED_SOVEREIGN_FEAR_GRIP_FULL = 70
+_RETIRED_SOVEREIGN_FEAR_GRIP_BROKEN = 30
 
 
 def sovereign_fear_factor(world: Optional["WorldState"], nation: str) -> float:
@@ -111,18 +116,18 @@ def sovereign_fear_factor(world: Optional["WorldState"], nation: str) -> float:
 
     1.0 = no fear (the aura is broken); SOVEREIGN_FEAR_FACTOR = full fear.
     Pure derived read — no serialized field, no RNG.
+
+    NP-V: the curve is now the SINGLE SOURCE shared with the combat aura
+    (`authority.sovereign_aura_strength`). Before, the fear faded with
+    grip while the aura did not, so a defeat under the Emperor's own hand
+    changed one half of his myth and not the other — and the ramp began
+    so late that six such defeats moved nothing at all.
     """
     if world is None:
         return SOVEREIGN_FEAR_FACTOR
-    from backend.models.authority import get_imperial_grip
-    grip = get_imperial_grip(world, nation)
-    if grip >= SOVEREIGN_FEAR_GRIP_FULL:
-        return SOVEREIGN_FEAR_FACTOR
-    if grip <= SOVEREIGN_FEAR_GRIP_BROKEN:
-        return 1.0
-    span = SOVEREIGN_FEAR_GRIP_FULL - SOVEREIGN_FEAR_GRIP_BROKEN
-    depth = (grip - SOVEREIGN_FEAR_GRIP_BROKEN) / span
-    return 1.0 - (1.0 - SOVEREIGN_FEAR_FACTOR) * depth
+    from backend.models.authority import sovereign_aura_strength
+    strength = sovereign_aura_strength(world, nation)
+    return 1.0 - (1.0 - SOVEREIGN_FEAR_FACTOR) * strength
 
 
 def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState"]) -> str:

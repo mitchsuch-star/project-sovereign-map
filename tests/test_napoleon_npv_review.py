@@ -424,6 +424,86 @@ class TestLastStandField:
 # band test compared the formula to itself, and N2/N6 had no pin at all)
 # ════════════════════════════════════════════════════════════════════════
 
+class TestTheAuraOfInvincibilityDecays:
+    """The user's brief, built: 'make sure he feels strong, and his losses
+    have weight (aura of invincibility)'.
+
+    The review measured the gap precisely — the FEAR faded with imperial
+    grip and the AURA did not, and the ramp began so late that six
+    emperor-led defeats moved neither. Both halves now read ONE curve.
+    """
+
+    def test_the_aura_is_a_fraction_not_a_flag(self):
+        m = make_marshal("Ney", personality="cautious")
+        base = m.get_attack_modifier(1.0, consume=False)
+        m.sovereign_presence = 0.5
+        assert m.get_attack_modifier(1.0, consume=False) == pytest.approx(
+            base * 1.05), "half an aura must be half a bonus"
+
+    def test_losses_erode_it_and_the_report_says_so(self, fixed_rng):
+        from backend.game_logic.battle_report import (
+            snapshot_attacker_modifiers,
+        )
+        nap = make_sovereign()
+        ney = make_marshal("Ney", personality="aggressive")
+        w = make_world(nap, ney)
+        for _ in range(6):                    # emperor-led defeats
+            w.authority_tracker.modify_authority(-5)
+        ce = CommandExecutor()._combat
+        from backend.models.authority import sovereign_aura_strength
+        strength = sovereign_aura_strength(w, "France")
+        assert 0.0 < strength < 1.0, strength
+        ney.sovereign_presence = strength
+        rows = snapshot_attacker_modifiers(
+            ney, make_marshal("Mack", nation="Austria"), "plains", 0.0, 0,
+            False)
+        row = next(r for r in rows if "Emperor" in r["label"])
+        assert row["value"] < 10, "the cracked aura must READ smaller"
+        assert "star dims" in row["label"]
+        assert ce is not None
+
+    def test_the_fear_and_the_aura_share_one_curve(self):
+        import backend.models.authority as authority_module
+        from backend.ai.enemy_ai import (
+            SOVEREIGN_FEAR_FACTOR, sovereign_fear_factor,
+        )
+        w = make_world(make_sovereign())
+        for authority in (100, 80, 60, 40, 20):
+            w.authority_tracker.authority = authority
+            aura = authority_module.sovereign_aura_strength(w, "France")
+            fear = sovereign_fear_factor(w, "France")
+            assert fear == pytest.approx(
+                1.0 - (1.0 - SOVEREIGN_FEAR_FACTOR) * aura), authority
+
+    def test_an_emperor_led_defeat_is_said_out_loud(self, fixed_rng):
+        nap = make_sovereign(strength=6000)
+        mack = make_marshal("Mack", location="Waterloo", strength=60000,
+                            nation="Austria", fortified=True,
+                            defense_bonus=50)
+        w = make_world(nap, mack)
+        result = attack(w, "Napoleon", "Mack")
+        assert result.get("success")
+        assert "[The Emperor]" in result["message"], result["message"]
+        assert "the field was lost" in result["message"]
+
+    def test_an_emperor_led_victory_is_said_out_loud(self, fixed_rng):
+        nap = make_sovereign(strength=60000)
+        mack = make_marshal("Mack", location="Waterloo", strength=6000,
+                            nation="Austria")
+        w = make_world(nap, mack)
+        result = attack(w, "Napoleon", "Mack")
+        assert result.get("success")
+        assert "Europe saw it" in result["message"], result["message"]
+
+    def test_an_ordinary_marshals_battle_says_nothing_extra(self, fixed_rng):
+        ney = make_marshal("Ney", strength=60000, personality="aggressive")
+        mack = make_marshal("Mack", location="Waterloo", strength=6000,
+                            nation="Austria")
+        w = make_world(ney, mack)
+        result = attack(w, "Ney", "Mack")
+        assert "[The Emperor]" not in result.get("message", "")
+
+
 class TestBlessedNumbersAreApplied:
     def test_n1_attack_aura_is_ten_percent_applied(self):
         m = make_marshal("Ney", personality="cautious")

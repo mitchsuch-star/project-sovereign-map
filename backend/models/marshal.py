@@ -1161,12 +1161,20 @@ class Marshal:
         # person — every friendly corps in his province fights harder.
         # Deliberately its OWN factor, never folded into the capped
         # coordination totals (a well-coordinated stack would eat the aura
-        # invisibly). Stamped by _calculate_coordination_context alongside
-        # the coordination transients; non-consuming (a presence, not a
-        # one-shot); registered in COORDINATION_TRANSIENT_FIELDS so every
-        # clear path inherits it (the CA8-19(i) lesson).
-        if getattr(self, 'sovereign_presence', 0.0):
-            modifier *= (1.0 + self.SOVEREIGN_PRESENCE_ATTACK)
+        # invisibly). Stamped by the battle's own participant pass;
+        # non-consuming (a presence, not a one-shot); registered in
+        # COORDINATION_TRANSIENT_FIELDS so every clear path inherits it
+        # (the CA8-19(i) lesson).
+        #
+        # NP-V: the stamp is a FRACTION, not a flag — the aura of
+        # invincibility decays with imperial grip
+        # (authority.sovereign_aura_strength), so the player watches
+        # "+10%" become "+7%" become nothing as the Empire cracks. The
+        # battle-report row derives its percentage from this same product
+        # (shown = applied).
+        _presence = float(getattr(self, 'sovereign_presence', 0.0) or 0.0)
+        if _presence:
+            modifier *= (1.0 + self.SOVEREIGN_PRESENCE_ATTACK * _presence)
 
         # Overwatch penalty (Phase 7b: enemy artillery suppression)
         # Transient field set by _calculate_overwatch() in executor.py.
@@ -1268,9 +1276,12 @@ class Marshal:
         # NP-2 The Presence (NAPOLEON_SPEC §5.1): the defensive half of the
         # aura, before the global cap — in a maximal fortified+coordinated
         # stack the aura partially saturates; the cap is the older rule and
-        # wins (accepted at the gate).
-        if getattr(self, 'sovereign_presence', 0.0):
-            modifier *= (1.0 + self.SOVEREIGN_PRESENCE_DEFENSE)
+        # wins (accepted at the gate). NP-V: grip-scaled, see the attack
+        # half above.
+        _presence_def = float(getattr(self, 'sovereign_presence', 0.0) or 0.0)
+        if _presence_def:
+            modifier *= (
+                1.0 + self.SOVEREIGN_PRESENCE_DEFENSE * _presence_def)
 
         # Hard cap: no marshal can exceed 1.75x total defense (prevents invincible turtling)
         modifier = min(modifier, 1.75)

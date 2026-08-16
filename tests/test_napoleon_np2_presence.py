@@ -279,19 +279,42 @@ class TestFear:
     def test_gr5_french_ai_fears_enemy_sovereign(self):
         kaiser = make_sovereign("Kaiser", nation="Austria")
         w = make_world(kaiser)
-        # evaluator reads the TARGET's stack — side-agnostic by construction
-        assert AI()._evaluate_target_ratio(
-            1.0, kaiser, w) == pytest.approx(0.75)
+        # evaluator reads the TARGET's stack — side-agnostic by
+        # construction. NP-V: the fear is now grip-scaled off the SAME
+        # curve as the aura, and an enemy court's grip is the opaque flat
+        # GRIP_ENEMY_COURT_BASE (75), which sits just below the
+        # full-aura threshold (85). So a foreign sovereign starts at
+        # ~82% of full dread rather than 100% — a recorded consequence,
+        # not a defect: the game cannot see inside another court, and
+        # NP-6 (The Three Emperors) owns authored enemy sovereigns.
+        ratio = AI()._evaluate_target_ratio(1.0, kaiser, w)
+        assert 0.75 < ratio < 1.0
+        assert ratio == pytest.approx(0.7955, abs=0.001)
 
     def test_fear_factor_reads_the_grip(self, monkeypatch):
+        # NP-V: the window moved 70→85 at the full end so an ordinary
+        # emperor-led defeat is FELT — at the old threshold the first six
+        # cost exactly nothing. Pin flipped consciously.
         import backend.models.authority as authority_module
         w = make_world(make_sovereign())
-        for grip, expected in ((100, 0.75), (70, 0.75), (50, 0.875),
-                               (30, 1.0), (0, 1.0)):
+        for grip, expected in ((100, 0.75), (85, 0.75), (80, 0.7727),
+                               (57.5, 0.875), (30, 1.0), (0, 1.0)):
             monkeypatch.setattr(authority_module, "get_imperial_grip",
                                 lambda world, nation, g=grip: g)
             assert sovereign_fear_factor(w, "France") == pytest.approx(
-                expected), grip
+                expected, abs=0.001), grip
+
+    def test_the_third_defeat_under_his_own_hand_is_visible(self):
+        """The user's brief, as arithmetic: losses must have weight."""
+        from backend.models.authority import sovereign_aura_strength
+        w = make_world(make_sovereign())
+        assert sovereign_aura_strength(w, "France") == 1.0
+        for _ in range(4):                      # 4 emperor-led defeats
+            w.authority_tracker.modify_authority(-5)
+        assert sovereign_aura_strength(w, "France") < 1.0
+        for _ in range(10):
+            w.authority_tracker.modify_authority(-5)
+        assert sovereign_aura_strength(w, "France") == 0.0
 
     def test_losses_erode_the_aura_live(self):
         # The integration arm: crater the player's authority (capture-shock

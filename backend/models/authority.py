@@ -411,6 +411,43 @@ def _worst_war_score(world, nation: str):
     return worst
 
 
+def sovereign_aura_strength(world, nation: str) -> float:
+    """NP-V — THE AURA OF INVINCIBILITY, as a number that DECAYS.
+
+    The fraction of a sovereign's Presence that still holds, 0.0–1.0,
+    derived from `get_imperial_grip` (no serialized field). Full while
+    the throne stands; fading to nothing as the Empire cracks.
+
+    This is the single source for BOTH halves of the mechanic — the
+    combat aura (+10%/+10% scaled by this) and the enemy's fear of it —
+    which is the whole point. Before NP-V the fear faded with grip and
+    the aura did not, and that asymmetry is why an ordinary defeat under
+    his own hand had no felt consequence: six emperor-led defeats moved
+    the fear factor by exactly zero, and moved the aura not at all.
+
+    Grip already encodes every collapse signal the fantasy needs — the
+    emperor-led defeats (via authority), a lost capital, a losing war
+    score, and the −40 capture shock. GR5-symmetric: an authored enemy
+    sovereign's aura erodes on his own court's grip.
+    """
+    grip = get_imperial_grip(world, nation)
+    if grip >= AURA_GRIP_FULL:
+        return 1.0
+    if grip <= AURA_GRIP_BROKEN:
+        return 0.0
+    span = AURA_GRIP_FULL - AURA_GRIP_BROKEN
+    return (grip - AURA_GRIP_BROKEN) / span
+
+
+# NP-V blessed band (in-band tunable; the grip window over which the
+# Presence fades). 85 rather than the boot ceiling deliberately: an
+# authority of 100 is the boot value, so a threshold at 70 meant the
+# first SIX emperor-led defeats changed nothing at all. At 85 the third
+# defeat is already visible on the card and in the battle report.
+AURA_GRIP_FULL = 85
+AURA_GRIP_BROKEN = 30
+
+
 def get_imperial_grip(world, nation: str) -> int:
     """Napoleon-style 'imperial grip' (0-100), symmetric by construction (GR5).
 

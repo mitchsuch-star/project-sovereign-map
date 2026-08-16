@@ -2363,6 +2363,13 @@ class CombatExecutor:
                         world.authority_tracker.modify_authority(+5)
                     if _emperor_led:
                         world.authority_tracker.modify_authority(+2)
+                        # NP-V: the prestige was moving silently. A
+                        # battle under the Emperor's own hand read
+                        # exactly like one of Ney's — "mechanically yes,
+                        # experientially no" (review lens 7).
+                        pipeline_out['sovereign_prestige_msg'] = (
+                            "\n\n[The Emperor] He commanded in person, "
+                            "and Europe saw it. (Authority +2)")
                 elif player_lost:
                     outnumbering = pre_atk > pre_def
                     if player_is_defender:
@@ -2376,6 +2383,20 @@ class CombatExecutor:
                         world.authority_tracker.modify_authority(-5)
                     if _emperor_led:
                         world.authority_tracker.modify_authority(-5)
+                        # NP-V: and the defeat is the half that had to be
+                        # felt — this is the sentence that makes the
+                        # cracking aura legible as a CONSEQUENCE.
+                        from backend.models.authority import (
+                            sovereign_aura_strength,
+                        )
+                        _aura = sovereign_aura_strength(world, player_nation)
+                        _tail = ("" if _aura >= 0.999 else
+                                 " Europe has begun to notice that he can "
+                                 "be beaten.")
+                        pipeline_out['sovereign_prestige_msg'] = (
+                            "\n\n[The Emperor] He commanded in person, "
+                            "and the field was lost. The court will hear "
+                            f"of it. (Authority −5){_tail}")
 
         # ── 13. Coalition: threat + war exhaustion ──
         if not is_bombardment:
@@ -5013,14 +5034,24 @@ class CombatExecutor:
         # Artillery that reinforced from ADJACENT (never relocated) is in
         # these lists by the Gate-4 append above and is deliberately
         # included: it is firing into the Emperor's battle.
-        _atk_sovereign = SOVEREIGN_PRESENCE_ACTIVE and any(
-            getattr(p, 'is_sovereign', False) and p.strength > 0
-            and not getattr(p, 'broken', False)
-            for p in atk_participants)
-        _def_sovereign = SOVEREIGN_PRESENCE_ACTIVE and any(
-            getattr(p, 'is_sovereign', False) and p.strength > 0
-            and not getattr(p, 'broken', False)
-            for p in def_participants)
+        # NP-V: the stamp is the aura's STRENGTH (0.0-1.0), not a flag —
+        # it decays with the sovereign's imperial grip, so his defeats
+        # visibly erode the Presence they were supposed to cost him.
+        from backend.models.authority import sovereign_aura_strength
+
+        def _side_presence(participants) -> float:
+            if not SOVEREIGN_PRESENCE_ACTIVE:
+                return 0.0
+            for p in participants:
+                if (getattr(p, 'is_sovereign', False) and p.strength > 0
+                        and not getattr(p, 'broken', False)):
+                    return sovereign_aura_strength(world, p.nation)
+            return 0.0
+
+        _atk_presence = _side_presence(atk_participants)
+        _def_presence = _side_presence(def_participants)
+        _atk_sovereign = _atk_presence > 0.0
+        _def_sovereign = _def_presence > 0.0
         # The assignment is UNCONDITIONAL, and that closes the mirror
         # defect: `_calculate_coordination_context` stamps co-location at
         # the primary's ORIGIN, so a marshal who mustered in the Emperor's
@@ -5030,9 +5061,9 @@ class CombatExecutor:
         # Bernadotte fought at +10% anyway). Presence now states exactly
         # who is in THIS battle with him, in both directions.
         for p in atk_participants:
-            p.sovereign_presence = 1.0 if _atk_sovereign else 0.0
+            p.sovereign_presence = _atk_presence
         for p in def_participants:
-            p.sovereign_presence = 1.0 if _def_sovereign else 0.0
+            p.sovereign_presence = _def_presence
 
         is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
 
@@ -6282,6 +6313,10 @@ class CombatExecutor:
         vindication_result = pipeline_out.get('vindication_result')
         # EC-W3: the materiel bill line (both sides' losses named)
         materiel_msg = pipeline_out.get('materiel_msg', '')
+        # NP-V: the Emperor's own prestige, said out loud (review lens 7:
+        # an emperor-led defeat moved authority silently and read exactly
+        # like one of Ney's).
+        sovereign_prestige_msg = pipeline_out.get('sovereign_prestige_msg', '')
 
         # Build auto-bombardment preamble (Session 68) — prepended before combat description
         auto_bombard_preamble = ""
@@ -6289,7 +6324,7 @@ class CombatExecutor:
             auto_bombard_preamble = "\n".join(auto_bombardment_messages) + "\n\n"
 
         # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
-        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + materiel_msg + forced_retreat_msg
+        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + materiel_msg + sovereign_prestige_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
         # W6-4: the muster block rides every resolved player attack —

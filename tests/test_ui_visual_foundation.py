@@ -394,6 +394,41 @@ ALL_PIECE_FILES = [
 ]
 
 
+def test_every_shipped_art_asset_is_TRACKED_not_merely_on_disk():
+    """NP-V (adversarial review P3-4, CONFIRMED): `assets/` is gitignored,
+    so an asset generated into it is invisible to git unless force-added.
+    Row NP shipped `Napoleon.jpg` and eight `emperor_*.png` that existed
+    on the developer's disk, passed every on-disk test in this file, and
+    were in NO commit — on a fresh clone (and in the position-10 build)
+    the Emperor would have had no portrait and no map piece, the two most
+    visible "he is different" cues.
+
+    On-disk assertions cannot catch this by construction. This one asks
+    git.
+    """
+    import subprocess
+    repo = Path(__file__).resolve().parents[1]
+    tracked = set(subprocess.run(
+        ["git", "ls-files", "godot-client/project-sovereign/assets/ui/pieces",
+         "godot-client/project-sovereign/assets/portraits"],
+        cwd=repo, capture_output=True, text=True, check=True,
+    ).stdout.split())
+
+    missing = []
+    for name in ALL_PIECE_FILES:
+        rel = f"godot-client/project-sovereign/assets/ui/pieces/{name}"
+        if rel not in tracked:
+            missing.append(rel)
+        # Godot needs the .import sibling or the texture will not load in
+        # an exported build.
+        if f"{rel}.import" not in tracked:
+            missing.append(f"{rel}.import")
+
+    assert not missing, (
+        "art assets exist on disk but are NOT in git (assets/ is "
+        f"gitignored — force-add them): {missing}")
+
+
 def test_pieces_dir_has_the_whole_canonical_set():
     # (24 at U4; 32 since NV-7 added the ship; 40 since NP-5's emperor.)
     assert PIECES_DIR.is_dir(), f"missing war-table pieces dir {PIECES_DIR}"

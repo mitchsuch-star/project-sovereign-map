@@ -139,10 +139,18 @@ def snapshot_attacker_modifiers(
     # Deliberately SHOWN unlike coordination — the aura is its own factor
     # outside the coordination caps, and the report names it (shown =
     # applied, percentage derived from the consumed constant).
-    if getattr(attacker, "sovereign_presence", 0.0):
+    # NP-V: derived from the SAME product the modifier applies, so a
+    # cracked aura reads "+7%", not "+10%" — the player watches the star
+    # dim in the battle report itself.
+    _pres_a = float(getattr(attacker, "sovereign_presence", 0.0) or 0.0)
+    if _pres_a:
         from backend.models.marshal import Marshal as _M
-        mods.append({"label": "The Emperor commands in person",
-                     "value": int(round(_M.SOVEREIGN_PRESENCE_ATTACK * 100)),
+        mods.append({"label": ("The Emperor commands in person"
+                               if _pres_a >= 0.999 else
+                               "The Emperor commands in person "
+                               "(his star dims)"),
+                     "value": int(round(
+                         _M.SOVEREIGN_PRESENCE_ATTACK * _pres_a * 100)),
                      "type": "bonus"})
 
     # --- Glorious Charge ---
@@ -265,10 +273,15 @@ def snapshot_defender_modifiers(
             mods.append({"label": "Child of Victory (outnumbered)", "value": 10, "type": "bonus"})
 
     # --- The Presence (NP-2: the Emperor stands with the defence) ---
-    if getattr(defender, "sovereign_presence", 0.0):
+    _pres_d = float(getattr(defender, "sovereign_presence", 0.0) or 0.0)
+    if _pres_d:
         from backend.models.marshal import Marshal as _M
-        mods.append({"label": "The Emperor commands in person",
-                     "value": int(round(_M.SOVEREIGN_PRESENCE_DEFENSE * 100)),
+        mods.append({"label": ("The Emperor commands in person"
+                               if _pres_d >= 0.999 else
+                               "The Emperor commands in person "
+                               "(his star dims)"),
+                     "value": int(round(
+                         _M.SOVEREIGN_PRESENCE_DEFENSE * _pres_d * 100)),
                      "type": "bonus"})
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
