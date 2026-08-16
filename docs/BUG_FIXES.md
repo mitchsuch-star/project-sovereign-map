@@ -98,7 +98,7 @@
 | **NPC-10** | P2 | **The A4 verb gate tests for a verb ANYWHERE in the body, not for the sentence being an order.** `I will hold talks with Prussia myself` → "Napoleon, hold talks with Prussia" — a diplomatic sentence handed to the LLM marshal-addressed, the exact A4 shape. Too loose here and too tight on NPC-9 | `parser.py:139-140` `_SOVEREIGN_BODY_HAS_VERB_RE` |
 | **NPC-11** | P2 | **The literal marshal's "verbatim" quote is fabricated from internal keys.** `Soult, attack Archduke John` → `"Soult attack ArchdukeJohn." Understood to the letter.` — the comma gone, the display name replaced by the database key, a period added, inside quotation marks that assert these are the player's words. Directly against the W6-5 literal doctrine | `combat_executor.py:4342` — carry the real typed text through the auto-upgrade |
 | **NPC-12** | P2 | **Raw camelCase enemy keys reach the terminal on at least seven player-facing surfaces** (`Ney pursues ArchdukeCharles`), while the morning dispatch spells the same man `Archduke Charles`. This is *how the player learns* the spelling NPC-1 then punishes | `strategic_executor.py:1403/1410`, `combat_executor.py:1100`; durable fix is `humanize_entity_name` at the interpolation seams |
-| **NPC-13** | P2 | **The engaged-move refusal offers a retreat that does not exist and prints a dangling empty label**, and never names the enemy it already computed: "You may retreat to friendly territory." / "Friendly regions adjacent:" *(nothing)* | `movement_executor.py:149` |
+| **NPC-13** | P3 ‡ | **The engaged-move refusal offers a retreat that does not exist and prints a dangling empty label**, and never names the enemy it already computed: "You may retreat to friendly territory." / "Friendly regions adjacent:" *(nothing)*. Downgraded P2→P3 on refutation | `movement_executor.py:149` |
 | **NPC-14** | P2 | **A fallen homeland province — Paris included — is news for one turn and then vanishes from the briefing.** One turn after Paris fell the lead went to an unpaid household (weight 55). There is no standing producer for "homeland currently enemy-held" | `dispatch.py` — a standing producer alongside the existing state-based ones |
 | **NPC-15** | P2 | **Paris gets Nivernais's sentence, and no captor is named.** `home_captured` (weight 100) renders `"Sire — {region} has fallen. Enemy colours fly over French homeland soil."` with no `{captor}` and no capital branch — byte-identical in shape for the capital and for any province. `capital_stormed` (92) is the *mirror* class, for France taking an ENEMY capital | `dispatch.py:415` — pass `captor` as `:433` already does; branch on `get_nation_capital(player_nation) == region` |
 | **NPC-16** | P2 | **A cannon-fire interrupt raised during end-turn strategic processing is never promoted to the top-level response key**, so an unattended driver cannot answer it and the marshal freezes for the rest of the run (measured: Napoleon stood at Orleanais turns 5–12 with a live PURSUE and an unanswerable interrupt). The Godot client derives it, so this is driver-visible only — but the promotion is the honest fix | `main.py:1205-1219` promote the first `requires_input` strategic report, or teach the driver to look |
@@ -124,10 +124,18 @@ sixteen ordinary ones (`:326-329` + the scan call sites; contrast `:301-306`,
 which does record an outcome).
 
 ‡ **The refutation pass** (two independent refuters per surviving claim) ran
-after this section was first written. It **killed two rows**, corrected one
-root cause, and split the severity on two more; those corrections are folded
-in above rather than appended, and the ‡ marks the two rows where the
-refuters disagreed on severity (the higher is kept, the lower noted).
+after this section was first written and judged **29 of ~40 claims** before
+the session closed — **two killed, zero downgraded to nothing, and every
+remaining row confirmed at or within one grade of its filed severity.** The
+corrections are folded in above rather than appended; ‡ marks a row whose
+refuters disagreed on severity or moved it (the **higher** is kept as the
+filed grade, the disagreement noted in the cell). Where the two split P2/P3
+without a ‡ — NPC-6, NPC-11, NPC-12, NPC-15 — the P2 is kept on the same
+convention. **Still unjudged when the session closed: the five pursuit rows
+(NPC-4, NPC-5, NPC-16, and two folded into NPC-7/NPC-19).** They are the most
+heavily evidenced rows in the set — each carries a measured mechanism and
+`file:line` — but they have not had a refuter, and this note is here so the
+next reader does not assume they did.
 
 **REFUTED / KILLED, recorded so they are not re-opened:**
 - **the third harness row is dead.** `_option_id` genuinely cannot read
