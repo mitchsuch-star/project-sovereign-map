@@ -1,0 +1,31 @@
+{
+  "name": "np-campaign-emperor",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "ARM 1 of the played campaign owed since row PT (NAPOLEON_SPEC §14.1 Q9). France/1805 with the Emperor in the field: he leaves the Seat, joins the concentration on Swabia, fights under his own hand, and the court reacts. Deliberately staged to reach the seven 'fixed but never played' checks — the muster note both ways (T7 fortified / T8 marching), a cavalry charge out of his own province (T9), the Shadow over a marshal who never leaves his side (Ney, T5-T12 -> the Petition for Independent Command), and an emperor-led deep push whose defeats should dim the aura. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": ["status", "Napoleon, move to Lorraine", "Soult, fortify"],
+    "2": ["Ney, attack Mack", "Davout, fortify"],
+    "3": ["Murat, move to Lorraine", "Bernadotte, fortify"],
+    "4": ["Lannes, move to Lorraine", "status"],
+    "5": ["Napoleon, attack Mack"],
+    "6": ["Ney, attack Mack", "Davout, attack Mack"],
+    "7": ["Napoleon, fortify", "Ney, attack Mack"],
+    "8": ["Napoleon, unfortify", "Davout, attack Mack"],
+    "9": ["Murat, charge Mack", "status"],
+    "10": ["Napoleon, attack Mack", "Talleyrand, assess our situation"],
+    "11": ["Napoleon, move to Munich", "Ney, march to Munich"],
+    "12": ["Davout, march to Munich", "endow Ney with the Duchy of Swabia"],
+    "13": ["Napoleon, attack Archduke John", "status"],
+    "14": ["Ney, attack Archduke John", "Lannes, march to Tyrol"],
+    "15": ["Napoleon, march to Vienna", "Davout, march to Vienna"],
+    "16": ["Ney, march to Vienna", "Murat, march to Vienna"],
+    "17": ["status", "Talleyrand, assess our situation"],
+    "18": ["Napoleon, attack Archduke Charles"],
+    "19": ["Ney, attack Archduke Charles", "Davout, attack Archduke Charles"],
+    "20": ["Napoleon, attack Kutuzov", "status"],
+    "21": ["Ney, attack Kutuzov", "Talleyrand, assess our situation"],
+    "22": ["status", "offer peace to Austria"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}

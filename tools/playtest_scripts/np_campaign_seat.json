@@ -1,0 +1,21 @@
+{
+  "name": "np-campaign-seat",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "ARM 3 — 'The Seat'. Two questions only play can answer: is +1 DP worth staying home for (§8), and does HOLD actually HOLD (audit finding B4 — a sovereign on HOLD fell into the arm labelled 'else: # aggressive' and sallied out unordered; fixed, never played). Napoleon is ordered to hold Paris on turn 1 and never ordered again; every subsequent line is the marshals' war. If he moves, the fix regressed. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": ["Napoleon, hold Paris", "status"],
+    "2": ["Ney, attack Mack", "Davout, attack Mack"],
+    "3": ["status"],
+    "4": ["Soult, attack Mack", "Murat, attack Mack"],
+    "5": ["status", "Talleyrand, assess our situation"],
+    "6": ["Lannes, march to Swabia", "Bernadotte, march to Swabia"],
+    "7": ["status"],
+    "8": ["Ney, march to Munich", "Davout, march to Munich"],
+    "9": ["status", "Talleyrand, assess our situation"],
+    "10": ["Ney, attack Archduke John"],
+    "11": ["status"],
+    "12": ["status", "Talleyrand, assess our situation"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}

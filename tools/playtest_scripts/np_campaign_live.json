@@ -1,0 +1,23 @@
+{
+  "name": "np-campaign-live",
+  "seed": "historical",
+  "llm": "anthropic",
+  "_comment": "ARM 4 — the live-parse arm. Row NP's whole Hand (§4) is a REWRITE that runs upstream of both parsers, so the mock keyword parser cannot judge it: the audit's A4/A5 findings were live-only by construction. This arm speaks to the Emperor the way a player would — named, by title, in the first person, with the trailing self-marker — in sentences the golden corpus does not contain, and mixes in the diplomatic forms the A4 verb gate must NOT capture. Also exercises marshal voice and Talleyrand. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": ["status", "I will take the field myself and march to Lorraine", "Ney, hold your position at Rhineland"],
+    "2": ["the Emperor will march to Rhineland", "Davout, scout Swabia"],
+    "3": ["I will offer an alliance to Prussia myself", "Soult, deal with the Austrians"],
+    "4": ["march to Swabia myself", "Talleyrand, assess our situation"],
+    "5": ["Napoleon, attack Mack", "Ney, support the Emperor"],
+    "6": ["the Emperor is displeased with Bernadotte", "Davout, attack Mack"],
+    "7": ["I will lead the assault on Mack in person", "status"],
+    "8": ["Murat, ride down the Austrians at Swabia"],
+    "9": ["the Emperor of Austria demands Venetia", "Ney, attack Mack"],
+    "10": ["I will fortify", "Lannes, march to Munich"],
+    "11": ["Napoleon, hold the line here", "status"],
+    "12": ["endow Ney with an estate", "Talleyrand, assess our situation"],
+    "13": ["I will march on Vienna myself", "Davout, march to Munich"],
+    "14": ["status", "Talleyrand, assess our situation"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}

@@ -1,0 +1,29 @@
+{
+  "name": "np-campaign-alone",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "ARM 2 — 'The Emperor Alone'. The §15.4 design amendment says an emperor-led DEFEAT has weight: the aura decays with imperial grip, '+10%' becomes '+9% — his star dims' becomes nothing, and the report says it out loud. Nothing in row NP has PLAYED that. This arm forces the losing case: every marshal is fortified out of the muster (the B1 reason list) so the 10,000-man Guard fights Mack's 52,000 alone, repeatedly. It is also the only realistic route to §7 (capture) in ordinary play. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": ["Napoleon, move to Lorraine", "Ney, fortify", "Davout, fortify"],
+    "2": ["Soult, fortify", "Lannes, fortify", "Murat, fortify"],
+    "3": ["Bernadotte, fortify", "Massena, fortify", "status"],
+    "4": ["status"],
+    "5": ["Napoleon, attack Mack"],
+    "6": ["Napoleon, attack Mack", "status"],
+    "7": ["Napoleon, attack Mack"],
+    "8": ["Napoleon, attack Mack", "status"],
+    "9": ["Napoleon, attack Mack"],
+    "10": ["Napoleon, attack Mack", "Talleyrand, assess our situation"],
+    "11": ["Napoleon, attack Mack", "status"],
+    "12": ["Napoleon, attack Mack"],
+    "13": ["Napoleon, attack Mack", "status"],
+    "14": ["Napoleon, attack Mack"],
+    "15": ["Napoleon, attack Mack", "status"],
+    "16": ["Napoleon, attack Mack"],
+    "17": ["status", "Talleyrand, assess our situation"],
+    "18": ["Napoleon, attack Mack"],
+    "19": ["Napoleon, attack Mack", "status"],
+    "20": ["status"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}
