@@ -20,6 +20,10 @@ to maintain the Building Blocks principle.
 
 from typing import Dict, List, Optional, Tuple
 
+# NP-V: who SAYS an interrupt line — the marshal himself, or Berthier when
+# the marshal is the sovereign (the Emperor never addresses the player).
+from backend.game_logic.marshal_voice import interrupt_speaker
+
 
 def _strategic_command_flavor(cmd_type: str) -> str:
     """Convert internal command type to player-facing flavor text."""
@@ -2246,7 +2250,7 @@ class StrategicOrderProcessor:
                     "requires_input": True,
                     "interrupt_type": "cannon_fire",
                     "battle_location": interrupt["battle_location"],
-                    "message": f"{marshal.name}: 'Cannon fire at "
+                    "message": f"{interrupt_speaker(marshal)}: 'Cannon fire at "
                                f"{interrupt['battle_location']}, Sire. Investigate?'",
                     "options": ["investigate", "continue_order", "hold_position"]
                 }
@@ -2490,11 +2494,11 @@ class StrategicOrderProcessor:
                 order.last_contact_enemy = enemy.name
                 order.last_contact_turn = world.current_turn
                 if is_fog_discovery:
-                    msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                    msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
                            f"{blocked_region}! Cannot proceed to destination. "
                            f"Awaiting orders.'")
                 else:
-                    msg = (f"{marshal.name}: 'Enemy forces hold {blocked_region} "
+                    msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces hold {blocked_region} "
                            f"— destination blocked. Awaiting orders.'")
                 return {
                     "marshal": marshal.name,
@@ -2591,11 +2595,11 @@ class StrategicOrderProcessor:
                         self.executor._combat._bad_odds_muster_note(
                             marshal, enemy, world))
                 elif is_fog_discovery:
-                    msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                    msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
                            f"{blocked_region}! Destination held by {enemy.name}. "
                            f"Odds unfavorable — awaiting orders.'")
                 else:
-                    msg = (f"{marshal.name}: '{enemy.name} holds {blocked_region} "
+                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} holds {blocked_region} "
                            f"— destination blocked. Odds unfavorable.'")
                 return {
                     "marshal": marshal.name,
@@ -2637,16 +2641,16 @@ class StrategicOrderProcessor:
 
             # Bad odds or previous failed attempt — ask player
             if order.combat_attempts > 0:
-                msg = (f"{marshal.name}: '{enemy.name} still blocks the path. "
+                msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} still blocks the path. "
                        f"Previous assault was inconclusive. Orders?'")
             else:
                 # Session 36: Discovery prefix for fogged regions
                 if is_fog_discovery:
-                    msg = (f"{marshal.name}: 'Enemy forces discovered ahead! "
+                    msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered ahead! "
                            f"{enemy.name} blocks the path at {blocked_region}. "
                            f"Odds unfavorable.'")
                 else:
-                    msg = (f"{marshal.name}: '{enemy.name} blocks the path. "
+                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path. "
                            f"Odds unfavorable.'")
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name
@@ -2680,11 +2684,11 @@ class StrategicOrderProcessor:
             # Session 37: If enemy is AT the destination, no go_around option
             if blocked_region == destination:
                 if is_fog_discovery:
-                    msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                    msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
                            f"{blocked_region}! Destination held. "
                            f"How shall I proceed?'")
                 else:
-                    msg = (f"{marshal.name}: 'Enemy holds {blocked_region} "
+                    msg = (f"{interrupt_speaker(marshal)}: 'Enemy holds {blocked_region} "
                            f"— destination blocked. How shall I proceed?'")
                 return {
                     "marshal": marshal.name,
@@ -2702,10 +2706,10 @@ class StrategicOrderProcessor:
 
             # Session 36: Discovery vs standard contact message
             if is_fog_discovery:
-                msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
                        f"{blocked_region}! How shall I proceed?'")
             else:
-                msg = (f"{marshal.name}: 'Enemy at {blocked_region}. "
+                msg = (f"{interrupt_speaker(marshal)}: 'Enemy at {blocked_region}. "
                        f"How shall I proceed?'")
             return {
                 "marshal": marshal.name,

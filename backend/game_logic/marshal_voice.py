@@ -358,6 +358,37 @@ def derive_own_situation(outcome: str, own_was_attacker: bool,
     return None  # mutual destruction — no one left to speak
 
 
+def interrupt_speaker(marshal) -> str:
+    """Who SAYS a strategic-interrupt line (contact, blocked path, cannon
+    fire, bad odds).
+
+    NP-V follow-up (user question, Aug 15 2026 — "he doesn't object to
+    command right?"): he does not, and that was verified across every
+    trigger at both tiers. But the question surfaced the adjacent gap.
+    The interrupt family composes `f"{marshal.name}: '…'"`, so the
+    Emperor's own marches produced
+
+        Napoleon: 'Enemy at Franconia. How shall I proceed, Sire?'
+
+    — the sovereign addressing the player, and calling himself Sire.
+    That violates NAPOLEON_SPEC §2 pillar 1 and the never-do pin that no
+    popup carries his name as speaker.
+
+    The DECISION is legitimate and stays: his army genuinely meets an
+    enemy on the road and the player must choose. Only the voice moves —
+    Berthier reports it, exactly as he narrates the Emperor everywhere
+    else. Every body in that family is already a pure situation report
+    plus a request for orders ("Cannon fire at X, Sire. Investigate?",
+    "Odds unfavorable. Your orders?"), so it reads correctly from the
+    chief of staff with no rewriting.
+
+    Returns the marshal's own name for everyone else — byte-identical.
+    """
+    if getattr(marshal, "is_sovereign", False):
+        return "Berthier"
+    return getattr(marshal, "name", "")
+
+
 def pick_marshal_voice(name: str, personality: str, situation: str,
                        rotation_key: int = 0) -> str:
     """One line in the player commander's register ("" when none applies).

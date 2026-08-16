@@ -504,6 +504,66 @@ class TestTheAuraOfInvincibilityDecays:
         assert "[The Emperor]" not in result.get("message", "")
 
 
+class TestTheEmperorNeverAddressesThePlayer:
+    """NAPOLEON_SPEC §2 pillar 1 + the never-do pin: no popup carries his
+    name as speaker. Raised by the user's question ("he doesn't object to
+    command right?") — he does not, and that is pinned in NP-0/NP-1; but
+    the STRATEGIC INTERRUPT family (contact, blocked path, cannon fire,
+    bad odds) composes `f"{marshal.name}: '…'"` and so produced
+    "Napoleon: 'Enemy at Franconia. How shall I proceed, Sire?'" — the
+    Emperor calling himself Sire. The decision stays; the voice moves to
+    Berthier, who narrates him everywhere else.
+    """
+
+    def test_the_staff_speaks_for_the_sovereign(self):
+        from backend.game_logic.marshal_voice import interrupt_speaker
+        assert interrupt_speaker(make_sovereign()) == "Berthier"
+
+    def test_an_ordinary_marshal_still_speaks_for_himself(self):
+        from backend.game_logic.marshal_voice import interrupt_speaker
+        assert interrupt_speaker(
+            make_marshal("Ney", personality="aggressive")) == "Ney"
+
+    def test_no_interrupt_site_hardcodes_the_marshal_as_speaker(self):
+        """Structural: a new interrupt written the old way re-opens it."""
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parents[1] / "backend"
+        offenders = []
+        for path in ((root / "commands" / "strategic.py"),
+                     (root / "commands" / "strategic_executor.py")):
+            text = path.read_text(encoding="utf-8")
+            if "{marshal.name}: '" in text:
+                offenders.append(str(path))
+        assert not offenders, (
+            "interrupt lines must route through "
+            f"marshal_voice.interrupt_speaker: {offenders}")
+
+    def test_he_never_objects_at_either_tier(self):
+        """The user's actual question, pinned end to end."""
+        from backend.commands.objection_v2 import (
+            ConcernLevel, evaluate_situation, evaluate_strategic_situation,
+        )
+        nap = make_sovereign()
+        ney = make_marshal("Ney", personality="aggressive")
+        nap.set_relationship("Ney", -2)
+        w = make_world(nap, ney)
+        gs = {"world": w}
+        objected = []
+        for action in ("retreat", "defend", "wait", "fortify", "drill",
+                       "hold", "attack", "form_square", "stance_change"):
+            order = {"action": action, "target_stance": "defensive"}
+            if evaluate_situation(nap, action, order, gs) != ConcernLevel.NONE:
+                objected.append(action)
+        for order_type in ("HOLD", "PURSUE", "MOVE_TO", "SUPPORT"):
+            if evaluate_strategic_situation(
+                    nap, order_type, "Ney", [], gs) != ConcernLevel.NONE:
+                objected.append(order_type)
+        assert not objected, objected
+        # ...and the control still does object, or the pin is vacuous.
+        assert evaluate_situation(
+            ney, "defend", {"action": "defend"}, gs) != ConcernLevel.NONE
+
+
 class TestBlessedNumbersAreApplied:
     def test_n1_attack_aura_is_ten_percent_applied(self):
         m = make_marshal("Ney", personality="cautious")

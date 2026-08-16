@@ -7,6 +7,8 @@ Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 import random
 from typing import Dict, List, Optional
 from backend.ai.generic_targets import is_generic_target
+# NP-V: who SAYS an interrupt line (see marshal_voice.interrupt_speaker).
+from backend.game_logic.marshal_voice import interrupt_speaker
 from backend.ai.nation_names import (
     nation_not_a_province_message,
     resolve_typed_nation,
@@ -1965,7 +1967,7 @@ class StrategicExecutor:
                 if result.get("success"):
                     return {
                         "success": True,
-                        "message": f"{marshal.name}: '{enemy.name} bars the way!' "
+                        "message": f"{interrupt_speaker(marshal)}: '{enemy.name} bars the way!' "
                                    f"Engaging!\n\n{combat_msg}",
                         "strategic_order": True,
                         "strategic_type": order.command_type,
@@ -1994,7 +1996,7 @@ class StrategicExecutor:
                     self._executor._combat._bad_odds_muster_note(
                         marshal, enemy, world))
             else:
-                bad_odds_msg = (f"{marshal.name}: '{enemy.name} blocks the path at "
+                bad_odds_msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path at "
                                 f"{blocked_region}. Odds unfavorable. Your orders?'")
             return {
                 "success": True,
@@ -2022,7 +2024,7 @@ class StrategicExecutor:
                 "success": True,
                 "requires_input": True,
                 "pending_interrupt": marshal.pending_interrupt,
-                "message": f"{marshal.name}: 'Enemy at {blocked_region}. "
+                "message": f"{interrupt_speaker(marshal)}: 'Enemy at {blocked_region}. "
                            f"How shall I proceed, Sire?'",
                 "strategic_order": True,
                 "strategic_type": order.command_type,
