@@ -10,6 +10,7 @@ from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import TERRAIN_DEFENSE_BONUS
 from backend.display_names import display_nation
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
 class MovementExecutor:
@@ -372,6 +373,7 @@ class MovementExecutor:
                     path=path,
                 )
                 marshal.strategic_order = order
+                clear_order_bound_interrupt(marshal)  # NPC-2
 
                 # Execute first step immediately (mirrors _execute_strategic_command)
                 movement_range = getattr(marshal, 'movement_range', 1)

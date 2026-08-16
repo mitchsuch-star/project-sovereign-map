@@ -39,6 +39,7 @@ from backend.models.intel import (
 )
 from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     "mode": "direct_only",
@@ -3831,6 +3832,7 @@ class WorldState:
             if order and getattr(order, 'target_type', '') == 'marshal':
                 if getattr(order, 'target', '') in removed_set:
                     marshal.strategic_order = None
+                    clear_order_bound_interrupt(marshal)  # NPC-2
 
         # Remove active treaties involving eliminated nation
         for key in list(self.active_treaties.keys()):
@@ -4408,6 +4410,7 @@ class WorldState:
         except Exception:
             pass
         marshal.strategic_order = None
+        clear_order_bound_interrupt(marshal)  # NPC-2
         marshal.holding_position = False
         marshal.hold_region = ""
         marshal.occupation_region = None
@@ -10881,6 +10884,7 @@ class WorldState:
                 if order and order.command_type == "SUPPORT" and order.target in broken_marshal_names:
                     target_name = order.target
                     marshal.strategic_order = None
+                    clear_order_bound_interrupt(marshal)  # NPC-2
                     events.append({
                         "type": "support_cancelled",
                         "marshal": marshal.name,
@@ -11862,6 +11866,7 @@ class WorldState:
                         old_enemy_loc = enemy.location
                         if enemy.strategic_order:
                             enemy.strategic_order = None
+                            clear_order_bound_interrupt(enemy)  # NPC-2
                         enemy.move_to(retreat_to)
                         enemy.retreating = True
                         enemy.retreat_recovery = 0
@@ -11887,6 +11892,7 @@ class WorldState:
                         enemy.clear_combat_transient_state()
                         if enemy.strategic_order:
                             enemy.strategic_order = None
+                            clear_order_bound_interrupt(enemy)  # NPC-2
                         forced_retreat_msg = f" {enemy.name}'s army is SHATTERED and flees to {spawn_loc}!"
                         self.log_event({"type": "marshal_broken", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
@@ -11900,6 +11906,7 @@ class WorldState:
                         old_atk_loc = marshal.location
                         if marshal.strategic_order:
                             marshal.strategic_order = None
+                            clear_order_bound_interrupt(marshal)  # NPC-2
                         marshal.move_to(retreat_to)
                         marshal.retreating = True
                         marshal.retreat_recovery = 0
@@ -11927,6 +11934,7 @@ class WorldState:
                         marshal.clear_combat_transient_state()
                         if marshal.strategic_order:
                             marshal.strategic_order = None
+                            clear_order_bound_interrupt(marshal)  # NPC-2
                         forced_retreat_msg += f" {marshal.name}'s army is SHATTERED and flees to {spawn_loc}!"
                         self.log_event({"type": "marshal_broken", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),

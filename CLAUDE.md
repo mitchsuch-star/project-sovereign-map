@@ -44,7 +44,28 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 16, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 18,147 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 18,175 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE NPC P1 CLUSTER FIXED August 16, 2026 — landing record =
+> `docs/BUG_FIXES.md` §Napoleon Campaign (NPC), the boxed block above the
+> table.** All four P1s (NPC-1/2/3/5) plus NPC-20 (NPC-1's correctness
+> PRECONDITION — fixing the needles without it would have INVERTED the bug)
+> and the pursue/support half of NPC-12. One defect wearing six coats: the
+> scenario KEY (`ArchdukeCharles`) and the printed form ("Archduke Charles")
+> compared without normalisation at six seams — measured, "Ney, attack
+> Archduke Charles" **fought Mack and won** while the key spelling refused
+> honestly. New single source `strategic.clear_order_bound_interrupt` (~20
+> seams + an AST census pin; **three seams were missing from the row**,
+> including the second forced-retreat copy in `world_state`);
+> `strategic_executor._pursue_known_location` (fog for the player, live
+> truth for the AI — the gate is load-bearing); the world-blind bare-
+> `archduke` parser alias retired. **NPC-16 REFUTED and struck** — already
+> landed by WIN-H1, whose stale "PRODUCTION half stays OPEN" clause is
+> corrected on the record. `tests/test_npc_cluster_2026_08_16.py` (31),
+> 13-mutation sweep 13 killed; a 46-agent review round took SIX more
+> fixes incl. two P1s and one regression this slice introduced. ⚠ **NPC-12's wider census stays OPEN at P2**
+> (~426 enemy-reachable interpolations; `combat.py`/`ledger.py` never import
+> the humaniser).
 >
 > **▶ "THE ROAD HOME" (WIN-D3 + WIN-D5) BUILT August 16, 2026 — gate +
 > landing record = `docs/WAR_WITHDRAWAL_SPEC.md` §7a, authoritative.** All

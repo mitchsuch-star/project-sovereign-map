@@ -48,6 +48,83 @@ ORDER_BOUND_INTERRUPT_TYPES = frozenset({
 })
 
 
+def pursue_known_location(world, marshal, enemy):
+    """NPC-5: where the ORDER-GIVER believes the quarry is.
+
+    Fog for the player, live truth for the AI. The gate on `player_nation`
+    is load-bearing, not a courtesy: enemy planners are deliberately
+    omniscient throughout, and routing them through the PLAYER's intel store
+    would both blind them and make an AI's pursuit depend on what France
+    happens to have scouted.
+
+    Returns None when the player has never seen him.
+
+    THE SINGLE SOURCE, and it lives here rather than on the executor for the
+    reason NPC-2 already made about `clear_order_bound_interrupt`: the first
+    cut of this fix corrected ONE of five destination-resolution sites, and
+    the four it missed are all in this module's per-turn processor — the
+    HOTTER path, run on every turn of a pursuit. Measured before the lift: a
+    player's pursuit was re-plotted to a province his intel called
+    `unknown`, because the reroute read the quarry's true location. Five
+    copies of a rule is how the rule dies.
+    """
+    if enemy is None:
+        return None
+    if marshal.nation != getattr(world, "player_nation", None):
+        return enemy.location
+    known = world.get_last_known_location(enemy.name)
+    return known[0] if known else None
+
+
+def resolve_order_destination(world, marshal, order):
+    """The destination a standing order should aim at, fog included.
+
+    Shared by the four `_handle_blocked_path` personality arms and the
+    `go_around` response handler. An ALLY's position is our own
+    intelligence, so SUPPORT keeps the direct read; an enemy's is not.
+    """
+    destination = order.target_snapshot_location or order.target
+    if destination and destination not in world.regions:
+        target_marshal = world.get_marshal(destination)
+        if target_marshal:
+            if target_marshal.nation == marshal.nation:
+                destination = target_marshal.location
+            else:
+                destination = pursue_known_location(
+                    world, marshal, target_marshal)
+    return destination
+
+
+def clear_order_bound_interrupt(marshal) -> bool:
+    """NPC-2: the question dies with the order that raised it.
+
+    TUT-F4a wrote this rule, but only as an inline block inside
+    `executor.py`'s objection branch — which is gated on
+    `should_check_objection`, and that predicate EXCLUDES
+    `is_strategic_command`. So the rule was unreachable for exactly the
+    commands that raise these interrupts: issuing a fresh strategic order
+    left the old order's question armed, and `main.py`'s interrupt router
+    then answered the NEXT line naming that marshal with it. Measured:
+    after `Ney, march to Frankfurt` replaced a Swabia order,
+    `strategic_order.target == "Frankfurt"` while `pending_interrupt` still
+    held `{contact_bad_odds, enemy: Mack, location: Swabia}` — which both
+    froze the new order at step 0a and was the ammunition NPC-1 needed to
+    fight the wrong enemy.
+
+    One helper, called at every seam that ends an order's life, rather than
+    a widened gate — a gate is what drifted. Standalone DECISIONS
+    (`last_stand`, `muster_confirm`) are never dropped: they are not bound
+    to an order, and discarding one strands the marshal.
+
+    Returns True when something was cleared (for callers that log).
+    """
+    pending = getattr(marshal, "pending_interrupt", None)
+    if pending and pending.get("interrupt_type") in ORDER_BOUND_INTERRUPT_TYPES:
+        marshal.pending_interrupt = None
+        return True
+    return False
+
+
 # F1b fix: the strategic "attack anyway" interrupt handler rebuilds a fresh result
 # dict and previously surfaced only `message`, silently dropping the top-level combat
 # fields the direct /command attack path preserves. Carry the player-facing extras
@@ -569,12 +646,9 @@ class StrategicOrderProcessor:
 
         elif choice == "go_around":
             # Recalculate path avoiding ALL enemy regions (not just the one)
-            destination = order.target_snapshot_location or order.target
-            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
-            if destination and destination not in world.regions:
-                target_marshal = world.get_marshal(destination)
-                if target_marshal:
-                    destination = target_marshal.location
+            # NPC-5 (review round): ONE source, shared with the
+            # executor's first-step copy — see `resolve_order_destination`.
+            destination = resolve_order_destination(world, marshal, order)
             enemy_regions = self._get_enemy_occupied_regions(
                 marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
@@ -2510,12 +2584,9 @@ class StrategicOrderProcessor:
             }
 
         if personality == "literal":
-            destination = order.target_snapshot_location or order.target
-            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
-            if destination and destination not in world.regions:
-                target_marshal = world.get_marshal(destination)
-                if target_marshal:
-                    destination = target_marshal.location
+            # NPC-5 (review round): ONE source, shared with the
+            # executor's first-step copy — see `resolve_order_destination`.
+            destination = resolve_order_destination(world, marshal, order)
 
             # Session 37: If enemy is AT the destination, don't reroute — halt
             # and report. Rerouting around the destination itself is nonsensical.
@@ -2579,12 +2650,9 @@ class StrategicOrderProcessor:
                                      f"Path blocked at {blocked_region}, no alternate route")
 
         elif personality == "aggressive":
-            destination = order.target_snapshot_location or order.target
-            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
-            if destination and destination not in world.regions:
-                target_marshal = world.get_marshal(destination)
-                if target_marshal:
-                    destination = target_marshal.location
+            # NPC-5 (review round): ONE source, shared with the
+            # executor's first-step copy — see `resolve_order_destination`.
+            destination = resolve_order_destination(world, marshal, order)
 
             # Session 37: If enemy is AT the destination, auto-attack or
             # ask player without go_around (can't reroute around destination)
@@ -2699,12 +2767,9 @@ class StrategicOrderProcessor:
             }
 
         else:  # cautious (and balanced/loyal) — always ask
-            destination = order.target_snapshot_location or order.target
-            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
-            if destination and destination not in world.regions:
-                target_marshal = world.get_marshal(destination)
-                if target_marshal:
-                    destination = target_marshal.location
+            # NPC-5 (review round): ONE source, shared with the
+            # executor's first-step copy — see `resolve_order_destination`.
+            destination = resolve_order_destination(world, marshal, order)
 
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name

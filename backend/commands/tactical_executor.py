@@ -8,6 +8,7 @@ _execute_stance_change, _execute_restrain.
 from typing import Dict
 from backend.models.marshal import Stance
 from backend.display_names import action_display_name as _action_display_name
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
 class TacticalExecutor:
@@ -472,6 +473,7 @@ class TacticalExecutor:
         # Cancel any strategic order (breaking formation to act)
         if getattr(marshal, 'strategic_order', None):
             marshal.strategic_order = None
+            clear_order_bound_interrupt(marshal)  # NPC-2
             # [7A-6] Clear holding state when square break cancels strategic order
             marshal.holding_position = False
             marshal.hold_region = ""

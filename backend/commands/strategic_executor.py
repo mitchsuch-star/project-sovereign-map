@@ -20,7 +20,8 @@ from backend.commands.objection_v2 import (
     calculate_trust_gain, COMPROMISE_TRUST_GAIN,
     concern_to_legacy_severity,
 )
-from backend.display_names import action_display_name as _action_display_name, get_strategic_display
+from backend.display_names import action_display_name as _action_display_name, get_strategic_display, humanize_entity_name
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
 def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
@@ -423,6 +424,21 @@ class StrategicExecutor:
     # Creates StrategicOrder on marshal & executes first step immediately.
     # ════════════════════════════════════════════════════════════════════════
 
+    def _pursue_known_location(self, world, marshal, enemy):
+        """Thin delegate to the single source in `strategic.py`.
+
+        Review round, August 16 2026: the first cut of NPC-5 defined this
+        rule HERE, on the executor, and fixed one of five
+        destination-resolution sites. The other four live in the per-turn
+        processor — the hotter path — and kept reading the quarry's true
+        location, so a player's pursuit was still re-plotted through
+        provinces his intel called `unknown`. The rule moved to the module
+        that owns the order lifecycle; this stays only so the existing call
+        sites and pins keep one name.
+        """
+        from backend.commands.strategic import pursue_known_location
+        return pursue_known_location(world, marshal, enemy)
+
     def _execute_strategic_command(self, parsed_command: Dict, command: Dict, game_state: Dict) -> Optional[Dict]:
         """
         Handle a strategic command: create StrategicOrder and execute first step.
@@ -512,7 +528,6 @@ class StrategicExecutor:
                 # S5-2: humanize marshal keys so player copy never shows a raw
                 # camelCase name; the spaced form still resolves on re-issue
                 # (CR-5 _resolve_target handles spaced names).
-                from backend.display_names import humanize_entity_name
                 enemy_names = [e.name for e in enemies_here]
                 enemy_display = [humanize_entity_name(n) for n in enemy_names]
                 m_display = humanize_entity_name(marshal.name)
@@ -614,7 +629,6 @@ class StrategicExecutor:
                 # the game prints on every screen, and the player supplied
                 # it, so resolving it reveals nothing they did not type.
                 # `pursue Macck` still gets the fog-limited suggestion.
-                from backend.display_names import humanize_entity_name
                 _typed = str(target).strip().lower()
                 for _m in world.marshals.values():
                     if _m.nation == marshal.nation:
@@ -666,6 +680,24 @@ class StrategicExecutor:
                             "message": f"Cannot pursue {enemy.name} — not at war with {enemy.nation}.",
                             "variable_action_cost": 0,
                         }
+                # NPC-5: refuse UP FRONT when we have never seen him. The
+                # order used to be accepted, priced, and answered with the
+                # quarry's LIVE province — intelligence the player has not
+                # got — and then cancelled two turns later for want of
+                # exactly that intelligence. Accepting an order we already
+                # know we cannot execute, and paying for the privilege with
+                # a fog leak, is the worst of both.
+                _unseen = self._pursue_known_location(world, marshal, enemy)
+                if _unseen is None and marshal.nation == world.player_nation:
+                    return {
+                        "success": False,
+                        "message": (
+                            f"No intelligence on "
+                            f"{humanize_entity_name(enemy.name)}'s position, "
+                            f"Sire. Scout for him before {marshal.name} can "
+                            f"give chase."),
+                        "variable_action_cost": 0,
+                    }
                 target_type = "marshal"
 
         # ── HOLD: default target to current location (Bug #7) ─────────
@@ -696,7 +728,8 @@ class StrategicExecutor:
                 dest = target
             elif strategic_type == "PURSUE":
                 enemy = world.get_marshal(target)
-                dest = enemy.location if enemy else None
+                # NPC-5: the road we plot is to where we BELIEVE he is.
+                dest = self._pursue_known_location(world, marshal, enemy)
             elif strategic_type == "SUPPORT":
                 ally = world.get_marshal(target)
                 dest = ally.location if ally else None
@@ -1107,6 +1140,7 @@ class StrategicExecutor:
                 marshal.holding_position = False
                 marshal.hold_region = ""
         marshal.strategic_order = order
+        clear_order_bound_interrupt(marshal)  # NPC-2
 
         # Log strategic order event
         world.log_event({
@@ -1316,9 +1350,9 @@ class StrategicExecutor:
                                              "target": target, "_strategic_execution": True}},
                                 game_state)
                             combat_msg = attack_result.get("message", "")
-                            first_step_msg = f" {target} spotted at {next_region}! Engaging!\n\n{combat_msg}"
+                            first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}! Engaging!\n\n{combat_msg}"
                         else:
-                            first_step_msg = f" {target} spotted at {next_region}. Preparing to engage."
+                            first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}. Preparing to engage."
                     break
             if moved_regions:
                 order.path = []  # PURSUE recalculates each turn
@@ -1399,15 +1433,27 @@ class StrategicExecutor:
                 msg = f"{marshal.name} begins march to {target}. Route: {route_str}.{first_step_msg}"
         elif strategic_type == "PURSUE":
             enemy_m = world.get_marshal(target)
-            loc = enemy_m.location if enemy_m else "unknown"
-            msg = f"{marshal.name} pursues {target} (at {loc}).{first_step_msg}"
+            # NPC-5: the acceptance line must not tell the player where the
+            # quarry actually is — only where his own scouts last saw him.
+            # NPC-12: and it must spell his name the way every other surface
+            # does ("Archduke Charles"), not as the internal key.
+            loc = (self._pursue_known_location(world, marshal, enemy_m)
+                   or "unknown")
+            msg = (f"{marshal.name} pursues {humanize_entity_name(target)} "
+                   f"(at {loc}).{first_step_msg}")
         elif strategic_type == "HOLD":
             hold_loc = target or marshal.location
             msg = f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
         elif strategic_type == "SUPPORT":
             ally_m = world.get_marshal(target)
             loc = ally_m.location if ally_m else "unknown"
-            msg = f"{marshal.name} moves to support {target} (at {loc}).{first_step_msg}"
+            # NPC-12: the SUPPORT sibling four lines below the PURSUE line —
+            # the exact pair a source-grep pin could not tell apart, and the
+            # reason the previous fix of this class left this one raw. (An
+            # ally's location is our own intelligence; no fog arm needed.)
+            msg = (f"{marshal.name} moves to support "
+                   f"{humanize_entity_name(target)} (at {loc})."
+                   f"{first_step_msg}")
             # W6-4 §6.3: confirm the standing-orders doctrine — a SUPPORT
             # order authorizes even a literal marshal to march to the guns.
             # CA9-F8 (the COPY half; the mechanic is out of scope and
@@ -1701,6 +1747,7 @@ class StrategicExecutor:
 
             # Apply the order
             marshal.strategic_order = order
+            clear_order_bound_interrupt(marshal)  # NPC-2
 
             # For HOLD, set holding position
             if strategic_type == "HOLD":
@@ -1874,13 +1921,17 @@ class StrategicExecutor:
         order = marshal.strategic_order
 
         if personality == "literal":
-            # Silently reroute around ALL enemy regions
-            destination = order.target_snapshot_location or order.target
-            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
-            if destination and destination not in world.regions:
-                target_marshal = world.get_marshal(destination)
-                if target_marshal:
-                    destination = target_marshal.location
+            # Silently reroute around ALL enemy regions.
+            # NPC-5 companion (not in the filed row, found by the recon pass):
+            # `target_snapshot_location` is None for EVERY pursue
+            # (strategic_parser: "PURSUE tracks dynamically"), so this branch
+            # is the live read again — it both pathfinds the reroute and
+            # PRINTS the province below. Left alone, the reroute would
+            # silently re-aim at the live province the fix above stopped
+            # aiming at. An ALLY's location is our own intelligence, so the
+            # helper returns it unchanged for SUPPORT.
+            from backend.commands.strategic import resolve_order_destination
+            destination = resolve_order_destination(world, marshal, order)
             # F5 fix: if the blocked region IS the destination, the marshal has
             # reached the contested objective — rerouting to "avoid" the very place
             # it was ordered to march to is self-contradictory ("march to Swabia ...
@@ -1888,6 +1939,7 @@ class StrategicExecutor:
             # A literal marshal stops at contact and reports instead of improvising.
             if blocked_region == destination:
                 marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
                 marshal.holding_position = False
                 marshal.hold_region = ""
                 return {
@@ -1922,6 +1974,7 @@ class StrategicExecutor:
                 # No alternate route — break order (paired hold-clear, same as
                 # the reached-objective arm above; audit 2026-07-09 fix 2.3)
                 marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
                 marshal.holding_position = False
                 marshal.hold_region = ""
                 return {

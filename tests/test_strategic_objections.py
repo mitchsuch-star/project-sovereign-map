@@ -82,6 +82,15 @@ def world_with_enemies(world_with_french_marshals):
     blucher.morale = 85
     world.marshals["Blucher"] = blucher
 
+    # NPC-5 (Aug 16, 2026): `world_with_french_marshals` REPLACES
+    # `world.regions` with a seven-province map but leaves the boot intel
+    # store untouched, so France "remembered" Wellington at Waterloo — a
+    # province this world does not contain. That was invisible while PURSUE
+    # pathed to the enemy's LIVE location; now that it paths to the last
+    # KNOWN one it produces "No path from Belgium to Waterloo". The world was
+    # always incoherent; recompute so the fixture describes its own map.
+    world.calculate_visibility()
+
     return world
 
 

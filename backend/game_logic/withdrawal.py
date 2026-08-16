@@ -86,6 +86,8 @@ from __future__ import annotations
 from collections import deque
 from typing import Dict, List, Optional, Set
 
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+
 # ── The flip lever ────────────────────────────────────────────────────────
 # Arm A of the BASELINE_SERIES flip experiment (see the landing record).
 # False restores pre-slice behaviour exactly: no grant is ever written, the
@@ -571,6 +573,9 @@ def _issue_road_home_orders(world, nation_a: str, nation_b: str) -> List[Dict]:
                 path=path,
                 issued_turn=int(world.current_turn),
             )
+            # NPC-2: the treaty's order replaces whatever was standing, so
+            # the question that order raised dies with it.
+            clear_order_bound_interrupt(marshal)
             issued.append({"marshal": marshal.name,
                            "nation": nation,
                            "from": marshal.location,
@@ -659,6 +664,7 @@ def process_evacuation_grants(world) -> List[Dict]:
                     and is_road_home_order(
                         getattr(marshal, "strategic_order", None))):
                 marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
 
         for marshal in list(_evacuating_marshals(world, nation, home)):
             stranded_by_nation[nation] = stranded_by_nation.get(nation, 0) + 1

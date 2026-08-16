@@ -112,7 +112,13 @@ CONDITION_CLAUSE_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 def _name_match_patterns(name: str) -> List[str]:
     """Lowercase match patterns for a roster name: a space-split alias for
     camelCase keys ('attack archduke charles' finds ArchdukeCharles) and a
-    space-for-hyphen alias ('move to franche comte' finds Franche-Comte)."""
+    space-for-hyphen alias ('move to franche comte' finds Franche-Comte).
+
+    Public alias `name_match_patterns` below — NPC-1 needs the same two
+    registers in `main.py`'s interrupt-routing guard, and a second copy is
+    exactly how that guard came to read one register while the game printed
+    the other.
+    """
     patterns = [name.lower()]
     spaced = _CAMEL_SPLIT_RE.sub(' ', name).lower()
     if spaced != patterns[0]:
@@ -121,6 +127,11 @@ def _name_match_patterns(name: str) -> List[str]:
     if dehyphenated != patterns[0]:
         patterns.append(dehyphenated)
     return patterns
+
+
+# NPC-1: the public name. `delegation.py` already imports `unique_name_tokens`
+# publicly for the same single-source reason.
+name_match_patterns = _name_match_patterns
 
 
 def unique_name_tokens(names) -> Dict[str, str]:
@@ -1663,7 +1674,13 @@ class LLMClient:
                     command_lower, _game_state_dict(game_state, "map_data").keys())
 
         # Legacy hardcoded ladder — cold-parse fallback + alias forms the
-        # dynamic pass can't derive ("rhine" → Rhineland, bare "archduke").
+        # dynamic pass can't derive ("rhine" → Rhineland).
+        # NPC-3 (Aug 16, 2026): the bare "archduke" alias this comment used
+        # to cite as the second example is GONE, and must not come back —
+        # it was world-blind, ran before every guard, and resolved any
+        # sentence containing the word to Charles. A title is a rank, not a
+        # man. Anything ambiguous on the shipped roster belongs to the
+        # dynamic pass's uniqueness rule, not here.
         if target is None:
             # Enemy commanders
             if "wellington" in command_lower:
@@ -1672,8 +1689,22 @@ class LLMClient:
                 target = "Blucher"
             elif "gneisenau" in command_lower:
                 target = "Gneisenau"
-            elif "archduke charles" in command_lower or "archdukecharles" in command_lower or "archduke" in command_lower:
+            # NPC-3: the bare `or "archduke" in command_lower` arm is GONE.
+            # It was world-blind and ran at PARSE time, before either PC15-4
+            # guard, so ANY sentence containing the word resolved to Charles:
+            # "attack Archduke John" fought Charles, and so did "attack
+            # Archduke Ferdinand" — a man who does not exist. It also
+            # contradicted the rule the dynamic pass beside it already states,
+            # `unique_name_tokens`: a title identifies a rank, not a man, and
+            # a token owned by two candidates is dropped so the parser can
+            # never silently pick one of two real armies. The two explicit
+            # full-name forms stay; they are unambiguous.
+            elif ("archduke charles" in command_lower
+                  or "archdukecharles" in command_lower):
                 target = "ArchdukeCharles"
+            elif ("archduke john" in command_lower
+                  or "archdukejohn" in command_lower):
+                target = "ArchdukeJohn"
             elif "schwarzenberg" in command_lower:
                 target = "Schwarzenberg"
             elif "uxbridge" in command_lower:

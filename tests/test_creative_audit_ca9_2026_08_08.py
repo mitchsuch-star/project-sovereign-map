@@ -3393,9 +3393,19 @@ class TestReviewF11ActuallyIssuesTheOrder:
 
         from backend.commands.executor import CommandExecutor
         from backend.commands.parser import CommandParser
+        from backend.models.intel import PARTIAL
         from backend.models.world_state import WorldState
 
         world = WorldState.from_scenario(str(SCENARIO_PATH))
+        # NPC-5 (Aug 16, 2026): a pursue is now REFUSED up front when the
+        # player has never seen the quarry, so this test must give France
+        # eyes on him or it measures the refusal instead of its own subject
+        # — that the DISPLAY spelling and the KEY issue the same order.
+        _charles = world.marshals["ArchdukeCharles"]
+        world.intel[_charles.location].refresh(
+            visibility=PARTIAL, source="scout", turn=world.current_turn,
+            marshals=[{"name": _charles.name, "nation": _charles.nation}],
+            total_strength=_charles.strength)
         random.seed(seed)
         parsed = CommandParser().parse(line, {"world": world}, world=world)
         result = CommandExecutor().execute(parsed, {"world": world})

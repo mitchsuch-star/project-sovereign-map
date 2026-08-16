@@ -43,6 +43,7 @@ from backend.models.authority import (  # noqa: F401
     AUTHORITY_ACCELERATE_BELOW,
     AUTHORITY_SUPPRESS_ABOVE,
 )
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -3573,6 +3574,7 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         # this needs no new type and no client change.
         _voided = getattr(marshal, "strategic_order", None)
         marshal.strategic_order = None
+        clear_order_bound_interrupt(marshal)  # NPC-2
         marshal.holding_position = False
         marshal.hold_region = ""
         if _voided is not None and marshal.nation == world.player_nation:

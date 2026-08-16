@@ -944,12 +944,13 @@ class CommandExecutor:
                         # interrupt route) and answers it with "no active
                         # strategic order". Standalone decisions
                         # (last_stand, muster_confirm) are preserved.
+                        # NPC-2: single source. This block used to be the
+                        # only copy of the rule, and it sits inside a branch
+                        # that excludes strategic commands — see
+                        # `clear_order_bound_interrupt`'s docstring.
                         from backend.commands.strategic import (
-                            ORDER_BOUND_INTERRUPT_TYPES)
-                        _stale = getattr(marshal, "pending_interrupt", None)
-                        if (_stale and _stale.get("interrupt_type")
-                                in ORDER_BOUND_INTERRUPT_TYPES):
-                            marshal.pending_interrupt = None
+                            clear_order_bound_interrupt)
+                        clear_order_bound_interrupt(marshal)
                         print(f"[STRATEGIC] {marshal.name}'s strategic order "
                               f"cancelled by player {action} command")
 

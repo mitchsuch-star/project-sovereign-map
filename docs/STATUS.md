@@ -4,6 +4,77 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE NPC P1 CLUSTER — FIXED August 16, 2026 (fourth session that day)
+>
+> **Landing record = `docs/BUG_FIXES.md` §Napoleon Campaign (NPC), the
+> boxed block above the table.** User direction: *"do npc cluster."*
+> Suite **18,175 / 3**, ruff clean, no `.gd` touched.
+> Pins `tests/test_npc_cluster_2026_08_16.py` (31); 13-mutation sweep,
+> 13 killed.
+>
+> **A 46-agent find-then-refute review round took SIX more fixes**, two of
+> them P1 and one a regression this slice introduced:
+> **(a)** NPC-1's P1 survived one step over — the fix corrected the
+> REGISTER and left the MEMBERSHIP premise alone, so a name the game had
+> just announced as DEAD was still routed into the interrupt (measured,
+> **Mack 52,000 → 0**). **(b)** NPC-5 had landed at 1 of 5
+> destination-resolution sites; the four in the per-turn processor — the
+> hotter path — still re-aimed a player's pursuit at the quarry's true
+> province. **(c)** my own NPC-20 derivation silently un-did PC15-2(b):
+> with the battle province counted as the interrupt's ground, an addressed
+> *"march to Swabia"* during a *"cannon fire at Swabia"* interrupt became
+> an AP-free, objection-free ATTACK. Plus (d) two more raw-key lines,
+> (e) a stale comment, and (f) a cluster of vacuity in this slice's OWN
+> pins — including an end-to-end test whose `options` fixture used a shape
+> **no production builder emits**, so it could not reach the branch it
+> named. Every one now carries a control arm that fails when the fix is
+> disabled.
+>
+> **All four P1s fixed**, plus the two rows that are mechanically part of
+> them. They are one defect wearing six coats — two registers for the same
+> entity (the scenario KEY `ArchdukeCharles`, the printed form "Archduke
+> Charles") compared without normalisation at six seams:
+>
+> * **NPC-1** — `_addressed_fresh_order_elsewhere` built its needles from
+>   internal KEYS while the game prints the other spelling, and its False
+>   branch routes a line into the pending interrupt as an ANSWER. So
+>   "Ney, attack Archduke Charles" **fought Mack and won**, while the key
+>   spelling refused honestly. Both registers now, plus a uniqueness-gated
+>   surname pass sharing `unique_name_tokens` with the parser.
+> * **NPC-20** — its correctness PRECONDITION, not a sidecar: `own_ground`
+>   was a hand-kept three-key literal, so it was EMPTY for every
+>   cannon-fire interrupt. Fixing the needles without it would have
+>   INVERTED the bug. Derived from the payload's own values now.
+> * **NPC-2** — TUT-F4a's clear was written but unreachable for strategic
+>   orders. One `clear_order_bound_interrupt`, called at ~20 seams, with an
+>   AST census pin. **Three seams were missing from the row** — the
+>   movement auto-upgrade, auto-break-square, and the SECOND forced-retreat
+>   copy in `world_state` (the "two combat copies" trap again).
+> * **NPC-3** — both layers: the mock parser's world-blind bare-`archduke`
+>   alias (which fired at PARSE time even for `Archduke Ferdinand`, a man
+>   who does not exist), and the guard's substring grounding, which a
+>   shared title disarmed.
+> * **NPC-5** — PURSUE resolved the acceptance line against the LIVE map
+>   and execution against the intel one. One helper, fog for the player and
+>   live truth for the AI; refused up front at 0 AP when the quarry has
+>   never been seen.
+> * **NPC-12** — fixed at the pursue/support lines (the surfaces that TAUGHT
+>   the punished spelling); **the wider census stays OPEN at P2** — ~426
+>   enemy-reachable interpolations, with `combat.py` and `ledger.py` never
+>   importing the humaniser at all.
+>
+> **⚠ NPC-16 is REFUTED and struck** — its production half was already
+> landed by WIN-H1, whose own trailing "the PRODUCTION half stays OPEN"
+> clause was stale and is corrected on the record. That stale clause is
+> why NPC-16 was scoped into this cluster before being re-measured.
+>
+> **Two conscious test flips and one always-incoherent fixture**, each
+> recorded at the test: a title owned by two Archdukes must ground NEITHER
+> (the inverted `test_title_grounds_the_target`); the CA9 parity probe now
+> seeds intel; and `test_strategic_objections`'s fixture had replaced
+> `world.regions` while leaving the boot intel store describing the old map
+> — invisible until PURSUE began pathing to the last KNOWN province.
+
 > ## ✅ "THE ROAD HOME" — WIN-D3 + WIN-D5 BUILT August 16, 2026 (third session that day)
 >
 > **Gate record + landing record = `docs/WAR_WITHDRAWAL_SPEC.md` §7a,

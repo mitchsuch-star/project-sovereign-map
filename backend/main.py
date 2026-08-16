@@ -775,30 +775,106 @@ def _addressed_fresh_order_elsewhere(command_text: str, cmd_lower: str,
     the current keyword behaviour by construction — no leading address
     token, no fresh-order reading.
     """
+    from backend.ai.llm_client import name_match_patterns, unique_name_tokens
     from backend.commands.parser import _leading_addressed_token
 
     if not _leading_addressed_token(command_text):
         return False
-    own_ground = {
-        str(pending.get("location") or "").lower(),
-        str(pending.get("enemy") or "").lower(),
-        str(pending.get("destination") or "").lower(),
+
+    # ── The interrupt's OWN ground ────────────────────────────────────────
+    # NPC-20: this was a hand-kept three-key literal (location / enemy /
+    # destination) while each builder names its ground independently —
+    # cannon_fire stores `battle_location`, muster_confirm stores `target`,
+    # last_stand stores only `enemy`. So `own_ground` was EMPTY for every
+    # cannon-fire interrupt, and the guard read the marshal's own battle as
+    # "somewhere else". Derived from the payload's own string values now, so
+    # a new interrupt type inherits the right behaviour without editing this
+    # seam again. Non-strings (requires_input, muster_preview) drop out;
+    # membership below is exact equality, so a stray value like
+    # enemy_nation="Austria" is inert.
+    # `battle_location` is deliberately NOT ground. Review round, August 16
+    # 2026: including it silently un-did PC15-2(b) for cannon_fire — with the
+    # battle province in the set, an addressed "Ney, march to Swabia" during
+    # a "cannon fire at Swabia" interrupt stopped reading as the MARCH the
+    # player typed and was consumed as `investigate`, which launches an
+    # AP-free, objection-free ATTACK. Naming the guns is ambiguous between
+    # "yes, go" and "march there", and a line that says march must not become
+    # an assault. The other builders' ground keys are unambiguous and stay.
+    _NON_GROUND_KEYS = {
+        "marshal", "interrupt", "interrupt_type", "message", "options",
+        "command", "order_status", "action_taken", "battle_location",
     }
+    own_ground = set()
+    for _k, _v in (pending or {}).items():
+        if _k in _NON_GROUND_KEYS or not isinstance(_v, str) or not _v:
+            continue
+        # Both registers of the own-ground name, for the same reason the
+        # needles below carry both — otherwise fixing NPC-1 INVERTS it: the
+        # needle would be "archduke charles" while own_ground held only
+        # "archdukecharles", so an answer naming the interrupt's own enemy
+        # would newly read as a fresh order.
+        own_ground.update(name_match_patterns(_v))
     own_ground.discard("")
+
     for region_name in world.regions.keys():
         rl = region_name.lower()
         if rl in own_ground:
             continue
         if _mentions_whole(cmd_lower, rl):
             return True
+
+    # ── Enemies named in the line ─────────────────────────────────────────
+    # NPC-1: this loop used to match `em.name.lower()` — the internal scenario
+    # KEY ("archdukecharles") — against text the player writes in the register
+    # the game PRINTS ("Archduke Charles", via display_names.humanize_entity_name).
+    # For every enemy whose two registers differ the guard answered "nothing
+    # foreign named", and its False branch does not merely fail to help: it
+    # routes the line into the pending interrupt as an ANSWER. Measured, at
+    # the 1805 boot with Ney holding a stale contact_bad_odds about Mack:
+    # "Ney, attack Archduke Charles" -> "Ney attacks MACK and wins", 21,974
+    # Austrian casualties, Charles untouched — while "Ney, attack
+    # ArchdukeCharles" refused honestly. The player was punished for copying
+    # the game's own spelling.
+    # The roster the player can NAME is wider than the roster that is
+    # standing. Review round, August 16 2026 — the first cut of this fix
+    # corrected the register and left the MEMBERSHIP premise alone, so the
+    # P1 survived one step over: `destroy_marshal` removes the fallen from
+    # `world.marshals`, so a player who had just read "Marshal Kutuzov's
+    # corps has been DESTROYED" in his own dispatch and typed "Ney, attack
+    # Kutuzov" was still routed into the interrupt — measured, **Mack
+    # 52,000 -> 0, Austria's army annihilated by an order naming a dead
+    # Russian.** Bench names in the authored `marshal_pool` (Bagration,
+    # Wellesley) were invisible the same way. Any name the game has shown
+    # the player must be heard here; the parser's own tombstone refusal
+    # (PC15-4) then answers honestly instead of a battle happening.
     player_nation = world.player_nation
-    for em in world.marshals.values():
-        if em.nation == player_nation:
+    enemy_names = [em.name for em in world.marshals.values()
+                   if em.nation != player_nation]
+    enemy_names += [n for n, rec in getattr(world, "fallen_marshals", {}).items()
+                    if (rec or {}).get("nation") != player_nation]
+    for _nation, _pool in (getattr(world, "marshal_pool", {}) or {}).items():
+        if _nation == player_nation:
             continue
-        el = em.name.lower()
-        if el in own_ground:
+        for _entry in (_pool or []):
+            _n = _entry.get("name") if isinstance(_entry, dict) else _entry
+            if _n:
+                enemy_names.append(str(_n))
+    for name in enemy_names:
+        for needle in name_match_patterns(name):
+            if needle in own_ground:
+                continue
+            if _mentions_whole(cmd_lower, needle):
+                return True
+    # ...and by surname, the way people actually address a general. The
+    # uniqueness gate is computed over the whole candidate SET (never per
+    # name), which is the entire safety argument: "charles" and "john" each
+    # identify exactly one Archduke and are admitted; "archduke" belongs to
+    # both and is dropped, so a shared token can never silently pick one of
+    # two real armies. Single source with the parser — llm_client.unique_name_tokens.
+    for token, owner in unique_name_tokens(enemy_names).items():
+        if token in own_ground or owner.lower() in own_ground:
             continue
-        if _mentions_whole(cmd_lower, el):
+        if _mentions_whole(cmd_lower, token):
             return True
     return False
 

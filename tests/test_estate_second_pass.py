@@ -898,15 +898,36 @@ class TestGuessedTargetGuard:
         })
         assert "will not charge at a guess" not in str(result.get("message", ""))
 
-    def test_title_grounds_the_target(self):
+    def test_a_SHARED_title_does_not_ground_the_target(self):
+        """CONSCIOUS FLIP, August 16, 2026 — NPC-3.
+
+        This used to assert that "the Archduke" GROUNDS a resolution to
+        ArchdukeJohn. It must not, and that acceptance was the hole the P1
+        went through: the shipped roster has TWO Archdukes, so "Archduke"
+        identifies a rank and not a man, and treating it as grounding let
+        `Ney, attack Archduke John` be resolved to Archduke CHARLES and
+        waved through — the muster named Charles, the battle was fought
+        against Charles, and the word "John" never appeared.
+
+        The rule is the one `llm_client.unique_name_tokens` already states
+        for the parser, now applied to the guard meant to catch the parser:
+        a token owned by two candidates grounds neither. The sibling test
+        above, which types the UNIQUE surname "John", still grounds and
+        still passes — that is what keeps this from being a blanket
+        tightening.
+        """
         world = WorldState.from_dict(
             WorldState.from_scenario(str(SCENARIO_PATH)).to_dict())
+        assert sum(1 for m in world.marshals
+                   if m.startswith("Archduke")) >= 2, (
+            "precondition: the title really is shared")
         result = _execute(world, {
             "marshal": "Massena", "action": "attack",
             "target": "ArchdukeJohn", "type": "specific",
             "_raw_input": "Massena, attack the Archduke",
         })
-        assert "will not charge at a guess" not in str(result.get("message", ""))
+        assert "will not charge at a guess" in str(result.get("message", "")), (
+            "an ambiguous title must be asked about, not guessed at")
 
 
 # ═══════════════════ CARD PAYLOAD (Reward dialog data) ═════════════════════

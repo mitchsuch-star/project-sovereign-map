@@ -20,6 +20,7 @@ from backend.display_names import (
     STATE_DISPLAY as _STATE_DISPLAY_NAMES,
     proposal_display_name as _proposal_display_name,
 )
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.game_logic.settlement_helpers import (
     CascadeContext,
     WAR_INSTANCE_MERGE_REQUIRED,
@@ -4924,6 +4925,7 @@ def cleanup_war_end(world, diplo_key: str, *,
             marshal = world.marshals.get(cancellation["marshal"])
             if marshal is not None:
                 marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
 
     # Slice B3 §7.5: a peace outcome resolves the bilateral pair on its
     # owning war_instance and (via the B3 lifecycle hooks inside

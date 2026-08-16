@@ -14,6 +14,7 @@ from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
+from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -119,6 +120,24 @@ def guessed_target_refusal(world, marshal, command, target,
         if w not in skip and len(w) >= 3
     ]
 
+    # NPC-3: a word the player typed may only GROUND a resolved name if it
+    # identifies that name uniquely. "Archduke" belongs to Charles AND John,
+    # so word-level grounding accepted "Archduke John" as evidence for
+    # "ArchdukeCharles" and the guard waved through a silent substitution —
+    # the muster header named Charles, the battle was fought against Charles,
+    # and the word "John" never appeared. Titles identify a rank, not a man;
+    # this is the same rule `llm_client.unique_name_tokens` already states in
+    # its docstring, applied to the guard that is supposed to catch the
+    # substitution rather than to the parser that made it.
+    _shared_words = set()
+    _seen_words = set()
+    for _m in getattr(world, "marshals", {}).values():
+        for _w in set(re.findall(
+                r"[a-z']+", humanize_entity_name(_m.name).lower())):
+            if _w in _seen_words:
+                _shared_words.add(_w)
+            _seen_words.add(_w)
+
     def _named_in_raw(token) -> bool:
         token = str(token or "")
         if not token:
@@ -127,11 +146,13 @@ def guessed_target_refusal(world, marshal, command, target,
         hum = humanize_entity_name(token).lower()
         if tl in raw or hum in raw:
             return True
-        # Word-level grounding: a partial name or title the player DID type
-        # stands in for the resolved token ("John" / "the Archduke" ground
-        # "Archduke John") — but a full substitution ("Venetia") grounds none
-        # of Archduke John / Tyrol / Austria.
+        # Word-level grounding: a partial name the player DID type stands in
+        # for the resolved token ("John" grounds "Archduke John") — but a full
+        # substitution ("Venetia") grounds none of Archduke John / Tyrol /
+        # Austria, and a word SHARED by two commanders grounds neither.
         for w in raw_target_words:
+            if w in _shared_words:
+                continue
             if len(w) >= 4 and (w in tl or w in hum):
                 return True
         return False
@@ -3197,6 +3218,7 @@ class CombatExecutor:
                         details={"marshal": marshal.name, "order_type": cmd_type, "retreat_to": retreat_to},
                     ))
                 marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
             # Movement attrition on forced retreat (Phase 6.2.F) — halved rate
             forced_retreat_attrition = self._executor._calculate_movement_attrition(marshal, retreat_to, world, is_retreat=True)
@@ -3283,6 +3305,7 @@ class CombatExecutor:
                         details={"marshal": marshal.name, "order_type": cmd_type, "location": old_loc},
                     ))
                 marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
 
             survival_percent = int(survival_rate * 100)
             # Log marshal_broken event
@@ -6057,6 +6080,7 @@ class CombatExecutor:
                         # later. Say what was voided, and by what.
                         _voided = arriving.strategic_order
                         arriving.strategic_order = None
+                        clear_order_bound_interrupt(arriving)  # NPC-2
                         if (_voided is not None
                                 and arriving.nation == world.player_nation):
                             from backend.display_names import (
@@ -6966,6 +6990,7 @@ class CombatExecutor:
         if getattr(marshal, 'strategic_order', None):
             old_order = marshal.strategic_order
             marshal.strategic_order = None
+            clear_order_bound_interrupt(marshal)  # NPC-2
             if old_order.command_type == "HOLD":
                 marshal.holding_position = False
                 marshal.hold_region = ""
