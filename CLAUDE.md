@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,974 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 18,054 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
 > **▶ ROW NP (NAPOLEON) IS BUILD-COMPLETE THROUGH NP-V — August 15,
 > 2026 (ninth session that day). Landing record = `docs/NAPOLEON_SPEC.md`
@@ -55,6 +55,35 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > byte-identical live). NP-0 substrate → NP-1 the Hand → NP-2 the
 > Presence → NP-3 the Court → NP-4 the Peril → NP-5 the Stage & Seat →
 > NP-A the authoring → NP-V the measured pass. **`BASELINE_SERIES`
+> **▶ THE ROW NP PROMISE AUDIT — the exit review — ran August 15, 2026
+> (tenth session that day). Record = `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md`;
+> landing record = `docs/NAPOLEON_SPEC.md` §15.9; routing =
+> `BUG_FIXES.md` §Row NP (11 rows).** §15.8 existed because the user
+> asked whether the row was finished and four FORGOTTEN promises fell out
+> in ten minutes; the method failure was that the "still open" list held
+> only what had been DECIDED to defer, and a 30-agent review caught none
+> of them because a review looks at what is there. So the direction was
+> inverted: **450 promises** extracted from the spec AND all 13 commit
+> messages, each verified against code at current line numbers (11
+> extractors + an independent refuter per non-LANDED row: 23 REFUTED, 22
+> downgraded, 15 confirmed), plus a hand pass run blind to the fleet.
+> **297 LANDED · 18 FIXED · 11 ROUTED.** The row is substantially as
+> advertised (every never-do pin, zero new fields, GR5, the three roads
+> home, the Petition, all 19 verbs, git-tracked assets — all re-measured).
+> The largest cluster has one root: §15.4 made `sovereign_aura_strength`
+> "the single source" and updated two of its readers, so the garrison
+> assault and the CHARGE kept a flat 1.0, the muster preview kept the old
+> constant AND the wrong roster, and the Shadow's boolean was derived
+> from the decayed float — a magnitude switching an identity off. Second
+> theme: `destroy_marshal` returns False when it CAPTURES a sovereign and
+> three of four callers ignored it (a structural pin found a fourth on
+> its first run; the fleet a fifth). Third: guards §6.1's table names and
+> the code never had. Plus **the Emperor sallied out when told to HOLD**,
+> the Petition's dispatch beat was dropped at the whitelist, and all
+> eight corpus rows were mutation-proven vacuous. `BASELINE_SERIES` +
+> M1–M7 byte-identical throughout.
+>
+> `BASELINE_SERIES`
 > re-recorded ONCE, four-arm flip-attributed — arm 0 (authoring absent)
 > reproduces the prior series BYTE-FOR-BYTE, so dormancy is measured not
 > asserted; M1–M7 byte-identical.** NP-V's 30-agent find-then-refute

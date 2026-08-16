@@ -4,6 +4,65 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ ROW NP — THE PROMISE AUDIT (THE EXIT REVIEW) — August 15, 2026
+> ## (tenth session that day): 450 PROMISES CHECKED, 18 FIXED, 11 ROUTED
+>
+> **Record = `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md`; landing record
+> = `docs/NAPOLEON_SPEC.md` §15.9.** Suite **18,054 / 3**, ruff clean,
+> parse harness EXIT=0, backend boots clean, `BASELINE_SERIES` + M1–M7
+> byte-identical throughout.
+>
+> §15.8 exists because the user asked whether the row was finished and
+> four forgotten promises fell out in ten minutes. **The method failure
+> worth naming: the "still open" list held only what had been DECIDED to
+> defer, never what had been FORGOTTEN — and a 30-agent adversarial
+> review caught none of the four, because a review looks at what is
+> there.** So this pass inverted the direction: every commitment in the
+> spec and in all 13 NP commit messages extracted as a row and verified
+> against code at current line numbers, a promise unprovable by
+> `file:line` counting as MISSING until shown otherwise. 11 extraction
+> agents + an independent refuter per non-LANDED row (23 REFUTED, 22
+> downgraded, 15 confirmed), plus a hand pass deliberately not told what
+> the fleet was doing.
+>
+> **THE ROW IS SUBSTANTIALLY AS ADVERTISED** — every §2 never-do pin
+> holds, zero new serialized fields, no name-keyed guard (GR5), the
+> Peril's three roads home work end to end, the Petition fires end to
+> end, all 19 rewrite verbs parse, the assets are git-tracked.
+>
+> **The largest cluster of the 18 has ONE root:** §15.4's amendment made
+> `sovereign_aura_strength` "the single source" and updated two of its
+> readers. The garrison assault and the cavalry charge kept a flat 1.0
+> (measured: with the myth wholly broken the Emperor still stormed a
+> capital at the full +10%); the muster preview kept the old constant AND
+> the wrong ROSTER (the same screen printed *"WILL NOT — Napoleon:
+> fortified"* two lines above *"+10% harder"*); the charge kept both, so
+> a cavalryman charging out of the Emperor's headquarters carried the
+> Presence AND banked full glory — the strictly-dominant stacking the
+> gate rejected option (c) to avoid; and the Shadow's boolean was derived
+> from the decayed float, so a broken aura switched a separate mechanic
+> off entirely.
+>
+> Second theme: **a returned value three of four callers ignored** —
+> `destroy_marshal` returns False when it CAPTURES a sovereign, so the
+> battle and auto-bombardment copies announced that the Emperor had been
+> destroyed. A structural pin written for that found a fourth copy on its
+> first run; the fleet found a fifth in the attrition sweep.
+> Third: **guards §6.1's table names and the code never had** — the
+> autonomy gate, the restlessness belt, pillar 1 at the rivalry producer.
+>
+> Also: **the Emperor sallied out when told to HOLD** (reproduced through
+> the real player path — the Guard down 10,000 → 9,737 in a battle nobody
+> ordered), the Petition's dispatch beat was dropped at the whitelist so
+> **the line NP-3 describes never existed**, and all eight golden-corpus
+> rows were **mutation-proven vacuous** about the only thing they pin.
+>
+> ⚠ **OPEN and NOT this session's:** NP-6 (strikeable) · the live visual
+> sign-off (the user's own pass) · the played 20-turn campaign · and
+> **two questions the user owns** — the sovereign's missing
+> attack-confirm, and **"The Interned Column"**, whose owner row is this
+> review and whose premise PC15-D1's own ruling substantially narrowed.
+
 > ## ✅ ROW NP — NAPOLEON, "THE EMPEROR TAKES THE FIELD" — BUILD-COMPLETE
 > ## THROUGH NP-V, August 15, 2026 (ninth session that day)
 >

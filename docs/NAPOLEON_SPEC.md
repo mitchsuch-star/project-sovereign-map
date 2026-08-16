@@ -1048,7 +1048,10 @@ zero new serialized fields, no name-keyed guard (GR5), the Peril's three
 roads home work end to end, the Petition fires end to end, all 19 rewrite
 verbs parse, the assets are git-tracked.
 
-**Seven defects, and three of them share one root:**
+**450 promises extracted, 297 LANDED, 60 non-LANDED rows put to
+independent refuters (23 REFUTED, 22 downgraded, 15 confirmed/upgraded).
+EIGHTEEN defects fixed, ELEVEN routed** — and the largest cluster shares
+one root:
 
 > §15.4's amendment made `sovereign_aura_strength` "the single source" for
 > the aura and the fear — and updated two of its four readers. The
@@ -1095,16 +1098,51 @@ from "somebody was". Mutation-proven: with the theft simulated,
 `parser._SOVEREIGN_ORDER_VERBS`; the deferral table was renumbered §15D
 because it and this landing record were both "§15".
 
-**Routed, not fixed — `BUG_FIXES.md` §Row NP:** NP-X1 (the marker still
-reaches the destination extraction in sovereign-FREE worlds → CR-6) ·
-NP-X2 (the general prisoner-rescue rule NP-4 said it routed, and did not
-→ EC-2 pass 2 / Victory) · NP-X3 (a war declared while he is already
-afield still notes itself — ACCEPTED, pinned) · NP-X4 (the suite can
-reach the live Anthropic API; pre-existing, non-hermetic → position 10) ·
-NP-X5 (the §10 modding reference fails the validator; pre-existing,
-verified byte-identical before this row → DEF-1).
+**Canonized rather than changed:** the reckless auto-charge fires the
+Shadow without granting the aura, because that path clears every combat
+transient on both sides. The rule is now written at the seam — the aura is
+a transient buff and that path forgoes ALL of them (coordination too); the
+Shadow is a fact about whose field it was. Suppressing it there would make
+"charge beside the Emperor" the one way to bank FULL glory under his eye.
 
-`tests/test_napoleon_promise_audit_2026_08_15.py` (28) +
+**Routed, not fixed — `BUG_FIXES.md` §Row NP (11 rows):** NP-X1 (the
+marker still reaches the destination extraction in sovereign-FREE worlds →
+CR-6) · NP-X2 (the general prisoner-rescue rule NP-4 said it routed, and
+did not → EC-2 pass 2 / Victory) · NP-X3 (a war declared while he is
+already afield still notes itself — ACCEPTED, pinned) · NP-X4 (the suite
+can reach the live Anthropic API; pre-existing, non-hermetic → position
+10) · NP-X5 (the §10 modding reference fails the validator; pre-existing,
+verified byte-identical before this row → DEF-1) · NP-X6 (the card's "he
+never asks" is half true in live mode → DEF-1) · NP-X7
+(`marshal_honorific` claims "every surface", used at 3 of 49 → DEF-1) ·
+NP-X8 (5 of 9 CR-4 SUPPORT anchors rewrite to something the parser cannot
+act on → CR-6) · NP-X9 (the verb guard iterates stems, not inflections →
+CR-6) · NP-X10 (a production-dead `game_state` fallback in the parser →
+CR-6) · NP-X11 (a production-dead `sovereign` key on the last-stand
+interrupt — ACCEPTED, pinned dead, re-open with NP-6).
+
+The fleet's second wave took two more P1s, both reproduced at runtime:
+the muster note's **predicate** (not just its number) scanned the
+attacker's ORIGIN while the applied aura keys on the battle roster — so
+the same screen printed *"WILL NOT — Napoleon: fortified"* two lines above
+*"The Emperor commands in person — +10% harder"* — and the **glorious
+charge** was the one glory-producing path without the NP-V roster
+override, so a cavalryman charging out of the Emperor's headquarters
+carried the Presence AND banked full glory (the strictly-dominant stacking
+the gate rejected option (c) to avoid, and a written falsification of
+§15.3's claim that the mirror case was closed). Then: the **Shadow was
+switched off by a magnitude** (`_atk_presence > 0.0` — §15.4 changed the
+aura's size, never said the Shadow lifts; introduced there and EXTENDED by
+this audit's own part 1); the Emperor **sallied out when told to hold**,
+through the `else: # aggressive` arm, in a battle nobody ordered; the
+attrition sweep announced his **death**; the Petition's dispatch beat was
+dropped at the whitelist so **the line NP-3 describes never existed**; the
+prestige message was silent on two paths; and §6.1's named **autonomy
+gate**, **restlessness belt** and pillar-1 petition guard had never been
+written at all — each holding by cascade, which is the difference between
+safe and safe on purpose.
+
+`tests/test_napoleon_promise_audit_2026_08_15.py` (47) +
 `test_napoleon_np1_hand.py` corpus class. `BASELINE_SERIES` and M1–M7
 byte-identical throughout, run rather than assumed.
 

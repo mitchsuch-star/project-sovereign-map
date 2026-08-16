@@ -5377,6 +5377,12 @@ class CombatExecutor:
 
             # EC-W3 (review finding #4): shown = applied on the auto-kill path.
             auto_kill_materiel = pipeline_out.get('materiel_msg', '')
+            # NP promise audit (Aug 15, 2026): §15.4's "the battle says it
+            # out loud" was wired into the ORDINARY attack message only, so
+            # an emperor-led auto-kill moved his prestige +-2/-5 in silence
+            # — the exact "mechanically yes, experientially no" defect that
+            # amendment landed to fix, still live on the path it missed.
+            auto_kill_materiel += pipeline_out.get('sovereign_prestige_msg', '')
 
             auto_kill_event = {
                 "type": "battle",
@@ -7449,6 +7455,10 @@ class CombatExecutor:
         # EC-W3: the materiel bill line
         if pipeline_out.get('materiel_msg'):
             charge_message += pipeline_out['materiel_msg']
+        # NP promise audit: the charge is the second path §15.4's "the
+        # battle says it out loud" never reached.
+        if pipeline_out.get('sovereign_prestige_msg'):
+            charge_message += pipeline_out['sovereign_prestige_msg']
         charge_message += f"\n\n[color=#cd6b6b]Recklessness reset: {recklessness_before} → 0[/color]"
 
         charge_event = {

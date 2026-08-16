@@ -33,6 +33,25 @@ hand-verification pass by the session itself, which is where most of the
 confirmed defects below came from — the two passes were deliberately not
 told about each other.
 
+## §0.1 The numbers
+
+| | |
+|---|---|
+| Promises extracted | **450** across 11 surfaces |
+| LANDED on first read | **297** |
+| Non-LANDED rows put to independent refuters | **60** |
+| Refuted (the extractor was wrong) | 23 |
+| Downgraded (real but smaller) | 22 |
+| Confirmed or upgraded | **15** |
+| Fixed this session | **18** |
+| Routed with owners (GR9) | **11** |
+
+The refutation pass earned its keep: it killed 23 claims outright and cut
+22 more down — including the fleet's own loudest one (that the §6b rivalry
+petition could put Napoleon on a card addressing the player), which its
+refuter downgraded to LANDED-by-cascade. That claim was still worth a belt,
+and got one; it was not worth the P1 it was filed at.
+
 ## §1 Verdict
 
 **The row is substantially as advertised.** Every §2 never-do pin holds;
@@ -41,19 +60,30 @@ zero new serialized fields; no name-keyed guard anywhere in production
 Independent Command fires end to end; all 19 verbs in the rewrite set
 parse to a real action; the assets are git-tracked.
 
-**Seven defects were found and fixed**, and their common root is worth
-stating once, because it is the same root three times over:
+**Eighteen defects were found and fixed** (§2 + §2b), and the largest
+cluster has one root, worth stating once because it is the same root five
+times over:
 
 > **§15.4's design amendment made `sovereign_aura_strength` "the single
 > source" for the aura and the fear — and updated two of its four
 > readers.** The garrison assault, the cavalry charge and the muster
-> preview kept the old constant. That is the exact split brain the
-> amendment's own commit message said it was retiring, surviving one seam
-> over, in the mechanic the user's brief was about.
+> preview kept the old constant — and the muster preview kept the wrong
+> ROSTER as well; the glorious charge kept both; and the Shadow's boolean
+> was derived from the decayed float, so a broken aura switched a separate
+> mechanic off. That is the exact split brain the amendment's own commit
+> message said it was retiring, surviving five seams over, in the mechanic
+> the user's brief was about.
 
 The second theme is **a returned value that three of four callers
 ignored**: `destroy_marshal` returns False when it converts a sovereign to
-capture, and only the charge copy read it.
+capture, and only the charge copy read it. A structural pin written for
+that found a fourth copy on its first run, and the fleet found a fifth in
+the attrition sweep.
+
+The third is **a guard the table names and the code never had** — §6.1's
+"autonomy gate", its "restlessness loop belt", §2 pillar 1 at the rivalry
+producer. Each held by cascade off some other exemption, which is the
+difference between safe and safe on purpose.
 
 ## §2 Confirmed defects — FIXED
 
@@ -66,6 +96,32 @@ capture, and only the charge copy read it.
 | A4 | §4.1 gate (b): "military/movement verbs only — diplomacy keeps its verbs" | The trailing-`myself` arm shipped with **no verb gate** — the third sibling of the defect §15.8 item 3 fixed for the Emperor-lead arm. *"I will offer an alliance to Prussia myself"* rewrote to *"Napoleon, I will offer an alliance to Prussia"*. Inert at the mock layer (the keyword parser ignores the prefix), which is why nothing complained — but the rewrite runs **upstream of both parsers**, so live mode hands the LLM a marshal-addressed diplomatic sentence. | P3 (P2 live) |
 | A5 | NP-V: the phantom province `'Bavaria Myself'` is closed | Closed **inside its own arm only**. The two arms above it return first, so the more natural phrasing still produced it: `"I will march to Swabia myself"` → target `'Swabia Myself'`; so did the Emperor-lead form; so did `"Ney, march to Belgium myself"`. NP-1's claim that the fuzzy skip lists close this family is **false by construction** — the destination extraction reads to end-of-string and never consults them. | **P2** |
 | A6 | §4.1 checklist step 12: the seven named golden-corpus rows | The rows landed (§15.8 item 1) but **all eight omit the `marshal` key** that 64 other corpus rows use — the only field distinguishing "the sovereign was addressed" from "somebody was". **Mutation-proven**: with the theft simulated, `addressed-i-want-unchanged` — whose stated purpose is *"the sovereign must not steal an order addressed to a marshal"* — still PASSED. | **P2** |
+
+### §2b The fleet's confirmed findings (the second wave)
+
+| # | Promise | What was true | Sev |
+|---|---|---|---|
+| B1 | §5.1 in-code: "the predicate MIRRORS the applied `eligible` set… Shown = applied, both directions" | The muster note's PREDICATE scanned the **attacker's origin** while the applied aura keys on `_get_casualty_participants` at the **battle region**. Reproduced: with the Emperor fortified / moved this turn / on HOLD / at −2 with the attacker, the SAME SCREEN printed *"WILL NOT — Napoleon: [fortified]"* two lines above *"The Emperor commands in person — +10% harder"*, and the battle carried no Emperor row. Silent the other way too. | **P1** |
+| B2 | §15.3: the NP-V fix "also closed the mirror case" | The **glorious charge** was the one glory path without the roster override: aura stamped at the charger's ORIGIN, Shadow falling back to a scan at the TARGET. A cavalryman charging out of the Emperor's headquarters carried the Presence **and** banked full glory — the strictly-dominant stacking the gate rejected option (c) to avoid. Both directions measured. | **P1** |
+| B3 | §15.4 changed the aura's MAGNITUDE | `_atk_sovereign = _atk_presence > 0.0` routed that magnitude into a **boolean identity**, so once grip fell below `AURA_GRIP_BROKEN` the §6.2 Shadow switched off entirely and marshals banked full glory at the Emperor's side. Introduced by §15.4 and **extended by part 1 of this audit** — worth saying plainly. | **P2** |
+| B4 | §3.1's mandated sweep: no sovereign silently executes another personality's behaviour | A sovereign on HOLD fell into the arm labelled `else:  # aggressive` and **sallied out unordered**. Reproduced through the real player path: *"Napoleon, hold Paris"* → *"Holding position"* → next turn *"Napoleon sallies forth to attack Mack"*, Guard 10,000 → 9,737. A battle nobody ordered, on the verb that means "stay put", feeding §7's capture machinery. | **P2** |
+| B5 | §7.1: a sovereign reaching the attrition sweep is CAPTURED | The mechanic is right; the sweep then emitted a false `marshal_destroyed` event — the **fourth** un-routed destruction sentence, riding `tactical_events` to a client that prints it verbatim. | P2 |
+| B6 | NP-3: the beat is carried by "the modal + dispatch line + response message" | `shadow_petition` was never added to `_DISPATCH_EVENT_TYPES`, so `_build_turn_events` dropped it at the whitelist — **the dispatch line did not exist**. Its sibling `fontainebleau_petition` always was whitelisted. | P2 |
+| B7 | §15.4: "the battle says it out loud" | Wired into the ordinary attack message only; an emperor-led **auto-kill** or **charge** moved his prestige ±2/−5 in silence. | P2 |
+| B8 | §6.1 row 9: "modify_trust no-op + autonomy **gate**" | The gate was never written; the property held by cascade off the trust freeze, and the debug `set_autonomy` arm could break it — while its own sibling `dismiss` DID get the guard. | P3 |
+| B9 | §6.1 row 4: "restlessness loop **belt**" | Never written; only the cascade through `find_jealousy_target`'s head guard. | P3 |
+| B10 | §2 pillar 1: no popup carries his name as speaker | Held by accident at three producers and **not at all** at the §6b rivalry producer, which has no gate — and §6.4 deliberately keeps him in the Win/Loss formula. Belt added at `_push_petition`, the one place channel policy lives. | P3 |
+| B11 | §15.4: "+10%" becomes "+9%" becomes **nothing** | Grip is an int over a span of 55, so the smallest non-zero aura is 1/55: the reachable grip 31–32 band rendered a bonus row reading **"+0%"**. | P3 |
+
+**Canonized rather than changed:** the **reckless auto-charge** fires the
+Shadow without granting the aura, because that path clears every combat
+transient on both sides. The asymmetry is the coherent reading and is now
+written at the seam — the aura is a transient buff and that path forgoes
+ALL of them (coordination too); the Shadow is not a buff but a fact about
+whose field it was. Suppressing it there would make "charge beside the
+Emperor" the one way to bank FULL glory under his eye. The underlying
+oddity (the one `resolve_battle` site with no coordination recompute) is
+pre-existing and belongs to CA8-19.
 
 ### The three "left unfixed with reasons" (§15.8), judged rather than accepted
 

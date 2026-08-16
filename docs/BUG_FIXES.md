@@ -38,12 +38,15 @@
 ---
 
 
-## Row NP — the promise audit (August 15, 2026) — **7 FIXED, 5 ROUTED**
+## Row NP — the promise audit (August 15, 2026) — **18 FIXED, 11 ROUTED**
 
 > **Record = `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md` (authoritative);
 > landing record = `docs/NAPOLEON_SPEC.md` §15.9.** Every commitment in the
 > spec and in the 13 NP commit messages, extracted and verified against
-> code. The seven fixed rows are in the landing record; these five are
+> code — 450 promises extracted, 297 LANDED, 60 non-LANDED rows put to
+> independent refuters (23 REFUTED, 22 downgraded, 15 confirmed/upgraded),
+> alongside a hand pass deliberately not told what the fleet was doing.
+> The eighteen fixed rows are in the landing record; these eleven are
 > ROUTED with owners, per GR9.
 
 | ID | Sev | Summary | Owner / landing |
@@ -53,6 +56,13 @@
 | NP-X3 | P3 | **`sovereign_takes_field` still notes a war DECLARED while the Emperor is already afield.** The per-war-instance re-fire is fixed (one beat per departure), but a fresh war instance created later is unnoted and fires once. | **ACCEPTED, not deferred** — the sentence is true news for that war. Pinned in `test_napoleon_promise_audit_2026_08_15.py`; re-open only if a played campaign finds it reads wrong. |
 | NP-X4 | P2 | **The test suite can reach the live Anthropic API.** `.env` sets `LLM_MODE=anthropic` and `conftest.py` does not pin it, so any phrasing the fast parser scores below 0.7 escalates for real — observed during this session (`AnthropicProvider: request_id=…` inside a pytest run). Pre-existing and unrelated to row NP, but it makes every parser test non-hermetic and costs money on a full run. | **position 10 (the shippable build)** — it already owns the key/mock-default surface. Completion: `conftest` pins `LLM_MODE=mock` suite-wide with an explicit `live_only` opt-in, and a pin asserts no provider call escapes a default run. |
 | NP-X5 | P3 | **The §10 "modding reference" fails the validator.** `mods/examples/battle_of_waterloo.json` errors on two capitals missing from its scenario regions. **Verified pre-existing and byte-identical before row NP** (`git show 4550ccb`), so NP-5's sovereign upgrade did not cause it — but §10 names this file as the reference a modder reads. | **DEF-1 / the modding-docs row.** Completion: the example validates clean, or the validator's partial-scenario mode is documented and the example is marked as one. |
+| NP-X6 | P3 | **The marshal card claims "He never objects and never asks."** Half true: objections are structurally gone, but in LIVE-LLM mode a delegated order ("Napoleon, deal with Mack") routes to the CR-5 ASK arm and raises a `command_clarification` modal — friction on the one commander the card promises has none. Mitigated: Berthier voices the question, not the Emperor, so §2 pillar 1 holds. | **DEF-1 / the next copy pass.** Completion: the card's sentence states the true half without promising the false one, or the CR-5 table gains a sovereign row that resolves rather than asks. |
+| NP-X7 | P3 | **`display_names.marshal_honorific`'s docstring says "Single source for EVERY surface that prefixes a rank" — it is used at 3 of 49 such sites.** The reachable remainder renders the Emperor as a rank-less marshal, and one clarification prompt asks the player where the player shall march. | **DEF-1 (roster voices owns the copy backlog).** Completion: either the callers are migrated, or the docstring stops claiming a coverage it does not have. |
+| NP-X8 | P3 | **The CR-4 first-person SUPPORT anchor set is wider than the parser.** 5 of its 9 anchors resolve a reference and return a rewrite the parser then cannot act on — the same advisory-diverges-from-executor shape §15.8 item 4 retired four verbs for, one file over. No test iterates the anchor set the way `test_every_sovereign_order_verb_actually_parses` iterates the verb set. | **CR-6 *proper*.** Completion: an anchor-set iteration guard mirroring the verb guard, and the inert anchors retired or made parseable. |
+| NP-X9 | P3 | **The Emperor-lead rewrite claims 38 inflected forms and breaks on 6** ("the Emperor moves to X" parses; some inflections do not) — the mock parser's verb regexes are not inflection-tolerant (`move`, not `moves?`). Fixing it at the parser helps every marshal, not only the Emperor. | **CR-6 *proper*.** Completion: the standing verb guard iterates inflections, not just bare stems. |
+| NP-X10 | P3 | **`parser._find_player_sovereign`'s `game_state` fallback is production-dead** — nothing emits the payload shape it reads (it looks for a `personality` key the LLM game-state marshals dict does not carry), so it would return None even if it fired. | **CR-6 *proper*** (it is parser-internal). Completion: the branch is deleted or the payload it reads is actually produced. |
+| NP-X11 | P3 | **`pending_interrupt["sovereign"] = True` is a production-dead payload key** — written by the NP-4 last-stand builder, read by nothing. The distinct sovereign copy is carried entirely by the `message` string, which does work. | **ACCEPTED for now, pinned as dead**; re-open with NP-6, which is the row that would give a second sovereign a reason to branch on it. |
+
 
 ---
 
