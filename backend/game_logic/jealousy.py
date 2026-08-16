@@ -1815,9 +1815,26 @@ def _push_petition(world, petition: Dict) -> str:
     OBJECT already holding the slot — identity, not equality, is what
     exempts them from the occupancy check; PopupQueue.push overwrites its
     keyed slot, so a re-push never duplicates.
+
+    NP belt (promise audit, Aug 15 2026): §2 pillar 1 — "Any surface where
+    Napoleon would address the player is a defect" — and the never-do pin
+    "no popup ever carries his name as speaker". That held only by
+    accident: the §6 confrontation needs ``jealous_of`` (he can never have
+    one), Fontainebleau needs an eroding expectation (his is 0 forever),
+    ESP-2 needs expectation >= 160 — but the §6b RIVALRY producer has no
+    such gate, and §6.4 deliberately keeps the sovereign in the Win/Loss
+    relationship formula, so one shared defeat with Bernadotte (authored
+    at −2) could put the Emperor on a card reading *"Sire, harsh words were
+    exchanged between Napoleon and Ney."* Channel policy lives HERE, so the
+    belt lives here too and every future petition kind inherits it.
     """
     if jealousy_dormant(world):
         return PETITION_DORMANT
+    for _key in ("marshal", "speaker", "marshal_a", "marshal_b"):
+        _who = (petition.get(_key)
+                or (petition.get("context") or {}).get(_key))
+        if _who and getattr(world.marshals.get(_who), "is_sovereign", False):
+            return PETITION_BLOCKED
     pending = getattr(world, "pending_marshal_petition", None)
     if pending is not None and pending is not petition:
         return PETITION_BLOCKED
@@ -3236,6 +3253,13 @@ def process_turn(world) -> List[Dict]:
         if warned >= 1:
             break
         if marshal.nation != world.player_nation or not _is_standing(marshal):
+            continue
+        # NP promise audit (Aug 15, 2026): §6.1 cut-set row 4 names a
+        # "restlessness loop belt" as the sovereign's SECOND, independent
+        # guard against becoming a jealous subject. Only the cascade
+        # through find_jealousy_target's head guard shipped. The Emperor
+        # is never overlooked — he does the overlooking.
+        if getattr(marshal, "is_sovereign", False):
             continue
         if getattr(marshal, "jealous_of", None):
             continue

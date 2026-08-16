@@ -1380,6 +1380,20 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     "message": f"🔧 DEBUG: {marshal.name} is no longer autonomous.\n"
                               f"Player can command normally."
                 }
+            elif getattr(marshal, "is_sovereign", False):
+                # NP promise audit (Aug 15, 2026): §6.1 row 9 names a
+                # "modify_trust no-op + autonomy GATE". The trust freeze
+                # landed; the gate never did — the property held only by
+                # cascade (the redemption arc needs trust <= 20 and his is
+                # frozen at 100), and this debug arm could break it while
+                # its own sibling `dismiss` 80 lines below DID get the
+                # guard. An autonomous sovereign is a player who cannot
+                # command himself.
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} cannot be made autonomous — "
+                               f"he is the hand that gives the orders."
+                }
             else:
                 marshal.autonomous = True
                 marshal.autonomy_turns = turns

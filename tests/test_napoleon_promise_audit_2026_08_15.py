@@ -496,3 +496,74 @@ class TestTheReportNeverPrintsAZeroBonus:
         rows = snapshot_attacker_modifiers(atk, deff, "plains", 0.0, 0, False)
         assert any("Emperor" in str(r.get("label")) and r["value"] == 6
                    for r in rows), rows
+
+
+class TestTheBeltsSixOneNamed:
+    """§6.1's cut-set table names guards that were never written — they
+    held by cascade off other exemptions. Named belts are the difference
+    between "safe" and "safe on purpose"."""
+
+    def test_the_channel_refuses_a_sovereign_petitioner(self, europe):
+        """§2 pillar 1 held only by accident: the §6 confrontation needs
+        `jealous_of`, Fontainebleau an eroding expectation, ESP-2 an
+        expectation >= 160 — but the §6b RIVALRY producer has no such
+        gate, and §6.4 deliberately keeps the sovereign in the Win/Loss
+        relationship formula."""
+        from backend.game_logic import jealousy as J
+        blocked = J._push_petition(europe, {
+            "kind": "rivalry_confrontation",
+            "title": "A RIVALRY AMONG THE MARSHALS",
+            "marshal": "Napoleon",
+            "options": [],
+        })
+        assert blocked == J.PETITION_BLOCKED
+        assert getattr(europe, "pending_marshal_petition", None) is None
+
+    def test_an_ordinary_marshal_still_petitions(self, europe):
+        """Control — the belt must not have closed the channel."""
+        from backend.game_logic import jealousy as J
+        assert J._push_petition(europe, {
+            "kind": "rivalry_confrontation", "title": "T",
+            "marshal": "Ney", "options": [],
+        }) == J.PETITION_QUEUED
+
+    def test_the_sovereign_cannot_be_made_autonomous(self, europe):
+        """§6.1 row 9 names an "autonomy gate"; only the trust freeze
+        landed, and this debug arm could break it while its own sibling
+        `dismiss` DID get the guard."""
+        ex = CommandExecutor()
+        out = ex.execute({"success": True, "command": {
+            "action": "cheat", "cheat_type": "set_autonomy",
+            "marshal": "Napoleon", "value": "5",
+        }}, {"world": europe, "debug_mode": True})
+        assert europe.marshals["Napoleon"].autonomous is False, out
+
+    def test_the_restlessness_loop_skips_him(self, europe):
+        """§6.1 cut-set row 4 names a belt in the restlessness loop."""
+        import inspect
+        from backend.game_logic import jealousy as J
+        src = inspect.getsource(J.process_turn)
+        assert 'is_sovereign' in src, (
+            "the restlessness loop has no named sovereign belt")
+
+
+class TestThePetitionBeatReachesTheDispatch:
+    """NP-3's commit says the beat is carried by "the modal + dispatch line
+    + response message". The event was appended to the turn events and the
+    narration cap already exempted it — but `shadow_petition` was never
+    added to `_DISPATCH_EVENT_TYPES`, so `_build_turn_events` dropped it at
+    the whitelist and the dispatch line never existed."""
+
+    def test_shadow_petition_is_whitelisted(self):
+        assert "shadow_petition" in D._DISPATCH_EVENT_TYPES
+
+    def test_the_beat_renders(self, europe):
+        rendered = D._build_turn_events([{
+            "type": "shadow_petition",
+            "message": "Ney seeks an audience, Sire.",
+            "nation": europe.player_nation,
+            "marshal": "Ney",
+        }], europe.player_nation)
+        assert len(rendered) == 1, rendered
+        assert rendered[0]["severity"] == "warning"
+        assert "seeks an audience" in rendered[0]["message"]

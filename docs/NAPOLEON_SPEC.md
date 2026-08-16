@@ -125,7 +125,19 @@ gate is the successor of record). Why a personality rather than a bool flag:
 The NP-0 build includes a mandated sweep: every `personality ==` / `in`
 branch in the backend is audited for an else-assumes-literal (or
 else-assumes-cautious) arm, and the sovereign's path through each is
-pinned. Known sites from the survey: `get_attack_modifier_for_personality`
+pinned.
+
+> ⚠ **Narrowed by the promise audit (Aug 15, 2026).** What landed is
+> *chokepoint guards* (objection_v2 / jealousy / dotation / marshal_voice /
+> enemy_voice / the `SovereignTrust` object freeze / the `enemy_ai` alias /
+> delegation-ASK) plus the five hand-named sites below — a real survey, but
+> not a census, and no artifact of it was committed. The audit ran the
+> mechanical scan the sentence promises (160 personality-comparison sites)
+> and found ONE with a live consequence: `strategic.py`'s HOLD ladder,
+> where a sovereign fell into the arm labelled `else:  # aggressive` and
+> **sallied out unordered** — fixed, with its own arm and a control pin
+> (§15.9). Anyone re-opening this row should treat "every branch is
+> pinned" as the aspiration and the chokepoints as the mechanism. Known sites from the survey: `get_attack_modifier_for_personality`
 (must return 1.0 for sovereign), `get_effective_ai_personality` (sovereign
 → plays as `aggressive` if France is ever AI-driven; one line, GR5,
 content-inert while France is the player), CR-5 delegation table (no
@@ -244,8 +256,11 @@ exists in the player roster**:
   eligible for phantom-province fuzzy matching (the PARSE-NEG family), a
   latent defect this slice closes regardless of the gate.
 
-Mock parser keywords, few-shots, and golden-corpus rows land with it
-(new-action checklist step 12): at minimum `napoleon-address`,
+Golden-corpus rows land with it (new-action checklist step 12). Mock-parser
+keywords and few-shots are deliberately NOT needed and did not land: the
+rewrite runs UPSTREAM of both parsers, so neither ever sees an
+un-normalized sovereign address (recorded deviation, NP-1 commit; the
+original wording promised work that would have been dead by construction): at minimum `napoleon-address`,
 `emperor-address`, `first-person-march`, `first-person-attack`,
 `myself-suffix`, `i-question-still-help`, `addressed-i-want-unchanged`,
 plus `mock_only`/`live_only` arms as CR-1 requires.
@@ -289,7 +304,9 @@ economics; §15D).
 
 ### §5.1 The aura (both sides of the line know where he is)
 
-New combat transient `sovereign_presence_bonus`, registered in
+New combat transient `sovereign_presence` (the spec's draft name
+`sovereign_presence_bonus` was never the shipped one — corrected by the
+promise audit; the code has used the short form since NP-2), registered in
 `Marshal.COORDINATION_TRANSIENT_FIELDS` (so the two clear paths cannot
 drift — the CA8-19(i) lesson is written at that constant):
 
@@ -311,8 +328,11 @@ drift — the CA8-19(i) lesson is written at that constant):
   cap is the older rule and wins).
 - Values: `SOVEREIGN_PRESENCE_ATTACK = 0.10`, `SOVEREIGN_PRESENCE_DEFENSE
   = 0.10` (N1/N2, in-band tunable). Reinforcers arriving into his province
-  are stamped by the same pass; committed-strength previews price it
-  automatically through `get_attack_modifier(1.0, consume=False)`.
+  are stamped by the same pass; the committed-strength RESOLVER prices it
+  automatically through `get_attack_modifier(1.0, consume=False)`; the
+  player-facing odds previews do NOT — corrected by the promise audit,
+  which found the original wording claimed a coverage the previews never
+  had.
 - **Shown = applied**: a battle-report modifier row ("The Emperor commands
   in person — +10%"), a muster-preview note, and the diorama verdict names
   it when he is on the field. His locket rides the existing crowned-star

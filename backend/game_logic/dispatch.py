@@ -2458,6 +2458,13 @@ _DISPATCH_EVENT_TYPES = {
     "glory_crown_lost",
     # ESP-1: the collective petition announcement line.
     "fontainebleau_petition",
+    # NP-3 §6.3 (added by the NP promise audit, Aug 15 2026): the Petition
+    # for Independent Command's arrival beat. The producer appends it to
+    # the turn events and the narration cap already exempts it — but it was
+    # never added HERE, so `_build_turn_events` dropped it at the whitelist
+    # and the beat the slice's own commit describes never reached a
+    # dispatch. Its sibling above has always been whitelisted.
+    "shadow_petition",
     # A13 (CA9 row 3): the overflow tail when the routine drama lines are
     # capped. AI-6's `intent_movement_tail` idiom, on this pipeline.
     "jealousy_drama_tail",
@@ -2509,7 +2516,7 @@ def _build_turn_events(
                           "jealousy_fired", "jealousy_autonomous_warning",
                           "jealousy_autonomous_attack", "jealousy_escalation",
                           "jealousy_separation_warning", "glory_crown_lost",
-                          "fontainebleau_petition"):
+                          "fontainebleau_petition", "shadow_petition"):
             severity = "warning"
         elif event_type in ("construction_complete", "occupation_complete",
                             "drill_complete",
