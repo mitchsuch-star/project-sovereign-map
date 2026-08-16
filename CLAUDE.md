@@ -44,7 +44,32 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,748 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 17,974 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ ROW NP (NAPOLEON) IS BUILD-COMPLETE THROUGH NP-V — August 15,
+> 2026 (ninth session that day). Landing record = `docs/NAPOLEON_SPEC.md`
+> §15, authoritative.** The player is embodied: a `"sovereign"` 4th
+> personality (MC-4 guard consciously re-opened), ZERO new serialized
+> fields, Napoleon at Paris with a 10,000 Guard carved from Soult
+> 40k→30k (national total still exactly 189,000; economy pins verified
+> byte-identical live). NP-0 substrate → NP-1 the Hand → NP-2 the
+> Presence → NP-3 the Court → NP-4 the Peril → NP-5 the Stage & Seat →
+> NP-A the authoring → NP-V the measured pass. **`BASELINE_SERIES`
+> re-recorded ONCE, four-arm flip-attributed — arm 0 (authoring absent)
+> reproduces the prior series BYTE-FOR-BYTE, so dormancy is measured not
+> asserted; M1–M7 byte-identical.** NP-V's 30-agent find-then-refute
+> fleet + live drive took **3 P1s / 6 P2s**, none visible to the row's
+> own 181 tests (the Presence evaporated exactly when he marched to the
+> guns; the Shadow only fired on same-province battles; a captured
+> sovereign was still commandable) — plus the ⛔ **art assets were never
+> committed** (`assets/` is gitignored; a fresh clone had no portrait and
+> no map piece). **The user's brief is built: the aura of invincibility
+> now DECAYS** with imperial grip off one shared source
+> (`authority.sovereign_aura_strength`), the report shows the real
+> number ("+9% — his star dims"), and an emperor-led defeat says so out
+> loud. ⚠ OPEN: NP-6 "The Three Emperors" (strikeable) · a live visual
+> sign-off · the played 20-turn campaign (runs AFTER this row).
+> **NEXT = position 10, the shippable build.**
 >
 > **▶ THE PC15 REMAINDER LANDED August 15, 2026 (eighth session that
 > day; record = STATUS top entry): PC15-16 + PC15-18 fixed AND seen**

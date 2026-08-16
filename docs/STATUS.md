@@ -4,6 +4,58 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ ROW NP — NAPOLEON, "THE EMPEROR TAKES THE FIELD" — BUILD-COMPLETE
+> ## THROUGH NP-V, August 15, 2026 (ninth session that day)
+>
+> **Landing record = `docs/NAPOLEON_SPEC.md` §15, authoritative.** Eight
+> commits `bb849b2`..HEAD. Suite **17,974 / 3**, ruff clean, parse
+> harness EXIT=0, boot smoke 0 SCRIPT ERROR.
+>
+> The player is embodied: a `"sovereign"` 4th personality (MC-4 guard
+> consciously re-opened), **zero new serialized fields**, Napoleon at
+> Paris with a 10,000 Guard carved from Soult 40k→30k so France's
+> national total stays exactly 189,000 and every economy pin is
+> byte-identical *(verified live, not assumed)*. NP-0 substrate → NP-1
+> the Hand (first-person address, no friction, 1 AP) → NP-2 the Presence
+> (aura, fear, discipline, prestige) → NP-3 the Court (the Shadow, the
+> Petition for Independent Command, the apex card) → NP-4 the Peril (the
+> Eagle in Chains) → NP-5 the Stage & the Seat (the emperor map piece,
+> +1 DP at the Tuileries, the press) → NP-A the authoring → NP-V the
+> measured pass.
+>
+> **`BASELINE_SERIES` re-recorded ONCE, four-arm flip-attributed: arm 0
+> (authoring absent) reproduces the prior series BYTE-FOR-BYTE**, so the
+> row's dormancy claim is measured rather than asserted; the whole
+> divergence is the authoring, and both behaviour levers are provably
+> inert on the ambient board (reported, not buried — the Emperor never
+> leaves Paris there). M1–M7 byte-identical throughout.
+>
+> **NP-V took 3 P1s, 6 P2s and several P3s**, all invisible to the row's
+> own 181 passing tests, found by a 30-agent find-then-refute fleet plus
+> a live drive: the Presence **evaporated exactly when the Emperor
+> marched to the guns**; the Shadow **only ever fired on a same-province
+> battle** (so marshals sortied from HQ with the full aura AND full
+> glory — the dominant stacking the gate rejected option (c) to avoid);
+> a **captured sovereign was still commandable** and came home fortified.
+> ⛔ And the **art assets were never committed** — `assets/` is
+> gitignored, so the portrait and all eight emperor sprites passed every
+> on-disk test while being in no commit; a fresh clone had no Emperor.
+> Force-added with `.import` siblings + a pin that asks git.
+>
+> **THE USER'S BRIEF ("he feels strong, his losses have weight") IS
+> BUILT:** the aura was correctly SIZED but did not DECAY — the fear
+> faded with imperial grip and the aura did not, and six emperor-led
+> defeats moved neither. `authority.sovereign_aura_strength` is now the
+> single source for both; the stamp is a fraction; the battle-report row
+> derives from the same product, so the player watches "+10%" become
+> "+9% (his star dims)" become nothing. The 4th defeat under his own hand
+> is visible; the 14th ends the myth. And the battle says it out loud.
+>
+> ⚠ **OPEN:** NP-6 "The Three Emperors" (post-NP-V, strikeable) · a live
+> visual sign-off on the piece / apex card / locket cipher / Captive
+> Eagle row / Tuileries line · the played 20-turn campaign (Q9 ruling)
+> runs AFTER this row. **NEXT = position 10, the shippable build.**
+
 > ## ✅ THE PC15 REMAINDER — August 15, 2026 (eighth session that day):
 > ## PC15-16 + PC15-18 FIXED AND SEEN · PC15-8 FIXED LIVE · petition B0 LANDED
 >

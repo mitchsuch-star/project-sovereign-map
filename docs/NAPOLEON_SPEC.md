@@ -823,3 +823,129 @@ The questions as put (kept for provenance):
 | NP-D5 Sovereign presence feeding the AI-intent mirror (frontier massing read) | AI-intent backlog (spec §11 cut-list custodian) | The mirror's perceived-rung derivation gains a sovereign-at-frontier term, or closed as double-counting with §5.2 |
 | NP-D6 "The Emperor reviews the Guard" morale verb | Closed unless Q-gate revives: drill already restores morale (+10/+15) and a second morale verb double-dips; revive only with a distinct cost/effect shape | N/A unless revived |
 | NP-D7 Victory-Pass interlock ("The Emperor's Designs" reading his location/state) | Positions 12–13 own it; this spec only guarantees the piece exists and its state is queryable | Victory gate's own definition |
+
+---
+
+## §15 LANDING RECORD — August 15, 2026 (authoritative)
+
+**ROW NP IS BUILD-COMPLETE THROUGH NP-V.** Eight commits on master,
+`bb849b2`..HEAD. Suite **17,974 / 3 skipped**, ruff clean, Godot parse
+harness EXIT=0, boot smoke 0 SCRIPT ERROR.
+
+| Slice | Commit | What landed |
+|---|---|---|
+| NP-0 | `bb849b2` | the 4th personality + `is_sovereign` + the §6.1 exemption cut-set, DORMANT |
+| NP-1 | `81c74ba` | address forms, no-friction guards, the 1-AP seam |
+| NP-2 | `b426a2c` | the aura, the fear, discipline, prestige |
+| NP-3 | `b1c08c3` | the Shadow, the Petition for Independent Command, the apex card |
+| NP-4 | `24583a9` | the Eagle in Chains |
+| NP-5 | `10f57ac` | the emperor piece, the Seat, the press |
+| NP-A | `a806e55` | the authored entry + the ONE `BASELINE_SERIES` re-record |
+| NP-V | (2) | the review pass and the design pass |
+
+### §15.1 The deliberate deviation from §13
+
+NP-0's authoring half was deferred into its own slice (**NP-A**) so
+`BASELINE_SERIES` re-records exactly ONCE for the whole row — which is
+what §12.3 mandates. Nothing was cut; the slice order otherwise stands.
+
+### §15.2 The re-record, flip-attributed (§12.3 discharged)
+
+Four arms. **Arm 0 — authoring ABSENT, both levers on — reproduces the
+prior series BYTE-FOR-BYTE**, which measures the row's central claim
+rather than asserting it: every NP mechanism is dormant on a
+sovereign-free board. Arms 1/2/3 (authoring; +fear; full tree) are
+IDENTICAL to each other, so the whole divergence (index 13) is the
+AUTHORING — the Soult 40k→30k carve changing his corps' battles, plus a
+22nd marshal in the per-turn loops. **Both behaviour levers are provably
+inert on the ambient board, and that is reported rather than buried:** it
+is an AI-vs-AI run in which the Emperor never leaves Paris and is never
+attacked. M1–M7 byte-identical throughout, WITHOUT re-record.
+
+### §15.3 The measured pass (NP-V)
+
+A 30-agent find-then-refute fleet (10 lenses × 2 independent refuters), a
+seeded acceptance drive, and a hand-measured design probe. **Three P1s,
+six P2s and several P3s confirmed and FIXED in-session**; the headline
+three are worth naming because all three were invisible to the row's own
+181 passing tests:
+
+* **The Presence evaporated exactly when the Emperor marched to the
+  guns.** The aura was stamped only off the primary's OWN province, but
+  attacker-side reinforcements relocate to the battle region first — so
+  an arriving corps was in neither eligible set, and the Emperor joins
+  ~95% of the time. The authored ability ("every French corps fighting in
+  the Emperor's province") was false at the exact moment the battle WAS
+  in his province. Both halves now key on the battle's own participant
+  roster; the fix also closed the mirror case (a marshal who mustered
+  beside him and marched away alone fought at +10% anyway).
+* **The Shadow only ever fired on a same-province battle.** Glory runs
+  after the victor advances, and `get_battle_participants` applies the
+  A-D4 filter — so marshals sortied from headquarters with the full aura,
+  the +1 discipline threshold AND full glory: the strictly-dominant
+  stacking the gate rejected option (c) to avoid.
+* **A captured sovereign was still commandable** through the first-person
+  forms (the PC15-4 guard keys on a comma-address), and came home from
+  captivity fortified in a stance he never chose.
+
+### §15.4 THE DESIGN AMENDMENT — the aura of invincibility (user's brief)
+
+Scored by the review at **6/10 "feels strong" and 4/10 "losses have
+weight"**, corroborated by an independent probe. The aura is correctly
+SIZED (~16 of the +27.6 points of win rate the Emperor brings a stack come
+from the Presence, ~11 from his army) — **N1/N2 must not be raised.** The
+defect was that the FEAR decayed with imperial grip and the AURA did not,
+and the ramp began so late that six emperor-led defeats moved neither.
+
+`authority.sovereign_aura_strength` is now the single source for both.
+The combat stamp is a FRACTION, the modifiers scale by it, and the
+battle-report row derives from the same product — so the player watches
+"+10%" become "+9%" ("his star dims") become nothing. The window is
+**AURA_GRIP_FULL 85 / AURA_GRIP_BROKEN 30** (in-band tunable): authority
+boots at 100, so the old 70 meant the first six emperor-led defeats were
+free; now the 4th is visible and the 14th ends the myth. And the battle
+says it out loud — *"[The Emperor] He commanded in person, and the field
+was lost. The court will hear of it. (Authority −5)"*, with *"Europe has
+begun to notice that he can be beaten"* once the aura has cracked.
+
+Recorded consequence: an enemy court's grip is the opaque flat 75, so an
+authored foreign sovereign starts at ~82% of full dread rather than 100%.
+NP-6 owns that.
+
+### §15.5 Also caught: the assets were never committed
+
+`assets/` is gitignored, so `Napoleon.jpg` and all eight `emperor_*.png`
+existed only on the developer's disk, passed every on-disk test, and were
+in NO commit — on a fresh clone (or the position-10 build) the Emperor
+would have had **no portrait and no map piece**. Force-added with the
+`.import` siblings an exported build needs, plus a structural pin that
+asks GIT rather than the filesystem, because on-disk assertions cannot
+catch this by construction.
+
+### §15.6 Acceptance evidence
+
+`docs/audits/NP_V_ACCEPTANCE_DRIVE_2026_08_15.md` — a seeded 10-turn
+drive in which all four address forms work (`Napoleon, …` · `the Emperor,
+…` · `I will march to Swabia` · `march to Bavaria myself`), the 1-AP
+caption renders, and the dispatch reads **"the Emperor Napoleon holds the
+field at Swabia"**. The run also surfaced a HARNESS limit, not an engine
+defect: `MAX_ANSWERS_PER_POST` was 8 and the Emperor's stack now wins
+hard enough to chain more decisions than that in one turn (raised to 16,
+dated in-file).
+
+### §15.7 Still open, with owners
+
+* **NP-6 "The Three Emperors"** — post-NP-V and strikeable at the user's
+  word (§14.1 Q8). NOT started.
+* **A live visual sign-off** on the new surfaces: the emperor piece on the
+  map, the apex card, the diorama locket cipher, the Captive Eagle row,
+  the Tuileries ledger line. The standing convention is a user pass.
+* **The played 20-turn campaign** (Q9 ruling) runs after this row.
+* Review findings consciously NOT built, each with its reason recorded in
+  the fleet report: the A-D4 pair keeps its own laurels (Napoleon
+  refusing to march means they did not share a field — and it is the
+  historically apt outcome for the marshal who built a legend outside the
+  shadow); the skill-duplication observation (his 10s buy nothing over
+  Soult's 9 / Davout's 9) is real and left to the MC balance frame; the
+  casualty-laundering property of a small battle lead is PRE-EXISTING
+  (CO-1/[S62]) and belongs to the combat-copy-unification backlog.

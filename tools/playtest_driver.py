@@ -142,7 +142,15 @@ DISPLAY_ONLY_KEYS = (
     "battle_diorama",
 )
 
-MAX_ANSWERS_PER_POST = 8   # a popup answered can surface the next; cap the chain
+# A popup answered can surface the next; cap the chain so a genuine loop
+# cannot hang a run.
+# Row NP (Aug 15, 2026): raised 8 -> 16. The Emperor's Presence makes a
+# big stack win hard enough to take several provinces in ONE turn, and
+# each capture is its own decision (plus a W6-8 estate stage behind it) —
+# at 8 the chain ran out mid-sequence, `end turn` was refused forever
+# ("you must decide the fate of Marshal X's estate first"), and the run
+# reported `blocked` on what is a HARNESS limit, not an engine defect.
+MAX_ANSWERS_PER_POST = 16
 
 
 def first_line(text, limit=170):
