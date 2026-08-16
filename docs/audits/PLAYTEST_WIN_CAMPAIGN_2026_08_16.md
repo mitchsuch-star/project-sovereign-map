@@ -14,10 +14,10 @@
 > **▶ FIX PASS, same day (§7).** The user directed *"make any fixes
 > needed including [WIN-D2]"*. **All seven bug rows are FIXED and the
 > WIN-D2 design question was RULED and BUILT** as "The Spoils of War".
-> ⚠ One routed fix (WIN-H1's production half) was tried and REVERTED
-> as a client regression — §7.2 records why, and amends NPC-16.
+> WIN-H1's production half required a paired client change to be safe;
+> §7.2 records why and amends NPC-16's routed fix accordingly.
 > Gate record: `DESIGN_REFINEMENT.md` §Win-Attempt Campaign. Suite
-> 18,095/3.
+> 18,099/3.
 
 ---
 
@@ -308,7 +308,7 @@ real `WorldState`.
 
 | Row | Fix |
 |---|---|
-| WIN-H1 | ⚠ **The production half was TRIED AND REVERTED — NPC-16's routed fix is unsafe as written.** `pending_interrupt` is a registered `_post_hud_response_routes` matcher (`main.gd:1360`), and that router runs at `main.gd:1909`, BEFORE the strategic-reports branch at `:2000`, in the same function, and returns. Promoting the key makes the client fire the interrupt popup and **skip the report summary that narrates what every marshal did that turn** — a regression to a working path, in service of an issue that is explicitly P3 for players (the client already derives the interrupt at `main.gd:4218`). The harness half stands and fixes the measured problem. A future one-contract fix must re-order the client's routes or use a key `main.gd` does not match; both options are recorded at the seam |
+| WIN-H1 | **Production half landed as a PAIR — NPC-16 is CLOSED.** The routed fix is incomplete as written: `pending_interrupt` is a registered route matcher (`main.gd:1360`) consulted at `:1909`, BEFORE the strategic-reports branch at `:2000`, in the same function, and it returns — so promoting the key *alone* makes the client fire the popup and **skip the summary narrating what every marshal did that turn**. The fix is therefore two-sided: the backend promotes the first report awaiting input, and `main.gd`'s `_response_has_interrupt_route` DEFERS whenever such a report is present, leaving that interrupt to the reports flow that already queues it. A synchronous blocked-path interrupt carries no such report and still routes exactly as before. Neither half ships alone — the client pin was mutation-checked (removing the guard fails two tests) |
 | WIN-1 | The `execute_proposal` arm arrives `enabled: False` **with its reason**, at the mount seam that already computed the block; modify/adjust/Reconsider stay live so the player is never dead-ended |
 | WIN-2 | The commentary tag is re-checked against the FINAL demands after the easing ladder drops territory. Verified live: the same draft now reads *"They have little choice but to accept…"* instead of *"Border territory provides strategic depth."* |
 | WIN-3 | The refusal names the place it resolved to — which also makes the NPC-7 misresolution visible instead of silent |
@@ -325,12 +325,12 @@ Pinned by `test_same_answer_to_DIFFERENT_dialogues_is_not_a_cycle`.
 
 ### 7.4 Verification
 
-- Suite **18,095 / 3**, ruff clean.
+- Suite **18,099 / 3**, ruff clean.
 - `BASELINE_SERIES` and M1–M7 **byte-identical without re-record** — a
   fact about the ambient harness (it never places a stronger
   co-belligerent beside an undefended province), *not* proof of safety.
   Stated plainly rather than presented as a green light.
-- Pins: `tests/test_win_campaign_fixes_2026_08_16.py` (21) and
+- Pins: `tests/test_win_campaign_fixes_2026_08_16.py` (25) and
   `tests/test_playtest_harness_win_campaign_2026_08_16.py` (17).
 - Live-verified over the real `/command` surface: the peace draft's
   disabled arm and corrected commentary (probe), and the phase-1

@@ -256,51 +256,80 @@ class TestHonestPeaceOption:
 # WIN-H1 — the end-turn interrupt reaches every client
 # ═══════════════════════════════════════════════════════════════════
 
-class TestInterruptPromotion:
-    """NPC-16's routed production fix was TRIED and REVERTED — these pin
-    the reason so a later session does not re-introduce it.
+MAIN_GD = (__import__("pathlib").Path(__file__).resolve().parent.parent
+           / "godot-client" / "project-sovereign" / "scripts" / "main.gd")
 
-    Promoting the report to `pending_interrupt` regresses the working
-    client: that key is a registered `_post_hud_response_routes` matcher,
-    and the router runs BEFORE the strategic-reports branch in the same
-    function and returns — so the client would fire the interrupt popup
-    and skip the report summary that narrates the whole turn."""
+
+def _gd_function(name):
+    """The body of one GDScript function, for structural pins."""
+    source = MAIN_GD.read_text(encoding="utf-8", errors="replace")
+    start = source.index(f"func {name}(")
+    rest = source[start:]
+    end = rest.index("\nfunc ", 1)
+    return rest[:end]
+
+
+class TestInterruptPromotion:
+    """NPC-16's production half. The promotion and the client guard are a
+    PAIR: promoting `pending_interrupt` alone regresses the client, whose
+    route table is consulted BEFORE the strategic-reports branch in the
+    same function and returns — the interrupt popup would fire and the
+    summary narrating the turn would be skipped. Both halves pinned."""
 
     def _promote(self, response, result):
         from backend.main import _include_command_strategic_reports
         _include_command_strategic_reports(response, result)
         return response
 
-    def test_the_report_is_NOT_promoted(self):
+    def test_an_awaiting_report_becomes_a_pending_interrupt(self):
         response = self._promote({}, {"strategic_reports": [
+            {"marshal": "Soult", "requires_input": False},
             {"marshal": "Napoleon", "requires_input": True,
-             "interrupt_type": "cannon_fire"}]})
+             "interrupt_type": "cannon_fire"},
+        ]})
+        assert response["pending_interrupt"]["marshal"] == "Napoleon"
+        assert response["requires_input"] is True
+
+    def test_reports_without_input_promote_nothing(self):
+        response = self._promote({}, {"strategic_reports": [
+            {"marshal": "Ney", "requires_input": False}]})
         assert "pending_interrupt" not in response
 
+    def test_a_live_interrupt_is_never_overwritten(self):
+        """The synchronous interrupt is the more specific surface."""
+        response = self._promote(
+            {"pending_interrupt": {"marshal": "Davout"}},
+            {"strategic_reports": [{"marshal": "Napoleon",
+                                    "requires_input": True}]})
+        assert response["pending_interrupt"]["marshal"] == "Davout"
+
     def test_strategic_reports_still_pass_through(self):
-        """The client's own source of truth is untouched."""
         response = self._promote({}, {"strategic_reports": [
             {"marshal": "Napoleon", "requires_input": True}]})
         assert len(response["strategic_reports"]) == 1
-        assert response["strategic_reports"][0]["requires_input"] is True
 
-    def test_the_client_route_ordering_that_forbids_promotion(self):
-        """The load-bearing fact, pinned against the real .gd: the
-        interrupt route is registered, and it is consulted before the
-        strategic-reports branch."""
-        from pathlib import Path
-        main_gd = (Path(__file__).resolve().parent.parent / "godot-client"
-                   / "project-sovereign" / "scripts" / "main.gd")
-        source = main_gd.read_text(encoding="utf-8", errors="replace")
+    # ── the client half of the pair ────────────────────────────────
+    def test_the_client_defers_when_a_report_awaits_input(self):
+        """Without this guard the promotion above would make the client
+        skip its strategic report summary."""
+        body = _gd_function("_response_has_interrupt_route")
+        assert "strategic_reports" in body, (
+            "the interrupt route no longer defers to the reports flow — "
+            "the backend promotion in _include_command_strategic_reports "
+            "must be reverted with it")
+        assert "requires_input" in body
+        assert "return false" in body
+
+    def test_the_client_still_routes_a_synchronous_interrupt(self):
+        """The guard must be scoped to the reports case only — a blocked
+        path hit mid-command carries no report and must still popup."""
+        body = _gd_function("_response_has_interrupt_route")
+        assert "return true" in body
+
+    def test_the_route_is_still_registered(self):
+        source = MAIN_GD.read_text(encoding="utf-8", errors="replace")
         assert '"id": "interrupt"' in source
         assert "_response_has_interrupt_route" in source
-        router_at = source.index("_route_response_ui(response, "
-                                 "_post_hud_response_routes)")
-        reports_at = source.index('response.has("strategic_reports") and not '
-                                  'response.strategic_reports.is_empty()')
-        assert router_at < reports_at, (
-            "the interrupt router no longer precedes the strategic-reports "
-            "branch — re-evaluate whether promotion is now safe")
 
 
 # ═══════════════════════════════════════════════════════════════════

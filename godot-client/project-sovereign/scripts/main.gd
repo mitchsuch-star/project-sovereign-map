@@ -1811,7 +1811,22 @@ func _route_clarification_response(response: Dictionary):
 	_show_clarification_popup(response)
 
 func _response_has_interrupt_route(response: Dictionary) -> bool:
-	return response.has("pending_interrupt") and response.pending_interrupt
+	if not (response.has("pending_interrupt") and response.pending_interrupt):
+		return false
+	# WIN-H1 / NPC-16: the backend promotes an END-TURN strategic interrupt
+	# onto `pending_interrupt` so headless and scripted clients can answer
+	# it (they have no other way to see it). In THIS client that interrupt
+	# is already owned by the strategic-reports flow: _show_strategic_reports
+	# prints the turn's summary, and _on_strategic_report_dismissed then
+	# queues every report awaiting input. Routing it here as well would fire
+	# the popup immediately and return — skipping the summary that narrates
+	# what every marshal did that turn. Let the reports flow keep it. The
+	# SYNCHRONOUS case (a blocked path hit mid-command) carries no such
+	# report and still routes here, exactly as before.
+	for report in response.get("strategic_reports", []):
+		if report is Dictionary and report.get("requires_input", false):
+			return false
+	return true
 
 func _route_interrupt_response(response: Dictionary):
 	_show_interrupt_popup(response.pending_interrupt)
