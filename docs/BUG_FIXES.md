@@ -38,6 +38,42 @@
 ---
 
 
+## Win-Attempt Campaign (WIN) — filed August 16, 2026 (**4 harness rows FIXED, 3 game rows OPEN**)
+
+> **Evidence memo = `docs/audits/PLAYTEST_WIN_CAMPAIGN_2026_08_16.md`
+> (authoritative).** A France/1805 campaign driven to WIN — 23 world turns,
+> four scripted phases (`tools/playtest_scripts/win_campaign_p{1,2,3,4}.json`),
+> digests under `tools/playtest_runs/win-p*/` on the dev machine. Austria's
+> army was annihilated at Ulm on turn 1 and Austria knocked out of the war by
+> turn 13; Russia signed by turn 21.
+>
+> **The shape of this batch:** the four harness rows are one theme — **the
+> unattended harness could not see what it was measuring**, and two of them
+> had silently degraded EVERY prior evaluation. The three game rows are the
+> CA9 through-line again: a surface offers or narrates one thing while the
+> executor does another. Design consequences (no victory condition; the ally
+> collecting the player's conquests) are NOT here — they are
+> `DESIGN_REFINEMENT.md` §Win-Attempt Campaign.
+
+| # | Sev | Defect | Fix / seam |
+|---|---|---|---|
+| ✅ **WIN-H1** | **P1 (evidence)** | **NPC-16 confirmed, harness half FIXED.** An interrupt raised during END-TURN rides only `strategic_reports[i].requires_input`; the driver scanned only the top-level `pending_interrupt`, answered nothing, and step 0a returned `awaiting_response` forever — freezing the marshal and then the turn loop. Measured on NPC-16's own input (`Napoleon, attack Mack`): before, `current_turn` stalled at 7; after, the run reached 10 and **the pursuit resolved and took Swabia on turn 6**. ⚠ **the PRODUCTION half stays OPEN** — `main.py` still never promotes the report to `response["pending_interrupt"]`; the Godot client derives it from `strategic_reports` (`main.gd:4218`), so a human player is unaffected (P3 for them) | FIXED: `tools/playtest_driver.py` `_interrupt_report()` + the arm-2 fallback. STILL OPEN: `main.py:1205-1219` promotion, per NPC-16 |
+| ✅ **WIN-H2** | **P1 (evidence)** | **The enemy-phase attack counter has ALWAYS read 0.** The verb lives at `row["ai_action"]["action"]` (`turn_manager.py:964`); PC15-H's fix read `row["action"]`, a key that does not exist, so the substring test ran against `None` on every row. **Every digest ever produced reported "0 attacks" no matter what the AI did.** After the fix the next turn read `3 actions, 3 attacks`. ⚠ **any prior digest-derived conclusion about AI attack frequency is unsupported**, including this campaign's own phases 1–2 | FIXED: new `_verb()` reading the nested key with the flat ones as fallbacks; verbs tally + capture lines + full action list now recorded to jsonl |
+| ✅ **WIN-H3** | P2 (evidence) | **An answer cycle reported a healthy engine as `blocked`.** `settlement_confirm` option 1 stages a pair substitute; the chooser's `keep_joint_settlement` is DOCUMENTED to restore the prior dialogue (`settlement_actions.py:3209`). Each step is correct — together they loop forever. The run spun **97 popups** and finished `blocked`, which reads exactly like an engine hard-lock. **This was written up as a P1 against the game before being checked and killed** | FIXED: cycle guard in `drain()` — the same (surface, choice) answered twice in one post stops the chain, notes it, and records an `unknown_blocker`; `--strict` raises. Pair-substitute answer now follows the diplomacy policy instead of always cancelling |
+| ✅ **WIN-H4** | P2 (evidence) | **The province scoreboard read `None`.** `GET /ledger` wraps its body under `"ledger"`, so `territories` was never found. Without it a campaign can annihilate an empire and never notice its own map did not grow — which is what happened here for 16 turns | FIXED: unwrap the envelope; the digest's LEDGER row now carries `provinces N (+d)` |
+| **WIN-1** | P2 | **A peace option is offered that can never succeed.** `Talleyrand, propose peace with Austria` drafts terms and offers *"Send as suggested"* as the FIRST option; execution then refuses — *"Making peace with Austria while allied with Bavaria (who is still at war with Austria) creates a diplomatic contradiction"* — and the dialogue is re-presented **identically and indefinitely** (6/6 in a probe; organically across two courts, Austria t8–t11 and Britain t15). Non-blocking, with a `Reconsider` exit, so not a lock — but it violates this project's own honest-availability discipline | the alliance-contradiction check runs at execution; it should gate the OPTION at build time — arrive disabled with its reason stated, as the vassal-wizard gate rows and NV-6 naval chips do. Build site `diplomatic_executor.py:4078` (and the 5052/5137/5176/5228 siblings) |
+| **WIN-2** | P2 | **Talleyrand's commentary contradicts the terms he drafted.** One payload carries `demands: [{"type": "gold_per_turn", "value": 187}]` and `talleyrand_commentary: "Border territory provides strategic depth. A prudent demand."` — no territory is demanded at all. The CA9 through-line (compute one thing, say another) alive in the peace generator | the commentary is selected independently of the demands actually staged — join them at the `generate_suggested_terms` seam |
+| **WIN-3** | P3 | **Out-of-range refusals name a distance but never a place.** *"Lannes cannot reach Mack from Swabia! Range: 1, Distance: 8"* never says where Mack is, so the player cannot act on it. The project already fixed this class for regions (*"Region 'Venetia' not found. Nearby: …"*) | name the target's last-known province (fog-honest) in the refusal, as the movement-target passthrough does |
+
+**Checked and cleared, recorded so it is not re-filed:** Napoleon's
+`Paris → Artois` first step toward Swabia is NOT a pathfinding fault
+(Artois and Champagne are both 5 provinces from Swabia — a legal tie);
+and `keep_joint_settlement` restoring the prior dialogue is documented
+behaviour, not a defect.
+
+Pins: `tests/test_playtest_harness_win_campaign_2026_08_16.py` (15).
+
+
 ## Row NP — the promise audit (August 15, 2026) — **18 FIXED, 11 ROUTED**
 
 > **Record = `docs/audits/NP_PROMISE_AUDIT_2026_08_15.md` (authoritative);

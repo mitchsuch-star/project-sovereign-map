@@ -1,0 +1,15 @@
+{
+  "name": "win-p3-settle",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "TRY TO WIN, phase 3 (resumes the p2 save, world turn 11). The question: can a total military victory be CONVERTED? Austria's army is destroyed and her terms are 'already on the desk'. diplomacy=accept takes the offer; objection=insist stops loyal-but-frayed marshals from vetoing orders; rentes settle the grievance spiral the first two phases produced.",
+  "turns": {
+    "1": ["grant Ney a rente", "grant Davout a rente", "request terms from Austria", "Talleyrand, assess our situation"],
+    "2": ["grant Soult a rente", "Murat, attack Carniola", "Lannes, move to Vienna", "Napoleon, move to Swabia"],
+    "3": ["request terms from Austria", "Talleyrand, propose peace with Russia", "Massena, move to Hungary", "Davout, unfortify"],
+    "4": ["Talleyrand, assess our situation", "Davout, move to Moravia", "Ney, move to Carniola", "recruit infantry at Paris"],
+    "5": ["request terms from Austria", "Talleyrand, propose peace with Britain", "Soult, move to Vienna", "Murat, move to Carniola"],
+    "6": ["Talleyrand, assess our situation", "status", "Napoleon, move to Munich", "recruit infantry at Paris"]
+  },
+  "policy": {"objection": "insist", "diplomacy": "accept", "capture": "plunder"}
+}

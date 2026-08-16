@@ -1,0 +1,17 @@
+{
+  "name": "win-p4-russia",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "TRY TO WIN, phase 4 (resumes the p3 save, world turn 16). Austria is out and France has gained NOTHING — 29 provinces at boot, 29 now, while allied Bavaria went 3 to 9. Russia has massed 66,000 at Podolia, adjacent to Davout at Moravia. Concentrate, break them, and find out whether France can take and KEEP land of its own.",
+  "turns": {
+    "1": ["Davout, fortify", "Massena, move to Moravia", "Soult, move to Moravia", "Lannes, move to Moravia"],
+    "2": ["Murat, move to Moravia", "Ney, move to Vienna", "Napoleon, move to Swabia", "Talleyrand, assess our situation"],
+    "3": ["Davout, unfortify", "Massena, attack Kutuzov", "Soult, attack Kutuzov", "Lannes, attack Kutuzov"],
+    "4": ["Davout, attack Kutuzov", "Murat, attack Kutuzov", "Massena, attack Kutuzov", "Soult, attack Kutuzov"],
+    "5": ["Massena, move to Podolia", "Soult, move to Podolia", "Davout, move to Podolia", "Murat, move to Podolia"],
+    "6": ["Talleyrand, propose peace with Russia", "Massena, move to Ukraine", "Soult, move to Volhynia", "Lannes, move to Podolia"],
+    "7": ["Talleyrand, propose peace with Russia", "Talleyrand, assess our situation", "status", "Davout, move to Volhynia"],
+    "8": ["Talleyrand, propose peace with Britain", "status", "Napoleon, move to Munich", "Massena, move to Podolia"]
+  },
+  "policy": {"objection": "insist", "diplomacy": "accept", "capture": "plunder"}
+}

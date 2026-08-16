@@ -1,0 +1,15 @@
+{
+  "name": "win-p1-ulm",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "TRY TO WIN, phase 1: the Ulm envelopment. Ney/Davout (Rhineland), Soult (Lorraine), Murat/Lannes (Franche-Comte) are ALL adjacent to Mack at Swabia. Direct attack = 1 AP, so four fit in a turn. Massena (Milan) opens the Tyrol road toward Vienna.",
+  "turns": {
+    "1": ["Ney, attack Mack", "Davout, attack Mack", "Soult, attack Mack", "Murat, attack Mack"],
+    "2": ["Lannes, attack Mack", "Massena, attack Archduke John", "Napoleon, move to Champagne", "Ney, attack Mack"],
+    "3": ["Ney, move to Munich", "Davout, move to Franconia", "Soult, move to Swabia", "Napoleon, move to Lorraine"],
+    "4": ["Davout, move to Bohemia", "Massena, move to Tyrol", "Murat, move to Munich", "Napoleon, move to Swabia"],
+    "5": ["Davout, attack Vienna", "Ney, move to Tyrol", "Soult, move to Franconia", "Lannes, move to Swabia"],
+    "6": ["Davout, move to Vienna", "Massena, attack Archduke Charles", "Napoleon, move to Munich", "Soult, move to Bohemia"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}

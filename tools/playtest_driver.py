@@ -269,6 +269,8 @@ class Digest:
         self.meta_path = out_dir / "meta.json"
         self.meta = meta
         self.unknown_blockers = []
+        self.recent = []
+        self._last_provinces = None
         self.counters = {"commands": 0, "popups": 0, "battles": 0, "turns": 0}
         header = (f"# Playtest digest — {meta['name']}\n\n"
                   f"seed `{meta['seed']}` · llm `{meta['llm']}` · "
@@ -325,6 +327,10 @@ class Digest:
 
     def popup(self, key, summary, answer):
         self.counters["popups"] += 1
+        # Signature trail for drain()'s cycle guard — every answered
+        # surface passes through here, so this is the one honest place
+        # to notice that the run is going in circles.
+        self.recent.append((str(key), str(answer)))
         self._md(f"  - POPUP {key}: {summary} → {answer}")
         self.record("popup", key=key, summary=summary, answer=answer)
 
@@ -335,12 +341,14 @@ class Digest:
     def enemy_phase(self, actions):
         if not actions:
             return
-        # PC15-H: enemy-phase rows carry the verb under `action` (the
-        # ai_action dict), never `action_type` — every digest read
-        # "0 attacks" while the log showed battles.
-        attacks = [a for a in actions
-                   if "attack" in str(a.get("action")
-                                      or a.get("action_type") or "")]
+        # The verb lives at row["ai_action"]["action"] (turn_manager.py:964
+        # builds it, and _build_visible_enemy_phase only strips new_state).
+        # PC15-H tried to fix the "0 attacks" under-read by reading
+        # row["action"] — but that key does not exist, so the counter
+        # stayed 0 on EVERY run, including the ones that concluded things
+        # about how often the AI attacks. Read the real key, keep the old
+        # ones as fallbacks.
+        attacks = [a for a in actions if "attack" in _verb(a)]
         lines = [first_line(a.get("message") or a.get("action")
                             or a.get("action_type"), 120)
                  for a in attacks[:4]]
@@ -348,9 +356,41 @@ class Digest:
         if lines:
             summary += " — " + " · ".join(lines)
         self._md(f"- {summary}")
-        self.record("enemy_phase", count=len(actions), attacks=len(attacks))
 
-    def ledger_line(self, treasury, net, threat):
+        # Aug-16 win-campaign: the digest showed ONLY attack lines, so a
+        # province changing hands in the enemy phase was invisible. The
+        # single most consequential event of that campaign — the ALLY,
+        # Bavaria, taking Vienna and four more Austrian provinces while
+        # France destroyed the field army — never appeared in any digest.
+        # Surface conquest explicitly; keep it player-visible text only.
+        taken = [a for a in actions
+                 if any(w in str(a.get("message") or "").lower()
+                        for w in ("captur", "has fallen", "falls to",
+                                  "taken by", "seized"))]
+        for act in taken[:6]:
+            self._md(f"  - 🏴 {act.get('nation', '?')}: "
+                     f"{first_line(act.get('message'), 150)}")
+
+        verbs = {}
+        for act in actions:
+            verb = _verb(act) or "?"
+            verbs[verb] = verbs.get(verb, 0) + 1
+        if verbs:
+            self._md("  - verbs: " + ", ".join(
+                f"{v}×{n}" for v, n in sorted(verbs.items(),
+                                              key=lambda kv: -kv[1])))
+        # Full fidelity to the jsonl — the query surface should never be
+        # thinner than the markdown.
+        self.record("enemy_phase", count=len(actions), attacks=len(attacks),
+                    captures=len(taken), verbs=verbs,
+                    actions=[{"nation": a.get("nation"),
+                              "action": _verb(a),
+                              "marshal": (a.get("ai_action") or {}).get("marshal")
+                              if isinstance(a.get("ai_action"), dict) else None,
+                              "message": first_line(a.get("message"), 200)}
+                             for a in actions])
+
+    def ledger_line(self, treasury, net, threat, provinces=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -358,9 +398,20 @@ class Digest:
             bits.append(f"net {net:+}" if isinstance(net, int) else f"net {net}")
         if threat is not None:
             bits.append(f"threat {threat}")
+        # The conquest scoreboard. `territories` is the player's OWN
+        # region list, so this is fog-free and honest. Without it a
+        # campaign can destroy an empire's whole army and never notice
+        # that its own map did not grow (Aug-16: France held 29 provinces
+        # on turn 1 and 29 on turn 11, having won every battle).
+        if provinces is not None:
+            delta = ("" if self._last_provinces is None
+                     else f" ({provinces - self._last_provinces:+d})")
+            bits.append(f"provinces {provinces}{delta}")
+            self._last_provinces = provinces
         if bits:
             self._md("- LEDGER " + " · ".join(bits))
-            self.record("ledger", treasury=treasury, net=net, threat=threat)
+            self.record("ledger", treasury=treasury, net=net, threat=threat,
+                        provinces=provinces)
 
     def dispatch(self, text):
         head = first_line(text, 200)
@@ -411,6 +462,31 @@ def _as_dict(value):
     return value if isinstance(value, dict) else {}
 
 
+def _verb(action_row):
+    """The AI verb for one enemy-phase row, lower-cased ('' if absent)."""
+    if not isinstance(action_row, dict):
+        return ""
+    inner = action_row.get("ai_action")
+    if isinstance(inner, dict) and inner.get("action"):
+        return str(inner["action"]).lower()
+    return str(action_row.get("action")
+               or action_row.get("action_type") or "").lower()
+
+
+def _interrupt_report(response):
+    """The first strategic report awaiting player input (NPC-16).
+
+    An end-turn interrupt never reaches response["pending_interrupt"];
+    the client finds it here and so must the driver. Returns {} when
+    there is none, so callers can treat it as a falsy payload."""
+    if not isinstance(response, dict):
+        return {}
+    for report in response.get("strategic_reports") or []:
+        if isinstance(report, dict) and report.get("requires_input"):
+            return report
+    return {}
+
+
 class Answerer:
     """Scans a response for blocking surfaces, answers them by policy,
     and digests everything. Returns the FOLLOW-UP responses it produced
@@ -448,8 +524,18 @@ class Answerer:
                                          {"choice": choice}))
 
         # 2. Strategic interrupt ----------------------------------------------
-        elif response.get("pending_interrupt"):
-            payload = _as_dict(response["pending_interrupt"])
+        # NPC-16 (harness half): an interrupt raised during END-TURN
+        # processing is never promoted to response["pending_interrupt"] —
+        # it rides ONLY strategic_reports[i].requires_input, which is
+        # where the Godot client reads it (main.gd:4218). A driver that
+        # scanned only the top-level key never saw it: step 0a then
+        # returned "awaiting_response" forever, the marshal froze, and the
+        # turn loop froze behind him (measured Aug 16: current_turn stuck
+        # at 7, ONE interrupt answered across four campaign arms). Read
+        # BOTH sources, exactly like the client does.
+        elif response.get("pending_interrupt") or _interrupt_report(response):
+            payload = (_as_dict(response.get("pending_interrupt"))
+                       or _interrupt_report(response))
             options = payload.get("options") or payload.get("choices") or []
             choice = None
             for opt in options:
@@ -458,12 +544,15 @@ class Answerer:
                     break
             choice = choice or "continue"
             self.d.popup("strategic_interrupt",
-                         _summ(payload, "marshal", "response_type", "message"),
+                         _summ(payload, "marshal", "interrupt_type", "message"),
                          choice)
             followups.append(self.t.post("/strategic_response", {
                 "marshal_name": payload.get("marshal", ""),
-                "response_type": payload.get("response_type",
-                                             payload.get("type", "")),
+                # handle_response dispatches on the STORED interrupt_type,
+                # so this field is advisory — send the real one anyway.
+                "response_type": (payload.get("interrupt_type")
+                                  or payload.get("response_type")
+                                  or payload.get("type", "")),
                 "choice": str(choice),
             }))
 
@@ -560,10 +649,16 @@ class Answerer:
             policy_key = DIALOGUE_TYPE_ANSWERS[dtype]
             if policy_key == "confirm":
                 return find("confirm", "yes", "proceed", "send") or "confirm"
-            # PC15-3/PC15-H: the pair-substitute chooser — stay with the
-            # joint settlement (option id when listed, else the typed
-            # keyword the router now resolves).
+            # PC15-3/PC15-H: the pair-substitute chooser. `keep` is a
+            # documented NO-OP that restores the prior settlement_confirm
+            # — so under an ACCEPTING policy it cycles forever against
+            # that dialogue's own option 1 (Aug-16 win campaign). An
+            # accepting run commits to the substitute it just chose;
+            # a declining run keeps the joint draft.
             if policy_key == "keep":
+                if self.policy["diplomacy"] == "accept":
+                    return (find("confirm_pair", "confirm", "substitute")
+                            or "confirm_pair_substitute")
                 return find("keep") or "keep"
             if policy_key in ("war_purpose", "ultimatum"):
                 answer = self.policy[policy_key]
@@ -605,14 +700,41 @@ def _flatten_enemy_phase(enemy_phase):
 
 
 def drain(transport, digest, answerer, response, strict):
-    """Digest a response and answer its blockers, chaining follow-ups."""
+    """Digest a response and answer its blockers, chaining follow-ups.
+
+    Cycle guard (Aug-16 win campaign): two surfaces can legally answer
+    each other forever. `settlement_confirm` option 1 stages a bilateral
+    PAIR SUBSTITUTE; the chooser's `keep_joint_settlement` is documented
+    to restore the prior dialogue — so "1" then "keep" returns exactly
+    where it started. Neither is a game defect, but the pair spun 97
+    popups and reported the campaign `blocked`, which reads like an
+    engine fault and is not one. Answering the SAME surface with the
+    SAME choice twice in one post means the policy cannot make progress:
+    stop, and say so in the words of what actually happened."""
     seen = 0
     queue = [response]
+    digest.recent = []
     while queue and seen < MAX_ANSWERS_PER_POST:
         current = queue.pop(0)
         followups = answerer.scan(current)
         seen += len(followups)
         queue.extend(followups)
+
+        counts = {}
+        for sig in digest.recent:
+            counts[sig] = counts.get(sig, 0) + 1
+        looping = [s for s, n in counts.items() if n >= 2]
+        if looping:
+            key, choice = looping[0]
+            digest.note(f"⚠ ANSWER CYCLE — `{key}` answered `{choice}` "
+                        f"{counts[looping[0]]}× in one post; the policy "
+                        f"cannot resolve this surface. Stopping the chain.")
+            digest.unknown_blockers.append(
+                {"key": key, "choice": choice, "reason": "answer-cycle"})
+            if strict:
+                raise RuntimeError(f"answer cycle on {key} under --strict")
+            return
+
     if queue and seen >= MAX_ANSWERS_PER_POST:
         digest.note(f"⚠ answer chain capped at {MAX_ANSWERS_PER_POST} "
                     f"for one post — see jsonl")
@@ -712,9 +834,17 @@ def run(args):
                 break
 
         ledger = transport.get("/ledger")
+        # `territories` is the player's own region list (ledger.py
+        # _build_territories filters on controller == player), so len()
+        # is the honest conquest scoreboard. GET /ledger wraps it as
+        # {"success":…, "ledger": {…}} — read that nesting explicitly
+        # rather than via dig(), which would happily find some other list.
+        body = ledger.get("ledger") if isinstance(ledger, dict) else None
+        own = (body or {}).get("territories") if isinstance(body, dict) else None
         digest.ledger_line(dig(ledger, "treasury", "gold"),
                            dig(ledger, "net_gold", "net"),
-                           dig(ledger, "threat_level", "threat"))
+                           dig(ledger, "threat_level", "threat"),
+                           len(own) if isinstance(own, list) else None)
         try:
             digest.dispatch(dig(transport.get("/dispatch"),
                                 "text", "content", "message", default=""))

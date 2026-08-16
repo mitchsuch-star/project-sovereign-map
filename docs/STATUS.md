@@ -4,6 +4,66 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE WIN-ATTEMPT CAMPAIGN — August 16, 2026 (second session that day)
+>
+> **Memo of record = `docs/audits/PLAYTEST_WIN_CAMPAIGN_2026_08_16.md`
+> (authoritative).** Brief: *"playtest, try to win the game, use the new
+> playtest items, report any bugs, review what is bad or missing."*
+> 23 world turns, four scripted phases, committed as
+> `tools/playtest_scripts/win_campaign_p{1,2,3,4}.json`. Suite
+> **18,072 / 3**, ruff clean. **Zero production code touched** — the only
+> code changes are to `tools/playtest_driver.py`.
+>
+> **THE CAMPAIGN.** Ulm on turn 1: Ney/Davout/Murat took **50,800 of
+> Mack's 52,000 men for 1,278 French casualties**. Austria knocked out of
+> the war turn 13, at peace turn 15. Russia fought to a standstill at
+> Podolia over five battles and signed turn 21. **France finished with 30
+> provinces against 28 at boot (+2), a net income of −215/turn, and no
+> acknowledgement from the game that anything had been won** — because the
+> 1805 campaign has no victory condition (`sandbox_mode` is the first
+> statement of `_check_victory_conditions`), and because **allied Bavaria
+> walked into the provinces France's victories emptied and finished 3 → 9,
+> taking Vienna, Bohemia, Moravia and Hungary — three times France's gain,
+> off France's battles.** The war systems are excellent; the consequence
+> systems do not pay them off. Design rows =
+> `DESIGN_REFINEMENT.md` §Win-Attempt Campaign (WIN-D1..D7, all OPEN;
+> **D2 "should the player keep what the player conquers" is the headline**,
+> and D4's rente insolvency is likely downstream of it — do not tune the
+> rente constants before D2 is answered).
+>
+> **FOUR HARNESS DEFECTS FOUND AND FIXED, two of which had silently
+> degraded EVERY prior unattended evaluation** (`BUG_FIXES.md` §WIN,
+> pins `tests/test_playtest_harness_win_campaign_2026_08_16.py` 15):
+> **WIN-H1** NPC-16's harness half — an end-turn interrupt rides only
+> `strategic_reports[i].requires_input`, so the driver froze the marshal
+> and then the turn loop (before: `current_turn` stalled at 7; after: the
+> pursuit resolved and **took Swabia on turn 6**); the **production half
+> stays OPEN** at `main.py:1205-1219` and the client is unaffected.
+> **WIN-H2** — the enemy-phase attack counter has **always** read 0
+> (the verb is at `row["ai_action"]["action"]`; PC15-H's fix read a key
+> that does not exist), so ⚠ **any digest-derived claim about AI attack
+> frequency dated before today is unsupported.** **WIN-H3** — a policy
+> answer-cycle reported a healthy engine as `blocked` (97 popups);
+> `drain()` now stops on the second identical answer. **WIN-H4** — the
+> province scoreboard read `None` (GET /ledger wraps its body), which is
+> why the +2-vs-+6 story stayed invisible for 16 turns.
+>
+> **THREE GAME ROWS ROUTED OPEN:** **WIN-1** (P2) the peace dialogue
+> offers *"Send as suggested"* as its first option and then refuses it
+> forever — *"Making peace with Austria while allied with Bavaria …
+> creates a diplomatic contradiction"* — an honest-availability violation
+> reproduced 6/6 and across two courts; **WIN-2** (P2) Talleyrand's
+> commentary describes territory while the staged demand is 187 g/turn;
+> **WIN-3** (P3) out-of-range refusals name a distance but never a place.
+>
+> **Two of my own findings were wrong and are recorded as such** — the
+> Napoleon "pathfinding detour" (a legal 5-vs-5 tie) and the settlement
+> "hard-lock" (my harness oscillating), the latter already written up as a
+> P1 before it was checked and killed.
+>
+> **NEXT = unchanged: position 10, the shippable build** — unless the user
+> prefers the NPC P1 cluster or the WIN-D2 design gate first.
+
 > ## ✅ THE PLAYED CAMPAIGN + THE NP-6 EVALUATION — August 16, 2026
 >
 > **Two memos, both authoritative:

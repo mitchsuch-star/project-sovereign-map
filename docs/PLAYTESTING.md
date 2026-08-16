@@ -83,6 +83,28 @@ turn's list runs.
 > world turn drift ahead of the index. Anchor a script to loop order,
 > never to the calendar; the digest prints both.
 
+### Known-bad digests (read this before trusting an old run)
+
+Two harness defects were found by the Aug-16 win campaign and fixed then;
+both had degraded **every earlier** unattended evaluation:
+
+- **The enemy-phase attack counter always read `0`.** The verb lives at
+  `row["ai_action"]["action"]`; the driver read `row["action"]`, which
+  does not exist. Any digest dated **before Aug 16, 2026** reports
+  `0 attacks` regardless of what the AI did — do not draw conclusions
+  about AI aggression from one.
+- **Interrupts raised during end-turn were invisible** (NPC-16), so a
+  marshal under a strategic order could freeze and take the turn loop
+  with him. Runs that stalled at a fixed `current_turn` were hitting
+  this, not a game hang.
+
+A third is a *reading* trap rather than a defect: a run can finish
+`blocked` because the answer policy went in circles, not because the
+engine locked. `drain()` now stops on the second identical answer to one
+surface and writes `⚠ ANSWER CYCLE` plus an `unknown_blockers` entry —
+**an `answer-cycle` entry means the harness gave up, not that the game
+is broken.** Check it before filing a P1.
+
 ### The answer policy (what an unattended run does at each fork)
 
 Every default is logged in the digest next to the popup it answered —
@@ -101,12 +123,21 @@ turn` — the run STOPS with status `blocked` rather than spinning.
 
 - `digest.md` — the read. One block per turn: commands with one-line
   results, battles (`Ney (lost 2,173) vs Mack (lost 7,747) — …`), popups
-  + the answers taken, enemy-phase attack lines, treasury/net, the
-  dispatch headline.
+  + the answers taken, the enemy phase (attack lines, a `verbs:` tally,
+  and `🏴` lines for any province that changed hands), `LEDGER` with
+  treasury/net/**`provinces N (+d)`**, and the dispatch headline.
 - `digest.jsonl` — the query surface (one record per event; `kind` =
-  turn/command/battle/popup/enemy_phase/ledger/dispatch/note).
+  turn/command/battle/popup/enemy_phase/ledger/dispatch/note). The
+  `enemy_phase` record carries the FULL action list (nation, verb,
+  marshal, message) — the markdown is a summary, the jsonl is not.
 - `meta.json` — args, policy, counters, `unknown_blockers`, finish
   status (`completed` / `blocked` / `game-over`).
+
+> **`provinces` is the conquest scoreboard** and the first thing to read
+> in any campaign that is trying to gain ground. It is the player's own
+> region count (fog-free). The Aug-16 win campaign annihilated Austria's
+> army and went 28 → 30 provinces in 23 turns while an ALLY went 3 → 9;
+> without this row that never showed up in any digest.
 - `server_console.log` — the backend's full console, when you need the
   underlying trace for one moment.
 - `saves/` — the sandboxed SAVE_DIR (autosave + `--save-at` snapshots).

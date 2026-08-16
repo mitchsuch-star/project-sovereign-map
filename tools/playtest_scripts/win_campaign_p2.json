@@ -1,0 +1,15 @@
+{
+  "name": "win-p2-vienna",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "TRY TO WIN, phase 2 (resumes the t6 save): Davout + Massena stand at Bohemia, adjacent to Vienna. Storm the Austrian capital, then try to CONVERT the conquest into a settled war — the real question this playtest is asking.",
+  "turns": {
+    "1": ["Davout, attack Vienna", "Massena, attack Vienna", "Soult, move to Bohemia", "Lannes, move to Bohemia"],
+    "2": ["Davout, attack Vienna", "Massena, attack Vienna", "Ney, move to Bohemia", "Murat, move to Tyrol"],
+    "3": ["Talleyrand, propose peace with Austria", "Davout, attack Vienna", "Soult, attack Vienna", "Napoleon, move to Swabia"],
+    "4": ["request terms from Austria", "Talleyrand, propose peace with Austria", "Massena, move to Vienna", "Lannes, move to Vienna"],
+    "5": ["Talleyrand, propose peace with Austria", "Talleyrand, what would it take to get peace with Russia?", "Davout, move to Moravia", "Napoleon, move to Munich"],
+    "6": ["Talleyrand, propose peace with Austria", "Talleyrand, assess our situation", "Soult, move to Vienna", "Ney, move to Vienna"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}
