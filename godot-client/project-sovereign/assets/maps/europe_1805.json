@@ -216,6 +216,7 @@
             "skills": { "tactical": 10, "shock": 7, "defense": 7, "logistics": 8, "administration": 9, "command": 10 },
             "tactical_skill": 10,
             "trust": { "value": 100 },
+            "morale": 85,
             "ability": {
                 "name": "The Presence",
                 "description": "His presence on the field was worth forty thousand men - Wellington",

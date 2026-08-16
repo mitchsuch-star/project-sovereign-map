@@ -3982,6 +3982,99 @@
       },
       "source": "PARSE-NEG — found by the evaluation",
       "notes": "Two defects in four words: 'pass' the noun triggered the turn-passing verb (action WAIT), and the leftover noun fuzzed into a standing HOLD on Nassau. The target now stays the player's own word, so the executor answers \"Region 'Pass' not found. Nearby: ...\" — the Sweep-5 contract."
+    },
+    {
+      "id": "napoleon-address",
+      "utterance": "Napoleon, move to Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "move",
+        "target": "Lorraine"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "The sovereign is an ordinary roster name — CR-0 derives commandable names live, so this needed no new code. Pinned so authoring him out would be caught."
+    },
+    {
+      "id": "emperor-address",
+      "utterance": "Emperor, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "Before NP-1 this hard-errored \"Marshal 'Emperor' not found\": 'Emperor,' reads as a leading address token, i.e. a FAILED name attempt at 0.55 confidence."
+    },
+    {
+      "id": "first-person-march",
+      "utterance": "I will march to Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "move",
+        "target": "Lorraine"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "Leading first person + a military verb addresses the sovereign. The modal is stripped: 'Napoleon, will march to X' is not a form the parser can act on."
+    },
+    {
+      "id": "first-person-attack",
+      "utterance": "I attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "The bare first-person form, no modal."
+    },
+    {
+      "id": "myself-suffix",
+      "utterance": "march to Lorraine myself",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "move",
+        "target": "Lorraine"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "NP-V live-drive fix: the trailing marker is CONSUMED. Carrying it produced the phantom province 'Lorraine Myself' — the destination regex reads to end-of-string and never consults the fuzzy skip lists."
+    },
+    {
+      "id": "i-question-still-help",
+      "utterance": "Can I attack Mack?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "Gate (c): the question detector runs FIRST, so an interrogative lead is never rewritten into an order."
+    },
+    {
+      "id": "addressed-i-want-unchanged",
+      "utterance": "Ney, I want you to move to Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "move",
+        "target": "Lorraine"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "Gate (a): an address token always wins over the first-person signal. Mirrors parseneg-destination-is-the-last-preposition, which pins the same clause pre-NP — the sovereign must not steal an order addressed to a marshal."
+    },
+    {
+      "id": "emperor-lead-foreign-title-untouched",
+      "utterance": "the Emperor of Austria demands Venetia",
+      "world": "1805",
+      "expected": {
+        "success": false
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1) / NP-V",
+      "notes": "NP-V: the no-comma lead arm originally required only the article and NO verb, so ANY sentence opening 'the Emperor ...' — including one about a DIFFERENT sovereign — was rewritten into a Napoleon order."
     }
   ]
 }

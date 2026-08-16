@@ -68,11 +68,16 @@ class TestNormalization:
         ("Emperor, attack Wellington", "Napoleon, attack Wellington"),
         ("the Emperor, attack Wellington", "Napoleon, attack Wellington"),
         ("The Emperor: hold Belgium", "Napoleon, hold Belgium"),
-        ("the Emperor will march to Belgium", "Napoleon, will march to Belgium"),
+        # NP-V: the modal is stripped, matching the first-person arm —
+        # "Napoleon, will march to X" is not a form the parser can act on.
+        ("the Emperor will march to Belgium", "Napoleon, march to Belgium"),
         ("I will march to Belgium", "Napoleon, march to Belgium"),
         ("I'll attack Wellington", "Napoleon, attack Wellington"),
         ("I attack Wellington", "Napoleon, attack Wellington"),
-        ("I shall advance on Belgium", "Napoleon, advance on Belgium"),
+        # NP-V: `advance` was retired from the verb set — the parser
+        # cannot act on it, so rewriting bound the Emperor to an order the
+        # executor then refused. "march" is the verb that works.
+        ("I shall march on Belgium", "Napoleon, march on Belgium"),
         # NP-V live-drive fix: the trailing marker is CONSUMED, not
         # carried — keeping it produced the phantom province "Bavaria
         # Myself" (the destination extraction reads to end-of-string and
@@ -115,6 +120,41 @@ class TestNormalization:
     ])
     def test_never_rewrites(self, text):
         assert normalize_sovereign_address(text, "Napoleon") == text
+
+    def test_every_sovereign_order_verb_actually_parses(
+            self, parser, sovereign_world):
+        """NP-V: the rewrite must never bind the Emperor to an order the
+        executor cannot honour. Measured at the endpoint — this retired
+        `ride`/`advance` (both shipped in the NP-1 list) and
+        `take`/`besiege`."""
+        from backend.commands.parser import _SOVEREIGN_ORDER_VERBS
+        dead = []
+        for verb in _SOVEREIGN_ORDER_VERBS.split("|"):
+            result = parse(parser, sovereign_world, f"Napoleon, {verb} Belgium")
+            action = (result.get("command") or {}).get("action")
+            if action in (None, "unknown"):
+                dead.append(verb)
+        assert not dead, (
+            f"these verbs rewrite to a Napoleon order the parser cannot "
+            f"act on: {dead}")
+
+    @pytest.mark.parametrize("text", [
+        # NP-V: the lead arm had NO verb requirement, so any sentence
+        # opening "the Emperor …" became an order — including one about a
+        # DIFFERENT sovereign.
+        "the Emperor of Austria demands Venetia",
+        "the Emperor is displeased",
+        "the Emperor's health is failing",
+    ])
+    def test_emperor_lead_needs_a_real_order_verb(self, text):
+        assert normalize_sovereign_address(text, "Napoleon") == text
+
+    def test_emperor_lead_strips_the_modal_like_the_first_person_arm(self):
+        # "Napoleon, will march to X" is not parseable; both arms must
+        # strip to the verb.
+        assert normalize_sovereign_address(
+            "the Emperor will march to Belgium",
+            "Napoleon") == "Napoleon, march to Belgium"
 
     def test_no_sovereign_no_rewrite(self):
         assert normalize_sovereign_address(

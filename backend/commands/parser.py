@@ -66,21 +66,57 @@ def _split_sequential_orders(command_text: str):
 # parses byte-identically (the NP dormancy pin).
 # ══════════════════════════════════════════════════════════════════════════
 
+# The ONE military/movement verb set both no-comma arms gate on. Kept as
+# a single source so the Emperor-lead and first-person forms can never
+# drift apart (they did: the lead arm shipped with no verb requirement at
+# all — see below).
+# NP-V follow-up: EVERY verb here must be one the parser can actually act
+# on, or the rewrite binds the Emperor to an order the executor then
+# refuses — the advisory-diverges-from-executor shape this project keeps
+# fighting. Measured at the endpoint, which retired four: `ride` and
+# `advance` (both shipped in the NP-1 list and neither parses) and
+# `take`/`besiege` (added, then measured, then dropped).
+#
+# ⚠ The spec's own worked example — §4.1 "the Emperor will take Vienna" —
+# therefore does NOT rewrite, because `take` is not a verb this game has.
+# The spec is wrong there, not the code; recorded in §15.8.
+#
+# `test_every_sovereign_order_verb_actually_parses` is the standing guard.
+_SOVEREIGN_ORDER_VERBS = (
+    r"attack|march|move|withdraw|retreat|fortify|"
+    r"hold|scout|charge|bombard|defend|pursue|assault|storm|drill|"
+    r"seize|garrison|reinforce|support")
+_SOVEREIGN_MODALS = r"(?:(?:will|shall|must|am\s+going\s+to)\s+)?"
+
 # "(the) Emperor, attack Vienna" — today this hard-errors
 # "Marshal 'Emperor' not found".
 _SOVEREIGN_EMPEROR_COMMA_RE = re.compile(
     r"^\s*(?:the\s+)?emperor\s*[,:]\s*", re.IGNORECASE)
-# "the Emperor will take Vienna" — the no-comma form requires the article
-# so a bare "emperor" noun mid-thought never rewrites.
+# "the Emperor will march to Swabia" — the no-comma form.
+#
+# NP-V follow-up: this arm originally required only the article and NO
+# verb, so ANY sentence opening "the Emperor …" was rewritten into an
+# order — including one about a DIFFERENT sovereign. Measured:
+#   "the Emperor of Austria demands Venetia"
+#       -> "Napoleon, of Austria demands Venetia"
+#   "the Emperor is displeased"  -> "Napoleon, is displeased"
+# It now gates on the same verb set as the first-person arm, so a title
+# ("the Emperor of Austria") and a remark ("the Emperor is displeased")
+# both pass through untouched.
+# The modal is CONSUMED, not carried, so this arm strips to the verb
+# exactly as the first-person arm does — otherwise "the Emperor will take
+# Vienna" rewrote to "Napoleon, will take Vienna" and the parser, which
+# has no "will take" verb, dropped the whole order.
 _SOVEREIGN_EMPEROR_LEAD_RE = re.compile(
-    r"^\s*the\s+emperor\s+", re.IGNORECASE)
+    r"^\s*the\s+emperor\s+" + _SOVEREIGN_MODALS
+    + r"(?=(?:" + _SOVEREIGN_ORDER_VERBS + r")(?:e?s)?\b)",
+    re.IGNORECASE)
 # Leading first person with a military/movement verb ONLY (gate b) —
 # "I will march to Ulm", "I'll attack Vienna", "I ride for the Rhine".
 # Diplomacy keeps its verbs (no "I offer/I propose" forms rewrite).
 _SOVEREIGN_FIRST_PERSON_RE = re.compile(
-    r"^\s*i(?:['’]ll)?\s+(?:(?:will|shall|must|am\s+going\s+to)\s+)?"
-    r"(?P<verb>attack|march|move|ride|advance|withdraw|retreat|fortify|"
-    r"hold|scout|charge|bombard|defend|pursue|assault|storm|drill)\b",
+    r"^\s*i(?:['’]ll)?\s+" + _SOVEREIGN_MODALS
+    + r"(?P<verb>" + _SOVEREIGN_ORDER_VERBS + r")\b",
     re.IGNORECASE)
 # "march to Ulm myself" / "take the field in person" — trailing marker.
 _SOVEREIGN_SELF_MARKER_RE = re.compile(

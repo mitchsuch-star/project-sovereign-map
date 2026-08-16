@@ -949,3 +949,50 @@ dated in-file).
   Soult's 9 / Davout's 9) is real and left to the MC balance frame; the
   casualty-laundering property of a small battle lead is PRE-EXISTING
   (CO-1/[S62]) and belongs to the combat-copy-unification backlog.
+
+### §15.8 The finish pass — four things §15 had left undone
+
+Recorded because the user was right to ask. The row was reported
+build-complete while four items the spec (or my own commit messages)
+had promised were still missing. All four are now landed.
+
+1. **The golden-corpus rows never landed.** §4.1 names seven by id, and
+   the new-action checklist makes corpus coverage step 12 — and the NP-1
+   commit message said in as many words that they would "land with the
+   authoring slice". NP-A did not carry them, and nothing caught it
+   because the corpus gate fails only on an ACTION with zero coverage,
+   never on a missing phrasing. **Eight rows added** (the seven named,
+   plus `emperor-lead-foreign-title-untouched` for the defect below);
+   eval **524/524**.
+2. **N13's blessed `morale: 85` was never authored** — the entry omitted
+   the key, so the Guard booted at the 100 default. In the player's
+   favour, which is why nothing complained. Now authored; the E1 / ES-3 /
+   EC-U3 pins and `BASELINE_SERIES` are unmoved.
+3. **The Emperor-lead arm required no verb.** `^the emperor\s+` rewrote
+   ANY sentence opening that way into an order, so *"the Emperor of
+   Austria demands Venetia"* became *"Napoleon, of Austria demands
+   Venetia"* — a foreign sovereign's title turned into an order to ours —
+   and *"the Emperor is displeased"* became an order too. It now gates on
+   the same verb set as the first-person arm, and CONSUMES the modal the
+   way that arm always did (*"the Emperor will march to X"* had been
+   rewriting to *"Napoleon, will march to X"*, which the parser cannot
+   act on).
+4. **Four verbs in the rewrite set do not parse.** Measured at the
+   endpoint: `ride` and `advance` shipped in the NP-1 list and neither is
+   a verb this game has, so the rewrite bound the Emperor to an order the
+   executor then refused — the advisory-diverges-from-executor shape the
+   project keeps fighting. `take` and `besiege` failed the same way when
+   added. All four retired; `test_every_sovereign_order_verb_actually_parses`
+   is the standing guard, and it is what makes the rewrite's promise
+   falsifiable.
+
+⚠ **A spec error, not a code error:** §4.1's worked example *"the Emperor
+will take Vienna"* uses `take`, which is not a verb this game has. The
+example is wrong; the sentence does not and should not rewrite.
+
+Left unfixed with reasons: the auto-bombardment "destroyed by
+bombardment" line is a debug `print()`, not player-facing; the DP HUD can
+read "6/5" while the Emperor holds the Seat (the accrual is correct and
+the ceiling is cosmetic — routed rather than papered over); and
+`sovereign_takes_field` can re-fire once per war instance rather than
+once per war, which is latent and needs a played campaign to judge.
