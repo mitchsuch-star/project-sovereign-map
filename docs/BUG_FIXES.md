@@ -66,6 +66,76 @@
 
 ---
 
+## Napoleon Campaign (NPC) — filed August 16, 2026, **ALL OPEN** (report-only session)
+
+> **Evidence memo = `docs/audits/PLAYTEST_NAPOLEON_CAMPAIGN_2026_08_16.md`
+> (authoritative).** Found by the played campaign owed since row PT: four
+> scripted arms, 68 turns, one on the live Anthropic parser
+> (`tools/playtest_scripts/np_campaign_*.json`, digests under
+> `tools/playtest_runs/` on the dev machine). Each row was produced by a
+> verifier that had to point at `file:line` with a reproduction; the two
+> P1s marked ⛔ were additionally reproduced **by hand, independently**.
+>
+> **The shape of this batch, stated once:** almost every P1 and P2 here is
+> the same defect wearing different clothes — **the player names a thing the
+> way the game printed it, and the game acts on something else.** An enemy's
+> display name, an honorific, a prisoner's name, a dead man's name, a
+> compound sentence: five separate seams, each resolving the player's words
+> to a different referent, and only one of them refusing out loud. None is
+> sovereign-specific except where marked.
+
+| # | Sev | Defect | Fix seam |
+|---|---|---|---|
+| ⛔ **NPC-1** | **P1** | **Typing an enemy's name the way the game spells it fights a different enemy and wins.** `_addressed_fresh_order_elsewhere` (`main.py:795-802`) builds its needle set from internal marshal KEYS (`ArchdukeCharles`), but the game prints `Archduke Charles` everywhere. Reproduced by hand in two ordinary commands and no state injection: `Ney, march to Swabia` (raises a `contact_bad_odds` interrupt about Mack) → `Ney, march to Frankfurt` (order replaced, interrupt survives) → **`Ney, attack Archduke Charles` → `success: true`, "Ney attacks Mack and wins!", 3,297 casualties, Ney advances into Swabia.** The key spelling `ArchdukeCharles` refuses honestly — so the player is punished for copying the game's own text | `main.py:795-802` — needle set `{key, humanize_entity_name(key)}` (and the last-name token, which `delegation.py` already supports) |
+| ⛔ **NPC-2** | **P1** | **The stale interrupt that NPC-1 needs is left lying around by ~37 of 38 order-clearing seams.** TUT-F4a's "clear the order-bound interrupt with the order it replaces" rule is implemented at exactly one. Measured: after `Ney, march to Frankfurt` replaces the Swabia order, `ney.strategic_order.target == 'Frankfurt'` while `ney.pending_interrupt` still holds `{contact_bad_odds, enemy: Mack, location: Swabia}` — which also freezes the new order at step 0a | single-source it: a `Marshal.clear_strategic_order()` (or WorldState helper) that nulls the order, `holding_position`/`hold_region`, and the `ORDER_BOUND_INTERRUPT_TYPES` interrupt together |
+| ⛔ **NPC-3** | **P1** | **`Ney, attack Archduke John` silently attacks Archduke Charles.** The guessed-target guard's substring grounding (`combat_executor.py:134-136 _named_in_raw`) is disarmed by the shared title: "Archduke" matches both. The muster header names Charles, the battle is fought against Charles, and the word "John" never appears | use the uniqueness rule `llm_client.unique_name_tokens` already implements |
+| ⛔ **NPC-4** | **P1** | **`attack <marshal>` out of range is a null action.** Silently auto-upgraded to a multi-turn PURSUE (`combat_executor.py:4302-4346`); a PURSUE advances at exactly the quarry's own `movement_range`, so it closes at **0 provinces/turn** against anything that moves — measured, distance pinned at 2 for three consecutive turns. Campaign cost: 4 player battles in 22 turns, **0 in 14** on the live arm | `strategic.py:1286` — a closing bonus (forced-march step, or +1 while the quarry is broken/recovering), or refuse the order up front |
+| ⛔ **NPC-5** | **P1** | **The PURSUE acceptance line leaks an unseen enemy's exact province, then the same order is cancelled for having no intelligence on him.** Issue time reads the live marshal (`strategic_executor.py:1400-1403`, no fog filter); execution reads `get_last_known_location`. `Napoleon, attack Kutuzov` → "pursues Kutuzov (at Podolia)" — a province France has never scouted — then two turns later "Order cancelled: No intelligence on Kutuzov" | `strategic_executor.py:1401-1402` — resolve through `get_last_known_location`, the same source `_execute_pursue` uses; refuse up front when there is none |
+| **NPC-6** | P2 | **A destroyed marshal's display name silently retargets a living one.** `Napoleon, attack Archduke John` with John destroyed → "Napoleon pursues ArchdukeCharles (at Carniola)", a standing order created and AP spent. The PC15-4 guard is correctly scoped to the ADDRESSED marshal; the TARGET side has no twin | the target-side twin of `main.py:_addressed_lost_marshal_refusal`, at the point `_execute_attack` resolves the target |
+| **NPC-7** | P2 | **An order to attack a marshal we already hold prisoner answers with a different province's geometry — and has an EXECUTING arm.** Arm 2 hit this organically for fifteen consecutive turns. `get_enemy_by_name_for_nation` requires `strength > 0`, so the name falls through to region fuzzy-matching: "cannot reach Mack from Paris! Range: 1, Distance: 5 … Try 'move to La Mancha'". When the misread province is in range and at war it **proceeds**: a province taken, 432 men lost to march attrition, a plunder/secure prompt | `combat_executor.py:4290-4296` — consult the prisoner/fallen roster before the region branch; gate the auto-correct on `parser._plausible_name_typo` as its three siblings are |
+| **NPC-8** | P2 | **`Napoleon, support Marshal Ney` creates a standing SUPPORT order against Bernadotte.** The honorific is classified GENERIC by substring (`strategic_parser.py:625,656` — "marshal" matches inside "marshal ney"), so the target is re-picked. Order created, 1 AP charged, nothing said | the bare-form indicators need an exact whole-target test, not a substring |
+| **NPC-9** | P2 | **The Emperor's first-person address fails on a compound sentence, and the phantom province is back.** `I will take the field myself and march to Lorraine` → "Which marshal shall march to Lorraine, Sire?"; `I will march to Lorraine myself and attack Mack` → **"Napoleon begins march to Lorraine Myself."** Both no-comma arms are position-rigid (this is *not* the retirement of `take`) | `parser.py:137-138` — de-anchor the self-marker (strip anywhere, not only at `$`); the existing strip at `:212-217` then runs before every arm |
+| **NPC-10** | P2 | **The A4 verb gate tests for a verb ANYWHERE in the body, not for the sentence being an order.** `I will hold talks with Prussia myself` → "Napoleon, hold talks with Prussia" — a diplomatic sentence handed to the LLM marshal-addressed, the exact A4 shape. Too loose here and too tight on NPC-9 | `parser.py:139-140` `_SOVEREIGN_BODY_HAS_VERB_RE` |
+| **NPC-11** | P2 | **The literal marshal's "verbatim" quote is fabricated from internal keys.** `Soult, attack Archduke John` → `"Soult attack ArchdukeJohn." Understood to the letter.` — the comma gone, the display name replaced by the database key, a period added, inside quotation marks that assert these are the player's words. Directly against the W6-5 literal doctrine | `combat_executor.py:4342` — carry the real typed text through the auto-upgrade |
+| **NPC-12** | P2 | **Raw camelCase enemy keys reach the terminal on at least seven player-facing surfaces** (`Ney pursues ArchdukeCharles`), while the morning dispatch spells the same man `Archduke Charles`. This is *how the player learns* the spelling NPC-1 then punishes | `strategic_executor.py:1403/1410`, `combat_executor.py:1100`; durable fix is `humanize_entity_name` at the interpolation seams |
+| **NPC-13** | P2 | **The engaged-move refusal offers a retreat that does not exist and prints a dangling empty label**, and never names the enemy it already computed: "You may retreat to friendly territory." / "Friendly regions adjacent:" *(nothing)* | `movement_executor.py:149` |
+| **NPC-14** | P2 | **A fallen homeland province — Paris included — is news for one turn and then vanishes from the briefing.** One turn after Paris fell the lead went to an unpaid household (weight 55). There is no standing producer for "homeland currently enemy-held" | `dispatch.py` — a standing producer alongside the existing state-based ones |
+| **NPC-15** | P2 | **Paris gets Nivernais's sentence, and no captor is named.** `home_captured` (weight 100) renders `"Sire — {region} has fallen. Enemy colours fly over French homeland soil."` with no `{captor}` and no capital branch — byte-identical in shape for the capital and for any province. `capital_stormed` (92) is the *mirror* class, for France taking an ENEMY capital | `dispatch.py:415` — pass `captor` as `:433` already does; branch on `get_nation_capital(player_nation) == region` |
+| **NPC-16** | P2 | **A cannon-fire interrupt raised during end-turn strategic processing is never promoted to the top-level response key**, so an unattended driver cannot answer it and the marshal freezes for the rest of the run (measured: Napoleon stood at Orleanais turns 5–12 with a live PURSUE and an unanswerable interrupt). The Godot client derives it, so this is driver-visible only — but the promotion is the honest fix | `main.py:1205-1219` promote the first `requires_input` strategic report, or teach the driver to look |
+| **NPC-17** | P3 | The muster hedges **"if he marches"** when the Emperor is the LEAD ATTACKER — the attack *is* the march. Same screen calls him **"this marshal"** in the hostile-refusal string (`combat_executor.py:974`), the demotion NP-V's `marshal_honorific` was landed to stop. *(The opposite half — audit B1 — is healthy and was falsified: a fortified Emperor prints "WILL NOT — Napoleon: is dug in…" and no presence line. Do not re-open that predicate.)* | `combat_executor.py:1153` — `"" if (_sov_present is marshal or _sov_present.location == battle_region) else …` |
+| **NPC-18** | P3 | **"the Emperor" is an address form but never a REFERENT.** `Ney, support the Emperor` → "Cannot find marshal 'Emperor' to support" while `support Napoleon` and `support me` both work — and the refusal then lists the sovereign under **"Available French marshals"** | `strategic_executor.py:553-590` (a sovereign-title arm mirroring PURSUE's) and `:559-562/:586` (route the roster through `marshal_honorific`) |
+| **NPC-19** | P3 | Two more answers to "what about our prisoner?": `Ney, pursue Mack` **accepts** and charges 2 AP to chase a prisoner into Paris; the bare `attack Mack` says **"Mack has already been destroyed!"** of a living, unwounded man who is live diplomatic leverage | `strategic_executor.py:599` filter on `strength > 0 and not captured_by`; `combat_executor.py:8080` branch on `captured_by` before the destroyed copy |
+| **NPC-20** | P3 | `own_ground` is always EMPTY for `cannon_fire` — the guard reads `location`/`enemy`/`destination`, the cannon_fire builder stores its ground under `battle_location`, so every cannon-fire interrupt reads as fresh-order-elsewhere and is left armed (NPC-2's ammunition) | `main.py:782-787` — include `battle_location`; audit the other builders' key names |
+| **NPC-21** | P3 | `proposal_confirm` mounts a permanently-dead **"Send as suggested"** button beside an acceptance estimate that contradicts its own "I cannot deliver this" warning; answering it re-serves the identical dialogue un-popped (the HARD_STOP arm returns without `pop()`), which is what made 16 refusals look like a soft-lock | `diplomatic_dialogue.py:866-876` — mark the execute option unavailable with the warning as its reason (the honest-availability convention); `diplomatic_executor.py:3841-3849` for the pop |
+| **NPC-22** | P3 | **sovereign-specific.** A sovereign on a strategic order inherits the **cautious** branch of the cannon-fire interrupt: the game asks the player whether the Emperor should go and look at the guns — when the player *is* the Emperor. `strategic.py:2174`'s `else` catches him because NP-0 added a fourth personality and this seam still enumerates three. **The same class as audit finding B4, at a second seam** | `strategic.py:2165` — an explicit `sovereign` arm; update the docstring at `:2139-2143` |
+| **NPC-23** | P3 | `"Murat stand in his path"` / `"Lannes and Murat and Napoleon stand in his path"` — no verb agreement, no serial join, and **both fixes already exist in the repo** (`battle_report._join_names`, the `{stand}` idiom at `dispatch.py:255-257`) | `dispatch.py:736` |
+| **NPC-24** | P3 | The escalated famine headline prints a bare `"1,351 men."` that reads as the overage collapsing (good news) when it is the men who died — the two sibling templates give the number a verb | `dispatch.py:213` |
+| **NPC-25** | P3 | The charge refusal states the stat and never the threshold, and the threshold is **1**: "build momentum … Win battles as attacker" implies a campaign; one victory is enough | `combat_executor.py:7088-7089` |
+| **NPC-26** | P3 | Naming an enemy nation and a province is answered about a different nation with no acknowledgement: `Murat, ride down the Austrians at Swabia` → "cannot attack Bavaria — they are our ally" (Swabia is Bavaria's; no Austrian corps stands there). The word Austria never appears | `combat_executor.py:202-222` `friendly_fire_refusal` — say which province is whose |
+| **NPC-27** | P3 | The briefing reports **authority 100 / "Strong"** on the same screen that reports 19 French provinces to 107 enemy ones and the capital lost — while `get_imperial_grip`, built for exactly this, reads **52**. The raw tracker is the number the player sees; the derived one is the number the game acts on | `dispatch.py` situation block — surface the derived grip beside (or instead of) the raw authority |
+
+**Harness rows (tools, not game).** These three together turned a P3 dead
+button into what looked like a P1 soft-lock, and are why the digest could not
+show it: **NPC-H1** the driver never inspects `success` on a popup follow-up,
+so a refused answer is re-sent identically until the cap
+(`playtest_driver.py:607-620`) · **NPC-H2** `_option_id` cannot read
+diplomatic-dialogue options (they ship `action`+`label`; it looks for
+`id`/`choice`/`keyword`), so the recorded answer is a blind fallback string,
+not a chosen option (`:389-392`) · **NPC-H3** the digest records popup answers
+with **no outcome**, so sixteen failed answers rendered as sixteen ordinary
+ones (`:326-329` + the scan call sites).
+
+**REFUTED, recorded so they are not re-opened:** the sibling
+`_mentions_whole` loop over `world.regions.keys()` does **not** have NPC-1's
+key-vs-display mismatch (region names are not camelCase keys — do not churn
+that loop); audit finding **B1's predicate is healthy** in both directions
+(NPC-17 is the opposite direction and is copy only); and the muster header
+calling 20,162 men against a "small force" an "even" balance is a
+**documented deliberate decision** (the band and the printed strength come
+from different sources on purpose; reconciling them would leak fog).
+
+---
+
 ## Comprehensive Playtest PC15 — filed August 15, 2026 (**THE FIX SLICE LANDED August 15, 2026 — 13 rows FIXED**)
 
 > **Evidence memo = `docs/audits/PLAYTEST_COMPREHENSIVE_2026_08_15.md`

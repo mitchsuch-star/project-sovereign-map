@@ -4,6 +4,83 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ THE PLAYED CAMPAIGN + THE NP-6 EVALUATION — August 16, 2026
+>
+> **Two memos, both authoritative:
+> `docs/audits/PLAYTEST_NAPOLEON_CAMPAIGN_2026_08_16.md` (the campaign
+> owed since row PT — Q9 deferred it until after row NP so it would
+> evaluate the game *with* its Emperor) and
+> `docs/audits/NP6_THREE_EMPERORS_EVAL_2026_08_16.md` (the gate memo —
+> a recommendation, NOT a build).** Report-only on defects: 27 game rows
+> + 3 harness rows ROUTED to `BUG_FIXES.md` §Napoleon Campaign (NPC) and
+> 4 design calls to `DESIGN_REFINEMENT.md` §Napoleon Campaign. Suite
+> **18,057 / 3**, ruff clean, no production code touched.
+>
+> **Four arms, 68 turns, one on the live Anthropic parser**
+> (`tools/playtest_scripts/np_campaign_{emperor,alone,seat,live}.json`,
+> committed; digests under `tools/playtest_runs/`, gitignored). Plus
+> eleven targeted probes and a nine-verifier → two-refuter fleet.
+>
+> **VERDICT — the Emperor works, and the game does not tell you so.**
+> Every mechanical half row NP built and the promise audit fixed held up
+> under play; **not one of the eighteen fixes regressed**. All seven
+> "fixed but never played" checks were taken: **six PASS, one not
+> reached** (the cavalry charge refused honestly for want of
+> recklessness). HOLD holds — though arm 3's twelve still turns are
+> **vacuous evidence** (no enemy was ever adjacent to Paris) and the
+> confirmation is a falsification probe instead. The Petition for
+> Independent Command **fired unprompted in two of four arms**.
+>
+> **What only play could say:** over 22 turns the aura fell **+10% →
+> +4%** (grip 100 → 52; 13 homeland provinces and **Paris** lost) and
+> **nothing ever narrated it** — the dispatch gave Paris the sentence it
+> gives Nivernais, `authority` never moved off 100, and none of the four
+> arms ever produced the dimming battle row. The user's brief is built,
+> correct, and invisible (NPC-D1).
+>
+> **The larger finding is not about the Emperor at all: `attack
+> <marshal>` out of range is a null action** — auto-upgraded to a PURSUE
+> that closes at **zero provinces per turn** (measured; distance pinned
+> at 2 for three consecutive turns). 4 player battles in 22 turns, **0 in
+> 14** on the live arm.
+>
+> **FIVE P1s, two reproduced by hand:** ⛔ typing an enemy's name *the way
+> the game prints it* ("Archduke Charles") routes into a stale interrupt
+> and **fights a different enemy and wins** · ⛔ that stale interrupt is
+> left armed by ~37 of 38 order-clearing seams (TUT-F4a implemented once)
+> · `attack Archduke John` silently attacks Archduke **Charles** · the
+> null pursuit · the PURSUE line **leaks an unseen enemy's exact
+> province** and is then cancelled for having no intelligence on him.
+> **The through-line: the player names a thing the way the game printed
+> it, and the game acts on something else** — CA9's defect moved one step
+> earlier, from delivery to *referent resolution*.
+>
+> **NP-6:** four of five kit halves work on a foreign sovereign today,
+> free. The fifth is wrong on its face — an authored Tsar's **first**
+> battle prints *"The Emperor commands in person (his star dims)"* at
+> **+8%**, before anything has happened, because a non-player court's
+> grip is a flat 75 against a window topping out at 85. Two findings
+> sharpen the prompt's: **`world.nation_authority` already exists, is
+> serialized, and is ALREADY WRITTEN for a captured enemy sovereign
+> (−40) — and `get_imperial_grip` never reads it**; and the label says
+> "The Emperor" for the Tsar of Russia. Recommendation: **(a) fix the two
+> blockers and declare the asymmetry, 1 session** — with the honest wiring
+> of `nation_authority` named as the 2-session re-open. **The user
+> decides.**
+>
+> ⚠ **The visual sign-off is STAGED, NOT SIGNED, and NOT captured.**
+> Three saves staged (`saves/np_visual_{seat,field,captive}.json`) and the
+> data behind all five owed surfaces verified over the wire. The
+> client-driven screenshot pass was **deliberately abandoned**: the pair
+> came up correctly on `SOVEREIGN_PORT=8006`, but the user's own game was
+> live in the foreground and driving synthetic input past it is exactly
+> what the standing desktop-automation rule forbids.
+>
+> **NEXT = position 10, the shippable build** — unless the user wants the
+> NPC P1 cluster closed first, which is a defensible re-order: NPC-1/2/3
+> are Round-0-class ("the game stopped listening to me") and NPC-4 governs
+> how the whole game feels.
+
 > ## ✅ ROW NP — THE PROMISE AUDIT (THE EXIT REVIEW) — August 15, 2026
 > ## (tenth session that day): 450 PROMISES CHECKED, 18 FIXED, 11 ROUTED
 >

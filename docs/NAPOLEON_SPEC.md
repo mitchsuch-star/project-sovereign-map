@@ -966,12 +966,41 @@ dated in-file).
 
 ### §15.7 Still open, with owners
 
-* **NP-6 "The Three Emperors"** — post-NP-V and strikeable at the user's
-  word (§14.1 Q8). NOT started.
+*(Updated August 16, 2026 — the played campaign is DISCHARGED and NP-6 has
+its gate memo. Records: `docs/audits/PLAYTEST_NAPOLEON_CAMPAIGN_2026_08_16.md`
+and `docs/audits/NP6_THREE_EMPERORS_EVAL_2026_08_16.md`.)*
+
+* ~~**The played 20-turn campaign** (Q9 ruling) runs after this row.~~
+  ✅ **HELD August 16, 2026** — four arms, 68 turns, one on the live parser.
+  **Every mechanical half of the row held under play and none of the promise
+  audit's eighteen fixes regressed.** All seven "fixed but never played"
+  checks taken: six PASS, one not reached (the cavalry charge refused for
+  want of recklessness). Two findings land back on THIS spec: **§15.4's
+  amendment is built, correct and invisible** — the aura fell +10% → +4%
+  across 22 turns (grip 100 → 52) with no beat anywhere and no arm ever
+  producing the dimming battle row (`DESIGN_REFINEMENT.md` NPC-D1) — and **a
+  sovereign on a strategic order still inherits the *cautious* branch of the
+  cannon-fire interrupt** (`strategic.py:2174` enumerates three
+  personalities; NP-0 added a fourth), which is finding B4's exact §3.1
+  class at a second seam (`BUG_FIXES.md` NPC-22).
+* **NP-6 "The Three Emperors"** — still NOT started, still strikeable
+  (§14.1 Q8). ✅ **Its gate memo now exists.** Four of the five kit halves
+  work on an authored foreign sovereign today, for free, measured end to
+  end (the aura on his own side, the fear at 0.7955 vs 1.0, the Shadow
+  halving Kutuzov 3→1, the capture-worth, the Seat). The fifth is blocked
+  on a **ruling**, not on work: §10's recorded consequence ("~82% of full
+  dread") is confirmed and is worse in practice than it reads — his
+  **first** battle prints *"(his star dims)"* at **+8%**. Also found:
+  **`world.nation_authority` is already serialized and already written for
+  a captured enemy sovereign (−40), and `get_imperial_grip` never reads
+  it.** Recommendation (a), 1 session. **The user decides.**
 * **A live visual sign-off** on the new surfaces: the emperor piece on the
   map, the apex card, the diorama locket cipher, the Captive Eagle row,
   the Tuileries ledger line. The standing convention is a user pass.
-* **The played 20-turn campaign** (Q9 ruling) runs after this row.
+  **STAGED August 16, 2026** — `saves/np_visual_{seat,field,captive}.json`
+  (gitignored, on the dev machine) reproduce all five between them, and the
+  DATA behind each was verified over the wire so his pass is a look rather
+  than a hunt. The pixels remain his.
 * Review findings consciously NOT built, each with its reason recorded in
   the fleet report: the A-D4 pair keeps its own laurels (Napoleon
   refusing to march means they did not share a field — and it is the

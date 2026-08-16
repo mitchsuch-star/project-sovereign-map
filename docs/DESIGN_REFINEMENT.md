@@ -959,6 +959,74 @@ behaviours homed here so neither is an unowned loose end (GR9).
 
 ---
 
+## Napoleon Campaign — design items (filed August 16, 2026)
+
+> Evidence memo = `docs/audits/PLAYTEST_NAPOLEON_CAMPAIGN_2026_08_16.md`.
+> Defects went to `BUG_FIXES.md` §Napoleon Campaign (NPC); these four are
+> design calls, not bugs. **None is coded.**
+
+### NPC-D1 — the myth cracks in silence (the §15.4 amendment's missing half)
+
+**What play measured.** Over 22 turns the Emperor's aura fell from **+10% to
++4%**: France lost 13 homeland provinces including Paris, so `get_imperial_grip`
+went 100 → **52** and `sovereign_aura_strength` 1.000 → **0.400**. The
+mechanic the user asked for ("his losses have weight") is built, correct, and
+**was never once narrated**. The only surface that carries it is a modifier
+row inside a battle report — and none of the four campaign arms produced one,
+because the arc that cracks the aura (losing ground at home) is the arc in
+which you stop fighting battles.
+
+Compounding it: **`authority` — the number the card and the briefing show —
+never moved off 100** through the whole collapse (NPC-27). The player is shown
+the number that did not change and not the number that did.
+
+**The design question.** §15.4 gave the aura a decay curve and one sentence at
+the moment of an emperor-led defeat. It has no beat for the *state*. Options,
+cheapest first: a standing dispatch producer keyed on the aura crossing a band
+("Europe has begun to notice that he can be beaten" as a **briefing** line, not
+only a battle tail) · the Generals apex card showing the Presence at its
+current strength rather than its authored one · the Gazette treating a crossed
+band as a forced special. **Owner: the next narration slice. Completion: the
+aura's current value is legible on at least one non-combat surface, and a
+crossing is a beat.**
+
+### NPC-D2 — the Seat is a correct v1 and a thin one
+
+`+1 DP` while he holds court in the capital is the whole §8 mechanic. It pays,
+it is legible (`seat_bonus: 1`, "+1 the Emperor holds court in the capital"),
+and across arm 3's twelve turns it never once made me want him there — because
+the alternative is ~30% more army in every battle he attends. This is not a
+defect; it is a mechanic that does not yet reach the threshold of a decision.
+**Owner: the Victory & Objectives pass** (positions 12–13), which is where
+staying home acquires a reason. Completion: a stated reason to keep him at
+Paris that is not the DP.
+
+### NPC-D3 — §7 is content nobody will meet
+
+Capture happened **zero times in 68 played turns, on either side**. That is
+correct per §7 (true encirclement is meant to be rare) and it means the Eagle
+in Chains — the three roads home, the ransom, the Captive Eagle war-score
+component, the whole arc — is machinery the median campaign never sees. The
+row is not "make it commoner"; it is **decide whether §7 is a rare jewel or
+dead weight**, and if the former, whether anything should *tell* the player
+the wager exists before it is taken. Related: the enemy-side capture is the
+only realistic route, which NP-6 would supply. **Owner: the NP-6 gate.**
+
+### NPC-D4 — the pursuit is not a mechanic, and it is the biggest single
+lever on how the game feels
+
+Routed as a defect (NPC-4/NPC-5) because it is measurably broken, but the
+*design* question underneath is real and belongs here: **should `attack
+<distant marshal>` exist at all?** It currently accepts an order it cannot
+fulfil, spends AP, and closes at zero. The three coherent designs are: refuse
+it up front and make the player move ("Mack is five provinces away — march to
+Swabia first"), give the pursuer a closing bonus so a pursuit is a real chase
+with a real resolution, or keep it as a standing intent that only resolves
+when the quarry stops. **Owner: whoever takes NPC-4** — the fix is not
+separable from the design choice.
+
+---
+
 ## Source Documents (Archived Reference)
 
 | Document | Items Moved Here |

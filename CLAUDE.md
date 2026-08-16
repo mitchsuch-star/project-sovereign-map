@@ -42,9 +42,54 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 15, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 16, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 18,054 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 18,057 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ THE PLAYED CAMPAIGN + THE NP-6 EVALUATION RAN August 16, 2026 —
+> report-only, zero production code touched. Memos of record =
+> `docs/audits/PLAYTEST_NAPOLEON_CAMPAIGN_2026_08_16.md` and
+> `docs/audits/NP6_THREE_EMPERORS_EVAL_2026_08_16.md`; routing =
+> `BUG_FIXES.md` §Napoleon Campaign (NPC, 27 game + 3 harness rows) and
+> `DESIGN_REFINEMENT.md` §Napoleon Campaign (NPC-D1..D4).** The campaign
+> owed since row PT (Q9 deferred it past row NP so it would evaluate the
+> game *with* its Emperor): four scripted arms, 68 turns, one on the live
+> Anthropic parser (`tools/playtest_scripts/np_campaign_*.json`), eleven
+> probes, a nine-verifier → two-refuter fleet. **Directional ≈6.8**
+> (marshal drama 7.5 ▲, combat legibility 7.0 ▲, AI aliveness 7.5 ▲,
+> narration 6.5 ▼). **Every mechanical half of row NP held under play and
+> none of the promise audit's eighteen fixes regressed**; all seven "fixed
+> but never played" checks taken (6 PASS, 1 not reached), and the fleet
+> **corrected four of the session's own "verified in play" claims** — most
+> usefully that arm 3's twelve still turns are vacuous evidence for HOLD
+> (no enemy was ever adjacent to Paris; confirmed by falsification probe
+> instead). The **Petition for Independent Command fired unprompted in two
+> of four arms**. **The user's §15.4 brief is built, correct and
+> invisible:** the aura fell +10% → +4% over 22 turns (grip 100 → 52; 13
+> homeland provinces and **Paris** lost) with no beat anywhere, `authority`
+> never moving off 100, and no arm ever producing the dimming battle row
+> (NPC-D1). **The larger finding is not about the Emperor: `attack
+> <marshal>` out of range is a null action** — a PURSUE closing at ZERO
+> provinces/turn (4 battles in 22 turns; 0 in 14 live). **Five P1s, two
+> reproduced by hand**, sharing one root — *the player names a thing the
+> way the game printed it and the game acts on something else*: typing
+> "Archduke Charles" routes into a stale interrupt and **fights Mack and
+> wins**; that interrupt is left armed by ~37 of 38 order-clearing seams
+> (TUT-F4a implemented once); `attack Archduke John` attacks **Charles**;
+> the PURSUE line leaks an unseen enemy's province then cancels for want
+> of intelligence on him. **NP-6 = a memo, not a build**: four of five kit
+> halves work on a foreign sovereign free, the fifth prints *"(his star
+> dims)"* at **+8% on turn one** because a non-player court's grip is a
+> flat 75 against an 85 window — and **`world.nation_authority` already
+> exists, is serialized, is already WRITTEN for a captured enemy sovereign
+> (−40), and `get_imperial_grip` never reads it**; recommendation (a),
+> 1 session, user decides. ⚠ **the visual sign-off is STAGED, NOT SIGNED,
+> and NOT captured** — three saves staged
+> (`saves/np_visual_{seat,field,captive}.json`), all five surfaces'
+> DATA verified over the wire, and the client-driven screenshot pass
+> deliberately abandoned because the user's own game was live in the
+> foreground. **NEXT = position 10, the shippable build** — unless the
+> user prefers the NPC P1 cluster first.
 >
 > **▶ ROW NP (NAPOLEON) IS BUILD-COMPLETE THROUGH NP-V — August 15,
 > 2026 (ninth session that day). Landing record = `docs/NAPOLEON_SPEC.md`
