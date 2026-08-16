@@ -1207,23 +1207,25 @@ def _include_command_strategic_reports(response: dict, result: dict) -> None:
     strategic_reports = result.get("strategic_reports")
     if strategic_reports:
         response["strategic_reports"] = strategic_reports
-        # NPC-16 / WIN-H1: an interrupt raised during END-TURN processing
-        # rides ONLY strategic_reports[i].requires_input. main.gd:4218
-        # derives the popup from that list, so the client was always fine
-        # — but every other consumer (the playtest driver, any headless
-        # or scripted client) saw nothing to answer, so step 0a returned
-        # "awaiting_response" forever and the marshal, then the turn loop,
-        # froze. Promote the first report awaiting input to the key the
-        # synchronous interrupt path already uses, so ONE contract serves
-        # both routes. Never overwrite a live pending_interrupt: that one
-        # is the immediate, more specific surface.
-        if not response.get("pending_interrupt"):
-            awaiting = next((r for r in strategic_reports
-                             if isinstance(r, dict) and r.get("requires_input")),
-                            None)
-            if awaiting:
-                response["pending_interrupt"] = awaiting
-                response["requires_input"] = True
+        # ⚠ NPC-16's routed fix — "promote the first `requires_input`
+        # strategic report to response['pending_interrupt']" — was TRIED
+        # HERE on Aug 16, 2026 and REVERTED. It regresses the working
+        # client: `pending_interrupt` is a registered
+        # `_post_hud_response_routes` matcher (main.gd:1360 "interrupt"),
+        # and that router runs at main.gd:1909 — BEFORE the
+        # strategic-reports branch at :2000, in the same function, and it
+        # returns. So promoting the key makes the client fire the
+        # interrupt popup immediately and SKIP the strategic report
+        # summary entirely, which is the surface that narrates what every
+        # marshal did that turn.
+        #
+        # NPC-16 is P3 for players precisely because the client already
+        # derives the interrupt from this list (main.gd:4218). The
+        # measured evaluation problem is fixed on the harness side
+        # (tools/playtest_driver.py `_interrupt_report`). If a future
+        # session wants ONE contract for headless clients, it must either
+        # re-order the client's routes (reports before interrupt) or use
+        # a key main.gd does not match — not this.
         if DEBUG_MODE:
             print(f"[STRATEGIC_REPORTS] Sending {len(strategic_reports)} reports to Godot:")
             for i, sr in enumerate(strategic_reports):
