@@ -180,7 +180,9 @@ calls: **`DESIGN_REFINEMENT.md` §Napoleon Campaign** (NPC-D1..D4).
 
 Method: nine verifiers, each required to point at `file:line` with a
 reproduction before a row could be filed; then two independent refuters per
-surviving claim. **The verifiers corrected four of the session's own
+surviving claim — **84 agents, 17.5M tokens, zero errors**. The fleet's own
+tally: **33 claims entered verification, 4 KILLED, 1 reduced to no defect,
+survivors 4 P1 · 12 P2 · 16 P3** (3 harness). **The verifiers corrected four of the session's own
 "verified in play" claims** (§5) and refuted three candidate defects outright;
 **the refuters then killed two more rows, corrected one root cause and split
 the severity on two** — all folded into the routing table rather than
