@@ -84,20 +84,43 @@ class TestNormalization:
         # never consults the fuzzy skip lists). The raw phrasing still
         # survives on the order's `original_command`.
         ("march to Belgium myself", "Napoleon, march to Belgium"),
-        ("take the field in person", "Napoleon, take the field"),
         ("attack Wellington myself.", "Napoleon, attack Wellington"),
+        # NP promise audit (Aug 15, 2026): the marker is stripped BEFORE
+        # the arms run, so combining the two forms — the more natural
+        # phrasing of the pair — no longer carries it into the
+        # destination.
+        ("I will march to Belgium myself", "Napoleon, march to Belgium"),
+        ("the Emperor will march to Belgium myself",
+         "Napoleon, march to Belgium"),
     ])
     def test_rewrites(self, text, expected):
         assert normalize_sovereign_address(text, "Napoleon") == expected
 
+    def test_take_the_field_is_not_an_order_this_game_has(self):
+        # Pin CORRECTED (NP promise audit, Aug 15 2026). It read
+        #   ("take the field in person", "Napoleon, take the field")
+        # — a third surviving member of the family §15.8 item 4 retired
+        # `take` for: measured at the endpoint, "Napoleon, take the field"
+        # parses to success=False / action=None, so the rewrite bound the
+        # Emperor to an order the executor refuses. The self-marker arm
+        # now requires a real order verb, so this phrasing is left alone
+        # and Berthier's ordinary "I cannot interpret that" answers it.
+        assert normalize_sovereign_address(
+            "take the field in person", "Napoleon") == "take the field in person"
+
     def test_marker_never_becomes_a_province(self):
         # The defect this fix closes, pinned at the value that broke:
-        # the marker must not survive into the destination text.
-        for text in ("march to Belgium myself", "attack Wellington in person"):
-            assert "myself" not in normalize_sovereign_address(
-                text, "Napoleon").lower()
-            assert "in person" not in normalize_sovereign_address(
-                text, "Napoleon").lower()
+        # the marker must not survive into the destination text — in
+        # EVERY arm, including a marshal-addressed order (gate a keeps it
+        # his, but "Murat, march to Belgium myself" was parsing to the
+        # phantom province 'Belgium Myself').
+        for text in ("march to Belgium myself", "attack Wellington in person",
+                     "I will march to Belgium myself",
+                     "the Emperor will march to Belgium myself",
+                     "Murat, march to Belgium myself"):
+            out = normalize_sovereign_address(text, "Napoleon").lower()
+            assert "myself" not in out, text
+            assert "in person" not in out, text
 
     def test_bare_marker_alone_is_not_an_order(self):
         # Stripping must not manufacture an empty order.
@@ -106,11 +129,18 @@ class TestNormalization:
     @pytest.mark.parametrize("text", [
         # (a) an address token always wins — corpus row 3953's form.
         "Ney, I want you to move to Lorraine",
-        "Murat, march to Belgium myself",
         # (b) military verbs only — no diplomatic first-person rewrites.
         "I offer peace to Austria",
         "I want you to attack",
         "I think we should retreat",
+        # (b) NP promise audit: gate (b) now binds the SELF-MARKER arm
+        # too — it shipped with no verb requirement at all, the third
+        # sibling of the §15.8 item-3 defect. A trailing "myself" must
+        # never turn a diplomatic sentence into a marshal's order.
+        "I will offer an alliance to Prussia myself",
+        "I will negotiate with Austria myself",
+        "review the terms myself",
+        "I want to see the treasury myself",
         # (c) questions stay questions.
         "Can I attack Vienna?",
         "How do I attack?",
@@ -120,6 +150,26 @@ class TestNormalization:
     ])
     def test_never_rewrites(self, text):
         assert normalize_sovereign_address(text, "Napoleon") == text
+
+    def test_addressed_order_keeps_its_marshal_when_the_marker_is_stripped(
+            self, monkeypatch, sovereign_world):
+        """Gate (a) survives the marker strip: "Murat, march to Belgium
+        myself" is still MURAT's order — only the reflexive is consumed,
+        and only in a sovereign world (the dormancy pin is untouched).
+
+        Pinned end to end because the normalization alone cannot show the
+        thing that broke: the destination extraction is what turned the
+        surviving marker into the phantom province 'Belgium Myself'.
+        """
+        out = normalize_sovereign_address(
+            "Davout, march to Belgium myself", "Napoleon")
+        assert out.startswith("Davout,")
+        assert "Napoleon" not in out
+        monkeypatch.setenv("LLM_MODE", "mock")
+        result = parse(CommandParser(), sovereign_world,
+                       "Davout, march to Belgium myself")
+        assert result["command"]["marshal"] == "Davout"
+        assert result["command"]["target"] == "Belgium"
 
     def test_every_sovereign_order_verb_actually_parses(
             self, parser, sovereign_world):
@@ -319,3 +369,50 @@ class TestNoFrictionAndAP:
         parsed["command"]["strategic_type"] = "SUPPORT"
         executor.execute(parsed, {"world": sovereign_world})
         assert sovereign_world.pending_strategic_objection is None
+
+
+# ════════════════════════════════════════════════════════════════════════
+# The golden-corpus rows (§4.1's checklist line, step 12)
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCorpusRowsAreNotVacuous:
+    """NP promise audit (Aug 15, 2026).
+
+    §15.8 item 1 landed the eight rows §4.1 names — but every one of them
+    omitted the `marshal` key that 64 other corpus rows use, and `marshal`
+    is the ONLY field that distinguishes "the sovereign was addressed"
+    from "somebody was addressed". Measured by mutation: with the theft
+    simulated (the first-person signal beating the address token) the
+    `addressed-i-want-unchanged` row — whose entire stated purpose is
+    "the sovereign must not steal an order addressed to a marshal" —
+    still PASSED. It could not fail for the defect it names.
+    """
+
+    SOVEREIGN_ROWS = {
+        "napoleon-address": "Napoleon",
+        "emperor-address": "Napoleon",
+        "first-person-march": "Napoleon",
+        "first-person-attack": "Napoleon",
+        "myself-suffix": "Napoleon",
+        "addressed-i-want-unchanged": "Ney",
+    }
+
+    def _rows(self):
+        from backend.ai.parser_eval import load_corpus
+        corpus = load_corpus()
+        rows = corpus.get("entries") if isinstance(corpus, dict) else corpus
+        return {r.get("id"): r for r in rows}
+
+    @pytest.mark.parametrize("row_id,marshal", sorted(SOVEREIGN_ROWS.items()))
+    def test_row_names_its_addressee(self, row_id, marshal):
+        row = self._rows().get(row_id)
+        assert row is not None, f"corpus row {row_id!r} is missing"
+        assert row["expected"].get("marshal") == marshal, (
+            f"{row_id} must assert WHO the order reached — without it the "
+            f"row passes whether or not the address form worked")
+
+    def test_the_negative_rows_still_exist(self):
+        rows = self._rows()
+        for row_id in ("i-question-still-help",
+                       "emperor-lead-foreign-title-untouched"):
+            assert row_id in rows, row_id

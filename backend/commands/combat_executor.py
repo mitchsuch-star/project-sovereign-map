@@ -551,12 +551,30 @@ class CombatExecutor:
         # deliberate clear (that path fights without transients BY DESIGN,
         # pinned) and the field's registration in
         # COORDINATION_TRANSIENT_FIELDS for every clear path.
-        sovereign_here = SOVEREIGN_PRESENCE_ACTIVE and any(
-            getattr(m, 'is_sovereign', False) for m in eligible)
+        #
+        # ⚠ NP promise audit (Aug 15, 2026): the stamp is the aura's
+        # STRENGTH, not a flag. §15.4 made
+        # `authority.sovereign_aura_strength` the single source for the
+        # aura and the fear alike, and moved the ordinary attack path's
+        # stamp to `_get_casualty_participants` — but THIS producer kept
+        # the old flat 1.0, and it is the last word on the two paths that
+        # never reach the participant stamp: the GARRISON ASSAULT
+        # (`_resolve_garrison_combat`) and the CAVALRY CHARGE. Measured at
+        # `sovereign_aura_strength == 0.0` the Emperor still stormed a
+        # capital at the full +10%: the myth that was supposed to die with
+        # his defeats did not. The main attack path is unchanged — its
+        # participant stamp overwrites this one unconditionally.
+        _aura_strength = 0.0
+        if SOVEREIGN_PRESENCE_ACTIVE:
+            from backend.models.authority import sovereign_aura_strength
+            for m in eligible:
+                if getattr(m, 'is_sovereign', False):
+                    _aura_strength = sovereign_aura_strength(world, m.nation)
+                    break
 
         # Each marshal gets their OWN coordination based on their relationships
         for m in eligible:
-            m.sovereign_presence = 1.0 if sovereign_here else 0.0
+            m.sovereign_presence = _aura_strength
             allies_for_m = [a for a in eligible if a.name != m.name]
             coord_atk, coord_def = self._calculate_per_ally_coordination(m, allies_for_m)
 
@@ -1096,18 +1114,29 @@ class CombatExecutor:
         # (retreated/recovering marshals grant nothing — the NP-4 Guard
         # toll sets `retreated_this_turn`, so this arm is live on the
         # row's own retreat path). Shown = applied, both directions.
-        if SOVEREIGN_PRESENCE_ACTIVE and any(
-                getattr(m, "is_sovereign", False)
-                for m in world.marshals.values()
-                if m.location == marshal.location
-                and m.nation == marshal.nation and m.strength > 0
-                and not getattr(m, "broken", False)
-                and not getattr(m, "retreated_this_turn", False)
-                and getattr(m, "retreat_recovery", 0) == 0):
-            _pct = int(round(Marshal.SOVEREIGN_PRESENCE_ATTACK * 100))
-            preview["presence_note"] = (
-                f"The Emperor commands in person — every corps on this "
-                f"field fights +{_pct}% harder.")
+        # ⚠ NP promise audit (Aug 15, 2026): the percentage must be the
+        # APPLIED one. §15.4 scaled the modifier and the battle-report row
+        # by `sovereign_aura_strength` and left this producer reading the
+        # bare constant, so the muster promised "+10% harder" and the
+        # report that followed said "+6%" — a preview contradicting the
+        # battle it previews, under a comment claiming shown = applied.
+        _sov_present = next(
+            (m for m in world.marshals.values()
+             if m.location == marshal.location
+             and m.nation == marshal.nation and m.strength > 0
+             and getattr(m, "is_sovereign", False)
+             and not getattr(m, "broken", False)
+             and not getattr(m, "retreated_this_turn", False)
+             and getattr(m, "retreat_recovery", 0) == 0), None)
+        if SOVEREIGN_PRESENCE_ACTIVE and _sov_present is not None:
+            from backend.models.authority import sovereign_aura_strength
+            _aura = sovereign_aura_strength(world, _sov_present.nation)
+            _pct = int(round(Marshal.SOVEREIGN_PRESENCE_ATTACK * _aura * 100))
+            if _pct > 0:
+                _dims = "" if _aura >= 0.999 else " — though his star dims"
+                preview["presence_note"] = (
+                    f"The Emperor commands in person{_dims} — every corps "
+                    f"on this field fights +{_pct}% harder.")
 
         # First-use tutorial line about standing orders — latch-on-surface
         # (shown once per campaign, even if this attack is then cancelled).
@@ -2817,6 +2846,29 @@ class CombatExecutor:
                     "garrison_remaining": int(target_region.garrison_strength),
                 }],
             }
+
+    @staticmethod
+    def _fall_clause(world, marshal, removed: bool) -> str:
+        """The battle sentence for a corps reduced to nothing.
+
+        NP promise audit (Aug 15, 2026): `WorldState.destroy_marshal`
+        returns False when it converts a SOVEREIGN to capture instead of
+        removing him (NAPOLEON_SPEC §7.1 — a sovereign never dies in v1).
+        The CHARGE copy already gated its message on that return; the
+        battle and auto-bombardment copies did not, so the two loudest
+        moments in the game could tell the player the Emperor had been
+        destroyed when he had in fact been taken alive. One clause for all
+        three, so a fourth copy cannot drift again.
+        """
+        if removed:
+            return f" {marshal.name}'s army is destroyed!"
+        captor = getattr(marshal, "captured_by", "")
+        if captor and getattr(marshal, "is_sovereign", False):
+            from backend.display_names import (
+                humanize_entity_name, marshal_honorific)
+            return (f" {marshal_honorific(world, marshal.name)} is taken — "
+                    f"{humanize_entity_name(captor)} holds him prisoner.")
+        return ""
 
     # ════════════════════════════════════════════════════════════════════
     # W6-7 MARSHAL FATES (EXP-M1) — capture, ransom, the last stand.
@@ -5180,8 +5232,11 @@ class CombatExecutor:
             # the attacker's location.
             auto_kill_stamp_region = marshal.location
             # Remove destroyed defender (PC15-1: tombstone + event)
-            world.destroy_marshal(enemy_marshal, cause="bombardment",
-                                  victor=marshal.nation)
+            # ⚠ NP promise audit (Aug 15, 2026): keep the return — a
+            # SOVEREIGN is CAPTURED here, not removed, and the message
+            # below said "the preparatory bombardment destroyed him".
+            auto_kill_removed = world.destroy_marshal(
+                enemy_marshal, cause="bombardment", victor=marshal.nation)
 
             # PT-F1: same guard as the main battle-advance — the soil of a
             # court we are not at war with never transfers by pursuit.
@@ -5235,10 +5290,20 @@ class CombatExecutor:
                         conquest_msg = f" {battle_region_name} captured by {marshal.nation}!"
 
             preamble = "\n".join(auto_bombardment_messages)
-            main_msg = (
-                f"The preparatory bombardment destroyed {enemy_marshal.name}. "
-                f"{marshal.name} advances unopposed."
-            )
+            if auto_kill_removed:
+                main_msg = (
+                    f"The preparatory bombardment destroyed "
+                    f"{enemy_marshal.name}. "
+                    f"{marshal.name} advances unopposed."
+                )
+            else:
+                from backend.display_names import marshal_honorific
+                main_msg = (
+                    f"The preparatory bombardment broke "
+                    f"{marshal_honorific(world, enemy_marshal.name)}'s "
+                    f"escort, and he was taken on the field. "
+                    f"{marshal.name} advances unopposed."
+                )
 
             # R1 Pipeline: centralized post-combat recording
             # Actual bombardment damage is the defender's pre-battle strength
@@ -6042,11 +6107,18 @@ class CombatExecutor:
         # Check if enemy was destroyed (PC15-1: tombstone + event — this
         # site runs BEFORE the forced-retreat/fate arm, so no capture can
         # have happened yet; the guard inside destroy_marshal is belt.)
+        #
+        # ⚠ NP promise audit (Aug 15, 2026): the belt FIRES for a
+        # sovereign — destroy_marshal converts him to CAPTURE and returns
+        # False — and this copy composed its sentence BEFORE the call and
+        # printed it regardless, so the player was told the Emperor had
+        # been destroyed. §7.1 says a sovereign cannot die in v1.
         enemy_destroyed = enemy_marshal.strength <= 0
         if enemy_destroyed:
-            destroyed_msg = f" {enemy_marshal.name}'s army is destroyed!"
-            world.destroy_marshal(enemy_marshal, cause="battle",
-                                  victor=marshal.nation)
+            destroyed_msg = self._fall_clause(
+                world, enemy_marshal,
+                world.destroy_marshal(enemy_marshal, cause="battle",
+                                      victor=marshal.nation))
         else:
             destroyed_msg = ""
 

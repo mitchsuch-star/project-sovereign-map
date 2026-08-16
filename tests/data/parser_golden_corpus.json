@@ -3990,7 +3990,8 @@
       "expected": {
         "success": true,
         "action": "move",
-        "target": "Lorraine"
+        "target": "Lorraine",
+        "marshal": "Napoleon"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "The sovereign is an ordinary roster name — CR-0 derives commandable names live, so this needed no new code. Pinned so authoring him out would be caught."
@@ -4002,7 +4003,8 @@
       "expected": {
         "success": true,
         "action": "attack",
-        "target": "Mack"
+        "target": "Mack",
+        "marshal": "Napoleon"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "Before NP-1 this hard-errored \"Marshal 'Emperor' not found\": 'Emperor,' reads as a leading address token, i.e. a FAILED name attempt at 0.55 confidence."
@@ -4014,7 +4016,8 @@
       "expected": {
         "success": true,
         "action": "move",
-        "target": "Lorraine"
+        "target": "Lorraine",
+        "marshal": "Napoleon"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "Leading first person + a military verb addresses the sovereign. The modal is stripped: 'Napoleon, will march to X' is not a form the parser can act on."
@@ -4026,7 +4029,8 @@
       "expected": {
         "success": true,
         "action": "attack",
-        "target": "Mack"
+        "target": "Mack",
+        "marshal": "Napoleon"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "The bare first-person form, no modal."
@@ -4038,7 +4042,8 @@
       "expected": {
         "success": true,
         "action": "move",
-        "target": "Lorraine"
+        "target": "Lorraine",
+        "marshal": "Napoleon"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "NP-V live-drive fix: the trailing marker is CONSUMED. Carrying it produced the phantom province 'Lorraine Myself' — the destination regex reads to end-of-string and never consults the fuzzy skip lists."
@@ -4061,7 +4066,8 @@
       "expected": {
         "success": true,
         "action": "move",
-        "target": "Lorraine"
+        "target": "Lorraine",
+        "marshal": "Ney"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "Gate (a): an address token always wins over the first-person signal. Mirrors parseneg-destination-is-the-last-preposition, which pins the same clause pre-NP — the sovereign must not steal an order addressed to a marshal."

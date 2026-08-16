@@ -145,12 +145,22 @@ class TestAuraStampAndRead:
     def test_enemy_sovereign_stamps_his_own_side(self):
         # GR5: both sides compute independently — an enemy-authored
         # sovereign works identically.
+        #
+        # Pin flipped consciously (NP promise audit, Aug 15 2026): the
+        # stamp is the aura's STRENGTH, not a flag, at THIS producer too —
+        # so an enemy sovereign is stamped at his own court's grip, which
+        # is the opaque flat 75 → ~0.82, exactly the consequence §15.4
+        # already recorded for the fear and the participant stamp. The
+        # old `== 1.0` was asserting the inconsistency this audit closed.
+        from backend.models.authority import sovereign_aura_strength
         kaiser = make_sovereign("Kaiser", nation="Austria")
         guard = make_marshal("Mack", nation="Austria")
         w = make_world(kaiser, guard)
         CE()._calculate_coordination_context(guard, w)
-        assert guard.sovereign_presence == 1.0
-        assert kaiser.sovereign_presence == 1.0
+        expected = sovereign_aura_strength(w, "Austria")
+        assert 0.0 < expected < 1.0, "the enemy-grip constant moved"
+        assert guard.sovereign_presence == pytest.approx(expected)
+        assert kaiser.sovereign_presence == pytest.approx(expected)
 
     def test_no_sovereign_no_stamp(self):
         a = make_marshal("Ney", personality="aggressive")

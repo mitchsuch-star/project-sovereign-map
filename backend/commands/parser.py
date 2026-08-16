@@ -118,9 +118,26 @@ _SOVEREIGN_FIRST_PERSON_RE = re.compile(
     r"^\s*i(?:['’]ll)?\s+" + _SOVEREIGN_MODALS
     + r"(?P<verb>" + _SOVEREIGN_ORDER_VERBS + r")\b",
     re.IGNORECASE)
-# "march to Ulm myself" / "take the field in person" — trailing marker.
+# "march to Ulm myself" / "scout Bavaria in person" — trailing marker.
+#
+# ⚠ NP promise audit (Aug 15, 2026): this arm shipped with NO verb gate —
+# the third sibling of the defect §15.8 item 3 fixed for the Emperor-lead
+# arm, left live here. §4.1's gate (b) is "military/movement verbs only;
+# diplomacy keeps its verbs", and without it every trailing-"myself"
+# sentence became an order to the Emperor:
+#   "I will offer an alliance to Prussia myself"
+#       -> "Napoleon, I will offer an alliance to Prussia"
+#   "review the terms myself"     -> "Napoleon, review the terms"
+# Measured at the mock layer the outcomes happened to be unchanged (the
+# keyword parser ignores the prefix), so nothing complained — but the
+# rewrite runs UPSTREAM OF BOTH PARSERS, so in live mode the LLM is handed
+# a marshal-addressed diplomatic sentence and invited to make it a
+# marshal's order. The body must contain a real order verb, exactly as the
+# other two arms require.
 _SOVEREIGN_SELF_MARKER_RE = re.compile(
     r"\b(?:myself|in\s+person)\s*[.!]?\s*$", re.IGNORECASE)
+_SOVEREIGN_BODY_HAS_VERB_RE = re.compile(
+    r"\b(?:" + _SOVEREIGN_ORDER_VERBS + r")(?:e?s|ing|ed)?\b", re.IGNORECASE)
 
 
 def _find_player_sovereign(world=None, game_state=None) -> Optional[str]:
@@ -175,31 +192,56 @@ def normalize_sovereign_address(command_text: str,
     """
     if not sovereign_name or not command_text:
         return command_text
-    match = _SOVEREIGN_EMPEROR_COMMA_RE.match(command_text)
-    if match:
-        return f"{sovereign_name}, {command_text[match.end():]}"
-    match = _SOVEREIGN_EMPEROR_LEAD_RE.match(command_text)
-    if match:
-        return f"{sovereign_name}, {command_text[match.end():]}"
-    if _leading_addressed_token(command_text):
-        return command_text
-    if is_question(command_text):
-        return command_text
-    match = _SOVEREIGN_FIRST_PERSON_RE.match(command_text)
-    if match:
-        return f"{sovereign_name}, {command_text[match.start('verb'):]}"
+
+    # The trailing self-marker is CONSUMED, not carried. Live-drive
+    # finding (NP-V): keeping it produced the phantom province "Bavaria
+    # Myself" — the destination extraction reads to end-of-string and
+    # never consults the fuzzy skip lists, so the reflexive-word guards
+    # below could not save it. The raw phrasing still survives on the
+    # order's `original_command` (rider (d)'s record seam).
+    #
+    # ⚠ NP promise audit (Aug 15, 2026): that fix stripped the marker
+    # inside its OWN arm only, and the two arms above it return first — so
+    # the phantom came straight back the moment a player COMBINED the
+    # forms, which is the more natural phrasing of the two:
+    #   "I will march to Swabia myself"        -> target 'Swabia Myself'
+    #   "the Emperor will march to Swabia myself" -> target 'Swabia Myself'
+    # Strip once, up front, so every arm below is marker-free. If no arm
+    # fires the ORIGINAL text is returned untouched — a sentence we do not
+    # rewrite never silently loses a word.
+    text = command_text
     marker = _SOVEREIGN_SELF_MARKER_RE.search(command_text)
     if marker:
-        # The marker is CONSUMED, not carried. Live-drive finding (NP-V):
-        # keeping it produced the phantom province "Bavaria Myself" —
-        # the destination extraction reads to end-of-string and never
-        # consults the fuzzy skip lists, so the reflexive-word guards
-        # below could not save it. The raw phrasing still survives on
-        # the order's `original_command` (rider (d)'s record seam), so
-        # nothing is lost by stripping it here.
-        body = command_text[:marker.start()].rstrip().rstrip(",")
-        if body:
-            return f"{sovereign_name}, {body}"
+        stripped = command_text[:marker.start()].rstrip().rstrip(",")
+        if stripped:
+            text = stripped
+
+    match = _SOVEREIGN_EMPEROR_COMMA_RE.match(text)
+    if match:
+        return f"{sovereign_name}, {text[match.end():]}"
+    match = _SOVEREIGN_EMPEROR_LEAD_RE.match(text)
+    if match:
+        return f"{sovereign_name}, {text[match.end():]}"
+    if _leading_addressed_token(text):
+        # Gate (a): an address token always wins — this stays HIS order.
+        # But the marker still must not survive into the destination:
+        # "Ney, march to Swabia myself" was parsing to the phantom
+        # province 'Swabia Myself'. NP-1 claimed this family closed by
+        # adding "myself" to both fuzzy skip lists; it is not, because the
+        # destination extraction reads to end-of-string and never consults
+        # them (NP-V's own note). Scoped to sovereign worlds, so the
+        # dormancy pin is untouched; the general seam is routed (§15.9).
+        if marker and text is not command_text and _SOVEREIGN_BODY_HAS_VERB_RE.search(text):
+            return text
+        return command_text
+    if is_question(text):
+        return command_text
+    match = _SOVEREIGN_FIRST_PERSON_RE.match(text)
+    if match:
+        return f"{sovereign_name}, {text[match.start('verb'):]}"
+    if marker and text is not command_text:
+        if _SOVEREIGN_BODY_HAS_VERB_RE.search(text):
+            return f"{sovereign_name}, {text}"
     return command_text
 
 
