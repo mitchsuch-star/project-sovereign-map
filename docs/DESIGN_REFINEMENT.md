@@ -50,8 +50,17 @@
 > outcome D1 already blessed, and a neutral-court holder adds a party with
 > no other mechanics attached to it; **(c)** re-home to the Victory Pass,
 > which owns endings and prisoners. **Recommendation: (b)**, with (c) as
-> the fallback if the flavour is wanted later. Nothing built pending the
-> user's word.
+> the fallback if the flavour is wanted later.
+>
+> ✅ **RULED August 15, 2026 (user): CLOSE THE ROW — option (b).** The
+> rider is CLOSED, not deferred: capitulation in place is the 1805-exact
+> outcome D1 already blessed (Ulm, Prenzlau, Ratekau — even Blücher's
+> neutral-soil crossing at Lübeck ended in surrender to the French), and
+> a neutral-court holder would add a party with no other mechanics
+> attached to it. GR9 is satisfied by closure rather than by an owner:
+> there is no remaining player-facing promise. Re-open only if a played
+> campaign produces the narrow surviving case (an army already standing
+> on neutral soil when it is cornered) and it reads wrong.
 >
 > Option (c)
 > neutral-protest REJECTED outright (redundant under (a); deliberate entry

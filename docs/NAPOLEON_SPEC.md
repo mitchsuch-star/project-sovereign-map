@@ -1146,12 +1146,28 @@ safe and safe on purpose.
 `test_napoleon_np1_hand.py` corpus class. `BASELINE_SERIES` and M1–M7
 byte-identical throughout, run rather than assumed.
 
-**Still open and NOT this session's:** NP-6 (strikeable) · the live visual
-sign-off (the user's own pass) · the played 20-turn campaign · and two
-questions the user owns — the sovereign's missing attack-confirm, and
-**"The Interned Column"**, which `DESIGN_REFINEMENT.md` §PC15-D1 homes to
-*"the row NP exit review"*, i.e. this session. It is surfaced with the
-finding that PC15-D1's own ruling substantially narrowed its premise: the
-retreat scan now obeys the movement law, so an army can no longer retreat
-ONTO neutral soil at all, and the rider's case survives only for an army
-already standing there when it is cornered.
+### §15.9a The two questions the exit review owed — BOTH RULED (user, Aug 15, 2026)
+
+* **The sovereign's attack-confirm → NO CONFIRM. Ruled, and it is now the
+  written rule rather than an accident of the CA9 row-2 gate keying on
+  `cautious`.** He is the player's own hand (§2 pillar 1); a confirmation
+  dialog on your own decision is exactly the friction NP-1 exists to
+  remove, and the Peril (§7) is meant to be a wager made with open eyes.
+  Nothing to build; recorded so a future reader does not "fix" it.
+* **"The Interned Column" → CLOSED, not deferred.** `DESIGN_REFINEMENT.md`
+  §PC15-D1 homed the rider to *"the row NP exit review"*, i.e. this
+  session, and the review's own finding is what decided it: **PC15-D1's
+  ruling substantially narrowed the premise.** The forced-retreat scan now
+  obeys the movement law — measured live, it prints *"Skip: neutral court
+  (PEACE) — the frontier is closed"* — so an army can no longer retreat
+  ONTO neutral soil at all, and the case survives only for an army already
+  standing there when cornered. Capitulation in place is the 1805-exact
+  outcome (Ulm, Prenzlau, Ratekau), and a neutral holder would add a party
+  with no other mechanics. GR9 is satisfied by CLOSURE: there is no
+  remaining player-facing promise. Closure recorded at the §PC15-D1 row.
+
+**Still open and NOT this session's:** NP-6 (strikeable at the user's
+word) · the live visual sign-off on the emperor piece / apex card /
+diorama locket cipher / Captive Eagle row / Tuileries line, which is the
+user's own pass by standing convention · the played 20-turn campaign
+(Q9 ruling).

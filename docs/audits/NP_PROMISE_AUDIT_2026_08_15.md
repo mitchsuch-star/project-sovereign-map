@@ -176,6 +176,16 @@ pre-existing and belongs to CA8-19.
 * **NP-6 "The Three Emperors"** — post-NP-V, strikeable at the user's word. Not started.
 * **The live visual sign-off** on the emperor piece / apex card / diorama locket cipher / Captive Eagle row / Tuileries line. The standing convention is the user's own pass.
 * **The played 20-turn campaign** (Q9 ruling) runs after this row.
-* **Two questions the user owns**, put to them at the close of this session:
-  1. the sovereign gets no attack-confirm even on genuinely bad odds, because the CA9 row-2 gate arms only for a `cautious` marshal (objections are correctly gone by design; whether he should get an "are you sure" is a gate);
-  2. **"The Interned Column"** — `DESIGN_REFINEMENT.md` §PC15-D1 homes this rider to *"the row NP exit review"*, i.e. this session. It is surfaced with the finding that **PC15-D1's own ruling substantially narrowed its premise**: the retreat scan now obeys the movement law, so an army can no longer retreat ONTO neutral soil at all — the rider's case survives only for an army already standing there when it is cornered.
+* **Two questions the user owned — BOTH RULED at the close of this session**
+  (spec §15.9a carries the record):
+  1. **the sovereign's attack-confirm → NO CONFIRM.** He is the player's own
+     hand; a confirmation on your own decision is the friction NP-1 exists to
+     remove, and the Peril is meant to be a wager made with open eyes. What
+     was an accident of the CA9 row-2 gate keying on `cautious` is now the
+     written rule.
+  2. **"The Interned Column" → CLOSED, not deferred.** Its owner row was this
+     review, and the review's own finding decided it: PC15-D1's ruling
+     narrowed the premise to an army already standing on neutral soil when
+     cornered. Capitulation in place is the 1805-exact outcome (Ulm,
+     Prenzlau, Ratekau), and a neutral holder adds a party with no other
+     mechanics. GR9 satisfied by CLOSURE — no player-facing promise remains.

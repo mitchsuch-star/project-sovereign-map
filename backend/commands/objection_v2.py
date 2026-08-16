@@ -994,6 +994,15 @@ def muster_gate_arms(marshal, odds_band: str) -> bool:
     flip the personality and this flips; hold the personality fixed and
     flip the band and this flips too. Callers must not add a third term
     here without moving the gate record.
+
+    ⚠ THE SOVEREIGN NEVER ARMS THIS, AND THAT IS A RULING, NOT AN
+    ACCIDENT (user, Aug 15 2026 — NAPOLEON_SPEC §15.9a). He falls out
+    today because `sovereign` is not in MUSTER_GATE_PERSONALITIES, which
+    is the kind of silence a later reader "fixes". He is the player's own
+    hand (§2 pillar 1): a confirmation dialog on your own decision is
+    precisely the friction NP-1 exists to remove, and §7's Peril is meant
+    to be a wager made with open eyes. Adding `sovereign` here re-opens a
+    closed gate.
     """
     return (odds_band == MUSTER_GATE_BAND
             and getattr(marshal, "personality", None)

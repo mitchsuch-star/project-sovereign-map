@@ -567,3 +567,35 @@ class TestThePetitionBeatReachesTheDispatch:
         assert len(rendered) == 1, rendered
         assert rendered[0]["severity"] == "warning"
         assert "seeks an audience" in rendered[0]["message"]
+
+
+class TestTheSovereignIsNeverAskedToConfirm:
+    """RULED by the user, Aug 15 2026 (NAPOLEON_SPEC §15.9a): the sovereign
+    gets NO attack-confirm, even on genuinely bad odds. He falls out today
+    because `sovereign` is simply absent from MUSTER_GATE_PERSONALITIES —
+    the kind of silence a later reader "fixes" — so the ruling is pinned
+    rather than left to the omission.
+    """
+
+    def test_the_gate_never_arms_for_him(self, europe):
+        from backend.commands.objection_v2 import (
+            MUSTER_GATE_BAND, muster_gate_arms,
+        )
+        nap = europe.marshals["Napoleon"]
+        assert muster_gate_arms(nap, MUSTER_GATE_BAND) is False
+
+    def test_a_cautious_marshal_still_arms_it(self, europe):
+        """Control — the ruling is about HIM, not about the gate."""
+        from backend.commands.objection_v2 import (
+            MUSTER_GATE_BAND, MUSTER_GATE_PERSONALITIES, muster_gate_arms,
+        )
+        cautious = next(m for m in europe.marshals.values()
+                        if getattr(m, "personality", None)
+                        in MUSTER_GATE_PERSONALITIES)
+        assert muster_gate_arms(cautious, MUSTER_GATE_BAND) is True
+
+    def test_sovereign_is_not_in_the_gate_set(self):
+        from backend.commands.objection_v2 import MUSTER_GATE_PERSONALITIES
+        assert "sovereign" not in MUSTER_GATE_PERSONALITIES, (
+            "the sovereign's missing attack-confirm is a RULING "
+            "(NAPOLEON_SPEC §15.9a), not an oversight to be corrected")
