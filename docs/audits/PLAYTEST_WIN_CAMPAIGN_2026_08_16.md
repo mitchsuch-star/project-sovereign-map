@@ -11,6 +11,12 @@
 > make it easier, report any bugs and do a review, see if any features are
 > bad or missing."*
 
+> **▶ FIX PASS, same day (§7).** The user directed *"make any fixes
+> needed including [WIN-D2]"*. **All seven bug rows are FIXED and the
+> WIN-D2 design question was RULED and BUILT** as "The Spoils of War".
+> Gate record: `DESIGN_REFINEMENT.md` §Win-Attempt Campaign. Suite
+> 18,096/3.
+
 ---
 
 ## 0. The one-paragraph answer
@@ -97,8 +103,12 @@ be protected by whatever fixes follow:
 ## 4. Bugs found (detail in `BUG_FIXES.md` §WIN)
 
 Four are **harness** defects that had silently degraded every prior
-unattended evaluation; three are **game** defects. All harness ones are
-fixed in this session; the game ones are routed OPEN.
+unattended evaluation; three are **game** defects.
+
+> **Status after the §7 fix pass: ALL SEVEN ARE FIXED.** The findings
+> below are kept in the words they were found in — including "routed
+> OPEN" and "the production half remains open", both of which §7 closed
+> — so the record shows what was measured before it shows what was done.
 
 ### 4.1 Harness — FIXED this session
 
@@ -248,3 +258,78 @@ possibly too cheap.
   throughout and the whole campaign ran in-process, touching none of it.
 - Harness fixes are pinned by
   `tests/test_playtest_harness_win_campaign_2026_08_16.py` (15 tests).
+
+---
+
+## 7. The fix pass (same day)
+
+User direction: *"make any fixes needed including [WIN-D2 …] Bugs"*.
+
+### 7.1 WIN-D2 — "The Spoils of War" (the design ruling, BUILT)
+
+**Ruled and built at the recommended default under the delegated grant.
+Gate record: `DESIGN_REFINEMENT.md` §Win-Attempt Campaign (authoritative).**
+
+The measured moment was not a bug — it was a single allied corps walking
+into provinces a French victory had emptied, *while French armies stood
+next to them*, with the player holding no lever of any kind. The rule:
+
+> An AI will not take an undefended enemy province out from under a
+> **co-belligerent better placed to take it** — a nation allied to it,
+> itself at war with that province's owner, with strictly more strength
+> adjacent.
+
+`enemy_ai._defers_spoils_to_ally`, one predicate at one call site
+(`_find_undefended_capture`), **zero new serialized fields**, behind the
+flip lever `SPOILS_DEFERENCE_ACTIVE`. Strictly-greater so it cannot
+deadlock; adjacency-scoped so distant allies never block;
+co-belligerent-scoped so an enemy massing next door is never a reason to
+hold back; symmetric by construction, so an AI defers to another AI
+exactly as it defers to France.
+
+**Measured on the campaign's own phase 1, replayed:** allied Bavaria went
+from **7 provinces at turn 6 → 3, its boot count**, with Austria's 7 still
+on the table. Rejected alternatives (war-aim reservation at declaration;
+contribution-weighted post-war partition) are recorded in the gate record
+with reasons — each needs new serialized state, new UI and its own gate,
+and neither addresses the measured moment.
+
+**Honest limits.** An ally still takes what the player is not placed to
+take — Bavaria took Tyrol in the verification run with no French corps
+adjacent, and that is the rule working, not failing. And because campaign
+runs carry combat RNG that the campaign seed does not pin, a single
+before/after pair is **not** proof on its own; the behaviour is pinned by
+tests instead, including a both-directions case on the real rung with a
+real `WorldState`.
+
+### 7.2 The bug rows
+
+| Row | Fix |
+|---|---|
+| WIN-H1 | The **production** half landed too: `_include_command_strategic_reports` promotes the first report awaiting input to `pending_interrupt` (never overwriting a live one), so one contract serves the Godot client and every headless client |
+| WIN-1 | The `execute_proposal` arm arrives `enabled: False` **with its reason**, at the mount seam that already computed the block; modify/adjust/Reconsider stay live so the player is never dead-ended |
+| WIN-2 | The commentary tag is re-checked against the FINAL demands after the easing ladder drops territory. Verified live: the same draft now reads *"They have little choice but to accept…"* instead of *"Border territory provides strategic depth."* |
+| WIN-3 | The refusal names the place it resolved to — which also makes the NPC-7 misresolution visible instead of silent |
+
+### 7.3 A defect in this session's own first fix
+
+The WIN-H3 cycle guard, as first written, keyed on `(surface, choice)`.
+Every dialogue family rides the key `diplomatic_dialogue`, so **"decline a
+settlement offer, then decline a proposal" tripped it** and stopped a
+chain that was making progress — visible in the very next run as a
+spurious `⚠ ANSWER CYCLE` in win-p1 turn 4. The signature now carries the
+summary, and non-answers (`(left standing)`, `display-only`) never count.
+Pinned by `test_same_answer_to_DIFFERENT_dialogues_is_not_a_cycle`.
+
+### 7.4 Verification
+
+- Suite **18,096 / 3**, ruff clean.
+- `BASELINE_SERIES` and M1–M7 **byte-identical without re-record** — a
+  fact about the ambient harness (it never places a stronger
+  co-belligerent beside an undefended province), *not* proof of safety.
+  Stated plainly rather than presented as a green light.
+- Pins: `tests/test_win_campaign_fixes_2026_08_16.py` (22) and
+  `tests/test_playtest_harness_win_campaign_2026_08_16.py` (17).
+- Live-verified over the real `/command` surface: the peace draft's
+  disabled arm and corrected commentary (probe), and the phase-1
+  province counts (driver).

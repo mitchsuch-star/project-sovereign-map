@@ -77,6 +77,28 @@ AI_SCORING_ENABLED = True
 # always intended (the player's expedition costs 2 MILITARY AP).
 AI_NAVAL_AP_PARITY = True
 
+# WIN-D2 "The Spoils of War" (gate record: docs/audits/
+# PLAYTEST_WIN_CAMPAIGN_2026_08_16.md §5.2 + the ruling in
+# DESIGN_REFINEMENT.md §Win-Attempt Campaign) — flip lever for the
+# BASELINE_SERIES attribution experiment: False restores the old
+# behaviour byte-identically (any co-belligerent may walk into any
+# undefended province first).
+#
+# Measured cause: France annihilated Austria's field army and gained ONE
+# province while allied Bavaria walked into Vienna, Bohemia, Moravia and
+# Hungary, going 3 -> 9. The captures were legal — a single Bavarian
+# corps marching into provinces French victories had emptied — and the
+# player had no lever of any kind against it.
+#
+# The rule: an AI will not take an undefended enemy province out from
+# under a co-belligerent who is BETTER PLACED to take it. Only strictly
+# greater adjacent strength defers, so the best-placed partner always
+# acts and the rung can never deadlock. Symmetric by construction: it
+# reads co-belligerents, not "the player", so AI-AI coalitions obey it
+# too, and an ally who is not adjacent never blocks anything.
+SPOILS_DEFERENCE_ACTIVE = True
+
+
 def ai_debug(msg: str):
     """Print debug message if AI_DEBUG is enabled."""
     if AI_DEBUG:
@@ -3264,6 +3286,51 @@ class EnemyAI:
 
         return None
 
+    def _defers_spoils_to_ally(self, marshal: Marshal, target_region: str,
+                               nation: str, world: WorldState) -> bool:
+        """WIN-D2 — is a co-belligerent better placed to take this province?
+
+        True when some nation ALLIED with `nation`, and itself at war with
+        the province's controller, has strictly MORE strength adjacent to
+        `target_region` than `nation` does. Strictly greater, so the
+        best-placed partner never defers and the rung cannot deadlock;
+        adjacency-scoped, so a distant ally never blocks a capture.
+
+        Scale (GR8): walks the target's own adjacency list (<= 8) and the
+        marshal roster per region — never `world.regions.values()`.
+        """
+        if not SPOILS_DEFERENCE_ACTIVE:
+            return False
+
+        region = world.get_region(target_region)
+        if not region:
+            return False
+        owner = region.controller
+
+        # Strength adjacent to the prize, per nation.
+        adjacent_strength: Dict[str, float] = {}
+        for neighbour in list(region.adjacent_regions) + [target_region]:
+            for other in world.get_marshals_in_region(neighbour):
+                if other.strength <= 0:
+                    continue
+                adjacent_strength[other.nation] = (
+                    adjacent_strength.get(other.nation, 0.0) + other.strength)
+
+        mine = adjacent_strength.get(nation, 0.0)
+        for other_nation, strength in adjacent_strength.items():
+            if other_nation == nation or strength <= mine:
+                continue
+            # Only a co-belligerent defers us: an ally of ours who is also
+            # fighting this province's owner. A neutral or an enemy massing
+            # next door is emphatically not a reason to hold back.
+            state = world.get_diplomatic_state(nation, other_nation)
+            if state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"):
+                continue
+            if not world.is_at_war(other_nation, owner):
+                continue
+            return True
+        return False
+
     def _find_undefended_capture(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
         Find an undefended enemy region to capture.
@@ -3344,6 +3411,13 @@ class EnemyAI:
                 continue
 
             ai_debug("        -> UNDEFENDED enemy territory!")
+
+            # WIN-D2 "The Spoils of War" — do not take a province out from
+            # under a co-belligerent who is better placed to take it.
+            if self._defers_spoils_to_ally(marshal, adj_name, nation, world):
+                ai_debug("        -> Skip: a co-belligerent stands stronger "
+                         "beside it — the spoils are theirs to take")
+                continue
 
             # Evaluate safety before adding to candidates
             is_safe, reason = self._evaluate_capture_safety(marshal, adj_name, nation, world)

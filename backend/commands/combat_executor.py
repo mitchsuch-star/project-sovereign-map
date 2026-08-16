@@ -4359,7 +4359,19 @@ class CombatExecutor:
                         if enemy_distance <= marshal.movement_range:
                             nearby_targets.append(f"{enemy.name} at {enemy.location} ({enemy_distance} region{'s' if enemy_distance != 1 else ''} away)")
 
-                error_msg = f"{marshal.name} cannot reach {target} from {marshal.location}! "
+                # WIN-3: name the PLACE, not just a bare distance. The old
+                # line ("cannot reach Mack from Swabia! Range: 1, Distance:
+                # 8") gave the player nothing to act on — and, because a
+                # name that is not a live enemy falls through to region
+                # fuzzy-matching, the distance was sometimes measured to a
+                # province the player never named. Saying where the game
+                # actually looked makes that misresolution visible instead
+                # of silent (the NPC-7 family). Fog-safe: this branch is
+                # only reached for a region target or a non-player marshal.
+                where = (f" ({target_location})"
+                         if str(target_location) != str(target) else "")
+                error_msg = (f"{marshal.name} cannot reach {target}{where} "
+                             f"from {marshal.location}! ")
                 error_msg += f"Range: {marshal.movement_range}, Distance: {distance}"
 
                 suggestion = None

@@ -874,6 +874,28 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
             dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
                 {"severity": "high", "text": block_text}
             ]
+            # WIN-1: warning the player was only half the job — "Send as
+            # suggested" stayed ENABLED and FIRST, the send was refused at
+            # execution, and the refusal re-attached the same dialogue, so
+            # the option could be pressed forever and never succeed
+            # (measured 6/6 in probe; organically against two courts).
+            # Honest availability: the arm that cannot work arrives
+            # DISABLED and says why, exactly as the vassal-wizard gate rows
+            # and the NV-6 naval chips do. The other arms — modify, adjust,
+            # Reconsider — stay live, so the player is never dead-ended.
+            _blocked_actions = {"execute_proposal"}
+            _options = []
+            for _opt in dialogue.get("options") or []:
+                if (isinstance(_opt, dict)
+                        and _opt.get("action") in _blocked_actions):
+                    _opt = dict(_opt)
+                    _opt["enabled"] = False
+                    _opt["available"] = False
+                    _opt["unavailable_reason"] = block_text
+                    _opt["description"] = block_text
+                _options.append(_opt)
+            if _options:
+                dialogue["options"] = _options
 
     return dialogue
 

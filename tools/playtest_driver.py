@@ -330,7 +330,16 @@ class Digest:
         # Signature trail for drain()'s cycle guard — every answered
         # surface passes through here, so this is the one honest place
         # to notice that the run is going in circles.
-        self.recent.append((str(key), str(answer)))
+        #
+        # The signature MUST include the summary: every dialogue family
+        # shares the key `diplomatic_dialogue`, so (key, answer) alone
+        # read "decline an incoming proposal, then decline a settlement
+        # offer" as a loop and stopped a chain that was making progress.
+        # And a surface that was NOT answered is not evidence of
+        # anything — only real answers count.
+        if str(answer) not in ("(left standing)", "display-only",
+                               "(no options)"):
+            self.recent.append((str(key), str(summary), str(answer)))
         self._md(f"  - POPUP {key}: {summary} → {answer}")
         self.record("popup", key=key, summary=summary, answer=answer)
 
@@ -725,12 +734,14 @@ def drain(transport, digest, answerer, response, strict):
             counts[sig] = counts.get(sig, 0) + 1
         looping = [s for s, n in counts.items() if n >= 2]
         if looping:
-            key, choice = looping[0]
-            digest.note(f"⚠ ANSWER CYCLE — `{key}` answered `{choice}` "
-                        f"{counts[looping[0]]}× in one post; the policy "
-                        f"cannot resolve this surface. Stopping the chain.")
+            key, summary, choice = looping[0]
+            digest.note(f"⚠ ANSWER CYCLE — `{key}` ({summary}) answered "
+                        f"`{choice}` {counts[looping[0]]}× in one post; the "
+                        f"policy cannot resolve this surface. Stopping the "
+                        f"chain.")
             digest.unknown_blockers.append(
-                {"key": key, "choice": choice, "reason": "answer-cycle"})
+                {"key": key, "summary": summary, "choice": choice,
+                 "reason": "answer-cycle"})
             if strict:
                 raise RuntimeError(f"answer cycle on {key} under --strict")
             return

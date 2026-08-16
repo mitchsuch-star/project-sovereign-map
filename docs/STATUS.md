@@ -61,8 +61,44 @@
 > "hard-lock" (my harness oscillating), the latter already written up as a
 > P1 before it was checked and killed.
 >
+> **✅ THE FIX PASS LANDED SAME DAY** (user: *"make any fixes needed
+> including [WIN-D2] … Bugs"*). **All seven WIN rows FIXED and WIN-D2
+> RULED + BUILT.** Suite **18,096 / 3**, ruff clean; `BASELINE_SERIES`
+> and M1–M7 byte-identical **without re-record** — a fact about the
+> ambient harness, not proof of safety, so the behaviour is pinned
+> directly instead.
+>
+> **WIN-D2 = "The Spoils of War"** (gate record `DESIGN_REFINEMENT.md`
+> §Win-Attempt Campaign, authoritative): an AI will not take an
+> undefended enemy province out from under a **co-belligerent better
+> placed to take it** — a nation allied to it, itself at war with that
+> province's owner, with strictly more strength adjacent. ONE predicate
+> (`enemy_ai._defers_spoils_to_ally`) at ONE call site, **zero new
+> serialized fields**, behind the flip lever `SPOILS_DEFERENCE_ACTIVE`;
+> strictly-greater so it cannot deadlock, adjacency-scoped so a distant
+> ally never blocks, symmetric so an AI defers to another AI exactly as
+> it defers to France. **Measured on the campaign's own phase 1,
+> replayed: allied Bavaria 7 provinces at turn 6 → 3, its boot count,
+> with Austria's 7 still on the table.** War-aim reservation and
+> contribution-weighted partition were considered and rejected with
+> reasons on record. An ally still takes what the player is not placed
+> to take — that is the rule working. **WIN-D4's standing instruction
+> holds: do not tune the rente constants until a played campaign
+> re-measures income under this rule.**
+>
+> Bug rows: WIN-H1's **production** half landed (the end-turn interrupt
+> is promoted to `pending_interrupt`, so one contract serves the Godot
+> client and every headless one); WIN-1's dead option now arrives
+> `enabled: False` with its reason while the other arms stay live;
+> WIN-2's commentary is re-checked against the FINAL demands after the
+> easing ladder drops territory; WIN-3 names the place it resolved to.
+> **A defect in this session's own first fix was found and fixed:** the
+> cycle guard keyed on `(surface, choice)`, and every dialogue family
+> rides the key `diplomatic_dialogue`, so declining two different
+> letters tripped it and stopped a live chain.
+>
 > **NEXT = unchanged: position 10, the shippable build** — unless the user
-> prefers the NPC P1 cluster or the WIN-D2 design gate first.
+> prefers the NPC P1 cluster or the remaining WIN-D rows first.
 
 > ## ✅ THE PLAYED CAMPAIGN + THE NP-6 EVALUATION — August 16, 2026
 >

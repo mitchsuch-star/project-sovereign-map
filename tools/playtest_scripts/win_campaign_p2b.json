@@ -1,0 +1,15 @@
+{
+  "name": "win-p2b-spoils",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "WIN-D2 verification. Resumes the post-fix p1 save (world turn 6). Under the OLD behaviour allied Bavaria had already taken Vienna, Bohemia, Moravia and Hungary by now and France could not attack them at all ('Massena cannot attack Bavaria — they are our ally'). With The Spoils of War the provinces are still Austrian, so the question this run answers is whether FRANCE can take what France's victories emptied.",
+  "turns": {
+    "1": ["Massena, attack Archduke Charles", "Ney, move to Tyrol", "Soult, move to Bohemia", "Murat, move to Swabia"],
+    "2": ["Massena, move to Bohemia", "Ney, attack Archduke John", "Davout, move to Franconia", "Lannes, move to Munich"],
+    "3": ["Soult, move to Vienna", "Massena, move to Moravia", "Davout, move to Bohemia", "Murat, move to Munich"],
+    "4": ["Massena, move to Hungary", "Soult, move to Vienna", "Davout, move to Moravia", "Ney, move to Carniola"],
+    "5": ["Soult, move to Vienna", "Massena, move to Hungary", "Davout, move to Vienna", "Murat, move to Tyrol"],
+    "6": ["status", "Soult, move to Vienna", "Ney, move to Carniola", "Lannes, move to Bohemia"]
+  },
+  "policy": {"objection": "insist", "diplomacy": "decline", "capture": "secure"}
+}

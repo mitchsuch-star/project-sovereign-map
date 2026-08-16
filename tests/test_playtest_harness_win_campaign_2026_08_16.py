@@ -83,7 +83,7 @@ class TestInterruptReportDiscovery:
                 self.recent = []
 
             def popup(self, key, summary, answer):
-                self.recent.append((key, str(answer)))
+                self.recent.append((str(key), str(summary), str(answer)))
 
             def battle(self, report):
                 pass
@@ -154,13 +154,23 @@ class _CyclingAnswerer:
 
 
 class _Digest:
+    """Mirrors the real Digest's signature trail, INCLUDING the summary.
+
+    The signature must carry the summary: every dialogue family shares the
+    key `diplomatic_dialogue`, so a (key, answer) pair read "decline an
+    incoming proposal, then decline a settlement offer" as a loop and
+    stopped a chain that was making progress (measured in win-p1)."""
+
+    NON_ANSWERS = ("(left standing)", "display-only", "(no options)")
+
     def __init__(self):
         self.recent = []
         self.notes = []
         self.unknown_blockers = []
 
     def popup(self, key, summary, answer):
-        self.recent.append((str(key), str(answer)))
+        if str(answer) not in self.NON_ANSWERS:
+            self.recent.append((str(key), str(summary), str(answer)))
 
     def note(self, text):
         self.notes.append(text)
@@ -212,6 +222,44 @@ class TestAnswerCycleGuard:
         driver.drain(None, digest, answerer, {}, False)
         assert not digest.notes
         assert not digest.unknown_blockers
+
+    def test_same_answer_to_DIFFERENT_dialogues_is_not_a_cycle(self):
+        """The regression the guard itself caused: every dialogue family
+        rides the key `diplomatic_dialogue`, so declining a proposal and
+        then declining a settlement offer looked identical. It stopped a
+        live chain in win-p1 turn 4."""
+        digest = _Digest()
+
+        class TwoDeclines:
+            def __init__(self):
+                self.n = 0
+
+            def scan(self, response):
+                self.n += 1
+                if self.n == 1:
+                    digest.popup("diplomatic_dialogue",
+                                 "incoming_settlement_offer", "decline")
+                    return [{"step": 1}]
+                if self.n == 2:
+                    digest.popup("diplomatic_dialogue",
+                                 "incoming_proposal", "decline")
+                    return [{"step": 2}]
+                return []
+
+        driver.drain(None, digest, TwoDeclines(), {}, False)
+        assert not digest.notes, digest.notes
+        assert not digest.unknown_blockers
+
+    def test_unanswered_surfaces_never_count(self):
+        """A surface left standing is not an answer, so two of them are
+        not evidence of a loop."""
+        digest = _Digest()
+        digest.popup("diplomatic_dialogue", "Prussia, open_borders",
+                     "(left standing)")
+        digest.popup("diplomatic_dialogue", "Prussia, open_borders",
+                     "(left standing)")
+        digest.popup("battle_diorama", "x", "display-only")
+        assert digest.recent == []
 
 
 # ═══════════════════════════════════════════════════════════════════

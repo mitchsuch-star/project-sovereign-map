@@ -3532,6 +3532,22 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             world=world,
         )
 
+    # WIN-2: the easing ladder's FIRST rung drops territory demands, but
+    # `border_territory_demanded` was tagged back in stage 2b — so stage 4
+    # below picked commentary describing a demand that no longer exists.
+    # Measured: demands `[{gold_per_turn: 187}]` presented under "Border
+    # territory provides strategic depth. A prudent demand." Re-check the
+    # demand-derived tag against the FINAL package. Only this tag needs it:
+    # the other territory tags (`coveted_territory_offered`,
+    # `smart_cession`) describe SWEETENERS, which the ladder never touches.
+    if "border_territory_demanded" in context_tags:
+        still_demanded = any(
+            d.get("type") in ("territory_cede", "territory")
+            for d in terms.get("demands", []))
+        if not still_demanded:
+            context_tags = [t for t in context_tags
+                            if t != "border_territory_demanded"]
+
     # --- Stage 4: Commentary ---
     if not context_tags:
         if war_score < -30:

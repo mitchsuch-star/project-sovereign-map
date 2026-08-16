@@ -17,11 +17,58 @@
 > **The finding underneath all five:** the game's *war* systems are strong
 > and its *consequence* systems do not pay them off. Every row below is a
 > different face of "you won and nothing changed."
+>
+> ### ✅ GATE RECORD — WIN-D2 RULED AND BUILT August 16, 2026
+> ### under the user's delegated grant ("make any fixes needed including
+> ### [WIN-D2]"). AUTHORITATIVE. The other six rows stay OPEN.
+>
+> **Ruling: the player keeps what the player's army is placed to take —
+> "The Spoils of War."** An AI will not take an undefended enemy province
+> out from under a **co-belligerent who is better placed to take it**:
+> if a nation allied to the AI, and itself at war with that province's
+> owner, has strictly MORE strength adjacent to it, the AI passes.
+>
+> **Why this shape and not the alternatives.** A *war-aim reservation*
+> system (claim provinces at declaration) and a *contribution-weighted
+> post-war partition* were both considered and rejected for this pass:
+> each needs new serialized state, new UI and its own gate, and neither
+> addresses the actual measured moment — a single allied corps walking
+> into provinces a French victory had emptied *while French armies stood
+> next to them*. The chosen rule needs **zero new serialized fields**,
+> lives in ONE predicate at ONE call site, and restores the missing
+> agency directly: break the army, march up, and the ground is yours.
+>
+> **Properties, each pinned:** strictly-greater so the best-placed
+> partner always acts and the rung cannot deadlock · adjacency-scoped so a
+> distant ally never blocks · co-belligerent-scoped so a neutral or an
+> enemy massing next door is never a reason to hold back · **symmetric by
+> construction (GR5)** — it reads co-belligerents, not "the player", so
+> an AI defers to another AI exactly as it defers to France · behind the
+> flip lever `enemy_ai.SPOILS_DEFERENCE_ACTIVE` for BASELINE_SERIES
+> attribution · GR8-safe (walks the target's own adjacency list, never
+> `world.regions.values()`).
+>
+> **Measured.** The campaign's own phase 1, replayed: allied Bavaria went
+> from **7 provinces at turn 6 (Vienna, Bohemia, Moravia, Hungary taken)
+> to 3 — its boot count — with Austria's 7 still on the table for France
+> to take.** `BASELINE_SERIES` and M1–M7 are byte-identical *without*
+> re-record, which is a fact about the ambient harness (it never puts a
+> stronger co-belligerent beside an undefended province), not proof of
+> safety — so the behaviour is pinned directly instead, including a
+> both-directions test on the real rung with a real `WorldState`.
+>
+> **What this does NOT fix, deliberately:** an ally still takes provinces
+> the player is not placed to take (correct — Bavaria took Tyrol in the
+> verification run with no French corps adjacent, and that is the rule
+> working). WIN-D4's rente insolvency is still downstream of how much
+> conquest actually pays, so **the standing instruction holds: do not
+> tune the rente constants until a played campaign re-measures income
+> under this rule.**
 
 | # | Question | Measured evidence | Notes toward an answer |
 |---|---|---|---|
 | **WIN-D1** | **Should the 1805 campaign have any victory condition, and what should it be?** | `turn_manager._check_victory_conditions` returns `{"game_over": False}` unconditionally — the `sandbox_mode` guard is the method's first statement. I knocked a great power out of the war and signed two peaces; **no surface anywhere — dispatch, ledger, gazette — treated it as progress toward anything.** No score, no objective list, no "what would winning look like" screen | Already owned by the **Victory & Objectives Pass (ROADMAP positions 12–13)** — this row is evidence for that gate, not a new one. What the campaign adds: the absence is felt most at the moment a war *ends well*, which suggests objectives should be readable mid-campaign, not only scored at the end |
-| **WIN-D2** | **Should the player be able to keep what the player conquers?** ⭐ headline | France annihilated Austria's field army and gained **Tyrol**. Allied **Bavaria took Vienna, Bohemia, Moravia and Hungary** — going 3 → 9 provinces while France went 28 → 30. The mechanism is not a bug: French battles emptied those provinces, and the Bavarian AI walked into the vacuum | There is currently **no lever at all**: no way to reserve a war aim, claim a province before an ally reaches it, or partition in the player's favour after the war. Note the interaction with ES-7 — the estate/reward economy assumes conquest produces spoils to distribute, and here it produced almost none. Options worth arguing: war-aim reservation at declaration; an ally-restraint diplomatic instrument; post-war partition weighted by contribution (the `campaign_ledgers` PT-J2 substrate already measures contribution) |
+| ✅ **WIN-D2** | **RULED + BUILT** — should the player be able to keep what the player conquers? ⭐ headline | France annihilated Austria's field army and gained **Tyrol**. Allied **Bavaria took Vienna, Bohemia, Moravia and Hungary** — going 3 → 9 provinces while France went 28 → 30. The mechanism is not a bug: French battles emptied those provinces, and the Bavarian AI walked into the vacuum | There is currently **no lever at all**: no way to reserve a war aim, claim a province before an ally reaches it, or partition in the player's favour after the war. Note the interaction with ES-7 — the estate/reward economy assumes conquest produces spoils to distribute, and here it produced almost none. Options worth arguing: war-aim reservation at declaration; an ally-restraint diplomatic instrument; post-war partition weighted by contribution (the `campaign_ledgers` PT-J2 substrate already measures contribution) |
 | **WIN-D3** | **Should making peace strand the army that won it?** | The turn Russia accepted peace: *"Cannot enter Podolia — it is controlled by Russia (diplomatic state: PEACE). Open borders or higher required."* Four corps left deep in the east, bleeding supply attrition, with no route home but a multi-turn march across newly-sovereign soil | Mechanically consistent with the D2 "Ally's Table" ruling (only ALLY-tier states grant passage). The question is whether a peace treaty should carry an automatic **withdrawal grace** — N turns of transit for forces already inside the signatory's territory — which is also the historically normal clause |
 | **WIN-D4** | **Is the reward economy affordable at the rate victory generates claims?** | Two rentes cost **1,260 g/turn**. Net income fell **+2,456 → −215** across the campaign. Marshals demanded rewards *because* they kept winning; paying them is what made France insolvent. The loop reads: win → marshals demand → pay → go broke | Interacts with WIN-D2 — the reward economy is priced for an empire that grows, and conquest currently does not grow it. Fixing D2 may fix D4 without touching a constant. Do not tune the rente numbers before D2 is answered |
 | **WIN-D5** | **Should the Emperor be able to reach his own war?** | Paris is 5 provinces from the German front; marshals move 1/turn. Napoleon left Paris turn 2, had not reached the front by turn 11, and **fought in zero battles across 23 turns**. Row NP's whole kit — Presence, Shadow, Peril — is gated behind that march | Owner = row NP / its exit review. Options: a sovereign movement allowance, a capital-to-front posting action, or authoring him forward at boot. Note NP-6's memo is already open and this is cheaper than it |

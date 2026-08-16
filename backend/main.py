@@ -1207,6 +1207,23 @@ def _include_command_strategic_reports(response: dict, result: dict) -> None:
     strategic_reports = result.get("strategic_reports")
     if strategic_reports:
         response["strategic_reports"] = strategic_reports
+        # NPC-16 / WIN-H1: an interrupt raised during END-TURN processing
+        # rides ONLY strategic_reports[i].requires_input. main.gd:4218
+        # derives the popup from that list, so the client was always fine
+        # — but every other consumer (the playtest driver, any headless
+        # or scripted client) saw nothing to answer, so step 0a returned
+        # "awaiting_response" forever and the marshal, then the turn loop,
+        # froze. Promote the first report awaiting input to the key the
+        # synchronous interrupt path already uses, so ONE contract serves
+        # both routes. Never overwrite a live pending_interrupt: that one
+        # is the immediate, more specific surface.
+        if not response.get("pending_interrupt"):
+            awaiting = next((r for r in strategic_reports
+                             if isinstance(r, dict) and r.get("requires_input")),
+                            None)
+            if awaiting:
+                response["pending_interrupt"] = awaiting
+                response["requires_input"] = True
         if DEBUG_MODE:
             print(f"[STRATEGIC_REPORTS] Sending {len(strategic_reports)} reports to Godot:")
             for i, sr in enumerate(strategic_reports):
