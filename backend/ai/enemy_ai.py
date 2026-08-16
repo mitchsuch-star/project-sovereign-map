@@ -57,6 +57,7 @@ from backend.models.world_state import (
     MAX_CAVALRY_POOL,
 )
 from backend.models.marshal import Marshal, Stance
+from backend.game_logic import withdrawal
 
 # Bug fix history archived to docs/archive/ENEMY_AI_BUG_HISTORY.md (Session 11)
 
@@ -1733,6 +1734,32 @@ class EnemyAI:
                 ai_debug(f"  -> Recovery action: {action}")
                 return (action, 1)
             return (None, 999)
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 1.2: THE ROAD HOME (WIN-D3, WAR_WITHDRAWAL_SPEC §4.2)
+        # A war this nation was in has ended and this corps is on the wrong
+        # side of the new frontier. It walks home, one province a turn,
+        # under the corridor the peace granted.
+        #
+        # This rung exists because GR5 would otherwise be a fiction: the
+        # free march order is a `strategic_order`, and `enemy_ai` has never
+        # read that field for anything. The AI would be handed a road it
+        # could not see and then interned for failing to walk it — measured
+        # at three AI corps lost in a 40-turn ambient run, one of them a
+        # single march from its own border. Sited just below retreat
+        # recovery (a broken corps reforms first) and above everything
+        # else, because a treaty's clock outranks opportunism.
+        # ════════════════════════════════════════════════════════════
+        if withdrawal.is_road_home_order(
+                getattr(marshal, "strategic_order", None)):
+            step = withdrawal.next_step_home(world, marshal)
+            if step:
+                ai_debug(f"  P1.2: ROAD HOME — {marshal.name} -> {step}")
+                return ({
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": step
+                }, 1)
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 2 (ARTILLERY): SCREEN CHECK

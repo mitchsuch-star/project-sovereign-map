@@ -4,6 +4,51 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ "THE ROAD HOME" — WIN-D3 + WIN-D5 BUILT August 16, 2026 (third session that day)
+>
+> **Gate record + landing record = `docs/WAR_WITHDRAWAL_SPEC.md` §7a,
+> authoritative.** All four §7 gate questions were delegated to the builder
+> and **all four were taken at the recommended default** — internment on
+> lapse (with three warnings), the self-refreshing corridor, per-pair scope,
+> and refusing honestly for a cut-off corps. Suite **18,147 / 3** (baseline
+> 18,099/3), ruff clean, no `.gd` touched.
+>
+> **What landed.** `backend/game_logic/withdrawal.py`: a war's end grants a
+> temporary right of transit home at the `set_diplomatic_state` chokepoint
+> (PT-J1's reason — vassalization and the forced-alliance arm never reach
+> `cleanup_war_end`), consumed by ONE arm on `can_enter_territory` so all
+> ~25 movement seams inherit it, on ONE new serialized field
+> (`evacuation_grants`), plus a free 0-AP MOVE_TO home for every stranded
+> corps on BOTH sides. §3.4's five never-do pins are falsifiable tests.
+> WIN-D5: the Emperor boots at **Lorraine**, one march from Mack at Swabia,
+> beside Soult's corps his Guard was carved from.
+>
+> **Three things worth the user's attention.**
+> 1. **The spec's own §4.1 predicate would have missed the measured
+>    defect** — the four stranded corps were on soil France had *captured*,
+>    so they occupied nothing improperly. The built predicate asks whether
+>    a corps can reach the body of its own realm at all.
+> 2. **`_force_retreat_displaced_marshals` is RETIRED.** A teleport already
+>    existed at `cleanup_war_end` and the spec did not know it. It
+>    intercepted the corridor's flagship case, it *is* the invented rescue
+>    gate Q4 declined, and it never covered the measured defect anyway.
+> 3. **Two closed-phase AI-Intent pins were amended, on the record, not
+>    quietly** — the passive-France mirror drift and the non-player threat
+>    bound. Both moved because of WIN-D5; both amendments name the lever to
+>    pull if the user disagrees. The second one's first explanation was
+>    WRONG and is recorded as wrong (it is not D3's eclipse — Austria ends
+>    with 8 provinces to France's 21; her 83 is 36 battle wins).
+>
+> **Seven defects were found by driving the game, five of them by a single
+> player-side playtest run** — including the Emperor being ordered home
+> from allied Munich, and a marshal interned having never been warned on
+> screen. All fixed and pinned; 14-mutation sweep, 14 killed.
+>
+> ⚠ **Open, and not caused by this slice: WIN-H5** — the p4 acceptance
+> digest no longer reaches its scenario and blocks in a `settlement_confirm`
+> loop (reproduced at HEAD before any code was written, and again on a
+> second script). It needs its own session.
+
 > ## ✅ THE WIN-ATTEMPT CAMPAIGN — August 16, 2026 (second session that day)
 >
 > **Memo of record = `docs/audits/PLAYTEST_WIN_CAMPAIGN_2026_08_16.md`

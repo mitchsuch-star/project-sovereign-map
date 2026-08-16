@@ -821,7 +821,7 @@ class TestUntouched:
     def test_no_new_campaign_log_type(self):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
 
-        assert len(CAMPAIGN_LOG_TYPES) == 158  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.
+        assert len(CAMPAIGN_LOG_TYPES) == 160  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").
 
     def test_no_new_dialogue_type(self):
         assert "envoy_digest" not in DialogueManager.DIALOGUE_PRIORITY

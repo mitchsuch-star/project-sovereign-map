@@ -104,6 +104,12 @@ CAMPAIGN_LOG_TYPES = {
     "marshal_released",
     # PC15-1: corps annihilation — the fall was silent before this type
     "marshal_destroyed",
+    # WIN-D3 "The Road Home": the evacuation corridor a peace grants, and
+    # the countdown when a corps dawdles on soil that is no longer its own.
+    # (Internment itself rides PC15-1's `marshal_destroyed` with
+    # cause="interned" — one removal seam, one tombstone, one ladder.)
+    "evacuation_granted",
+    "evacuation_lapsing",
     # Territory
     "region_captured",
     # Economy
@@ -358,6 +364,10 @@ CATEGORY_MAP = {
     "order_voided_by_battle": "command",
     "marshal_captured": "combat",
     "marshal_destroyed": "combat",
+    "evacuation_granted": "diplomacy",
+    # The clock is the treaty's, but the decision it demands is an order to a
+    # marshal — so it files with the command traffic the player must answer.
+    "evacuation_lapsing": "command",
     "last_stand": "combat",
     "marshal_released": "diplomacy",
     # Diplomacy (Session 8D)
@@ -597,6 +607,16 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # WIN-D3: the corridor beat names corps and the provinces they are
+        # marching to, so it is army intelligence wearing a treaty's clothes.
+        # Shown only to a signatory. A third party learns of the peace
+        # through the ordinary diplomatic channels; it does not learn the
+        # order of march. (Recorded limit — WAR_WITHDRAWAL_SPEC §7a.)
+        if event_type == "evacuation_granted":
+            if player_nation in (event.get("nation_a"), event.get("nation_b")):
+                filtered.append(event)
+            continue
+
         # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — settlement
         # summary / digest events use their own fog rule (see
         # `settlement_presentation.is_settlement_event_visible`).
@@ -692,6 +712,16 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # player-event gate above; an enemy corps destroyed BY the player's
         # army is the player's own battle (victor arm); a third party's fall
         # needs eyes on the field (region PARTIAL+).
+        # WIN-D3: a foreign corps overstaying its passage is visible only
+        # where we have eyes. Our own passed the player gate above (the
+        # event carries `nation`).
+        if event_type == "evacuation_lapsing":
+            if region:
+                intel = world_state.get_region_intel(region)
+                if intel.visibility in (FULL, PARTIAL):
+                    filtered.append(event)
+            continue
+
         if event_type == "marshal_destroyed":
             if event.get("victor") == player_nation:
                 filtered.append(event)
@@ -1629,6 +1659,26 @@ def format_event_oneliner(event: dict) -> str:
             return f"THE EMPEROR {marshal} TAKEN by {captor} at {location}"
         return f"Marshal {marshal} CAPTURED by {captor} at {location}"
 
+    if event_type == "evacuation_granted":
+        a = event.get("nation_a", "")
+        b = event.get("nation_b", "")
+        names = event.get("marshals") or []
+        turns = int(event.get("turns") or 0)
+        cut = event.get("cut_off") or []
+        if not names and cut:
+            return (f"Peace between {a} and {b} — "
+                    f"{', '.join(cut)} cut off, no road home")
+        head = (f"Safe passage home granted by the peace between {a} and "
+                f"{b} — {len(names)} corps, {turns} turns")
+        return head + (f"; {', '.join(cut)} cut off" if cut else "")
+
+    if event_type == "evacuation_lapsing":
+        marshal = event.get("marshal", "Unknown")
+        location = event.get("location", "the field")
+        left = int(event.get("turns_left") or 0)
+        return (f"Marshal {marshal}'s safe passage is LAPSING at {location} "
+                f"— {left} turn(s) before internment")
+
     if event_type == "marshal_destroyed":
         marshal = event.get("marshal", "Unknown")
         location = event.get("location", "the field")
@@ -1637,6 +1687,14 @@ def format_event_oneliner(event: dict) -> str:
         if cause == "attrition":
             return (f"Marshal {marshal}'s corps DESTROYED at {location} — "
                     f"starved out by supply attrition")
+        # WIN-D3: internment is not annihilation. The corps is off the board
+        # by the same seam, but it was disarmed, not destroyed.
+        if cause == "interned":
+            if victor:
+                return (f"Marshal {marshal}'s corps INTERNED at {location} "
+                        f"by {victor} — its safe passage had expired")
+            return (f"Marshal {marshal}'s corps INTERNED at {location} — "
+                    f"its safe passage had expired")
         if victor:
             return (f"Marshal {marshal}'s corps DESTROYED at {location} "
                     f"by {victor}")

@@ -232,17 +232,24 @@ class TestTheLevyGateAsksTheRealQuestion:
 
     def test_the_boot_board_cannot_receive(self):
         """Every French MARSHAL is in Germany or Italy and infantry
-        `movement_range` is 1 — CA8-11's measured state. NP-A (Aug 15,
-        2026) consciously flipped this pin: the Emperor and his Guard now
-        boot AT Paris, so the boot board genuinely CAN receive — the Seat
-        working as designed. The field-army half of the old premise is
-        pinned by isolating him below."""
+        `movement_range` is 1 — CA8-11's measured state.
+
+        FLIPPED BACK, August 16, 2026 — WIN-D5 "The Road Home" §9. NP-A had
+        briefly made the boot board able to receive, because the Emperor and
+        his Guard stood at Paris. He now boots at Lorraine, on the Rhine with
+        the army, so CA8-11's original measured state is restored: the whole
+        French army is across the frontier and the depots can reach none of
+        it. That is the state CA8-11 was landed to make HONEST rather than to
+        remove — the levy gate names its condition — and
+        `test_bringing_a_marshal_home_opens_it` below pins the way out.
+        """
         world = _europe()
-        assert get_levy_status(world)["recipient_in_range"] is True
-        # The old measured state survives for the field army: with the
-        # sovereign afield, no marshal is in range of the depots.
-        world.get_marshal("Napoleon").location = "Swabia"
+        assert world.get_marshal("Napoleon").location == "Lorraine"
         assert get_levy_status(world)["recipient_in_range"] is False
+        # ...and the Emperor is not a special case: seat him and it opens,
+        # exactly as it does for any other marshal who comes home.
+        world.get_marshal("Napoleon").location = world.get_nation_capital("France")
+        assert get_levy_status(world)["recipient_in_range"] is True
 
     def test_bringing_a_marshal_home_opens_it(self):
         world = _europe()

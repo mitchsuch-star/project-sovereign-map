@@ -109,11 +109,13 @@ def _counter_punch_shape(world):
     moore.location = "Normandy"  # the beachhead — land contact with France
     murat.location = "Maine"     # land-adjacent to Normandy
     murat.strength = 40000       # the counter-punch loses; cavalry stays
-    # NP-A (Aug 15, 2026): Napoleon boots at Paris — one march from the
-    # Normandy beachhead — and his small Guard was a BETTER counter-punch
-    # ratio than the planted Murat, so Moore attacked the Emperor instead
-    # of thrashing. The shape isolates him: this file tests the square
-    # latch, not the sovereign.
+    # NP-A (Aug 15, 2026): the Emperor's small Guard is a BETTER
+    # counter-punch ratio than the planted Murat, so wherever he stands in
+    # reach Moore attacks him instead of thrashing. The shape isolates him;
+    # this file tests the square latch, not the sovereign.
+    # WIN-D5 (Aug 16, 2026): he now BOOTS at Lorraine rather than Paris, so
+    # this line is a no-op on the shipped scenario — kept deliberately, so
+    # the isolation survives any future re-siting of the Emperor.
     world.marshals["Napoleon"].location = "Lorraine"
     moore.stance = Stance.DEFENSIVE
     moore.counter_punch_available = True

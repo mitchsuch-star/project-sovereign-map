@@ -2803,6 +2803,21 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
                 if is_coalition_member(_counterpart, world):
                     remove_coalition_member(_counterpart, world)
 
+    # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.1). Sited HERE and not
+    # in `cleanup_war_end` for exactly PT-J1's reason: typed conquest-
+    # vassalization and the forced-alliance ARMISTICE arm never reach that
+    # function, and those are the endings most likely to leave armies parked
+    # abroad. One write, every ending.
+    #
+    # The mirrored arm below is §3.4's pin: a peace instrument cannot outlive
+    # the peace, so re-entering WAR revokes the corridor at the same seam.
+    if old_state == "WAR" and new_state != "WAR":
+        from backend.game_logic.withdrawal import open_evacuation_corridor
+        open_evacuation_corridor(world, nation_a, nation_b)
+    elif new_state == "WAR" and old_state != "WAR":
+        from backend.game_logic.withdrawal import revoke_evacuation_grant
+        revoke_evacuation_grant(world, nation_a, nation_b)
+
     # War start tracking
     if new_state == "WAR" and old_state != "WAR":
         war_start_turns = getattr(world, 'war_start_turns', {})
@@ -4765,42 +4780,6 @@ def _get_order_cancellation_preview(world, proposer: str, target: str) -> Option
     }
 
 
-def _force_retreat_displaced_marshals(world, nation_a: str, nation_b: str) -> None:
-    """Force-retreat marshals stranded in hostile territory after war ends.
-
-    When an armistice/peace is signed, any marshal from nation_a in nation_b's
-    territory (or vice versa) must be relocated to their nearest friendly region.
-    Without this, stranded marshals create engagement deadlocks (C1 bug).
-    """
-
-    for marshal in list(world.marshals.values()):
-        if marshal.strength <= 0:
-            continue
-
-        region = world.get_region(marshal.location)
-        if not region:
-            continue
-
-        # Check if marshal is in hostile territory of the now-peaceful nation
-        is_nation_a_in_b_territory = (
-            marshal.nation == nation_a and region.controller == nation_b
-        )
-        is_nation_b_in_a_territory = (
-            marshal.nation == nation_b and region.controller == nation_a
-        )
-
-        if not (is_nation_a_in_b_territory or is_nation_b_in_a_territory):
-            continue
-
-        # Find nearest friendly region via BFS
-        retreat_to = _find_friendly_retreat(world, marshal)
-        if retreat_to:
-            marshal.move_to(retreat_to)
-            # Cancel any strategic orders (they're now invalid)
-            if getattr(marshal, 'strategic_order', None):
-                marshal.strategic_order = None
-
-
 def _find_friendly_retreat(world, marshal) -> str:
     """BFS to find nearest region controlled by marshal's nation."""
     from collections import deque
@@ -4916,10 +4895,23 @@ def cleanup_war_end(world, diplo_key: str, *,
     stalemate_counters.pop(diplo_key, None)
     world.ai_stalemate_counters = stalemate_counters
 
-    # Force-retreat displaced marshals from hostile territory (C1 armistice deadlock fix)
-    if len(parts) == 2:
-        nation_a, nation_b = parts
-        _force_retreat_displaced_marshals(world, nation_a, nation_b)
+    # WIN-D3: the March-2026 C1 fix used to TELEPORT displaced marshals home
+    # from here. It is RETIRED, replaced by the evacuation corridor granted at
+    # the `set_diplomatic_state` chokepoint (WAR_WITHDRAWAL_SPEC §3, gate §7a).
+    # Three reasons, in the order that matters:
+    #   1. Both cannot run. The teleport intercepted precisely the corridor's
+    #      flagship case — a corps on the ex-enemy's soil — so the player
+    #      would never once have seen the march this slice exists to give him.
+    #   2. A silent free relocation across the map, with no attrition and no
+    #      decision, IS the "invented rescue" gate question 4 declined.
+    #   3. It never covered the measured defect anyway. It keyed on
+    #      `region.controller == the other signatory`, and the four corps of
+    #      PLAYTEST_WIN_CAMPAIGN §5.3 stood on soil France had CAPTURED with
+    #      the newly-closed frontier between them and home — it would have
+    #      moved none of them.
+    # The deadlock C1 was written against is closed more directly: those
+    # marshals can now legally move. Pinned by
+    # `test_win_d3_road_home.py::TestTeleportRetired`.
 
     # R47/R30 + BPH-C §9.4: Cancel orders targeting the now-peaceful nation
     if len(parts) == 2:
@@ -9419,10 +9411,17 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
 # MOVEMENT VALIDATION HELPERS
 # ═══════════════════════════════════════════════════════
 
-def can_enter_territory(world, marshal_nation: str, region_controller: str) -> bool:
+def can_enter_territory(world, marshal_nation: str, region_controller: str,
+                        ignore_evacuation: bool = False) -> bool:
     """Check if a nation's marshal can enter territory controlled by another nation.
 
     Returns True if movement is allowed.
+
+    `ignore_evacuation=True` asks the question as the peace left it, with the
+    WIN-D3 corridor deliberately not counted. Only `withdrawal.get_home_zone`
+    uses it — deciding WHO is stranded must not consult the very grant that is
+    being issued on their behalf. Single implementation, one flag, so the
+    corridor cannot drift away from the rule it amends.
     """
     if not region_controller:
         return True  # Unclaimed territory
@@ -9438,6 +9437,20 @@ def can_enter_territory(world, marshal_nation: str, region_controller: str) -> b
     # OPEN_BORDERS and above — can enter
     if state in OPEN_MOVEMENT_STATES:
         return True
+
+    # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.3): a war that just
+    # ended grants a temporary right of transit, so the army that won it can
+    # walk home instead of starving on soil that turned sovereign under its
+    # feet. THE ONE ARM — every movement seam, the AI's candidate sites and
+    # the strategic-march stall arms inherit it here, the way the naval
+    # crossing gate propagated. It is not OPEN_BORDERS (it expires, and only
+    # a just-ended war creates it), it never reaches the attack or capture
+    # paths (both gate on `is_at_war`, which is False at peace), and it dies
+    # the instant war resumes.
+    if not ignore_evacuation:
+        from backend.game_logic.withdrawal import has_evacuation_grant
+        if has_evacuation_grant(world, marshal_nation, region_controller):
+            return True
 
     # PEACE, ARMISTICE — cannot enter
     return False

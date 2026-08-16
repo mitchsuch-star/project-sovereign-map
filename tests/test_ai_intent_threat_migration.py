@@ -474,10 +474,55 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # tail decays smoothly (both series end at 5). France's national total
 # is unchanged at 189,000 and the E1/ES-3/EC-U3 economy pins are
 # byte-identical by construction (§12.1).
+# ── RE-RECORDED August 16, 2026 — "The Road Home" (WIN-D3 + WIN-D5), the
+# ONE re-record that slice sanctions (WAR_WITHDRAWAL_SPEC §7a). Prior
+# series:
+#   [70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 69, 67, 65, 63,
+#    61, 59, 57, 55, 53, 51, 49, 37, 35, 33, 31, 29, 27, 25, 23, 21, 19,
+#    17, 15, 13, 11, 9, 7, 5]
+#
+# ATTRIBUTION — 4-arm flip experiment, the two changes run as SEPARATE
+# arms (levers: `withdrawal.WITHDRAWAL_ACTIVE`, and the `Napoleon`
+# location in europe_1805.json):
+#   arm 0  neither          -> reproduces the PRIOR series BYTE-FOR-BYTE.
+#                              The control holds, so these two changes are
+#                              the only causes of what follows.
+#   arm A  corridor only    -> diverges at index 18.
+#   arm B  Lorraine only    -> diverges at index 5.
+#   arm AB both             -> diverges at index 5. THIS series.
+#   (A != AB, so both arms are live; neither is masking the other.)
+#
+# WHAT EACH ARM DOES, mechanically:
+#
+# arm A — the evacuation corridor is genuinely EXERCISED on this board:
+# measured over the 40 turns, ONE corridor opens (Britain's, after a war
+# ends with Paget and Shrapnel ashore), THREE road-home orders stand at
+# peak, and the corps walk home instead of loitering on foreign soil. Their
+# absence from that soil is what moves the tail. Reported rather than
+# buried: an EARLIER draft of this slice measured byte-identical here, and
+# that was not a safety result — it was the corridor barely functioning
+# (the grant was written after the distances were measured, so every
+# corridor-dependent corps was misfiled as cut off). The series moved once
+# the mechanism actually worked, which is the honest sequence.
+#
+# arm B — the Emperor boots at Lorraine, not Paris (WIN-D5). He stands one
+# march from Mack at Swabia instead of five, beside Soult's corps his Guard
+# was carved from. On an AI-vs-AI ambient board he issues no orders, but a
+# 10,000-man French stack sitting on the German frontier from turn 1 is
+# read by every enemy planner that scores proximity and strength, so the
+# divergence starts early (index 5) and the whole mid-war shape shifts.
+#
+# France's national total is unchanged at 189,000 and the E1/ES-3/EC-U3
+# economy pins are byte-identical by construction — nothing about the
+# authoring changed except which province the Guard stands in.
+#
+# M1–M7 were run before and after and are byte-identical WITHOUT
+# re-record; that is a fact about that harness (it has no war ending with
+# an army abroad, and no sovereign in it), not independent proof of safety.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 70, 68, 66, 79, 77, 75, 73, 71, 69, 67, 65, 63,
-    61, 59, 57, 55, 53, 51, 49, 37, 35, 33, 31, 29, 27, 25, 23, 21, 19,
-    17, 15, 13, 11, 9, 7, 5,
+    70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70, 68,
+    66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 59, 56, 53, 50, 47, 44,
+    41, 38, 35, 32, 29, 26, 13,
 ]
 
 
@@ -517,9 +562,8 @@ class TestStep4SeriesPin:
         """Steps 5-6 LANDED (Stage D): producers now pass the actor as
         target, so non-player slots may accrue — the Stage-C-era
         no-accrual invariant is consciously INVERTED (AI_INTENT_SPEC §17).
-        What must still hold: every slot is clamped 0-100, and on the
-        historical 40-turn run no non-player slot reaches the brewing
-        tier (D3's gravity — France remains the story of the age).
+        What must still hold: every slot is clamped 0-100, and D3's
+        gravity — France remains the story of the age.
 
         DEF-5 naval flip (conscious, the AI-3r honest-zero discipline):
         the ambient run's non-player accrual came from CROSS-CHANNEL
@@ -527,14 +571,44 @@ class TestStep4SeriesPin:
         so the measured ambient value is an HONEST ZERO with a written
         predicate, and the liveness half of this pin moves to a direct
         producer probe (the machinery, not the ambient board, is what
-        must stay alive)."""
+        must stay alive).
+
+        WIN-D5 amendment (August 16, 2026). The flat "no non-player slot
+        reaches the brewing tier" clause was an OBSERVATION about the old
+        ambient board, not a law, and the Emperor's forward start falsifies
+        it. Attribution, three arms (final `threat_by_target`):
+
+            arm 0  neither change      France 5
+            arm A  corridor only       Austria 6
+            arm B  Emperor at Lorraine France 35, Austria 54, Russia 32
+            arm AB both                France 13, Austria 83, Russia 30
+
+        Two hypotheses were tested and the first was WRONG, which is why
+        this is spelled out rather than asserted. It is NOT D3's eclipse
+        clause: Austria ends with **8 provinces against France's 21**, so
+        she has plainly not eclipsed anyone. Tracing the producer instead
+        gives the real answer — Austria's 83 is **36 × `battle_win`(+3),
+        3 × `region_capture`, 2 × `capital_capture`**. With the Guard on
+        the Rhine the German war becomes a grinding one, and a France that
+        issues no orders for forty turns loses it battle after battle. A
+        small power that has won thirty-six fights and stormed two
+        capitals IS menacing, and the threat model is right to say so.
+
+        So the clause is replaced by the anti-LEAK invariant it was really
+        standing in for, which has teeth the old one did not: coalition-tier
+        threat must be EARNED. A nation cannot arrive at the brewing tier
+        without a war record that accounts for it. That catches a producer
+        misattributing threat to a bystander — the actual failure mode —
+        while allowing a belligerent to become genuinely dangerous.
+        """
         tbt = payload["threat_by_target"]
+        belligerents = set(payload["belligerents"])
         for nation, value in tbt.items():
             assert 0 <= value <= 100, f"{nation} slot out of clamp: {value}"
-            if nation != "France":
-                assert value < 60, (
-                    f"{nation} reached the brewing tier ({value}) on the "
-                    f"historical ambient run — D3's gravity should hold")
+            if nation != "France" and value >= 60:
+                assert nation in belligerents, (
+                    f"{nation} reached the brewing tier ({value}) without "
+                    f"ever being at war — threat is leaking onto a bystander")
         # Liveness (deterministic probe): the per-target producer accrues
         # a non-player slot when handed a non-player actor.
         probe = WorldState.from_scenario(str(SCENARIO_PATH))
@@ -694,18 +768,34 @@ def _emit_series() -> None:
     series = [int(world.threat_level)]
     mirror_ok = (world.threat_level
                  == world.threat_by_target.get(world.player_nation, 0))
+    # WIN-D5: which nations were ever belligerent during the run. Sampled
+    # each turn from the live state rather than counted off `event_log`
+    # (capped at 500 — the IGR-B eviction trap) or `battles_this_turn`
+    # (cleared inside every advance, so it always reads empty from here).
+    belligerents: set = set()
     for turn in range(40):
         random.seed(10_000 + turn)  # the M7 per-turn re-seed idiom
         tm.end_turn(game_state)
+        for _key, _state in world.diplomatic_states.items():
+            if _state == "WAR":
+                belligerents.update(_key.split("|"))
         series.append(int(world.threat_level))
         if (world.threat_level
                 != world.threat_by_target.get(world.player_nation, 0)):
             mirror_ok = False
+    provinces: dict = {}
+    for region in world.regions.values():
+        if region.controller:
+            provinces[region.controller] = provinces.get(region.controller, 0) + 1
     print("PAYLOAD=" + json.dumps({
         "series": series,
         "threat_by_target": {
             str(k): int(v) for k, v in world.threat_by_target.items()},
         "scalar_mirror_ok": bool(mirror_ok),
+        # WIN-D5: the war record behind each slot, so the pin can tell a
+        # nation that EARNED coalition-tier threat from a leak.
+        "provinces": {str(k): int(v) for k, v in provinces.items()},
+        "belligerents": sorted(belligerents),
     }))
 
 

@@ -118,8 +118,16 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # all — the drain that took the played campaign from 189,000 men to
     # 60,183 could never be the lead, while a 180g/turn household nag at
     # weight 55 led half the dispatches.
+    # WIN-D3 "The Road Home". The lapse warning sits ABOVE supply_strain: a
+    # stack over capacity bleeds men, but a passage running out loses the
+    # whole corps, and the remedy (march, or be interned) is on a clock.
+    "passage_lapsing": 74,
     "supply_strain": 72,
     "war_touches_us": 70,       # coalition tier change / war decl. vs us
+    # The peace's own consequence for the army. Below every direct wound to
+    # France, above a routine conquest — it is the answer to "what happens
+    # to the men who won it", which the player asks the moment he signs.
+    "road_home": 69,
     # CA8-26: a routine conquest is a success below every direct wound to
     # France's own body and above Europe's business and the household nags.
     "region_taken": 68,         # France conquers a province (non-capital)
@@ -258,6 +266,13 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
                       "which feeds {capacity}. {over} too many. {losses} "
                       "lost in {turns} turns. {remedy}"),
     "war_touches_us": "Sire — {line}",
+    # WIN-D3 §4.3 — the beat names names and the deadline, and when a corps
+    # has no land route it says so plainly rather than pretending (§5).
+    "road_home": "Sire — the war with {other} is over. {line}",
+    "passage_lapsing": ("Sire — {who} {is_are} no nearer home, and the safe "
+                        "passage runs out in {turns_left} turn(s). After "
+                        "that {his_their} corps will be interned where "
+                        "{it_they}."),
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
     # CA8-11: the headline names a price and a place, so it must also name
@@ -342,6 +357,8 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # without Berthier saying anything at all. The lookup is guarded, so
     # this was silent rather than broken.
     "supply_strain": "Men lost to the roads are lost for nothing, Sire. Either the province feeds them or we spread them.",
+    "road_home": "The treaty gives them the road, Sire, not the rations. They should be walking it.",
+    "passage_lapsing": "A treaty's patience is short, Sire. Order him home, or explain the loss to the Senate.",
     "levy_open": "The depots are full and the ordinance allows it, Sire. Conscripts do not improve with keeping.",
     "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
     "ally_broken": "Our ally bleeds, Sire. If we do not steady them, they may seek terms without us.",
@@ -387,6 +404,8 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     # would never have composed).
     _french_wins: Dict[str, Dict[str, Any]] = {}
     _enemy_routs: Dict[str, str] = {}
+    # WIN-D3: every corps whose safe passage is running out this turn.
+    _lapsing: List[Dict[str, Any]] = []
 
     def _add(cls: str, identity: str = "", **fields):
         text = _HEADLINE_TEMPLATES[cls].format(**fields)
@@ -565,6 +584,18 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                                 f"away{des_at} — starved out to the last "
                                 f"man. He will not return to the order of "
                                 f"battle.")
+                elif e.get("cause") == "interned":
+                    # WIN-D3: internment is not annihilation, and the
+                    # briefing must not say it is. The corps was disarmed
+                    # for overstaying a safe passage the treaty gave it —
+                    # a diplomatic humiliation, not a battlefield loss.
+                    _host = e.get("victor") or ""
+                    _by = (f" by {formed_display_name(world, _host)}"
+                           if _host else "")
+                    des_line = (f"Marshal {des_marshal}'s corps was interned"
+                                f"{des_at}{_by} — its safe passage had "
+                                f"expired and it had not come home. The men "
+                                f"are disarmed and the colours are lost.")
                 else:
                     des_line = (f"Marshal {des_marshal}'s corps has been "
                                 f"DESTROYED{des_at}. He will not return to "
@@ -679,6 +710,26 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                      aggressor=formed_display_name(world, aggressor),
                      target=formed_display_name(world, target),
                      reason=str(reason))
+        elif etype == "evacuation_granted":
+            # WIN-D3 §4.3. Only for a peace France itself signed — the
+            # producer's own message names our corps and their destinations
+            # (the campaign-log filter draws the same line).
+            _pair = (e.get("nation_a", ""), e.get("nation_b", ""))
+            if player_nation in _pair:
+                _other = _pair[1] if _pair[0] == player_nation else _pair[0]
+                _add("road_home",
+                     identity=f"road_home:{'|'.join(sorted(_pair))}",
+                     other=formed_display_name(world, _other),
+                     line=str(e.get("message", "")))
+        elif etype == "evacuation_lapsing":
+            # COLLECTED, not added one-by-one. The dispatch shows ONE
+            # headline, so with several corps lapsing at once only the
+            # luckiest was ever named — and in the acceptance run a marshal
+            # was interned having never appeared in a briefing, while the
+            # design promises three explicit warnings before that happens.
+            # One beat, every name, the soonest deadline.
+            if e.get("nation") == player_nation:
+                _lapsing.append(e)
         elif etype == "crisis_brewing":
             _add("europe_crisis",
                  nation=formed_display_name(world, e.get("nation", "?")),
@@ -714,6 +765,40 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             else:
                 _add("war_touches_us",
                      line="the courts of Europe are drawing together against us.")
+
+    # WIN-D3: ONE beat for every corps whose safe passage is running out,
+    # ordered by how little time is left. Aggregated rather than per-marshal
+    # because the dispatch shows a single headline: the acceptance run had
+    # Ney's warning win the slot three turns running while Davout, lapsing
+    # beside him, was interned without ever being mentioned.
+    if _lapsing:
+        # The window is two turns wide, so a corps still dawdling appears
+        # twice and the first cut of this beat read "Davout, Soult, Davout
+        # and Soult". One row per marshal, the most urgent reading kept.
+        _freshest: Dict[str, Dict[str, Any]] = {}
+        for _row in _lapsing:
+            _key = str(_row.get("marshal", "?"))
+            _prev = _freshest.get(_key)
+            if (_prev is None
+                    or int(_row.get("turns_left") or 0)
+                    < int(_prev.get("turns_left") or 0)):
+                _freshest[_key] = _row
+        _lapsing = sorted(_freshest.values(),
+                          key=lambda x: (int(x.get("turns_left") or 0),
+                                         str(x.get("marshal", ""))))
+        _names = [humanize_entity_name(x.get("marshal", "?"))
+                  for x in _lapsing]
+        _who = (_names[0] if len(_names) == 1
+                else ", ".join(_names[:-1]) + f" and {_names[-1]}")
+        _add("passage_lapsing",
+             identity="passage_lapsing:" + "|".join(sorted(_names)),
+             who=_who,
+             is_are="is" if len(_names) == 1 else "are",
+             his_their="his" if len(_names) == 1 else "their",
+             it_they="it stands" if len(_names) == 1 else "they stand",
+             region=_lapsing[0].get("region")
+             or _lapsing[0].get("location", "?"),
+             turns_left=int(_lapsing[0].get("turns_left") or 0))
 
     # Enemy army standing on own-controlled soil — state-based, fog-legal
     # (the player's own intel entries only, never omniscient reads — R5).

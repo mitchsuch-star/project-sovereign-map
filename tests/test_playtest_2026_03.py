@@ -108,46 +108,51 @@ class TestC1EngagementCheckUsesWarStatus:
 
 
 class TestC1ForceRetreatOnWarEnd:
-    """cleanup_war_end() must relocate displaced marshals."""
+    """cleanup_war_end() must not strand marshals — and, since WIN-D3, must
+    not TELEPORT them either.
 
-    def test_force_retreat_enemy_from_player_territory(self):
-        """Enemy marshal in French territory retreats home after armistice."""
+    ── CONSCIOUS FLIP, August 16, 2026 (WIN-D3 "The Road Home") ────────────
+    Both assertions below used to read "he is no longer on that soil", which
+    the March-2026 C1 fix satisfied by relocating him across the map for free
+    in complete silence. `_force_retreat_displaced_marshals` is RETIRED
+    (WAR_WITHDRAWAL_SPEC §3, gate §7a) and the evacuation corridor replaces
+    it: the marshal STAYS, is granted temporary right of transit, and is
+    handed a free march order home that the player can see, cancel or
+    override. The C1 deadlock these tests were written against is closed more
+    directly than before — he can now legally move — and that is what is
+    pinned here instead of the teleport.
+    """
+
+    def test_war_end_does_not_teleport_the_enemy_off_our_soil(self):
+        """The retired teleport moves nobody. (Pin on the retirement itself.)"""
         world = _make_world()
 
         gneisenau = world.marshals.get("Gneisenau")
         if not gneisenau:
             pytest.skip("Gneisenau not found")
 
-        # Gneisenau is Prussian, stranded in Belgium (French territory)
         gneisenau.location = "Belgium"
         gneisenau.strength = 17000
 
-        # Belgium is French-controlled
         belgium = world.get_region("Belgium")
         if belgium:
             belgium.controller = "France"
 
-        # End the war between France and Prussia
         diplo_key = "|".join(sorted(["France", "Prussia"]))
         world.diplomatic_states[diplo_key] = "ARMISTICE"
         cleanup_war_end(world, diplo_key)
 
-        # Gneisenau should no longer be in French territory
-        new_region = world.get_region(gneisenau.location)
-        assert new_region is not None
-        assert new_region.controller != "France", (
-            f"Gneisenau should have retreated from French territory, but is still in {gneisenau.location}"
-        )
+        assert gneisenau.location == "Belgium", (
+            "cleanup_war_end must no longer relocate a marshal — the corridor "
+            "gives him a road, not a teleport")
 
-    def test_force_retreat_player_from_enemy_territory(self):
-        """Player marshal in enemy territory retreats home after armistice."""
+    def test_war_end_does_not_teleport_us_off_theirs(self):
         world = _make_world()
 
         davout = world.marshals.get("Davout")
         if not davout:
             pytest.skip("Davout not found")
 
-        # Davout is French, deep in Prussian territory
         davout.location = "Berlin"
         davout.strength = 30000
 
@@ -159,11 +164,36 @@ class TestC1ForceRetreatOnWarEnd:
         world.diplomatic_states[diplo_key] = "ARMISTICE"
         cleanup_war_end(world, diplo_key)
 
-        new_region = world.get_region(davout.location)
-        assert new_region is not None
-        assert new_region.controller != "Prussia", (
-            f"Davout should have retreated from Prussian territory, but is still in {davout.location}"
-        )
+        assert davout.location == "Berlin"
+
+    def test_the_corridor_covers_what_the_teleport_used_to(self):
+        """The case C1 existed for, taken through the real seam.
+
+        Going through `set_diplomatic_state` (the ONE ending-agnostic
+        chokepoint, per PT-J1) rather than `cleanup_war_end`, the marshal
+        standing on the ex-enemy's soil gets exactly what the design
+        promises: passage, and an order home.
+        """
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.withdrawal import is_road_home_order
+
+        world = _make_world()
+        davout = world.marshals.get("Davout")
+        if not davout:
+            pytest.skip("Davout not found")
+
+        davout.location = "Berlin"
+        davout.strength = 30000
+        berlin = world.get_region("Berlin")
+        if berlin:
+            berlin.controller = "Prussia"
+
+        set_diplomatic_state(world, "France", "Prussia", "WAR")
+        set_diplomatic_state(world, "France", "Prussia", "ARMISTICE")
+
+        assert davout.location == "Berlin", "he marches, he is not moved"
+        assert is_road_home_order(davout.strategic_order), (
+            "a marshal on the ex-enemy's soil must be handed the road home")
 
     def test_force_retreat_cancels_strategic_orders(self):
         """Retreated marshal should have strategic orders cancelled."""

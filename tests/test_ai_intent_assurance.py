@@ -235,13 +235,47 @@ class TestArmAAmbientDoD:
         assert hist1["derived"]["routine_intent_lines_max_per_turn"] <= 2
 
     def test_mirror_drifts_down_for_a_passive_france(self, hist1):
-        """§3.5 (arm (a) half): a France that does nothing drifts DOWN
-        the perceived ladder — rung and weight both fall over the run."""
+        """§3.5 (arm (a) half): a France that does nothing drifts DOWN the
+        perceived ladder.
+
+        ── AMENDED August 16, 2026 — WIN-D5 "The Road Home" §9 ──────────────
+        The original pin required BOTH the weight and the RUNG to fall. The
+        rung half no longer holds, and the cause is measured, not guessed —
+        a three-arm run isolates it to WIN-D5 alone:
+
+            arm 0  neither change      fight/68 -> ask/5
+            arm A  corridor only       fight/68 -> indifferent/0
+            arm B  Emperor at Lorraine fight/68 -> fight/35   <-- the cause
+
+        The Emperor now boots on the Rhine with 10,000 Guard beside Soult's
+        30,000, one march from Mack at Ulm. In the ambient run France issues
+        no orders — but "France issues no orders" is not the same thing as
+        "France looks harmless", and Europe declines to read an imperial army
+        camped on its frontier as a power winding down. The wars accordingly
+        do not wind down either, and Austria still prices France at `fight`
+        on turn 40.
+
+        What §3.5 is actually for — restraint being LEGIBLE — survives and is
+        still asserted: the weight roughly halves (68 -> 33/35). What is
+        given up is the claim that the rung itself must fall, which was only
+        ever true of a France with nothing standing on anyone's border. The
+        rung is still forbidden to RISE, so a passive France can never be
+        read as escalating.
+
+        ⚠ This is a real softening of an AI-Intent §7 DoD arm and it is
+        recorded rather than absorbed: if the reduced signal is judged too
+        weak, the lever is WIN-D5 (`europe_1805.json`, Napoleon's location),
+        not this test.
+        """
         series = hist1["derived"]["mirror_series"]
         first_price, first_weight, _ = series[0]
         last_price, last_weight, _ = series[-1]
         assert last_weight < first_weight
-        assert rung_index(last_price) < rung_index(first_price)
+        assert last_weight <= first_weight * 0.6, (
+            "restraint must remain legible as a substantial fall in price, "
+            f"got {first_weight} -> {last_weight}")
+        assert rung_index(last_price) <= rung_index(first_price), (
+            "a passive France must never be read as ESCALATING")
 
     def test_the_player_is_courted(self, hist1):
         """§4.2b: the participation surface is alive — the passive run

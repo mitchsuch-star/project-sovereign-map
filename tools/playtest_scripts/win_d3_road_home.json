@@ -1,0 +1,21 @@
+{
+  "name": "win-d3-road-home",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "WIN-D3 acceptance — the PLAYTEST_WIN_CAMPAIGN §5.3 sequence reproduced. Resume the p3 save (world turn 16; five French corps deep in Austria). Push corps EAST into Russia while pressing Austria for peace every turn until she signs — that shuts the southern road — then take Russia's peace too, which shuts the last one. That is the exact moment the campaign measured: 'Cannot enter Podolia — it is controlled by Russia (diplomatic state: PEACE)', the corps enclosed with no legal route home. Expect the road-home beat naming the enclosed corps, a free MOVE_TO for each, and nothing at all for corps standing legally on allied or war soil. Peace arrival depends on the AI's own offer queue, so the script asks every turn rather than once.",
+  "turns": {
+    "1": ["Talleyrand, propose peace with Austria", "Davout, move to Podolia"],
+    "2": ["Talleyrand, propose peace with Austria", "Ney, move to Ukraine"],
+    "3": ["Talleyrand, propose peace with Austria", "Davout, move to Ukraine"],
+    "4": ["Talleyrand, propose peace with Austria", "Davout, move to Volhynia"],
+    "5": ["Talleyrand, propose peace with Austria", "status"],
+    "6": ["Talleyrand, propose peace with Russia", "status"],
+    "7": ["Talleyrand, propose peace with Russia", "status"],
+    "8": ["Talleyrand, propose peace with Russia", "status"],
+    "9": ["status"],
+    "10": ["status"],
+    "11": ["status"],
+    "12": ["status"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "accept", "capture": "secure"}
+}

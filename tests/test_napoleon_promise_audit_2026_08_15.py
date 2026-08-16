@@ -227,10 +227,35 @@ class TestTheSelfMarkerArm:
 
 class TestTheSeat:
     def test_the_shown_ceiling_includes_the_seat(self, europe):
-        assert sovereign_seat_bonus(europe, "France") == 1
+        """CONSCIOUS FLIP, August 16, 2026 — WIN-D5 "The Road Home" §9.2.
+
+        The Emperor now boots at Lorraine, on the Rhine beside Soult's corps,
+        rather than at the Tuileries. **The Seat is therefore NOT active at
+        boot**, and the spec calls that out as a real cost rather than hiding
+        it: the +1 DP was written as a tradeoff, and a tradeoff you start on
+        the wrong side of is weaker. The argument that carried it is that the
+        design's own stated rhythm — "winter in Paris banking DP, spring on
+        the Rhine spending the army" — makes late September 1805 the spring
+        of that cycle, so the Seat becomes a place he returns to instead of a
+        bonus he abandons on turn 2 and never sees again.
+
+        What this test protects is unchanged and is the thing that actually
+        matters: the shown ceiling must never disagree with the DP the player
+        holds. Both states are pinned — afield and seated — so the mechanism
+        is flipped, not deleted.
+        """
+        assert europe.marshals["Napoleon"].location == "Lorraine"
+        assert sovereign_seat_bonus(europe, "France") == 0, (
+            "he is afield; the Seat is a place he returns to")
         europe.advance_turn()
         assert europe.diplomatic_points == displayed_dp_ceiling(europe), (
             "the HUD read 'DP: 6/5' — a number over its own maximum")
+
+        # ...and it still lights when he goes home.
+        europe.marshals["Napoleon"].location = europe.get_nation_capital("France")
+        assert sovereign_seat_bonus(europe, "France") == 1
+        europe.advance_turn()
+        assert europe.diplomatic_points == displayed_dp_ceiling(europe)
 
     def test_the_ceiling_is_bare_without_a_sovereign(self, europe):
         base = int(europe.max_diplomatic_points)

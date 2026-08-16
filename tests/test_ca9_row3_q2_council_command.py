@@ -430,7 +430,7 @@ class TestItCannotCrashOrLieOnRefusal:
 
 class TestSizing:
     def test_no_new_campaign_log_type(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 158  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`
+        assert len(CAMPAIGN_LOG_TYPES) == 160  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").
 
     def test_the_log_does_not_call_an_army_a_hearing(self, board):
         """Without its own row the shared `choice_str` map falls through

@@ -44,7 +44,34 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 16, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 18,057 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **suite 18,147 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ "THE ROAD HOME" (WIN-D3 + WIN-D5) BUILT August 16, 2026 — gate +
+> landing record = `docs/WAR_WITHDRAWAL_SPEC.md` §7a, authoritative.** All
+> four §7 gate questions taken at the recommended default. A war's end now
+> grants a temporary right of transit home at the `set_diplomatic_state`
+> chokepoint (PT-J1's reason), consumed by ONE arm on `can_enter_territory`
+> so every movement seam inherits it, on ONE new serialized field
+> `evacuation_grants`, plus a free 0-AP MOVE_TO home for every stranded
+> corps on BOTH sides (with a new enemy-AI rung P1.2, without which GR5 was
+> a fiction — the AI had never read `strategic_order` at all and was being
+> interned for disobeying an invisible order). §3.4's five never-do pins are
+> falsifiable tests. **The spec's §4.1 predicate would have missed the
+> measured defect** and is replaced ("can he reach the body of his own realm
+> at all"); **`_force_retreat_displaced_marshals` is RETIRED** — a teleport
+> already existed at `cleanup_war_end`, intercepting the corridor's flagship
+> case. WIN-D5: the Emperor boots at **Lorraine**, one march from Mack at
+> Swabia, beside Soult's corps his Guard was carved from; **the Seat is
+> consciously NOT active at boot**. `BASELINE_SERIES` re-recorded ONCE,
+> 4-arm flip-attributed (arm 0 reproduces the prior series byte-for-byte;
+> corridor diverges at index 18, Lorraine at index 5); M1–M7 byte-identical
+> without re-record. **Two closed-phase AI-Intent pins amended on the
+> record** (the passive-France mirror drift; the non-player threat bound —
+> whose first explanation was WRONG and is recorded as wrong). Seven
+> defects found by driving the game, five by one player-side run;
+> 14-mutation sweep, 14 killed; `tests/test_win_d3_road_home.py` (43).
+> ⚠ **WIN-H5 open, not caused by this slice**: the p4 acceptance digest no
+> longer reaches its scenario and blocks in a `settlement_confirm` loop.
 >
 > **▶ THE PLAYED CAMPAIGN + THE NP-6 EVALUATION RAN August 16, 2026 —
 > report-only, zero production code touched. Memos of record =

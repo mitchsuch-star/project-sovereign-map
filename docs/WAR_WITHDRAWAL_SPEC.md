@@ -1,6 +1,7 @@
 # WAR WITHDRAWAL SPEC — "The Road Home"
 
-> **Design document. ⚠ USER GATE PENDING at §7 — nothing is built.**
+> **✅ GATE TAKEN AND BUILT August 16, 2026. Gate record + landing record =
+> §7a, authoritative where it amends the body.**
 > Authored August 16, 2026 from two rulings taken on the win-attempt
 > campaign's design rows: **WIN-D3** (*"ending war should send troops back
 > to borders with free march orders"*) and **WIN-D5** (*"he can reach from
@@ -8,6 +9,8 @@
 >
 > Evidence: `docs/audits/PLAYTEST_WIN_CAMPAIGN_2026_08_16.md` §5.3 and
 > §5.5. Rows: `docs/DESIGN_REFINEMENT.md` §Win-Attempt Campaign.
+> Code: `backend/game_logic/withdrawal.py`; tests
+> `tests/test_win_d3_road_home.py`.
 
 ---
 
@@ -190,6 +193,205 @@ decorative.
    rescue?**
 
 ---
+
+## §7a GATE RECORD + LANDING RECORD (August 16, 2026) — AUTHORITATIVE
+
+The four §7 questions were delegated to the builder ("yours to take at the
+spec's recommended defaults unless you find a reason not to"). **All four
+were taken at the recommended default.** No deviation on any gate question.
+
+| Q | Ruling | Note |
+|---|---|---|
+| 1 | **Internment on lapse — YES**, with the warnings | Through `WorldState.destroy_marshal(cause="interned")`, the ONE PC15-1 removal seam, so it inherits the tombstone, the dispatch ladder and the gazette. Three explicit warnings first, counted by a test. |
+| 2 | **Self-refreshing corridor** | And it needs no memory — see the amendment below. |
+| 3 | **No — per-pair in v1** | Recorded as a limit, §8. |
+| 4 | **Refuse honestly** | A cut-off corps gets no order, the beat says so plainly, and — the corollary the spec did not state — it is never interned either. Refusing to invent a rescue must not become punishing a corps for failing to walk a road that does not exist. |
+
+### Amendments made during the build, each with its reason
+
+1. **§4.1's predicate would have missed the measured case, and is
+   replaced.** The spec sends orders to "every marshal standing on soil he
+   now has no right to occupy". The four corps of §5.3 were standing on soil
+   France had *captured* — their own colour on the map — with the closed
+   Russian frontier between them and home. They occupied nothing they had no
+   right to, and the spec's own predicate would have left every one of them
+   exactly where the playtest found them. The built predicate is **"can he
+   reach the body of his own realm at all"**: the home zone is the set of a
+   nation's provinces connected to its capital through soil its army may
+   legally cross, and a marshal outside it is stranded. This covers the
+   spec's shape *and* the measured one.
+
+2. **Slack 2 → 3 turns.** §6 promises "three explicit warnings"; two turns
+   of slack only fits two. The number is not load-bearing (see 3), so it is
+   sized to the promise the design makes.
+
+3. **The self-refreshing corridor needs no memory of last turn's
+   positions.** Expiry is set once to `turn + longest march + slack`, and
+   each turn a marshal is checked for VIABILITY rather than against a
+   deadline: `surplus = (expiry - turn) - (his distance home)`. A marshal
+   who marches closes one province per turn while the clock ticks one turn,
+   so his surplus is constant and the corridor cannot expire underneath him;
+   a marshal who stands still keeps his distance while the clock runs. That
+   is §3.5's behaviour with ONE serialized int and no second field, and
+   `surplus` reads directly as "turns of dawdling still affordable".
+
+4. **`_force_retreat_displaced_marshals` is RETIRED** (`diplomacy.py`). The
+   March-2026 C1 fix already TELEPORTED marshals home from `cleanup_war_end`
+   — the spec did not know it existed. Both cannot run: it intercepted
+   precisely the corridor's flagship case, so the player would never once
+   have seen the march this slice exists to give him; a silent free
+   relocation with no attrition and no decision *is* the invented rescue
+   gate Q4 declined; and it never covered the measured defect anyway (it
+   keyed on `region.controller == the other signatory`). Its two C1 tests
+   are flipped consciously in `tests/test_playtest_2026_03.py`, and a third
+   was added showing the corridor covering the case it used to.
+
+5. **The AI needed its own rung — GR5 was otherwise a fiction.** The free
+   march order is a `strategic_order`, and `enemy_ai.py` had never read that
+   field for anything. The AI would have been handed a road it could not see
+   and then interned for not walking it: **measured at three AI corps
+   destroyed in a 40-turn ambient run, one of them a single march from its
+   own border.** New rung **P1.2 THE ROAD HOME**, below retreat recovery and
+   above everything else. After the fix the same run interns nobody.
+
+### Seven defects found by measurement during the build
+
+Each was found by running the thing, not by reading it, and each is now
+pinned. The first two are mechanism; the rest are what the player reads.
+
+1. **The grant must be written BEFORE the distances are measured.**
+   `distance_home` routes *with* the corridor — it has to — so measuring
+   first asked every corps to walk a road that did not exist yet. Every
+   corridor-dependent corps was misfiled as cut off, the duration was
+   derived from whoever happened *not* to need the corridor, the beat
+   announced "0 corps" and then named two, and a peace where every stranded
+   corps needed the corridor **wrote no grant at all** — the corridor could
+   not open in precisely the case it exists for. Fixed with a provisional
+   grant, rolled back if nobody can use it.
+2. **A marshal was judged against every grant his nation held**, not the one
+   relevant to his road. France holding an older, shorter Austrian corridor
+   and a fresh Russian one interned a corps mid-march under the Austrian
+   clock. The tick is now organised by marshal, not by grant.
+3. **"Stranded" swept up every corps standing legally abroad.** §5's first
+   row says a marshal "already home / ON PASSABLE SOIL" is untouched, and
+   the first predicate tested only "is he outside the home zone" — which is
+   the nation's OWN provinces. The acceptance run had **the Emperor himself,
+   at Munich in allied Bavaria, ordered home or interned.** `is_stranded`
+   now requires that he has no right to stand where he is, or no road home
+   without the treaty.
+4. **The lapse warning claimed he had stood still.** *"Marshal Ney has not
+   moved from Lithuania"* — about a corps that had marched all turn.
+   Nothing tracks movement; the mechanic tracks whether he can still reach
+   home in the time left, so that is what the sentence says now.
+5. **A marshal was interned having never been warned on screen.** The
+   dispatch shows ONE headline, so per-marshal beats meant only the luckiest
+   corps was ever named — Davout was destroyed while Ney's warning held the
+   slot. One aggregated beat now names every lapsing corps.
+6. **…and once aggregated, it named them twice** ("Davout, Soult, Davout and
+   Soult"), because the event window is two turns wide. Deduped per marshal,
+   most urgent reading kept.
+7. **Internment was reported as annihilation, by his own Emperor.** The
+   briefing said *"corps has been DESTROYED"* — it was disarmed, not
+   destroyed — and named the captor as `region.controller`, which in the
+   measured case (a cut-off enclave France itself held) rendered *"interned
+   at Volhynia by France"*. Both fixed; the captor now resolves to the power
+   that actually has him surrounded.
+
+### Two standing pins amended, both recorded rather than absorbed
+
+WIN-D5 moves the ambient board, and two pins from the closed AI-Intent
+phase read on it. Neither was quietly relaxed:
+
+* **`test_mirror_drifts_down_for_a_passive_france`** required a passive
+  France's perceived RUNG *and* weight to fall. Measured by three arms, the
+  rung half is WIN-D5's doing (arm 0 `fight`→`ask`, arm A `fight`→
+  `indifferent`, arm B `fight`→`fight`). An imperial army camped on the
+  frontier is not read as a power winding down, so the wars do not wind down
+  either. §3.5's substance — restraint being legible — is still asserted (the
+  weight roughly halves), and the rung may still never RISE. **If that
+  reduced signal is judged too weak, the lever is WIN-D5, not the test.**
+* **`test_nonplayer_slots_live_and_bounded`** forbade any non-player threat
+  slot reaching the brewing tier on the ambient run. It now fires (Austria
+  83). **The first explanation I wrote for this was wrong and is recorded as
+  wrong:** I assumed D3's eclipse clause, then measured — Austria ends with
+  **8 provinces against France's 21**, having eclipsed nobody. Tracing the
+  producer gave the real answer: **36 × `battle_win`, 3 × `region_capture`,
+  2 × `capital_capture`.** With the Guard on the Rhine the German war
+  becomes a grind, and a France issuing no orders for forty turns loses it
+  repeatedly. A small power that has won thirty-six fights and stormed two
+  capitals is genuinely menacing. The flat bound is replaced by the anti-LEAK
+  invariant it was standing in for — coalition-tier threat must be EARNED by
+  a belligerent — which catches misattribution onto a bystander, the actual
+  failure mode, while allowing a small power to become dangerous.
+
+### Verification
+
+* Suite **18,147 passed / 3 skipped** (baseline 18,099/3); ruff clean; no
+  `.gd` or `.tscn` touched, so XR-1's parse harness does not apply.
+  `tests/test_win_d3_road_home.py` (43).
+* **14-mutation sweep, 14 killed.** Four survivors across two passes were
+  fixed rather than explained — one badly-chosen mutation, and three real
+  coverage gaps: the "the clock simply ran out" retirement branch, and both
+  of the fixes the acceptance run had forced (the Munich case and the AI
+  rung). A pin that cannot fail is not a pin.
+* **M1–M7 byte-identical without re-record** — recorded as a fact about that
+  harness (no war in it ends with an army abroad, and it has no sovereign),
+  not as independent proof of safety.
+* **`BASELINE_SERIES` re-recorded ONCE**, attributed by a 4-arm flip
+  experiment with the two changes as separate arms, per the build brief:
+  arm 0 (neither) **reproduces the prior series byte-for-byte**, arm A
+  (corridor) diverges at index 18, arm B (Lorraine) at index 5, arm AB at
+  index 5. A ≠ AB, so both arms are live and neither masks the other. Full
+  reasoning at the constant in `tests/test_ai_intent_threat_migration.py`.
+  Reported rather than buried: an *earlier* draft measured byte-identical on
+  arm A, and that was not a safety result — it was the corridor barely
+  working, per defect 1 above.
+
+### Acceptance evidence — and an honest note about it
+
+The brief named `tools/playtest_scripts/win_campaign_p4.json` as the
+acceptance digest. **It can no longer serve as one**, and that is a finding
+rather than an omission: re-run at HEAD `b33a029` through the p1→p2→p3 chain,
+the campaign no longer reaches the Russian peace at all (the §7 WIN fix pass
+changed the board), and the run instead terminates at turn 22 on an unrelated
+`settlement_confirm` dialogue the driver answers and that never clears —
+**a pre-existing block, reproduced before any code in this slice was
+written.** Recorded in `BUG_FIXES.md` §Win-Attempt Campaign as WIN-H2.
+
+The stranding is therefore reproduced deterministically instead, which is
+better evidence than a digest anyway: `TestTheMeasuredDefect` stages the
+exact §5.3 shape (Volhynia — the one province whose four neighbours are ALL
+Russian, so a peace shuts every road out of it at once) and carries a
+control arm that reproduces the failure with the slice disabled, so it
+cannot pass vacuously if the board drifts.
+
+**A player-side run was still driven**, on the p3 save with five French
+corps deep in Austria, and it earned its keep: defects 3–7 above were all
+found by it and none by the suite. A second script,
+`tools/playtest_scripts/win_d3_road_home.json`, reproduces the §5.3
+SEQUENCE (peace with Austria, push east, peace with Russia) and is
+committed — but it too runs into WIN-H5's `settlement_confirm` block, now
+reproduced on two different scripts. The player-facing arc is therefore
+pinned end to end through `build_morning_dispatch` instead, in
+`TestWhatThePlayerReads`, which is deterministic:
+
+```
+T1  the war with Russia is over. 2 corps stand on the wrong side of the new
+    frontier. Berthier has given them the road home — Davout to
+    Franche-Comte, Soult to Franche-Comte. They have safe passage for 10
+    turns while they march.
+T2  Davout and Soult are no nearer home, and the safe passage runs out in
+    2 turn(s). After that their corps will be interned where they stand.
+T3  …in 1 turn(s)…
+T4  …in 0 turn(s)…
+T5  Marshal Davout's corps was interned at Volhynia by Russia — its safe
+    passage had expired and it had not come home. The men are disarmed and
+    the colours are lost.
+```
+
+And on the ambient 40-turn board, measured: one corridor opens, three
+road-home orders stand at peak, the AI walks its corps home, **nobody is
+interned** — against three AI corps destroyed before the P1.2 rung existed.
 
 ## §8 Known gaps, owned
 

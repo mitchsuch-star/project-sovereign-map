@@ -453,4 +453,4 @@ class TestGodotSurfaces:
 def test_no_new_campaign_log_type():
     """A7 adds no event type — it moves an existing one between
     surfaces. Pinned in six files; this is the local statement of it."""
-    assert len(CAMPAIGN_LOG_TYPES) == 158  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`
+    assert len(CAMPAIGN_LOG_TYPES) == 160  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").

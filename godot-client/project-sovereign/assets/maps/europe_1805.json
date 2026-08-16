@@ -210,7 +210,7 @@
         "Napoleon": {
             "name": "Napoleon",
             "nation": "France",
-            "location": "Paris",
+            "location": "Lorraine",
             "strength": 10000,
             "personality": "sovereign",
             "skills": { "tactical": 10, "shock": 7, "defense": 7, "logistics": 8, "administration": 9, "command": 10 },
@@ -223,7 +223,7 @@
                 "trigger": "when_present_in_battle",
                 "effect": "Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal."
             },
-            "biography": "Emperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.",
+            "biography": "Emperor of the French, on the Rhine with the Guard - 10,000 men carved from Soult's own IV Corps, and Soult's corps is drawn up beside them. He left Paris on the 24th of September and the army is across the river; Mack sits at Ulm one march east. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.",
             "relationships": { "Lannes": 1, "Davout": 1, "Murat": 1, "Bernadotte": -2 }
         },
         "Deroy": {

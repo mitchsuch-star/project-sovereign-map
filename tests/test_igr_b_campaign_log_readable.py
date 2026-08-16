@@ -543,7 +543,7 @@ class TestEndpoint:
 class TestContracts:
 
     def test_no_new_event_type(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 158  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.
+        assert len(CAMPAIGN_LOG_TYPES) == 160  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").
 
     def test_the_collapse_is_not_inside_the_filter(self):
         """51 test call sites depend on `filter_campaign_log`'s contract."""

@@ -1097,6 +1097,14 @@ class WorldState:
         # Armistice cooldowns: 5-turn cooldown before same pair can re-armistice
         self.armistice_cooldowns: Dict[str, int] = {}
 
+        # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.2). The evacuation
+        # corridor a just-ended war grants: {diplo_key: expiry_turn}. Shared
+        # key, not directed — the grant is mutual by construction (both sides
+        # are walking home), and one key halves the state. The ONE new field
+        # the slice adds; see `backend/game_logic/withdrawal.py` for why the
+        # self-refreshing corridor needs no memory of last turn's positions.
+        self.evacuation_grants: Dict[str, int] = {}
+
         # Armistice turn tracking: tracks how many turns each pair has been in ARMISTICE
         self.armistice_turns: Dict[str, int] = {}
 
@@ -6745,6 +6753,7 @@ class WorldState:
             },
             "battle_counts": {k: int(v) for k, v in self.battle_counts.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
+            "evacuation_grants": {k: int(v) for k, v in self.evacuation_grants.items()},
             "armistice_turns": {k: int(v) for k, v in self.armistice_turns.items()},
             "previous_treaties": {k: [copy.deepcopy(t) for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
@@ -7410,6 +7419,9 @@ class WorldState:
         }
         world.battle_counts = {k: int(v) for k, v in data.get("battle_counts", {}).items()}
         world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
+        # WIN-D3: absent on every pre-slice save, and an empty corridor store
+        # is exactly right for one — no war ended while it was being written.
+        world.evacuation_grants = {k: int(v) for k, v in data.get("evacuation_grants", {}).items()}
         world.armistice_turns = {k: int(v) for k, v in data.get("armistice_turns", {}).items()}
         # deepcopy mirrors to_dict's depth — treaty records nest clause lists
         # (Aug 2026 health-check audit: shallow-on-load aliased nested
@@ -9287,6 +9299,21 @@ class WorldState:
         if jealousy_events:
             tactical_events.extend(jealousy_events)
         self._pending_jealousy_turn_events = []
+
+        # ════════════════════════════════════════════════════════════
+        # WIN-D3 "THE ROAD HOME" — the evacuation corridors tick here
+        # (WAR_WITHDRAWAL_SPEC §3.5). Deliberately LATE: turn_manager runs
+        # the cycle's strategic marches before advance_turn, so by now "how
+        # far is he still from home" is measured on where each corps
+        # actually stands rather than where it set out. Refreshes for
+        # anyone marching, warns anyone dawdling, interns anyone who
+        # ignored the warnings, retires a corridor whose army is home.
+        # Placed just ABOVE the tactical-event freeze so its events ride
+        # the ordinary channel. A no-op — and cheap — on every turn where
+        # no war has recently ended, which is nearly all of them.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.withdrawal import process_evacuation_grants
+        tactical_events.extend(process_evacuation_grants(self))
 
         # Store ALL tactical events for retrieval (includes cavalry limits + reckless cavalry)
         debug_print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
