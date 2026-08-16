@@ -820,6 +820,28 @@ class Marshal:
         """
         return self.personality == "sovereign"
 
+    def strategic_order_ap(self, auto_upgrade: bool = False) -> int:
+        """AP a STRATEGIC order from this marshal costs (GR1: one source).
+
+        NP-V (adversarial review, confirmed): the 1-AP discount lived at
+        two of the four pricing sites, so the SAME order priced 1 or 2
+        depending on the verb that reached it — "Napoleon, march to X"
+        cost 1 while "Napoleon, move to X" cost 2 and was REFUSED at 1 AP.
+        For an ordinary marshal the objection battery intercepts before
+        the AP refusal, which is why the skew stayed invisible; NP-1
+        skips objections for the sovereign, so it surfaced immediately.
+
+        Literal marshals execute precise orders with fewer couriers
+        (W6-5); the sovereign does not persuade himself (NP-1 §4.2); an
+        auto-upgrade was never the player's request, so it is not charged
+        for one.
+        """
+        if auto_upgrade:
+            return 1
+        if getattr(self, "personality", "") == "literal" or self.is_sovereign:
+            return 1
+        return 2
+
     @property
     def is_reckless_cavalry(self) -> bool:
         """

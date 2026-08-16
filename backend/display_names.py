@@ -1211,6 +1211,29 @@ def humanize_entity_name(name: str) -> str:
     return _CAMEL_BOUNDARY_RE.sub(" ", str(name)).replace("_", " ")
 
 
+def marshal_honorific(world, name: str) -> str:
+    """NP-V: "Marshal Ney" — but "the Emperor Napoleon" for a sovereign.
+
+    Live-drive finding (row NP): the dispatch's victory line is composed
+    `f"Marshal {name} holds the field"`, so the Emperor's own victories
+    read "Marshal Napoleon holds the field at Franconia". A sovereign is
+    not a marshal, and the one man the whole court orbits must not be
+    demoted by a template.
+
+    Single source for every surface that prefixes a rank. Returns the
+    humanised name WITH its honorific; falls back to "Marshal <name>"
+    for anyone the world does not know (the pre-row behaviour, so a
+    sovereign-free world is byte-identical).
+    """
+    display = humanize_entity_name(name)
+    marshal = None
+    if world is not None and name:
+        marshal = getattr(world, "marshals", {}).get(name)
+    if marshal is not None and getattr(marshal, "is_sovereign", False):
+        return f"the Emperor {display}"
+    return f"Marshal {display}"
+
+
 def with_indefinite_article(phrase: str) -> str:
     """Prefix "a"/"an" by leading letter ("an Open Borders Agreement")."""
     if not phrase:

@@ -1092,12 +1092,18 @@ class CombatExecutor:
         # sovereign stands with the assault (computed live — the transient
         # is only stamped at battle time). Percentage derives from the
         # consumed constant.
+        # NP-V: the predicate MIRRORS the applied `eligible` set
+        # (retreated/recovering marshals grant nothing — the NP-4 Guard
+        # toll sets `retreated_this_turn`, so this arm is live on the
+        # row's own retreat path). Shown = applied, both directions.
         if SOVEREIGN_PRESENCE_ACTIVE and any(
                 getattr(m, "is_sovereign", False)
                 for m in world.marshals.values()
                 if m.location == marshal.location
                 and m.nation == marshal.nation and m.strength > 0
-                and not getattr(m, "broken", False)):
+                and not getattr(m, "broken", False)
+                and not getattr(m, "retreated_this_turn", False)
+                and getattr(m, "retreat_recovery", 0) == 0):
             _pct = int(round(Marshal.SOVEREIGN_PRESENCE_ATTACK * 100))
             preview["presence_note"] = (
                 f"The Emperor commands in person — every corps on this "
@@ -1253,6 +1259,13 @@ class CombatExecutor:
             lines.append(line)
         if preview["target"].get("reinforcement_note"):
             lines.append(f"  {preview['target']['reinforcement_note']}")
+        # NP-V (adversarial review): `presence_note` was written under a
+        # comment reading "shown = applied" and pinned by a test that
+        # asserted the PRODUCER'S DICT — and no formatter and no `.gd`
+        # ever read it, so the one surface the player commits from never
+        # said the Emperor was on the field. This is the render.
+        if preview.get("presence_note"):
+            lines.append(f"  {preview['presence_note']}")
         if preview.get("shared_casualty_note"):
             lines.append(f"  {preview['shared_casualty_note']}")
         if preview.get("hint"):
@@ -2285,7 +2298,14 @@ class CombatExecutor:
                 pre_attacker_strength=int(pre_atk),
                 pre_defender_strength=int(pre_def),
                 attacker_participants=jealousy_atk_parts,
-                defender_participants=jealousy_def_parts)
+                defender_participants=jealousy_def_parts,
+                # NP-V: the Shadow reads the verdict computed where the
+                # AURA was stamped — the true battle sides, before the
+                # victor advanced and before the A-D4 hostile filter.
+                # Absent (garrison/charge paths that set no key) it falls
+                # back to the participant scan, byte-identically.
+                attacker_shadow=ctx.get('attacker_sovereign_present'),
+                defender_shadow=ctx.get('defender_sovereign_present'))
             _jealousy.check_rivalry_transitions(
                 world, pipeline_out.get('relationship_changes'))
 
@@ -2980,6 +3000,14 @@ class CombatExecutor:
         halted for the turn; the survivors are captured after."""
         damage = int(marshal.strength * 0.25 * (1.0 + self.LAST_STAND_BONUS))
         enemy_name = getattr(enemy, "name", "")
+        # NP-V (live-drive finding, PRE-EXISTING — it has always affected
+        # every marshal's last stand, and row NP only made it loud by
+        # giving the moment to the Emperor): the return line below reads
+        # `marshal.location`, but `_capture_marshal` moves him to the
+        # CAPTOR'S CAPITAL first — so the field he died on was reported as
+        # the enemy's capital ("turns at bay at Vienna" for a stand made at
+        # Swabia). Capture the field BEFORE the fate machinery moves him.
+        field = marshal.location
         if enemy is not None and damage > 0:
             enemy.take_casualties(damage)
             enemy.adjust_morale(-5)
@@ -3001,7 +3029,7 @@ class CombatExecutor:
             marshal, getattr(enemy, "nation", ""), world,
             context="last_stand")
         return (f"[!] LAST STAND — {marshal.name} turns at bay at "
-                f"{marshal.location}! {damage:,} enemy casualties; the "
+                f"{field}! {damage:,} enemy casualties; the "
                 f"pursuit is halted. {capture_msg}")
 
     def _capture_marshal(self, marshal, captor_nation: str,
@@ -4191,9 +4219,15 @@ class CombatExecutor:
                 # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
                 is_player_nation = marshal.nation == world.player_nation
                 if enemy_by_name and is_player_nation:
-                    # Pre-check: strategic commands cost 2 AP (1 for literal)
-                    is_literal = getattr(marshal, 'personality', '') == 'literal'
-                    strategic_cost = 1 if is_literal else 2
+                    # Pre-check: strategic commands cost 2 AP (1 for the
+                    # literal / the sovereign). NP-V: single source on the
+                    # marshal (GR1). NOTE the charge site prices this as an
+                    # AUTO-UPGRADE (1 AP for anyone) — a pre-existing skew
+                    # that over-gates every non-literal marshal here, and
+                    # which NP-1 made player-reachable by skipping the
+                    # objection battery that used to intercept first.
+                    strategic_cost = marshal.strategic_order_ap(
+                        auto_upgrade=True)
                     if world.actions_remaining < strategic_cost:
                         return {
                             "success": False,
@@ -4952,6 +4986,53 @@ class CombatExecutor:
                 atk_participants.append(art)
             elif art.nation == enemy_marshal.nation and art not in def_participants:
                 def_participants.append(art)
+
+        # ════════════════════════════════════════════════════════════
+        # NP-V — THE PRESENCE REACHES THE ARMY THAT MARCHES.
+        #
+        # Adversarial review P1 (confirmed by two independent refuters,
+        # reproduced at runtime): the aura was stamped ONLY by
+        # `_calculate_coordination_context`, which scans the primary's
+        # OWN province. Attacker-side reinforcements are physically
+        # relocated to the battle region before that runs, so an arriving
+        # corps was in NEITHER eligible set — and the Emperor himself is
+        # an ordinary reinforcement candidate who joins ~95% of the time.
+        # Measured: the aura fired only when the Emperor FAILED to march.
+        # The authored ability — "Every French corps fighting in the
+        # Emperor's province" — was false at the exact moment the battle
+        # WAS in his province.
+        #
+        # `_get_casualty_participants` is the true per-side roster of this
+        # battle, built at the BATTLE REGION and BEFORE the victor
+        # advances, so it is the honest audience for both halves of the
+        # mechanic. Stamping here is additive: the coordination pass has
+        # already written 0.0 across every eligible marshal, and every
+        # name stamped here is inside `involved_regions`, so the existing
+        # clear still covers it.
+        #
+        # Artillery that reinforced from ADJACENT (never relocated) is in
+        # these lists by the Gate-4 append above and is deliberately
+        # included: it is firing into the Emperor's battle.
+        _atk_sovereign = SOVEREIGN_PRESENCE_ACTIVE and any(
+            getattr(p, 'is_sovereign', False) and p.strength > 0
+            and not getattr(p, 'broken', False)
+            for p in atk_participants)
+        _def_sovereign = SOVEREIGN_PRESENCE_ACTIVE and any(
+            getattr(p, 'is_sovereign', False) and p.strength > 0
+            and not getattr(p, 'broken', False)
+            for p in def_participants)
+        # The assignment is UNCONDITIONAL, and that closes the mirror
+        # defect: `_calculate_coordination_context` stamps co-location at
+        # the primary's ORIGIN, so a marshal who mustered in the Emperor's
+        # province and then marched away carried the aura into a battle
+        # the Emperor never joined (measured on the A-D4 hostile pair —
+        # Napoleon refuses to reinforce Bernadotte, stays home, and
+        # Bernadotte fought at +10% anyway). Presence now states exactly
+        # who is in THIS battle with him, in both directions.
+        for p in atk_participants:
+            p.sovereign_presence = 1.0 if _atk_sovereign else 0.0
+        for p in def_participants:
+            p.sovereign_presence = 1.0 if _def_sovereign else 0.0
 
         is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
 
@@ -6178,6 +6259,11 @@ class CombatExecutor:
             'pre_battle_defender_strength': pre_battle_defender_strength,
             'battle_result': battle_result,
             'conquered': conquered,
+            # NP-V: the per-side Presence verdict, computed above on the
+            # true battle rosters BEFORE the victor advances (the Shadow
+            # and the aura must share one audience).
+            'attacker_sovereign_present': _atk_sovereign,
+            'defender_sovereign_present': _def_sovereign,
             # Skip steps already handled inline by _execute_attack
             'skip_coordination_clear': True,
             'skip_log_battle_event': True,

@@ -1464,7 +1464,9 @@ class StrategicExecutor:
         is_literal = getattr(marshal, 'personality', '') == 'literal'
         is_sovereign = getattr(marshal, 'is_sovereign', False)
         is_auto_upgrade = parsed_command.get("auto_upgrade", False)
-        strategic_cost = 1 if (is_literal or is_sovereign or is_auto_upgrade) else 2
+        # NP-V: single source on the marshal (GR1).
+        strategic_cost = marshal.strategic_order_ap(
+            auto_upgrade=bool(is_auto_upgrade))
 
         # W6-5 The Literal Doctrine (§7.2.2 + §7.2.5): a literal marshal
         # acknowledges by quoting the order's own words (the verbatim text

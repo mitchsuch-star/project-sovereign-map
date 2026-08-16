@@ -32,6 +32,11 @@ _WIRED_ABILITY_MARSHALS = {
     # 1805 roster (MC-1)
     "Ney", "Davout", "Soult", "Lannes", "Murat", "Massena", "Bernadotte",
     "ArchdukeCharles", "Kutuzov", "Moore",
+    # NP-V (NAPOLEON_SPEC §6.5): The Presence is REAL — the aura is
+    # stamped by _calculate_coordination_context and read in
+    # get_attack_modifier/get_defense_modifier — so his card must show
+    # the ability as active, not greyed.
+    "Napoleon",
     # Legacy Waterloo roster
     "Drouot", "Wellington", "Blucher", "Uxbridge",
 }
@@ -45,6 +50,21 @@ _PERSONALITY_DESCRIPTIONS = {
     "cautious": (
         "Cautious: +20% defense in defensive stance, +10% when outnumbered. "
         "Fortify up to 20%. Hesitant to attack at bad odds."
+    ),
+    # NP-V (adversarial review, CONFIRMED across three lenses): the apex
+    # card rendered NO personality line at all, because the sovereign had
+    # no row here — the one card that should explain the game's most
+    # unusual commander explained nothing. Every clause is a shipped
+    # mechanic (NAPOLEON_SPEC §4.2/§5.1/§5.2/§6.2/§8).
+    "sovereign": (
+        "Sovereign: You, in the field. He never objects and never asks — "
+        "his orders are your own will, and cost 1 AP, not 2. Where he "
+        "stands, every corps of his nation fights +10% harder on attack "
+        "and defence, and enemy commanders will not accept odds against "
+        "him that they would take against any marshal. But victories won "
+        "under his eye are HIS: marshals beside him earn half the glory, "
+        "so ambition needs a command of its own. He holds no rank on the "
+        "ladder, expects no reward, and cannot be replaced."
     ),
     "literal": (
         # W6-5 The Literal Doctrine (§7.1) — the doctrine, stated on the card.

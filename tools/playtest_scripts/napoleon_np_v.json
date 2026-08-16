@@ -1,0 +1,35 @@
+{
+  "name": "napoleon-np-v",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "Row NP acceptance drive (NAPOLEON_SPEC §13 NP-V): the Emperor leaves the Seat, marches to the front, fights under his own hand, and the court reacts. Exercises the NP-1 address forms (named, 'the Emperor', first-person, the 'myself' suffix), the NP-5 Seat departure note, the NP-2 aura/fear in a real battle, and the NP-3 shadow over a marshal fighting beside him. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": [
+      "status",
+      "Napoleon, move to Lorraine"
+    ],
+    "2": [
+      "the Emperor, move to Rhineland"
+    ],
+    "3": [
+      "I will march to Swabia",
+      "Ney, move to Swabia"
+    ],
+    "4": [
+      "Napoleon, attack Mack"
+    ],
+    "5": [
+      "generals"
+    ],
+    "6": [
+      "Napoleon, attack Mack"
+    ],
+    "7": [
+      "march to Bavaria myself"
+    ],
+    "8": [
+      "Talleyrand, assess our situation"
+    ]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "secure"}
+}

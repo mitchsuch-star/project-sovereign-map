@@ -382,6 +382,9 @@ class TestAbility:
             # 1805 roster (MC-1)
             "Ney", "Davout", "Soult", "Lannes", "Murat", "Massena",
             "Bernadotte", "ArchdukeCharles", "Kutuzov", "Moore",
+            # NP-V: The Presence is a real, applied mechanic (the aura) —
+            # conscious flip, NAPOLEON_SPEC §6.5.
+            "Napoleon",
             # Legacy Waterloo roster
             "Drouot", "Wellington", "Blucher", "Uxbridge",
         }

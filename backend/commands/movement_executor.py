@@ -216,9 +216,11 @@ class MovementExecutor:
                     "engaged_with": [e.name for e in enemies_here],
                     "suggestion": f"Try: '{marshal.name}, attack {enemies_here[0].name}' or '{marshal.name}, retreat'"
                 }
-            # Strategic commands cost 2 AP (1 for literal)
-            is_literal = getattr(marshal, 'personality', '') == 'literal'
-            strategic_cost = 1 if is_literal else 2
+            # Strategic commands cost 2 AP (1 for literal / the sovereign)
+            # NP-V: single source on the marshal (GR1) — the discount used
+            # to live at 2 of 4 pricing sites, so the same order priced 1
+            # or 2 depending on which verb reached it.
+            strategic_cost = marshal.strategic_order_ap()
             if marshal.nation == world.player_nation and world.actions_remaining < strategic_cost:
                 return {
                     "success": False,
@@ -349,8 +351,8 @@ class MovementExecutor:
         if distance > move_range:
             # (engaged / AP refusals already cleared by move_refusal_probe)
             # Auto-upgrade to strategic MOVE_TO for distant regions
-            is_literal = getattr(marshal, 'personality', '') == 'literal'
-            strategic_cost = 1 if is_literal else 2
+            # NP-V: single source on the marshal (GR1).
+            strategic_cost = marshal.strategic_order_ap()
             # PF-8: prefer a passable corridor for a player's strategic march
             # (AI keeps its omniscient routing). Fall back to the terrain-only
             # path if no passable route exists so the order still forms and the

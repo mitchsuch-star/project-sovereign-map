@@ -2365,7 +2365,18 @@ class EnemyAI:
             sovereign_in_stack = None
             for m in world.get_friendly_marshals_in_region_indexed(
                     target.location, target.nation):
-                if getattr(m, 'is_sovereign', False) and m.strength > 0:
+                # NP-V (adversarial review, confirmed): this predicate must
+                # match the AURA's audience (combat_executor's `eligible`
+                # set) — the fear is the enemy's response to the aura, so
+                # a routed Emperor who grants NO +10% must not still
+                # frighten them off. The overwatch scan a few lines above
+                # already uses exactly this filter; the omission here was
+                # oversight, not design, and it shielded the NP-4 Peril
+                # arc at the one moment the enemy should pounce.
+                if (getattr(m, 'is_sovereign', False) and m.strength > 0
+                        and not getattr(m, 'broken', False)
+                        and not getattr(m, 'retreated_this_turn', False)
+                        and getattr(m, 'retreat_recovery', 0) == 0):
                     sovereign_in_stack = m
                     break
             if sovereign_in_stack is not None:

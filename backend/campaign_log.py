@@ -1620,6 +1620,13 @@ def format_event_oneliner(event: dict) -> str:
         marshal = event.get("marshal", "Unknown")
         captor = event.get("captor", "the enemy")
         location = event.get("location", "the field")
+        # NP-V: the chronicle must not demote a sovereign to a marshal —
+        # "Marshal Napoleon CAPTURED" printed in the same Gazette issue
+        # whose masthead read THE EMPEROR TAKEN. This formatter takes no
+        # `world`, so it branches on the event's own `sovereign` key
+        # (stamped by WorldState.capture_marshal / release).
+        if event.get("sovereign"):
+            return f"THE EMPEROR {marshal} TAKEN by {captor} at {location}"
         return f"Marshal {marshal} CAPTURED by {captor} at {location}"
 
     if event_type == "marshal_destroyed":
@@ -1646,6 +1653,9 @@ def format_event_oneliner(event: dict) -> str:
         marshal = event.get("marshal", "Unknown")
         captor = event.get("captor", "captivity")
         reason = (event.get("reason") or "release").replace("_", " ")
+        if event.get("sovereign"):  # NP-V: see marshal_captured above
+            return (f"THE EMPEROR {marshal} is restored to France by "
+                    f"{captor} ({reason})")
         return f"Marshal {marshal} released by {captor} ({reason})"
 
     if event_type == "strategic_order":

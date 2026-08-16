@@ -73,11 +73,30 @@ class TestNormalization:
         ("I'll attack Wellington", "Napoleon, attack Wellington"),
         ("I attack Wellington", "Napoleon, attack Wellington"),
         ("I shall advance on Belgium", "Napoleon, advance on Belgium"),
-        ("march to Belgium myself", "Napoleon, march to Belgium myself"),
-        ("take the field in person", "Napoleon, take the field in person"),
+        # NP-V live-drive fix: the trailing marker is CONSUMED, not
+        # carried — keeping it produced the phantom province "Bavaria
+        # Myself" (the destination extraction reads to end-of-string and
+        # never consults the fuzzy skip lists). The raw phrasing still
+        # survives on the order's `original_command`.
+        ("march to Belgium myself", "Napoleon, march to Belgium"),
+        ("take the field in person", "Napoleon, take the field"),
+        ("attack Wellington myself.", "Napoleon, attack Wellington"),
     ])
     def test_rewrites(self, text, expected):
         assert normalize_sovereign_address(text, "Napoleon") == expected
+
+    def test_marker_never_becomes_a_province(self):
+        # The defect this fix closes, pinned at the value that broke:
+        # the marker must not survive into the destination text.
+        for text in ("march to Belgium myself", "attack Wellington in person"):
+            assert "myself" not in normalize_sovereign_address(
+                text, "Napoleon").lower()
+            assert "in person" not in normalize_sovereign_address(
+                text, "Napoleon").lower()
+
+    def test_bare_marker_alone_is_not_an_order(self):
+        # Stripping must not manufacture an empty order.
+        assert normalize_sovereign_address("myself", "Napoleon") == "myself"
 
     @pytest.mark.parametrize("text", [
         # (a) an address token always wins — corpus row 3953's form.
@@ -134,8 +153,10 @@ class TestParseIntegration:
         result = parse(parser, sovereign_world, "march to Belgium myself")
         assert result["success"] is True
         assert result["command"]["marshal"] == "Napoleon"
-        # The marker itself must never fuzzy-match into a province.
-        assert (result["command"].get("target") or "") != "Myself"
+        # NP-V: the destination is the PROVINCE, not the province plus the
+        # marker. The live drive produced "Bavaria Myself" here — a
+        # phantom province — which is why the marker is now stripped.
+        assert result["command"].get("target") == "Belgium"
 
     def test_addressed_first_person_still_the_addressee(
             self, parser, sovereign_world):

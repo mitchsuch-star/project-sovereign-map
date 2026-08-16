@@ -270,7 +270,9 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
                         pre_attacker_strength: int,
                         pre_defender_strength: int,
                         attacker_participants: Optional[List] = None,
-                        defender_participants: Optional[List] = None) -> None:
+                        defender_participants: Optional[List] = None,
+                        attacker_shadow: Optional[bool] = None,
+                        defender_shadow: Optional[bool] = None) -> None:
     """Record glory for a resolved battle. Runs AFTER the Win/Loss
     relationship step (EC-F ordering) from every combat path.
 
@@ -291,14 +293,36 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     # or participant) halves every OTHER marshal's accrual on that side —
     # both polarities. His own accrual is already dead at the
     # _append_glory chokepoint (NP-0).
+    #
+    # ⚠ NP-V (adversarial review, two independent refuters): the
+    # participant scan below is the FALLBACK, not the primary source. The
+    # caller may pass an explicit per-side verdict computed at the moment
+    # the AURA was stamped, and it must, because the two geometries
+    # diverge in the ORDINARY case:
+    #   * the aura is stamped on the true battle sides BEFORE the victor
+    #     advances, while this function runs AFTER the move — so a
+    #     winning attacker's participant list no longer contains the
+    #     sovereign he sortied from HQ with (measured: attacking an
+    #     adjacent province from the Emperor's own headquarters produced
+    #     participants=['Ney'], sovereign present? False);
+    #   * `get_battle_participants` applies the A-D4 hostile-refusal
+    #     filter, so a marshal at -2 with the sovereign (Bernadotte)
+    #     dropped him from the list and banked FULL glory while standing
+    #     in his province and drawing his +10%.
+    # Together those made the Shadow fire only on a same-province battle
+    # between marshals who like him — i.e. largely inert, which is the
+    # "stacking with the Emperor is strictly dominant" outcome the gate
+    # rejected option (c) to avoid. The override closes both.
     def _side_shadowed(primary, participants) -> bool:
         pool = list(participants or [])
         if primary is not None:
             pool.append(primary)
         return any(getattr(m, "is_sovereign", False) for m in pool)
 
-    atk_shadow = _side_shadowed(attacker, attacker_participants)
-    def_shadow = _side_shadowed(defender, defender_participants)
+    atk_shadow = (bool(attacker_shadow) if attacker_shadow is not None
+                  else _side_shadowed(attacker, attacker_participants))
+    def_shadow = (bool(defender_shadow) if defender_shadow is not None
+                  else _side_shadowed(defender, defender_participants))
 
     def _shadowed(points: int, shadow: bool) -> int:
         return int(points * GLORY_SHADOW_MULT) if shadow else points

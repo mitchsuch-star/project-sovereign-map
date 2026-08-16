@@ -4425,9 +4425,13 @@ class WorldState:
             # branch on this key — the Eagle in Chains is not one more
             # marshal lost.
             "sovereign": is_sovereign,
+            # NP-V: the same function returns "THE EAGLE IN CHAINS" three
+            # lines below — this field must not call him a marshal.
             "message": (
-                f"Marshal {marshal.name} has been CAPTURED by "
-                f"{captor_nation} at {old_location}."
+                (f"THE EMPEROR {marshal.name} has been TAKEN by "
+                 f"{captor_nation} at {old_location}.") if is_sovereign else
+                (f"Marshal {marshal.name} has been CAPTURED by "
+                 f"{captor_nation} at {old_location}.")
             ),
         })
 
@@ -4506,12 +4510,26 @@ class WorldState:
         # MC-1c review fix (MED): direct location assignment bypasses
         # move_to — a released prisoner comes home with no coil.
         marshal.clear_iron_resolve()
+        # NP-V (adversarial review P1, second half): captivity leaked
+        # durable state PAST the release. A prisoner who was ordered to
+        # fortify (see the parser guard this ships with) came home dug in
+        # and immobile in a stance he never chose. Even with the order
+        # path closed, a marshal captured WHILE fortified carried it home
+        # — he was taken out of his earthworks, not out of a field. This
+        # is the release seam's own hygiene and applies to every marshal.
+        from backend.models.marshal import Stance
+        marshal.fortified = False
+        marshal.defense_bonus = 0
+        marshal.turns_fortified = 0
+        marshal.stance = Stance.NEUTRAL
         self.log_event({
             "type": "marshal_released",
             "marshal": marshal.name,
             "nation": marshal.nation,
             "captor": captor,
             "reason": reason,
+            # NP-V: the chronicle branches on this (campaign_log.py).
+            "sovereign": bool(getattr(marshal, "is_sovereign", False)),
             "message": (
                 f"Marshal {marshal.name} is released by {captor} and "
                 f"returns to {home} ({reason.replace('_', ' ')})."

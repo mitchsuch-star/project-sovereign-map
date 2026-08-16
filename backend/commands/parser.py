@@ -99,7 +99,18 @@ def _find_player_sovereign(world=None, game_state=None) -> Optional[str]:
     if world is not None:
         player_nation = getattr(world, "player_nation", None)
         for m in getattr(world, "marshals", {}).values():
-            if m.nation == player_nation and getattr(m, "is_sovereign", False):
+            # NP-V (adversarial review P1, reproduced through /command): a
+            # CAPTURED sovereign must not resolve here. The PC15-4
+            # lost-marshal guard runs upstream in main.py and keys on a
+            # leading comma-address, so it never sees "I fortify" /
+            # "Emperor, fortify" / "march to X myself" — the prisoner
+            # accepted orders, was charged AP, and (worse) came home from
+            # captivity fortified and locked in a stance he never chose.
+            # `context_carryover._player_sovereign_name` already filtered
+            # this; the two seams now agree.
+            if (m.nation == player_nation
+                    and getattr(m, "is_sovereign", False)
+                    and not getattr(m, "captured_by", "")):
                 return m.name
         return None
     if game_state:
@@ -141,8 +152,18 @@ def normalize_sovereign_address(command_text: str,
     match = _SOVEREIGN_FIRST_PERSON_RE.match(command_text)
     if match:
         return f"{sovereign_name}, {command_text[match.start('verb'):]}"
-    if _SOVEREIGN_SELF_MARKER_RE.search(command_text):
-        return f"{sovereign_name}, {command_text}"
+    marker = _SOVEREIGN_SELF_MARKER_RE.search(command_text)
+    if marker:
+        # The marker is CONSUMED, not carried. Live-drive finding (NP-V):
+        # keeping it produced the phantom province "Bavaria Myself" —
+        # the destination extraction reads to end-of-string and never
+        # consults the fuzzy skip lists, so the reflexive-word guards
+        # below could not save it. The raw phrasing still survives on
+        # the order's `original_command` (rider (d)'s record seam), so
+        # nothing is lost by stripping it here.
+        body = command_text[:marker.start()].rstrip().rstrip(",")
+        if body:
+            return f"{sovereign_name}, {body}"
     return command_text
 
 

@@ -9,7 +9,9 @@ Fog-filtered: enemy intel uses RegionIntel visibility, never raw marshal data.
 
 from typing import Dict, List, Optional, Any
 
-from backend.display_names import humanize_entity_name, with_definite_article
+from backend.display_names import (
+    humanize_entity_name, marshal_honorific, with_definite_article,
+)
 from backend.nation_config import get_player_nation
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
@@ -542,7 +544,10 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 _at = (f" at {e['location']}" if e.get("location") else "")
                 _add("enemy_marshal_captured",
                      f"enemy_marshal_captured:{e.get('marshal', '?')}",
-                     line=(f"Marshal {cap_marshal}{_of} is taken{_at} — he "
+                     # NP-V: a captured enemy SOVEREIGN is not "Marshal
+                     # Kaiser" — the honorific is single-sourced.
+                     line=(f"{marshal_honorific(world, e.get('marshal', ''))}"
+                           f"{_of} is taken{_at} — he "
                            f"is our prisoner, and their order of battle is "
                            f"one commander shorter."))
         elif etype == "marshal_destroyed":
@@ -815,16 +820,22 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     # per turn (CA8-5 discipline).
     for _loc, _win in _french_wins.items():
         _routed = _enemy_routs.get(str(_win.get("loser", "")), "")
-        _victor_disp = humanize_entity_name(_win["victor"]) if _win["victor"] else "our arms"
+        # NP-V (live-drive finding): the Emperor's own victories read
+        # "Marshal Napoleon holds the field" — a sovereign is not a
+        # marshal. Single-sourced honorific; "our arms" keeps no rank.
+        # (This REPLACES the bare `humanize_entity_name` display name the
+        # two lines below used to prefix with a literal "Marshal ".)
+        _victor_hon = (marshal_honorific(world, _win["victor"])
+                       if _win["victor"] else "Our arms")
         if _win["annihilation"]:
             _loser_disp = humanize_entity_name(_win["loser"]) if _win["loser"] else "the enemy"
             _add("victory_won", f"victory_won:{_loc}",
-                 line=(f"Marshal {_victor_disp} has destroyed "
+                 line=(f"{_victor_hon} has destroyed "
                        f"{_loser_disp}'s corps at {_loc}. No enemy "
                        f"formation remains in that field."))
         elif _routed:
             _add("victory_won", f"victory_won:{_loc}",
-                 line=(f"Marshal {_victor_disp} holds the field at {_loc} — "
+                 line=(f"{_victor_hon} holds the field at {_loc} — "
                        f"{_routed}'s corps is broken and flees."))
     # Absorption: the conquest of a field France just won is the SAME story
     # told twice — the victory line carries it; the bare map fact yields.

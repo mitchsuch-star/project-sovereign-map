@@ -751,11 +751,10 @@ class CommandExecutor:
                     # Strategic commands cost 2 (1 for literal personality;
                     # NP-1: 1 for the sovereign — the Emperor does not
                     # persuade himself, NAPOLEON_SPEC §4.2)
+                    # NP-V: single source on the marshal (GR1).
                     marshal_for_cost = world.get_marshal(command.get("marshal", ""))
-                    is_discounted = marshal_for_cost and (
-                        getattr(marshal_for_cost, 'personality', '') == 'literal'
-                        or getattr(marshal_for_cost, 'is_sovereign', False))
-                    required_actions = 1 if is_discounted else 2
+                    required_actions = (marshal_for_cost.strategic_order_ap()
+                                        if marshal_for_cost else 2)
 
                 if world.actions_remaining < required_actions:
                     return {
