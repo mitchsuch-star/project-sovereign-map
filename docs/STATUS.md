@@ -4,6 +4,120 @@
 
 ## ▶ NEXT UP
 
+> # ▶ NEXT SESSION: **WO-EVAL — "How do we make the game better?"**
+>
+> **The docket is `docs/DESIGN_REFINEMENT.md` §Weird-Outcomes design questions
+> (WO-D1..D6). The evidence is `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`.
+> The correctness backlog it sits beside is `docs/BUG_FIXES.md` §Weird-Outcomes
+> Playtest (WO).**
+>
+> **This is an EVALUATION, not a build.** It produces a memo with a
+> recommendation per row and a proposed order — and then a **user gate**, because
+> WO-D1 and WO-D2 are structural design calls, not tuning. Nothing in the WO-D
+> docket is coded before that gate returns.
+>
+> **The question it exists to answer** — put by the ten-campaign playtest below,
+> in one line: **the only strategy this game truly implements is *attack*.**
+> Every arm that fought ended at 29–31 provinces; every arm that tried statecraft,
+> clients, commerce or the sea ended at 5–12, and three of them were told they
+> were succeeding. So the evaluation's brief is not "which bugs first" — it is
+> *which of the four non-military strategies do we commit to making real, and
+> what does the battle become if it stops being free?*
+>
+> **Suggested shape** (the evaluator may re-cut it):
+> 1. **Rank the six WO-D rows by leverage-per-session**, with the funnel (§WO-D1
+>    + WO-D2) treated as one question, not two — they are the same absence.
+> 2. **Take WO-D6 first regardless** — a `capital_lost` headline class is cheap,
+>    lands on the pillar scored lowest for months, and needs no gate.
+> 3. **For WO-D1, do not open with numbers.** The exchange ratio is a symptom of
+>    universal auto-reinforcement; propose the three levers (commit-by-order,
+>    symmetric defender concentration, or accept-and-stop-advertising) and
+>    recommend one with its cost.
+> 4. **Measure before recommending on WO-D5** — the driver declines by policy, so
+>    France's own pairs are policy-frozen; the AI-vs-AI half is the live question.
+> 5. **Route, don't re-litigate.** WO-D4(a) (market vs depot) is a pricing fix
+>    that can land immediately; WO-D4(b) belongs to the Victory pass (ROADMAP
+>    12–13) and should be handed there, not solved here.
+>
+> **The P1 correctness rows are a SEPARATE and arguably earlier slice** — WO-1,
+> WO-2, WO-3 all execute the wrong thing and none is gated on a design decision.
+> If the user wants play-correctness before play-design, take those three first;
+> they share the pre-parse guard family that `PC15-4` and the NPC cluster already
+> opened, and WO-2 carries a correction owed to row NPC-7.
+>
+> **Also owed and unowned by the above:** the three harness rows WO-H1/H2/H3 —
+> the driver reports campaigns that never happened, cannot see autonomous
+> battles, and cannot read a capture payload. **These degrade every future
+> unattended evaluation, including WO-EVAL's own measurements**, so they are the
+> cheapest thing on this page to fix first. `docs/PLAYTESTING.md`'s *Known-bad
+> digests* section needs all three added, and the "causally inert" refutation on
+> the NPC harness row is falsified and needs correcting.
+
+> ## ✅ THE WEIRD-OUTCOMES PLAYTEST — RAN August 16, 2026 (fifth session that day)
+>
+> **Report-only: ZERO production code touched.** User direction: *"play the game
+> review how good it is across elements try to do wierd outcomes be creative."*
+> **Memo of record = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`**;
+> routing = `BUG_FIXES.md` §Weird-Outcomes Playtest (WO, 16 game + 3 harness
+> rows) and `DESIGN_REFINEMENT.md` §Weird-Outcomes design questions (WO-D1..D6).
+>
+> **Ten campaigns, ~290 turns**, each built to push a DIFFERENT system past its
+> designed shape rather than to win — committed as
+> `tools/playtest_scripts/weird_*.json`, all reproducible with one command:
+> a pacifist who never attacks · a deliberate attempt to lose Napoleon · a tyrant
+> who confiscates everything · a kingmaker who wants clients not land · a
+> merchant who never fights · an admiral · a parser-torture arm · France at war
+> with all Europe · 45 idle turns on seed `austerlitz` · and one arm (plus a
+> re-run) on the **live Anthropic parser**. Then a **40-agent find-then-refute
+> fleet**: one deep reader per campaign, an adversarial verifier per candidate
+> whose default position was that the finding is wrong. **30 verdicts: 21
+> CONFIRMED, 5 REFUTED, 4 ALREADY_FILED.**
+>
+> **Directional ≈6.2.** Marshal drama 8.0 · AI aliveness 7.0 · narration 6.5 ·
+> economy 6.5 · diplomacy 5.5 · naval 5.5 · **command/parsing 4.5 · UX honesty
+> 4.5 · vassals 4.0 · combat legibility 4.0.**
+>
+> **THE FUNNEL is the headline.** Every arm that fought ended at 29–31 provinces;
+> every arm that tried anything else ended at 5–12 — and in three of those the
+> game reported the strategy as working. There is no middle.
+>
+> **Four P1s — three in the game, one in the harness:**
+> * **WO-1** `Kutuzov, retreat` — naming the *Russian* commander — **retreats the
+>   French army, and executes**: every corps changes province, Massena loses
+>   2,100 men. `Mack, attack Vienna` sends the whole army at Swabia. The guard
+>   works for names the game does NOT know (`Zorblax` is refused); it fails for
+>   enemy names it does. Third member of the `PC15-4` family.
+> * **WO-2** `Ney, move to Avalon` → **marches to Leon, Spain**, eight provinces,
+>   no confirm, the word *Avalon* never mentioned. Two ungated `auto_correct`
+>   arms; the gate exists and is applied to three siblings. Runs in the AI
+>   direction too — Britain spent 13 turns ordering armies to take an adjacent
+>   province and being told it was 8 provinces away.
+> * **WO-3** a detachment garrison **stalls at one man forever** — the 10% loss
+>   floor truncates to zero below ten men. 40 assaults, attacker 40,000 →
+>   17,843, no collapse. Terminal state of EVERY detachment garrison; a Bavarian
+>   marshal burned 10,152 men on one in the wild.
+> * **WO-H1** the driver ran **fifteen complete declare-war ceremonies and
+>   declared war on ZERO nations**, logging every one as a success.
+>
+> **⚠ Two of this session's own readings were STRUCK by its own verification.**
+> WO-H1 was first filed as a game inconsistency — **the backend is correct and
+> the harness is blind**; and the "two campaigns soft-lock forever" headline is
+> false (hand-driving the blocked save resolves it; already owned by WIN-H5).
+> Five more session candidates and five reader candidates were killed — all ten
+> recorded in the memo §6 and the BUG_FIXES block rather than deleted. WO-H1 also
+> **falsifies a refutation already on record** in §Napoleon Campaign calling
+> `_option_id`'s blindness *"causally inert"*.
+>
+> **What held up, and should not be "improved" away:** the CR-5 delegation split
+> (one vague order, three temperaments, three different right answers); the
+> marshals **out-extorting the tyrant** (he revoked Ney's rente, the collective
+> petition handed him a bigger one next turn); a **pacifist France winning its
+> war** at +51 through eleven autonomous jealousy attacks; **France's ally
+> Bavaria going 3 → 11 provinces** and annihilating Austria unaided; Massena
+> stepping in front of a broken Napoleon; the AI running the estate economy on
+> itself; and a prompt injection, null bytes, RTL text, SQL and path traversal
+> all refused in Berthier's voice with zero crashes.
+
 > ## ✅ THE NPC P1 CLUSTER — FIXED August 16, 2026 (fourth session that day)
 >
 > **Landing record = `docs/BUG_FIXES.md` §Napoleon Campaign (NPC), the

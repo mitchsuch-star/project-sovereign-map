@@ -1,0 +1,32 @@
+{
+  "name": "weird-world-burns",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "ARM H — 'The World Burns'. France declares war on every court in Europe as fast as the diplomatic points allow, including its own allies and satellites, and then fights on every front at once. Questions: does the coalition machinery cope with a hegemon at war with literally everyone? Do exposure/threat/war-weariness produce a coherent picture or a wall of noise? Does the economy break? Is there any point at which the game says 'this is madness' in a voice the player hears — or does it just keep processing?",
+  "turns": {
+    "1": ["status", "declare war on Prussia", "declare war on Sweden", "declare war on Denmark"],
+    "2": ["declare war on Ottoman", "declare war on Portugal", "status"],
+    "3": ["declare war on Spain", "declare war on Naples"],
+    "4": ["declare war on Papal States", "declare war on Switzerland", "status"],
+    "5": ["declare war on Saxony", "declare war on Bavaria"],
+    "6": ["declare war on Holland", "declare war on Hanover", "status"],
+    "7": ["Ney, attack Mack", "Davout, attack Mack", "Talleyrand, assess our situation"],
+    "8": ["declare war on Hesse", "declare war on Sardinia", "status"],
+    "9": ["Ney, attack Mack", "Massena, attack Rome"],
+    "10": ["status", "Talleyrand, assess our situation", "economy report"],
+    "11": ["Ney, attack Deroy", "Bernadotte, attack Deroy"],
+    "12": ["status", "economy report"],
+    "13": ["Soult, hold position", "Murat, charge Mack"],
+    "14": ["status", "Talleyrand, assess our situation"],
+    "15": ["Ney, attack Mack", "Davout, fortify"],
+    "16": ["status", "economy report"],
+    "18": ["status", "Talleyrand, assess our situation"],
+    "20": ["status", "economy report"],
+    "22": ["status"],
+    "24": ["status", "Talleyrand, assess our situation", "economy report"],
+    "26": ["status"],
+    "28": ["status", "economy report"],
+    "30": ["status", "Talleyrand, assess our situation", "economy report"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline", "capture": "plunder", "estate": "confiscate", "ultimatum": "defy"}
+}
