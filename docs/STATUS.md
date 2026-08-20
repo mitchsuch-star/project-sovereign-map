@@ -4,54 +4,115 @@
 
 ## ▶ NEXT UP
 
-> # ▶ NEXT SESSION: **WO-EVAL — "How do we make the game better?"**
+> # ✅ WO-EVAL HELD August 17, 2026 — **memo of record = `docs/audits/WO_EVAL_2026_08_17.md` (AUTHORITATIVE)**
+>
+> **Report-only: zero production code touched.** Eight parallel investigations,
+> each required to reproduce before recommending, each then handed to an
+> adversarial verifier whose default position was that it is wrong, plus a
+> completeness critic running independent replications. **Two investigations
+> overturned outright (WO-D2, WO-D5), five materially corrected, one survived
+> (WO-D6's mechanism); 24 claims killed and recorded.**
+>
+> ## The headline is a correction to the evidence base, not a design answer
+>
+> **The funnel's magnitude is unmeasured, because the instrument is
+> nondeterministic.** `tools/playtest_driver.py` sets `SOVEREIGN_SEED` but never
+> seeds the module RNG (0 `random` in the driver; 0 `random.seed` anywhere in
+> `backend/`; **20 backend modules** use `random`), while the `BASELINE_SERIES`
+> runner re-seeds per turn *and* pins `PYTHONHASHSEED=0`. Measured by hand:
+> three byte-identical invocations of the committed `weird_tyrant.json` at its
+> committed seed end at **30 / 28 / 27** provinces, diverging on turn 1. The
+> fleet's 30-turn re-runs: Tyrant **4 · 28 · 17 · 16 · 14**; Kingmaker (filed as
+> *annihilated at 5*) **28 · 28 · 12**. The bands overlap completely. And
+> `tools/playtest_runs/` is gitignored, so every digest any memo cites is a local
+> artifact the next run overwrites.
+>
+> **So the docket's framing changes.** Not *"attack is the only implemented
+> verb"* — three of the four non-military systems were found **built and working
+> when driven by hand** (the naval Descent reaches a London garrison assault in
+> ~13 turns for ~5,200g; `propose_vassal` is a live priced proposal; peace with
+> Russia scores ACCEPT on every measured turn from t16). The accurate sentence
+> is: **the non-military strategies are built, unpriced, unreachable and
+> invisible — in that order of severity — and the harness could not press most of
+> their buttons.**
+>
+> ## ▶ NEXT SESSION: **slice 1, WO-H "The Instrument"** (1 session, zero production code)
+>
+> `_option_id` widened · `capture_data` read when `pending_capture_choice` is a
+> bare `True` · battles counted from `jealousy_attacks[*]` and the enemy phase ·
+> an `awaiting_clarification` arm · an `envoy_digest` arm · **the module RNG
+> pinned per turn and the seed written to `meta.json`** · cited digests preserved
+> out of the gitignore · `PLAYTESTING.md` gains WO-H1/H2/H3 **and** run-to-run
+> nondeterminism. Then **1b: re-run the ten arms N seeds × N repeats** so the
+> funnel table has error bars or is withdrawn. Full ranked plan (12 slices,
+> ~10 sessions) = memo §5.
+>
+> ## ✅ THE GATE WAS HELD AND ANSWERED August 17, 2026 — record = memo §6, authoritative
+>
+> **G1 — RULED, and with NEITHER offered default.** User, verbatim: *"the diplo
+> screen should be only path for these actions typing commands should just have
+> it tell them to go to the diplo room or something thematic."* The typed route
+> is **retired as a player surface**, not priced and not routed. ⚠ **It cannot be
+> built as a backend refusal:** `diplomacy_wizard.gd:12` emits
+> `command_selected(command: String)` and `main.gd:4938` sends it through
+> `api_client.send_command` — **the same flow the player's typing uses, with no
+> marker** — so refusing the verb server-side would refuse the wizard itself. It
+> lands in `main.gd` on the **terminal input path only**, plus the help text at
+> `meta_executor.py:655-665` which currently teaches seven typed diplomatic
+> verbs. Executors stay (wizard transport + debug/test), corpus unchanged, GR5
+> untouched (the AI never types), tutorial clean. **This shrinks slice 11: WO-4
+> and most of WO-5 are absorbed by the redirect.**
+>
+> **G2 — RULED (c), the recommended default.** Neither the `power_score` economic
+> term nor the town-slot raise now; ship the requirement list and hand "what does
+> wealth buy" to the Victory pass. **(b) `BUILDING_SLOT_LIMITS["town"] = 1` stays
+> on the shelf as the cheap first purchase IF slice 1b's re-measured funnel still
+> shows the non-military arms collapsing.**
+>
+> **G3 — RULED design, the recommended default.** Every corps in the battle
+> province fights and the muster preview says so; the free exclusion is taught for
+> adjacent corps only. **WO-D1 Option 3 is CLOSED BY RULING** and CA9-D2 is not
+> re-opened.
 >
 > **The docket is `docs/DESIGN_REFINEMENT.md` §Weird-Outcomes design questions
-> (WO-D1..D6). The evidence is `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`.
-> The correctness backlog it sits beside is `docs/BUG_FIXES.md` §Weird-Outcomes
-> Playtest (WO).**
+> (WO-D1..D6). The evidence is `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`
+> — read it WITH the memo's §8, which kills ten of its claims. The correctness
+> backlog it sits beside is `docs/BUG_FIXES.md` §Weird-Outcomes Playtest (WO).**
 >
-> **This is an EVALUATION, not a build.** It produces a memo with a
-> recommendation per row and a proposed order — and then a **user gate**, because
-> WO-D1 and WO-D2 are structural design calls, not tuning. Nothing in the WO-D
-> docket is coded before that gate returns.
+> <details><summary>The brief as it was set on August 16, and what each instruction returned</summary>
 >
-> **The question it exists to answer** — put by the ten-campaign playtest below,
-> in one line: **the only strategy this game truly implements is *attack*.**
-> Every arm that fought ended at 29–31 provinces; every arm that tried statecraft,
-> clients, commerce or the sea ended at 5–12, and three of them were told they
-> were succeeding. So the evaluation's brief is not "which bugs first" — it is
-> *which of the four non-military strategies do we commit to making real, and
-> what does the battle become if it stops being free?*
+> The brief asked for a memo with a recommendation per row, a proposed order and
+> a user gate, and offered a five-point suggested shape. Disposition:
 >
-> **Suggested shape** (the evaluator may re-cut it):
-> 1. **Rank the six WO-D rows by leverage-per-session**, with the funnel (§WO-D1
->    + WO-D2) treated as one question, not two — they are the same absence.
-> 2. **Take WO-D6 first regardless** — a `capital_lost` headline class is cheap,
->    lands on the pillar scored lowest for months, and needs no gate.
-> 3. **For WO-D1, do not open with numbers.** The exchange ratio is a symptom of
->    universal auto-reinforcement; propose the three levers (commit-by-order,
->    symmetric defender concentration, or accept-and-stop-advertising) and
->    recommend one with its cost.
-> 4. **Measure before recommending on WO-D5** — the driver declines by policy, so
->    France's own pairs are policy-frozen; the AI-vs-AI half is the live question.
-> 5. **Route, don't re-litigate.** WO-D4(a) (market vs depot) is a pricing fix
->    that can land immediately; WO-D4(b) belongs to the Victory pass (ROADMAP
->    12–13) and should be handed there, not solved here.
+> 1. ~~"Rank the six WO-D rows, treating WO-D1 + WO-D2 as one question — they are
+>    the same absence."~~ They are **not** the same absence. WO-D1 is a legibility
+>    gap on a working mechanic; WO-D2 is a **reachability** gap plus an unpriced
+>    backdoor. Ranked separately (memo §5, slices 7 and 8).
+> 2. ~~"Take WO-D6 first regardless — a `capital_lost` class at or above 92."~~
+>    Kept the *ordering* advice (it is slice 4, gate-free), **rejected the
+>    number**: `home_captured` is already weight **100**, above `capital_stormed`
+>    92, so "at or above 92" would demote the fall of Paris below
+>    `marshal_captured`. The real defect is a class collision that keeps Paris
+>    off the page entirely.
+> 3. ~~"For WO-D1 propose the three levers and recommend one."~~ Lever **(b) is
+>    already shipped** (CO-1/CA9-F1, measured firing at 63,028 committed
+>    defenders) and lever **(a) measures backwards** (it deletes 68% of France's
+>    losses and still wins 96% of battles). Recommended a fourth thing the docket
+>    did not name: the muster preview never states its price.
+> 4. ✅ "Measure before recommending on WO-D5." Done, and it **overturned the
+>    row**: the AI-vs-AI half fires deterministically on every seed, France's
+>    peace scores ACCEPT at every measured turn from t16, and the real gap is one
+>    strict inequality in Berthier's counsel rung.
+> 5. ✅ "Route, don't re-litigate." WO-D4(b) handed to the Victory pass as a
+>    written requirement list. WO-D4(a) — *"a pricing fix that can land
+>    immediately"* — **was not taken**: four re-price variants all merely invert
+>    the winner.
 >
-> **The P1 correctness rows are a SEPARATE and arguably earlier slice** — WO-1,
-> WO-2, WO-3 all execute the wrong thing and none is gated on a design decision.
-> If the user wants play-correctness before play-design, take those three first;
-> they share the pre-parse guard family that `PC15-4` and the NPC cluster already
-> opened, and WO-2 carries a correction owed to row NPC-7.
+> The brief also flagged the P1 correctness rows and the three harness rows. Both
+> are in the plan; the harness rows turned out to be **larger than filed** (six
+> blind spots, not three) and are slice 1.
 >
-> **Also owed and unowned by the above:** the three harness rows WO-H1/H2/H3 —
-> the driver reports campaigns that never happened, cannot see autonomous
-> battles, and cannot read a capture payload. **These degrade every future
-> unattended evaluation, including WO-EVAL's own measurements**, so they are the
-> cheapest thing on this page to fix first. `docs/PLAYTESTING.md`'s *Known-bad
-> digests* section needs all three added, and the "causally inert" refutation on
-> the NPC harness row is falsified and needs correcting.
+> </details>
 
 > ## ✅ THE WEIRD-OUTCOMES PLAYTEST — RAN August 16, 2026 (fifth session that day)
 >

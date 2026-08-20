@@ -67,6 +67,53 @@
 > else* — and this time it EXECUTES rather than misreporting. WO-1 and WO-2 are
 > the same defect on two different name registers.
 
+> ### ✅ RE-VERIFIED against master `24a59ed` by WO-EVAL, August 17, 2026 — **`docs/audits/WO_EVAL_2026_08_17.md` §4 is authoritative where it amends these rows.**
+>
+> **All four P1s and all three harness rows still reproduce.** Suite measured
+> **18,178 passed / 3 skipped** (the 18,175 above is stale). Amendments:
+>
+> - **WO-1 is WORSE than filed** — `Kutuzov, retreat` moves **8 corps including
+>   Napoleon**, and **`Kutuzov retreat` with no comma is byte-identical**, so a
+>   guard on the leading *addressed* token cannot close it. `Kutuzov, scout
+>   Swabia` makes **Soult** scout.
+> - **WO-2's filed seam is CORRECT** (a claim that it was misfiled was traced and
+>   killed) — but `executor.py:301` is a live **backstop**: gate the parser alone
+>   and `move to the Moon` marches **10 provinces to Morocco**. Gate both.
+> - **WO-3 fix measured**: `garrison_losses >= 1` collapses the garrison at
+>   assault 13. Left alone it is 49 attackers lost by assault 500, garrison still
+>   1 at assault 2,000.
+> - **WO-13's count is wrong** — **30** boot-live pairs across all nations, not
+>   197 (3 from France's view). The real severity argument is that **the ambient
+>   AI hits it 17× in 40 turns**. Two more ungated seams found: `executor.py:370`
+>   absorbs 16 of 17 when `:433` is gated, and `:230`. **`Brunswick` is both a
+>   province and a Prussian marshal at score 100 — an uncloseable exact
+>   collision**, so `_plausible_name_typo` cannot be the whole fix.
+> - **WO-H3 is a P1, not a P2** — the estate stage is answered `"plunder"`, the
+>   executor refuses **without clearing**, and every later command for the rest of
+>   the campaign returns *"You must decide the fate of…"*. It is **indivisible
+>   with WO-H1**: fixing H1 alone took a run from `completed` at 31 commands to
+>   `blocked` at 24.
+> - **THREE MORE HARNESS BLIND SPOTS, all P1 for evaluation integrity:** the
+>   driver never reads `response["state"]` (blind to **every**
+>   `awaiting_clarification` question — this is the whole of WO-D3's measured
+>   failure); never reads `envoy_digest` (truthy **134/202**; the Kingmaker arm
+>   was offered 22 letters and answered 0); and **never seeds the module RNG**
+>   while 20 backend modules use `random` — so the same script at the same seed
+>   ends at **30 / 28 / 27** provinces. `tools/playtest_runs/` is also gitignored,
+>   so every digest these rows cite is a local artifact.
+> - **WO-6 is wider than filed** — overruling the resulting WAIT objection with
+>   `trust` made **Ney charge into Swabia**; its `hold on` table row did **not**
+>   reproduce end to end.
+> - **WO-16's row body repeats a disproved example** — that turn's ledger reads
+>   `provinces 29 (+1)`; no vassal defected and no homeland province fell. The
+>   corrected charge is at least as damning: a 26-man skirmish beat `region_taken`
+>   and `victory_won` on the turn France stormed and sacked a province. WO-16 also
+>   now owns the `own_mauled` absolute floor as a **conscious re-open** of the
+>   playtest's own killed claim #4.
+> - **WO-11 is folded into WO-D6's slice** — after a `capital_lost` split, the
+>   direction-blind guard would fire the game's most ceremonial sentence on the
+>   morning an **ally liberated Paris for you**.
+
 | # | Sev | Finding | Seam | Status |
 |---|---|---|---|---|
 | **WO-1** ⛔ | **P1** | **Naming an ENEMY marshal executes the order on the FRENCH army.** `Kutuzov, retreat` → *"General retreat ordered! Ney falling back! Davout falling back!…"* and it executes — every French corps changes province, Massena Milan→Munich **losing 2,100 men**. Identical for `Mack, retreat` / `Buxhowden, retreat` / `Moore, retreat`, and byte-identical to the bare word `retreat`. `Mack, attack Vienna` sends the whole army at **Swabia**; `Kutuzov, defend` puts every corps on the defensive. **The guard exists and works for names the game does NOT know** (`Zorblax, retreat` → *"There is no Marshal 'Zorblax' in the order of battle"*); it fails for known names belonging to the enemy — the addressee is recognised, stripped, and the command degrades to its bare army-wide form. Verbs with no bare form (`fortify`/`drill`/`wait`/`form square`) correctly ask *"Which marshal, Sire?"* | the pre-parse addressee guard — the third member of the family **PC15-4** opened (invented names guarded; fallen names guarded in the PC15 slice; **enemy names not**) | **OPEN** |

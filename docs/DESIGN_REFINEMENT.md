@@ -24,6 +24,46 @@
 > administrator, or Napoleon-the-admiral currently discovers that the only
 > verb the game truly implements is *attack*.
 
+> ### ✅ WO-EVAL HELD August 17, 2026 — **memo of record = `docs/audits/WO_EVAL_2026_08_17.md`, AUTHORITATIVE where it amends the rows below.**
+>
+> **Read the table below WITH the memo's §8.** Eight investigations, each
+> adversarially verified: **WO-D2 and WO-D5 were overturned outright**, four
+> materially corrected, **24 claims killed**. Per-row verdicts:
+>
+> | row | verdict | what changed |
+> |---|---|---|
+> | **WO-D1** | PARTLY WRONG | the 1:13.9 is a **harness artifact** (`attacker_casualties` is the lead corps only; whole-side is **1:4.31**); lever (b) **already shipped**; lever (a) measures **backwards**. Real gap = the muster never states its supply price. → memo §3 |
+> | **WO-D2** | **WRONG** | the on-ramp **exists** — `propose_vassal` is emitted at three states, priced 3 DP, scored, and already rendered by the wizard. Real gap = four small items + an **unpriced typed backdoor** worth +37,000 men on turn 1 → **gate G1** |
+> | **WO-D3** | PARTLY WRONG | the Descent **runs end to end** (~13 turns, ~5,200g, 4 corps) and the arm's timing was already right — **it never typed the confirm**, which is a *harness* blindness. Real gaps = WO-14 at two producers; blockading is dominated by doing nothing |
+> | **WO-D4** | PARTLY WRONG on numbers, **RIGHT on structure** | depot dominance is **11 of 12 provinces** (13 was slots); do **not** re-price. The row's real content: a full build-out **plus 100,000 gold** moves `power_score` by **0.000** → **gate G2** |
+> | **WO-D5** | **WRONG** | two AI-vs-AI peaces fire on **every** seed; France→Russia scores **ACCEPT** at every measured turn from t16. Exhaustion saturates its only consumer at **WE 60**, so 60→200 is inert. Real gap = one strict `<` in Berthier's counsel rung. ~0.3 session |
+> | **WO-D6** | PARTLY WRONG, remedy is a **regression** | `home_captured` is already weight **100** > `capital_stormed` 92 — "at or above 92" demotes Paris below `marshal_captured`. Real defect = a class collision that keeps Paris off the page. Fold WO-11 in the same edit |
+>
+> ### ✅ AND THE GATE WAS HELD THE SAME DAY — three rulings, record = memo §6 (authoritative)
+>
+> - **G1 (WO-D2's real question) — the typed diplomatic verbs are RETIRED as a
+>   player surface.** User ruling, verbatim: *"the diplo screen should be only
+>   path for these actions typing commands should just have it tell them to go to
+>   the diplo room or something thematic."* Not priced, not routed — redirected in
+>   character. ⚠ It lands on the **terminal input path in `main.gd`**, never as a
+>   backend refusal: the wizard itself executes by sending typed commands
+>   (`diplomacy_wizard.gd:12` → `main.gd:4938` → `api_client.send_command`, no
+>   marker). **This also absorbs WO-4 and most of WO-5.**
+> - **G2 (WO-D4b) — neither arm now.** The requirement list goes to the Victory
+>   pass; `BUILDING_SLOT_LIMITS["town"] = 1` is held as the cheap purchase if the
+>   re-measured funnel still shows collapse.
+> - **G3 (WO-D1's third lever) — DESIGN, and the game says so.** Every corps in
+>   the battle province fights; the exclusion is taught for adjacent corps only.
+>   **WO-D1 Option 3 is closed by ruling; CA9-D2 is not re-opened.**
+>
+> **And the docket's own framing is superseded.** The funnel's *magnitude* is
+> unmeasured: the driver never seeds the module RNG, so the same script at the
+> same seed ends at **30 / 28 / 27** provinces (hand-measured) and **4 · 28 · 17
+> · 16 · 14** over 30 turns. Three of the four non-military systems are **built
+> and working when driven by hand**. The accurate sentence is *"the non-military
+> strategies are built, unpriced, unreachable and invisible — in that order of
+> severity."*
+
 | # | Question | Evidence | Recommendation to evaluate |
 |---|---|---|---|
 | **WO-D1** | **Should the battle be a decision?** 33 player-initiated battles across seven campaigns: France lost **22,212** and inflicted **307,712** — overall exchange **1:13.9**; worst single battle Napoleon lost **9 men** and destroyed **28,650**. The cause is legible in the game's own muster line — `Ney (24,000; 78,676 if all march)` — the WHOLE army reinforces every attack, so the corps you name is never the corps that fights, while the defender is whichever single corps stands there. Austria's 52,000-strong main army was annihilated **on turn 1** by three attacks in one turn. Stated honestly: France's real losses come from supply attrition and enemy-phase captures, so the difficulty is real — it lives in **logistics and geography, not in combat**, and the battles themselves carry no tension. | absurdist/tyrant/eagle arms; exchange table in memo §3 F6 | Three levers to weigh, not one: (a) cap auto-reinforcement by relationship/order so "who marches" is a *decision* the player makes before the fight, not a default; (b) let the defender concentrate symmetrically; (c) leave it and accept that this game's tension is logistical — but then STOP printing an all-march figure that makes every fight look like a choice. **Do not tune the damage numbers first** — the shape is structural. |
