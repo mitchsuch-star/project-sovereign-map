@@ -1,0 +1,30 @@
+{
+  "name": "weird-admiral",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy"
+  },
+  "turns_requested": 30,
+  "started": "2026-08-16 19:50",
+  "from_save": "",
+  "status": "completed",
+  "counters": {
+    "commands": 84,
+    "popups": 19,
+    "battles": 0,
+    "turns": 30
+  },
+  "unknown_blockers": []
+}

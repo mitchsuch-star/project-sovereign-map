@@ -56,7 +56,9 @@ Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
 `--objection trust|insist|compromise` · `--diplomacy decline|accept|first`
 · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
 (unknown blocking shapes fail the run, exit 3) · `--verbose` (backend
-console to stdout instead of `server_console.log`).
+console to stdout instead of `server_console.log`) · `--archive` (copy
+`digest.md` + `meta.json` to `docs/audits/playtest_digests/<name>/` — the
+committed record a memo may cite).
 
 ### Script files
 
@@ -98,12 +100,79 @@ both had degraded **every earlier** unattended evaluation:
   with him. Runs that stalled at a fixed `current_turn` were hitting
   this, not a game hang.
 
-A third is a *reading* trap rather than a defect: a run can finish
+**Four more were found by the Aug-16 weird campaigns and fixed Aug 21, 2026
+(WO-H slice 1 — every digest dated before Aug 21 carries all four):**
+
+- **WO-H1 — ceremonies "succeeded" that never executed.** `_option_id`
+  could not read `action`-keyed options (the ally-entry review's shape), so
+  the driver's literal-`"confirm"` fallback answered a word the endpoint's
+  keyword list does not contain. The World Burns arm ran **fifteen complete
+  declare-war ceremonies and declared war on ZERO nations**, every one
+  logged as a success. Any pre-Aug-21 digest's record of a multi-stage
+  ceremony (declare-war, ally-entry, settlement confirm) may describe a
+  campaign that never happened — verify against the run's own save.
+- **WO-H2 — the `battles` counter was blind** to autonomous jealousy
+  attacks (`jealousy_attacks[*]`, a key the driver never read) and to
+  enemy-phase battle rows. The Pacifist arm's centrepiece — 11 autonomous
+  attacks, 12 battles — was structurally invisible to its own digest.
+  Pre-Aug-21 `battles` counts are undercounts; `0` means nothing.
+- **WO-H3 — the estate stage wedged the campaign.** `pending_capture_choice`
+  arrives as a bare `True` with the detail on the sibling `capture_data`;
+  the driver lost the `stage`, answered the ESTATE question with the
+  plunder/secure token, the executor refused **without clearing**, and every
+  later command returned *"You must decide the fate of…"*. A pre-Aug-21 run
+  that ends `blocked` after a capture may be this, not an engine lock.
+- **Run-to-run nondeterminism.** The module RNG was never seeded — the same
+  script at the same seed ended at **30 / 28 / 27 provinces** across three
+  invocations. **No pre-Aug-21 digest is a reproducible measurement**; its
+  numbers are one draw, not the value.
+
+A further one is a *reading* trap rather than a defect: a run can finish
 `blocked` because the answer policy went in circles, not because the
 engine locked. `drain()` now stops on the second identical answer to one
 surface and writes `⚠ ANSWER CYCLE` plus an `unknown_blockers` entry —
 **an `answer-cycle` entry means the harness gave up, not that the game
 is broken.** Check it before filing a P1.
+
+**The method rule (binding, from the WO eval):** *a passing full test suite
+is not evidence that a change leaves `BASELINE_SERIES` alone* — the pin
+runs in a fresh hash-seeded subprocess, so an in-process suite pass is
+vacuous for it. A byte-identity claim requires a real source-edit run
+through `_run_series_subprocess`
+(`tests/test_ai_intent_threat_migration.py`).
+
+### Determinism (Mode A only) and the archive
+
+Since Aug 21, 2026 (WO-H slice 1) a Mode A mock-parser run is
+**deterministic**: the driver reseeds the module RNG at boot and at every
+turn boundary from `sha256(f"{seed}:{world_turn}")` (sufficient because the
+backend holds zero `random.Random()` instances — all twenty consuming
+modules share the module RNG the in-process driver owns), and `main()`
+re-execs itself with `PYTHONHASHSEED=0` when the variable is unset. Two
+invocations of the same script at the same seed produce **byte-identical
+digests** (verified at landing). `meta.json` records the scheme and the
+hash seed under `"rng"`.
+
+Scope: **Mode A only, mock parser only.** `--http` (Mode B) drives a
+separate server process whose RNG the driver cannot reach, and a
+`--llm anthropic` run varies with the live parser — both stamp a
+`NONDETERMINISTIC` banner in `meta.json`. Trust the banner.
+
+**The archive is the citable record.** `tools/playtest_runs/` is gitignored
+and overwritten — a digest there is a local artifact, not evidence. Run
+with `--archive` to copy `digest.md` + `meta.json` to
+`docs/audits/playtest_digests/<name>/` (committed). **A memo may only cite
+an archived digest** — a memo citing an unarchived digest is citing
+nothing (the WO memos' own lesson; their surviving digests were archived
+retroactively on Aug 21, 2026).
+
+**Precedence rule (same landing):** an explicit CLI flag beats the
+script's own key, which beats the built-in default. The old rule — script
+always wins — silently ignored `--seed` (making seed sweeps over committed
+scripts impossible) and redirected `--name` into the script's canonical
+run dir, where `--fresh` then deleted the original evidence digest (it
+cost the Aug-16 `weird-tyrant` and `weird-world-burns` originals, which is
+why those two are absent from the retroactive archive).
 
 ### The answer policy (what an unattended run does at each fork)
 
@@ -115,7 +184,17 @@ sign treaties nobody scripted) · capture → **secure**, estate →
 **proceed** · petitions → **first enabled option** (usually the free
 acknowledge) · war-purpose gate → **1 = Conquest** (the script ordered
 the attack; backing out would contradict it) · ultimatums → **defy** ·
-the player's own confirm dialogs → **confirm**. Anything unrecognized is
+the player's own confirm dialogs → **confirm** · clarification questions
+(`awaiting_clarification` — CR-2 asks, naval confirms, pursuit asks) →
+**the first offered option**, answered as the typed index "1" so the
+server's own interpreter resolves it · the IGR-F letter-book (routine
+small-court asks) → **decline**, answered explicitly through
+`POST /mailbox/respond` once per turn instead of silently lapsing
+(`--diplomacy accept` accepts them; ⚠ an explicit decline is NOT a
+lapse — it writes the serialized refusal record and a 3-turn court
+cooldown where a lapse wrote none and 2 turns, so a per-decline cadence
+shift vs a pre-Aug-21 digest is the harness's doing, not the game's).
+Anything unrecognized is
 left standing, logged as `⚠ UNKNOWN BLOCKER`, and — if it blocks `end
 turn` — the run STOPS with status `blocked` rather than spinning.
 
@@ -245,7 +324,7 @@ only the screen can verify.
 | `SOVEREIGN_SCENARIO` | explicit scenario path / `none` = bare flag world — the driver POPS it (ambient leaks reshape the boot) | popped |
 | `SOVEREIGN_SMOKE_START` | settlement smoke presets — popped by the driver | popped |
 | `SOVEREIGN_MAP` | `legacy` = 19-region rollback — popped by the driver | popped |
-| `PYTHONHASHSEED` | `0` for byte-identity work (M1–M7/BASELINE_SERIES idiom) | inherit |
+| `PYTHONHASHSEED` | `0` for byte-identity work (M1–M7/BASELINE_SERIES idiom) | `0` (the driver re-execs itself with it when unset; recorded in `meta.json`) |
 
 Never set `PYTHONIOENCODING` when running tests (fakes 6 subprocess-test
 errors — standing memory).
@@ -264,6 +343,17 @@ errors — standing memory).
    `docs/audits/` (Mode C pattern).
 
 ## Known limits (deliberate)
+
+- **Heavy process concurrency can FREEZE a driver child** (seen Aug 21,
+  2026: five of ninety sweep children blocked in asyncio's Windows
+  socketpair fallback — `accept()` in `_make_self_pipe` — under ~25
+  concurrent python processes). This is an OS-level race, not a game or
+  driver defect: the frozen run's trajectory was verified a byte-prefix
+  of its completed sibling repeat. A wedged child still carries
+  `rng.deterministic: true` in `meta.json` — that field describes the
+  SEEDING REGIME, not a completion certificate; check `status` before
+  citing a run. Keep sweep concurrency modest (`wo_1b_sweep.py --jobs 4`)
+  and don't run sweeps while an 18k-test suite is hammering the machine.
 
 - The driver's policy plays a PASSIVE, honest France — it is a camera
   with reflexes, not a strategist. Campaign-quality evaluation still

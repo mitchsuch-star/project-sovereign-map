@@ -128,9 +128,18 @@ class TestPlaytestDriver:
     def test_driver_never_defaults_to_live_llm(self):
         # The dev .env says LLM_MODE=anthropic; an unattended playtest
         # spending real tokens by DEFAULT would be a footgun. mock is
-        # forced unless --llm anthropic is explicit.
+        # forced unless --llm anthropic is explicit (CLI or script).
+        #
+        # Pin CONSCIOUSLY FLIPPED Aug 21, 2026 (WO slice 1): argparse
+        # defaults became None so an explicit CLI flag is distinguishable
+        # from "left at default" (the precedence fix — script keys used to
+        # silently beat --seed/--name, which deleted evidence digests).
+        # The mock fallback now lives in run()'s resolution chain; both
+        # halves are pinned so neither can silently become "anthropic".
         source = _read(REPO_ROOT / "tools" / "playtest_driver.py")
-        assert '"--llm", default="mock"' in source.replace("'", '"')
+        normalized = source.replace("'", '"')
+        assert '"--llm", default=None' in normalized
+        assert 'args.llm or script.get("llm") or "mock"' in normalized
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -1,0 +1,30 @@
+{
+  "name": "weird-live-voice2",
+  "seed": "historical",
+  "llm": "anthropic",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "charge",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy"
+  },
+  "turns_requested": 10,
+  "started": "2026-08-16 19:54",
+  "from_save": "",
+  "status": "completed",
+  "counters": {
+    "commands": 41,
+    "popups": 25,
+    "battles": 2,
+    "turns": 10
+  },
+  "unknown_blockers": []
+}

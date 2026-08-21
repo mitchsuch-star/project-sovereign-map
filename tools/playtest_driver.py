@@ -45,8 +45,27 @@ Usage
 Outputs (under --out, default tools/playtest_runs/<name>/ — gitignored):
   digest.md      the human read — one block per turn
   digest.jsonl   the machine read — one record per event
-  meta.json      seed/mode/args/finish state
+  meta.json      seed/mode/args/finish state + the RNG record (WO-H slice 1)
   saves/         the sandboxed SAVE_DIR (autosave + --save-at snapshots)
+
+Determinism (WO-H slice 1, Aug 21 2026 — Mode A ONLY):
+  * the module RNG is reseeded at boot and at every turn boundary from
+    sha256(f"{seed}:{world_turn}") — sufficient because the backend has
+    ZERO random.Random() instances (spec §2 H-1), so all twenty consuming
+    modules share the module-level RNG this process owns;
+  * PYTHONHASHSEED is pinned: main() re-execs the driver with
+    PYTHONHASHSEED=0 when the variable is unset (hash order is
+    load-bearing — the BASELINE_SERIES runner pins it for the same
+    reason), and meta.json records the value either way;
+  * --http (Mode B) drives a SEPARATE server process whose RNG the driver
+    cannot reach — Mode B digests carry a "NONDETERMINISTIC" banner in
+    meta.json, as does any --llm anthropic run (live parses vary).
+
+Archiving (WO-H slice 1): tools/playtest_runs/ is gitignored and
+overwritten, so a digest there is a local artifact, not evidence. The
+--archive flag copies digest.md + meta.json to
+docs/audits/playtest_digests/<name>/ (committed). A memo may only cite an
+archived digest.
 
 Script file format (all keys optional):
   {
@@ -61,8 +80,10 @@ but implicit — the driver always ends the turn after the list runs.
 """
 
 import argparse
+import hashlib
 import json
 import os
+import random
 import shutil
 import sys
 import time
@@ -71,6 +92,26 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+# ═══════════════════════════════════════════════════════════════════════
+# Determinism (WO-H slice 1) — the module-RNG seeding scheme, recorded
+# verbatim in meta.json so a digest reader can audit the derivation.
+# Seeding the DRIVER's `random` module seeds the BACKEND's too: Mode A is
+# in-process, and the backend holds zero random.Random() instances
+# (WEIRD_OUTCOMES_SPEC §2 H-1 — verified, not assumed).
+# ═══════════════════════════════════════════════════════════════════════
+
+RNG_SCHEME = ("module RNG reseeded at boot (world_turn=0) and at each "
+              "turn boundary: random.seed(int(hashlib.sha256("
+              "f'{seed}:{world_turn}'.encode()).hexdigest(), 16) "
+              "& 0xFFFFFFFF)")
+
+
+def seed_module_rng(campaign_seed, world_turn):
+    """Deterministic module-RNG reseed — sha256, never hash() (PYTHONHASHSEED
+    is pinned separately, but the derivation must not depend on it)."""
+    digest = hashlib.sha256(f"{campaign_seed}:{world_turn}".encode()).hexdigest()
+    random.seed(int(digest, 16) & 0xFFFFFFFF)
 
 # ═══════════════════════════════════════════════════════════════════════
 # Answer policy — every default is a DECISION a digest reader can audit.
@@ -104,6 +145,24 @@ POLICY_DEFAULTS = {
     "war_purpose": "1",
     # NA-5 ultimatums: France does not bend unscripted.
     "ultimatum": "defy",
+    # CR-2 / naval-confirm clarifications ("state": "awaiting_clarification"):
+    # first offered option, answered as the typed index "1" — the server's
+    # own interpret_clarification_answer resolves it to the first actionable
+    # option's full command string (WO-H slice 1 item 4; before this arm the
+    # driver was blind to EVERY clarification question, which was the whole
+    # of WO-D3's measured failure).
+    "clarification": "first",   # first | cancel
+    # IGR-F letter-book rows (routine small-court asks): answered through
+    # POST /mailbox/respond once per turn, EXPLICIT and counted in the
+    # digest (WO-H slice 1 item 5). `diplomacy: accept` accepts them.
+    # ⚠ An explicit decline is NOT the old silent lapse (review round):
+    # it writes the serialized diplomatic_refusals record and a 3-turn
+    # court cooldown where a lapse wrote no record and a 2-turn cooldown
+    # (type cooldown 6 either way; the refusal entries are behaviorally
+    # inert for the player direction — war_council's ladder is guarded
+    # AI-vs-AI). A per-decline cadence shift vs pre-Aug-21 digests is the
+    # HARNESS's doing, not the game's.
+    # (No separate policy key: the letter-book is diplomacy.)
 }
 
 # Hard-stop dialogue types whose answer is a KEYWORD/index the driver
@@ -380,6 +439,14 @@ class Digest:
             self._md(f"  - 🏴 {act.get('nation', '?')}: "
                      f"{first_line(act.get('message'), 150)}")
 
+        # WO-H2: an enemy-phase attack that resolved combat carries the full
+        # battle_report on its own row (the fog filter strips only
+        # `new_state`) — the driver counted none of them, so the `battles`
+        # counter read 0 for campaigns the world logged a dozen battles in.
+        for act in actions:
+            if isinstance(act.get("battle_report"), dict):
+                self.battle(act["battle_report"])
+
         verbs = {}
         for act in actions:
             verb = _verb(act) or "?"
@@ -398,6 +465,36 @@ class Digest:
                               if isinstance(a.get("ai_action"), dict) else None,
                               "message": first_line(a.get("message"), 200)}
                              for a in actions])
+
+    def autonomous_attacks(self, rows):
+        """WO-H2: autonomous jealousy attacks ship on the end-turn result's
+        `jealousy_attacks` key (turn_manager.py:405 — each row is the full
+        executor result, new_state stripped, battle_report nested). The
+        driver never read it, so the Pacifist arm's centrepiece — 11
+        autonomous attacks, 12 battles — was structurally invisible to its
+        own digest."""
+        for row in rows or []:
+            if not isinstance(row, dict):
+                continue
+            head = first_line(row.get("message"), 160)
+            self._md(f"  - ⚡ AUTONOMOUS: {head or 'jealousy attack'}")
+            self.record("autonomous_attack", message=head,
+                        success=row.get("success"))
+            if isinstance(row.get("battle_report"), dict):
+                self.battle(row["battle_report"])
+
+    def envoy_answer(self, row, choice, outcome):
+        """WO-H slice 1 item 5: one letter-book row answered (or refused)
+        through POST /mailbox/respond — explicit and counted, instead of
+        silently lapsing at end turn."""
+        self.counters["popups"] += 1
+        summary = (f"{row.get('from_nation', '?')}: "
+                   f"{row.get('proposal_type_display') or row.get('proposal_type', '?')}")
+        self._md(f"  - LETTER {summary} → {choice}{outcome}")
+        self.record("envoy_digest_answer", mailbox_id=row.get("mailbox_id"),
+                    from_nation=row.get("from_nation"),
+                    proposal_type=row.get("proposal_type"),
+                    choice=choice, outcome=outcome.strip() or "answered")
 
     def ledger_line(self, treasury, net, threat, provinces=None):
         bits = []
@@ -446,9 +543,23 @@ class Digest:
 # Popup / dialogue answering
 # ═══════════════════════════════════════════════════════════════════════
 
+# WO-H1: the ally-entry review's options carry `action` keys and no `id` —
+# `_option_id` returned None for every one, `find()` matched nothing, and the
+# literal-"confirm" fallback answered a word the endpoint's keyword list does
+# not contain. The World Burns arm ran FIFTEEN complete declare-war ceremonies
+# and declared war on ZERO nations, every one logged as a success. Read every
+# key an option legitimately answers by — but NEVER `label`: labels are
+# display strings, and matching them would couple the driver to copy.
+_OPTION_ID_KEYS = ("id", "choice", "keyword", "action", "command", "value")
+
+
 def _option_id(option):
     if isinstance(option, dict):
-        return option.get("id") or option.get("choice") or option.get("keyword")
+        for key in _OPTION_ID_KEYS:
+            value = option.get(key)
+            if value is not None and value != "":
+                return value
+        return None
     return option
 
 
@@ -519,6 +630,23 @@ class Answerer:
         if response.get("battle_report"):
             self.d.battle(response["battle_report"])
 
+        # WO-H2 (review round, Aug 21): battles AUTO-resolved during
+        # end-turn strategic processing DISCARD their battle_report from
+        # the report row (WO-33 — the aggressive auto-attack and the
+        # pursue-completion keep only a message with action=="combat"; the
+        # HOLD sally keeps its report under the different key
+        # `battle_details`). Count what is recoverable, and say when the
+        # report itself was discarded.
+        for report in response.get("strategic_reports") or []:
+            if not isinstance(report, dict) or report.get("requires_input"):
+                continue
+            if isinstance(report.get("battle_details"), dict):
+                self.d.battle(report["battle_details"])
+            elif str(report.get("action") or "") == "combat":
+                self.d.battle({"headline": (
+                    first_line(report.get("message"), 150)
+                    or "auto-resolved battle (report discarded — WO-33)")})
+
         # 1. Marshal objection ------------------------------------------------
         if response.get("pending_objection"):
             payload = _as_dict(response["pending_objection"])
@@ -567,16 +695,59 @@ class Answerer:
 
         # 3. Capture / estate choice ------------------------------------------
         if response.get("pending_capture_choice"):
-            payload = _as_dict(response["pending_capture_choice"])
+            # WO-H3: on the /command path `pending_capture_choice` arrives as
+            # a bare True with the detail on the SIBLING `capture_data`
+            # (stage / dialogue_id / region — main.py stamps both keys at
+            # every producer). Reading only the flag lost the stage, so the
+            # ESTATE stage was answered with the plunder/secure token — which
+            # the executor refuses WITHOUT clearing, wedging the whole rest
+            # of the campaign behind "You must decide the fate of…".
+            payload = (_as_dict(response["pending_capture_choice"])
+                       or _as_dict(response.get("capture_data")))
             stage = payload.get("stage", "capture")
             choice = (self.policy["estate"] if stage == "estate"
                       else self.policy["capture"])
             self.d.popup(f"capture_choice[{stage}]",
-                         _summ(payload, "region", "capturer"), choice)
+                         _summ(payload, "region", "capturer", "estate_holder"),
+                         choice)
             body = {"choice": choice}
+            # Carry the W6-0 identity so the stale-answer guard arms.
             if payload.get("dialogue_id") is not None:
                 body["dialogue_id"] = payload["dialogue_id"]
             followups.append(self.t.post("/capture_choice", body))
+
+        # 3b. Clarification question (CR-2 / naval confirm / pursuit ask) ------
+        # WO-H slice 1 item 4: the driver never read response["state"], so it
+        # was blind to EVERY awaiting_clarification question — the Grand
+        # Diversion confirm, "Which marshal, Sire?", the pursuit ask. Answer
+        # by stated policy: the typed index "1" resolves server-side
+        # (interpret_clarification_answer) to the FIRST ACTIONABLE option's
+        # own command string — the driver never guesses at copy.
+        if response.get("state") == "awaiting_clarification":
+            options = response.get("options") or []
+            actionable = [o for o in options if isinstance(o, dict)
+                          and (o.get("command") or o.get("target"))]
+            summary = _summ(response, "marshal", "clarification_kind",
+                            "message")
+            if not actionable or response.get("clarification_registered") is False:
+                # No option the server's own interpreter can resolve (or the
+                # question never reached the dialogue manager, so a typed
+                # index would parse as a command) — the question stands, and
+                # the next command's unconditional pop will discard it: the
+                # recorded H-13 seam, not the driver's to fix. Say so rather
+                # than burning a blind token.
+                self.d.popup("clarification", summary, "(left standing)")
+            elif self.policy["clarification"] == "cancel":
+                self.d.popup("clarification", summary, "cancel")
+                followups.append(self.t.post("/command",
+                                             {"command": "cancel"}))
+            else:
+                label = str(actionable[0].get("label")
+                            or actionable[0].get("command")
+                            or actionable[0].get("target") or "")
+                self.d.popup("clarification", summary,
+                             f"1 (first option: {first_line(label, 60)})")
+                followups.append(self.t.post("/command", {"command": "1"}))
 
         # 4. Marshal petition --------------------------------------------------
         if response.get("marshal_petition"):
@@ -638,6 +809,35 @@ class Answerer:
                     self.t.post("/respond_to_diplomatic_dialogue", body))
 
         return followups
+
+    def answer_envoy_digest(self, digest_payload):
+        """WO-H slice 1 item 5: answer the IGR-F letter-book by policy.
+
+        The letter-book rides GET /mailbox (the /command copy is nulled on
+        every enemy-phase response, so an ambient run never sees it there).
+        Called once per turn BEFORE the turn's commands — unanswered letters
+        lapse when the turn ends. Default `decline`, explicit and counted;
+        `--diplomacy accept` accepts them. NOTE an explicit decline is not
+        a lapse — see the POLICY_DEFAULTS comment for the mechanical delta
+        (refusal record + 3-turn court cooldown vs none + 2-turn).
+        Returns the reply responses for the caller to drain."""
+        if not isinstance(digest_payload, dict):
+            return []
+        choice = ("accept" if self.policy["diplomacy"] in ("accept", "first")
+                  else "decline")
+        replies = []
+        for row in digest_payload.get("items") or []:
+            if not isinstance(row, dict) or row.get("mailbox_id") is None:
+                continue
+            reply = self.t.post("/mailbox/respond",
+                                {"mailbox_id": int(row["mailbox_id"]),
+                                 "choice": choice})
+            answered = reply.get("digest_row_answered") is not None
+            outcome = ("" if answered else
+                       f" (refused: {first_line(reply.get('message'), 90)})")
+            self.d.envoy_answer(row, choice, outcome)
+            replies.append(reply)
+        return replies
 
     def _dialogue_choice(self, dialogue):
         """Pick a dialogue answer. Order: the type table (types whose
@@ -757,9 +957,16 @@ def run(args):
     script = {}
     if args.script:
         script = json.loads(Path(args.script).read_text(encoding="utf-8"))
-        args.name = script.get("name", args.name)
-        args.seed = script.get("seed", args.seed)
-        args.llm = script.get("llm", args.llm)
+    # Precedence (WO-H slice 1, learned the expensive way): an EXPLICIT CLI
+    # flag beats the script's own key, which beats the built-in default. The
+    # old rule — script always wins — silently ignored `--seed` (making a
+    # seed sweep over committed scripts impossible) and redirected `--name`
+    # into the script's canonical run dir, where `--fresh` then DELETED the
+    # original evidence digest. name/seed/llm default to None in argparse so
+    # "explicitly passed" is distinguishable from "left at default".
+    args.name = args.name or script.get("name") or "run"
+    args.seed = args.seed or script.get("seed") or "historical"
+    args.llm = args.llm or script.get("llm") or "mock"
 
     out_dir = Path(args.out) / args.name
     if out_dir.exists() and args.fresh:
@@ -777,15 +984,36 @@ def run(args):
     else:
         transport = make_inprocess_transport(args, out_dir)
 
+    # WO-H slice 1 item 6/7: the RNG record — meta.json states whether this
+    # digest is a measurement or an anecdote, and exactly how the dice were
+    # pinned. Mode B cannot be made deterministic from the driver (separate
+    # server process); a live-parser run varies even with the RNG pinned.
+    if args.http:
+        rng_meta = {
+            "deterministic": False,
+            "scheme": ("NONDETERMINISTIC — Mode B (--http): the server "
+                       "process's RNG is unreachable from the driver"),
+        }
+    else:
+        rng_meta = {"deterministic": args.llm == "mock", "scheme": RNG_SCHEME}
+        if args.llm != "mock":
+            rng_meta["llm_note"] = ("NONDETERMINISTIC — live parser "
+                                    "(--llm anthropic): parses vary run to "
+                                    "run even with the module RNG pinned")
+    rng_meta["pythonhashseed"] = os.environ.get("PYTHONHASHSEED", "(unset)")
+
     digest = Digest(out_dir, {
         "name": args.name, "seed": args.seed, "llm": args.llm,
         "transport": transport.label, "policy": policy,
         "turns_requested": args.turns, "started": time.strftime("%Y-%m-%d %H:%M"),
         "from_save": args.from_save or "",
+        "rng": rng_meta,
     })
     answerer = Answerer(transport, digest, policy, args.strict)
 
     # Boot ------------------------------------------------------------------
+    if not args.http:
+        seed_module_rng(args.seed, 0)
     if args.from_save:
         fixture = Path(args.from_save)
         target = out_dir / "saves" / fixture.name
@@ -809,9 +1037,23 @@ def run(args):
     status = "completed"
     for turn_index in range(1, args.turns + 1):
         current_turn = dig(transport.get("/status"), "turn", default=turn_index)
+        # WO-H slice 1 item 6: the turn-boundary reseed. Identical
+        # trajectories produce identical (seed, world_turn) labels, so two
+        # invocations of the same script at the same seed draw the same dice
+        # all campaign long.
+        if not args.http:
+            seed_module_rng(args.seed, current_turn)
         label = dig(transport.get("/ledger"), "calendar_label", "date_label",
                     default="")
         digest.turn_header(current_turn, label)
+
+        # WO-H slice 1 item 5: the letter-book, answered BEFORE the turn's
+        # commands — unanswered letters lapse when the turn ends, and the
+        # /command copy of envoy_digest is nulled on every enemy-phase
+        # response, so GET /mailbox is where an unattended run must read it.
+        for reply in answerer.answer_envoy_digest(
+                (transport.get("/mailbox") or {}).get("envoy_digest")):
+            drain(transport, digest, answerer, reply, args.strict)
 
         for text in turn_scripts.get(str(turn_index), []):
             if text.strip().lower() == "end turn":
@@ -829,6 +1071,7 @@ def run(args):
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
         digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")))
+        digest.autonomous_attacks(response.get("jealousy_attacks"))
         drain(transport, digest, answerer, response, args.strict)
 
         if response.get("success") is False:
@@ -837,6 +1080,7 @@ def run(args):
             response = transport.post("/command", {"command": "end turn"})
             digest.command("end turn (retry)", response)
             digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")))
+            digest.autonomous_attacks(response.get("jealousy_attacks"))
             drain(transport, digest, answerer, response, args.strict)
             if response.get("success") is False:
                 digest.note("⚠ end turn still refused after the answer "
@@ -869,17 +1113,42 @@ def run(args):
 
     digest.finish(status)
     print(f"[driver] {status}: {digest.md_path}")
+
+    # WO-H slice 1 item 8: tools/playtest_runs/ is gitignored and
+    # overwritten — a digest there is a local artifact, not evidence. The
+    # archive copy (digest.md + meta.json, never the raw jsonl) is the
+    # committed, citable record. A memo may only cite an archived digest.
+    if args.archive:
+        archive_dir = (REPO_ROOT / "docs" / "audits" / "playtest_digests"
+                       / args.name)
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(digest.md_path, archive_dir / "digest.md")
+        shutil.copy2(digest.meta_path, archive_dir / "meta.json")
+        print(f"[driver] archived: {archive_dir}")
+
     if digest.unknown_blockers and args.strict:
         return 3
     return 0
 
 
 def main():
+    # WO-H slice 1 item 6: PYTHONHASHSEED must be pinned — hash order is
+    # load-bearing (the BASELINE_SERIES runner pins it for the same reason),
+    # and an "instrument fixed" claim that skipped hash seeding would still
+    # be nondeterministic across shells. Re-exec with 0 when unset; the value
+    # is recorded in meta.json either way.
+    if os.environ.get("PYTHONHASHSEED") is None:
+        import subprocess
+        env = dict(os.environ, PYTHONHASHSEED="0")
+        raise SystemExit(subprocess.call([sys.executable, *sys.argv], env=env))
+
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--name", default="run")
+    # name/seed/llm default to None so run() can tell "explicitly passed"
+    # from "left at default" — an explicit flag beats the script's own key.
+    ap.add_argument("--name", default=None)
     ap.add_argument("--turns", type=int, default=10)
-    ap.add_argument("--seed", default="historical")
-    ap.add_argument("--llm", default="mock", choices=["mock", "anthropic"])
+    ap.add_argument("--seed", default=None)
+    ap.add_argument("--llm", default=None, choices=["mock", "anthropic"])
     ap.add_argument("--scenario", default="",
                     help="allowlist name for /new_game ('' = default 1805)")
     ap.add_argument("--script", default="",
@@ -905,6 +1174,10 @@ def main():
                          "server_console.log")
     ap.add_argument("--fresh", action="store_true",
                     help="delete the run directory first")
+    ap.add_argument("--archive", action="store_true",
+                    help="copy digest.md + meta.json to docs/audits/"
+                         "playtest_digests/<name>/ — the committed, citable "
+                         "record (memos may only cite archived digests)")
     args = ap.parse_args()
     raise SystemExit(run(args))
 

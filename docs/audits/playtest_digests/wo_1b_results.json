@@ -1,0 +1,1622 @@
+[
+  {
+    "arm": "absurdist",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-absurdist-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 80,
+      "battles": 14,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 21557,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "absurdist",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-absurdist-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 89,
+      "battles": 57,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 18836,
+    "estate_stage_answered": true
+  },
+  {
+    "arm": "absurdist",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-absurdist-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 89,
+      "battles": 57,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 18836,
+    "estate_stage_answered": true
+  },
+  {
+    "arm": "absurdist",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-absurdist-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 89,
+      "battles": 57,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 18836,
+    "estate_stage_answered": true
+  },
+  {
+    "arm": "absurdist",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-absurdist-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 80,
+      "battles": 14,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 21557,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "absurdist",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-absurdist-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 80,
+      "battles": 14,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 21557,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "absurdist",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-absurdist-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 79,
+      "battles": 46,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 5,
+    "final_treasury": 4299,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "absurdist",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-absurdist-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 79,
+      "battles": 46,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 5,
+    "final_treasury": 4299,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "absurdist",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-absurdist-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 95,
+      "popups": 79,
+      "battles": 46,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 5,
+    "final_treasury": 4299,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-eagle-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 97,
+      "battles": 27,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 28,
+    "final_treasury": 19388,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-eagle-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 97,
+      "battles": 27,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 28,
+    "final_treasury": 19388,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-eagle-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 97,
+      "battles": 27,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 28,
+    "final_treasury": 19388,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-eagle-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 66,
+      "battles": 44,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 14,
+    "final_treasury": 12809,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-eagle-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 66,
+      "battles": 44,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 14,
+    "final_treasury": 12809,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-eagle-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 66,
+      "battles": 44,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 14,
+    "final_treasury": 12809,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-eagle-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 79,
+      "battles": 27,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 18060,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-eagle-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 79,
+      "battles": 27,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 18060,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "eagle",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-eagle-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 74,
+      "popups": 79,
+      "battles": 27,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 18060,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-tyrant-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 108,
+      "battles": 56,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 22,
+    "final_treasury": 16050,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-tyrant-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 108,
+      "battles": 56,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 22,
+    "final_treasury": 16050,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-tyrant-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 83,
+      "battles": 45,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 18798,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-tyrant-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 108,
+      "battles": 56,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 22,
+    "final_treasury": 16050,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-tyrant-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 83,
+      "battles": 45,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 18798,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-tyrant-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 83,
+      "battles": 45,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 27,
+    "final_treasury": 18798,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-tyrant-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 84,
+      "battles": 74,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 9782,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-tyrant-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 84,
+      "battles": 74,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 9782,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "tyrant",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-tyrant-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 89,
+      "popups": 84,
+      "battles": 74,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 9782,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-merchant-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 95,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 9105,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-merchant-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 95,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 9105,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-merchant-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 95,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 9105,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-merchant-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 75,
+      "battles": 60,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 29,
+    "final_treasury": 14869,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-merchant-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 75,
+      "battles": 60,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 29,
+    "final_treasury": 14869,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-merchant-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 75,
+      "battles": 60,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 29,
+    "final_treasury": 14869,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-merchant-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 87,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 7724,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-merchant-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 87,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 7724,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "merchant",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-merchant-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 87,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 24,
+    "final_treasury": 7724,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-admiral-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 75,
+      "battles": 65,
+      "turns": 30
+    },
+    "unknown_blockers": 1,
+    "final_provinces": 28,
+    "final_treasury": 18207,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-admiral-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 75,
+      "battles": 65,
+      "turns": 30
+    },
+    "unknown_blockers": 1,
+    "final_provinces": 28,
+    "final_treasury": 18207,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-admiral-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 39,
+      "battles": 34,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 14,
+    "final_treasury": 5803,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-admiral-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 75,
+      "battles": 65,
+      "turns": 30
+    },
+    "unknown_blockers": 1,
+    "final_provinces": 28,
+    "final_treasury": 18207,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-admiral-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 39,
+      "battles": 34,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 14,
+    "final_treasury": 5803,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-admiral-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 39,
+      "battles": 34,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 14,
+    "final_treasury": 5803,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-admiral-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 68,
+      "battles": 65,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 6,
+    "final_treasury": 6787,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-admiral-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 68,
+      "battles": 65,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 6,
+    "final_treasury": 6787,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-kingmaker-historical-r1",
+    "exit": 0,
+    "status": "blocked",
+    "counters": {
+      "commands": 27,
+      "popups": 34,
+      "battles": 10,
+      "turns": 8
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 27,
+    "final_treasury": 14298,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-kingmaker-historical-r2",
+    "exit": 0,
+    "status": "blocked",
+    "counters": {
+      "commands": 27,
+      "popups": 34,
+      "battles": 10,
+      "turns": 8
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 27,
+    "final_treasury": 14298,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-kingmaker-historical-r3",
+    "exit": 0,
+    "status": "blocked",
+    "counters": {
+      "commands": 27,
+      "popups": 34,
+      "battles": 10,
+      "turns": 8
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 27,
+    "final_treasury": 14298,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "admiral",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-admiral-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 68,
+      "battles": 65,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 6,
+    "final_treasury": 6787,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-kingmaker-austerlitz-r1",
+    "exit": 0,
+    "status": "blocked",
+    "counters": {
+      "commands": 27,
+      "popups": 37,
+      "battles": 10,
+      "turns": 8
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 27,
+    "final_treasury": 16093,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-kingmaker-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 81,
+      "popups": 56,
+      "battles": 20,
+      "turns": 30
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 13,
+    "final_treasury": 6096,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-kingmaker-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 81,
+      "popups": 56,
+      "battles": 20,
+      "turns": 30
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 13,
+    "final_treasury": 6096,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-kingmaker-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 81,
+      "popups": 56,
+      "battles": 20,
+      "turns": 30
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 13,
+    "final_treasury": 6096,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-kingmaker-austerlitz-r2",
+    "exit": 0,
+    "status": "blocked",
+    "counters": {
+      "commands": 27,
+      "popups": 37,
+      "battles": 10,
+      "turns": 8
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 27,
+    "final_treasury": 16093,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "kingmaker",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-kingmaker-austerlitz-r3",
+    "exit": 0,
+    "status": "blocked",
+    "counters": {
+      "commands": 27,
+      "popups": 37,
+      "battles": 10,
+      "turns": 8
+    },
+    "unknown_blockers": 4,
+    "final_provinces": 27,
+    "final_treasury": 16093,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-pacifist-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 92,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 6,
+    "final_provinces": 15,
+    "final_treasury": 20403,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-pacifist-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 92,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 6,
+    "final_provinces": 15,
+    "final_treasury": 20403,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-pacifist-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 92,
+      "battles": 28,
+      "turns": 30
+    },
+    "unknown_blockers": 6,
+    "final_provinces": 15,
+    "final_treasury": 20403,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-pacifist-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 106,
+      "battles": 21,
+      "turns": 30
+    },
+    "unknown_blockers": 7,
+    "final_provinces": 29,
+    "final_treasury": 19305,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-pacifist-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 106,
+      "battles": 21,
+      "turns": 30
+    },
+    "unknown_blockers": 7,
+    "final_provinces": 29,
+    "final_treasury": 19305,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-pacifist-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 106,
+      "battles": 21,
+      "turns": 30
+    },
+    "unknown_blockers": 7,
+    "final_provinces": 29,
+    "final_treasury": 19305,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-pacifist-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 84,
+      "battles": 33,
+      "turns": 30
+    },
+    "unknown_blockers": 9,
+    "final_provinces": 18,
+    "final_treasury": 22705,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-pacifist-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 84,
+      "battles": 33,
+      "turns": 30
+    },
+    "unknown_blockers": 9,
+    "final_provinces": 18,
+    "final_treasury": 22705,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "pacifist",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-pacifist-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 77,
+      "popups": 84,
+      "battles": 33,
+      "turns": 30
+    },
+    "unknown_blockers": 9,
+    "final_provinces": 18,
+    "final_treasury": 22705,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-worldburns-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 107,
+      "battles": 74,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 4,
+    "final_treasury": 955,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-worldburns-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 107,
+      "battles": 74,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 4,
+    "final_treasury": 955,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-worldburns-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 107,
+      "battles": 74,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 4,
+    "final_treasury": 955,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-worldburns-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 105,
+      "battles": 13,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 28,
+    "final_treasury": 19603,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-worldburns-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 105,
+      "battles": 13,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 28,
+    "final_treasury": 19603,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-worldburns-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 105,
+      "battles": 13,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 28,
+    "final_treasury": 19603,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-worldburns-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 107,
+      "battles": 36,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 20,
+    "final_treasury": 3781,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-worldburns-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 107,
+      "battles": 36,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 20,
+    "final_treasury": 3781,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "worldburns",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-worldburns-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 84,
+      "popups": 107,
+      "battles": 36,
+      "turns": 30
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 20,
+    "final_treasury": 3781,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-livevoice-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 39,
+      "battles": 13,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 29,
+    "final_treasury": 18913,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-livevoice-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 39,
+      "battles": 13,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 29,
+    "final_treasury": 18913,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-livevoice-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 47,
+      "battles": 14,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 31,
+    "final_treasury": 16579,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-livevoice-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 39,
+      "battles": 13,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 29,
+    "final_treasury": 18912,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-livevoice-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 43,
+      "battles": 13,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 17325,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-livevoice-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 47,
+      "battles": 14,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 31,
+    "final_treasury": 16579,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-livevoice-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 34,
+      "battles": 17,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 21,
+    "final_treasury": 11931,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-livevoice-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 34,
+      "battles": 17,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 21,
+    "final_treasury": 11931,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-livevoice-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 40,
+      "popups": 34,
+      "battles": 17,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 21,
+    "final_treasury": 11931,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "historical",
+    "repeat": 1,
+    "name": "1b-livevoice2-historical-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 46,
+      "battles": 10,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 20046,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "historical",
+    "repeat": 3,
+    "name": "1b-livevoice2-historical-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 46,
+      "battles": 10,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 20034,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "historical",
+    "repeat": 2,
+    "name": "1b-livevoice2-historical-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 46,
+      "battles": 10,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 20034,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "ulm",
+    "repeat": 1,
+    "name": "1b-livevoice2-ulm-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 47,
+      "battles": 12,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 17956,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "austerlitz",
+    "repeat": 1,
+    "name": "1b-livevoice2-austerlitz-r1",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 54,
+      "battles": 15,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 31,
+    "final_treasury": 16061,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "ulm",
+    "repeat": 2,
+    "name": "1b-livevoice2-ulm-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 47,
+      "battles": 12,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 17956,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "ulm",
+    "repeat": 3,
+    "name": "1b-livevoice2-ulm-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 47,
+      "battles": 12,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 30,
+    "final_treasury": 17956,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "austerlitz",
+    "repeat": 2,
+    "name": "1b-livevoice2-austerlitz-r2",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 54,
+      "battles": 15,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 31,
+    "final_treasury": 16061,
+    "estate_stage_answered": false
+  },
+  {
+    "arm": "livevoice2",
+    "seed": "austerlitz",
+    "repeat": 3,
+    "name": "1b-livevoice2-austerlitz-r3",
+    "exit": 0,
+    "status": "completed",
+    "counters": {
+      "commands": 41,
+      "popups": 54,
+      "battles": 15,
+      "turns": 10
+    },
+    "unknown_blockers": 0,
+    "final_provinces": 31,
+    "final_treasury": 16062,
+    "estate_stage_answered": false
+  }
+]

@@ -1,0 +1,61 @@
+{
+  "name": "weird-pacifist",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "accept",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy"
+  },
+  "turns_requested": 30,
+  "started": "2026-08-16 19:50",
+  "from_save": "",
+  "status": "blocked",
+  "counters": {
+    "commands": 64,
+    "popups": 70,
+    "battles": 0,
+    "turns": 22
+  },
+  "unknown_blockers": [
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "proposal_confirm",
+      "choice": "confirm",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "proposal_confirm",
+      "choice": "confirm",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "proposal_confirm",
+      "choice": "confirm",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "proposal_confirm",
+      "choice": "confirm",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "proposal_confirm",
+      "choice": "confirm",
+      "reason": "answer-cycle"
+    }
+  ]
+}

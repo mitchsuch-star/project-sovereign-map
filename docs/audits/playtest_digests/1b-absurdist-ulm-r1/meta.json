@@ -1,0 +1,36 @@
+{
+  "name": "1b-absurdist-ulm-r1",
+  "seed": "ulm",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 30,
+  "started": "2026-08-21 14:23",
+  "from_save": "",
+  "rng": {
+    "deterministic": true,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "pythonhashseed": "0"
+  },
+  "status": "completed",
+  "counters": {
+    "commands": 95,
+    "popups": 80,
+    "battles": 14,
+    "turns": 30
+  },
+  "unknown_blockers": []
+}

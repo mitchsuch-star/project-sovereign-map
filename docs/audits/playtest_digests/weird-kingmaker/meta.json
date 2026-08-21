@@ -1,0 +1,37 @@
+{
+  "name": "weird-kingmaker",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "first",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy"
+  },
+  "turns_requested": 30,
+  "started": "2026-08-17 23:20",
+  "from_save": "",
+  "status": "completed",
+  "counters": {
+    "commands": 81,
+    "popups": 44,
+    "battles": 1,
+    "turns": 30
+  },
+  "unknown_blockers": [
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "proposal_confirm",
+      "choice": "confirm",
+      "reason": "answer-cycle"
+    }
+  ]
+}

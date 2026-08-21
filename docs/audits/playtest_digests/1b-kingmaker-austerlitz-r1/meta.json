@@ -1,0 +1,61 @@
+{
+  "name": "1b-kingmaker-austerlitz-r1",
+  "seed": "austerlitz",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "first",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 30,
+  "started": "2026-08-21 14:24",
+  "from_save": "",
+  "rng": {
+    "deterministic": true,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "pythonhashseed": "0"
+  },
+  "status": "blocked",
+  "counters": {
+    "commands": 27,
+    "popups": 37,
+    "battles": 10,
+    "turns": 8
+  },
+  "unknown_blockers": [
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "settlement_confirm",
+      "choice": "seek_bilateral_peace",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "settlement_pair_substitute_confirm, peace",
+      "choice": "keep_joint_settlement",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "settlement_confirm",
+      "choice": "seek_bilateral_peace",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "diplomatic_dialogue",
+      "summary": "settlement_pair_substitute_confirm, peace",
+      "choice": "keep_joint_settlement",
+      "reason": "answer-cycle"
+    }
+  ]
+}

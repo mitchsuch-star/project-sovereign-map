@@ -288,3 +288,74 @@ row corrected.
 ```bash
 .venv/Scripts/python.exe tools/playtest_driver.py --script tools/playtest_scripts/weird_kingmaker.json --turns 30 --name weird-kingmaker --fresh
 ```
+
+---
+
+## 9. ADDENDUM — slice 1b: the ten arms re-run on the fixed instrument (August 21, 2026)
+
+> **The §1 funnel claim is FORMALLY WITHDRAWN, and G2(b)
+> (`BUILDING_SLOT_LIMITS["town"] = 1`) STAYS SHELVED.** Protocol =
+> `WEIRD_OUTCOMES_SPEC.md` §3 slice 1b; runner = `tools/wo_1b_sweep.py`
+> (committed); dataset = `docs/audits/playtest_digests/wo_1b_results.json`
+> (all 90 rows) + one representative digest per (arm, seed) in the same
+> archive. Every run on the fixed driver (WO-H slice 1) at ONE code state
+> (master with slices 1–3 landed).
+
+**Per-arm final provinces — 3 seeds × 3 repeats (every mock repeat-triple
+byte-identical; the per-seed cell shows the triple's shared value):**
+
+| arm | class | historical | ulm | austerlitz | median | min–max | status |
+|---|---|---|---|---|---|---|---|
+| absurdist | fighting | 30 | 27 | **5** | 27 | 5–30 | completed |
+| eagle-in-chains | fighting | 28 | 14 | 27 | 27 | 14–28 | completed |
+| tyrant | fighting | 22 | 27 | 24 | 24 | 22–27 | completed |
+| world-burns | fighting | **4** | 28 | 20 | 20 | 4–28 | completed |
+| merchant | non-military | 24 | 29 | 24 | 24 | 24–29 | completed |
+| admiral | non-military | 28 | 14 | 6 | 14 | 6–28 | completed |
+| kingmaker | non-military | 27ᵇ | 13 | 27ᵇ | 27 | 13–27 | ᵇ = `blocked` |
+| pacifist | non-military | 15 | 29 | 18 | 18 | 15–29 | completed |
+| live-voice | live (excluded) | 29 | 31/30/31 | 21 | 29 | 21–31 | completed |
+| live-voice2 | live (excluded) | 30 | 30 | 31 | 30 | 30–31 | completed |
+
+**The verdict, by the protocol's own inequality:** worst fighting-arm
+median (world-burns, 20) does NOT exceed the best non-military-arm median
+(kingmaker 27; merchant 24 if kingmaker's blocked rows are discounted),
+and the min–max bands overlap massively. It fails under the alternative
+grouping too (world-burns excluded as a deliberate gambit: tyrant 24 vs
+merchant 24, bands 14–28 vs 24–29). **WITHDRAWN.**
+
+**What the numbers actually say:**
+
+1. **The SEED, not the strategy, dominates ambient-driven outcomes.** The
+   same fighting script ends at 30 / 27 / **5** provinces across the three
+   authored seeds; the admiral swings 28 / 14 / 6. A passive-reflex France
+   (the driver is a camera, not a strategist) lives or dies mostly by
+   which opening Europe drew.
+2. **The original table's most dramatic rows were instrument artifacts.**
+   The Kingmaker was filed *"annihilated at 5"* — on the fixed driver it
+   holds **27** on the filed seed (its `blocked` status is the documented
+   settlement answer-cycle policy limitation, reported per protocol, not
+   an engine lock). The Pacifist reads 15/29/18, not a triumphant 29.
+3. **World Burns got WORSE, correctly.** The original arm's fifteen
+   declare-war ceremonies declared ZERO wars (WO-H1); the fixed driver
+   actually declares them — and declaring war on all Europe now costs
+   France 24 provinces on the historical seed. The arm finally measures
+   what it was written to measure.
+4. **Determinism at scale:** 72/72 mock runs reproduce byte-identically
+   within (arm, seed); the two live arms vary only where the live parser
+   does (one seed of one arm).
+5. `capture_choice[estate]` — the WO-H3 wedge's surface — was answered
+   organically in all three absurdist/historical repeats (archived).
+
+**Method notes, recorded for the next sweep:** five children of the first
+sweep froze in asyncio's Windows socketpair fallback under ~25 concurrent
+python processes (killed and re-run; determinism verified by byte-prefix
+diff against the completed sibling repeat — an OS race, not a game or
+driver defect; the runner now records a `timeout` row instead of
+crashing); and the first sweep ran while slices 2–3 were landing, so the
+definitive dataset above was re-swept once on the final committed tree —
+**do not measure while the code moves.** The letter-book policy note also
+binds any cross-epoch comparison: an explicit decline is not the old
+silent lapse (refusal record + 3-turn court cooldown vs none + 2), so
+per-decline cadence differences vs pre-Aug-21 digests are the harness's
+doing.

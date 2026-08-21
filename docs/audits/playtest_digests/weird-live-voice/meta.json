@@ -1,0 +1,55 @@
+{
+  "name": "weird-live-voice",
+  "seed": "historical",
+  "llm": "anthropic",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "capture": "plunder",
+    "estate": "confiscate",
+    "glorious_charge": "charge",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy"
+  },
+  "turns_requested": 10,
+  "started": "2026-08-16 19:52",
+  "from_save": "",
+  "status": "blocked",
+  "counters": {
+    "commands": 13,
+    "popups": 14,
+    "battles": 2,
+    "turns": 3
+  },
+  "unknown_blockers": [
+    {
+      "key": "capture_choice[capture]",
+      "summary": "(no summary fields)",
+      "choice": "plunder",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "capture_choice[capture]",
+      "summary": "(no summary fields)",
+      "choice": "plunder",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "capture_choice[capture]",
+      "summary": "(no summary fields)",
+      "choice": "plunder",
+      "reason": "answer-cycle"
+    },
+    {
+      "key": "capture_choice[capture]",
+      "summary": "(no summary fields)",
+      "choice": "plunder",
+      "reason": "answer-cycle"
+    }
+  ]
+}
