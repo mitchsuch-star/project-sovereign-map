@@ -2694,7 +2694,18 @@ class CombatExecutor:
 
         # Ensure minimum losses on both sides (no zero-damage stalemates)
         attacker_losses = max(attacker_losses, int(marshal.strength * 0.02))
-        garrison_losses = max(garrison_losses, int(target_region.garrison_strength * 0.10))
+        # WO-3: the 10% floor TRUNCATES to 0 below ten men while the
+        # attacker keeps paying his 2% floor — a detachment garrison
+        # stalled at ONE man forever (measured: 40 assaults, "Garrison:
+        # 1 → 1 (-0)", attacker 40,000 → 17,843; a Bavarian marshal spent
+        # 21 assaults and 10,152 men on a garrison that could never fall).
+        # A landed assault always kills at least one defender; the +1 term
+        # cannot bind at garrison ≥ 10, so major-capital arithmetic is
+        # byte-identical. The P4.25 futility guard is consciously NOT
+        # built (spec slice 3): with the floor fixed every assault
+        # progresses, so unbounded futility cannot recur.
+        garrison_losses = max(
+            garrison_losses, int(target_region.garrison_strength * 0.10), 1)
 
         # Apply losses
         marshal.strength = max(0, marshal.strength - attacker_losses)
