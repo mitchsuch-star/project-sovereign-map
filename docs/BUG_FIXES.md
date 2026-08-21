@@ -3,7 +3,13 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: August 16, 2026 (**Weird-Outcomes Playtest (WO) section added — 16
+> Last Updated: August 21, 2026 (**WO section EXTENDED — rows WO-17..WO-32 from
+> the spec-authoring session's defect hunt, incl. three hand-verified new P1s:
+> WO-17 the direction-less WIN-D3 evacuation corridor, WO-21 the objection
+> channel's free-trust + dead cancel arm, WO-22 auto-end-turn crossing an
+> unanswered capture — plus WO-32 (P1, owned by PC15-10). Build contract for
+> the whole WO row = `docs/WEIRD_OUTCOMES_SPEC.md`.**) Prior: August 16, 2026
+> (**Weird-Outcomes Playtest (WO) section added — 16
 > game rows + 3 harness rows, ALL OPEN** (report-only session): 3 game P1s ⛔ — the
 > enemy-name addressee executing on your own army, the parser rewriting an unknown
 > place into a real one and marching there, and a detachment garrison that can
@@ -46,7 +52,7 @@
 ---
 
 
-## Weird-Outcomes Playtest (WO) — filed August 16, 2026 (**ALL OPEN — report-only session**)
+## Weird-Outcomes Playtest (WO) — filed August 16, 2026; **EXTENDED August 21, 2026** (WO-17..WO-32 from the spec-authoring session's defect hunt; **build contract = `docs/WEIRD_OUTCOMES_SPEC.md`**; ALL OPEN)
 
 > **Evidence memo = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`
 > (authoritative).** Ten scripted campaigns, ~290 turns, each built to push a
@@ -114,6 +120,36 @@
 >   direction-blind guard would fire the game's most ceremonial sentence on the
 >   morning an **ally liberated Paris for you**.
 
+> ### ✅ SPEC AUTHORED + THIRD VERIFICATION August 21, 2026 — **build contract = `docs/WEIRD_OUTCOMES_SPEC.md`, AUTHORITATIVE for every row's fix design.**
+>
+> Every seam re-verified at master `bd0be0c` (six-agent read-only pass + hand
+> checks; spec §2 is the record). **Five material corrections to the rows
+> above:** (1) **WO-1's seam is `parser.py:688-702` + `:1575-1576`** — the
+> CR-1 enemy-name demotion (`llm_result["marshal"] = None` at `:700`) followed
+> by the marshal-less classification; the filed `executor.py:1794-1805` is
+> only the routing hop. (2) **WO-5's story splits:** bare `sue for peace` /
+> `make peace` hit the honest FINAL-21 target ask (`llm_client.py:2041`), and
+> the *"against which nation shall we declare war?"* line is reached because
+> **"end the war ON any terms" contains the war keyword `"war on "`**
+> (`llm_client.py:1018`, checked before the proposal keywords) — a peace
+> request parsing as a war declaration via a three-word substring. (3)
+> **WO-H3 precision:** the driver DOES answer a bare-`True` capture prompt
+> (posts `/capture_choice`); what it loses is the sibling `capture_data`
+> (stage / `dialogue_id` / detail) — which is exactly what makes the ESTATE
+> stage unanswerable. (4) The typo gate has **four** sibling application
+> sites, not three. (5) `home_captured` is no longer the weight ceiling —
+> **`sovereign_captured: 101`** (NP-4) sits above it, and WO-D6's
+> `capital_lost` slice must preserve that ordering.
+>
+> **The same session's defect hunt filed SIXTEEN new rows (WO-17..WO-32,
+> below) — three hand-verified P1s** (WO-17 the direction-less WIN-D3
+> corridor; WO-21 the objection channel's free-trust + dead cancel arm;
+> WO-22 the auto-end-turn crossing an unanswered capture) plus the P1 WO-32,
+> owned by PC15-10. Fix designs = spec §3 slices 13–17; the hunt's CLEAN
+> verdicts (bankruptcy priced, DP non-accumulating, no vassal-autonomy
+> arbitrage, glory farming excluded, doomstack capped…) are recorded in spec
+> §4 so nobody re-hunts them.
+
 | # | Sev | Finding | Seam | Status |
 |---|---|---|---|---|
 | **WO-1** ⛔ | **P1** | **Naming an ENEMY marshal executes the order on the FRENCH army.** `Kutuzov, retreat` → *"General retreat ordered! Ney falling back! Davout falling back!…"* and it executes — every French corps changes province, Massena Milan→Munich **losing 2,100 men**. Identical for `Mack, retreat` / `Buxhowden, retreat` / `Moore, retreat`, and byte-identical to the bare word `retreat`. `Mack, attack Vienna` sends the whole army at **Swabia**; `Kutuzov, defend` puts every corps on the defensive. **The guard exists and works for names the game does NOT know** (`Zorblax, retreat` → *"There is no Marshal 'Zorblax' in the order of battle"*); it fails for known names belonging to the enemy — the addressee is recognised, stripped, and the command degrades to its bare army-wide form. Verbs with no bare form (`fortify`/`drill`/`wait`/`form square`) correctly ask *"Which marshal, Sire?"* | the pre-parse addressee guard — the third member of the family **PC15-4** opened (invented names guarded; fallen names guarded in the PC15 slice; **enemy names not**) | **OPEN** |
@@ -134,7 +170,23 @@
 | **WO-16** | P3 | **"Mauled" prints a number that contradicts it.** *"Sire — Ney was mauled at Bohemia: 29 men lost in a single action."* The predicate is proportional and CORRECT (`casualties >= 0.25 × pre`, Ney was at ~87 men) — the sentence publishes the absolute figure, which reads as trivial, and withholds the proportion that earned the word. It also led the briefing on a turn a vassal defected, a homeland province fell, and the army was at 24% of boot strength. | `dispatch.py:255` (template) + `:666` (predicate) | **OPEN** |
 | **WO-H1** ⛔ | **P1** (harness) | **The playtest driver reports campaigns that never happened.** The World Burns arm ran **fifteen complete declare-war ceremonies** and declared war on **ZERO** nations; every one is logged as a success. The ally-entry review's options carry `action` keys and no `id`, so `_option_id` returns `None` for all, `find()` cannot match, and the arm falls back to the literal `"confirm"` — a word whose keyword list does not include the ally-entry actions. `1`, `proceed`, `ally_entry_proceed_without` and `Proceed Without Allies` **all declare the war**. ⚠ **The BACKEND IS CORRECT here** — this session first filed it as a game inconsistency and that reading is struck. ⚠ **It also falsifies the recorded refutation** in §Napoleon Campaign harness rows calling `_option_id`'s blindness *"causally inert"* on `proposal_confirm` — proven load-bearing by experiment. | `tools/playtest_driver.py:449-451` (`_option_id`), fallback `:120` + `:659-660`, blind chain `:726-730` | **OPEN** |
 | **WO-H2** | P2 (harness) | **The `battles` counter reads 0 for a campaign the world logged 12 battles in.** The driver counts only top-level `response["battle_report"]` (`:519`) while autonomous jealousy attacks ship on `result["jealousy_attacks"]` (`turn_manager.py:405`) — a key it never reads. The Pacifist arm's centrepiece (11 autonomous attacks, 12 battles) was structurally invisible to its own digest. | `playtest_driver.py:519` | **OPEN** |
-| **WO-H3** | P2 (harness) | **`pending_capture_choice` arrives as a bare `True`**, so `_as_dict(response["pending_capture_choice"])` yields nothing and the capture payload is unreachable — the third known-bad-digest class, and **not yet in `docs/PLAYTESTING.md`**. Add all three (WO-H1/H2/H3) to that document's *Known-bad digests* section. | `playtest_driver.py` capture arm | **OPEN** |
+| **WO-H3** | P2 (harness) | **`pending_capture_choice` arrives as a bare `True`**, so `_as_dict(response["pending_capture_choice"])` yields nothing and the capture payload is unreachable — the third known-bad-digest class, and **not yet in `docs/PLAYTESTING.md`**. Add all three (WO-H1/H2/H3) to that document's *Known-bad digests* section. *(Aug 21 precision: the driver still POSTS an answer — what it loses is the sibling `capture_data` with stage/`dialogue_id`/detail, which is what wedges the estate stage.)* | `playtest_driver.py:569-579`; `main.py:3413-3415` ships the detail on `capture_data` | **OPEN** |
+| **WO-17** ⛔ | **P1** | **"The Trojan Corridor" — the WIN-D3 evacuation grant is pair-scoped and direction-less** (hand-verified): `has_evacuation_grant` is a bare `(pair_key → expiry)` compare consumed by the ONE `can_enter_territory` arm — no marshal, no direction, no stranded check — and it opens on ANY WAR→non-WAR edge **including ARMISTICE**. Park one corps deep on enemy soil (depth sets duration, cap 12 turns), sign a 1-DP armistice, march FRESH corps INTO enemy sovereign territory all truce long (walked-in corps register "stranded" and HOLD the corridor open), let the armistice collapse — war auto-resumes free — with the army beside Vienna. The enemy legally cannot contest (attack gates on `is_at_war`). Player-exclusive in practice: the AI's only consumer (P1.2) walks home. Compounding: the player has NO truce floor (`PAIR_EXIT_TRUCE_FLOOR_TURNS` skips player pairs; leaving ARMISTICE pops the 5-turn hold). | `withdrawal.py:133-149` + `diplomacy.py:9452-9455` (permission), `:2815-2817` (creation), `:2839-2845` (cooldown pop), `settlement_third_party.py:453` (player skip) | **OPEN — spec slice 13** |
+| **WO-18** | P2 | **Pension churn: pay the rente one turn in three, never erode.** The bill reads the LIVE pension at income time; the erosion reconcile fully resets the grace clock on any met turn; neither grant nor revoke carries churn memory — grant/revoke/revoke/regrant pays `ceil(1.5×face)` on one turn of three with zero trust bleed, while the revoke copy promises erosion "after its grace expires." | `world_state.py:5376-5379` (bill), `:5908-5946` (reconcile), `economy_executor.py:1174-1373` (no memory) | **OPEN — spec slice 14** |
+| **WO-19** | P2 | **The repeat-sack guard re-arms on any change of hands.** `plunder_yield`'s docstring promises the flag holds until stability >50 / ≥9 unguarded turns, but three sites clear `region.plundered` in ONE turn on any hand-change (secure, AI-secure, own-soil recapture) — abandon a sacked province, let the AI secure it, retake it, and the prompt quotes the FULL `income×4` again. IGR-X6 covered only re-sack while the flag stands. | `combat_executor.py:7639-7643`, `world_state.py:3966-3969`, `:3928-3933` vs the documented clear `:6122-6123` | **OPEN — spec slice 14** |
+| **WO-20** | P2 | **"break the alliance with Austria" PROPOSES an alliance** — `_break_keywords` are treaty-phrasings only, so the addressed form falls into the proposal arm and `extract_proposal_type` reads "alliance" as the thing to CREATE. One-line hardening (`break alliance`/`end the alliance` into `_break_keywords`); the G1 redirect covers the player surface. | `llm_client.py:1003-1008` | **OPEN — spec slice 11** |
+| **WO-21** ⛔ | **P1** | **The strategic-objection trust arm pays trust for nothing, and the SUPPORT-cancel arm is dead** (hand-verified): `modify_trust(v2_trust_gain)` fires BEFORE the `preferred_action` existence check (the bail returns success=False, cost 0 — trust kept), and the relationship-SUPPORT objection's trust option carries `"action": "cancel"`, an id the post-objection dispatch has no arm for → *"Unknown action: cancel"*, AP uncharged, the SUPPORT order still standing. +2..+12 trust per press, repeatable. | `strategic_executor.py:1627-1635` (credit-before-check), `:994-996` (the dead option), `meta_executor.py` dispatch tail | **OPEN — spec slice 16** |
+| **WO-22** ⛔ | **P1** | **Auto-end-turn crosses an unanswered capture choice** (hand-verified): the defer at `executor.py:1966` checks only `has_current_turn_offers()` while the typed `end turn` BLOCKS on `pending_capture_choice` (`:597-602`) — a last-AP capture auto-advances, the enemy phase can retake the province, and the answer dies on the holder-re-validation lapse; the plunder/estate decision silently forfeited. | `executor.py:1965-1975` vs `:597-602` | **OPEN — spec slice 15** |
+| **WO-23** | P2 | **A mid-turn save/load refreshes the objection budget** (hand-verified): `save_manager` wipes `objection_popups_this_turn` on load while `from_dict` restores it — the only live limiter on the +3..+12/popup trust channel (no per-marshal cooldown exists; the global cap constant is dead code). | `save_manager.py:191` vs `world_state.py:7303` | **OPEN — spec slice 16** |
+| **WO-24** | P2 | **The charge/auto-charge ADVANCE has no frontier halt** — the victor relocates with only `_naval_advance_allowed`, no `can_enter_territory` (both implementations; the reckless-cavalry pass even checks its MOVE arm but not its charge arm) — victorious cavalry stands illegally on a neutral court's soil, the CA9-F13 shape. | `combat_executor.py:7362-7370`; `world_state.py:12033-12035` vs `:12288-12292` | **OPEN — spec slice 17** |
+| **WO-25** | P2 | **The "autonomous war-purpose theater dead" rider covers 2 of 4 staging sites** — the glorious-charge site takes no command and `respond_to_glorious_charge` drops it on both branches, so an auto-charge the player never ordered stages the HARD_STOP `war_purpose_selection` (mounted with `replace()` — can destroy the active dialogue). The census pin's docstring is falsified by the auto-charge site. | `combat_executor.py:7421-7432`, `:7605-7614`, auto-charge `:4022-4047`; pin `test_pc15_d_rulings_2026_08_15.py:141-150` | **OPEN — spec slice 17** |
+| **WO-26** | P2 | **Attack-capture and occupation-completion CLOBBER an unanswered capture choice** — bare writes to the single slot; only the move path carries the PF-3 save/restore guard. Reachable inside multi-marshal strategic loops. The first province keeps `capture_region`'s effects but never runs secure/estate/log. | `combat_executor.py:7853`, `world_state.py:3937-3938` vs `movement_executor.py:546-551/589` | **OPEN — spec slice 15** |
+| **WO-27** | P3 | **The dotation prune lacks the `_capture_choice_pending` carve-out its three siblings have** — an estate question crossing the boundary is pruned and the *respect* answer becomes a paid no-op (never re-added to `dotation_regions`; the +5 acceptance term never fires). | `world_state.py:5891-5896` vs `dotation.py:325/345/405` | **OPEN — spec slice 15** |
+| **WO-28** | P3 | **The jealousy beat narrates autonomous attacks that were REFUSED** — the order is voided, the attack executes into a live refusal (recklessness popup et al.), and the beat logs anyway with no success check; the order stays lost. | `jealousy.py:3575-3626` | **OPEN — spec slice 17** |
+| **WO-29** | P3 | **Typed capture answers never carry `dialogue_id`** — the W6-0 stale guard is inert on the typed path; composed with WO-26 a typed `plunder` for province X can apply to province Y. | `main.py:2263-2264` vs `:3407-3408` | **OPEN — spec slice 15** |
+| **WO-30** | P3 | **`/load` never re-attaches a restored pending capture question** — no capture entry in `PopupQueue.RESPONSE_KEYS` (the queue's own `to_dict`/`from_dict` are dead code; it round-trips via hand-enumerated keys). Self-healing after one refused command; the player is told nothing at load. | `main.py:3947-3971`; `main.gd:1421-1422` | **OPEN — spec slice 15** |
+| **WO-31** | P3 | **A HOLD-sortie suppresses the advance but not the capture** — a sally that "returns to hold position" can flip an at-war province the marshal never stood on. Decide at build: block it for `_sortie`, or keep it and say so. | `combat_executor.py:6327` vs `:6376-6416` | **OPEN — spec slice 17** |
+| **WO-32** ⛔ | **P1** | **The vassal-rebellion-imminent popup destroys the crisis decision on a refused arm** — the dialogue is popped UNCONDITIONALLY, then `invest_in_vassal` runs with reachable refusals (3-turn cooldown / gold / DP); on those turns "Invest" charges nothing, changes nothing, and deletes Garrison/Accept-Risk too, on a vassal one tick from rebellion, re-fired every turn at loyalty ≤10. The jealousy channel documents-and-fixes this exact failure; the pattern was never ported. | `diplomatic_executor.py:5448-5480`; contrast `jealousy.py:2490-2497` | **OPEN — owner = PC15-10** (`PETITION_POPUP_REVISIT_SPEC.md` popup-lifecycle family; checked at row WO's exit) |
 
 > **Killed this session, recorded so a later reader knows they were tested:**
 > ~~"two campaigns soft-lock on `end turn` forever"~~ (hand-driving the blocked

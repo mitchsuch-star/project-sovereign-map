@@ -4,6 +4,76 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE WO BUILD CONTRACT IS AUTHORED — August 21, 2026. **`docs/WEIRD_OUTCOMES_SPEC.md` v1.0 (AUTHORITATIVE for the build; the eval memo keeps the gate record).**
+>
+> **Docs-only session: zero production code touched.** The user's brief:
+> evaluate the WO-EVAL + the weird audit, make the spec rock solid, and hunt
+> for more logic/gameplay-loop/playstyle errors. Method: a six-agent
+> read-only pass (four claim-verification agents over every seam the eval
+> cites + two fresh defect hunts) with the load-bearing claims re-verified BY
+> HAND (the corridor permission arm, the objection trust seams, the
+> auto-advance defer, the courting loop head, the dispatch weights, the
+> keyword lists, corpus 333, the RNG facts).
+>
+> **The eval held up well — but five of its citations were MATERIALLY wrong
+> and are corrected in spec §2:** (1) WO-1's real seam is
+> `parser.py:688-702` + `:1575-1576` (the CR-1 enemy-name demotion), not
+> `executor.py:1794-1805`; (2) WO-5's story splits — bare `sue for peace`
+> hits the honest target ask at `llm_client.py:2041`, while the declare-war
+> clarification is reached because **"end the war ON any terms" contains the
+> war keyword `"war on "`** (a peace request parsing as a war declaration
+> via a three-word substring); (3) `sovereign_captured: 101` (NP-4) sits
+> above `home_captured: 100` and the eval's WO-D6 ordering never mentions
+> it; (4) the WE formula's executable line is `settlement_scoring.py:1518`;
+> (5) WO-H3's driver DOES answer — it loses `capture_data`
+> (stage/`dialogue_id`), which is the actual wedge. Plus: the eval's slice-1
+> contract omitted **PYTHONHASHSEED** (the BASELINE runner pins it; the
+> in-process driver must too), and `--http` mode can never be made
+> deterministic from the driver — both now in the slice-1 contract. A
+> decisive new fact for slice 1: **backend has ZERO `random.Random()`
+> instances**, so per-turn module-level seeding suffices.
+>
+> **THE HUNT FILED 16 NEW ROWS (WO-17..WO-32) + 4 DESIGN ROWS (WO-D7..D10)
+> — three hand-verified P1s:**
+> * **WO-17 "The Trojan Corridor"** ⛔ — the WIN-D3 evacuation grant is
+>   pair-scoped and **direction-less**: park a corps deep on enemy soil,
+>   sign a 1-DP armistice, march FRESH corps INTO enemy sovereign territory
+>   for up to 12 turns (walked-in corps register "stranded" and hold the
+>   corridor open), let the truce collapse free — the new war opens beside
+>   Vienna. Player-exclusive in practice (the AI's only consumer walks
+>   home); compounded by the player having NO truce floor. → spec slice 13.
+> * **WO-21** ⛔ — the strategic-objection trust arm credits trust BEFORE
+>   validating the preferred action, and the SUPPORT-objection's trust
+>   option carries `"action": "cancel"` — an id the dispatch has no arm for:
+>   +2..+12 trust, 0 AP, order still standing, raw error. → slice 16.
+> * **WO-22** ⛔ — auto-end-turn defers on unanswered envoys but never on
+>   `pending_capture_choice` (the typed path blocks on it) — a last-AP
+>   capture crosses the boundary and the choice dies on the re-validation
+>   lapse. → slice 15 (with the WO-26/27/29/30 capture-lifecycle cluster).
+> * Also: WO-18 pension churn (pay 1 turn in 3, never erode) · WO-19 the
+>   sacked flag re-arms on any hand-change · WO-20 *"break the alliance"
+>   PROPOSES one* · WO-23 save/load refreshes the objection budget · WO-24
+>   charge-advance onto neutral soil (no `can_enter_territory`) · WO-25 the
+>   autonomous war-purpose theater re-armed (2 of 4 sites flagged) · WO-28
+>   refused autonomous attacks narrated as fired · WO-31 the HOLD-sortie
+>   capture · **WO-32** ⛔ (vassal-rebellion popup destroys the crisis
+>   decision on a refused arm — **owned by PC15-10**, not double-built).
+>   The hunt's CLEAN verdicts (bankruptcy priced, DP non-accumulating, no
+>   autonomy arbitrage, glory farming excluded…) are recorded in spec §4.
+>
+> **The spec = 17 slices** (the eval's 12, verified + hardened, + 5 new),
+> order `1 → 1b → 2 → 3 → 13 → 4 → 5 → 6 → 7 → 8 → 15 → 16 → 9 → 10 → 17 →
+> 11 → 12 → 14`, ~13 sessions. G1's build contract now carries the full
+> producer census (ZERO diplomatic producers on the terminal path; the
+> redirect family table with per-verb UI homes; exemptions for
+> `make_amends`/`set_war_purpose`/`repudiate_bargain` which have NO UI home;
+> the `request terms` carve decision; the redemption-token placement pin) —
+> and the honest residual that live-parser synonyms keep the free executor
+> reachable, with G1(a) as the named layer-on-top. **▶ NEXT SESSION: slice 1
+> WO-H "The Instrument" unchanged** — the corridor P1 (slice 13) is a
+> deliberate-abuse exploit, not an ambient bleed, so the instrument still
+> goes first; the user may pull 13 forward with a word.
+
 > # ✅ WO-EVAL HELD August 17, 2026 — **memo of record = `docs/audits/WO_EVAL_2026_08_17.md` (AUTHORITATIVE)**
 >
 > **Report-only: zero production code touched.** Eight parallel investigations,
