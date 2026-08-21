@@ -72,7 +72,8 @@
 > reachable, with G1(a) as the named layer-on-top. **▶ NEXT SESSION: slice 1
 > WO-H "The Instrument" unchanged** — the corridor P1 (slice 13) is a
 > deliberate-abuse exploit, not an ambient bleed, so the instrument still
-> goes first; the user may pull 13 forward with a word.
+> goes first; the user may pull 13 forward with a word. **The paste-ready
+> kickoff prompt = `docs/NEXT_SESSION_PROMPT.md`.**
 
 > # ✅ WO-EVAL HELD August 17, 2026 — **memo of record = `docs/audits/WO_EVAL_2026_08_17.md` (AUTHORITATIVE)**
 >
