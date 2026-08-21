@@ -137,6 +137,17 @@ class StrategicExecutor:
         # A nation was already answered by the caller's own IGR-A3 arm.
         if err and err.get("nation_named"):
             return (None, None)
+        # WO-2 (slice 2): the backstop now demotes an implausible
+        # auto-correct to a "Did you mean…?" error instead of silently
+        # returning the region. On THIS path even that suggestion must not
+        # leak — CA8-28's rule is that ordinary English never becomes a
+        # province, not even as a guess ("the pass" must not print
+        # Nassau's name) — so the DEMOTED class is swallowed exactly as
+        # the silent implausible correction was above. Native suggest-band
+        # errors keep flowing: "Venetia" → "Did you mean 'Vienna'?" is the
+        # same-answer-whatever-the-verb behaviour CA8-28 itself pinned.
+        if err and err.get("implausible_correction"):
+            return (None, None)
         return (None, err)
 
     def _closest_marshal_name(self, typed: str, candidates) -> Optional[str]:

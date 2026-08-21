@@ -2650,6 +2650,31 @@ def execute_command(request: CommandRequest):
                     })
 
             # ════════════════════════════════════════════════════════════
+            # WO-1: THE ENEMY ADDRESSEE. The parser refused by name and in
+            # voice ("Marshal Kutuzov commands for Russia, Sire — he does
+            # not answer to us"); the refusal must reach the player
+            # VERBATIM. Without this arm it carried candidates=[] so the
+            # CR-2 clarification below skipped it and it fell through to
+            # the generic Berthier recovery — the by-name refusal was
+            # production-dead on the wire (review finding, Aug 21 2026).
+            # ════════════════════════════════════════════════════════════
+            if (not parsed.get("success")
+                    and parsed.get("kind") == "enemy_addressee"):
+                refusal_message = parsed.get("error") or (
+                    "That commander serves the enemy, Sire — he does not "
+                    "answer to us.")
+                if parsed.get("suggestion"):
+                    refusal_message += f" {parsed['suggestion']}"
+                return build_base_response(
+                    world, success=False, message=refusal_message,
+                    action_info={
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    })
+
+            # ════════════════════════════════════════════════════════════
             # CR-2: UNKNOWN-NAME CLARIFICATION — a parse failure that
             # carries structured candidates ("Murat, charge" on a world
             # without Murat; "Davut, attack") becomes a one-question

@@ -296,10 +296,32 @@ class CommandExecutor:
             })
 
         # Try fuzzy match
+        from backend.commands.parser import _plausible_name_typo
+
         result = self.fuzzy_matcher.match_with_context(region_name, all_regions)
 
         if result["action"] == "exact" or result["action"] == "auto_correct":
-            # Exact match or high confidence - use corrected name
+            # WO-2 backstop: the parser's arms are typo-gated, but this
+            # executor chokepoint auto-corrected over ALL regions ungated —
+            # gate the parser alone and `move to the Moon` still marched ten
+            # provinces to Morocco. An auto-correct that does not look like
+            # a typed mistake becomes a QUESTION, never a march.
+            if (result["action"] == "auto_correct"
+                    and not _plausible_name_typo(
+                        region_name, result.get("match") or "")):
+                return (None, {
+                    "success": False,
+                    "message": (f"Region '{region_name}' not found. "
+                                f"Did you mean '{result['match']}'?"),
+                    "suggestion": result["match"],
+                    # The strategic-phrase seam swallows THIS error class
+                    # (CA8-28: "the pass" must not print Nassau even as a
+                    # guess) while native suggest-band errors keep flowing
+                    # ("Venetia" → "Did you mean 'Vienna'?" is helpful).
+                    "implausible_correction": True,
+                    "score": int(result["score"] * 100)
+                })
+            # Exact match or plausible-typo correction - use corrected name
             region = world.get_region(result["match"])
             return (region, None)
         elif result["action"] == "suggest":

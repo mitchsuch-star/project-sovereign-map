@@ -258,6 +258,105 @@ def _leading_addressed_token(command_text: str) -> Optional[str]:
     return token
 
 
+# WO-1 boundary (review round, Aug 21 2026): a lead followed by one of
+# these is NARRATION, not an address — third-person inflections and
+# auxiliaries cannot be imperatives, so "Mack is at Swabia, Ney attack him"
+# keeps its correct parse while "Kutuzov, retreat" (imperative next word)
+# still refuses. Closed-class by construction: only forms an imperative
+# order can never take.
+_NARRATION_NEXT_WORDS = frozenset({
+    "is", "was", "are", "were", "has", "have", "had", "will", "shall",
+    "would", "may", "might", "must", "can", "cannot", "seems", "appears",
+    "holds", "held", "approaches", "approached", "advances", "advanced",
+    "marches", "marched", "moves", "moved", "stands", "stood", "lands",
+    "landed", "remains", "remained", "nears", "neared", "retreats",
+    "retreated", "withdraws", "withdrew", "flees", "fled", "surrenders",
+    "surrendered", "comes", "came", "waits", "waited", "camps", "camped",
+    "threatens", "threatened", "sits", "still",
+})
+
+
+def _resolve_enemy_addressee(command_text: str, known_enemies: List[str],
+                             known_regions: List[str]):
+    """WO-1: the raw command's LEADING token resolved against the enemy
+    roster — the addressee register the whole guard family keys on.
+
+    An enemy name in the ADDRESSEE slot is a command TO the enemy, not a
+    target reference: "Kutuzov, retreat" executed a bare army-wide retreat
+    (every French corps changed province), "Mack, attack Vienna" sent the
+    whole army at Swabia, "Kutuzov, scout Swabia" made Soult scout. Keyed
+    on the name's leading position, never the comma — "Kutuzov retreat"
+    without one behaved identically. Returns `(enemy_name, arm, token)`
+    with arm in {"exact", "typo"}, or None when the lead is not an enemy
+    addressee.
+
+    Deliberate boundaries:
+    * a lead that is ALSO a region name is NOT treated as an enemy
+      ("Vienna, hold" stays a region address; `Brunswick` — both a
+      Prussian marshal and a live province — resolves as the province,
+      the recorded WO-13 collision rule);
+    * possessive leads are narration, not address ("Kutuzov's corps…"),
+      and so is a lead followed by a third-person/auxiliary form
+      (`_NARRATION_NEXT_WORDS` — none of them can be an imperative, so
+      "Mack has surrendered, march on Vienna" keeps its pre-guard parse
+      while "Mack, attack Vienna" still refuses);
+    * the TYPO arm requires the explicit comma-address shape AND a token
+      that is not ordinary English (`_NON_TARGET_WORDS` — "More, cavalry
+      to the front" must never become Moore); the CALLER additionally
+      gives the player roster right of first refusal on typo'd addresses
+      ("Mark, attack" belongs to the CR-2 did-you-mean flow, not to an
+      enemy refusal).
+    """
+    text = command_text.strip()
+    honorific = re.match(r"^(?:marshal|general)\s+", text, flags=re.IGNORECASE)
+    if honorific:
+        text = text[honorific.end():]
+    words = text.split()
+    if not words:
+        return None
+
+    def _narration_follows(n_words: int) -> bool:
+        if len(words) <= n_words:
+            return False
+        next_word = words[n_words].strip(",:;.!?-—").lower()
+        return next_word in _NARRATION_NEXT_WORDS
+
+    region_forms = set()
+    for region in known_regions:
+        region_forms.add(region.lower())
+        region_forms.add(_CAMEL_SPLIT_RE.sub(" ", region).lower())
+    enemy_forms = {}
+    for enemy in known_enemies:
+        enemy_forms[enemy.lower()] = enemy
+        enemy_forms[_CAMEL_SPLIT_RE.sub(" ", enemy).lower()] = enemy
+
+    for n_words in (2, 1):
+        if len(words) < n_words:
+            continue
+        token = " ".join(words[:n_words]).rstrip(",:;.!?").strip()
+        token_lower = token.lower()
+        if (len(token_lower) < 3
+                or token_lower in ADDRESS_NON_NAME_WORDS
+                or token_lower.endswith("'s") or token_lower.endswith("s'")
+                or token_lower.endswith("’s")):
+            continue
+        if token_lower in region_forms:
+            return None
+        match = enemy_forms.get(token_lower)
+        if match:
+            if _narration_follows(n_words):
+                return None
+            return (match, "exact", token)
+
+    addressed = _leading_addressed_token(command_text)
+    if (addressed and addressed.lower() not in region_forms
+            and addressed.lower() not in _NON_TARGET_WORDS):
+        for enemy in known_enemies:
+            if _plausible_name_typo(addressed, enemy):
+                return (enemy, "typo", addressed)
+    return None
+
+
 def _edit_distance_at_most(a: str, b: str, limit: int) -> bool:
     """True if Levenshtein(a, b) <= limit. Band-limited DP — strings here
     are short name candidates."""
@@ -627,6 +726,51 @@ class CommandParser:
             return list(regions.keys())
         return list(self.known_regions)
 
+    def _enemy_addressee_refusal(self, command_text: str, world=None,
+                                 game_state=None) -> Optional[Dict]:
+        """WO-1: build the by-name refusal for an enemy-addressed command,
+        or None. ONE builder for both parse routes (the fuzzy pass and the
+        diplomatic early-return) so the register can never fork."""
+        resolved = _resolve_enemy_addressee(
+            command_text, self._get_known_enemies(world),
+            self._get_known_regions(world))
+        if resolved is None:
+            return None
+        enemy_addressee, arm, token = resolved
+        # Review round (Aug 21): the PLAYER roster gets right of first
+        # refusal on a TYPO'D address — "Mark, attack Vienna" belongs to
+        # the CR-2 did-you-mean flow (Murat), not to an enemy refusal
+        # (Mack). Exact enemy names are never deferred.
+        if arm == "typo":
+            player_result = self.fuzzy_matcher.match_with_context(
+                token, self._get_player_marshals(world, game_state))
+            if player_result.get("action") in ("exact", "auto_correct",
+                                               "suggest"):
+                return None
+        enemy_nation = ""
+        if world is not None:
+            enemy_obj = getattr(world, "marshals", {}).get(enemy_addressee)
+            if enemy_obj is not None:
+                from backend.game_logic.formations import (
+                    formed_display_name,
+                )
+                enemy_nation = formed_display_name(
+                    world, getattr(enemy_obj, "nation", ""))
+        side = enemy_nation or "the enemy"
+        return {
+            "error": (f"Marshal {enemy_addressee} commands for {side}, "
+                      f"Sire — he does not answer to us."),
+            # Review round: an enemy-name lead can be an intel ask, not an
+            # attempted order — name the intel road beside the sword.
+            "suggestion": (f"To move against him: 'attack "
+                           f"{enemy_addressee}' or 'pursue "
+                           f"{enemy_addressee}'; for word of him, ask "
+                           f"'where is {enemy_addressee}'."),
+            "kind": "enemy_addressee",
+            "unknown_name": enemy_addressee,
+            "candidates": [],
+        }
+
     def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str, world=None,
                               game_state=None) -> tuple:
         """
@@ -658,6 +802,26 @@ class CommandParser:
         # hardcoded legacy lists are only the no-world/no-game_state fallback.
         valid_marshals = self._get_player_marshals(world, game_state)
         known_regions = self._get_known_regions(world)
+
+        # ══════════════════════════════════════════════════════════════
+        # WO-1: an ENEMY name in the addressee slot refuses by name, for
+        # every verb, BEFORE any family early-return or extraction can
+        # strip it. Both extraction layers lost the addressee: the mock
+        # never binds an enemy lead as marshal (it is in
+        # known_target_words), so "Kutuzov, retreat" degraded to the bare
+        # army-wide form with target=Kutuzov; the live layer binds it as
+        # marshal and the CR-1 demotion below then strips it. And the
+        # recruit/vassal early-returns below discard the addressee
+        # outright — "Kutuzov, grant Holland more autonomy" EXECUTED the
+        # grant (review finding, Aug 21). Either way the player named the
+        # man the game printed and the game acted on somebody else. Third
+        # member of the family PC15-4 opened: invented names guarded,
+        # fallen names guarded, enemy names now too.
+        # ══════════════════════════════════════════════════════════════
+        enemy_refusal = self._enemy_addressee_refusal(
+            command_text, world, game_state)
+        if enemy_refusal is not None:
+            return (llm_result, enemy_refusal)
         # Marshal Recruitment (Jealousy v3.2): a recruit_marshal "marshal"
         # is a POOL CANDIDATE, not a roster marshal — "recruit marshal
         # Suchet" must not die in the roster validation below. Move the
@@ -684,6 +848,7 @@ class CommandParser:
                 llm_result["target"] = llm_result["marshal"]
             llm_result["marshal"] = None
             return (llm_result, None)
+
         # Fuzzy match marshal name if LLM extracted one
         if llm_result.get("marshal"):
             # CR-1: an extracted "marshal" that IS a known enemy commander
@@ -980,9 +1145,19 @@ class CommandParser:
                 # partial-ratio scoring rewards long containing names
                 # ("Mach" scored higher against "La Mancha" than "Mack")
                 llm_result["target"] = near_enemy
-            elif enemy_result["action"] == "auto_correct":
+            # WO-2: both auto-correct arms gated with the typo-shape test
+            # their four siblings already carry (the tactical scan, the
+            # strategic-region scan, and the two strategic_executor sites).
+            # Ungated, partial-ratio junk marched: Avalon→Leon (a 2-AP
+            # standing order eight provinces into Spain), Moon→Moore,
+            # Troy→Deroy, Hell→Hohenlohe, Eden→Buxhowden.
+            elif (enemy_result["action"] == "auto_correct"
+                    and _plausible_name_typo(
+                        llm_result["target"], enemy_result.get("match") or "")):
                 llm_result["target"] = enemy_result["match"]
-            elif region_result["action"] == "auto_correct":
+            elif (region_result["action"] == "auto_correct"
+                    and _plausible_name_typo(
+                        llm_result["target"], region_result.get("match") or "")):
                 llm_result["target"] = region_result["match"]
             # suggest/error on both sides: leave the typed target unchanged
             # (pre-CR-0 behavior — the executor reports it helpfully)
@@ -1180,6 +1355,24 @@ class CommandParser:
             # diplomatic processing — skip marshal fuzzy matching entirely.
             # ════════════════════════════════════════════════════════════
             if llm_result.get("diplomatic_data"):
+                # WO-1 (review finding, Aug 21 2026): this early-return ran
+                # BEFORE the enemy-addressee guard, so "Mack, declare war
+                # on Prussia" staged the whole ceremony with the addressee
+                # silently discarded, and "Kutuzov, improve relations with
+                # Prussia" started a standing mission. Same refusal, same
+                # register, same builder as the fuzzy pass.
+                enemy_refusal = self._enemy_addressee_refusal(
+                    effective_text, world, game_state)
+                if enemy_refusal is not None:
+                    return {
+                        "success": False,
+                        "error": enemy_refusal["error"],
+                        "suggestion": enemy_refusal.get("suggestion"),
+                        "raw_input": command_text,
+                        "kind": enemy_refusal["kind"],
+                        "unknown_name": enemy_refusal["unknown_name"],
+                        "candidates": [],
+                    }
                 diplomatic_data = llm_result["diplomatic_data"]
                 action = diplomatic_data.get("action", "diplomatic_proposal")
 
@@ -1418,7 +1611,15 @@ class CommandParser:
                             all_marshals = self._get_player_marshals(world) + self._get_known_enemies(world)
                             fuzzy_result = self.fuzzy_matcher.match_with_context(
                                 strategic_target, all_marshals)
-                            if fuzzy_result["action"] in ("exact", "auto_correct"):
+                            # WO-2: the strategic-marshal sibling of the two
+                            # arms gated above — same typo-shape gate, same
+                            # reason (partial-ratio junk bound sentence words
+                            # to real commanders).
+                            if fuzzy_result["action"] == "exact" or (
+                                    fuzzy_result["action"] == "auto_correct"
+                                    and _plausible_name_typo(
+                                        strategic_target,
+                                        fuzzy_result.get("match") or "")):
                                 strategic_target = fuzzy_result["match"]
                         result["command"]["target"] = strategic_target
                         result["command"]["target_type"] = strategic["target_type"]
