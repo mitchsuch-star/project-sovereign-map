@@ -4672,7 +4672,12 @@ class EnemyAI:
         if not controller or controller == nation:
             return True
         from backend.game_logic.diplomacy import can_enter_territory
-        return can_enter_territory(world, nation, controller)
+        # WO-17: `origin` doubles as the mover's standing location for the
+        # evacuation corridor's direction term — an AI corps at home is
+        # refused a truce partner's soil exactly as the player is (GR5);
+        # the P1.2 road-home walker is stranded by construction and passes.
+        return can_enter_territory(world, nation, controller,
+                                   mover_location=origin)
 
     def _find_retreat_destination(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[str]:
         """

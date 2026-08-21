@@ -4177,7 +4177,10 @@ class CombatExecutor:
                         from backend.game_logic.diplomacy import can_enter_territory
                         best_region = world.get_region(best_next)
                         if best_region and best_region.controller and best_region.controller != marshal.nation:
-                            if not can_enter_territory(world, marshal.nation, best_region.controller):
+                            if not can_enter_territory(
+                                    world, marshal.nation,
+                                    best_region.controller,
+                                    mover_location=marshal.location):
                                 return {
                                     "success": False,
                                     "message": f"{marshal.name} cannot enter {best_next} — diplomatic restrictions."

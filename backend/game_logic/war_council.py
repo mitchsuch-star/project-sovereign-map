@@ -799,6 +799,12 @@ def get_intent_frontier(world, nation: str) -> List[str]:
                 if neighbour is None:
                     continue
                 controller = getattr(neighbour, "controller", None)
+                # WO-17: deliberately the bare pair-level form (no
+                # mover_location) — this derives ANCHORS for massing, it
+                # relocates nobody; the actual moves toward these anchors run
+                # through the direction-aware _can_ai_move_to gate. The
+                # census pin in test_wo_slice13_corridor_direction.py audits
+                # this call site.
                 if controller and (controller == nation or can_enter_territory(
                         world, nation, controller)):
                     frontier.append(adjacent)

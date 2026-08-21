@@ -96,6 +96,14 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # rather than asserted.
 WITHDRAWAL_ACTIVE = True
 
+# WO-17 "The Corridor Has a Direction" (WEIRD_OUTCOMES_SPEC §3 slice 13).
+# False restores the direction-less grant exactly — the Trojan-corridor
+# exploit's control arm: park one corps deep on enemy soil, sign a 1-DP
+# armistice, and march FRESH corps into enemy sovereign territory all truce
+# long.  Kept so the fix is falsifiable non-vacuously and so any harness
+# movement can be flip-attributed.
+CORRIDOR_DIRECTION_ACTIVE = True
+
 # Turns of dawdling the treaty affords beyond the march itself.  Sized to
 # §6's promise of three explicit warnings before internment (see module
 # docstring correction 2).  In-band tunable.
@@ -130,12 +138,41 @@ def _grants(world) -> Dict[str, int]:
     return grants
 
 
-def has_evacuation_grant(world, nation_a: str, nation_b: str) -> bool:
-    """True while a standing evacuation corridor covers this pair.
+def has_evacuation_grant(world, nation_a: str, nation_b: str,
+                         mover_location: Optional[str] = None) -> bool:
+    """True while a standing evacuation corridor covers this pair — AND, when
+    the mover's standing location is named, while the corridor is actually
+    FOR that mover (WO-17 "The Corridor Has a Direction").
 
-    O(1) — a dict get and an int compare.  This is called from
-    `can_enter_territory`, which is called from inside pathfinding loops, so
-    it must never scan (GR8).
+    Argument order carries the direction: `nation_a` is the MOVER's nation,
+    `nation_b` the host whose territory is being entered — the order
+    `can_enter_territory` already passes.
+
+    THE DIRECTION TERM is the spec's own §4.1 predicate ("can he reach the
+    body of his own realm at all") applied to the entry side: the grant
+    belongs to a corps that cannot get home without it.  A mover standing in
+    its nation's home zone — or standing anywhere it could already walk home
+    from without the treaty (allied soil, at-war third-party soil) — has no
+    claim on the corridor and may NOT use it to enter the counterpart's
+    territory.  A genuinely stranded corps keeps full transit, including
+    from its OWN cut-off enclave (the measured Volhynia shape — which is why
+    this is the stranded predicate and not a bare controller compare); the
+    moment it stands on soil it no longer needs the treaty to leave, the
+    grant is spent for it.  Fully derived — zero new serialized fields.
+
+    ``mover_location=None`` (the legacy pair-level form) keeps the arm
+    permissive, because the callers that cannot name a mover are not
+    relocation seams — every seam that MOVES a corps passes the mover's
+    standing location, and `test_wo_slice13_corridor_direction.py` carries
+    the census pin that keeps the bare-call set audited.
+
+    O(1) on the hot path (GR8) — a dict get and an int compare, plus (only
+    while a grant stands and a mover is named) a memoised stranded lookup:
+    `world._evac_direction_cache` is keyed per turn and per
+    ``(nation, location)`` and is flushed by `invalidate_bloc_members_cache`,
+    the chokepoint every region-control and diplomatic-state mutation
+    already reaches, so the flood fill runs once per board state, not once
+    per pathfinding node.
     """
     if not WITHDRAWAL_ACTIVE:
         return False
@@ -146,7 +183,41 @@ def has_evacuation_grant(world, nation_a: str, nation_b: str) -> bool:
     expiry = grants.get(key)
     if expiry is None:
         return False
-    return int(world.current_turn) <= int(expiry)
+    if int(world.current_turn) > int(expiry):
+        return False
+    if (CORRIDOR_DIRECTION_ACTIVE and mover_location is not None
+            and not _corridor_is_for(world, nation_a, mover_location)):
+        return False
+    return True
+
+
+def _corridor_is_for(world, nation: str, location: str) -> bool:
+    """WO-17 direction term: does a corps of `nation` standing at `location`
+    have a claim on the corridor?  A memoised `is_stranded_at`.
+
+    The cache is transient (never serialized), keyed per turn, and cleared
+    by `invalidate_bloc_members_cache` — home zones and stranded verdicts
+    read region control plus war/peace geometry, the exact mutation families
+    that chokepoint already collects (the NA-0 idiom).  The per-turn key is
+    belt-and-braces: the bloc invalidation is not guaranteed to fire on a
+    bare turn advance.
+    """
+    cache = getattr(world, "_evac_direction_cache", None)
+    turn = int(world.current_turn)
+    if not isinstance(cache, dict) or cache.get("turn") != turn:
+        cache = {"turn": turn, "zones": {}, "stranded": {}}
+        world._evac_direction_cache = cache
+    key = (nation, location)
+    hit = cache["stranded"].get(key)
+    if hit is not None:
+        return hit
+    home = cache["zones"].get(nation)
+    if home is None:
+        home = get_home_zone(world, nation)
+        cache["zones"][nation] = home
+    value = is_stranded_at(world, nation, location, home)
+    cache["stranded"][key] = value
+    return value
 
 
 def revoke_evacuation_grant(world, nation_a: str, nation_b: str) -> bool:
@@ -170,6 +241,14 @@ def _passable(world, nation: str, region_name: str,
     `with_grant=False` asks the question the peace left behind (used to
     decide WHO is stranded); `with_grant=True` asks it as it stands with the
     corridor open (used to route the march home).
+
+    WO-17 note: the `with_grant=True` form deliberately does NOT pass a
+    `mover_location` (so the direction term stays permissive here).  Its only
+    consumers route marshals that were ALREADY judged stranded — a marshal in
+    the home zone short-circuits out of `distance_home_from` /
+    `_nearest_home_region` before this is ever reached — so threading the
+    location would change nothing, and the audited bare form keeps the
+    routing walk O(1) per node.
     """
     region = world.regions.get(region_name)
     if region is None:
@@ -270,12 +349,26 @@ def is_stranded(world, marshal, home: Set[str]) -> bool:
     in allied Bavaria, told to march home or be interned.** Legally placed
     with a road home is not stranded, and is now not treated as such.
     """
-    if marshal.location in home:
+    return is_stranded_at(world, marshal.nation, marshal.location, home)
+
+
+def is_stranded_at(world, nation: str, location: str,
+                   home: Optional[Set[str]] = None) -> bool:
+    """Location-form of `is_stranded` — the same predicate, no marshal object.
+
+    WO-17 factored it out because the corridor's DIRECTION term judges a
+    mover by where it stands, and that judgement must be byte-identical to
+    the one that decides who receives a road-home order: one predicate, two
+    consumers, no drift.
+    """
+    if home is None:
+        home = get_home_zone(world, nation)
+    if location in home:
         return False
-    if not _passable(world, marshal.nation, marshal.location,
-                     with_grant=False):
+    if not _passable(world, nation, location, with_grant=False):
         return True
-    return distance_home(world, marshal, home, with_grant=False) is None
+    return distance_home_from(world, nation, location, home,
+                              with_grant=False) is None
 
 
 def _evacuating_marshals(world, nation: str, home: Set[str]) -> List:
@@ -307,12 +400,20 @@ def distance_home(world, marshal, home: Set[str],
     how `is_stranded` tells a corps that needs the treaty from one that is
     merely abroad.
     """
+    return distance_home_from(world, marshal.nation, marshal.location, home,
+                              with_grant=with_grant)
+
+
+def distance_home_from(world, nation: str, location: str, home: Set[str],
+                       with_grant: bool = True) -> Optional[int]:
+    """Location-form of `distance_home` (WO-17 factoring — same walk,
+    no marshal object)."""
     if not home:
         return None
-    if marshal.location in home:
+    if location in home:
         return 0
-    seen = {marshal.location}
-    queue = deque([(marshal.location, 0)])
+    seen = {location}
+    queue = deque([(location, 0)])
     while queue:
         current, dist = queue.popleft()
         region = world.regions.get(current)
@@ -323,7 +424,7 @@ def distance_home(world, marshal, home: Set[str],
                 continue
             if adjacent in home:
                 return dist + 1
-            if not _passable(world, marshal.nation, adjacent,
+            if not _passable(world, nation, adjacent,
                              with_grant=with_grant):
                 continue
             seen.add(adjacent)

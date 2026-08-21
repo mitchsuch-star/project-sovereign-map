@@ -237,10 +237,26 @@ class TestNeverDoPins:
         assert not can_enter_territory(world, "France", "Russia")
 
     def test_it_dies_the_instant_war_resumes(self, world):
-        """Pin 4. A peace instrument cannot outlive the peace."""
-        _stage_measured_shape(world)
+        """Pin 4. A peace instrument cannot outlive the peace.
+
+        WO-17 (slice 13) — CONSCIOUS PIN FLIP, recorded in
+        WEIRD_OUTCOMES_SPEC §3 slice 13: the pre-flip form asserted the bare
+        pair-level `can_enter_territory(world, "France", "Russia")`, a
+        direction-less claim the Trojan-corridor exploit rode (any French
+        corps could enter Russia while the grant stood). The liveness half
+        of the pin is now asserted in the direction-aware form: the corridor
+        is alive FOR THE STRANDED CORPS and dead for a corps standing on
+        home soil. The death half (bare form, below) is unchanged — a
+        revoked grant answers False in every form.
+        """
+        davout = _stage_measured_shape(world)
         _make_peace(world)
-        assert can_enter_territory(world, "France", "Russia")
+        assert can_enter_territory(world, "France", "Russia",
+                                   mover_location=davout.location), (
+            "the corridor must be alive for the corps it exists for")
+        assert not can_enter_territory(world, "France", "Russia",
+                                       mover_location="Paris"), (
+            "a corps standing at home has no claim on the corridor (WO-17)")
 
         set_diplomatic_state(world, "France", "Russia", "WAR")
         assert "France|Russia" not in world.evacuation_grants

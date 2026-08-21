@@ -930,6 +930,62 @@ Whether the PLAYER should also face a time floor after a truce is a design
 question, not a bug — filed as **WO-D8** (§4) for a future diplomacy gate,
 not built here.
 
+> **✅ LANDED August 21, 2026 — landing record.** The permission arm is
+> direction-aware: `can_enter_territory` gains `mover_location` (the moving
+> corps's CURRENT standing province), fed to `has_evacuation_grant`, whose
+> new direction term denies the grant to any mover that is not genuinely
+> stranded where it stands. **One recorded amendment to this contract's
+> letter, endorsed by its own closing sentence:** the term is the full
+> stranded predicate (`withdrawal.is_stranded_at` — the SAME function that
+> decides who receives a road-home order, factored to a location form so
+> the two consumers cannot drift), NOT the bare home-zone membership the
+> contract's first sentence describes and not a bare controller compare —
+> because (a) a controller compare would have stranded the measured
+> Volhynia corps forever (own-controlled but DISCONNECTED soil must keep
+> transit), and (b) bare zone membership leaves two live Trojan variants
+> the stranded form closes: launching from an ALLY's border province, and
+> launching from a third party's at-war soil (both pinned in
+> `TestTheDirectionTerm`). "Can he reach the body of his own realm at all,
+> applied to the entry side" IS the stranded predicate. **The O(1)/GR8
+> obligation is honored by memoisation, not approximation:** the verdict is
+> cached per (nation, location) in the transient, never-serialized
+> `world._evac_direction_cache`, flushed at the
+> `invalidate_bloc_members_cache` chokepoint (the NA-0 idiom — region
+> control and war/peace geometry both reach it) plus a per-turn key, so
+> the flood fill runs once per board state, not once per pathfinding node
+> — and the same-turn-as-the-peace case (a cache warmed at war says the
+> enclave is CONNECTED home through war-passable soil) is pinned as its
+> own test. **Threading:** every relocation seam names its mover —
+> `_execute_move` (player, strategic steps, and AI through the shared
+> executor, GR5), both pathfinders via `_region_passable_for` (with
+> `passable_for` set, `start` IS the mover — every caller passes
+> marshal.location, census-verified), `_can_ai_move_to` (origin, already
+> passed at all 19 call sites), the reckless-cavalry auto-move, the
+> combat-executor approach move, and the S5-D2/PF-8 issuance-honesty and
+> reroute checks. `mover_location=None` keeps the legacy pair-level answer
+> BY DESIGN (the audited nation-level consumer: war_council's anchor
+> derivation, which relocates nobody), and a **census pin** fails on any
+> new bare call so the WO-17 class cannot recur silently. The Trojan
+> refusal states its terms at the seam ("the corridor grants safe passage
+> HOME to stranded corps, not entry") with the PF-8 structured flags
+> unchanged. Flip lever `CORRIDOR_DIRECTION_ACTIVE`; the control arm
+> reproduces the filed exploit with it off. **Done-when, measured:** the
+> Trojan march refused on ARMISTICE and PEACE; Davout walks home through
+> the exact provinces Ney is refused, step by step through the executor;
+> the pathfinder pins the asymmetry (corridor exists Volhynia→home, none
+> home→Volhynia); arrival spends the grant per-corps while the other
+> signatory's walker keeps his; retirement unchanged; **all five §3.4
+> pins byte-identical** (`test_win_d3_road_home.py` 43/43 green, zero
+> edits except the sanctioned flip); **the `:243` pin flip taken as
+> written** — pin 4's liveness half now asserts the direction-aware form
+> (alive for the stranded corps, dead for a corps at home), its death
+> half untouched; **`BASELINE_SERIES` byte-identical WITHOUT re-record,
+> proven by the real subprocess run** (the ambient corridor's only
+> walkers are stranded by construction — the P1.2 rung — so the
+> direction term is dormant there, exactly as this contract predicted);
+> M1–M7 byte-identical. WO-D8 untouched per never-do 21.
+> `tests/test_wo_slice13_corridor_direction.py` (19).
+
 ### Slice 14 — WO-18 + WO-19 "The Clock and the Flag" (est 0.5) — **this spec's addition**
 
 **WO-18 (P2) — pension churn: pay one turn in three, never erode.** The

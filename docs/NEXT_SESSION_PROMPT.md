@@ -1,65 +1,83 @@
-# NEXT SESSION PROMPT — Row WO, Slice 13 "The Trojan Corridor" (P1)
+# NEXT SESSION PROMPT — Row WO, Slice 4 "The Capital Speaks" (WO-D6 + WO-11)
 
 > Overwritten each time a session hands off. Paste the block below as the
 > opening message of a fresh session. Current hand-off: August 21, 2026 —
-> slices 1, 1b, 2 and 3 LANDED that day (landing records =
-> `docs/WEIRD_OUTCOMES_SPEC.md` §3, per slice; the 1b addendum =
+> slice 13 (WO-17 "The Corridor Has a Direction") LANDED that day, on top
+> of slices 1/1b/2/3 (landing records = `docs/WEIRD_OUTCOMES_SPEC.md` §3,
+> per slice; the 1b addendum =
 > `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9).
 
 ---
 
-Build **slice 13 (WO-17 "The Corridor Has a Direction")** of the
-Weird-Outcomes program — the hand-verified P1 exploit on the WIN-D3
-evacuation system. Per spec §5 order (1 → 1b → 2 → 3 → **13** → 4 → …).
+Build **slice 4 (WO-D6 "The Capital Speaks" + WO-11)** of the
+Weird-Outcomes program. Per spec §5 order (1 → 1b → 2 → 3 → 13 → **4** →
+5 → …).
 
 **Read first, in this order:**
-1. `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 13 — the fix contract, verbatim,
-   AUTHORITATIVE. §6 never-do 20 and 21 bind this slice directly.
-2. `docs/WAR_WITHDRAWAL_SPEC.md` §7a — WIN-D3's own gate + landing record
-   (the five §3.4 never-do pins that must survive byte-identically).
-3. `docs/BUG_FIXES.md` §Weird-Outcomes row WO-17.
+1. `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 4 — the six-point contract,
+   verbatim, AUTHORITATIVE (headline class + ordering pin + WO-11
+   direction guard + Gazette caption + diverse tail + the WO-16
+   exclusion). §2 D-10 and D-15 bind it.
+2. `docs/BUG_FIXES.md` §Weird-Outcomes rows WO-D6-adjacent + **WO-11**
+   (the direction-blind `home_captured`).
+3. `backend/game_logic/dispatch.py` — the headline-class table
+   (`dispatch.py:59-62` carries the NP-4 `sovereign_captured: 101`
+   ordering that must stay on top) and the `:432-435` guard pair WO-11
+   contrasts.
 
-**The defect in one breath:** `has_evacuation_grant` is a bare
-`(pair_key → expiry)` compare — no marshal, no direction, no stranded
-check (`withdrawal.py:133-149`, consumed by the ONE `can_enter_territory`
-arm at `diplomacy.py:9452-9455`) — and the grant opens on ANY WAR→non-WAR
-edge INCLUDING ARMISTICE. Park a corps deep on enemy soil, sign a 1-DP
-armistice, march FRESH corps INTO enemy sovereign territory all truce
-long (walked-in corps register "stranded" and hold the corridor open),
-let the truce collapse free — the new war opens beside Vienna.
+**The defect in one breath:** the fall of the player's OWN capital has no
+headline class of its own — Paris's fall renders as a generic
+`home_captured` row that three same-class rows can crowd off the page,
+the Gazette captions it in the victor's words, and `home_captured`
+(weight 100) is direction-blind: an ALLY liberating a French homeland
+province from a third party fires the game's most ceremonial wound
+(`dispatch.py:432-434`, while the sibling arm at `:435` already carries
+the correct France-lost guard).
 
-**Fix contract (spec slice 13, verbatim):** zero new fields, one seam —
-the permission arm gains a direction term: a marshal whose CURRENT
-location lies in its own nation's home zone (O(1) controller/home check —
-the arm is inside pathfinding loops, GR8) may NOT use the grant to enter
-the counterpart's territory. A stranded corps outside its home zone keeps
-full transit; the moment it reaches the body of its own realm, the grant
-is spent for it.
+**Contract (spec slice 4, six points, verbatim there):** new
+`capital_lost` class at weight **100** with `home_captured` demoted to
+**99** and the full ordering pinned
+(`sovereign_captured 101 > capital_lost 100 > home_captured 99 >
+marshal_destroyed 96 > marshal_captured 95`); the predicate keys
+structurally on `world.get_nation_capital(player_nation)` — never the
+literal "Paris"; **WO-11 in the same edit** — both classes gain the
+player-side-LOST direction guard; the Gazette captions the player's own
+fallen capital in the loser's voice (one `if`, one string; the sovereign
+special-case at `gazette.py:105-111` untouched); the **diverse-tail
+rule** (~4 lines, no new templates) reserves the LAST sub-beat slot for
+a class not yet on the page; `own_mauled`'s floor is NOT here (slice
+12's WO-16).
 
-**Done when:** during a truce, a corps standing on French home soil is
-refused entry to enemy sovereign territory (the falsifiable negative —
-the Trojan march); a genuinely stranded corps still routes home through
-the same provinces; the corridor still retires when nobody is stranded;
-the five WIN-D3 §3.4 never-do pins byte-identical;
-`test_win_d3_road_home.py:243`'s pair-level assertion REWRITTEN to the
-direction-aware form (a CONSCIOUS pin flip, record it);
-`BASELINE_SERIES` byte-identity proven by a real subprocess run
-(P1.2 only ever walks home, so ambient should not move — prove it).
+**Done when:** Paris's fall leads with its own sentence on a
+four-province + two-capture turn (the eval's deterministic probe,
+md5-identical under `PYTHONHASHSEED=1` and `=2`); an ally's liberation
+fires NEITHER class; a weight-95 capture reaches the page via the
+diverse tail; **all three CA8-5 pins green and byte-identical** (§2 D-10
+— a naive per-class collapse reds
+`test_two_different_marshals_still_get_two_beats`; the diverse-tail rule
+must not); zero movement on the `CAMPAIGN_LOG_TYPES` pins (§2 D-15 —
+headline classes are display vocabulary, not event types).
 
-**Consciously NOT built (spec):** a player-side re-declaration time floor
-— that is WO-D8, a design question for a future diplomacy gate (§6
-never-do 21); PT-J2's demobilize-on-peace is a recorded gate ruling.
+**Harness impact:** dispatch is display-only — M1–M7 and
+`BASELINE_SERIES` are unreachable by construction (weights are
+documented "display only, tunable freely"). Zero `.gd`, zero new
+serialized fields.
 
-**Landing discipline:** work directly on master; the pre-commit hook runs
-ruff + the full suite (green at hand-off: 18,22x/3 — see the last
-commit). Update: the spec (✅ landing record on §3 slice 13),
-`STATUS.md` top entry, `BUG_FIXES.md` WO-17 → FIXED. Commit as
-`fix(wo): slice 13 — the corridor has a direction …` and push. Overwrite
-this file with the next hand-off (slice 4 WO-D6 "The Capital Speaks" +
-WO-11, per §5 order).
+**Landing discipline:** work directly on master; the pre-commit hook
+runs ruff + the full suite (green at hand-off: **18,257/3**). Update:
+the spec (✅ landing record on §3 slice 4), `STATUS.md` top entry,
+`BUG_FIXES.md` WO-11 → FIXED. Commit as
+`fix(wo): slice 4 — the capital speaks …` and push. Overwrite this file
+with the next hand-off (slice 5 WO-D5 "Berthier Names the Peace" +
+slice 6, per §5 order).
 
-**Standing context:** the G2(b) shelf decision was taken at slice 1b —
-read the addendum (`PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9) before
-touching anything funnel-adjacent; the playtest driver is now
-deterministic (Mode A/mock) and `--archive` is the citation rule
-(`docs/PLAYTESTING.md`).
+**Standing context:** slice 13 added a WO-17 census pin
+(`test_wo_slice13_corridor_direction.py::TestTheCensusPin`) — any new
+`can_enter_territory` call must pass `mover_location=` (relocation) or
+be consciously audited into the pin's allowlist; the G2(b) shelf
+decision stands (1b addendum — read it before touching anything
+funnel-adjacent); the playtest driver is deterministic (Mode A/mock) and
+`--archive` is the citation rule (`docs/PLAYTESTING.md`); never set
+`PYTHONIOENCODING` when running the tests (it fakes 6 subprocess-test
+errors — the ambient shell may have it exported, `Remove-Item
+Env:\PYTHONIOENCODING` first).

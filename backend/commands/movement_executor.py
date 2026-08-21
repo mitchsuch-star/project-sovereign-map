@@ -194,8 +194,27 @@ class MovementExecutor:
         from backend.game_logic.diplomacy import can_enter_territory
         dest_controller = target_region.controller if hasattr(target_region, 'controller') else None
         if dest_controller and dest_controller != marshal.nation:
-            if not can_enter_territory(world, marshal.nation, dest_controller):
+            if not can_enter_territory(world, marshal.nation, dest_controller,
+                                       mover_location=marshal.location):
                 state = world.get_diplomatic_state(marshal.nation, dest_controller)
+                # WO-17: when the block is the corridor's DIRECTION term — a
+                # grant stands for the pair but this corps has no claim on it
+                # — say so, or the player watches a stranded corps walk this
+                # exact frontier and is told "open borders required" for his
+                # own. Same structured flags either way (PF-8 reads them).
+                from backend.game_logic.withdrawal import has_evacuation_grant
+                if has_evacuation_grant(world, marshal.nation, dest_controller):
+                    return {
+                        "success": False,
+                        "message": (
+                            f"Cannot enter {target_name} — the evacuation "
+                            f"corridor with {dest_controller} grants safe "
+                            f"passage HOME to stranded corps, not entry. "
+                            f"{marshal.name} can already reach the body of "
+                            f"the realm from where he stands."),
+                        "blocked_diplomatic": dest_controller,
+                        "blocked_state": state,
+                    }
                 return {
                     "success": False,
                     "message": f"Cannot enter {target_name} — it is controlled by {dest_controller} "

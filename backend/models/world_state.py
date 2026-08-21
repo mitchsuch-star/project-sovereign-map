@@ -2307,6 +2307,11 @@ class WorldState:
         # AI-3r §2.1: the exposure view reads neighbours + war/alliance
         # geometry + relations — same mutation families, same chokepoint.
         self._exposure_cache = None
+        # WO-17: the evacuation corridor's direction term memoises home
+        # zones + stranded verdicts per (nation, location); both read region
+        # control and war/peace geometry — same mutation families, same
+        # chokepoint. Transient, never serialized.
+        self._evac_direction_cache = None
 
     def _top_overlord(self, nation: str) -> str:
         """Walk the vassal `lord` chain until it terminates. Return top overlord.
@@ -4706,13 +4711,20 @@ class WorldState:
         for marshal in self.marshals.values():
             marshal.in_combat_this_turn = False
 
-    def _region_passable_for(self, region_name: str, nation: str) -> bool:
+    def _region_passable_for(self, region_name: str, nation: str,
+                             mover_location: str = None) -> bool:
         """PF-8: True if `nation` may route THROUGH region_name — its controller
         is unclaimed, the nation's own, or a nation whose territory it may enter
         (war / alliance / open borders, per can_enter_territory). O(1) per call
         (a dict get + a diplomatic-state lookup) — NOT a region scan; the
         destination is excluded by callers so a march INTO closed land still
-        builds a path (and then hands off to the stall-feedback reroute/break)."""
+        builds a path (and then hands off to the stall-feedback reroute/break).
+
+        `mover_location` (WO-17): the moving corps's CURRENT standing
+        province, constant for the whole query — it feeds the evacuation
+        corridor's direction term so a corps standing at home cannot ROUTE
+        through a truce partner's sovereign soil the way a stranded corps
+        walking home may."""
         region = self.regions.get(region_name)
         if region is None:
             return True
@@ -4720,7 +4732,8 @@ class WorldState:
         if not controller or controller == nation:
             return True
         from backend.game_logic.diplomacy import can_enter_territory
-        return can_enter_territory(self, nation, controller)
+        return can_enter_territory(self, nation, controller,
+                                   mover_location=mover_location)
 
     def find_path(self, start: str, end: str, avoid_regions: List[str] = None,
                   passable_for: str = None) -> Optional[List[str]]:
@@ -4763,8 +4776,13 @@ class WorldState:
 
                 if adjacent in visited or adjacent in avoid_regions:
                     continue
+                # WO-17: with `passable_for` set, `start` IS the mover's
+                # standing location (every passable_for caller passes
+                # marshal.location as start — census-pinned), so the
+                # corridor's direction term judges the whole query once.
                 if (passable_for
-                        and not self._region_passable_for(adjacent, passable_for)):
+                        and not self._region_passable_for(
+                            adjacent, passable_for, mover_location=start)):
                     continue
                 visited.add(adjacent)
                 queue.append((adjacent, path + [adjacent]))
@@ -4825,8 +4843,10 @@ class WorldState:
                     continue
                 if adjacent in avoid_regions and adjacent != end:
                     continue
+                # WO-17: same start-is-the-mover contract as find_path.
                 if (passable_for and adjacent != end
-                        and not self._region_passable_for(adjacent, passable_for)):
+                        and not self._region_passable_for(
+                            adjacent, passable_for, mover_location=start)):
                     continue
 
                 # Edge weight = movement cost of entering the adjacent region
@@ -12287,7 +12307,10 @@ class WorldState:
                     next_region_obj = self.get_region(next_region)
                     if (next_region_obj and next_region_obj.controller
                             and next_region_obj.controller != marshal.nation
-                            and not can_enter_territory(self, marshal.nation, next_region_obj.controller)):
+                            and not can_enter_territory(
+                                self, marshal.nation,
+                                next_region_obj.controller,
+                                mover_location=marshal.location)):
                         events.append({
                             "type": "reckless_blocked",
                             "marshal": marshal.name,

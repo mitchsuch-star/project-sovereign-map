@@ -4,7 +4,53 @@
 
 ## ▶ NEXT UP
 
-> # ✅ WO SLICES 1, 1b, 2 AND 3 LANDED — August 21, 2026 (one session). **Landing records = `docs/WEIRD_OUTCOMES_SPEC.md` §3 per slice, authoritative; the 1b addendum = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9. ▶ NEXT = slice 13, the Trojan Corridor P1 (`docs/NEXT_SESSION_PROMPT.md`).**
+> # ✅ WO SLICE 13 "THE CORRIDOR HAS A DIRECTION" LANDED — August 21, 2026. **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 13, authoritative; BUG_FIXES §WO row WO-17 → FIXED. ▶ NEXT = slice 4, WO-D6 "The Capital Speaks" + WO-11 (`docs/NEXT_SESSION_PROMPT.md`).**
+>
+> **Slice 13 — WO-17 the Trojan Corridor P1.** The WIN-D3 evacuation grant
+> is no longer direction-less: `can_enter_territory` gains `mover_location`
+> (the moving corps's CURRENT standing province), and `has_evacuation_grant`
+> denies the grant to any mover that is not genuinely stranded where it
+> stands — the term is `withdrawal.is_stranded_at`, THE SAME predicate that
+> issues road-home orders (factored to a location form so the two consumers
+> cannot drift), **not** bare home-zone membership: a recorded amendment,
+> because the letter form leaves two live Trojan variants (launch from an
+> ALLY's border province; launch from a third party's at-war soil) and the
+> contract's own closing sentence ("can he reach the body of his own realm
+> at all, applied to the entry side") IS the stranded predicate. A bare
+> controller compare was never an option — it would have stranded the
+> measured Volhynia enclave corps forever. GR8 honored by memoisation: the
+> verdict caches per (nation, location) in the transient, never-serialized
+> `world._evac_direction_cache`, flushed at the
+> `invalidate_bloc_members_cache` chokepoint + per-turn key; the
+> same-turn-as-the-peace staleness case (a cache warmed AT WAR says the
+> enclave is connected home through war-passable soil) is pinned. Every
+> relocation seam names its mover — `_execute_move` (player, strategic
+> steps, AI through the shared executor: GR5), both pathfinders (with
+> `passable_for` set, `start` IS the mover — census-verified), the AI
+> candidate filter's existing `origin`, reckless cavalry, the
+> combat-executor approach, the S5-D2/PF-8 honesty checks — and a **census
+> pin** fails on any new bare `can_enter_territory` call (audited bare set:
+> war_council's anchor derivation, which relocates nobody). The Trojan
+> refusal states its terms ("the corridor grants safe passage HOME to
+> stranded corps, not entry"); PF-8 structured flags unchanged. **Measured:**
+> the Trojan march refused on ARMISTICE and PEACE; Davout still walks home
+> step-by-step through the exact provinces Ney is refused; the pathfinder
+> pins the asymmetry (Volhynia→home exists, home→Volhynia None); arrival
+> spends the grant per-corps while the counterpart's walker keeps his;
+> retirement unchanged; **the five WIN-D3 §3.4 pins byte-identical** (the
+> `:243` liveness assertion rewritten to the direction-aware form — the
+> sanctioned conscious pin flip, recorded in the spec + the test's
+> docstring); **`BASELINE_SERIES` byte-identical WITHOUT re-record, proven
+> by the real subprocess run** (the ambient corridor's only walkers are
+> stranded by construction); M1–M7 byte-identical; **the player truce
+> floor deliberately NOT built** (WO-D8, never-do 21). Zero new serialized
+> fields, zero `.gd`. Flip lever `CORRIDOR_DIRECTION_ACTIVE`; the control
+> arm reproduces the filed exploit with it off.
+> `tests/test_wo_slice13_corridor_direction.py` (19); suite **18,257/3**.
+>
+> ---
+>
+> # ✅ WO SLICES 1, 1b, 2 AND 3 LANDED — August 21, 2026 (one session). **Landing records = `docs/WEIRD_OUTCOMES_SPEC.md` §3 per slice, authoritative; the 1b addendum = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9.**
 >
 > **Slice 1 "The Instrument" (zero production code).** All ten contract
 > items in `tools/playtest_driver.py`: `_option_id` reads

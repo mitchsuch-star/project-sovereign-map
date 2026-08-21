@@ -1072,7 +1072,9 @@ class StrategicOrderProcessor:
             if reroute and len(reroute) > 1:
                 first_step = reroute[1] if reroute[0] == marshal.location else reroute[0]
                 if not world.get_enemies_in_region(first_step, marshal.nation) \
-                        and world._region_passable_for(first_step, marshal.nation):
+                        and world._region_passable_for(
+                            first_step, marshal.nation,
+                            mover_location=marshal.location):
                     order.path = reroute[1:] if reroute[0] == marshal.location else reroute
                     return {
                         "marshal": marshal.name,

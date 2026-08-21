@@ -835,14 +835,18 @@ class StrategicExecutor:
                 if (marshal.nation == world.player_nation and path
                         and any(
                             r != dest
-                            and not world._region_passable_for(r, marshal.nation)
+                            and not world._region_passable_for(
+                                r, marshal.nation,
+                                mover_location=marshal.location)
                             for r in path)):
                     if not pathfinder(marshal.location, dest,
                                       passable_for=marshal.nation):
                         blocker = next(
                             r for r in path
                             if r != dest
-                            and not world._region_passable_for(r, marshal.nation))
+                            and not world._region_passable_for(
+                                r, marshal.nation,
+                                mover_location=marshal.location))
                         blk = world.regions.get(blocker)
                         blk_ctrl = blk.controller if blk else "neutral"
                         return {

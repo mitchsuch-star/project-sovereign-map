@@ -9414,7 +9414,8 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
 # ═══════════════════════════════════════════════════════
 
 def can_enter_territory(world, marshal_nation: str, region_controller: str,
-                        ignore_evacuation: bool = False) -> bool:
+                        ignore_evacuation: bool = False,
+                        mover_location: str = None) -> bool:
     """Check if a nation's marshal can enter territory controlled by another nation.
 
     Returns True if movement is allowed.
@@ -9424,6 +9425,17 @@ def can_enter_territory(world, marshal_nation: str, region_controller: str,
     uses it — deciding WHO is stranded must not consult the very grant that is
     being issued on their behalf. Single implementation, one flag, so the
     corridor cannot drift away from the rule it amends.
+
+    `mover_location` (WO-17 "The Corridor Has a Direction"): the moving
+    corps's CURRENT standing province. It feeds the evacuation arm's
+    direction term — a mover that could already reach the body of its own
+    realm without the treaty has no claim on the corridor and may not use it
+    to enter the counterpart's territory. Every seam that relocates a corps
+    passes it; `None` (the pair-level form) keeps the arm permissive for the
+    audited nation-level consumers, and the census pin in
+    `test_wo_slice13_corridor_direction.py` keeps that set from growing
+    silently. It affects ONLY the evacuation arm — WAR and open-movement
+    answers are direction-less as ever.
     """
     if not region_controller:
         return True  # Unclaimed territory
@@ -9451,7 +9463,8 @@ def can_enter_territory(world, marshal_nation: str, region_controller: str,
     # the instant war resumes.
     if not ignore_evacuation:
         from backend.game_logic.withdrawal import has_evacuation_grant
-        if has_evacuation_grant(world, marshal_nation, region_controller):
+        if has_evacuation_grant(world, marshal_nation, region_controller,
+                                mover_location=mover_location):
             return True
 
     # PEACE, ARMISTICE — cannot enter
