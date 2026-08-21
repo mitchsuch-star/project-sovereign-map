@@ -26,6 +26,22 @@
 
 > ### ✅ BUILD CONTRACT AUTHORED August 21, 2026 — **`docs/WEIRD_OUTCOMES_SPEC.md` is authoritative for slice scope/seams/acceptance/order** (17 slices; its §2 verification corrects the eval where marked). Rows WO-D7..D10 below were filed by that session's defect hunt.
 >
+> ### ⚖ THE FUNNEL CLAIM IS FORMALLY WITHDRAWN — slice 1b, August 21, 2026 (addendum = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9, authoritative)
+>
+> The original sentence — *"France wins overwhelmingly whenever it fights and
+> is dismembered whenever it tries anything else. There is no middle."* — was
+> re-measured on the FIXED instrument (10 arms × 3 seeds × 3 repeats, mock
+> repeats byte-identical): **it does not survive.** The worst fighting-arm
+> median does not exceed the best non-military-arm median and the min–max
+> bands overlap massively under every defensible grouping — the SEED, not the
+> strategy, is the dominant variable in ambient-driven outcomes (the same
+> fighting script ends at 30, 27 or 7 provinces across three authored seeds).
+> **Per the G2 re-open condition, `BUILDING_SLOT_LIMITS["town"] = 1` STAYS
+> SHELVED** — the non-military arms do not "still show collapsing." What the
+> original table measured was mostly instrument blindness plus single-draw
+> noise. The real non-military gaps remain the QUALITATIVE ones the eval
+> already framed: built, unpriced, unreachable and invisible — in that order.
+>
 > ### ✅ WO-EVAL HELD August 17, 2026 — **memo of record = `docs/audits/WO_EVAL_2026_08_17.md`, AUTHORITATIVE where it amends the rows below.**
 >
 > **Read the table below WITH the memo's §8.** Eight investigations, each

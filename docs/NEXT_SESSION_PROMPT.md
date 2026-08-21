@@ -1,87 +1,65 @@
-# NEXT SESSION PROMPT — Row WO, Slice 1 "The Instrument" (+ 1b)
+# NEXT SESSION PROMPT — Row WO, Slice 13 "The Trojan Corridor" (P1)
 
 > Overwritten each time a session hands off. Paste the block below as the
-> opening message of a fresh session. Current hand-off: August 21, 2026,
-> master `4c265d9`.
+> opening message of a fresh session. Current hand-off: August 21, 2026 —
+> slices 1, 1b, 2 and 3 LANDED that day (landing records =
+> `docs/WEIRD_OUTCOMES_SPEC.md` §3, per slice; the 1b addendum =
+> `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9).
 
 ---
 
-Build **slice 1 (WO-H "The Instrument")** and then **slice 1b (the re-run)**
-of the Weird-Outcomes program.
+Build **slice 13 (WO-17 "The Corridor Has a Direction")** of the
+Weird-Outcomes program — the hand-verified P1 exploit on the WIN-D3
+evacuation system. Per spec §5 order (1 → 1b → 2 → 3 → **13** → 4 → …).
 
 **Read first, in this order:**
-1. `docs/WEIRD_OUTCOMES_SPEC.md` — the build contract, AUTHORITATIVE. Your
-   scope is §3 slice 1 + slice 1b, verbatim. §2 is the verified seam record
-   (trust its line numbers over any other doc); §6 is the never-do list.
-2. `docs/PLAYTESTING.md` — the harness doc this slice amends.
-3. `docs/BUG_FIXES.md` §Weird-Outcomes — rows WO-H1/H2/H3 and the Aug-21
-   verification block (WO-H3's precision correction matters: the driver DOES
-   answer a bare-`True` capture prompt; it loses the sibling `capture_data`).
-4. Context only, never re-open: the gate record
-   `docs/audits/WO_EVAL_2026_08_17.md` §6.
+1. `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 13 — the fix contract, verbatim,
+   AUTHORITATIVE. §6 never-do 20 and 21 bind this slice directly.
+2. `docs/WAR_WITHDRAWAL_SPEC.md` §7a — WIN-D3's own gate + landing record
+   (the five §3.4 never-do pins that must survive byte-identically).
+3. `docs/BUG_FIXES.md` §Weird-Outcomes row WO-17.
 
-**Scope — zero production code.** Everything lands in `tools/` and `docs/`;
-`backend/` is untouched. The ten contract items, from spec §3 slice 1:
+**The defect in one breath:** `has_evacuation_grant` is a bare
+`(pair_key → expiry)` compare — no marshal, no direction, no stranded
+check (`withdrawal.py:133-149`, consumed by the ONE `can_enter_territory`
+arm at `diplomacy.py:9452-9455`) — and the grant opens on ANY WAR→non-WAR
+edge INCLUDING ARMISTICE. Park a corps deep on enemy soil, sign a 1-DP
+armistice, march FRESH corps INTO enemy sovereign territory all truce
+long (walked-in corps register "stranded" and hold the corridor open),
+let the truce collapse free — the new war opens beside Vienna.
 
-1. `_option_id` widened to `id/choice/keyword/action/command/value` — never
-   `label`.
-2. Bare-`True` `pending_capture_choice` → read the sibling `capture_data`
-   payload WITH its `dialogue_id`; answer the ESTATE stage with a valid
-   token (the measured wedge: `"plunder"` to the estate stage is refused
-   without clearing and blocks the rest of the campaign).
-3. `battles` counted from `jealousy_attacks[*]` (`turn_manager.py:405-415`)
-   AND every enemy-phase battle row.
-4. An `awaiting_clarification` arm — the driver reads `response["state"]`
-   and answers by stated, logged policy.
-5. An `envoy_digest` arm on `POST /mailbox/respond` — default `decline`,
-   now explicit and counted.
-6. Determinism: module RNG seeded at every turn boundary
-   (`random.seed(sha256(f"{seed}:{turn}"))` or equivalent, recorded in
-   `meta.json`). Sufficiency is established — backend has ZERO
-   `random.Random()` instances (spec §2 H-1). **PYTHONHASHSEED must be
-   pinned too**: re-exec the driver with `PYTHONHASHSEED=0` when unset and
-   record the value in `meta.json` (the eval omitted this; the spec added
-   it — an "instrument fixed" claim without it is still nondeterministic).
-7. Mode scope in `PLAYTESTING.md`: determinism = Mode A only; `--http`
-   digests carry a nondeterministic banner in `meta.json`.
-8. A `--archive` flag copying `digest.md` + `meta.json` to
-   `docs/audits/playtest_digests/<run-name>/` (committed). Memos may only
-   cite archived digests; archive the runs the WO memos cite retroactively.
-9. `PLAYTESTING.md` *Known-bad digests* gains WO-H1/H2/H3 + run-to-run
-   nondeterminism + the method rule (a passing in-process suite is vacuous
-   evidence for `BASELINE_SERIES`; byte-identity claims need a real
-   source-edit run through `_run_series_subprocess`).
-10. Correct the falsified *"causally inert"* refutation on the NPC harness
-    row in `BUG_FIXES.md` §Napoleon Campaign (WO-H1 proved it load-bearing).
+**Fix contract (spec slice 13, verbatim):** zero new fields, one seam —
+the permission arm gains a direction term: a marshal whose CURRENT
+location lies in its own nation's home zone (O(1) controller/home check —
+the arm is inside pathfinding loops, GR8) may NOT use the grant to enter
+the counterpart's territory. A stranded corps outside its home zone keeps
+full transit; the moment it reaches the body of its own realm, the grant
+is spent for it.
 
-**Hard rules (spec §6):** no `random.seed` in `backend/` production code
-(never-do 13 — it would collide with the BASELINE runner's own discipline);
-the driver KEEPS executing typed diplomatic verbs (never-do 12 / eval §7.12 —
-gating them in the driver deletes diplomacy from every future unattended
-evaluation); do not match option labels.
+**Done when:** during a truce, a corps standing on French home soil is
+refused entry to enemy sovereign territory (the falsifiable negative —
+the Trojan march); a genuinely stranded corps still routes home through
+the same provinces; the corridor still retires when nobody is stranded;
+the five WIN-D3 §3.4 never-do pins byte-identical;
+`test_win_d3_road_home.py:243`'s pair-level assertion REWRITTEN to the
+direction-aware form (a CONSCIOUS pin flip, record it);
+`BASELINE_SERIES` byte-identity proven by a real subprocess run
+(P1.2 only ever walks home, so ambient should not move — prove it).
 
-**Done when (spec §3 slice 1):** a run answers an estate prompt without
-wedging; `capture_choice[estate]` appears in a digest for the first time;
-declare-war ceremonies declare (the A/B was `0 → 8` in 8 turns); two
-invocations of the same script at the same seed produce identical
-`provinces`/`treasury` series; `meta.json` records the RNG scheme +
-PYTHONHASHSEED; the archived-digest directory exists with the cited runs.
-
-**Then slice 1b (0.25, machine time), protocol verbatim from the spec:**
-each committed `weird_*.json` arm runs 3 seeds (`historical` + 2 banded) ×
-3 repeats on the fixed driver. Per-arm median final provinces + min–max.
-**The funnel claim STANDS only if the worst fighting-arm median exceeds the
-best non-military-arm median AND the bands do not overlap** — otherwise the
-STATUS/`DESIGN_REFINEMENT` funnel sentence is formally withdrawn and G2(b)
-(`BUILDING_SLOT_LIMITS["town"] = 1`) stays shelved. A wedged variance-seed
-arm reports `blocked`, never silently dropped. Results = an addendum table
-in `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` + a STATUS line +
-the G2(b) shelf decision answered.
+**Consciously NOT built (spec):** a player-side re-declaration time floor
+— that is WO-D8, a design question for a future diplomacy gate (§6
+never-do 21); PT-J2's demobilize-on-peace is a recorded gate ruling.
 
 **Landing discipline:** work directly on master; the pre-commit hook runs
-ruff + the full suite (green at hand-off: 18,178/3). Update: the spec (✅
-landing record on §3 slices 1/1b), `STATUS.md` top entry, `BUG_FIXES.md`
-(WO-H1/H2/H3 → FIXED), `PLAYTESTING.md`. Commit as
-`harness(wo): slice 1 — the instrument ...` and push. Overwrite this file
-with the next hand-off (slice 2 WO-N "The Names" — unless the user pulls
-slice 13, the Trojan Corridor P1, forward; that option is theirs alone).
+ruff + the full suite (green at hand-off: 18,22x/3 — see the last
+commit). Update: the spec (✅ landing record on §3 slice 13),
+`STATUS.md` top entry, `BUG_FIXES.md` WO-17 → FIXED. Commit as
+`fix(wo): slice 13 — the corridor has a direction …` and push. Overwrite
+this file with the next hand-off (slice 4 WO-D6 "The Capital Speaks" +
+WO-11, per §5 order).
+
+**Standing context:** the G2(b) shelf decision was taken at slice 1b —
+read the addendum (`PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9) before
+touching anything funnel-adjacent; the playtest driver is now
+deterministic (Mode A/mock) and `--archive` is the citation rule
+(`docs/PLAYTESTING.md`).

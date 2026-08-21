@@ -4,6 +4,93 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICES 1, 1b, 2 AND 3 LANDED — August 21, 2026 (one session). **Landing records = `docs/WEIRD_OUTCOMES_SPEC.md` §3 per slice, authoritative; the 1b addendum = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9. ▶ NEXT = slice 13, the Trojan Corridor P1 (`docs/NEXT_SESSION_PROMPT.md`).**
+>
+> **Slice 1 "The Instrument" (zero production code).** All ten contract
+> items in `tools/playtest_driver.py`: `_option_id` reads
+> `id/choice/keyword/action/command/value` (never `label`) — the re-run
+> World Burns arm ends at **14 France WAR pairs** where the original's
+> fifteen "successful" ceremonies declared ZERO (WO-H1); the capture arm
+> reads the sibling `capture_data` with its `dialogue_id`, so the ESTATE
+> stage answers correctly (WO-H3 — the wedge is dead, and
+> `capture_choice[estate]` appears in archived digests for the first
+> time); battles counted from `jealousy_attacks[*]`, enemy-phase battle
+> rows AND strategic-report combat rows (WO-H2 + the review round's
+> auto-resolved-battle undercount — the backend half filed as **WO-33**);
+> an `awaiting_clarification` arm (typed index "1", resolved by the
+> server's own interpreter) and an IGR-F letter-book arm
+> (`POST /mailbox/respond`, explicit decline — RECORDED as ≠ the old
+> silent lapse: refusal record + 3-turn court cooldown vs none + 2);
+> **the module RNG reseeded per turn boundary + PYTHONHASHSEED re-exec —
+> two invocations at the same seed now produce byte-identical digests**
+> (pre-fix: 30/28/27 provinces). `--archive` copies digest.md+meta.json
+> to `docs/audits/playtest_digests/` (committed) — **memos may only cite
+> archived digests**. ⚠ Recorded honestly: the Aug-16 `weird-tyrant` and
+> `weird-world-burns` originals were DESTROYED by this slice's own
+> acceptance re-runs before archiving (the script's `name` key silently
+> overrode `--name`; `--fresh` deleted the dirs) — root cause fixed as
+> the precedence rule (explicit CLI beats script keys beats defaults,
+> without which 1b's `--seed` sweep would have been a silent no-op), and
+> the archive holds 9 of 11 originals + the two marked re-runs.
+> `test_playtest_driver_instrument.py` (23).
+>
+> **Slice 1b — the funnel re-measured and WITHDRAWN.** 10 arms × 3 seeds
+> (`historical`/`ulm`/`austerlitz`) × 3 repeats on the fixed driver
+> (`tools/wo_1b_sweep.py`, committed; full table + verdict = the memo §9
+> addendum): every mock (arm, seed) repeat-triple **byte-identical**; the
+> funnel claim fails its own protocol — the worst fighting-arm median
+> does not exceed the best non-military-arm median and the bands overlap
+> massively; **the SEED, not the strategy, dominates ambient-driven
+> outcomes** (the same fighting script: 30/27/7 provinces across seeds).
+> **G2(b) `BUILDING_SLOT_LIMITS["town"] = 1` STAYS SHELVED** (the formal
+> withdrawal is recorded in `DESIGN_REFINEMENT.md` §Weird-Outcomes).
+> Method note: five sweep children froze in asyncio's Windows socketpair
+> fallback under ~25 concurrent python processes — killed, re-run,
+> determinism verified by byte-prefix diff; and the first sweep ran while
+> slices 2/3 landed, so the DEFINITIVE dataset was re-swept once on the
+> final committed tree (don't measure while the code moves).
+>
+> **Slice 2 "The Names" (`349402b`) — WO-1 + WO-2, the two P1s.** An
+> ENEMY name in the addressee slot now refuses by name and in voice
+> (*"Marshal Kutuzov commands for Russia, Sire — he does not answer to
+> us"*) for every verb on both parse layers — the spec's own §2 H-8 seam
+> claim corrected by building: the mock never binds the addressee as
+> marshal at all, so the fix is the standalone leading-token pre-check
+> `_resolve_enemy_addressee`, with the CR-1 demotion preserved for
+> target position (`attack Kutuzov` still targets). The four ungated
+> fuzzy arms (two ladder arms, the strategic-marshal sibling, the
+> executor backstop) carry the `_plausible_name_typo` gate — Avalon no
+> longer marches to Leon; `Swabai`/`viena` still march. **The
+> find-then-refute fleet (5 lenses → 13 refuters) took three MORE holes,
+> all fixed in-slice:** the refusal was production-dead on /command
+> (generic recovery swallowed it), the vassal-family early-return
+> bypassed the guard (*"Kutuzov, grant Holland more autonomy" EXECUTED a
+> permanent tribute cut*), and the diplomatic route bypassed it
+> entirely; plus three false-positive boundaries (narration leads via
+> closed-class third-person forms; `_NON_TARGET_WORDS` screening the
+> comma-typo arm — "More, cavalry" is not Moore; the player roster's
+> right of first refusal on typo'd addresses). Corpus untouched, CR-1
+> 535/535, `BASELINE_SERIES` byte-identical by real subprocess run.
+> `test_wo_slice2_names.py` (33).
+>
+> **Slice 3 "The Garrison Floor" (`c66a48f`) — WO-3.** One term
+> (`max(…, 1)`) beside the truncating 10% floor: the 3,000-man
+> detachment falls at assault **13 exactly** (the spec's predicted
+> shape) instead of stalling at ONE MAN FOREVER; capital arithmetic
+> byte-identical ≥10 by construction; the P4.25 futility guard
+> consciously NOT built (recorded at the seam). M1–M7 +
+> `BASELINE_SERIES` byte-identical WITHOUT re-record — a fact about the
+> harness (the ambient board never assaults a sub-10-man garrison), not
+> proof of inertness. `test_wo_slice3_garrison_floor.py` (5).
+>
+> **Suite 18,24x/3 green per commit · ruff clean · zero `.gd`.** Rows
+> closed: WO-H1/H2/H3, WO-1, WO-2, WO-3 (+ the falsified "causally
+> inert" refutation corrected on the NPC harness row; NPC-7's wrong
+> sibling-count claim corrected). New row: WO-33 (auto-resolved battles
+> discard their report — slice 12 family). **▶ NEXT = slice 13 (WO-17
+> "The Trojan Corridor", P1) per spec §5 order; the paste-ready kickoff
+> = `docs/NEXT_SESSION_PROMPT.md`.**
+
 > # ✅ THE WO BUILD CONTRACT IS AUTHORED — August 21, 2026. **`docs/WEIRD_OUTCOMES_SPEC.md` v1.0 (AUTHORITATIVE for the build; the eval memo keeps the gate record).**
 >
 > **Docs-only session: zero production code touched.** The user's brief:

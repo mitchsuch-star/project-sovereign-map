@@ -253,6 +253,59 @@ evaluation); no `random.seed` lands in `backend/` production code (it would
 collide with the BASELINE runner's own seeding discipline and constitute a
 behavior change).
 
+> **✅ LANDED August 21, 2026 — landing record.** All ten contract items
+> built in `tools/playtest_driver.py`; zero production code — the slice's
+> own commit touches only `tools/`, `tests/` and `docs/` (slices 2 and 3
+> landed the same day as SEPARATE commits and own every `backend/` line;
+> check per-commit, not the day's combined diff). Unit pins =
+> `tests/test_playtest_driver_instrument.py` (23 — `_option_id` preference
+> order incl. the never-`label` negative, the capture arm's `capture_data`
+> fallback with `dialogue_id`, the clarification arm's four branches, the
+> envoy arm's decline/accept/noop, battle counting from enemy-phase rows +
+> `jealousy_attacks` + strategic-report combat rows (the review round's
+> WO-33 recovery), sha256-not-hash seed derivation, and the precedence
+> rule below). **Acceptance, measured:**
+> - **Determinism:** two invocations of an 8-turn ambient run at
+>   `historical` produced **byte-identical `digest.jsonl`** (and `digest.md`
+>   identical but for the run name); pre-fix the same script at the same
+>   seed ended 30/28/27. `meta.json` records `rng.scheme`,
+>   `rng.deterministic` and `rng.pythonhashseed` (the driver re-execs with
+>   `PYTHONHASHSEED=0` when unset). The 1b sweep then reproduced every
+>   mock (arm, seed) triple identically — 72/72.
+> - **WO-H1:** the re-run World Burns arm ends at **14 France WAR pairs**
+>   (the original ended at the 3 boot wars — fifteen ceremonies, zero
+>   declarations).
+> - **WO-H3:** the estate stage is answered at the driver seam (unit pin)
+>   and the re-run tyrant arm completes 30/30 turns; the stage-1 capture
+>   popup now names its province ("Bohemia, Soult" where the old digest
+>   read "(no summary fields)"). `capture_choice[estate]` in a live digest
+>   is confirmed by the 1b sweep (see the 1b record).
+> - **WO-H2:** the 5-turn smoke counts 10 battles where the old driver
+>   counted 0.
+> - **Archive:** `docs/audits/playtest_digests/` exists, committed, with
+>   the surviving cited runs archived retroactively.
+>
+> **Two deviations, recorded honestly:**
+> 1. **The Aug-16 `weird-tyrant` and `weird-world-burns` original digests
+>    were DESTROYED before archiving** — by this slice's own acceptance
+>    re-runs. The script's `name` key silently overrode `--name`, so the
+>    re-runs landed in the originals' canonical dirs and `--fresh` deleted
+>    them. Root cause fixed in the same landing as a contract addition:
+>    **explicit CLI flags beat the script's own keys, which beat defaults**
+>    (`--name`/`--seed`/`--llm` default to `None` so "explicitly passed" is
+>    distinguishable — the old rule also silently ignored `--seed`, which
+>    would have made 1b's seed sweep a silent no-op sweep of `historical`
+>    nine times per arm). The archive therefore holds 9 of the 11 cited
+>    runs; the two lost ones are represented by their fixed-driver re-runs,
+>    marked as such.
+> 2. The clarification arm answers with the typed index **"1"** rather than
+>    re-posting the option's `command` string — the server's own
+>    `interpret_clarification_answer` resolves it to the first ACTIONABLE
+>    option's command, so the driver never guesses at copy; a question with
+>    no actionable options (or `clarification_registered: false`) is left
+>    standing and logged, because a blind token would be parsed as a fresh
+>    command through the H-13 unconditional pop.
+
 ### Slice 1b — re-run the ten arms (est 0.25, machine time)
 
 **Protocol (written here so "still shows collapsing" in G2 is decidable):**
@@ -265,6 +318,28 @@ sentence is formally withdrawn and G2(b) (`BUILDING_SLOT_LIMITS["town"] = 1`)
 stays shelved. A script arm that wedges on a variance seed reports as
 `blocked`, never silently dropped. Results land as an addendum table in the
 weird-outcomes memo + a STATUS line.
+
+> **✅ RUN August 21, 2026 — landing record. THE FUNNEL CLAIM IS
+> WITHDRAWN and G2(b) STAYS SHELVED.** Runner = `tools/wo_1b_sweep.py`
+> (committed; `--reassemble` rebuilds the table from run dirs); seeds =
+> `historical` + the banded `ulm` and `austerlitz`; full table + verdict
+> = the memo's §9 addendum, dataset = `wo_1b_results.json` +
+> representative digests in `docs/audits/playtest_digests/`. Headlines:
+> every mock (arm, seed) repeat-triple **byte-identical** (the
+> instrument's determinism proven at scale); the worst fighting-arm
+> median does NOT exceed the best non-military-arm median and the bands
+> overlap massively under every defensible grouping; **the SEED, not the
+> strategy, dominates ambient-driven outcomes** (the same fighting
+> script ends at 30 / 27 / 7 provinces across the three seeds). The
+> live-parser arms ran per protocol and are excluded from the funnel
+> bands (parse variance, both fighting-shaped). Method notes, recorded:
+> five children froze in **asyncio's Windows socketpair fallback** under
+> ~25 concurrent python processes (killed + re-run; determinism verified
+> by byte-prefix diff against the completed sibling — NOT a game or
+> driver defect; the runner now records a timeout row instead of
+> crashing); and the first sweep ran while slices 2/3 landed, so the
+> definitive dataset was re-swept ONCE on the final committed tree —
+> *do not measure while the code moves.*
 
 ### Slice 2 — WO-N "The Names" (est 1)
 
@@ -314,6 +389,82 @@ are ungated too.
 guards (PC15-4) stay byte-identical; verbs with no bare form
 (`fortify`/`drill`/`wait`) keep asking *"Which marshal, Sire?"*.
 
+> **✅ LANDED August 21, 2026 — landing record.** Tests =
+> `tests/test_wo_slice2_names.py` (21). Every done-when line measured green:
+> both `Kutuzov, retreat` forms refuse by name and in voice (*"Marshal
+> Kutuzov commands for Russia, Sire — he does not answer to us"*), `Mack,
+> attack Vienna` refuses, `Kutuzov, scout Swabia` no longer makes Soult
+> scout, `attack Mack` / `Soult, pursue Kutuzov` still target (pinned),
+> `Avalon` no longer marches while `Swabai`/`viena` still do, corpus
+> entries unchanged and the CR-1 harness green (535/535 — the param count
+> grew with the corpus since the spec was written; entries untouched),
+> `BASELINE_SERIES` byte-identical **proven by the real source-edit
+> subprocess run** (`TestStep4SeriesPin` post-edit) and M1–M7 green.
+>
+> **One seam correction to this spec's own §2 H-8, discovered by building:**
+> on the MOCK path the enemy addressee never binds as `marshal` at all —
+> the CR-0 word-scan excludes enemy names from marshal candidates, so
+> `Kutuzov, retreat` reached execution as marshal-less `retreat` with
+> `target=Kutuzov` (the demotion fires only on the LIVE path, where the
+> LLM extracts the addressee as marshal). A rider on the demotion would
+> therefore have missed the mock path entirely. The fix is a standalone
+> pre-check, `parser._resolve_enemy_addressee`, run before ANY extraction:
+> the raw command's leading token (comma or not, honorific stripped,
+> possessives excluded) resolved against the live enemy roster incl.
+> camelCase split forms. Both extraction layers inherit one guard.
+> Deliberate boundaries recorded at the helper: a lead that is also a
+> REGION name is never an enemy (`Vienna, hold` stays a region address;
+> `Brunswick` resolves as the province — the WO-13 collision rule ahead of
+> slice 10); the TYPO arm requires the explicit comma-address shape, so a
+> bare common word can never fuzzy-bind (`more cavalry` is not Moore) —
+> residual: a typo'd addressee WITHOUT a comma (`Kutuzof retreat`) falls
+> through to the old target shape, accepted and recorded.
+>
+> **One collision found by the suite and fixed in-slice:** the strategic
+> phrase seam `_suggest_region_for_phrase` was written against the
+> backstop's OLD silent contract, so the new demoted error leaked
+> *"Did you mean 'Nassau'?"* into `Davout, hold the pass` — violating
+> CA8-28's own pin that ordinary English never becomes a province, *not
+> even as a guess*. The demoted class now carries
+> `implausible_correction: True` and that seam swallows exactly it, while
+> native suggest-band errors keep flowing (`Venetia` → *"Did you mean
+> 'Vienna'?"*, CA8-28's same-answer-whatever-the-verb behaviour, its own
+> pins green).
+>
+> **The find-then-refute fleet then took THREE MORE holes, all fixed
+> in-slice** (each pinned in `TestReviewFindingsOnTheWire` /
+> `TestGuardBoundaries`):
+> 1. **P1 — the refusal was production-dead on /command.** It carried
+>    `candidates: []`, so the CR-2 clarification arm skipped it and the
+>    generic Berthier recovery replaced it — every enemy-addressee refusal
+>    reached the player as a random shrug. Fixed with a verbatim-surface
+>    arm in `main.py` beside the PARSE-NEG refusal arm (same wall as its
+>    siblings — slice 11's WO-7 owns the soft-stop wall for all of them).
+> 2. **P1 — the vassal/recruit early-returns bypassed the guard**:
+>    `Kutuzov, grant Holland more autonomy` EXECUTED a permanent tribute
+>    cut. The guard moved ABOVE every family early-return.
+> 3. **P2 — the diplomatic route bypassed the guard entirely**: `Mack,
+>    declare war on Prussia` staged the war-purpose ceremony. The
+>    diplomatic branch now consults the same builder
+>    (`_enemy_addressee_refusal` — ONE builder, the register cannot fork).
+>
+> **And three false-positive boundaries from the same round:** a lead
+> followed by a third-person/auxiliary form is NARRATION
+> (`_NARRATION_NEXT_WORDS`, closed-class: forms an imperative can never
+> take — `Mack is at Swabia, Ney attack him` keeps its fully-correct
+> parse); the typo arm screens ordinary English via the existing
+> `_NON_TARGET_WORDS` (`More, cavalry to the front` is not Moore — the
+> dictation risk the reviewer named); and the PLAYER roster gets right of
+> first refusal on typo'd addresses (`Mark, attack Vienna` stays in the
+> CR-2 did-you-mean flow). The refusal's suggestion line also names the
+> intel road (*"for word of him, ask 'where is Mack'"*) — an enemy-name
+> lead can be a question, not an order. **Accepted residuals, recorded:**
+> a typo'd addressee with NO comma (`Kutuzof retreat`) falls through to
+> the old target shape; the typo gate narrows live-mode tolerance on
+> display-form multi-word enemy names by one edit (the space consumes a
+> budget point) — degrades to an ASK, never a wrong action, which is the
+> gate's whole design.
+
 ### Slice 3 — WO-3 the garrison floor (est 0.5)
 
 **Scope.** A detachment garrison can fall. One-line class of fix at the floor:
@@ -343,6 +494,20 @@ not hand P4.25 free garrison-stripping. **Harness impact:** ambient AI
 garrison assaults now progress → run the M1–M7 harness; if
 `BASELINE_SERIES` moves, this slice takes a flip-attributed re-record
 (flip = the one-line floor).
+
+> **✅ LANDED August 21, 2026 — landing record.** The one term
+> (`max(…, 1)` beside the truncating 10% floor,
+> `combat_executor.py` `_resolve_garrison_combat`) with the
+> consciously-not-built futility guard recorded AT the seam. Measured
+> through the real executor (`tests/test_wo_slice3_garrison_floor.py`,
+> 5): the 3,000-man detachment falls at assault **13** exactly (spec's
+> predicted shape), the frozen 1-man terminal state falls on the next
+> assault, a 15,000 capital garrison still takes its full 10% floor, and
+> the inertness-at-≥10 claim is pinned as arithmetic. **M1–M7 AND
+> `BASELINE_SERIES` byte-identical WITHOUT re-record** — proven by the
+> real subprocess run, and recorded as a fact about the harness (the
+> 40-turn ambient board never assaults a sub-10-man garrison), not as
+> proof of inertness; the behavioral tests carry that weight.
 
 ### Slice 4 — WO-D6 "The Capital Speaks" + WO-11 (est 1)
 
