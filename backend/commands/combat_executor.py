@@ -8008,6 +8008,32 @@ class CombatExecutor:
                             "blocked_naval": _cross["coverer"],
                         }
 
+                # WO-17 review round: the approach obeys the MOVEMENT LAW.
+                # The path above is omniscient (no passable_for), so the hop
+                # itself must refuse a frontier the corps may not cross —
+                # a bare `attack` was walking a fresh corps onto a truce
+                # partner's sovereign soil (whereupon the corridor's own
+                # stranded predicate would have granted it deeper transit).
+                # Same predicate, same mover threading as the in-range
+                # approach arm at `_execute_attack`.
+                _next_obj = world.get_region(next_region)
+                if (_next_obj and _next_obj.controller
+                        and _next_obj.controller != closest_marshal.nation):
+                    from backend.game_logic.diplomacy import can_enter_territory
+                    if not can_enter_territory(
+                            world, closest_marshal.nation,
+                            _next_obj.controller,
+                            mover_location=closest_marshal.location):
+                        return {
+                            "success": False,
+                            "message": (
+                                f"No marshals in attack range — and "
+                                f"{closest_marshal.name} cannot advance: "
+                                f"{next_region} is {_next_obj.controller} "
+                                f"soil and the frontier is closed."),
+                            "blocked_diplomatic": _next_obj.controller,
+                        }
+
                 # Execute the move
                 old_location = closest_marshal.location
                 closest_marshal.move_to(next_region)

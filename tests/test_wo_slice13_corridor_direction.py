@@ -212,7 +212,9 @@ class TestTheTrojanMarch:
     def test_the_pathfinder_knows_the_direction(self, world):
         """The route-building half, pinned symmetrically: for the SAME pair
         of endpoints, the passable-for corridor exists outbound from the
-        stranded enclave and does not exist inbound from home soil."""
+        stranded enclave and does not exist inbound from home soil. BOTH
+        pathfinders — the review round found the weighted one (the router
+        the typed multi-hop move actually uses) had no coverage at all."""
         davout, ney, launchpad, target = _stage_trojan_shape(world)
 
         homeward = world.find_path(ENCLAVE, launchpad, passable_for="France")
@@ -221,6 +223,174 @@ class TestTheTrojanMarch:
         assert trojan is None, (
             "a home corps must find NO legal corridor into the enclave — "
             f"got {trojan}")
+        homeward_w = world.find_weighted_path(ENCLAVE, launchpad,
+                                              passable_for="France")
+        assert homeward_w, "the weighted router must know the road home too"
+        trojan_w = world.find_weighted_path(launchpad, ENCLAVE,
+                                            passable_for="France")
+        assert trojan_w is None, (
+            f"the weighted router must refuse the Trojan too — got {trojan_w}")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# THE REVIEW ROUND'S SEAMS — relocation paths with NO can_enter_territory
+# call at all (structurally invisible to the census pin) that the fleet
+# proved could still stand a fresh corps on truce-partner sovereign soil
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestTheReviewRoundSeams:
+
+    def _stage_enemy_beyond(self, world, launchpad, target, min_enclave_dist=3):
+        """Flip a neighbour of `target` (on the far side from the launchpad)
+        to Austria and stand Mack there at war — the bait that makes a bare
+        `attack` want to advance ACROSS the truce partner's soil. The
+        distance floor keeps the stranded Davout strictly farther from the
+        bait than Ney, so the executor's closest-marshal pick is stable."""
+        for name in sorted(world.regions[target].adjacent_regions):
+            if name == launchpad or name in ENCLOSURE:
+                continue
+            if name not in world.regions:
+                continue
+            if world.get_distance(launchpad, name) != 2:
+                continue
+            if world.get_distance(ENCLAVE, name) < min_enclave_dist:
+                continue
+            world.regions[name].controller = "Austria"
+            world.invalidate_active_nations_cache()
+            mack = world.marshals["Mack"]
+            mack.location = name
+            mack.strength = 30000
+            set_diplomatic_state(world, "France", "Austria", "WAR")
+            return name
+        raise AssertionError(
+            "staging drifted: no bait province beyond the frontier")
+
+    def test_a_bare_attack_cannot_advance_across_the_closed_frontier(
+            self, world):
+        """The fleet's P1: `_execute_general_attack` CASE 2 (no marshal in
+        range) walked the closest corps one step along an OMNISCIENT path
+        with no movement-law check — a bare typed `attack` stood a fresh
+        corps on truce-partner sovereign soil, whereupon the direction
+        term's own stranded predicate would have granted it deeper transit.
+        The hop now obeys the movement law."""
+        davout, ney, launchpad, target = _stage_trojan_shape(world)
+        self._stage_enemy_beyond(world, launchpad, target)
+
+        before = {m.name: m.location for m in world.marshals.values()
+                  if m.nation == "France"}
+        result = CommandExecutor().execute(
+            {"command": {"action": "attack", "type": "general_attack"}},
+            {"world": world})
+        after = {m.name: m.location for m in world.marshals.values()
+                 if m.nation == "France"}
+        assert after == before, (
+            "no French corps may relocate across the closed frontier: "
+            f"{result.get('message')}")
+        assert not result.get("success")
+        assert result.get("blocked_diplomatic") == "Russia"
+
+    def test_the_control_arm_at_war_the_same_advance_is_legal(self, world):
+        """Control: the SAME staging with Russia at WAR — the advance is
+        the ordinary approach march, proving the gate above is the
+        diplomatic state and nothing else."""
+        davout, ney, launchpad, target = _stage_trojan_shape(world)
+        self._stage_enemy_beyond(world, launchpad, target)
+        set_diplomatic_state(world, "France", "Russia", "WAR")
+        # At war the enemy SET widens (Russia's own corps count), so pin
+        # the closest-marshal pick on Ney by sending Davout home — the
+        # grant he held open died with the war anyway (§3.4 pin 4).
+        davout.location = "Paris"
+        davout.strategic_order = None
+
+        result = CommandExecutor().execute(
+            {"command": {"action": "attack", "type": "general_attack"}},
+            {"world": world})
+        assert result.get("success"), result.get("message")
+        assert ney.location == target, (
+            "at war, the approach must still march — never-do 20")
+
+    def test_a_stated_retreat_cannot_stand_on_truce_soil(self, world):
+        """The fleet's P2: the W6-1 explicit-destination retreat arm
+        accepted a PEACE/ARMISTICE controller the doctrine scan directly
+        above it refuses (PC15-D1's movement law). The stated destination
+        now obeys the same law — and substitutes with the honest reason,
+        never a bare refusal (the IGR-A3 rule)."""
+        davout, ney, launchpad, target = _stage_trojan_shape(world)
+        # Soult: literal, so the retreat is never eaten by an objection.
+        soult = world.marshals["Soult"]
+        soult.location = launchpad
+        # The at-war menace, made CAVALRY so a two-region threat counts as
+        # danger (`is_in_danger` requires movement_range >= 2 at distance
+        # 2) — no second province flip, so the doctrine scan's own safe
+        # candidate (the French chain) is untouched.
+        bait = self._stage_enemy_beyond(world, launchpad, target)
+        world.marshals["Mack"].movement_range = 2
+        assert world.is_in_danger("Soult"), (
+            f"staging drifted: no danger from Mack at {bait}")
+
+        result = CommandExecutor().execute(
+            {"command": {"action": "retreat", "marshal": "Soult",
+                         "target": target}},
+            {"world": world})
+        assert soult.location != target, (
+            "a stated retreat must not stand a corps on truce-partner "
+            f"sovereign soil: {result.get('message')}")
+        assert "frontier is closed" in (result.get("message") or ""), (
+            "the refusal must state the movement law, not shrug: "
+            f"{result.get('message')}")
+
+    def test_a_cavalry_hop_cannot_transit_the_closed_frontier(self, world):
+        """The fleet's second P2: the direct 2-tile cavalry branch checked
+        its connector only for enemies and the naval gate — transit across
+        truce-partner soil, and a seeding vector into the nation's own
+        cut-off enclave (which would re-arm the corridor for a corps the
+        war never stranded). The connector now obeys the movement law."""
+        davout, ney, launchpad, target = _stage_trojan_shape(world)
+        beyond = self._find_forced_two_chain(world, launchpad, target)
+        world.regions[beyond].controller = "France"
+        world.invalidate_active_nations_cache()
+        ney.movement_range = 2
+
+        result = CommandExecutor().execute(
+            {"command": {"action": "move", "marshal": "Ney",
+                         "target": beyond}},
+            {"world": world})
+        assert not result.get("success"), (
+            "the connector is truce-partner sovereign soil — the hop must "
+            f"refuse: {result.get('message')}")
+        assert ney.location == launchpad
+        assert "frontier is closed" in (result.get("message") or "")
+
+        # Control: at war the same hop is legal transit (never-do 20).
+        set_diplomatic_state(world, "France", "Russia", "WAR")
+        result = CommandExecutor().execute(
+            {"command": {"action": "move", "marshal": "Ney",
+                         "target": beyond}},
+            {"world": world})
+        assert result.get("success"), result.get("message")
+        assert ney.location == beyond
+
+    @staticmethod
+    def _find_forced_two_chain(world, launchpad, target):
+        """A province at hop-distance 2 from the launchpad whose EVERY
+        usable connector is Russian-controlled — the forced transit shape."""
+        for name in sorted(world.regions[target].adjacent_regions):
+            if name == launchpad or name in ENCLOSURE:
+                continue
+            if name not in world.regions:
+                continue
+            if world.get_distance(launchpad, name) != 2:
+                continue
+            connectors = [
+                adj for adj in world.regions[launchpad].adjacent_regions
+                if adj in world.regions
+                and name in world.regions[adj].adjacent_regions]
+            if connectors and all(
+                    world.regions[c].controller == "Russia"
+                    for c in connectors):
+                return name
+        raise AssertionError(
+            "staging drifted: no forced two-chain through Russian soil")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -372,6 +542,32 @@ class TestTheDirectionCache:
             "a stale wartime cache must not deny the stranded corps its own "
             "corridor")
 
+    def test_a_warm_wartime_cache_cannot_empty_the_road_home_path(
+            self, world):
+        """The review round's F3: `open_evacuation_corridor` routes the
+        road-home orders BEFORE `set_diplomatic_state` reaches its own
+        cache flush at the end of the function — so a verdict warmed at war
+        (the enclave read 'connected home through war-passable soil')
+        denied the freshly-stranded corps its corridor during issuance and
+        the treaty's order shipped with an EMPTY path. The corridor opener
+        now flushes first; the order carries a real route the turn it is
+        issued."""
+        world.fleets = {}
+        world.regions[ENCLAVE].controller = "France"
+        _park_everyone(world)
+        world.marshals["Davout"].location = ENCLAVE
+        set_diplomatic_state(world, "France", "Russia", "WAR")
+        world.invalidate_active_nations_cache()
+        assert not W._corridor_is_for(world, "France", ENCLAVE), (
+            "precondition: the wartime verdict is warm in the cache")
+
+        set_diplomatic_state(world, "France", "Russia", "PEACE")
+        order = world.marshals["Davout"].strategic_order
+        assert W.is_road_home_order(order)
+        assert order.path and len(order.path) >= 2, (
+            "the treaty's order must carry a real route the turn it is "
+            f"issued — got path={order.path}")
+
     def test_the_chokepoint_flushes_the_cache(self, world):
         _stage_trojan_shape(world)
         can_enter_territory(world, "France", "Russia", mover_location="Paris")
@@ -420,6 +616,41 @@ class TestTheCensusPin:
             f"{AUDITED_BARE} — a NEW relocation seam must pass "
             f"mover_location; a NEW nation-level consumer must be audited "
             f"here AND commented at the call site (WO-17)")
+
+    def test_every_passable_for_pathfind_starts_at_the_mover(self):
+        """The review round's F8: the pathfinders' start-is-the-mover
+        contract (`find_path`/`find_weighted_path` with `passable_for` set
+        judge the direction term at `start`) was verified by hand but the
+        code comment called it census-PINNED. Now it is one: every backend
+        call that passes `passable_for` must pass `marshal.location` as its
+        start argument. A caller with a different start must either be
+        rewritten or consciously audited here."""
+        backend = Path(__file__).resolve().parents[1] / "backend"
+        offenders = []
+        seen = 0
+        call_re = re.compile(
+            r"(?<!def )(?:find_path|find_weighted_path|pathfinder)\s*\(")
+        for path in sorted(backend.rglob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            for match in call_re.finditer(text):
+                line_start = text.rfind("\n", 0, match.start()) + 1
+                if text[line_start:match.start()].lstrip().startswith("#"):
+                    continue  # prose in a comment, not a call
+                call = self._call_text(text, match.start())
+                if "passable_for" not in call:
+                    continue
+                seen += 1
+                first_arg = call[1:].split(",", 1)[0].strip()
+                if first_arg != "marshal.location":
+                    offenders.append((path.name, first_arg))
+        assert seen >= 5, (
+            f"census regex matched only {seen} passable_for calls — the "
+            f"pin has gone vacuous, fix the pattern")
+        assert offenders == [], (
+            f"passable_for pathfind calls whose start is not the mover's "
+            f"standing location: {offenders} — the WO-17 direction term is "
+            f"judged at `start`, so this is a correctness contract, not "
+            f"style")
 
     @staticmethod
     def _call_text(text, start):

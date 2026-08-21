@@ -46,7 +46,31 @@
 > floor deliberately NOT built** (WO-D8, never-do 21). Zero new serialized
 > fields, zero `.gd`. Flip lever `CORRIDOR_DIRECTION_ACTIVE`; the control
 > arm reproduces the filed exploit with it off.
-> `tests/test_wo_slice13_corridor_direction.py` (19); suite **18,257/3**.
+>
+> **The same-day review round (42-agent find→2-refuter fleet on the
+> committed diff) took FOUR more fixes — headline P1: the Trojan march
+> survived one verb over.** A bare typed `attack` with nobody in range
+> walked the closest corps one step along an omniscient path with NO
+> movement-law check (only the naval gate) — a fresh corps stepped onto
+> truce-partner sovereign soil, where the direction term's own stranded
+> predicate then granted it deeper corridor transit. Same class, same
+> census-blindness (no `can_enter_territory` call for the census to see):
+> the explicit-destination retreat accepted a PEACE/ARMISTICE controller
+> the PC15-D1 doctrine scan refuses, and the 2-tile cavalry connector was
+> checked only for enemies + the naval gate (a seeding vector into the
+> nation's own enclave that would re-arm the corridor). All three now
+> carry the movement law, mover-threaded, with at-war control arms
+> (never-do 20) and a mutation each. Fourth fix: the corridor opener
+> routed road-home orders BEFORE the chokepoint's cache flush — a
+> wartime-warmed verdict shipped the treaty's order with an EMPTY path;
+> the opener and revoker now flush first. Also: `find_weighted_path`
+> threading pinned (was uncovered), the passable_for start-is-the-mover
+> contract made a REAL census pin, the record's call-site count 19→18
+> corrected. **16-mutation sweep: 15 killed, 1 proven equivalent** (the
+> home early-return is structurally redundant with distance-0 —
+> reasoning in the landing record). `BASELINE_SERIES` re-proven
+> byte-identical by subprocess AFTER the gates; M1–M7 byte-identical.
+> `tests/test_wo_slice13_corridor_direction.py` (25); suite **18,263/3**.
 >
 > ---
 >

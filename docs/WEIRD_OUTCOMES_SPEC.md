@@ -959,8 +959,10 @@ not built here.
 > `_execute_move` (player, strategic steps, and AI through the shared
 > executor, GR5), both pathfinders via `_region_passable_for` (with
 > `passable_for` set, `start` IS the mover — every caller passes
-> marshal.location, census-verified), `_can_ai_move_to` (origin, already
-> passed at all 19 call sites), the reckless-cavalry auto-move, the
+> marshal.location, census-PINNED as of the review round), `_can_ai_move_to`
+> (origin, already passed at all 18 call sites — the record first said 19,
+> a grep that counted the def; corrected by the review round), the
+> reckless-cavalry auto-move, the
 > combat-executor approach move, and the S5-D2/PF-8 issuance-honesty and
 > reroute checks. `mover_location=None` keeps the legacy pair-level answer
 > BY DESIGN (the audited nation-level consumer: war_council's anchor
@@ -984,7 +986,62 @@ not built here.
 > walkers are stranded by construction — the P1.2 rung — so the
 > direction term is dormant there, exactly as this contract predicted);
 > M1–M7 byte-identical. WO-D8 untouched per never-do 21.
-> `tests/test_wo_slice13_corridor_direction.py` (19).
+> **16-mutation sweep: 15 killed, 1 proven EQUIVALENT** — removing
+> `is_stranded_at`'s home early-return is a semantic no-op because
+> `distance_home_from` independently returns 0 for a home location (the
+> redundancy is structural, inherited verbatim from WIN-D3's original
+> predicate; every load-bearing clause — the direction condition, both
+> its inversions, the wrong-subject swap, the cache key, both cache
+> flushes, all the seam threadings and all three review-round gates —
+> dies to a named test).
+> `tests/test_wo_slice13_corridor_direction.py` (25).
+>
+> **THE REVIEW ROUND (same day) — a 42-agent find→2-refuter fleet on the
+> committed diff took 18 raw findings to 8 confirmed, and the confirmed
+> set changed the slice.** Headline **P1 (two lenses converged, all four
+> refuters reproduced it independently): the Trojan march survived one
+> verb over.** `_execute_general_attack` CASE 2 — the bare typed `attack`
+> with nobody in range — walked the closest corps one step along an
+> OMNISCIENT `find_path` and relocated it via bare `move_to` with NO
+> movement-law check at all (only the naval gate), so a fresh corps
+> stepped onto truce-partner sovereign soil where the direction term's own
+> stranded predicate would then have granted it deeper corridor transit —
+> the fix's predicate amplifying the entry it never saw. Two more
+> movement-law holes of the same class: the W6-1 **explicit-destination
+> retreat** accepted a PEACE/ARMISTICE controller the PC15-D1 doctrine
+> scan directly above it refuses (a typed "retreat to <truce province>"
+> stood a corps on closed sovereign soil), and the **direct 2-tile cavalry
+> branch** checked its connector only for enemies and the naval gate
+> (transit across truce soil, and a seeding vector into the nation's own
+> cut-off enclave that would re-arm the corridor for a corps the war never
+> stranded). **All three are PRE-EXISTING seams this slice's census pin
+> was structurally blind to — they contain no `can_enter_territory` call,
+> and a census of calls cannot see an absent call (recorded as the pin's
+> known limit). All three now carry the movement law with the mover
+> threaded** (the general-attack hop refuses with the closed-frontier
+> reason; the retreat SUBSTITUTES with the reason per IGR-A3; the cavalry
+> connector refuses and names the controller), each with a control arm
+> proving the at-war march survives (never-do 20) and a mutation each.
+> Plus: **[F3, P2]** `open_evacuation_corridor` routed the road-home
+> orders BEFORE `set_diplomatic_state`'s own cache flush at the end of
+> the function, so a direction verdict warmed at war denied the
+> freshly-stranded corps its corridor during issuance — measured, the
+> treaty's order shipped with an EMPTY path (self-healing on the first
+> strategic tick, but the beat promised a road with no route); the opener
+> and the revoker now flush first. **[F6]** `find_weighted_path`'s
+> threading — the router the typed multi-hop move actually uses — had
+> zero coverage; the pathfinder pin now runs both routers. **[F7]** the
+> record's "19 call sites" corrected to 18 in place (a grep that counted
+> the def). **[F8]** the "census-pinned" start-is-the-mover comment
+> claimed a pin that did not exist; it exists now
+> (`test_every_passable_for_pathfind_starts_at_the_mover`). The ten
+> REFUTED findings incl. the pre-positioned-corps omnidirectional-transit
+> observation (the slice's own recorded full-transit design, bounded by
+> the internment clock) and a naval-blind-stranded-predicate claim
+> (unreachable for every marshal-fielding nation on the shipped map).
+> `BASELINE_SERIES` re-proven byte-identical by subprocess AFTER the
+> three gates (the cavalry connector is AI-reachable — proven dormant
+> ambient, not assumed); M1–M7 byte-identical.
 
 ### Slice 14 — WO-18 + WO-19 "The Clock and the Flag" (est 0.5) — **this spec's addition**
 

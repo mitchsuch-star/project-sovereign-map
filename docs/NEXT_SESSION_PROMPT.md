@@ -71,13 +71,19 @@ the spec (✅ landing record on §3 slice 4), `STATUS.md` top entry,
 with the next hand-off (slice 5 WO-D5 "Berthier Names the Peace" +
 slice 6, per §5 order).
 
-**Standing context:** slice 13 added a WO-17 census pin
+**Standing context:** slice 13 added TWO census pins
 (`test_wo_slice13_corridor_direction.py::TestTheCensusPin`) — any new
 `can_enter_territory` call must pass `mover_location=` (relocation) or
-be consciously audited into the pin's allowlist; the G2(b) shelf
-decision stands (1b addendum — read it before touching anything
-funnel-adjacent); the playtest driver is deterministic (Mode A/mock) and
-`--archive` is the citation rule (`docs/PLAYTESTING.md`); never set
-`PYTHONIOENCODING` when running the tests (it fakes 6 subprocess-test
-errors — the ambient shell may have it exported, `Remove-Item
-Env:\PYTHONIOENCODING` first).
+be consciously audited into the allowlist, and any `passable_for`
+pathfind must start at `marshal.location`. **Slice 13's review round
+already gave the movement law to three census-invisible relocation
+seams** — the bare-`attack` move-toward arm (combat_executor), the
+explicit-destination retreat and the 2-tile cavalry connector
+(movement_executor) — so slice 17's WO-24 scope is the CHARGE/auto-charge
+advance family only; do not re-fix or double-build those three. The
+G2(b) shelf decision stands (1b addendum — read it before touching
+anything funnel-adjacent); the playtest driver is deterministic (Mode
+A/mock) and `--archive` is the citation rule (`docs/PLAYTESTING.md`);
+never set `PYTHONIOENCODING` when running the tests (it fakes 6
+subprocess-test errors — the ambient shell may have it exported,
+`Remove-Item Env:\PYTHONIOENCODING` first).

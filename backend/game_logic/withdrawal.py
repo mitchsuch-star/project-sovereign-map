@@ -223,6 +223,10 @@ def _corridor_is_for(world, nation: str, location: str) -> bool:
 def revoke_evacuation_grant(world, nation_a: str, nation_b: str) -> bool:
     """§3.4: a peace instrument cannot outlive the peace.  Called when the
     pair re-enters WAR."""
+    # WO-17 review round: the war just resumed one frame ago — drop any
+    # direction verdicts warmed under the peace (same reasoning as the
+    # flush in `open_evacuation_corridor`, mirrored).
+    world._evac_direction_cache = None
     grants = getattr(world, "evacuation_grants", None)
     if not grants:
         return False
@@ -475,6 +479,18 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
         return {}
     if nation_a == nation_b:
         return {}
+
+    # WO-17 review round [F3]: the diplomatic state changed one frame ago,
+    # and the routing below reads the direction cache through
+    # `find_path(passable_for=…)`. The `set_diplomatic_state` chokepoint's
+    # own flush runs AFTER this function returns, so a verdict warmed under
+    # the pre-peace geometry (the enclave read "connected home through
+    # war-passable soil") would deny the freshly-stranded corps its own
+    # corridor during order issuance — measured: the road-home order
+    # shipped with an EMPTY path (self-healing on the first strategic tick,
+    # but the beat and the ledger row showed a road with no route). Flush
+    # first, so issuance and every later reader see post-peace geometry.
+    world._evac_direction_cache = None
 
     marching: List[Dict] = []
     cut_off: List[Dict] = []

@@ -468,11 +468,24 @@ class MovementExecutor:
             intermediate = None
             blocked_intermediate = None
             naval_blocked_leg = None
+            closed_intermediate = None
             for adj_name in current_region.adjacent_regions:
                 adj_region = world.get_region(adj_name)
                 if adj_region and target_name in adj_region.adjacent_regions:
                     if world.get_enemies_in_region(adj_name, marshal.nation):
                         blocked_intermediate = adj_name
+                        continue
+                    # WO-17 review round: the MOVEMENT LAW applies to the
+                    # CONNECTOR too — a 2-tile hop was transiting a truce
+                    # partner's sovereign soil unchecked (and could seed a
+                    # fresh corps into the nation's own cut-off enclave,
+                    # re-arming the corridor for a corps the war never
+                    # stranded). Mover-aware: a stranded corps's corridor
+                    # transit still passes.
+                    if not world._region_passable_for(
+                            adj_name, marshal.nation,
+                            mover_location=marshal.location):
+                        closed_intermediate = adj_name
                         continue
                     # DEF-5 §4.1: BOTH legs of a 2-tile hop must clear the
                     # crossing gate — a cavalry hop cannot skip the Channel.
@@ -496,6 +509,19 @@ class MovementExecutor:
                         "message": naval_blocked_leg["message"],
                         "blocked_naval": naval_blocked_leg["coverer"],
                         "naval_ratio": naval_blocked_leg["ratio"],
+                    }
+                if (closed_intermediate and not blocked_intermediate):
+                    closed_region = world.get_region(closed_intermediate)
+                    closed_controller = getattr(closed_region, "controller",
+                                                None) or "a neutral court"
+                    return {
+                        "success": False,
+                        "message": (
+                            f"The route from {marshal.location} to "
+                            f"{target_name} crosses {closed_intermediate} — "
+                            f"{closed_controller} soil, and the frontier is "
+                            f"closed. The peace grants us no passage."),
+                        "blocked_diplomatic": closed_controller,
                     }
                 if blocked_intermediate:
                     return {
@@ -1046,12 +1072,27 @@ class MovementExecutor:
                     if m.nation != marshal.nation and m.strength > 0
                     and world.is_at_war(marshal.nation, m.nation)
                 ]
+                from backend.game_logic.diplomacy import can_enter_territory
                 from backend.game_logic.naval import crossing_allowed
                 if enemies_there:
                     reason = f"enemy forces under {enemies_there[0].name} hold it"
                 elif (controller is not None and controller != marshal.nation
                         and world.is_at_war(marshal.nation, controller)):
                     reason = f"it is {controller}-held soil and we are at war"
+                elif (controller is not None and controller != marshal.nation
+                        and not can_enter_territory(
+                            world, marshal.nation, controller,
+                            mover_location=marshal.location)):
+                    # WO-17 review round: the stated destination obeys the
+                    # MOVEMENT LAW (PC15-D1) — the doctrine scan above it
+                    # already skips a neutral court's soil, but this arm
+                    # accepted it, so "retreat to <truce province>" stood a
+                    # fresh corps on PEACE/ARMISTICE sovereign soil. The
+                    # predicate is mover-aware: a genuinely stranded corps
+                    # retreating homeward across corridor soil still passes.
+                    reason = (f"it is {controller}-held soil and the "
+                              f"frontier is closed — the peace grants us "
+                              f"no entry")
                 elif (getattr(world, "fleets", None)
                       and not crossing_allowed(world, marshal.nation,
                                                marshal.location, stated_name)):
