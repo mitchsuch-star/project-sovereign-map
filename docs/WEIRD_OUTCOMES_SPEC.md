@@ -1493,7 +1493,18 @@ toggling has no positive arm.
 
 **Order = the eval's §5 ranking, extended by this spec's additions:** 1 → 1b
 → 2 → 3 → **13** → 4 → 5 → 6 → 7 → 8 → **15 → 16** → 9 → 10 → **17** → 11 →
-12 → **14** (~13 sessions to the line; the eval's ~10 plus the hunt
+12 → **14**
+
+> **AMENDED TWICE BY USER DIRECTION, August 21, 2026, and the amendments
+> are recorded rather than absorbed.** (a) **Slice 7 was taken early**
+> (*"make cabinet door so diplo only works through ui"*) — nothing in
+> 4/5/6 blocked it and it was already sequenced before 11, so only its
+> own position moved. (b) **Slices 15 and 16 are lifted ahead of 4/5/6/8**
+> on the reasoning that the two remaining hand-verified P1s should clear
+> before the legibility and copy work. Realised order so far: 1 → 1b → 2
+> → 3 → 13 → 7 → **15 → 16** → 4 → 5 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14.
+> The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and
+> has), and 4 before 12 for the shared dispatch files. (~13 sessions to the line; the eval's ~10 plus the hunt
 slices). Slice 13 rides high because it is a P1 exploit on a days-old
 system (WIN-D3, Aug 16) whose pins are freshest now; 15/16 carry the
 other two hand-verified P1s; 14 is cleanup-tier. Slices 2–17 do NOT depend

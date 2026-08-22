@@ -4,7 +4,7 @@
 
 ## ▶ NEXT UP
 
-> # ✅ WO SLICE 7 "THE CABINET IS THE ONLY DOOR" LANDED — August 21, 2026 (user-directed, out of §5 order). **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 7, authoritative; BUG_FIXES §WO rows WO-4 and WO-5 → CLOSED BY RULING. ▶ NEXT = slice 4, WO-D6 "The Capital Speaks" + WO-11.**
+> # ✅ WO SLICE 7 "THE CABINET IS THE ONLY DOOR" LANDED — August 21, 2026 (user-directed, out of §5 order). **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 7, authoritative; BUG_FIXES §WO rows WO-4 and WO-5 → CLOSED BY RULING. ▶ NEXT = slice 15 "The Capture Question Holds" (P1 WO-22 + four siblings), then slice 16 "The Objection Channel Pays Honestly" (P1 WO-21 + WO-23) — **the two remaining hand-verified P1s were pulled ahead of the legibility slices 4/5/6/8 by user direction August 21, 2026**, on the same reasoning that moved slice 7. Prompt = `docs/NEXT_SESSION_PROMPT.md`.**
 >
 > **The ruling (WO-D2/G1) lands: matters of state are conducted at the
 > table.** A typed diplomatic order is redirected in character on the ONE
