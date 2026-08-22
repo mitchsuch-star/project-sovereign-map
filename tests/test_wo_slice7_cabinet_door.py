@@ -18,14 +18,28 @@ mock parser's own diplomatic funnel, so this file re-executes the
 mirror's trivial rules against BOTH sources and reds the moment they
 diverge:
 
-  (a) every mock-parser-reachable diplomatic action id is either claimed
-      by the client's family lists or sits in the documented exclusion
-      set (measured by parsing a real utterance per action id, not by
-      reading the lists);
+  (a) every diplomatic action id in the SINGLE SOURCE
+      (`validation.VALID_ACTIONS`) is either claimed by the client's
+      family lists or sits in the documented exclusion set — set
+      arithmetic over ids, so a NEW diplomatic verb forces a decision
+      here;
   (b) every golden-corpus utterance whose expected action is family-tier
       is claimed by a listed keyword — and every NON-diplomatic corpus
       utterance is NOT (the false-positive census over all 333 rows,
-      which is what never-do 15 actually asks for).
+      which is what never-do 15 actually asks for);
+  (c) `TestTheMirrorAgreesWithTheParser` — candidate sentences are fed to
+      the REAL mock parser and the mirror must agree with the action it
+      actually returns.
+
+**(c) was missing at first, and its absence is why a review round found
+eight defects that all passed 30/30.** (a) compares id strings and (b)
+compares against 333 pre-written rows, so between them they can only
+catch a divergence somebody already thought to write down — never a
+phrasing that reaches a diplomatic executor without being claimed, which
+is the one failure mode "the Cabinet is the only door" is exposed to.
+The docstring here originally claimed (a) worked "by parsing a real
+utterance per action id"; it did not, and saying so was the defect that
+hid the rest. Reproduced by (c) on its first run: seventeen leaks.
 """
 
 from __future__ import annotations
@@ -103,6 +117,14 @@ def _row_class(row: dict) -> str:
     expected = row.get("expected") or {}
     diplo = expected.get("diplo") or {}
     action = expected.get("action") or diplo.get("action")
+    # A PARSE-NEG row asserts what must NOT happen. For a negated
+    # DIPLOMATIC sentence the Cabinet's shut door satisfies that more
+    # strongly than a refusal does (nothing executes either way), and
+    # after the review round it is what actually happens — see
+    # `test_a_negated_diplomatic_order_is_claimed_like_any_other`.
+    not_action = str(expected.get("not_action") or "")
+    if not_action:
+        return "order" if not_action.startswith("diplomatic") else "read_only"
     if action in EXCLUDED_ACTIONS:
         return "read_only"
     if action in FAMILY_ACTIONS:
@@ -146,7 +168,8 @@ def lists(gd) -> dict:
         "address_exempt": _extract_gd_list(
             "DIPLO_ADDRESS_EXEMPT_WORDS", gd),
         "advisory_starts": _extract_gd_list("DIPLO_ADVISORY_STARTS", gd),
-        "negation": _extract_gd_list("DIPLO_NEGATION_MARKERS", gd),
+        "autonomy_verbs": _extract_gd_list("DIPLO_AUTONOMY_VERBS", gd),
+        "autonomy_levels": _extract_gd_list("DIPLO_AUTONOMY_LEVELS", gd),
     }
 
 
@@ -180,7 +203,7 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
     lower = command.lower().strip()
     if not lower:
         return ""
-    if "_" in lower:
+    if " " not in lower and "_" in lower:
         return ""
     # Advisory question guard.
     if lower.endswith("?"):
@@ -192,10 +215,6 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
     words = body.split()
     if words and words[0] in lists["advisory_starts"]:
         return ""
-    # PARSE-NEG owns a negated sentence.
-    for marker in lists["negation"]:
-        if marker in lower:
-            return ""
     # No-home verbs first — precedence mirrors the parser's own.
     for keyword in lists["no_home"]:
         if keyword in lower:
@@ -205,6 +224,13 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
             return "war_room"
     for keyword in lists["family"]:
         if keyword in lower:
+            return "cabinet"
+    if _has_word(lower, "court") and "court martial" not in lower:
+        return "cabinet"
+    for verb in lists["autonomy_verbs"]:
+        if not _has_word(lower, verb):
+            continue
+        if any(_has_word(lower, lvl) for lvl in lists["autonomy_levels"]):
             return "cabinet"
     for prefix in lists["nation_gated"]:
         at = lower.find(prefix)
@@ -223,13 +249,27 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
         if ("cede " in lower or "grant " in lower) and any(
                 (" to " + form) in lower for form in forms):
             return "cabinet"
-    comma = lower.find(",")
-    if 0 <= comma <= 30 and any(n in lower[:comma]
-                                for n in lists["address_names"]):
+    if any(_has_word(lower, n) for n in lists["address_names"]):
         if any(w in lower for w in lists["address_exempt"]):
             return ""
         return "cabinet"
     return ""
+
+
+def _has_word(text: str, word: str) -> bool:
+    """Mirror of the client's `_contains_word` — a boundary-aware find,
+    where a boundary is anything that is not a letter or digit."""
+    start = 0
+    while True:
+        at = text.find(word, start)
+        if at < 0:
+            return False
+        before = at == 0 or not text[at - 1].isalnum()
+        end = at + len(word)
+        after = end >= len(text) or not text[end].isalnum()
+        if before and after:
+            return True
+        start = at + 1
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -335,20 +375,43 @@ class TestTheCorpusCensus:
             f"underspecified rows got the wrong verdict: "
             f"{ {k: v for k, v in actual.items() if expected_verdicts[k] != v} }")
 
-    def test_a_negated_order_reaches_parse_neg(self, corpus, lists,
-                                               nation_forms):
-        """The census's own find: `don't declare war on Austria` was
-        being answered with a Cabinet pointer. Both paths execute
-        nothing — so this is not a safety question but a question of
-        which voice answers, and PARSE-NEG's clause guards refuse it by
-        name. The redirect yields."""
+    def test_a_negated_diplomatic_order_is_claimed_like_any_other(
+            self, corpus, lists, nation_forms):
+        """CONSCIOUS REVERSAL, recorded in the landing record.
+
+        This slice first exempted negated sentences so PARSE-NEG's clause
+        guards could keep `don't declare war on Austria` — on the
+        reasoning that both paths execute nothing, so only the VOICE
+        differed. The review round proved the reasoning right and the
+        MECHANISM wrong: the exemption was a substring bail, so
+        `declare war on Prussia WITHOUT delay` bailed past the Cabinet
+        into a real war declaration (the guards blank the adverbial
+        clause and issue the order). A door with a wildcard in it is not
+        a door, so the exemption is gone and a negated diplomatic
+        sentence is claimed like any other — nothing executes either way.
+
+        PARSE-NEG keeps every MILITARY negation, which is its actual
+        domain; that is asserted here too, because it is the half that
+        must not have moved."""
         rows = [r for r in corpus
                 if (r.get("expected") or {}).get("not_action")]
         assert rows, "the corpus lost its PARSE-NEG rows — pin is blind"
+        diplomatic = [r for r in rows
+                      if str((r.get("expected") or {}).get("not_action", ""))
+                      .startswith("diplomatic")]
+        assert diplomatic, "no negated DIPLOMATIC row to reason about"
+        for row in diplomatic:
+            assert _redirect_verdict(
+                row["utterance"], lists, nation_forms) == "cabinet", (
+                f"a negated diplomatic order must still meet a shut door: "
+                f"{row['utterance']!r}")
         for row in rows:
+            if row in diplomatic:
+                continue
             assert _redirect_verdict(
                 row["utterance"], lists, nation_forms) == "", (
-                f"a negated order belongs to PARSE-NEG: {row['utterance']!r}")
+                f"a negated MILITARY order belongs to PARSE-NEG and must "
+                f"reach it untouched: {row['utterance']!r}")
 
     def test_the_no_home_verbs_are_never_intercepted(self, corpus, lists,
                                                      nation_forms):
@@ -407,9 +470,13 @@ DIPLOMATIC_ID_MARKERS = (
 
 
 class TestEveryDiplomaticVerbIsDisposed:
-    """Contract item 3(a), taken at the SINGLE SOURCE rather than by
-    sampling: every diplomatic action id in `VALID_ACTIONS` is either
-    claimed by the Cabinet or documented as excluded, with its reason."""
+    """Contract item 3(a): every diplomatic action id in `VALID_ACTIONS`
+    is either claimed by the Cabinet or documented as excluded, with its
+    reason. This is set arithmetic over ID STRINGS and nothing more — it
+    proves no phrasing reaches an undisposed verb, and it deliberately
+    proves nothing about whether a given SENTENCE is claimed. That is
+    `TestTheMirrorAgreesWithTheParser`'s job, and conflating the two is
+    what let eight leaks pass this file (see the module docstring)."""
 
     def test_no_diplomatic_action_is_undisposed(self):
         from backend.ai.validation import VALID_ACTIONS
@@ -725,3 +792,163 @@ class TestTheHelpTeachesTheDoor:
 
     def test_assess_is_still_taught_because_it_stays_typed(self, help_text):
         assert "assess" in help_text
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# THE REAL DRIFT PIN — parse it, do not read it
+# ══════════════════════════════════════════════════════════════════════════
+#
+# The review round's headline finding, and the reason the eight defects it
+# found all passed 30/30: the census above re-executes the mirror over 333
+# PRE-WRITTEN corpus utterances, so it can only ever catch a divergence
+# somebody already thought to write a corpus row for. It cannot catch a
+# phrasing that reaches a diplomatic action WITHOUT being claimed — which
+# is precisely the failure mode "the Cabinet is the only door" is exposed
+# to.
+#
+# This pin closes that: it feeds candidate sentences to the REAL mock
+# parser, reads the action it actually returns, and asserts the mirror's
+# verdict agrees. The candidates are generated from the parser's OWN
+# keyword surface plus the natural phrasings a player types, so a keyword
+# the mirror forgot to transcribe reds here instead of shipping.
+
+READ_ONLY_PARSE_ACTIONS = {
+    "diplomatic_advisory", "diplomatic_feasibility", "diplomatic_error",
+    "make_amends", "set_war_purpose", "repudiate_bargain",
+}
+DIPLOMATIC_PARSE_ACTIONS = FAMILY_ACTIONS | READ_ONLY_PARSE_ACTIONS
+
+
+@pytest.fixture(scope="module")
+def mock_parser():
+    from backend.ai.llm_client import LLMClient
+    return LLMClient(provider="mock")
+
+
+@pytest.fixture(scope="module")
+def parser_state(base_world):
+    """A game_state shaped like main.get_llm_game_state — the mock parser
+    derives its live nation forms from `enemies` + `map_data`, and without
+    them every nation-gated keyword ("invest in bavaria") parses cold."""
+    enemies = {}
+    for m in base_world.marshals.values():
+        if m.nation != base_world.player_nation and m.strength > 0:
+            enemies[m.name] = {"location": m.location, "nation": m.nation,
+                               "strength": int(m.strength)}
+    map_data = {name: {"controller": r.controller, "marshals": []}
+                for name, r in base_world.regions.items()}
+    marshals = {m.name: {"location": m.location, "strength": int(m.strength),
+                         "morale": int(m.morale)}
+                for m in base_world.get_player_marshals() if m.strength > 0}
+    return {"marshals": marshals, "enemies": enemies, "map_data": map_data}
+
+
+# Phrasings a player plausibly types, generated from the mock parser's own
+# keyword ladder rather than invented, so the list tracks the surface it
+# mirrors. The modal-opening and diplomat-mentioned groups are the review
+# round's findings, kept here as permanent regression fodder.
+CANDIDATE_SENTENCES = [
+    "declare war on Prussia", "go to war with Britain", "invade Prussia",
+    "issue ultimatum to Prussia", "send ultimatum to Austria",
+    "break treaty with Austria", "dissolve treaty with Prussia",
+    "downgrade relations with Saxony",
+    "propose peace with Prussia", "offer alliance to Austria",
+    "sue for peace with Austria", "make peace with Prussia",
+    "peace with Austria", "open borders with Saxony", "pact with Austria",
+    "Talleyrand, propose peace with Prussia",
+    "Talleyrand, demand peace from Prussia",
+    "Talleyrand, negotiate a ceasefire with Prussia",
+    "Talleyrand, make Saxony a protectorate",
+    "have Talleyrand propose peace to Austria",
+    "have Talleyrand declare war on Prussia",
+    "should we declare war on Prussia",
+    "will you declare war on Prussia",
+    "can we make peace with Austria",
+    "do declare war on Prussia",
+    "send the envoy to Bavaria",
+    "instruct the ambassador to seek an armistice with Austria",
+    "our minister will offer a truce to Prussia",
+    "tell Talleyrand to demand Silesia from Prussia",
+    "declare war on Prussia without delay",
+    "declare war on Prussia rather than wait",
+    "improve relations with Austria", "spy on Prussia",
+    "gather intel on Austria", "reassure Saxony", "court Prussia",
+    "Talleyrand, build rapport with Saxony",
+    "Talleyrand, sow discord between Prussia and Austria",
+    "vassalize Saxony", "invest in bavaria", "release naples",
+    "increase autonomy", "grant Holland autonomy",
+    "make Holland a puppet", "set Holland to satellite",
+    "turn Saxony into an autonomous state",
+    "cede tyrol to bavaria", "grant tyrol to bavaria",
+    "sponsor prussia against austria, 200 gold", "buy off prussia",
+    "bought off Prussia", "pay out Bavaria", "guarantee saxony",
+    "license prussia against austria",
+    "request terms from Austria", "settle with Austria",
+    # counsel and no-home verbs — must NOT be claimed
+    "Talleyrand, assess our situation", "Talleyrand, assess Austria",
+    "minister, assess Prussia",
+    "Talleyrand, what would it take to get peace with Prussia?",
+    "Talleyrand, where do we stand",
+    "make amends with Prussia", "set war purpose against Austria",
+    "repudiate the bargain with Austria",
+    "Talleyrand, attack Prussia",
+    # plainly not diplomacy — must NOT be claimed
+    "Ney, attack Kienmayer", "Davout, move to Bohemia",
+    "Soult, recruit troops", "Ney, fortify", "economy", "end turn",
+    "grant Ney a rente", "endow Ney with Swabia", "commission Grouchy",
+    "Murat, charge the guns",
+    "invest in defenses", "release the prisoners",
+    "court martial that coward",
+]
+
+
+class TestTheMirrorAgreesWithTheParser:
+    """The pin the review round proved was missing: PARSE the sentence,
+    then compare. A keyword the mirror never transcribed reds HERE."""
+
+    @staticmethod
+    def _verdicts(mock_parser, parser_state, lists, nation_forms):
+        out = []
+        for sentence in CANDIDATE_SENTENCES:
+            parsed = mock_parser._parse_with_mock(sentence, parser_state)
+            out.append((sentence, getattr(parsed, "action", None),
+                        _redirect_verdict(sentence, lists, nation_forms)))
+        return out
+
+    def test_the_candidate_set_actually_exercises_the_parser(
+            self, mock_parser, parser_state, lists, nation_forms):
+        """Guard against a vacuous pin: the candidates must really reach a
+        spread of diplomatic actions through the live parser."""
+        reached = {a for _, a, _ in self._verdicts(
+            mock_parser, parser_state, lists, nation_forms)
+        } & DIPLOMATIC_PARSE_ACTIONS
+        assert len(reached) >= 12, (
+            f"only {len(reached)} diplomatic actions reached: "
+            f"{sorted(reached)} — the candidate set has gone stale")
+
+    def test_every_parsed_diplomatic_order_is_claimed(
+            self, mock_parser, parser_state, lists, nation_forms):
+        """If the PARSER routes it to a Cabinet-owned action, the Cabinet
+        must claim it. The door being the only door, measured."""
+        leaks = [(s, a) for s, a, v in self._verdicts(
+            mock_parser, parser_state, lists, nation_forms)
+            if a in FAMILY_ACTIONS and not v]
+        assert leaks == [], (
+            f"typed sentences that still reach a diplomatic executor: {leaks}")
+
+    def test_counsel_and_homeless_verbs_are_never_claimed(
+            self, mock_parser, parser_state, lists, nation_forms):
+        over = [(s, a) for s, a, v in self._verdicts(
+            mock_parser, parser_state, lists, nation_forms)
+            if v and a in READ_ONLY_PARSE_ACTIONS]
+        assert over == [], (
+            f"the Cabinet claimed counsel or a homeless verb: {over}")
+
+    def test_non_diplomatic_orders_are_never_claimed(
+            self, mock_parser, parser_state, lists, nation_forms):
+        """never-do 15 against the live parser rather than the corpus."""
+        stolen = [(s, a) for s, a, v in self._verdicts(
+            mock_parser, parser_state, lists, nation_forms)
+            if v and a not in DIPLOMATIC_PARSE_ACTIONS]
+        assert stolen == [], (
+            f"the redirect stole a non-diplomatic order: {stolen}")

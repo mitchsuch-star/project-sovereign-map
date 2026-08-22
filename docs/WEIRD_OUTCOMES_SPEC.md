@@ -733,6 +733,181 @@ executor (§1 residual (c)) — the free `make_vassal` price itself is
 unchanged by ruling, and G1(a) remains the named layer-on-top if the user
 wants the price closed.
 
+> **✅ LANDED August 21, 2026 — landing record.** Taken OUT of §5 order at
+> the user's direction (*"make cabinet door so diplo only works through ui
+> typing it should tell you thematically to go to the table (screen) maybe
+> a link there"*); nothing in slices 4/5/6 blocks it, and slice 7 was
+> already sequenced before 11. Commit `96a37fe`.
+>
+> **The interception** is one call at the top of `_execute_command()`
+> (`main.gd`), below the redemption-token block per the §2 G1-9 placement
+> pin and hardened past it — ANY underscore token fails open, so a
+> redemption answer can never be claimed however it is phrased. Berthier
+> answers in voice (*"Matters of state are conducted at the table, Sire —
+> not by dispatch. Take your seat in the Cabinet and the courts of Europe
+> will answer."*) with a clickable **⚜ Take your seat at the table (F1)**
+> link on a new `cabinet:open` arm of `_on_output_meta_clicked`, opening
+> the wizard behind the same `_is_modal_dialog_open` guard F1 uses. It
+> costs nothing, sends nothing, and returns before `set_input_enabled`
+> ever fires, so the terminal stays live.
+>
+> **The list is a MIRROR of the mock parser's own diplomatic funnel, not a
+> second classifier — and that is the design, not a shortcut.** The CA9
+> through-line is two implementations of one rule drifting apart, so the
+> lists are transcribed from `llm_client._parse_command`'s keyword blocks
+> and the redirect therefore classifies a sentence EXACTLY as the backend
+> already would: a sentence the parser calls diplomacy is the sentence the
+> Cabinet claims. Substring semantics are mirrored deliberately (GDScript
+> `in` on a String is containment, as the parser's `any(kw in cmd)` is).
+> Precedence is mirrored too: the three no-home verbs are checked FIRST,
+> which is the only reason `set war purpose against Austria` — which
+> carries the war-declaration substring `war against ` — survives.
+>
+> **The slice's own corpus census changed the build three times, and each
+> correction is more interesting than the code:**
+> 1. **Keying family-tier on `expected.action` called 43 plainly
+>    diplomatic rows "non-diplomatic"** and duly reported the redirect for
+>    stealing them. 177 of the corpus's 333 rows carry no action id at
+>    all — a proposal row asserts `type: "diplomatic"` plus a `diplo`
+>    sub-dict instead. The census now classifies on
+>    `diplo.proposal_type`/`mission_type`, and the trap is recorded at the
+>    classifier for the next reader.
+> 2. **A whitelist of proposal nouns on the Talleyrand-address route let
+>    FOURTEEN ordinary orders through** — *"negotiate a ceasefire with
+>    Prussia"*, *"make Saxony a protectorate"*, *"sow discord between
+>    Prussia and Austria"*, *"build rapport with Saxony"*, *"convince
+>    Austria to join us"*. Synonym phrasings are exactly what a whitelist
+>    cannot enumerate, so the route **inverted**: the parser sends EVERY
+>    diplomat-addressed sentence into the funnel, so the Cabinet claims
+>    the whole route minus an EXEMPTION list (counsel verbs — claiming
+>    `assess` would make the rewritten help a liar, since it still teaches
+>    assess as spoken — and misdirected military verbs, because
+>    *"Talleyrand, attack Prussia"* already has a better answer than a
+>    Cabinet pointer).
+> 3. **`don't declare war on Austria` was being answered with a Cabinet
+>    pointer.** Both paths execute nothing, so this is not a safety
+>    question but a question of which voice answers — and PARSE-NEG's
+>    clause guards refuse it by name. The redirect yields to the
+>    specialist (`DIPLO_NEGATION_MARKERS`).
+>
+> **The wizard became complete enough to BE the only door.** ALLIANCE
+> gained its `propose_vassal` row — **live-verified: Bavaria boots at
+> ALLIANCE and the row now returns `available=True`**, so vassalizing an
+> ally had been unreachable while the acceptance seam allowed it all
+> along; `_proposal_action` consults the SAME `VASSAL_MIN_STATES` the
+> acceptance seam enforces, so emitter and executor cannot diverge again
+> (pinned by a both-ways test that removes ALLIANCE from the constant and
+> watches the row darken); the DPF-2 cancel row was hoisted to
+> `_cancel_mission_row()` and shared, so a mission opened against a court
+> that is LATER vassalized keeps its only cancel; and
+> `invest_in_vassal` refuses free at `LOYALTY_MAX` with the wizard row
+> mirroring the refusal. **Contract correction, measured live: the spec
+> says "two of three boot vassals sit at 100" — it is THREE of three**
+> (Holland, KingdomOfItaly, Switzerland, all 100/100), so the paid no-op
+> was the only invest the 1805 board offered on turn 1.
+>
+> **Item 8's third hole is DECIDED rather than left accidental:**
+> `mission_improve_relations` is deliberately absent in ALLIANCE
+> (REASSURE_ALLY is the ally-maintenance mission) and in WAR (you do not
+> court a belligerent — the armistice thaw and the settlement table are
+> the wartime levers), recorded at the branch.
+>
+> **Scope extension, recorded rather than smuggled:** the family table
+> blesses eleven verb heads, but the ruling's own words are *"the Cabinet
+> is the only door"* and the user's direction was *"diplo only works
+> through ui"* — so **break treaty / downgrade / ultimatum / cancel
+> mission / the settlement family are ALSO claimed**, every one of which
+> has a verified wizard or war-room home. Reversible by deleting list
+> entries; the drift pin will name whatever stops being claimed.
+>
+> **Verification:** `tests/test_wo_slice7_cabinet_door.py` (30) incl. the
+> two-directional 333-row census, the enumerated verdict for all eight
+> undecidable rows, the chip-pipeline bypass pin (§6 never-do 14), and a
+> pin that the tutorial's fifteen suggest chips — which FILL the command
+> line for the player to press Enter — carry nothing the Cabinet would
+> steal. R120's help pin (`test_diplo_refinement_wave1.py`) flipped
+> CONSCIOUSLY: it asserted the help teaches `propose` and `improve`, the
+> two verbs this ruling retires. **`BASELINE_SERIES` and M1–M7
+> byte-identical, proven by real subprocess AFTER the AI-shared invest
+> change** (the AI's P1.6 rung picks the LEAST loyal vassal, so the
+> ceiling is ambiently unreachable — measured, not assumed). Godot parse
+> harness EXIT=0. Backend half live-verified over HTTP on an isolated
+> port (the user's own session was live on 8005 and was not touched).
+> Suite **18,297/3**.
+>
+> **THE REVIEW ROUND (same day) — and its headline finding is about the
+> TEST, not the code.** The fleet crashed on a session limit after one of
+> seven lenses and zero refuters, so its verdict column is an artifact,
+> not a judgment; the surviving lens's nine findings were adjudicated by
+> hand and **all nine were real**. The one that mattered most: **the
+> drift pin never parsed anything.** It compared id strings and
+> re-executed the mirror over 333 pre-written corpus rows — between them
+> they can only catch a divergence somebody already thought to write
+> down, never a phrasing that reaches a diplomatic executor without being
+> claimed, which is the single failure mode this ruling is exposed to.
+> The file's own docstring claimed it worked "by parsing a real utterance
+> per action id"; it did not, and that sentence is what hid the rest.
+>
+> The fix is `TestTheMirrorAgreesWithTheParser`: candidate sentences go
+> through the REAL mock parser and the mirror must agree with the action
+> it actually returns. **On its first run it reproduced SEVENTEEN leaks**
+> — every one a sentence that would have reached a diplomatic executor
+> through the door this slice closed:
+> * **the modal openings** — `DIPLO_ADVISORY_STARTS` carried
+>   should/will/can/do/have/is, and a modal opens an ORDER at least as
+>   often as a question: *"have Talleyrand propose peace to Austria"*,
+>   *"do declare war on Prussia"*, *"should we declare war on Prussia"*
+>   (no question mark) all parse at 0.95 and SENT. Narrowed to wh-words,
+>   which cannot begin an order; anything else phrased as a question
+>   carries the mark, tested first.
+> * **the comma-scoped address route** — the parser's gate is the
+>   diplomat's name ANYWHERE, and *"send the envoy to Bavaria"*,
+>   *"instruct the ambassador to seek an armistice with Austria"*, *"our
+>   minister will offer a truce to Prussia"* and *"tell Talleyrand to
+>   demand Silesia from Prussia"* carry no comma address and no family
+>   keyword. Widened to match the parser, made safe by a new
+>   `_contains_word` boundary helper rather than a substring — the reason
+>   the route was narrow in the first place was that "administer"
+>   contains "minister".
+> * **the negation exemption I had added hours earlier** — a substring
+>   bail, so *"declare war on Prussia WITHOUT delay"* bailed past the
+>   Cabinet into a real war declaration. **The reasoning was right and
+>   the mechanism was wrong**: a door with a wildcard in it is not a
+>   door. The exemption is DELETED and negated diplomatic sentences are
+>   claimed like any other (nothing executes either way); PARSE-NEG keeps
+>   every military negation, which is its actual domain, and the census
+>   now pins both halves.
+> * **`change_autonomy`'s second arm** — the parser also routes
+>   (make|set|turn) + (puppet|satellite|autonomous), and *"autonomous"
+>   does not contain "autonomy"*, so *"make Holland a puppet"* changed a
+>   boot vassal's autonomy through the closed door.
+> * **`court`** — nation-GATED in the client, bare-with-an-exception in
+>   the parser: *"court Bavaria's favour"* walked through on an
+>   apostrophe. Now the parser's own `\bcourt\b(?!\s+martial)` rule.
+> * **the underscore guard was a wildcard** (`declare war on Prussia_`
+>   walked through) — scoped to a single bare token, which is what the
+>   placement pin actually protects.
+> * plus `bought off` / `pay out`, two of the parser's six buy-off forms.
+>
+> **A second gap the Python pin cannot reach by construction — the
+> shipped GDScript is never executed by it — was closed by executing it:**
+> `tools/wo7_matcher_smoke.gd` instantiates `main.gd`'s script in a real
+> headless engine and calls the real predicates. **32/32**, including the
+> boundary cases the new helper exists for (court martial excluded,
+> administer ≠ minister, the possessive apostrophe).
+>
+> **One finding is structural and is recorded as a residual rather than
+> fixed:** the mirror mirrors the MOCK parser, so in live-LLM mode a
+> sentence the fast parser scores below 0.7 escalates to a model that is
+> explicitly taught the diplomatic action set. That is spec §1 residual
+> (c) — "live-parser synonym phrasings can still reach the free executor"
+> — now with a named mechanism. Closing it needs a backend-side gate
+> (G1(a)), which the ruling records as the named layer-on-top.
+>
+> ⚠ **OPEN: the client-side redirect is owed a visual sign-off** — the
+> Berthier line, the link, and the wizard opening from it have not been
+> seen on screen by a human.
+
 ### Slice 8 — "The Panel States Its Terms" (WO-D1-A + WO-D4-A + G3, est 1.5)
 
 **Scope.** The muster preview quotes the supply arithmetic and G3's sentence;

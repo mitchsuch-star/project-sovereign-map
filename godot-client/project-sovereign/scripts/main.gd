@@ -1520,7 +1520,30 @@ const DIPLO_FAMILY_KEYWORDS = [
 const DIPLO_NATION_GATED_PREFIXES = [
 	"invest in ",
 	"release ",
-	"court ",
+]
+
+# Mirrors the parser's `\bcourt\b(?!\s+martial)` (llm_client) — the word
+# anywhere, with no nation requirement. It was a nation-GATED prefix in
+# the first cut, which required the court's name to sit immediately after
+# the verb; the review round found *"court Bavaria's favour"* walking
+# through on an apostrophe. The martial exception is the parser's own.
+const DIPLO_COURT_WORD = "court"
+const DIPLO_COURT_EXCEPTION = "court martial"
+
+# Mirrors the parser's SECOND change_autonomy arm — (make|set|turn) plus
+# a level name. The first cut carried only the word "autonomy", and
+# "autonomous" does not contain "autonomy", so *"make Holland a puppet"*,
+# *"set Holland to satellite"* and *"turn Saxony into an autonomous
+# state"* all executed on a boot vassal.
+const DIPLO_AUTONOMY_VERBS = [
+	"make",
+	"set",
+	"turn",
+]
+const DIPLO_AUTONOMY_LEVELS = [
+	"puppet",
+	"satellite",
+	"autonomous",
 ]
 
 # Gated on a named court ANYWHERE in the sentence — mirrors the
@@ -1537,7 +1560,10 @@ const DIPLO_NATION_ANYWHERE_KEYWORDS = [
 	"licence",
 	"buy off",
 	"buy out",
+	"bought off",
+	"bought out",
 	"pay off",
+	"pay out",
 ]
 
 # The address route. The parser sends ANY diplomat-addressed sentence
@@ -1585,46 +1611,39 @@ const DIPLO_ADDRESS_EXEMPT_WORDS = [
 	"defend",
 ]
 
-# PARSE-NEG owns a negated sentence, and owns it better: "don't declare
-# war on Austria" must reach the backend's clause guards, which refuse it
-# by name. Both paths execute nothing, so this is not a safety question —
-# it is about which voice answers, and the specialist has the clearer
-# line. Found by this slice's own corpus census.
-const DIPLO_NEGATION_MARKERS = [
-	"don't ",
-	"dont ",
-	"do not ",
-	"never ",
-	"no longer ",
-	"rather than ",
-	"instead of ",
-	"without ",
-]
+# THE NEGATION EXEMPTION IS DELETED, and the reversal is recorded rather
+# than quietly dropped. This slice first added one so PARSE-NEG's clause
+# guards — which refuse "don't declare war on Austria" by name — would
+# keep that sentence, on the reasoning that both paths execute nothing so
+# only the VOICE differed. The review round proved the reasoning right
+# and the mechanism wrong: a substring bail is a wildcard, and
+# "declare war on Prussia WITHOUT delay" bailed straight past the Cabinet
+# into a real war declaration (the guards blank the adverbial clause and
+# issue the order). A door with a wildcard in it is not a door. So a
+# negated diplomatic sentence is claimed like any other — nothing
+# executes either way — and PARSE-NEG keeps every MILITARY negation
+# ("Ney, don't attack"), which is its actual domain and is untouched
+# here: no family keyword, no diplomat address, fail-open.
 
 # A question is counsel, not an order (the contract's read-only
 # exclusion) — "Talleyrand, what would it take to get peace with
 # Prussia?" carries a family keyword and must still reach Talleyrand.
+# WH-WORDS ONLY, and that restriction is load-bearing. The first cut
+# also carried the modals and auxiliaries (should/will/can/do/have/is…)
+# and the review round proved every one of them a hole: a modal opens an
+# ORDER at least as often as a question — "have Talleyrand propose peace
+# to Austria", "do declare war on Prussia", "should we declare war on
+# Prussia" (no question mark) all parse at confidence 0.95 and SEND. A
+# wh-word cannot begin an order, so only those exempt; anything else
+# phrased as a question carries the question mark, which is tested first.
 const DIPLO_ADVISORY_STARTS = [
 	"what",
 	"how",
 	"where",
 	"who",
+	"whom",
 	"why",
 	"which",
-	"should",
-	"shall",
-	"can",
-	"could",
-	"would",
-	"will",
-	"is",
-	"are",
-	"am",
-	"do",
-	"does",
-	"did",
-	"have",
-	"has",
 ]
 
 func _redirect_diplomatic_command(command: String) -> bool:
@@ -1643,19 +1662,16 @@ func _redirect_diplomatic_command(command: String) -> bool:
 	if lower.is_empty():
 		return false
 
-	# The redemption tokens and any other underscore answer are answers,
-	# not sentences — the placement pin (§2 G1-9) in its strongest form.
-	if "_" in lower:
+	# The redemption tokens are ANSWERS, not sentences (§2 G1-9). Scoped
+	# to a single bare token: the first cut bailed on an underscore
+	# ANYWHERE, which the review round showed was a wildcard — "declare
+	# war on Prussia_" walked through the door untouched.
+	if (not (" " in lower)) and "_" in lower:
 		return false
 
 	# Counsel is not an order.
 	if _is_advisory_question(lower):
 		return false
-
-	# A negated sentence belongs to PARSE-NEG's clause guards.
-	for marker in DIPLO_NEGATION_MARKERS:
-		if marker in lower:
-			return false
 
 	# The no-home verbs keep their typed route, checked FIRST exactly as
 	# the parser checks them first.
@@ -1695,6 +1711,17 @@ func _matches_cabinet_family(lower: String) -> bool:
 	for keyword in DIPLO_FAMILY_KEYWORDS:
 		if keyword in lower:
 			return true
+	# The courting mission, on the parser's own word-with-exception rule.
+	if _contains_word(lower, DIPLO_COURT_WORD) \
+			and not (DIPLO_COURT_EXCEPTION in lower):
+		return true
+	# The autonomy change stated by LEVEL rather than by the word.
+	for verb in DIPLO_AUTONOMY_VERBS:
+		if not _contains_word(lower, verb):
+			continue
+		for level in DIPLO_AUTONOMY_LEVELS:
+			if _contains_word(lower, level):
+				return true
 	for prefix in DIPLO_NATION_GATED_PREFIXES:
 		var at := lower.find(prefix)
 		if at >= 0 and _names_a_nation(lower.substr(at + prefix.length())):
@@ -1715,18 +1742,47 @@ func _matches_cabinet_family(lower: String) -> bool:
 	return false
 
 func _is_diplomat_addressed(lower: String) -> bool:
-	"""True when the sentence OPENS by addressing the foreign minister —
-	scoped to the text before the first comma so prose that merely
-	mentions him ("the treaty Talleyrand signed") is not an order, and
-	so "administer" can never be read as "minister"."""
-	var comma := lower.find(",")
-	if comma < 0 or comma > 30:
-		return false
-	var address := lower.substr(0, comma)
+	"""True when the sentence names the foreign minister ANYWHERE — the
+	parser's own gate (`any(name in command_lower for name in
+	_diplomat_names)`), mirrored.
+
+	The first cut scoped this to the text before an early comma, and the
+	review round measured what that cost: *"send the envoy to Bavaria"*,
+	*"instruct the ambassador to seek an armistice with Austria"*,
+	*"our minister will offer a truce to Prussia"* and *"tell Talleyrand
+	to demand Silesia from Prussia"* all parse as proposals at 0.95 and
+	SENT, because none of them opens with a comma address. Matching on a
+	WORD rather than a substring is what makes the wider rule safe —
+	"administer" is not the minister."""
 	for name in DIPLO_ADDRESS_NAMES:
-		if name in address:
+		if _contains_word(lower, name):
 			return true
 	return false
+
+func _contains_word(text: String, word: String) -> bool:
+	"""Substring search with word boundaries — the `\\bword\\b` the parser
+	gets from `re`, which GDScript's `in` does not give. Boundaries are
+	anything that is not a letter or a digit, so possessives, commas and
+	full stops all bound a word ("court Bavaria's favour" contains the
+	word "court"; "courtier" and "administer" do not contain theirs)."""
+	var from_index := 0
+	while true:
+		var at := text.find(word, from_index)
+		if at < 0:
+			return false
+		var before_ok := at == 0 or not _is_word_char(text[at - 1])
+		var after := at + word.length()
+		var after_ok := after >= text.length() or not _is_word_char(text[after])
+		if before_ok and after_ok:
+			return true
+		from_index = at + 1
+	return false
+
+func _is_word_char(character: String) -> bool:
+	return character.length() == 1 and (
+		(character >= "a" and character <= "z")
+		or (character >= "A" and character <= "Z")
+		or (character >= "0" and character <= "9"))
 
 func _nation_forms() -> Array:
 	"""Every known court as tag + display-name lowercase forms, built once."""

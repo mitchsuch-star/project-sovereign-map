@@ -4,7 +4,104 @@
 
 ## ▶ NEXT UP
 
-> # ✅ WO SLICE 13 "THE CORRIDOR HAS A DIRECTION" LANDED — August 21, 2026. **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 13, authoritative; BUG_FIXES §WO row WO-17 → FIXED. ▶ NEXT = slice 4, WO-D6 "The Capital Speaks" + WO-11 (`docs/NEXT_SESSION_PROMPT.md`).**
+> # ✅ WO SLICE 7 "THE CABINET IS THE ONLY DOOR" LANDED — August 21, 2026 (user-directed, out of §5 order). **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 7, authoritative; BUG_FIXES §WO rows WO-4 and WO-5 → CLOSED BY RULING. ▶ NEXT = slice 4, WO-D6 "The Capital Speaks" + WO-11.**
+>
+> **The ruling (WO-D2/G1) lands: matters of state are conducted at the
+> table.** A typed diplomatic order is redirected in character on the ONE
+> path player-typed text travels — Berthier names the Cabinet, a clickable
+> **⚜ Take your seat at the table (F1)** link opens the wizard behind the
+> same modal guard F1 uses, and **nothing is sent and nothing is spent**.
+> The redirect sits below the redemption block and is hardened past the
+> placement pin (any underscore token fails open).
+>
+> **The redirect list is a deliberate MIRROR of the mock parser's own
+> diplomatic funnel, not a second classifier** — the CA9 through-line is
+> two implementations of one rule drifting apart, so a sentence the parser
+> calls diplomacy is the sentence the Cabinet claims, substring semantics
+> and no-home precedence included (which is the only reason `set war
+> purpose against Austria`, carrying the substring `war against `,
+> survives). Fail-open everywhere; the chip pipelines bypass by
+> construction and the region panel already routed its diplomacy to the
+> wizard.
+>
+> **The slice's own 333-row corpus census changed the build three times,
+> and the corrections are the interesting part:** keying family-tier on
+> `expected.action` called **43 plainly diplomatic rows "non-diplomatic"**
+> (177 corpus rows carry no action id at all); a whitelist of proposal
+> nouns on the Talleyrand-address route let **FOURTEEN ordinary orders
+> through** (*"negotiate a ceasefire"*, *"make Saxony a protectorate"*,
+> *"sow discord between Prussia and Austria"* — synonym phrasings are
+> exactly what a whitelist cannot enumerate), so the route **inverted** to
+> an exemption list; and **`don't declare war on Austria` was being
+> answered with a Cabinet pointer** — both paths execute nothing, so it is
+> not a safety question but a question of which voice answers, and the
+> redirect now yields to PARSE-NEG's clause guards.
+>
+> **The wizard became complete enough to BE the only door:** ALLIANCE
+> gained `propose_vassal` (**live-verified — Bavaria boots at ALLIANCE and
+> the row now returns `available=True`**, so vassalizing an ally had been
+> unreachable while the acceptance seam allowed it); `_proposal_action`
+> now consults the SAME `VASSAL_MIN_STATES` the acceptance seam enforces
+> (pinned both ways); the DPF-2 cancel row is shared so a mission against a
+> LATER-vassalized court keeps its only cancel; and investing at full
+> loyalty refuses and charges nothing — **contract correction, measured
+> live: THREE of three boot vassals sit at 100/100, not the two the spec
+> claimed**, so the paid no-op was the only invest the board offered on
+> turn 1. `mission_improve_relations`'s absence in WAR/ALLIANCE is now
+> DECIDED and recorded rather than accidental.
+>
+> **Scope extension recorded, not smuggled:** the blessed family table
+> lists eleven heads, but the ruling's own words are "the only door" — so
+> break treaty / downgrade / ultimatum / cancel mission / the settlement
+> family are also claimed, each with a verified UI home.
+>
+> **WO-4 and WO-5 are CLOSED BY RULING**: the typed dead-ends (you could
+> not declare war by typing; "end the war" offered to start one, via the
+> `"war on "` substring) are retired rather than repaired — the player who
+> asks for peace in plain English is now pointed at the table.
+>
+> **The review round's headline is about the TEST, not the code.** The
+> fleet crashed on a session limit after one of seven lenses and zero
+> refuters — its verdict column is an artifact, not a judgment — and its
+> nine findings, adjudicated by hand, were **all real**. The one that
+> mattered: **the drift pin never parsed anything.** It compared id
+> strings and re-ran the mirror over 333 pre-written corpus rows, so it
+> could only ever catch a divergence somebody had already written down —
+> never a phrasing that reaches a diplomatic executor without being
+> claimed, which is the one failure mode this ruling is exposed to. Its
+> own docstring claimed it worked "by parsing a real utterance per action
+> id"; it did not, and that sentence is what hid the rest. The fix
+> (`TestTheMirrorAgreesWithTheParser` — feed candidates to the REAL mock
+> parser, compare against the action it actually returns) **reproduced
+> SEVENTEEN leaks on its first run**: the modal openings (*"have
+> Talleyrand propose peace to Austria"*, *"do declare war on Prussia"* —
+> a modal opens an ORDER as often as a question), the comma-scoped
+> address route (*"send the envoy to Bavaria"*, *"our minister will offer
+> a truce to Prussia"*), `change_autonomy`'s puppet/satellite arm
+> (*"autonomous"* does not contain *"autonomy"*), `court` on an
+> apostrophe, two of six buy-off forms, an underscore wildcard — **and
+> the negation exemption I had added hours earlier**, a substring bail
+> through which *"declare war on Prussia WITHOUT delay"* reached a real
+> war declaration. That reasoning was right and the mechanism was wrong;
+> a door with a wildcard in it is not a door, so the exemption is deleted
+> and the reversal is recorded. A second gap the Python pin cannot reach
+> by construction — it never executes the shipped GDScript — was closed
+> by executing it: `tools/wo7_matcher_smoke.gd` runs the real predicates
+> in a headless engine, **32/32**, boundary cases included.
+>
+> `tests/test_wo_slice7_cabinet_door.py` (34) incl. the two-directional
+> census, an enumerated verdict for all eight undecidable rows, the
+> chip-bypass pin, and a pin that the tutorial's fifteen suggest chips
+> (which FILL the command line) carry nothing the Cabinet would steal.
+> R120's help pin flipped consciously. **`BASELINE_SERIES` + M1–M7
+> byte-identical, proven by real subprocess after the AI-shared invest
+> change**; Godot parse harness EXIT=0; backend half live-verified over
+> HTTP on an isolated port (the user's live 8005 session untouched). Suite
+> **18,297/3**. ⚠ **the client-side redirect is owed a visual sign-off.**
+>
+> ---
+>
+> # ✅ WO SLICE 13 "THE CORRIDOR HAS A DIRECTION" LANDED — August 21, 2026. **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 13, authoritative; BUG_FIXES §WO row WO-17 → FIXED.**
 >
 > **Slice 13 — WO-17 the Trojan Corridor P1.** The WIN-D3 evacuation grant
 > is no longer direction-less: `can_enter_territory` gains `mover_location`
