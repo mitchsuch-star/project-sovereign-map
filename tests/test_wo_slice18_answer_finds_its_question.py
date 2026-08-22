@@ -105,8 +105,14 @@ def _strategic_objection(marshal="Davout", target="Ney"):
         ],
         "original_command": {"marshal": marshal, "action": "support",
                              "target": target},
+        # The raise site stores the parser's FULL result here
+        # (`parsed_command.copy()`), which carries strategic_type at its own
+        # top level — the insist re-execution reads it from THIS dict, not
+        # from the objection's. Model the real shape or the re-executed
+        # order is typeless.
         "parsed_command": {"command": {"marshal": marshal, "action": "support",
-                                       "target": target}},
+                                       "target": target},
+                           "strategic_type": "SUPPORT"},
         "strategic_type": "SUPPORT",
         "path": [],
         "target": target,
@@ -234,6 +240,54 @@ class TestWO38TheStrategicObjectionLapses:
                   if e.get("type") == "strategic_objection_lapsed"]
         kept = _filter_tactical_events_by_fog(lapses, world)
         assert kept == lapses, "the lapse line was fogged away"
+
+    def test_the_lapse_survives_the_objectors_death(self):
+        """Review round (fleet-confirmed): the enemy phase runs BEFORE
+        advance_turn, so the objector can be DESTROYED in the same end turn
+        that lapses his objection — `get_marshal` then returns None, and
+        without a nation key the fog filter's location-less drop arm
+        swallowed the telling in exactly the turn where the marshal AND the
+        question were both lost. The nation stamp keeps it via the filter's
+        direct-nation match, whatever the objector's fate.
+
+        Mutation: drop the `nation` key from the lapse event."""
+        from backend.commands.meta_executor import (
+            _filter_tactical_events_by_fog,
+        )
+        world = _world()
+        world.pending_strategic_objection = _strategic_objection("Davout")
+        with _suppress():
+            world.destroy_marshal("Davout", cause="battle")
+            world.advance_turn()
+        lapses = [e for e in world.get_last_tactical_events()
+                  if e.get("type") == "strategic_objection_lapsed"]
+        assert len(lapses) == 1, "the dead objector's slot did not lapse"
+        kept = _filter_tactical_events_by_fog(lapses, world)
+        assert kept == lapses, (
+            "the dead objector's lapse line was fogged away — the clear "
+            "became exactly the silent loss the event exists to prevent")
+
+    def test_the_lapse_reaches_the_morning_dispatch(self):
+        """Review round (fleet-confirmed): the terminal line is scrollback;
+        the dispatch's TURN EVENTS section is the re-readable boundary
+        record — and it dropped this event at TWO independent gates (the
+        `_DISPATCH_EVENT_TYPES` whitelist, and the nation-less discard).
+        The order_voided_by_battle precedent makes it a warning: a plan
+        the player made is gone.
+
+        Mutation: remove the type from `_DISPATCH_EVENT_TYPES`, or drop
+        the `nation` key from the event — either gate alone drops it."""
+        from backend.game_logic.dispatch import _build_turn_events
+        world = _world()
+        world.pending_strategic_objection = _strategic_objection("Davout")
+        with _suppress():
+            world.advance_turn()
+        lapses = [e for e in world.get_last_tactical_events()
+                  if e.get("type") == "strategic_objection_lapsed"]
+        rows = _build_turn_events(lapses, "France")
+        assert len(rows) == 1, "the dispatch dropped the lapse"
+        assert rows[0]["severity"] == "warning"
+        assert "lapses" in rows[0]["message"]
 
     def test_the_tactical_slot_is_not_lapsed(self):
         """DELIBERATE — the tactical objection blocks every command
@@ -378,15 +432,15 @@ class TestWO35TheInterruptSurvivesTheLoad:
             "buttonless modal — the memo's named soft-lock")
         assert not data.get("objection")
 
-    def test_a_restored_strategic_objection_still_reexecutes(self, saved):
-        """Memo hazard 6: a strategic objection stores `original_command` /
-        `parsed_command` which the answer path re-reads to re-execute —
-        pin that the ROUND-TRIPPED dict still drives the handler rather
-        than KeyError-ing on a lost field. (The dict shape is the raise
-        site's own key set; slice 16's tests bind that shape.)
+    def test_a_restored_strategic_objection_round_trips_and_declines(
+            self, saved):
+        """The round-trip half of memo hazard 6, answered on the TRUST arm
+        (which is the slice-16 decline-to-issue — it reads only
+        command-carried fields, honestly noted; the re-execution seam is
+        the INSIST test below). Binds that BOTH stored command dicts —
+        `original_command` AND `parsed_command` — survive the save intact.
 
-        Mutation: drop `original_command` from `to_dict`'s round-trip (any
-        serialization regression on the stored dict)."""
+        Mutation: drop either dict from the stored objection's round-trip."""
         client, m, tmp_path = saved
         m.world.pending_strategic_objection = _strategic_objection("Davout")
         self._save(m, tmp_path)
@@ -396,6 +450,10 @@ class TestWO35TheInterruptSurvivesTheLoad:
         restored = m.world.pending_strategic_objection
         assert restored is not None, "the slot did not round-trip"
         assert restored.get("original_command", {}).get("action") == "support"
+        assert (restored.get("parsed_command", {}).get("command", {})
+                .get("action")) == "support", (
+            "parsed_command was lost in the round-trip — the insist "
+            "re-execution would run typeless/empty")
         ex = CommandExecutor()
         with _suppress():
             result = ex.handle_objection_response(
@@ -403,6 +461,39 @@ class TestWO35TheInterruptSurvivesTheLoad:
         assert isinstance(result, dict) and "message" in result
         assert m.world.pending_strategic_objection is None, (
             "the restored objection could not be answered")
+
+    def test_a_restored_strategic_objection_reexecutes_on_insist(
+            self, saved):
+        """The re-execution half of memo hazard 6 (slice-18 review round —
+        the first cut of this pin only ever reached the decline arm, so the
+        seam that actually re-reads `parsed_command` was unbound). INSIST
+        maps to proceed, whose completion rebuilds the command from the
+        RESTORED `parsed_command` and issues the real StrategicOrder —
+        measured: Davout receives a SUPPORT order on Ney, typed from the
+        restored dict's own strategic_type.
+
+        Mutation: make the proceed arm rebuild from an empty dict (drop the
+        `parsed_command` re-read) — the order goes typeless and this reds."""
+        client, m, tmp_path = saved
+        m.world.pending_strategic_objection = _strategic_objection("Davout")
+        self._save(m, tmp_path)
+        m.world.pending_strategic_objection = None
+        data = client.post("/load", json={"filename": "wo35.json"}).json()
+        assert data["success"] is True
+        m.world.actions_remaining = 4
+        ex = CommandExecutor()
+        with _suppress():
+            result = ex.handle_objection_response(
+                "insist", {"world": m.world})
+        assert result.get("success") is True, result
+        assert m.world.pending_strategic_objection is None
+        order = m.world.get_marshal("Davout").strategic_order
+        assert order is not None, (
+            "insist did not re-execute — no strategic order was issued")
+        assert order.command_type == "SUPPORT", (
+            "the re-executed order lost the restored parsed_command's own "
+            "strategic_type")
+        assert order.target == "Ney"
 
 
 # ═══════════════════════════════════════════════════════════════════

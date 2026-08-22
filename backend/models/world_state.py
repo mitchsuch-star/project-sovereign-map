@@ -9046,6 +9046,17 @@ class WorldState:
             tactical_events.append({
                 "type": "strategic_objection_lapsed",
                 "marshal": _so_marshal,
+                # The nation key is LOAD-BEARING twice over (slice-18 review
+                # round): the fog filter's direct-nation match keeps this
+                # line even when the objector was DESTROYED earlier in this
+                # same end turn (the enemy phase runs before advance_turn,
+                # and a dead marshal no longer resolves via get_marshal —
+                # without this key the drop arm swallowed the telling in
+                # exactly the marshal-and-question-both-lost turn), and the
+                # dispatch's _build_turn_events discards nation-less events
+                # outright. The only raise site is a player order, so the
+                # objector's nation is always the player's.
+                "nation": self.player_nation,
                 "message": (
                     f"{_so_marshal}'s objection went unanswered and lapses "
                     f"with the turn — the {_so_action} order he questioned "

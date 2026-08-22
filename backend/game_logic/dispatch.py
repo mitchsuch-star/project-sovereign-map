@@ -2559,6 +2559,11 @@ _DISPATCH_EVENT_TYPES = {
     # the card is lost (WAD), the MOMENT must not be (no silent losses).
     "rivalry_blocked_note",
     "war_weary_blocked_note",
+    # WO-38 (slice-18 review round): an unanswered strategic objection
+    # lapsing at the turn boundary. The lapse's whole contract is that it
+    # is TOLD — the shadow_petition entry above records what happens when
+    # a new beat is appended to the turn events but never added HERE.
+    "strategic_objection_lapsed",
 }
 
 
@@ -2610,8 +2615,10 @@ def _build_turn_events(
                             "jealousy_resolved",
                             "glory_crowned", "marshal_commissioned"):
             severity = "good"
-        elif event_type == "order_voided_by_battle":
-            # CA9-F13: not good news — a plan the player made is gone.
+        elif event_type in ("order_voided_by_battle",
+                            "strategic_objection_lapsed"):
+            # CA9-F13 / WO-38: not good news — a plan the player made
+            # (or a question they were owed) is gone.
             severity = "warning"
         elif event_type == "retreat_recovery":
             # N37 (CA9): a corps still carrying a -40% effectiveness

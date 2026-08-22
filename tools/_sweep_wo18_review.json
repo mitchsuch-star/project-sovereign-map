@@ -1,0 +1,25 @@
+[
+  {"id": "review: the lapse event loses its nation stamp (fog + dispatch both drop it)",
+   "file": "backend/models/world_state.py",
+   "old": "                # objector's nation is always the player's.\n                \"nation\": self.player_nation,",
+   "new": "                # objector's nation is always the player's.",
+   "tests": "tests/test_wo_slice18_answer_finds_its_question.py::TestWO38TheStrategicObjectionLapses::test_the_lapse_survives_the_objectors_death tests/test_wo_slice18_answer_finds_its_question.py::TestWO38TheStrategicObjectionLapses::test_the_lapse_reaches_the_morning_dispatch"},
+
+  {"id": "review: the whitelist loses the lapse type",
+   "file": "backend/game_logic/dispatch.py",
+   "old": "    \"strategic_objection_lapsed\",\n}",
+   "new": "}",
+   "tests": "tests/test_wo_slice18_answer_finds_its_question.py::TestWO38TheStrategicObjectionLapses::test_the_lapse_reaches_the_morning_dispatch"},
+
+  {"id": "review: the lapse loses its warning severity",
+   "file": "backend/game_logic/dispatch.py",
+   "old": "        elif event_type in (\"order_voided_by_battle\",\n                            \"strategic_objection_lapsed\"):",
+   "new": "        elif event_type in (\"order_voided_by_battle\",):",
+   "tests": "tests/test_wo_slice18_answer_finds_its_question.py::TestWO38TheStrategicObjectionLapses::test_the_lapse_reaches_the_morning_dispatch"},
+
+  {"id": "review: the proceed arm rebuilds from an empty dict (drops the restored parsed_command)",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "            result = self._execute_strategic_command(parsed_command, original_command, game_state)",
+   "new": "            result = self._execute_strategic_command({\"command\": parsed_command[\"command\"]}, original_command, game_state)",
+   "tests": "tests/test_wo_slice18_answer_finds_its_question.py::TestWO35TheInterruptSurvivesTheLoad::test_a_restored_strategic_objection_reexecutes_on_insist"}
+]

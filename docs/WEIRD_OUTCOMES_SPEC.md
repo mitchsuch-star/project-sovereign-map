@@ -1697,10 +1697,38 @@ independently attributable), M1–M7 checked.
 > `docs/audits/WO_35_36_38_VERIFICATION_2026_08_21.md` in the memo's order
 > (which contradicts both filed rows and is what was followed), under the
 > user's session directive. `tests/test_wo_slice18_answer_finds_its_question.py`
-> (25); mutation sweep `tools/_sweep_wo18.json` — **18 mutations, 18
-> killed, 0 inert**; M1–M7 AND `BASELINE_SERIES` byte-identical, MEASURED
-> by real run, no re-record; parse harness EXIT=0; war-room boot smoke
+> (23); mutation sweeps `tools/_sweep_wo18.json` + `_sweep_wo18_review.json`
+> — **22 mutations, 22 killed, 0 inert**; M1–M7 AND `BASELINE_SERIES`
+> byte-identical, MEASURED by real run before AND after the review round,
+> no re-record; parse harness EXIT=0; war-room boot smoke
 > (`res://scenes/main.tscn`) 0 SCRIPT ERROR.
+>
+> **The review round (same session, fleet pointed at committed `ae5cf28`
+> with a clean tree — the row's method rule):** 16 agents, 4 find lenses →
+> 2 independent refuters per deduped finding; 8 raw → 6 unique → **4
+> confirmed, ALL FIXED** · 2 REFUTED (both "pre-existing, not worsened,
+> consciously scoped": the first-marshal-wins interrupt pick and the
+> capture-shadows-interrupt overlap — each strictly better than the parent
+> and pinned as a recorded decision). The four confirmed were ONE family
+> plus a weak pin: **(a)** the lapse's telling was one transient terminal
+> line — `strategic_objection_lapsed` was absent from
+> `_DISPATCH_EVENT_TYPES` AND carried no nation key, and the dispatch's
+> `_build_turn_events` drops on BOTH gates independently (the
+> shadow_petition precedent, re-earned); **(b+c)** if the objector was
+> DESTROYED in the same end turn (the enemy phase runs before
+> `advance_turn`), `get_marshal` returned None and the fog filter's
+> location-less drop arm swallowed the line — the clear became exactly the
+> silent loss the event exists to prevent. Fix for all three = the ONE
+> `nation` stamp on the event (load-bearing twice, comment says so) + the
+> whitelist entry at `warning` severity (the `order_voided_by_battle`
+> class); **(d)** `test_a_restored_strategic_objection_still_reexecutes`
+> never reached the re-execution seam (trust → the decline arm, which
+> reads neither `parsed_command` nor `path`) — replaced by a round-trip
+> pin on BOTH stored dicts plus a real INSIST test measuring the restored
+> `parsed_command` drive the issued `StrategicOrder` (command_type SUPPORT
+> from the restored dict's own field; the fixture now models the raise
+> site's real parsed_command shape, which carries `strategic_type` at its
+> own top level).
 >
 > 1. **WO-39 FIRST (it blocked everything):** `_on_commitment_paradox_choice`
 >    gained the third arm — an unknown choice re-enables input and grabs

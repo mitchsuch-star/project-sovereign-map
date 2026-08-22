@@ -16,11 +16,23 @@
 > 9 (+ WO-D9 damper wiring + WO-41) → 10 → 17 → 11 → 12 → 14. Prompt =
 > `docs/NEXT_SESSION_PROMPT.md`.
 >
-> Tests = `tests/test_wo_slice18_answer_finds_its_question.py` (25);
-> mutation sweep `tools/_sweep_wo18.json` — **18 mutations, 18 killed, 0
-> inert**; M1–M7 AND `BASELINE_SERIES` byte-identical, MEASURED by real
-> subprocess run, no re-record; parse harness EXIT=0; war-room boot smoke
+> Tests = `tests/test_wo_slice18_answer_finds_its_question.py` (23);
+> mutation sweeps `tools/_sweep_wo18.json` + `_sweep_wo18_review.json` —
+> **22 mutations, 22 killed, 0 inert**; M1–M7 AND `BASELINE_SERIES`
+> byte-identical, MEASURED by real subprocess run before AND after the
+> review round, no re-record; parse harness EXIT=0; war-room boot smoke
 > (`res://scenes/main.tscn`) 0 SCRIPT ERROR.
+>
+> **The review round** (16-agent find→refute fleet at committed `ae5cf28`,
+> clean tree): 4 confirmed findings ALL FIXED — the lapse's telling now
+> reaches the Morning Dispatch (whitelisted + `warning`, the
+> order_voided_by_battle class) and survives the objector's own
+> destruction in the same end turn (the ONE `nation` stamp closes both
+> gates — without it the fog filter swallowed the line in exactly the
+> marshal-and-question-both-lost turn); and the re-execution pin was
+> vacuous (trust takes the decline arm) — replaced by a real INSIST test
+> measuring the restored `parsed_command` drive the issued SUPPORT order.
+> 2 findings REFUTED as pre-existing-not-worsened conscious scope.
 >
 > **The P1 (WO-38) in one breath:** a stale strategic objection — which
 > blocks nothing, was never cleared, and was checked FIRST by the answer
