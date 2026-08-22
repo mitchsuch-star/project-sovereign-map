@@ -4,7 +4,59 @@
 
 ## ▶ NEXT UP
 
-> # ▶ ROW WO — THE EXIT ITEMS, August 21, 2026 (fourth session that day). **✅ ALL THREE VISUAL SIGN-OFFS SIGNED BY THE USER August 22, 2026** (frames put in front of the user, sign-off given — the DoD item is discharged) **and ✅ WO-D9 GATE RULED August 22, 2026 at the recommended default** (wire the existing `get_trust_gain_modifier` damper at the objection trust-pay seam; NO per-marshal cooldown; the authority-band asymmetry recorded deliberate; landing = row WO slice 9 — record in `DESIGN_REFINEMENT.md` §WO-D7..D11). **WO-D7..D11 are CARRIED under hard contracts; WO-35/WO-36 are in build.** Sign-off pack = `docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`; carry contracts = `docs/DESIGN_REFINEMENT.md` §WO-D7..D11 CARRY CONTRACTS, authoritative.
+> # ✅ WO SLICE 18 "THE ANSWER FINDS ITS QUESTION" LANDED — August 22, 2026.
+> **The WO-35/36/38 build, from the verification memo's order (which
+> contradicts both filed rows and is what was followed): WO-39 → WO-38 →
+> WO-35's `pending_interrupt` half ONLY → WO-36+WO-40 client-side.**
+> Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 18, authoritative;
+> BUG_FIXES §WO rows WO-35 (interrupt half; the objection remainder owned by
+> slice 12) / WO-36 / WO-38 / WO-39 / WO-40 → FIXED, **WO-41 newly filed**
+> (the memo's §6a/§6b autosave-timing permanent-loss siblings, owner = slice
+> 9). **▶ NEXT = slice 4 "The Capital Speaks" (+WO-11)**, then 5 → 6 → 8 →
+> 9 (+ WO-D9 damper wiring + WO-41) → 10 → 17 → 11 → 12 → 14. Prompt =
+> `docs/NEXT_SESSION_PROMPT.md`.
+>
+> Tests = `tests/test_wo_slice18_answer_finds_its_question.py` (25);
+> mutation sweep `tools/_sweep_wo18.json` — **18 mutations, 18 killed, 0
+> inert**; M1–M7 AND `BASELINE_SERIES` byte-identical, MEASURED by real
+> subprocess run, no re-record; parse harness EXIT=0; war-room boot smoke
+> (`res://scenes/main.tscn`) 0 SCRIPT ERROR.
+>
+> **The P1 (WO-38) in one breath:** a stale strategic objection — which
+> blocks nothing, was never cleared, and was checked FIRST by the answer
+> router — hijacked the answer to a DIFFERENT marshal's on-screen tactical
+> objection (measured: "trust" on Ney's question paid and fortified
+> Davout). Now the tactical slot wins the route, and an unanswered
+> strategic objection lapses at the turn boundary WITH a told
+> `strategic_objection_lapsed` line (slice 16 proved the order is never
+> created at objection time, so the lapse loses nothing — and now says so).
+> The tactical slot is deliberately never lapsed (it blocks end turn;
+> pinned).
+>
+> **The soft-lock that was NOT built:** the filed WO-35 fix (attach
+> `pending_objection` at `/load`) renders a buttonless modal with no ESC
+> exit — pinned dead by mutation #11. Only `pending_interrupt` earned the
+> attach (order-free `last_stand`/`muster_confirm` never re-surface and the
+> typed router silently eats their answers), with the hazard-4
+> standing-marshal guard and capture-first precedence pinned to the command
+> path's order. **Census** (slice 15): `pending_interrupt` →
+> LOAD_REATTACHED, `redemption_event` → the new RECOVERED_BY_POLL class,
+> `pending_objection` stays declared with its WRONG "success==true"
+> rationale corrected in place.
+>
+> **Drive-by the dead-verb pin found:** the retired `demand_obedience` verb
+> lived in FOUR client spots, two worse than the memo knew — the dialog
+> emits `administrative_role` and BOTH display arms matched only the dead
+> verb, so the Staff transfer echoed an EMPTY line and never reached its
+> result banner. All four fixed.
+>
+> **Same session, before the build (the user's phase-1 docket):** the three
+> visual sign-offs SIGNED, WO-D9 RULED at the recommended default, the four
+> other carries sanity-read — see the entry below.
+
+---
+
+> # ▶ ROW WO — THE EXIT ITEMS, August 21, 2026 (fourth session that day). **✅ ALL THREE VISUAL SIGN-OFFS SIGNED BY THE USER August 22, 2026** (frames put in front of the user, sign-off given — the DoD item is discharged) **and ✅ WO-D9 GATE RULED August 22, 2026 at the recommended default** (wire the existing `get_trust_gain_modifier` damper at the objection trust-pay seam; NO per-marshal cooldown; the authority-band asymmetry recorded deliberate; landing = row WO slice 9 — record in `DESIGN_REFINEMENT.md` §WO-D7..D11). **WO-D7..D11 are CARRIED under hard contracts; WO-35/WO-36 were BUILT as slice 18 August 22, 2026 (see the top entry).** Sign-off pack = `docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`; carry contracts = `docs/DESIGN_REFINEMENT.md` §WO-D7..D11 CARRY CONTRACTS, authoritative.
 >
 > **The sign-off harness is committed, not a one-off:**
 > `tools/wo_signoff_screenshot.gd` boots the REAL `main.tscn` against a

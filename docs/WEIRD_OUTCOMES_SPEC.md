@@ -1691,6 +1691,71 @@ the holes are one layer down:
 takes a flip-attributed `BASELINE_SERIES` re-record if moved (each fix
 independently attributable), M1–M7 checked.
 
+### Slice 18 — "The Answer Finds Its Question" (WO-35/36/38/39/40) — ✅ LANDED August 22, 2026
+
+> **Landing record — authoritative.** Built from
+> `docs/audits/WO_35_36_38_VERIFICATION_2026_08_21.md` in the memo's order
+> (which contradicts both filed rows and is what was followed), under the
+> user's session directive. `tests/test_wo_slice18_answer_finds_its_question.py`
+> (25); mutation sweep `tools/_sweep_wo18.json` — **18 mutations, 18
+> killed, 0 inert**; M1–M7 AND `BASELINE_SERIES` byte-identical, MEASURED
+> by real run, no re-record; parse harness EXIT=0; war-room boot smoke
+> (`res://scenes/main.tscn`) 0 SCRIPT ERROR.
+>
+> 1. **WO-39 FIRST (it blocked everything):** `_on_commitment_paradox_choice`
+>    gained the third arm — an unknown choice re-enables input and grabs
+>    focus instead of leaving the terminal dead under a modal ESC cannot
+>    escape.
+> 2. **WO-38 (the P1), both recommended halves:** the answer router now
+>    consults the STRATEGIC slot only when no TACTICAL objection stands
+>    (one-condition reorder at `meta_executor.handle_objection_response` —
+>    the tactical objection is the one blocking commands, so it is the one
+>    the player is being told to answer; the measured Ney→Davout hijack is
+>    dead, and every typed route funnels through the same seam), AND an
+>    unanswered strategic objection **lapses at the turn boundary with a
+>    told message** (`_advance_turn_internal`, a `strategic_objection_lapsed`
+>    tactical event that survives the fog filter — slice 16 established the
+>    order is never created at objection time, so the lapse loses nothing
+>    that was not already lost, and now it says so). The TACTICAL slot is
+>    deliberately NOT lapsed (it blocks end turn; pinned).
+> 3. **WO-35's `pending_interrupt` half ONLY:** `/load` scans
+>    `get_player_marshals()` for a STANDING marshal's restored interrupt
+>    (hazard-4 tombstone idiom — captured/destroyed marshals attach
+>    nothing) and stamps the one key; the client raises it in
+>    `_apply_world_swap_response` through the SAME predicate/route pair the
+>    command path uses, with capture-before-interrupt precedence pinned to
+>    match the command path's route order. **`pending_objection` is
+>    deliberately NOT attached** — the saved dict records no
+>    tactical/strategic discriminator and the strategic modal arm would
+>    render `options == []`, a modal with no buttons and no ESC exit (the
+>    filed fix was a soft-lock; pinned by mutation #11). Its remainder — a
+>    P3 legibility gap, answerable by the block's own typed words — is
+>    **owned by slice 12**. The invisible third slot
+>    (`pending_strategic_objection`, which shares the response key and so
+>    the census cannot see it) is resolved by the WO-38 lapse: undecided is
+>    not a state it can occupy any more.
+> 4. **WO-36 + WO-40 together, client-side, zero backend change:** the
+>    world-swap reset now clears `_redemption_recheck_turn` (WO-36's real
+>    cause — the stale latch skipped the PT-B1 recovery poll on a same-turn
+>    reload, the IGR-F `_envoy_digest_shown_turn` idiom) plus the four
+>    cross-campaign stashes (`pending_redemption_data`,
+>    `pending_proclamation_data`, `pending_diorama_data`,
+>    `last_battle_diorama`). `redemption_event` gained the census's FOURTH
+>    classification — **RECOVERED_BY_POLL** — rather than moving to
+>    LOAD_REATTACHED. **Drive-by found by the dead-verb pin:** the client
+>    carried the retired `demand_obedience` verb in FOUR places, two worse
+>    than the memo's two — the dialog emits `administrative_role`, and both
+>    display arms matched only the dead verb, so the Staff-transfer choice
+>    echoed an EMPTY line and never reached its result banner. All four
+>    fixed; the pin binds the quoted code forms.
+>
+> **Census re-classified** (the slice-15 blocking-state surface census):
+> `pending_interrupt` → LOAD_REATTACHED; `redemption_event` →
+> RECOVERED_BY_POLL (new class); `pending_objection` stays KNOWN_SILENT
+> with the WRONG rationale corrected in place (the "requires success==true"
+> comment named the one thing that was not load-bearing) and its owner
+> named (slice 12).
+
 ---
 
 ## §4 New findings (August 21, 2026) + routing

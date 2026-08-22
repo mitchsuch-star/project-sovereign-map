@@ -1608,9 +1608,20 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR STRATEGIC OBJECTION (Phase M)
-        # Strategic objections are stored in pending_strategic_objection
+        # Strategic objections are stored in pending_strategic_objection.
+        #
+        # WO-38: the TACTICAL slot wins when both are pending. A strategic
+        # objection blocks nothing (executor.py reads only pending_objection)
+        # and nothing used to clear it, so a stale one sat in this slot and
+        # captured the answer to a LATER genuine tactical objection —
+        # measured: with Ney's tactical objection on screen, "trust" gave
+        # Davout +8 trust and fortified Davout while Ney's question stood.
+        # The tactical objection is the one blocking commands, so it is the
+        # one the player is being told to answer; the strategic slot is
+        # consulted only when no tactical question stands.
         # ════════════════════════════════════════════════════════════
-        if getattr(world, 'pending_strategic_objection', None) is not None:
+        if (world.pending_objection is None
+                and getattr(world, 'pending_strategic_objection', None) is not None):
             return self._executor._strategic._handle_strategic_objection_from_endpoint(choice, game_state)
 
         # Check if there's a pending tactical objection

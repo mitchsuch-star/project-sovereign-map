@@ -4054,6 +4054,35 @@ async def load_endpoint(request: LoadRequest):
     if world.pending_capture_choice:
         response["pending_capture_choice"] = True
         response["capture_data"] = world.pending_capture_choice
+    # WO-35 (the pending_interrupt half): a marshal-level interrupt
+    # round-trips the save (marshal.py to_dict/from_dict) and used to raise
+    # nothing at load. ORDER-BOUND interrupts self-heal at the next end turn
+    # (strategic.py re-emits requires_input), but ORDER-FREE ones
+    # (last_stand, muster_confirm — raised from tactical combat on marshals
+    # with no strategic order) never re-surface, and worse: the typed
+    # pending-question router CONSUMES the next matching unaddressed command
+    # as the answer to a question the player was never shown. One key; the
+    # client raises it through the same predicate/route pair the command
+    # path uses (`_response_has_interrupt_route`). `/load` carries no
+    # strategic_reports, so the WIN-H1 defer in that predicate is vacuously
+    # satisfied. First marshal wins — only one interrupt popup can be up at
+    # a time and there is no drain; a second marshal's interrupt surfaces
+    # the way it always has (order-bound at end turn, order-free by typed
+    # answer), which this attach makes strictly better, not worse.
+    #
+    # `pending_objection` is deliberately NOT attached here: the saved dict
+    # records no tactical/strategic discriminator the modal needs, and the
+    # strategic arm would render a modal with no buttons and no ESC exit
+    # (a soft-lock). Its block names the answer words, so the state is
+    # answerable — declared as a P3 legibility gap, owner = row WO slice 12.
+    for _lm in world.get_player_marshals():
+        # Hazard-4 idiom (PC15-4): a marshal who no longer STANDS —
+        # captured (strength 0 at the captor's capital) or destroyed —
+        # must not attach a question nobody can act on.
+        if (_lm.strength > 0 and not getattr(_lm, "captured_by", "")
+                and getattr(_lm, "pending_interrupt", None)):
+            response["pending_interrupt"] = _lm.pending_interrupt
+            break
     return response
 
 

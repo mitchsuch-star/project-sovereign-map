@@ -9020,6 +9020,39 @@ class WorldState:
         # NOTE: _last_tactical_events stored AFTER all events collected (see below)
 
         # ════════════════════════════════════════════════════════════
+        # WO-38: an unanswered STRATEGIC objection lapses at the turn
+        # boundary — and says so. A strategic objection blocks nothing
+        # (executor.py reads only pending_objection), so the player can end
+        # the turn over it; nothing used to clear it, so the stale slot
+        # captured later answers (the hijack) and — restored by a save —
+        # raised no modal at all (WO-35's delivery mechanism). Slice 16
+        # established the order is never created at objection time, so the
+        # lapse loses nothing that was not already lost: the proposal simply
+        # dies, and the event below is what TELLS the player it died. The
+        # TACTICAL slot is deliberately NOT lapsed here — it blocks every
+        # command including end turn, so it cannot legitimately cross this
+        # boundary unanswered.
+        # ════════════════════════════════════════════════════════════
+        _stale_strategic = getattr(self, "pending_strategic_objection", None)
+        if _stale_strategic:
+            self.pending_strategic_objection = None
+            _so_marshal = (_stale_strategic.get("marshal")
+                           or _stale_strategic.get("marshal_name")
+                           or "The marshal")
+            _so_order = (_stale_strategic.get("original_command") or {})
+            _so_action = str(_so_order.get("action") or
+                             _stale_strategic.get("strategic_type") or
+                             "order").lower()
+            tactical_events.append({
+                "type": "strategic_objection_lapsed",
+                "marshal": _so_marshal,
+                "message": (
+                    f"{_so_marshal}'s objection went unanswered and lapses "
+                    f"with the turn — the {_so_action} order he questioned "
+                    f"was never issued, Sire."),
+            })
+
+        # ════════════════════════════════════════════════════════════
         # V2b: VINDICATION DECAY — -1 per 3 idle turns, symmetric toward 0
         # Also clears stale defensive vindication entries (>5 turns old)
         # ════════════════════════════════════════════════════════════

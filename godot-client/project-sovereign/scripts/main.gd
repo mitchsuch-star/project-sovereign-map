@@ -1333,7 +1333,10 @@ func _execute_command():
 	# ════════════════════════════════════════════════════════════
 	# CHECK FOR REDEMPTION COMMAND: Handle redemption choices
 	# ════════════════════════════════════════════════════════════
-	var redemption_choices = ["grant_autonomy", "dismiss", "demand_obedience"]
+	# WO-36 drive-by: the third verb was `demand_obedience`, which the
+	# backend retired in Phase 3 (`administrative_role` replaced it) and now
+	# rejects as invalid — the client advertised and forwarded a dead word.
+	var redemption_choices = ["grant_autonomy", "dismiss", "administrative_role"]
 	if command.to_lower() in redemption_choices:
 		if DEBUG_VERBOSE:
 			print("REDEMPTION COMMAND DETECTED: ", command)
@@ -4068,7 +4071,7 @@ func _show_redemption_text_fallback(redemption_event: Dictionary):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • " + opt.get("id", "?") + ": " + opt.get("text", "Unknown") + "[/color]")
 
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]Type: 'grant_autonomy', 'dismiss', or 'demand_obedience'[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Type: 'grant_autonomy', 'administrative_role', or 'dismiss'[/color]")
 	add_output("")
 
 	pending_redemption = true
@@ -4091,8 +4094,11 @@ func _on_redemption_choice_made(choice: String):
 			choice_text = "You grant the marshal autonomy to act independently."
 		"dismiss":
 			choice_text = "You dismiss the marshal from command."
-		"demand_obedience":
-			choice_text = "You demand continued obedience despite the broken trust."
+		"administrative_role":
+			# WO-36 drive-by: this arm matched the retired demand-obedience
+			# verb (backend Phase 3), so the Staff-transfer choice the
+			# dialog actually emits echoed an EMPTY line here.
+			choice_text = "You transfer the marshal to the administrative staff."
 
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + choice_text + "[/color]")
 	add_output("")
@@ -4143,12 +4149,14 @@ func _on_redemption_response(response):
 			add_output("[color=#" + Utils.COLOR_ERROR + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
 
-		elif choice == "demand_obedience":
+		elif choice == "administrative_role":
+			# WO-36 drive-by: was the retired demand-obedience verb — the
+			# Staff-transfer result the backend actually returns never
+			# reached this banner.
 			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + Utils.COLOR_GOLD + "]   OBEDIENCE DEMANDED[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]   TRANSFERRED TO THE STAFF[/color]")
 			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
-			add_output("[color=#" + Utils.COLOR_INFO + "]Warning: High chance of future disobedience.[/color]")
 
 		else:
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + msg + "[/color]")
@@ -4408,6 +4416,21 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	pending_dispatch_data = null
 	pending_strategic_response = null
 	pending_redemption = false
+	# WO-36 / WO-40: these five survived the reset. The stale
+	# `_redemption_recheck_turn` was WO-36's real cause — the once-per-turn
+	# recovery poll returned early when a same-turn reload (the ordinary
+	# savescum) landed on a turn already polled, so the restored redemption
+	# stayed silent for the rest of that turn. The identical hazard IGR-F
+	# review [5] fixed for `_envoy_digest_shown_turn` below. The four
+	# stashes are WO-40: a PREVIOUS campaign's stashed popup survived a load
+	# and raised at the next control return in the new world — and a live
+	# `pending_redemption_data` also short-circuits the recovery poll's own
+	# guard, so the NEW world's real question was never polled for.
+	_redemption_recheck_turn = -1
+	pending_redemption_data = null
+	pending_proclamation_data = null
+	pending_diorama_data = null
+	last_battle_diorama = null
 	pending_charge_marshal = ""
 	pending_charge_target = ""
 	interrupt_queue.clear()
@@ -4469,6 +4492,25 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 		var raised = response.duplicate()
 		raised.erase("message")
 		_route_capture_choice_response(raised)
+		return
+
+	# WO-35 (the pending_interrupt half): `/load` now attaches a restored
+	# marshal interrupt (order-free last_stand / muster_confirm never
+	# re-surface on their own, and the typed router would silently eat the
+	# next unaddressed command as their answer). Same predicate/route pair
+	# as the command path so the two cannot drift; the WIN-H1 defer inside
+	# the predicate is vacuously satisfied (a load carries no
+	# strategic_reports). PRECEDENCE, pinned consciously: the capture arm
+	# above wins when a world carries both — the same relative order the
+	# command path's route table runs them in (capture POST index 1,
+	# interrupt later). Input: _show_interrupt_popup owns the terminal from
+	# here (its popup's exits re-enable; a NULL popup falls to
+	# _process_next_interrupt, which re-enables against the just-cleared
+	# interrupt_queue).
+	if _response_has_interrupt_route(response):
+		var raised_interrupt = response.duplicate()
+		raised_interrupt.erase("message")
+		_route_interrupt_response(raised_interrupt)
 		return
 
 	set_input_enabled(true)
@@ -5106,6 +5148,16 @@ func _on_commitment_paradox_choice(choice: String, data: Dictionary):
 	elif choice == "break_defender_alliance":
 		add_output("[color=#" + Utils.COLOR_ERROR + "]Breaking alliance with %s — siding with %s.[/color]" % [defender, attacker])
 		api_client.send_dialogue_response(2, _on_command_result)  # Option 2: break_defender_alliance
+	else:
+		# WO-39: input was disabled above and BOTH sends live inside the two
+		# branches. A third emitted choice used to leave input disabled with
+		# no request in flight — and ESC cannot open the pause menu while a
+		# modal is visible, so that state was unrecoverable. Any world-swap
+		# modal raise puts weight on this handler; the unknown arm must hand
+		# the terminal back.
+		push_error("Unknown commitment paradox choice: " + choice)
+		set_input_enabled(true)
+		command_input.grab_focus()
 
 
 # ════════════════════════════════════════════════════════════════════════════

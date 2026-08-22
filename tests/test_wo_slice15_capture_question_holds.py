@@ -741,8 +741,9 @@ class TestWO30TheLoadedSaveRaisesIt:
         prefix: the route table is what decides whether a player ever sees a
         piece of blocking state, and it is the thing a future slice edits.
         Every response key any modal route reads must be classified — queue
-        delivered, explicitly re-attached at /load, transient by design, or
-        a known gap with a filed row. An unclassified key reds this test.
+        delivered, explicitly re-attached at /load, transient by design,
+        recovered by the once-per-turn poll, or a known gap with a filed
+        row. An unclassified key reds this test.
 
         Mutation: add a route to `_configure_response_routes` reading a new
         key, or delete `pending_capture_choice` from LOAD_REATTACHED.
@@ -755,27 +756,56 @@ class TestWO30TheLoadedSaveRaisesIt:
             # world attribute, not a queue member) and the world-swap
             # handler raises the modal from them.
             "pending_capture_choice", "capture_data",
+            # WO-35 (slice 18): the marshal-level interrupt round-trips the
+            # save; `/load` attaches the first player marshal's dict and the
+            # world-swap handler raises it through the SAME predicate/route
+            # pair the command path uses. Order-free interrupts (last_stand,
+            # muster_confirm) had no other road back.
+            "pending_interrupt",
         }
         TRANSIENT_BY_DESIGN = {
             # per-command results; nothing survives a save to re-raise
             "state": "clarification / objection response state",
-            "pending_glorious_charge": "a marshal's in-request charge offer",
+            "pending_glorious_charge": "a marshal's in-request charge offer "
+                                       "— the target is a bare bool, not "
+                                       "serialized anywhere; an attach "
+                                       "would post an empty target",
             "diplomatic_dialogue": "re-derived from the dialogue manager",
             # read as NEGATIVE conditions ("not while an enemy phase is on
             # screen"), never as the payload a modal renders
             "strategic_reports": "an end-turn tail, not blocking state",
             "enemy_phase": "an end-turn tail, not blocking state",
         }
+        RECOVERED_BY_POLL = {
+            # WO-36 (slice 18): NOT a /load attach. `world.pending_redemption`
+            # survives the save and PT-B1's once-per-turn GET
+            # /pending_redemption poll fires at every control-return tail —
+            # the audience arrives at the end of the player's first command
+            # after loading. The defect was the client's stale
+            # `_redemption_recheck_turn` latch skipping that poll on a
+            # same-turn reload; the world-swap reset now clears it (the
+            # IGR-F `_envoy_digest_shown_turn` idiom).
+            "redemption_event",
+        }
         KNOWN_SILENT_AT_LOAD = {
-            # Found by slice 15's census; strictly worse than WO-30 was and
-            # deliberately NOT folded into it. Filed as WO-35 / WO-36.
-            "pending_objection": "WO-35 — survives the save, but its route "
-                                 "requires success==true and the block "
-                                 "returns success False",
-            "pending_interrupt": "WO-35 — marshal-level, restored but never "
-                                 "re-attached at /load",
-            "redemption_event": "WO-36 — world.pending_redemption survives "
-                                "the save and no /load path re-attaches it",
+            # WO-35's declared remainder (slice 18 corrected the rationale):
+            # the objection dict survives the save, but the ORIGINAL comment
+            # here — "its route requires success==true" — named the one
+            # thing that is not load-bearing. The block also carries neither
+            # `state` nor `pending_objection`, and an attach without a
+            # tactical/strategic discriminator would render the strategic
+            # arm's modal with no buttons and no ESC exit (a soft-lock).
+            # The block names its own answer words, so the state is
+            # answerable by typed trust/insist/compromise — a P3 legibility
+            # gap, owner = row WO slice 12. The sibling
+            # `pending_strategic_objection` slot is INVISIBLE to this census
+            # (it shares this response key); WO-38 made it self-limiting —
+            # it lapses at the turn boundary with a told message, and the
+            # tactical slot wins the answer route while both stand.
+            "pending_objection": "WO-35 remainder — answerable by typed "
+                                 "words; modal-at-load needs a "
+                                 "discriminator the saved dict lacks; "
+                                 "owner = row WO slice 12",
         }
         src = MAIN_GD.read_text(encoding="utf-8")
         table = re.search(
@@ -803,6 +833,7 @@ class TestWO30TheLoadedSaveRaisesIt:
                     continue
                 if (key in QUEUE_DELIVERED or key in LOAD_REATTACHED
                         or key in TRANSIENT_BY_DESIGN
+                        or key in RECOVERED_BY_POLL
                         or key in KNOWN_SILENT_AT_LOAD):
                     continue
                 unclassified.append(f"{fn} -> {key}")
