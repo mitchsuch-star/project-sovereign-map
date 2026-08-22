@@ -49,11 +49,27 @@ def _save_and_load(world: WorldState, tmp_path: Path) -> WorldState:
 class TestTransientStateClearingOnLoad:
     """Verify all per-turn transient fields are cleared after save/load."""
 
-    def test_objection_popups_cleared_on_load(self, tmp_path):
+    def test_objection_popups_survive_load(self, tmp_path):
+        """WO-23 (Aug 21, 2026) — CONSCIOUSLY FLIPPED, for the same reason
+        `test_attacks_this_turn_survives_load` below was flipped in Aug
+        2026, and the same reason `diplomatic_trust_applied` was carved out
+        of the load-side wipe then.
+
+        `objection_popups_this_turn` is not decoration: it is the ONLY live
+        limiter on the objection trust channel (max one MODERATE+ objection
+        popup per marshal per turn). `from_dict` restored it and `load_game`
+        immediately discarded it, so a mid-turn save/load refreshed every
+        marshal's budget. The trigger is trust-INDEPENDENT — the
+        relationship-SUPPORT check reads personality and relationship only —
+        so nothing self-limits the loop as trust climbs, and three of the
+        four non-literal French marshals sit on authored -2 pairs at the
+        1805 boot. The real turn boundary (`_advance_turn_internal`) still
+        clears it, which is where a per-TURN budget is supposed to reset.
+        """
         world = _make_world()
         world.objection_popups_this_turn = {"Ney", "Davout"}
         loaded = _save_and_load(world, tmp_path)
-        assert loaded.objection_popups_this_turn == set()
+        assert loaded.objection_popups_this_turn == {"Ney", "Davout"}
 
     def test_mild_concerns_cleared_on_load(self, tmp_path):
         world = _make_world()

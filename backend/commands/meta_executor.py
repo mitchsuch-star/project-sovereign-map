@@ -2005,10 +2005,22 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
         return result
 
-    def _execute_post_objection(self, parsed_command: Dict, game_state: Dict, marshal_name: str) -> Dict:
+    def _execute_post_objection(self, parsed_command: Dict, game_state: Dict,
+                                marshal_name: str, charge_ap: bool = True) -> Dict:
         """
         Execute a command after objection has been resolved.
         Bypasses the objection check since we just handled it.
+
+        charge_ap (WO-37): the STRATEGIC objection's trust arm prices itself
+        at 1 AP on the button, and its caller charges that 1 AP at the tail
+        of `_handle_strategic_objection_from_endpoint`. This method charging
+        the action's own cost as well is a double charge — measured, a
+        preferred `drill` took 2 AP against a button quoting 1, and a
+        preferred `fortify` that auto-shifts stance took 3. That tail's
+        guard reads `_ap_consumed_by_execute`, a flag nothing in the
+        codebase ever set. Pass False and the outer layer charges once,
+        which is also what stamps the honest `action_info`. The tactical
+        objection's two callers charge nothing themselves and keep True.
         """
         world: WorldState = game_state.get("world")
         command = parsed_command.get("command", {})
@@ -2142,7 +2154,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         # Consume action if successful
         is_admin = action in {"recruit", "build", "repair"}
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
-        if result.get("success", False) and action_costs_point:
+        if result.get("success", False) and action_costs_point and charge_ap:
             if is_admin:
                 world.use_admin_action(1)
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1}

@@ -1,0 +1,103 @@
+[
+  {"id": "WO-21 restore the positional lift (options[1] / options[2])",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "        original_command[\"preferred_action\"] = _quoted.get(\"preferred\")\n        # The inner \"compromise\" dict — the entry has type/text/compromise structure.\n        original_command[\"compromise\"] = (\n            _quoted.get(\"compromise\") or {}).get(\"compromise\")",
+   "new": "        _opts = objection.get(\"options\", [])\n        original_command[\"preferred_action\"] = _opts[1] if len(_opts) > 1 else None\n        _co = _opts[2] if len(_opts) > 2 else {}\n        original_command[\"compromise\"] = _co.get(\"compromise\") if isinstance(_co, dict) else None",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21TheOptionsAreLiftedByType"},
+
+  {"id": "WO-21 the preferred append becomes unconditional (the premise pin)",
+   "file": "backend/commands/disobedience.py",
+   "old": "    # Preferred option (if available)\n    if preferred:",
+   "new": "    # Preferred option (if available)\n    if True:\n        preferred = preferred or {}",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21TheOptionsAreLiftedByType::test_a_marshal_with_no_alternative_builds_a_two_option_list"},
+
+  {"id": "WO-21 delete the decline-to-issue arm",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "            if not pref_action or pref_action == \"cancel\":",
+   "new": "            if False:",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21TheOptionsAreLiftedByType"},
+
+  {"id": "WO-21 the decline arm stops covering 'cancel'",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "            if not pref_action or pref_action == \"cancel\":",
+   "new": "            if not pref_action:",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21TheOptionsAreLiftedByType::test_the_relationship_support_arm_declines_instead_of_erroring"},
+
+  {"id": "WO-21 the button promises a cancel again",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "                                    \"text\": \"Trust: Do not issue the SUPPORT order\",",
+   "new": "                                    \"text\": \"Trust: Cancel the SUPPORT order\",",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21TheOptionsAreLiftedByType::test_the_button_no_longer_says_cancel"},
+
+  {"id": "WO-21 trust credited before the tactical dispatch again",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "                result[\"variable_action_cost\"] = 1\n                # WO-21: credit only what executed.\n                if result.get(\"success\") and hasattr(marshal, 'modify_trust'):\n                    marshal.modify_trust(v2_trust_gain)\n                    result[\"trust_change\"] = v2_trust_gain",
+   "new": "                result[\"variable_action_cost\"] = 1\n                if hasattr(marshal, 'modify_trust'):\n                    marshal.modify_trust(v2_trust_gain)\n                result[\"trust_change\"] = v2_trust_gain",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21CreditOnlyWhatExecutes::test_a_preferred_action_that_fails_credits_nothing"},
+
+  {"id": "WO-21 compromise credited above its bails again",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "            if not compromise_data:\n                return {\n                    \"success\": False,\n                    \"message\": \"No compromise available\",",
+   "new": "            if hasattr(marshal, 'modify_trust'):\n                marshal.modify_trust(v2_compromise_gain)\n            if not compromise_data:\n                return {\n                    \"success\": False,\n                    \"message\": \"No compromise available\",",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21CreditOnlyWhatExecutes::test_a_compromise_with_no_safe_path_credits_nothing"},
+
+  {"id": "WO-21 delete the strategic choice-validation guard",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "        if choice not in _valid_choices:",
+   "new": "        if False:",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21CreditOnlyWhatExecutes::test_an_impossible_choice_is_refused_and_the_question_survives"},
+
+  {"id": "WO-21 the guard runs but clears the question anyway",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "        _valid_choices = [\"trust\", \"insist\"]",
+   "new": "        world.pending_strategic_objection = None\n        _valid_choices = [\"trust\", \"insist\"]",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO21CreditOnlyWhatExecutes::test_an_impossible_choice_is_refused_and_the_question_survives"},
+
+  {"id": "WO-37 the dispatch charges AP again (the double charge)",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "                result = self._executor._execute_post_objection(\n                    parsed_for_post, game_state, marshal.name, charge_ap=False)",
+   "new": "                result = self._executor._execute_post_objection(\n                    parsed_for_post, game_state, marshal.name)",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO37TheApIsChargedOnce tests/test_strategic_objections.py::TestObjectionAPCosts"},
+
+  {"id": "WO-37 charge_ap defaults to False (the tactical route goes free)",
+   "file": "backend/commands/meta_executor.py",
+   "old": "                                marshal_name: str, charge_ap: bool = True) -> Dict:",
+   "new": "                                marshal_name: str, charge_ap: bool = False) -> Dict:",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO37TheApIsChargedOnce::test_the_tactical_objection_route_still_charges_itself"},
+
+  {"id": "WO-37 the dead flag comes back",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "        if result.get(\"success\") and not result.get(\"pending_objection\"):",
+   "new": "        if (result.get(\"success\") and not result.get(\"_ap_consumed_by_execute\")\n                and not result.get(\"pending_objection\")):",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO37TheApIsChargedOnce::test_the_dead_ap_guard_is_gone"},
+
+  {"id": "WO-23 restore the load-side wipe",
+   "file": "backend/save_manager.py",
+   "old": "        world.mild_concerns_this_turn = []\n        world.gold_spent_this_turn = {}",
+   "new": "        world.objection_popups_this_turn = set()\n        world.mild_concerns_this_turn = []\n        world.gold_spent_this_turn = {}",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO23TheBudgetSurvivesALoad tests/test_systems_v3_session8.py::TestTransientStateClearingOnLoad"},
+
+  {"id": "WO-23 the turn boundary stops clearing the budget",
+   "file": "backend/models/world_state.py",
+   "old": "        self.objection_popups_this_turn = set()\n",
+   "new": "        pass\n",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO23TheBudgetSurvivesALoad::test_the_budget_still_clears_at_the_real_turn_boundary"},
+
+  {"id": "WO-23 the strategic reader stops consulting the budget",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "                    if marshal.name in world.objection_popups_this_turn:",
+   "new": "                    if False:",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestWO23TheBudgetSurvivesALoad::test_a_restored_budget_is_still_HONOURED tests/test_wo_slice16_objection_pays_honestly.py::test_the_budget_is_what_rate_limits_the_trust_channel"},
+
+  {"id": "census: an inline preferred option gains an unroutable action",
+   "file": "backend/commands/strategic_executor.py",
+   "old": "                                    \"action\": \"cancel\",\n                                    \"target\": target,",
+   "new": "                                    \"action\": \"sortie\",\n                                    \"target\": target,",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestTheDispatchCoversEveryOption::test_every_preferred_option_action_can_be_answered"},
+
+  {"id": "census: the dispatch-table parse breaks",
+   "file": "backend/commands/meta_executor.py",
+   "old": "        if action == \"attack\":",
+   "new": "        _a = action\n        if _a == \"attack\":",
+   "tests": "tests/test_wo_slice16_objection_pays_honestly.py::TestTheDispatchCoversEveryOption::test_the_dispatch_table_parses"}
+]

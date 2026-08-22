@@ -4,6 +4,76 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 16 "THE OBJECTION CHANNEL PAYS HONESTLY" LANDED — August 21, 2026. **THE ROW'S THREE HAND-VERIFIED P1s ARE ALL CLOSED.** Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 16, authoritative; BUG_FIXES §WO rows WO-21 / WO-23 → FIXED, plus WO-37 found in passing and fixed. **▶ NEXT = slice 4 "The Capital Speaks" (+WO-11)**, then 5 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14. Prompt = `docs/NEXT_SESSION_PROMPT.md`.
+>
+> Suite **18,347 / 3 skipped**, ruff clean, backend only (no `.gd`). Tests =
+> `tests/test_wo_slice16_objection_pays_honestly.py` (19); mutation sweep
+> `tools/_sweep_wo16.json` — **17 mutations, 17 killed**. **M1–M7 and
+> `BASELINE_SERIES` byte-identical, MEASURED by real subprocess run, not
+> predicted** — after slice 15 moved the series on a "player-gated therefore
+> inert" prediction, that distinction is the row's own rule.
+>
+> **Four arms, reproduced by hand before the build:** a 2-option objection
+> paid **+8 trust for `Unknown action: None`**; its compromise button paid
+> **+3 for `No compromise available`**; the relationship-SUPPORT trust arm
+> paid **+8 for `Unknown action: cancel`**; and a preferred `drill` took
+> **2 AP against a button quoting 1** while reporting 1.
+>
+> **The root is not the credit order the row names.** The options were lifted
+> by INDEX out of a list whose middle entry is optional — the preferred entry
+> is appended only when the marshal actually proposes something — while
+> `objection_dialog.gd` reads the same list by TYPE. A marshal with no
+> alternative handed the COMPROMISE dict to the trust arm and left the
+> compromise arm with nothing, and the client rendered both buttons. The CA9
+> through-line: two implementations of one rule, only one maintained.
+>
+> **Three corrections to the filed row are on the record.** The bail it names
+> is **unreachable** (`len(options) >= 2` always), so the row's outcome is
+> right and its mechanism is wrong. **"The SUPPORT order still standing" is
+> refuted** — the order does not exist yet, so the fix is a DECLINE TO ISSUE
+> and explicitly *not* `_execute_cancel`, which would cancel an unrelated
+> standing order and charge its own −3. And the band is **+2..+5 in play**,
+> not +12.
+>
+> **Two things the row never named, both fixed:** a third reachable
+> credit-for-nothing (`"No safe path available"`), and the discovery that
+> **the strategic route had no choice validation at all** — it returns before
+> the tactical route's `valid_choices` guard, the guard that already refuses
+> this exact press in Berthier's voice. Mirrored here, sited above the clear,
+> because a refusal that also cleared the question would strand the player.
+>
+> **WO-37, new and hand-verified:** `_ap_consumed_by_execute`, the flag the
+> endpoint's own comment relies on, is read once and **set nowhere** — and
+> TWO consumers were double-charging, not one. Fixed by stopping the inner
+> charge (an explicit `charge_ap` parameter) rather than reviving the flag,
+> which is deleted.
+>
+> **The two halves are one exploit** and are pinned together: the trust
+> channel's only limiter is one popup per marshal per turn, and WO-23's
+> save/load wipe refreshed it. The trigger is trust-INDEPENDENT, so nothing
+> damped the loop as trust climbed — it reached the 100 clamp — and three of
+> the four non-literal French marshals sit on authored −2 pairs at the 1805
+> boot, so the vehicle ships with the game.
+>
+> **Two existing pins were VACUOUS and are de-vacuated** — and they are
+> exactly the two that should have caught WO-37: both wrapped their assertion
+> in `if result.get("success"):` and passed an action id (`"stance"`) the
+> dispatch has no arm for, so neither body ever ran. A third pin
+> (`test_objection_popups_cleared_on_load`) is consciously flipped, modelled
+> on its own sibling flipped in Aug 2026 for the identical reason.
+>
+> **Not built, deliberately:** the authority band's farmability stays
+> **WO-D9**, a gate question; and `MAX_OBJECTION_POPUPS_PER_TURN` stays
+> production-dead, because reviving it would change objection frequency
+> game-wide.
+>
+> **Method:** this fleet was pointed at a COMMITTED SHA with a clean tree —
+> the correction slice 15's record asked for — and it paid immediately. Both
+> refuters failed to break their findings, and the WO-21 refuter caught the
+> one thing the lead had wrong before it reached the code.
+
+---
+
 > # ✅ WO SLICE 15 "THE CAPTURE QUESTION HOLDS" LANDED — August 21, 2026. **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 15, authoritative; BUG_FIXES §WO rows WO-22 / WO-26 / WO-27 / WO-29 / WO-30 → FIXED, plus WO-34 found in passing and fixed, and WO-35 / WO-36 newly filed by its census. ▶ NEXT = slice 16 "The Objection Channel Pays Honestly" (the last hand-verified P1: WO-21 + WO-23). Prompt = `docs/NEXT_SESSION_PROMPT.md`.**
 >
 > Suite **18,328 / 3 skipped**, ruff clean, Godot parse harness EXIT=0 (47

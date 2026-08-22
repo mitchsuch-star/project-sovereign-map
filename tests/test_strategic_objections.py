@@ -1291,24 +1291,34 @@ class TestObjectionAPCosts:
             assert world.actions_remaining == 2, "Proceed should cost 2 AP"
 
     def test_preferred_costs_1_ap(self, world_with_french_marshals, executor):
-        """Preferred (trust marshal) costs 1 AP (tactical action)."""
+        """Preferred (trust marshal) costs 1 AP (tactical action).
+
+        WO-37 (Aug 21, 2026) — DE-VACUATED. This pin asserted nothing: the
+        preferred action was `"stance"`, which `_execute_post_objection` has
+        no arm for (the real id is `stance_change`), so the result was
+        always `success: False` and the `if` never opened. It is the pin
+        that should have caught the double charge — the tactical preferred
+        path paid the action's AP inside `_execute_post_objection` and then
+        paid again at the endpoint tail, because the guard flag that tail
+        reads was never set by anything. Measured before the fix: a
+        preferred `drill` on a button quoting 1 AP took 2.
+        """
         world = world_with_french_marshals
         world.actions_remaining = 4
         ney = world.marshals["Ney"]
-        ney.stance = Stance.NEUTRAL  # Can switch to aggressive
 
         command = {
             "marshal": "Ney",
             "action": "hold",
             "target": "Paris",
             "objection_response": "preferred",
-            "preferred_action": {"action": "stance", "target": "aggressive"}
+            "preferred_action": {"action": "drill", "target": None}
         }
 
         result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
 
-        if result.get("success"):
-            assert world.actions_remaining == 3, "Preferred should cost 1 AP"
+        assert result.get("success") is True, result.get("message")
+        assert world.actions_remaining == 3, "Preferred should cost 1 AP, once"
 
     def test_compromise_costs_2_ap(self, world_with_french_marshals, executor):
         """Compromise costs 2 AP (still a strategic command)."""
@@ -1354,11 +1364,19 @@ class TestObjectionTrustChanges:
         if result.get("success"):
             assert ney.trust.value == initial_trust - 10, "Proceed should cost -10 trust"
 
-    def test_preferred_trust_plus_12(self, world_with_french_marshals, executor):
-        """Preferred (trust marshal) grants +12 trust."""
+    def test_preferred_trust_is_credited_when_it_executes(
+            self, world_with_french_marshals, executor):
+        """Preferred (trust marshal) grants the scaled trust gain.
+
+        WO-21 (Aug 21, 2026) — DE-VACUATED and re-pointed. Same dead
+        `"stance"` id as its AP sibling, so the assertion never ran; and the
+        flat +12 it named is only the HOSTILE+EXTREME cell of the tier
+        table (`objection_v2.calculate_trust_gain`), not a constant. What
+        must hold is the LAW: the credit is the value the objection carries,
+        and it lands only because the action executed.
+        """
         world = world_with_french_marshals
         ney = world.marshals["Ney"]
-        ney.stance = Stance.NEUTRAL
         initial_trust = ney.trust.value
 
         command = {
@@ -1366,13 +1384,14 @@ class TestObjectionTrustChanges:
             "action": "hold",
             "target": "Paris",
             "objection_response": "preferred",
-            "preferred_action": {"action": "stance", "target": "aggressive"}
+            "v2_trust_gain": 7,
+            "preferred_action": {"action": "drill", "target": None}
         }
 
         result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
 
-        if result.get("success"):
-            assert ney.trust.value == initial_trust + 12, "Preferred should grant +12 trust"
+        assert result.get("success") is True, result.get("message")
+        assert ney.trust.value == initial_trust + 7
 
     def test_compromise_trust_plus_3(self, world_with_french_marshals, executor):
         """Compromise grants +3 trust."""

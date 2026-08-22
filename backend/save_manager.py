@@ -188,16 +188,28 @@ def load_game(filepath: Path) -> Dict:
         world.battles_this_turn = []
         for marshal in world.marshals.values():
             marshal.in_combat_this_turn = False
-        world.objection_popups_this_turn = set()
         world.mild_concerns_this_turn = []
         world.gold_spent_this_turn = {}
-        # Aug 2026 health-check audit — two deliberate NON-clears:
+        # Aug 2026 health-check audit — deliberate NON-clears:
         # `diplomatic_trust_applied` is the ±5/turn diplomatic trust cap
         # ("survives save/load" is its in-code contract; wiping it here let
         # a mid-turn save/load refresh every marshal's budget), and
         # `attacks_this_turn` is serialized under an explicit "for mid-turn
         # saves" contract (wiping it cost the player the flanking bonus).
-        # Both are restored by from_dict and cleared at the real turn
+        #
+        # WO-23 (Aug 21, 2026) adds a THIRD, for the identical reason the
+        # first was added: `objection_popups_this_turn` is the ONLY live
+        # limiter on the objection trust channel — max one MODERATE+
+        # objection popup per marshal per turn (`world_state`, read by
+        # `executor` and `strategic_executor`) — and wiping it here let a
+        # mid-turn save/load refresh every marshal's budget. The trigger is
+        # trust-INDEPENDENT (`objection_v2._evaluate_relationship_support`
+        # reads personality and relationship only), so nothing self-limits
+        # the loop as trust climbs: it runs to the 100 clamp. Three of the
+        # four non-literal French marshals sit on authored -2 pairs at the
+        # 1805 boot, so the vehicle ships with the game.
+        #
+        # All three are restored by from_dict and cleared at the real turn
         # boundary by _advance_turn_internal / reset_attack_tracking.
         world.threat_sources_this_turn = []
 

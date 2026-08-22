@@ -1501,6 +1501,118 @@ here.
 pressing the SUPPORT-cancel arm cancels; a save/load round-trip preserves
 `objection_popups_this_turn`; existing objection pins green.
 
+> **✅ LANDED August 21, 2026 — landing record.** Both rows closed, plus one
+> found while building. Tests =
+> `tests/test_wo_slice16_objection_pays_honestly.py` (19); mutation sweep
+> `tools/_sweep_wo16.json` — **17 mutations, 17 killed** after one INERT pin
+> was found and replaced. Suite **18,347/3**, ruff clean. Backend only, no
+> `.gd`. **M1–M7 and `BASELINE_SERIES` byte-identical, MEASURED by real
+> subprocess run, not predicted** — after slice 15, that distinction is the
+> row's own rule.
+>
+> **The four arms, reproduced by hand end to end BEFORE the build, on the
+> shipped tree:**
+>
+> | press | trust | AP | executed | message |
+> |---|---|---|---|---|
+> | 2-option objection, "trust" | **+8** | 0 | nothing | `Unknown action: None` |
+> | 2-option objection, "compromise" | **+3** | 0 | nothing | `No compromise available` |
+> | SUPPORT-relationship, "trust" | **+8** | 0 | nothing | `Unknown action: cancel` |
+> | trust → preferred `drill` | +8 | **2** (button quoted 1) | yes | reported `cost: 1` |
+>
+> **The root is not the credit order the row names.** `preferred_action` was
+> lifted by INDEX (`options[1]`, and compromise from `options[2]`) out of a
+> list whose middle entry is optional — `_build_strategic_options` appends
+> the preferred entry only `if preferred` — while `objection_dialog.gd` reads
+> the same list by TYPE. A marshal who proposes no alternative produced
+> `[proceed, compromise]`, so the backend handed the COMPROMISE dict to the
+> trust arm and found nothing at all for the compromise arm, while the client
+> rendered both buttons. Two implementations of one rule with only one
+> maintained: the CA9 through-line, again. The lift is now by type, reusing
+> the `_quoted` idiom that already existed three lines below it.
+>
+> **Corrections to the filed row, on the record:**
+> - **The bail the row names is UNREACHABLE.** `len(options) >= 2` always
+>   (proceed is unconditional and every producer supplies a truthy preferred
+>   OR a truthy compromise), so `options[1]` was never falsy and
+>   `"No preferred action available"` never fired. The live failure is one
+>   line lower. The row's outcome is right and its mechanism is wrong.
+> - **"the SUPPORT order still standing" is REFUTED.** The order does not
+>   exist yet: the objection returns from `_execute_strategic_command`
+>   BEFORE `StrategicOrder` is constructed. So the fix is a DECLINE TO
+>   ISSUE, not a cancel — and routing it through `_execute_cancel`, as the
+>   row asks, would either hit that function's graceful no-op or cancel an
+>   UNRELATED standing order and charge its own −3 trust. (The lead's own
+>   probe appeared to show an order surviving; it had planted a prior order
+>   by hand and was therefore artificial. The refuter caught it.)
+> - **The band is +2..+12 in the table and +2..+5 in play** on this arm: the
+>   relationship check caps at STRONG, and the authored boot tiers put
+>   Davout at +2, Bernadotte +3, Murat +5. The +12 cell needs HOSTILE trust
+>   AND EXTREME concern, which this arm cannot produce.
+> - **"repeatable" means ≤1 free press per marshal per turn** — the question
+>   is cleared before re-execution, and re-arming is capped by
+>   `objection_popups_this_turn`. Which is precisely the budget WO-23's
+>   save/load wipe refreshed: **the two halves of this slice are the same
+>   exploit seen from both ends**, and they are pinned together so a later
+>   slice cannot remove one and leave the other looking harmless.
+> - **WO-23's "a caller-less function" is TWO functions**
+>   (`evaluate_order`, `get_major_objections_remaining`), neither with a
+>   production caller. And the sharp corroboration the row missed: the DEAD
+>   V1 counter `major_objections_this_turn` was faithfully preserved across
+>   load while the LIVE budget was the one wiped.
+>
+> **Two things the row never named, both found by the fleet and both fixed:**
+> - a THIRD reachable credit-for-nothing, `"No safe path available"`, sitting
+>   below the compromise credit;
+> - **the strategic route had NO choice validation at all.** It returns from
+>   `handle_objection_response` before the tactical route's `valid_choices`
+>   guard — the guard that already refuses an impossible answer in
+>   Berthier's voice ("'compromise' is not one of the roads open"). The
+>   tactical route knew how to reject the very press that broke this one.
+>   The guard is now mirrored here, sited ABOVE the clear: a refusal that
+>   also cleared the question would strand the player with no valid arm.
+>
+> **WO-37 (new, hand-verified): the trust arm charged 1 AP twice.**
+> `_ap_consumed_by_execute` — the flag the endpoint's own comment relies on
+> to avoid exactly this — is read once and **set nowhere**. Measured: a
+> preferred `drill` took 2 AP against a button quoting 1, a preferred
+> `fortify` that auto-shifts stance took 3, and `action_info` reported 1
+> throughout. There were TWO double-charging consumers, not one (the
+> endpoint tail and `executor.execute`), so the fix is not to set the flag
+> but to stop the inner charge: `_execute_post_objection` gains an explicit
+> `charge_ap` parameter, the trust arm passes False, and every arm is now
+> charged once at the price its button quoted. The dead flag is deleted
+> rather than revived.
+>
+> **Two existing pins were VACUOUS and are de-vacuated** — and they are
+> exactly the two that should have caught WO-37.
+> `test_preferred_costs_1_ap` and `test_preferred_trust_plus_12` both wrapped
+> their assertion in `if result.get("success"):` and passed the preferred
+> action id `"stance"`, which the dispatch has no arm for (`stance_change`
+> is the real id), so neither body ever ran. The trust one also asserted a
+> flat +12 that is only the HOSTILE+EXTREME cell of a tier table; it now
+> pins the LAW (the credit is the value the objection carries, and it lands
+> only because the action executed) rather than a number that was never
+> general. `test_objection_popups_cleared_on_load` is CONSCIOUSLY FLIPPED to
+> `..._survives_load`, modelled on its own sibling
+> `test_attacks_this_turn_survives_load`, flipped in Aug 2026 for the
+> identical reason.
+>
+> **Deliberately NOT built:** the authority band's farmability
+> (alternating compromise/trust against `record_response`) stays **WO-D9**,
+> a gate question. And `MAX_OBJECTION_POPUPS_PER_TURN` stays production-dead:
+> reviving it would change objection frequency game-wide and is a design
+> decision, not a bug fix.
+>
+> **Method:** this fleet was pointed at a COMMITTED SHA (`5684ef1`) with a
+> clean tree, which is the correction slice 15's record asked for — and it
+> paid immediately. Both refuters failed to break their findings, and the
+> WO-21 refuter caught the one thing the lead had wrong (the artificial
+> "order still standing" probe) before it reached the code. The lead then
+> built while the synthesis agent was still running, so the synthesis
+> reports a dirty tree; nothing was lost, but the discipline is *all*
+> reading agents done, not most.
+
 ### Slice 17 — "The Frontier Halts the Charge" (est 1) — **this spec's addition**
 
 **The autonomous layer can still relocate and narrate illegally
@@ -1662,7 +1774,9 @@ toggling has no positive arm.
 > own position moved. (b) **Slices 15 and 16 are lifted ahead of 4/5/6/8**
 > on the reasoning that the two remaining hand-verified P1s should clear
 > before the legibility and copy work. Realised order so far: 1 → 1b → 2
-> → 3 → 13 → 7 → **15 → 16** → 4 → 5 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14.
+> → 3 → 13 → 7 → **15 → 16 (both landed August 21, 2026 — the three
+> hand-verified P1s are closed)** → 4 → 5 → 6 → 8 → 9 → 10 → 17 → 11 →
+> 12 → 14.
 > The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and
 > has), and 4 before 12 for the shared dispatch files. (~13 sessions to the line; the eval's ~10 plus the hunt
 slices). Slice 13 rides high because it is a P1 exploit on a days-old
@@ -1695,7 +1809,7 @@ done-when lines green; the funnel table re-measured with error bars (or
 withdrawn) and the G2(b) shelf decision taken on it; the three gate rulings
 implemented without re-opening (G1 slice 7, G3 slice 8, G2 = the 1b
 measurement + the Victory-pass hand-off note); `BUG_FIXES.md` §WO rows
-WO-1..WO-31 **plus WO-33..WO-36** all FIXED/CLOSED with pointers here
+WO-1..WO-31 **plus WO-33..WO-37** all FIXED/CLOSED with pointers here
 (WO-32 closed by its owner PC15-10 and checked at this row's exit; WO-34
 was found and fixed by slice 15, WO-35/WO-36 were filed by its census and
 need owners); the WO-D8..D10 design rows **plus WO-D11** either gated or

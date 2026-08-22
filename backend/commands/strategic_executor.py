@@ -1005,7 +1005,13 @@ class StrategicExecutor:
                                 },
                                 {
                                     "type": "preferred",
-                                    "text": "Trust: Cancel the SUPPORT order",
+                                    # WO-21: it does not cancel — the order
+                                    # does not exist yet (this objection
+                                    # returns before StrategicOrder is
+                                    # built). Trusting him means it is
+                                    # never issued, and the button now
+                                    # says so.
+                                    "text": "Trust: Do not issue the SUPPORT order",
                                     "action": "cancel",
                                     "target": target,
                                     "trust_change": trust_gain,
@@ -1638,21 +1644,48 @@ class StrategicExecutor:
         elif response == "preferred":
             # ═══════════════════════════════════════════════════════════
             # PREFERRED (trust): Execute marshal's action, V2 scaled gain, 1 AP
+            #
+            # WO-21: the credit used to be applied HERE, above every bail
+            # below it, so a press that executed nothing still paid the
+            # marshal. It now fires only on the arm that actually resolves
+            # — the same shown=applied law every other channel obeys.
             # ═══════════════════════════════════════════════════════════
-            if hasattr(marshal, 'modify_trust'):
-                marshal.modify_trust(v2_trust_gain)
+            pref_action = (preferred_action or {}).get("action")
+            pref_target = (preferred_action or {}).get("target")
+            pref_strategic_type = (preferred_action or {}).get("strategic_type")
 
-            if not preferred_action:
+            if not pref_action or pref_action == "cancel":
+                # ═══════════════════════════════════════════════════════
+                # WO-21 — TRUSTING A MARSHAL WHO PROPOSED NOTHING means the
+                # order is not issued. That is the only coherent reading of
+                # a button the client renders unconditionally ("Trust X's
+                # Judgment", objection_dialog.gd), and it is exactly what
+                # the relationship-SUPPORT arm already spells out in words
+                # — its preferred entry carries `"action": "cancel"`.
+                #
+                # NOT routed through `_execute_cancel`: there is nothing to
+                # cancel. The objection returns from
+                # `_execute_strategic_command` BEFORE the StrategicOrder is
+                # constructed, so a real cancel would either no-op or —
+                # worse — cancel an UNRELATED standing order and charge its
+                # own -3 trust. It is a decline to issue, and it says so.
+                #
+                # Before this slice both shapes fell through to the tactical
+                # dispatch and returned raw internal text ("Unknown action:
+                # None" / "Unknown action: cancel") having already banked
+                # the trust and charged nothing.
+                # ═══════════════════════════════════════════════════════
+                if hasattr(marshal, 'modify_trust'):
+                    marshal.modify_trust(v2_trust_gain)
+                _display = get_strategic_display(strategic_type or "order")
                 return {
-                    "success": False,
-                    "message": "No preferred action available",
-                    "variable_action_cost": 0,
+                    "success": True,
+                    "message": (f"{marshal.name} is spared the order — the "
+                                f"{_display} order is not issued."),
+                    "variable_action_cost": 1,
+                    "trust_change": v2_trust_gain,
+                    "order_cleared": True,
                 }
-
-            # Execute the preferred tactical action
-            pref_action = preferred_action.get("action")
-            pref_target = preferred_action.get("target")
-            pref_strategic_type = preferred_action.get("strategic_type")
 
             if pref_strategic_type:
                 # Preferred is another strategic command (PURSUE)
@@ -1669,7 +1702,10 @@ class StrategicExecutor:
                 result = self._execute_strategic_command(new_parsed, new_parsed["command"], game_state)
                 if result:
                     result["variable_action_cost"] = 1
-                    result["trust_change"] = v2_trust_gain
+                    # WO-21: credit only what executed.
+                    if result.get("success") and hasattr(marshal, 'modify_trust'):
+                        marshal.modify_trust(v2_trust_gain)
+                        result["trust_change"] = v2_trust_gain
                 return result
 
             else:
@@ -1681,18 +1717,32 @@ class StrategicExecutor:
                 }
                 # Use _execute_post_objection to bypass re-entrant objection checks
                 parsed_for_post = {"command": tactical_cmd}
-                result = self._executor._execute_post_objection(parsed_for_post, game_state, marshal.name)
+                # WO-37: `charge_ap=False` — the trust arm is priced at 1 AP
+                # on the button, and the caller charges it. Letting the
+                # dispatch ALSO charge the action's own cost took 2 AP for a
+                # preferred `drill` and 3 for a preferred `fortify`, while
+                # `action_info` reported 1.
+                result = self._executor._execute_post_objection(
+                    parsed_for_post, game_state, marshal.name, charge_ap=False)
                 result["variable_action_cost"] = 1
-                result["trust_change"] = v2_trust_gain
+                # WO-21: credit only what executed.
+                if result.get("success") and hasattr(marshal, 'modify_trust'):
+                    marshal.modify_trust(v2_trust_gain)
+                    result["trust_change"] = v2_trust_gain
                 return result
 
         elif response == "compromise":
             # ═══════════════════════════════════════════════════════════
             # COMPROMISE: Execute modified order, V2 flat +3, 2 AP
+            #
+            # WO-21: same law as the trust arm — the credit moves below
+            # every bail. There are TWO here, and the row named neither:
+            # "No compromise available" (reachable before this slice
+            # whenever the option list had no preferred entry, because the
+            # lift was positional) and "No safe path available", which is
+            # reachable on any cautious safe-path compromise when the
+            # pathfinder finds nothing. Both used to keep the +3.
             # ═══════════════════════════════════════════════════════════
-            if hasattr(marshal, 'modify_trust'):
-                marshal.modify_trust(v2_compromise_gain)
-
             if not compromise_data:
                 return {
                     "success": False,
@@ -1740,6 +1790,12 @@ class StrategicExecutor:
                         "message": "No safe path available",
                         "variable_action_cost": 0,
                     }
+
+            # WO-21: the compromise is real and about to be issued — NOW
+            # the marshal is paid. Every bail above this line used to keep
+            # the credit.
+            if hasattr(marshal, 'modify_trust'):
+                marshal.modify_trust(v2_compromise_gain)
 
             # Create the modified strategic order
             order = StrategicOrder(
@@ -2214,13 +2270,61 @@ class StrategicExecutor:
                 "message": f"Marshal {marshal_name} not found"
             }
 
+        # ══════════════════════════════════════════════════════════════
+        # WO-21 — the options are lifted BY TYPE, the way the client reads
+        # them. They used to be lifted by POSITION out of a list whose
+        # middle entry is optional: `_build_strategic_options` appends
+        # `preferred` only `if preferred` (disobedience.py), so a marshal
+        # who proposes no alternative — every non-aggressive marshal
+        # reaching the fallback — produced `[proceed, compromise]`, and
+        # `options[1]` handed the COMPROMISE dict to the trust arm while
+        # `options[2]` did not exist.
+        #
+        # Measured on the shipped 1805 boot: pressing Trust credited the
+        # marshal (+2..+5 by tier), charged 0 AP, executed nothing, and
+        # answered "Unknown action: None"; pressing Compromise credited +3
+        # and answered "No compromise available". `objection_dialog.gd`
+        # keyed on `type` all along and rendered both buttons — the CA9
+        # through-line, two implementations of one rule with only one
+        # maintained.
+        # ══════════════════════════════════════════════════════════════
+        _quoted = {o.get("type"): o for o in (objection.get("options") or [])
+                   if isinstance(o, dict)}
+
+        # ══════════════════════════════════════════════════════════════
+        # WO-21 — the strategic route validates the press, as the tactical
+        # route already did.
+        #
+        # `handle_objection_response` returns to this function at
+        # `meta_executor.py:1615`, BEFORE the tactical path's own
+        # `valid_choices` guard, which refuses an impossible answer in
+        # Berthier's voice ("'compromise' is not one of the roads open").
+        # The tactical route knew how to reject the very press that broke
+        # this one. Refuse here, in the same words, BEFORE the trust
+        # credits and before the objection is cleared below — a refusal
+        # that also cleared the question would strand the player with no
+        # valid arm left to press.
+        # ══════════════════════════════════════════════════════════════
+        _valid_choices = ["trust", "insist"]
+        if _quoted.get("compromise", {}).get("compromise"):
+            _valid_choices.append("compromise")
+        if choice not in _valid_choices:
+            from backend.commands.dialogue_routing import format_answer_words
+            return {
+                "success": False,
+                "message": (
+                    f"{marshal_name} awaits your answer, Sire — "
+                    f"'{choice}' is not one of the roads open. Reply "
+                    f"{format_answer_words(_valid_choices)}."),
+                "choices": list(_valid_choices),
+            }
+
         # Add objection response and preferred/compromise data to command
         original_command["objection_response"] = strategic_response
-        original_command["preferred_action"] = objection.get("options", [{}])[1] if len(objection.get("options", [])) > 1 else None
-        # Extract inner "compromise" dict from the options entry (the entry has type/text/compromise structure)
-        options_list = objection.get("options", [])
-        compromise_option = options_list[2] if len(options_list) > 2 else {}
-        original_command["compromise"] = compromise_option.get("compromise") if isinstance(compromise_option, dict) else None
+        original_command["preferred_action"] = _quoted.get("preferred")
+        # The inner "compromise" dict — the entry has type/text/compromise structure.
+        original_command["compromise"] = (
+            _quoted.get("compromise") or {}).get("compromise")
 
         # V2: Pass scaled trust values through to response handler
         # ══════════════════════════════════════════════════════════════
@@ -2236,8 +2340,6 @@ class StrategicExecutor:
         # truth, which is the only reading under which the quote cannot
         # be wrong.
         # ══════════════════════════════════════════════════════════════
-        _quoted = {o.get("type"): o for o in (objection.get("options") or [])
-                   if isinstance(o, dict)}
         original_command["v2_insist_penalty"] = objection.get(
             "insist_penalty",
             _quoted.get("proceed", {}).get("trust_change", -10))
@@ -2465,11 +2567,17 @@ class StrategicExecutor:
         # ════════════════════════════════════════════════════════════
         # AP CONSUMPTION for strategic objection response (non-defiance)
         # Defiance consumes AP in the defiance block above.
-        # Trust → tactical preferred goes through execute() which already consumed AP.
-        # All other paths (insist/proceed, trust → strategic, compromise) need AP here.
+        #
+        # WO-37: this used to read "Trust → tactical preferred goes through
+        # execute() which already consumed AP" and gate on
+        # `_ap_consumed_by_execute` — a flag NOTHING in the codebase ever
+        # set, so the tactical-preferred path was charged twice: once inside
+        # `_execute_post_objection` and once here. The dead flag is gone;
+        # the dispatch is now told not to charge (`charge_ap=False`) and
+        # every arm is charged exactly once, here, at the price its button
+        # quoted.
         # ════════════════════════════════════════════════════════════
-        if (result.get("success") and not result.get("_ap_consumed_by_execute")
-                and not result.get("pending_objection")):
+        if result.get("success") and not result.get("pending_objection"):
             variable_cost = result.get("variable_action_cost", 2)
             if variable_cost > 0:
                 for _ in range(min(variable_cost, world.actions_remaining)):
