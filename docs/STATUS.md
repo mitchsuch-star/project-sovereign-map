@@ -4,6 +4,95 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 15 "THE CAPTURE QUESTION HOLDS" LANDED — August 21, 2026. **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 15, authoritative; BUG_FIXES §WO rows WO-22 / WO-26 / WO-27 / WO-29 / WO-30 → FIXED, plus WO-34 found in passing and fixed, and WO-35 / WO-36 newly filed by its census. ▶ NEXT = slice 16 "The Objection Channel Pays Honestly" (the last hand-verified P1: WO-21 + WO-23). Prompt = `docs/NEXT_SESSION_PROMPT.md`.**
+>
+> Suite **18,328 / 3 skipped**, ruff clean, Godot parse harness EXIT=0 (47
+> scripts), war-room boot smoke 0 `SCRIPT ERROR`. Tests =
+> `tests/test_wo_slice15_capture_question_holds.py` (31); mutation sweep
+> `tools/_sweep_wo15.json` — **27 mutations, 27 killed**.
+>
+> **One lifecycle, five holes, and the single slot now holds.** The
+> plunder/secure question could be created, crossed, clobbered, misapplied
+> and dropped without the player ever being told. It now defers the
+> auto-advance (WO-22), refuses to be overwritten (WO-26), keeps the estate
+> it is asking about on the marshal's rolls (WO-27), refuses an answer that
+> names the wrong province (WO-29), and raises itself on a loaded save
+> (WO-30). The shape of the WO-26 fix is worth carrying forward: the rule
+> needs no strategic flag — **an occupied slot cannot be asked again.** A
+> direct player capture always finds it empty, because the executor blocks
+> every command while a question stands; only an automated capture landing
+> on an unanswered one is decided here, conservatively, and the march
+> policy stays a caller-passed flag. The move path's local save/restore is
+> **deleted**, not copied: the guard is structural at all three producers.
+>
+> **A verify → refute fleet ran BEFORE the build, and earned its cost by
+> contradicting the contract rather than confirming it.** Two of the five
+> prescribed fixes were wrong:
+>
+> - **WO-30's "add the entry to `PopupQueue.RESPONSE_KEYS`" is a no-op at
+>   best and destructive at worst** (both consumers write `None`;
+>   `pop_highest` iterates a queue this field never enters; the variants
+>   that aren't no-ops either stamp `capture_data: None` on every response
+>   or pop the question out of existence together with the block protecting
+>   it). It also omitted the half that makes the fix visible:
+>   `_apply_world_swap_response` consults no route table, so a backend
+>   passthrough alone renders nothing.
+> - **WO-29's "thread the `dialogue_id`" is unbuildable**, and forcing it
+>   regresses `/load` into a permanent refusal loop. Built instead: identity
+>   by CONTENT — `plunder <province>` binds the answer, a wrong name is
+>   refused with the real question restated — which is the documented house
+>   pattern for typed answers.
+>
+> **`BASELINE_SERIES` re-recorded ONCE — index [40] only, 13 → 23 — and the
+> fleet's prediction that it could not move is exactly why it was measured.**
+> France is `world.player_nation` even on an AI-vs-AI ambient board, so a
+> French capture takes the PLAYER branch. Instrumented: it fires three
+> times — Ney takes **Swabia** and its 600g question stands unanswered for
+> the rest of the run; **Moravia** (turn 18) and **Vienna** (turn 21) then
+> arrive on top of it. Those two were bare writes, so the provinces kept the
+> control flip and never ran secure: France stormed Vienna and the engine
+> forgot to garrison it. Attribution by five arms, ending in the decisive
+> one — the full tree with the occupancy arm forced False reproduces 13
+> verbatim, so the hoist, the WO-22 defer, the WO-27 carve-out and the move
+> path's `auto_secure` are all inert on that board. M1–M7 byte-identical
+> without re-record. (An `event_log` probe reports ZERO of those
+> `region_captured` rows — the 500-cap had evicted them. The IGR-B trap
+> again: spy on `log_event` at write time, not the log.)
+>
+> **Four corrections to the filed rows are on the record**, the two largest
+> being that WO-22's forfeited gold is CONDITIONAL (the answer lapses only
+> if the province was retaken) and that WO-27 is bigger than filed and
+> **re-filed P3 → P2**: its strongest path crosses no turn boundary at all,
+> and because `find_enemy_estate_holder` reads `dotation_regions` raw, a
+> pruned estate means the W6-8 confiscate/respect question is never asked —
+> no windfall, no goodwill, an `estate_lost` in its place.
+>
+> **Found in passing:** WO-34, a naval landing that mounted the question and
+> shipped a response the client could not render it from — fixed. Routed,
+> not folded in: **WO-35** (`pending_objection` / `pending_interrupt`
+> survive a save and raise nothing at load; the objection route even
+> requires `success == true` while its block returns `success: False`),
+> **WO-36** (`redemption_event`, same shape), and **WO-D11** (a mid-march
+> auto-secure forfeits an enemy marshal's estate for nothing — the comment
+> claiming otherwise is corrected in place).
+>
+> **The census pin** is keyed on the client's own modal route table, not an
+> attribute-name prefix: every response key a modal route reads must be
+> classified — queue-delivered, re-attached at `/load`, transient, or a
+> known gap with a filed row — so the next new slot cannot silently drop.
+>
+> **⚠ Owed:** a visual sign-off on the `/load` raise (client-side; joins
+> slice 7's two). **Not closed, stated so nobody reads them as closed:** the
+> post-advance re-attach can still surface a question invalidated later in
+> the same resolution, and the auto-charge conquest captures with no
+> question and no secure effects at all — slice 17's.
+>
+> **Method note:** the refuters read a moving working tree and two reported
+> "already fixed" for work committed nowhere. Point the next fleet at a
+> committed SHA.
+
+---
+
 > # ✅ WO SLICE 7 "THE CABINET IS THE ONLY DOOR" LANDED — August 21, 2026 (user-directed, out of §5 order). **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 7, authoritative; BUG_FIXES §WO rows WO-4 and WO-5 → CLOSED BY RULING. ▶ NEXT = slice 15 "The Capture Question Holds" (P1 WO-22 + four siblings), then slice 16 "The Objection Channel Pays Honestly" (P1 WO-21 + WO-23) — **the two remaining hand-verified P1s were pulled ahead of the legibility slices 4/5/6/8 by user direction August 21, 2026**, on the same reasoning that moved slice 7. Prompt = `docs/NEXT_SESSION_PROMPT.md`.**
 >
 > **The ruling (WO-D2/G1) lands: matters of state are conducted at the

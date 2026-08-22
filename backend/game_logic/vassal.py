@@ -1328,7 +1328,7 @@ def _grant_region_eligibility(world, vassal_name: str, region_name: str,
         return f"{region_name} is a capital — it cannot be given away."
     # ES-7 estate exclusion (live claims only — mirrors dotation.py)
     from backend.game_logic.dotation import (
-        _capture_choice_pending,
+        capture_choice_pending,
         is_estate_respected,
     )
     for marshal in world.marshals.values():
@@ -1337,7 +1337,7 @@ def _grant_region_eligibility(world, vassal_name: str, region_name: str,
             if claim_region is not None and (
                     claim_region.controller == marshal.nation
                     or is_estate_respected(world, marshal.name, region_name)
-                    or _capture_choice_pending(world, region_name)):
+                    or capture_choice_pending(world, region_name)):
                 return (f"{region_name} is Marshal {marshal.name}'s estate — "
                         f"his title cannot be given away.")
     # Contiguity (waived for landless vassals and homeland returns)

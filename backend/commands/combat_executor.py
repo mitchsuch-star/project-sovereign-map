@@ -7651,22 +7651,15 @@ class CombatExecutor:
         return {"gold_gained": int(gold_gained)}
 
     def _apply_secure(self, region) -> None:
-        """Apply secure effects to a captured region."""
-        region.stability = 25
-        # No additional war damage
-        region.plundered = False
-        # No immediate gold
-        # Damage existing buildings (not destroyed)
-        for building in region.buildings:
-            building["damaged"] = True
-        # Cancel construction
-        region.building_under_construction = None
-        # Damage watchtower (Phase 6 Fog - Session 35)
-        if getattr(region, 'watchtower', 'none') == "active":
-            region.watchtower = "damaged"
-        elif getattr(region, 'watchtower', 'none') == "under_construction":
-            region.watchtower = "none"
-            region.watchtower_turns_remaining = 0
+        """Apply secure effects to a captured region.
+
+        WO-26: the effects themselves live in ONE place now
+        (`world_state.apply_secure_effects`, the sibling of
+        `apply_plunder_effects`) so the automated auto-secure and the
+        player's answered "secure" cannot drift apart. This method stays as
+        the name every call site already uses."""
+        from backend.models.world_state import apply_secure_effects
+        apply_secure_effects(region)
 
     @staticmethod
     def _attach_staged_war_purpose(result: Dict, world, popup) -> Dict:
@@ -7802,7 +7795,8 @@ class CombatExecutor:
         apply_ai_estate_rule(world, region, marshal.nation)
         return choice
 
-    def _attempt_region_capture(self, marshal, region_name, world, game_state, had_garrison=False) -> dict:
+    def _attempt_region_capture(self, marshal, region_name, world, game_state,
+                                had_garrison=False, auto_secure=False) -> dict:
         """Handle capture attempt, respecting fortification holdout.
 
         Args:
@@ -7811,6 +7805,11 @@ class CombatExecutor:
             world: WorldState
             game_state: Full game state dict
             had_garrison: True if defenders were beaten this turn (2-turn occupation)
+            auto_secure: WO-26 — decide this capture as "secure" without
+                asking, even when the question slot is free. The PF-3
+                move-capture passes it for an automated march hop; every
+                other caller leaves it False and the shared guard still
+                refuses to overwrite an unanswered question.
 
         Returns:
             {"captured": bool, "occupation_started": bool, "message": str, ...}
@@ -7843,6 +7842,7 @@ class CombatExecutor:
 
             # Phase 6.2.E: Plunder/Secure choice
             ai_choice = None
+            auto_secured = False
             if marshal.nation == world.player_nation:
                 # ────────────────────────────────────────────────────────
                 # CA8-13 (creative audit, Aug 4 2026): liberating your OWN
@@ -7859,13 +7859,19 @@ class CombatExecutor:
                 # prompt asserts the province is foreign.
                 # ────────────────────────────────────────────────────────
                 from backend.models.world_state import (
-                    build_capture_choice, is_own_soil_recapture)
+                    is_own_soil_recapture, mount_or_auto_secure_capture)
                 if is_own_soil_recapture(world, region_name, marshal.nation):
                     self._apply_secure(region)
                     ai_choice = "secure"
                 else:
-                    world.pending_capture_choice = build_capture_choice(
-                        world, region, marshal.name, old_controller)
+                    # WO-26: through the shared guard, never a bare write —
+                    # an automated capture arriving on top of an EARLIER
+                    # unanswered question secures itself rather than
+                    # deleting it.
+                    ai_choice = mount_or_auto_secure_capture(
+                        world, region, marshal.name, old_controller,
+                        marshal.nation, auto_secure=auto_secure)
+                    auto_secured = ai_choice == "secure"
             else:
                 # AI capture — auto-decide by personality
                 ai_choice = self._apply_ai_capture_choice(marshal, region, world, old_controller=old_controller)
@@ -7875,6 +7881,10 @@ class CombatExecutor:
                 "occupation_started": False,
                 "old_controller": old_controller,
                 "capture_choice": ai_choice,
+                # WO-26: the player's question was DECIDED here rather than
+                # asked — the caller reports it (the move path's " The
+                # province is secured."), never re-applies it.
+                "auto_secured": auto_secured,
                 "message": "",
             }
 

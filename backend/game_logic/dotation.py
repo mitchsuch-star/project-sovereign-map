@@ -298,12 +298,19 @@ def check_estate_eligibility(world, nation: str, region_name: str
     return True, ""
 
 
-def _capture_choice_pending(world, region_name: str) -> bool:
+def capture_choice_pending(world, region_name: str) -> bool:
     """True while the capture question chain (plunder/secure → W6-8
     confiscate/respect) for region_name is still open. The claim's fate is
     undecided — the player may yet choose RESPECT — so it stays LIVE until
     the answer lands (pinned by test_w6_estate_confiscation: a
-    pending-choice region is not endowable)."""
+    pending-choice region is not endowable).
+
+    WO-27: public because the per-turn estate prune in
+    ``WorldState._process_dotation_state`` is the FIFTH consumer of this
+    rule and was the one that did not carry it — a stage-1 question
+    crossing a turn boundary had its province pruned off the holder's
+    rolls, which deletes the W6-8 question outright
+    (``find_enemy_estate_holder`` reads ``dotation_regions``)."""
     pending = getattr(world, "pending_capture_choice", None)
     return isinstance(pending, dict) and pending.get("region") == region_name
 
@@ -322,7 +329,7 @@ def find_live_estate_claimant(world, region_name: str):
             continue
         if (region.controller == marshal.nation
                 or is_estate_respected(world, marshal.name, region_name)
-                or _capture_choice_pending(world, region_name)):
+                or capture_choice_pending(world, region_name)):
             return marshal
     return None
 
@@ -342,7 +349,7 @@ def strip_dead_estate_claims(world, region_name: str) -> List[str]:
         if region is not None and (
                 region.controller == marshal.nation
                 or is_estate_respected(world, marshal.name, region_name)
-                or _capture_choice_pending(world, region_name)):
+                or capture_choice_pending(world, region_name)):
             continue
         marshal.dotation_regions.remove(region_name)
         log_estate_lost(world, marshal, region_name)
@@ -402,7 +409,7 @@ def list_eligible_estates(world, nation: str) -> List[str]:
             if claim_region is not None and (
                     claim_region.controller == marshal.nation
                     or is_estate_respected(world, marshal.name, claim)
-                    or _capture_choice_pending(world, claim)):
+                    or capture_choice_pending(world, claim)):
                 dotated.add(claim)
     homeland = set(world.nation_starting_regions.get(nation, []))
     eligible = []

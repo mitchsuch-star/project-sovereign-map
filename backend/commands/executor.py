@@ -515,6 +515,57 @@ class CommandExecutor:
         region, _ = self._fuzzy_match_region(target, world)
         return region.name if region is not None else None
 
+    def _auto_end_turn_defer_notice(self, world) -> str:
+        """WO-22 — why the turn must NOT auto-advance, in the player's words.
+
+        AP exhaustion auto-calls end_turn so the enemy phase is never skipped.
+        That auto-advance used to defer for exactly one reason (unanswered
+        envoys) while the TYPED ``end turn`` refuses for several — and the
+        loudest of those, an unanswered plunder/secure question, was the one
+        it crossed. A last-AP attack that took a province auto-advanced
+        straight past the question; the enemy phase could retake the
+        province; and the answer then died on `handle_capture_choice`'s
+        holder re-validation ("the question has lapsed") with the plunder
+        gold — `income x 4` — forfeited in silence.
+
+        The capture question is named FIRST because it is the one with money
+        on it and the one the player is looking at. Both reasons are stated
+        when both apply: a notice that hides the second reason sends the
+        player to end the turn explicitly and be refused again.
+
+        LOAD-BEARING: after this defer the player has 0 AP in BOTH pools and
+        the pending-choice block at the head of ``execute`` refuses every
+        command, ``end turn`` included. The only exit is answering, and that
+        exit is safe solely because neither answer route runs through
+        ``execute``: the typed router in ``main.py`` fires before it, and
+        ``POST /capture_choice`` never touches it. Route a capture answer
+        through ``execute`` and this defer becomes a soft-lock with no way
+        out — pinned in test_wo_slice15_capture_question_holds.py.
+
+        Deliberately NOT carrying the typed block's ``_strategic_execution``
+        exemption: a strategic hop costs no AP, so it cannot reach this
+        branch, and importing the carve-out would be a condition that never
+        fires today and re-opens WO-22 the day that changes.
+
+        Returns "" when nothing defers the advance.
+        """
+        reasons = []
+        pending = getattr(world, "pending_capture_choice", None)
+        if pending:
+            # The stage-aware restatement, from the ONE source the refusal
+            # and stale-answer paths already speak through — no fourth copy
+            # of the question, and the price travels with it.
+            reasons.append(
+                "All actions are spent, but "
+                + self._capture._pending_prompt(pending)
+            )
+        if world.dialogue_manager.has_current_turn_offers():
+            reasons.append(
+                "All actions are spent, but unanswered envoys remain. "
+                "Review them or end the turn explicitly to let them lapse."
+            )
+        return " ".join(reasons)
+
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command against the current game state."""
         # Clear transient square-break notification (set by _auto_break_square)
@@ -1985,15 +2036,12 @@ class CommandExecutor:
         # Must mirror _execute_end_turn() data capture — see P0-1/2/3 audit.
         # ════════════════════════════════════════════════════════════
         should_auto_end_turn = action_result.get("should_end_turn", False) and is_player_action
-        if should_auto_end_turn and world.dialogue_manager.has_current_turn_offers():
-            notice = (
-                "All actions are spent, but unanswered envoys remain. "
-                "Review them or end the turn explicitly to let them lapse."
-            )
+        _defer_notice = self._auto_end_turn_defer_notice(world) if should_auto_end_turn else ""
+        if _defer_notice:
             if result.get("message"):
-                result["message"] = f"{result['message']} {notice}"
+                result["message"] = f"{result['message']} {_defer_notice}"
             else:
-                result["message"] = notice
+                result["message"] = _defer_notice
             should_auto_end_turn = False
 
         if should_auto_end_turn:

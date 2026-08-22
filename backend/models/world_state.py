@@ -429,6 +429,81 @@ def apply_plunder_effects(world, region, receiving_nation: str) -> int:
     return gold_gained
 
 
+def apply_secure_effects(region) -> None:
+    """Hold a captured province — THE one implementation of secure's
+    effects (WO-26), the sibling of ``apply_plunder_effects`` above.
+
+    Effects: stability 25, the ``plundered`` flag cleared, every standing
+    building damaged (not destroyed), construction cancelled, and an active
+    watchtower degraded. No gold, no war damage.
+
+    ``combat_executor._apply_secure`` delegates here, so the automated
+    auto-secure below and the player's answered "secure" leave a province
+    in byte-identical shape — which is the whole point of having one.
+    """
+    region.stability = 25
+    region.plundered = False
+    for building in region.buildings:
+        building["damaged"] = True
+    region.building_under_construction = None
+    if getattr(region, 'watchtower', 'none') == "active":
+        region.watchtower = "damaged"
+    elif getattr(region, 'watchtower', 'none') == "under_construction":
+        region.watchtower = "none"
+        region.watchtower_turns_remaining = 0
+
+
+def mount_or_auto_secure_capture(world, region, capturer_name: str,
+                                 previous_controller, capturing_nation: str,
+                                 *, auto_secure: bool = False):
+    """WO-26 — the ONE writer of ``world.pending_capture_choice`` for a
+    fresh capture. Returns "secure" when the capture was decided here, or
+    None when the question was mounted for the player.
+
+    ``pending_capture_choice`` is a SINGLE slot holding ONE unanswered
+    question, and three producers used to write it bare: the instant
+    attack-capture (``combat_executor._attempt_region_capture``), the
+    occupation completing (``_apply_occupation_capture_effects``), and the
+    PF-3 move-capture — which alone carried a save/restore guard. Inside a
+    multi-marshal strategic loop (``_strategic_execution`` is exempt from
+    the executor's pending-choice block) the second capture overwrote the
+    first: control had already flipped, but that province never ran secure,
+    never logged ``region_captured``, and never reached the W6-8 estate
+    stage. The player was never told the question had existed.
+
+    The rule needs no strategic flag: **an occupied slot cannot be asked
+    again.** A direct player capture always finds the slot empty (the
+    executor blocks every command while a question stands), so the
+    interactive prompt is untouched; only an automated capture arriving on
+    top of an unanswered one is decided here, and it is decided the
+    conservative way — secure, no windfall, exactly as the mid-march
+    capture already resolves itself (IGR-X5).
+
+    ``auto_secure=True`` is that march policy, passed by the move path: an
+    automated hop is no moment for a court decision even when the slot is
+    free. Either way the W6-8 estate question deliberately does not mount on
+    an auto-secured province — and note what that means, because the move
+    path's comment used to get it backwards: nothing is pending, so the
+    estate prune's WO-27 carve-out does not apply and an enemy marshal's
+    title on that soil is stripped on the same advance. No windfall, no
+    goodwill, no question. Design row WO-D11 owns whether it should instead
+    default to RESPECT.
+    """
+    if auto_secure or world.pending_capture_choice is not None:
+        apply_secure_effects(region)
+        world.log_event({
+            "type": "region_captured",
+            "region": region.name,
+            "captured_by": capturing_nation,
+            "captured_from": previous_controller,
+            "method": "secure",
+        })
+        return "secure"
+    world.pending_capture_choice = build_capture_choice(
+        world, region, capturer_name, previous_controller)
+    return None
+
+
 def build_capture_choice(world, region, capturer_name: str,
                          previous_controller) -> dict:
     """The stage-1 plunder/secure question — THE single builder.
@@ -3939,8 +4014,18 @@ class WorldState:
                 self._last_occupation_capture_choice = "secure"
                 return (f" {region_name} is ours again — {marshal.name} "
                         f"restores the Imperial administration.")
-            self.pending_capture_choice = build_capture_choice(
-                self, region, marshal.name, old_controller)
+            # WO-26: through the shared guard, never a bare write. Two
+            # marshals can complete an occupation on the same tick, and one
+            # can complete while a PURSUE capture's question from earlier in
+            # the same strategic loop still stands unanswered — the bare
+            # write deleted it, flag and all.
+            if mount_or_auto_secure_capture(
+                    self, region, marshal.name, old_controller,
+                    marshal.nation) == "secure":
+                self._last_occupation_capture_choice = "secure"
+                return (f" {region_name} captured by {marshal.nation}! "
+                        f"{marshal.name} secures it — an earlier decision "
+                        f"still awaits your word.")
             return (f" {region_name} captured by {marshal.nation}! Plunder it "
                     f"for {self.pending_capture_choice['plunder_gold']:,} gold, "
                     f"or secure it?")
@@ -5814,9 +5899,9 @@ class WorldState:
 
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
-            get_expectation, get_satisfaction, is_estate_respected,
-            list_eligible_estates, list_paying_estates, log_estate_lost,
-            prune_respected_estates,
+            capture_choice_pending, get_expectation, get_satisfaction,
+            is_estate_respected, list_eligible_estates, list_paying_estates,
+            log_estate_lost, prune_respected_estates,
         )
 
         # W6-8: drop dead respect entries FIRST so the estate prune below
@@ -5908,11 +5993,23 @@ class WorldState:
                 # W6-8: an occupied estate whose title the occupier chose to
                 # RESPECT stays on the marshal's rolls — the courtesy is the
                 # whole point of the choice.
+                # WO-27: …and a province whose capture question is still
+                # OPEN is not lost either — the fourth carve-out its three
+                # siblings in dotation.py (and vassal.py's cession gate)
+                # already carry, and the one place it was missing. Without
+                # it a stage-1 question that crosses a turn boundary has the
+                # province pruned off the holder's rolls, and because
+                # find_enemy_estate_holder reads dotation_regions the W6-8
+                # confiscate/respect question is then never asked at all;
+                # where the estate stage HAD already mounted, answering
+                # 'respect' bought a +5 that prune_respected_estates deleted
+                # on the next turn — paid for, and gone.
                 lost = [
                     r for r in marshal.dotation_regions
                     if self.regions.get(r) is None
                     or (self.regions[r].controller != marshal.nation
-                        and not is_estate_respected(self, marshal.name, r))
+                        and not is_estate_respected(self, marshal.name, r)
+                        and not capture_choice_pending(self, r))
                 ]
                 for region_name in lost:
                     marshal.dotation_regions.remove(region_name)

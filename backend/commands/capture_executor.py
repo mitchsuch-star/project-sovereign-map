@@ -23,7 +23,8 @@ class CaptureExecutor:
         self._executor = parent_executor
 
     def handle_capture_choice(self, choice: str, game_state: Dict,
-                              dialogue_id: Optional[int] = None) -> Dict:
+                              dialogue_id: Optional[int] = None,
+                              region: Optional[str] = None) -> Dict:
         """Handle player's capture choices: plunder/secure, then (when the
         province sustains an enemy marshal's estate) confiscate/respect.
 
@@ -34,6 +35,16 @@ class CaptureExecutor:
             dialogue_id: optional W6-0 identity check — if provided and it
                     does not match the pending question's id, the choice is
                     refused and the current question re-attached.
+            region: WO-29 — the province the player NAMED with a typed
+                    answer ("plunder Swabia"). The typed route carries no
+                    dialogue_id (there is none to carry: `/command` has no
+                    such field, and the client's only capture id is written
+                    when the modal renders, which disables the command
+                    line), so identity on that path is bound by CONTENT,
+                    exactly as the typed diplomatic route already binds by
+                    the court's name. A named province that is not the one
+                    standing is refused and the real question restated —
+                    never applied to a different province.
 
         Returns:
             Result dict with effects applied
@@ -56,6 +67,17 @@ class CaptureExecutor:
                 "success": False,
                 "stale_dialogue": True,
                 "message": ("Sire, another matter has arisen since — "
+                            + self._pending_prompt(pending)),
+                "pending_capture_choice": True,
+                "capture_data": pending,
+            }
+
+        # WO-29: the same rule, bound by content for the typed path.
+        if region is not None and str(region) != str(pending.get("region", "")):
+            return {
+                "success": False,
+                "stale_dialogue": True,
+                "message": (f"Sire, {region} is not the matter before us — "
                             + self._pending_prompt(pending)),
                 "pending_capture_choice": True,
                 "capture_data": pending,

@@ -4453,6 +4453,24 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	if detail != "":
 		add_output("[color=#" + Utils.COLOR_INFO + "]" + detail + "[/color]")
 	add_output("")
+
+	# WO-30: a save can carry an unanswered plunder/secure (or W6-8 estate)
+	# question. This handler consults no route table — the route tables are
+	# read from _on_command_result and the muster tail only — so the backend
+	# passthrough alone would be invisible and the player would discover the
+	# question by having their next order refused. Raise it here through the
+	# SAME predicate/route pair the command path uses, so the two cannot
+	# drift. The load message is stripped from the copy handed to the route:
+	# it has already been printed above, and _show_capture_choice_dialog
+	# prints response.message itself.
+	# The dialog owns input from here — both of its exits emit choice_made,
+	# and _on_capture_choice_response re-enables input on every path.
+	if _response_has_capture_choice_route(response):
+		var raised = response.duplicate()
+		raised.erase("message")
+		_route_capture_choice_response(raised)
+		return
+
 	set_input_enabled(true)
 	command_input.grab_focus()
 

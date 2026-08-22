@@ -519,10 +519,48 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # M1–M7 were run before and after and are byte-identical WITHOUT
 # re-record; that is a fact about that harness (it has no war ending with
 # an army abroad, and no sovereign in it), not independent proof of safety.
+#
+# WO-26 re-record (August 21, 2026, slice 15 "The Capture Question
+# Holds") — ONE index moves: [40] 13 -> 23. Indices 0-39 are byte-identical.
+#
+# Cause, proved by experiment rather than asserted. The ambient board is
+# AI-vs-AI with nobody at the keyboard, but France is still
+# `world.player_nation`, so a French capture takes the PLAYER branch of
+# `_attempt_region_capture` and mounts a plunder/secure question no one
+# will ever answer. Instrumented over the 40 turns: the player branch
+# fires THREE times — Ney takes Swabia and the question (600g on it)
+# stands unanswered for the rest of the run, and then Moravia (turn 18)
+# and Vienna (turn 21) arrive on top of it. Before this slice those two
+# were bare writes: the question was overwritten, and the provinces kept
+# `capture_region`'s control flip while never running secure — buildings
+# undamaged, construction still running, no `region_captured` row. France
+# stormed Vienna and the engine forgot to garrison it. They now secure and
+# log, which changes those provinces' output and, forty turns later, the
+# final reading.
+#
+# Attribution, four arms:
+#   A. world_state + dotation + vassal only (WO-27 carve-out, the shared
+#      producer defined but unused) ......................... 13, unchanged
+#   B. + combat_executor (the producer conversion) ........... 23
+#   C. + movement_executor ................................... 23
+#   D. + executor/capture_executor/main ...................... 23
+#   E. full tree with ONE line flipped — the occupancy arm of
+#      `mount_or_auto_secure_capture` forced False .......... 13, verbatim
+# So the sole lever is the occupancy rule itself; the `apply_secure_effects`
+# extraction, the WO-22 auto-advance defer, the WO-27 prune carve-out and
+# the move path's `auto_secure` are all inert here (E reproduces the prior
+# series with every one of them in place).
+#
+# Note for the next reader: an event-log probe reports ZERO of these
+# `region_captured` rows, because `event_log` is capped at 500 and they are
+# evicted — the IGR-B trap. Spy on `log_event` at write time, not the log.
+#
+# M1-M7 were run before and after and are byte-identical WITHOUT
+# re-record.
 BASELINE_SERIES = [
     70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70, 68,
     66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 59, 56, 53, 50, 47, 44,
-    41, 38, 35, 32, 29, 26, 13,
+    41, 38, 35, 32, 29, 26, 23,
 ]
 
 

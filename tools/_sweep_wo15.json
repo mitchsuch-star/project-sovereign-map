@@ -1,0 +1,191 @@
+[
+  {
+    "id": "WO-22 revert the defer to envoys-only",
+    "file": "backend/commands/executor.py",
+    "old": "        _defer_notice = self._auto_end_turn_defer_notice(world) if should_auto_end_turn else \"\"",
+    "new": "        _defer_notice = (\"\" if world.pending_capture_choice else (self._auto_end_turn_defer_notice(world) if should_auto_end_turn else \"\"))",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO22TheAutoAdvanceDefers"
+  },
+  {
+    "id": "WO-22 defer reads the RESULT dict, not world state (attack-only fix)",
+    "file": "backend/commands/executor.py",
+    "old": "        pending = getattr(world, \"pending_capture_choice\", None)\n        if pending:\n            # The stage-aware restatement",
+    "new": "        pending = None\n        if pending:\n            # The stage-aware restatement",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO22TheAutoAdvanceDefers"
+  },
+  {
+    "id": "WO-22 notice returns after the first reason instead of joining",
+    "file": "backend/commands/executor.py",
+    "old": "        return \" \".join(reasons)",
+    "new": "        return reasons[0] if reasons else \"\"",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO22TheAutoAdvanceDefers::test_both_reasons_are_stated_when_both_apply"
+  },
+  {
+    "id": "WO-22 notice drops the priced restatement",
+    "file": "backend/commands/executor.py",
+    "old": "                \"All actions are spent, but \"\n                + self._capture._pending_prompt(pending)",
+    "new": "                \"All actions are spent, but a decision is pending.\"",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO22TheAutoAdvanceDefers"
+  },
+  {
+    "id": "WO-22 defer fires unconditionally (the freeze-everything slip)",
+    "file": "backend/commands/executor.py",
+    "old": "        reasons = []\n        pending = getattr(world, \"pending_capture_choice\", None)",
+    "new": "        reasons = [\"All actions are spent.\"]\n        pending = getattr(world, \"pending_capture_choice\", None)",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO22TheAutoAdvanceDefers::test_nothing_pending_still_auto_advances"
+  },
+  {
+    "id": "WO-22 soft-lock: route the typed answer through execute()",
+    "file": "backend/main.py",
+    "old": "        _capture_answer = _typed_capture_answer(world, _pending_answer_token)\n        if _capture_answer is not None:",
+    "new": "        _capture_answer = _typed_capture_answer(world, _pending_answer_token)\n        if _capture_answer is not None and world.actions_remaining > 0:",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO22TheAutoAdvanceDefers::test_no_capture_answer_route_runs_through_execute"
+  },
+  {
+    "id": "WO-26 restore the bare write at the combat producer",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                    ai_choice = mount_or_auto_secure_capture(\n                        world, region, marshal.name, old_controller,\n                        marshal.nation, auto_secure=auto_secure)",
+    "new": "                    from backend.models.world_state import build_capture_choice\n                    world.pending_capture_choice = build_capture_choice(\n                        world, region, marshal.name, old_controller)",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO26TheQuestionIsNotOverwritten"
+  },
+  {
+    "id": "WO-26 restore the bare write at the occupation producer",
+    "file": "backend/models/world_state.py",
+    "old": "            if mount_or_auto_secure_capture(\n                    self, region, marshal.name, old_controller,\n                    marshal.nation) == \"secure\":",
+    "new": "            self.pending_capture_choice = build_capture_choice(\n                self, region, marshal.name, old_controller)\n            if False:",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO26TheQuestionIsNotOverwritten::test_two_occupations_completing_on_one_tick_keep_the_first"
+  },
+  {
+    "id": "WO-26 the occupancy rule never fires (always mount)",
+    "file": "backend/models/world_state.py",
+    "old": "    if auto_secure or world.pending_capture_choice is not None:",
+    "new": "    if auto_secure:",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO26TheQuestionIsNotOverwritten tests/test_wo_slice15_capture_question_holds.py::TestTheSharedProducer"
+  },
+  {
+    "id": "WO-26 the guard always auto-secures (eats the interactive question)",
+    "file": "backend/models/world_state.py",
+    "old": "    if auto_secure or world.pending_capture_choice is not None:",
+    "new": "    if True:",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO26TheQuestionIsNotOverwritten::test_an_empty_slot_still_asks"
+  },
+  {
+    "id": "WO-26 auto_secure becomes a no-op (the PF-3 march policy)",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                auto_secure=bool(strategic_execution))",
+    "new": "                auto_secure=False)",
+    "tests": "tests/test_pf3_uncontested_occupation.py"
+  },
+  {
+    "id": "WO-26 secure effects drift (re-inline a divergent _apply_secure)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        from backend.models.world_state import apply_secure_effects\n        apply_secure_effects(region)",
+    "new": "        region.stability = 25\n        region.plundered = False\n        for building in region.buildings:\n            building[\"damaged\"] = True\n        region.building_under_construction = None",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO26TheQuestionIsNotOverwritten::test_secure_effects_have_one_implementation"
+  },
+  {
+    "id": "WO-26 census: a new bare write appears",
+    "file": "backend/commands/movement_executor.py",
+    "old": "        old_location = marshal.location\n        marshal.move_to(target_name)",
+    "new": "        old_location = marshal.location\n        world.pending_capture_choice = None or world.pending_capture_choice\n        marshal.move_to(target_name)",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO26TheQuestionIsNotOverwritten::test_one_writer_census"
+  },
+  {
+    "id": "WO-27 drop the prune carve-out",
+    "file": "backend/models/world_state.py",
+    "old": "                        and not is_estate_respected(self, marshal.name, r)\n                        and not capture_choice_pending(self, r))",
+    "new": "                        and not is_estate_respected(self, marshal.name, r))",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO27TheEstateSurvivesTheQuestion"
+  },
+  {
+    "id": "WO-27 carve-out becomes a blanket amnesty",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    pending = getattr(world, \"pending_capture_choice\", None)\n    return isinstance(pending, dict) and pending.get(\"region\") == region_name",
+    "new": "    return True",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO27TheEstateSurvivesTheQuestion::test_without_a_question_the_estate_is_still_pruned"
+  },
+  {
+    "id": "WO-29 delete the content-identity guard",
+    "file": "backend/commands/capture_executor.py",
+    "old": "        if region is not None and str(region) != str(pending.get(\"region\", \"\")):",
+    "new": "        if False:",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO29TheTypedAnswerNamesItsProvince::test_naming_the_wrong_province_is_refused"
+  },
+  {
+    "id": "WO-29 the typed route stops passing the named province",
+    "file": "backend/main.py",
+    "old": "                _cap_token, game_state, region=_cap_region)",
+    "new": "                _cap_token, game_state)",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO29TheTypedAnswerNamesItsProvince::test_naming_the_wrong_province_is_refused"
+  },
+  {
+    "id": "WO-29 unmatched trailing words become a bare answer",
+    "file": "backend/main.py",
+    "old": "        if region_name.lower() == named.lower():\n            return (token, region_name)\n    return None",
+    "new": "        if region_name.lower() == named.lower():\n            return (token, region_name)\n    return (token, None)",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO29TheTypedAnswerNamesItsProvince::test_trailing_words_that_name_no_province_fall_through"
+  },
+  {
+    "id": "WO-29 the filler strip disappears",
+    "file": "backend/main.py",
+    "old": "    while rest and rest[0].lower() in _CAPTURE_ANSWER_FILLERS:\n        rest.pop(0)",
+    "new": "    pass",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO29TheTypedAnswerNamesItsProvince::test_the_filler_words_are_stripped"
+  },
+  {
+    "id": "WO-30 delete the /load passthrough",
+    "file": "backend/main.py",
+    "old": "    if world.pending_capture_choice:\n        response[\"pending_capture_choice\"] = True\n        response[\"capture_data\"] = world.pending_capture_choice\n    return response",
+    "new": "    return response",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_load_response_carries_both_capture_keys"
+  },
+  {
+    "id": "WO-30 /load drains the popup queue",
+    "file": "backend/main.py",
+    "old": "    _fill_popup_keys_without_draining(response)\n    # WO-30: `pending_capture_choice` is a plain world attribute",
+    "new": "    _include_popup_passthroughs(response, world)\n    # WO-30: `pending_capture_choice` is a plain world attribute",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_load_still_leaves_a_queued_popup_alone"
+  },
+  {
+    "id": "WO-30 remove the client-side raise",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _response_has_capture_choice_route(response):\n\t\tvar raised = response.duplicate()\n\t\traised.erase(\"message\")\n\t\t_route_capture_choice_response(raised)\n\t\treturn",
+    "new": "\tpass",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_the_world_swap_handler_raises_it_client_side"
+  },
+  {
+    "id": "WO-30 census: a new unclassified modal route appears",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t{\"id\": \"capture_choice\", \"matches\": \"_response_has_capture_choice_route\", \"show\": \"_route_capture_choice_response\"},",
+    "new": "\t\t{\"id\": \"capture_choice\", \"matches\": \"_response_has_capture_choice_route\", \"show\": \"_route_capture_choice_response\"},\n\t\t{\"id\": \"brand_new\", \"matches\": \"_response_has_brand_new_route\", \"show\": \"_route_brand_new_response\"},",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_blocking_state_surface_census"
+  },
+  {
+    "id": "WO-30 census: pending_capture_choice loses its declared load path",
+    "file": "tests/test_wo_slice15_capture_question_holds.py",
+    "old": "            \"pending_capture_choice\", \"capture_data\",",
+    "new": "            \"capture_data\",",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_blocking_state_surface_census"
+  },
+  {
+    "id": "WO-30 .gd body pin: the predicate is renamed",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "func _response_has_capture_choice_route(response: Dictionary) -> bool:",
+    "new": "func _response_has_capture_choice_route_renamed(response: Dictionary) -> bool:",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_the_client_route_pair_still_exists"
+  },
+  {
+    "id": "WO-34 delete the naval landing stamp",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                result[\"pending_capture_choice\"] = True\n                result[\"capture_data\"] = world.pending_capture_choice",
+    "new": "                pass",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO34TheLandingAsksItsQuestion::test_the_landing_result_carries_the_question"
+  },
+  {
+    "id": "WO-34 the landing writes the slot itself instead of using the seam",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                    capture = self._executor._combat._attempt_region_capture(\n                        marshal, target, world, game_state)",
+    "new": "                    world.pending_capture_choice = {\"region\": target}\n                    capture = {\"captured\": True}",
+    "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO34TheLandingAsksItsQuestion::test_the_landing_arm_reaches_the_shared_producer"
+  }
+]

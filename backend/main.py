@@ -1517,6 +1517,55 @@ def _fill_popup_keys_without_draining(response: dict) -> None:
         response.setdefault(response_key, None)
 
 
+_CAPTURE_ANSWER_TOKENS = ("plunder", "secure", "confiscate", "respect")
+_CAPTURE_ANSWER_FILLERS = ("the", "in", "at", "of", "province", "region")
+
+
+def _typed_capture_answer(world, text: str):
+    """WO-29 — a typed capture-pipeline answer, and the province it names.
+
+    Returns None when `text` is not a capture answer at all (the command
+    then falls through to the ordinary pipeline exactly as before this
+    slice). Otherwise returns ``(token, named_region_or_None)``.
+
+    The filed fix was to thread ``dialogue_id`` onto this route so the W6-0
+    stale guard would stop being inert here. There is nothing to thread:
+    ``CommandRequest`` has no such field, the terminal's request body is
+    ``{"command": ...}``, and the client's only capture id is written when
+    the MODAL renders — which disables the command line, so the two states
+    are mutually exclusive. Server-side the sole candidate is the pending
+    question's own id, which would make the guard compare a value with
+    itself. So this route binds identity by CONTENT, the way the typed
+    diplomatic route already binds by the court's name: name a province and
+    the answer is bound to it; name the wrong one and it is refused with
+    the real question restated, never applied to a different province.
+
+    Only a REAL province name qualifies an answer. Trailing words that name
+    no province ("plunder it") do not reach the handler at all — they fall
+    through to the ordinary pipeline and are restated by the executor's
+    pending-choice block, exactly as before this slice. The W6-0 router's
+    exact-token contract is therefore widened by one shape and no keyword
+    ownership moves.
+    """
+    pending = getattr(world, "pending_capture_choice", None)
+    if not pending:
+        return None
+    parts = (text or "").strip().split()
+    if not parts or parts[0] not in _CAPTURE_ANSWER_TOKENS:
+        return None
+    token = parts[0]
+    rest = [w.strip(".,!'\"") for w in parts[1:]]
+    while rest and rest[0].lower() in _CAPTURE_ANSWER_FILLERS:
+        rest.pop(0)
+    if not rest:
+        return (token, None)
+    named = " ".join(rest)
+    for region_name in getattr(world, "regions", {}) or {}:
+        if region_name.lower() == named.lower():
+            return (token, region_name)
+    return None
+
+
 def _digest_owns(dialogue, world) -> bool:
     """IGR-F: is this dialogue a routine small-court letter?
 
@@ -2252,16 +2301,16 @@ def execute_command(request: CommandRequest):
                 print(f"[PENDING-QUESTION] Plain-English objection answer "
                       f"'{command_text}' -> {_spoken[0]}")
                 return _respond_to_objection_sync(_spoken[0])
-        if (_pending_answer_token in ("plunder", "secure",
-                                      "confiscate", "respect")
-                and getattr(world, "pending_capture_choice", None)):
+        _capture_answer = _typed_capture_answer(world, _pending_answer_token)
+        if _capture_answer is not None:
             # W6-8: all four capture-pipeline tokens route here; the handler
             # itself is stage-aware (a wrong-stage token is refused with the
             # question restated, never misapplied).
+            _cap_token, _cap_region = _capture_answer
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> capture choice")
             result = executor.handle_capture_choice(
-                _pending_answer_token, game_state)
+                _cap_token, game_state, region=_cap_region)
             # IGR-X7: the capture route must not eat a queued popup.
             return _build_result_response(result, world, drain_popups=False)
         if world.pending_diplomatic_dialogue is not None:
@@ -3993,6 +4042,18 @@ async def load_endpoint(request: LoadRequest):
                                        message=result["message"],
                                        include_popup_passthroughs=False)
     _fill_popup_keys_without_draining(response)
+    # WO-30: `pending_capture_choice` is a plain world attribute, not a
+    # PopupQueue member, so the fill above cannot deliver it — it only
+    # setdefaults queue keys to None. A save carrying an unanswered
+    # plunder/secure question therefore loaded with the question standing
+    # in world state (it round-trips at world_state.py to_dict/from_dict)
+    # and NOTHING on screen: the player's next order was refused by the
+    # executor's pending-choice block, which is how they found out.
+    # Two keys, the same shape `/capture_choice` returns, and the client's
+    # world-swap handler raises the modal from them.
+    if world.pending_capture_choice:
+        response["pending_capture_choice"] = True
+        response["capture_data"] = world.pending_capture_choice
     return response
 
 

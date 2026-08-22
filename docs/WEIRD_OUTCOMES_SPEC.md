@@ -1307,6 +1307,166 @@ estate *respect* answer is never a paid no-op across a turn boundary; a
 typed answer with a stale id refuses; a loaded save re-raises the capture
 modal; the PF-3 pin stays green.
 
+> **✅ LANDED August 21, 2026 — landing record.** All five rows closed, plus
+> one found while building. Tests =
+> `tests/test_wo_slice15_capture_question_holds.py` (31); mutation sweep
+> `tools/_sweep_wo15.json` — **27 mutations, 27 killed** after two INERT
+> pins were found and replaced (both were the tests' fault, not the code's:
+> the secure-effects comparison could not see a change made to the ONE
+> implementation both of its arms call, and the non-draining pin queued its
+> popup in a world that `/load` then threw away). Suite **18,328/3**, ruff
+> clean, Godot parse harness EXIT=0 (47 scripts), war-room boot smoke 0
+> `SCRIPT ERROR`.
+>
+> **A verify → refute fleet ran BEFORE the build** (5 defects × verifier +
+> refuter, 4 census sweeps, 1 synthesis) and it earned its cost twice by
+> **contradicting the contract above**, not by confirming it:
+>
+> - **WO-30's prescribed fix is wrong and was not built.** "Add the capture
+>   entry to `PopupQueue.RESPONSE_KEYS`" is a no-op in the arm that matters
+>   — both consumers write `None`, and `pop_highest` iterates
+>   `PRIORITY_ORDER` against a queue this field never enters. Its non-no-op
+>   variants are worse: one stamps `capture_data: None` on every response,
+>   another has `pop_highest` **destroy** the question along with the
+>   `executor.py` block that protects it. And the row omitted the half that
+>   makes the fix visible at all: `_apply_world_swap_response` consults no
+>   route table, so a backend passthrough alone renders nothing. Built
+>   instead: the two explicit keys at the tail of `/load` (the shape
+>   `/capture_choice` already returns) **and** the client raise, through the
+>   same predicate/route pair the command path uses so the two cannot drift.
+> - **WO-29's prescribed fix is unbuildable.** There is no `dialogue_id` to
+>   thread: `CommandRequest` has no such field, the terminal body is
+>   `{"command": …}`, the client's only capture id is written when the
+>   MODAL renders — which disables the command line, so the two states are
+>   mutually exclusive — and server-side the only candidate is the pending
+>   question's own id, which would make the guard compare a value with
+>   itself. Forcing it would be worse than nothing: after a world swap the
+>   client's id is `-1` or one minted in the previous world, and a stale
+>   positive arms the guard against the wrong question — a permanent
+>   refusal loop that the pending-choice block turns into a soft-lock.
+>   Built instead: identity by **content**, the documented house pattern for
+>   typed answers (`diplomatic_executor.py:3286-3296`) — `plunder
+>   <province>` binds the answer to that province, and a wrong name is
+>   refused with the real question restated. The composed X→Y consequence
+>   the row describes is closed twice over anyway, by WO-26 and WO-22.
+>
+> **The build, seam by seam.** `world_state.apply_secure_effects` (hoisted
+> verbatim out of `combat_executor._apply_secure`, which now delegates) and
+> `world_state.mount_or_auto_secure_capture` — the ONE writer for a fresh
+> capture. The rule needs no strategic flag: **an occupied slot cannot be
+> asked again.** A direct player capture always finds it empty (the
+> executor blocks every command while a question stands), so the
+> interactive prompt is untouched; only an automated capture arriving on
+> top of an unanswered one is decided here, and it is decided the
+> conservative way — secure, no windfall. The march policy (IGR-X5's
+> "auto-secure even on a free slot") stays a caller-passed `auto_secure`
+> flag, and the move path's local `_prior_choice` save/restore is
+> **deleted** rather than copied — the guard is structural now, at all
+> three producers. WO-22 = one helper, `_auto_end_turn_defer_notice`,
+> stage-agnostic (it reads the FIELD, not `stage`), speaking through the
+> existing stage-aware restatement so the price travels with it, and
+> deliberately WITHOUT the typed block's `_strategic_execution` carve-out —
+> a strategic hop costs no AP so it cannot reach the branch, and importing
+> the exemption would be a condition that never fires today and re-opens
+> WO-22 the day that changes. WO-27 = the fourth carve-out, with
+> `_capture_choice_pending` renamed public.
+>
+> **Corrections to the filed rows, on the record:**
+> - WO-22's trigger is **both** AP pools drained, not "the last AP", and it
+>   has **two** producers (attack and a typed move) — a fix or test covering
+>   only `attack` leaves `move` broken.
+> - WO-22's "the plunder gold is silently forfeited" is **conditional**,
+>   not certain: `handle_capture_choice` lapses only if the province was
+>   retaken. Held, it pays in full next turn. The reliable damage is that
+>   the auto-advance re-attached the now-stale question and the client
+>   popped it — a priced offer that may already be void.
+> - WO-27 has **four** siblings carrying the carve-out, not three
+>   (`vassal.py:1340` was unnamed), and the prune was the only live-claim
+>   test in the codebase missing it. Its premise is understated: the
+>   strongest path needs **no turn boundary and no player negligence** —
+>   `_process_tactical_states` completes an occupation and
+>   `_process_dotation_state` runs later in the *same*
+>   `_advance_turn_internal`. And its stated consequence is the smaller
+>   half: because `find_enemy_estate_holder` reads `dotation_regions` raw,
+>   a pruned estate means the W6-8 confiscate/respect question **is never
+>   asked at all** — no windfall, no goodwill, an `estate_lost` fired in its
+>   place. Where the estate stage HAD already mounted, "the +5 never fires"
+>   is also wrong: it fires, and `prune_respected_estates` revokes it on the
+>   next advance. Paid for, and gone. **Re-filed P3 → P2.**
+> - WO-30's cited line numbers point at `/new_game`'s autosave tail and at
+>   a parser keyword constant; the real seams are `/load` and
+>   `main.gd:1893`. The client gate reads **two** keys, which is exactly why
+>   a one-attr→one-key `RESPONSE_KEYS` entry could never have worked.
+>
+> **`BASELINE_SERIES` re-recorded ONCE — index [40] only, 13 → 23 — and the
+> cause was proved by experiment, not argued.** The verify fleet PREDICTED
+> the harness could not move (every changed path is player-nation gated and
+> France issues no orders on the ambient board). It moved anyway, which is
+> the whole argument for measuring. France IS `world.player_nation` even
+> with nobody at the keyboard, so a French capture takes the PLAYER branch:
+> instrumented, it fires three times — Ney takes **Swabia** and its 600g
+> question stands unanswered for the rest of the run, then **Moravia**
+> (turn 18) and **Vienna** (turn 21) arrive on top of it. Those two were
+> bare writes; the provinces kept the control flip and never ran secure, so
+> France stormed Vienna and the engine forgot to garrison it. Five arms:
+> world_state+dotation+vassal alone reproduces 13; adding combat_executor
+> gives 23; and **the full tree with the occupancy arm forced False
+> reproduces 13 verbatim** — so the sole lever is the occupancy rule, and
+> the `apply_secure_effects` hoist, the WO-22 defer, the WO-27 carve-out
+> and the move path's `auto_secure` are all inert on that board. M1–M7
+> byte-identical without re-record. (A probe of `event_log` reports ZERO of
+> those `region_captured` rows — the 500-cap had evicted them. The IGR-B
+> trap again: spy on `log_event` at write time, not the log.)
+>
+> **Found in passing and FIXED — WO-34:** a player naval expedition landing
+> on undefended enemy soil captures through the shared pipeline, which
+> mounts the question in world state — and the landing result copied only
+> `capture_choice` / `capture_message` / `region_captured`, never the two
+> keys `main.gd` gates the modal on. The expedition asked a question the
+> player was never shown; they found out by having their next order
+> refused. Same two keys, same priced sentence, as every other capture
+> route.
+>
+> **Found in passing and ROUTED, not folded in:** WO-35 (`pending_objection`
+> and `pending_interrupt` survive a save and raise nothing at load — and the
+> objection route requires `success == true` while its block returns
+> `success: False`, so that modal is unreachable by construction), WO-36
+> (`redemption_event`, same shape), and **WO-D11** — a mid-march
+> auto-secure strips an enemy marshal's estate with no windfall and no
+> goodwill. The last is a comment correction as much as a design row:
+> `movement_executor`'s own comment claimed the holder "simply keeps his
+> title — indistinguishable from 'respect' minus the goodwill entry", and
+> that was never true. Both that comment and
+> `mount_or_auto_secure_capture`'s docstring now say what actually happens.
+>
+> **The census pin** ("the next new slot cannot silently drop") is keyed on
+> the CLIENT's own modal route table, not on an attribute-name prefix — the
+> route table is what decides whether a piece of blocking state is ever
+> seen, and it is the thing a future slice edits. Every response key any
+> modal route reads must be classified: queue-delivered, explicitly
+> re-attached at `/load`, transient by design, or a known gap with a filed
+> row. Adding a route reds it; so does removing `pending_capture_choice`
+> from the re-attached set. Both mutations were run.
+>
+> **Two adjacent things this slice does NOT close, stated so nobody reads
+> them as closed:** the post-advance re-attach in `executor.py` can still
+> surface a question invalidated later in the same turn resolution (a
+> pre-existing shape, one seam over), and `world_state`'s auto-charge
+> conquest assigns a controller bare — it captures with no question, no
+> secure effects and no `region_captured` row, ever. The producer guard
+> covers every path that ASKS, not every path that captures; that one
+> belongs to slice 17.
+>
+> **⚠ Visual sign-off owed:** the `/load` raise is client-side and has been
+> seen only through the parse harness and a static body pin. It joins
+> slice 7's two owed sign-offs.
+>
+> **Method note, since this row keeps earning it:** the refuters read the
+> working tree while the lead was editing it, and two reported "already
+> fixed" for work committed nowhere. Nothing was lost, but a fleet pointed
+> at a moving tree spends part of its budget re-discovering the author's
+> own diff. Point the next one at a committed SHA.
+
 ### Slice 16 — "The Objection Channel Pays Honestly" (est 0.5) — **this spec's addition**
 
 **WO-21 (P1, hand-verified).** The strategic-objection "trust" arm credits
@@ -1520,16 +1680,29 @@ and 10 take sanctioned flip-attributed re-records; slices 3 and 17 measure
 and re-record only if moved (flip-attributed); every other slice proves
 byte-identity.
 
+> **AMENDED by slice 15, August 21, 2026: "every other slice proves
+> byte-identity" is a prediction, not a licence.** Slice 15 was expected to
+> be inert on that harness — every seam it touches is player-nation gated
+> and France issues no orders on the ambient board — and it moved index
+> [40] anyway, because France IS `world.player_nation` even with nobody at
+> the keyboard, so French captures take the PLAYER branch. Any slice
+> touching a `marshal.nation == world.player_nation` branch should expect
+> the ambient board to feel it. Measure first; if it moves, take the
+> flip-attributed re-record and name the lever.
+
 **The row is DONE when:** all seventeen slices landed in order with their
 done-when lines green; the funnel table re-measured with error bars (or
 withdrawn) and the G2(b) shelf decision taken on it; the three gate rulings
 implemented without re-opening (G1 slice 7, G3 slice 8, G2 = the 1b
 measurement + the Victory-pass hand-off note); `BUG_FIXES.md` §WO rows
-WO-1..WO-31 all FIXED/CLOSED with pointers here (WO-32 closed by its owner
-PC15-10 and checked at this row's exit); the three WO-D8..D10 design rows
-either gated or explicitly carried; `PLAYTESTING.md` carrying the known-bad
-list + the method rule; suite green; boot smoke 0 SCRIPT ERROR for the two
-`.gd`-touching slices (7, 8 — XR-1 rule).
+WO-1..WO-31 **plus WO-33..WO-36** all FIXED/CLOSED with pointers here
+(WO-32 closed by its owner PC15-10 and checked at this row's exit; WO-34
+was found and fixed by slice 15, WO-35/WO-36 were filed by its census and
+need owners); the WO-D8..D10 design rows **plus WO-D11** either gated or
+explicitly carried; `PLAYTESTING.md` carrying the known-bad
+list + the method rule; suite green; boot smoke 0 SCRIPT ERROR for the
+`.gd`-touching slices (7, 8, **and 15** — XR-1 rule; slice 15's client
+raise also owes a visual sign-off alongside slice 7's two).
 
 ---
 

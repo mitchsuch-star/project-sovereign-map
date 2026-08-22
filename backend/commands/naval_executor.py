@@ -277,6 +277,22 @@ class NavalExecutor:
                         result[key] = capture[key]
                 if capture.get("message"):
                     result["message"] = message + " " + str(capture["message"])
+            # WO-34 (found while building slice 15): the landing mounts the
+            # plunder/secure question in world state through the shared
+            # pipeline above, but this result carried only the three keys
+            # copied out of `capture` — never `pending_capture_choice` /
+            # `capture_data`, which is what `main.gd` gates the modal on. So
+            # an expedition that took a province asked a question the player
+            # was never shown; they discovered it by having their next order
+            # refused. Same two keys, same priced sentence, as every other
+            # capture route (combat_executor's conquest attach).
+            if (marshal.nation == world.player_nation
+                    and world.pending_capture_choice):
+                from backend.models.world_state import capture_choice_prompt
+                result["message"] += capture_choice_prompt(
+                    world.pending_capture_choice)
+                result["pending_capture_choice"] = True
+                result["capture_data"] = world.pending_capture_choice
         elif outcome["intercepted"]:
             action = outcome.get("fleet_action")
             sea_line = ""

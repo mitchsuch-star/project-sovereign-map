@@ -588,24 +588,26 @@ class MovementExecutor:
                          or (dest_region.garrison_detachment
                              and dest_region.garrison_strength > 0))):
             _old_controller = dest_region.controller
-            # PF-3 review fix: remember any choice ALREADY pending from an
-            # earlier marshal this turn (the single-slot pending_capture_choice
-            # is shared across all marshals in the strategic-processing loop) so
-            # this capture cannot clobber it.
-            _prior_choice = (world.pending_capture_choice
-                             if strategic_execution else None)
+            # PF-3 review fix: an earlier marshal's still-pending choice must
+            # survive this capture (the single-slot pending_capture_choice is
+            # shared across every marshal in the strategic-processing loop).
+            #
+            # WO-26: that guard used to live HERE as a local save/restore, so
+            # the two OTHER producers had none. It is now structural — the
+            # shared `mount_or_auto_secure_capture` refuses to overwrite an
+            # unanswered question at every producer — and this path simply
+            # states its own march policy: an automated hop auto-secures even
+            # when the slot is free.
             capture_result = self._executor._combat._attempt_region_capture(
-                marshal, target_name, world, game_state, had_garrison=False)
+                marshal, target_name, world, game_state, had_garrison=False,
+                auto_secure=bool(strategic_execution))
             if capture_result and capture_result.get("captured"):
                 captured_on_move = True
                 move_message += (f". {target_name} falls to {marshal.nation}! "
                                  f"(was {_old_controller})")
                 # During an automated strategic march, AUTO-SECURE this province
                 # (like the AI) instead of queueing a per-hop plunder/secure
-                # popup the player cannot answer mid-turn. Control has already
-                # flipped (capture_region); RESTORE whatever was pending before
-                # this capture (None if nothing) so we secure THIS province
-                # without discarding an earlier marshal's unresolved choice.
+                # popup the player cannot answer mid-turn.
                 #
                 # IGR-X5: "AUTO-SECURE" used to be only this comment — the
                 # fresh pending choice was discarded and NOTHING was applied,
@@ -616,22 +618,28 @@ class MovementExecutor:
                 # and an attack capture answered "secure" leave the province
                 # in the same state. The W6-8 estate question deliberately
                 # does NOT mount here: a mid-march hop is no moment for a
-                # court decision, so the holder simply keeps his title —
-                # indistinguishable from "respect" minus the goodwill entry.
-                if strategic_execution:
-                    fresh = world.pending_capture_choice
-                    if (fresh is not None and fresh is not _prior_choice
-                            and fresh.get("region") == target_name):
-                        self._executor._combat._apply_secure(dest_region)
-                        world.log_event({
-                            "type": "region_captured",
-                            "region": target_name,
-                            "captured_by": marshal.nation,
-                            "captured_from": _old_controller,
-                            "method": "secure",
-                        })
-                        move_message += " The province is secured."
-                    world.pending_capture_choice = _prior_choice
+                # court decision.
+                #
+                # WO-27 correction (Aug 21, 2026): this comment used to end
+                # "so the holder simply keeps his title — indistinguishable
+                # from 'respect' minus the goodwill entry", and that was
+                # never true. No question mounts, so nothing is pending, so
+                # the estate prune's carve-out does not apply and the title
+                # is stripped on the same advance with an `estate_lost`
+                # event — the enemy marshal loses the estate, we gain no
+                # windfall and no goodwill. Whether a mid-march capture
+                # should instead RESPECT the title by default is a design
+                # question, filed as WO-D11; this slice states the truth
+                # rather than quietly changing the rule.
+                #
+                # WO-26: applied and logged by the shared producer guard (it
+                # owns the slot), so this path only reports what it decided.
+                # `auto_secured` is set on the PLAYER branch alone, exactly
+                # where the old local guard's `fresh is not _prior_choice`
+                # test used to fire — an AI marshal's own secure still
+                # narrates through the enemy phase, not here.
+                if capture_result.get("auto_secured"):
+                    move_message += " The province is secured."
 
         events = [{
             "type": "move",
