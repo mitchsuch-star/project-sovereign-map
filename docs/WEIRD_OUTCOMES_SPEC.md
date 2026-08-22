@@ -573,11 +573,26 @@ are display vocabulary, not event types).
 >    NP-4 stands ABOVE it in behaviour too — an emperor taken on the same
 >    turn leads, and the capital is told one line down.
 > 2. **Structural predicate.** `world.get_nation_capital(player_nation)`,
->    read OUTSIDE the `home_regions` branch on purpose: a formed or carved
->    state's capital need not be a starting region, and nesting it there
->    would have made the class unreachable for exactly those nations. Pinned
->    behaviourally (move France's capital to Berry and the ceremony follows,
->    with Paris demoted to an ordinary homeland line) and by source census.
+>    read OUTSIDE the `home_regions` branch. Pinned behaviourally (move
+>    France's capital to Berry and the ceremony follows, with Paris demoted
+>    to an ordinary homeland line) and by source census.
+>
+>    ⚠ **The justification first recorded here was WRONG and is corrected**
+>    (review round, same day). It said "a formed or carved state's capital
+>    need not be a starting region" and credited a refuter with "committed
+>    counterexamples". Neither survives measurement: every nation in
+>    `europe_1805.json` and in the legacy fixture world has its capital
+>    inside its own `nation_starting_regions`, and `formations.create_client`
+>    writes BOTH (`formations.py:861` and `:886`), so a carved state
+>    satisfies the invariant by construction. What is actually true, and
+>    what the placement rests on, is weaker and structural: the two values
+>    come from independent sources that nothing cross-validates — a static
+>    authored table versus a boot-time derivation over `region.controller` —
+>    and `modding/validator.py` has zero rules tying them, so a scenario
+>    authoring an occupied capital passes validation. Nesting the arm inside
+>    `home_regions` would make the class silently unreachable there. That is
+>    a defensibility argument, not a measured counterexample, and the record
+>    should not have claimed one.
 > 3. **WO-11 in the same edit.** The sibling's guard is hoisted to ONE
 >    `_ours_to_lose` read that both wound classes consume, so the new class
 >    inherited it instead of repeating the bug at a higher weight. Recorded
@@ -633,12 +648,85 @@ are display vocabulary, not event types).
 > `home_captured`, so by weight slot 0 is another province and by freshness
 > it would be Soult.
 >
-> **New structural pin beyond the contract:** every key of
-> `HEADLINE_WEIGHTS` must carry a template AND a Berthier note. A missing
-> template is a KeyError at turn start; a missing note is **silent** —
-> `_pick_berthier_note`'s lookup is guarded — and that is exactly how CA8-22
-> shipped two classes that ended six of twelve briefings with Berthier
-> saying nothing. Nothing had ever pinned the whole set.
+> **Structural pin, corrected:** every key of `HEADLINE_WEIGHTS` must carry
+> a template AND a Berthier note. A missing template is a KeyError at turn
+> start; a missing note is **silent** — `_pick_berthier_note`'s lookup is
+> guarded — and that is how CA8-22 shipped two classes that ended six of
+> twelve briefings with Berthier saying nothing. ⚠ **This record originally
+> claimed "nothing had ever pinned the whole set", and that is FALSE:**
+> `test_creative_audit_ca8_2026_08_04.py::test_every_class_has_a_template_and_a_note`
+> has iterated the same three lines since August 4, 2026. The only genuinely
+> new clause is the set-EQUALITY half (`set(_HEADLINE_TEMPLATES) ==
+> set(HEADLINE_WEIGHTS)`), which catches a template with no weight — the
+> reverse direction the older pin does not cover. Neither copy should be
+> deleted as a duplicate; CA8-22's row depends on the older one.
+>
+> ### Review round — same day, at the committed SHA `a7be39c`
+>
+> An 8-lens find → 2-refuter fleet on a clean tree filed **28 findings**
+> that cluster into three real defects (six lenses found the first
+> independently, five the second), all reproduced by hand before a line was
+> changed, all fixed here. `tests/test_wo_slice4_the_capital_speaks.py`
+> 44 → **51**; sweep **26 mutations, 26 killed, 0 inert** (TWO more inert
+> pins found and replaced — see below); suite **18,516 / 3**;
+> `BASELINE_SERIES` and M1–M7 re-proved by their real runs.
+>
+> 1. **[P2] The Gazette guard `continue`d instead of ranking — a measured
+>    REGRESSION against the parent commit.** `_special_reason` returns on
+>    the first matching EVENT, so deferring past the capital handed the
+>    masthead to whatever matched next, which is frequently an arm BELOW
+>    both: measured, a turn carrying Paris + a marshal + the Emperor
+>    captioned itself *"a marshal of France lost"*. The guard now RETURNS
+>    `"THE EMPEROR TAKEN"` — `_player_sovereign_taken` has already proved
+>    the event is in the visible set, so naming its caption is correct and
+>    order-independent, and the new arm no longer depends on WO-43.
+> 2. **[P2] The diverse tail had no weight floor.** Freshness alone is not
+>    "vary the kind of news", it is "let anything evict a wound": measured
+>    on the 1805 board, a weight-99 fallen homeland province dropped for
+>    `enemy_on_our_soil` 80, for the household nag 55, and for a foreign
+>    congress 48. New `DIVERSE_TAIL_MAX_WEIGHT_DROP = 15`, **derived not
+>    guessed** — the promotion the rule exists to allow is 99 → 95 and the
+>    whole marshal-fate band sits within 14, while every measured failure is
+>    19 or worse, so any value in [14, 19) separates them. **The code
+>    comment claiming "nothing is ever dropped that dedupe would have kept"
+>    was FALSE and is corrected at the seam.**
+> 3. **[P2] WO-11's first cut was too narrow, and that was a regression
+>    this slice introduced.** "Our side" read {us, our vassals}, so when an
+>    ALLY who had liberated Paris lost it again to Austria the briefing said
+>    **nothing** — where the direction-blind arm it replaced at least fired.
+>    The rule is now the honest one, `_on_our_side(prev) and not
+>    _on_our_side(captor)`: the province passed FROM our side TO someone not
+>    on it. The captor half is not extra scope — without it, widening `prev`
+>    to allies makes an ally taking a province from another ally read as our
+>    wound.
+>
+> **Four of the slice's OWN pins proved to bind nothing** and were repaired:
+> the identity-dedupe test logged the same province twice, so class,
+> identity AND text all matched and the text key alone killed it (now
+> CA8-5's real shape — one man, three casualty figures); the producer census
+> iterated a hardcoded three-file dict while asserting "anywhere" (now walks
+> `backend/` and pins the count at 6); `test_the_headline_adds_no_serialized_field`
+> passed with the builder stubbed to `return None`; and the vassal-soil test
+> was inert because **the 1805 boot puts France and Bavaria in ALLIANCE**,
+> so the newly-added ally clause carried it — the fixture now forces the
+> pair to VASSAL. A fifth was merely mis-named (`and _own_capital` is dead
+> code: `region == None` is already False) and is renamed to what it proves.
+> Two new pins the fleet showed were missing: the capital template's R7
+> chokepoint (swapping `formed_display_name` for the raw key had left all 43
+> tests green) and a 2,000-list differential against the loop this replaced,
+> asserting the ONLY divergence is the last slot preferring a fresh class.
+>
+> **Two claims in this very record were false and are corrected in place
+> above** — the "committed counterexamples" justification for the predicate's
+> placement, and "nothing had ever pinned the whole set". Both were
+> overstatements written by the author, caught by the fleet, and are
+> corrected rather than quietly deleted.
+>
+> **Routed, not built:** WO-44 (the Gazette's scan window excludes the
+> just-played turn whenever an issue published on the previous tick, so the
+> caption can be unreachable — pre-existing, owner slice 12, filed beside
+> WO-43). WO-42's row text was also corrected: the second capture path it
+> cites has no `_apply_secure` call to sit beside.
 >
 > **Harness, measured rather than asserted.** `BASELINE_SERIES` byte-identical
 > and M1–M7 green, both proven by their real runs (the series test spawns a

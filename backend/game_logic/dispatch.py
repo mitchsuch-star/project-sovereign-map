@@ -208,6 +208,20 @@ STANDING_LEAD_MAX = 2
 # number cannot say which one that is.
 SUB_BEAT_SLOTS = 2
 
+# How far below the candidate it displaces the diverse tail may reach.
+# The reserved slot varies the KIND of news; it may never trade a wound for
+# something this table considers materially smaller.
+#
+# DERIVED, not guessed. The promotion the rule exists to allow is a captured
+# marshal (95) beside a fallen homeland province (99) — a drop of 4 — and the
+# whole marshal-fate band sits within 14 of it (`own_mauled` 85). The review
+# round measured what an unbounded preference actually did on the 1805 board:
+# a weight-99 homeland province evicted for `enemy_on_our_soil` 80, for the
+# standing household nag 55, and for a foreign congress 48. Anything in
+# [14, 19) separates those; 15 is the round number in that window.
+# Blessed default, display-only, tunable in band.
+DIVERSE_TAIL_MAX_WEIGHT_DROP = 15
+
 # Escalating variants for a standing class that keeps the lead because it is
 # genuinely the only news. Indexed by how long it has led; the last entry is
 # the terminal register. The base template is streak 1.
@@ -469,14 +483,28 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 # homeland soil — including an ALLY liberating it from a
                 # third party. Measured: Spain retaking Paris from Austria
                 # printed "Paris has fallen. Enemy colours fly over French
-                # homeland soil." The guard is the one its own sibling arm
-                # two lines below has always carried, hoisted so BOTH
-                # own-soil wound classes read it. A province that changes
-                # hands between two enemies on soil we already lost is not
-                # a fresh wound and produces no candidate — which is what
-                # "the player's side LOST it" means.
-                _ours_to_lose = (prev == player_nation
-                                 or prev in vassals_of_player)
+                # homeland soil." A province that changes hands between two
+                # enemies, on soil we had already lost, is not a fresh wound
+                # and produces no candidate.
+                #
+                # "The player's side" is wider than the player, and the
+                # review round caught the first cut being too narrow: it
+                # read only {us, our vassals}, so when an ALLY who had
+                # liberated Paris lost it again to Austria the briefing
+                # said NOTHING — a regression this slice introduced, since
+                # the direction-blind arm at least fired then. The rule is
+                # the honest one: the province passed FROM our side TO
+                # someone not on it. The captor half is not extra scope —
+                # it is required by the first half, or an ally taking a
+                # province from another ally would read as our wound.
+                def _on_our_side(nation: str) -> bool:
+                    return bool(nation) and (
+                        nation == player_nation
+                        or nation in vassals_of_player
+                        or world.are_allies(player_nation, nation))
+
+                _ours_to_lose = (_on_our_side(prev)
+                                 and not _on_our_side(captor))
                 # WO-D6: STRUCTURAL, never the literal "Paris" — the
                 # world's own capital map, so the class holds for any
                 # nation and any scenario. Read outside the `home_regions`
@@ -1192,8 +1220,14 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
     # (`test_another_marshals_break_is_not_absorbed`). Two different men
     # broken on the same turn are two pieces of news. So the rule only
     # ever REORDERS what is eligible, and falls back to the ordinary
-    # highest-weighted candidate when no fresh class exists — nothing is
-    # ever dropped that dedupe would have kept.
+    # highest-weighted candidate when no fresh class exists.
+    #
+    # It DOES displace one candidate for another, and the first draft of
+    # this comment claimed otherwise ("nothing is ever dropped") — which
+    # the review round falsified on the real board: an unbounded freshness
+    # preference evicted a weight-99 fallen homeland province in favour of
+    # a weight-48 foreign congress. Hence the floor: the slot may vary the
+    # KIND of news, never at a material cost in gravity.
     # ────────────────────────────────────────────────────────────────────
     seen_keys = {(top["class"], top["identity"]), ("", top["text"])}
     seen_classes = {top["class"]}
@@ -1205,8 +1239,10 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
             break
         pick = eligible[0]
         if len(sub_beats) == SUB_BEAT_SLOTS - 1:
+            _floor = int(pick["weight"]) - DIVERSE_TAIL_MAX_WEIGHT_DROP
             pick = next((c for c in eligible
-                         if c["class"] not in seen_classes), pick)
+                         if c["class"] not in seen_classes
+                         and int(c["weight"]) >= _floor), pick)
         seen_keys.update(_headline_keys(pick))
         seen_classes.add(pick["class"])
         sub_beats.append(pick["text"])

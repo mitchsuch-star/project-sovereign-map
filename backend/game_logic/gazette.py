@@ -136,7 +136,16 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
                     # to be logged first, and the paper contradicts the
                     # dispatch that ranks the same two events 101 > 100.
                     if _player_sovereign_taken(world, turn_events):
-                        continue
+                        # RETURN, never `continue`. The first cut deferred
+                        # to "whatever matches next", and because the arms
+                        # are ranked by log order that next match is often
+                        # LOWER than both: measured, a turn carrying Paris
+                        # + a marshal + the Emperor captioned itself "a
+                        # marshal of France lost". `_player_sovereign_taken`
+                        # has already proved the sovereign event is in this
+                        # turn's visible set, so naming its caption here is
+                        # both correct and order-independent.
+                        return "THE EMPEROR TAKEN"
                     return "THE CAPITAL HAS FALLEN"
                 return "a capital stormed"
         if etype == "marshal_captured" and event.get("sovereign"):

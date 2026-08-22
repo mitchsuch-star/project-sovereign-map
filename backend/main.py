@@ -1773,9 +1773,12 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
             # did, and it silently dropped Europe taking our provinces.
             # It leaks nothing: the same payload already flips the
             # province on the map, names the marshal in `fogged_forces`,
-            # and leads the briefing with a `home_captured` headline at
-            # weight 100. Precisely the reasoning behind the NV-9 and
-            # CA8-15 carve-outs in this same function.
+            # and leads the briefing with an own-soil wound headline
+            # (`home_captured` 99, or `capital_lost` 100 when the province
+            # is our own capital — WO slice 4 split the class and demoted
+            # the homeland one; this comment said "weight 100" and named
+            # only `home_captured`). Precisely the reasoning behind the
+            # NV-9 and CA8-15 carve-outs in this same function.
             if not involves_player and isinstance(events, list):
                 for evt in events:
                     if not isinstance(evt, dict):

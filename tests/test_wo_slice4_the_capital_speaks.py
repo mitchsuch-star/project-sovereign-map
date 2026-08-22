@@ -114,6 +114,10 @@ def _page(head):
     return head["text"] + " || " + " || ".join(head["sub_beats"])
 
 
+def _ally(world, a, b):
+    world.diplomatic_states[world._make_diplo_key(a, b)] = "ALLIANCE"
+
+
 # ════════════════════════════════════════════════════════════════════════
 # 1. The capital gets its own voice, and its own rank
 # ════════════════════════════════════════════════════════════════════════
@@ -251,13 +255,41 @@ class TestThePredicateIsStructural:
         head = _build_headline(world, "France")
         assert head["class"] == "capital_lost", head
 
-    def test_a_world_with_no_capital_for_the_player_does_not_crash(
+    def test_a_capital_less_player_still_gets_the_homeland_class(
             self, world):
+        """RENAMED after the review round: the old name promised to pin the
+        `and _own_capital` truthiness guard, and it did not — `region ==
+        None` is already False, so deleting the guard is byte-identical.
+        The guard stays as belt-and-braces; what this test actually proves
+        is the property that matters, that a world without a capital entry
+        still narrates its homeland losses and does not crash."""
         world.current_turn = 12
         world.nation_capitals.pop("France", None)
         _capture(world, "Limousin")
         head = _build_headline(world, "France")
         assert head["class"] == "home_captured", head
+
+    def test_the_captor_goes_through_the_display_chokepoint(self, world):
+        """R7: the template names the captor, so it must render a display
+        name, not a raw scenario tag. Unpinned in the first cut — swapping
+        `formed_display_name` for the bare key left all 43 tests green,
+        and the tags this would expose are precisely the ones the NA-6
+        formation machinery exists to rename."""
+        from backend.game_logic.formations import formed_display_name
+        world.current_turn = 12
+        # KingdomOfItaly boots as a French VASSAL, and the direction guard
+        # correctly refuses to call a vassal's capture a wound — so the
+        # test frees her first, which is also the state a risorgimento
+        # formation actually arrives in.
+        world.vassals.pop("KingdomOfItaly", None)
+        world.nation_formations = {
+            "KingdomOfItaly": {"id": "risorgimento", "sponsor": "France",
+                               "turn": 5}}
+        _capture(world, "Paris", by="KingdomOfItaly")
+        head = _build_headline(world, "France")
+        shown = formed_display_name(world, "KingdomOfItaly")
+        assert shown in head["text"], (shown, head["text"])
+        assert "KingdomOfItaly" not in head["text"], head["text"]
 
     def test_the_source_of_the_arm_names_no_province(self):
         """A source census, because a behavioural test cannot tell a
@@ -303,6 +335,16 @@ class TestAnAllyLiberatingIsNotAWound:
         _capture(world, "Limousin", by="Spain", frm="Austria")
         assert _build_headline(world, "France") is None
 
+    def test_an_ally_taking_our_own_province_is_not_a_wound(self, world):
+        """The captor half, added by the review round and REQUIRED by the
+        ally widening below it: once "our side" includes allies, an ally
+        taking a province from us (or from another ally) would otherwise
+        read as an enemy conquest. It is a transfer inside the alliance."""
+        world.current_turn = 20
+        _ally(world, "France", "Spain")
+        _capture(world, "Limousin", by="Spain", frm="France")
+        assert _build_headline(world, "France") is None
+
     def test_soil_changing_hands_between_two_enemies_is_not_a_fresh_wound(
             self, world):
         """We already lost it. It is not lost again because the flag over
@@ -333,6 +375,14 @@ class TestTheWoundStillFiresWhenItIsReal:
         world.current_turn = 12
         world.vassals["Bavaria"] = {"lord": "France", "loyalty": 60,
                                     "autonomy": 50}
+        # The 1805 boot puts France and Bavaria in ALLIANCE, so a fixture
+        # that only adds the vassal record leaves the ally clause carrying
+        # the test and the vassal clause provably inert (found by the
+        # mutation sweep). Force the pair to VASSAL so this test binds the
+        # clause it is named for.
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Bavaria")] = "VASSAL"
+        assert not world.are_allies("France", "Bavaria")
         bav = next((r for r, reg in world.regions.items()
                     if reg.controller == "Bavaria"), None)
         assert bav, "the 1805 board must have Bavarian soil"
@@ -341,24 +391,50 @@ class TestTheWoundStillFiresWhenItIsReal:
         assert head is not None and head["class"] in (
             "region_lost", "region_lost_estate"), head
 
+    def test_an_ally_losing_our_capital_is_still_our_wound(self, world):
+        """Found by the review round: the first cut read "our side" as
+        {us, our vassals} only, so once an ALLY had liberated Paris and
+        then lost it again to Austria the briefing said NOTHING — a
+        REGRESSION this slice introduced, because the direction-blind arm
+        it replaced did at least fire. The capital falling back into enemy
+        hands is our wound whoever was holding the keys."""
+        world.current_turn = 20
+        _ally(world, "France", "Spain")
+        _capture(world, "Paris", by="Austria", frm="Spain")
+        head = _build_headline(world, "France")
+        assert head is not None and head["class"] == "capital_lost", head
+
     def test_every_production_producer_stamps_the_direction(self):
-        """The guard reads `captured_from`. If any producer omitted it,
-        a real loss would be silently suppressed — so the producers are
-        pinned by census, not by trusting the comment at gazette.py:95."""
-        producers = {
-            "backend/models/world_state.py": 3,
-            "backend/commands/capture_executor.py": 2,
-            "backend/commands/combat_executor.py": 1,
-        }
-        for rel, count in producers.items():
-            src = (REPO / rel).read_text(encoding="utf-8")
-            blocks = re.findall(
-                r'"type":\s*"region_captured",(?:[^}]*?)"captured_from":',
-                src, re.S)
-            assert len(blocks) == count, (rel, len(blocks), count)
-            # ...and no producer anywhere logs one WITHOUT the key.
-            total = len(re.findall(r'"type":\s*"region_captured"', src))
-            assert total == count, (rel, "a producer omits captured_from")
+        """The guard reads `captured_from`. If any producer omitted it, a
+        real loss would be silently suppressed — so the producers are
+        pinned by census, not by trusting the comment at gazette.py.
+
+        WIDENED after the review round: the first version iterated a
+        hardcoded three-file dict while its own assertion message claimed
+        "anywhere", so a new producer in a fourth module (formations,
+        naval, a settlement transfer) would have been invisible to it and
+        every homeland province lost through that path would have stopped
+        producing a candidate, silently, with the suite green. It now
+        walks the whole backend."""
+        producers = []
+        for path in (REPO / "backend").rglob("*.py"):
+            src = path.read_text(encoding="utf-8", errors="replace")
+            for m in re.finditer(r'"type":\s*"region_captured"', src):
+                # The literal must sit in a dict that also stamps the
+                # direction. Bound the window so it cannot run past the
+                # call into the next one.
+                window = src[m.start():m.start() + 400]
+                body = window.split("})", 1)[0]
+                producers.append((
+                    str(path.relative_to(REPO)).replace("\\", "/"),
+                    '"captured_from"' in body,
+                ))
+        assert producers, "the census found no producers at all"
+        missing = [p for p, ok in producers if not ok]
+        assert not missing, f"producers omitting captured_from: {missing}"
+        # The count is pinned too, so a NEW producer is a conscious edit
+        # here rather than something that slips in unread.
+        assert len(producers) == 6, [p for p, _ in producers]
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -487,6 +563,124 @@ class TestTheDiverseTail:
         assert SUB_BEAT_SLOTS == 2
 
 
+class TestTheTailHasAFloor:
+    """The review round's headline finding. An unbounded freshness
+    preference is not "vary the kind of news" — it is "let anything at all
+    evict a wound", and on the real board it did: a weight-99 fallen
+    homeland province dropped for a weight-48 foreign congress, a
+    weight-55 household nag, a weight-80 standing soil alarm."""
+
+    def test_a_foreign_congress_does_not_evict_a_fallen_province(
+            self, world):
+        world.current_turn = 20
+        for r in ("Limousin", "Berry", "Normandy"):
+            _capture(world, r)
+        world.event_log.append({"type": "third_party_peace", "turn": 20,
+                                "proposer": "Prussia",
+                                "accepter": "Denmark"})
+        head = _build_headline(world, "France")
+        assert all("has fallen" in b for b in head["sub_beats"]), head
+
+    def test_a_standing_soil_alarm_does_not_evict_a_fallen_province(
+            self, world):
+        world.current_turn = 20
+        for r in ("Limousin", "Berry", "Normandy"):
+            _capture(world, r)
+        mack = world.get_marshal("Mack")
+        held = next(r for r, reg in world.regions.items()
+                    if reg.controller == "France")
+        mack.location, mack.strength = held, 30000
+        world.calculate_visibility()
+        head = _build_headline(world, "France")
+        assert all("has fallen" in b for b in head["sub_beats"]), head
+
+    def test_the_marshal_capture_is_still_inside_the_floor(self, world):
+        """The falsifiable negative: the floor must not close the door the
+        slice was built to open. 99 -> 95 is a drop of 4."""
+        world.current_turn = 12
+        for r in T_LOST:
+            _capture(world, r)
+        _take_marshal(world)
+        head = _build_headline(world, "France")
+        assert "Soult" in head["sub_beats"][1], head["sub_beats"]
+
+    def test_the_floor_is_named_and_admits_the_marshal_fate_band(self):
+        from backend.game_logic.dispatch import DIVERSE_TAIL_MAX_WEIGHT_DROP
+        w = HEADLINE_WEIGHTS
+        drop = DIVERSE_TAIL_MAX_WEIGHT_DROP
+        # Everything the rule must ADMIT beside a fallen homeland province:
+        for cls in ("marshal_destroyed", "marshal_captured",
+                    "enemy_eliminated", "capital_stormed",
+                    "marshal_reversal", "own_broken",
+                    "enemy_marshal_destroyed", "enemy_marshal_captured",
+                    "own_mauled"):
+            assert w["home_captured"] - w[cls] <= drop, cls
+        # ...and everything the measured failures showed it must REJECT:
+        for cls in ("enemy_on_our_soil", "region_lost", "victory_won",
+                    "estate_eroding", "levy_open", "europe_congress",
+                    "europe_crisis_passed"):
+            assert w["home_captured"] - w[cls] > drop, cls
+
+
+class TestTheTailIsOnlyEverAReordering:
+    """A differential against the loop this replaced, over many synthetic
+    candidate lists. The ONLY divergence permitted is "the last slot
+    preferred a fresh class within the floor" — never a dropped beat,
+    never a shorter page, never a changed first slot."""
+
+    @staticmethod
+    def _old_loop(candidates, top):
+        seen = {(top["class"], top["identity"]), ("", top["text"])}
+        out = []
+        for c in candidates[1:]:
+            keys = ((c["class"], c["identity"]), ("", c["text"]))
+            if any(k in seen for k in keys):
+                continue
+            seen.update(keys)
+            out.append(c["text"])
+            if len(out) >= 2:
+                break
+        return out
+
+    def test_no_illegal_divergence_over_two_thousand_candidate_lists(self):
+        import random
+        from backend.game_logic.dispatch import _select_headline
+        classes = ["home_captured", "marshal_captured", "own_broken",
+                   "estate_eroding", "region_lost", "victory_won"]
+        rnd = random.Random(4)
+        diverged = 0
+        for _ in range(2000):
+            cands = []
+            for _i in range(rnd.randint(1, 7)):
+                cls = rnd.choice(classes)
+                ident = f"{cls}:{rnd.randint(1, 3)}"
+                cands.append({"class": cls, "identity": ident,
+                              "text": f"{ident}#{rnd.randint(1, 3)}",
+                              "weight": HEADLINE_WEIGHTS[cls]})
+            # `_select_headline` sorts by weight before it selects, so the
+            # old loop must be handed the SAME order or the comparison is
+            # about sorting, not about the tail rule.
+            ordered = sorted(cands, key=lambda c: c["weight"], reverse=True)
+            old = self._old_loop([dict(c) for c in ordered],
+                                 dict(ordered[0]))
+            new = _select_headline(_Memoless(),
+                                   [dict(c) for c in cands])["sub_beats"]
+            if old == new:
+                continue
+            diverged += 1
+            assert len(old) == len(new), (cands, old, new)
+            assert old[0] == new[0], (cands, old, new)
+            assert len(old) == 2, (cands, old, new)
+        assert diverged > 0, "the differential exercised nothing"
+
+
+class _Memoless:
+    """The minimum `_select_headline` reads: no prior dispatch, no lead
+    memory. Keeps the differential about the sub-beat loop alone."""
+    last_morning_dispatch = None
+    headline_lead_memory = None
+
+
 class TestTheTailNeverSwallowsDistinctNews:
     """Spec §3 slice 4's named trap, and spec §2 D-10's three pins. The
     obvious implementation — collapse repeated classes — reds CA8-5's own
@@ -525,15 +719,29 @@ class TestTheTailNeverSwallowsDistinctNews:
             assert name in src, name
 
     def test_a_repeated_class_is_still_deduped_by_identity(self, world):
-        """CA8-5's positive case is untouched: the SAME province reported
-        twice is one beat."""
-        world.current_turn = 12
-        _capture(world, "Limousin")
-        _capture(world, "Limousin")
-        _capture(world, "Berry")
+        """CA8-5's positive case is untouched: the same MAN reported three
+        times is one beat.
+
+        REPAIRED after the review round proved the first version inert. It
+        logged the same province twice, so the two candidates shared class,
+        identity AND rendered text — the text half of the key alone killed
+        them, and deleting the identity half changed nothing. CA8-5's real
+        shape is one identity rendering DIFFERENT text each time (three
+        battles, three casualty figures), which only the identity key can
+        collapse."""
+        world.current_turn = 6
+        ney = world.get_marshal("Ney")
+        ney.location, ney.strength = "Bohemia", 6000
+        for cas in (2218, 2099, 2269):
+            world.event_log.append({
+                "type": "battle", "turn": 6, "location": "Bohemia",
+                "defender": "Ney", "defender_nation": "France",
+                "defender_casualties": cas,
+                "attacker": "ArchdukeCharles", "attacker_nation": "Austria",
+            })
         head = _build_headline(world, "France")
-        assert sum(1 for b in [head["text"], *head["sub_beats"]]
-                   if "Limousin" in b) == 1, head
+        assert head["class"] == "own_mauled", head
+        assert not any("mauled" in b for b in head["sub_beats"]), head
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -587,11 +795,20 @@ class TestWiringAndBlastRadius:
         assert not offenders, offenders
 
     def test_the_headline_adds_no_serialized_field(self, world):
+        """REPAIRED: the first version passed with `_build_headline`
+        stubbed to `return None` — it asserted only that no KEY appeared,
+        which a dead builder satisfies trivially. It now proves the
+        headline was actually produced first."""
         before = set(world.to_dict())
         world.current_turn = 12
         _capture(world, "Paris")
-        _build_headline(world, "France")
-        assert set(world.to_dict()) == before
+        head = _build_headline(world, "France")
+        assert head is not None and head["class"] == "capital_lost", head
+        after = world.to_dict()
+        assert set(after) == before
+        # ...and the memory it DOES write is the pre-existing field,
+        # carrying the new class — display state, not a new schema.
+        assert after["headline_lead_memory"]["class"] == "capital_lost"
 
 
 class TestDeterminism:

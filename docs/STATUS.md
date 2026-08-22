@@ -46,8 +46,40 @@
 > `home_captured` — they were pinning the capital case under the homeland
 > case's name — and are consciously RETARGETED to Lyon rather than deleted.
 >
+> **✅ REVIEW ROUND HELD AND LANDED THE SAME DAY** at the committed SHA
+> `a7be39c`, clean tree (addendum = spec §3 slice 4). An 8-lens →
+> 2-refuter fleet filed **28 findings** clustering into three real defects
+> — six lenses found the first independently, five the second — all
+> reproduced by hand and all fixed: **(1)** the Gazette guard `continue`d
+> instead of ranking, which on a turn carrying Paris + a marshal + the
+> Emperor captioned itself *"a marshal of France lost"* — **a measured
+> regression against the parent commit**, now a `return`; **(2)** the
+> diverse tail had **no weight floor**, so a weight-99 fallen homeland
+> province was evicted for a weight-48 foreign congress —
+> `DIVERSE_TAIL_MAX_WEIGHT_DROP = 15`, derived from the table rather than
+> guessed; **(3)** WO-11's guard read "our side" as {us, our vassals}, so
+> an ALLY losing our liberated capital said **nothing** — also a
+> regression this slice introduced, now `_on_our_side(prev) and not
+> _on_our_side(captor)`.
+>
+> **Four of the slice's own pins bound nothing** and were repaired,
+> including one inert because *the 1805 boot puts France and Bavaria in
+> ALLIANCE*, so the newly-added ally clause was silently carrying the
+> vassal test. **Two claims in the landing record were false** — the
+> "committed counterexamples" justification and "nothing had ever pinned
+> the whole set" (CA8 has had that census since August 4) — and are
+> corrected in place rather than deleted. Tests 44 → **51**; sweep **26
+> mutations, 26 killed, 0 inert**; suite **18,516 / 3**. WO-44 filed
+> (the Gazette's scan window can exclude the very turn the capital falls).
+>
 > **NEXT = row WO slice 6** ("The Admiralty Speaks Plainly"), then 8 → 9 →
-> 10 → 17 → 11 → 12 → 14.
+> 10 → 17 → 11 → 12 → 14. Its recon fleet has already run and **corrected
+> the spec on twelve points**, several of which change what gets built —
+> headline: `blockaded_nations()` is the WRONG predicate at both producers
+> (it includes US — France is pinned by Britain), the chip is a FORECAST
+> so it must simulate the posture flip, "53.82 vs 125.0" is not a
+> Continental-System gap at all, naming Austria is not part of the bug,
+> and there is a THIRD producer of the inverted drill line in `help`.
 
 > # ✅ WO SLICE 5 — REVIEW ROUND HELD AND LANDED, August 22, 2026 (same day).
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 5, the

@@ -30,36 +30,36 @@
   {
     "id": "S4-5 WO-11: the direction guard is dropped (home_captured fires on a liberation)",
     "file": "backend/game_logic/dispatch.py",
-    "old": "                _ours_to_lose = (prev == player_nation\n                                 or prev in vassals_of_player)",
+    "old": "                _ours_to_lose = (_on_our_side(prev)\n                                 and not _on_our_side(captor))",
     "new": "                _ours_to_lose = True",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestAnAllyLiberatingIsNotAWound"
   },
   {
     "id": "S4-6 WO-11 overshoots: the guard suppresses a REAL loss too",
     "file": "backend/game_logic/dispatch.py",
-    "old": "                _ours_to_lose = (prev == player_nation\n                                 or prev in vassals_of_player)",
+    "old": "                _ours_to_lose = (_on_our_side(prev)\n                                 and not _on_our_side(captor))",
     "new": "                _ours_to_lose = False",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheWoundStillFiresWhenItIsReal"
   },
   {
     "id": "S4-7 the guard forgets a vassal's soil is ours to lose",
     "file": "backend/game_logic/dispatch.py",
-    "old": "                _ours_to_lose = (prev == player_nation\n                                 or prev in vassals_of_player)",
-    "new": "                _ours_to_lose = (prev == player_nation)",
+    "old": "                        or nation in vassals_of_player\n                        or world.are_allies(player_nation, nation))",
+    "new": "                        or world.are_allies(player_nation, nation))",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheWoundStillFiresWhenItIsReal::test_a_vassals_province_is_still_our_loss"
   },
   {
     "id": "S4-8 the diverse tail is removed (the last slot takes the next by weight)",
     "file": "backend/game_logic/dispatch.py",
-    "old": "        if len(sub_beats) == SUB_BEAT_SLOTS - 1:\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes), pick)",
-    "new": "        if False:\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes), pick)",
+    "old": "        if len(sub_beats) == SUB_BEAT_SLOTS - 1:\n            _floor = int(pick[\"weight\"]) - DIVERSE_TAIL_MAX_WEIGHT_DROP\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes\n                         and int(c[\"weight\"]) >= _floor), pick)",
+    "new": "        if False:\n            pick = eligible[0]",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheDiverseTail tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_shape_of_the_page_is_order_independent"
   },
   {
     "id": "S4-9 the diverse tail overshoots into a per-class collapse (CA8-5's trap)",
     "file": "backend/game_logic/dispatch.py",
-    "old": "        if len(sub_beats) == SUB_BEAT_SLOTS - 1:\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes), pick)",
-    "new": "        eligible = [c for c in eligible\n                    if c[\"class\"] not in seen_classes] or eligible[:0]\n        if not eligible:\n            break\n        pick = eligible[0]",
+    "old": "        pick = eligible[0]\n        if len(sub_beats) == SUB_BEAT_SLOTS - 1:",
+    "new": "        eligible = [c for c in eligible\n                    if c[\"class\"] not in seen_classes]\n        if not eligible:\n            break\n        pick = eligible[0]\n        if len(sub_beats) == SUB_BEAT_SLOTS - 1:",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheTailNeverSwallowsDistinctNews tests/test_creative_audit_ca8_2026_08_04.py::TestCA85DispatchStutter::test_two_different_marshals_still_get_two_beats tests/test_creative_audit_ca8_2026_08_04.py::TestCA89TheArcJoinsTheBeats::test_another_marshals_break_is_not_absorbed"
   },
   {
@@ -79,8 +79,8 @@
   {
     "id": "S4-12 the Gazette keeps the victor's caption for our own capital",
     "file": "backend/game_logic/gazette.py",
-    "old": "                    if _player_sovereign_taken(world, turn_events):\n                        continue\n                    return \"THE CAPITAL HAS FALLEN\"",
-    "new": "                    if _player_sovereign_taken(world, turn_events):\n                        continue\n                    return \"a capital stormed\"",
+    "old": "                        return \"THE EMPEROR TAKEN\"\n                    return \"THE CAPITAL HAS FALLEN\"",
+    "new": "                        return \"THE EMPEROR TAKEN\"\n                    return \"a capital stormed\"",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption"
   },
   {
@@ -93,8 +93,8 @@
   {
     "id": "S4-14 the Gazette's NP-4 precedence guard is dropped",
     "file": "backend/game_logic/gazette.py",
-    "old": "                    if _player_sovereign_taken(world, turn_events):\n                        continue",
-    "new": "                    if False:\n                        continue",
+    "old": "                    if _player_sovereign_taken(world, turn_events):\n                        # RETURN, never `continue`.",
+    "new": "                    if False:\n                        # RETURN, never `continue`.",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption::test_the_capital_never_outranks_the_emperor"
   },
   {
@@ -114,8 +114,8 @@
   {
     "id": "S4-17 the capital template loses its emphatic, distinct sentence",
     "file": "backend/game_logic/dispatch.py",
-    "old": "    \"capital_lost\": (\"Sire — {region} HAS FALLEN. Our capital is in \"\n                     \"{captor}'s hands, and every courier in Europe is \"\n                     \"already carrying the news.\"),",
-    "new": "    \"capital_lost\": \"Sire — {region} has fallen. Enemy colours fly over French homeland soil.\",",
+    "old": "    \"capital_lost\": (\"Sire \u2014 {region} HAS FALLEN. Our capital is in \"\n                     \"{captor}'s hands, and every courier in Europe is \"\n                     \"already carrying the news.\"),",
+    "new": "    \"capital_lost\": \"Sire \u2014 {region} has fallen. Enemy colours fly over French homeland soil.\",",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_measured_turn_now_leads_with_the_capital tests/test_wo_slice4_the_capital_speaks.py::TestThePredicateIsStructural::test_the_class_follows_the_capital_map_not_the_name"
   },
   {
@@ -124,5 +124,61 @@
     "old": "SUB_BEAT_SLOTS = 2",
     "new": "SUB_BEAT_SLOTS = 3",
     "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheDiverseTail"
+  },
+  {
+    "id": "S4-19 the Gazette guard goes back to `continue` (the review-round regression)",
+    "file": "backend/game_logic/gazette.py",
+    "old": "                        return \"THE EMPEROR TAKEN\"\n                    return \"THE CAPITAL HAS FALLEN\"",
+    "new": "                        pass\n                    return \"THE CAPITAL HAS FALLEN\"",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption::test_the_capital_never_outranks_the_emperor"
+  },
+  {
+    "id": "S4-20 the diverse tail's weight floor is removed (anything may evict a wound)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "DIVERSE_TAIL_MAX_WEIGHT_DROP = 15",
+    "new": "DIVERSE_TAIL_MAX_WEIGHT_DROP = 10_000",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheTailHasAFloor"
+  },
+  {
+    "id": "S4-21 the floor is tightened until the marshal capture can no longer reach the page",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "DIVERSE_TAIL_MAX_WEIGHT_DROP = 15",
+    "new": "DIVERSE_TAIL_MAX_WEIGHT_DROP = 0",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheTailHasAFloor::test_the_marshal_capture_is_still_inside_the_floor tests/test_wo_slice4_the_capital_speaks.py::TestTheDiverseTail tests/test_wo_slice4_the_capital_speaks.py::TestTheTailHasAFloor::test_the_floor_is_named_and_admits_the_marshal_fate_band"
+  },
+  {
+    "id": "S4-22 WO-11 narrows back: an ALLY's loss of our capital is silent again",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                        or nation in vassals_of_player\n                        or world.are_allies(player_nation, nation))",
+    "new": "                        or nation in vassals_of_player)",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheWoundStillFiresWhenItIsReal::test_an_ally_losing_our_capital_is_still_our_wound"
+  },
+  {
+    "id": "S4-23 the captor half of the direction rule is dropped",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _ours_to_lose = (_on_our_side(prev)\n                                 and not _on_our_side(captor))",
+    "new": "                _ours_to_lose = _on_our_side(prev)",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestAnAllyLiberatingIsNotAWound::test_an_ally_taking_our_own_province_is_not_a_wound"
+  },
+  {
+    "id": "S4-24 the capital template's R7 chokepoint is swapped for the raw nation key",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                    _add(\"capital_lost\", f\"capital_lost:{region}\",\n                         region=region,\n                         captor=formed_display_name(world, captor))",
+    "new": "                    _add(\"capital_lost\", f\"capital_lost:{region}\",\n                         region=region,\n                         captor=captor)",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestThePredicateIsStructural::test_the_captor_goes_through_the_display_chokepoint"
+  },
+  {
+    "id": "S4-25 a production producer stops stamping the direction (the census must catch it)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            \"captured_from\": old_controller,\n            \"method\": choice,",
+    "new": "            \"method\": choice,",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheWoundStillFiresWhenItIsReal::test_every_production_producer_stamps_the_direction"
+  },
+  {
+    "id": "S4-26 the sub-beat differential's first slot is allowed to move",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        pick = eligible[0]\n        if len(sub_beats) == SUB_BEAT_SLOTS - 1:",
+    "new": "        pick = eligible[-1]\n        if len(sub_beats) == SUB_BEAT_SLOTS - 1:",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheTailIsOnlyEverAReordering"
   }
 ]
