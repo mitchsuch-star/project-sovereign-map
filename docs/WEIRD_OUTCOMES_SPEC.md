@@ -904,9 +904,21 @@ wants the price closed.
 > — now with a named mechanism. Closing it needs a backend-side gate
 > (G1(a)), which the ruling records as the named layer-on-top.
 >
-> ⚠ **OPEN: the client-side redirect is owed a visual sign-off** — the
-> Berthier line, the link, and the wizard opening from it have not been
-> seen on screen by a human.
+> **Visual sign-off — EVIDENCE CAPTURED August 21, 2026, USER SIGN-OFF
+> PENDING.** Both surfaces, in the REAL `main.tscn` against a sandboxed
+> backend on `SOVEREIGN_PORT=8006`, by the committed harness
+> `tools/wo_signoff_screenshot.gd`:
+> `docs/audits/WO_SIGNOFF_1_CABINET_REDIRECT_2026_08_21.png` — typing
+> *"propose alliance with Austria"* through the client's own
+> `_execute_command` (the ONE terminal-typed path) yields Berthier's line and
+> the gold **⚜ Take your seat at the table (F1)** link, with **Actions still
+> 4/4 and DP still 5/5** on the HUD: nothing sent, nothing spent, which is
+> the ruling's whole promise made visible. And
+> `docs/audits/WO_SIGNOFF_2_WIZARD_FROM_LINK_2026_08_21.png` — the wizard
+> opened by feeding `_on_output_meta_clicked("cabinet:open")`, i.e. through
+> the LINK rather than F1, showing the court picker with Formable Nations and
+> the three live at-war courts. **A captured screenshot is not a sign-off;
+> the user's eye is.**
 
 ### Slice 8 — "The Panel States Its Terms" (WO-D1-A + WO-D4-A + G3, est 1.5)
 
@@ -1049,6 +1061,17 @@ additive on two events already logged). **Also in the sweep:** the two
 legacy-roster Specify-lists at `diplomatic_executor.py:2029`/`:2996`
 (*"Britain, Prussia, Austria, or Saxony"* — pre-cutover copy) derive from the
 live world.
+
+> **ADDED August 21, 2026 — WO-D10's copy half.** The commissioning refusal
+> *"No soil remains on which X could raise his corps"* is FALSE on the map an
+> exiled player is looking at: `find_spawn_region` considers only the capital
+> and `nation_starting_regions`, so a player holding a dozen rich conquests is
+> told there is no soil. The MECHANIC (spawn at the richest held province) is
+> carried to the Victory & Objectives Pass — the exile game only matters once
+> losing is a state the game recognizes — but the sentence is a copy bug and
+> belongs here: it must name the actual gate (HOME soil), not assert an
+> absence the player can see is untrue. Carry contract:
+> `DESIGN_REFINEMENT.md` §WO-D7..D11.
 
 ### Slice 13 — WO-17 "The Corridor Has a Direction" (est 0.5–1) — **this spec's addition, P1**
 
@@ -1457,9 +1480,16 @@ modal; the PF-3 pin stays green.
 > covers every path that ASKS, not every path that captures; that one
 > belongs to slice 17.
 >
-> **⚠ Visual sign-off owed:** the `/load` raise is client-side and has been
-> seen only through the parse harness and a static body pin. It joins
-> slice 7's two owed sign-offs.
+> **Visual sign-off — EVIDENCE CAPTURED August 21, 2026, USER SIGN-OFF
+> PENDING.** `docs/audits/WO_SIGNOFF_3_LOAD_CAPTURE_2026_08_21.png`, taken in
+> the REAL `main.tscn` against a sandboxed backend on `SOVEREIGN_PORT=8006`
+> by the committed harness `tools/wo_signoff_screenshot.gd`. It drives the
+> client's OWN entry point — `_apply_world_swap_response`, which is exactly
+> what `/load` returns to — rather than rebuilding its effect, so the
+> evidence is of the shipped path. Shown: *REGION CAPTURED! / Ney has taken
+> Swabia / PLUNDER (+600 gold, buildings burned, stability 10) / SECURE*,
+> raised over the terminal with the load text behind it. **A captured
+> screenshot is not a sign-off; the user's eye is.**
 >
 > **Method note, since this row keeps earning it:** the refuters read the
 > working tree while the lead was editing it, and two reported "already
@@ -1815,8 +1845,11 @@ was found and fixed by slice 15, WO-35/WO-36 were filed by its census and
 need owners); the WO-D8..D10 design rows **plus WO-D11** either gated or
 explicitly carried; `PLAYTESTING.md` carrying the known-bad
 list + the method rule; suite green; boot smoke 0 SCRIPT ERROR for the
-`.gd`-touching slices (7, 8, **and 15** — XR-1 rule; slice 15's client
-raise also owes a visual sign-off alongside slice 7's two).
+`.gd`-touching slices (7, 8, **and 15** — XR-1 rule); and **the three owed
+visual sign-offs SIGNED by the user** — evidence captured August 21, 2026
+(`docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`,
+harness `tools/wo_signoff_screenshot.gd`), which discharges the *capture*
+half only. The row does not close on screenshots the user has not looked at.
 
 ---
 

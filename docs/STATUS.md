@@ -4,6 +4,94 @@
 
 ## ▶ NEXT UP
 
+> # ▶ ROW WO — THE EXIT ITEMS, August 21, 2026 (fourth session that day). **The three owed VISUAL SIGN-OFFS have their EVIDENCE CAPTURED and are waiting on the user's eye; WO-D7..D11 are CARRIED under hard contracts; WO-35/WO-36 are in build.** Sign-off pack = `docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`; carry contracts = `docs/DESIGN_REFINEMENT.md` §WO-D7..D11 CARRY CONTRACTS, authoritative.
+>
+> **The sign-off harness is committed, not a one-off:**
+> `tools/wo_signoff_screenshot.gd` boots the REAL `main.tscn` against a
+> sandboxed backend on `SOVEREIGN_PORT=8006` (the player's 8005 untouched,
+> golden rule 7) and drives the client's OWN entry points —
+> `_execute_command`, `_on_output_meta_clicked`, `_apply_world_swap_response`
+> — rather than rebuilding their effects, so the evidence is of the shipped
+> path and not of the harness. What the three frames show: Berthier's
+> redirect with the gold ⚜ link and **Actions still 4/4, DP still 5/5**
+> (nothing sent, nothing spent — the G1 ruling's whole promise, visible); the
+> wizard opened through that LINK rather than F1, with Formable Nations and
+> the three live at-war courts; and a restored plunder/secure question raised
+> by the world-swap handler, **priced at 600 gold**. One honest correction
+> made in passing: the first run's terminal appeared to double-print "Game
+> loaded successfully" — that was the HARNESS feeding the same string as both
+> payload message and success text. The real client prints two different
+> lines (`Loaded: <save_name>` from the backend, the success text from
+> `_on_load_result`); the payload was corrected and the frame re-taken rather
+> than shipped with an artefact that looked like a defect.
+>
+> **A captured screenshot is not a sign-off.** The row's definition of done
+> now says so explicitly: the capture half is discharged, the user's eye is
+> not, and row WO does not close on frames nobody has looked at.
+>
+> **WO-35/WO-36 were VERIFIED, SPEC'D and deliberately NOT BUILT — memo
+> `docs/audits/WO_35_36_38_VERIFICATION_2026_08_21.md`, authoritative.** The
+> fleet (pointed at the committed SHA with a clean tree) found the rows
+> understate the problem in one direction and misdescribe the fix in
+> another, and the build is a proper slice with a **P1 inside it**:
+>
+> - **WO-38 (P1, NEW, hand-reproduced end to end).** A stale strategic
+>   objection HIJACKS the answer to a different marshal's objection.
+>   Measured: with Ney's tactical objection on screen and a stale Davout
+>   strategic objection in the slot, answering *"trust"* gave **Davout +8
+>   trust and fortified Davout**, leaving Ney's objection standing. A
+>   strategic objection blocks nothing (`executor.py` never reads the
+>   field), nothing clears it at the turn boundary, and the response router
+>   checks the strategic slot FIRST. It is the NPC-1 shape again — the
+>   player answers what the game printed and the game acts on something
+>   else — and **WO-35 is its delivery mechanism**, since a restored
+>   strategic objection raises no modal at all.
+> - **WO-35's filed fix would CREATE a soft-lock.** A `/load` attach of
+>   `pending_objection` without a tactical/strategic discriminator renders
+>   the strategic arm with an empty options list: a modal with no buttons,
+>   and ESC cannot open the pause menu over a visible modal. The row's
+>   "unreachable because the route requires success==true" inference is
+>   also wrong twice, and the flag it names gates AP consumption, the
+>   mild-objection join and the square-break prepend — flipping it would be
+>   harmful. Only `pending_interrupt` earns a `/load` attach.
+> - **WO-36 is not a `/load` attach at all.** It is one line in the
+>   client's world-swap reset (`_redemption_recheck_turn` is never reset,
+>   so the ordinary same-turn savescum skips the recovery poll) — the
+>   identical hazard IGR-F fixed for `_envoy_digest_shown_turn` and left
+>   unfixed for this variable.
+> - **WO-39 (new) blocks the build**: a latent soft-lock in the
+>   commitment-paradox handler, one added option away from unrecoverable,
+>   which any world-swap raise puts weight on. Fix FIRST.
+> - **WO-40 (new)**: a previous campaign's stashed popups survive the
+>   world-swap reset and can raise in the world you just loaded.
+>
+> **Why it was not built in this session:** the three agents disagreed about
+> the WO-35 fix, and 6 of the 9 exits in the objection response handler do
+> not re-enable input — so the safe reading needed the client analysis, and
+> half-building a P1 on the unsafe reading is precisely the mistake this row
+> has punished four times. The map is complete and committed; the build is
+> the next session's first item.
+>
+> **WO-D7..D11 carried, not hand-waved.** Each of the five now names an owner
+> spec/row, a landing slice, a completion definition and a behaviour test, per
+> Golden Rule 9. Two were SPLIT, because half of each is a copy bug fixable
+> inside row WO and half is a mechanic that is not: **WO-D10's refusal copy**
+> (*"No soil remains on which X could raise his corps"*, printed while the
+> player holds a dozen rich conquests — false on the map they are looking at)
+> is now written into **slice 12's contract**, while the spawn mechanic
+> carries to the Victory & Objectives Pass; and **WO-D9's correctness half is
+> already CLOSED** by slice 16, leaving only the shape. **Exactly one of the
+> five needs a user ruling — WO-D9 — and it is marked GATE-PENDING rather
+> than carried silently**, with a recommended default that costs one call:
+> `authority.get_trust_gain_modifier` already exists, is applied at exactly
+> one seam (`vindication.py`), and is wired to nothing on the objection path,
+> so the UI shows a damper no objection ever pays. WO-D7 and WO-D11 go to
+> EC-2 pass 2; WO-D8 stays behind never-do 21 (do not build uninvited) with
+> both acceptable closes written down — a symmetric floor, or the row struck
+> with "price, not time" recorded as the design.
+
+---
+
 > # ✅ WO SLICE 16 "THE OBJECTION CHANNEL PAYS HONESTLY" LANDED — August 21, 2026. **THE ROW'S THREE HAND-VERIFIED P1s ARE ALL CLOSED.** Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 16, authoritative; BUG_FIXES §WO rows WO-21 / WO-23 → FIXED, plus WO-37 found in passing and fixed. **▶ NEXT = slice 4 "The Capital Speaks" (+WO-11)**, then 5 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14. Prompt = `docs/NEXT_SESSION_PROMPT.md`.
 >
 > Suite **18,347 / 3 skipped**, ruff clean, backend only (no `.gd`). Tests =

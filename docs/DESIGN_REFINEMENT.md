@@ -96,6 +96,37 @@
 | **WO-D10** *(filed Aug 21, 2026)* | **The exiled empire cannot rebuild its Marshalate.** `find_spawn_region` considers only the capital and `nation_starting_regions` — never held conquests — so a player who lost the homeland but holds a dozen rich provinces is refused with *"No soil remains on which X could raise his corps"*, false on the map they are looking at; a dead roster in exile is permanently unrecoverable while income/DP/tribute continue. | spec §4 (hunt) | Let commissioning spawn at the richest HELD province when no home soil remains (Victory-pass adjacent — the exile game only matters once losing is a state the game recognizes), and fix the refusal copy either way. |
 | **WO-D11** *(filed Aug 21, 2026, by the slice-15 build)* | **A mid-march capture forfeits an enemy marshal's estate for nothing.** An automated capture auto-secures (IGR-X5's march policy, and now the WO-26 collision arm too), which means no plunder/secure question mounts — so the WO-27 carve-out does not apply, and the estate prune strips the holder's title on the same advance with an `estate_lost` event. We take no windfall, buy no goodwill, and the player is never asked. `movement_executor`'s own comment claimed the opposite for a month ("the holder simply keeps his title — indistinguishable from 'respect' minus the goodwill entry"); slice 15 corrected the comment rather than quietly changing the rule. | `movement_executor.py` march arm; `world_state.mount_or_auto_secure_capture`; the prune's carve-out | Either write a RESPECT entry on an auto-secured capture (the courtesy a passing column would plausibly extend, and it makes the comment true), or keep the forfeit and say so on the surface the player reads. Estate-economy adjacent — EC-2 pass 2 or the W6-8 owner. |
 
+### ▶ WO-D7..D11 — CARRY CONTRACTS (recorded August 21, 2026, at the user's direction)
+
+> **Why this block exists.** Row WO cannot close with five design rows in the
+> vague state Golden Rule 9 forbids ("future gate", "econ pass 2 adjacent").
+> Each row below now names an **owner spec/row**, a **landing slice**, a
+> **completion definition**, a **STATUS tracking line**, and a **behaviour
+> test** — or is explicitly struck. Nothing here is a build; the carry IS the
+> disposition. **Exactly one of the five (WO-D9) needs a user ruling before
+> its owner can act**, and it is marked GATE-PENDING rather than carried
+> silently.
+>
+> Two of the five were split, because half of each is a copy bug fixable
+> inside row WO and half is a mechanic that is not:
+
+| row | disposition | owner + landing slice | completion definition | behaviour test |
+|---|---|---|---|---|
+| **WO-D7** contactless war bills both treasuries | **CARRIED, mechanic** | `ECONOMY_REVISIT_SPEC.md` **EC-2 pass 2**, the charges-shape slice | A France\|Russia pair at war score exactly 0 with **zero battles for N turns** either stops accruing WE or bills at a contact-keyed rate. Measured as a named delta on the ambient 40-turn board, with the un-fought pair's charge total falling and a shooting war's unchanged. | `test_econ_*`: a zero-contact war pair's per-turn charge is strictly less than an identically-aged pair that fought; and the shooting pair is byte-identical to today. |
+| " | **near-term mitigation, already queued** | row WO **slice 5** | Berthier names the ACCEPT-able peace, so a contactless war is at least *visible* as endable. Does not fix the billing. | slice 5's own done-when |
+| **WO-D8** the player faces no re-declaration truce floor | **CARRIED, uninvited-build forbidden** | a **future diplomacy gate** (never-do 21 stands) | Either a player floor exists symmetric with the AI's `PAIR_EXIT_TRUCE_FLOOR_TURNS = 8`, or the row is **struck** with "price, not time" recorded as the design and the asymmetry documented at the seam. Both are acceptable closes; silence is not. | on the "floor" arm: a player re-declaration inside the floor is refused by the same predicate the AI faces. On the "struck" arm: a pin that the asymmetry is deliberate, sited at `settlement_third_party`'s player skip. |
+| **WO-D9** the objection economy's shape | ⚠ **GATE-PENDING — the one row that needs a ruling** | no natural owner elsewhere; it is row WO's own gate, to be held before or alongside slice 9 | The three questions answered in writing: (a) per-marshal objection cooldown? (b) diminishing trust returns? (c) close the authority-band asymmetry (+1 in the 0.30–0.60 ratio band, penalty only from 0.65, compromise counting toward neither)? **Recommended default: wire the damper that already exists.** `authority.get_trust_gain_modifier` is applied at exactly one seam (`vindication.py`) and is wired to nothing on the objection path — the UI shows a modifier no objection ever pays. Wiring it is one call, closes the shown≠applied lie, and damps the channel without inventing a mechanic. | after the ruling: a pushover player's objection trust gain is strictly less than a balanced player's for the same press; and the value the UI shows equals the value paid. |
+| " | *correctness half* | **CLOSED** by slice 16 | the free trust and the load-refresh are fixed; only the SHAPE remains | `test_wo_slice16_objection_pays_honestly.py` |
+| **WO-D10** the exiled empire cannot rebuild its Marshalate | **SPLIT — copy half CARRIED INTO ROW WO** | row WO **slice 12** (the copy sweep) | The refusal stops asserting something false about the map the player is looking at: *"No soil remains on which X could raise his corps"* is printed while the player holds a dozen rich conquests. The copy names the real rule (home soil, not held soil) whichever way the mechanic is later decided. | slice 12: a player holding conquests but no home soil gets a refusal that does NOT claim there is no soil, and that names the actual gate. |
+| " | *mechanic half* | **CARRIED** to the **Victory & Objectives Pass** (ROADMAP positions 12–13) | `find_spawn_region` considers held provinces when no home soil remains — deliberately downstream of Victory, because the exile game only matters once losing is a state the game recognizes. | at the Victory pass: an exiled nation with held soil can commission; one with none still cannot, and says why. |
+| **WO-D11** a mid-march capture forfeits an estate for nothing | **CARRIED** | `ECONOMY_REVISIT_SPEC.md` **EC-2 pass 2** (estate economy), co-owned with the **W6-8** estate owner | Either an auto-secured capture writes a RESPECT entry (the courtesy a passing column would extend — and it makes `movement_executor`'s comment true) or the forfeit stands and is **stated on the surface the player reads**. The comment is already corrected in place, so the code no longer lies either way. | on the respect arm: a mid-march capture of an enemy marshal's estate leaves the title standing and the +5 acceptance term live. On the forfeit arm: the capture message names the forfeit. |
+
+> **Carried, not forgotten:** each row above has a STATUS tracking line in
+> `docs/STATUS.md` under the row-WO exit block, and row WO's own definition of
+> done (`WEIRD_OUTCOMES_SPEC.md` §5) requires all five to be gated or
+> explicitly carried — which this block discharges for four of them and marks
+> the fifth GATE-PENDING.
+
 > **What NOT to change — recorded so a later pass does not "fix" it.** The
 > sovereign-protection design held (25 turns of deliberate suicide failed to
 > lose Napoleon, and Massena stepped in front of him); the CR-5 delegation split
