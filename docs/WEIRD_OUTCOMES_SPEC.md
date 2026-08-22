@@ -704,6 +704,19 @@ NAMES it, nothing replaces it.
 > and two `--diplomacy propose` invocations at the same seed produce
 > byte-identical digests.
 >
+> **Archived evidence, and what it does and does not cover** (§6 never-do
+> 18): `docs/audits/playtest_digests/wo5-propose-arm/` is the citable
+> record — 18 ambient turns at seed `austerlitz` under `--diplomacy
+> propose`, **after** both driver fixes. It evidences the AFTER state: the
+> two treaties (turn 16 ARMISTICE with Austria, turn 18 PEACE with
+> Britain), 0 `(left standing)`, 1 surviving `ANSWER CYCLE`. The
+> **before** figures quoted above — 7 left-standing and 9 cycles — were
+> measured on intermediate runs of the same command whose digests the
+> archive rule cannot cover, because `tools/playtest_runs/` is overwritten
+> by the next invocation. They are reproducible by reverting either driver
+> fix and re-running; they are stated here as measurements, not as
+> citations.
+>
 > **Consciously touched pins:** three answerer doubles in
 > `test_playtest_harness_win_campaign_2026_08_16.py` gained a no-op
 > `begin_post` (behaviour of those pins unchanged — the double was simply
