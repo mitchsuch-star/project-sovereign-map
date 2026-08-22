@@ -2,10 +2,16 @@
 
 > Overwritten each time a session hands off. Paste the block below as the
 > opening message of a fresh session. Current hand-off: August 21, 2026 —
-> slice 13 (WO-17 "The Corridor Has a Direction") LANDED that day, on top
-> of slices 1/1b/2/3 (landing records = `docs/WEIRD_OUTCOMES_SPEC.md` §3,
-> per slice; the 1b addendum =
+> slice 13 ("The Corridor Has a Direction") and slice 7 ("The Cabinet Is
+> The Only Door", taken out of §5 order by user direction) both LANDED
+> that day, on top of slices 1/1b/2/3 (landing records =
+> `docs/WEIRD_OUTCOMES_SPEC.md` §3, per slice; the 1b addendum =
 > `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md` §9).
+>
+> **Two visual sign-offs are owed and neither has been seen on screen:**
+> slice 7's Berthier redirect line + its ⚜ Cabinet link, and the wizard
+> opening from that link. Both are client-side; the backend halves were
+> live-verified over HTTP.
 
 ---
 
@@ -64,14 +70,23 @@ documented "display only, tunable freely"). Zero `.gd`, zero new
 serialized fields.
 
 **Landing discipline:** work directly on master; the pre-commit hook
-runs ruff + the full suite (green at hand-off: **18,257/3**). Update:
+runs ruff + the full suite (green at hand-off: **18,297/3**). Update:
 the spec (✅ landing record on §3 slice 4), `STATUS.md` top entry,
 `BUG_FIXES.md` WO-11 → FIXED. Commit as
 `fix(wo): slice 4 — the capital speaks …` and push. Overwrite this file
 with the next hand-off (slice 5 WO-D5 "Berthier Names the Peace" +
 slice 6, per §5 order).
 
-**Standing context:** slice 13 added TWO census pins
+**Standing context:** **slice 7 retired typed diplomacy** — the terminal
+redirects the whole diplomatic verb family to the F1 Cabinet, so do NOT
+add a typed diplomatic sentence to a test, a tutorial suggest chip, or a
+playtest script expecting it to execute through the client (raw HTTP and
+the playtest driver still type diplomacy by design). Its drift pin
+(`test_wo_slice7_cabinet_door.py`) is a MIRROR of the mock parser's
+diplomatic funnel: **if you add or change a diplomatic keyword in
+`llm_client._parse_command`, the mirror in `main.gd` must gain it too**,
+and `TestTheMirrorAgreesWithTheParser` will red until it does. Slice 13
+added TWO census pins
 (`test_wo_slice13_corridor_direction.py::TestTheCensusPin`) — any new
 `can_enter_territory` call must pass `mover_location=` (relocation) or
 be consciously audited into the allowlist, and any `passable_for`
