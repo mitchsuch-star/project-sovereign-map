@@ -415,8 +415,13 @@ class Digest:
         # offer" as a loop and stopped a chain that was making progress.
         # And a surface that was NOT answered is not evidence of
         # anything — only real answers count.
-        if str(answer) not in ("(left standing)", "display-only",
-                               "(no options)"):
+        # A skipped stale passthrough is likewise not an answer — it is the
+        # guard WORKING. Counting it re-created the false cycle the same
+        # review had just removed (measured: 4 spurious `ANSWER CYCLE`
+        # blockers on an 18-turn propose run whose turns all ended clean).
+        if (str(answer) not in ("(left standing)", "display-only",
+                                "(no options)")
+                and not str(answer).startswith("(stale passthrough")):
             self.recent.append((str(key), str(summary), str(answer)))
         self._md(f"  - POPUP {key}: {summary} → {answer}")
         self.record("popup", key=key, summary=summary, answer=answer)
@@ -637,11 +642,19 @@ class Answerer:
         self.policy = policy
         self.strict = strict
         # W6-0 dialogue identities already answered during the CURRENT
-        # post (reset by drain()). See begin_post().
+        # answer chain (reset by drain()). See begin_post().
         self._answered_dialogue_ids = set()
+        # Choices the backend REFUSED, per dialogue identity. Never reset:
+        # a word the executor rejected is not worth re-sending on any later
+        # turn either. See the refusal arm in scan(). (WO slice 5 review.)
+        self._refused_choices = {}
 
     def begin_post(self):
         """Start a fresh answer chain (called by drain()).
+
+        NOTE the scope is the CHAIN, not one POST: drain() calls this once
+        and then walks a queue of follow-up responses produced by many
+        POSTs. The name is kept because three test doubles implement it.
 
         Why (found by WO slice 5's own `--diplomacy propose` arm): every
         POST handler rebuilds the popup passthroughs, so a response
@@ -749,6 +762,13 @@ class Answerer:
             payload = (_as_dict(response["pending_capture_choice"])
                        or _as_dict(response.get("capture_data")))
             stage = payload.get("stage", "capture")
+            # WO slice 5 review: an identity guard was drafted here and then
+            # REMOVED — the claimed mechanism ("the keys are stamped on every
+            # response while the world attribute is set") reads `main.py:4054`,
+            # which is `/load`'s filler; the command paths carry these keys off
+            # the executor RESULT. `/capture_choice` also has its own
+            # `dialogue_id` + `stale_dialogue` arm, so a duplicate is refused,
+            # not misapplied. Unproven mechanism, no guard.
             choice = (self.policy["estate"] if stage == "estate"
                       else self.policy["capture"])
             self.d.popup(f"capture_choice[{stage}]",
@@ -841,23 +861,62 @@ class Answerer:
                     or response.get("incoming_settlement_offer"))
         if dialogue and isinstance(dialogue, dict):
             did = dialogue.get("dialogue_id")
+            summary = _summ(dialogue, "type", "nation", "from_nation",
+                            "proposal_type")
             if did is not None and did in self._answered_dialogue_ids:
-                # Same instance, already answered in this post — a stale
+                # Same instance, already answered in this chain — a stale
                 # passthrough, not a new question. See begin_post().
+                #
+                # WO slice 5 review: SAY SO. The first cut set `dialogue =
+                # None` and fell through, so thirteen answer-surface events
+                # vanished from an 18-turn digest — the reported cycle became
+                # a silent one, in a harness whose whole point is that a
+                # wedge is legible.
+                self.d.popup("diplomatic_dialogue", summary,
+                             f"(stale passthrough — #{did} already answered "
+                             f"this chain)")
                 dialogue = None
         if dialogue and isinstance(dialogue, dict):
             choice = self._dialogue_choice(dialogue)
+            # The cycle guard's signature carries the dialogue identity, so
+            # two DIFFERENT surfaces of the same type answered the same way
+            # in one chain no longer read as a loop (WO slice 5 review: the
+            # legitimate five-stage settlement ceremony ends in two distinct
+            # `proposal_confirm`s and tripped it every long propose run).
             self.d.popup("diplomatic_dialogue",
-                         _summ(dialogue, "type", "nation", "from_nation",
-                               "proposal_type"),
+                         summary + (f" #{did}" if did is not None else ""),
                          choice or "(left standing)")
             if choice is not None:
                 body = {"choice": choice}
-                if dialogue.get("dialogue_id") is not None:
-                    body["dialogue_id"] = dialogue["dialogue_id"]
-                    self._answered_dialogue_ids.add(dialogue["dialogue_id"])
-                followups.append(
-                    self.t.post("/respond_to_diplomatic_dialogue", body))
+                if did is not None:
+                    body["dialogue_id"] = did
+                    self._answered_dialogue_ids.add(did)
+                reply = self.t.post("/respond_to_diplomatic_dialogue", body)
+                # WO slice 5 review: the digest rendered a REFUSED answer
+                # exactly like a signed one. Measured on the archived run:
+                # of the seven bare-shape popups the new arm answered, FIVE
+                # were refused (`stale_dialogue` — a queued popup answered
+                # against whatever dialogue was actually active) and two
+                # landed, and the digest said the same thing about all
+                # seven. So "0 (left standing)" was never evidence the
+                # offers were answered; they only stopped saying so. The
+                # letter-book has done this since IGR-F — the same shape.
+                if reply.get("success") is False:
+                    self.d.note(
+                        f"    ↳ refused: "
+                        f"{first_line(reply.get('message'), 110)}")
+                # WO slice 5 review: a REFUSED answer must never be repeated.
+                # Measured: `--diplomacy propose` spends 3 DP a turn, the
+                # settlement_confirm's first option (`seek_bilateral_peace`)
+                # then costs DP France no longer has, the executor refuses
+                # WITHOUT popping, and the driver re-sent the same word every
+                # turn until `end turn` was refused forever — `blocked` on 3
+                # of 7 seeds. Remembering the refusal turns the DP shortage
+                # into the evidence the arm was built to produce.
+                if reply.get("success") is False:
+                    self._refused_choices.setdefault(
+                        self._refusal_key(dialogue), set()).add(str(choice))
+                followups.append(reply)
 
         return followups
 
@@ -891,24 +950,81 @@ class Answerer:
             replies.append(reply)
         return replies
 
+    @staticmethod
+    def _refusal_key(dialogue):
+        """Identity for the refused-choice memory.
+
+        `dialogue_id` when the surface carries one; otherwise the shape —
+        because the surfaces that lack an id are exactly the ones the W6-0
+        identity binding cannot reach either.
+        """
+        did = dialogue.get("dialogue_id")
+        if did is not None:
+            return ("id", did)
+        return ("shape", str(dialogue.get("type") or ""),
+                str(dialogue.get("target_nation")
+                    or dialogue.get("from_nation") or ""),
+                tuple(str(_option_id(o) or "")
+                      for o in (dialogue.get("options")
+                                or dialogue.get("choices") or [])))
+
     def _dialogue_choice(self, dialogue):
         """Pick a dialogue answer. Order: the type table (types whose
         right answer the driver knows even without an options list), then
-        the diplomacy policy over the dialogue's OWN option keywords."""
+        the diplomacy policy over the dialogue's OWN option keywords.
+
+        A choice the backend already REFUSED for this dialogue is never
+        re-offered — the next option is tried instead, and when the list is
+        exhausted the surface is left standing and SAID so.
+        """
+        refused = self._refused_choices.get(self._refusal_key(dialogue))
+        picked = self._pick_dialogue_choice(dialogue)
+        if not refused or picked is None or str(picked) not in refused:
+            return picked
+        for option in (dialogue.get("options")
+                       or dialogue.get("choices") or []):
+            candidate = _option_id(option)
+            if candidate is not None and str(candidate) not in refused:
+                return candidate
+        return None
+
+    def _pick_dialogue_choice(self, dialogue):
         dtype = str(dialogue.get("type") or "")
         options = dialogue.get("options") or dialogue.get("choices") or []
         keywords = [str(_option_id(o) or "").lower() for o in options]
 
+        # WO slice 5 REVIEW (August 22, 2026) — the ultimatum discriminator.
+        # An `incoming_ultimatum` recovers through the SAME transport as a
+        # proposal: `main.py`'s incoming_proposal safety valve and the popup
+        # queue both render it with `mailbox_payloads.
+        # build_pending_envoy_popup_from_terms`, which stamps neither a
+        # `type` key nor an options list. The bare-shape arm below therefore
+        # could not tell the two apart, and MEASURED end to end: under any
+        # accepting policy the driver answered "accept", the router mapped it
+        # to `accept_ai_ultimatum`, and France YIELDED — Hanover ceded to
+        # Prussia, 300g/turn tribute, 5,000 conscripts — silently overriding
+        # the `ultimatum` policy the run's own meta.json records as `defy`.
+        # `is_ultimatum` is the producer's own field
+        # (`ai_diplomacy._build_ai_ultimatum_dialogue`) and `ultimatum_demand`
+        # is its terms type; either restores the dtype the table owns.
+        if not dtype and (dialogue.get("is_ultimatum")
+                          or str(dialogue.get("proposal_type", "")
+                                 ).startswith("ultimatum")):
+            dtype = "incoming_ultimatum"
+
         # WO slice 5. The AI's own peace offer arrives as the incoming-
-        # proposal POPUP payload (`mailbox_payloads.build_incoming_
-        # proposal_popup`): a rendering of a real `incoming_proposal`
-        # dialogue that carries its `dialogue_id` but neither the `type`
-        # key nor an options list. The driver's type table and both
-        # keyword searches therefore missed it and it was logged
-        # `(left standing)` — measured seven times in eighteen turns the
-        # first time an arm ever made France sue for peace, including
-        # Russia's own answer to the overture. An arm that asks for peace
-        # and then cannot sign it measures nothing.
+        # proposal POPUP payload (`mailbox_payloads.
+        # build_pending_envoy_popup_from_terms` — the review corrected a
+        # fabricated name here): a rendering of a real dialogue that carries
+        # its `dialogue_id` but neither the `type` key nor an options list.
+        # FOUR dialogue types render through it — `incoming_proposal`,
+        # `counter_offer`, `counter_offer_response` and `incoming_ultimatum`
+        # — which is precisely why the ultimatum arm above exists. The
+        # driver's type table and both keyword searches missed the shape and
+        # it was logged `(left standing)` — measured seven times in eighteen
+        # turns the first time an arm ever made France sue for peace,
+        # including Russia's own answer to the overture. An arm that asks for
+        # peace and then cannot sign it measures nothing.
         #
         # Answered exactly as the client answers it: a bare keyword plus
         # the payload's dialogue_id (`main.gd _on_incoming_proposal_
@@ -943,7 +1059,11 @@ class Answerer:
             # accepting run commits to the substitute it just chose;
             # a declining run keeps the joint draft.
             if policy_key == "keep":
-                if self.policy["diplomacy"] in ("accept", "propose"):
+                # WO slice 5 review: the constant, not a third hand-written
+                # copy of it — `first` is an accepting mode, and taking the
+                # documented NO-OP `keep` under it restages the substitute
+                # forever.
+                if self.policy["diplomacy"] in ACCEPTING_DIPLOMACY_MODES:
                     return (find("confirm_pair", "confirm", "substitute")
                             or "confirm_pair_substitute")
                 return find("keep") or "keep"
@@ -955,6 +1075,8 @@ class Answerer:
 
         mode = self.policy["diplomacy"]
         if mode in ("accept", "propose"):
+            # NOT the constant: `first` keeps its own "take options[0]"
+            # meaning here, which is the whole point of the mode.
             picked = find("accept", "agree", "yes", "sign")
         elif mode == "first":
             picked = _option_id(options[0]) if options else None
@@ -1004,7 +1126,11 @@ def peace_overture(status_payload, turn_index):
 
     Round-robin by turn index over the sorted at-war courts, so a long run
     asks everyone and DP shortage / cooldowns / refusals all land in the
-    digest as evidence instead of being engineered around. The driver keeps
+    digest as evidence instead of being engineered around. (That claim was
+    FALSE as first shipped — a DP shortage stopped the run on 3 of 7 seeds
+    rather than landing as evidence, because the driver re-sent a choice the
+    executor had already refused. The refused-choice memory in
+    `Answerer._dialogue_choice` is what makes it true; WO slice 5 review.) The driver keeps
     typed diplomacy deliberately (spec §6 never-do 12): the slice-7 Cabinet
     redirect lives in main.gd, client-side, and POST /command is the
     surface under test.
@@ -1181,23 +1307,32 @@ def run(args):
                 (transport.get("/mailbox") or {}).get("envoy_digest")):
             drain(transport, digest, answerer, reply, args.strict)
 
-        # WO slice 5: the active peace arm. Sent BEFORE the script's own
-        # orders so a scripted campaign's commands still decide the turn,
-        # and drained like any other command so the settlement dialogue it
-        # raises is answered by the same accept-family policy.
-        if policy["diplomacy"] == "propose":
-            overture = peace_overture(status_payload, turn_index)
-            if overture:
-                response = transport.post("/command", {"command": overture})
-                digest.command(overture, response)
-                drain(transport, digest, answerer, response, args.strict)
-
         for text in turn_scripts.get(str(turn_index), []):
             if text.strip().lower() == "end turn":
                 continue  # implicit below
             response = transport.post("/command", {"command": text})
             digest.command(text, response)
             drain(transport, digest, answerer, response, args.strict)
+
+        # WO slice 5: the active peace arm, drained like any other command
+        # so the settlement dialogue it raises is answered by the same
+        # accept-family policy.
+        #
+        # Sent AFTER the script's own orders (WO slice 5 review). The first
+        # cut sent it first, reasoning that "a scripted campaign's commands
+        # still decide the turn" — true of military orders, and exactly
+        # inverted for diplomatic ones: the overture costs 3 DP and takes
+        # Talleyrand out of the country, so a script's own
+        # `propose peace to Austria` was refused wholesale ("Talleyrand is
+        # currently en route to a foreign court") for want of points the
+        # harness had just spent. Ambient runs have no script lines, so the
+        # move is a no-op there — measured byte-identical.
+        if policy["diplomacy"] == "propose":
+            overture = peace_overture(status_payload, turn_index)
+            if overture:
+                response = transport.post("/command", {"command": overture})
+                digest.command(overture, response)
+                drain(transport, digest, answerer, response, args.strict)
 
         if turn_index in save_at:
             saved = transport.post("/save",

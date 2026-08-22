@@ -1,0 +1,149 @@
+[
+  {
+    "id": "R-1 the ultimatum discriminator is deleted",
+    "file": "tools/playtest_driver.py",
+    "old": "        if not dtype and (dialogue.get(\"is_ultimatum\")\n                          or str(dialogue.get(\"proposal_type\", \"\")\n                                 ).startswith(\"ultimatum\")):\n            dtype = \"incoming_ultimatum\"",
+    "new": "        if False:\n            dtype = \"incoming_ultimatum\"",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheUltimatumIsAnsweredByTheUltimatumPolicy"
+  },
+  {
+    "id": "R-2 the discriminator reads only the is_ultimatum flag",
+    "file": "tools/playtest_driver.py",
+    "old": "        if not dtype and (dialogue.get(\"is_ultimatum\")\n                          or str(dialogue.get(\"proposal_type\", \"\")\n                                 ).startswith(\"ultimatum\")):",
+    "new": "        if not dtype and dialogue.get(\"is_ultimatum\"):",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheUltimatumIsAnsweredByTheUltimatumPolicy::test_the_terms_type_alone_is_enough"
+  },
+  {
+    "id": "R-3 refusals are not recorded",
+    "file": "tools/playtest_driver.py",
+    "old": "                if reply.get(\"success\") is False:\n                    self._refused_choices.setdefault(",
+    "new": "                if False:\n                    self._refused_choices.setdefault(",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestARefusedChoiceIsNeverRepeated"
+  },
+  {
+    "id": "R-4 a refused choice is offered again anyway",
+    "file": "tools/playtest_driver.py",
+    "old": "        if not refused or picked is None or str(picked) not in refused:\n            return picked",
+    "new": "        if True:\n            return picked",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestARefusedChoiceIsNeverRepeated::test_the_next_option_is_tried_after_a_refusal"
+  },
+  {
+    "id": "R-5 the refusal is not said out loud",
+    "file": "tools/playtest_driver.py",
+    "old": "                if reply.get(\"success\") is False:\n                    self.d.note(",
+    "new": "                if False:\n                    self.d.note(",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestARefusedChoiceIsNeverRepeated::test_the_refusal_is_said_out_loud"
+  },
+  {
+    "id": "R-6 the skipped passthrough goes back to silence",
+    "file": "tools/playtest_driver.py",
+    "old": "                self.d.popup(\"diplomatic_dialogue\", summary,\n                             f\"(stale passthrough — #{did} already answered \"\n                             f\"this chain)\")\n                dialogue = None",
+    "new": "                dialogue = None",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSkippedPassthroughIsVisibleAndNotACycle::test_the_skip_is_logged"
+  },
+  {
+    "id": "R-7 the cycle signature drops the dialogue identity",
+    "file": "tools/playtest_driver.py",
+    "old": "                         summary + (f\" #{did}\" if did is not None else \"\"),",
+    "new": "                         summary,",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSkippedPassthroughIsVisibleAndNotACycle::test_two_different_dialogues_are_not_a_cycle"
+  },
+  {
+    "id": "R-8 the stale note counts toward the cycle guard again",
+    "file": "tools/playtest_driver.py",
+    "old": "                and not str(answer).startswith(\"(stale passthrough\")):",
+    "new": "                and True):",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSkippedPassthroughIsVisibleAndNotACycle::test_the_skip_does_not_feed_the_cycle_guard"
+  },
+  {
+    "id": "R-9 the chooser arm forgets that `first` is an accepting mode",
+    "file": "tools/playtest_driver.py",
+    "old": "                if self.policy[\"diplomacy\"] in ACCEPTING_DIPLOMACY_MODES:\n                    return (find(\"confirm_pair\", \"confirm\", \"substitute\")",
+    "new": "                if self.policy[\"diplomacy\"] in (\"accept\", \"propose\"):\n                    return (find(\"confirm_pair\", \"confirm\", \"substitute\")",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestDriverHousekeeping::test_the_accepting_modes_constant_owns_the_chooser_arm"
+  },
+  {
+    "id": "R-10 the carried dialogue is stamped on a throwaway copy again",
+    "file": "backend/game_logic/settlement_actions.py",
+    "old": "        proposal_dialogue = dict(proposal_dialogue)\n        world.dialogue_manager.replace(proposal_dialogue)",
+    "new": "        world.dialogue_manager.replace(dict(proposal_dialogue))",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheCarriedProposalCarriesItsIdentity::test_replace_stamps_the_dict_that_is_returned"
+  },
+  {
+    "id": "R-11 the smoke preset stops stamping the war clock",
+    "file": "backend/models/world_state.py",
+    "old": "                self.war_start_turns.setdefault(pair, int(self.current_turn))",
+    "new": "                pass",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSmokePresetStampsTheWarClock"
+  },
+  {
+    "id": "R-12 the ranking drops the acceptance term",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        -f[\"acceptance\"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,",
+    "new": "        0,",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSignablePeaceIsNoLongerBuried::test_a_stuck_signer_outranks_a_losing_leader_who_refuses tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_the_court_that_would_sign_is_named_first"
+  },
+  {
+    "id": "R-13 the ranking prefers the court that would REFUSE",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        -f[\"acceptance\"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,",
+    "new": "        f[\"acceptance\"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSignablePeaceIsNoLongerBuried"
+  },
+  {
+    "id": "R-14 the counsel stops stating the scorer's verdict",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        prospect = _PEACE_PROSPECT_CLAUSE.get(candidate[\"outcome\"], \"\")",
+    "new": "        prospect = \"\"",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheCounselStatesWhatTheScorerSays::test_each_band_gets_its_own_clause"
+  },
+  {
+    "id": "R-15 the counsel names the dead name again",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        display = formed_display_name(world, opponent)\n        prospect = _PEACE_PROSPECT_CLAUSE",
+    "new": "        display = opponent\n        prospect = _PEACE_PROSPECT_CLAUSE",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheCounselStatesWhatTheScorerSays::test_a_formed_nation_is_never_named_by_its_dead_name"
+  },
+  {
+    "id": "R-16 a losing ROW is narrated as a losing PAIR again",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "            situation = (f\"the war against \"\n                         f\"{row.get('opponent_display') or display} \"\n                         f\"goes badly\")",
+    "new": "            situation = f\"the war with {display} turns against us\"",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheCounselStatesWhatTheScorerSays::test_a_losing_row_whose_leader_pair_is_winning_says_so"
+  },
+  {
+    "id": "R-17 the age is read off the collapsed ROW (the X4 gap)",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "                \"age\": (int(world.current_turn) - int(starts[key] or 0)\n                        if key in starts else None),",
+    "new": "                \"age\": int(row.get(\"duration\", 0)),",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_the_age_reported_is_the_pairs_own"
+  },
+  {
+    "id": "R-18 the predicate's age boundary is loosened",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "    if turn - int(joined_turn) < PAIR_EXIT_MIN_TURNS:",
+    "new": "    if turn - int(joined_turn) <= PAIR_EXIT_MIN_TURNS - 2:",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestPredicate::test_too_young_fails"
+  },
+  {
+    "id": "R-19 the predicate's weariness boundary is loosened",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR\n            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR):",
+    "new": "    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR - 1\n            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR - 1):",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestPredicate::test_one_side_not_weary_enough_fails"
+  },
+  {
+    "id": "R-20 the TURN PATH's own clock is discarded",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "        if not pair_is_mutually_exhausted(world, a, b, joined):",
+    "new": "        if not pair_is_mutually_exhausted(world, a, b, 0):",
+    "tests": "tests/test_ai_intent_third_party.py tests/test_pc15_d_rulings_2026_08_15.py"
+  },
+  {
+    "id": "R-21 an arm dictates a sentence to type",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "                     f\"or take your seat in the Cabinet (F1) once this is \"\n                     f\"closed.\"),",
+    "new": "                     f\"or take your seat in the Cabinet (F1) once this is \"\n                     f\"closed. Or simply say 'propose peace with X' at \"\n                     f\"the dispatch box.\"),",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_no_arm_tells_the_player_to_type_a_diplomatic_sentence"
+  }
+]

@@ -57,6 +57,8 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 
 Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
 `--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose`
+(there is no `--ultimatum` flag — `defy` is the policy default, stamped into
+every run's `meta.json`)
 · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
 (unknown blocking shapes fail the run, exit 3) · `--verbose` (backend
 console to stdout instead of `server_console.log`) · `--archive` (copy
@@ -218,27 +220,61 @@ its rules:
   `request terms from <court>`
 * everyone else → `propose peace with <court>`
 
-Both are golden-corpus phrasings. The driver keeps typed diplomacy on
-purpose (the slice-7 Cabinet redirect lives in `main.gd`, client-side;
-`POST /command` is the surface under test). Incoming is answered exactly as
-`--diplomacy accept` answers it — an arm that sues for peace and then
-declines the peace it is handed measures nothing.
+Both are golden-corpus phrasings. The overture is sent AFTER the turn's
+scripted orders, because it costs 3 DP and takes Talleyrand out of the
+country — sending it first made a script's own `propose peace to Austria`
+fail for want of points the harness had just spent. The driver keeps typed
+diplomacy on purpose (the slice-7 Cabinet redirect lives in `main.gd`,
+client-side; `POST /command` is the surface under test).
+
+Incoming is answered as `--diplomacy accept` answers it — an arm that sues
+for peace and then declines the peace it is handed measures nothing —
+**with one exception: an ULTIMATUM is answered by the `ultimatum` policy
+(`defy` by default), never by the diplomacy dial.** It has to be spelled
+out because an ultimatum arrives in the same shape as a peace offer (no
+`type`, no options), and until August 22 an accepting policy silently
+YIELDED to one: measured, Hanover ceded to Prussia with 300g/turn tribute
+and 5,000 conscripts, while the run's own `meta.json` said `defy`. Note
+also that `propose` signs *whatever* it is handed, not only peace — an
+`open_borders` or an `alliance` is accepted with the same word.
+
+⚠ **A defied ultimatum is not a lapsed one.** A lapse plants no pressure
+marker; an explicit refusal calls `record_ultimatum_rejection`, the fifth
+coalition-threat contributor. That is the driver's stated policy applied
+consistently, but it is a harness change to game state — so a run that
+receives an ultimatum is not comparable to a pre-August-22 run that let one
+lapse.
 
 Measured on the 18-turn `austerlitz` ambient board: **turn 16 WAR →
-ARMISTICE with Austria, turn 18 WAR → PEACE with Britain.** DP shortage,
+ARMISTICE with Austria** (from accepting Austria's own offer — France's
+peace to Austria was rejected that same turn), **turn 18 WAR → PEACE with
+Britain**, and, in that turn's enemy phase, **Russia accepting France's own
+Peace Treaty** — the pair the whole arm exists to reach. DP shortage,
 per-court cooldowns and flat refusals all land in the digest as evidence
-rather than being engineered around.
+rather than being engineered around: a choice the executor refuses is
+printed with its reason and never re-sent, and the driver moves to the next
+option. (Before that memory existed, `propose` ended `blocked` on 3 of 7
+seeds — the arm spent the DP its own answer then needed.)
 
 **Two digest deltas this arm introduced (both driver-side, both wanted):**
 
 * **The AI's own peace offer is now answered.** It arrives as the
-  incoming-proposal POPUP payload — no `type`, no options, but a
-  `dialogue_id` — which the type table and both keyword searches missed, so
-  it was logged `(left standing)` seven times in eighteen turns, including
-  Russia's answer to France's own overture. It is now answered the way the
-  client answers it (a bare `accept`/`reject` plus the payload's
-  `dialogue_id`). ⚠ Same shape as the letter-book's delta: a run that used
-  to LAPSE these now refuses them explicitly.
+  incoming-proposal POPUP payload (`mailbox_payloads.
+  build_pending_envoy_popup_from_terms`, which also renders `counter_offer`,
+  `counter_offer_response` and `incoming_ultimatum`) — no `type`, no
+  options, but a `dialogue_id` — which the type table and both keyword
+  searches missed, so it was logged `(left standing)` seven times in
+  eighteen turns, including Russia's answer to France's own overture. It is
+  now answered the way the client answers it (a bare `accept`/`reject` plus
+  the payload's `dialogue_id`), except for the ultimatum case above.
+  ⚠ Same shape as the letter-book's delta: a run that used to LAPSE these
+  now refuses them explicitly.
+* **A refused answer says so.** The digest used to render a refused answer
+  exactly like a signed one — measured on the archived propose run, 16 of
+  28 answers were refused (alliance paradox, stale dialogue, insufficient
+  DP) and every one printed as `→ accept` / `→ confirm`. Each now carries
+  a `↳ refused: …` line with the engine's own words, and `0 (left
+  standing)` no longer implies that anything was signed.
 * **A stale passthrough is no longer answered twice.** Every POST rebuilds
   the popup passthroughs, so a response generated before an answer lands
   re-carries the dialogue that answer popped; `drain()` now opens each
@@ -248,11 +284,15 @@ rather than being engineered around.
   the chain — nine of eighteen turns under `propose`, zero under every
   other policy, which is why it had never been seen.
 
-**Expect one `ANSWER CYCLE` warning per long `propose` run.** A legitimate
-five-stage settlement ceremony can end in two DIFFERENT `proposal_confirm`
-surfaces, and the guard's `(key, summary, choice)` signature cannot tell
-them apart. It stops that one chain after the ceremony completed; the turn
-still ends. This is the documented reading trap, not a defect.
+**No `ANSWER CYCLE` warning is expected any more.** One used to fire on
+every long `propose` run and was recorded as a documented reading trap; the
+August 22 review measured it and the explanation was wrong. It was ONE
+dialogue rendered twice, because the settlement→bilateral carry stamped the
+`dialogue_id` on a throwaway copy and returned the un-stamped original — so
+the same popup reached Godot with no identity at all. That is fixed at the
+producer, the guard's signature now carries the identity, and a skipped
+stale passthrough is logged rather than dropped. A surviving `ANSWER CYCLE`
+is now a real finding.
 
 Determinism is unaffected: two `propose` runs at the same seed produce
 byte-identical digests, and a default-policy digest is byte-identical

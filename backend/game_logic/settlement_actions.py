@@ -3106,7 +3106,17 @@ def _execute_pair_substitute_handoff(
 
     world.dialogue_manager.pop()
     if isinstance(proposal_dialogue, Mapping):
-        world.dialogue_manager.replace(dict(proposal_dialogue))
+        # WO slice 5 review: stamp the identity IN PLACE. `replace()` calls
+        # `_assign_dialogue_id` on the dict it is handed, so handing it a
+        # throwaway copy stamped the copy and returned the original — and
+        # `main.py:3360` passes THIS dict straight to the client. The
+        # carried settlement→bilateral `proposal_confirm` therefore reached
+        # Godot with no `dialogue_id`, breaking W6-0's own promise that
+        # "every popup shape derived from it reaches Godot carrying the
+        # identity it must answer with", which is what the harness's
+        # surviving ANSWER CYCLE was actually made of.
+        proposal_dialogue = dict(proposal_dialogue)
+        world.dialogue_manager.replace(proposal_dialogue)
 
     talleyrand_text = resolve_settlement_voice_line(
         voice_key,

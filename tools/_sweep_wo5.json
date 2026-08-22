@@ -2,22 +2,22 @@
   {
     "id": "S5-1 rung 1 narrows back to the strict `war_score < 0`",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "    for stuck in _mutually_exhausted_courts(world, player, war_rows):",
-    "new": "    for stuck in []:",
+    "old": "    for candidate in _settlement_candidates(world, player, war_rows):",
+    "new": "    for candidate in []:",
     "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t16_counsel_names_russia tests/test_wo_slice5_berthier_names_the_peace.py::TestLosingStillOutranksStuck::test_stuck_still_wins_over_the_agenda_counsel"
   },
   {
     "id": "S5-2 the counsel reads the ROW, not each court (the collapse blindness)",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "        courts = [n for n in (row.get(\"opponents\")\n                              or [row.get(\"opponent\", \"\")]) if n]",
-    "new": "        courts = [n for n in [row.get(\"opponent\", \"\")] if n]",
+    "old": "        for opponent in [n for n in (row.get(\"opponents\")\n                                     or [row.get(\"opponent\", \"\")]) if n]:",
+    "new": "        for opponent in [n for n in [row.get(\"opponent\", \"\")] if n]:",
     "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_a_collapsed_coalition_row_is_read_per_court tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t16_counsel_names_russia"
   },
   {
     "id": "S5-3 the deadest-war ordering is dropped",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "    found.sort(key=lambda f: (abs(f[\"score\"]), f[\"opponent\"]))",
-    "new": "    found.sort(key=lambda f: f[\"opponent\"])",
+    "old": "        abs(f[\"score\"]),\n        f[\"opponent\"],",
+    "new": "        f[\"opponent\"],",
     "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_the_deadest_war_is_named_first tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t16_counsel_names_russia"
   },
   {
@@ -30,29 +30,29 @@
   {
     "id": "S5-5 the stuck arm outranks a LOSING war",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "    losing = sorted((w for w in war_rows if int(w.get(\"war_score\", 0)) < 0),\n                    key=lambda w: int(w.get(\"war_score\", 0)))",
-    "new": "    losing = []",
-    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestLosingStillOutranksStuck::test_a_losing_war_wins_the_rung"
+    "old": "        0 if f[\"row_losing\"] else 1,",
+    "new": "        1 if f[\"row_losing\"] else 0,",
+    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSignablePeaceIsNoLongerBuried::test_losing_breaks_a_tie_in_acceptance"
   },
   {
     "id": "S5-6 the terms route is offered to a NON-leader",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "        if opponent == row.get(\"opponent\") and terms_state == \"available\":\n            return {\n                \"kind\": \"request_terms\",\n                \"target_nation\": opponent,\n                \"label\": f\"Seek terms with {opponent}\",\n                \"description\": (\"Ask their court to name settlement terms \"\n                                \"(1 DP).\"),\n                \"text\": (f\"{still}. A court this weary will hear an ask, \"",
-    "new": "        if terms_state == \"available\":\n            return {\n                \"kind\": \"request_terms\",\n                \"target_nation\": opponent,\n                \"label\": f\"Seek terms with {opponent}\",\n                \"description\": (\"Ask their court to name settlement terms \"\n                                \"(1 DP).\"),\n                \"text\": (f\"{still}. A court this weary will hear an ask, \"",
+    "old": "                \"terms_open\": (opponent == row.get(\"opponent\")\n                               and terms_state == \"available\"),",
+    "new": "                \"terms_open\": terms_state == \"available\",",
     "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_a_non_leader_gets_the_proposal_menu"
   },
   {
     "id": "S5-7 the stuck copy stops naming a surface (N-7)",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "                     f\"a court this weary will hear an offer. Open talks \"\n                     f\"with {opponent} below, or take your seat in the \"\n                     f\"Cabinet (F1).\"),",
-    "new": "                     f\"a court this weary will hear an offer. Ask, Sire.\"),",
+    "old": "            \"text\": (f\"{lead} {prospect}. Open talks with {display} below, \"\n                     f\"or take your seat in the Cabinet (F1) once this is \"\n                     f\"closed.\"),",
+    "new": "            \"text\": (f\"{lead} {prospect}. Ask, Sire.\"),",
     "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_every_rung_1_arm_names_a_pressable_surface tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_the_surface_words_match_the_ones_the_game_already_uses"
   },
   {
     "id": "S5-8 the LOSING copy reverts to the pre-G1 'ask, Sire'",
     "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "                \"text\": (f\"the war with {opponent} turns against us and \"\n                         f\"their court would name terms — ask while asking \"\n                         f\"is still a choice, Sire: take the counsel below, \"\n                         f\"or open the war banner and press Request Terms.\"),",
-    "new": "                \"text\": (f\"the war with {opponent} turns against us and \"\n                         f\"their court would name terms — ask, Sire, while \"\n                         f\"asking is still a choice.\"),",
+    "old": "                \"text\": (f\"{lead} Sire — take the counsel below, or open \"\n                         f\"the war banner and press Request Terms.\"),",
+    "new": "                \"text\": (f\"{lead} ask, Sire.\"),",
     "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_every_rung_1_arm_names_a_pressable_surface"
   },
   {

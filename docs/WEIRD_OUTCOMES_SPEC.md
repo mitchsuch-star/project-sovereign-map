@@ -591,7 +591,9 @@ NAMES it, nothing replaces it.
 > dispatch's headline ordering, slice 5 is the war room's counsel — and
 > nothing in 4 blocks 5. **Slice 4 stays next**; only slice 5's position
 > moved, recorded here rather than absorbed (the §5 amendment idiom).
-> `tests/test_wo_slice5_berthier_names_the_peace.py` (56); mutation sweep
+> `tests/test_wo_slice5_berthier_names_the_peace.py` (55 at landing, 57
+> after the review round's pin repairs — the record said 56, corrected
+> August 22); mutation sweep
 > `tools/_sweep_wo5.json` — **23 mutations, 23 killed, 0 inert** (one
 > INERT pin found and replaced, below); M1–M7 and `BASELINE_SERIES`
 > byte-identical, **measured, and the series pin itself proved live by
@@ -732,6 +734,247 @@ NAMES it, nothing replaces it.
 > **Discharges** the WO-D7 carry contract's named near-term mitigation
 > (`DESIGN_REFINEMENT.md` §WO-D7..D11): the ACCEPT-able peace is visible.
 > The billing half stays carried to EC-2 pass 2, untouched.
+
+> ### Slice 5 — REVIEW ROUND, August 22, 2026 (same day). Authoritative where it amends the record above.
+>
+> A 9-lens find → 9-refuter adversarial fleet at commit `4f13202` (clean
+> tree, git mutation forbidden), plus the parent's own reproduction runs at
+> four seeds. **Three P1/P2 defects confirmed and fixed, six pins repaired
+> or consciously flipped, and eleven claims in the record above corrected.**
+> Tests `tests/test_wo_slice5_review_2026_08_22.py` (38); sweeps
+> `tools/_sweep_wo5r.json` **21/21 killed, 0 inert** and the re-anchored
+> `tools/_sweep_wo5.json` **23/23 killed, 0 inert** (44 mutations total).
+> M1–M7, `BASELINE_SERIES` (`test_ai_intent_assurance.py`, real subprocess
+> runs) green **without re-record**. Zero `.gd`.
+>
+> **① The driver yielded to ultimatums — P1, measured end to end.** The
+> bare-shape arm fires on "no `type`, no options, has `from_nation`, has
+> `proposal_type`". `main.py`'s `incoming_proposal` safety valve
+> (`:1660-1682`) and the popup queue BOTH derive exactly that shape from a
+> pending **`incoming_ultimatum`** dialogue. Measured on the real endpoint
+> chain: under `accept|first|propose` the driver answered `accept`, the
+> router mapped it to `accept_ai_ultimatum`, and France **YIELDED —
+> Hanover ceded to Prussia, 300g/turn tribute, 5,000 conscripts** — while
+> the same run's `meta.json` recorded `"ultimatum": "defy"`. Pre-slice the
+> payload was `(left standing)`, so this is a slice-5 regression, not a
+> pre-existing hole. Fixed by restoring the dtype the type table already
+> owns (`is_ultimatum`, the producer's own field, OR a `proposal_type`
+> beginning `ultimatum`), so the documented policy decides. Verified in
+> both directions: `defy` defies (Hanover stays French,
+> `ultimatum_rejection_pressure` recorded), `ultimatum=yield` yields.
+> ⚠ **The delta is mechanically consequential and is now documented:** an
+> ultimatum that used to LAPSE (explicitly "not a rejection — no pressure
+> marker") is now DEFIED under every policy, planting the fifth
+> coalition-threat contributor. That is the driver's stated policy applied
+> consistently, not a new choice — but it is a harness change to game
+> state and `PLAYTESTING.md` says so.
+>
+> **② `--diplomacy propose` wedged the run on 3 of 7 seeds — P1.** The arm
+> spends 3 DP a turn with no reserve; an incoming `settlement_confirm`'s
+> first option (`seek_bilateral_peace`) then costs DP France no longer has;
+> the executor refuses **without popping**; the driver re-sent the same word
+> every turn until `end turn` was refused forever. Reproduced independently
+> at seed `ulm`: `blocked` at turn 11 of 18, blocker
+> `proposal_confirm/answer-cycle`. **This falsifies the record's own
+> claim** that "DP shortage / cooldowns / refusals all land in the digest as
+> evidence instead of being engineered around", and "the arm works end to
+> end" was true of ONE seed. Fixed with a refused-choice memory keyed on the
+> dialogue identity (never reset, because the wedge repeated across turns):
+> a word the executor rejected is never re-sent, the next option is tried,
+> and an exhausted list is left standing and says so. Measured after:
+> `ulm` **completes**.
+>
+> **③ The war room buried the signable peace behind an unsignable one —
+> P1/P2, 7 of 13 snapshots across three seeds** (17 of 41 in the fleet's
+> wider sweep). Rung 1's losing arm returned FIRST and read the **collapsed
+> row**, naming its LEADER — a court whose plain peace the game's own scorer
+> refused at 21–28 — while a mutually exhausted court **inside the same
+> row** would have signed at 64–69 and `_mutually_exhausted_courts` already
+> knew its name. The slice diagnosed exactly this blindness and fixed it in
+> the new rung only. Rung 1 is now ONE ranked candidate list
+> (`_settlement_candidates`): the losing row's leader (qualification
+> deliberately unchanged — widening it per court was measured to pre-empt
+> the NA-1 design counsel over a trivial −5 pair, and turn 12 must stay
+> untouched) plus every stuck court, ranked by an open terms route first,
+> then **what the game's own scorer says a bare peace would meet**, then
+> losing-before-stuck as a tiebreak, then |pair score|, then name.
+> Measured after: **0 of 13**. The done-when is preserved (t16 names Russia;
+> t12 still gives the agenda counsel).
+>
+> **This REVERSES the record's "Losing still outranks stuck."** Flip flag
+> `COUNSEL_RANKS_BY_ACCEPTANCE` is the single lever. Urgency is worth
+> nothing when the urgent court refuses; urgency survives as the tiebreak.
+> The old |pair score| ordering was measured to agree with the scorer on all
+> 12 boards tested and to be reachably wrong off them (two stuck courts at
+> ±7 decided by the alphabet, because the acceptance formula's only
+> war-score term is 0.3× the pair score and is ≈0 across the whole
+> stagnation band). **The two alternatives the doubt named are measurably
+> worse:** "most exhausted" and "oldest war" name a COUNTER_OFFER court over
+> an ACCEPT one on 5 of 10 boards.
+>
+> **④ The counsel over-promised — and the first fix for it would have been
+> the CA9 shape one layer down.** "A court this weary will hear an offer"
+> was asserted from a predicate that never consults the scorer, and
+> **crossing that predicate adds EXACTLY ZERO to either acceptance
+> formula** (the bilateral scorer never reads `war_exhaustion` at all; the
+> common-peace one saturates at WE 60, half the predicate's floor) — so the
+> record's "the predicate's own turn-on and the court's willingness arrive
+> together" is a coincidence of one board, not a mechanism. Measured: one
+> grievance flag, or a France holding 63% of Europe, flips a stuck court
+> from ACCEPT to flat REJECT with the sentence unchanged (Britain, 26,
+> REJECT, on the measured t16 board made hegemonic). The counsel now states
+> the scorer's own verdict — and states it **scoped to a plain peace, with
+> the ACCEPT arm warning that the Cabinet's draft is harsher**, because a
+> refuter measured bare peace 54 ACCEPT against `generate_suggested_terms`
+> 48 COUNTER_OFFER for the same court on the same board: an unscoped "they
+> would sign" would have been contradicted one click later. (Scoring the
+> suggested package instead is not the answer either — that pipeline jitters
+> gold ±20% per call, so it disagrees with itself.) The clause table is
+> keyed on `calculate_acceptance`'s OWN outcome string, never a second copy
+> of its thresholds.
+>
+> **Two more unmeasured claims removed from the copy:** *"the ground has not
+> moved"* asserted a stagnation STREAK the engine never measures (the
+> predicate is a point read of a level — France can hold three of that
+> court's home provinces, sit at exactly +15, and still print it), and
+> *"nothing more will be won here by fighting"* is a claim about the future.
+> The sentence now says only what was measured: the pair's own age, the
+> ledger between the two of them being level, and both courts worn down.
+> `war_exhaustion` is nation-scoped and the wording no longer implies
+> otherwise.
+>
+> **⑤ Six more fixes, each measured:**
+> (a) the surviving `ANSWER CYCLE` is **not** the "documented reading trap"
+> the record calls it — it is **one** dialogue rendered twice, because
+> `settlement_actions.py` stamped the identity on a throwaway copy
+> (`replace(dict(x))`) and returned the un-stamped original, so the carried
+> settlement→bilateral `proposal_confirm` reached **Godot** with no
+> `dialogue_id` at all, breaking W6-0's own promise. Stamped in place; the
+> cycle-guard signature now carries the identity so two genuinely different
+> surfaces are not a loop. Measured: **0 ANSWER CYCLE** on both propose
+> seeds.
+> (b) a skipped stale passthrough was logged NOWHERE (13 events vanished
+> from an 18-turn digest) — it now says so, and is excluded from the cycle
+> signature (counting it re-created the false cycle this round removed).
+> (c) **16 of 28 answers in the archived run were REFUSED and the digest
+> rendered them exactly like signed ones** — including 5 of the 7 firings of
+> the slice's own new arm. So "0 `(left standing)`" was never evidence the
+> offers were answered; they only stopped saying so. Refusals now print
+> their reason, as the letter-book has since IGR-F. The regenerated digest
+> carries **15**.
+> (d) the overture is sent AFTER the script's own orders: it costs 3 DP and
+> Talleyrand's whole turn, so sending it first made a scripted campaign's
+> own diplomacy fail for want of points the harness had spent. The
+> docstring's stated reason was inverted.
+> (e) `ACCEPTING_DIPLOMACY_MODES` now owns the pair-substitute arm — `first`
+> is an accepting mode and was taking the documented NO-OP.
+> (f) `settlement_multiwar_ambiguity` was the only one of six smoke seeders
+> that set WAR without stamping `war_start_turns`, which left every war-age
+> reader looking at a war with no start; it stamps now.
+>
+> **A guard was drafted and REMOVED.** A stale-passthrough guard for
+> `pending_capture_choice` was written and then deleted when a refuter
+> showed the claimed mechanism reads `main.py:4054`, which is `/load`'s
+> filler, not every response — and `/capture_choice` already has its own
+> `dialogue_id`/`stale_dialogue` arm. Unproven mechanism, no guard.
+>
+> **Pins repaired (four were inert or vacuous, found by mutation):**
+> `test_the_age_reported_is_the_pairs_own` (the fixture gave the row and the
+> pair the same number, so a mutation reading the ROW's duration passed the
+> whole file); the copy-contract negative (its verb alternation required a
+> literal quote mark, so an arm reading *"…or simply say 'propose peace with
+> Russia' at the dispatch box"* passed all three copy pins — widened, and
+> verified to leave "press **Request Terms**" untouched);
+> `test_war_exhaustion_is_not_unsaturated` (a source-substring check that a
+> COMMENT could red — now AST); `test_no_new_dtype_and_no_queue_arrival`
+> (its block slice stopped before the arms it is about). **Two pins
+> consciously flipped**, both recorded in place:
+> `test_the_deadest_war_is_named_first` → `test_the_court_that_would_sign_is_named_first`
+> (the old board named Britain at **28 REJECT** over Russia at **34
+> COUNTER_OFFER**), and `test_a_non_leader_gets_the_proposal_menu` keeps its
+> meaning on a re-cast board while the terms-first rule gets its own pin.
+> `test_the_old_gate_would_have_missed_it` is now LABELLED a fixture
+> self-check — no production change can red it.
+>
+> **Claims in the record above, corrected:**
+> 1. **"56 tests" is wrong — the file collects 55** (now 57 after the pin
+>    repairs). Stated in four places: the commit message, this spec, `STATUS.md`
+>    and the `DESIGN_REFINEMENT` WO-D7 row.
+> 2. **`mailbox_payloads.build_incoming_proposal_popup` does not exist.**
+>    The real builder is `build_pending_envoy_popup_from_terms`. The
+>    fabricated name was in this record and in the driver's comment.
+> 3. It is not "a rendering of a real `incoming_proposal` dialogue" —
+>    **four** dtypes render through that builder, which is exactly why the
+>    ultimatum was not considered. (`counter_offer` / `counter_offer_response`
+>    are answered CORRECTLY by the bare word, via the executor's label
+>    match; the record's own t18 Britain PEACE was signed through
+>    `counter_offer_response`.)
+> 4. **"the counsel and the engine can never drift apart"** is scoped, not
+>    absolute: the three COMPARISONS are shared, the CLOCKS are not
+>    (`war_start_turns` resets on an armistice collapse, the instance's
+>    `joined_turn` does not — measured 24 turns apart after one
+>    WAR→ARMISTICE→WAR cycle). It cannot produce a contradiction because the
+>    two callers evaluate **disjoint** pair sets — the turn path skips
+>    `player in (a, b)`. The split is also the house idiom, already
+>    documented verbatim at `diplomacy.war_age_acceptance_mod`, which this
+>    record should have cited instead of re-deriving.
+> 5. **"the counsel offers exactly the peace the game already believes in"**
+>    is not true as stated: `_process_exhausted_pair_exits` has never
+>    evaluated this predicate on a player pair and never will. The predicate
+>    is shared; the belief is an inference by analogy from non-player pairs.
+> 6. **"Berthier names the ACCEPT-able peace"** was stronger than the
+>    mechanism warranted — the rung named the *deadest* war, and on the
+>    measured t16 board **Austria's plain peace scored 60 ACCEPT**, higher
+>    than Russia's 54, while sitting outside the stagnation band entirely.
+>    After the acceptance ranking the claim is earned *within the candidate
+>    set*, and this record says so rather than implying the board.
+> 7. **"Rung 1 widens … read PER COURT"** (commit message) overstated it:
+>    only rung 1b did. Now both halves are collected into one list, but the
+>    losing arm's QUALIFICATION is still row-scoped, deliberately — see ③.
+> 8. **"the default-policy digest is byte-identical"** is TRUE and
+>    **vacuous**: an 18-turn default run raises **zero** diplomatic
+>    dialogues at either seed, so none of the changed code executes. It is
+>    re-measured here the honest way — the pre-review driver
+>    (`git show 4f13202:tools/playtest_driver.py`, run from inside the repo so
+>    `REPO_ROOT` resolves) against the current one: identical below the
+>    run-name header.
+> 9. **The archive undercounted its own success**: the same digest's turn-18
+>    enemy phase carries a THIRD treaty — *"Russia has accepted our Peace
+>    Treaty!"*, the France|Russia pair WO-D7 is actually about — and turn
+>    16's ARMISTICE with Austria came from ACCEPTING Austria's own offer
+>    (France's peace to Austria was rejected that same turn), not from the
+>    outbound overture.
+> 10. Line citations: the predicate is `settlement_third_party.py:425-456`
+>     (the three comparisons at 450/453-454/456), not `:453-462`; the war
+>     banner's Request Terms handler is `main.gd:5844`, not `:5295`;
+>     `"Take your seat in the Cabinet"` is `main.gd:1694`.
+> 11. **"the same field `build_active_wars` measures `duration` from"** is
+>     true of the field and false of a COLLAPSED row's value, which takes
+>     `max()` across fronts — so the banner and the counsel can legitimately
+>     print two ages for one war.
+>
+> **Archived evidence.** `docs/audits/playtest_digests/wo5-propose-arm/` is
+> kept as the record of what the slice landed. **The post-review state is
+> `docs/audits/playtest_digests/wo5-propose-arm-review/`** — the same
+> command, after the fixes: 0 `(left standing)`, **0 `ANSWER CYCLE`**, 15
+> refusals now stated with their reasons, and the same three treaties.
+>
+> **Not fixed, with reasons on the record** (routed to
+> `DESIGN_REFINEMENT.md` §WO-D12..D15): the losing arm's row-scoped
+> qualification; rung 1's absorbing precedence (once war exhaustion
+> saturates, the stalemate arm holds the single recommendation slot for the
+> rest of the campaign, so rungs 1.5/2/3 lose their *button* — their content
+> still prints in the advisory body); `seek_bilateral_peace` offered as
+> available while unaffordable; and the war-instance ghost pairs an
+> elimination leaves in `diplo_key_meta` (an invariant `merge_war_instances`
+> asserts on, measured to appear by turn 3–5, never yet reached).
+>
+> **`request_terms_state` was `absent` on all 15 measured war rows across
+> three seeds**, so the terms arm of this rung — and rung 1's pre-existing
+> one — have never fired on an organic board. The N-7 phrase *"open the war
+> banner and press Request Terms"* is reachable only in a state the measured
+> campaigns do not produce. Said here rather than counted as landed
+> evidence.
 
 ### Slice 6 — WO-D3 "The Admiralty Speaks Plainly" (est 0.5, backend copy)
 

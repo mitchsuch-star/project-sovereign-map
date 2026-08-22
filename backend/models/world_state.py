@@ -1916,6 +1916,12 @@ class WorldState:
             }
             for pair in instance.get("active_diplo_keys", []):
                 self.diplomatic_states[pair] = "WAR"
+                # WO slice 5 review: stamp the war clock like the five
+                # sibling seeders do (`:1658`, `:1720`). This was the ONLY
+                # preset that seeded WAR without it, which left every
+                # war-age reader — the banner's `duration`, the war-room
+                # counsel's stalemate arm — reading a war with no start.
+                self.war_start_turns.setdefault(pair, int(self.current_turn))
         self.invalidate_war_instance_indexes()
         self.settlement_smoke_fixture = {
             "name": SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY,

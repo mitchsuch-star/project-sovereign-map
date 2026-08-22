@@ -40,7 +40,7 @@ import pytest
 from backend.game_logic import settlement_third_party as stp
 from backend.game_logic.diplomatic_advisory import (
     _build_situation_recommendation,
-    _mutually_exhausted_courts,
+    _settlement_candidates,
 )
 from backend.models.world_state import WorldState
 
@@ -222,15 +222,15 @@ class TestSingleSource:
         survive.)
         """
         rows = _t16_board(world)
-        assert len(_mutually_exhausted_courts(world, "France", rows)) == 2
+        assert len(_settlement_candidates(world, "France", rows)) == 2
 
         monkeypatch.setattr(stp, "pair_is_mutually_exhausted",
                             lambda *a, **k: False)
-        assert _mutually_exhausted_courts(world, "France", rows) == []
+        assert _settlement_candidates(world, "France", rows) == []
 
         monkeypatch.setattr(stp, "pair_is_mutually_exhausted",
                             lambda *a, **k: True)
-        assert len(_mutually_exhausted_courts(world, "France", rows)) == 3
+        assert len(_settlement_candidates(world, "France", rows)) == 3
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -263,7 +263,7 @@ class TestCounselNamesTheStuckWar:
         world.war_exhaustion = {"France": 104, "Russia": 98,
                                 "Britain": 98, "Austria": 139}
         rows[0]["duration"] = 11
-        assert not _mutually_exhausted_courts(world, "France", rows)
+        assert not _settlement_candidates(world, "France", rows)
         rec = _build_situation_recommendation(world, "France", rows, None,
                                               "defensive")
         assert rec is None or "has gone still" not in rec["text"]
@@ -272,24 +272,51 @@ class TestCounselNamesTheStuckWar:
         """The row carries three courts and one aggregate score; the stuck
         pair is inside it."""
         rows = _t16_board(world)
-        stuck = _mutually_exhausted_courts(world, "France", rows)
+        stuck = _settlement_candidates(world, "France", rows)
         assert [s["opponent"] for s in stuck] == ["Russia", "Britain"]
         assert all(s["row"] is rows[0] for s in stuck)
 
-    def test_the_deadest_war_is_named_first(self, world):
-        """Russia at |0| outranks Britain at |7|. Flip the two scores and
-        the counsel must follow the numbers, not the name."""
+    def test_the_court_that_would_sign_is_named_first(self, world):
+        """CONSCIOUSLY FLIPPED by the August 22 review (was
+        `test_the_deadest_war_is_named_first`, asserting Britain).
+
+        The old rule ranked stuck courts by |pair score| — "the deadest war
+        first". On this very board that named **Britain at 28, REJECT**,
+        over **Russia at 34, COUNTER_OFFER**: the counsel recommended the
+        court that would refuse. Worse, the flip was decided by the
+        alphabet, since the acceptance formula's only war-score term is
+        0.3x the pair score and is ~0 across the whole stagnation band.
+
+        The rung now ranks by what the game's own scorer says a bare peace
+        would meet. Both halves are asserted so the pin cannot pass by
+        accident.
+        """
         rows = _t16_board(world)
         _set_pair_score(world, "France", "Russia", -12)
         _set_pair_score(world, "France", "Britain", 1)
+        ranked = _settlement_candidates(world, "France", rows)
+        by_name = {c["opponent"]: c for c in ranked}
+        assert by_name["Russia"]["acceptance"] > by_name["Britain"]["acceptance"]
+        assert ranked[0]["opponent"] == "Russia"
         rec = _build_situation_recommendation(world, "France", rows, None,
                                               "defensive")
-        assert rec["target_nation"] == "Britain"
+        assert rec["target_nation"] == "Russia"
+
+    def test_the_ordering_rule_has_a_single_flip_flag(self, world):
+        """The rule a reader might want to reverse lives in one place."""
+        from backend.game_logic import diplomatic_advisory as adv
+        assert adv.COUNSEL_RANKS_BY_ACCEPTANCE is True
 
     def test_the_age_reported_is_the_pairs_own(self, world):
+        """INERT until the August 22 review: `_t16_board` gave the row
+        a `duration` of 15 and the pair an age of 15, so a mutation
+        reading the ROW's duration passed the whole file. A collapsed
+        row takes `max()` over fronts, so the two really diverge."""
         rows = _t16_board(world)
+        rows[0]["duration"] = 24        # an older front on the same row
         rec = _build_situation_recommendation(world, "France", rows, None,
                                               "defensive")
+        assert "24 turns" not in rec["text"]
         assert "15 turns" in rec["text"]
 
     def test_a_pair_with_no_recorded_start_is_skipped(self, world):
@@ -297,7 +324,7 @@ class TestCounselNamesTheStuckWar:
         rows = _t16_board(world)
         world.war_start_turns.pop(world._make_diplo_key("France", "Russia"))
         assert [s["opponent"]
-                for s in _mutually_exhausted_courts(world, "France", rows)] \
+                for s in _settlement_candidates(world, "France", rows)] \
             == ["Britain"]
 
     def test_terms_route_when_the_leader_is_the_stuck_court(self, world):
@@ -312,13 +339,42 @@ class TestCounselNamesTheStuckWar:
 
     def test_a_non_leader_gets_the_proposal_menu(self, world):
         """`request_terms` is war-scoped and belongs to the row's leader —
-        rung 1.5's rule, inherited rather than re-decided."""
+        rung 1.5's rule, inherited rather than re-decided.
+
+        The leader here is Austria, who is outside the stagnation band and
+        therefore not a candidate at all, so the selected court is a
+        non-leader and must get the menu. (Before the August 22 review the
+        leader was Britain, who IS a candidate; that board now exercises
+        the terms-first rule instead — see the test below.)
+        """
         rows = _t16_board(world)
+        rows[0]["opponent"] = "Austria"
+        rows[0]["opponents"] = ["Austria", "Britain", "Russia"]
         rows[0]["request_terms_state"] = {"state": "available"}
         rec = _build_situation_recommendation(world, "France", rows, None,
                                               "defensive")
         assert rec["target_nation"] == "Russia"
         assert rec["kind"] == "open_proposal"
+
+    def test_an_open_terms_door_outranks_a_signable_peace(self, world):
+        """The game's own honest-availability field decides first.
+
+        `request_terms_state == "available"` means the war banner is already
+        rendering that button for that court; walking through an open door
+        beats recommending a peace that still has to be sold. Measured on
+        the live board this never competes — `request_terms_state` was
+        `absent` on all 15 war rows across three seeds — so the rule is a
+        tiebreak in principle rather than a behaviour change in practice.
+        """
+        rows = _t16_board(world)
+        rows[0]["request_terms_state"] = {"state": "available"}   # leader Britain
+        ranked = _settlement_candidates(world, "France", rows)
+        by_name = {c["opponent"]: c for c in ranked}
+        assert by_name["Russia"]["acceptance"] > by_name["Britain"]["acceptance"]
+        rec = _build_situation_recommendation(world, "France", rows, None,
+                                              "defensive")
+        assert rec["target_nation"] == "Britain"
+        assert rec["kind"] == "request_terms"
 
 
 class TestLosingStillOutranksStuck:
@@ -387,9 +443,17 @@ class TestCopyNamesASurface:
     def test_no_arm_tells_the_player_to_type_a_diplomatic_sentence(self, world):
         """Slice 7 made typed diplomacy a redirect. Counsel that dictates a
         sentence sends the player at a closed door."""
+        # WIDENED August 22: the old third alternative required a
+        # literal quote mark before the verb, so an arm reading
+        # "…or simply say 'propose peace with Russia' at the dispatch
+        # box" passed all three copy pins. Verified against every
+        # shipped arm (0 false positives — "press Request Terms" must
+        # NOT trip it) and against four dictation shapes.
         forbidden = re.compile(
-            r"\btype\b|\benter\b|\bcommand\b|"
-            r"\"(propose|request|sue|make) ", re.IGNORECASE)
+            r"\btype\b|\benter\b|\bcommand\b|\bwrite out\b|"
+            r"\b(?:say|repeat|utter)\b|"
+            "[\"'\u2018\u201c]" r"\s*(?:propose|request|sue|make|declare|ask)\b|"
+            r"\b(?:propose|sue for) (?:peace|terms)\b", re.IGNORECASE)
         for text in _rung1_texts(world):
             assert not forbidden.search(text), text
 
@@ -427,7 +491,21 @@ class TestNeverDo:
         from backend.game_logic import settlement_scoring
         assert settlement_scoring.WAR_EXHAUSTION_DIVISOR == 3
         assert settlement_scoring.WAR_EXHAUSTION_CLAMP == (0, 20)
-        assert "war_exhaustion" not in _ADVISORY_SRC
+        # AST, not a substring (August 22 review): the first version
+        # read the whole source, so writing the words in a COMMENT —
+        # which the review's own findings required — reddened a pin
+        # about behaviour. What must stay true is that the counsel
+        # never reads the number itself; it asks the predicate.
+        import ast
+        tree = ast.parse(_ADVISORY_SRC)
+        reads = [n for n in ast.walk(tree)
+                 if (isinstance(n, ast.Attribute)
+                     and n.attr == "war_exhaustion")
+                 or (isinstance(n, ast.Constant)
+                     and n.value == "war_exhaustion")]
+        assert reads == [], (
+            "the counsel reads war_exhaustion directly — it must ask "
+            "pair_is_mutually_exhausted, which owns the floor")
 
     def test_the_advisory_writes_nothing(self, world):
         """D-2's other half: counsel is a pure read. A world snapshot must
@@ -474,8 +552,13 @@ class TestNeverDo:
         from backend.models.cooldown_manager import PopupQueue
         assert "stuck_war" not in PopupQueue.RESPONSE_KEYS
         assert "mutual_exhaustion" not in PopupQueue.RESPONSE_KEYS
+        # August 22 review: the block must cover the RUNG as well as
+        # the helper — the first version stopped at the next `def`,
+        # i.e. before the arms the pin is actually about.
         block = _ADVISORY_SRC.split(
-            "def _mutually_exhausted_courts")[1].split("\ndef ")[0]
+            "def _settlement_candidates")[1].split(
+            "    # 1.5 (NA-1)")[0]
+        assert "_settlement_candidates(" in block and "kind" in block
         assert "pending_" not in block
 
 

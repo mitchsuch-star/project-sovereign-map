@@ -4,6 +4,91 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 5 — REVIEW ROUND HELD AND LANDED, August 22, 2026 (same day).
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 5, the
+> REVIEW-ROUND addendum, authoritative where it amends the landing record
+> above it.** A 9-lens find → 9-refuter adversarial fleet at the committed
+> SHA `4f13202` (clean tree, git mutation forbidden in every agent prompt),
+> plus the parent's own reproduction runs at four seeds.
+> **▶ NEXT is still slice 4 "The Capital Speaks" (+WO-11)** — prompt
+> `docs/NEXT_SESSION_PROMPT.md`. Nothing in the review changed the queue.
+>
+> Suite **18,465 passed / 3 skipped** (was 18,425/3), ruff clean, zero
+> `.gd`. Tests `tests/test_wo_slice5_review_2026_08_22.py` (38) +
+> `test_wo_slice5_berthier_names_the_peace.py` 55→57. Mutation sweeps
+> `tools/_sweep_wo5r.json` **21/21 killed** and the re-anchored
+> `tools/_sweep_wo5.json` **23/23 killed** — 44 mutations, **0 inert**
+> (three INERT pins were found BY the sweep and replaced). M1–M7 and
+> `BASELINE_SERIES` green **without re-record**, measured
+> (`test_ai_intent_assurance.py` spawns the real 40-turn subprocesses).
+>
+> **Three defects the slice shipped, all reproduced before a line was
+> written:**
+> **① The driver YIELDED to ultimatums (P1).** An `incoming_ultimatum`
+> reaches the driver in the same bare popup shape as a peace offer, so the
+> new arm answered it with the diplomacy dial: measured end to end on the
+> real endpoints, `accept|first|propose` conceded **Hanover, 300g/turn and
+> 5,000 conscripts to Prussia** while the run's own `meta.json` recorded
+> `"ultimatum": "defy"`. **② `--diplomacy propose` wedged the run on 3 of 7
+> seeds (P1)** — the arm spends 3 DP a turn, the incoming
+> `settlement_confirm`'s first option then costs DP France has not got, the
+> executor refuses without popping, and the driver re-sent the same word
+> forever (`ulm`: blocked at turn 11 of 18; it completes now).
+> **③ The war room buried the signable peace (P1/P2)** — rung 1's losing
+> arm returned first off the COLLAPSED row and named its leader, a court
+> the scorer refused at 21–28, while a stuck court in the same row would
+> have signed at 64–69: **7 of 13 snapshots across three seeds, now 0 of
+> 13.** The slice diagnosed exactly that blindness and fixed it in the new
+> rung only.
+>
+> **Two consciously flipped rules, both recorded in place:** rung 1's
+> "Losing still outranks stuck" is **REVERSED** — every candidate is now
+> ranked by what the game's own scorer says a bare peace would meet (flip
+> flag `COUNSEL_RANKS_BY_ACCEPTANCE`), with urgency surviving as the
+> tiebreak; and the counsel STATES that verdict rather than promising one,
+> **scoped to a plain peace**, because a refuter measured bare peace 54
+> ACCEPT against the Cabinet's own suggested package at 48 COUNTER_OFFER —
+> an unscoped "they would sign" would have been the CA9 shape one layer
+> down. Two unmeasured claims left the copy with it ("the ground has not
+> moved" asserts a streak the predicate never measures; "nothing more will
+> be won here by fighting" is a claim about the future).
+>
+> **A production defect the harness was blamed for:** the surviving
+> `ANSWER CYCLE` was NOT the "documented reading trap" the record called
+> it. `settlement_actions.py` stamped the carried dialogue's identity on a
+> throwaway copy and returned the un-stamped original, so the
+> settlement→bilateral `proposal_confirm` reached **Godot** with no
+> `dialogue_id` — W6-0's own promise, broken. Fixed; both propose seeds now
+> show **0 ANSWER CYCLE**.
+>
+> **And the digest was lying by omission:** 16 of 28 answers in the
+> archived run were REFUSED and rendered exactly like signed ones, five of
+> them firings of the slice's own new arm — so `0 (left standing)` never
+> meant the offers were answered. Refusals now print the engine's own
+> words. **A guard was drafted and REMOVED** when a refuter showed its
+> mechanism was misread (the capture-choice sibling): unproven mechanism,
+> no guard.
+>
+> **Eleven claims in the landing record corrected**, including a function
+> name that has never existed (`build_incoming_proposal_popup`), the test
+> count (55, not 56), "the counsel and the engine can never drift apart"
+> (scoped, not absolute — and the two callers evaluate disjoint pair sets,
+> which is why it cannot bite), "the counsel offers exactly the peace the
+> game already believes in" (the engine's own exit skips player pairs and
+> always has), and three stale line citations. Four items were **routed,
+> not absorbed**: `DESIGN_REFINEMENT.md` **WO-D12..D15**.
+>
+> **Archived evidence:** `docs/audits/playtest_digests/wo5-propose-arm/`
+> stays as the record of what the slice landed;
+> **`.../wo5-propose-arm-review/`** is the same command after the fixes (0
+> left standing, 0 ANSWER CYCLE, 15 refusals stated, the same three
+> treaties). The default-policy digest was re-measured the honest way —
+> the pre-review driver run from inside the repo against the current one,
+> identical below the run-name header — because the original claim, while
+> true, was vacuous: an 18-turn default run raises zero diplomatic
+> dialogues at either seed.
+
+
 > # ✅ WO SLICE 5 "BERTHIER NAMES THE PEACE" LANDED — August 22, 2026.
 > **User-directed LIFT: slice 4 sits ahead of it in §5 order, but the two
 > are independent and nothing in 4 blocks 5. Slice 4 STAYS NEXT.** Landing
@@ -14,7 +99,9 @@
 > (+WO-11)**, then 6 → 8 → 9 (+ WO-D9 damper wiring + WO-41) → 10 → 17 →
 > 11 → 12 → 14. Prompt = `docs/NEXT_SESSION_PROMPT.md`.
 >
-> Tests = `tests/test_wo_slice5_berthier_names_the_peace.py` (56);
+> Tests = `tests/test_wo_slice5_berthier_names_the_peace.py` (55 — the
+> record said 56, corrected by the August 22 review; 57 after its pin
+> repairs);
 > mutation sweep `tools/_sweep_wo5.json` — **23 mutations, 23 killed, 0
 > inert** (one INERT pin found and replaced mid-sweep). Suite **18,425
 > passed / 3 skipped**, ruff clean, zero `.gd`. M1–M7 and
