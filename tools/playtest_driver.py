@@ -42,6 +42,10 @@ Usage
   # drive a LIVE server instead (the wire test):
   python tools/playtest_driver.py --http http://127.0.0.1:8005 --turns 3
 
+  # France actively sues for peace (WO slice 5) — the bilateral-peace
+  # path, exercised instead of assumed:
+  python tools/playtest_driver.py --turns 20 --diplomacy propose
+
 Outputs (under --out, default tools/playtest_runs/<name>/ — gitignored):
   digest.md      the human read — one block per turn
   digest.jsonl   the machine read — one record per event
@@ -123,7 +127,17 @@ POLICY_DEFAULTS = {
     # Incoming proposals / settlement offers / envoy letters: decline —
     # an unattended run must not sign treaties nobody scripted. Override
     # per-run when the playtest IS about diplomacy.
-    "diplomacy": "decline",         # decline | accept | first
+    #
+    # `propose` (WO slice 5) is the ACTIVE arm: France sues. It answers
+    # incoming exactly as `accept` does — a run that asks for peace must
+    # sign the peace it is handed, or it measures nothing — and in
+    # addition sends ONE bilateral peace command per turn, round-robin
+    # over the courts France is at war with. It exists because the WO
+    # campaigns never once pressed the bilateral-peace path: every arm
+    # declined, so a war that both sides would have ended stayed open for
+    # thirty turns and nobody could tell whether that was the engine or
+    # the harness.
+    "diplomacy": "decline",         # decline | accept | first | propose
     # Post-capture: secure (plunder is the special case worth scripting).
     "capture": "secure",            # secure | plunder
     # W6-8 estate stage of the same popup:
@@ -164,6 +178,11 @@ POLICY_DEFAULTS = {
     # HARNESS's doing, not the game's.
     # (No separate policy key: the letter-book is diplomacy.)
 }
+
+# Diplomacy modes that SIGN what is put in front of them. `propose` is
+# here because an arm that sues for peace and then declines the peace it
+# is offered measures nothing.
+ACCEPTING_DIPLOMACY_MODES = ("accept", "first", "propose")
 
 # Hard-stop dialogue types whose answer is a KEYWORD/index the driver
 # knows even when the payload enumerates no options list. Anything not
@@ -617,6 +636,31 @@ class Answerer:
         self.d = digest
         self.policy = policy
         self.strict = strict
+        # W6-0 dialogue identities already answered during the CURRENT
+        # post (reset by drain()). See begin_post().
+        self._answered_dialogue_ids = set()
+
+    def begin_post(self):
+        """Start a fresh answer chain (called by drain()).
+
+        Why (found by WO slice 5's own `--diplomacy propose` arm): every
+        POST handler rebuilds the popup passthroughs, so a response
+        generated BEFORE an answer lands re-carries the dialogue that
+        answer has since popped. When one command raises two surfaces —
+        a marshal petition AND a proposal confirm, which is ordinary on
+        a turn France sues for peace — the petition's reply still shows
+        the pending confirm, and the driver answered dialogue #27 twice:
+        once for real, once against whatever the stack had promoted in
+        the meantime (the CA9 typed-router shape, from the harness side).
+        The cycle guard then STOPPED THE CHAIN, leaving real blockers
+        standing. Nine of eighteen turns under `propose`; zero under
+        every other policy, which is why it had never been seen.
+
+        `dialogue_id` is a monotonic per-dialogue identity stamped on
+        every push (`dialogue_manager._assign_dialogue_id`), so this
+        skips only a surface that is provably the same instance.
+        """
+        self._answered_dialogue_ids = set()
 
     def scan(self, response):
         followups = []
@@ -796,6 +840,12 @@ class Answerer:
                     or response.get("incoming_proposal")
                     or response.get("incoming_settlement_offer"))
         if dialogue and isinstance(dialogue, dict):
+            did = dialogue.get("dialogue_id")
+            if did is not None and did in self._answered_dialogue_ids:
+                # Same instance, already answered in this post — a stale
+                # passthrough, not a new question. See begin_post().
+                dialogue = None
+        if dialogue and isinstance(dialogue, dict):
             choice = self._dialogue_choice(dialogue)
             self.d.popup("diplomatic_dialogue",
                          _summ(dialogue, "type", "nation", "from_nation",
@@ -805,6 +855,7 @@ class Answerer:
                 body = {"choice": choice}
                 if dialogue.get("dialogue_id") is not None:
                     body["dialogue_id"] = dialogue["dialogue_id"]
+                    self._answered_dialogue_ids.add(dialogue["dialogue_id"])
                 followups.append(
                     self.t.post("/respond_to_diplomatic_dialogue", body))
 
@@ -823,7 +874,8 @@ class Answerer:
         Returns the reply responses for the caller to drain."""
         if not isinstance(digest_payload, dict):
             return []
-        choice = ("accept" if self.policy["diplomacy"] in ("accept", "first")
+        choice = ("accept"
+                  if self.policy["diplomacy"] in ACCEPTING_DIPLOMACY_MODES
                   else "decline")
         replies = []
         for row in digest_payload.get("items") or []:
@@ -847,6 +899,32 @@ class Answerer:
         options = dialogue.get("options") or dialogue.get("choices") or []
         keywords = [str(_option_id(o) or "").lower() for o in options]
 
+        # WO slice 5. The AI's own peace offer arrives as the incoming-
+        # proposal POPUP payload (`mailbox_payloads.build_incoming_
+        # proposal_popup`): a rendering of a real `incoming_proposal`
+        # dialogue that carries its `dialogue_id` but neither the `type`
+        # key nor an options list. The driver's type table and both
+        # keyword searches therefore missed it and it was logged
+        # `(left standing)` — measured seven times in eighteen turns the
+        # first time an arm ever made France sue for peace, including
+        # Russia's own answer to the overture. An arm that asks for peace
+        # and then cannot sign it measures nothing.
+        #
+        # Answered exactly as the client answers it: a bare keyword plus
+        # the payload's dialogue_id (`main.gd _on_incoming_proposal_
+        # choice`), the words taken from the router's own table
+        # (`dialogue_routing.DIALOGUE_ACTION_KEYWORDS`: accept ->
+        # accept_ai_proposal, reject -> reject_ai_proposal).
+        #
+        # ⚠ Digest delta, same shape as the letter-book's: a run that used
+        # to LAPSE these now refuses them explicitly.
+        if (not dtype and not options
+                and dialogue.get("from_nation")
+                and dialogue.get("proposal_type")):
+            return ("accept"
+                    if self.policy["diplomacy"] in ACCEPTING_DIPLOMACY_MODES
+                    else "reject")
+
         def find(*needles):
             for i, kw in enumerate(keywords):
                 for needle in needles:
@@ -865,7 +943,7 @@ class Answerer:
             # accepting run commits to the substitute it just chose;
             # a declining run keeps the joint draft.
             if policy_key == "keep":
-                if self.policy["diplomacy"] == "accept":
+                if self.policy["diplomacy"] in ("accept", "propose"):
                     return (find("confirm_pair", "confirm", "substitute")
                             or "confirm_pair_substitute")
                 return find("keep") or "keep"
@@ -876,7 +954,7 @@ class Answerer:
                 return answer
 
         mode = self.policy["diplomacy"]
-        if mode == "accept":
+        if mode in ("accept", "propose"):
             picked = find("accept", "agree", "yes", "sign")
         elif mode == "first":
             picked = _option_id(options[0]) if options else None
@@ -908,6 +986,51 @@ def _flatten_enemy_phase(enemy_phase):
     return flat
 
 
+def peace_overture(status_payload, turn_index):
+    """The `--diplomacy propose` arm (WO slice 5): ONE bilateral peace
+    command per turn, or None.
+
+    Why it exists: across every WO campaign the driver's diplomacy policy
+    was `decline` on incoming and SILENT outbound, so the bilateral-peace
+    path was never pressed once — and a France|Russia war that both courts
+    would have signed out of sat open for thirty turns with no way to tell
+    whether the engine or the harness was at fault.
+
+    Two roads, chosen off the game's OWN honest-availability field rather
+    than a copy of its rules: if this court leads a war whose
+    `request_terms_state` is `available`, ask them to name terms (the
+    surface the war room's counsel points at); otherwise propose peace
+    directly. Both phrasings are golden-corpus rows.
+
+    Round-robin by turn index over the sorted at-war courts, so a long run
+    asks everyone and DP shortage / cooldowns / refusals all land in the
+    digest as evidence instead of being engineered around. The driver keeps
+    typed diplomacy deliberately (spec §6 never-do 12): the slice-7 Cabinet
+    redirect lives in main.gd, client-side, and POST /command is the
+    surface under test.
+    """
+    wars = ((status_payload or {}).get("active_wars") or {}).get("wars") or []
+    courts = {}
+    for row in wars:
+        if str(row.get("status", "")) != "war":
+            continue
+        leader = str(row.get("opponent", "") or "")
+        terms_ok = str((row.get("request_terms_state") or {}).get(
+            "state", "")) == "available"
+        for court in (row.get("opponents") or [leader]):
+            if not court:
+                continue
+            courts.setdefault(str(court),
+                              terms_ok and str(court) == leader)
+    if not courts:
+        return None
+    names = sorted(courts)
+    court = names[(int(turn_index) - 1) % len(names)]
+    if courts[court]:
+        return f"request terms from {court}"
+    return f"propose peace with {court}"
+
+
 def drain(transport, digest, answerer, response, strict):
     """Digest a response and answer its blockers, chaining follow-ups.
 
@@ -923,6 +1046,7 @@ def drain(transport, digest, answerer, response, strict):
     seen = 0
     queue = [response]
     digest.recent = []
+    answerer.begin_post()
     while queue and seen < MAX_ANSWERS_PER_POST:
         current = queue.pop(0)
         followups = answerer.scan(current)
@@ -1036,7 +1160,9 @@ def run(args):
 
     status = "completed"
     for turn_index in range(1, args.turns + 1):
-        current_turn = dig(transport.get("/status"), "turn", default=turn_index)
+        # NB: `status` is the run's finish state — this one is the payload.
+        status_payload = transport.get("/status")
+        current_turn = dig(status_payload, "turn", default=turn_index)
         # WO-H slice 1 item 6: the turn-boundary reseed. Identical
         # trajectories produce identical (seed, world_turn) labels, so two
         # invocations of the same script at the same seed draw the same dice
@@ -1054,6 +1180,17 @@ def run(args):
         for reply in answerer.answer_envoy_digest(
                 (transport.get("/mailbox") or {}).get("envoy_digest")):
             drain(transport, digest, answerer, reply, args.strict)
+
+        # WO slice 5: the active peace arm. Sent BEFORE the script's own
+        # orders so a scripted campaign's commands still decide the turn,
+        # and drained like any other command so the settlement dialogue it
+        # raises is answered by the same accept-family policy.
+        if policy["diplomacy"] == "propose":
+            overture = peace_overture(status_payload, turn_index)
+            if overture:
+                response = transport.post("/command", {"command": overture})
+                digest.command(overture, response)
+                drain(transport, digest, answerer, response, args.strict)
 
         for text in turn_scripts.get(str(turn_index), []):
             if text.strip().lower() == "end turn":
@@ -1164,7 +1301,10 @@ def main():
     ap.add_argument("--objection", default="",
                     choices=["", "trust", "insist", "compromise"])
     ap.add_argument("--diplomacy", default="",
-                    choices=["", "decline", "accept", "first"])
+                    choices=["", "decline", "accept", "first", "propose"],
+                    help="propose = France actively sues for peace (one "
+                         "bilateral overture per turn) and signs what she "
+                         "is offered")
     ap.add_argument("--cheats", action="store_true",
                     help="arm DEBUG_MODE for the run (cheat commands work)")
     ap.add_argument("--strict", action="store_true",

@@ -422,6 +422,40 @@ def _return_unheld_homeland(world, war_id: str, a: str, b: str) -> List[str]:
     return returned
 
 
+def pair_is_mutually_exhausted(world, a: str, b: str,
+                               joined_turn: int) -> bool:
+    """Has this pair's war gone still? — the ONE source, two readers.
+
+    Lifted out of `_process_exhausted_pair_exits` (WO slice 5, WO-D5) so
+    the war room's counsel and the AI's own pair exit ask exactly the same
+    question instead of keeping two copies of one inequality: both courts
+    at or past `PAIR_EXIT_WE_FLOOR`, the pair at war at least
+    `PAIR_EXIT_MIN_TURNS`, and the pair's war score within
+    `PAIR_EXIT_STAGNANT_SCORE` of nothing. Pure — reads world, mutates
+    nothing, logs nothing.
+
+    `joined_turn` is the CALLER's, deliberately: the turn-path reader has
+    the war instance's own `joined_turn` off `diplo_key_meta` (when this
+    pair entered THIS instance), while the advisory has
+    `world.war_start_turns` (what `build_active_wars` measures `duration`
+    from). Passing it keeps the two provenances explicit instead of
+    silently re-deriving one of them inside a function the turn path
+    calls — which would be a behaviour change wearing a refactor's coat.
+
+    Short-circuit order is the original's: the war score is only asked for
+    once age and weariness both pass.
+    """
+    from backend.game_logic.diplomacy import get_war_score_for
+    turn = int(getattr(world, "current_turn", 0))
+    if turn - int(joined_turn) < PAIR_EXIT_MIN_TURNS:
+        return False
+    exhaustion = getattr(world, "war_exhaustion", {}) or {}
+    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR
+            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR):
+        return False
+    return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE
+
+
 def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                                   events: List[Dict]) -> None:
     """The mutual-exhaustion white peace for a non-player sub-pair inside
@@ -431,7 +465,6 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
     weariness is the lord's pressure to read."""
     from backend.game_logic.diplomacy import (
         cleanup_war_end,
-        get_war_score_for,
         set_diplomatic_state,
     )
     if getattr(world, "_pair_exit_this_turn", -1) == int(world.current_turn):
@@ -439,7 +472,6 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
     player = getattr(world, "player_nation", "France")
     turn = int(getattr(world, "current_turn", 0))
     vassals = set((getattr(world, "vassals", {}) or {}).keys())
-    exhaustion = getattr(world, "war_exhaustion", {}) or {}
     meta = war.get("diplo_key_meta") or {}
 
     for pair_key in list(war.get("active_diplo_keys") or []):
@@ -453,12 +485,9 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
         if player in (a, b) or a in vassals or b in vassals:
             continue
         joined = int(pair_meta.get("joined_turn", war.get("created_turn", turn)) or 0)
-        if turn - joined < PAIR_EXIT_MIN_TURNS:
-            continue
-        if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR
-                or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR):
-            continue
-        if abs(int(get_war_score_for(world, a, b))) > PAIR_EXIT_STAGNANT_SCORE:
+        # WO slice 5: the three inequalities now live in ONE place (above),
+        # which the war room's counsel reads too. Same order, same answers.
+        if not pair_is_mutually_exhausted(world, a, b, joined):
             continue
 
         set_diplomatic_state(world, a, b, "PEACE", "mutual_exhaustion")

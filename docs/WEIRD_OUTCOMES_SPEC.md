@@ -551,7 +551,7 @@ are display vocabulary, not event types).
 **Harness impact:** dispatch is display; M1–M7 / `BASELINE_SERIES` unreachable
 (weights documented "display only, tunable freely"). Zero `.gd`, zero fields.
 
-### Slice 5 — WO-D5 "Berthier Names the Peace" (est 0.3)
+### Slice 5 — WO-D5 "Berthier Names the Peace" — ✅ LANDED August 22, 2026
 
 **Scope.** The one strict inequality that hides an ACCEPT-able peace for
 thirty turns. Rung 1 of `_build_situation_recommendation` widens from
@@ -585,6 +585,140 @@ grind-to-cap-then-dictate must stay impossible); do NOT build the congress
 dimension; a France|Russia pair peace through it becomes a whole-coalition
 settlement fronted by Britain); `request_terms` ships already — the counsel
 NAMES it, nothing replaces it.
+
+> **Landing record — authoritative. LIFTED AHEAD OF SLICE 4 by user
+> direction** (August 22, 2026): the two are independent — slice 4 is the
+> dispatch's headline ordering, slice 5 is the war room's counsel — and
+> nothing in 4 blocks 5. **Slice 4 stays next**; only slice 5's position
+> moved, recorded here rather than absorbed (the §5 amendment idiom).
+> `tests/test_wo_slice5_berthier_names_the_peace.py` (56); mutation sweep
+> `tools/_sweep_wo5.json` — **23 mutations, 23 killed, 0 inert** (one
+> INERT pin found and replaced, below); M1–M7 and `BASELINE_SERIES`
+> byte-identical, **measured, and the series pin itself proved live by
+> mutating it** (index 0 recomputes to 70; a planted 71 reds it) — slice
+> 15's lesson taken literally; zero `.gd`.
+>
+> **The mechanism was reproduced before a line was written**, and it is
+> worse than the row describes. An 18-turn ambient Mode-A run at seed
+> `austerlitz` (the Long Quiet's seed), snapshotting turns 12/16/18, then
+> probed off the saves:
+>
+> | turn | France\|Russia | WE France / Russia | pair score | predicate | Russia's plain peace |
+> |---|---|---|---|---|---|
+> | 12 | age 11 | 104 / 98 | 0 | **False** | COUNTER_OFFER (49) |
+> | 16 | age 15 | 136 / 130 | 0 | **True** | **ACCEPT (54)** |
+> | 18 | age 17 | 152 / 146 | 0 | **True** | ACCEPT (55) |
+>
+> The predicate's own turn-on and the court's willingness arrive together
+> — the spec's "+8 WE/turn → both cross 120 at ~t15" arithmetic, confirmed
+> by measurement rather than assumed. **And the war row France was looking
+> at read `+26`**: `build_active_wars` COLLAPSES a coalition into one row
+> whose `war_score` is the WAR-level side score (CA8-D2), so the dead
+> France|Russia pair was hiding inside a row France is *winning*. The old
+> `war_score < 0` gate could never have fired on this board no matter how
+> long the stalemate ran. Turn 16's counsel, before: *"Britain's war has a
+> purpose we can price — 'The Low Countries'…"*. After: *"the war with
+> Russia has gone still — 15 turns, and the ground has not moved; both
+> courts are spent. Nothing more will be won here by fighting; a court
+> this weary will hear an offer. Open talks with Russia below, or take
+> your seat in the Cabinet (F1)."* Turn 12 is untouched.
+>
+> **The single-source lift** is
+> `settlement_third_party.pair_is_mutually_exhausted(world, a, b, joined_turn)`
+> — the three comparisons in ONE pure function, and
+> `_process_exhausted_pair_exits` now asks it rather than owning it (same
+> short-circuit order, same answers; `exhaustion` and the
+> `get_war_score_for` import dropped as dead locals). `joined_turn` stays
+> the CALLER's on purpose: the turn-path reader has the war instance's own
+> `joined_turn` off `diplo_key_meta`, the advisory has
+> `world.war_start_turns` (what `build_active_wars` measures `duration`
+> from). Re-deriving one of them inside a function the turn path calls
+> would have been a behaviour change wearing a refactor's coat. Three pins
+> hold the shape, and one is an AST census asserting each of the three
+> constants is read inside `pair_is_mutually_exhausted` and nowhere else.
+>
+> **Rung 1b reads PER COURT, not per row** — the collapsed-row finding
+> above makes that mandatory, and rung 1.5 already walks `opponents` for
+> the same reason. Ordering is |pair score| ascending then name: the most
+> stagnant pair is the one where neither court has anything left to gain,
+> and on the measured board it is also the better counsel by the game's
+> own scorer (Russia at |0| scores ACCEPT 54; Britain, next at |7|, is
+> still COUNTER_OFFER 42). Losing still outranks stuck. A pair with no
+> recorded war start is skipped rather than read as ancient.
+>
+> **The copy contract (§4 N-7) is applied to the whole rung, both new arms
+> AND the two pre-existing losing arms** — the eval's *"ask, Sire"* that
+> N-7 objects to IS the losing arm's shipped text. Every arm now names a
+> pressable surface in the vocabulary slice 7 already taught the player
+> (`main.gd:1687` *"open the war banner and press Request Terms"*,
+> `main.gd:1693` *"Take your seat in the Cabinet"* / F1), and a falsifiable
+> negative forbids any arm from dictating a sentence to type.
+>
+> **The `--diplomacy propose` driver arm** (Mode A) sends ONE bilateral
+> overture per turn, round-robin over the courts France is at war with,
+> choosing `request terms from X` / `propose peace with X` off the game's
+> OWN `request_terms_state` rather than a copy of its rules (both are
+> golden-corpus phrasings; the driver keeps typed diplomacy per §6
+> never-do 12 — the Cabinet redirect is client-side and `POST /command` is
+> the surface under test). It answers incoming as `accept` does, because
+> an arm that sues for peace and then declines the peace it is handed
+> measures nothing.
+>
+> **Building it found two driver defects that no previous policy could
+> reach, and the arm could not have worked without fixing them:**
+>
+> 1. **The AI's own peace offer was unanswerable.** It arrives as the
+>    incoming-proposal POPUP payload
+>    (`mailbox_payloads.build_incoming_proposal_popup`) — a rendering of a
+>    real `incoming_proposal` dialogue carrying its `dialogue_id` but
+>    neither the `type` key nor an options list — so the driver's type
+>    table and both keyword searches missed it and it was logged
+>    `(left standing)`: **7 times in 18 turns**, including Russia's answer
+>    to France's own overture. Now answered exactly as the client answers
+>    it (`main.gd _on_incoming_proposal_choice`): a bare keyword from the
+>    router's own table plus the payload's `dialogue_id`.
+> 2. **A stale passthrough was answered twice.** Every POST rebuilds the
+>    popup passthroughs, so a response generated BEFORE an answer lands
+>    re-carries the dialogue that answer popped. When one command raises
+>    two surfaces — a marshal petition AND a proposal confirm, ordinary on
+>    a turn France sues for peace — dialogue #27 was answered once for
+>    real and once against whatever the stack had promoted since (the CA9
+>    typed-router shape, from the harness side), and the cycle guard then
+>    STOPPED THE CHAIN, leaving real blockers standing. **9 of 18 turns;
+>    zero under every other policy, which is why it had never been seen.**
+>    `Answerer.begin_post()` plus a per-post answered-`dialogue_id` set
+>    fixes it at the identity, not the symptom.
+>
+> With both fixed the arm works end to end: **turn 16 WAR → ARMISTICE with
+> Austria, turn 18 WAR → PEACE with Britain** (*"the war with Britain is
+> over. The peace grants safe passage home."*) — the bilateral-peace path
+> the WO campaigns never once pressed. One `ANSWER CYCLE` warning survives,
+> on a turn whose legitimate five-stage ceremony ends in two DIFFERENT
+> `proposal_confirm`s: the guard's `(key, summary, choice)` signature
+> cannot tell them apart. Left alone deliberately — it is the documented
+> reading trap, it stops one chain after the ceremony completed, and the
+> turn ended clean.
+>
+> **Determinism and regression, both measured:** the default-policy
+> 18-turn digest is **byte-identical before and after every driver edit**,
+> and two `--diplomacy propose` invocations at the same seed produce
+> byte-identical digests.
+>
+> **Consciously touched pins:** three answerer doubles in
+> `test_playtest_harness_win_campaign_2026_08_16.py` gained a no-op
+> `begin_post` (behaviour of those pins unchanged — the double was simply
+> incomplete once `drain()` opened each chain).
+>
+> **One INERT pin found and replaced by the sweep:** the first
+> single-source check read `inspect.getsource(_mutually_exhausted_courts)`
+> for the module name — and a mutation replacing the import with a local
+> `def` of the same name left the docstring's mention behind, so the pin
+> still passed. It now monkeypatches the engine's predicate and asserts the
+> counsel follows: the one check a copy cannot survive.
+>
+> **Discharges** the WO-D7 carry contract's named near-term mitigation
+> (`DESIGN_REFINEMENT.md` §WO-D7..D11): the ACCEPT-able peace is visible.
+> The billing half stays carried to EC-2 pass 2, untouched.
 
 ### Slice 6 — WO-D3 "The Admiralty Speaks Plainly" (est 0.5, backend copy)
 
@@ -1898,10 +2032,15 @@ toggling has no positive arm.
 > 4/5/6 blocked it and it was already sequenced before 11, so only its
 > own position moved. (b) **Slices 15 and 16 are lifted ahead of 4/5/6/8**
 > on the reasoning that the two remaining hand-verified P1s should clear
-> before the legibility and copy work. Realised order so far: 1 → 1b → 2
+> before the legibility and copy work. (c) **Slice 5 was lifted ahead of
+> slice 4** (August 22, 2026): the two are independent — slice 4 is the
+> dispatch's headline ordering, slice 5 is the war room's counsel — and
+> the 4-before-12 dependency below is about the shared dispatch files,
+> which slice 5 never touches. **Slice 4 remains next**; only slice 5's
+> position moved. Realised order so far: 1 → 1b → 2
 > → 3 → 13 → 7 → **15 → 16 (both landed August 21, 2026 — the three
-> hand-verified P1s are closed)** → 4 → 5 → 6 → 8 → 9 → 10 → 17 → 11 →
-> 12 → 14.
+> hand-verified P1s are closed)** → 18 → **5 (landed August 22, 2026)** →
+> 4 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14.
 > The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and
 > has), and 4 before 12 for the shared dispatch files. (~13 sessions to the line; the eval's ~10 plus the hunt
 slices). Slice 13 rides high because it is a P1 exploit on a days-old

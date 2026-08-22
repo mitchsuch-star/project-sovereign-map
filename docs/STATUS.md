@@ -4,6 +4,97 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 5 "BERTHIER NAMES THE PEACE" LANDED — August 22, 2026.
+> **User-directed LIFT: slice 4 sits ahead of it in §5 order, but the two
+> are independent and nothing in 4 blocks 5. Slice 4 STAYS NEXT.** Landing
+> record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 5, authoritative; the
+> WO-D7 carry contract's named near-term mitigation is DISCHARGED
+> (`DESIGN_REFINEMENT.md` §WO-D7..D11 — the billing half stays carried to
+> EC-2 pass 2, untouched). **▶ NEXT = slice 4 "The Capital Speaks"
+> (+WO-11)**, then 6 → 8 → 9 (+ WO-D9 damper wiring + WO-41) → 10 → 17 →
+> 11 → 12 → 14. Prompt = `docs/NEXT_SESSION_PROMPT.md`.
+>
+> Tests = `tests/test_wo_slice5_berthier_names_the_peace.py` (56);
+> mutation sweep `tools/_sweep_wo5.json` — **23 mutations, 23 killed, 0
+> inert** (one INERT pin found and replaced mid-sweep). Suite **18,425
+> passed / 3 skipped**, ruff clean, zero `.gd`. M1–M7 and
+> `BASELINE_SERIES` byte-identical **without re-record — measured, and
+> the series pin itself proved live by mutating it** (index 0 recomputes
+> to 70; a planted 71 reds it). Slice 15's lesson taken literally: nothing
+> here was predicted inert.
+>
+> **The mechanism was reproduced before a line was written, and it is
+> worse than the row said.** An 18-turn ambient Mode-A run at the Long
+> Quiet's own seed (`austerlitz`), snapshotting t12/t16/t18:
+>
+> | turn | France\|Russia | WE Fr / Ru | pair score | predicate | Russia's plain peace |
+> |---|---|---|---|---|---|
+> | 12 | age 11 | 104 / 98 | 0 | False | COUNTER_OFFER (49) |
+> | 16 | age 15 | 136 / 130 | 0 | **True** | **ACCEPT (54)** |
+> | 18 | age 17 | 152 / 146 | 0 | True | ACCEPT (55) |
+>
+> The predicate's turn-on and the court's willingness arrive together —
+> the spec's `+8 WE/turn` arithmetic, measured rather than assumed. **And
+> the war row France was looking at read `+26`**: `build_active_wars`
+> COLLAPSES a coalition into ONE row carrying the WAR-level side score
+> (CA8-D2), so the dead France|Russia pair was hiding inside a row France
+> is *winning*. The old `war_score < 0` gate could never have fired on
+> that board however long the stalemate ran — which is why rung 1b reads
+> **per court, not per row**.
+>
+> Turn 16's counsel, before: *"Britain's war has a purpose we can price —
+> 'The Low Countries'…"*. After: *"the war with Russia has gone still —
+> 15 turns, and the ground has not moved; both courts are spent… Open
+> talks with Russia below, or take your seat in the Cabinet (F1)."* Turn
+> 12 is untouched.
+>
+> **The lift is the fix's shape.**
+> `settlement_third_party.pair_is_mutually_exhausted(world, a, b,
+> joined_turn)` is now the ONE home of the three comparisons, and
+> `_process_exhausted_pair_exits` asks it rather than owning it (same
+> short-circuit order, same answers). `joined_turn` stays the caller's on
+> purpose — the turn path has the instance's `joined_turn`, the advisory
+> has `world.war_start_turns` — because re-deriving one inside a function
+> the turn path calls would be a behaviour change wearing a refactor's
+> coat. An AST census pins each constant to that function and nowhere
+> else; a monkeypatch pin proves the counsel FOLLOWS the engine's
+> predicate rather than merely importing it.
+>
+> **Copy contract (§4 N-7) applied to the whole rung, both new arms and
+> the two pre-existing losing arms** — the eval's *"ask, Sire"* that N-7
+> objects to IS the losing arm's shipped text. Every arm names a
+> pressable surface in the vocabulary slice 7 already taught the player
+> ("open the war banner and press Request Terms" / "take your seat in the
+> Cabinet (F1)"), and a falsifiable negative forbids any arm from
+> dictating a sentence to type.
+>
+> **The `--diplomacy propose` driver arm** sends one bilateral overture
+> per turn, round-robin, choosing `request terms` vs `propose peace` off
+> the game's own `request_terms_state`. **Building it found two driver
+> defects no previous policy could reach:** the AI's own peace offer was
+> UNANSWERABLE (it arrives as the incoming-proposal POPUP payload — no
+> `type`, no options, but a `dialogue_id` — logged `(left standing)` 7
+> times in 18 turns, including Russia's answer to France's own overture),
+> and a stale passthrough was ANSWERED TWICE (every POST rebuilds the
+> passthroughs, so a response built before an answer landed re-carried the
+> dialogue that answer popped; the cycle guard then stopped the chain —
+> 9 of 18 turns under `propose`, zero under every other policy). Both
+> fixed at the identity: `Answerer.begin_post()` + a per-post answered-id
+> set. With them the arm works end to end — **t16 WAR → ARMISTICE with
+> Austria, t18 WAR → PEACE with Britain** — the bilateral-peace path the
+> WO campaigns never once pressed. One `ANSWER CYCLE` warning survives on
+> a turn whose legitimate five-stage ceremony ends in two DIFFERENT
+> `proposal_confirm`s; left alone deliberately and documented in
+> `PLAYTESTING.md`.
+>
+> **Measured regression + determinism:** the default-policy 18-turn digest
+> is byte-identical before and after every driver edit, and two `propose`
+> runs at the same seed are byte-identical. **Consciously touched pins:**
+> three answerer doubles in
+> `test_playtest_harness_win_campaign_2026_08_16.py` gained a no-op
+> `begin_post` (behaviour unchanged — the double was incomplete once
+> `drain()` opened each chain).
+
 > # ✅ WO SLICE 18 "THE ANSWER FINDS ITS QUESTION" LANDED — August 22, 2026.
 > **The WO-35/36/38 build, from the verification memo's order (which
 > contradicts both filed rows and is what was followed): WO-39 → WO-38 →
@@ -12,8 +103,9 @@
 > BUG_FIXES §WO rows WO-35 (interrupt half; the objection remainder owned by
 > slice 12) / WO-36 / WO-38 / WO-39 / WO-40 → FIXED, **WO-41 newly filed**
 > (the memo's §6a/§6b autosave-timing permanent-loss siblings, owner = slice
-> 9). **▶ NEXT = slice 4 "The Capital Speaks" (+WO-11)**, then 5 → 6 → 8 →
-> 9 (+ WO-D9 damper wiring + WO-41) → 10 → 17 → 11 → 12 → 14. Prompt =
+> 9). **▶ NEXT was slice 4 — superseded: slice 5 was lifted and landed
+> August 22, 2026 (see the entry above); slice 4 remains next.**
+> Prompt =
 > `docs/NEXT_SESSION_PROMPT.md`.
 >
 > Tests = `tests/test_wo_slice18_answer_finds_its_question.py` (23);

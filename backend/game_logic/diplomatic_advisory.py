@@ -173,6 +173,61 @@ def _recent_vassal_reason(world, vassal_name: str) -> str:
     return reason
 
 
+def _mutually_exhausted_courts(world, player: str,
+                               war_rows: List[Dict]) -> List[Dict]:
+    """Every court whose war with the player has gone still — the deadest
+    war first (WO slice 5, WO-D5).
+
+    The predicate is NOT re-implemented here: it is
+    `settlement_third_party.pair_is_mutually_exhausted`, the same function
+    the AI's own pair exit calls, so the counsel and the engine can never
+    drift apart on what "spent" means. Age comes from
+    `world.war_start_turns` — the same field `build_active_wars` measures
+    `duration` from — and a pair with no recorded start is skipped rather
+    than treated as ancient.
+
+    PER COURT, not per row: `build_active_wars` COLLAPSES a coalition into
+    one row whose `war_score` is the WAR-level side score (CA8-D2), so the
+    measured France|Russia stalemate hides inside a row reading +26. The
+    rung 1.5 agenda counsel already walks `opponents` for exactly this
+    reason.
+
+    Order: |pair score| ascending, then name. The most stagnant pair is the
+    one where neither court has anything left to gain by fighting on — and
+    at the measured t16 it is also the better counsel by the game's own
+    scorer (Russia's plain peace scores ACCEPT at 54 while Britain's, one
+    place behind at |7|, is still a COUNTER_OFFER at 42).
+    """
+    from backend.game_logic.diplomacy import get_war_score_for
+    from backend.game_logic.settlement_third_party import (
+        pair_is_mutually_exhausted,
+    )
+    starts = getattr(world, "war_start_turns", {}) or {}
+    found = []
+    seen = set()
+    for row in war_rows:
+        courts = [n for n in (row.get("opponents")
+                              or [row.get("opponent", "")]) if n]
+        for opponent in courts:
+            if opponent in seen:
+                continue
+            key = world._make_diplo_key(player, opponent)
+            if key not in starts:
+                continue
+            if not pair_is_mutually_exhausted(
+                    world, player, opponent, int(starts[key] or 0)):
+                continue
+            seen.add(opponent)
+            found.append({
+                "row": row,
+                "opponent": opponent,
+                "score": int(get_war_score_for(world, player, opponent)),
+                "age": int(world.current_turn) - int(starts[key] or 0),
+            })
+    found.sort(key=lambda f: (abs(f["score"]), f["opponent"]))
+    return found
+
+
 def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                                     coalition_info: Optional[Dict],
                                     posture: str) -> Optional[Dict]:
@@ -181,6 +236,20 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
     open_proposal rides the existing expand_options arm; request_terms and
     invest_vassal ride the W6-9 execute_suggestion arm."""
     # 1. Losing war + a settlement route exists → seek terms.
+    #
+    # WO slice 5 (WO-D5) widened this rung from "losing" to "losing OR
+    # mutually exhausted". A war can be unwinnable without being lost:
+    # France and Russia sat at war score exactly 0 for thirty turns, both
+    # courts pegged at the exhaustion cap, and the strict `< 0` here meant
+    # the war room never once mentioned the peace Russia would have signed.
+    # Losing still outranks stuck — a war going badly is the more urgent
+    # ask — so the loops stay in that order.
+    #
+    # N-7 (the post-G1 copy contract): every arm of this rung names a
+    # SURFACE the player can press — the counsel's own option, the war
+    # banner's Request Terms, the Cabinet — and never a sentence to type.
+    # Slice 7 made typed diplomacy a redirect; counsel that says "ask,
+    # Sire" and nothing else is now counsel to walk into a closed door.
     losing = sorted((w for w in war_rows if int(w.get("war_score", 0)) < 0),
                     key=lambda w: int(w.get("war_score", 0)))
     for row in losing:
@@ -194,8 +263,9 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                 "description": ("Ask their court to name settlement terms "
                                 "(1 DP)."),
                 "text": (f"the war with {opponent} turns against us and "
-                         f"their court would name terms — ask, Sire, while "
-                         f"asking is still a choice."),
+                         f"their court would name terms — ask while asking "
+                         f"is still a choice, Sire: take the counsel below, "
+                         f"or open the war banner and press Request Terms."),
             }
         if row.get("settlement_available"):
             return {
@@ -203,9 +273,47 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                 "target_nation": opponent,
                 "label": f"Open talks with {opponent}",
                 "description": "Open a proposal toward a settlement.",
-                "text": (f"the war with {opponent} turns against us — "
-                         f"open talks before the price of peace rises."),
+                "text": (f"the war with {opponent} turns against us — open "
+                         f"talks before the price of peace rises: the "
+                         f"counsel below, or take your seat in the Cabinet "
+                         f"(F1)."),
             }
+
+    # 1b (WO slice 5). A war neither side can move. The predicate is the
+    # engine's own — `pair_is_mutually_exhausted`, what the AI consults
+    # before white-peacing two spent courts out of a war — so the counsel
+    # offers exactly the peace the game already believes in.
+    for stuck in _mutually_exhausted_courts(world, player, war_rows):
+        opponent = stuck["opponent"]
+        row = stuck["row"]
+        age = stuck["age"]
+        still = (f"the war with {opponent} has gone still — {age} turns, "
+                 f"and the ground has not moved; both courts are spent")
+        terms_state = (row.get("request_terms_state") or {}).get("state", "")
+        # The terms route is war-scoped and belongs to the row's leader
+        # (rung 1.5's rule); every other member gets the proposal menu,
+        # which is always reachable.
+        if opponent == row.get("opponent") and terms_state == "available":
+            return {
+                "kind": "request_terms",
+                "target_nation": opponent,
+                "label": f"Seek terms with {opponent}",
+                "description": ("Ask their court to name settlement terms "
+                                "(1 DP)."),
+                "text": (f"{still}. A court this weary will hear an ask, "
+                         f"Sire — take the counsel below, or open the war "
+                         f"banner and press Request Terms."),
+            }
+        return {
+            "kind": "open_proposal",
+            "target_nation": opponent,
+            "label": f"Open talks with {opponent}",
+            "description": "Open a proposal toward a settlement.",
+            "text": (f"{still}. Nothing more will be won here by fighting; "
+                     f"a court this weary will hear an offer. Open talks "
+                     f"with {opponent} below, or take your seat in the "
+                     f"Cabinet (F1)."),
+        }
     # 1.5 (NA-1): a belligerent's design could be satisfied at the table —
     # the Pressburg counsel. Cede what their court actually wants and their
     # reason to fight (or the coalition's cohesion) goes with it. A

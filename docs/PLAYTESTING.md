@@ -45,6 +45,9 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 # Start MID-CAMPAIGN from a committed fixture (skip the opening grind):
 .venv/Scripts/python.exe tools/playtest_driver.py --from-save tests/fixtures/playtest_saves/fixture_t10_ambient.json --turns 10 --name late --fresh
 
+# France ACTIVELY sues for peace (WO slice 5) — the bilateral-peace path:
+.venv/Scripts/python.exe tools/playtest_driver.py --turns 20 --diplomacy propose --fresh
+
 # Live-parse (Anthropic) instead of the mock parser — costs real tokens:
 .venv/Scripts/python.exe tools/playtest_driver.py --llm anthropic --script ... --fresh
 
@@ -53,7 +56,7 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 ```
 
 Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
-`--objection trust|insist|compromise` · `--diplomacy decline|accept|first`
+`--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose`
 · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
 (unknown blocking shapes fail the run, exit 3) · `--verbose` (backend
 console to stdout instead of `server_console.log`) · `--archive` (copy
@@ -197,6 +200,63 @@ shift vs a pre-Aug-21 digest is the harness's doing, not the game's).
 Anything unrecognized is
 left standing, logged as `⚠ UNKNOWN BLOCKER`, and — if it blocks `end
 turn` — the run STOPS with status `blocked` rather than spinning.
+
+### `--diplomacy propose` — the arm that asks (WO slice 5)
+
+Every other policy is REACTIVE: it answers what arrives. Across every WO
+campaign that meant the bilateral-peace path was never pressed once, so a
+France|Russia war both courts would have signed out of sat open for thirty
+turns and no digest could say whether the engine or the harness was at
+fault.
+
+`propose` makes France sue. Per turn, before the script's own orders, it
+sends **one** overture, round-robin over the courts France is at war with,
+choosing off the game's own honest-availability field rather than a copy of
+its rules:
+
+* the row's LEADER with `request_terms_state == "available"` →
+  `request terms from <court>`
+* everyone else → `propose peace with <court>`
+
+Both are golden-corpus phrasings. The driver keeps typed diplomacy on
+purpose (the slice-7 Cabinet redirect lives in `main.gd`, client-side;
+`POST /command` is the surface under test). Incoming is answered exactly as
+`--diplomacy accept` answers it — an arm that sues for peace and then
+declines the peace it is handed measures nothing.
+
+Measured on the 18-turn `austerlitz` ambient board: **turn 16 WAR →
+ARMISTICE with Austria, turn 18 WAR → PEACE with Britain.** DP shortage,
+per-court cooldowns and flat refusals all land in the digest as evidence
+rather than being engineered around.
+
+**Two digest deltas this arm introduced (both driver-side, both wanted):**
+
+* **The AI's own peace offer is now answered.** It arrives as the
+  incoming-proposal POPUP payload — no `type`, no options, but a
+  `dialogue_id` — which the type table and both keyword searches missed, so
+  it was logged `(left standing)` seven times in eighteen turns, including
+  Russia's answer to France's own overture. It is now answered the way the
+  client answers it (a bare `accept`/`reject` plus the payload's
+  `dialogue_id`). ⚠ Same shape as the letter-book's delta: a run that used
+  to LAPSE these now refuses them explicitly.
+* **A stale passthrough is no longer answered twice.** Every POST rebuilds
+  the popup passthroughs, so a response generated before an answer lands
+  re-carries the dialogue that answer popped; `drain()` now opens each
+  chain with `Answerer.begin_post()` and skips a `dialogue_id` already
+  answered in that post. Without it, a turn raising a petition AND a
+  proposal confirm answered dialogue #27 twice and the cycle guard stopped
+  the chain — nine of eighteen turns under `propose`, zero under every
+  other policy, which is why it had never been seen.
+
+**Expect one `ANSWER CYCLE` warning per long `propose` run.** A legitimate
+five-stage settlement ceremony can end in two DIFFERENT `proposal_confirm`
+surfaces, and the guard's `(key, summary, choice)` signature cannot tell
+them apart. It stops that one chain after the ceremony completed; the turn
+still ends. This is the documented reading trap, not a defect.
+
+Determinism is unaffected: two `propose` runs at the same seed produce
+byte-identical digests, and a default-policy digest is byte-identical
+across the slice's driver edits.
 
 ### Reading a run
 

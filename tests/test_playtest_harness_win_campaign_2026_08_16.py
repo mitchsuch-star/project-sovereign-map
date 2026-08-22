@@ -147,6 +147,12 @@ class _CyclingAnswerer:
         self.d = digest
         self.calls = 0
 
+    # WO slice 5: drain() opens every chain with begin_post() (the
+    # per-post answered-dialogue set). Behaviour of these pins is
+    # unchanged — the double is just complete again.
+    def begin_post(self):
+        pass
+
     def scan(self, response):
         self.calls += 1
         self.d.popup("diplomatic_dialogue", "settlement_confirm", "1")
@@ -211,6 +217,9 @@ class TestAnswerCycleGuard:
             def __init__(self):
                 self.n = 0
 
+            def begin_post(self):
+                pass
+
             def scan(self, response):
                 self.n += 1
                 if self.n > 3:
@@ -233,6 +242,9 @@ class TestAnswerCycleGuard:
         class TwoDeclines:
             def __init__(self):
                 self.n = 0
+
+            def begin_post(self):
+                pass
 
             def scan(self, response):
                 self.n += 1

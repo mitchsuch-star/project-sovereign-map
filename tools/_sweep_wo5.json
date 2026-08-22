@@ -1,0 +1,163 @@
+[
+  {
+    "id": "S5-1 rung 1 narrows back to the strict `war_score < 0`",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "    for stuck in _mutually_exhausted_courts(world, player, war_rows):",
+    "new": "    for stuck in []:",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t16_counsel_names_russia tests/test_wo_slice5_berthier_names_the_peace.py::TestLosingStillOutranksStuck::test_stuck_still_wins_over_the_agenda_counsel"
+  },
+  {
+    "id": "S5-2 the counsel reads the ROW, not each court (the collapse blindness)",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        courts = [n for n in (row.get(\"opponents\")\n                              or [row.get(\"opponent\", \"\")]) if n]",
+    "new": "        courts = [n for n in [row.get(\"opponent\", \"\")] if n]",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_a_collapsed_coalition_row_is_read_per_court tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t16_counsel_names_russia"
+  },
+  {
+    "id": "S5-3 the deadest-war ordering is dropped",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "    found.sort(key=lambda f: (abs(f[\"score\"]), f[\"opponent\"]))",
+    "new": "    found.sort(key=lambda f: f[\"opponent\"])",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_the_deadest_war_is_named_first tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t16_counsel_names_russia"
+  },
+  {
+    "id": "S5-4 the missing war start is treated as ancient",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "            if key not in starts:\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_a_pair_with_no_recorded_start_is_skipped"
+  },
+  {
+    "id": "S5-5 the stuck arm outranks a LOSING war",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "    losing = sorted((w for w in war_rows if int(w.get(\"war_score\", 0)) < 0),\n                    key=lambda w: int(w.get(\"war_score\", 0)))",
+    "new": "    losing = []",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestLosingStillOutranksStuck::test_a_losing_war_wins_the_rung"
+  },
+  {
+    "id": "S5-6 the terms route is offered to a NON-leader",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        if opponent == row.get(\"opponent\") and terms_state == \"available\":\n            return {\n                \"kind\": \"request_terms\",\n                \"target_nation\": opponent,\n                \"label\": f\"Seek terms with {opponent}\",\n                \"description\": (\"Ask their court to name settlement terms \"\n                                \"(1 DP).\"),\n                \"text\": (f\"{still}. A court this weary will hear an ask, \"",
+    "new": "        if terms_state == \"available\":\n            return {\n                \"kind\": \"request_terms\",\n                \"target_nation\": opponent,\n                \"label\": f\"Seek terms with {opponent}\",\n                \"description\": (\"Ask their court to name settlement terms \"\n                                \"(1 DP).\"),\n                \"text\": (f\"{still}. A court this weary will hear an ask, \"",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_a_non_leader_gets_the_proposal_menu"
+  },
+  {
+    "id": "S5-7 the stuck copy stops naming a surface (N-7)",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "                     f\"a court this weary will hear an offer. Open talks \"\n                     f\"with {opponent} below, or take your seat in the \"\n                     f\"Cabinet (F1).\"),",
+    "new": "                     f\"a court this weary will hear an offer. Ask, Sire.\"),",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_every_rung_1_arm_names_a_pressable_surface tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_the_surface_words_match_the_ones_the_game_already_uses"
+  },
+  {
+    "id": "S5-8 the LOSING copy reverts to the pre-G1 'ask, Sire'",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "                \"text\": (f\"the war with {opponent} turns against us and \"\n                         f\"their court would name terms — ask while asking \"\n                         f\"is still a choice, Sire: take the counsel below, \"\n                         f\"or open the war banner and press Request Terms.\"),",
+    "new": "                \"text\": (f\"the war with {opponent} turns against us and \"\n                         f\"their court would name terms — ask, Sire, while \"\n                         f\"asking is still a choice.\"),",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestCopyNamesASurface::test_every_rung_1_arm_names_a_pressable_surface"
+  },
+  {
+    "id": "S5-9 the predicate's age arm is deleted",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "    if turn - int(joined_turn) < PAIR_EXIT_MIN_TURNS:\n        return False",
+    "new": "    if False:\n        return False",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestPredicate::test_too_young_fails tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_t12_board_is_not_yet_stuck"
+  },
+  {
+    "id": "S5-10 the predicate checks only ONE side's weariness",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR\n            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR):\n        return False",
+    "new": "    if int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR:\n        return False",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestPredicate::test_one_side_not_weary_enough_fails"
+  },
+  {
+    "id": "S5-11 the predicate's stagnation band opens by one",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "    return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE",
+    "new": "    return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE + 1",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestPredicate::test_a_moving_war_is_not_stagnant"
+  },
+  {
+    "id": "S5-12 the pair exit keeps its OWN copy of the inequalities",
+    "file": "backend/game_logic/settlement_third_party.py",
+    "old": "        if not pair_is_mutually_exhausted(world, a, b, joined):\n            continue",
+    "new": "        _we = getattr(world, \"war_exhaustion\", {}) or {}\n        from backend.game_logic.diplomacy import get_war_score_for as _gwsf\n        if turn - joined < PAIR_EXIT_MIN_TURNS:\n            continue\n        if (int(_we.get(a, 0)) < PAIR_EXIT_WE_FLOOR\n                or int(_we.get(b, 0)) < PAIR_EXIT_WE_FLOOR):\n            continue\n        if abs(int(_gwsf(world, a, b))) > PAIR_EXIT_STAGNANT_SCORE:\n            continue",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestSingleSource"
+  },
+  {
+    "id": "S5-13 the counsel re-implements the predicate instead of importing it",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "    from backend.game_logic.settlement_third_party import (\n        pair_is_mutually_exhausted,\n    )",
+    "new": "    def pair_is_mutually_exhausted(world, a, b, joined):\n        return True",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestSingleSource::test_the_counsel_follows_the_engines_predicate"
+  },
+  {
+    "id": "S5-14 the driver never proposes (the arm goes silent)",
+    "file": "tools/playtest_driver.py",
+    "old": "    if courts[court]:\n        return f\"request terms from {court}\"\n    return f\"propose peace with {court}\"",
+    "new": "    return None",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestProposeArm"
+  },
+  {
+    "id": "S5-15 the driver asks a NON-leader for terms",
+    "file": "tools/playtest_driver.py",
+    "old": "            courts.setdefault(str(court),\n                              terms_ok and str(court) == leader)",
+    "new": "            courts.setdefault(str(court), terms_ok)",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestProposeArm::test_only_the_row_leader_can_be_asked_for_terms"
+  },
+  {
+    "id": "S5-16 the driver proposes to armistice courts too",
+    "file": "tools/playtest_driver.py",
+    "old": "        if str(row.get(\"status\", \"\")) != \"war\":\n            continue\n        leader = str(row.get(\"opponent\", \"\") or \"\")",
+    "new": "        if False:\n            continue\n        leader = str(row.get(\"opponent\", \"\") or \"\")",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestProposeArm::test_armistice_rows_are_not_at_war"
+  },
+  {
+    "id": "S5-17 the round-robin stops rotating",
+    "file": "tools/playtest_driver.py",
+    "old": "    court = names[(int(turn_index) - 1) % len(names)]",
+    "new": "    court = names[0]",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestProposeArm::test_round_robin_reaches_every_court"
+  },
+  {
+    "id": "S5-18 `propose` stops being an accepting mode",
+    "file": "tools/playtest_driver.py",
+    "old": "ACCEPTING_DIPLOMACY_MODES = (\"accept\", \"first\", \"propose\")",
+    "new": "ACCEPTING_DIPLOMACY_MODES = (\"accept\", \"first\")",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestProposeArm::test_propose_is_an_accepting_mode tests/test_wo_slice5_berthier_names_the_peace.py::TestIncomingProposalPopupIsAnswerable"
+  },
+  {
+    "id": "S5-19 the incoming-proposal popup is left standing again",
+    "file": "tools/playtest_driver.py",
+    "old": "        if (not dtype and not options\n                and dialogue.get(\"from_nation\")\n                and dialogue.get(\"proposal_type\")):",
+    "new": "        if False:",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestIncomingProposalPopupIsAnswerable"
+  },
+  {
+    "id": "S5-20 the popup arm ignores the policy (always accepts)",
+    "file": "tools/playtest_driver.py",
+    "old": "            return (\"accept\"\n                    if self.policy[\"diplomacy\"] in ACCEPTING_DIPLOMACY_MODES\n                    else \"reject\")",
+    "new": "            return \"accept\"",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestIncomingProposalPopupIsAnswerable::test_the_popup_shape_is_answered_by_policy"
+  },
+  {
+    "id": "S5-21 the stale-passthrough skip is removed",
+    "file": "tools/playtest_driver.py",
+    "old": "            if did is not None and did in self._answered_dialogue_ids:",
+    "new": "            if False:",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestStalePassthroughIsNotAnsweredTwice"
+  },
+  {
+    "id": "S5-22 the answered set is never reset (a whole run answers once)",
+    "file": "tools/playtest_driver.py",
+    "old": "    digest.recent = []\n    answerer.begin_post()",
+    "new": "    digest.recent = []",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestStalePassthroughIsNotAnsweredTwice"
+  },
+  {
+    "id": "S5-23 the overture fires under every policy",
+    "file": "tools/playtest_driver.py",
+    "old": "        if policy[\"diplomacy\"] == \"propose\":",
+    "new": "        if True:",
+    "tests": "tests/test_wo_slice5_berthier_names_the_peace.py::TestProposeArm::test_the_overture_only_fires_under_the_propose_policy"
+  }
+]
