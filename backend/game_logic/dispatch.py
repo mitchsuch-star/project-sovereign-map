@@ -59,7 +59,16 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # fallen homeland province — the Empire is a PERSON, and the person is
     # in an enemy cell (the Malet coup ran on a rumor of less).
     "sovereign_captured": 101,
-    "home_captured": 100,       # own homeland region captured by enemy
+    # ── WO-D6 (row WO slice 4, Aug 22 2026): "The Capital Speaks" ───────
+    # The fall of the player's OWN capital was narrated with the template
+    # Limousin gets three turns later. Measured on the 1805 board, four
+    # homeland provinces lost in one turn: with Paris logged LAST the page
+    # read "Limousin has fallen / Berry / Normandy" and PARIS WAS NOT ON
+    # IT AT ALL — four candidates at one weight, sorted stably, and only
+    # three slots. It sits one BELOW `sovereign_captured` because NP-4's
+    # ruling stands: the Empire is a person before it is a place.
+    "capital_lost": 100,
+    "home_captured": 99,        # own homeland region captured by enemy
     # PC15-1: annihilation outranks capture — a prisoner can be ransomed,
     # a destroyed corps is gone for good. One above marshal_captured.
     "marshal_destroyed": 96,
@@ -194,6 +203,11 @@ STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil",
 # to any other candidate. Blessed default, display-only, tunable in band.
 STANDING_LEAD_MAX = 2
 
+# Sub-beat slots under the headline. Named (it was a bare `>= 2`) because
+# WO-D6's diverse-tail rule is expressed as "the LAST slot", and a magic
+# number cannot say which one that is.
+SUB_BEAT_SLOTS = 2
+
 # Escalating variants for a standing class that keeps the lead because it is
 # genuinely the only news. Indexed by how long it has led; the last entry is
 # the terminal register. The base template is streak 1.
@@ -236,6 +250,12 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # reach — the style holds (the campaign log's chronicle rule is
     # untouched; this is the staff's own dispatch).
     "sovereign_captured": "Sire — the Emperor himself is TAKEN. {captor} holds him, and the Empire holds its breath.",
+    # WO-D6 (slice 4): the one sentence the game owed the player. Nation-
+    # neutral by construction — the class is keyed on the world's own
+    # capital map, so a modded scenario's Prussia reads it about Berlin.
+    "capital_lost": ("Sire — {region} HAS FALLEN. Our capital is in "
+                     "{captor}'s hands, and every courier in Europe is "
+                     "already carrying the news."),
     "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
     # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
@@ -324,6 +344,11 @@ def _crisis_cause_headline(cause: str) -> str:
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # NP-4: the Brétigny counsel — the fastest road home is the table.
     "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
+    # WO-D6 (slice 4): the lookup is guarded, so a class with no note is
+    # SILENT rather than broken — which is exactly how CA8-22's two new
+    # classes ended six of twelve briefings with Berthier saying nothing.
+    # The note closes on the decision the loss creates, never on lament.
+    "capital_lost": "The army will hear of this before nightfall, Sire. Every order you give today will be read as your answer to it.",
     "home_captured": "France herself is under the enemy's boot, Sire. Every other matter is secondary.",
     "marshal_captured": "We must consider his ransom, Sire — or make his captors regret the keeping.",
     # CA9-N2: the same note fired when FRANCE was the captor — "consider
@@ -374,6 +399,15 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "victory_won": "The army knows it is winning, Sire. Press the advantage before their line reforms.",
     "region_taken": "Ground taken must be garrisoned or it bleeds, Sire. Decide what this province is for.",
 }
+
+
+def _headline_keys(candidate: Dict[str, Any]) -> tuple:
+    """CA8-5's dedupe key for one candidate: its (class, identity) AND its
+    rendered text, so a class that renders identically from two different
+    identities still collapses. One source — the sub-beat loop reads it
+    for both the seen-set and every eligibility test."""
+    return ((candidate["class"], candidate["identity"]),
+            ("", candidate["text"]))
 
 
 def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
@@ -430,9 +464,33 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             region = e.get("region", "")
             prev = e.get("captured_from", "")
             if captor and captor != player_nation:
-                if region in home_regions:
+                # ── WO-11 (slice 4): the wound has a DIRECTION ──────────
+                # `home_captured` fired whenever ANY non-player power took
+                # homeland soil — including an ALLY liberating it from a
+                # third party. Measured: Spain retaking Paris from Austria
+                # printed "Paris has fallen. Enemy colours fly over French
+                # homeland soil." The guard is the one its own sibling arm
+                # two lines below has always carried, hoisted so BOTH
+                # own-soil wound classes read it. A province that changes
+                # hands between two enemies on soil we already lost is not
+                # a fresh wound and produces no candidate — which is what
+                # "the player's side LOST it" means.
+                _ours_to_lose = (prev == player_nation
+                                 or prev in vassals_of_player)
+                # WO-D6: STRUCTURAL, never the literal "Paris" — the
+                # world's own capital map, so the class holds for any
+                # nation and any scenario. Read outside the `home_regions`
+                # branch because a capital need not be a starting region
+                # (a formed or carved state's is not).
+                _own_capital = world.get_nation_capital(player_nation)
+                if (_ours_to_lose and _own_capital
+                        and region == _own_capital):
+                    _add("capital_lost", f"capital_lost:{region}",
+                         region=region,
+                         captor=formed_display_name(world, captor))
+                elif _ours_to_lose and region in home_regions:
                     _add("home_captured", f"home_captured:{region}", region=region)
-                elif prev == player_nation or prev in vassals_of_player:
+                elif _ours_to_lose:
                     # CA8-22: if the province was a marshal's endowment, the
                     # human fact outranks the map fact — it is the same
                     # event, and one of the two sentences is about a man.
@@ -1119,16 +1177,39 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
     # Text remains in the key so a class that renders identically from two
     # different identities still collapses.
     # ────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────
+    # WO-D6 (slice 4): THE DIVERSE TAIL.
+    #
+    # Dedupe alone is not enough when the turn produces four of one kind.
+    # Measured on the 1805 board — four homeland provinces lost, Soult
+    # taken prisoner — the page read three province lines and Soult, at
+    # weight 95, never appeared in ANY event ordering. The LAST slot is
+    # therefore reserved for a kind of news not already on the page.
+    #
+    # The trap, and why this is a PREFERENCE and not a collapse: the naive
+    # "one beat per class" reds CA8-5's own falsifiable negative
+    # (`test_two_different_marshals_still_get_two_beats`) and CA8-9's
+    # (`test_another_marshals_break_is_not_absorbed`). Two different men
+    # broken on the same turn are two pieces of news. So the rule only
+    # ever REORDERS what is eligible, and falls back to the ordinary
+    # highest-weighted candidate when no fresh class exists — nothing is
+    # ever dropped that dedupe would have kept.
+    # ────────────────────────────────────────────────────────────────────
     seen_keys = {(top["class"], top["identity"]), ("", top["text"])}
+    seen_classes = {top["class"]}
     sub_beats = []
-    for c in candidates[1:]:
-        keys = ((c["class"], c["identity"]), ("", c["text"]))
-        if any(k in seen_keys for k in keys):
-            continue
-        seen_keys.update(keys)
-        sub_beats.append(c["text"])
-        if len(sub_beats) >= 2:
+    while len(sub_beats) < SUB_BEAT_SLOTS:
+        eligible = [c for c in candidates[1:]
+                    if not any(k in seen_keys for k in _headline_keys(c))]
+        if not eligible:
             break
+        pick = eligible[0]
+        if len(sub_beats) == SUB_BEAT_SLOTS - 1:
+            pick = next((c for c in eligible
+                         if c["class"] not in seen_classes), pick)
+        seen_keys.update(_headline_keys(pick))
+        seen_classes.add(pick["class"])
+        sub_beats.append(pick["text"])
     return {
         "class": top["class"],
         "weight": int(top["weight"]),

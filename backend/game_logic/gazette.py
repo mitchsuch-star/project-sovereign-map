@@ -67,6 +67,26 @@ def _is_great_power(world, nation: str) -> bool:
     return nation in ("France", "Britain", "Russia", "Austria", "Prussia")
 
 
+def _player_sovereign_taken(world, turn_events: List[Dict]) -> bool:
+    """NP-4, asked of a whole turn: is the player's own sovereign among
+    this turn's visible events?
+
+    `_special_reason` returns on the first MATCHING EVENT, not in source
+    order, so an arm's position in the file does not rank it — the log
+    does. Measured: `_special_reason(w, [paris_falls, emperor_taken])`
+    answered with the capital. The dispatch ranks these correctly by
+    weight (`sovereign_captured` 101 > `capital_lost` 100); the Gazette
+    needs this to agree with it.
+    """
+    player = getattr(world, "player_nation", "France")
+    return any(
+        str(e.get("type", "")) == "marshal_captured"
+        and e.get("sovereign")
+        and str(e.get("nation") or "") == player
+        for e in turn_events
+    )
+
+
 def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
     """A forced special edition's cause among THIS turn's visible
     events, or None. The detector runs per-turn at publish time — never
@@ -101,6 +121,23 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
             region = str(event.get("region") or "")
             if prev and region \
                     and world.get_nation_capital(prev) == region:
+                # WO-D6 (slice 4): Le Moniteur is OUR paper. When the
+                # stormed capital is the player's own, the caption was
+                # still the victor's phrasing - the player read the
+                # fall of Paris as somebody else's good news. Caps
+                # mirror the sovereign arm below: our own catastrophe
+                # shouts, every other court's is a lowercase noun
+                # phrase.
+                if prev == player:
+                    # ...but never above the Emperor himself. See
+                    # `_player_sovereign_taken`: the arms are ranked by
+                    # LOG ORDER, so without this the fall of Paris
+                    # preempts "THE EMPEROR TAKEN" whenever it happens
+                    # to be logged first, and the paper contradicts the
+                    # dispatch that ranks the same two events 101 > 100.
+                    if _player_sovereign_taken(world, turn_events):
+                        continue
+                    return "THE CAPITAL HAS FALLEN"
                 return "a capital stormed"
         if etype == "marshal_captured" and event.get("sovereign"):
             # NP-4 (NAPOLEON_SPEC §9): the Eagle in Chains outranks every

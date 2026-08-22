@@ -551,6 +551,105 @@ are display vocabulary, not event types).
 **Harness impact:** dispatch is display; M1–M7 / `BASELINE_SERIES` unreachable
 (weights documented "display only, tunable freely"). Zero `.gd`, zero fields.
 
+> **✅ LANDED August 22, 2026 — landing record, authoritative.** All five
+> contract items, plus one collision the slice would itself have created.
+> `tests/test_wo_slice4_the_capital_speaks.py` (43); mutation sweep
+> `tools/_sweep_wo4.json` — **18 mutations, 18 killed, 0 inert** (one INERT
+> pin found and replaced, below). Suite **18,508 passed / 3 skipped**, ruff
+> clean, zero `.gd`, zero new serialized fields.
+>
+> **The defect, measured on the real 1805 board before a line was written**
+> (four homeland provinces lost on one turn, Soult taken, every event
+> stamped `captured_from: France`). The page depended entirely on the order
+> the captures reached the log, and the spec's predicted shape was
+> reproduced exactly — **with Paris logged LAST the lead was Limousin and
+> Paris was not on the page at all**, while Soult, at weight 95, reached it
+> in *no* ordering whatever. After: `Paris HAS FALLEN` leads in all three
+> orderings and Soult takes the tail.
+>
+> 1. **`capital_lost` at 100, `home_captured` demoted to 99.** The §2 D-5 /
+>    §4 N-3 ordering pin is a test: `sovereign_captured 101 > capital_lost
+>    100 > home_captured 99 > marshal_destroyed 96 > marshal_captured 95`.
+>    NP-4 stands ABOVE it in behaviour too — an emperor taken on the same
+>    turn leads, and the capital is told one line down.
+> 2. **Structural predicate.** `world.get_nation_capital(player_nation)`,
+>    read OUTSIDE the `home_regions` branch on purpose: a formed or carved
+>    state's capital need not be a starting region, and nesting it there
+>    would have made the class unreachable for exactly those nations. Pinned
+>    behaviourally (move France's capital to Berry and the ceremony follows,
+>    with Paris demoted to an ordinary homeland line) and by source census.
+> 3. **WO-11 in the same edit.** The sibling's guard is hoisted to ONE
+>    `_ours_to_lose` read that both wound classes consume, so the new class
+>    inherited it instead of repeating the bug at a higher weight. Recorded
+>    scope change: soil changing hands between two ENEMIES, on ground we had
+>    already lost, now produces no candidate either — that is what "the
+>    player's side lost it" means, and it is pinned.
+> 4. **The Gazette caption**, `THE CAPITAL HAS FALLEN`, mirroring the
+>    all-caps register the sovereign arm already ships. `player` was already
+>    in scope; no new plumbing.
+> 5. **The diverse tail** — `SUB_BEAT_SLOTS = 2` named (it was a bare `>= 2`,
+>    and "the LAST slot" cannot be expressed against a magic number), and the
+>    rule written as a PREFERENCE with a fallback, never a per-class
+>    collapse. §2 D-10's three CA8 pins are green and byte-identical, and a
+>    mutation that turns the preference into a collapse kills them (S4-9).
+> 6. `own_mauled`'s floor is NOT here. It remains slice 12's (WO-16).
+>
+> **A sixth thing, found by the pre-build fleet and reproduced by hand.**
+> `gazette._special_reason` returns on the first matching EVENT inside its
+> loop, so its arms are ranked by log order, not by their position in the
+> file: the new caption preempted **THE EMPEROR TAKEN** whenever Paris
+> happened to be logged first — the paper contradicting the briefing that
+> ranks the same two events 101 > 100. Closed for the collision this slice
+> creates (`_player_sovereign_taken`, scoped to the player's OWN sovereign,
+> with a pinned negative for a foreign one). The GENERAL precedence problem
+> is older and wider — an enemy capital stormed by France already preempts
+> the Emperor — and is **routed, not built**: `BUG_FIXES.md` **WO-43**,
+> owner slice 12.
+>
+> **Also routed rather than built: WO-42.** Proving the direction guard safe
+> required reading all six `region_captured` producers, and that census
+> turned up its mirror image: `is_own_soil_recapture` sends both player
+> liberation paths to a bare `_apply_secure` that logs **no event at all**,
+> so retaking your own capital is invisible to the campaign log, the
+> Gazette, and the dispatch's own `region_taken` line — which is
+> structurally unreachable for own soil. Owner slice 12.
+>
+> **Two existing pins consciously RETARGETED, not deleted**
+> (`test_w6_dispatch_rewrite.py` `test_home_region_captured_is_the_top_story`
+> and `test_headline_and_danger_ride_the_dispatch`): both staged **Paris**
+> falling and asserted `home_captured`, i.e. they were pinning the capital
+> case under the homeland case's name — France's capital is Paris on the
+> legacy fixture world too. They now use Lyon and keep binding the class
+> they are named for, including the `home_captured` Berthier-note string;
+> the capital arm is pinned in the new file. They were the ONLY two
+> behavioural `home_captured` pins in the suite, which is why the census
+> below exists.
+>
+> **The inert pin, and what it taught.** S4-10 ("apply the tail rule to the
+> FIRST slot too") survived: on the four-province fixture the lead is
+> `capital_lost`, so `home_captured` is a FRESH class at slot 0 and both
+> rules select the same candidate. Replaced with a fixture where they
+> genuinely disagree — three homeland losses and a capture, lead
+> `home_captured`, so by weight slot 0 is another province and by freshness
+> it would be Soult.
+>
+> **New structural pin beyond the contract:** every key of
+> `HEADLINE_WEIGHTS` must carry a template AND a Berthier note. A missing
+> template is a KeyError at turn start; a missing note is **silent** —
+> `_pick_berthier_note`'s lookup is guarded — and that is exactly how CA8-22
+> shipped two classes that ended six of twelve briefings with Berthier
+> saying nothing. Nothing had ever pinned the whole set.
+>
+> **Harness, measured rather than asserted.** `BASELINE_SERIES` byte-identical
+> and M1–M7 green, both proven by their real runs (the series test spawns a
+> hash-pinned subprocess; a passing in-process suite would be vacuous for
+> that pin). One honest qualification the "display-only" claim does not
+> cover: `tools/playtest_driver.py` archives the dispatch **text** in its
+> digest, so a regenerated archived digest WOULD differ. No committed digest
+> is re-recorded here, and `world.headline_lead_memory`'s stored `identity`
+> for a capital turn changes from `home_captured:<capital>` to
+> `capital_lost:<capital>` — display state, no new field.
+
 ### Slice 5 — WO-D5 "Berthier Names the Peace" — ✅ LANDED August 22, 2026
 
 **Scope.** The one strict inequality that hides an ACCEPT-able peace for

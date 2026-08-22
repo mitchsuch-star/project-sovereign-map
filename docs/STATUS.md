@@ -4,6 +4,51 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 4 — "THE CAPITAL SPEAKS" LANDED, August 22, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 4,
+> authoritative.** All five contract items, plus one collision the slice
+> would itself have created. `tests/test_wo_slice4_the_capital_speaks.py`
+> (43); mutation sweep `tools/_sweep_wo4.json` — **18 killed, 0 inert**
+> (one INERT pin found and replaced). Suite **18,508 / 3 skipped**, ruff
+> clean, zero `.gd`, zero new serialized fields; `BASELINE_SERIES`
+> byte-identical and M1–M7 green, both proven by their real runs.
+>
+> **The defect, measured on the 1805 board before a line was written** —
+> four homeland provinces lost on one turn plus Soult taken, every event
+> honestly stamped. The page was decided by the order the captures reached
+> the log, and the spec's predicted shape reproduced exactly: **with Paris
+> logged LAST the lead was Limousin and Paris was not on the page at all**,
+> while Soult, at weight 95, reached it in *no* ordering whatever. After:
+> `Paris HAS FALLEN` leads in every ordering and Soult takes the tail.
+>
+> Landed: `capital_lost` 100 / `home_captured` 99 under `sovereign_captured`
+> 101 (NP-4 intact in behaviour, not just in the table) · the predicate keyed
+> on `get_nation_capital`, read OUTSIDE the `home_regions` branch — a
+> refuter proved with committed counterexamples that a capital is NOT always
+> a starting region, so nesting it would have made the class unreachable for
+> exactly the formed and carved states it was written for · **WO-11 folded
+> in**, the sibling's guard hoisted to ONE `_ours_to_lose` read both wound
+> classes consume · the Gazette captioning our own capital `THE CAPITAL HAS
+> FALLEN` · and the diverse tail written as a PREFERENCE with a fallback,
+> never a per-class collapse, so §2 D-10's three CA8 pins stay green.
+>
+> **Three things the pre-build fleet changed.** (1) The Gazette's arms are
+> ranked by LOG ORDER, not by their position in the file — the new caption
+> preempted **THE EMPEROR TAKEN** whenever Paris was logged first, the paper
+> contradicting the briefing that ranks the same two events 101 > 100; fixed
+> for the collision this slice creates, and the older general case **routed,
+> not built** (`BUG_FIXES.md` **WO-43**). (2) Proving the direction guard
+> safe required a census of all six `region_captured` producers, which
+> turned up its mirror image: retaking your own capital logs **no event at
+> all**, so the liberation is invisible to the campaign log, the Gazette and
+> the dispatch's own `region_taken` line (**WO-42**). Both owner = slice 12.
+> (3) Two existing pins staged **Paris** falling and asserted
+> `home_captured` — they were pinning the capital case under the homeland
+> case's name — and are consciously RETARGETED to Lyon rather than deleted.
+>
+> **NEXT = row WO slice 6** ("The Admiralty Speaks Plainly"), then 8 → 9 →
+> 10 → 17 → 11 → 12 → 14.
+
 > # ✅ WO SLICE 5 — REVIEW ROUND HELD AND LANDED, August 22, 2026 (same day).
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 5, the
 > REVIEW-ROUND addendum, authoritative where it amends the landing record

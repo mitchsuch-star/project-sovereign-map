@@ -1,0 +1,128 @@
+[
+  {
+    "id": "S4-1 capital_lost is demoted below home_captured (the ordering pin)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"capital_lost\": 100,\n    \"home_captured\": 99,        # own homeland region captured by enemy",
+    "new": "    \"capital_lost\": 98,\n    \"home_captured\": 99,        # own homeland region captured by enemy",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_ordering_pin_including_the_top_of_the_table tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_measured_turn_now_leads_with_the_capital"
+  },
+  {
+    "id": "S4-2 the sovereign is demoted below the capital (NP-4 reversed)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"sovereign_captured\": 101,",
+    "new": "    \"sovereign_captured\": 99,",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_ordering_pin_including_the_top_of_the_table tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_sovereign_still_outranks_the_capital"
+  },
+  {
+    "id": "S4-3 the capital arm keys on the literal \"Paris\" instead of the map",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _own_capital = world.get_nation_capital(player_nation)",
+    "new": "                _own_capital = \"Paris\"",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestThePredicateIsStructural"
+  },
+  {
+    "id": "S4-4 the capital arm is nested inside the home_regions branch",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                if (_ours_to_lose and _own_capital\n                        and region == _own_capital):",
+    "new": "                if (_ours_to_lose and _own_capital\n                        and region == _own_capital\n                        and region in home_regions):",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestThePredicateIsStructural::test_a_capital_outside_the_starting_regions_still_fires"
+  },
+  {
+    "id": "S4-5 WO-11: the direction guard is dropped (home_captured fires on a liberation)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _ours_to_lose = (prev == player_nation\n                                 or prev in vassals_of_player)",
+    "new": "                _ours_to_lose = True",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestAnAllyLiberatingIsNotAWound"
+  },
+  {
+    "id": "S4-6 WO-11 overshoots: the guard suppresses a REAL loss too",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _ours_to_lose = (prev == player_nation\n                                 or prev in vassals_of_player)",
+    "new": "                _ours_to_lose = False",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheWoundStillFiresWhenItIsReal"
+  },
+  {
+    "id": "S4-7 the guard forgets a vassal's soil is ours to lose",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _ours_to_lose = (prev == player_nation\n                                 or prev in vassals_of_player)",
+    "new": "                _ours_to_lose = (prev == player_nation)",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheWoundStillFiresWhenItIsReal::test_a_vassals_province_is_still_our_loss"
+  },
+  {
+    "id": "S4-8 the diverse tail is removed (the last slot takes the next by weight)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if len(sub_beats) == SUB_BEAT_SLOTS - 1:\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes), pick)",
+    "new": "        if False:\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes), pick)",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheDiverseTail tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_shape_of_the_page_is_order_independent"
+  },
+  {
+    "id": "S4-9 the diverse tail overshoots into a per-class collapse (CA8-5's trap)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if len(sub_beats) == SUB_BEAT_SLOTS - 1:\n            pick = next((c for c in eligible\n                         if c[\"class\"] not in seen_classes), pick)",
+    "new": "        eligible = [c for c in eligible\n                    if c[\"class\"] not in seen_classes] or eligible[:0]\n        if not eligible:\n            break\n        pick = eligible[0]",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheTailNeverSwallowsDistinctNews tests/test_creative_audit_ca8_2026_08_04.py::TestCA85DispatchStutter::test_two_different_marshals_still_get_two_beats tests/test_creative_audit_ca8_2026_08_04.py::TestCA89TheArcJoinsTheBeats::test_another_marshals_break_is_not_absorbed"
+  },
+  {
+    "id": "S4-10 the tail rule is applied to the FIRST slot as well",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if len(sub_beats) == SUB_BEAT_SLOTS - 1:",
+    "new": "        if len(sub_beats) <= SUB_BEAT_SLOTS - 1:",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheDiverseTail::test_the_first_slot_is_ranked_by_weight_not_by_freshness"
+  },
+  {
+    "id": "S4-11 CA8-5 identity dedupe is dropped from the shared key helper",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    return ((candidate[\"class\"], candidate[\"identity\"]),\n            (\"\", candidate[\"text\"]))",
+    "new": "    return ((\"\", candidate[\"text\"]),)",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheTailNeverSwallowsDistinctNews::test_a_repeated_class_is_still_deduped_by_identity tests/test_creative_audit_ca8_2026_08_04.py::TestCA85DispatchStutter::test_three_battles_by_one_marshal_take_one_slot"
+  },
+  {
+    "id": "S4-12 the Gazette keeps the victor's caption for our own capital",
+    "file": "backend/game_logic/gazette.py",
+    "old": "                    if _player_sovereign_taken(world, turn_events):\n                        continue\n                    return \"THE CAPITAL HAS FALLEN\"",
+    "new": "                    if _player_sovereign_taken(world, turn_events):\n                        continue\n                    return \"a capital stormed\"",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption"
+  },
+  {
+    "id": "S4-13 the Gazette's loser-voice arm fires for EVERY capital (the negative)",
+    "file": "backend/game_logic/gazette.py",
+    "old": "                if prev == player:",
+    "new": "                if True:",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption::test_an_enemy_capital_keeps_the_victors_caption tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption::test_a_third_partys_capital_keeps_the_victors_caption"
+  },
+  {
+    "id": "S4-14 the Gazette's NP-4 precedence guard is dropped",
+    "file": "backend/game_logic/gazette.py",
+    "old": "                    if _player_sovereign_taken(world, turn_events):\n                        continue",
+    "new": "                    if False:\n                        continue",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption::test_the_capital_never_outranks_the_emperor"
+  },
+  {
+    "id": "S4-15 the NP-4 guard overshoots to ANY sovereign, not the player's own",
+    "file": "backend/game_logic/gazette.py",
+    "old": "        and str(e.get(\"nation\") or \"\") == player\n        for e in turn_events\n    )",
+    "new": "        for e in turn_events\n    )",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheGazetteCaption::test_a_foreign_sovereign_does_not_suppress_our_caption"
+  },
+  {
+    "id": "S4-16 the new class ships without its Berthier note (the silent CA8-22 failure)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"capital_lost\": \"The army will hear of this before nightfall, Sire. Every order you give today will be read as your answer to it.\",",
+    "new": "",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestWiringAndBlastRadius::test_every_headline_class_has_a_template_and_a_note tests/test_wo_slice4_the_capital_speaks.py::TestWiringAndBlastRadius::test_the_note_actually_reaches_the_built_dispatch"
+  },
+  {
+    "id": "S4-17 the capital template loses its emphatic, distinct sentence",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"capital_lost\": (\"Sire — {region} HAS FALLEN. Our capital is in \"\n                     \"{captor}'s hands, and every courier in Europe is \"\n                     \"already carrying the news.\"),",
+    "new": "    \"capital_lost\": \"Sire — {region} has fallen. Enemy colours fly over French homeland soil.\",",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheCapitalLeads::test_the_measured_turn_now_leads_with_the_capital tests/test_wo_slice4_the_capital_speaks.py::TestThePredicateIsStructural::test_the_class_follows_the_capital_map_not_the_name"
+  },
+  {
+    "id": "S4-18 the slot budget is widened, breaking the meaning of \"the LAST slot\"",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "SUB_BEAT_SLOTS = 2",
+    "new": "SUB_BEAT_SLOTS = 3",
+    "tests": "tests/test_wo_slice4_the_capital_speaks.py::TestTheDiverseTail"
+  }
+]

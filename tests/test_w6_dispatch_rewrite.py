@@ -44,9 +44,16 @@ class TestHeadlineSelection:
         assert _build_headline(world, "France") is None
 
     def test_home_region_captured_is_the_top_story(self):
+        # WO slice 4 (Aug 22 2026), CONSCIOUS RETARGET: this fixture used
+        # PARIS, which is France's capital on the legacy world too — so it
+        # was pinning the capital case under the homeland case's name and
+        # went red the moment `capital_lost` split off. Lyon is French
+        # homeland and is nobody's capital, so the test now pins the class
+        # it is named for. The capital arm is pinned in
+        # tests/test_wo_slice4_the_capital_speaks.py.
         world = WorldFactory.basic()
         world.event_log = [
-            {"type": "region_captured", "region": "Paris",
+            {"type": "region_captured", "region": "Lyon",
              "captured_by": "Prussia", "captured_from": "France",
              "turn": world.current_turn - 1},
             {"type": "marshal_broken", "marshal": "Ney", "nation": "France",
@@ -55,7 +62,7 @@ class TestHeadlineSelection:
         headline = _build_headline(world, "France")
         assert headline["class"] == "home_captured"
         assert headline["weight"] == HEADLINE_WEIGHTS["home_captured"]
-        assert "Paris has fallen" in headline["text"]
+        assert "Lyon has fallen" in headline["text"]
         # The broken marshal becomes a sub-beat, not the headline.
         assert any("Ney" in beat for beat in headline["sub_beats"])
 
@@ -382,8 +389,11 @@ class TestDispatchBuildIntegration:
         ney = MarshalFactory.infantry(name="Ney", location="Belgium",
                                       strength=20000)
         world = WorldFactory.with_marshals([ney])
+        # WO slice 4: retargeted off the capital for the same reason as
+        # TestHeadlineSelection above — this asserts the home_captured
+        # Berthier note, so it must stay on the home_captured class.
         world.event_log = [
-            {"type": "region_captured", "region": "Paris",
+            {"type": "region_captured", "region": "Lyon",
              "captured_by": "Prussia", "captured_from": "France",
              "turn": world.current_turn - 1},
         ]
