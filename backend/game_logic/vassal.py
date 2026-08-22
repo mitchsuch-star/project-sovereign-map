@@ -1100,6 +1100,20 @@ def invest_in_vassal(world, vassal_name: str, actor: str = None) -> dict:
     if lord != actor:
         return {"success": False, "message": f"Cannot invest in {vassal_name}: not your vassal."}
 
+    # WO-D2/G1 contract 6: at full loyalty the verb refuses and charges
+    # NOTHING. It used to charge 1 DP + 200g, clamp the gain to zero, and
+    # report "+10 (100 → 100)" — a paid no-op on the DEFAULT interaction
+    # (two of three boot vassals sit at 100). GR5: the AI invests through
+    # this same function and is spared the same waste.
+    if int(state.get("loyalty", 0) or 0) >= LOYALTY_MAX:
+        return {
+            "success": False,
+            "message": (
+                f"{vassal_name}'s loyalty is already full "
+                f"({LOYALTY_MAX}/{LOYALTY_MAX}) — the investment would buy "
+                f"nothing, so nothing is charged."),
+        }
+
     # Check cooldown
     cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
     if cooldowns.get(vassal_name, 0) > 0:

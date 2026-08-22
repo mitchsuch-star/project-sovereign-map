@@ -649,17 +649,19 @@ THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
     a DEFENDED SHORE (the water is ours, the far coast is not)
     AMBER: that shore is taken by expedition, never by marching.
 
-DIPLOMACY (via Talleyrand - or press F1 for the wizard):
-  assess     - "Talleyrand, assess our situation" (the war room -
-               fronts, threats, counsel; free)
-               "Talleyrand, assess Austria" (one nation)
-  propose    - "propose peace with Austria" (2 DP; also alliance,
-               trade, armistice...)
-  improve    - "improve relations with Prussia" (1 DP/turn)
-  declare war / break treaty / ultimatum - the mailed fist (1-2 DP)
-  vassals    - "invest in Holland" (1 DP + 200g), "grant Holland
-               autonomy", "cede Tyrol to Holland" (1 DP - conquered
-               land binds a satellite by its worth), "release Holland"
+DIPLOMACY - THE CABINET IS THE DOOR (press F1):
+  Matters of state are conducted at the table, not by dispatch.
+  Press F1 (or click [Diplomacy]) for the Cabinet: pick a court,
+  and every treaty, war, mission, vassal matter and design lies
+  there with its price and its odds stated.
+  assess     - "Talleyrand, assess our situation" stays spoken
+               (the war room - fronts, threats, counsel; free);
+               "Talleyrand, assess Austria" for one nation.
+  vassals    - the VASSALS tab of the Strategic Ledger (T) carries
+               invest / autonomy / release chips per satellite;
+               ceding conquered land is in the Cabinet's court page.
+  war terms  - open the war banner on the left and press
+               [Request Terms] to make the enemy name a price.
 
   Press D for the Diplomatic Ledger - all twenty nations of Europe,
   treaties, wars, and the Balance of Europe.

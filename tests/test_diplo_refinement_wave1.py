@@ -116,7 +116,17 @@ class TestAllyParser:
 
 class TestDiplomaticHelpText:
     def test_help_contains_diplomacy_section(self):
-        """Help text should include DIPLOMACY section."""
+        """Help text should include a DIPLOMACY section.
+
+        WO-D2/G1 (WEIRD_OUTCOMES_SPEC §3 slice 7) — CONSCIOUS PIN FLIP,
+        recorded in that slice's landing record. R120 asserted the help
+        teaches the typed verbs `propose` and `improve`; the Cabinet
+        ruling makes those exact sentences redirect to the wizard, so a
+        help that still taught them would be teaching a dead route. The
+        section itself, and `assess` (which deliberately STAYS typed),
+        are asserted as before; what replaces the two struck verbs is
+        the door the help must now name.
+        """
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
         world = make_world()
@@ -124,9 +134,9 @@ class TestDiplomaticHelpText:
         # Need at least one marshal for executor to work
         result = executor._execute_help(None, game_state)
         assert "DIPLOMACY" in result["message"]
-        assert "propose" in result["message"]
         assert "assess" in result["message"]
-        assert "improve" in result["message"]
+        assert "Cabinet" in result["message"]
+        assert "F1" in result["message"]
 
 
 # ═══════════════════════════════════════════════════════

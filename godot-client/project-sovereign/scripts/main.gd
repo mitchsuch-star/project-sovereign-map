@@ -228,6 +228,9 @@ var pending_diorama_data = null   # stashed payload, raised when control returns
 var last_battle_diorama = null    # latest payload for the "⚔ View the field" link
 var _diorama_standalone := false  # dismissal owns the input chain only when true
 
+# WO-D2/G1: the known-court name forms, built once for the Cabinet redirect.
+var _diplo_nation_forms: Array = []
+
 # Load Game Dialog (Phase 6: Save/Load)
 var load_dialog = null
 
@@ -1339,6 +1342,21 @@ func _execute_command():
 		api_client.send_redemption_response(command.to_lower(), _on_redemption_response)
 		return
 
+	# ════════════════════════════════════════════════════════════
+	# WO-D2 "THE CABINET IS THE ONLY DOOR" (G1 — WEIRD_OUTCOMES_SPEC §3
+	# slice 7). The typed diplomatic verb family is conducted through the
+	# Cabinet: Berthier redirects in voice, costs nothing, SENDS NOTHING.
+	# Sited BELOW the redemption token block (§2 G1-9 — the underscore
+	# tokens above can never reach the matcher) and ONLY here: every chip
+	# pipeline (_on_wizard_command_selected / _on_reward_command /
+	# _on_vassal_command / the war-detail request-terms sender) bypasses
+	# by construction (§6 never-do 14). Fail-open: a sentence that does
+	# not clearly match a family head goes to the backend exactly as
+	# before (§6 never-do 15 — verb heads only, never labels or copy).
+	# ════════════════════════════════════════════════════════════
+	if _redirect_diplomatic_command(command):
+		return
+
 	# Disable input while processing
 	set_input_enabled(false)
 
@@ -1349,6 +1367,404 @@ func _execute_command():
 
 	# Send to backend
 	api_client.send_command(command, _on_command_result)
+
+# ════════════════════════════════════════════════════════════
+# WO-D2 "THE CABINET IS THE ONLY DOOR" (G1 — WEIRD_OUTCOMES_SPEC §3
+# slice 7). These lists are a deliberate MIRROR of the mock parser's own
+# diplomatic funnel (`llm_client._parse_command`), NOT a second
+# hand-rolled classifier. That is the whole design: the CA9 through-line
+# is two implementations of one rule drifting apart, so the redirect
+# classifies a sentence EXACTLY as the backend already would — a
+# sentence the parser calls diplomacy is the sentence the Cabinet
+# claims — and the drift pin (tests/test_wo_slice7_cabinet_door.py)
+# reds when the two lists diverge. One double-quoted string per line:
+# the pin regex-extracts them.
+# ════════════════════════════════════════════════════════════
+
+# Checked FIRST, mirroring the parser's own precedence — these three
+# verbs have NO wizard/panel home (§2 G1-11), so redirecting them would
+# make them unreachable outright. They keep their typed route, and the
+# exemption is recorded rather than silent. Precedence matters: "set war
+# purpose against Austria" contains the war-declaration substring "war
+# against ", and the parser checks war purpose first too.
+const DIPLO_NO_HOME_KEYWORDS = [
+	"set war purpose",
+	"war purpose",
+	"set objective",
+	"declare purpose",
+	"set war goal",
+	"repudiate bargain",
+	"repudiate the bargain",
+	"break bargain",
+	"renounce bargain",
+	"cancel bargain",
+	"void bargain",
+	"make amends",
+	"offer amends",
+	"amends with",
+	"amends to",
+	"repair relations",
+	"offer reparations",
+	"send reparations",
+]
+
+# The war room owns this one verb (recorded decision, spec §3 slice 7:
+# the wizard has no request_terms case; the war-detail button is the
+# live, verified home — reversible by removing these two entries).
+const DIPLO_WAR_ROOM_KEYWORDS = [
+	"request terms",
+	"request their terms",
+]
+
+# The Cabinet's family — mirrored from the parser's keyword blocks.
+const DIPLO_FAMILY_KEYWORDS = [
+	"declare war on",
+	"declare war against",
+	"go to war with",
+	"go to war against",
+	"war on ",
+	"war against ",
+	"open hostilities",
+	"declare hostilities",
+	"invade ",
+	"launch war",
+	"ultimatum to",
+	"give ultimatum",
+	"issue ultimatum",
+	"final offer to",
+	"demand surrender",
+	"submit or face",
+	"accept or face war",
+	"send ultimatum",
+	"deliver ultimatum",
+	"surrender or",
+	"submit or",
+	"cancel treaty",
+	"break treaty",
+	"renounce treaty",
+	"end treaty",
+	"tear up treaty",
+	"abrogate",
+	"dissolve treaty",
+	"terminate treaty",
+	"nullify treaty",
+	"revoke treaty",
+	"cancel agreement",
+	"end agreement",
+	"void treaty",
+	"downgrade",
+	"reduce commitment",
+	"step down relations",
+	"lower relations",
+	"cool relations",
+	"ally with",
+	"ally against",
+	"become allies",
+	"form alliance",
+	"form an alliance",
+	"make alliance",
+	"join forces with",
+	"unite with",
+	"unite against",
+	"propose peace",
+	"propose alliance",
+	"propose armistice",
+	"propose treaty",
+	"propose vassalization",
+	"propose vassal",
+	"offer peace",
+	"offer alliance",
+	"offer armistice",
+	"negotiate peace",
+	"negotiate alliance",
+	"negotiate with",
+	"sue for peace",
+	"seek peace",
+	"make peace",
+	"sign treaty",
+	"sign peace",
+	"peace with",
+	"open borders with",
+	"non-aggression with",
+	"non aggression with",
+	"defensive alliance",
+	"pact with",
+	"improve relations with",
+	"charm ",
+	"gather intel on",
+	"spy on ",
+	"undermine ",
+	"reassure ",
+	"send envoy to",
+	"send diplomat to",
+	"common peace",
+	"general peace",
+	"settle the war with",
+	"open settlement with",
+	"settle with",
+	"make vassal",
+	"vassalize",
+	"subjugate",
+	"autonomy",
+	"end the war",
+	"end this war",
+	"stop the war",
+	"i want peace",
+]
+
+# Gated on a NAMED COURT in the remainder — the parser's own P8-1
+# lesson, mirrored ("invest in defenses" and "release prisoners" are
+# not diplomacy, and "court martial" is not courting Bavaria). A
+# false-positive interception is worse than the backdoor it closes
+# (§6 never-do 15).
+const DIPLO_NATION_GATED_PREFIXES = [
+	"invest in ",
+	"release ",
+	"court ",
+]
+
+# Gated on a named court ANYWHERE in the sentence — mirrors the
+# parser's D5 instrument gate ("guarantee our supply lines" must not
+# fire) and its VS-3 cede gate ("grant Ney the duchy of Swabia" has no
+# " to <nation>", so the reward verb is never claimed).
+const DIPLO_NATION_ANYWHERE_KEYWORDS = [
+	"guarantee",
+	"sponsor",
+	"subsidize",
+	"subsidise",
+	"bankroll",
+	"license",
+	"licence",
+	"buy off",
+	"buy out",
+	"pay off",
+]
+
+# The address route. The parser sends ANY diplomat-addressed sentence
+# into the diplomatic funnel, so the Cabinet claims the whole route —
+# an EXEMPTION list, not a whitelist of nouns. A whitelist was the first
+# cut and this slice's own corpus census killed it: fourteen ordinary
+# orders slipped through it ("negotiate a ceasefire with Prussia",
+# "make Saxony a protectorate", "sow discord between Prussia and
+# Austria", "build rapport with Saxony"), because synonym phrasings are
+# exactly what a whitelist cannot enumerate.
+const DIPLO_ADDRESS_NAMES = [
+	"talleyrand",
+	"foreign minister",
+	"ambassador",
+	"diplomat",
+	"envoy",
+	"minister",
+]
+
+# What the address route does NOT claim: counsel (which the help still
+# teaches as spoken — claiming "assess" would make the help a liar), and
+# a military order sent to the wrong man, which already has a better
+# answer than a Cabinet pointer ("Talleyrand, attack Prussia" earns the
+# parser's own diplomatic_error).
+const DIPLO_ADDRESS_EXEMPT_WORDS = [
+	"assess",
+	"advise",
+	"advice",
+	"counsel",
+	"opinion",
+	"report",
+	"brief",
+	"tell me",
+	"remind",
+	"attack",
+	"charge",
+	"bombard",
+	"march",
+	"retreat",
+	"fortify",
+	"drill",
+	"scout",
+	"garrison",
+	"recruit",
+	"defend",
+]
+
+# PARSE-NEG owns a negated sentence, and owns it better: "don't declare
+# war on Austria" must reach the backend's clause guards, which refuse it
+# by name. Both paths execute nothing, so this is not a safety question —
+# it is about which voice answers, and the specialist has the clearer
+# line. Found by this slice's own corpus census.
+const DIPLO_NEGATION_MARKERS = [
+	"don't ",
+	"dont ",
+	"do not ",
+	"never ",
+	"no longer ",
+	"rather than ",
+	"instead of ",
+	"without ",
+]
+
+# A question is counsel, not an order (the contract's read-only
+# exclusion) — "Talleyrand, what would it take to get peace with
+# Prussia?" carries a family keyword and must still reach Talleyrand.
+const DIPLO_ADVISORY_STARTS = [
+	"what",
+	"how",
+	"where",
+	"who",
+	"why",
+	"which",
+	"should",
+	"shall",
+	"can",
+	"could",
+	"would",
+	"will",
+	"is",
+	"are",
+	"am",
+	"do",
+	"does",
+	"did",
+	"have",
+	"has",
+]
+
+func _redirect_diplomatic_command(command: String) -> bool:
+	"""G1: true when the typed sentence is a diplomatic order — Berthier
+	points at the Cabinet (or the war table for request terms), NOTHING
+	is sent and nothing is spent. False = fail-open: the backend sees the
+	sentence exactly as it always did.
+
+	Deliberately NOT claimed, each recorded in the spec's family table:
+	marshal reward verbs (rente / endow / commission — the reward economy
+	is not diplomacy), read-only advisories and questions, dialogue
+	answers (not sentence-shaped), the underscore redemption tokens, and
+	the three verbs with no UI home (make_amends, set_war_purpose,
+	repudiate_bargain)."""
+	var lower := command.to_lower().strip_edges()
+	if lower.is_empty():
+		return false
+
+	# The redemption tokens and any other underscore answer are answers,
+	# not sentences — the placement pin (§2 G1-9) in its strongest form.
+	if "_" in lower:
+		return false
+
+	# Counsel is not an order.
+	if _is_advisory_question(lower):
+		return false
+
+	# A negated sentence belongs to PARSE-NEG's clause guards.
+	for marker in DIPLO_NEGATION_MARKERS:
+		if marker in lower:
+			return false
+
+	# The no-home verbs keep their typed route, checked FIRST exactly as
+	# the parser checks them first.
+	for keyword in DIPLO_NO_HOME_KEYWORDS:
+		if keyword in lower:
+			return false
+
+	for keyword in DIPLO_WAR_ROOM_KEYWORDS:
+		if keyword in lower:
+			add_output("[color=#d9c08c]Berthier: Terms are asked across the table, Sire — open the war banner and press [b]Request Terms[/b].[/color]")
+			command_input.grab_focus()
+			return true
+
+	if not _matches_cabinet_family(lower):
+		return false
+
+	add_output("[color=#d9c08c]Berthier: Matters of state are conducted at the table, Sire — not by dispatch. Take your seat in the Cabinet and the courts of Europe will answer.[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=cabinet:open]⚜ Take your seat at the table (F1)[/url][/color]")
+	AudioManager.play("click")
+	command_input.grab_focus()
+	return true
+
+func _is_advisory_question(lower: String) -> bool:
+	"""Questions and counsel stay spoken — Talleyrand answers them."""
+	if lower.ends_with("?"):
+		return true
+	var body := lower
+	var comma := body.find(",")
+	if comma >= 0 and comma <= 24 and "talleyrand" in body.substr(0, comma):
+		body = body.substr(comma + 1).strip_edges()
+	var words := body.split(" ", false)
+	if words.size() == 0:
+		return false
+	return str(words[0]) in DIPLO_ADVISORY_STARTS
+
+func _matches_cabinet_family(lower: String) -> bool:
+	for keyword in DIPLO_FAMILY_KEYWORDS:
+		if keyword in lower:
+			return true
+	for prefix in DIPLO_NATION_GATED_PREFIXES:
+		var at := lower.find(prefix)
+		if at >= 0 and _names_a_nation(lower.substr(at + prefix.length())):
+			return true
+	if _mentions_a_nation(lower):
+		for keyword in DIPLO_NATION_ANYWHERE_KEYWORDS:
+			if keyword in lower:
+				return true
+		# VS-3 cede: "cede Tyrol to Bavaria" / "grant Tyrol to Bavaria",
+		# gated on the court after "to" exactly as the parser gates it.
+		if ("cede " in lower or "grant " in lower) and _names_court_after_to(lower):
+			return true
+	if _is_diplomat_addressed(lower):
+		for word in DIPLO_ADDRESS_EXEMPT_WORDS:
+			if word in lower:
+				return false
+		return true
+	return false
+
+func _is_diplomat_addressed(lower: String) -> bool:
+	"""True when the sentence OPENS by addressing the foreign minister —
+	scoped to the text before the first comma so prose that merely
+	mentions him ("the treaty Talleyrand signed") is not an order, and
+	so "administer" can never be read as "minister"."""
+	var comma := lower.find(",")
+	if comma < 0 or comma > 30:
+		return false
+	var address := lower.substr(0, comma)
+	for name in DIPLO_ADDRESS_NAMES:
+		if name in address:
+			return true
+	return false
+
+func _nation_forms() -> Array:
+	"""Every known court as tag + display-name lowercase forms, built once."""
+	if _diplo_nation_forms.is_empty():
+		for tag in Utils.NATION_COLORS.keys():
+			var tag_lower := str(tag).to_lower()
+			if not (tag_lower in _diplo_nation_forms):
+				_diplo_nation_forms.append(tag_lower)
+			var display := Utils.display_nation_name(tag).to_lower()
+			if not (display in _diplo_nation_forms):
+				_diplo_nation_forms.append(display)
+	return _diplo_nation_forms
+
+func _names_a_nation(text: String) -> bool:
+	"""True when the remainder of a nation-gated prefix NAMES a court.
+	An unknown remainder fails open — a runtime-carved client's typed
+	release reaches the backend as before (recorded residual)."""
+	var t := text.strip_edges()
+	if t.begins_with("the "):
+		t = t.substr(4)
+	if t.is_empty():
+		return false
+	for form in _nation_forms():
+		if t == form or t.begins_with(str(form) + " ") or t.begins_with(str(form) + ","):
+			return true
+	return false
+
+func _mentions_a_nation(lower: String) -> bool:
+	for form in _nation_forms():
+		if str(form) in lower:
+			return true
+	return false
+
+func _names_court_after_to(lower: String) -> bool:
+	for form in _nation_forms():
+		if (" to " + str(form)) in lower:
+			return true
+	return false
 
 func _configure_response_routes():
 	"""Centralize modal response ordering for _on_command_result()."""
@@ -1623,6 +2039,13 @@ func _on_output_meta_clicked(meta) -> void:
 		# A re-view renders the settled final frame instantly (eval §7 Q1 —
 		# the Replay button inside runs the sequence again on demand).
 		battle_diorama.show_diorama(last_battle_diorama, false)
+		return
+	# WO-D2/G1: Berthier's redirect line carries the door itself — the
+	# link opens the Cabinet exactly as F1 does, same modal guard.
+	if meta_str == "cabinet:open":
+		if not _is_modal_dialog_open():
+			_open_diplomacy_wizard()
+		return
 
 func _show_pending_proclamation() -> bool:
 	"""Show a stashed Proclamation. True when shown — the caller must then

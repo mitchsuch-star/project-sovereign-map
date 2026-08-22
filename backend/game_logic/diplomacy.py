@@ -10619,16 +10619,63 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     actions = []
     active_treaties = getattr(world, 'active_treaties', {})
 
+    def _cancel_mission_row():
+        """DPF-2 cancel-mission row, shared by the vassal branch and the
+        foreign-affairs tail (WO-D2/G1 contract 8: the vassal branch's
+        early `return` used to drop it — once the wizard is the only
+        door, a mission against a later-vassalized court would have lost
+        its only cancel)."""
+        mission = getattr(world, 'active_diplomatic_mission', None)
+        if not mission or mission.get("target") != target_nation:
+            return None
+        initial = int(mission.get("initial_relation") or 0)
+        current_rel = int(world.nation_relations.get(
+            world._make_diplo_key(player, target_nation), 0
+        ) or 0)
+        delta = current_rel - initial
+        turns = int(mission.get("turns_active") or 0)
+        mission_type_raw = mission.get("type", "")
+
+        initial_desc = get_relation_descriptor(initial)
+        current_desc = get_relation_descriptor(current_rel)
+
+        if initial_desc != current_desc:
+            progress_text = (
+                f"{initial_desc} → {current_desc} "
+                f"({'+' if delta >= 0 else ''}{delta}, {turns} turns)")
+        else:
+            progress_text = (
+                f"{current_desc} "
+                f"({'+' if delta >= 0 else ''}{delta} over {turns} turns)")
+
+        return {
+            "action": "cancel_mission",
+            "display_name": f"Cancel: {mission_type_raw.replace('_', ' ').title()}",
+            "dp_cost": 0,
+            "gold_cost": 0,
+            "available": True,
+            "disabled_reason": "",
+            "effect_text": progress_text,
+            "likelihood": "",
+        }
+
     # ── VASSAL MANAGEMENT (§2c) ──
     if target_nation in vassals:
         vassal_state = vassals[target_nation]
         autonomy = vassal_state.get("autonomy", 1)
 
         # Invest in Vassal
+        from backend.game_logic.vassal import LOYALTY_MAX
         invest_available = True
         invest_reason = ""
         invest_cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
-        if target_nation in invest_cooldowns and invest_cooldowns[target_nation] > 0:
+        # WO-D2/G1 contract 6: the executor now refuses free at full
+        # loyalty — the row mirrors it (shown = applied), so the DEFAULT
+        # vassal interaction can no longer render as a paid no-op.
+        if int(vassal_state.get("loyalty", 0) or 0) >= LOYALTY_MAX:
+            invest_available = False
+            invest_reason = "Loyalty is already full"
+        elif target_nation in invest_cooldowns and invest_cooldowns[target_nation] > 0:
             invest_available = False
             invest_reason = f"Cooldown: {invest_cooldowns[target_nation]} turns"
         elif dp < 1:
@@ -10720,6 +10767,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "eligible_regions": grantable,
         })
 
+        # WO-D2/G1 contract 8: a mission opened against this court BEFORE
+        # it was vassalized keeps its cancel — the early return below used
+        # to drop the DPF-2 row.
+        _vassal_cancel_row = _cancel_mission_row()
+        if _vassal_cancel_row:
+            actions.append(_vassal_cancel_row)
+
         return actions
 
     # ── FOREIGN AFFAIRS (§2b) ──
@@ -10772,6 +10826,15 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 turns = get_oathbreaker_turns_remaining(world, target_nation)
                 reason = f"Oathbreaker posture: {turns} turns remaining"
 
+        if target_state == "VASSAL":
+            # WO-D2/G1 (§2 G1-5/G1-6): the emitter consults the SAME single
+            # source the acceptance seam enforces (`VASSAL_MIN_STATES`,
+            # checked at accept + vassal.py) — so a wizard VASSAL row can
+            # never again render from a state the executor would refuse,
+            # and adding a state to the constant lights both seams at once.
+            if state not in VASSAL_MIN_STATES:
+                available = False
+                reason = "Requires war (a dictated peace) or open borders and above"
         if target_state == "VASSAL" and available:
             cap = check_vassalage_power_cap(world, player, target_nation)
             if not cap["allowed"]:
@@ -11083,12 +11146,22 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
 
     elif state == "ALLIANCE":
+        # WO-D2/G1 (§2 G1-3): ALLIANCE is in VASSAL_MIN_STATES and Bavaria
+        # and Spain BOOT at ALLIANCE — with the wizard the only door, the
+        # missing row made vassalizing an ally unreachable while the
+        # acceptance seam had allowed it all along.
+        actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         has_treaty = diplo_key in active_treaties
         bt_available = dp >= 1 and has_treaty
         bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        # WO-D2/G1 contract 8, RECORDED DECISION: `mission_improve_relations`
+        # is deliberately absent in ALLIANCE (REASSURE_ALLY is the
+        # maintenance mission for an ally) and in WAR (you do not court a
+        # belligerent — the armistice thaw and the settlement table are the
+        # war-time levers). Absent by design, not by accident.
         actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
@@ -11112,33 +11185,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     actions.extend(_instrument_actions(world, player, target_nation))
 
     # DPF-2: Cancel mission — only if active mission targets THIS nation
-    if active_mission and active_mission.get("target") == target_nation:
-        initial = int(active_mission.get("initial_relation") or 0)
-        current_rel = int(world.nation_relations.get(
-            world._make_diplo_key(player, target_nation), 0
-        ) or 0)
-        delta = current_rel - initial
-        turns = int(active_mission.get("turns_active") or 0)
-        mission_type_raw = active_mission.get("type", "")
-
-        initial_desc = get_relation_descriptor(initial)
-        current_desc = get_relation_descriptor(current_rel)
-
-        if initial_desc != current_desc:
-            progress_text = f"{initial_desc} \u2192 {current_desc} ({'+' if delta >= 0 else ''}{delta}, {turns} turns)"
-        else:
-            progress_text = f"{current_desc} ({'+' if delta >= 0 else ''}{delta} over {turns} turns)"
-
-        actions.append({
-            "action": "cancel_mission",
-            "display_name": f"Cancel: {mission_type_raw.replace('_', ' ').title()}",
-            "dp_cost": 0,
-            "gold_cost": 0,
-            "available": True,
-            "disabled_reason": "",
-            "effect_text": progress_text,
-            "likelihood": "",
-        })
+    # (single source shared with the vassal branch, WO-D2/G1 contract 8).
+    _tail_cancel_row = _cancel_mission_row()
+    if _tail_cancel_row:
+        actions.append(_tail_cancel_row)
 
     return actions
 
