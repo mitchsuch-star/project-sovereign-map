@@ -4,7 +4,7 @@
 
 ## ▶ NEXT UP
 
-> # ▶ ROW WO — THE EXIT ITEMS, August 21, 2026 (fourth session that day). **The three owed VISUAL SIGN-OFFS have their EVIDENCE CAPTURED and are waiting on the user's eye; WO-D7..D11 are CARRIED under hard contracts; WO-35/WO-36 are in build.** Sign-off pack = `docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`; carry contracts = `docs/DESIGN_REFINEMENT.md` §WO-D7..D11 CARRY CONTRACTS, authoritative.
+> # ▶ ROW WO — THE EXIT ITEMS, August 21, 2026 (fourth session that day). **✅ ALL THREE VISUAL SIGN-OFFS SIGNED BY THE USER August 22, 2026** (frames put in front of the user, sign-off given — the DoD item is discharged) **and ✅ WO-D9 GATE RULED August 22, 2026 at the recommended default** (wire the existing `get_trust_gain_modifier` damper at the objection trust-pay seam; NO per-marshal cooldown; the authority-band asymmetry recorded deliberate; landing = row WO slice 9 — record in `DESIGN_REFINEMENT.md` §WO-D7..D11). **WO-D7..D11 are CARRIED under hard contracts; WO-35/WO-36 are in build.** Sign-off pack = `docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`; carry contracts = `docs/DESIGN_REFINEMENT.md` §WO-D7..D11 CARRY CONTRACTS, authoritative.
 >
 > **The sign-off harness is committed, not a one-off:**
 > `tools/wo_signoff_screenshot.gd` boots the REAL `main.tscn` against a

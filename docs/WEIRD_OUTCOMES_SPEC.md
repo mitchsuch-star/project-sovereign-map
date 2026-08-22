@@ -904,8 +904,9 @@ wants the price closed.
 > — now with a named mechanism. Closing it needs a backend-side gate
 > (G1(a)), which the ruling records as the named layer-on-top.
 >
-> **Visual sign-off — EVIDENCE CAPTURED August 21, 2026, USER SIGN-OFF
-> PENDING.** Both surfaces, in the REAL `main.tscn` against a sandboxed
+> **Visual sign-off — EVIDENCE CAPTURED August 21, 2026; ✅ USER SIGN-OFF
+> GIVEN August 22, 2026** (the frames were put in front of the user and
+> signed). Both surfaces, in the REAL `main.tscn` against a sandboxed
 > backend on `SOVEREIGN_PORT=8006`, by the committed harness
 > `tools/wo_signoff_screenshot.gd`:
 > `docs/audits/WO_SIGNOFF_1_CABINET_REDIRECT_2026_08_21.png` — typing
@@ -1480,8 +1481,9 @@ modal; the PF-3 pin stays green.
 > covers every path that ASKS, not every path that captures; that one
 > belongs to slice 17.
 >
-> **Visual sign-off — EVIDENCE CAPTURED August 21, 2026, USER SIGN-OFF
-> PENDING.** `docs/audits/WO_SIGNOFF_3_LOAD_CAPTURE_2026_08_21.png`, taken in
+> **Visual sign-off — EVIDENCE CAPTURED August 21, 2026; ✅ USER SIGN-OFF
+> GIVEN August 22, 2026** (the frame was put in front of the user and
+> signed). `docs/audits/WO_SIGNOFF_3_LOAD_CAPTURE_2026_08_21.png`, taken in
 > the REAL `main.tscn` against a sandboxed backend on `SOVEREIGN_PORT=8006`
 > by the committed harness `tools/wo_signoff_screenshot.gd`. It drives the
 > client's OWN entry point — `_apply_world_swap_response`, which is exactly
@@ -1848,8 +1850,9 @@ list + the method rule; suite green; boot smoke 0 SCRIPT ERROR for the
 `.gd`-touching slices (7, 8, **and 15** — XR-1 rule); and **the three owed
 visual sign-offs SIGNED by the user** — evidence captured August 21, 2026
 (`docs/audits/WO_SIGNOFF_{1_CABINET_REDIRECT,2_WIZARD_FROM_LINK,3_LOAD_CAPTURE}_2026_08_21.png`,
-harness `tools/wo_signoff_screenshot.gd`), which discharges the *capture*
-half only. The row does not close on screenshots the user has not looked at.
+harness `tools/wo_signoff_screenshot.gd`); **✅ SIGNED August 22, 2026 —
+the three frames were put in front of the user and the sign-off given.
+This DoD item is DISCHARGED.**
 
 ---
 
