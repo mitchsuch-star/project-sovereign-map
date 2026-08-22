@@ -33,7 +33,8 @@
 > seeds (P1)** — the arm spends 3 DP a turn, the incoming
 > `settlement_confirm`'s first option then costs DP France has not got, the
 > executor refuses without popping, and the driver re-sent the same word
-> forever (`ulm`: blocked at turn 11 of 18; it completes now).
+> forever (`ulm`: blocked at turn 11 of 18). After the fix **all seven seeds
+> complete** with 0 cycles, 0 left-standing and 0 unknown blockers.
 > **③ The war room buried the signable peace (P1/P2)** — rung 1's losing
 > arm returned first off the COLLAPSED row and named its leader, a court
 > the scorer refused at 21–28, while a stuck court in the same row would

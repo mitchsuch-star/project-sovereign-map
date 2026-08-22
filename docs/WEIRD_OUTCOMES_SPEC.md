@@ -782,7 +782,10 @@ NAMES it, nothing replaces it.
 > dialogue identity (never reset, because the wedge repeated across turns):
 > a word the executor rejected is never re-sent, the next option is tried,
 > and an exhausted list is left standing and says so. Measured after:
-> `ulm` **completes**.
+> **all seven seeds complete** — 0 `ANSWER CYCLE`, 0 `(left standing)`, 0
+> unknown blockers — with 8–17 refusals per run now stated in the engine's
+> own words instead of rendered as signed answers (austerlitz 15 · ulm 14 ·
+> historical 8 · jena 13 · marengo 12 · wagram 17 · borodino 13).
 >
 > **③ The war room buried the signable peace behind an unsignable one —
 > P1/P2, 7 of 13 snapshots across three seeds** (17 of 41 in the fleet's
