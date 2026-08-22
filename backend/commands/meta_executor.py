@@ -625,9 +625,13 @@ THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
                400g). 2 keels/turn at most - 1 under blockade.
                New crews come aboard GREEN; only sea-time drills
                a navy. Ships are laid down in a yard we control.
-  blockade   - "blockade the enemy" (1 AP) - the fleet pins EVERY
-               at-war enemy's ports at once: their trade halves,
-               their crews rot at anchor while ours drill.
+  blockade   - "blockade the enemy" (1 AP) - the fleet closes an
+               at-war enemy's ports where our sail outmatches
+               hers (1.25x her effective strength): her trade
+               halves and her crews rot at anchor. A court we
+               cannot outmatch is not closed, and a fleet that is
+               itself blockaded does not drill. The Admiralty
+               board names both, court by court.
   guard      - "guard home waters" (1 AP) - cover every crossing
                that touches our own coast.
   land       - "land Soult in Munster" (2 AP) - a small expedition

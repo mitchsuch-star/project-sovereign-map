@@ -31,7 +31,7 @@ under `world.fleets[META_KEY]` — the jealousy `__levels__` idiom: one
 serialized field, dunder-keyed meta, skipped by every fleet iterator.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CONSTANTS (spec §7 — gate-blessed defaults, in-band tunable; structural
@@ -387,6 +387,182 @@ def blockaded_nations(world) -> List[str]:
     return sorted(out)
 
 
+def blockade_forecast(world, actor: str) -> Dict[str, Any]:
+    """WO-14 (row WO slice 6): who a blockade by `actor` ACTUALLY closes,
+    who it cannot reach, and by how much — the ONE source both producers
+    read.
+
+    Both the executor's order message and the Admiralty chip used to build
+    their "currently:"/"closes" set as *every at-war court with a `navies`
+    row*, never intersected with the pin predicate. Measured on the 1805
+    boot, France's order named Austria, Britain and Russia; Britain is not
+    pinnable by anyone on that board (her threshold is 125.0 against
+    France's 31.5) and the message promised it anyway.
+
+    PURE, and deliberately so — it never touches `posture`. That is what
+    lets the executor call it after the flip to state a present fact and
+    the chip call it while still on `guard` to forecast one, without the
+    chip having to mutate the world or read `blockaded_nations()`, which
+    at that moment returns the courts BRITAIN is pinning, France among
+    them (spec §3 slice 6, correction 2).
+
+    A partner only pools into coverage if it is ALREADY on blockade
+    (`match_posture`), which is the same rule `blockader_against` applies
+    — so the forecast cannot promise an ally's sail that will not sail.
+    """
+    closes: List[Dict[str, Any]] = []
+    beyond: List[Dict[str, Any]] = []
+    for target in world.get_nations_at_war_with(actor):
+        rec = get_fleet(world, target)
+        if rec is None:
+            continue          # no naval entry: not blockadable at all
+        needed = BLOCKADE_RATIO * effective_strength(rec)
+        ours = combined_effective(world, actor, target,
+                                  match_posture="blockade")
+        row = {"nation": target, "ours": round(ours, 1),
+               "needed": round(needed, 1)}
+        (closes if ours >= needed else beyond).append(row)
+    closes.sort(key=lambda r: r["nation"])
+    beyond.sort(key=lambda r: r["nation"])
+    return {
+        "closes": closes,
+        "beyond_reach": beyond,
+        # The inverted-drill root: a blockading fleet that is ITSELF
+        # blockaded still rots (`_readiness_tick` short-circuits on the
+        # blockaded arm before any posture credit). At the 1805 boot the
+        # speaker of the old drill boast is the only French fleet on the
+        # board, and it is the one rotting.
+        "self_blockaded_by": blockader_against(world, actor)[0],
+    }
+
+
+def _name_list(nations: List[str]) -> str:
+    """Player-facing join, through the R7 display chokepoint. Producer 2
+    got this at NV-9 and producer 1 never did, so the order message could
+    render `closes KingdomOfItaly` the moment Italy entered the war."""
+    from backend.display_names import display_nation
+    shown = [display_nation(n) for n in nations]
+    if not shown:
+        return ""
+    if len(shown) == 1:
+        return shown[0]
+    return ", ".join(shown[:-1]) + " and " + shown[-1]
+
+
+def blockade_forecast_sentence(world, actor: str) -> str:
+    """The honest blockade sentence, shared by the order message, the
+    Admiralty chip note and `help`. States what closes, what does not and
+    by what margin, and never claims a drill the mechanic does not grant.
+    """
+    fc = blockade_forecast(world, actor)
+    parts: List[str] = []
+    if fc["closes"]:
+        parts.append(
+            f"{_name_list([r['nation'] for r in fc['closes']])} "
+            f"{'is' if len(fc['closes']) == 1 else 'are'} closed — their "
+            f"ports watched and their trade halved.")
+    else:
+        parts.append("No enemy port is closed by it.")
+    for row in fc["beyond_reach"]:
+        parts.append(
+            f"{_name_list([row['nation']])} is beyond our reach: "
+            f"{row['ours']:.0f} sail-effective against her, where "
+            f"{row['needed']:.0f} is needed.")
+    if fc["self_blockaded_by"]:
+        parts.append(
+            f"And we are blockaded ourselves — "
+            f"{_name_list([fc['self_blockaded_by']])} stands off our coast, "
+            f"so our own crews go on rotting at anchor whatever station we "
+            f"take.")
+    return " ".join(parts)
+
+
+def _garrison_detachment_size() -> int:
+    """The executor's own constant, read not copied — the over-lift copy
+    and the Admiralty term both quote it, and a divergence between the
+    quoted figure and the applied one is the CA9 through-line exactly."""
+    from backend.commands.economy_executor import EconomyExecutor
+    return int(EconomyExecutor.GARRISON_DETACHMENT_SIZE)
+
+
+class _LazyInt:
+    """`_GARRISON_DETACHMENT` must not import the executor at module load
+    (naval is imported by it), so the value resolves on first format."""
+
+    def __format__(self, spec):
+        return format(_garrison_detachment_size(), spec)
+
+    def __int__(self):
+        return _garrison_detachment_size()
+
+
+_GARRISON_DETACHMENT = _LazyInt()
+
+
+def over_lift_refusal(world, marshal) -> str:
+    """WO slice 6: the refusal a corps too big for the transports gets.
+
+    It used to read "Detach the excess first ('X, garrison 15,000 men
+    here')". Measured on the 1805 boot, that advice is illegal for every
+    French marshal on every province:
+
+      * `garrison` detaches a FIXED `GARRISON_DETACHMENT_SIZE` (3,000) —
+        it cannot take the quoted amount, whatever the amount is;
+      * `GARRISON_MAX_PER_NATION` is 3 and France holds exactly 3 at boot
+        (Paris, Normandy, Flanders), so the verb refuses everywhere; and
+      * on unheld soil — the beachhead case — it refuses outright.
+
+    `garrison` is the only verb in `VALID_ACTIONS` that reduces a
+    marshal's strength, so for a 30,000-man corps there is frequently NO
+    road at all, and the honest sentence says so rather than sending the
+    player at a wall. The arithmetic quoted here is stated, never
+    promised: it names the fixed detachment and the live garrison count,
+    both facts, instead of predicting a gate it does not own.
+    """
+    from backend.commands.economy_executor import EconomyExecutor
+    lift = EXPEDITION_MAX_TROOPS
+    troops = int(marshal.strength)
+    excess = troops - lift
+    held = sum(1 for r in world.get_nation_regions(marshal.nation)
+               if world.regions[r].garrison_strength > 0)
+    cap = EconomyExecutor.GARRISON_MAX_PER_NATION
+    detach = EconomyExecutor.GARRISON_DETACHMENT_SIZE
+    # Is there another corps that COULD sail? Named, because "send a
+    # smaller corps" is only advice if one exists.
+    eligible = sorted(
+        (m for m in world.get_marshals_by_nation(marshal.nation)
+         if m.name != marshal.name and 0 < int(m.strength) <= lift),
+        key=lambda m: -int(m.strength))
+    parts = [f"The transports lift {lift:,} men; {marshal.name} commands "
+             f"{troops:,} — {excess:,} too many."]
+    if held >= cap:
+        parts.append(
+            f"He cannot be lightened: a garrison detaches a fixed "
+            f"{detach:,}, and we already hold our {cap} "
+            f"({held} of {cap} in all).")
+    else:
+        need = -(-excess // detach)          # ceil
+        room = cap - held
+        if need <= room:
+            parts.append(
+                f"Detaching {need} garrison{'s' if need > 1 else ''} of "
+                f"{detach:,} would bring him under the lift — we have "
+                f"{room} of our {cap} still free.")
+        else:
+            parts.append(
+                f"He cannot be lightened: a garrison detaches a fixed "
+                f"{detach:,}, so it would take {need} of them and only "
+                f"{room} of our {cap} remain.")
+    if eligible:
+        best = eligible[0]
+        parts.append(f"Send a corps of {lift:,} or fewer instead — "
+                     f"{best.name} stands at {int(best.strength):,}.")
+    else:
+        parts.append(f"No corps of ours is under the lift this turn, so "
+                     f"none can sail.")
+    return " ".join(parts)
+
+
 def blockade_trade_loss(world) -> Dict[str, int]:
     """{nation: gold lost to blockade this turn} — the signed "Blockade" Net
     component. Trade income stays FULL at the `calculate_trade_income`
@@ -698,7 +874,8 @@ def is_hostile_shore(world, mover_nation: str, to_region: str) -> bool:
 
 
 def crossing_check(world, mover_nation: str,
-                   from_region: str, to_region: str) -> Dict:
+                   from_region: str, to_region: str,
+                   mover_strength: Optional[int] = None) -> Dict:
     """THE predicate (§4.1) — consulted at every movement seam, both sides
     (GR5). Returns a verdict dict; `allowed` is the only key a gate needs,
     the rest feed the honest refusal and the Crossings verdict line
@@ -773,10 +950,31 @@ def crossing_check(world, mover_nation: str,
             f"{_fleet_label(coverer, coverer_rec)} commands the water with "
             f"{coverer_ships} sail ({result['coverage']:.0f} effective) "
             f"against our {result['mover_effective']:.0f}. "
-            "Build or pool a fleet to contest the passage, or land a small "
-            "expedition where the patrols are thin."
+            + _shut_remedy(mover_strength)
         )
     return result
+
+
+def _shut_remedy(mover_strength: Optional[int]) -> str:
+    """WO slice 6: the SHUT refusal's remedy clause, corps-size aware.
+
+    It ended "or land a small expedition where the patrols are thin" for
+    every corps, including one three times the transports' lift — advice
+    that walks the player straight into the over-lift refusal. The gate
+    itself is nation-level and never sees the marshal, so callers who KNOW
+    the corps pass its strength; every caller that does not keeps the old
+    sentence exactly. `allowed` and `verdict` are computed before this and
+    are untouched, so this is message-only at every one of the ~25 seams
+    that inherit the predicate.
+    """
+    base = "Build or pool a fleet to contest the passage"
+    if mover_strength is not None and mover_strength > EXPEDITION_MAX_TROOPS:
+        return (f"{base} — this corps is {mover_strength:,} strong and the "
+                f"transports lift {EXPEDITION_MAX_TROOPS:,}, so no "
+                f"expedition can carry it.")
+    return (f"{base}, or land a small expedition "
+            f"({EXPEDITION_MAX_TROOPS:,} men or fewer) where the patrols "
+            f"are thin.")
 
 
 def _fleet_label(nation: str, rec: dict) -> str:
@@ -1832,10 +2030,42 @@ def build_admiralty_report(world) -> Dict:
     elif over_corps:
         smallest = min(over_corps, key=lambda m: int(m.strength))
         corps_detail = (
-            f"{smallest.name} commands {int(smallest.strength):,} — detach "
-            f"{int(smallest.strength) - EXPEDITION_MAX_TROOPS:,} first")
+            f"{smallest.name} commands {int(smallest.strength):,} — "
+            f"{int(smallest.strength) - EXPEDITION_MAX_TROOPS:,} over the "
+            f"lift, and a garrison sheds only "
+            f"{_GARRISON_DETACHMENT:,} at a time")
     else:
-        corps_detail = "march a corps to a yard"
+        # ── WO slice 6: the else-arm told the player to do something that
+        # helps ONE corps in eight. Measured at the 1805 boot: no French
+        # marshal stands at a yard OR on a coast, so this arm always fires
+        # — and of the eight corps, seven are ABOVE the 15,000 lift, for
+        # whom marching to a yard changes nothing, because `garrison` is
+        # the only verb in the game that reduces a marshal's strength and
+        # it detaches a fixed 3,000 against a nation-wide cap of 3.
+        # "March a corps to a yard" was, for seven of eight, a road that
+        # leads to the over-lift refusal. It now names WHICH corps the
+        # advice is for, and says plainly when the only one is the
+        # sovereign.
+        _under = sorted((m for m in player_corps
+                         if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS),
+                        key=lambda m: -int(m.strength))
+        if not _under:
+            corps_detail = (
+                f"no corps of ours is under the {EXPEDITION_MAX_TROOPS:,} "
+                f"lift — an expedition needs a smaller command, and only a "
+                f"garrison sheds strength ({_GARRISON_DETACHMENT:,} at a "
+                f"time)")
+        elif yards:
+            corps_detail = (
+                "march "
+                + ", ".join(f"{m.name} ({int(m.strength):,})"
+                            for m in _under[:3])
+                + " to a yard — "
+                + ("; ".join(yards[:3]) if len(yards) <= 3
+                   else "; ".join(yards[:3]) + " …"))
+        else:
+            corps_detail = (
+                "we hold no dockyard to embark from — take or build one")
     # Verify-fleet copy corrections (Aug 2026): term 1 is scoped to HOME
     # embarkation (the executor's abroad arm has no yard requirement), and
     # term 2 names both lawful embark states.
@@ -1884,19 +2114,45 @@ def build_admiralty_report(world) -> Dict:
         else:
             blockadable = [n for n in world.get_nations_at_war_with(player)
                            if get_fleet(world, n) is not None]
-            # NV-9 (R7): the chip note is player-facing prose, so the tags
-            # go through the display chokepoint — "closes KingdomOfItaly"
-            # was reachable the moment Italy entered the war.
-            from backend.display_names import display_nation
+            # ── WO-14 (row WO slice 6): the chip forecasts HONESTLY ──────
+            # It named every at-war court with a naval row and said
+            # "closes" all of them. Measured at the boot: "closes Austria,
+            # Britain, Russia", where Britain needs 125.0 against our 31.5.
+            #
+            # It reads `blockade_forecast`, NOT `blockaded_nations()`: this
+            # chip renders only while we are still on `guard`, and at that
+            # moment `blockaded_nations()` returns the courts BRITAIN is
+            # pinning — France, Holland and Spain — so a literal reading
+            # would have told the player her own blockade closes her own
+            # harbours. The forecast is pure and never touches posture,
+            # which is exactly what makes it safe to ask here.
+            #
+            # The chip stays ENABLED when the order closes nobody: the
+            # order is still legal and still uncovers our coast. Honest
+            # availability means saying what it will do, not hiding it.
+            _fc = blockade_forecast(world, player)
+            if _fc["closes"]:
+                _note = "closes " + _name_list(
+                    [r["nation"] for r in _fc["closes"]])
+                if _fc["beyond_reach"]:
+                    _r = _fc["beyond_reach"][0]
+                    _note += (f" — not {_name_list([_r['nation']])} "
+                              f"({_r['ours']:.0f} against her, "
+                              f"{_r['needed']:.0f} needed)")
+            elif _fc["beyond_reach"]:
+                _r = _fc["beyond_reach"][0]
+                _note = (f"closes no enemy port — {_name_list([_r['nation']])} "
+                         f"needs {_r['needed']:.0f} and we can bring "
+                         f"{_r['ours']:.0f}")
+            else:
+                _note = ""
             chips.append({
                 "command": "blockade the enemy",
                 "label": "Blockade the enemy",
                 "enabled": bool(blockadable),
                 "reason": ("" if blockadable else
                            "no enemy at sea to blockade"),
-                "note": ("closes " + ", ".join(
-                    sorted(display_nation(n) for n in blockadable))
-                    if blockadable else "")})
+                "note": _note})
     else:
         # NV-12 (recon trap 9): the whole list used to be gated on
         # own_ships > 0 — which deleted the Orders header, every

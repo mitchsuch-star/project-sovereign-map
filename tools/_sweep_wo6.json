@@ -1,0 +1,156 @@
+[
+  {
+    "id": "S6-1 the blockade set goes back to every at-war naval court (WO-14)",
+    "file": "backend/game_logic/naval.py",
+    "old": "        (closes if ours >= needed else beyond).append(row)",
+    "new": "        closes.append(row)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheForecastIsTheOneSource tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_order_no_longer_promises_britain tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheChipForecastsHonestly::test_the_chip_names_what_the_order_would_close_and_what_it_cannot"
+  },
+  {
+    "id": "S6-2 the forecast counts allies who are NOT blockading (the recon memo's own 54)",
+    "file": "backend/game_logic/naval.py",
+    "old": "        ours = combined_effective(world, actor, target,\n                                  match_posture=\"blockade\")",
+    "new": "        ours = combined_effective(world, actor, target)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheForecastIsTheOneSource::test_a_partner_who_is_not_blockading_is_not_counted"
+  },
+  {
+    "id": "S6-3 the forecast stops reporting that we are blockaded ourselves",
+    "file": "backend/game_logic/naval.py",
+    "old": "        \"self_blockaded_by\": blockader_against(world, actor)[0],",
+    "new": "        \"self_blockaded_by\": None,",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheForecastIsTheOneSource::test_the_self_blockade_is_reported tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_inverted_drill_claim_is_gone"
+  },
+  {
+    "id": "S6-4 the forecast mutates posture to measure (the chip would start a blockade)",
+    "file": "backend/game_logic/naval.py",
+    "old": "    closes: List[Dict[str, Any]] = []\n    beyond: List[Dict[str, Any]] = []",
+    "new": "    closes: List[Dict[str, Any]] = []\n    beyond: List[Dict[str, Any]] = []\n    (get_fleet(world, actor) or {})[\"posture\"] = \"blockade\"",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheForecastIsTheOneSource::test_the_forecast_never_touches_posture"
+  },
+  {
+    "id": "S6-5 the order message drops the R7 display chokepoint",
+    "file": "backend/game_logic/naval.py",
+    "old": "    from backend.display_names import display_nation\n    shown = [display_nation(n) for n in nations]",
+    "new": "    shown = list(nations)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_order_goes_through_the_display_chokepoint"
+  },
+  {
+    "id": "S6-6 the chip reads the live pin set instead of the forecast (it would name OUR ports)",
+    "file": "backend/game_logic/naval.py",
+    "old": "            _fc = blockade_forecast(world, player)",
+    "new": "            _fc = {\"closes\": [{\"nation\": n, \"ours\": 0.0, \"needed\": 0.0}\n                              for n in blockaded_nations(world)],\n                   \"beyond_reach\": [], \"self_blockaded_by\": None}",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheChipForecastsHonestly::test_the_chip_does_not_read_the_live_pin_set"
+  },
+  {
+    "id": "S6-7 the chip is disabled when it would close nobody (hiding instead of saying)",
+    "file": "backend/game_logic/naval.py",
+    "old": "                _note = (f\"closes no enemy port — {_name_list([_r['nation']])} \"\n                         f\"needs {_r['needed']:.0f} and we can bring \"\n                         f\"{_r['ours']:.0f}\")",
+    "new": "                _note = \"\"",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheChipForecastsHonestly::test_the_chip_stays_enabled_when_it_would_close_nobody"
+  },
+  {
+    "id": "S6-8 the guard message lifts a pressure it never applied",
+    "file": "backend/commands/naval_executor.py",
+    "old": "        _was_closing = ([r[\"nation\"]\n                         for r in naval.blockade_forecast(world, actor)[\"closes\"]]\n                        if previous == \"blockade\" else [])",
+    "new": "        _was_closing = [r[\"nation\"]\n                        for r in naval.blockade_forecast(world, actor)[\"closes\"]]",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_guard_order_does_not_lift_a_pressure_it_never_applied"
+  },
+  {
+    "id": "S6-9 the help text teaches the pin-everything promise again (the third producer)",
+    "file": "backend/commands/meta_executor.py",
+    "old": "               at-war enemy's ports where our sail outmatches",
+    "new": "               at-war enemy's ports at once - their crews rot at\n               anchor while ours drill; our sail outmatches",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheHelpNoLongerTeachesTheLie"
+  },
+  {
+    "id": "S6-10 the over-lift refusal advertises the illegal garrison again",
+    "file": "backend/commands/naval_executor.py",
+    "old": "            return {\"success\": False,\n                    \"message\": naval.over_lift_refusal(world, marshal)}",
+    "new": "            return {\"success\": False, \"message\": (\n                f\"The transports can lift {naval.EXPEDITION_MAX_TROOPS:,} \"\n                f\"men; {marshal.name} commands {troops:,}. Detach the excess \"\n                f\"first ('{marshal.name}, garrison \"\n                f\"{troops - naval.EXPEDITION_MAX_TROOPS:,} men here').\")}",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_the_executor_uses_the_single_source"
+  },
+  {
+    "id": "S6-11 the refusal stops quoting the real detachment size and cap",
+    "file": "backend/game_logic/naval.py",
+    "old": "            f\"He cannot be lightened: a garrison detaches a fixed \"\n            f\"{detach:,}, and we already hold our {cap} \"\n            f\"({held} of {cap} in all).\")",
+    "new": "            f\"He cannot be lightened here.\")",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_it_quotes_the_real_detachment_and_the_real_cap tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_it_no_longer_advertises_an_illegal_garrison"
+  },
+  {
+    "id": "S6-12 the refusal names a corps the transports cannot lift either",
+    "file": "backend/game_logic/naval.py",
+    "old": "         if m.name != marshal.name and 0 < int(m.strength) <= lift),",
+    "new": "         if m.name != marshal.name and 0 < int(m.strength)),",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_it_names_a_corps_that_could_actually_sail"
+  },
+  {
+    "id": "S6-13 the refusal claims a road when there is none",
+    "file": "backend/game_logic/naval.py",
+    "old": "        parts.append(f\"No corps of ours is under the lift this turn, so \"\n                     f\"none can sail.\")",
+    "new": "        parts.append(\"Send a corps of 15,000 or fewer instead.\")",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_it_says_plainly_when_no_corps_is_under_the_lift"
+  },
+  {
+    "id": "S6-14 the corps term goes back to the one-size-fits-all march order",
+    "file": "backend/game_logic/naval.py",
+    "old": "            corps_detail = (\n                \"march \"\n                + \", \".join(f\"{m.name} ({int(m.strength):,})\"\n                            for m in _under[:3])",
+    "new": "            corps_detail = (\n                \"march a corps to a yard\"\n                + \"\".join(\"\" for m in _under[:3])",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheCorpsTerm::test_the_boot_advice_names_the_one_corps_it_is_for tests/test_naval_ui_clarity.py::TestExpeditionTerms::test_terms_carry_met_and_detail"
+  },
+  {
+    "id": "S6-15 the corps term stays silent when no corps is under the lift",
+    "file": "backend/game_logic/naval.py",
+    "old": "                f\"no corps of ours is under the {EXPEDITION_MAX_TROOPS:,} \"",
+    "new": "                f\"march a corps to a yard ({EXPEDITION_MAX_TROOPS:,} \"",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheCorpsTerm::test_it_says_so_when_no_corps_is_under_the_lift"
+  },
+  {
+    "id": "S6-16 the over-corps arm promises a detachment again",
+    "file": "backend/game_logic/naval.py",
+    "old": "            f\"{int(smallest.strength) - EXPEDITION_MAX_TROOPS:,} over the \"\n            f\"lift, and a garrison sheds only \"\n            f\"{_GARRISON_DETACHMENT:,} at a time\")",
+    "new": "            f\"detach {int(smallest.strength) - EXPEDITION_MAX_TROOPS:,} first\")",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheCorpsTerm::test_the_over_corps_arm_stops_promising_a_detachment"
+  },
+  {
+    "id": "S6-17 the Grand Diversion loses its modal subject (MARSHAL ASKS: returns)",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                    \"marshal\": \"The Admiralty\",",
+    "new": "",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheDiversionHasASubject"
+  },
+  {
+    "id": "S6-18 the SHUT refusal advertises an expedition to a corps over the lift",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if mover_strength is not None and mover_strength > EXPEDITION_MAX_TROOPS:",
+    "new": "    if False:",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheShutRefusalIsCorpsAware::test_a_corps_over_the_lift_is_not_offered_an_expedition"
+  },
+  {
+    "id": "S6-19 the SHUT refusal withholds the expedition from a corps that COULD take it",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if mover_strength is not None and mover_strength > EXPEDITION_MAX_TROOPS:",
+    "new": "    if True:",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheShutRefusalIsCorpsAware::test_a_corps_under_the_lift_still_is tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheShutRefusalIsCorpsAware::test_a_caller_that_knows_nothing_keeps_the_old_sentence"
+  },
+  {
+    "id": "S6-20 the movement seam stops threading the corps (the fix becomes unreachable in play)",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                                       mover_strength=int(marshal.strength))",
+    "new": "                                       )",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheShutRefusalIsCorpsAware::test_the_player_facing_callers_thread_the_corps"
+  },
+  {
+    "id": "S6-21 the remedy clause is allowed to move the verdict (it must be message-only)",
+    "file": "backend/game_logic/naval.py",
+    "old": "        result[\"verdict\"] = \"shut\"",
+    "new": "        result[\"verdict\"] = \"shut\"\n        result[\"allowed\"] = mover_strength is not None",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheShutRefusalIsCorpsAware::test_the_verdict_itself_is_untouched"
+  },
+  {
+    "id": "S6-22 the two blockade producers are allowed to disagree again",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                    + naval.blockade_forecast_sentence(world, actor)",
+    "new": "                    + \"Every port of every enemy is watched at once.\"",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheChipForecastsHonestly::test_the_two_producers_agree tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_order_no_longer_promises_britain"
+  }
+]

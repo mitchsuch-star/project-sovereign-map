@@ -4188,8 +4188,10 @@ class CombatExecutor:
                         # DEF-5 naval §4.1: the approach may not walk a covered strait
                         if getattr(world, "fleets", None):
                             from backend.game_logic.naval import crossing_check
-                            _cross = crossing_check(world, marshal.nation,
-                                                    marshal.location, best_next)
+                            _cross = crossing_check(
+                                world, marshal.nation, marshal.location,
+                                best_next,
+                                mover_strength=int(marshal.strength))
                             if not _cross["allowed"]:
                                 return {
                                     "success": False,

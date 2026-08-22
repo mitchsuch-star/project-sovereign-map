@@ -155,8 +155,12 @@ class MovementExecutor:
         # would be a false suggestion when the attack is also sea-gated).
         if getattr(world, "fleets", None):
             from backend.game_logic.naval import crossing_check
+            # WO slice 6: the corps is known here, so the SHUT refusal
+            # can stop advertising an expedition that cannot lift it.
+            # Message-only — `allowed` is computed before the remedy.
             _crossing = crossing_check(world, marshal.nation,
-                                       marshal.location, target_name)
+                                       marshal.location, target_name,
+                                       mover_strength=int(marshal.strength))
             if not _crossing["allowed"]:
                 return {
                     "success": False,

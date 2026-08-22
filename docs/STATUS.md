@@ -4,6 +4,59 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 6 — "THE ADMIRALTY SPEAKS PLAINLY" LANDED, August 22, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 6,
+> authoritative — and it records that THE CONTRACT WAS WRONG IN TWELVE
+> PLACES.** A six-reader recon fleet ran on the committed tree *before* a
+> line was written (the slice-4 lesson, now standing practice) and
+> corrected the spec's own account of the mechanism repeatedly — the row's
+> recurring pattern for the fourth time.
+> `tests/test_wo_slice6_the_admiralty_speaks_plainly.py` (33); sweep
+> `tools/_sweep_wo6.json` **22 killed, 0 inert** (one INERT pin found and
+> replaced — a guarded `if` assertion, the shape slice 16 already found
+> twice). Suite **18,549 / 3**, ruff clean, zero `.gd`, zero new fields;
+> `BASELINE_SERIES` and M1–M7 green by their real runs.
+>
+> **Measured at the boot, then fixed:** the order named *"Austria,
+> Britain, Russia"* as closed when Britain needs **125.0** against
+> France's **31.5** and is unpinnable by anyone on that board — while
+> Austria (ships-0, threshold 0.00) genuinely is pinned and pays 175g a
+> turn, so only ONE of the three was false and dropping the ports-only
+> courts would have been a regression. Both producers now read one pure
+> source, `naval.blockade_forecast`.
+>
+> **The correction that changed what got built:** `blockaded_nations()`
+> is the WRONG predicate at both producers — it returns everyone pinned
+> by ANYONE, which at boot is **France, Holland and Spain**, so following
+> the spec literally would have told the player her own blockade closes
+> her own harbours. The Admiralty chip is a FORECAST (it renders only
+> while on `guard`), so the forecast is pure and never touches posture —
+> pinned. Also: *"53.82 vs 125.0"* is not a Continental-System gap at all
+> but the blockade coverage ratio, and the copy uses **31.5**, the number
+> the predicate actually uses — the recon's own suggested figure counted
+> allies who are not blockading.
+>
+> Also landed: a **third** producer of the inverted drill line found in
+> `help`; the GUARD message no longer lifts a pressure it never applied
+> (which exposed a real bug in the first cut — the release list must be
+> read BEFORE the posture write); the over-lift refusal stops advertising
+> a garrison that is illegal on **French** soil too (cap 3, France holds
+> 3, fixed 3,000 detachments — `garrison` is the only verb that sheds
+> strength, so for a 30,000-man corps there is frequently no road, and
+> the copy says so); the Admiralty's corps term names the ONE corps its
+> advice is for instead of all eight; the Grand Diversion's modal stops
+> opening **MARSHAL ASKS:** (subject `"The Admiralty"` — it has no
+> marshal, and the admiral is unsafe: 4 of 10 fleets have none); and the
+> SHUT-crossing refusal stops offering an expedition to a corps twice the
+> lift, message-only with `allowed`/`verdict`/`coverage` pinned unchanged.
+>
+> One existing pin consciously RE-BLESSED
+> (`test_naval_ui_clarity.py::test_terms_carry_met_and_detail` asserted
+> the literal *"march a corps to a yard"* — the defect itself).
+>
+> **NEXT = row WO slice 8**, then 9 → 10 → 17 → 11 → 12 → 14. ⚠ Slice 6
+> has had NO review round and NO in-game pass; both are owed.
+
 > # ✅ WO SLICE 4 — "THE CAPITAL SPEAKS" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 4,
 > authoritative.** All five contract items, plus one collision the slice

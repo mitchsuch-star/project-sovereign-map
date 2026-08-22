@@ -1198,6 +1198,114 @@ corps is never advised an illegal remedy; zero behavior change on the
 expedition executor (copy-only proven by the naval test families staying
 green unmodified).
 
+> **✅ LANDED August 22, 2026 — landing record, authoritative. THE CONTRACT
+> ABOVE IS WRONG IN TWELVE PLACES** and this record is what was built. A
+> six-reader recon fleet ran on the committed tree BEFORE a line was
+> written (the slice-4 lesson), measured every string on the 1805 board,
+> and corrected the spec's own account of the mechanism repeatedly — which
+> is the row's recurring pattern for the fourth time.
+> `tests/test_wo_slice6_the_admiralty_speaks_plainly.py` (33); sweep
+> `tools/_sweep_wo6.json` — **22 mutations, 22 killed, 0 inert** (one INERT
+> pin found and replaced). Suite **18,549 / 3**, ruff clean, zero `.gd`,
+> zero new serialized fields; `BASELINE_SERIES` byte-identical and M1–M7
+> green by their real runs.
+>
+> **The corrections that changed what got built:**
+>
+> 1. **`blockaded_nations()` is the WRONG predicate at BOTH producers** —
+>    it returns everyone pinned by ANYONE, and at the 1805 boot that
+>    includes **France, Holland and Spain**, the courts Britain is
+>    pinning. Rendering it would have told the player her own blockade
+>    closes her own harbours. The right question is ownership, and the
+>    slice answers it with a new pure single source,
+>    `naval.blockade_forecast`, which both producers now read.
+> 2. **The Admiralty chip is a FORECAST, not a statement.** It renders only
+>    while we are still on `guard` (once blockading it is replaced by
+>    "Recall to home waters"), so it must predict the posture flip. The
+>    forecast is pure and never touches `posture` — that purity is what
+>    makes it safe to ask from a render path, and it is pinned.
+> 3. **"53.82 vs 125.0" is not a Continental-System closure gap.** Closure
+>    is a fraction with notches at 0.40/0.60/0.80 and sits at 0.3846 on the
+>    boot — already computed and already rendered. Those two figures are
+>    BLOCKADE coverage: 125.0 = ratio 1.25 × Britain's 100.0 effective, and
+>    53.82 is `combined_effective` called WITHOUT `match_posture`. The
+>    slice writes no CS sentence, and uses **31.5**, not 53.82 — the recon
+>    memo's own suggested copy quoted the unfiltered figure, which counts
+>    allies who are not blockading and would promise sail that will not
+>    sail. Pinned (`test_a_partner_who_is_not_blockading_is_not_counted`).
+> 4. **Naming Austria was never part of the bug.** Her authored row is
+>    ships-0 / ports-1, so her threshold is 0.00: she IS pinned and she DOES
+>    pay 175g/turn. Only Britain was false. Dropping the ports-only courts
+>    would have been a regression.
+> 5. **There is a THIRD producer of the inverted drill line** — the `help`
+>    text, which taught the false promise before the player ever gave the
+>    order. A whole-backend census pins that no producer claims it again.
+> 6. **The drill claim was inverted three ways, not one:** France is
+>    herself blockaded at boot and rots 5/turn toward the floor
+>    (`_readiness_tick` short-circuits on the blockaded arm before any
+>    posture credit); Britain, blockading, sits at her ceiling; and of the
+>    three courts named only Russia had crews to rot at all. The order now
+>    says so out loud.
+> 7. **The mirror falsity nobody had filed:** the GUARD message said
+>    "Blockade pressure on the enemy is lifted" unconditionally. Found by
+>    this slice's own test, and it exposed a real bug in the first cut —
+>    the release list must be read BEFORE the posture write, or a fleet
+>    that had sat in home waters all game announces releasing Austria and
+>    Russia.
+> 8. **Items (b) and (e)-first-half are the SAME STRING.** There is no
+>    second impossible-remedy refusal; the other four refusals in
+>    `_execute_naval_expedition` each name a road that exists.
+> 9. **The garrison remedy is illegal on FRENCH soil too**, not only on
+>    unheld beachheads as the contract says: `GARRISON_MAX_PER_NATION` is 3
+>    and France holds exactly 3 at boot, and the verb detaches a FIXED
+>    3,000 — it could never take the amount the old copy quoted. `garrison`
+>    is the only verb in `VALID_ACTIONS` that reduces strength, so for a
+>    30,000-man corps there is frequently **no road at all**, and
+>    `naval.over_lift_refusal` says so rather than sending the player at a
+>    wall.
+> 10. **`corps_detail`'s named defect has a nearly-empty domain and the
+>     REAL one is different.** The contract asks for a fourth arm telling a
+>     marshal at a dockyard which gate he failed — but the `0 < strength`
+>     guard it would key on is dead code (`get_marshals_by_nation` already
+>     filters it). The measured defect is the ELSE arm: at boot no French
+>     marshal stands at a yard *or* on a coast, so it always fires, and its
+>     advice — "march a corps to a yard" — helps ONE of eight corps, the
+>     other seven being above the lift with no verb that can lighten them.
+>     Built: the arm names the corps the advice is actually for.
+> 11. **The Grand Diversion has no marshal to stamp.** The KEY stays
+>     `marshal` (both client consumers read it, and the slice touches no
+>     `.gd`), but the VALUE is `"The Admiralty"` — the admiral is not safe
+>     either, 4 of the 10 authored fleets have no `admiral` row and the
+>     popup's `.get()` default does not fire on a present-but-null key.
+>     There are TWO client consumers, not the one the contract names, and
+>     the subject reads correctly in both ("THE ADMIRALTY ASKS:" upper-cased
+>     in the title, "The Admiralty requests clarification" in the terminal).
+> 12. **The Done-when's proof is vacuous.** "Copy-only proven by the naval
+>     test families staying green unmodified" would pass with every message
+>     replaced by an empty string — nothing in those families binds the
+>     executor's text. Green-after-change proves no MECHANIC moved and
+>     nothing about the copy. This slice's own 33 tests and 22 mutations
+>     carry that weight instead.
+>
+> **One existing pin consciously RE-BLESSED:**
+> `test_naval_ui_clarity.py::test_terms_carry_met_and_detail` asserted the
+> literal `"march a corps to a yard"` — which is precisely the defect. It
+> now pins the PROPERTY: the detail names a corps that is actually under
+> the lift, and never one the transports cannot carry.
+>
+> **The SHUT-crossing fix is message-only by construction.** `crossing_check`
+> is nation-level and never sees the marshal, so it takes an optional
+> `mover_strength` used ONLY in the remedy clause — `allowed`, `verdict` and
+> `coverage` are computed before it and are pinned unchanged across every
+> strength. The two seams that DO know the corps thread it; every other
+> caller keeps the old sentence exactly.
+>
+> **Line-number drifts corrected:** the order block is `:105-114` (spec says
+> `:107-115`); the Diversion payload dict is `:426-449` (spec says
+> `:410-433`, which is the confirm guard plus half a message string); the
+> economy guard is not at `:912-916`. `naval.py:1885-1899`, `:1805-1838`,
+> `:377-387` and `clarification_popup.gd:32`/`:39` are all correct.
+
 ### Slice 7 — WO-D2 "The Cabinet Is The Only Door" (G1 build, est 1)
 
 **Scope.** The G1 ruling lands: the typed diplomatic verb family is redirected

@@ -103,21 +103,55 @@ class NavalExecutor:
                 "(close every at-war enemy's ports) or 'guard home waters'.")}
 
         previous = rec.get("posture", "guard")
+        # Who we were ACTUALLY pinning, read BEFORE the flip. The forecast
+        # answers "what would a blockade by us close", which is the right
+        # question for the blockade arm and the WRONG one for the guard
+        # arm — asked after the write it told a fleet that had been sitting
+        # in home waters all game that it was "releasing" Austria and
+        # Russia. Ownership, not membership: `blockaded_nations()` would
+        # hand back the courts BRITAIN is pinning.
+        _was_closing = ([r["nation"]
+                         for r in naval.blockade_forecast(world, actor)["closes"]]
+                        if previous == "blockade" else [])
         rec["posture"] = posture
-        at_war = [n for n in world.get_nations_at_war_with(actor)
-                  if naval.get_fleet(world, n) is not None]
         if posture == "blockade":
-            covered = ", ".join(sorted(at_war)) if at_war else "no one — we are at peace"
-            message = (
-                f"The fleet stands out to sea on blockade. Every port of every "
-                f"enemy is watched at once (currently: {covered}) — their "
-                f"crews rot at anchor while ours drill. Our own coasts go "
-                f"unguarded.")
+            # ── WO-14 (row WO slice 6): the order states what it DOES ────
+            # It used to name every at-war court with a `navies` row and
+            # promise all of them pinned. Measured on the 1805 boot it
+            # named "Austria, Britain, Russia" and Britain is unpinnable by
+            # anyone on that board — 125.0 needed against France's 31.5.
+            # The set now comes from `naval.blockade_forecast`, the same
+            # source the Admiralty chip reads, computed AFTER the posture
+            # write above so it is a present fact and not a forecast.
+            #
+            # The drill claim is gone rather than reworded: it was inverted
+            # three ways at once (see `blockade_forecast`) — the fleet that
+            # rots at the boot is OURS.
+            at_war = [n for n in world.get_nations_at_war_with(actor)
+                      if naval.get_fleet(world, n) is not None]
+            if not at_war:
+                message = ("The fleet stands out to sea on blockade. There "
+                           "is no enemy at sea to close — we are at peace. "
+                           "Our own coasts go unguarded.")
+            else:
+                message = (
+                    "The fleet stands out to sea on blockade. "
+                    + naval.blockade_forecast_sentence(world, actor)
+                    + " Our own coasts go unguarded.")
         else:
+            # The mirror falsity: "pressure is lifted" was unconditional,
+            # so a fleet that had pinned nobody announced relieving a siege
+            # it never laid.
             message = (
                 "The fleet returns to home waters on guard — every crossing "
-                "touching our own coast is covered. Blockade pressure on the "
-                "enemy is lifted, and their crews will begin to recover.")
+                "touching our own coast is covered."
+                + (" "
+                   + naval._name_list(_was_closing)
+                   + (" is" if len(_was_closing) == 1 else " are")
+                   + " released, and their crews will begin to recover."
+                   if _was_closing else
+                   " No blockade pressure is lifted; we were closing no "
+                   "enemy port."))
         if previous == posture:
             message = f"The fleet already holds that station. {message}"
         world.log_event({
@@ -184,12 +218,12 @@ class NavalExecutor:
             return {"success": False,
                     "message": f"{marshal.name} commands no troops."}
         if troops > naval.EXPEDITION_MAX_TROOPS:
-            return {"success": False, "message": (
-                f"The transports can lift {naval.EXPEDITION_MAX_TROOPS:,} "
-                f"men; {marshal.name} commands {troops:,}. Detach the excess "
-                f"first ('{marshal.name}, garrison "
-                f"{troops - naval.EXPEDITION_MAX_TROOPS:,} men here') — small "
-                "expeditions slip past, armies do not.")}
+            # WO slice 6: the refusal named a remedy the executor refuses
+            # everywhere on the boot board. `naval.over_lift_refusal` owns
+            # the honest sentence — one source, so the region panel's
+            # sibling can share it.
+            return {"success": False,
+                    "message": naval.over_lift_refusal(world, marshal)}
 
         quote = naval.expedition_slip_odds(world, marshal.nation, target, troops)
 
@@ -429,6 +463,21 @@ class NavalExecutor:
                     "state": "awaiting_clarification",
                     "type": "clarification",
                     "naval_confirm": True,
+                    # WO slice 6: the modal had no subject, so it opened
+                    # "MARSHAL ASKS:" — and the terminal line beside it
+                    # read "Marshal requests clarification". The KEY must
+                    # stay `marshal` (both client consumers read it and the
+                    # slice touches no `.gd`), but a Grand Diversion has no
+                    # marshal: `_execute_naval_diversion` never reads
+                    # `world.marshals`, `resolve_diversion` is nation-keyed,
+                    # and the parser refuses "Villeneuve, order the
+                    # diversion". The admiral is NOT a safe subject either —
+                    # 4 of the 10 authored fleets have no `admiral` row. So
+                    # the subject is the standing institution, which reads
+                    # correctly in BOTH renderings: the title upper-cases it
+                    # ("THE ADMIRALTY ASKS:") and the terminal line does not
+                    # ("The Admiralty requests clarification").
+                    "marshal": "The Admiralty",
                     "original_command": command.get("raw_command", ""),
                     "message": (
                         f"The Grand Diversion is drawn up, Sire — once, "

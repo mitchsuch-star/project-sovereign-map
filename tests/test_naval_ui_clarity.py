@@ -43,8 +43,26 @@ class TestExpeditionTerms:
         assert "15,000" in terms[1]["text"]
         # Boot: every French corps is a big army inland — the term is unmet
         # and says what to do about it.
+        #
+        # WO slice 6, CONSCIOUS RE-BLESS: this asserted the literal
+        # "march a corps to a yard", which is precisely the defect the
+        # slice fixes. Measured at the boot, that advice was true for ONE
+        # of France's eight corps — the other seven are above the 15,000
+        # lift and no verb in the game sheds enough strength, so for them
+        # it was a road ending at the over-lift refusal. The pin is now on
+        # the PROPERTY (the detail names a corps that is actually under the
+        # lift, and a yard to march it to) rather than on the sentence.
         assert terms[1]["met"] is False
-        assert "march a corps to a yard" in terms[1]["detail"]
+        detail = terms[1]["detail"]
+        assert "march" in detail and "yard" in detail, detail
+        under = [m for m in world.get_marshals_by_nation("France")
+                 if 0 < int(m.strength) <= naval.EXPEDITION_MAX_TROOPS]
+        assert under, "the boot board must have at least one eligible corps"
+        assert any(m.name in detail for m in under), (detail, [m.name for m in under])
+        over = [m for m in world.get_marshals_by_nation("France")
+                if int(m.strength) > naval.EXPEDITION_MAX_TROOPS]
+        assert not any(m.name in detail for m in over), (
+            "the advice named a corps the transports cannot lift", detail)
 
     def test_ready_corps_named_when_one_qualifies(self, world):
         yards = naval.controlled_dockyards(world, "France")
