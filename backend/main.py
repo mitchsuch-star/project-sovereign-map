@@ -4479,8 +4479,9 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         if blocker:
             from backend.display_names import dialogue_display_name
             named = dialogue_display_name(blocker)
-            message = (f"{named[:1].upper()}{named[1:]} is still before you, "
-                       f"Sire — settle that first.")
+            # Number-neutral — see the note at the sibling refusal.
+            message = (f"{named[:1].upper()}{named[1:]} still stands before "
+                       f"you, Sire — settle that first.")
         else:
             message = "That letter is no longer in the mailbox, Sire."
         return {
@@ -4612,7 +4613,10 @@ def respond_to_mailbox_item(request: MailboxRespondRequest):
             from backend.display_names import dialogue_display_name
             named = dialogue_display_name(blocker)
             response = _refuse(
-                f"{named[:1].upper()}{named[1:]} still holds your attention, "
+                # Number-neutral: several display strings are plural noun
+                # phrases ("the terms you are drafting"), and "…is still
+                # before you" read as a grammar bug to the player.
+                f"{named[:1].upper()}{named[1:]} still awaits your word, "
                 f"Sire. Settle that before answering the lesser courts.")
             response["activation_blocked"] = True
             return response

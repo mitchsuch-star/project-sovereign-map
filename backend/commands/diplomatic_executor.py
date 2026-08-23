@@ -705,7 +705,13 @@ class DiplomaticExecutor:
 
         if not target_nation or not mission_type:
             dialogue = generate_mission_dialogue(diplomatic_data, world)
-            world.dialogue_manager.replace(dialogue)
+            # Aug 23, 2026: `preempt`, not `replace` — a player-initiated
+            # read-out must never DESTROY the dialogue it displaces. Same
+            # defect fixed for the advisory; measured here too (one queued
+            # Saxony letter, mailbox 1 -> 0). The wizard-step `replace(`
+            # calls elsewhere in this file are correct: they replace the
+            # wizard's OWN dialogue with its next step.
+            world.dialogue_manager.preempt(dialogue)
             return {
                 "success": True,
                 "message": dialogue.get("talleyrand_text", ""),
@@ -745,7 +751,13 @@ class DiplomaticExecutor:
 
         # Generate mission confirmation dialogue
         dialogue = generate_mission_dialogue(diplomatic_data, world)
-        world.dialogue_manager.replace(dialogue)
+        # Aug 23, 2026: `preempt`, not `replace` — a player-initiated
+        # read-out must never DESTROY the dialogue it displaces. Same
+        # defect fixed for the advisory; measured here too (one queued
+        # Saxony letter, mailbox 1 -> 0). The wizard-step `replace(`
+        # calls elsewhere in this file are correct: they replace the
+        # wizard's OWN dialogue with its next step.
+        world.dialogue_manager.preempt(dialogue)
         return {
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),
@@ -765,7 +777,13 @@ class DiplomaticExecutor:
         from backend.game_logic.diplomacy import calculate_acceptance
 
         dialogue = generate_feasibility_dialogue(diplomatic_data, world)
-        world.dialogue_manager.replace(dialogue)
+        # Aug 23, 2026: `preempt`, not `replace` — a player-initiated
+        # read-out must never DESTROY the dialogue it displaces. Same
+        # defect fixed for the advisory; measured here too (one queued
+        # Saxony letter, mailbox 1 -> 0). The wizard-step `replace(`
+        # calls elsewhere in this file are correct: they replace the
+        # wizard's OWN dialogue with its next step.
+        world.dialogue_manager.preempt(dialogue)
 
         # R31: Run acceptance formula to get component breakdown
         target_nation = diplomatic_data.get("target_nation", "")

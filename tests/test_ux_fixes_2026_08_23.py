@@ -129,21 +129,34 @@ def _asset_duration(rel):
 
 
 def _parse_cues():
-    """{cue: (files[], max_s or None)} straight out of the .gd registry."""
+    """{cue: (files[], max_s or None)} straight out of the .gd registry.
+
+    Asserts it parsed EVERY registry row. A cue the regex silently skipped —
+    one with a digit in its name, or wrapped across two lines — would be
+    exempt from the census below, which is the one hole that would let an
+    over-long cue ship again unnoticed.
+    """
     src = _script("audio_manager.gd")
     body = src[src.index("const CUES := {"):]
     body = body[:body.index("\n}\n")]
+    rows = [ln for ln in body.split("\n")
+            if ln.startswith('\t"') and '"files"' in ln]
     out = {}
-    for m in re.finditer(r'^\t"([a-z_]+)": \{(.+)\},?\s*$', body, re.M):
+    for m in re.finditer(r'^\t"([a-z_0-9]+)": \{(.+)\},?\s*$', body, re.M):
         cue, spec = m.group(1), m.group(2)
         files = re.findall(r'"([a-z_0-9]+/[^"]+)"', spec)
         cap = re.search(r'"max_s":\s*([0-9.]+)', spec)
         out[cue] = (files, float(cap.group(1)) if cap else None)
+    assert len(out) == len(rows), (
+        "the cue parser skipped %d registry row(s) — they would be exempt "
+        "from the length census" % (len(rows) - len(out)))
     return out
 
 
 # A one-shot fired by a UI interaction has to be over quickly. Anything longer
 # is a deliberate ceremony and has to say so here, by name, with its budget.
+# `_fade_stop` begins its fade AT the cap, so audible length is cap + this.
+_FADE_S = 0.8
 UI_CUE_CEILING_S = 4.0
 CEREMONY_BUDGET_S = {
     "bells_peal": 6.0,      # the Proclamation — a new nation is declared
@@ -168,9 +181,11 @@ class TestNoCuePlaysLongerThanItsMoment:
             budget = CEREMONY_BUDGET_S.get(cue, UI_CUE_CEILING_S)
             for rel in files:
                 measured = _asset_duration(rel)
-                if measured is None:
-                    continue
-                effective = min(measured, cap) if cap else measured
+                assert measured is not None, (
+                    "%s: %s could not be measured — an unmeasurable asset is "
+                    "exempt from this census, the hole it exists to close"
+                    % (cue, rel))
+                effective = min(measured, cap + _FADE_S) if cap else measured
                 if effective > budget + 0.01:
                     offenders.append(
                         f"{cue} ({rel}): asset {measured:.1f}s, cap "
@@ -191,6 +206,25 @@ class TestNoCuePlaysLongerThanItsMoment:
     def test_the_registry_is_the_default_and_the_argument_still_wins(self):
         src = _script("audio_manager.gd")
         assert 'max_seconds if max_seconds > 0.0 else float(spec.get("max_s"' in src
+
+    def test_the_cap_is_actually_handed_to_the_fade(self):
+        """The whole mechanism could be neutered in place with the suite
+        green: replacing `_fade_stop(p, cap)` with `pass`, or widening the
+        guard to `cap > 99.0`, left 39 tests passing while the 38.6s cue
+        played in full again (review round, 4b09e59)."""
+        src = _script("audio_manager.gd")
+        body = src[src.index("func _play_cue("):]
+        body = body[:body.index("\n\nfunc ")]
+        assert "if cap > 0.0:" in body, "the cap guard was widened or removed"
+        tail = body[body.index("if cap > 0.0:"):]
+        assert "_fade_stop(p, cap)" in tail, (
+            "the resolved cap must actually be handed to _fade_stop")
+
+    def test_the_fade_really_stops_the_player(self):
+        src = _script("audio_manager.gd")
+        body = src[src.index("func _fade_stop("):]
+        body = body[:body.index("\n\n\n")]
+        assert "p.stop()" in body and "tween_property" in body
 
     def test_a_rejected_play_does_not_poison_the_throttle(self):
         """The stamp used to be written above the budget and missing-file
@@ -281,6 +315,24 @@ class TestAReadOutNeverBlocksTheLetterBook:
             "mutation sweep: this pin was inert)")
         assert dm.activate_mailbox_item(4) is None
         assert dm.peek()["type"] == "some_future_unclassified_type"
+        # PAIRED, per the review round: denying and naming must agree. The
+        # first cut denied here while `active_blocker_type` returned "" for
+        # the same type, so the refusal shipped `activation_blocked: false`
+        # and told the player the letter did not exist — over a panel that
+        # stayed open on top of the modal.
+        assert dm.active_blocker_type() == "some_future_unclassified_type"
+
+    def test_the_real_unclassified_producer_is_named(self):
+        """`settlement_scope_replace_confirm` is in no taxonomy set and IS
+        produced by `settlement_staging`. It must block, be named as a
+        blocker, and have a human name."""
+        dm = DialogueManager()
+        dm.replace({"type": "settlement_scope_replace_confirm", "options": []})
+        dm.push(_mailbox_item(mailbox_id=6, dialogue_id=6))
+        assert dm.activate_mailbox_item(6) is None
+        assert dm.active_blocker_type() == "settlement_scope_replace_confirm"
+        named = dialogue_display_name("settlement_scope_replace_confirm")
+        assert "_" not in named and named != "another matter"
 
     def test_hard_stops_still_refuse(self):
         dm = DialogueManager()
@@ -329,6 +381,41 @@ class TestTheClientStopsCoveringTheMatterItNames:
             assert 'response.get("activation_blocked", false)' in body, fn
             assert "mailbox_panel.hide()" in body, fn
 
+    def test_control_is_handed_back_on_EVERY_activation_failure(self):
+        """`api_client` synthesises `{success: false}` for a timeout, a
+        connection failure, a JSON parse error and any non-200 — none of them
+        carry `activation_blocked`. With the hand-back nested inside that
+        branch, a backend hiccup left the command line, Send, End Turn and
+        Diplomacy all disabled with nothing on screen, recoverable only by
+        F1 (review round, 4b09e59)."""
+        src = _script("main.gd")
+        body = src[src.index("func _on_mailbox_activate_result("):]
+        body = body[:body.index("\nfunc ")]
+        fail = body[body.index('if not response.get("success", false):'):]
+        hand_back = fail.index("set_input_enabled(true)")
+        blocked = fail.index('if response.get("activation_blocked"')
+        assert hand_back < blocked, (
+            "the hand-back must not be nested inside the blocked-only branch")
+
+
+class TestTheLapseWarningStaysVisibleWhileItIsArmed:
+
+    def test_reviewing_envoys_keeps_the_prompt_up(self):
+        """The one place the confirmation was armed and its indicator hidden:
+        close the panel — which grab-focuses the command line — and a single
+        Enter lapsed every unanswered envoy with nothing on screen saying a
+        confirmation was pending."""
+        src = _script("main.gd")
+        body = src[src.index("func _on_envoy_clicked():"):]
+        body = body[:body.index("\nfunc ")]
+        assert "if not _awaiting_end_turn_confirmation:" in body, (
+            "armed-and-visible must be one state")
+        idx = body.index("if not _awaiting_end_turn_confirmation:")
+        after = body[idx:]
+        assert "_set_open_envoys_prompt_visible(false)" in \
+            after[:after.index("\n\t_dismissed_proposal_nation")], (
+            "the guard must be the one wrapping the prompt-hide")
+
 
 class TestTypedEndTurnCanActuallyConfirmTheLapse:
     """The user's literal sentence. The lapse warning tells the player to
@@ -353,9 +440,22 @@ class TestTypedEndTurnCanActuallyConfirmTheLapse:
             "confirmation route structurally impossible")
 
     def test_an_unrelated_command_still_drops_the_latch(self):
+        """Anchored to REACHABILITY, not to "appears somewhere below".
+
+        The first version asserted only that the clear existed after the
+        dispatch index — so moving it beneath the redemption return and the
+        Cabinet-redirect return kept the pin green while every redirected
+        sentence left the latch armed (review round, 4b09e59)."""
         body = self._execute_command_body()
-        dispatch = body.index('if command.to_lower() == "end turn":')
-        assert self._FN_LEVEL_CLEAR in body[dispatch:]
+        after = body[body.index('if command.to_lower() == "end turn":'):]
+        # skip the dispatch branch's own return
+        rest = after[after.index("return") + len("return"):]
+        clear = rest.find(self._FN_LEVEL_CLEAR)
+        assert clear != -1, "the latch is never dropped for other commands"
+        next_return = rest.find("\n\t\treturn")
+        assert next_return == -1 or clear < next_return, (
+            "the latch clear sits below an early return, so a redirected or "
+            "recovered command leaves the confirmation armed")
 
     def test_a_bare_enter_still_confirms(self):
         """The empty-command branch is the OTHER route the warning names, and
@@ -395,6 +495,27 @@ class TestAskingTalleyrandNeverLosesALetter:
         before = dm.get_mailbox_count()
         dm.preempt({"type": "advisory", "options": []})
         assert dm.get_mailbox_count() == before, "the letter was lost"
+
+    def test_every_player_initiated_readout_preempts(self):
+        """The review round found the first fix applied to the ADVISORY only,
+        while `feasibility` — whose type this very commit made disposable —
+        and both `mission` arms still destroyed the letter they displaced.
+
+        Scoped deliberately: the many `replace(` calls in this file that
+        advance a WIZARD to its next step are correct and must not be swept
+        up. This pins the three entry points that create a fresh dialogue
+        while something else may hold the slot."""
+        with open(os.path.join(REPO_ROOT, "backend", "commands",
+                               "diplomatic_executor.py"), encoding="utf-8") as fh:
+            src = fh.read()
+        for verb in ("_execute_diplomatic_advisory",
+                     "_execute_diplomatic_feasibility",
+                     "_execute_diplomatic_mission"):
+            body = src[src.index("def %s(" % verb):]
+            body = body[:body.index("\n    def ")]
+            assert "dialogue_manager.replace(dialogue)" not in body, (
+                "%s still destroys the dialogue it displaces" % verb)
+            assert "dialogue_manager.preempt(dialogue)" in body, verb
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -442,6 +563,222 @@ class TestPayingRetiresTheAsking:
         dotation.dismiss_reward_notices(world, ney)
         assert not rows("Ney")
         assert rows("Davout"), "Davout's grievance is not Ney's to settle"
+
+
+class TestTheDismissalIsWiredAtEverySeamAndOnlyWhenSettled:
+    """The review round mutated all three non-pension seams to `pass`
+    simultaneously and the FULL suite stayed green — only `grant_pension` was
+    bound. It also showed the dismissal firing on any success, so endowing a
+    0g war-torn province silenced a HIGH alarm that was still true."""
+
+    def _rows(self, world, name="Ney"):
+        return [n for n in world.notifications.get_pending()
+                if n.get("details", {}).get("marshal") == name]
+
+    def _owed(self, world, wins=2):
+        ney = _ney(world)
+        ney.battles_won = wins
+        world._dotation_processed_turn = None
+        world._process_dotation_state()
+        assert self._rows(world), "precondition: a row is up"
+        return ney
+
+    def test_an_estate_that_settles_him_retires_the_row(self):
+        from backend.commands.executor import CommandExecutor
+
+        world = _europe_world()
+        ney = self._owed(world, wins=1)           # expectation 40
+        region = next(r for r in world.regions.values()
+                      if r.controller not in ("France", None)
+                      and not r.is_capital and r.income_value >= 100)
+        region.controller = "France"
+        region.stability = 90
+        region.war_damage = 0.0
+
+        CommandExecutor().execute(
+            {"command": {"action": "grant_dotation", "marshal": "Ney",
+                         "target": region.name}}, {"world": world})
+        if dotation.get_shortfall(ney, world) <= 0:
+            assert self._rows(world) == [], (
+                "an endowment that settles the debt must retire the row in "
+                "the same call")
+
+    def test_a_partial_payment_does_NOT_silence_the_still_true_alarm(self):
+        """Endowing a 0g war-torn province, or granting a token rente, leaves
+        the shortfall open — so the row must survive the SAME CALL. Asserted
+        immediately, with no reconciliation afterwards: re-running the pass
+        re-posts the row and masks the defect (round-2 sweep caught that)."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _europe_world()
+        ney = self._owed(world, wins=5)           # expectation 200
+        region = next(r for r in world.regions.values()
+                      if r.controller not in ("France", None)
+                      and not r.is_capital)
+        region.controller = "France"
+        region.war_damage = 1.0                   # yields nothing
+        region.stability = 0
+
+        CommandExecutor().execute(
+            {"command": {"action": "grant_dotation", "marshal": "Ney",
+                         "target": region.name}}, {"world": world})
+
+        assert dotation.get_shortfall(ney, world) > 0, "still owed"
+        assert self._rows(world), (
+            "an endowment that settles nothing must not retire a warning "
+            "that is still true — trust goes on falling behind an empty tray")
+
+    def test_a_RENTE_that_leaves_a_gap_leaves_the_row(self):
+        """The pension seam has its own gate and needs its own pin.
+
+        The reachable partial-payment case is the disrupted estate, which is
+        also the one the review named: `compute_rente_face` deliberately
+        IGNORES EC-W1 disruption (so a transient occupation cannot lock an
+        oversized pension), while `get_satisfaction` counts it. Measured:
+        expectation 200, a 150g estate with a hostile army standing on it, so
+        the rente is sized at 50 and he is still 150g/turn short after being
+        "paid"."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _europe_world()
+        ney = self._owed(world, wins=5)           # expectation 200
+        region = next(r for r in world.regions.values()
+                      if r.controller not in ("France", None)
+                      and not r.is_capital and r.income_value >= 120)
+        region.controller = "France"
+        region.stability = 95
+        region.war_damage = 0.0
+        ney.dotation_regions = [region.name]
+        foe = next(m for m in world.marshals.values()
+                   if m.nation != "France" and m.strength >= 1000
+                   and world.get_diplomatic_state("France", m.nation) == "WAR")
+        foe.location = region.name
+        assert region.name in world.get_disrupted_regions(), "setup"
+
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result.get("success") is True, result.get("message")
+        assert dotation.get_shortfall(ney, world) > 0, (
+            "setup: the rente must NOT have closed the gap")
+        assert self._rows(world), (
+            "a rente that does not close the gap must leave the row up — "
+            "silencing it hides an erosion that goes on running")
+
+    def test_revoking_into_an_open_shortfall_does_not_silence_it(self):
+        from backend.commands.executor import CommandExecutor
+
+        world = _europe_world()
+        ney = self._owed(world, wins=5)           # expectation 200
+        ney.pension = 200                         # fully met by paper
+        world._dotation_processed_turn = None
+        world._process_dotation_state()
+        assert self._rows(world) == [], "precondition: met, so the rail is clear"
+        # Put a row back, so there is something for a wrong dismissal to eat.
+        dotation.post_expectation_notice(world, ney, 200, 200, 0, 2)
+        assert self._rows(world)
+
+        CommandExecutor().execute(
+            {"command": {"action": "revoke_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert ney.pension == 0
+        assert dotation.get_shortfall(ney, world) > 0
+        assert self._rows(world), (
+            "revoking INTO a reopened shortfall must not retire the very "
+            "warning the same response gives")
+    def test_the_fontainebleau_concede_arm_retires_what_it_pays(self):
+        with open(os.path.join(REPO_ROOT, "backend", "game_logic",
+                               "jealousy.py"), encoding="utf-8") as fh:
+            src = fh.read()
+        arm = src[src.index('if choice == "concede":'):]
+        arm = arm[:arm.index("if granted:")]
+        assert "dismiss_reward_notices" in arm, (
+            "the collective petition pays rentes and must retire the rows it "
+            "settles")
+        assert "get_shortfall" in arm, "…and only the ones it settles"
+
+    def test_a_dead_marshal_takes_his_grievance_with_him(self):
+        """The per-turn pass iterates `world.marshals`, so once he is out of
+        it NOTHING can retire his rows — and this slice made them clickable."""
+        world = _europe_world()
+        ney = self._owed(world, wins=5)
+        world.destroy_marshal(ney, cause="test")
+        assert "Ney" not in world.marshals
+        assert self._rows(world) == [], (
+            "a fallen marshal's reward rail must not outlive him")
+
+
+
+class TestTheRenteButtonCannotOfferWhatTheExecutorRefuses:
+    """One predicate — `dotation.rente_would_change` — read by the executor,
+    the card payload and the AI rung. The review found four implementations."""
+
+    def _paid_with_an_estate(self, world):
+        ney = _ney(world)
+        ney.battles_won = 6                        # expectation 240
+        ney.pension = 240
+        region = next(r for r in world.regions.values()
+                      if r.controller not in ("France", None)
+                      and not r.is_capital and r.income_value >= 150)
+        region.controller = "France"
+        region.stability = 95
+        region.war_damage = 0.0
+        ney.dotation_regions = [region.name]
+        return ney
+
+    def test_an_oversized_rente_may_still_be_re_sized_down(self):
+        """He is MET (240 expectation, 240 rente, plus a 150g estate) — but
+        the treasury is paying 360g/turn for what 135g/turn now buys. The
+        first cut refused this, because `face <= held`."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _europe_world()
+        ney = self._paid_with_an_estate(world)
+        assert dotation.get_satisfaction(ney, world) >= dotation.get_expectation(ney)
+        assert dotation.rente_would_change(ney, world) is True
+
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result.get("success") is True, result.get("message")
+        assert ney.pension < 240, "the rente must have been re-sized DOWN"
+
+    def test_a_marshal_who_needs_nothing_is_refused(self):
+        from backend.commands.executor import CommandExecutor
+
+        world = _europe_world()
+        ney = _ney(world)
+        ney.battles_won = 2                        # expectation 80
+        ney.pension = 80                           # exactly met, no estates
+        assert dotation.rente_would_change(ney, world) is False
+
+        admin_before = world.admin_actions_remaining
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result.get("success") is False
+        assert world.admin_actions_remaining == admin_before
+
+    def test_the_card_offers_exactly_what_the_executor_accepts(self):
+        from backend.game_logic.marshal_overview import _build_estates
+
+        world = _europe_world()
+        ney = _ney(world)
+        ney.battles_won = 2
+        ney.pension = 80                           # met — nothing to change
+        card = _build_estates(ney, world)
+        assert card["rente_offer"]["face"] > 0, (
+            "the face is positive even though nothing is owed — that gap is "
+            "exactly why the button needed a second key")
+        assert card["rente_offer"]["would_change"] is False, (
+            "the button would offer a re-size the executor then refuses")
+
+        # ...and the converse: an oversized rente the executor WILL re-size
+        # must still be offered.
+        world2 = _europe_world()
+        ney2 = self._paid_with_an_estate(world2)
+        card2 = _build_estates(ney2, world2)
+        assert card2["rente_offer"]["would_change"] is True
 
 
 class TestTheRailIsAWayInNotASignpost:

@@ -2542,6 +2542,16 @@ class WorldState:
             # fall through to the normal removal rather than leave a
             # zombie 0-strength marshal on the map.
         self.marshals.pop(marshal.name, None)
+        # His grievance dies with him. The per-turn reward pass iterates
+        # `self.marshals.values()`, so once he is out of that dict NOTHING can
+        # ever retire his rail rows — measured: a HIGH "Marshal Ney grows
+        # bitter" standing unchanged after his death and after the next turn.
+        # This commit made those rows a deep LINK too, so the stale row was
+        # also clickable, degrading to "Marshal Ney is not on the rolls."
+        # Retired at the ONE removal seam, which is what the Aug-23
+        # extraction of this helper out of the per-turn closure was for.
+        from backend.game_logic.dotation import dismiss_reward_notices
+        dismiss_reward_notices(self, marshal)
         self.fallen_marshals[marshal.name] = {
             "nation": marshal.nation,
             "turn": int(self.current_turn),
@@ -5927,8 +5937,7 @@ class WorldState:
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
             capture_choice_pending, get_expectation, get_satisfaction,
-            is_estate_respected, list_eligible_estates, list_paying_estates,
-            log_estate_lost, prune_respected_estates,
+            is_estate_respected, log_estate_lost, prune_respected_estates,
         )
 
         # W6-8: drop dead respect entries FIRST so the estate prune below

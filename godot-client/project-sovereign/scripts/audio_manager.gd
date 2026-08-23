@@ -81,22 +81,22 @@ const CUES := {
 	"cannon": {"files": ["battle/cannon_thud.ogg"], "bus": "SFX", "db": -8.0},
 	"cannon_distant": {"files": ["battle/cannon_distant.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 300},
 	"drum_sting": {"files": ["battle/drum_sting.wav"], "bus": "SFX", "db": -6.0},
-	"musket_volley": {"files": ["battle/musket_battle_volley.mp3"], "bus": "SFX", "db": -10.0, "max_s": 5.0},
+	"musket_volley": {"files": ["battle/musket_battle_volley.mp3"], "bus": "SFX", "db": -10.0, "max_s": 4.2},
 	"musket_shot": {"files": ["battle/musket_shot_1.ogg", "battle/musket_shot_2.ogg", "battle/musket_shot_3.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 120},
-	"cavalry": {"files": ["battle/cavalry_gallop.mp3"], "bus": "SFX", "db": -10.0, "max_s": 3.5},
+	"cavalry": {"files": ["battle/cavalry_gallop.mp3"], "bus": "SFX", "db": -10.0, "max_s": 3.2},
 	"whinny": {"files": ["battle/horse_whinny.ogg"], "bus": "SFX", "db": -14.0},
 	"sword_draw": {"files": ["battle/sword_draw.mp3"], "bus": "SFX", "db": -8.0},
 	"march_step": {"files": ["battle/army_march_loop_short.mp3"], "bus": "SFX", "db": -18.0, "throttle_ms": 1500, "max_s": 0.65},
 	# ── world / ceremony ──
-	"bells_peal": {"files": ["ambient/church_bells_peal.mp3"], "bus": "SFX", "db": -8.0, "max_s": 6.0},
-	"bell_toll": {"files": ["ambient/bell_toll_single.mp3"], "bus": "SFX", "db": -8.0, "max_s": 4.0},
+	"bells_peal": {"files": ["ambient/church_bells_peal.mp3"], "bus": "SFX", "db": -8.0, "max_s": 5.2},
+	"bell_toll": {"files": ["ambient/bell_toll_single.mp3"], "bus": "SFX", "db": -8.0, "max_s": 3.2},
 	"ship_bell": {"files": ["ambient/ship_bell.mp3"], "bus": "SFX", "db": -10.0, "throttle_ms": 400},
 	# ── field music used as one-shot cues (capped where long) ──
-	"reveille": {"files": ["music/bugle_reveille.ogg"], "bus": "SFX", "db": -14.0, "throttle_ms": 2000, "max_s": 5.0},
+	"reveille": {"files": ["music/bugle_reveille.ogg"], "bus": "SFX", "db": -14.0, "throttle_ms": 2000, "max_s": 4.2},
 	"mail_call": {"files": ["music/bugle_mail_call.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 2000},
-	"first_call": {"files": ["music/bugle_first_call.mp3"], "bus": "SFX", "db": -14.0, "max_s": 5.0},
-	"to_the_color": {"files": ["music/bugle_to_the_color.ogg"], "bus": "SFX", "db": -14.0, "max_s": 6.0},
-	"fanfare": {"files": ["music/fanfare_erafnaf.ogg"], "bus": "SFX", "db": -10.0, "throttle_ms": 2000, "max_s": 6.0},
+	"first_call": {"files": ["music/bugle_first_call.mp3"], "bus": "SFX", "db": -14.0, "max_s": 4.2},
+	"to_the_color": {"files": ["music/bugle_to_the_color.ogg"], "bus": "SFX", "db": -14.0, "max_s": 5.2},
+	"fanfare": {"files": ["music/fanfare_erafnaf.ogg"], "bus": "SFX", "db": -10.0, "throttle_ms": 2000, "max_s": 5.2},
 }
 
 # Named ambient loops: tag -> {file, bus, db}

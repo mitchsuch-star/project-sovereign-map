@@ -44,10 +44,16 @@
 > ~200 lines before the exemption. It also broke GR5: the AI's counter-punch
 > always worked, since those gates skip enemy marshals.
 >
-> `tests/test_ux_fixes_2026_08_23.py` (37) + `tests/test_counter_punch_ap_gate.py`
-> (14). **23 mutations swept, 23 killed — two of the new pins were INERT on the
-> first sweep and were repaired.** M1–M7 + `BASELINE_SERIES` byte-identical, no
+> `tests/test_ux_fixes_2026_08_23.py` (54) + `tests/test_counter_punch_ap_gate.py`
+> (21). **45 mutations swept over two rounds, 45 killed — THIRTEEN pins were
+> inert on first sweep and were repaired**, plus one pre-existing pin proven
+> inert. Suite **18,718 / 3**. M1–M7 + `BASELINE_SERIES` byte-identical, no
 > re-record. Godot parse harness EXIT=0.
+>
+> **A 13-agent review round at `4b09e59` found 26 more defects — including a
+> P1 this slice introduced** (the counter-punch waiver also disabled the 2-AP
+> gate for `pursue`, so the order attached and the marshal marched while the
+> response said "Not enough actions"). All fixed in the same session.
 >
 > ⚠ **OPEN:** the audio re-audition; eight routed rows (UX23-R1..R8, headline:
 > there is still **no stop API for one-shot cues**, and the notification chime

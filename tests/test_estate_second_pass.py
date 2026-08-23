@@ -968,7 +968,8 @@ class TestRewardCardPayload:
         m = next(m for m in legacy.marshals.values() if m.nation == "France")
         card = _build_estates(m, legacy)
         assert card["pension"] == 0
-        assert card["rente_offer"] == {"face": 0, "cost": 0}
+        assert card["rente_offer"] == {"face": 0, "cost": 0,
+                                       "would_change": False}
         assert card["steward_note"] == ""
 
     def test_dotation_world_flag_distinguishes_worlds(self, world, legacy):
@@ -994,7 +995,8 @@ class TestRewardCardPayload:
         m.captured_by = "Austria"
         _conquer(world, stability=80)
         card = _build_estates(m, world)
-        assert card["rente_offer"] == {"face": 0, "cost": 0}
+        assert card["rente_offer"] == {"face": 0, "cost": 0,
+                                       "would_change": False}
         assert card["eligible_estate_details"] == []
         assert card["eligible_estates"] == []
         assert card["pension"] == 0  # suspended while captured

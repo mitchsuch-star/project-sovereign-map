@@ -345,6 +345,7 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
     """
     from backend.game_logic.dotation import (
         build_rente_offer, compute_investiture_fee, derive_title,
+        rente_would_change,
         get_estate_income, get_expectation, get_rente_cost,
         estate_yield, get_satisfaction, is_dotation_world, is_eroding,
         list_eligible_estates,
@@ -362,7 +363,7 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
             "eligible_estates": [],
             "pension": 0,
             "pension_cost": 0,
-            "rente_offer": {"face": 0, "cost": 0},
+            "rente_offer": {"face": 0, "cost": 0, "would_change": False},
             "investiture_fee": 0,
             "eligible_estate_details": [],
             "steward_tier": "",
@@ -431,6 +432,13 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
     pension = 0 if is_captured else int(getattr(marshal, "pension", 0))
     rente_offer = ({"face": 0, "cost": 0} if is_captured
                    else build_rente_offer(marshal, world))
+    # Aug 23, 2026 (GR1): the card used to enable its rente button on
+    # `face > 0`, which is true for a marshal who is already fully paid — so
+    # it offered "Re-size rente" and the executor refused the click, and the
+    # honest "his expectation is met" fallback became unreachable. The button
+    # now reads the SAME predicate the executor gates on.
+    rente_offer["would_change"] = bool(
+        not is_captured and rente_would_change(marshal, world))
 
     return {
         "is_dotation_world": True,

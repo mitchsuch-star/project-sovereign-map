@@ -5291,7 +5291,15 @@ func _on_envoy_clicked():
 	# following the game's own advice reset the confirmation and sent the
 	# player back to the warning, forever. Reviewing the letters is part of
 	# answering the warning, not a change of mind.
-	_set_open_envoys_prompt_visible(false)
+	#
+	# ...and because the latch survives, the PROMPT must survive with it. The
+	# review round caught this as the one place where the confirmation was
+	# armed and the indicator hidden: close the panel, which grab-focuses the
+	# command line, and a single Enter lapsed every unanswered envoy with
+	# nothing on screen saying a confirmation was pending. Armed-and-visible
+	# is one state.
+	if not _awaiting_end_turn_confirmation:
+		_set_open_envoys_prompt_visible(false)
 	_dismissed_proposal_nation = ""  # Clear so popup can show again
 	_pending_envoy_request_active = true
 	api_client.get_mailbox(_on_mailbox_list_result)
@@ -5465,14 +5473,21 @@ func _on_mailbox_activate_result(response: Dictionary):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Could not activate that item.")
 		))
-		# Same reason as the row-action path: the panel (layer 119) covers the
-		# dialogue modals (110) it is naming, so a blocked activation has to
-		# clear the screen or the player is told to settle something invisible.
+		# Hand control back on EVERY failure, not only the blocked one. The
+		# review round caught the hand-back nested inside the `blocked` branch:
+		# api_client synthesises `{success: false}` for a timeout, a connection
+		# failure, a JSON parse error and any non-200, none of which carry
+		# `activation_blocked` — so a backend hiccup with the letter-book open
+		# left the command line, Send, End Turn and Diplomacy all disabled with
+		# nothing on screen, recoverable only by F1.
+		set_input_enabled(true)
+		command_input.grab_focus()
+		# The panel (layer 119) covers the dialogue modals (110) it is naming,
+		# so a BLOCKED activation additionally has to clear the screen or the
+		# player is told to settle something invisible.
 		if response.get("activation_blocked", false):
 			if mailbox_panel and mailbox_panel.visible:
 				mailbox_panel.hide()
-			set_input_enabled(true)
-			command_input.grab_focus()
 		return
 	var dtype = str(response.get("dialogue_type", ""))
 	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response", "incoming_ultimatum"]:

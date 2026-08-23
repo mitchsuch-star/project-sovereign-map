@@ -573,7 +573,7 @@ Reserved future `event_log` payloads:
 | Field | Type | Description |
 |-------|------|-------------|
 | `dotation_regions` | list | Provinces endowed to this marshal — their full effective income redirects to his household; pruned when a province leaves the nation's hands. Default `[]`. |
-| `expectation_grace_turn` | int | Turn an unmet reward expectation was first observed (-1 = none). Erosion fires after the 2-turn grace window. Save-compat: absent → -1, so old saves take no retroactive erosion. |
+| `expectation_grace_turn` | int | Turn an unmet reward expectation was first observed (-1 = none). Erosion fires after the `dotation.GRACE_TURNS` grace window (4 since Aug 23, 2026; was 2). Save-compat: absent → -1, so old saves take no retroactive erosion. |
 | `pension` | int | ES-7 second pass (§0.6.8): the rente FACE in g/turn. Counts fully toward satisfaction; the treasury pays `ceil(1.5 × face)`/turn through the income phase. Neither pays nor counts while captured (W6-7). Default `0`. |
 | `last_expectation_seen` | int | Last expectation value announced in the Morning Dispatch's expectation-rise lines; reconciled at dispatch build. Default `0`. |
 

@@ -11,9 +11,15 @@
 > confirm the lapse it was told to confirm); the reward rail that asked to be
 > paid and then went on asking; and Bernadotte's counter-punch, which was
 > unusable at 0 AP — the only state in which "free" means anything.
-> `tests/test_ux_fixes_2026_08_23.py` (37) + `tests/test_counter_punch_ap_gate.py`
-> (14); 23 mutations swept, 23 killed, **two inert pins found and repaired by
-> the sweep**. M1–M7 and `BASELINE_SERIES` byte-identical, no re-record.
+> `tests/test_ux_fixes_2026_08_23.py` (54) + `tests/test_counter_punch_ap_gate.py`
+> (21); **45 mutations swept over two rounds, 45 killed — thirteen pins were
+> INERT on first sweep and were repaired**, plus one pre-existing pin proven
+> inert and corrected. Suite 18,718 passed / 3 skipped. M1–M7 and
+> `BASELINE_SERIES` byte-identical, no re-record.
+>
+> A 13-agent review round at `4b09e59` then found **26 more defects,
+> including a P1 this slice itself introduced** (the counter-punch waiver
+> also disabled the 2-AP gate for `pursue`). All fixed; see §Review round.
 >
 > Last Updated: August 21, 2026, third entry (**WO slice 7 "The Cabinet Is
 > The Only Door" LANDED — the G1 ruling**: typed diplomacy is redirected in
@@ -4033,18 +4039,137 @@ marshal. A bare `"attack"` is resolved to a marshal further down `execute()`,
 after the first gate, so there is nobody to ask. The counter-punch notification
 names its marshal; naming him is what buys the waiver. Pinned as deliberate.
 
+### Review round at `4b09e59` — 26 findings, all fixed
+
+A 13-agent find-then-refute fleet over the committed slice. It killed 6 of its
+own findings and confirmed 26. Corrections it made to the record are folded in
+above; the substantive fixes are below, and every one is mutation-verified
+(round-2 sweep: 21 mutations, 21 killed).
+
+**The P1 was a regression this slice introduced.** `pursue` also parses to
+`action == "attack"`, so the counter-punch waiver disabled the only pre-check
+for the 2-AP strategic price: `Davout, pursue Wellington` at 0 AP attached a
+standing PURSUE and marched him a province while the response read *"Not enough
+actions! Need 2, have 0"*, and `cancel` costs an AP the player did not have.
+The waiver is now narrowed twice — not strategic, and only for a strike he can
+throw THIS turn (an out-of-range attack degrades into an approach march, and
+waiving that buys free movement at 0 AP, repeatably).
+
+The snapshot was also wrongly coupled to the waiver, so an out-of-range attack
+burned the strike with the waiver off. Snapshot is unconditional now; only the
+waiver is narrow.
+
+**Counter-punch, the rest.** The restore keyed on `success`, but four
+`success: True` exits throw no blow (war-purpose staging, the PURSUE
+clarification, the approach march, the opening-attack guidance). It is now
+FAIL-CLOSED: a list of outcomes that certainly did not fight, so a missing
+entry reproduces the old behaviour rather than minting a repeatable free
+attack — the failure mode worth guarding. Classifying all ~55 exits the other
+way round was tried and is not safely reviewable. Conversely four exits DO
+resolve a strike without stamping `free_action` (the garrison assault, the
+auto-bombardment kill — one of which printed *"This attack costs NO actions"*
+and then charged one); the stamp now happens in the executor, where the fact is
+known, rather than at four more exits that can drift apart again. A THIRD AP
+gate existed in `meta_executor` on the post-objection route — the one a cautious
+marshal actually meets, since a cautious marshal is who objects: without the
+waiver there the player paid −8 trust to insist, was told "he follows your
+orders", and was then refused for want of an action. And `enemy_ai` still held
+a third inline copy of the predicate, comparing against the EFFECTIVE
+personality while every other reader used the raw one; the "one predicate"
+claim in the first commit message was false and is now true, pinned by a census
+over the whole backend.
+
+**The rente guard was wrong in both directions.** `face <= held` refused a
+marshal whose estate had been DISRUPTED out from under him (expectation 240,
+rente 90, real shortfall 150 — the tray warning his loyalty was fraying while
+the order to fix it answered "already met"), and blocked a legitimate re-size
+DOWN (expectation 240 / rente 240 / a new 150g estate = the treasury paying
+360g/turn for what 135g/turn buys). There were FOUR implementations of "is he
+met": the executor, `reward_dialog.gd`, the AI rung, and `compute_rente_face`
+itself — so the card offered a re-size the executor refused, and the AI issued
+a command its own executor rejected. One predicate now,
+`dotation.rente_would_change`, read by all three.
+
+**The dismissal was too eager.** Firing on any success meant endowing a 0g
+war-torn province — or REVOKING a rente — retired a HIGH "his loyalty is
+fraying" row that was still true, with trust going on falling behind an empty
+tray. All four seams gate on the debt actually being settled. And
+`destroy_marshal` never touched the rail at all, so a dead marshal's grievance
+was permanent (the per-turn pass iterates `world.marshals`, so nothing could
+ever retire it) — and this slice had just made that stale row clickable.
+
+**`replace()` → `preempt()` had been applied to the advisory only.**
+`_execute_diplomatic_feasibility` — whose dialogue type this very slice made
+disposable — and both `_execute_diplomatic_mission` arms still destroyed the
+letter they displaced. Fixed at those three entry points only: the many
+`replace(` calls that advance a WIZARD to its next step are correct. The
+first commit message said `replace()` has 37 callers; it has 60, and the wider
+census is routed rather than swept.
+
+**The deny path named nothing for the family it was added for.**
+`activate_mailbox_item` denies types in no taxonomy set, but
+`active_blocker_type` returned `""` for exactly those — so the refusal shipped
+`activation_blocked: false`, the panel stayed open over the modal, and the
+player was told the letter did not exist. `settlement_scope_replace_confirm` is
+the one measured production producer. Also: the client's control hand-back was
+nested inside the blocked-only branch, so a timeout or a non-200 left the
+command line, Send, End Turn and Diplomacy all disabled with nothing on screen;
+and `_on_envoy_clicked` kept hiding the lapse prompt while the latch stayed
+armed, so closing the panel and pressing Enter lapsed every envoy with no
+warning visible.
+
+**Copy.** The new refusal templates were singular against display strings that
+are plural noun phrases ("The terms you are drafting **is** still before
+you"); both are number-neutral now. And "press G" survived on the arm where
+the new deep link is most useful — dropped, since the `[Reward…]` button
+reaches estates directly.
+
+**Pins.** Thirteen of the slice's own pins were inert or weak and were
+repaired: the audio cap's consumption site was unbound (the mechanism could be
+neutered in place with the suite green); the length census modelled
+`min(measured, cap)` while `_fade_stop` adds an 0.8s tail, so eight capped cues
+were over their own budget while the pin reported them at it — the caps came
+down rather than the budgets going up; the cue regex silently skipped
+unparseable rows and unmeasurable assets; three of the four dismissal seams had
+no executor-level pin; two counter-punch pins were unfalsifiable (`>= 0` on a
+value that clamps at 0, and asserts wrapped in the condition under test); and
+the latch pin anchored on "appears somewhere below" rather than on
+reachability.
+
 ### Routed, not built
+
+GR9 requires five things of every routed row — owner, landing slice, completion
+definition, STATUS tracking line, behaviour test — and the first cut of this
+table gave none of them, naming four owners (`Music & Sound follow-up`,
+`notification-rail row`, `dispatch row`, `reward-UX follow-up`) that exist
+nowhere else in the repo. They are now one owned slice, **UX23-B "The Desk Is
+Quiet"**, plus two rows that belong to existing owners.
+
+**UX23-B — the slice these four rows land in.** Owner: this section.
+Landing slice: one client-side pass, unscheduled, before Round 0 — it is a
+polish slice with no dependency, and R2 is the one row here a player would
+report unprompted. Completion definition: closing a surface silences the sound
+it started; the desk bell rings for a NEW grievance and not for the same one
+re-stated; an eroding marshal's row can be evicted like any other.
+STATUS line: `docs/STATUS.md` ▶ NEXT UP carries "UX23-B open" until it lands.
+Behaviour test: `tests/test_ux_fixes_2026_08_23.py` gains a
+`TestTheDeskIsQuiet` class — one test per row below, each red today.
+
+| id | item | slice | completion definition | test |
+|---|---|---|---|---|
+| UX23-R1 | **No stop API for one-shot cues.** `stop_loop` and friends iterate `_loop_players` only; `_play_cue` keeps no handle, so nothing can silence a cue early. `capture_choice_dialog.gd` plays 8.7 s of coins then `hide()`s on the next line; one-shots survive `change_scene_to_file`. The Aug-23 caps shorten each instance but do NOT deliver "closing it silences it". | UX23-B | `AudioManager.stop_cue(cue)` exists, `popup_base.close_popup` calls it, and a cue started by a panel is inaudible one frame after the panel hides | structural: every `.tscn` popup that plays a >2 s cue stops it on close |
+| UX23-R2 | **Every rail refresh mints a new uuid.** `create_notification` generates one per call and `notification_bar.gd`'s `_audio_seen_ids` dedupes the chime on that id — so the desk bell re-rings per unmet marshal per turn, forever. At the reported live state that is **four extra chimes every turn until paid**. The strongest link between complaints 1 and 3, and the reason the Aug-23 fix is deliberately dismiss-only rather than re-post. | UX23-B | a re-stated notification keeps its id, so the chime fires once per grievance, not once per turn | `post_expectation_notice` twice for the same marshal yields one id |
+| UX23-R3 | **`_enforce_cap` evicts NORMAL rows only.** `DOTATION_EROSION` is HIGH and therefore immune, so N eroding marshals produce N permanent un-evictable rows that crowd real news off the rail. | UX23-B | the cap can evict a HIGH row that has been standing longer than the window | N+1 eroding marshals do not push the cap | 
+| UX23-R6 | **`battle_diorama.gd` is a second audio implementation**, bypassing `CUES`, the throttle, the player budget and `max_s`. No length defect today; the next diorama sound will forget the toggle guard. | UX23-B | the diorama plays through `AudioManager` | the AST guard over `backend/` gains a `.gd` sibling forbidding raw `AudioStreamPlayer` outside `audio_manager.gd` |
+
+**Rows with existing owners:**
 
 | id | item | owner |
 |---|---|---|
-| UX23-R1 | **No stop API for one-shot cues.** `stop_loop` and friends iterate `_loop_players` only; `_play_cue` keeps no handle. `capture_choice_dialog.gd` plays 8.7 s of coins then `hide()`s on the next line; one-shots survive `change_scene_to_file`. A cap shortens each instance but does not deliver "closing it silences it". | Music & Sound follow-up |
-| UX23-R2 | **Every rail refresh mints a new uuid**, and `notification_bar.gd`'s `_audio_seen_ids` dedupes the chime on an id that always changes — so the desk bell re-rings per unmet marshal per turn, forever. At the reported live state: four extra chimes every turn until paid. The strongest link between complaints 1 and 3. | Music & Sound follow-up |
-| UX23-R3 | **`_enforce_cap` evicts NORMAL rows only.** `DOTATION_EROSION` is HIGH and immune, so N eroding marshals produce N permanent un-evictable rows crowding out real news. | notification-rail row |
-| UX23-R4 | **The dispatch re-read screen stays stale all turn** — `GET /dispatch` returns the frozen `last_morning_dispatch`, so "Unmet Marshals" still names a marshal paid this turn. | dispatch row |
-| UX23-R5 | **A typed line can hijack a non-blocking dialogue.** `"Soult, cancel your march"` matches the advisory's `cancel` option; `"yes"` fires `execute_suggestion` and spends 1 DP. Same class as W6-0/BUG-CA-7. Narrow fix: on a non-blocking dialogue, require a whole-line match. | CR row |
-| UX23-R6 | **`battle_diorama.gd` is a second audio implementation** bypassing `CUES`, throttle, budget and `max_s`. No length defect today. | Music & Sound follow-up |
-| UX23-R7 | `MUSIC_SOUND_SPEC.md` §1 records `bugle_first_call.mp3` as `~0:15`; measured **9.221 s**. The `ui/` and `ambient/` inventories have no length column. | docs |
-| UX23-R8 | **The battle report's expectation chip** and the dispatch's Unmet Marshals block could carry the same deep link. Note: `expectation_note` is produced in the enemy phase too and `enemy_phase_dialog.gd` has zero `expectation` references, so it is invisible on defensive victories today. | reward-UX follow-up |
+| UX23-R4 | **The dispatch re-read screen stays stale all turn.** `GET /dispatch` (`main.py`) returns the frozen `last_morning_dispatch`, so "Unmet Marshals" still names a marshal paid this turn — the same shown≠applied class this slice fixed on the rail, one surface over. | `DESIGN_REFINEMENT.md` UX23-D-adjacent; lands with whichever slice next touches the dispatch builder. Completion: the re-read is derived at read time or invalidated on any state change it reports. Test: pay a marshal, re-read the dispatch, assert he is absent from Unmet Marshals. |
+| UX23-R5 | **A typed line can hijack a non-blocking dialogue.** `"Soult, cancel your march"` matches the advisory's own `cancel` option; `"yes"` fires `execute_suggestion` and spends 1 DP. Same class as W6-0 / BUG-CA-7 / the CA9 typed-router defect. Narrow fix: on a NON-blocking dialogue, require a whole-line match rather than a contained keyword. | `COMMAND_ROBUSTNESS_SPEC.md` — the CR-6 successor row. Completion: an order naming a marshal is never consumed as a dialogue answer. Test: the golden corpus gains the two measured sentences. |
+| UX23-R7 | `MUSIC_SOUND_SPEC.md` §1 records `bugle_first_call.mp3` as `~0:15`; measured **9.221 s**. The `ui/` and `ambient/` inventories have no length column. | Docs-only; corrected in `MUSIC_SOUND_SPEC.md` §2a at the same time as the length census pin. Completion: every inventory row carries a measured length. |
+| UX23-R8 | **The battle report's expectation chip.** The report and the dispatch's Unmet Marshals block could carry the same `review_target` deep link the rail now has. Note: `expectation_note` is produced in the ENEMY phase too (GR5 shared `_execute_attack`) and `enemy_phase_dialog.gd` has zero `expectation` references, so a chip would be invisible on defensive victories — an unrendered backend string sits there today. | UX23-B (client pass). Completion: the same `[Reward…]` affordance on every surface that announces the expectation, or the surfaces that cannot render it stop producing it. Test: the enemy-phase dialog renders `expectation_note` or the producer is gated. |
 
 ### Needs a design gate — the structural answer to "too early"
 

@@ -556,11 +556,17 @@ class DialogueManager:
         current_type = self._current.get("type", "")
         if current_type in self.DISPOSABLE_ACTIVE_TYPES:
             return ""
-        if (current_type in self.HARD_STOP_TYPES
-                or current_type in self.HYBRID_SOFT_STOP_TYPES
-                or current_type in self.LOCAL_PLANNING_TYPES):
-            return current_type
-        return ""
+        if current_type in self.SOFT_STOP_MAILBOX_TYPES:
+            return ""
+        # Everything else blocks — INCLUDING a type in no taxonomy set.
+        # `activate_mailbox_item` denies those (they used to fall through and
+        # be silently overwritten), so reporting "" for them made the deny
+        # path anonymous: the client got `activation_blocked: false`, left the
+        # letter-book open over the modal, and told the player the letter did
+        # not exist. The two functions must agree, and this is the side that
+        # was wrong. Measured production case:
+        # `settlement_scope_replace_confirm`.
+        return current_type
 
     def activate_mailbox_item(self, mailbox_id: int) -> Optional[Dict]:
         """Swap a queued mailbox item into the active slot.

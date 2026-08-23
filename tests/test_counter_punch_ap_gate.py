@@ -102,19 +102,27 @@ class TestCounterPunchSurvivesTheAPGate:
             "an ordinary attack at 0 AP must still be refused"
         )
 
-    def test_counter_punch_attack_does_not_drive_ap_negative(self):
-        world, _ = _world_with_cautious_attacker(ap=0, counter_punch=True)
-        _attack(world)
-        assert world.actions_remaining >= 0
+    def test_the_counter_punch_attack_costs_no_ap(self):
+        """`>= 0` was unfalsifiable — `use_action` early-returns at 0 and
+        clamps with `int(max(0, ...))`, so that assertion held with the fix
+        reverted. The claim is that the AP is UNCHANGED (review round)."""
+        world, _ = _world_with_cautious_attacker(ap=2, counter_punch=True)
+        before = world.actions_remaining
+        result = _attack(world)
+        assert result.get("success") is True, result.get("message")
+        assert world.actions_remaining == before, (
+            "a counter-punch attack must not spend an action")
 
     def test_a_successful_counter_punch_spends_the_flag_not_the_ap(self):
         world, davout = _world_with_cautious_attacker(ap=0, counter_punch=True)
         result = _attack(world)
-        if result.get("success"):
-            assert davout.counter_punch_available is False, (
-                "a thrown counter-punch must be consumed"
-            )
-            assert world.actions_remaining == 0
+        # UNCONDITIONAL. Wrapping these in `if result.get("success")` made the
+        # test pass vacuously in the reverted arm — the condition under test
+        # was being used as the guard for testing it.
+        assert result.get("success") is True, result.get("message")
+        assert davout.counter_punch_available is False, (
+            "a thrown counter-punch must be consumed")
+        assert world.actions_remaining == 0
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -183,6 +191,108 @@ class TestRefusedAttackDoesNotBurnTheCounterPunch:
 # GR1 — one predicate, read by every site
 # ══════════════════════════════════════════════════════════════════════
 
+class TestTheWaiverBuysAStrikeAndNothingElse:
+    """Both arms found by the review round on 4b09e59. The first was a
+    regression this fix introduced."""
+
+    def test_pursue_is_not_waived(self):
+        """P1. `pursue` parses to `action == "attack"` with `is_strategic`,
+        but costs 2 AP for a STANDING ORDER — which the counter-punch does not
+        pay for. Waiving it let the order attach and the marshal march while
+        the response said "Not enough actions", with `cancel` costing an AP
+        the player did not have."""
+        world, davout = _world_with_cautious_attacker(ap=0, counter_punch=True)
+        executor = CommandExecutor()
+        # `is_strategic` / `strategic_type` sit at the TOP level of the parsed
+        # command, beside `command` — that is where the existing 2-AP pricing
+        # arm reads them, and reading them from the wrong level is what makes
+        # this pin bind or not.
+        result = executor.execute({
+            "is_strategic": True,
+            "strategic_type": "PURSUE",
+            "command": {
+                "action": "attack", "type": "specific", "marshal": "Davout",
+                "target": "Wellington",
+            },
+        }, {"world": world})
+
+        assert result.get("success") is False
+        assert _NOT_ENOUGH.search(str(result.get("message", "")))
+        assert davout.strategic_order is None, (
+            "a refused strategic order must not have been attached anyway")
+        assert davout.location == "Belgium", "and he must not have marched"
+
+    def test_an_out_of_range_attack_is_not_waived(self):
+        """An out-of-range attack does not fight — it degrades into an
+        approach march or a PURSUE clarification. Waiving it would buy free
+        MOVEMENT at 0 AP, repeatably, because the strike is restored whenever
+        no blow lands.
+
+        Asserts the SPECIFIC refusal: "success is False" alone was inert,
+        because the degraded path also fails at 0 AP, just further downstream
+        and after moving him (caught by the round-2 mutation sweep)."""
+        world, davout = _world_with_cautious_attacker(ap=0, counter_punch=True)
+        far = world.marshals["Uxbridge"]                 # Hanover, 2 hops
+        assert world.get_distance(davout.location, far.location) > davout.movement_range
+
+        before = davout.location
+        result = _attack(world, target="Uxbridge")
+
+        assert result.get("success") is False
+        msg = str(result.get("message", ""))
+        assert _NOT_ENOUGH.search(msg), msg
+        # ...and refused by the ATTACK gate, not by the strategic executor two
+        # stages downstream. Matching "not enough actions" alone was inert:
+        # with the waiver wrongly on, the command sails past the gate, reaches
+        # `_execute_attack`, auto-upgrades to PURSUE and is refused there
+        # instead — with a message that also says "not enough actions".
+        assert "strategic" not in msg.lower(), (
+            "the waiver let an out-of-range attack past the gate that should "
+            "have stopped it: %s" % msg)
+        assert davout.location == before, "no free march at 0 AP"
+        assert davout.strategic_order is None
+
+    def test_the_no_strike_set_names_every_outcome_that_does_not_fight(self):
+        """STRUCTURAL, and deliberately so. The behavioural cases sit behind
+        the objection battery, which intercepts before `_execute_attack` for
+        precisely the cautious marshals who hold counter-punches — so the
+        realistic route to them is a two-step objection flow that pins the
+        objection's own copy rather than this rule. This binds the rule."""
+        with open(os.path.join(REPO_ROOT, "backend", "commands",
+                               "executor.py"), encoding="utf-8") as fh:
+            src = fh.read()
+        block = src[src.index("_no_strike = ("):]
+        block = block[:block.index("\n            )")]
+        for marker in ("requires_input", "pending_interrupt",
+                       "awaiting_diplomatic_response", "war_purpose_popup",
+                       "opening_attack_guidance", "occupation_started",
+                       "awaiting_clarification"):
+            assert marker in block, (
+                f"{marker} is an outcome that throws no blow; dropping it "
+                f"from the no-strike set spends the counter-punch for nothing")
+
+    def test_a_thrown_strike_is_stamped_free_even_if_its_exit_forgot(self):
+        """STRUCTURAL companion. Four `success: True` exits of
+        `_execute_attack` resolve a strike without stamping `free_action` —
+        the garrison assault and the auto-bombardment kill among them — so the
+        player paid an action for a free attack, and one of those exits
+        printed "This attack costs NO actions" while doing it."""
+        with open(os.path.join(REPO_ROOT, "backend", "commands",
+                               "executor.py"), encoding="utf-8") as fh:
+            src = fh.read()
+        block = src[src.index("_no_strike = ("):]
+        block = block[:block.index("\n        # ==")]
+        assert 'result["free_action"] = True' in block
+        assert 'result["counter_punch_used"] = True' in block
+
+    def test_the_strike_is_restored_when_no_blow_lands(self):
+        """Fail-closed companion: whatever the outcome, an attack that did not
+        fight must give the counter-punch back."""
+        world, davout = _world_with_cautious_attacker(ap=4, counter_punch=True)
+        _attack(world, target="ArchdukeCharles")   # out of range -> degrades
+        assert davout.counter_punch_available is True
+
+
 class TestSingleSourcePredicate:
 
     def _read(self, *parts):
@@ -216,6 +326,36 @@ class TestSingleSourcePredicate:
         assert "counter_punch_available', False) and marshal.personality" not in src, (
             "the predicate was re-inlined at the consumption site"
         )
+
+    def test_the_post_objection_gate_consults_it_too(self):
+        """The THIRD gate, and the one a cautious marshal actually meets —
+        because a cautious marshal is who objects. Without it the player paid
+        −8 trust to insist past the objection, was told "he follows your
+        orders", and was then refused for want of an action with the free
+        strike still unspent."""
+        src = self._read("backend", "commands", "meta_executor.py")
+        assert "counter_punch_waiver" in src
+        assert "if action_costs_point and not counter_punch_waiver:" in src
+        block = src[src.index("counter_punch_waiver = bool("):]
+        block = block[:block.index("if action_costs_point")]
+        assert "has_counter_punch()" in block
+        assert 'is_strategic' in block, "same exclusion as the pre-gates"
+        assert "_attack_target_beyond_range" in block
+
+    def test_the_predicate_has_no_remaining_inline_copies(self):
+        """Widened from `combat_executor.py` to the whole backend after the
+        review found a third copy in `enemy_ai.py` comparing against the
+        EFFECTIVE personality while every other reader used the raw one."""
+        import subprocess
+
+        out = subprocess.run(
+            ["git", "grep", "-n", "counter_punch_available", "--", "backend/"],
+            cwd=REPO_ROOT, capture_output=True, text=True).stdout
+        offenders = [ln for ln in out.split("\n")
+                     if "personality" in ln and "def has_counter_punch" not in ln]
+        assert not offenders, (
+            "an inline (flag AND personality) copy of the predicate has come "
+            "back:\n  " + "\n  ".join(offenders))
 
     def test_both_ap_pre_gates_consult_the_waiver(self):
         """A structural pin, because the two gates are 550 lines apart and

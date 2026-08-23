@@ -828,21 +828,50 @@ class CommandExecutor:
         # charged still rides `free_action`, which `_execute_attack` stamps
         # only when it truly consumed the counter-punch — so a waiver that
         # turns out not to apply cannot hand out a free action.
+        # A STRATEGIC order is excluded. `pursue` parses to `action == "attack"`
+        # with `is_strategic` set, and it costs 2 AP for a standing order, not
+        # 1 for a strike — the counter-punch pays for the strike and nothing
+        # else. Waiving the gate for it let `Davout, pursue Wellington` at 0 AP
+        # attach a standing PURSUE and march him a province while the response
+        # said "Not enough actions! Need 2, have 0", with `cancel` costing an
+        # AP the player did not have. (Caught by the review round on 4b09e59 —
+        # a regression this fix introduced, not a pre-existing one.)
         counter_punch_waiver = False
         counter_punch_snapshot = None
-        if action == "attack" and early_marshal_name and is_player_action_check:
+        if (action == "attack" and early_marshal_name
+                and is_player_action_check):
             _cp_marshal = world.get_marshal(early_marshal_name)
             if _cp_marshal is not None and _cp_marshal.has_counter_punch():
-                counter_punch_waiver = True
-                # The counter-punch is an action-economy resource, so it obeys
-                # the same rule as AP: spent only when the command SUCCEEDS.
-                # `_execute_attack` clears the flag at its head (:4037) and
-                # only then runs the drill-lock, artillery-moved and range
-                # checks that can still refuse — so a refused attack silently
-                # burned the free strike and the player never got it back.
-                # Snapshot here, restore below on failure.
+                # SNAPSHOT UNCONDITIONALLY. The counter-punch is an
+                # action-economy resource and obeys the same rule as AP —
+                # spent only when the strike is actually thrown — and
+                # `_execute_attack` clears the flag at its head, ~3,000 lines
+                # above its last exit. That is true whether or not the gate
+                # below is waived, so the restore must not be conditional on
+                # the waiver. (It was, briefly; the review round caught an
+                # out-of-range attack burning the strike with the waiver off.)
                 counter_punch_snapshot = (
-                    _cp_marshal, int(getattr(_cp_marshal, "counter_punch_turns", 0)))
+                    _cp_marshal,
+                    int(getattr(_cp_marshal, "counter_punch_turns", 0)))
+                # The WAIVER is narrower than the snapshot, on two counts.
+                #   * Not a strategic order. `pursue` also parses to
+                #     `action == "attack"`, but costs 2 AP for a STANDING
+                #     ORDER, which the counter-punch does not pay for.
+                #     Waiving it let `Davout, pursue Wellington` at 0 AP
+                #     attach the order and march him a province while the
+                #     response read "Not enough actions! Need 2, have 0" —
+                #     and `cancel` costs an AP the player did not have.
+                #   * Only a strike he can throw THIS turn. An out-of-range
+                #     attack does not fight: it degrades into an approach
+                #     march or a PURSUE clarification, and waiving those
+                #     would buy free MOVEMENT at 0 AP, repeatably, since the
+                #     strike is restored when no blow lands. Same PF-4
+                #     predicate that already skips a wasted objection over
+                #     exactly these degradations.
+                if (not parsed_command.get("is_strategic")
+                        and not self._attack_target_beyond_range(
+                            _cp_marshal, command.get("target"), world)):
+                    counter_punch_waiver = True
 
         if action_costs_point and is_player_action_check and not counter_punch_waiver:
             if is_admin_action:
@@ -1923,14 +1952,45 @@ class CommandExecutor:
                 "message": f"Unknown command type: {command_type}"
             }
 
-        # A refused attack must not spend the counter-punch it never threw.
-        # See the snapshot above: the flag is cleared at the head of
-        # `_execute_attack`, long before that function's last failure return.
-        if (counter_punch_snapshot is not None
-                and not (isinstance(result, dict) and result.get("success", False))):
+        # An attack that never threw the strike must not spend the
+        # counter-punch. `_execute_attack` clears the flag at its head, ~3,000
+        # lines and ~55 returns above its last exit, and several of those
+        # exits report `success: True` while no blow is struck: the war-purpose
+        # staging popup, the PURSUE clarification, the approach march, the
+        # opening-attack guidance, the muster confirm.
+        #
+        # FAIL-CLOSED BY CONSTRUCTION. The list below is of outcomes that
+        # certainly did NOT fight; everything else is assumed to have fought.
+        # Missing an entry therefore reproduces the old behaviour (the strike
+        # is spent) and can never mint a repeatable free attack, which is the
+        # failure mode worth guarding against. Classifying all 55 exits the
+        # other way round was tried and is not safely reviewable.
+        if counter_punch_snapshot is not None:
             _cp_holder, _cp_turns = counter_punch_snapshot
-            _cp_holder.counter_punch_available = True
-            _cp_holder.counter_punch_turns = _cp_turns
+            _res = result if isinstance(result, dict) else {}
+            _no_strike = (
+                not _res.get("success", False)
+                or _res.get("requires_input")            # muster confirm
+                or _res.get("pending_interrupt")
+                or _res.get("awaiting_diplomatic_response")
+                or _res.get("war_purpose_popup")         # war purpose staged
+                or _res.get("opening_attack_guidance")   # a briefing, not a blow
+                or _res.get("occupation_started")        # walked in unopposed
+                or _res.get("state") == "awaiting_clarification"
+            )
+            if _no_strike:
+                _cp_holder.counter_punch_available = True
+                _cp_holder.counter_punch_turns = _cp_turns
+            elif not (_res.get("free_action") or _res.get("no_action_cost")):
+                # The strike WAS thrown on a counter-punch, but this exit
+                # forgot to say so — the garrison assault and the
+                # auto-bombardment kill both resolve without stamping it, so
+                # the player paid an action for a free attack, and one of them
+                # printed "This attack costs NO actions" while doing it.
+                # Stamped here, where the fact is known, rather than at four
+                # more exits that can drift apart again.
+                result["free_action"] = True
+                result["counter_punch_used"] = True
 
         # ============================================================
         # ACTION ECONOMY: Consume action ONLY if command succeeded

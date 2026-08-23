@@ -69,9 +69,13 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **counter-punch was unusable at 0 AP** — the only state in which "free"
 > means anything — because both AP pre-gates ran ~200 lines before the
 > exemption, which also broke GR5 (those gates skip enemy marshals, so the
-> AI's free attack always worked). `tests/test_ux_fixes_2026_08_23.py` (37) +
-> `tests/test_counter_punch_ap_gate.py` (14); **23 mutations swept, 23 killed,
-> two inert pins found and repaired by the sweep**; M1–M7 byte-identical.
+> AI's free attack always worked). `tests/test_ux_fixes_2026_08_23.py` (54) +
+> `tests/test_counter_punch_ap_gate.py` (21); **45 mutations swept over two
+> rounds, 45 killed — thirteen pins were inert on first sweep and were
+> repaired**; suite **18,718 passed / 3 skipped**; M1–M7 byte-identical. A
+> 13-agent review round at `4b09e59` found **26 more defects incl. a P1 this
+> slice introduced** (the waiver also disabled the 2-AP `pursue` gate) — all
+> fixed.
 > ⚠ OPEN: the audio re-audition · 8 routed rows UX23-R1..R8 (no stop API for
 > one-shot cues; the chime re-rings per unmet marshal per turn) · the
 > structural answer to "too early" = `DESIGN_REFINEMENT.md` UX23-D1..D4, gated.

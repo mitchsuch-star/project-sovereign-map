@@ -1877,7 +1877,11 @@ class EnemyAI:
         # Cautious marshals (Wellington, Davout) get a free attack after
         # successfully defending. This expires at turn end, so use it!
         # ════════════════════════════════════════════════════════════
-        if getattr(marshal, 'counter_punch_available', False) and personality == 'cautious':
+        # GR1: the shared predicate. This inlined it against the EFFECTIVE
+        # personality while every grant site and the helper read the raw
+        # one — latent today (no alias can hold the flag) but a split
+        # waiting to happen, and it falsified the "one predicate" claim.
+        if marshal.has_counter_punch():
             counter_punch_action = self._get_counter_punch_action(marshal, nation, world)
             if counter_punch_action:
                 ai_debug("  P3.25: COUNTER-PUNCH available!")
@@ -5678,6 +5682,7 @@ class EnemyAI:
             AI_GRANT_SHORTFALL_THRESHOLD, RENTE_AI_TREASURY_FLOOR,
             RENTE_AI_TREASURY_MULT, compute_investiture_fee,
             compute_rente_face, get_rente_cost, get_shortfall,
+            rente_would_change,
             is_dotation_world, list_paying_estates,
         )
         if not is_dotation_world(world):
@@ -5729,8 +5734,14 @@ class EnemyAI:
         if "grant_pension" not in skip_actions:
             face = compute_rente_face(neediest, world)
             cost = get_rente_cost(face)
-            if face > 0 and treasury >= max(RENTE_AI_TREASURY_FLOOR,
-                                            RENTE_AI_TREASURY_MULT * cost):
+            # GR1 (Aug 23, 2026): `face > 0` is not "he needs one" — the face
+            # ignores the rente he already holds, so this rung issued
+            # `grant_pension` for a fully-paid marshal and the shared executor
+            # refused it, burning the AI's admin slot. One predicate now.
+            if (rente_would_change(neediest, world)
+                    and face > 0
+                    and treasury >= max(RENTE_AI_TREASURY_FLOOR,
+                                        RENTE_AI_TREASURY_MULT * cost)):
                 return {
                     "action": "grant_pension",
                     "marshal": neediest.name,

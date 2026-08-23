@@ -2896,8 +2896,11 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
             marshal.expectation_grace_turn = -1
             marshal.modify_trust(FONTAINEBLEAU_CONCEDE_TRUST)
             # Aug 23, 2026: retire this petitioner's reward-rail rows in the
-            # same breath as paying him — see the note at grant_dotation.
-            dotation.dismiss_reward_notices(world, marshal)
+            # same breath as paying him — but only if the rente actually
+            # settles him (review round: a partial payment must not silence a
+            # still-true alarm).
+            if dotation.get_shortfall(marshal, world) <= 0:
+                dotation.dismiss_reward_notices(world, marshal)
             granted.append(f"{marshal.name} ({face}g/turn)")
             world.log_event({
                 "type": "rente_granted",

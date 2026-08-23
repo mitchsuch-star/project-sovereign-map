@@ -2045,7 +2045,24 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation"]
         action_costs_point = action not in free_actions
 
-        if action_costs_point:
+        # THE THIRD AP GATE — and the one a cautious marshal's counter-punch
+        # is most likely to meet, because a cautious marshal is exactly who
+        # objects. Aug 23, 2026 (review round): without the waiver here, a
+        # player at 0 AP who insisted past the objection paid -8 trust to be
+        # told "he follows your orders" and was THEN refused for want of an
+        # action, with the free strike still unspent. Same predicate and the
+        # same two exclusions as the pre-gates in `executor.execute`.
+        _cp_holder = world.get_marshal(marshal_name) if marshal_name else None
+        counter_punch_waiver = bool(
+            action == "attack"
+            and _cp_holder is not None
+            and _cp_holder.nation == world.player_nation
+            and _cp_holder.has_counter_punch()
+            and not command.get("is_strategic")
+            and not self._executor._attack_target_beyond_range(
+                _cp_holder, command.get("target"), world))
+
+        if action_costs_point and not counter_punch_waiver:
             is_admin = action in ADMIN_ACTIONS
             if is_admin:
                 if world.admin_actions_remaining <= 0:

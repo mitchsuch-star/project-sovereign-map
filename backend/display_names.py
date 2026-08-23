@@ -305,6 +305,10 @@ DIALOGUE_TYPE_DISPLAY = {
     "command_clarification": "an unanswered question from your staff",
     "settlement_confirm": "the settlement under review",
     "settlement_pair_substitute_confirm": "the settlement under review",
+    # In NO taxonomy set, but a real production producer
+    # (`settlement_staging`) and therefore a real blocker — without a row
+    # here the refusal would ship the raw key title-cased to the player (R7).
+    "settlement_scope_replace_confirm": "the settlement under review",
     "war_purpose_selection": "a war purpose yet to be declared",
     "force_declare_war_confirmation": "a declaration of war awaiting your word",
     "force_break_treaty_confirmation": "a treaty you are about to break",

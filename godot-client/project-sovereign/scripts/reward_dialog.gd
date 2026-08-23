@@ -114,7 +114,15 @@ func show_reward(card: Dictionary):
 	var offer = card.get("rente_offer", {})
 	var face = int(offer.get("face", 0)) if offer is Dictionary else 0
 	var cost = int(offer.get("cost", 0)) if offer is Dictionary else 0
-	if face > 0:
+	# Aug 23, 2026: gate on the backend's own predicate, not on `face > 0`.
+	# The face is `expectation − ESTATE income` and ignores the rente he
+	# already holds, so a fully-paid marshal reported face 80 and this offered
+	# "Re-size rente — 80g/turn" that the executor then refused — and counting
+	# it as an option made the honest "His expectation is met" fallback below
+	# unreachable. `would_change` is the same call `grant_pension` gates on.
+	var rente_changes = bool(offer.get("would_change", face > 0)) \
+			if offer is Dictionary else false
+	if face > 0 and rente_changes:
 		var verb = "Grant rente" if pension <= 0 else "Re-size rente"
 		_add_option(
 			verb + " — " + str(face) + "g/turn to him, " + str(cost) + "g/turn from the treasury",

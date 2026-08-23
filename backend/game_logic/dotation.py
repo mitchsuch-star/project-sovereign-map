@@ -532,6 +532,34 @@ def compute_rente_face(marshal, world) -> int:
                - get_estate_income(marshal, world, ignore_disruption=True))
 
 
+def rente_would_change(marshal, world) -> bool:
+    """True when granting/re-sizing the rente actually changes something.
+
+    GR1, added Aug 23, 2026 after the review round found FOUR implementations
+    of "is he met": the executor guard, `reward_dialog.gd`'s enabled state, the
+    AI rung, and `compute_rente_face` itself. They disagreed, so the card
+    offered "Re-size rente — 80g/turn" to a fully-paid marshal, the executor
+    refused the click, and the AI issued a command its own executor rejected.
+
+    Two clauses, and both are load-bearing:
+
+    * `get_satisfaction` is the honest "is he met" test — it counts the rente
+      he already holds, which `compute_rente_face` deliberately does not (the
+      face is `expectation − ESTATE income`, so a marshal paid entirely by
+      rente still reports a positive face). Using the face alone refused a
+      marshal whose estate had been DISRUPTED out from under him: expectation
+      240, rente 90, real shortfall 150, and the tray telling the player his
+      loyalty was fraying while the order to fix it answered "already met".
+    * ...but being met is not the end of it. A marshal met by an oversized
+      rente should still be re-sized DOWN when an estate starts paying —
+      expectation 240 / rente 240 / a new 150g estate means the treasury pays
+      360g/turn forever for something 135g/turn now buys.
+    """
+    if get_satisfaction(marshal, world) < get_expectation(marshal):
+        return True
+    return compute_rente_face(marshal, world) != int(getattr(marshal, "pension", 0))
+
+
 def build_rente_offer(marshal, world) -> Dict:
     """The reward surface's rente line: face + true treasury cost stated
     together (§0.6.8 item 6 — every option explains its instrument)."""
@@ -857,10 +885,14 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     # conquered provinces at the 1805 boot, so the old copy's "endow an estate
     # (a Duchy)" named an instrument that did not exist, on turn 2, as the
     # system's opening line. Only offer the land when land is actually paying.
+    # No "press G" on either arm. The row now carries a [Reward…] button
+    # that opens his card directly (review round: the clause survived exactly
+    # where the deep link is most useful, and it disagreed with the dialog,
+    # which builds its estate options from `eligible_estate_details` rather
+    # than from paying ones).
     estate_clause = ""
     if list_paying_estates(world, marshal.nation):
-        estate_clause = (", or endow him with an estate from his card on "
-                         "the Generals screen (press G)")
+        estate_clause = ", or endow him with an estate"
     world.notifications.add(create_notification(
         notification_type=DOTATION_EXPECTATION,
         priority=NotificationPriority.NORMAL,

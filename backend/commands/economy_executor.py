@@ -1021,8 +1021,8 @@ class EconomyExecutor:
         from backend.game_logic.dotation import (
             check_estate_eligibility, compute_investiture_fee, derive_title,
             dismiss_reward_notices, estate_yield, get_expectation,
-            get_satisfaction, is_dotation_world, list_eligible_estates,
-            strip_dead_estate_claims,
+            get_satisfaction, get_shortfall, is_dotation_world,
+            list_eligible_estates, strip_dead_estate_claims,
         )
 
         world: WorldState = game_state.get("world")
@@ -1155,7 +1155,15 @@ class EconomyExecutor:
         # the client's chime dedupes on that id, so re-stating a still-short
         # row would ring the grievance bell AT THE MOMENT OF PAYMENT. If a
         # shortfall remains, the next turn's pass re-posts it honestly.
-        dismiss_reward_notices(world, marshal)
+        # Gated on the debt actually being SETTLED (review round, 4b09e59):
+        # the first cut dismissed on any success, so endowing a 0g war-torn
+        # province — or REVOKING a rente — retired a HIGH "his loyalty is
+        # fraying" row that was still true, and trust went on falling 3/turn
+        # with nothing on screen. Paying in part leaves the row standing; its
+        # figures are refreshed by the next turn's pass (the id-stability
+        # follow-up is routed as UX23-R2).
+        if get_shortfall(marshal, world) <= 0:
+            dismiss_reward_notices(world, marshal)
 
         fee_note = f" Investiture: {fee} gold." if fee > 0 else ""
         decree = _decree_preamble(world, acting_nation)
@@ -1216,7 +1224,8 @@ class EconomyExecutor:
         this same method (enemy_ai rente rung).
         """
         from backend.game_logic.dotation import (
-            build_rente_offer, dismiss_reward_notices, is_dotation_world,
+            build_rente_offer, dismiss_reward_notices, get_shortfall,
+            is_dotation_world, rente_would_change,
         )
 
         world: WorldState = game_state.get("world")
@@ -1275,14 +1284,15 @@ class EconomyExecutor:
         # Ney at expectation 80 / pension 80 / estates 0 reached the success
         # path, re-wrote `pension = 80`, announced "his previous rente is
         # folded in", and spent 1 of the turn's 2 admin actions achieving
-        # exactly nothing. Measured live on the user's turn-3 board, and the
-        # reward dialog was offering the button ("Re-size rente — 80g/turn")
-        # to a marshal who needed nothing.
+        # exactly nothing. Measured live on the user's turn-3 board.
         #
-        # The honest test is whether the gap is actually open: satisfaction
-        # counts the held rente, `face` does not.
-        already_met = face <= 0 or face <= held
-        if already_met:
+        # `rente_would_change` is the ONE predicate (GR1) — the first cut here
+        # was `face <= held`, which the review round showed refuses a marshal
+        # whose estate has been disrupted out from under him, and blocks a
+        # legitimate re-size DOWN. The card and the AI rung read the same
+        # function, so the button can no longer offer what the executor
+        # refuses.
+        if not rente_would_change(marshal, world):
             if held > 0:
                 return {
                     "success": False,
@@ -1310,7 +1320,15 @@ class EconomyExecutor:
 
         # Aug 23, 2026: the tray must not go on asking for what was just
         # paid — same seam and same dismiss-only reasoning as grant_dotation.
-        dismiss_reward_notices(world, marshal)
+        # Gated on the debt actually being SETTLED (review round, 4b09e59):
+        # the first cut dismissed on any success, so endowing a 0g war-torn
+        # province — or REVOKING a rente — retired a HIGH "his loyalty is
+        # fraying" row that was still true, and trust went on falling 3/turn
+        # with nothing on screen. Paying in part leaves the row standing; its
+        # figures are refreshed by the next turn's pass (the id-stability
+        # follow-up is routed as UX23-R2).
+        if get_shortfall(marshal, world) <= 0:
+            dismiss_reward_notices(world, marshal)
 
         resize_note = (f" (his previous rente of {previous}g/turn is folded in)"
                        if previous > 0 else "")
@@ -1408,8 +1426,11 @@ class EconomyExecutor:
         # rows are simply false) or a shortfall has just reopened (the numbers
         # are last turn's). Retire them; the next turn's pass re-posts the
         # honest row with a fresh grace clock if one is owed.
-        dismiss_reward_notices(world, marshal)
         if get_satisfaction(marshal, world) >= get_expectation(marshal):
+            # Only when the estates genuinely cover him without the paper.
+            # Revoking into an OPEN shortfall must not silence the warning
+            # the same sentence is about to give (review round, 4b09e59).
+            dismiss_reward_notices(world, marshal)
             consequence = ("His estates sustain his expectation without it — "
                            "the paper was redundant, Sire.")
         else:
