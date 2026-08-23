@@ -532,6 +532,47 @@ def compute_rente_face(marshal, world) -> int:
                - get_estate_income(marshal, world, ignore_disruption=True))
 
 
+def rente_grant_would_not_help(marshal, world) -> bool:
+    """True when granting a rente right now would do him no good — or harm.
+
+    Found by the UX23-A review round and reproduced by hand. The two halves of
+    the reward economy read a marshal's estates differently ON PURPOSE:
+    `compute_rente_face` ignores EC-W1 disruption (EWC-F2 — a hostile army
+    standing on an estate for one turn must not lock an oversized pension),
+    while `get_satisfaction` counts the disruption he actually feels. When an
+    estate IS disrupted the two disagree by exactly its income, and three bad
+    things became reachable through a single "settle it now" click:
+
+    * **A grant that DESTROYS his rente.** Measured: Ney, expectation 300, two
+      150g estates, a 100g rente; an Austrian corps marches onto one estate;
+      satisfaction 250, shortfall 50. The face is `300 − 300` = **0**, so the
+      button read "Re-size rente — 0g/turn" and pressing it set `pension` to 0
+      — shortfall 50 → **150**, tripled, for one of the turn's two admin
+      actions, on the control advertised as the remedy.
+    * **A no-op that still charges.** Face lands on exactly the pension he
+      already holds: success, a decree, an admin action, nothing changed.
+    * **A 0g grant.** Every estate disrupted: face 0, held 0, "granted a rente
+      of 0g/turn upon the treasury", grievance untouched.
+
+    The rule that covers all three without touching the EWC-F2 asymmetry:
+    **a grant must leave him better off, or at least still met.** Anything
+    that lowers what he holds while he is genuinely short is not a reward.
+
+    Read by `rente_would_change`, so the executor, the marshal card, the AI
+    rung and the rail's button all inherit it from one place (GR1) — the
+    enemy AI already carried half of it as a bare `face > 0`, which is the
+    asymmetry that made the player's button the only one that could fire.
+    """
+    held = int(getattr(marshal, "pension", 0))
+    face = compute_rente_face(marshal, world)
+    if face > held:
+        return False                      # a real, increasing payment
+    # He is about to hold LESS paper (or none). That is legitimate only when
+    # his land covers him without it — the §0.6.8 re-size-down case. Counted
+    # with the disruption he actually feels, because that is what erodes him.
+    return get_estate_income(marshal, world) + face < get_expectation(marshal)
+
+
 def rente_would_change(marshal, world) -> bool:
     """True when granting/re-sizing the rente actually changes something.
 
@@ -555,6 +596,14 @@ def rente_would_change(marshal, world) -> bool:
       expectation 240 / rente 240 / a new 150g estate means the treasury pays
       360g/turn forever for something 135g/turn now buys.
     """
+    if rente_grant_would_not_help(marshal, world):
+        # UX23-A review: "would it change something" is not the same question
+        # as "would it help". A disrupted estate makes the face collapse below
+        # the rente he already holds, and the first clause below — any live
+        # shortfall — waved that straight through to a click that made him
+        # WORSE. One predicate, so the card, the AI and the rail all learn it
+        # at once.
+        return False
     if get_satisfaction(marshal, world) < get_expectation(marshal):
         return True
     return compute_rente_face(marshal, world) != int(getattr(marshal, "pension", 0))
@@ -946,6 +995,19 @@ def rente_action_keys(marshal, world) -> Dict:
     is a choice the §0.6.8 portfolio design exists to pose. `[Reward…]` still
     opens the dialog that poses it.
     """
+    # UX23-A review round: the docstring promised "never offer what the
+    # executor refuses" while mirroring only two of its five refusals.
+    # Measured on the live boot, the builder returned a complete, priced
+    # affordance for NAPOLEON (whom `_execute_grant_pension` refuses in
+    # character — "the treasury is already his") and for MACK, an Austrian,
+    # quoted against the FRENCH treasury. Both are latent, because the two
+    # producers return early for a foreign marshal — but a claim that is only
+    # true because of a guard somewhere else is not a claim this function can
+    # keep, and this is the one builder a future surface will reuse.
+    if marshal.nation != getattr(world, "player_nation", None):
+        return {}
+    if getattr(marshal, "is_sovereign", False):
+        return {}
     if getattr(marshal, "captured_by", ""):
         return {}
     if not rente_would_change(marshal, world):
@@ -957,10 +1019,15 @@ def rente_action_keys(marshal, world) -> Dict:
     return {
         "action_command": f"grant {marshal.name} a rente",
         "action_label": f"{verb} — {cost}g/turn",
+        # UX23-A review round: two clauses were false in reachable states.
+        # "every turn" — `get_nation_rente_bill` skips a captured marshal, so
+        # the crown pays only while he is at liberty. "Reversible" implied a
+        # free undo; `revoke_pension` is itself an ADMIN action.
         "action_detail": (
-            f"{face}g/turn to his household; {cost}g/turn from the treasury, "
-            f"every turn, and 1 administrative action now. "
-            f"Reversible with \"revoke {marshal.name}'s rente\"."
+            f"{face}g/turn to his household; {cost}g/turn from the treasury "
+            f"for as long as he is at liberty, and 1 administrative action "
+            f"now. Revocable with \"revoke {marshal.name}'s rente\" — for "
+            f"another administrative action."
         ),
     }
 

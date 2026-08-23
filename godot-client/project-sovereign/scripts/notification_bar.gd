@@ -456,8 +456,13 @@ func _show_expanded_panel(notif: Dictionary):
 			action_btn.custom_minimum_size = Vector2(0, 32)
 			action_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			action_btn.clip_text = true
-			action_btn.add_theme_font_size_override("font_size", 13)
+			# UX23-A review round: this carried an explicit 13px while the
+			# project theme sets Button/font_size = 15, so the "primary" CTA
+			# rendered SMALLER than the [Reward…]/[Keep]/[Acknowledge] row
+			# beneath it — the type hierarchy inverted against the very intent
+			# the comment above states. It takes the theme size now.
 			action_btn.add_theme_color_override("font_color", Utils.UI_GOLD)
+			action_btn.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)
 			action_btn.pressed.connect(_on_action_pressed.bind(action_command))
 			vbox.add_child(action_btn)
 

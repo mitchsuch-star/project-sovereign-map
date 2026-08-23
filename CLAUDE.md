@@ -107,13 +107,35 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > tray stopped trimming entirely; it now sheds the oldest **stale** HIGH
 > (`HIGH_EVICTION_WINDOW_TURNS = 10`), never CRITICAL, never a same-turn burst.
 > Found in passing: both reward rows rendered as "INF"/"NEW" on the rail —
-> now `coins`/`medal`. `tests/test_ux23a_reward_where_he_stands.py` (38);
-> **26 mutations swept, 26 killed, 0 inert**; suite **18,756/3**; M1–M7 +
-> `BASELINE_SERIES` byte-identical; parse harness EXIT=0; one pre-existing pin
-> flipped consciously. ⚠ OPEN: a live visual pass on the button and glyphs.
-> **UX23-D1..D4 NOT folded in** (the curve is a different gate) — but the fleet
-> found three factual errors in that section's own rows, corrected on the
-> record; headline, **D4 names the wrong seam and the wrong date**.
+> now `coins`/`medal`. **Then two more rounds.** (a) Probing found the price
+> went STALE mid-turn — a victory raised the expectation and the button kept
+> quoting the old figure (measured 120 shown / **180** charged), so
+> `restate_reward_notice` re-quotes a STANDING row at the combat seam and all
+> four payment seams (never opens one — the grace clock is the per-turn pass's).
+> (b) An 8-lens review at the committed SHA found **31 more, incl. a P1 and a
+> regression this slice introduced**: a disrupted estate collapses the
+> disruption-blind face below the rente held, so the button read "Re-size rente
+> — 0g/turn" and **destroyed a 100g rente, tripling the shortfall 50 → 150**
+> (fixed as ONE predicate — *a grant must leave him better off, or still met* —
+> folded into `rente_would_change` so executor/card/AI/button all inherit it);
+> and freezing `turn_created` sank the reward row off the six-icon rail AND
+> made the one live row the FIRST the cap evicted, re-minting its uuid (fixed
+> by splitting *when it began* from *when it was last true* —
+> `turn_refreshed` + `_currency()`; `_enforce_cap` rewritten so a fresh NORMAL
+> alert no longer dies on the call that added it). Plus: the rail fired while a
+> typed command was in flight; the CTA rendered smaller than the buttons
+> beneath it; the builder offered Napoleon and Mack rentes; two false tooltip
+> clauses; `refresh` overwrote priority where `add` takes max;
+> `SAVE_FORMAT_REFERENCE.md` updated. `tests/test_ux23a_reward_where_he_stands.py`
+> (73); **55 mutations swept, 55 killed, 0 inert at close** (five inert on a
+> first sweep, all repaired or DELETED — two "fixes" were dead code); suite
+> **18,792/3**; M1–M7 + `BASELINE_SERIES` byte-identical; parse harness EXIT=0;
+> two pre-existing pins flipped consciously. ⚠ OPEN: a live visual pass on the
+> button and glyphs. **UX23-D1..D4 NOT folded in** (the curve is a different
+> gate) — but the research fleet found three factual errors in that section's
+> own rows, corrected on the record; headline, **D4 names the wrong seam** (and
+> my first correction of its date was itself wrong — `git blame -C` gives
+> `70ab5099`, 2026-02-23, not the R10A file move).
 >
 > **▶ THE NPC P1 CLUSTER FIXED August 16, 2026 — landing record =
 > `docs/BUG_FIXES.md` §Napoleon Campaign (NPC), the boxed block above the

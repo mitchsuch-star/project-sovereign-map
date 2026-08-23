@@ -583,7 +583,7 @@ func _ready():
 		# in-flight latch, the terminal echo, the history entry and the
 		# Generals refresh all come with it.
 		if notification_bar.has_signal("notification_action_requested"):
-			notification_bar.notification_action_requested.connect(_on_reward_command)
+			notification_bar.notification_action_requested.connect(_on_notification_action_requested)
 
 	# UI-6: map province click → Region Action Panel (the region_clicked
 	# signal existed since the cutover but nothing listened in the game path)
@@ -5609,6 +5609,34 @@ func _on_commission_requested(candidate_name: String):
 	if candidate_name.is_empty():
 		return
 	_on_reward_command("commission " + candidate_name)
+
+
+func _on_notification_action_requested(command: String):
+	"""A rail row's own action button.
+
+	UX23-A review round. `_on_reward_command`'s `_chip_command_in_flight`
+	latch is set ONLY by the chip pipelines — the three terminal send paths
+	(`_execute_command`, `_send_end_turn`, `_on_wizard_command_selected`)
+	never touch it. Every one of them does call `set_input_enabled(false)`,
+	and the rail is hidden outright while a modal owns focus, so while the
+	rail is CLICKABLE an un-editable command line means exactly one thing: a
+	request is already on the wire. Firing into that queued a second POST
+	behind an end-turn — echoing the order above output that had not been
+	rendered yet, and spending an administrative action against a world the
+	player had not seen.
+
+	Before this slice every rail button was local (Keep, Reward…, Open Ledger)
+	or a no-op dismiss, so nothing here had ever needed the guard.
+	"""
+	if command.is_empty():
+		return
+	if not command_input.editable:
+		# Say so. A silently swallowed click on a button that names a price
+		# is indistinguishable from a broken button.
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
+	_on_reward_command(command)
 
 
 func _on_reward_command(command: String):

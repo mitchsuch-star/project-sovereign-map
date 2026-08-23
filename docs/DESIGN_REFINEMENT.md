@@ -87,10 +87,17 @@ Whoever takes the gate should decide whether "too early" meant *too soon* or
 
 3. **D4 names the wrong seam, the wrong date, and is under-priced.** The
    co-locator credit is at `combat_executor.py:5755-5771`, inside
-   `if is_coordinated_battle:` — `git blame` gives `c5d808c1`, **2026-03-28**,
-   the Session-62 casualty-participant model (`MULTI_MARSHAL_SPEC.md:568-570`,
+   `if is_coordinated_battle:`. *(Second correction, same day: the first cut
+   of this paragraph cited `c5d808c1`, **2026-03-28** — which is the R10A
+   executor SPLIT, a pure file move, and is simply what plain `git blame`
+   attributes a moved line to. It also contradicted itself by calling that
+   date "Session 62". `git blame -C -C -C` resolves the move and gives
+   `70ab5099`, **2026-02-23**, "Session 62: Casualty Distribution (Phase 7b)",
+   in the pre-split `backend/commands/executor.py`. A correction about a wrong
+   date had a wrong date; it is fixed here rather than quietly.)* The model is
+   the Session-62 casualty-participant one (`MULTI_MARSHAL_SPEC.md:568-570`,
    *"Participating | All same-nation marshals in region at time of combat"*).
-   That is ~3.5 months BEFORE W6-1 (July 10), whose own loop at `:6081`
+   That is nearly five months BEFORE W6-1 (July 10), whose own loop at `:6081`
    *cites* the older model rather than establishing it — and which CA9-N1
    documented as inert (`is_coordinated_battle` is always True when that loop
    has an arrival, so seam A always fires first and the `:6081` increment is

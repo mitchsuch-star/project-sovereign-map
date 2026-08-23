@@ -1162,10 +1162,11 @@ class EconomyExecutor:
         # fraying" row that was still true, and trust went on falling 3/turn
         # with nothing on screen. Paying in part leaves the row standing; its
         # figures are refreshed in place, keeping the row's id so the desk
-        # bell does not ring at the moment of payment (UX23-R2 + UX23-A:
-        # `restate_reward_notice` is the superset — it retires on the same
-        # `shortfall <= 0` gate, and otherwise re-quotes the live price the
-        # rail's own button now spends an administrative action on).
+        # bell does not ring at the moment of payment (UX23-R2, LANDED —
+        # `restate_reward_notice` is the superset of the old
+        # dismiss-if-settled call: it retires on the same `shortfall <= 0`
+        # gate, and otherwise re-quotes the live price the rail's own button
+        # now spends an administrative action on).
         restate_reward_notice(world, marshal)
 
         fee_note = f" Investiture: {fee} gold." if fee > 0 else ""
@@ -1281,6 +1282,7 @@ class EconomyExecutor:
         offer = build_rente_offer(marshal, world)
         face, cost = int(offer["face"]), int(offer["cost"])
         held = int(getattr(marshal, "pension", 0))
+        shortfall = get_shortfall(marshal, world)
         # Aug 23, 2026 — the no-op re-size. `compute_rente_face` is
         # `expectation − ESTATE income` and deliberately ignores the rente
         # already held, so a marshal who is fully paid BY HIS RENTE still
@@ -1297,6 +1299,37 @@ class EconomyExecutor:
         # function, so the button can no longer offer what the executor
         # refuses.
         if not rente_would_change(marshal, world):
+            # UX23-A review round: the "already met" sentence was the ONLY
+            # refusal here, and it is a lie in the disrupted-estate case — he
+            # is emphatically not met, the treasury simply cannot help him by
+            # re-writing paper downward. Name the real obstacle.
+            from backend.game_logic.dotation import (
+                get_estate_income, rente_grant_would_not_help,
+            )
+            if rente_grant_would_not_help(marshal, world) and shortfall > 0:
+                occupied = [r for r in getattr(marshal, "dotation_regions", [])
+                            if r in world.get_disrupted_regions()]
+                if occupied:
+                    from backend.display_names import humanize_entity_name
+                    where = humanize_entity_name(occupied[0])
+                    return {
+                        "success": False,
+                        "message": (
+                            f"A rente cannot mend this, Sire. Marshal "
+                            f"{marshal.name} is short {shortfall}g/turn only "
+                            f"because an enemy army stands on {where} and his "
+                            f"estate pays nothing — the treasury would be "
+                            f"writing down the paper he already holds. Drive "
+                            f"them off, or endow him elsewhere."),
+                    }
+                return {
+                    "success": False,
+                    "message": (
+                        f"There is nothing to grant, Sire. Marshal "
+                        f"{marshal.name}'s estates are entered against his "
+                        f"expectation in full; what he lacks, gold cannot "
+                        f"supply."),
+                }
             if held > 0:
                 return {
                     "success": False,
@@ -1330,10 +1363,11 @@ class EconomyExecutor:
         # fraying" row that was still true, and trust went on falling 3/turn
         # with nothing on screen. Paying in part leaves the row standing; its
         # figures are refreshed in place, keeping the row's id so the desk
-        # bell does not ring at the moment of payment (UX23-R2 + UX23-A:
-        # `restate_reward_notice` is the superset — it retires on the same
-        # `shortfall <= 0` gate, and otherwise re-quotes the live price the
-        # rail's own button now spends an administrative action on).
+        # bell does not ring at the moment of payment (UX23-R2, LANDED —
+        # `restate_reward_notice` is the superset of the old
+        # dismiss-if-settled call: it retires on the same `shortfall <= 0`
+        # gate, and otherwise re-quotes the live price the rail's own button
+        # now spends an administrative action on).
         restate_reward_notice(world, marshal)
 
         resize_note = (f" (his previous rente of {previous}g/turn is folded in)"

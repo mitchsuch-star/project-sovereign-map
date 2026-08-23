@@ -6074,11 +6074,18 @@ class WorldState:
             # so a marshal now drawing a 240g rente against a 300g
             # expectation still read "holds 0g/turn" — the memo's §5 case,
             # contradicted by the same screen's `"pension": 240`. The gate
-            # is now `>=` and the row is REPLACED each eroding turn, so its
-            # numbers are the numbers. The dismiss MUST precede the add:
-            # `NotificationCollector.add` collapses a duplicate into the
-            # existing row and re-titles it "(x2)", which would render a
-            # refresh as a second grievance.
+            # is now `>=` and the row is RE-STATED each eroding turn, so its
+            # numbers are the numbers.
+            #
+            # UX23-R2 (Aug 23, 2026): this used to read "the dismiss MUST
+            # precede the add, because `NotificationCollector.add` collapses a
+            # duplicate and re-titles it (x2)". True then, and the same
+            # sentence was deleted from `post_expectation_notice`'s docstring
+            # when the producers moved to `refresh()` — but it survived here,
+            # attached to the very call site whose behaviour changed. There is
+            # no dismiss and no add on this path any more: `refresh` updates
+            # the row in place and keeps its uuid, which is what stops the
+            # desk bell ringing once a turn per unmet marshal.
             if elapsed >= GRACE_TURNS and marshal.nation == self.player_nation:
                 # Aug 23, 2026: the whole inline block (including the
                 # three-arm remedy sentence) moved to

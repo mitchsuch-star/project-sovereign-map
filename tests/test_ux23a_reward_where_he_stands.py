@@ -64,6 +64,35 @@ def _read(name):
         return fh.read()
 
 
+def _live(name):
+    """`_read` with commented-out code removed.
+
+    UX23-A review round: every client pin in this file matched a substring
+    anywhere in the file, so commenting out `pressed.connect(...)` and
+    `notification_action_requested.emit(...)` left all six green — the button
+    could be built, rendered, and wired to nothing at all while the suite
+    reported success. Strings are left alone (no `#` appears inside the ones
+    these pins match), and full-line comments and trailing comments both go.
+    """
+    out = []
+    for line in _read(name).split("\n"):
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            continue
+        if "#" in line and '"' not in line.split("#", 1)[0]:
+            line = line.split("#", 1)[0]
+        out.append(line)
+    return "\n".join(out)
+
+
+def _body(src, start, end):
+    """The source between two anchors, both of which must exist."""
+    assert start in src, start
+    body = src[src.index(start):]
+    assert end in body, end
+    return body[:body.index(end)]
+
+
 @pytest.fixture
 def world():
     return WorldState.from_scenario(SCENARIO)
@@ -249,6 +278,283 @@ class TestItNeverOffersWhatTheExecutorRefuses:
         assert ney.pension == 0, "a refused click must cost nothing"
 
 
+def _two_estates(world, name="Ney", wins=8):
+    """A marshal with two paying estates worth 300 between them."""
+    marshal = world.marshals[name]
+    marshal.battles_won = wins
+    picks = []
+    for region in world.regions.values():
+        if (region.controller not in ("France", None)
+                and not region.is_capital and region.income_value >= 100):
+            region.controller = "France"
+            region.stability = 90
+            region.war_damage = 0.0
+            picks.append(region)
+            if len(picks) == 2:
+                break
+    world.invalidate_active_nations_cache()
+    marshal.dotation_regions = [p.name for p in picks]
+    return marshal, picks
+
+
+def _occupy(world, region, _used=None):
+    """Park an at-war enemy corps on a region (EC-W1 disruption).
+
+    Takes a DIFFERENT corps each time: the first draft reused one marshal, so
+    occupying a second estate silently un-occupied the first and the test that
+    needed both disrupted measured satisfaction 150 instead of 0.
+    """
+    used = _used if _used is not None else set()
+    enemy = next(m for m in world.marshals.values()
+                 if m.nation != "France" and m.strength >= 1000
+                 and world.is_at_war("France", m.nation)
+                 and m.name not in used)
+    used.add(enemy.name)
+    enemy.location = region.name
+    assert region.name in world.get_disrupted_regions()
+    return enemy
+
+
+class TestAGrantNeverLeavesHimWorseOff:
+    """The UX23-A review round's P1, reproduced by hand before it was fixed.
+
+    `compute_rente_face` ignores EC-W1 disruption on purpose (EWC-F2) while
+    `get_satisfaction` counts it, so a disrupted estate makes the face collapse
+    BELOW the rente the marshal already holds — and the old gate,
+    "is there a live shortfall", waved that straight through.
+    """
+
+    def test_it_does_not_destroy_a_rente_and_triple_the_shortfall(self, world):
+        from backend.commands.executor import CommandExecutor
+
+        ney, picks = _two_estates(world)
+        ney.pension = 100
+        _occupy(world, picks[0])
+
+        assert dotation.get_shortfall(ney, world) == 50, "measured precondition"
+        assert dotation.compute_rente_face(ney, world) == 0, (
+            "precondition: the face is disruption-blind and collapses to 0")
+
+        assert dotation.rente_action_keys(ney, world) == {}, (
+            "the rail must not offer 'Re-size rente — 0g/turn' as the remedy")
+
+        before_ap = world.admin_actions_remaining
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+
+        assert result["success"] is False
+        assert ney.pension == 100, "his rente must survive"
+        assert dotation.get_shortfall(ney, world) == 50, "not 150"
+        assert world.admin_actions_remaining == before_ap, (
+            "and a refusal costs nothing")
+
+    def test_the_refusal_names_the_army_standing_on_his_estate(self, world):
+        from backend.commands.executor import CommandExecutor
+
+        ney, picks = _two_estates(world)
+        ney.pension = 100
+        _occupy(world, picks[0])
+        message = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})["message"]
+        assert "already met" not in message, (
+            "he is emphatically NOT met — that sentence was the only refusal "
+            "here and it was a lie in this state")
+        assert picks[0].name.replace("_", " ") in message or picks[0].name in message
+
+    def test_a_zero_face_grant_no_longer_succeeds_and_charges(self, world):
+        """Every estate disrupted, no rente held: the executor used to return
+        a decree granting 'a rente of 0g/turn', spend an admin action, and
+        leave the grievance exactly where it was."""
+        from backend.commands.executor import CommandExecutor
+
+        ney, picks = _two_estates(world)
+        used = set()
+        for region in picks:
+            _occupy(world, region, used)
+        assert dotation.get_satisfaction(ney, world) == 0
+        assert dotation.compute_rente_face(ney, world) == 0
+
+        before_ap = world.admin_actions_remaining
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result["success"] is False
+        assert world.admin_actions_remaining == before_ap
+        assert dotation.rente_action_keys(ney, world) == {}
+
+    def test_the_legitimate_re_size_DOWN_still_works(self, world):
+        """§0.6.8's own case, and the reason the guard is 'never worse off'
+        rather than a blunt `face >= held`: when his land covers him the
+        redundant rente SHOULD be shed, saving the treasury its premium."""
+        from backend.commands.executor import CommandExecutor
+
+        ney, _ = _two_estates(world)
+        ney.pension = 100
+        assert dotation.get_satisfaction(ney, world) > dotation.get_expectation(ney)
+
+        assert dotation.rente_would_change(ney, world) is True
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result["success"] is True
+        assert ney.pension == 0, "the redundant paper is shed"
+
+    def test_an_ordinary_grant_is_untouched(self, world):
+        from backend.commands.executor import CommandExecutor
+
+        ney = _owe(world, wins=2)
+        assert dotation.rente_action_keys(ney, world), "the button is offered"
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result["success"] is True and ney.pension == 80
+
+    def test_a_PARTIAL_but_helpful_grant_is_still_allowed(self, world):
+        """The guard is "never worse off", not "must close the gap".
+
+        The `face > held` early-out is what separates the two, and the
+        mutation sweep found it unpinned. Measured case: two 100g estates,
+        one disrupted, expectation 300. The face is 100 (disruption-blind:
+        300 − 200) and the live estate income is 100, so the fall-through
+        arithmetic reads 100 + 100 < 300 and would REFUSE — while the grant
+        genuinely lifts him from 100g to 200g. Helping is not the same as
+        finishing.
+        """
+        from backend.commands.executor import CommandExecutor
+
+        ney = world.marshals["Ney"]
+        ney.battles_won = 8
+        picks = []
+        for region in world.regions.values():
+            if (region.controller not in ("France", None)
+                    and not region.is_capital
+                    and 90 <= region.income_value <= 130):
+                region.controller = "France"
+                region.stability = 90
+                region.war_damage = 0.0
+                picks.append(region)
+                if len(picks) == 2:
+                    break
+        world.invalidate_active_nations_cache()
+        ney.dotation_regions = [p.name for p in picks]
+        _occupy(world, picks[0])
+
+        before = dotation.get_satisfaction(ney, world)
+        assert dotation.get_shortfall(ney, world) > 0, "precondition"
+        assert dotation.rente_grant_would_not_help(ney, world) is False
+
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert result["success"] is True
+        assert dotation.get_satisfaction(ney, world) > before, (
+            "he is better off even though he is not yet met")
+
+    def test_the_guard_is_one_predicate_all_four_readers_share(self):
+        """GR5 note: `enemy_ai` already carried HALF of this as a bare
+        `face > 0`, which is precisely why the player's button was the only
+        one that could fire the destructive grant."""
+        import inspect
+        src = inspect.getsource(dotation.rente_would_change)
+        assert "rente_grant_would_not_help(marshal, world)" in src, (
+            "folding it into the shared predicate is what gives the card, the "
+            "AI rung and the rail button the guard for free")
+
+
+class TestTheRailKeepsTheRowItExistsFor:
+    """UX23-R2 froze `turn_created`, and two other things read it."""
+
+    def _tray(self):
+        from backend.notifications import NotificationCollector
+        return NotificationCollector()
+
+    def _erosion(self, turn, subject="Ney"):
+        return create_notification(
+            DOTATION_EROSION, NotificationPriority.HIGH,
+            f"Marshal {subject} grows bitter", "x", turn, {"marshal": subject})
+
+    def test_a_live_row_floats_above_older_news_on_the_six_icon_rail(self):
+        """`get_pending` sorts by (priority, turn) and the client renders only
+        the first six. Frozen at the turn the shortfall opened, the reward row
+        sank below every HIGH notice that arrived later — the one row this
+        slice exists to put a button on."""
+        tray = self._tray()
+        for turn in range(5, 21):
+            tray.refresh(self._erosion(turn))
+        for turn in range(12, 18):
+            tray.add(create_notification(
+                "war_declared", NotificationPriority.HIGH,
+                f"War {turn}", "x", turn, {"nation": f"N{turn}"}))
+        assert any(n["type"] == DOTATION_EROSION
+                   for n in tray.get_pending()[:6]), (
+            "six newer HIGH rows is a routine mid-campaign tray")
+
+    def test_but_its_own_T_stamp_still_says_when_it_began(self):
+        tray = self._tray()
+        for turn in range(5, 21):
+            tray.refresh(self._erosion(turn))
+        row = tray.get_pending()[0]
+        assert row["turn_created"] == 5
+        assert row["turn_refreshed"] == 20
+
+    def test_a_row_being_re_stated_every_turn_is_never_the_stalest_thing(self):
+        """UX23-R3 measures staleness by the same clock. Read off
+        `turn_created`, the ONE row kept live every turn looked stalest and
+        was evicted first — then re-appended next turn with a NEW uuid,
+        ringing the bell UX23-R2 exists to silence."""
+        tray = self._tray()
+        tray.refresh(self._erosion(4))
+        live_id = tray.get_pending()[0]["id"]
+        for turn in range(5, 41):
+            tray.refresh(self._erosion(turn))
+        for i in range(NOTIFICATION_CAP):
+            tray.add(create_notification(
+                "war_declared", NotificationPriority.HIGH, f"War {i}", "x", 40,
+                {"nation": f"W{i}"}))
+        assert any(n["id"] == live_id for n in tray.get_pending()), (
+            "the only currently-true crisis in the tray was the one dropped")
+
+    def test_a_genuinely_dormant_high_row_is_still_shed(self):
+        """R3 must still do its job, or the fix above has simply undone it."""
+        tray = self._tray()
+        tray.add(create_notification(
+            "vassal_rebellion", NotificationPriority.HIGH, "Old news", "x", 1,
+            {"nation": "Bavaria"}))
+        for turn in range(2, 41):
+            tray.refresh(self._erosion(turn))
+        for i in range(NOTIFICATION_CAP - 1):
+            tray.add(create_notification(
+                "war_declared", NotificationPriority.HIGH, f"War {i}", "x", 40,
+                {"nation": f"W{i}"}))
+        rows = tray.get_pending()
+        assert not any(n["type"] == "vassal_rebellion" for n in rows)
+        assert any(n["type"] == DOTATION_EROSION for n in rows)
+
+    def test_a_fresh_NORMAL_alert_is_not_killed_by_the_call_that_added_it(self):
+        """`DOTATION_EXPECTATION` is NORMAL. Spending "the oldest NORMAL"
+        unconditionally meant a new arrival into a tray of fifty ten-turn-old
+        grievances WAS the oldest NORMAL, and died on arrival — so the player
+        was never told the grace clock had opened."""
+        tray = self._tray()
+        for i in range(NOTIFICATION_CAP):
+            tray.add(self._erosion(1, f"M{i}"))
+        tray.add(create_notification(
+            DOTATION_EXPECTATION, NotificationPriority.NORMAL,
+            "Marshal Ney expects reward", "x", 30, {"marshal": "Ney"}))
+        assert any(n["type"] == DOTATION_EXPECTATION for n in tray.get_pending())
+
+    def test_an_old_save_without_the_field_behaves_as_before(self):
+        """`turn_refreshed` is absent from every pre-slice save."""
+        tray = self._tray()
+        row = self._erosion(7)
+        row.pop("turn_refreshed", None)
+        tray.add(row)
+        assert "turn_refreshed" not in tray.get_pending()[0]
+        assert tray._currency(tray.get_pending()[0]) == 7
+
+
 class TestTheEstateStaysAChoice:
     """§0.6.8's whole premise is that estate-vs-rente is a genuine decision,
     and `estate_yield`'s docstring records that endowing a 0g fresh conquest
@@ -283,31 +589,64 @@ class TestTheEstateStaysAChoice:
 
 
 class TestTheClientRendersAndRoutesIt:
+    """Every pin here reads `_live()`, not `_read()`.
+
+    The review round showed the first draft — plain substring presence — stayed
+    green with the `pressed.connect` and the `emit` BOTH commented out, and
+    with `if action_command != "":` weakened to `!= null` (which would grow a
+    gold 'Act' button on every notification in the game). A pin that a
+    commented-out line satisfies is not a pin.
+    """
 
     def test_the_rail_builds_a_button_from_the_action_keys(self):
-        src = _read("notification_bar.gd")
+        src = _live("notification_bar.gd")
         assert 'details.get("action_command", "")' in src
         assert 'details.get("action_label", "Act")' in src
         assert 'details.get("action_detail", "")' in src
-        assert "_on_action_pressed.bind(action_command)" in src
+
+    def test_the_button_is_actually_connected(self):
+        """Live code, inside the builder, and bound to the command."""
+        block = _body(_live("notification_bar.gd"),
+                      'var action_command = str(details',
+                      "var button_row = HBoxContainer.new()")
+        assert "action_btn.pressed.connect(_on_action_pressed.bind(action_command))" \
+            in block, "the button must be wired to the handler, not just built"
+        assert "vbox.add_child(action_btn)" in block
+
+    def test_the_button_appears_only_for_a_row_that_carries_a_command(self):
+        """`!= null` is always true for a String, so weakening the guard puts
+        a gold 'Act' button on every notification in the game."""
+        block = _body(_live("notification_bar.gd"),
+                      'var action_command = str(details',
+                      "var button_row = HBoxContainer.new()")
+        assert 'if action_command != "":' in block
+
+    def test_the_label_is_the_caption_and_the_detail_is_the_tooltip(self):
+        """Swapping them hides the price behind a hover and puts a sentence on
+        a clipped button."""
+        block = _body(_live("notification_bar.gd"),
+                      'var action_command = str(details',
+                      "var button_row = HBoxContainer.new()")
+        assert 'action_btn.text = str(details.get("action_label"' in block
+        assert 'action_btn.tooltip_text = str(details.get("action_detail"' in block
 
     def test_it_sits_above_the_button_row_not_inside_it(self):
         """A fourth peer button widens the panel past the width
         `_position_expanded_panel` places it by, so it hangs off the edge —
         and added after `button_row` it would render below Acknowledge."""
-        src = _read("notification_bar.gd")
-        action_at = src.index("var action_command = str(details")
-        row_at = src.index("var button_row = HBoxContainer.new()")
-        assert action_at < row_at, (
-            "the action must be added to the vbox BEFORE button_row")
-        assert "vbox.add_child(action_btn)" in src[action_at:row_at]
+        src = _live("notification_bar.gd")
+        assert src.index("var action_command = str(details") < \
+            src.index("var button_row = HBoxContainer.new()")
         assert "button_row.add_child(action_btn)" not in src
 
     def test_the_rail_emits_rather_than_sending(self):
         """`notification_bar.gd` must not grow a second command pipeline."""
-        src = _read("notification_bar.gd")
+        src = _live("notification_bar.gd")
         assert "signal notification_action_requested(command: String)" in src
-        assert "notification_action_requested.emit(command)" in src
+        body = _body(src, "func _on_action_pressed(command: String):",
+                     "\nfunc _on_review_pressed")
+        assert "notification_action_requested.emit(command)" in body, (
+            "the emit must be live code inside the handler")
         assert "send_command" not in src, (
             "the rail names a command; main.gd is the one place that sends it")
 
@@ -315,18 +654,39 @@ class TestTheClientRendersAndRoutesIt:
         """`_on_reward_command` carries the in-flight latch, the terminal
         echo, the history entry and the Generals refresh. A bespoke handler
         would drop all four — the double-send latch most dangerously."""
-        src = _read("main.gd")
+        src = _live("main.gd")
         assert ("notification_bar.notification_action_requested.connect("
-                "_on_reward_command)") in src
-        body = src[src.index("func _on_reward_command(command: String):"):]
-        body = body[:body.index("\nfunc _on_reward_command_result")]
+                "_on_notification_action_requested)") in src
+        guard = _body(src, "func _on_notification_action_requested(command: String):",
+                      "\nfunc _on_reward_command")
+        assert "_on_reward_command(command)" in guard, (
+            "the guard must delegate to the shared pipeline, not reimplement it")
+        body = _body(src, "func _on_reward_command(command: String):",
+                     "\nfunc _on_reward_command_result")
         assert "_chip_command_in_flight" in body
         assert "api_client.send_command(command" in body
 
+    def test_the_rail_action_will_not_fire_while_a_command_is_in_flight(self):
+        """Review round: the chip latch is set ONLY by the chip pipelines. A
+        typed command or an end turn is in flight with the latch false and the
+        rail still clickable, so the click queued a second POST behind the
+        enemy phase. Every send path disables the command line, and the rail
+        is hidden while a modal owns focus, so `command_input.editable` is the
+        honest test — and a swallowed click must SAY something."""
+        guard = _body(_live("main.gd"),
+                      "func _on_notification_action_requested(command: String):",
+                      "\nfunc _on_reward_command")
+        assert "if not command_input.editable:" in guard
+        assert "add_output(" in guard, (
+            "a silently swallowed click on a button that names a price is "
+            "indistinguishable from a broken button")
+        assert guard.index("if not command_input.editable:") < \
+            guard.index("_on_reward_command(command)")
+
     def test_pressing_it_closes_the_panel_first(self):
-        src = _read("notification_bar.gd")
-        body = src[src.index("func _on_action_pressed(command: String):"):]
-        body = body[:body.index("\nfunc _on_review_pressed")]
+        body = _body(_live("notification_bar.gd"),
+                     "func _on_action_pressed(command: String):",
+                     "\nfunc _on_review_pressed")
         assert body.index("_close_expanded_panel()") < body.index(
             "notification_action_requested.emit"), (
             "leaving the panel up would show it over its own stale copy")
@@ -335,7 +695,7 @@ class TestTheClientRendersAndRoutesIt:
         """They fell through to the priority default ("INF"/"NEW"), which
         names neither the marshal nor the matter — and the rail is now where
         the reward is granted from, so the player has to find it first."""
-        src = _read("notification_bar.gd")
+        src = _live("notification_bar.gd")
         for key in ("dotation_expectation", "dotation_erosion"):
             assert f'"{key}": "PAY"' in src
         assert '"dotation_expectation": "coins"' in src
@@ -346,6 +706,119 @@ class TestTheClientRendersAndRoutesIt:
                              "assets", "ui", "icons", "phosphor")
         for name in ("coins.svg", "medal.svg"):
             assert os.path.exists(os.path.join(icons, name)), name
+
+    def test_the_comment_stripper_actually_strips(self):
+        """The pins above are only worth anything if `_live` works. Proven
+        against a line this file knows is commented out in the source."""
+        raw = _read("notification_bar.gd")
+        live = _live("notification_bar.gd")
+        assert "# UX23-A: the two reward rows fell through" in raw
+        assert "# UX23-A: the two reward rows fell through" not in live
+        assert 'action_btn.pressed.connect(' in live
+
+
+class TestTheBuilderKeepsItsOwnPromise:
+    """`rente_action_keys`'s docstring says "never offer what the executor
+    refuses". The review round showed it mirrored two of five refusals, and
+    that the claim only held because BOTH producers happen to return early for
+    a foreign marshal — a guarantee borrowed from somewhere else."""
+
+    def test_it_refuses_the_sovereign(self, world):
+        napoleon = next((m for m in world.marshals.values()
+                         if getattr(m, "is_sovereign", False)), None)
+        if napoleon is None:
+            pytest.skip("no sovereign in this scenario")
+        napoleon.pension = 50
+        napoleon.battles_won = 5
+        assert dotation.rente_action_keys(napoleon, world) == {}, (
+            "the executor answers 'the treasury is already his'; the builder "
+            "was offering him a priced rente")
+
+    def test_it_refuses_a_foreign_marshal(self, world):
+        mack = next(m for m in world.marshals.values()
+                    if m.nation != world.player_nation)
+        mack.battles_won = 5
+        assert dotation.rente_action_keys(mack, world) == {}, (
+            "measured before the fix: a complete affordance for an Austrian "
+            "marshal, priced against the FRENCH treasury")
+
+    def test_the_detail_line_survives_a_clause_by_clause_read(self, world):
+        """Two clauses were false in reachable states: the crown does NOT pay
+        'every turn' (a captured marshal's rente neither pays nor counts), and
+        the undo is not free (`revoke_pension` is itself an ADMIN action)."""
+        ney = _owe(world)
+        detail = dotation.rente_action_keys(ney, world)["action_detail"]
+        assert "every turn" not in detail
+        assert "at liberty" in detail
+        assert "another administrative action" in detail
+
+
+class TestTheCollectorsTwoDoorsAgree:
+    """`add` and `refresh` are both "update the matching row in place"."""
+
+    def _row(self, priority, title="Marshal Ney grows bitter", turn=1):
+        return create_notification(DOTATION_EROSION, priority, title, "x",
+                                   turn, {"marshal": "Ney"})
+
+    def test_refresh_never_de_escalates_a_standing_row(self):
+        """`add` takes `max`; `refresh` overwrote. Since the cap evicts HIGH
+        but never CRITICAL, a silent downgrade is also a change in
+        evictability."""
+        from backend.notifications import NotificationCollector
+        tray = NotificationCollector()
+        tray.refresh(self._row(NotificationPriority.CRITICAL))
+        tray.refresh(self._row(NotificationPriority.NORMAL))
+        assert int(tray.get_pending()[0]["priority"]) == \
+            int(NotificationPriority.CRITICAL)
+
+    def test_a_refresh_is_not_counted_as_a_repeat(self):
+        """The review round filed `title` as a second `add`/`refresh`
+        divergence. It is not one — `_identity` matches on `base_title` and
+        `refresh` never moves `repeat_count` — so what actually matters is
+        that a refresh does not INFLATE the marker `add` left. Pinned from
+        that side; the "normalise the title" line a first cut added was dead
+        and was deleted."""
+        from backend.notifications import NotificationCollector
+        tray = NotificationCollector()
+        tray.add(self._row(NotificationPriority.HIGH))
+        tray.add(self._row(NotificationPriority.HIGH))
+        assert int(tray.get_pending()[0]["repeat_count"]) == 2, "precondition"
+        for _ in range(5):
+            tray.refresh(self._row(NotificationPriority.HIGH))
+        assert int(tray.get_pending()[0]["repeat_count"]) == 2, (
+            "five re-statements are not five more grievances")
+        assert tray.get_pending()[0]["title"].count("(x") == 1
+
+    def test_the_cap_sheds_the_OLDEST_stale_high_not_merely_a_stale_one(self):
+        """Unbound before: no test presented two stale HIGH rows of different
+        ages, so 'return the first stale one found' passed everything."""
+        from backend.notifications import NotificationCollector
+        tray = NotificationCollector()
+        # deliberately NOT in age order, so list order and age order disagree
+        for turn, name in ((50, "recent"), (1, "ancient"), (40, "middling")):
+            tray.add(create_notification(
+                DOTATION_EROSION, NotificationPriority.HIGH,
+                f"Marshal {name} grows bitter", "x", turn, {"marshal": name}))
+        for i in range(NOTIFICATION_CAP - 2):
+            tray.add(create_notification(
+                "war_declared", NotificationPriority.HIGH, f"War {i}", "x", 60,
+                {"nation": f"W{i}"}))
+        names = {n["details"].get("marshal") for n in tray.get_pending()}
+        assert "ancient" not in names, "the oldest must go first"
+        assert "recent" in names and "middling" in names
+
+
+class TestTheButtonReadsAsThePrimaryAction:
+
+    def test_it_does_not_render_smaller_than_the_buttons_beneath_it(self):
+        """The project theme sets Button/font_size = 15; the CTA carried an
+        explicit 13, inverting the hierarchy against its own comment."""
+        block = _body(_live("notification_bar.gd"),
+                      'var action_command = str(details',
+                      "var button_row = HBoxContainer.new()")
+        assert "font_size" not in block, (
+            "take the theme size rather than shrinking the primary action")
+        assert "SIZE_EXPAND_FILL" in block
 
 
 class TestTheReactiveGateIsUntouched:

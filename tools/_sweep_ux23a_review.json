@@ -1,0 +1,177 @@
+[
+  {
+    "id": "RV-1 the worsen guard is removed (the P1 returns)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if rente_grant_would_not_help(marshal, world):\n        # UX23-A review",
+    "new": "    if False:\n        # UX23-A review",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-2 the guard becomes a blunt face>=held (kills the legitimate re-size DOWN)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    return get_estate_income(marshal, world) + face < get_expectation(marshal)",
+    "new": "    return True",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-3 the guard reads estate income disruption-BLIND (misses the whole case)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    return get_estate_income(marshal, world) + face < get_expectation(marshal)",
+    "new": "    return get_estate_income(marshal, world, ignore_disruption=True) + face < get_expectation(marshal)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-4 an increasing grant is caught by the guard (ordinary grants refused)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if face > held:\n        return False                      # a real, increasing payment",
+    "new": "    if False:\n        return False",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-5 the executor's honest refusal reverts to the 'already met' lie",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if rente_grant_would_not_help(marshal, world) and shortfall > 0:",
+    "new": "            if False:",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-6 refresh stops stamping turn_refreshed (the row sinks off the rail)",
+    "file": "backend/notifications.py",
+    "old": "            existing[\"turn_refreshed\"] = int(notification.get(\n                \"turn_created\", existing.get(\"turn_created\", 0)))\n            return True",
+    "new": "            return True",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-7 the rail sort reverts to raw turn_created",
+    "file": "backend/notifications.py",
+    "old": "            key=lambda n: (n.get(\"priority\", 0), self._currency(n)),",
+    "new": "            key=lambda n: (n.get(\"priority\", 0), n.get(\"turn_created\", 0)),",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-8 _currency ignores turn_refreshed",
+    "file": "backend/notifications.py",
+    "old": "        return max(created, int(notification.get(\"turn_refreshed\", created)))",
+    "new": "        return created",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-9 NORMAL is spent unconditionally again (a fresh alert dies on arrival)",
+    "file": "backend/notifications.py",
+    "old": "            key = (currency, is_high)\n            if best is None or key < best[0]:",
+    "new": "            key = (is_high, currency)\n            if best is None or key < best[0]:",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-10 the staleness window is dropped from the candidate scan",
+    "file": "backend/notifications.py",
+    "old": "            if is_high and newest - currency < HIGH_EVICTION_WINDOW_TURNS:\n                continue",
+    "new": "            pass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-11 CRITICAL becomes evictable",
+    "file": "backend/notifications.py",
+    "old": "            if priority >= int(NotificationPriority.CRITICAL):\n                continue",
+    "new": "            pass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-12 the rail action loses its in-flight guard",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif not command_input.editable:",
+    "new": "\tif false:",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-13 the guard is bypassed at the connect (straight to the pipeline)",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tnotification_bar.notification_action_requested.connect(_on_notification_action_requested)",
+    "new": "\t\t\tnotification_bar.notification_action_requested.connect(_on_reward_command)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-14 a swallowed click says nothing",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tadd_output(\"[color=#\" + Utils.COLOR_ERROR\n\t\t\t+ \"]The despatch rider has not yet returned, Sire — one moment.[/color]\")\n\t\treturn",
+    "new": "\t\treturn",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-15 the button's connect is COMMENTED OUT (the pin the review broke)",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\t\taction_btn.pressed.connect(_on_action_pressed.bind(action_command))",
+    "new": "\t\t\t#action_btn.pressed.connect(_on_action_pressed.bind(action_command))",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-16 the emit is COMMENTED OUT",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\tnotification_action_requested.emit(command)",
+    "new": "\t#notification_action_requested.emit(command)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-17 the empty-command guard is weakened to != null (a button on every row)",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\tif action_command != \"\":",
+    "new": "\t\tif action_command != null:",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-18 label and tooltip are swapped",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\t\taction_btn.text = str(details.get(\"action_label\", \"Act\"))\n\t\t\taction_btn.tooltip_text = str(details.get(\"action_detail\", \"\"))",
+    "new": "\t\t\taction_btn.text = str(details.get(\"action_detail\", \"Act\"))\n\t\t\taction_btn.tooltip_text = str(details.get(\"action_label\", \"\"))",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-19 the builder stops refusing the sovereign",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if getattr(marshal, \"is_sovereign\", False):\n        return {}\n    if getattr(marshal, \"captured_by\", \"\"):",
+    "new": "    if getattr(marshal, \"captured_by\", \"\"):",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-20 the builder stops refusing a foreign marshal",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if marshal.nation != getattr(world, \"player_nation\", None):\n        return {}\n    if getattr(marshal, \"is_sovereign\", False):",
+    "new": "    if getattr(marshal, \"is_sovereign\", False):",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-21 the detail line goes back to the two false clauses",
+    "file": "backend/game_logic/dotation.py",
+    "old": "            f\"{face}g/turn to his household; {cost}g/turn from the treasury \"\n            f\"for as long as he is at liberty, and 1 administrative action \"\n            f\"now. Revocable with \\\"revoke {marshal.name}'s rente\\\" — for \"\n            f\"another administrative action.\"",
+    "new": "            f\"{face}g/turn to his household; {cost}g/turn from the treasury, \"\n            f\"every turn, and 1 administrative action now. \"\n            f\"Reversible with \\\"revoke {marshal.name}'s rente\\\".\"",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-22 refresh de-escalates again (plain assignment)",
+    "file": "backend/notifications.py",
+    "old": "            existing[\"priority\"] = max(\n                int(existing.get(\"priority\", 0)),\n                int(notification.get(\"priority\", existing.get(\"priority\", 0))))",
+    "new": "            existing[\"priority\"] = int(notification.get(\n                \"priority\", existing.get(\"priority\", 0)))",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-23 refresh counts a re-statement as a repeat (add-style collapse)",
+    "file": "backend/notifications.py",
+    "old": "        identity = self._identity(notification)\n        for existing in self._pending:\n            if self._identity(existing) != identity:\n                continue\n            existing[\"message\"] = notification.get(",
+    "new": "        self.add(notification)\n        return True\n        identity = self._identity(notification)\n        for existing in self._pending:\n            if self._identity(existing) != identity:\n                continue\n            existing[\"message\"] = notification.get(",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-24 the cap sheds the FIRST stale high rather than the oldest",
+    "file": "backend/notifications.py",
+    "old": "            key = (currency, is_high)\n            if best is None or key < best[0]:\n                best = (key, i)",
+    "new": "            key = (currency, is_high)\n            if best is None:\n                best = (key, i)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "RV-25 the CTA shrinks below the buttons beneath it",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\t\taction_btn.add_theme_color_override(\"font_color\", Utils.UI_GOLD)\n\t\t\taction_btn.add_theme_color_override(\"font_hover_color\", Utils.UI_GOLD_BRIGHT)",
+    "new": "\t\t\taction_btn.add_theme_font_size_override(\"font_size\", 13)\n\t\t\taction_btn.add_theme_color_override(\"font_color\", Utils.UI_GOLD)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  }
+]

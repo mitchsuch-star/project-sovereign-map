@@ -4148,8 +4148,9 @@ the rail, the dialog for estates · `[Reward…]` unchanged · **no confirm step
 · and **UX23-R2 + UX23-R3 folded in**, R2 being the stated prerequisite.
 
 Landing record: this section. Pins:
-`tests/test_ux23a_reward_where_he_stands.py` (38). **26 mutations swept, 26
-killed, 0 inert.** Suite 18,756 / 3. M1–M7 (11/11) and `BASELINE_SERIES`
+`tests/test_ux23a_reward_where_he_stands.py` (73). **55 mutations swept, 55
+killed, 0 inert at close** (three sets: `tools/_sweep_ux23a*.json`; five pins
+were inert on a first sweep and were repaired or deleted). Suite 18,792 / 3. M1–M7 (11/11) and `BASELINE_SERIES`
 (63/63) byte-identical, measured before and after — nothing here touches
 combat, threat or the AI. Godot parse harness EXIT=0, 47 scripts / 7 scenes.
 
@@ -4298,6 +4299,119 @@ row is never evicted, at any age"*, which is the defect itself. The rule it
 was reaching for survives and is what the rewritten test now pins: crises that
 break **together** are all shown, even past the cap; the same 55 spread over a
 campaign do trim.
+
+#### Review round at `8a2ab4f` — 31 findings, a P1, and a regression this slice introduced
+
+An 8-lens fleet over the committed slice. The refuter stage crashed on a bug
+in the harness script (promises where thunks were wanted), so the findings
+were verified by hand instead — which is recorded here rather than glossed,
+because it means the P3 tail below was triaged by one reader, not two.
+
+**The P1, reproduced before it was fixed.** `compute_rente_face` ignores EC-W1
+disruption on purpose (EWC-F2 — a hostile army standing on an estate for one
+turn must not lock an oversized pension) while `get_satisfaction` counts the
+disruption the marshal actually feels. A disrupted estate makes the two
+disagree by exactly its income, and the old gate — "is there a live
+shortfall" — waved the difference straight through to a click. Measured on the
+1805 boot: Ney, expectation 300, two 150g estates, a 100g rente; an Austrian
+corps marches onto one estate; the row opens with shortfall 50 and the button
+reads **"Re-size rente — 0g/turn"**. Pressing it set `pension` to 0 —
+**shortfall 50 → 150, tripled** — for one of the turn's two administrative
+actions, on the control advertised as the remedy. Two siblings of the same
+root: a face landing exactly on the pension he already holds (success, decree,
+admin action, nothing changed), and a **0g grant** when every estate is
+disrupted.
+
+Fixed as one predicate, `dotation.rente_grant_would_not_help`: **a grant must
+leave him better off, or at least still met.** Folded into
+`rente_would_change`, so the executor, the marshal card, the AI rung and the
+rail button all inherit it (the enemy AI already carried half of it as a bare
+`face > 0` — which is exactly why the player's button was the only one that
+could fire the destructive grant). The legitimate re-size DOWN survives: when
+his land covers him, the redundant paper is still shed. And the executor's
+refusal now names the army standing on his estate instead of saying "his
+expectation is already met", which was the only refusal there and was a lie in
+this state.
+
+**The regression was UX23-R2's own.** Freezing `turn_created` was right for
+the row's T-stamp, but two other things read that field, and both broke:
+
+* `get_pending()` sorts by it and the client renders only the first six icons,
+  so a row frozen at the turn its shortfall opened sank below every HIGH
+  notice that arrived later — **the one row this whole slice exists to put a
+  button on**, unreachable, since the overflow indicator is a
+  `MOUSE_FILTER_IGNORE` label.
+* `_stale_high_index` measured staleness by it, so the single row being
+  re-stated every turn looked like the stalest thing in the tray and was the
+  **first** thing the cap shed — after which the next turn's producer found no
+  match, appended a fresh uuid, and rang the desk bell UX23-R2 exists to
+  silence.
+
+Fixed by separating *when it began* from *when it was last true*: a new
+display-only `turn_refreshed`, one `_currency()` accessor, and both readers
+moved onto it. `turn_created` still says when the grievance opened. Absent
+from every pre-slice save and falling back, so an old campaign sorts and
+evicts exactly as it did before.
+
+`_enforce_cap` was rewritten at the same time, because R3 as first built only
+half delivered: it spent "the oldest NORMAL" unconditionally, so a fresh
+NORMAL alert dropped into a tray of fifty ten-turn-old grievances **was** the
+oldest NORMAL and died on the call that added it — and `DOTATION_EXPECTATION`
+is NORMAL, so the row announcing the grace clock was exactly the casualty. The
+rule is now "shed the least current thing that is safe to shed": oldest wins,
+NORMAL only breaks a tie, HIGH must be past the window, CRITICAL never.
+
+**Also fixed:** the rail action fired while another command was in flight (the
+`_chip_command_in_flight` latch is set only by the chip pipelines; a typed
+command or an end turn leaves it false, and the rail stays clickable) — the
+click queued a second POST behind the enemy phase, echoing an order above
+output not yet rendered and spending an administrative action against a world
+the player had not seen. A new `_on_notification_action_requested` guards on
+`command_input.editable` and **says so**; a silently swallowed click on a
+button that names a price is indistinguishable from a broken one. The primary
+CTA carried an explicit 13px against the theme's 15, so it rendered *smaller*
+than the three buttons beneath it — hierarchy inverted against its own
+comment. The builder mirrored two of the executor's five refusals while its
+docstring promised it mirrored all of them (measured: a complete priced
+affordance for **Napoleon**, and for **Mack**, an Austrian, quoted against the
+French treasury — latent, because both producers return early for a foreign
+marshal, but a claim that holds only because of a guard somewhere else is not
+a claim this function can keep). `action_detail` had two false clauses: the
+crown does not pay "every turn" (a captured marshal's rente neither pays nor
+counts) and the undo is not free (`revoke_pension` is itself an admin action).
+`refresh` overwrote priority where `add` takes the max. And three comments and
+one doc row were stale: the "the dismiss MUST precede the add" rationale
+survived in `world_state` attached to the very call site whose behaviour
+changed, a comment still routed UX23-R2 as open work, and
+`SAVE_FORMAT_REFERENCE.md`'s `notifications` row — which enumerates that
+dict's metadata keys — never learned about the three new ones.
+
+**Two of the fleet's findings were rejected after checking, and one of my own
+corrections was wrong.** The `title` half of the `add`/`refresh` divergence is
+not a defect — `_identity` matches on `base_title` and `refresh` never moves
+`repeat_count`, so re-deriving the title can only produce the string already
+there; a first cut "fixed" it, the sweep found the line INERT, and it was
+deleted rather than given a test that proves nothing. Same for the
+player-nation guard inside `restate_reward_notice`: genuinely redundant,
+removed, and the rule pinned where it actually lives. **And the
+`DESIGN_REFINEMENT` correction I wrote about D4 naming the wrong date itself
+named the wrong date** — it cited `c5d808c1` / 2026-03-28, which is the R10A
+executor *split*, a pure file move and simply what plain `git blame`
+attributes a moved line to. `git blame -C -C -C` resolves it to `70ab5099` /
+**2026-02-23**, "Session 62: Casualty Distribution". Corrected in place, and
+labelled as a second correction rather than quietly amended.
+
+⚠ **A method note worth keeping.** The review agents were told they could run
+pytest and try to break production code, and they did — in the shared working
+tree, concurrently with my own test runs. That produced six phantom failures
+in files this slice never touched (and is the likely cause of the fleet's own
+report that `BASELINE_SERIES` failed twice at session start and then passed
+fifteen times). All six pass on a clean re-run. Next time: give the review
+fleet a worktree, or forbid writes outright.
+
+**Sweeps: 21 + 9 + 25 = 55 mutations, 55 killed, 0 inert at close.** Five pins
+were inert on a first sweep and every one was repaired or deleted rather than
+excused.
 
 #### Not built, and why
 

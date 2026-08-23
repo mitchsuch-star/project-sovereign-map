@@ -101,19 +101,56 @@
 > **"NEW"** — no glyph, no code — on the surface the reward is now granted
 > from. They get `coins` / `medal`.
 >
-> `tests/test_ux23a_reward_where_he_stands.py` (38). **26 mutations swept, 26
-> killed, 0 inert.** Suite **18,756 / 3**. M1–M7 and `BASELINE_SERIES`
-> byte-identical, measured both sides. Godot parse harness EXIT=0. One
-> pre-existing pin flipped consciously (`test_cap_no_trim_when_all_high_priority`
-> pinned the R3 defect itself). A false rationale in this slice's own comment
-> was caught and corrected before commit — a fourth button would not overflow
-> the panel, it would widen it past the width the placement math assumes.
+> **Then the price was found to go stale mid-turn** — the rail was reconciled
+> only once a turn, so a victory raised his expectation and the button went on
+> quoting the old figure: measured "Grant rente — 120g/turn" against a treasury
+> charge of **180**. That is the CA9 through-line re-created by the slice meant
+> to close it. New `restate_reward_notice` re-quotes a STANDING row (never
+> opens one — the grace clock belongs to the per-turn pass) and retires it on
+> the same gate the payment seams already used, wired at the combat seam and
+> all four payment seams.
+>
+> **An 8-lens review round at the committed SHA then found 31 more, including
+> a P1 and a regression this slice introduced.** The P1: a disrupted estate
+> makes `compute_rente_face` (disruption-blind by design) collapse below the
+> rente a marshal already holds, so the button read "Re-size rente — 0g/turn"
+> and pressing it **destroyed a 100g rente and tripled the shortfall, 50 →
+> 150**, for one of two admin actions. Fixed as one predicate — *a grant must
+> leave him better off, or at least still met* — folded into
+> `rente_would_change` so the executor, the card, the AI rung and the button
+> all inherit it. The regression was R2's own: freezing `turn_created` sank the
+> reward row below six newer HIGH rows (off the six-icon rail entirely) and
+> made the one row being re-stated every turn the FIRST the cap evicted, which
+> then re-minted its uuid and rang the bell R2 exists to silence. Fixed by
+> separating *when it began* from *when it was last true* (`turn_refreshed` +
+> one `_currency()` accessor). Also fixed: the rail fired while a typed command
+> or an end turn was in flight; the "primary" CTA rendered smaller than the
+> buttons beneath it; the builder mirrored two of the executor's five refusals
+> while promising all five (it offered Napoleon a rente, and Mack an Austrian
+> one priced against the French treasury); two false clauses in the tooltip;
+> `refresh` overwrote priority where `add` takes the max; and
+> `SAVE_FORMAT_REFERENCE.md` never learned about the three new persisted keys.
+>
+> `tests/test_ux23a_reward_where_he_stands.py` (73). **55 mutations swept, 55
+> killed, 0 inert at close** — five pins were inert on a first sweep and every
+> one was repaired or DELETED rather than excused (two "fixes" turned out to be
+> dead code and went with them). Suite **18,792 / 3**. M1–M7 and
+> `BASELINE_SERIES` byte-identical, measured both sides. Godot parse harness
+> EXIT=0. Two pre-existing pins flipped consciously. Two of my own claims were
+> wrong and are corrected on the record: a fourth button would not *overflow*
+> the panel (it widens it past the width the placement math assumes), and the
+> `DESIGN_REFINEMENT` correction about D4 naming the wrong date **itself named
+> the wrong date** — `c5d808c1` is the R10A file move; `git blame -C` gives
+> `70ab5099`, 2026-02-23.
 >
 > ⚠ **OPEN:** a live visual pass on the new button and the two glyphs.
 > **UX23-D1..D4 were NOT folded in** — the curve is a different gate — but the
-> fleet found **three factual errors in that section's own rows**, corrected on
-> the record (`DESIGN_REFINEMENT.md`): headline, **D4 names the wrong seam and
-> the wrong date**, and reversing W6-1 would change nothing.
+> research fleet found **three factual errors in that section's own rows**,
+> corrected on the record (`DESIGN_REFINEMENT.md`): headline, **D4 names the
+> wrong seam**, and reversing W6-1 would change nothing.
+> ⚠ **Method note:** the review agents ran pytest and edited production files
+> in the shared working tree, producing six phantom failures in files this
+> slice never touched. Next review fleet gets a worktree or read-only.
 
 > # ✅ WO SLICE 8 — "THE PANEL STATES ITS TERMS" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 8,

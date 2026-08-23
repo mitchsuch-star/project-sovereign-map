@@ -44,8 +44,8 @@
   {
     "id": "UX23-A7 the detail line stops naming the undo",
     "file": "backend/game_logic/dotation.py",
-    "old": "            f\"Reversible with \\\"revoke {marshal.name}'s rente\\\".\"",
-    "new": "            f\"Granted at once.\"",
+    "old": "            f\"now. Revocable with \\\"revoke {marshal.name}'s rente\\\" — for \"\n            f\"another administrative action.\"",
+    "new": "            f\"now.\"",
     "tests": "tests/test_ux23a_reward_where_he_stands.py"
   },
   {
@@ -79,7 +79,7 @@
   {
     "id": "UX23-A12 main.gd stops routing the rail action",
     "file": "godot-client/project-sovereign/scripts/main.gd",
-    "old": "\t\t\tnotification_bar.notification_action_requested.connect(_on_reward_command)",
+    "old": "\t\t\tnotification_bar.notification_action_requested.connect(_on_notification_action_requested)",
     "new": "\t\t\tpass",
     "tests": "tests/test_ux23a_reward_where_he_stands.py"
   },
@@ -114,8 +114,8 @@
   {
     "id": "UX23-R2c refresh bumps turn_created (every HIGH row stays young)",
     "file": "backend/notifications.py",
-    "old": "            existing[\"priority\"] = int(notification.get(\n                \"priority\", existing.get(\"priority\", 0)))",
-    "new": "            existing[\"turn_created\"] = int(notification.get(\n                \"turn_created\", existing.get(\"turn_created\", 0)))\n            existing[\"priority\"] = int(notification.get(\n                \"priority\", existing.get(\"priority\", 0)))",
+    "old": "            existing[\"turn_refreshed\"] = int(notification.get(\n                \"turn_created\", existing.get(\"turn_created\", 0)))",
+    "new": "            existing[\"turn_refreshed\"] = int(notification.get(\n                \"turn_created\", existing.get(\"turn_created\", 0)))\n            existing[\"turn_created\"] = int(existing[\"turn_refreshed\"])",
     "tests": "tests/test_ux23a_reward_where_he_stands.py"
   },
   {
@@ -128,8 +128,8 @@
   {
     "id": "UX23-R2e refresh stops updating details (the label freezes)",
     "file": "backend/notifications.py",
-    "old": "            if notification.get(\"details\"):\n                existing[\"details\"] = notification[\"details\"]\n            return True",
-    "new": "            return True",
+    "old": "            if notification.get(\"details\"):\n                existing[\"details\"] = notification[\"details\"]\n            # UX23-A review round.",
+    "new": "            # UX23-A review round.",
     "tests": "tests/test_ux23a_reward_where_he_stands.py"
   },
   {
@@ -144,41 +144,6 @@
     "file": "backend/notifications.py",
     "old": "        identity = self._identity(notification)\n        for existing in self._pending:\n            if self._identity(existing) != identity:\n                continue\n            existing[\"message\"]",
     "new": "        identity = notification.get(\"type\")\n        for existing in self._pending:\n            if existing.get(\"type\") != identity:\n                continue\n            existing[\"message\"]",
-    "tests": "tests/test_ux23a_reward_where_he_stands.py"
-  },
-  {
-    "id": "UX23-R3a the stale-HIGH arm is removed (cap stops working)",
-    "file": "backend/notifications.py",
-    "old": "            if idx is None:\n                idx = self._stale_high_index()",
-    "new": "            pass",
-    "tests": "tests/test_ux23a_reward_where_he_stands.py"
-  },
-  {
-    "id": "UX23-R3b the staleness window is dropped (a burst self-truncates)",
-    "file": "backend/notifications.py",
-    "old": "            if newest - turn < HIGH_EVICTION_WINDOW_TURNS:\n                continue",
-    "new": "            pass",
-    "tests": "tests/test_ux23a_reward_where_he_stands.py"
-  },
-  {
-    "id": "UX23-R3c CRITICAL becomes evictable",
-    "file": "backend/notifications.py",
-    "old": "            if int(n.get(\"priority\", 0)) != int(NotificationPriority.HIGH):\n                continue\n            turn = int(n.get(\"turn_created\", 0))",
-    "new": "            if int(n.get(\"priority\", 0)) == int(NotificationPriority.NORMAL):\n                continue\n            turn = int(n.get(\"turn_created\", 0))",
-    "tests": "tests/test_ux23a_reward_where_he_stands.py"
-  },
-  {
-    "id": "UX23-R3d HIGH is spent before NORMAL",
-    "file": "backend/notifications.py",
-    "old": "            idx = self._oldest_index_at(int(NotificationPriority.NORMAL))\n            if idx is None:\n                idx = self._stale_high_index()",
-    "new": "            idx = self._stale_high_index()\n            if idx is None:\n                idx = self._oldest_index_at(int(NotificationPriority.NORMAL))",
-    "tests": "tests/test_ux23a_reward_where_he_stands.py"
-  },
-  {
-    "id": "UX23-R3e the eviction picks the NEWEST stale HIGH instead of the oldest",
-    "file": "backend/notifications.py",
-    "old": "            if turn < oldest_turn:\n                oldest_turn = turn\n                oldest_idx = i\n        return oldest_idx\n\n    def _enforce_cap",
-    "new": "            if turn >= oldest_turn or oldest_idx is None:\n                oldest_turn = turn\n                oldest_idx = i\n        return oldest_idx\n\n    def _enforce_cap",
     "tests": "tests/test_ux23a_reward_where_he_stands.py"
   }
 ]
