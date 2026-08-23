@@ -871,6 +871,58 @@ class EconomyExecutor:
     # GARRISON COMMAND (Session 31): Detach troops to defend a region
     # ════════════════════════════════════════════════════════════════════════════
 
+    @classmethod
+    def garrison_refusal_probe(cls, world, marshal):
+        """The garrison gates as a PURE read — the reason a garrison would
+        be refused HERE, right now, or None if it would be allowed.
+
+        WO slice 6 review round, the PF-4 `move_refusal_probe` pattern.
+        `naval.over_lift_refusal` advises detaching a garrison to bring an
+        over-lift corps under the transports' cap, and its first cut read
+        the nation-wide count ALONE — so it promised the remedy on soil we
+        do not control (the §4.3 beachhead, the one place an over-lift
+        refusal is reachable from foreign ground) and on a province that
+        already holds a garrison. Measured: Bernadotte at Flanders was told
+        a detachment "would bring him under the lift" and the executor
+        answered "A garrison already holds Flanders".
+
+        Advisory copy must consult the gate, never a copy of it — that is
+        the CA9 through-line this project keeps paying for. Extracted
+        verbatim from `_execute_garrison`'s prologue, which now calls it.
+        """
+        marshal_name = marshal.name
+        region_name = marshal.location
+        region = world.regions.get(region_name)
+        if not region:
+            return f"{marshal_name} is in an unknown region, Your Majesty."
+        if region.controller != marshal.nation:
+            return (f"We do not control {region_name}, Your Majesty. "
+                    f"We cannot garrison enemy territory.")
+        enemies_present = [
+            m for m in world.marshals.values()
+            if m.location == region_name and m.nation != marshal.nation
+            and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
+        if enemies_present:
+            return (f"Enemy forces contest {region_name}. We cannot "
+                    f"garrison while under threat, Your Majesty.")
+        if region.garrison_strength > 0:
+            return f"A garrison already holds {region_name}, Your Majesty."
+        # Golden Rule 8: count over the cached region index.
+        nation_garrisons = sum(
+            1 for r_name in world.get_nation_regions(marshal.nation)
+            if world.regions[r_name].garrison_strength > 0)
+        if nation_garrisons >= cls.GARRISON_MAX_PER_NATION:
+            return (f"Berthier shakes his head. 'We already maintain "
+                    f"{nation_garrisons} garrisons, Your Majesty. Our supply "
+                    f"lines cannot support another. Maximum "
+                    f"{cls.GARRISON_MAX_PER_NATION} garrisons per nation.'")
+        if marshal.strength < cls.GARRISON_MIN_MARSHAL_STRENGTH:
+            return (f"{marshal_name}'s forces are too depleted to spare a "
+                    f"garrison, Your Majesty. We need at least "
+                    f"{cls.GARRISON_MIN_MARSHAL_STRENGTH:,} men to leave "
+                    f"troops behind.")
+        return None
+
     def _execute_garrison(self, command: Dict, game_state: Dict) -> Dict:
         """Detach troops to garrison the marshal's current region.
 
@@ -902,57 +954,9 @@ class EconomyExecutor:
 
         region_name = marshal.location
         region = world.regions.get(region_name)
-        if not region:
-            return {
-                "success": False,
-                "message": f"{marshal_name} is in an unknown region, Your Majesty."
-            }
-
-        # Validation: region must be owned by marshal's nation
-        if region.controller != marshal.nation:
-            return {
-                "success": False,
-                "message": f"We do not control {region_name}, Your Majesty. We cannot garrison enemy territory."
-            }
-
-        # Validation: no enemy marshals present
-        enemies_present = [m for m in world.marshals.values()
-                          if m.location == region_name and m.nation != marshal.nation and m.strength > 0
-                          and world.is_at_war(marshal.nation, m.nation)]
-        if enemies_present:
-            return {
-                "success": False,
-                "message": f"Enemy forces contest {region_name}. We cannot garrison while under threat, Your Majesty."
-            }
-
-        # Validation: region doesn't already have a garrison
-        if region.garrison_strength > 0:
-            return {
-                "success": False,
-                "message": f"A garrison already holds {region_name}, Your Majesty."
-            }
-
-        # Validation: nation garrison cap (includes capital garrisons).
-        # Golden Rule 8: count over the cached region index (Slice 8 audit).
-        nation_garrisons = sum(
-            1 for r_name in world.get_nation_regions(marshal.nation)
-            if world.regions[r_name].garrison_strength > 0
-        )
-        if nation_garrisons >= self.GARRISON_MAX_PER_NATION:
-            return {
-                "success": False,
-                "message": (f"Berthier shakes his head. 'We already maintain {nation_garrisons} garrisons, "
-                           f"Your Majesty. Our supply lines cannot support another. "
-                           f"Maximum {self.GARRISON_MAX_PER_NATION} garrisons per nation.'")
-            }
-
-        # Validation: marshal has enough troops
-        if marshal.strength < self.GARRISON_MIN_MARSHAL_STRENGTH:
-            return {
-                "success": False,
-                "message": (f"{marshal_name}'s forces are too depleted to spare a garrison, Your Majesty. "
-                           f"We need at least {self.GARRISON_MIN_MARSHAL_STRENGTH:,} men to leave troops behind.")
-            }
+        refusal = self.garrison_refusal_probe(world, marshal)
+        if refusal is not None:
+            return {"success": False, "message": refusal}
 
         # Execute: detach troops
         marshal.strength -= self.GARRISON_DETACHMENT_SIZE

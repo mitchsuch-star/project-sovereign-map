@@ -495,10 +495,13 @@ class MovementExecutor:
                     # crossing gate — a cavalry hop cannot skip the Channel.
                     if getattr(world, "fleets", None):
                         from backend.game_logic.naval import crossing_check
+                        _ms = int(marshal.strength)
                         leg1 = crossing_check(world, marshal.nation,
-                                              marshal.location, adj_name)
+                                              marshal.location, adj_name,
+                                              mover_strength=_ms)
                         leg2 = crossing_check(world, marshal.nation,
-                                              adj_name, target_name)
+                                              adj_name, target_name,
+                                              mover_strength=_ms)
                         if not leg1["allowed"] or not leg2["allowed"]:
                             naval_blocked_leg = (leg1 if not leg1["allowed"]
                                                  else leg2)

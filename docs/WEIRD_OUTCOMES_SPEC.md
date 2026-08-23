@@ -1232,7 +1232,10 @@ green unmodified).
 >    slice writes no CS sentence, and uses **31.5**, not 53.82 — the recon
 >    memo's own suggested copy quoted the unfiltered figure, which counts
 >    allies who are not blockading and would promise sail that will not
->    sail. Pinned (`test_a_partner_who_is_not_blockading_is_not_counted`).
+>    sail. ⚠ **The "Pinned" claim was false when written**: that test
+>    asserts the producer DICT, and swapping the RENDERED figure for the
+>    unfiltered one left 386 naval tests green. Now pinned on the rendered
+>    sentence (`test_the_rendered_figure_is_the_one_the_predicate_uses`).
 > 4. **Naming Austria was never part of the bug.** Her authored row is
 >    ships-0 / ports-1, so her threshold is 0.00: she IS pinned and she DOES
 >    pay 175g/turn. Only Britain was false. Dropping the ports-only courts
@@ -1248,10 +1251,26 @@ green unmodified).
 >    says so out loud.
 > 7. **The mirror falsity nobody had filed:** the GUARD message said
 >    "Blockade pressure on the enemy is lifted" unconditionally. Found by
->    this slice's own test, and it exposed a real bug in the first cut —
->    the release list must be read BEFORE the posture write, or a fleet
->    that had sat in home waters all game announces releasing Austria and
->    Russia.
+>    this slice's own test.
+>
+>    ⚠ **The explanation first recorded here was WRONG and is corrected.**
+>    It said the release list "must be read BEFORE the posture write, or a
+>    fleet that had sat in home waters all game announces releasing Austria
+>    and Russia". `blockade_forecast` is INVARIANT to the actor's own
+>    posture — `combined_effective` adds our own strength unconditionally
+>    and `match_posture` filters partners only — measured identical on
+>    guard and on blockade for every fleet-owning nation. The
+>    `previous == "blockade"` conditional was the entire safeguard.
+>
+>    And the arm was still wrong for a second reason the review found:
+>    **release is a MEMBERSHIP question, not an ownership one.** A court a
+>    second power also pins stays pinned when we stand down, so with
+>    `Britain|Russia` at war the guard order announced releasing a Russia
+>    whose trade loss and readiness rot both continued. It is now a set
+>    difference across the flip — which is what genuinely needs the
+>    pre-read — and the fleetless courts are split out, because the first
+>    cut told ships-0 Austria her crews would recover, reproducing in its
+>    own mirror arm the exact inversion correction 6 identifies.
 > 8. **Items (b) and (e)-first-half are the SAME STRING.** There is no
 >    second impossible-remedy refusal; the other four refusals in
 >    `_execute_naval_expedition` each name a road that exists.
@@ -1263,6 +1282,18 @@ green unmodified).
 >    30,000-man corps there is frequently **no road at all**, and
 >    `naval.over_lift_refusal` says so rather than sending the player at a
 >    wall.
+>
+>    ⚠ **Half-true when written.** The first cut read the nation-wide
+>    count ALONE, so its positive arm re-issued the garrison advice on the
+>    two states it cannot see: a province that already holds a garrison,
+>    and the §4.3 beachhead — *the one place an over-lift refusal is
+>    reachable from foreign soil*. Measured end to end: Bernadotte at
+>    Flanders was told a detachment "would bring him under the lift" and
+>    `_execute_garrison` answered "A garrison already holds Flanders".
+>    Fixed by extracting **`EconomyExecutor.garrison_refusal_probe`** —
+>    the PF-4 `move_refusal_probe` pattern — so the advice consults the
+>    gate instead of a copy of it, and `_execute_garrison` now calls the
+>    same probe. It was the one arm no test executed.
 > 10. **`corps_detail`'s named defect has a nearly-empty domain and the
 >     REAL one is different.** The contract asks for a fourth arm telling a
 >     marshal at a dockyard which gate he failed — but the `0 < strength`
@@ -1297,8 +1328,75 @@ green unmodified).
 > is nation-level and never sees the marshal, so it takes an optional
 > `mover_strength` used ONLY in the remedy clause — `allowed`, `verdict` and
 > `coverage` are computed before it and are pinned unchanged across every
-> strength. The two seams that DO know the corps thread it; every other
-> caller keeps the old sentence exactly.
+> strength.
+>
+> ⚠ **The second half of this paragraph was FALSE and is corrected** (review
+> round). It said *"the two seams that DO know the corps thread it; every
+> other caller keeps the old sentence exactly"*. Both halves were wrong:
+> there are **seven** marshal-aware seams and the first cut threaded two, so
+> the seam an ordinary `attack` actually hits kept advertising an expedition
+> that could not lift the corps standing there —
+>
+>     [MOVE ]  … no expedition can carry it.
+>     [ATTACK] … or land a small expedition (15,000 men or fewer).
+>
+> — and the unthreaded default is not "the old sentence" either, it gained
+> `(15,000 men or fewer)`. All seven now thread it, `crossing_check_reach`
+> forwards to both legs, and the pin is an AST census of the call sites
+> (the first one was a file-wide `re.search` that one occurrence per file
+> satisfied). The census found a seventh seam the review fleet had not
+> named.
+>
+> ### Review round — same day, at the committed SHA `ecf064b`
+>
+> A six-lens find → refute fleet on a clean tree filed 33 findings; **six
+> survived, plus four one-liners, and it named SIX false claims on the
+> record above** — all corrected in place. `tests/…slice6…py` 33 → **47**;
+> sweep **34 mutations, 34 killed, 0 inert** (THREE more inert pins found
+> and replaced). Suite **18,562 / 3**.
+>
+> **The verdict is fair and worth keeping: three of its four P2s are the
+> same shape — a rewritten producer with an un-rewritten sibling still
+> shipping the retired sentence — and the record asserted each census was
+> complete when it measurably was not.**
+>
+> * **[F1]** the SHUT remedy reached 2 of 7 marshal-aware seams; the one an
+>   ordinary `attack` hits was unthreaded. All seven now thread it and the
+>   pin is an AST census (my own census then found the seventh).
+> * **[F2]** `expedition_blocked_reasons` — the region panel, the surface
+>   the player sees FIRST, on a province click with no order issued — kept
+>   its own copy: measured **28 provinces** reading "detach 15,000 first"
+>   while the executor one order later said he could not be lightened at
+>   all. It now calls the single source, and the code comment claiming they
+>   already shared one is corrected.
+> * **[F3]** the release list was ownership, not membership.
+> * **[F4]** the promise arm was location-blind → `garrison_refusal_probe`.
+> * **[F5]** the guard arm told a **fleetless** court its crews would
+>   recover — the slice reproducing, in the mirror arm it wrote, the exact
+>   inversion its own correction 6 names. Split, and Austria's real relief
+>   (her trade) is named instead.
+> * **[F6]** a **fourth** producer of the pin-everything promise, eight
+>   lines above the message the slice rewrote, in the posture prompt. The
+>   census now covers the whole phrase family, not just "while ours drill".
+> * One-liners: a refusal could print the same number twice (precision now
+>   escalates, with a stated fallback); a singular subject took a plural
+>   possessive beside a "her"; the refusal could promise a detachment and
+>   then say nothing can sail; `_LazyInt`'s docstring justified itself with
+>   an import cycle that does not exist, and gained the `__str__` its
+>   partial interface was missing.
+>
+> **Three inert pins found by the sweep, each for a different reason:** the
+> cap pin asserted `str(3)` against a message containing "3,000"; the
+> identical-numbers pin accepted the fallback branch as an alternative; and
+> the singular-possessive pin used the boot board, which closes TWO courts.
+> **And a GR8 pin was made non-binding by this round's own refactor** —
+> `test_slice8_hot_paths_ride_cached_region_index` scrapes
+> `_execute_garrison` for `get_nation_regions`, which moved into the probe;
+> the pin followed the code rather than keeping a green name.
+>
+> **One more existing pin consciously re-blessed:**
+> `test_naval_ui_clarity.py::test_over_cap_at_yard_gets_the_detach_line`
+> pinned the panel literal F2 deleted.
 >
 > **Line-number drifts corrected:** the order block is `:105-114` (spec says
 > `:107-115`); the Diversion payload dict is `:426-449` (spec says

@@ -177,7 +177,18 @@ class TestBlockedLandings:
         m.location = yards[0]
         world._build_marshal_index()
         blocked = naval.expedition_blocked_reasons(world, "France")
-        assert any("detach 15,000 first" in r for r in blocked.values())
+        # WO slice 6 review round, CONSCIOUS RE-BLESS: this pinned the
+        # literal "detach 15,000 first", which the review measured on 28
+        # provinces as advice the garrison verb refuses everywhere — it
+        # detaches a FIXED 3,000 against a cap of 3 France is already at.
+        # The panel now shares `naval.over_lift_refusal`, so the pin is on
+        # the property: the reason states the real overage and never
+        # promises a detachment of the whole excess.
+        over = [r for r in blocked.values() if "transports lift" in r]
+        assert over, blocked
+        for r in over:
+            assert "too many" in r, r
+            assert "detach 15,000 first" not in r, r
 
     def test_dormant_world_has_the_key_and_no_rows(self):
         tw = WorldState.from_scenario(str(SCENARIO_TUTORIAL))

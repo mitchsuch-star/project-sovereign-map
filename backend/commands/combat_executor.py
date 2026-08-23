@@ -1664,8 +1664,13 @@ class CombatExecutor:
         if marshal.location == destination:
             return True
         from backend.game_logic.naval import crossing_check_reach
+        # Boolean-only today (this seam reads no message), but threaded for
+        # the same reason as its five siblings: a uniform rule is easier to
+        # keep true than an exception list, and my own census test found
+        # this one after the review fleet had named the other four.
         return crossing_check_reach(
-            world, marshal.nation, marshal.location, destination)["allowed"]
+            world, marshal.nation, marshal.location, destination,
+            int(marshal.strength))["allowed"]
 
     def _calculate_overwatch(self, attacker, atk_participants, defender_region_name: str,
                              world: WorldState, defender_name: str = None) -> int:
@@ -4490,9 +4495,14 @@ class CombatExecutor:
                 # measured on master, Murat charged Paris→(Normandy)→
                 # London and ended the turn standing in London.
                 from backend.game_logic.naval import crossing_check_reach
+                # WO slice 6 review [F1]: this is the seam an ordinary
+                # `attack` hits, and it was one of four left unthreaded —
+                # so the refusal kept advertising an expedition that could
+                # not lift the corps standing right there.
                 _cross = crossing_check_reach(world, marshal.nation,
                                               marshal.location,
-                                              _battle_region_name)
+                                              _battle_region_name,
+                                              int(marshal.strength))
                 if not _cross["allowed"]:
                     return {
                         "success": False,
@@ -7245,7 +7255,7 @@ class CombatExecutor:
             from backend.game_logic.naval import crossing_check_reach
             _charge_cross = crossing_check_reach(
                 world, marshal.nation, marshal.location,
-                target_marshal.location)
+                target_marshal.location, int(marshal.strength))
             if not _charge_cross["allowed"]:
                 return {
                     "success": False,
@@ -8011,8 +8021,10 @@ class CombatExecutor:
                 # the hop here with the honest reason).
                 if getattr(world, "fleets", None):
                     from backend.game_logic.naval import crossing_check
-                    _cross = crossing_check(world, closest_marshal.nation,
-                                            closest_marshal.location, next_region)
+                    _cross = crossing_check(
+                        world, closest_marshal.nation,
+                        closest_marshal.location, next_region,
+                        mover_strength=int(closest_marshal.strength))
                     if not _cross["allowed"]:
                         return {
                             "success": False,

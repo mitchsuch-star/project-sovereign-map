@@ -927,7 +927,12 @@ def test_slice8_hot_paths_ride_cached_region_index():
         (EnemyAI._get_strategic_enemy_regions, "get_active_nations", ".regions.items()"),
         (EnemyAI._find_best_stables_region, "get_nation_regions", ".regions.items()"),
         (TurnManager._check_capital_proximity, "get_player_regions", ".regions.values()"),
-        (EconomyExecutor._execute_garrison, "get_nation_regions", None),
+        # WO slice 6 review round: the nation-wide garrison count moved
+        # into `garrison_refusal_probe` (the PF-4 pattern) and the pin
+        # followed it — leaving it on `_execute_garrison` would have
+        # kept the NAME green while binding nothing.
+        (EconomyExecutor.garrison_refusal_probe, "get_nation_regions",
+         ".regions.items()"),
     ]
     for func, need, forbid in pins:
         src = inspect.getsource(func)

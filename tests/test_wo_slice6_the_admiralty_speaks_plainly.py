@@ -127,6 +127,39 @@ class TestTheForecastIsTheOneSource:
         assert ours == round(naval.combined_effective(
             world, "France", "Britain", match_posture="blockade"), 1)
 
+    def test_the_rendered_figure_is_the_one_the_predicate_uses(self, world):
+        """REPAIRED: the record claimed the copy "uses 31.5, not 53.82 …
+        Pinned", but the pin asserted the producer DICT. Swapping the
+        rendered figure for the unfiltered `combined_effective` left 386
+        naval tests green — the boot message would have read "54
+        sail-effective" while the gate used 31.5."""
+        msg = naval.blockade_forecast_sentence(world, "France")
+        filtered = naval.combined_effective(
+            world, "France", "Britain", match_posture="blockade")
+        unfiltered = naval.combined_effective(world, "France", "Britain")
+        assert round(filtered) != round(unfiltered), (filtered, unfiltered)
+        assert f"{filtered:.0f} sail-effective" in msg, msg
+        assert f"{unfiltered:.0f} sail-effective" not in msg, msg
+
+    def test_a_refusal_never_sits_beside_two_identical_numbers(self, world):
+        """Reachable at 26 sail / readiness 97 against our 31.5: the row
+        classifies on raw floats and rendered at :.0f, so the sentence read
+        "32 against her, where 32 is needed"."""
+        rec = naval.get_fleet(world, "Britain")
+        rec["ships"], rec["readiness"] = 26, 97
+        msg = naval.blockade_forecast_sentence(world, "France")
+        # REPAIRED: the first version accepted the "by a hair" fallback as
+        # an alternative, so a mutation that stopped escalating precision
+        # simply took that branch and the pin proved nothing. This case
+        # (31.5 against 31.525) IS separable — at two decimals — and the
+        # copy must separate it rather than retreat to the fallback.
+        m = re.search(r"([\d.]+) sail-effective against her, where "
+                      r"([\d.]+) is needed", msg)
+        assert m, msg
+        assert m.group(1) != m.group(2), msg
+        assert "where 32 is needed" not in msg, msg
+        assert "by a hair" not in msg, msg
+
     def test_the_self_blockade_is_reported(self, world):
         """France is blockaded by Britain at boot — which is the whole
         reason the drill claim was inverted."""
@@ -148,6 +181,17 @@ class TestTheOrderTellsTheTruth:
         assert "Britain is beyond our reach" in msg, msg
         assert "125" in msg and "sail-effective" in msg, msg
 
+    def test_a_single_closed_court_takes_a_singular_possessive(self, world):
+        """The boot board closes TWO courts, so "their" is correct there
+        and a mutation to a hardcoded plural survived. Reachable one peace
+        treaty from boot, and it sits in the same sentence as a "her"."""
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Austria")] = "PEACE"
+        msg = self._order(world)
+        assert "Russia is closed — her ports watched and her trade halved" \
+            in msg, msg
+        assert "their" not in msg, msg
+
     def test_the_inverted_drill_claim_is_gone(self, world):
         msg = self._order(world)
         assert "while ours drill" not in msg, msg
@@ -164,7 +208,10 @@ class TestTheOrderTellsTheTruth:
         # ...and after a real blockade it DOES name who is released.
         self._order(world, posture="blockade")
         msg2 = self._order(world, posture="guard")
-        assert "Austria and Russia are released" in msg2, msg2
+        # Russia has a fleet; Austria's authored row is ships-0, so the
+        # review-round split names her trade rather than her crews.
+        assert "Russia is released, and her crews will begin to recover"             in msg2, msg2
+        assert "Austria has no fleet to recover, but her trade reopens"             in msg2, msg2
 
     def test_the_order_goes_through_the_display_chokepoint(self, world):
         """R7. Producer 2 got this at NV-9; producer 1 joined raw scenario
@@ -263,10 +310,23 @@ class TestTheOverLiftRefusal:
         assert "garrison 15,000 men here" not in msg, msg
         assert "He cannot be lightened" in msg, msg
 
-    def test_it_quotes_the_real_detachment_and_the_real_cap(self, world):
+    def test_it_quotes_the_real_detachment_and_the_real_cap(
+            self, world, monkeypatch):
+        """REPAIRED: the cap half asserted `str(3) in msg`, which the
+        message already satisfies through "3,000" — deleting every render
+        of `GARRISON_MAX_PER_NATION` from all three arms left 58 tests
+        green. The cap is now monkeypatched to a value whose digits appear
+        nowhere else in the sentence."""
+        monkeypatch.setattr(EconomyExecutor, "GARRISON_MAX_PER_NATION", 7)
+        for r in world.get_nation_regions("France"):
+            world.regions[r].garrison_strength = 0
+        for i, r in enumerate(world.get_nation_regions("France")):
+            if i >= 7:
+                break
+            world.regions[r].garrison_strength = 1000
         msg = naval.over_lift_refusal(world, world.get_marshal("Soult"))
         assert f"{EconomyExecutor.GARRISON_DETACHMENT_SIZE:,}" in msg, msg
-        assert str(EconomyExecutor.GARRISON_MAX_PER_NATION) in msg, msg
+        assert "our 7" in msg and "7 of 7" in msg, msg
 
     def test_it_names_a_corps_that_could_actually_sail(self, world):
         msg = naval.over_lift_refusal(world, world.get_marshal("Soult"))
@@ -426,11 +486,196 @@ class TestTheShutRefusalIsCorpsAware:
             assert other["verdict"] == base["verdict"]
             assert other["coverage"] == base["coverage"]
 
-    def test_the_player_facing_callers_thread_the_corps(self):
-        """The gate is nation-level and cannot see the marshal, so the two
-        seams that DO know it must pass it or the fix is unreachable in
-        play."""
+    def test_every_marshal_aware_seam_threads_the_corps(self):
+        """REPLACED after the review round. The first version was a
+        file-wide `re.search` satisfied by ONE occurrence per file — and
+        measured, only 2 of SIX marshal-aware seams threaded it, so the
+        seam an ordinary `attack` hits still printed the retired advice:
+
+            [MOVE ]  ... no expedition can carry it.
+            [ATTACK] ... or land a small expedition (15,000 men or fewer).
+
+        This counts the call sites instead."""
+        import ast
+        threaded = unthreaded = 0
         for rel in ("backend/commands/movement_executor.py",
                     "backend/commands/combat_executor.py"):
-            src = (REPO / rel).read_text(encoding="utf-8")
-            assert re.search(r"mover_strength=int\(marshal\.strength\)", src), rel
+            tree = ast.parse((REPO / rel).read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                fn = getattr(node.func, "id", None)
+                if fn not in ("crossing_check", "crossing_check_reach"):
+                    continue
+                has = (any(k.arg == "mover_strength" for k in node.keywords)
+                       or len(node.args) >= 5)
+                if has:
+                    threaded += 1
+                else:
+                    unthreaded += 1
+        assert unthreaded == 0, f"{unthreaded} seam(s) do not pass the corps"
+        assert threaded >= 5, threaded
+
+
+class TestTheRetiredAdviceIsGoneFromEverySurface:
+    """The review round's verdict, as tests. Three of its four P2s were the
+    same shape — a rewritten producer with an un-rewritten sibling still
+    shipping the retired sentence — and the record asserted each census was
+    complete when it measurably was not."""
+
+    def _shut_pair(self, world):
+        for pair in naval.get_sea_link_pairs(world):
+            a, b = tuple(pair)
+            for x, y in ((a, b), (b, a)):
+                if (naval.crossing_check(world, "France", x, y)["verdict"]
+                        == "shut"):
+                    return x, y
+        pytest.skip("no shut crossing on the boot board")
+
+    def test_the_reach_gate_no_longer_offers_the_expedition(self, world):
+        """The seam an ordinary attack hits."""
+        x, y = self._shut_pair(world)
+        under = naval.crossing_check_reach(world, "France", x, y, 10000)
+        over = naval.crossing_check_reach(world, "France", x, y, 30000)
+        assert "land a small expedition" in under["message"], under
+        assert "no expedition can carry it" in over["message"], over
+
+    def test_the_region_panel_shares_the_single_source(self, world):
+        """Measured before the fix: 28 blocked provinces read "detach
+        15,000 first" while the executor, one order later, said he could
+        not be lightened at all — and the panel is the surface the player
+        sees FIRST, on a province click, with no order issued."""
+        soult = world.get_marshal("Soult")
+        soult.location = naval.controlled_dockyards(world, "France")[0]
+        world._build_marshal_index()
+        reasons = naval.expedition_blocked_reasons(world, "France")
+        quoting = [k for k, v in reasons.items()
+                   if "transports lift" in str(v)]
+        assert quoting, "the over-lift reason is unreachable on the panel"
+        honest = naval.over_lift_refusal(world, soult)
+        for k in quoting:
+            assert honest in str(reasons[k]), (k, reasons[k])
+        assert not any("detach" in str(v) and "first" in str(v)
+                       for v in reasons.values()), reasons
+
+    def test_the_posture_prompt_is_the_fourth_producer(self, world):
+        """It sat eight lines above the message the slice rewrote, and
+        contradicted the `help` text the same commit fixed."""
+        ex = CommandExecutor()
+        res = ex._naval._execute_set_fleet_posture(
+            {"action": "set_fleet_posture"}, {"world": world})
+        assert res["success"] is False, res
+        assert "every at-war enemy's ports" not in res["message"], res
+        assert "our sail can outmatch" in res["message"], res
+
+    def test_no_surface_promises_to_close_every_at_war_enemy(self):
+        """The census the first cut greped only for `while ours drill`."""
+        offenders = []
+        for path in (REPO / "backend").rglob("*.py"):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for phrase in ("close every at-war enemy",
+                           "pins EVERY", "while ours drill",
+                           "Every port of every enemy"):
+                if phrase in text:
+                    offenders.append((str(path.relative_to(REPO)), phrase))
+        assert not offenders, offenders
+
+
+class TestThePromiseArmConsultsTheGate:
+    """F4: the positive arm was location-blind, and it was the one arm no
+    test executed."""
+
+    @staticmethod
+    def _free_a_slot(world):
+        for r in world.get_nation_regions("France"):
+            if world.regions[r].garrison_strength > 0:
+                world.regions[r].garrison_strength = 0
+                return
+
+    def test_it_does_not_promise_a_garrison_where_one_already_stands(
+            self, world):
+        self._free_a_slot(world)
+        bern = world.get_marshal("Bernadotte")
+        bern.strength, bern.location = 17000, "Flanders"
+        world._build_marshal_index()
+        msg = naval.over_lift_refusal(world, bern)
+        assert "would bring him under the lift" not in msg, msg
+        assert "A garrison already holds Flanders" in msg, msg
+
+    def test_it_does_not_promise_a_garrison_on_a_beachhead(self, world):
+        self._free_a_slot(world)
+        bern = world.get_marshal("Bernadotte")
+        foreign = next(r for r, rg in world.regions.items()
+                       if rg.controller not in (None, "France")
+                       and getattr(rg, "is_coastal", False))
+        bern.strength, bern.location = 17000, foreign
+        world._build_marshal_index()
+        msg = naval.over_lift_refusal(world, bern)
+        assert "would bring him under the lift" not in msg, msg
+        assert "We do not control" in msg, msg
+
+    def test_the_promise_is_kept_when_the_gate_would_allow_it(self, world):
+        """The falsifiable negative — the gate must not silence advice that
+        actually works."""
+        self._free_a_slot(world)
+        bern = world.get_marshal("Bernadotte")
+        bern.strength, bern.location = 17000, "Brittany"
+        world._build_marshal_index()
+        msg = naval.over_lift_refusal(world, bern)
+        assert "would bring him under the lift" in msg, msg
+        assert EconomyExecutor.garrison_refusal_probe(world, bern) is None
+
+    def test_the_probe_is_the_executors_own_gate_not_a_copy(self):
+        """PF-4's `move_refusal_probe` pattern: `_execute_garrison` must
+        CALL the probe, not carry a second implementation."""
+        src = (REPO / "backend" / "commands" / "economy_executor.py"
+               ).read_text(encoding="utf-8")
+        body = src.split("def _execute_garrison(", 1)[1][:6000]
+        assert "self.garrison_refusal_probe(world, marshal)" in body
+        assert "We cannot garrison enemy territory" not in body, (
+            "the executor kept its own copy of a gate the probe owns")
+
+    def test_the_refusal_never_contradicts_itself(self, world):
+        """The promise arm and the closing arm were independent, so the
+        sentence could offer a detachment and then say nothing can sail."""
+        self._free_a_slot(world)
+        for m in world.get_marshals_by_nation("France"):
+            m.strength = 17000
+        bern = world.get_marshal("Bernadotte")
+        bern.location = "Brittany"
+        world._build_marshal_index()
+        msg = naval.over_lift_refusal(world, bern)
+        assert not ("would bring him under the lift" in msg
+                    and "none can sail" in msg), msg
+
+
+class TestTheReleaseClauseIsMembership:
+    """F3: release is a membership question. A court a second power also
+    pins stays pinned when we stand down."""
+
+    def test_a_court_another_power_also_pins_is_not_announced_released(
+            self, world):
+        world.diplomatic_states[
+            world._make_diplo_key("Britain", "Russia")] = "WAR"
+        ex = CommandExecutor()
+        ex._naval._execute_set_fleet_posture(
+            {"action": "set_fleet_posture", "posture": "blockade"},
+            {"world": world})
+        msg = ex._naval._execute_set_fleet_posture(
+            {"action": "set_fleet_posture", "posture": "guard"},
+            {"world": world})["message"]
+        assert "Russia" in naval.blockaded_nations(world), "setup failed"
+        assert "Russia is released" not in msg, msg
+
+    def test_the_forecast_is_invariant_to_our_own_posture(self, world):
+        """The record's stated reason for the pre-read was FALSE and is
+        corrected: `combined_effective` adds our own strength
+        unconditionally and `match_posture` filters PARTNERS only. The
+        pre-read is needed because the release list is a set DIFFERENCE,
+        not because the forecast moves."""
+        rec = naval.get_fleet(world, "France")
+        rec["posture"] = "guard"
+        on_guard = naval.blockade_forecast(world, "France")
+        rec["posture"] = "blockade"
+        on_blockade = naval.blockade_forecast(world, "France")
+        assert on_guard == on_blockade, (on_guard, on_blockade)

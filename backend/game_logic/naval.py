@@ -421,6 +421,21 @@ def blockade_forecast(world, actor: str) -> Dict[str, Any]:
                                   match_posture="blockade")
         row = {"nation": target, "ours": round(ours, 1),
                "needed": round(needed, 1)}
+        # Classify on the raw values (that is what the predicate does), but
+        # never RENDER two identical numbers either side of "where … is
+        # needed" — a sentence the player cannot act on. Reachable at 26
+        # sail / readiness 97 against our 31.5, and 1 decimal is not always
+        # enough (31.5 vs 31.525), so precision escalates until the pair
+        # separates and the copy says "a hair" when it cannot.
+        row["render"] = None
+        for _dp in (0, 1, 2):
+            _pair = (f"{ours:.{_dp}f}", f"{needed:.{_dp}f}")
+            if _pair[0] != _pair[1]:
+                row["render"] = _pair
+                break
+        row["hair"] = row["render"] is None
+        if row["render"] is None:
+            row["render"] = (f"{ours:.2f}", f"{needed:.2f}")
         (closes if ours >= needed else beyond).append(row)
     closes.sort(key=lambda r: r["nation"])
     beyond.sort(key=lambda r: r["nation"])
@@ -449,6 +464,36 @@ def _name_list(nations: List[str]) -> str:
     return ", ".join(shown[:-1]) + " and " + shown[-1]
 
 
+def release_clause(world, released: List[str]) -> str:
+    """WO slice 6 review: the guard arm told a fleetless court its crews
+    would recover.
+
+    The slice's own record identifies this inversion — "Austria having no
+    ships to rot" — and then the mirror arm written by the same slice
+    reproduced it: `"Austria is released, and their crews will begin to
+    recover"` for a court whose authored row is ships-0. Her real relief
+    is the 175g/turn of trade, which went unmentioned. Split on whether
+    there are crews at all.
+    """
+    with_crews, ports_only = [], []
+    for nation in released:
+        rec = get_fleet(world, nation)
+        (with_crews if rec and effective_strength(rec) > 0
+         else ports_only).append(nation)
+    parts = []
+    if with_crews:
+        parts.append(f"{_name_list(with_crews)} "
+                     f"{'is' if len(with_crews) == 1 else 'are'} released, "
+                     f"and {'her' if len(with_crews) == 1 else 'their'} "
+                     f"crews will begin to recover.")
+    if ports_only:
+        parts.append(f"{_name_list(ports_only)} "
+                     f"{'has' if len(ports_only) == 1 else 'have'} no fleet "
+                     f"to recover, but {'her' if len(ports_only) == 1 else 'their'} "
+                     f"trade reopens.")
+    return " ".join(parts)
+
+
 def blockade_forecast_sentence(world, actor: str) -> str:
     """The honest blockade sentence, shared by the order message, the
     Admiralty chip note and `help`. States what closes, what does not and
@@ -457,17 +502,26 @@ def blockade_forecast_sentence(world, actor: str) -> str:
     fc = blockade_forecast(world, actor)
     parts: List[str] = []
     if fc["closes"]:
+        _n = len(fc["closes"])
+        _poss = "her" if _n == 1 else "their"
         parts.append(
             f"{_name_list([r['nation'] for r in fc['closes']])} "
-            f"{'is' if len(fc['closes']) == 1 else 'are'} closed — their "
-            f"ports watched and their trade halved.")
+            f"{'is' if _n == 1 else 'are'} closed — {_poss} "
+            f"ports watched and {_poss} trade halved.")
     else:
         parts.append("No enemy port is closed by it.")
     for row in fc["beyond_reach"]:
-        parts.append(
-            f"{_name_list([row['nation']])} is beyond our reach: "
-            f"{row['ours']:.0f} sail-effective against her, where "
-            f"{row['needed']:.0f} is needed.")
+        _ours_s, _need_s = row["render"]
+        if row.get("hair"):
+            parts.append(
+                f"{_name_list([row['nation']])} is beyond our reach by a "
+                f"hair: {_ours_s} sail-effective against her, and it is "
+                f"not quite enough.")
+        else:
+            parts.append(
+                f"{_name_list([row['nation']])} is beyond our reach: "
+                f"{_ours_s} sail-effective against her, where "
+                f"{_need_s} is needed.")
     if fc["self_blockaded_by"]:
         parts.append(
             f"And we are blockaded ourselves — "
@@ -486,11 +540,22 @@ def _garrison_detachment_size() -> int:
 
 
 class _LazyInt:
-    """`_GARRISON_DETACHMENT` must not import the executor at module load
-    (naval is imported by it), so the value resolves on first format."""
+    """Resolves `GARRISON_DETACHMENT_SIZE` at render time, not import time.
+
+    The review round corrected this docstring: there is NO import cycle to
+    break — `economy_executor` does not import `naval` at any level. The
+    real reason is ordering, `naval` being imported early enough that a
+    module-level executor import is a needless coupling. `__str__` is
+    defined because without it `str(_GARRISON_DETACHMENT)` would ship a
+    repr into Admiralty copy with nothing able to notice; `__int__` had no
+    caller and is kept for the same reason, as a total interface rather
+    than a partial one."""
 
     def __format__(self, spec):
         return format(_garrison_detachment_size(), spec)
+
+    def __str__(self):
+        return f"{_garrison_detachment_size():,}"
 
     def __int__(self):
         return _garrison_detachment_size()
@@ -535,29 +600,46 @@ def over_lift_refusal(world, marshal) -> str:
         key=lambda m: -int(m.strength))
     parts = [f"The transports lift {lift:,} men; {marshal.name} commands "
              f"{troops:,} — {excess:,} too many."]
+    need = -(-excess // detach)              # ceil
+    room = cap - held
+    # The gate itself, never a copy of it — the review round caught the
+    # first cut reading the nation-wide count ALONE, so it promised a
+    # detachment on soil we do not control (the beachhead, the one place
+    # this refusal is reachable from foreign ground) and on a province that
+    # already held a garrison. Measured both.
+    here_refuses = EconomyExecutor.garrison_refusal_probe(world, marshal)
+    _promised = False
     if held >= cap:
+        # The nation-wide fact reads better as arithmetic than as the
+        # staff's own refusal line, which is Berthier's voice and would sit
+        # oddly quoted inside the Admiralty's.
         parts.append(
             f"He cannot be lightened: a garrison detaches a fixed "
             f"{detach:,}, and we already hold our {cap} "
             f"({held} of {cap} in all).")
+    elif here_refuses is not None:
+        parts.append(
+            f"He cannot be lightened where he stands. {here_refuses} "
+            f"A garrison detaches a fixed {detach:,} in any case.")
+    elif need <= room:
+        parts.append(
+            f"Detaching {need} garrison{'s' if need > 1 else ''} of "
+            f"{detach:,} would bring him under the lift — we have "
+            f"{room} of our {cap} still free.")
+        _promised = True
     else:
-        need = -(-excess // detach)          # ceil
-        room = cap - held
-        if need <= room:
-            parts.append(
-                f"Detaching {need} garrison{'s' if need > 1 else ''} of "
-                f"{detach:,} would bring him under the lift — we have "
-                f"{room} of our {cap} still free.")
-        else:
-            parts.append(
-                f"He cannot be lightened: a garrison detaches a fixed "
-                f"{detach:,}, so it would take {need} of them and only "
-                f"{room} of our {cap} remain.")
+        parts.append(
+            f"He cannot be lightened: a garrison detaches a fixed "
+            f"{detach:,}, so it would take {need} of them and only "
+            f"{room} of our {cap} remain.")
     if eligible:
         best = eligible[0]
         parts.append(f"Send a corps of {lift:,} or fewer instead — "
                      f"{best.name} stands at {int(best.strength):,}.")
-    else:
+    elif not _promised:
+        # Gated on the promise arm: without this the sentence could read
+        # "Detaching 1 garrison would bring him under the lift … No corps
+        # of ours is under the lift, so none can sail."
         parts.append(f"No corps of ours is under the lift this turn, so "
                      f"none can sail.")
     return " ".join(parts)
@@ -991,11 +1073,13 @@ def crossing_allowed(world, mover_nation: str,
     """Boolean arm for candidate filters (AI destination scans)."""
     if not getattr(world, "fleets", None):
         return True
-    return crossing_check(world, mover_nation, from_region, to_region)["allowed"]
+    return crossing_check(world, mover_nation, from_region,
+                          to_region)["allowed"]
 
 
 def crossing_check_reach(world, mover_nation: str,
-                         from_region: str, to_region: str) -> Dict:
+                         from_region: str, to_region: str,
+                         mover_strength: Optional[int] = None) -> Dict:
     """NV-9 — THE REACH GATE: the crossing predicate for a strike whose
     range is 2, where the water may lie on the MIDDLE leg.
 
@@ -1011,7 +1095,8 @@ def crossing_check_reach(world, mover_nation: str,
     range 2 it returns `open` if ANY intermediate route clears both legs
     (a strike may go round the water), and otherwise the blocking verdict
     of the best route — the honest refusal naming the sea that stopped it."""
-    direct = crossing_check(world, mover_nation, from_region, to_region)
+    direct = crossing_check(world, mover_nation, from_region, to_region,
+                            mover_strength)
     if not has_naval_layer(world) or not direct["allowed"]:
         return direct
     origin = world.regions.get(from_region)
@@ -1027,8 +1112,10 @@ def crossing_check_reach(world, mover_nation: str,
             continue
         if to_region not in (getattr(mid_region, "adjacent_regions", []) or []):
             continue
-        leg1 = crossing_check(world, mover_nation, from_region, middle)
-        leg2 = crossing_check(world, mover_nation, middle, to_region)
+        leg1 = crossing_check(world, mover_nation, from_region, middle,
+                              mover_strength)
+        leg2 = crossing_check(world, mover_nation, middle, to_region,
+                              mover_strength)
         if leg1["allowed"] and leg2["allowed"]:
             return direct  # a dry route exists — the strike goes round
         if blocked is None:
@@ -2350,10 +2437,14 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
                            and _embark_position_ok(m)]
         if over_embarkable:
             m = min(over_embarkable, key=lambda m: int(m.strength))
-            no_corps_reason = (
-                f"the transports lift {EXPEDITION_MAX_TROOPS:,} — "
-                f"{m.name} commands {int(m.strength):,}; detach "
-                f"{int(m.strength) - EXPEDITION_MAX_TROOPS:,} first")
+            # WO slice 6 review [F2]: the panel is the surface the player
+            # sees FIRST — on a province click, before any order is issued
+            # — and it kept its own copy of the retired sentence. Measured
+            # at boot with Soult at a yard, 28 blocked coastal provinces
+            # read "detach 15,000 first" while the executor, one order
+            # later, said he could not be lightened at all. It now shares
+            # the single source rather than paraphrasing it.
+            no_corps_reason = over_lift_refusal(world, m)
         elif yards:
             no_corps_reason = (
                 f"no corps of {EXPEDITION_MAX_TROOPS:,} or fewer stands at "

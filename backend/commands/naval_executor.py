@@ -100,20 +100,28 @@ class NavalExecutor:
         if posture not in naval.POSTURES:
             return {"success": False, "message": (
                 "Give the Admiralty a posture, Sire: 'blockade the enemy' "
-                "(close every at-war enemy's ports) or 'guard home waters'.")}
+                "(close the ports of every at-war enemy our sail can "
+                "outmatch) or 'guard home waters'.")}
 
         previous = rec.get("posture", "guard")
-        # Who we were ACTUALLY pinning, read BEFORE the flip. The forecast
-        # answers "what would a blockade by us close", which is the right
-        # question for the blockade arm and the WRONG one for the guard
-        # arm — asked after the write it told a fleet that had been sitting
-        # in home waters all game that it was "releasing" Austria and
-        # Russia. Ownership, not membership: `blockaded_nations()` would
-        # hand back the courts BRITAIN is pinning.
-        _was_closing = ([r["nation"]
-                         for r in naval.blockade_forecast(world, actor)["closes"]]
-                        if previous == "blockade" else [])
+        # ── Who is ACTUALLY released, measured across the flip ──────────
+        # Release is a MEMBERSHIP question, not an ownership one: a court a
+        # second power also pins stays pinned when we stand down. The first
+        # cut asked `blockade_forecast` (what OUR blockade meets the ratio
+        # against) and so announced releasing a Russia that Britain was
+        # also closing — measured, with her trade loss and her readiness
+        # rot both continuing.
+        #
+        # It also recorded a FALSE reason for reading before the write. The
+        # forecast is invariant to our own posture — `combined_effective`
+        # adds our own strength unconditionally and `match_posture` filters
+        # partners only — so the `previous == "blockade"` test was the
+        # entire safeguard. The before/after difference below needs the
+        # pre-read for a real reason: it is a set difference.
+        _pinned_before = set(naval.blockaded_nations(world))
         rec["posture"] = posture
+        _was_closing = sorted(_pinned_before
+                              - set(naval.blockaded_nations(world)))
         if posture == "blockade":
             # ── WO-14 (row WO slice 6): the order states what it DOES ────
             # It used to name every at-war court with a `navies` row and
@@ -145,10 +153,7 @@ class NavalExecutor:
             message = (
                 "The fleet returns to home waters on guard — every crossing "
                 "touching our own coast is covered."
-                + (" "
-                   + naval._name_list(_was_closing)
-                   + (" is" if len(_was_closing) == 1 else " are")
-                   + " released, and their crews will begin to recover."
+                + (" " + naval.release_clause(world, _was_closing)
                    if _was_closing else
                    " No blockade pressure is lifted; we were closing no "
                    "enemy port."))
@@ -220,8 +225,11 @@ class NavalExecutor:
         if troops > naval.EXPEDITION_MAX_TROOPS:
             # WO slice 6: the refusal named a remedy the executor refuses
             # everywhere on the boot board. `naval.over_lift_refusal` owns
-            # the honest sentence — one source, so the region panel's
-            # sibling can share it.
+            # the honest sentence, and the region panel's sibling
+            # (`expedition_blocked_reasons`) calls the SAME source for its
+            # detachment clause — the review round caught that first claim
+            # of a shared source being false while the panel still shipped
+            # "detach 15,000 first" on 28 provinces.
             return {"success": False,
                     "message": naval.over_lift_refusal(world, marshal)}
 

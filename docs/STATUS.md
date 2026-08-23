@@ -54,8 +54,48 @@
 > (`test_naval_ui_clarity.py::test_terms_carry_met_and_detail` asserted
 > the literal *"march a corps to a yard"* — the defect itself).
 >
+> **✅ REVIEW ROUND HELD AND LANDED THE SAME DAY** at the committed SHA
+> `ecf064b`, clean tree (addendum = spec §3 slice 6). A six-lens →
+> refuter fleet filed 33 findings; **six survived, plus four one-liners,
+> and it named SIX false claims on the record** — all corrected in place.
+>
+> **Its verdict is worth keeping: three of its four P2s are the same
+> shape — a rewritten producer with an un-rewritten sibling still shipping
+> the retired sentence — and the record asserted each census was complete
+> when it measurably was not.** The SHUT remedy reached **2 of 7**
+> marshal-aware seams, so the one an ordinary `attack` hits still
+> advertised an expedition that could not lift the corps standing there;
+> the region panel — the surface the player sees FIRST, on a province
+> click with no order issued — kept its own copy on **28 provinces**
+> reading "detach 15,000 first" while the executor one order later said he
+> could not be lightened at all; and a **fourth** producer of the
+> pin-everything promise sat eight lines above the message the slice
+> rewrote.
+>
+> Two more were the slice's own new copy repeating the class of falsity it
+> was written to remove: the guard arm told a **fleetless** court its crews
+> would recover (the exact inversion its own record identifies), and it
+> announced releasing a court a second power still pinned — release is a
+> MEMBERSHIP question. Both lived in arms no test executed. The over-lift
+> promise arm was location-blind and is now gated on
+> **`EconomyExecutor.garrison_refusal_probe`**, extracted on the PF-4
+> `move_refusal_probe` pattern so the advice consults the gate instead of a
+> copy of it.
+>
+> **Three more inert pins found by the sweep**, each for a different reason
+> (a `str(3)` satisfied by "3,000"; a fallback branch accepted as an
+> alternative; a fixture that closes two courts so a plural survived) —
+> **and a GR8 pin was made non-binding by this round's own refactor**
+> (`test_slice8_hot_paths_ride_cached_region_index` scrapes
+> `_execute_garrison` for `get_nation_regions`, which moved into the probe;
+> the pin followed the code rather than keeping a green name). My own new
+> AST census then found a **seventh** crossing seam the fleet had not named.
+>
+> tests 33 → **47**; sweep **34 killed, 0 inert**; suite **18,562 / 3**;
+> `BASELINE_SERIES` and M1–M7 green by their real runs.
+>
 > **NEXT = row WO slice 8**, then 9 → 10 → 17 → 11 → 12 → 14. ⚠ Slice 6
-> has had NO review round and NO in-game pass; both are owed.
+> has had NO in-game pass; it is owed.
 
 > # ✅ WO SLICE 4 — "THE CAPITAL SPEAKS" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 4,

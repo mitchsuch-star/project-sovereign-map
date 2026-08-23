@@ -44,16 +44,16 @@
   {
     "id": "S6-7 the chip is disabled when it would close nobody (hiding instead of saying)",
     "file": "backend/game_logic/naval.py",
-    "old": "                _note = (f\"closes no enemy port — {_name_list([_r['nation']])} \"\n                         f\"needs {_r['needed']:.0f} and we can bring \"\n                         f\"{_r['ours']:.0f}\")",
+    "old": "                _note = (f\"closes no enemy port \u2014 {_name_list([_r['nation']])} \"\n                         f\"needs {_r['needed']:.0f} and we can bring \"\n                         f\"{_r['ours']:.0f}\")",
     "new": "                _note = \"\"",
     "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheChipForecastsHonestly::test_the_chip_stays_enabled_when_it_would_close_nobody"
   },
   {
-    "id": "S6-8 the guard message lifts a pressure it never applied",
+    "id": "S6-8 the release list goes back to ownership (a court another power pins reads as released)",
     "file": "backend/commands/naval_executor.py",
-    "old": "        _was_closing = ([r[\"nation\"]\n                         for r in naval.blockade_forecast(world, actor)[\"closes\"]]\n                        if previous == \"blockade\" else [])",
+    "old": "        _was_closing = sorted(_pinned_before\n                              - set(naval.blockaded_nations(world)))",
     "new": "        _was_closing = [r[\"nation\"]\n                        for r in naval.blockade_forecast(world, actor)[\"closes\"]]",
-    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_guard_order_does_not_lift_a_pressure_it_never_applied"
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheReleaseClauseIsMembership::test_a_court_another_power_also_pins_is_not_announced_released tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_guard_order_does_not_lift_a_pressure_it_never_applied"
   },
   {
     "id": "S6-9 the help text teaches the pin-everything promise again (the third producer)",
@@ -72,8 +72,8 @@
   {
     "id": "S6-11 the refusal stops quoting the real detachment size and cap",
     "file": "backend/game_logic/naval.py",
-    "old": "            f\"He cannot be lightened: a garrison detaches a fixed \"\n            f\"{detach:,}, and we already hold our {cap} \"\n            f\"({held} of {cap} in all).\")",
-    "new": "            f\"He cannot be lightened here.\")",
+    "old": "        parts.append(\n            f\"He cannot be lightened: a garrison detaches a fixed \"\n            f\"{detach:,}, and we already hold our {cap} \"\n            f\"({held} of {cap} in all).\")",
+    "new": "        parts.append(\"He cannot be lightened here.\")",
     "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_it_quotes_the_real_detachment_and_the_real_cap tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOverLiftRefusal::test_it_no_longer_advertises_an_illegal_garrison"
   },
   {
@@ -152,5 +152,89 @@
     "old": "                    + naval.blockade_forecast_sentence(world, actor)",
     "new": "                    + \"Every port of every enemy is watched at once.\"",
     "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheChipForecastsHonestly::test_the_two_producers_agree tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_order_no_longer_promises_britain"
+  },
+  {
+    "id": "S6-23 the guard arm tells a fleetless court its crews will recover",
+    "file": "backend/game_logic/naval.py",
+    "old": "        (with_crews if rec and effective_strength(rec) > 0\n         else ports_only).append(nation)",
+    "new": "        with_crews.append(nation)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_the_guard_order_does_not_lift_a_pressure_it_never_applied"
+  },
+  {
+    "id": "S6-24 the posture prompt promises to close every at-war enemy again (the 4th producer)",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                \"(close the ports of every at-war enemy our sail can \"\n                \"outmatch) or 'guard home waters'.\")}",
+    "new": "                \"(close every at-war enemy's ports) or 'guard home waters'.\")}",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheRetiredAdviceIsGoneFromEverySurface::test_the_posture_prompt_is_the_fourth_producer tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheRetiredAdviceIsGoneFromEverySurface::test_no_surface_promises_to_close_every_at_war_enemy"
+  },
+  {
+    "id": "S6-25 the region panel keeps its own contradictory over-lift string",
+    "file": "backend/game_logic/naval.py",
+    "old": "            no_corps_reason = over_lift_refusal(world, m)",
+    "new": "            no_corps_reason = (\n                f\"the transports lift {EXPEDITION_MAX_TROOPS:,} \u2014 \"\n                f\"{m.name} commands {int(m.strength):,}; detach \"\n                f\"{int(m.strength) - EXPEDITION_MAX_TROOPS:,} first\")",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheRetiredAdviceIsGoneFromEverySurface::test_the_region_panel_shares_the_single_source tests/test_naval_ui_clarity.py::TestBlockedLandings::test_over_cap_at_yard_gets_the_detach_line"
+  },
+  {
+    "id": "S6-26 the reach gate stops forwarding the corps (the attack seam goes blind again)",
+    "file": "backend/game_logic/naval.py",
+    "old": "    direct = crossing_check(world, mover_nation, from_region, to_region,\n                            mover_strength)",
+    "new": "    direct = crossing_check(world, mover_nation, from_region, to_region)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheRetiredAdviceIsGoneFromEverySurface::test_the_reach_gate_no_longer_offers_the_expedition"
+  },
+  {
+    "id": "S6-27 an attack seam drops the corps (the census must catch it)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                                              _battle_region_name,\n                                              int(marshal.strength))",
+    "new": "                                              _battle_region_name)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheShutRefusalIsCorpsAware::test_every_marshal_aware_seam_threads_the_corps"
+  },
+  {
+    "id": "S6-28 the promise arm stops consulting the garrison gate (F4)",
+    "file": "backend/game_logic/naval.py",
+    "old": "    here_refuses = EconomyExecutor.garrison_refusal_probe(world, marshal)",
+    "new": "    here_refuses = None",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestThePromiseArmConsultsTheGate"
+  },
+  {
+    "id": "S6-29 the promise arm refuses even where the gate would allow it",
+    "file": "backend/game_logic/naval.py",
+    "old": "    here_refuses = EconomyExecutor.garrison_refusal_probe(world, marshal)",
+    "new": "    here_refuses = 'No.'",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestThePromiseArmConsultsTheGate::test_the_promise_is_kept_when_the_gate_would_allow_it"
+  },
+  {
+    "id": "S6-30 the executor keeps its own copy of the garrison gates",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        refusal = self.garrison_refusal_probe(world, marshal)\n        if refusal is not None:\n            return {\"success\": False, \"message\": refusal}",
+    "new": "        if region and region.controller != marshal.nation:\n            return {\"success\": False, \"message\": (\n                f\"We do not control {region_name}, Your Majesty. \"\n                f\"We cannot garrison enemy territory.\")}",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestThePromiseArmConsultsTheGate::test_the_probe_is_the_executors_own_gate_not_a_copy"
+  },
+  {
+    "id": "S6-31 the closing arm is ungated and can contradict the promise",
+    "file": "backend/game_logic/naval.py",
+    "old": "    elif not _promised:",
+    "new": "    else:",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestThePromiseArmConsultsTheGate::test_the_refusal_never_contradicts_itself"
+  },
+  {
+    "id": "S6-32 the rendered coverage figure reverts to the unfiltered value (54, not 31.5)",
+    "file": "backend/game_logic/naval.py",
+    "old": "        ours = combined_effective(world, actor, target,\n                                  match_posture=\"blockade\")",
+    "new": "        ours = combined_effective(world, actor, target)",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheForecastIsTheOneSource::test_the_rendered_figure_is_the_one_the_predicate_uses"
+  },
+  {
+    "id": "S6-33 the refusal is allowed to print the same number twice",
+    "file": "backend/game_logic/naval.py",
+    "old": "        for _dp in (0, 1, 2):",
+    "new": "        for _dp in (0,):",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheForecastIsTheOneSource::test_a_refusal_never_sits_beside_two_identical_numbers"
+  },
+  {
+    "id": "S6-34 a singular subject takes a plural possessive",
+    "file": "backend/game_logic/naval.py",
+    "old": "        _poss = \"her\" if _n == 1 else \"their\"",
+    "new": "        _poss = \"their\"",
+    "tests": "tests/test_wo_slice6_the_admiralty_speaks_plainly.py::TestTheOrderTellsTheTruth::test_a_single_closed_court_takes_a_singular_possessive"
   }
 ]
