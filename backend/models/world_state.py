@@ -8461,6 +8461,10 @@ class WorldState:
             },
             "repair": {
                 "cost": int(EconomyExecutor.REPAIR_COST),
+                # In-game pass: war damage had no button and no mention on
+                # the panel at all. The chip quotes what one repair clears.
+                "war_damage_pct": int(round(
+                    EconomyExecutor.WAR_DAMAGE_REPAIR_FRACTION * 100)),
             },
         }
 

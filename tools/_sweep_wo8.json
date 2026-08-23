@@ -271,5 +271,96 @@
     "old": "                        f\"'Commit the Attack' to send him in \"",
     "new": "                        f\"[b]Commit the Attack[/b] to send him in \"",
     "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_no_bbcode_reaches_the_interrupt_modal"
+  },
+  {
+    "id": "S8-40 [V-4] the panel goes blind to a damaged building again",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\tif b is Dictionary and b.get(\"damaged\", false):\n\t\t\t\t\tb_names.append(\"[color=#\" + Utils.COLOR_ERROR + \"]\" + bname + \" (damaged)[/color]\")\n\t\t\t\telse:\n\t\t\t\t\tb_names.append(bname)",
+    "new": "\t\t\t\tb_names.append(bname)",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_panel_marks_a_damaged_building tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_panel_uses_the_ledgers_damage_vocabulary"
+  },
+  {
+    "id": "S8-41 [V-4] the panel stops stating war damage",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\tif war_dmg > 0:\n\t\t\tbbcode += \"War damage: [color=#\" + Utils.COLOR_ERROR + \"]\" \\",
+    "new": "\t\tif false:\n\t\t\tbbcode += \"War damage: [color=#\" + Utils.COLOR_ERROR + \"]\" \\",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_panel_states_war_damage"
+  },
+  {
+    "id": "S8-42 [V-4] war damage loses its repair chip again",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\tif own_war_dmg > 0:",
+    "new": "\t\tif false:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_war_damage_has_its_own_repair_chip"
+  },
+  {
+    "id": "S8-43 [V-4] the war-damage chip hardcodes the percentage",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\twd_terms = \"−\" + str(int(rep.get(\"war_damage_pct\", 0))) + \"% of \" \\",
+    "new": "\t\t\t\twd_terms = \"−15% of \" \\",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_the_war_damage_chip_quotes_the_applied_fraction"
+  },
+  {
+    "id": "S8-44 [V-4] the executor forks from the promoted war-damage fraction",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        region.recover_war_damage(self.WAR_DAMAGE_REPAIR_FRACTION)",
+    "new": "        region.recover_war_damage(0.15)",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_the_executor_reads_the_promoted_fraction"
+  },
+  {
+    "id": "S8-45 [V-4] the payload stops shipping the war-damage term",
+    "file": "backend/models/world_state.py",
+    "old": "                \"war_damage_pct\": int(round(\n                    EconomyExecutor.WAR_DAMAGE_REPAIR_FRACTION * 100)),",
+    "new": "                \"war_damage_pct\": 25,",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_the_war_damage_chip_quotes_the_applied_fraction"
+  },
+  {
+    "id": "S8-46 [V-4] the panel stops stating watchtower condition",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\tvar watchtower := str(data.get(\"watchtower\", \"none\"))\n\t\tif watchtower == \"damaged\":",
+    "new": "\t\tvar watchtower := str(data.get(\"watchtower\", \"none\"))\n\t\tif false:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageIsVisibleWhereItIsActedOn::test_panel_states_watchtower_condition"
+  },
+  {
+    "id": "S8-47 [V-5] the damage notice loses its player-nation guard (fog leak)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if _wrecked and region.controller == world.player_nation:",
+    "new": "        if _wrecked:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageAnnouncesItself::test_an_enemy_province_never_notifies"
+  },
+  {
+    "id": "S8-48 [V-5] the notice fires when nothing was actually wrecked",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if _wrecked and region.controller == world.player_nation:",
+    "new": "        if region.controller == world.player_nation:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageAnnouncesItself::test_no_notification_when_nothing_was_wrecked"
+  },
+  {
+    "id": "S8-49 [V-5] the count stops reflecting what was wrecked",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                details={\"region\": region_name,\n                         \"count\": int(len(_wrecked)),",
+    "new": "                details={\"region\": region_name,\n                         \"count\": 1,",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageAnnouncesItself::test_one_notification_for_the_whole_pass"
+  },
+  {
+    "id": "S8-50 [V-5] raw building keys leak into the notice (R7)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            _names = [humanize_entity_name(w).lower() for w in _wrecked]",
+    "new": "            _names = [w for w in _wrecked]",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageAnnouncesItself::test_it_names_the_works_without_raw_keys"
+  },
+  {
+    "id": "S8-51 [V-5] the notice is promoted to HIGH and starves the cap",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                priority=NotificationPriority.NORMAL,\n                title=(f\"{'Works' if len(_names) > 1 else 'A work'} \"",
+    "new": "                priority=NotificationPriority.HIGH,\n                title=(f\"{'Works' if len(_names) > 1 else 'A work'} \"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageAnnouncesItself::test_the_constant_is_registered_and_normal_priority"
+  },
+  {
+    "id": "S8-52 [V-5] the single-work title goes plural",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                title=(f\"{'Works' if len(_names) > 1 else 'A work'} \"",
+    "new": "                title=(f\"{'Works'} \"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestDamageAnnouncesItself::test_a_single_work_reads_singular"
   }
 ]

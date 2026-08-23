@@ -123,6 +123,21 @@ COMMISSION_AVAILABLE = "commission_available"        # NORMAL: once-latched
 # HC-G "Le Moniteur": an issue published — the one-line notice on the
 # rail (no popup class, no queue slot, never a modal).
 GAZETTE_PUBLISHED = "gazette_published"              # NORMAL: new issue
+# WO slice 8 damage-legibility follow-up: a battle in one of OUR provinces
+# wrecked civilian works. Nothing announced this — the campaign log kept a
+# row, but the player learned of it only by hovering the province or
+# opening the ledger's Territories tab, and the region panel (which
+# carries the Repair chip) did not mention it at all.
+#
+# ONE per region per damage pass, never one per building: a 50k battle
+# marks every civilian work plus the watchtower at once, and a per-building
+# title would defeat the collector's repeat-collapse AND spray the 50-row
+# cap. `details["region"]` is a `_SUBJECT_KEYS` member, so repeats across
+# turns collapse for free.
+#
+# NORMAL, deliberately: it is a recurring economic beat, and NORMAL is the
+# only priority the cap will evict — a HIGH spray would starve the tray.
+BUILDINGS_DAMAGED = "buildings_damaged"              # NORMAL: works wrecked
 
 
 def create_notification(

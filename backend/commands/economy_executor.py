@@ -106,6 +106,11 @@ class EconomyExecutor:
     RECRUIT_MORALE_BASE = 40      # Green conscripts base morale
     RECRUIT_MORALE_TRAINED = 70   # with a training_ground in the province
     REPAIR_COST = 150
+    # WO slice 8 in-game pass: how much war damage one repair clears.
+    # Promoted so the war-damage repair chip can quote what this executor
+    # actually applies (the chip is new — before it, war damage had no
+    # button at all and the only route was knowing to type `repair <region>`).
+    WAR_DAMAGE_REPAIR_FRACTION = 0.15
 
     def __init__(self, parent_executor):
         self._executor = parent_executor
@@ -1650,7 +1655,7 @@ class EconomyExecutor:
         if region.war_damage <= 0:
             return {"success": False, "message": f"No war damage to repair in {region_name}"}
 
-        region.recover_war_damage(0.15)
+        region.recover_war_damage(self.WAR_DAMAGE_REPAIR_FRACTION)
         world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
         world.record_gold_spent(repair_acting_nation, REPAIR_COST)
         return {

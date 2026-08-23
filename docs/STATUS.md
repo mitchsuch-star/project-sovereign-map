@@ -154,6 +154,38 @@
 > only" above exact figures). Sweep **39/39 killed, 0 inert**; tests
 > **63**; parse harness EXIT=0; boot 0 SCRIPT ERROR.
 >
+> **✅ AND THE DAMAGE-LEGIBILITY FOLLOW-UP LANDED THE SAME DAY**
+> (user-directed after the pass established the gap; record = spec §3
+> slice 8, damage addendum). The pass had found that damage showed on the
+> map tooltip and the ledger but NOWHERE on the region panel — the one
+> surface carrying the Repair chip — and that war damage had no button at
+> all. **[V-4]** the panel now marks `market (damaged)` in the ledger's
+> exact vocabulary, states `War damage: N% — suppressing this province's
+> income`, and shows watchtower condition (the chip fires on a damaged
+> watchtower the panel never mentioned). **[V-5]** war damage gets its own
+> chip, `Repair war damage 150g · −15% of N% — restores income`, with
+> `WAR_DAMAGE_REPAIR_FRACTION` promoted to a constant the executor reads
+> and the payload ships — no client literal. **[V-6]** `building_damaged`
+> was logged at FIVE sites and notified ZERO times; a new
+> `BUILDINGS_DAMAGED` notification fires **once per region per pass with
+> the count** (never per building — that would defeat the collector's
+> repeat-collapse AND spray the 50-row cap) at **NORMAL** priority (the
+> only tier the cap evicts). **Battle path only, by decision:** at the
+> plunder site the province has already flipped to the sacker so the same
+> ownership check is INVERTED, and losing a province already announces
+> itself — pinned by a test that `apply_plunder_effects` stays
+> notification-free.
+>
+> ⚠ **This makes WO-V-D1 worse and the record says so** — three more
+> lines on a panel already noted as over-full; amended in place rather
+> than left to be discovered. And the sweep caught three of the new `.gd`
+> pins as **INERT because they asserted the code EXISTS, not that its
+> guard FIRES** (neutering `if war_dmg > 0:` left every string in place);
+> they now bind the condition text, the strongest bar available when
+> pytest cannot render GDScript. Sweep **52/52 killed, 0 inert**; tests
+> 63 → **79**; ruff clean; parse EXIT=0; boot 0 SCRIPT ERROR; M1–M7 and
+> `BASELINE_SERIES` green by their real runs.
+>
 > **NEXT = row WO slice 9** (the courting cap — the first WO slice that
 > moves ambient AI behaviour and takes a sanctioned, flip-attributed
 > `BASELINE_SERIES` re-record), then 10 → 17 → 11 → 12 → 14.

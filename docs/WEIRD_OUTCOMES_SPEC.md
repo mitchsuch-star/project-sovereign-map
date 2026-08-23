@@ -2021,6 +2021,64 @@ rule).
 > a cautious marshal at a 1.43–2.0× band that the boot roster does not
 > hand you. [V-1] WAS re-confirmed on screen after the fix.
 
+> **✅ THE DAMAGE-LEGIBILITY FOLLOW-UP — user-directed, August 22, 2026.**
+> The in-game pass established that damage was visible on the map tooltip
+> and the ledger's Territories tab but NOWHERE on the region panel — the
+> one surface carrying the Repair chip — and that war damage had no
+> button at all. The user asked for both. Three items:
+>
+> **[V-4] The panel states what is broken.** Buildings render
+> `market (damaged)` in `COLOR_ERROR`, deliberately the ledger's exact
+> vocabulary so one ruin cannot be described two ways; a `War damage: N%
+> — suppressing this province's income` line; and a watchtower condition
+> row (damaged / building / active), because the Repair chip fires on a
+> damaged watchtower the panel never mentioned. Fog-safe by construction:
+> the filtered summary sentinels `war_damage` to 0 and `buildings` to []
+> below FULL on foreign soil, so neither line can render an enemy's ruin.
+>
+> **[V-5] War damage gets a button.** A second chip, `Repair war damage
+> 150g · −15% of N% — restores income`, on the bare `repair <region>`
+> stem; the works chip keeps its own `repair buildings in ` stem (the ui6
+> contract) and is renamed `Repair works` so the two are distinguishable.
+> `WAR_DAMAGE_REPAIR_FRACTION` promoted from a function-local `0.15` to a
+> class constant the executor READS and the payload ships as
+> `build_terms.repair.war_damage_pct` — shown = applied, no client
+> literal. Before this, war damage was repairable, income-suppressing,
+> and reachable only by knowing to type the verb.
+>
+> **[V-6] The damage announces itself.** `building_damaged` was logged at
+> FIVE sites and notified ZERO times. New `BUILDINGS_DAMAGED`
+> notification, **NORMAL priority** (the only tier the 50-row cap evicts —
+> a HIGH spray on a recurring economic beat would starve the tray), and
+> **ONE row per region per damage pass carrying the count**, never one per
+> building: a major battle marks every civilian work plus the watchtower
+> at once, and a per-building title would ALSO defeat the collector's
+> repeat-collapse. `details["region"]` is a `_SUBJECT_KEYS` member, so a
+> province battered twice collapses to `(x2)` for free — pinned.
+> **Scoped to the BATTLE path only, and that is a decision, not an
+> oversight:** at the plunder site the province has already flipped to the
+> sacker, so the same `region.controller == player_nation` check is
+> INVERTED there (the recon fleet's catch), and losing a province already
+> announces itself — whereas a battle wrecking works in a province you
+> KEEP was the genuinely silent case. Pinned by a test asserting
+> `apply_plunder_effects` stays notification-free.
+>
+> ⚠ **This makes WO-V-D1 worse and the record says so.** The panel gained
+> up to three more lines (war damage, watchtower, a second repair chip) on
+> exactly the surface already noted as over-full. The fold item is now
+> more acute, not less — it stays open in `DESIGN_REFINEMENT.md` with that
+> amendment.
+>
+> Two mutation lessons, both caught by the sweep: three of the first
+> `.gd` pins were **INERT because they asserted the code EXISTS, not that
+> its guard FIRES** — neutering `if war_dmg > 0:` to `if false:` left
+> every string in place and the tests green. pytest cannot render
+> GDScript, so the pins now bind the CONDITION TEXT as well, which is the
+> strongest available bar. Final sweep **52/52 killed, 0 inert**; tests
+> 63 → **79**; ruff clean; parse harness EXIT=0; boot 0 SCRIPT ERROR;
+> M1–M7 and `BASELINE_SERIES` green by their real runs (the notification
+> is player-scoped and touches no AI decision).
+
 ### Slice 9 — WO-8 the courting cap (est 0.5)
 
 **Scope.** Per-TARGET throttle on vassal courting + the two absent guards the

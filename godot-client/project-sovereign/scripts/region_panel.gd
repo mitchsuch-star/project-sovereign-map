@@ -200,11 +200,41 @@ func _render() -> void:
 			var g_strength = int(garrison_info.get("strength", 0))
 			var g_text = "Present (unknown strength)" if g_strength == -1 else Utils.format_number(g_strength)
 			bbcode += "Garrison: " + g_text + "\n"
+		# ── Damage (in-game pass, WO slice 8 follow-up) ──
+		# This panel carries the Repair chip and never said WHAT was in
+		# ruins: it listed "Buildings: Market" whether that market was
+		# working or a wreck, and showed war damage nowhere at all. The
+		# map tooltip and the ledger's Territories tab had both marked it
+		# for months, so the one surface you ACT from was the blind one
+		# and the Repair chip appeared with no visible cause. Same
+		# vocabulary as the ledger ("name (damaged)", COLOR_ERROR) so the
+		# two surfaces cannot describe one ruin two ways.
+		#
+		# Fog-safe by construction: the filtered summary sentinels
+		# `war_damage` to 0 and `buildings` to [] below FULL on foreign
+		# soil, so neither line can render an enemy's ruin.
+		var war_dmg := int(data.get("war_damage", 0))
+		if war_dmg > 0:
+			bbcode += "War damage: [color=#" + Utils.COLOR_ERROR + "]" \
+				+ str(war_dmg) + "%[/color]  [color=#" + Utils.COLOR_GREY \
+				+ "]suppressing this province's income[/color]\n"
+		var watchtower := str(data.get("watchtower", "none"))
+		if watchtower == "damaged":
+			bbcode += "Watchtower: [color=#" + Utils.COLOR_ERROR + "]damaged[/color]\n"
+		elif watchtower == "under_construction":
+			bbcode += "Watchtower: [color=#" + Utils.COLOR_INFO + "]building (" \
+				+ str(int(data.get("watchtower_turns_remaining", 0))) + "t)[/color]\n"
+		elif watchtower == "active":
+			bbcode += "Watchtower: [color=#" + Utils.COLOR_SUCCESS + "]active[/color]\n"
 		var buildings = data.get("buildings", [])
 		if buildings is Array and buildings.size() > 0:
 			var b_names = []
 			for b in buildings:
-				b_names.append(str(b.get("type", "?")).replace("_", " ").capitalize())
+				var bname := str(b.get("type", "?")).replace("_", " ").capitalize()
+				if b is Dictionary and b.get("damaged", false):
+					b_names.append("[color=#" + Utils.COLOR_ERROR + "]" + bname + " (damaged)[/color]")
+				else:
+					b_names.append(bname)
 			bbcode += "Buildings: " + ", ".join(PackedStringArray(b_names)) + "\n"
 
 	# ── Forces present ──
@@ -294,19 +324,35 @@ func _render() -> void:
 		if build_chips != "":
 			action_rows.append("  Build: " + build_chips)
 
-		# Repair — only when the payload shows damage.
+		# Repair — one chip per KIND of ruin, because they are different
+		# orders with different effects and (before the in-game pass) war
+		# damage had no chip at all: it is repairable for the same 150g,
+		# it suppresses the province's income every turn it stands, and
+		# the only way to reach it was knowing to type `repair <region>`.
 		var needs_repair = str(data.get("watchtower", "")) == "damaged"
 		if buildings is Array:
 			for b in buildings:
 				if b is Dictionary and b.get("damaged", false):
 					needs_repair = true
+		var rep = terms.get("repair", {})
+		var rep_cost := ""
+		if rep is Dictionary and rep.has("cost"):
+			rep_cost = " " + str(int(rep.get("cost", 0))) + "g"
 		if needs_repair:
-			var rep = terms.get("repair", {})
-			var rep_label := "Repair"
-			if rep is Dictionary and rep.has("cost"):
-				rep_label += " " + str(int(rep.get("cost", 0))) + "g"
-			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, rep_label, Utils.COLOR_WARNING, _CHIP_BG)
+			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair works" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
 				+ "  [color=#" + Utils.COLOR_GREY + "]restore damaged works — and their upkeep[/color]")
+		# Re-read: the display block's `war_dmg` is scoped to the fog
+		# branch it was declared in (the same reason `buildings` is
+		# re-declared above). This arm is inside the own-soil gate, so the
+		# figure is never fogged.
+		var own_war_dmg := int(data.get("war_damage", 0))
+		if own_war_dmg > 0:
+			var wd_terms := "reduces war damage"
+			if rep is Dictionary and rep.has("war_damage_pct"):
+				wd_terms = "−" + str(int(rep.get("war_damage_pct", 0))) + "% of " \
+					+ str(own_war_dmg) + "% — restores income"
+			action_rows.append("  " + Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
+				+ "  [color=#" + Utils.COLOR_GREY + "]" + wd_terms + "[/color]")
 
 		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
 		# sites, price quoted from the backend's live constant (honest-chip

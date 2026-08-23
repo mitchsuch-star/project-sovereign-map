@@ -1107,3 +1107,220 @@ class TestInGamePassFixes:
         gd = (REPO / "godot-client" / "project-sovereign" / "scripts"
               / "interrupt_popup.gd").read_text(encoding="utf-8")
         assert '"attack_anyway": "Commit the Attack"' in gd
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 10. The damage-legibility follow-up (user-directed, Aug 22 2026)
+#
+# The in-game pass established that the region panel — the ONE surface
+# carrying the Repair chip — showed no damage at all, while the map
+# tooltip and the ledger's Territories tab had both marked it for months.
+# So the button appeared with no visible cause, and war damage had no
+# button whatsoever: repairable for the same 150g, suppressing income
+# every turn, reachable only by knowing to type `repair <region>`.
+# ════════════════════════════════════════════════════════════════════════
+
+def _panel_code() -> str:
+    """region_panel.gd with comment lines stripped — the slice's own
+    hard-won rule: a source pin must never read the prose written to
+    explain the fix (it went inert three times before this)."""
+    return "\n".join(
+        line for line in REGION_PANEL_GD.read_text(encoding="utf-8").splitlines()
+        if not line.strip().startswith("#"))
+
+
+class TestDamageIsVisibleWhereItIsActedOn:
+
+    def test_panel_marks_a_damaged_building(self):
+        code = _panel_code()
+        assert 'b.get("damaged", false)' in code, (
+            "the panel still lists building names without reading the "
+            "damaged flag the payload carries")
+        assert '" (damaged)[/color]"' in code
+
+    def test_panel_uses_the_ledgers_damage_vocabulary(self):
+        """One ruin must not be described two ways. The ledger renders
+        `name (damaged)` in COLOR_ERROR; the panel now matches."""
+        ledger = "\n".join(
+            line for line in LEDGER_GD.read_text(encoding="utf-8").splitlines()
+            if not line.strip().startswith("#"))
+        assert '" (damaged)[/color]"' in ledger and "COLOR_ERROR" in ledger
+        code = _panel_code()
+        idx = code.index('" (damaged)[/color]"')
+        assert "COLOR_ERROR" in code[max(0, idx - 200):idx]
+
+    def test_panel_states_war_damage(self):
+        code = _panel_code()
+        assert 'data.get("war_damage", 0)' in code
+        assert "War damage: " in code
+        assert "suppressing this province's income" in code
+        # The GUARD, not just the label — a sweep found that neutering
+        # `if war_dmg > 0:` to `if false:` left every string in place and
+        # the pin green. pytest cannot render GDScript, so binding the
+        # condition text is the strongest available pin.
+        assert "if war_dmg > 0:" in code
+
+    def test_panel_states_watchtower_condition(self):
+        """The Repair chip also fires on a damaged watchtower, which the
+        panel never mentioned — the same no-visible-cause gap."""
+        code = _panel_code()
+        assert 'Watchtower: ' in code
+        for state in ("damaged", "under_construction", "active"):
+            assert f'"{state}"' in code
+        assert 'if watchtower == "damaged":' in code
+
+    def test_war_damage_has_its_own_repair_chip(self):
+        code = _panel_code()
+        assert '"do:repair " + _region' in code, (
+            "war damage still has no button — it is repairable for the "
+            "same 150g and was reachable only by typing")
+        assert '"Repair war damage"' in code
+        assert "if own_war_dmg > 0:" in code
+        # And the works chip keeps its own stem (the ui6 contract).
+        assert '"do:repair buildings in " + _region' in code
+        assert '"Repair works"' in code
+
+    def test_the_war_damage_chip_quotes_the_applied_fraction(self, world):
+        """shown = applied: the chip's percentage is the constant the
+        executor hands to `recover_war_damage`."""
+        terms = world.get_filtered_game_state_summary()[
+            "map_data"]["Paris"]["build_terms"]
+        assert terms["repair"]["war_damage_pct"] == int(
+            round(EconomyExecutor.WAR_DAMAGE_REPAIR_FRACTION * 100))
+        assert terms["repair"]["war_damage_pct"] == 15
+        code = _panel_code()
+        assert 'rep.get("war_damage_pct", 0)' in code, (
+            "the chip hardcodes the percentage instead of reading it")
+
+    def test_the_executor_reads_the_promoted_fraction(self, world):
+        src = inspect.getsource(EconomyExecutor._execute_repair)
+        assert "self.WAR_DAMAGE_REPAIR_FRACTION" in src
+        assert "recover_war_damage(0.15)" not in src
+        # Behaviour: one repair clears exactly the quoted amount.
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.war_damage = 0.30
+        world.nation_gold["France"] = 5000
+        result = executor.execute(
+            {"success": True,
+             "command": {"action": "repair", "target": "Paris",
+                         "raw_command": "repair Paris"}},
+            {"world": world})
+        assert result["success"] is True, result.get("message")
+        assert region.war_damage == pytest.approx(
+            0.30 - EconomyExecutor.WAR_DAMAGE_REPAIR_FRACTION)
+
+    def test_no_damage_figure_is_hardcoded_in_the_gd(self):
+        code = _panel_code()
+        for literal in ('"15%"', "\"150g\"", '"-15%"'):
+            assert literal not in code, (
+                f"{literal} hardcoded in region_panel.gd — it must come "
+                f"from the build_terms payload")
+
+
+class TestDamageAnnouncesItself:
+    """`building_damaged` was logged five times over and notified zero
+    times. One notification per region per damage pass, player-scoped."""
+
+    def _battle_damage(self, world, controller="France", major=True):
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.controller = controller
+        region.buildings = [{"type": "market"}, {"type": "supply_depot"}]
+        region.watchtower = "active"
+        world.notifications.dismiss_all()
+        executor._combat._apply_battle_effects_to_region(
+            "Paris", 40000 if major else 1000, 40000 if major else 1000,
+            world)
+        return [n for n in world.notifications.get_pending()
+                if n["type"] == "buildings_damaged"]
+
+    def test_one_notification_for_the_whole_pass(self, world):
+        """Three works wrecked in one battle is ONE row, not three — a
+        per-building spray would defeat the collector's repeat-collapse
+        and starve the 50-row cap."""
+        notes = self._battle_damage(world)
+        assert len(notes) == 1, [n["title"] for n in notes]
+        note = notes[0]
+        assert note["details"]["count"] == 3, note["details"]
+        assert note["details"]["region"] == "Paris"
+        for word in ("market", "supply depot", "watchtower"):
+            assert word in note["message"].lower(), note["message"]
+
+    def test_it_names_the_works_without_raw_keys(self, world):
+        """R7: `supply_depot` must never reach the player as a raw key."""
+        note = self._battle_damage(world)[0]
+        assert "supply_depot" not in note["message"]
+        assert "_" not in note["title"]
+
+    def test_a_single_work_reads_singular(self, world):
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.controller = "France"
+        region.buildings = [{"type": "market"}]
+        region.watchtower = "none"
+        world.notifications.dismiss_all()
+        executor._combat._apply_battle_effects_to_region(
+            "Paris", 40000, 40000, world)
+        note = [n for n in world.notifications.get_pending()
+                if n["type"] == "buildings_damaged"][0]
+        assert note["title"].startswith("A work damaged"), note["title"]
+
+    def test_an_enemy_province_never_notifies(self, world):
+        """Fog: the producer is player-scoped by hand (there is no central
+        guard), so the negative direction is the pin that matters."""
+        assert self._battle_damage(world, controller="Austria") == []
+
+    def test_no_notification_when_nothing_was_wrecked(self, world):
+        """A minor battle that rolls no damage must stay silent — the
+        notification is keyed on what was ACTUALLY marked, not on a
+        battle having happened."""
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.controller = "France"
+        region.buildings = [{"type": "market", "damaged": True}]
+        region.watchtower = "none"
+        world.notifications.dismiss_all()
+        executor._combat._apply_battle_effects_to_region(
+            "Paris", 40000, 40000, world)
+        assert [n for n in world.notifications.get_pending()
+                if n["type"] == "buildings_damaged"] == []
+
+    def test_repeats_collapse_by_province(self, world):
+        """`region` is a collector _SUBJECT_KEYS member, so a province
+        battered twice collapses instead of stacking two rows."""
+        self._battle_damage(world)
+        region = world.get_region("Paris")
+        region.buildings = [{"type": "market"}]
+        for b in region.buildings:
+            b.pop("damaged", None)
+        region.watchtower = "active"
+        CommandExecutor()._combat._apply_battle_effects_to_region(
+            "Paris", 40000, 40000, world)
+        notes = [n for n in world.notifications.get_pending()
+                 if n["type"] == "buildings_damaged"]
+        assert len(notes) == 1, [n["title"] for n in notes]
+        assert notes[0].get("repeat_count", 1) >= 2
+
+    def test_the_constant_is_registered_and_normal_priority(self):
+        from backend.notifications import (
+            BUILDINGS_DAMAGED, NotificationPriority,
+        )
+        assert BUILDINGS_DAMAGED == "buildings_damaged"
+        src = inspect.getsource(
+            combat_executor_module.CombatExecutor
+            ._apply_battle_effects_to_region)
+        assert "NotificationPriority.NORMAL" in src, (
+            "HIGH would make the row cap-immune and starve the 50-row "
+            "tray on a recurring economic beat")
+        assert NotificationPriority.NORMAL == 0
+
+    def test_the_plunder_path_is_deliberately_not_notified(self):
+        """Recorded decision, not an oversight: at the plunder site the
+        province has ALREADY flipped to the sacker, so the same
+        controller check would be inverted — and losing a province
+        already announces itself."""
+        from backend.models import world_state as ws
+        src = inspect.getsource(ws.apply_plunder_effects)
+        assert "notifications.add" not in src
+        assert "BUILDINGS_DAMAGED" not in src

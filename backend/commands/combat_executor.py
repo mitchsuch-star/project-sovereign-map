@@ -2081,10 +2081,12 @@ class CombatExecutor:
         # Battle damages civilian buildings (not fortifications — forts are built to withstand combat
         # and their value is delaying capture via contested capture mechanic in 6.2.F)
         # Major battles (50k+ troops) always damage; normal battles 25% chance
+        _wrecked = []
         for building in region.buildings:
             if building["type"] != "fortification" and not building.get("damaged", False):
                 if is_major or random.random() < 0.25:
                     building["damaged"] = True
+                    _wrecked.append(building["type"])
                     world.log_event({
                         "type": "building_damaged",
                         "region": region_name,
@@ -2098,6 +2100,7 @@ class CombatExecutor:
         if wt == "active":
             if is_major or random.random() < 0.25:
                 region.watchtower = "damaged"
+                _wrecked.append("watchtower")
                 world.log_event({
                     "type": "building_damaged",
                     "region": region_name,
@@ -2108,12 +2111,59 @@ class CombatExecutor:
             # Under construction + battle → destroyed
             region.watchtower = "none"
             region.watchtower_turns_remaining = 0
+            _wrecked.append("watchtower")
             world.log_event({
                 "type": "building_damaged",
                 "region": region_name,
                 "building": "watchtower",
                 "cause": "battle",
             })
+
+        # ══════════════════════════════════════════════════════════════
+        # The damage announces itself (user-directed follow-up to the WO
+        # slice 8 in-game pass).
+        #
+        # `building_damaged` was logged five times over and notified ZERO
+        # times: the campaign log kept a row, the map tooltip and the
+        # ledger marked it if you went looking, and the region panel —
+        # the surface carrying the Repair chip — said nothing at all. So
+        # a battle wrecked your market and you found out by accident.
+        #
+        # ONE notification per region per pass, carrying the count, never
+        # one per building: a major battle marks every civilian work plus
+        # the watchtower, and a per-building title would both defeat the
+        # collector's repeat-collapse and spray the 50-row cap.
+        #
+        # Scoped to a battle in a province WE STILL HOLD. Control does not
+        # change here (capture is resolved elsewhere), so `region.controller`
+        # is the honest owner at the moment of damage — unlike the plunder
+        # path, where the province has ALREADY flipped to the sacker and
+        # this same check would be inverted. A sack is deliberately NOT
+        # notified: losing the province already announces itself, while a
+        # battle in a province you keep is the silent case.
+        # ══════════════════════════════════════════════════════════════
+        if _wrecked and region.controller == world.player_nation:
+            from backend.display_names import humanize_entity_name
+            from backend.notifications import (
+                BUILDINGS_DAMAGED, NotificationPriority, create_notification,
+            )
+            _names = [humanize_entity_name(w).lower() for w in _wrecked]
+            _list = (_names[0] if len(_names) == 1
+                     else ", ".join(_names[:-1]) + f" and {_names[-1]}")
+            world.notifications.add(create_notification(
+                notification_type=BUILDINGS_DAMAGED,
+                priority=NotificationPriority.NORMAL,
+                title=(f"{'Works' if len(_names) > 1 else 'A work'} "
+                       f"damaged at {region_name}"),
+                message=(
+                    f"The fighting at {region_name} has wrecked our "
+                    f"{_list}. Damaged works pay nothing and cost nothing "
+                    f"to keep until they are repaired."),
+                turn_created=int(world.current_turn),
+                details={"region": region_name,
+                         "count": int(len(_wrecked)),
+                         "cause": "battle"},
+            ))
 
     def _log_battle_event(self, battle_result: Dict, location: str, world) -> None:
         """Extract and log the battle event from a combat result dict."""
