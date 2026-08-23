@@ -850,6 +850,70 @@ def dismiss_reward_notices(world, marshal) -> None:
     world.notifications.dismiss_by_type(DOTATION_EROSION, filter_fn=_mine)
 
 
+def _has_standing_reward_notice(world, marshal) -> bool:
+    from backend.notifications import DOTATION_EROSION, DOTATION_EXPECTATION
+    family = (DOTATION_EXPECTATION, DOTATION_EROSION)
+    return any(n.get("type") in family
+               and n.get("details", {}).get("marshal") == marshal.name
+               for n in world.notifications.get_pending())
+
+
+def restate_reward_notice(world, marshal) -> None:
+    """Bring a STANDING reward row back into line with live numbers, or
+    retire it once the debt is settled.
+
+    UX23-A. The rail was reconciled only by the once-per-turn
+    `_process_dotation_state`, so a row's figures could go stale WITHIN a
+    turn. That mattered little while they were prose. It matters a great deal
+    now the same figure sits on a button that spends an administrative
+    action. Measured before this existed: Ney at 2 wins shows "Grant rente —
+    120g/turn"; he wins a battle; the row does not move; the click grants a
+    face of 120 and the treasury pays **180**. A 50% understatement on the
+    control the player pressed — the CA9 through-line exactly.
+
+    Two rules:
+
+    * It never OPENS a row. Opening one starts the grace clock, and the grace
+      clock belongs to the per-turn pass — a mid-turn victory must not shorten
+      a marshal's patience. A marshal with no standing row is left alone.
+    * Retiring uses the same `shortfall <= 0` gate the payment seams already
+      had, so this is a SUPERSET of the old dismiss-if-settled call rather
+      than a second rule standing beside it (GR1).
+
+    Safe to call mid-turn only because UX23-R2 landed first: the producers
+    refresh in place and keep the row's uuid, so re-stating no longer mints a
+    new id — and the client's desk bell, which dedupes on that id, no longer
+    rings at the moment of payment.
+    """
+    if not is_dotation_world(world):
+        return
+    # No player-nation guard here on purpose. All three things this can reach
+    # — `dismiss_reward_notices`, `post_expectation_notice`,
+    # `post_erosion_notice` — already own that rule and return early for a
+    # foreign marshal. A fourth copy here was written, found INERT by the
+    # mutation sweep (it could be deleted with the whole suite green), and
+    # removed rather than given a test that proves nothing. The rule is
+    # pinned where it actually lives.
+    expectation = get_expectation(marshal)
+    satisfaction = get_satisfaction(marshal, world)
+    shortfall = max(0, expectation - satisfaction)
+    if shortfall <= 0:
+        dismiss_reward_notices(world, marshal)
+        return
+    if not _has_standing_reward_notice(world, marshal):
+        return
+    grace_start = int(getattr(marshal, "expectation_grace_turn", -1))
+    if grace_start < 0:
+        return
+    elapsed = int(world.current_turn) - grace_start
+    if elapsed < GRACE_TURNS:
+        post_expectation_notice(world, marshal, expectation, satisfaction,
+                                shortfall, GRACE_TURNS - elapsed)
+    else:
+        post_erosion_notice(world, marshal, expectation, satisfaction,
+                            shortfall)
+
+
 def rente_action_keys(marshal, world) -> Dict:
     """The one-click rente affordance a reward-rail row carries, or `{}`.
 

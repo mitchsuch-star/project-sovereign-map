@@ -6809,7 +6809,7 @@ class CombatExecutor:
             # surface via the next dispatch's expectation_rises instead.
             from backend.game_logic.dotation import (
                 expectation_for_wins, get_expectation,
-                get_satisfaction, is_dotation_world,
+                get_satisfaction, is_dotation_world, restate_reward_notice,
             )
             if is_dotation_world(world):
                 for _exp_winner in (marshal, enemy_marshal):
@@ -6831,6 +6831,17 @@ class CombatExecutor:
                             f"expectation of reward — he now looks for "
                             f"{_exp_now}g/turn (holds "
                             f"{get_satisfaction(_exp_winner, world)}g).")
+                        # UX23-A: a victory is the one thing that raises an
+                        # expectation MID-TURN, and the reward rail was
+                        # reconciled only at the turn boundary — so a standing
+                        # row went on quoting the pre-victory price. That was
+                        # merely stale prose until the same figure landed on a
+                        # button that spends an administrative action.
+                        # Measured before this line existed: the row said
+                        # "Grant rente — 120g/turn" and the treasury paid 180.
+                        # Re-states an EXISTING row only; opening one belongs
+                        # to the per-turn pass, which owns the grace clock.
+                        restate_reward_notice(world, _exp_winner)
                     break
 
             # HC-2 "The Butcher's Ledger Speaks" (gate §3): past the dead

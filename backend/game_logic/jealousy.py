@@ -2899,8 +2899,11 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
             # same breath as paying him — but only if the rente actually
             # settles him (review round: a partial payment must not silence a
             # still-true alarm).
-            if dotation.get_shortfall(marshal, world) <= 0:
-                dotation.dismiss_reward_notices(world, marshal)
+            # UX23-A: `restate_reward_notice` retires on the same
+            # `shortfall <= 0` gate and otherwise re-quotes the row in place,
+            # so a concession that only partly pays a marshal stops leaving
+            # the rail's own button offering the pre-concession price.
+            dotation.restate_reward_notice(world, marshal)
             granted.append(f"{marshal.name} ({face}g/turn)")
             world.log_event({
                 "type": "rente_granted",

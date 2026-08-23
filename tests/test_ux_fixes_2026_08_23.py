@@ -687,15 +687,46 @@ class TestTheDismissalIsWiredAtEverySeamAndOnlyWhenSettled:
             "revoking INTO a reopened shortfall must not retire the very "
             "warning the same response gives")
     def test_the_fontainebleau_concede_arm_retires_what_it_pays(self):
+        """UX23-A (Aug 23, 2026): both string anchors moved.
+
+        The arm used to read `if get_shortfall(...) <= 0:
+        dismiss_reward_notices(...)`. Both halves now live inside
+        `dotation.restate_reward_notice`, which retires on that same gate and
+        otherwise re-quotes the standing row in place — a superset, and one
+        implementation instead of the rule copied into four seams (GR1). The
+        claim is unchanged; only the name it looks for has moved.
+        """
         with open(os.path.join(REPO_ROOT, "backend", "game_logic",
                                "jealousy.py"), encoding="utf-8") as fh:
             src = fh.read()
         arm = src[src.index('if choice == "concede":'):]
         arm = arm[:arm.index("if granted:")]
-        assert "dismiss_reward_notices" in arm, (
+        assert "restate_reward_notice" in arm, (
             "the collective petition pays rentes and must retire the rows it "
             "settles")
-        assert "get_shortfall" in arm, "…and only the ones it settles"
+
+    def test_the_fontainebleau_concede_arm_retires_what_it_pays_FOR_REAL(self):
+        """The behavioural half, which a source-string pin never gave.
+
+        Added with UX23-A because the string pin above was the only thing
+        binding this seam, and it would have survived the call being deleted
+        and re-added anywhere in the arm."""
+        from backend.game_logic.jealousy import _apply_fontainebleau_choice
+
+        world = _europe_world()
+        ney = _ney(world)
+        ney.battles_won = 2
+        world._dotation_processed_turn = None
+        world._process_dotation_state()
+        assert self._rows(world), "precondition: he is asking"
+
+        _apply_fontainebleau_choice(world, "concede", {"marshals": ["Ney"]})
+
+        assert ney.pension > 0, "precondition: the concession paid him"
+        assert dotation.get_shortfall(ney, world) <= 0, (
+            "precondition: and it settled him in full")
+        assert self._rows(world) == [], (
+            "the collective petition paid him and the rail went on asking")
 
     def test_a_dead_marshal_takes_his_grievance_with_him(self):
         """The per-turn pass iterates `world.marshals`, so once he is out of

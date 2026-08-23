@@ -4211,6 +4211,51 @@ standing pin on `marshal_management.gd:549` is unchanged, and the rail
 affordance is reactive *by construction*: these rows only exist when a
 shortfall does. Pinned both ways.
 
+#### The price on the button is never stale · FIXED (found by probing this slice's own work)
+
+Before the review round I went looking for the way this slice could lie, and
+found one. The rail was reconciled **only** by the once-per-turn
+`_process_dotation_state`, so a row's figures could go stale *within* a turn.
+That was harmless while they were prose. It is not harmless once the same
+figure sits on a control that spends an administrative action.
+
+Measured, before the fix: Ney at 2 wins, the row reads **"Grant rente —
+120g/turn"**; he wins a battle (`battles_won` is incremented inside combat);
+the row does not move; the click grants a face of 120 and the treasury pays
+**180**. A 50% understatement on the button the player pressed — the CA9
+through-line exactly, re-created by the very slice meant to make the surface
+honest.
+
+New `dotation.restate_reward_notice(world, marshal)` brings a **standing** row
+back into line, or retires it when the debt is settled. Two rules:
+
+* **It never OPENS a row.** Opening one starts the grace clock, and the grace
+  clock belongs to the per-turn pass — a mid-turn victory must not shorten a
+  marshal's patience. A marshal with no standing row is left alone. Pinned.
+* **Retiring uses the same `shortfall <= 0` gate** the payment seams already
+  had, so it is a *superset* of the old dismiss-if-settled call rather than a
+  second rule beside it (GR1). All three executor payment seams and the
+  Fontainebleau concede arm now route through it, pinned by a count so a
+  fourth seam added later cannot skip it silently.
+
+Wired at the one seam that raises an expectation mid-turn: the
+`expectation_note` block in `combat_executor`, where the engine already knows
+it happened. The partial-payment case is covered by the same call —
+endowing a province that closes half the gap now re-quotes the button instead
+of leaving it offering the whole of it (measured: 360 → 285g/turn, same row,
+same id).
+
+**This could only land after UX23-R2.** Re-stating a row before the id was
+stable would have minted a new uuid and rung the desk bell at the moment of
+payment — which is precisely why the Aug-23 fix was deliberately dismiss-only,
+and why the user named R2 as the prerequisite for updating the rail in place.
+
+Two of this fix's own pins were flawed on their first run and were repaired:
+one compared a row dict to itself (since R2 the producers mutate **in place**,
+so `get_pending()` hands out live references and holding one proves nothing —
+it passed vacuously), and the seam census was an unreadable chained
+conditional that asserted approximately nothing.
+
 #### UX23-R2 — the desk bell rings once per grievance · FIXED
 
 The row the user named as *constraining* the design. `create_notification`

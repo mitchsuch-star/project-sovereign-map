@@ -1,0 +1,65 @@
+[
+  {
+    "id": "STALE-1 the combat seam stops re-stating (the measured 120-vs-180 returns)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                        restate_reward_notice(world, _exp_winner)",
+    "new": "                        pass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "STALE-2 restate opens a row mid-turn (a victory shortens his patience)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if not _has_standing_reward_notice(world, marshal):\n        return\n    grace_start",
+    "new": "    grace_start",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "STALE-3 restate stops retiring a settled row",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if shortfall <= 0:\n        dismiss_reward_notices(world, marshal)\n        return\n    if not _has_standing_reward_notice(world, marshal):",
+    "new": "    if shortfall <= 0:\n        return\n    if not _has_standing_reward_notice(world, marshal):",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py tests/test_ux_fixes_2026_08_23.py"
+  },
+  {
+    "id": "STALE-4 restate picks the wrong producer past grace",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if elapsed < GRACE_TURNS:\n        post_expectation_notice(world, marshal, expectation, satisfaction,\n                                shortfall, GRACE_TURNS - elapsed)\n    else:\n        post_erosion_notice(world, marshal, expectation, satisfaction,\n                            shortfall)",
+    "new": "    post_expectation_notice(world, marshal, expectation, satisfaction,\n                            shortfall, GRACE_TURNS - elapsed)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "STALE-5 the producers' player guard is removed (AI rows on the player's rail)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if marshal.nation != world.player_nation:\n        return\n    from backend.notifications import (\n        DOTATION_EXPECTATION, NotificationPriority, create_notification,\n    )",
+    "new": "    from backend.notifications import (\n        DOTATION_EXPECTATION, NotificationPriority, create_notification,\n    )",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "STALE-6 grant_dotation's payment seam stops re-stating",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        restate_reward_notice(world, marshal)\n\n        fee_note = f\" Investiture: {fee} gold.\" if fee > 0 else \"\"",
+    "new": "        from backend.game_logic.dotation import get_shortfall as _gs\n        if _gs(marshal, world) <= 0:\n            dismiss_reward_notices(world, marshal)\n\n        fee_note = f\" Investiture: {fee} gold.\" if fee > 0 else \"\"",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "STALE-7 the Fontainebleau arm reverts to bare dismissal",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            dotation.restate_reward_notice(world, marshal)",
+    "new": "            if dotation.get_shortfall(marshal, world) <= 0:\n                dotation.dismiss_reward_notices(world, marshal)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "STALE-8 the Fontainebleau arm stops touching the rail at all",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            dotation.restate_reward_notice(world, marshal)\n            granted.append",
+    "new": "            granted.append",
+    "tests": "tests/test_ux_fixes_2026_08_23.py"
+  },
+  {
+    "id": "STALE-9 _has_standing_reward_notice ignores WHICH marshal",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    return any(n.get(\"type\") in family\n               and n.get(\"details\", {}).get(\"marshal\") == marshal.name\n               for n in world.notifications.get_pending())",
+    "new": "    return any(n.get(\"type\") in family\n               for n in world.notifications.get_pending())",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  }
+]

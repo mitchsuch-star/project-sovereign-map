@@ -1021,6 +1021,7 @@ class EconomyExecutor:
         from backend.game_logic.dotation import (
             check_estate_eligibility, compute_investiture_fee, derive_title,
             dismiss_reward_notices, estate_yield, get_expectation,
+            restate_reward_notice,
             get_satisfaction, get_shortfall, is_dotation_world,
             list_eligible_estates, strip_dead_estate_claims,
         )
@@ -1160,10 +1161,12 @@ class EconomyExecutor:
         # province — or REVOKING a rente — retired a HIGH "his loyalty is
         # fraying" row that was still true, and trust went on falling 3/turn
         # with nothing on screen. Paying in part leaves the row standing; its
-        # figures are refreshed by the next turn's pass (the id-stability
-        # follow-up is routed as UX23-R2).
-        if get_shortfall(marshal, world) <= 0:
-            dismiss_reward_notices(world, marshal)
+        # figures are refreshed in place, keeping the row's id so the desk
+        # bell does not ring at the moment of payment (UX23-R2 + UX23-A:
+        # `restate_reward_notice` is the superset — it retires on the same
+        # `shortfall <= 0` gate, and otherwise re-quotes the live price the
+        # rail's own button now spends an administrative action on).
+        restate_reward_notice(world, marshal)
 
         fee_note = f" Investiture: {fee} gold." if fee > 0 else ""
         decree = _decree_preamble(world, acting_nation)
@@ -1225,6 +1228,7 @@ class EconomyExecutor:
         """
         from backend.game_logic.dotation import (
             build_rente_offer, dismiss_reward_notices, get_shortfall,
+            restate_reward_notice,
             is_dotation_world, rente_would_change,
         )
 
@@ -1325,10 +1329,12 @@ class EconomyExecutor:
         # province — or REVOKING a rente — retired a HIGH "his loyalty is
         # fraying" row that was still true, and trust went on falling 3/turn
         # with nothing on screen. Paying in part leaves the row standing; its
-        # figures are refreshed by the next turn's pass (the id-stability
-        # follow-up is routed as UX23-R2).
-        if get_shortfall(marshal, world) <= 0:
-            dismiss_reward_notices(world, marshal)
+        # figures are refreshed in place, keeping the row's id so the desk
+        # bell does not ring at the moment of payment (UX23-R2 + UX23-A:
+        # `restate_reward_notice` is the superset — it retires on the same
+        # `shortfall <= 0` gate, and otherwise re-quotes the live price the
+        # rail's own button now spends an administrative action on).
+        restate_reward_notice(world, marshal)
 
         resize_note = (f" (his previous rente of {previous}g/turn is folded in)"
                        if previous > 0 else "")
@@ -1367,6 +1373,7 @@ class EconomyExecutor:
         """
         from backend.game_logic.dotation import (
             dismiss_reward_notices, get_rente_cost, is_dotation_world,
+            restate_reward_notice,
         )
 
         world: WorldState = game_state.get("world")
@@ -1434,6 +1441,10 @@ class EconomyExecutor:
             consequence = ("His estates sustain his expectation without it — "
                            "the paper was redundant, Sire.")
         else:
+            # UX23-A: the shortfall this re-opens is one the standing row is
+            # already describing — re-quote it rather than leave the button
+            # offering the pre-revocation price.
+            restate_reward_notice(world, marshal)
             consequence = ("He will remember who stopped paying, Sire: unmet "
                            "expectation frays loyalty after its grace expires.")
 

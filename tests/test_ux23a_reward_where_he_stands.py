@@ -364,6 +364,227 @@ class TestTheReactiveGateIsUntouched:
             "no row, nothing to press")
 
 
+class TestThePriceOnTheButtonIsNeverStale:
+    """Found by probing this slice's own work before the review round.
+
+    The rail was reconciled ONLY by the once-per-turn pass, so a row's figures
+    could go stale within a turn. Harmless while they were prose; not harmless
+    once the same figure sits on a control that spends an administrative
+    action. Measured: Ney at 2 wins, row says "Grant rente — 120g/turn", he
+    wins a battle, the row does not move, the click pays **180**.
+    """
+
+    def test_a_mid_turn_victory_re_quotes_the_button(self, world):
+        from backend.commands.executor import CommandExecutor
+
+        ney = _owe(world, wins=2)
+        before = _row(world)["details"]["action_label"]
+        opened_id = _row(world)["id"]
+
+        ney.battles_won = 3                      # what winning a battle does
+        dotation.restate_reward_notice(world, ney)
+
+        row = _row(world)
+        assert row["details"]["action_label"] != before, (
+            "the victory raised his expectation and the button went on "
+            "quoting the old price")
+        assert row["id"] == opened_id, (
+            "re-quoting must not mint a new id — that rings the desk bell "
+            "(UX23-R2), which is why this fix could only land after it")
+
+        quoted = int(re.search(r"(\d+)g/turn",
+                               row["details"]["action_label"]).group(1))
+        CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+        assert dotation.get_rente_cost(ney.pension) == quoted
+
+    def test_the_combat_seam_actually_calls_it(self):
+        """The pin above proves the function works; this proves it is wired
+        to the one thing that raises an expectation mid-turn."""
+        import inspect
+        from backend.commands import combat_executor
+        src = inspect.getsource(combat_executor)
+        note_at = src.index('result["battle_report"]["expectation_note"]')
+        window = src[note_at:note_at + 1400]
+        assert "restate_reward_notice(world, _exp_winner)" in window, (
+            "the expectation_note seam is where the engine already knows the "
+            "expectation rose; the rail has to learn it there too")
+
+    def test_a_partial_payment_re_quotes_instead_of_going_stale(self, world):
+        """Endowing a province that covers only part of the gap leaves the row
+        standing — it must not leave it standing with the pre-payment price.
+
+        Note the string copies. Since UX23-R2 the producers mutate the row
+        IN PLACE, so `get_pending()` hands out live references: holding the
+        dict and comparing it to itself later can never show a difference.
+        The first draft of this test did exactly that and passed vacuously.
+        """
+        from backend.commands.executor import CommandExecutor
+
+        dav = _owe(world, "Davout", wins=6)
+        before_label = str(_row(world, "Davout")["details"]["action_label"])
+        before_id = str(_row(world, "Davout")["id"])
+        region = min((r for r in world.regions.values()
+                      if r.controller not in ("France", None)
+                      and not r.is_capital),
+                     key=lambda r: r.income_value)
+        region.controller = "France"
+        region.stability = 90
+        region.war_damage = 0.0
+        world.invalidate_active_nations_cache()
+
+        CommandExecutor().execute(
+            {"command": {"action": "grant_dotation", "marshal": "Davout",
+                         "target": region.name}}, {"world": world})
+
+        assert dotation.get_shortfall(dav, world) > 0, (
+            "precondition: the estate covers only part of the gap")
+        row = _row(world, "Davout")
+        assert row["id"] == before_id, "re-quoting must not mint a new id"
+        assert row["details"]["action_label"] != before_label, (
+            "the estate closed part of the gap and the button went on "
+            "quoting the whole of it")
+        quoted = int(re.search(r"(\d+)g/turn",
+                               row["details"]["action_label"]).group(1))
+        assert quoted == dotation.get_rente_cost(
+            dotation.compute_rente_face(dav, world))
+
+    def test_it_never_opens_a_row_mid_turn(self, world):
+        """Opening a row starts the grace clock, and the grace clock belongs
+        to the per-turn pass — a mid-turn victory must not shorten a marshal's
+        patience."""
+        lannes = world.marshals["Lannes"]
+        lannes.battles_won = 2
+        assert not _rows(world, "Lannes"), "precondition: no row yet"
+
+        dotation.restate_reward_notice(world, lannes)
+
+        assert not _rows(world, "Lannes"), (
+            "re-stating must be a no-op for a marshal the per-turn pass has "
+            "not yet announced")
+        assert int(getattr(lannes, "expectation_grace_turn", -1)) == -1, (
+            "and it must not have started his clock")
+
+    def test_it_does_not_resurrect_a_row_the_player_acknowledged(self, world):
+        """The load-bearing half of "never opens a row", and the one the first
+        draft of the test above did NOT reach.
+
+        That draft used a marshal whose grace clock had never started, so the
+        `grace_start < 0` return masked the standing-row guard entirely — the
+        guard could be deleted with the suite green (found by the mutation
+        sweep, STALE-2). The reachable case is a player who pressed
+        Acknowledge: his clock IS running, and a mid-turn victory must not put
+        the row he dismissed back on the rail.
+        """
+        ney = _owe(world, wins=2)
+        row_id = _row(world)["id"]
+        assert int(ney.expectation_grace_turn) >= 0, "precondition: clock running"
+        world.notifications.dismiss(row_id)
+        assert _rows(world) == [], "precondition: he acknowledged it"
+
+        ney.battles_won = 3
+        dotation.restate_reward_notice(world, ney)
+
+        assert _rows(world) == [], (
+            "a victory must not resurrect a row the player dismissed — "
+            "re-stating is for rows that are STANDING")
+
+    def test_another_marshals_row_does_not_stand_in_for_his(self, world):
+        """The standing-row test is per marshal. An unfiltered version passes
+        every test above (Ney's row is always up) while resurrecting
+        everyone else's (mutation sweep, STALE-9)."""
+        _owe(world, "Ney", wins=2)
+        dav = _owe(world, "Davout", wins=2)
+        world.notifications.dismiss(_row(world, "Davout")["id"])
+        assert _rows(world, "Ney"), "precondition: Ney is still asking"
+        assert _rows(world, "Davout") == [], "precondition: Davout is not"
+
+        dav.battles_won = 3
+        dotation.restate_reward_notice(world, dav)
+
+        assert _rows(world, "Davout") == [], (
+            "Ney having a row is not Davout having one")
+
+    def test_past_grace_it_refreshes_the_EROSION_row(self, world):
+        """The producer is chosen by grace state. Always choosing the
+        expectation producer passes every other test in this class — the
+        expectation row is what most of them look at (mutation sweep,
+        STALE-4) — while putting a NORMAL "expects reward" row back on a rail
+        that should be showing the HIGH "grows bitter" one, and leaving the
+        real alarm frozen at its opening figures."""
+        ney = _owe(world, wins=2)
+        for _ in range(dotation.GRACE_TURNS + 1):
+            world.current_turn += 1
+            _reconcile(world)
+        rows = _rows(world)
+        assert [r["type"] for r in rows] == [DOTATION_EROSION], (
+            "precondition: past grace, only the HIGH row stands")
+        before = str(rows[0]["details"]["action_label"])
+        erosion_id = str(rows[0]["id"])
+
+        ney.battles_won = 6
+        dotation.restate_reward_notice(world, ney)
+
+        rows = _rows(world)
+        assert [r["type"] for r in rows] == [DOTATION_EROSION], (
+            "re-stating past grace must not put the retired NORMAL row back")
+        assert rows[0]["id"] == erosion_id
+        assert rows[0]["details"]["action_label"] != before, (
+            "and the HIGH row's own figures must move")
+
+    def test_an_ai_marshal_never_gets_a_reward_row(self, world):
+        """`restate_reward_notice` has no player-nation guard of its own — all
+        three producers it can reach own that rule, and a fourth copy was
+        found inert by the sweep and removed. This pins the rule where it
+        actually lives."""
+        foreign = next(m for m in world.marshals.values()
+                       if m.nation != world.player_nation)
+        foreign.battles_won = 5
+        foreign.expectation_grace_turn = int(world.current_turn) - 1
+
+        dotation.restate_reward_notice(world, foreign)
+        dotation.post_expectation_notice(world, foreign, 200, 0, 200, 2)
+        dotation.post_erosion_notice(world, foreign, 200, 0, 200)
+
+        assert _rows(world, foreign.name) == [], (
+            "the rail is the PLAYER's desk; a foreign court's marshals never "
+            "appear on it")
+
+    def test_it_retires_a_row_the_payment_settled(self, world):
+        """It is a SUPERSET of the dismiss-if-settled call it replaced at the
+        payment seams, not a second rule beside it (GR1)."""
+        ney = _owe(world, wins=2)
+        ney.pension = dotation.get_expectation(ney)
+        dotation.restate_reward_notice(world, ney)
+        assert _rows(world) == []
+
+    def test_the_payment_seams_all_route_through_it(self):
+        """Three executor seams plus the Fontainebleau concede arm.
+
+        The Aug-23 review round found three of four dismissal seams with no
+        executor-level pin at all; this is the same census one level up, and
+        it is a COUNT so a fourth payment seam added later without the call
+        reds this test rather than passing silently.
+        """
+        import inspect
+        from backend.commands import economy_executor
+        from backend.game_logic import jealousy
+
+        eco = inspect.getsource(economy_executor)
+        assert eco.count("restate_reward_notice(world, marshal)") == 3, (
+            "grant_dotation, grant_pension and revoke_pension each settle a "
+            "debt and each must re-state or retire the row")
+        assert "dotation.restate_reward_notice(world, marshal)" in \
+            inspect.getsource(jealousy), (
+            "the Fontainebleau concede arm pays rentes too")
+        # ...and the old narrower call must be gone from those seams, or the
+        # two rules sit side by side (the GR1 trap this replaced).
+        assert "if get_shortfall(marshal, world) <= 0:" not in eco, (
+            "the dismiss-if-settled gate now lives inside "
+            "restate_reward_notice, in one place")
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # 2. UX23-R2 — the desk bell rings once per grievance
 # ══════════════════════════════════════════════════════════════════════════
