@@ -76,9 +76,44 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > 13-agent review round at `4b09e59` found **26 more defects incl. a P1 this
 > slice introduced** (the waiver also disabled the 2-AP `pursue` gate) — all
 > fixed.
-> ⚠ OPEN: the audio re-audition · 8 routed rows UX23-R1..R8 (no stop API for
-> one-shot cues; the chime re-rings per unmet marshal per turn) · the
-> structural answer to "too early" = `DESIGN_REFINEMENT.md` UX23-D1..D4, gated.
+> ⚠ OPEN: the audio re-audition · 6 routed rows UX23-R1/R4/R5/R6/R7/R8 (no stop
+> API for one-shot cues) · the structural answer to "too early" =
+> `DESIGN_REFINEMENT.md` UX23-D1..D4, gated.
+>
+> **▶ ROW UX23-A — "REWARD HIM WHERE HE STANDS", August 23, 2026. Landing
+> record = `docs/BUG_FIXES.md` §UX23-A, authoritative.** The user, on the
+> morning's rail fix: *"reward a general from the notification itself —
+> ideally one click, without opening a screen."* Researched with a 63-agent
+> read→refute fleet, four design questions put to the user, then built.
+> **Two clicks — rail icon, then the action — and no screen opens.** The
+> **rente** is one-click (its face is auto-sized, so the command carries no
+> parameter): three display-only `details` keys
+> (`action_command`/`action_label`/`action_detail`) built by ONE gated source
+> `dotation.rente_action_keys`, a full-width button on the rail's existing
+> detail panel, and one connection to `_on_reward_command` — the shared typed
+> pipeline (latch, echo, history, Generals refresh). Command = `grant <name> a
+> rente`, a pinned corpus row and the same two-key dict the AI rung sends
+> (GR5). The **estate keeps the dialog** by design (`estate_yield`'s docstring:
+> endowing a fresh 0g conquest is "a legal, sometimes-correct player play").
+> **No `enabled` flag is baked** — `_process_dotation_state` runs BEFORE
+> `advance_turn` refills admin AP, so a post-time gate is the IGR-2 P1; the
+> button stays live and the executor refuses honestly at zero cost.
+> **UX23-R2 folded in** (the stated prerequisite): `NotificationCollector.add`
+> already updated in place via `_identity` but re-titled "(x2)", which is why
+> the producers dismissed-then-added and threw the uuid away — new `refresh()`
+> keeps the id, so the desk bell rings once per grievance, not once per turn
+> per marshal, and `turn_created` deliberately does not move. **UX23-R3 folded
+> in**: `_enforce_cap` `break`ed when no NORMAL row existed, so a HIGH-filled
+> tray stopped trimming entirely; it now sheds the oldest **stale** HIGH
+> (`HIGH_EVICTION_WINDOW_TURNS = 10`), never CRITICAL, never a same-turn burst.
+> Found in passing: both reward rows rendered as "INF"/"NEW" on the rail —
+> now `coins`/`medal`. `tests/test_ux23a_reward_where_he_stands.py` (38);
+> **26 mutations swept, 26 killed, 0 inert**; suite **18,756/3**; M1–M7 +
+> `BASELINE_SERIES` byte-identical; parse harness EXIT=0; one pre-existing pin
+> flipped consciously. ⚠ OPEN: a live visual pass on the button and glyphs.
+> **UX23-D1..D4 NOT folded in** (the curve is a different gate) — but the fleet
+> found three factual errors in that section's own rows, corrected on the
+> record; headline, **D4 names the wrong seam and the wrong date**.
 >
 > **▶ THE NPC P1 CLUSTER FIXED August 16, 2026 — landing record =
 > `docs/BUG_FIXES.md` §Napoleon Campaign (NPC), the boxed block above the

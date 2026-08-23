@@ -114,16 +114,43 @@ class TestNotificationCap:
         critical_count = sum(1 for n in pending if n["priority"] == int(NotificationPriority.CRITICAL))
         assert critical_count == 1
 
-    def test_cap_no_trim_when_all_high_priority(self):
-        """If all notifications are HIGH/CRITICAL, allow overflow."""
+    def test_cap_no_trim_when_all_high_priority_ARRIVED_TOGETHER(self):
+        """A BURST of HIGH crises is still allowed to overflow the cap.
+
+        CONSCIOUSLY FLIPPED, Aug 23, 2026 (UX23-R3, landing record
+        `BUG_FIXES.md` §UX23-A). The original body spread `turn_created`
+        across 0..54 and asserted 55 — i.e. it pinned "a HIGH row is never
+        evicted, at any age", which is the defect: `DOTATION_EROSION` is HIGH
+        and stands until the marshal is paid, so once the tray filled with
+        HIGH rows the cap stopped working entirely and real news overflowed
+        off the rail with nothing evictable to make room.
+
+        The rule the test was reaching for survives and is what is pinned
+        here: crises that break TOGETHER are all shown, even past the cap.
+        Only a HIGH row the world has since moved on from
+        (`HIGH_EVICTION_WINDOW_TURNS`) may be trimmed — pinned from the other
+        side in `tests/test_ux23a_reward_where_he_stands.py`.
+        """
+        from backend.notifications import HIGH_EVICTION_WINDOW_TURNS
+
         collector = NotificationCollector()
         for i in range(55):
             collector.add(create_notification(
                 "high_type", NotificationPriority.HIGH,
-                f"High {i}", f"Message {i}", turn_created=i,
+                f"High {i}", f"Message {i}", turn_created=7,
             ))
-        # No NORMAL to trim — should overflow past 50
         assert len(collector.get_pending()) == 55
+
+        # ...and the same 55 spread over a long campaign DO trim, because the
+        # oldest of them are no longer news.
+        aged = NotificationCollector()
+        for i in range(55):
+            aged.add(create_notification(
+                "high_type", NotificationPriority.HIGH,
+                f"High {i}", f"Message {i}",
+                turn_created=i * HIGH_EVICTION_WINDOW_TURNS,
+            ))
+        assert len(aged.get_pending()) == 50
 
 
 # ============================================================================

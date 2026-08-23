@@ -577,6 +577,13 @@ func _ready():
 		notification_bar.set_api_client(api_client)
 		if notification_bar.has_signal("notification_review_requested"):
 			notification_bar.notification_review_requested.connect(_on_notification_review_requested)
+		# UX23-A: a rail row that carries an `action_command` settles the
+		# matter where the player is standing. `_on_reward_command` is the
+		# shared typed-command pipeline every button surface uses — the
+		# in-flight latch, the terminal echo, the history entry and the
+		# Generals refresh all come with it.
+		if notification_bar.has_signal("notification_action_requested"):
+			notification_bar.notification_action_requested.connect(_on_reward_command)
 
 	# UI-6: map province click → Region Action Panel (the region_clicked
 	# signal existed since the cutover but nothing listened in the game path)

@@ -850,6 +850,57 @@ def dismiss_reward_notices(world, marshal) -> None:
     world.notifications.dismiss_by_type(DOTATION_EROSION, filter_fn=_mine)
 
 
+def rente_action_keys(marshal, world) -> Dict:
+    """The one-click rente affordance a reward-rail row carries, or `{}`.
+
+    UX23-A (Aug 23, 2026; user: "no way to do it without menuing" → "reward a
+    general from the notification itself"). The rail's detail panel could only
+    ever point somewhere else; these three display-only keys turn the row into
+    the place the thing is DONE. The client renders `action_label` as a button
+    and sends `action_command` down the ordinary typed-command pipeline, so
+    the executor, its refusals, the AP charge and the campaign log are
+    untouched (GR6 — nothing here decides anything).
+
+    Three rules the row must not break:
+
+    * **Shown = applied.** The figure is `get_rente_cost(compute_rente_face())`
+      — the exact pair `_execute_grant_pension` prices the grant with, and the
+      same pair the row's own message quotes.
+    * **Never offer what the executor refuses.** Gated on `rente_would_change`,
+      the GR1 predicate the executor, the marshal card and the AI rung all
+      read. (A row only exists on a live shortfall, so this is true in
+      practice — reading the predicate is what keeps it true under retune.)
+    * **No baked `enabled` flag.** `_process_dotation_state` runs at
+      `world_state.py:9470` and admin AP is refilled at `:9522`, AFTER it — so
+      a gate evaluated here would ship permanently disabled, which is exactly
+      the IGR-2 P1 that made every AP-priced marshal-petition arm unusable.
+      The button stays live and the executor refuses honestly at zero cost.
+
+    The ESTATE arm deliberately gets no one-click button: `estate_yield`'s own
+    docstring records that endowing a fresh 0g conquest "is a legal,
+    sometimes-correct player play because estates appreciate", so the province
+    is a choice the §0.6.8 portfolio design exists to pose. `[Reward…]` still
+    opens the dialog that poses it.
+    """
+    if getattr(marshal, "captured_by", ""):
+        return {}
+    if not rente_would_change(marshal, world):
+        return {}
+    face = compute_rente_face(marshal, world)
+    cost = get_rente_cost(face)
+    held = int(getattr(marshal, "pension", 0))
+    verb = "Re-size rente" if held > 0 else "Grant rente"
+    return {
+        "action_command": f"grant {marshal.name} a rente",
+        "action_label": f"{verb} — {cost}g/turn",
+        "action_detail": (
+            f"{face}g/turn to his household; {cost}g/turn from the treasury, "
+            f"every turn, and 1 administrative action now. "
+            f"Reversible with \"revoke {marshal.name}'s rente\"."
+        ),
+    }
+
+
 def post_expectation_notice(world, marshal, expectation, satisfaction,
                             shortfall, remaining_grace) -> None:
     """The NORMAL "expects reward" row, re-stated with live numbers.
@@ -857,20 +908,20 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     S5-3: it was created once at shortfall-open with static numbers and a
     frozen grace line, so it drifted from the same-response dispatch (rail
     "80g/turn … holds 2 turns" vs dispatch "160g/turn … fraying").
-    Dismiss-by-type + re-add (PF-5 details-filter pattern). The dismiss MUST
-    precede the add: `NotificationCollector.add` collapses a duplicate into
-    the existing row and re-titles it "(x2)", which renders a refresh as a
-    second grievance. Player-only.
+
+    UX23-R2 (Aug 23, 2026): it now REFRESHES in place. The old dismiss-by-type
+    + re-add dodged `add`'s "(x2)" repeat marker but threw the row's uuid away
+    with it, and `notification_bar.gd` dedupes the desk bell on that uuid — so
+    a standing grievance rang the bell once a turn, per marshal, forever.
+    `NotificationCollector.refresh` is the same identity match without the
+    repeat marker, so the id survives and the bell rings once per grievance.
+    Player-only.
     """
     if marshal.nation != world.player_nation:
         return
     from backend.notifications import (
         DOTATION_EXPECTATION, NotificationPriority, create_notification,
     )
-    world.notifications.dismiss_by_type(
-        DOTATION_EXPECTATION,
-        filter_fn=lambda n, mn=marshal.name: (
-            n.get("details", {}).get("marshal") == mn))
     if remaining_grace <= 1:
         patience = "His patience holds one more turn"
     else:
@@ -893,7 +944,7 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     estate_clause = ""
     if list_paying_estates(world, marshal.nation):
         estate_clause = ", or endow him with an estate"
-    world.notifications.add(create_notification(
+    world.notifications.refresh(create_notification(
         notification_type=DOTATION_EXPECTATION,
         priority=NotificationPriority.NORMAL,
         title=f"Marshal {marshal.name} expects reward",
@@ -924,7 +975,11 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
                  # opens the reward dialog on the named marshal.
                  "review_target": "marshal_reward",
                  "review_label": "Reward…",
-                 "route_id": marshal.name},
+                 "route_id": marshal.name,
+                 # UX23-A: and the row is where it gets DONE, not only where
+                 # it is announced. `[Reward…]` still opens the portfolio for
+                 # the estate half.
+                 **rente_action_keys(marshal, world)},
     ))
 
 
@@ -968,11 +1023,10 @@ def post_erosion_notice(world, marshal, expectation, satisfaction,
         DOTATION_EROSION, NotificationPriority, create_notification,
     )
     remedy = reward_remedy_phrase(world, marshal.nation)
-    world.notifications.dismiss_by_type(
-        DOTATION_EROSION,
-        filter_fn=lambda n, mn=marshal.name: (
-            n.get("details", {}).get("marshal") == mn))
-    world.notifications.add(create_notification(
+    # UX23-R2: refreshed in place — see `post_expectation_notice`. This row is
+    # HIGH and stands for as long as the neglect does, so it was the loudest
+    # instance of the per-turn bell.
+    world.notifications.refresh(create_notification(
         notification_type=DOTATION_EROSION,
         priority=NotificationPriority.HIGH,
         title=f"Marshal {marshal.name} grows bitter",
@@ -988,5 +1042,6 @@ def post_erosion_notice(world, marshal, expectation, satisfaction,
                  "shortfall": int(shortfall),
                  "review_target": "marshal_reward",
                  "review_label": "Reward…",
-                 "route_id": marshal.name},
+                 "route_id": marshal.name,
+                 **rente_action_keys(marshal, world)},
     ))

@@ -4136,6 +4136,151 @@ value that clamps at 0, and asserts wrapped in the condition under test); and
 the latch pin anchored on "appears somewhere below" rather than on
 reachability.
 
+### UX23-A — "reward him where he stands" · FIXED
+
+The Aug-23 rail fix replaced *"open the Generals screen (press G)"* with a
+`[Reward…]` button. The user, reading the result: **"reward a general from the
+notification itself — ideally one click, without opening a screen."** The deep
+link still only ever OPENED something.
+
+**Decisions taken at the gate (user, Aug 23, 2026):** one-click **rente** on
+the rail, the dialog for estates · `[Reward…]` unchanged · **no confirm step**
+· and **UX23-R2 + UX23-R3 folded in**, R2 being the stated prerequisite.
+
+Landing record: this section. Pins:
+`tests/test_ux23a_reward_where_he_stands.py` (38). **26 mutations swept, 26
+killed, 0 inert.** Suite 18,756 / 3. M1–M7 (11/11) and `BASELINE_SERIES`
+(63/63) byte-identical, measured before and after — nothing here touches
+combat, threat or the AI. Godot parse harness EXIT=0, 47 scripts / 7 scenes.
+
+#### What was built
+
+The rail's detail panel already had a `button_row` — `[Reward…] [Keep]
+[Acknowledge]` — so the mechanism was cheap: three display-only `details` keys
+(`action_command` / `action_label` / `action_detail`), a button, a signal, and
+one connection to `_on_reward_command`, which is the shared typed-command
+pipeline every other button surface in the client already uses (the in-flight
+latch, the terminal echo, the history entry, the Generals refresh). The rail
+**names** a command; `main.gd` stays the one place that sends one.
+
+Two clicks — the rail icon, then the action — and no screen opens.
+
+* **Backend, `dotation.rente_action_keys`.** One builder, read by both
+  notices. Gated on `rente_would_change`, the GR1 predicate the executor, the
+  marshal card and the AI rung all read, so the button is structurally unable
+  to offer what the executor refuses; and on `captured_by`, which the executor
+  refuses separately. The figure on the button is
+  `get_rente_cost(compute_rente_face(...))` — the exact pair
+  `_execute_grant_pension` prices the grant with, and it is verified end to
+  end rather than by re-derivation: grant it, then read the standing bill.
+* **The command is `grant <name> a rente`** — corpus row
+  `es7sp-grant-ney-a-rente`, and the same two-key dict the AI rung already
+  sends (GR5, one shape). Pinned against the corpus so it cannot drift the day
+  the mock parser's keyword order next moves.
+* **The estate arm deliberately gets no button.** `estate_yield`'s own
+  docstring records that endowing a fresh 0g conquest "is a legal,
+  sometimes-correct player play because estates appreciate" — *which* province
+  to give away is the choice §0.6.8 exists to pose. `[Reward…]` still opens
+  the portfolio that poses it, and at the 1805 boot (France holds zero
+  non-homeland provinces) the rente is the whole reward anyway.
+* **No baked `enabled` flag, and that is the load-bearing decision.**
+  `_process_dotation_state` runs at `world_state.py:9470`; admin AP is
+  refilled at `:9522` — **after**. A gate evaluated at post time ships
+  permanently disabled, which is the IGR-2 P1 exactly (every AP-priced
+  marshal-petition arm arriving dead). The button stays live and the executor
+  refuses honestly at zero cost: *"No administrative actions remaining this
+  turn."* Pinned by construction — the keys are byte-identical at 0 AP and at
+  full AP, and carry no enabled/disabled key at all.
+* **Findability, found by the research fleet.** Neither reward type was in
+  `TYPE_ICONS` or `TYPE_ICON_SVGS`, so both fell through to the priority
+  default and rendered as **"INF"** and **"NEW"** — naming neither the marshal
+  nor the matter, on the rail that is now the surface the reward is granted
+  from. They get `coins` / `medal` glyphs and a `PAY` fallback.
+
+**A false rationale of this slice's own, caught before commit.** The first
+draft of the layout comment said a fourth button in `button_row` would
+overflow the 340px panel. It would not: `custom_minimum_size` is a FLOOR, and
+`DETAIL_PANEL_MAX_WIDTH` is consumed only by `_position_expanded_panel` to
+compute an x offset. The real failure is quieter — the panel grows past the
+width the placement math assumes and hangs off the edge it was meant to sit
+flush with. The full-width row above `button_row` is still right, for the
+design reason (this is not a fourth peer), and the comment now says so.
+
+**The ES-7 reactive gate is untouched and cannot be reached from here.** The
+standing pin on `marshal_management.gd:549` is unchanged, and the rail
+affordance is reactive *by construction*: these rows only exist when a
+shortfall does. Pinned both ways.
+
+#### UX23-R2 — the desk bell rings once per grievance · FIXED
+
+The row the user named as *constraining* the design. `create_notification`
+mints a fresh uuid per call and `notification_bar.gd`'s `_audio_seen_ids`
+dedupes the chime on it, so a standing grievance rang the bell every turn, per
+marshal, forever — four extra chimes a turn at the reported live state.
+
+The fix turned out smaller than the row assumed. `NotificationCollector.add`
+**already** updates a matching row in place, via `_identity` = (type,
+`base_title`, subject) with `marshal` first in `_SUBJECT_KEYS`. It just also
+increments `repeat_count` and re-titles to "(x2)", which renders a refresh as a
+second grievance — which is *why* both producers dismissed-then-added, and why
+they threw the id away. New `NotificationCollector.refresh()` is the third
+door: same identity match, no repeat marker, same uuid.
+
+`turn_created` is deliberately **not** bumped. It is when the fact began,
+which is the honest thing for the row's own "T3" stamp to say — and it is what
+lets UX23-R3's eviction tell a ten-turn-old grievance from this morning's
+crisis. Bumping it would have made every standing HIGH row permanently young
+and left R3 inert. Pinned.
+
+#### UX23-R3 — a standing grievance is not immortal · FIXED
+
+`_enforce_cap` searched for the oldest NORMAL row and, finding none, `break`ed.
+So once the 50-row tray filled with HIGH rows the cap **stopped working
+entirely** and everything after it overflowed. `DOTATION_EROSION` is HIGH and
+stands until the marshal is paid.
+
+Now: oldest NORMAL first (unchanged), then the oldest **stale** HIGH. "Stale"
+is `HIGH_EVICTION_WINDOW_TURNS = 10` measured against the tray's own newest
+row, so the collector stays self-contained and needs no world clock. CRITICAL
+is never evicted at any age, and neither is a HIGH row younger than the
+window — which is what stops a same-turn burst of crises from truncating
+itself. All four arms pinned, the burst case included.
+
+**One pre-existing pin flipped consciously.**
+`test_systems_audit_session11.py::TestNotificationCap::test_cap_no_trim_when_all_high_priority`
+spread `turn_created` across 0..54 and asserted 55 — i.e. it pinned *"a HIGH
+row is never evicted, at any age"*, which is the defect itself. The rule it
+was reaching for survives and is what the rewritten test now pins: crises that
+break **together** are all shown, even past the cap; the same 55 spread over a
+campaign do trim.
+
+#### Not built, and why
+
+* **UX23-R8 stands as written.** The research fleet's first read said
+  `expectation_note` reaches the client on the enemy-phase route and the gap
+  is only the renderer; reading the three `_display_berthier_report` call
+  sites confirms the row instead — they are the player's own command result,
+  the defiance path, and the **jealousy-attack** path. None is the enemy
+  phase, which renders through `enemy_phase_dialog.gd`, with zero
+  `expectation` references. On a defensive victory the string is still
+  produced and never shown. (I briefly concluded the opposite from
+  `main.gd:4731`; that line is `_display_jealousy_attacks`.)
+* **UX23-R1 / R6 stay in UX23-B**, unchanged — neither touches the reward
+  rail.
+* **UX23-D1..D4 were NOT folded in.** They are the curve, not the button, and
+  they have their own gate. The fleet did find three factual errors in that
+  section's own rows, corrected on the record at `DESIGN_REFINEMENT.md` §Live
+  UX Report → *Corrections to this section*, with the gate's shape untouched.
+  Headline: **D4 names the wrong seam and the wrong date** — the co-locator
+  credit is the March Session-62 participant model, not a W6-1 assumption, and
+  reversing W6-1 would change nothing — and the row is under-priced, because
+  `atk_participants` feeds win credit, casualties AND CO-1 committed strength,
+  so D4 moves combat math and `BASELINE_SERIES`.
+
+⚠ **Open:** a live visual pass on the new rail button and the two glyphs (the
+data is verified over the wire and the panel builds clean, but nobody has
+looked at it), and the Aug-23 audio re-audition, still owed.
+
 ### Routed, not built
 
 GR9 requires five things of every routed row — owner, landing slice, completion
@@ -4145,7 +4290,11 @@ table gave none of them, naming four owners (`Music & Sound follow-up`,
 nowhere else in the repo. They are now one owned slice, **UX23-B "The Desk Is
 Quiet"**, plus two rows that belong to existing owners.
 
-**UX23-B — the slice these four rows land in.** Owner: this section.
+**UX23-B — the slice these four rows land in.** **Two of the four (R2, R3) were
+pulled forward and LANDED Aug 23, 2026 as part of §UX23-A above** — R2 because
+the user named it as the prerequisite for updating the rail in place, R3
+because it is its sibling and the same tray. **R1 and R6 remain open and keep
+this owner.** Owner: this section.
 Landing slice: one client-side pass, unscheduled, before Round 0 — it is a
 polish slice with no dependency, and R2 is the one row here a player would
 report unprompted. Completion definition: closing a surface silences the sound
@@ -4158,8 +4307,8 @@ Behaviour test: `tests/test_ux_fixes_2026_08_23.py` gains a
 | id | item | slice | completion definition | test |
 |---|---|---|---|---|
 | UX23-R1 | **No stop API for one-shot cues.** `stop_loop` and friends iterate `_loop_players` only; `_play_cue` keeps no handle, so nothing can silence a cue early. `capture_choice_dialog.gd` plays 8.7 s of coins then `hide()`s on the next line; one-shots survive `change_scene_to_file`. The Aug-23 caps shorten each instance but do NOT deliver "closing it silences it". | UX23-B | `AudioManager.stop_cue(cue)` exists, `popup_base.close_popup` calls it, and a cue started by a panel is inaudible one frame after the panel hides | structural: every `.tscn` popup that plays a >2 s cue stops it on close |
-| UX23-R2 | **Every rail refresh mints a new uuid.** `create_notification` generates one per call and `notification_bar.gd`'s `_audio_seen_ids` dedupes the chime on that id — so the desk bell re-rings per unmet marshal per turn, forever. At the reported live state that is **four extra chimes every turn until paid**. The strongest link between complaints 1 and 3, and the reason the Aug-23 fix is deliberately dismiss-only rather than re-post. | UX23-B | a re-stated notification keeps its id, so the chime fires once per grievance, not once per turn | `post_expectation_notice` twice for the same marshal yields one id |
-| UX23-R3 | **`_enforce_cap` evicts NORMAL rows only.** `DOTATION_EROSION` is HIGH and therefore immune, so N eroding marshals produce N permanent un-evictable rows that crowd real news off the rail. | UX23-B | the cap can evict a HIGH row that has been standing longer than the window | N+1 eroding marshals do not push the cap | 
+| ~~UX23-R2~~ ✅ **FIXED Aug 23, 2026** (§UX23-A above) | **Every rail refresh mints a new uuid.** `create_notification` generates one per call and `notification_bar.gd`'s `_audio_seen_ids` dedupes the chime on that id — so the desk bell re-rings per unmet marshal per turn, forever. At the reported live state that is **four extra chimes every turn until paid**. The strongest link between complaints 1 and 3, and the reason the Aug-23 fix is deliberately dismiss-only rather than re-post. | UX23-B | a re-stated notification keeps its id, so the chime fires once per grievance, not once per turn | `post_expectation_notice` twice for the same marshal yields one id |
+| ~~UX23-R3~~ ✅ **FIXED Aug 23, 2026** (§UX23-A above) | **`_enforce_cap` evicts NORMAL rows only.** `DOTATION_EROSION` is HIGH and therefore immune, so N eroding marshals produce N permanent un-evictable rows that crowd real news off the rail. | UX23-B | the cap can evict a HIGH row that has been standing longer than the window | N+1 eroding marshals do not push the cap | 
 | UX23-R6 | **`battle_diorama.gd` is a second audio implementation**, bypassing `CUES`, the throttle, the player budget and `max_s`. No length defect today; the next diorama sound will forget the toggle guard. | UX23-B | the diorama plays through `AudioManager` | the AST guard over `backend/` gains a `.gd` sibling forbidding raw `AudioStreamPlayer` outside `audio_manager.gd` |
 
 **Rows with existing owners:**

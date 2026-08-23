@@ -35,16 +35,78 @@
 
 | id | item | why it is gated |
 |---|---|---|
-| **UX23-D1** | **The free-wins floor.** `expectation = REP_STEP × max(0, wins − N)`. A marshal's first N victories raise no claim. | A new mechanic, not a retune. Measured at N=1 it clears all four live notifications *at that instant*, but three of the four marshals already held 2 wins — so it buys one battle, not the class of complaint. Cheap, and probably too small alone. |
+| **UX23-D1** | **The free-wins floor.** `expectation = REP_STEP × max(0, wins − N)`. A marshal's first N victories raise no claim. | A new mechanic, not a retune. ~~Measured at N=1 it clears all four live notifications *at that instant*~~ — **that clause is FALSE and is struck (see the correction block below)**; three of the four marshals held 2 wins, so N=1 leaves them at expectation 40 against satisfaction 0 and the row still posts. It buys one battle, not the class of complaint. Cheap, and probably too small alone. |
 | **UX23-D2** | **Key expectation to `glory`, not `battles_won`.** | Structural: changes the field the entire reward economy is priced off. Also the most *designed* answer — glory already has every property the curve wants (graded, decaying, participation-aware, garrison-stomp-proof) and `battles_won` has none of them. |
-| **UX23-D3** | **A war-age / conquest damper** — the Empire does not owe estates it has not yet conquered. | Structural, and `get_expectation` **takes no `world`** — 11 production call sites would have to pass one. Strongest candidate for the principle *"the game should not ask before the player can pay"*, which is the actual complaint: at turn 3 France holds no conquered province, so the estate instrument does not exist and only the rente does. |
-| **UX23-D4** | **Stop crediting non-ordering co-locators.** A marshal standing in the province where someone else won should not bank the win. | Reverses an explicitly blessed W6-1 assumption (`combat_executor.py`, the comment is deliberate). **Attacks the root**: it would have turned the live turn-3 burst from four simultaneous claims into one or two, which is the difference between a demand and a pile-on. |
+| **UX23-D3** | **A war-age / conquest damper** — the Empire does not owe estates it has not yet conquered. | Structural, and `get_expectation` **takes no `world`** — **12** production call sites would have to pass one (the row said 11), *and there is a second entry point to the same curve* (see the correction block below). Strongest candidate for the principle *"the game should not ask before the player can pay"*, which is the actual complaint: at turn 3 France holds no conquered province, so the estate instrument does not exist and only the rente does. |
+| **UX23-D4** | **Stop crediting non-ordering co-locators.** A marshal standing in the province where someone else won should not bank the win. | ~~Reverses an explicitly blessed W6-1 assumption (`combat_executor.py`, the comment is deliberate).~~ **Wrong seam and wrong date — struck; see the correction block below, which also re-prices the row.** **Attacks the root**: it would have turned the live turn-3 burst from four simultaneous claims into one or two, which is the difference between a demand and a pile-on. |
 
 **Recommended reading of the four:** D4 then D2. D4 removes the pile-on that
 made four claims arrive at once; D2 replaces a ratchet with a curve that can
 fall. D1 is a palliative and D3 is the largest change for the clearest reason.
 Whoever takes the gate should decide whether "too early" meant *too soon* or
 *too many at once* — the report says both, and they have different fixes.
+
+### Corrections to this section (August 23, 2026) — record only, the gate is untouched
+
+> Found by the pre-build research fleet for **UX23-A** (the one-click reward
+> rail, `BUG_FIXES.md` §UX23-A), which read this section to make sure the
+> affordance slice did not collide with it. It does not — all four rows are
+> curve items and none gates the button. But three of the rows' own assertions
+> are wrong against the code, and two of them would mis-aim a build. Recorded
+> here rather than quietly amended, because two are load-bearing to the
+> *recommendation order* above.
+
+1. **D1's "clears all four live notifications" is false.** The rail row posts
+   on ANY shortfall ≥ 1 — `world_state.py:6009-6042` has no floor. An
+   unrewarded marshal's satisfaction is 0 (France holds no conquered province
+   at the 1805 boot, so no estates), so under `REP_STEP × max(0, wins − 1)` a
+   2-win marshal still has expectation 40 against satisfaction 0: the row
+   posts and erosion still runs at `min(3, ceil(40/50))` = 1 trust/turn. The
+   row's own next clause ("three of the four already held 2 wins") contradicts
+   the first, and the live measurement in `BUG_FIXES.md` — *"each holds 2
+   battle wins and an 80g/turn expectation"* — supports the second. **N=1
+   clears one of four, not four of four.** The parallel lever list in
+   `BUG_FIXES.md` never carried the false sentence; the error is unique to
+   this copy.
+
+2. **D3 undercounts, and misses a second entry point.** There are **12**
+   `get_expectation` call sites, not 11 (`combat_executor.py:6824`;
+   `economy_executor.py:1136,1429`; `dispatch.py:923,2235`;
+   `dotation.py:272,531,558`; `jealousy.py:2423,2428`;
+   `marshal_overview.py:373`; `world_state.py:6011`). More importantly the
+   curve has a **second door**: `expectation_for_wins` (`dotation.py:198`) is
+   called directly at `combat_executor.py:6827` for the battle report's
+   "victory raises his expectation" line. A damper installed inside
+   `get_expectation` alone would leave that line on the undamped curve — a
+   shown≠applied divergence in the exact seam whose single-sourcing
+   (`expectation_for_wins`) exists *because it already diverged once*.
+   Also: the eligibility rule is **non-homeland**, not "conquered"
+   (`nation_starting_regions`), so a province gained by treaty cession or an
+   NA-6 carve qualifies too. At boot the two sets coincide, so D3's conclusion
+   survives its paraphrase.
+
+3. **D4 names the wrong seam, the wrong date, and is under-priced.** The
+   co-locator credit is at `combat_executor.py:5755-5771`, inside
+   `if is_coordinated_battle:` — `git blame` gives `c5d808c1`, **2026-03-28**,
+   the Session-62 casualty-participant model (`MULTI_MARSHAL_SPEC.md:568-570`,
+   *"Participating | All same-nation marshals in region at time of combat"*).
+   That is ~3.5 months BEFORE W6-1 (July 10), whose own loop at `:6081`
+   *cites* the older model rather than establishing it — and which CA9-N1
+   documented as inert (`is_coordinated_battle` is always True when that loop
+   has an arrival, so seam A always fires first and the `:6081` increment is
+   guarded by `_already_tallied`). **Reversing W6-1 would change nothing.**
+   Three further re-pricings: "non-ordering" overstates it, because
+   `_get_casualty_participants` already filters a hostile relationship without
+   a SUPPORT order; `atk_participants` is not a bystander list but the combat
+   roster, feeding **three** consumers — win credit, proportional casualties,
+   and CO-1 committed strength — so D4 must split or shrink that list and
+   therefore **moves combat math and `BASELINE_SERIES`**, which the row prices
+   as neither; and arriving reinforcements are relocated into the region
+   *before* the participant scan, so the predicate has to be "was already here
+   and gave no order", never "is here".
+
+None of this changes the gate's shape, and D4 remains the row that attacks the
+root. It is a larger, better-understood piece of work than the table said.
 
 ---
 

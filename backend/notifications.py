@@ -172,6 +172,15 @@ def create_notification(
 
 NOTIFICATION_CAP = 50  # Max notifications before auto-dismissing oldest NORMAL
 
+# UX23-R3: how far behind the tray's newest row a HIGH notice must be standing
+# before the cap may evict it. `_enforce_cap` trimmed NORMAL rows ONLY, so a
+# HIGH row was immortal — N eroding marshals produced N permanent rows that
+# crowded real news off a full rail with no way to lose any of them. The
+# window is what stops a same-turn BURST of crises from truncating itself:
+# only a grievance that has been standing while the world moved on is stale
+# enough to drop. CRITICAL is never evicted at any age.
+HIGH_EVICTION_WINDOW_TURNS = 10
+
 
 class NotificationCollector:
     """Collects and manages notifications attached to WorldState.
@@ -245,23 +254,106 @@ class NotificationCollector:
         self._pending.append(notification)
         self._enforce_cap()
 
+    def refresh(self, notification: Dict[str, Any]) -> bool:
+        """Re-state a standing notification IN PLACE, keeping its id.
+
+        UX23-R2. `create_notification` mints a fresh uuid on every call and
+        `notification_bar.gd` dedupes the desk bell on that id — so a row
+        re-stated with live figures every turn rang the bell every turn, per
+        marshal, forever. Measured at the reported live state: four unmet
+        marshals, four extra chimes a turn until paid. That is why the Aug-23
+        reward fix was deliberately dismiss-only rather than re-post.
+
+        `add` already updates a matching row in place (PC-9), but it also
+        increments `repeat_count` and re-titles to "(x2)" — a REFRESH is not
+        a repeat, so producers dismissed-then-added to dodge that, and threw
+        the id away with it. This is the third door: same identity match, no
+        repeat marker, same uuid.
+
+        `turn_created` is deliberately NOT bumped. It is when the fact
+        BEGAN, which is the honest thing for the row's "T3" stamp to say, and
+        it is what lets `_enforce_cap` tell a ten-turn-old grievance from
+        this morning's crisis (UX23-R3). The re-stated numbers live in
+        `message` and `details`.
+
+        Returns True if an existing row was refreshed, False if this was a
+        first statement (in which case it is added normally).
+        """
+        identity = self._identity(notification)
+        for existing in self._pending:
+            if self._identity(existing) != identity:
+                continue
+            existing["message"] = notification.get(
+                "message", existing.get("message", ""))
+            existing["priority"] = int(notification.get(
+                "priority", existing.get("priority", 0)))
+            if notification.get("details"):
+                existing["details"] = notification["details"]
+            return True
+        self._pending.append(notification)
+        self._enforce_cap()
+        return False
+
+    def _oldest_index_at(self, priority: int) -> Optional[int]:
+        """Index of the oldest pending row at exactly `priority`, or None."""
+        oldest_idx = None
+        oldest_turn = float('inf')
+        for i, n in enumerate(self._pending):
+            if int(n.get("priority", 0)) != int(priority):
+                continue
+            turn = n.get("turn_created", 0)
+            if turn < oldest_turn:
+                oldest_turn = turn
+                oldest_idx = i
+        return oldest_idx
+
+    def _stale_high_index(self) -> Optional[int]:
+        """Index of the oldest HIGH row that the world has moved on from.
+
+        UX23-R3. "Stale" is measured against the tray's OWN newest row rather
+        than against the world clock, so the collector stays self-contained
+        and a save reloaded mid-campaign needs no turn injected. A burst of
+        crises that all opened on the same turn is therefore never evictable
+        by this arm — which is the point: the rail may drop a grievance the
+        player has been ignoring for ten turns, never one that arrived with
+        the news beside it.
+        """
+        if not self._pending:
+            return None
+        newest = max(int(n.get("turn_created", 0)) for n in self._pending)
+        oldest_idx = None
+        oldest_turn = float('inf')
+        for i, n in enumerate(self._pending):
+            if int(n.get("priority", 0)) != int(NotificationPriority.HIGH):
+                continue
+            turn = int(n.get("turn_created", 0))
+            if newest - turn < HIGH_EVICTION_WINDOW_TURNS:
+                continue
+            if turn < oldest_turn:
+                oldest_turn = turn
+                oldest_idx = i
+        return oldest_idx
+
     def _enforce_cap(self) -> None:
-        """Remove oldest NORMAL notifications if over NOTIFICATION_CAP."""
+        """Trim to NOTIFICATION_CAP: oldest NORMAL first, then a stale HIGH.
+
+        UX23-R3: this used to consider NORMAL rows and nothing else, so once
+        the tray filled with HIGH rows it stopped trimming entirely and every
+        new alert overflowed past the cap. `DOTATION_EROSION` is HIGH and
+        stands until the marshal is paid, so a campaign with several
+        neglected marshals accumulated permanent, un-evictable rows.
+        CRITICAL is still never evicted, and neither is a HIGH row younger
+        than `HIGH_EVICTION_WINDOW_TURNS`.
+        """
         while len(self._pending) > NOTIFICATION_CAP:
-            # Find oldest NORMAL notification (lowest turn_created, NORMAL priority)
-            oldest_normal_idx = None
-            oldest_turn = float('inf')
-            for i, n in enumerate(self._pending):
-                if n.get("priority", 0) == int(NotificationPriority.NORMAL):
-                    turn = n.get("turn_created", 0)
-                    if turn < oldest_turn:
-                        oldest_turn = turn
-                        oldest_normal_idx = i
-            if oldest_normal_idx is not None:
-                self._pending.pop(oldest_normal_idx)
-            else:
-                # No NORMAL notifications to trim — allow overflow
+            idx = self._oldest_index_at(int(NotificationPriority.NORMAL))
+            if idx is None:
+                idx = self._stale_high_index()
+            if idx is None:
+                # Nothing evictable (all CRITICAL, or every HIGH is current
+                # news) — allow overflow rather than drop a live crisis.
                 break
+            self._pending.pop(idx)
 
     def get_pending(self) -> List[Dict[str, Any]]:
         """Return all pending notifications, sorted by priority (CRITICAL first).

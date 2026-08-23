@@ -10,6 +10,10 @@ extends Control
 
 signal notification_dismissed(notification_id: String)
 signal notification_review_requested(review_target: String, route_id: String, war_id: String)
+# UX23-A: a row that can DO the thing it announces. The rail never sends a
+# command itself — it names one, and main.gd puts it through the same typed
+# pipeline a chip or the terminal would (latch, echo, history, refresh).
+signal notification_action_requested(command: String)
 
 const MAX_VISIBLE_ICONS := 6
 const MAX_VISIBLE_COMMITMENTS_PER_TURN := 2
@@ -57,6 +61,12 @@ const TYPE_ICONS = {
 	"dp_insufficient": "DP",
 	"turn_limit_warning": "TMR",
 	"defeat_imminent_warning": "DNG",
+	# UX23-A: the two reward rows fell through to the priority default ("INF"
+	# / "NEW"), which names neither the marshal nor the matter — and the rail
+	# is now the surface the reward is GRANTED from, so the player has to be
+	# able to pick it out of six pills first.
+	"dotation_expectation": "PAY",
+	"dotation_erosion": "PAY",
 }
 
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
@@ -89,6 +99,11 @@ const TYPE_ICON_SVGS = {
 	"dp_insufficient": "coins",
 	"turn_limit_warning": "hourglass-high",
 	"defeat_imminent_warning": "warning-circle",
+	# UX23-A: a purse for the expectation, the medal he has not been given
+	# for the neglect. The pill colour already carries the urgency (NORMAL vs
+	# HIGH), so the glyphs carry the subject instead.
+	"dotation_expectation": "coins",
+	"dotation_erosion": "medal",
 }
 
 const ROUTE_ICON_SVGS = {
@@ -407,12 +422,50 @@ func _show_expanded_panel(notif: Dictionary):
 	body.text = _build_detail_text(notif)
 	vbox.add_child(body)
 
+	var details = notif.get("details", {})
+
+	# ── UX23-A: the primary action, on its own full-width row ──
+	# (user: "no way to do it without menuing"). It sits ABOVE the button row
+	# rather than as a fourth button in it, for two reasons.
+	#
+	# The layout one: `expanded_panel.custom_minimum_size` is a FLOOR of 280
+	# and the panel has no maximum — `DETAIL_PANEL_MAX_WIDTH` is consumed only
+	# by `_position_expanded_panel`, to compute an x offset. So a fourth button
+	# beside the existing ~264px of [Reward…]/Keep/Acknowledge does not clip;
+	# it makes the panel WIDER than the 340 the placement math assumes, and the
+	# panel then hangs off the right edge it was meant to be flush with. (An
+	# earlier draft of this comment claimed it would overflow; that was wrong,
+	# and the real failure is the quieter one.)
+	#
+	# The design one: this is not a fourth peer. Full width, above the row,
+	# reads as the thing to do — with reviewing, keeping and acknowledging
+	# beneath it.
+	#
+	# Deliberately NOT gated on live AP. The producer cannot know the player's
+	# admin actions — `_process_dotation_state` writes the notice BEFORE
+	# `advance_turn` refills them, which is precisely the IGR-2 P1 that shipped
+	# every AP-priced petition arm permanently disabled — and a button that
+	# lies about being unavailable is worse than one whose refusal is honest
+	# and free. The label states the price; the executor states the reason.
+	if details is Dictionary:
+		var action_command = str(details.get("action_command", ""))
+		if action_command != "":
+			var action_btn = Button.new()
+			action_btn.text = str(details.get("action_label", "Act"))
+			action_btn.tooltip_text = str(details.get("action_detail", ""))
+			action_btn.custom_minimum_size = Vector2(0, 32)
+			action_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			action_btn.clip_text = true
+			action_btn.add_theme_font_size_override("font_size", 13)
+			action_btn.add_theme_color_override("font_color", Utils.UI_GOLD)
+			action_btn.pressed.connect(_on_action_pressed.bind(action_command))
+			vbox.add_child(action_btn)
+
 	var button_row = HBoxContainer.new()
 	button_row.alignment = BoxContainer.ALIGNMENT_END
 	button_row.add_theme_constant_override("separation", 8)
 	vbox.add_child(button_row)
 
-	var details = notif.get("details", {})
 	if details is Dictionary:
 		var review_target = str(details.get("review_target", ""))
 		var review_label = str(details.get("review_label", "Open Ledger"))
@@ -516,6 +569,14 @@ func _on_dismiss_pressed(notification_id: String):
 	if api_client:
 		api_client.dismiss_notification(notification_id, func(_response): pass)
 	notification_dismissed.emit(notification_id)
+
+
+func _on_action_pressed(command: String):
+	"""UX23-A: the row settles what it announces. Close first — the terminal
+	echoes the order and the response re-renders the rail, so leaving the
+	panel open would show it over its own stale copy."""
+	_close_expanded_panel()
+	notification_action_requested.emit(command)
 
 
 func _on_review_pressed(review_target: String, route_id: String = "", war_id: String = ""):

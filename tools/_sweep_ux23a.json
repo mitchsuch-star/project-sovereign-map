@@ -1,0 +1,184 @@
+[
+  {
+    "id": "UX23-A1 the action keys are dropped from the expectation notice",
+    "file": "backend/game_logic/dotation.py",
+    "old": "                 **rente_action_keys(marshal, world)},\n    ))\n\n\ndef reward_remedy_phrase",
+    "new": "                 },\n    ))\n\n\ndef reward_remedy_phrase",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A2 the action keys are dropped from the erosion notice",
+    "file": "backend/game_logic/dotation.py",
+    "old": "                 \"route_id\": marshal.name,\n                 **rente_action_keys(marshal, world)},\n    ))\n",
+    "new": "                 \"route_id\": marshal.name},\n    ))\n",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A3 the button quotes the FACE instead of the treasury cost",
+    "file": "backend/game_logic/dotation.py",
+    "old": "        \"action_label\": f\"{verb} — {cost}g/turn\",",
+    "new": "        \"action_label\": f\"{verb} — {face}g/turn\",",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A4 the prisoner guard is removed",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if getattr(marshal, \"captured_by\", \"\"):\n        return {}\n    if not rente_would_change(marshal, world):",
+    "new": "    if not rente_would_change(marshal, world):",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A5 the shared predicate is replaced by the face test",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if not rente_would_change(marshal, world):\n        return {}\n    face = compute_rente_face(marshal, world)",
+    "new": "    if compute_rente_face(marshal, world) <= 0:\n        return {}\n    face = compute_rente_face(marshal, world)",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A6 the re-size verb never appears",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    verb = \"Re-size rente\" if held > 0 else \"Grant rente\"",
+    "new": "    verb = \"Grant rente\"",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A7 the detail line stops naming the undo",
+    "file": "backend/game_logic/dotation.py",
+    "old": "            f\"Reversible with \\\"revoke {marshal.name}'s rente\\\".\"",
+    "new": "            f\"Granted at once.\"",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A8 the command string drifts off the golden corpus",
+    "file": "backend/game_logic/dotation.py",
+    "old": "        \"action_command\": f\"grant {marshal.name} a rente\",",
+    "new": "        \"action_command\": f\"pay {marshal.name} a rente\",",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A9 the rail stops rendering the action button",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\t\taction_btn.pressed.connect(_on_action_pressed.bind(action_command))",
+    "new": "\t\t\taction_btn.disabled = true",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A10 the action row is added AFTER button_row (renders underneath)",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\t\tvbox.add_child(action_btn)\n\n\tvar button_row = HBoxContainer.new()",
+    "new": "\tvar button_row = HBoxContainer.new()",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A11 the panel is left open when the action fires",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t_close_expanded_panel()\n\tnotification_action_requested.emit(command)",
+    "new": "\tnotification_action_requested.emit(command)\n\t_close_expanded_panel()",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A12 main.gd stops routing the rail action",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tnotification_bar.notification_action_requested.connect(_on_reward_command)",
+    "new": "\t\t\tpass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A13 the reward rows lose their rail glyph",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"dotation_expectation\": \"coins\",\n\t\"dotation_erosion\": \"medal\",",
+    "new": "",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-A14 the reward rows lose their 3-letter fallback",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"dotation_expectation\": \"PAY\",\n\t\"dotation_erosion\": \"PAY\",",
+    "new": "",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2a refresh reverts to dismiss+add on the expectation notice",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    world.notifications.refresh(create_notification(\n        notification_type=DOTATION_EXPECTATION,",
+    "new": "    world.notifications.dismiss_by_type(\n        DOTATION_EXPECTATION,\n        filter_fn=lambda n, mn=marshal.name: (\n            n.get(\"details\", {}).get(\"marshal\") == mn))\n    world.notifications.add(create_notification(\n        notification_type=DOTATION_EXPECTATION,",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2b refresh reverts to dismiss+add on the erosion notice",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    world.notifications.refresh(create_notification(\n        notification_type=DOTATION_EROSION,",
+    "new": "    world.notifications.dismiss_by_type(\n        DOTATION_EROSION,\n        filter_fn=lambda n, mn=marshal.name: (\n            n.get(\"details\", {}).get(\"marshal\") == mn))\n    world.notifications.add(create_notification(\n        notification_type=DOTATION_EROSION,",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2c refresh bumps turn_created (every HIGH row stays young)",
+    "file": "backend/notifications.py",
+    "old": "            existing[\"priority\"] = int(notification.get(\n                \"priority\", existing.get(\"priority\", 0)))",
+    "new": "            existing[\"turn_created\"] = int(notification.get(\n                \"turn_created\", existing.get(\"turn_created\", 0)))\n            existing[\"priority\"] = int(notification.get(\n                \"priority\", existing.get(\"priority\", 0)))",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2d refresh stops updating the message (numbers freeze)",
+    "file": "backend/notifications.py",
+    "old": "            existing[\"message\"] = notification.get(\n                \"message\", existing.get(\"message\", \"\"))",
+    "new": "            pass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2e refresh stops updating details (the label freezes)",
+    "file": "backend/notifications.py",
+    "old": "            if notification.get(\"details\"):\n                existing[\"details\"] = notification[\"details\"]\n            return True",
+    "new": "            return True",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2f refresh delegates to add (the (x2) re-title returns)",
+    "file": "backend/notifications.py",
+    "old": "        identity = self._identity(notification)\n        for existing in self._pending:\n            if self._identity(existing) != identity:\n                continue\n            existing[\"message\"] = notification.get(",
+    "new": "        self.add(notification)\n        return True\n        identity = self._identity(notification)\n        for existing in self._pending:\n            if self._identity(existing) != identity:\n                continue\n            existing[\"message\"] = notification.get(",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R2g refresh matches on type alone (Ney absorbs Davout)",
+    "file": "backend/notifications.py",
+    "old": "        identity = self._identity(notification)\n        for existing in self._pending:\n            if self._identity(existing) != identity:\n                continue\n            existing[\"message\"]",
+    "new": "        identity = notification.get(\"type\")\n        for existing in self._pending:\n            if existing.get(\"type\") != identity:\n                continue\n            existing[\"message\"]",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R3a the stale-HIGH arm is removed (cap stops working)",
+    "file": "backend/notifications.py",
+    "old": "            if idx is None:\n                idx = self._stale_high_index()",
+    "new": "            pass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R3b the staleness window is dropped (a burst self-truncates)",
+    "file": "backend/notifications.py",
+    "old": "            if newest - turn < HIGH_EVICTION_WINDOW_TURNS:\n                continue",
+    "new": "            pass",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R3c CRITICAL becomes evictable",
+    "file": "backend/notifications.py",
+    "old": "            if int(n.get(\"priority\", 0)) != int(NotificationPriority.HIGH):\n                continue\n            turn = int(n.get(\"turn_created\", 0))",
+    "new": "            if int(n.get(\"priority\", 0)) == int(NotificationPriority.NORMAL):\n                continue\n            turn = int(n.get(\"turn_created\", 0))",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R3d HIGH is spent before NORMAL",
+    "file": "backend/notifications.py",
+    "old": "            idx = self._oldest_index_at(int(NotificationPriority.NORMAL))\n            if idx is None:\n                idx = self._stale_high_index()",
+    "new": "            idx = self._stale_high_index()\n            if idx is None:\n                idx = self._oldest_index_at(int(NotificationPriority.NORMAL))",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  },
+  {
+    "id": "UX23-R3e the eviction picks the NEWEST stale HIGH instead of the oldest",
+    "file": "backend/notifications.py",
+    "old": "            if turn < oldest_turn:\n                oldest_turn = turn\n                oldest_idx = i\n        return oldest_idx\n\n    def _enforce_cap",
+    "new": "            if turn >= oldest_turn or oldest_idx is None:\n                oldest_turn = turn\n                oldest_idx = i\n        return oldest_idx\n\n    def _enforce_cap",
+    "tests": "tests/test_ux23a_reward_where_he_stands.py"
+  }
+]

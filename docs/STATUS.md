@@ -55,11 +55,65 @@
 > gate for `pursue`, so the order attached and the marshal marched while the
 > response said "Not enough actions"). All fixed in the same session.
 >
-> ⚠ **OPEN:** the audio re-audition; eight routed rows (UX23-R1..R8, headline:
-> there is still **no stop API for one-shot cues**, and the notification chime
-> re-rings per unmet marshal per turn because every refresh mints a new uuid);
-> and the structural answer to "too early" — `DESIGN_REFINEMENT.md` UX23-D1..D4,
+> ⚠ **OPEN:** the audio re-audition; six routed rows (UX23-R1/R4/R5/R6/R7/R8 —
+> headline: there is still **no stop API for one-shot cues**); and the
+> structural answer to "too early" — `DESIGN_REFINEMENT.md` UX23-D1..D4,
 > gated.
+
+> # ✅ UX23-A — "REWARD HIM WHERE HE STANDS" LANDED, August 23, 2026.
+> **Landing record = `docs/BUG_FIXES.md` §UX23-A, authoritative.** The user,
+> reading the morning's rail fix: *"reward a general from the notification
+> itself — ideally one click, without opening a screen."* The deep link still
+> only ever OPENED something.
+>
+> Researched first (a 63-agent read → refute fleet over the whole surface),
+> four design questions put to the user, then built. **Two clicks — the rail
+> icon, then the action — and no screen opens.**
+>
+> **The rente is one-click; the estate keeps the dialog.** The rail's detail
+> panel already had a button row, so the mechanism was three display-only
+> `details` keys, a button, a signal, and one connection to
+> `_on_reward_command` — the shared typed-command pipeline every other button
+> surface uses. The command is `grant <name> a rente`, a pinned corpus row and
+> the same two-key dict the AI rung sends (GR5, one shape). The estate arm
+> gets no button on purpose: `estate_yield`'s own docstring records that
+> endowing a fresh 0g conquest is "a legal, sometimes-correct player play",
+> so *which* province is the choice §0.6.8 exists to pose.
+>
+> **The load-bearing decision is that no `enabled` flag is baked.**
+> `_process_dotation_state` runs at `world_state.py:9470`; admin AP refills at
+> `:9522`, **after** — a gate evaluated at post time ships permanently
+> disabled, which is the IGR-2 P1 exactly. The button stays live and the
+> executor refuses honestly at zero cost. Pinned by construction.
+>
+> **UX23-R2 and R3 folded in** (user's call; R2 was the stated prerequisite).
+> R2 turned out smaller than filed: `NotificationCollector.add` *already*
+> updates in place via `_identity` — it just re-titles to "(x2)", which is why
+> the producers dismissed-then-added and threw the uuid away. A new
+> `refresh()` keeps the id, so the desk bell rings once per grievance instead
+> of once per turn per marshal. R3: `_enforce_cap` searched for a NORMAL row
+> and `break`ed when it found none, so a tray full of HIGH rows stopped
+> trimming *entirely*; it now sheds the oldest **stale** HIGH
+> (`HIGH_EVICTION_WINDOW_TURNS = 10`), never CRITICAL, and never a same-turn
+> burst.
+>
+> Found in passing: both reward rows rendered on the rail as **"INF"** and
+> **"NEW"** — no glyph, no code — on the surface the reward is now granted
+> from. They get `coins` / `medal`.
+>
+> `tests/test_ux23a_reward_where_he_stands.py` (38). **26 mutations swept, 26
+> killed, 0 inert.** Suite **18,756 / 3**. M1–M7 and `BASELINE_SERIES`
+> byte-identical, measured both sides. Godot parse harness EXIT=0. One
+> pre-existing pin flipped consciously (`test_cap_no_trim_when_all_high_priority`
+> pinned the R3 defect itself). A false rationale in this slice's own comment
+> was caught and corrected before commit — a fourth button would not overflow
+> the panel, it would widen it past the width the placement math assumes.
+>
+> ⚠ **OPEN:** a live visual pass on the new button and the two glyphs.
+> **UX23-D1..D4 were NOT folded in** — the curve is a different gate — but the
+> fleet found **three factual errors in that section's own rows**, corrected on
+> the record (`DESIGN_REFINEMENT.md`): headline, **D4 names the wrong seam and
+> the wrong date**, and reversing W6-1 would change nothing.
 
 > # ✅ WO SLICE 8 — "THE PANEL STATES ITS TERMS" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 8,
