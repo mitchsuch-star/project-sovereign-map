@@ -4,6 +4,57 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE FOUR LIVE UX DEFECTS FIXED — August 23, 2026 (row UX23).
+> **Landing record = `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026),
+> authoritative.** Reported by the user mid-campaign, diagnosed against the
+> RUNNING backend over read-only GET, then built.
+>
+> **1 · The 38-second envoy.** `letter_open.mp3` is 38.64 s and was fired as a
+> one-shot on every envoy open. `max_s` is now a `CUES` registry field honoured
+> by `_play_cue`; 11 over-long cues capped. *Correction to the session's first
+> read: `_fade_stop` was NOT unreachable — 3 of 71 call sites did pass a cap.
+> The defect is that a cap only 3 sites remember is not a cap.* ⚠ **A
+> re-audition of the 11 capped cues is owed** — durations are verified, ears
+> are not, and a cap assumes the gesture is at the head of the file.
+>
+> **2 · The end-turn soft-lock — THREE stacked faults, and the load-bearing
+> one was not the one first found.** (a) `_execute_command` cleared the lapse
+> latch *above* the `"end turn"` dispatch, so the typed route — the one the
+> warning's own text names — could never confirm; `_on_envoy_clicked` cleared
+> it too, so following the warning's FIRST instruction reset it. (b)
+> `activate_mailbox_item` refused for every `LOCAL_PLANNING` type, a set
+> documented as "never a global blocker", so an invisible Talleyrand advisory
+> made every routine envoy unanswerable behind unactionable copy. (c) The
+> mailbox panel is CanvasLayer **119** and the modals it points at are **110** —
+> it was drawn on top of the matter it told the player to settle. Hence *"i see
+> nothing else to resolve."* Also fixed: asking Talleyrand a question used
+> `replace()` and **destroyed a waiting envoy** (reproduced at unit level).
+>
+> **3 · The reward rail.** Paying a marshal left the row standing until the
+> turn ended (the dismisser was a closure inside the once-per-turn pass — now
+> shared, called at all four payment seams, deliberately dismiss-only so
+> payment never rings the grievance bell). The rail now opens the reward dialog
+> on the marshal it names instead of saying "press G". Its opening line no
+> longer offers an **estate** France cannot grant at boot. And the no-op
+> re-size — a fully-paid marshal burning 1 of 2 admin actions rewriting his
+> pension to the same number — is refused. `GRACE_TURNS` **2 → 4**, in-band.
+>
+> **4 · Bernadotte's free attack.** The counter-punch was unusable at 0 AP —
+> the only state in which "free" means anything — because both AP pre-gates ran
+> ~200 lines before the exemption. It also broke GR5: the AI's counter-punch
+> always worked, since those gates skip enemy marshals.
+>
+> `tests/test_ux_fixes_2026_08_23.py` (37) + `tests/test_counter_punch_ap_gate.py`
+> (14). **23 mutations swept, 23 killed — two of the new pins were INERT on the
+> first sweep and were repaired.** M1–M7 + `BASELINE_SERIES` byte-identical, no
+> re-record. Godot parse harness EXIT=0.
+>
+> ⚠ **OPEN:** the audio re-audition; eight routed rows (UX23-R1..R8, headline:
+> there is still **no stop API for one-shot cues**, and the notification chime
+> re-rings per unmet marshal per turn because every refresh mints a new uuid);
+> and the structural answer to "too early" — `DESIGN_REFINEMENT.md` UX23-D1..D4,
+> gated.
+
 > # ✅ WO SLICE 8 — "THE PANEL STATES ITS TERMS" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 8,
 > authoritative.** All four contract items (WO-D1-A + WO-D4-A + G3), and

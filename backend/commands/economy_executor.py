@@ -1020,8 +1020,9 @@ class EconomyExecutor:
         """
         from backend.game_logic.dotation import (
             check_estate_eligibility, compute_investiture_fee, derive_title,
-            estate_yield, get_expectation, get_satisfaction, is_dotation_world,
-            list_eligible_estates, strip_dead_estate_claims,
+            dismiss_reward_notices, estate_yield, get_expectation,
+            get_satisfaction, is_dotation_world, list_eligible_estates,
+            strip_dead_estate_claims,
         )
 
         world: WorldState = game_state.get("world")
@@ -1145,6 +1146,17 @@ class EconomyExecutor:
             "fee": int(fee),
         })
 
+        # Aug 23, 2026 (user: "when you pay them it doesn't dismiss their
+        # popup of wanting"): the reward rail was reconciled ONLY by the
+        # once-per-turn `process_dotation_state`, so this very response
+        # shipped "his expectation is met" alongside a standing tray row
+        # reading "holds 0g". Retire it here. Deliberately dismiss-only, not
+        # re-post: `create_notification` mints a fresh uuid every time and
+        # the client's chime dedupes on that id, so re-stating a still-short
+        # row would ring the grievance bell AT THE MOMENT OF PAYMENT. If a
+        # shortfall remains, the next turn's pass re-posts it honestly.
+        dismiss_reward_notices(world, marshal)
+
         fee_note = f" Investiture: {fee} gold." if fee > 0 else ""
         decree = _decree_preamble(world, acting_nation)
         if satisfaction >= expectation:
@@ -1204,7 +1216,7 @@ class EconomyExecutor:
         this same method (enemy_ai rente rung).
         """
         from backend.game_logic.dotation import (
-            build_rente_offer, is_dotation_world,
+            build_rente_offer, dismiss_reward_notices, is_dotation_world,
         )
 
         world: WorldState = game_state.get("world")
@@ -1255,8 +1267,22 @@ class EconomyExecutor:
 
         offer = build_rente_offer(marshal, world)
         face, cost = int(offer["face"]), int(offer["cost"])
-        if face <= 0:
-            held = int(getattr(marshal, "pension", 0))
+        held = int(getattr(marshal, "pension", 0))
+        # Aug 23, 2026 — the no-op re-size. `compute_rente_face` is
+        # `expectation − ESTATE income` and deliberately ignores the rente
+        # already held, so a marshal who is fully paid BY HIS RENTE still
+        # reports a positive face. This guard only ever asked `face <= 0`, so
+        # Ney at expectation 80 / pension 80 / estates 0 reached the success
+        # path, re-wrote `pension = 80`, announced "his previous rente is
+        # folded in", and spent 1 of the turn's 2 admin actions achieving
+        # exactly nothing. Measured live on the user's turn-3 board, and the
+        # reward dialog was offering the button ("Re-size rente — 80g/turn")
+        # to a marshal who needed nothing.
+        #
+        # The honest test is whether the gap is actually open: satisfaction
+        # counts the held rente, `face` does not.
+        already_met = face <= 0 or face <= held
+        if already_met:
             if held > 0:
                 return {
                     "success": False,
@@ -1270,7 +1296,7 @@ class EconomyExecutor:
                             f"met — no rente is needed, Sire."),
             }
 
-        previous = int(getattr(marshal, "pension", 0))
+        previous = held      # read above, before anything mutated it
         marshal.pension = int(face)
 
         world.log_event({
@@ -1281,6 +1307,10 @@ class EconomyExecutor:
             "cost": int(cost),
             "previous": int(previous),
         })
+
+        # Aug 23, 2026: the tray must not go on asking for what was just
+        # paid — same seam and same dismiss-only reasoning as grant_dotation.
+        dismiss_reward_notices(world, marshal)
 
         resize_note = (f" (his previous rente of {previous}g/turn is folded in)"
                        if previous > 0 else "")
@@ -1317,7 +1347,9 @@ class EconomyExecutor:
         window, then erosion) — withdrawing favor has the same teeth as
         losing an estate; no extra penalty is stacked here.
         """
-        from backend.game_logic.dotation import get_rente_cost, is_dotation_world
+        from backend.game_logic.dotation import (
+            dismiss_reward_notices, get_rente_cost, is_dotation_world,
+        )
 
         world: WorldState = game_state.get("world")
         if not world:
@@ -1371,6 +1403,12 @@ class EconomyExecutor:
         # rente reopens nothing, and the message must not threaten erosion
         # that cannot happen.
         from backend.game_logic.dotation import get_expectation, get_satisfaction
+        # Aug 23, 2026: a revoke changes his satisfaction too, so the standing
+        # rows are stale either way — whether the estates now cover him (both
+        # rows are simply false) or a shortfall has just reopened (the numbers
+        # are last turn's). Retire them; the next turn's pass re-posts the
+        # honest row with a fresh grace clock if one is owed.
+        dismiss_reward_notices(world, marshal)
         if get_satisfaction(marshal, world) >= get_expectation(marshal):
             consequence = ("His estates sustain his expectation without it — "
                            "the paper was redundant, Sire.")

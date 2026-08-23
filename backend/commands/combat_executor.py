@@ -4034,7 +4034,7 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         counter_punch_message = ""
         is_counter_punch = False
-        if getattr(marshal, 'counter_punch_available', False) and marshal.personality == 'cautious':
+        if marshal.has_counter_punch():
             is_counter_punch = True
             marshal.counter_punch_available = False  # Consume the counter-punch
             marshal.counter_punch_turns = 0  # Clear the turns counter
@@ -6808,7 +6808,7 @@ class CombatExecutor:
             # only; display-only (Golden Rule 6). Reinforcing participants
             # surface via the next dispatch's expectation_rises instead.
             from backend.game_logic.dotation import (
-                EXPECTATION_CAP, REP_STEP, get_expectation,
+                expectation_for_wins, get_expectation,
                 get_satisfaction, is_dotation_world,
             )
             if is_dotation_world(world):
@@ -6822,8 +6822,9 @@ class CombatExecutor:
                             <= _exp_before):
                         continue
                     _exp_now = get_expectation(_exp_winner)
-                    _exp_prev = int(min(REP_STEP * _exp_before,
-                                        EXPECTATION_CAP))
+                    # GR1: the curve has ONE implementation. This used to
+                    # re-derive `min(REP_STEP * n, EXPECTATION_CAP)` by hand.
+                    _exp_prev = expectation_for_wins(_exp_before)
                     if _exp_now > _exp_prev:
                         result["battle_report"]["expectation_note"] = (
                             f"Victory raises Marshal {_exp_winner.name}'s "

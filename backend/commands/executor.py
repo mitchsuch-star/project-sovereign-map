@@ -804,7 +804,47 @@ class CommandExecutor:
         # Track whether this is an admin action (uses admin AP pool)
         is_admin_action = action in ADMIN_ACTIONS and is_player_action_check
 
-        if action_costs_point and is_player_action_check:
+        # ════════════════════════════════════════════════════════════
+        # COUNTER-PUNCH AP WAIVER (Phase 2.8 repair)
+        # A cautious marshal who wins a defence earns a FREE attack, and the
+        # notification tells the player to "use it THIS turn". He earns it in
+        # the ENEMY phase and reaches for it once the turn's own AP is spent —
+        # which is exactly the state the two AP pre-gates below refused. The
+        # waiver existed only INSIDE `combat_executor._execute_attack`, ~200
+        # lines past the gate that stopped the command ever getting there, and
+        # was honoured only by the post-execution charge. So the free attack
+        # worked while AP remained (invisibly, correctly) and was impossible at
+        # 0 AP — the one state in which "free" means anything.
+        # GR5: `is_player_action_check` is False for an enemy marshal, so the
+        # AI's counter-punch skipped both gates and always worked.
+        #
+        # Scope: a NAMED marshal only. A bare "attack" is resolved to a marshal
+        # further down (:874), after this gate, so there is no one to ask here;
+        # the notification names the marshal, and the pin in
+        # tests/test_counter_punch_ap_gate.py records that boundary as
+        # deliberate rather than leaving it open.
+        #
+        # This waives only the PRE-gates. Whether the action is actually
+        # charged still rides `free_action`, which `_execute_attack` stamps
+        # only when it truly consumed the counter-punch — so a waiver that
+        # turns out not to apply cannot hand out a free action.
+        counter_punch_waiver = False
+        counter_punch_snapshot = None
+        if action == "attack" and early_marshal_name and is_player_action_check:
+            _cp_marshal = world.get_marshal(early_marshal_name)
+            if _cp_marshal is not None and _cp_marshal.has_counter_punch():
+                counter_punch_waiver = True
+                # The counter-punch is an action-economy resource, so it obeys
+                # the same rule as AP: spent only when the command SUCCEEDS.
+                # `_execute_attack` clears the flag at its head (:4037) and
+                # only then runs the drill-lock, artillery-moved and range
+                # checks that can still refuse — so a refused attack silently
+                # burned the free strike and the player never got it back.
+                # Snapshot here, restore below on failure.
+                counter_punch_snapshot = (
+                    _cp_marshal, int(getattr(_cp_marshal, "counter_punch_turns", 0)))
+
+        if action_costs_point and is_player_action_check and not counter_punch_waiver:
             if is_admin_action:
                 # Admin actions use admin AP pool
                 if world.admin_actions_remaining < 1:
@@ -1376,7 +1416,8 @@ class CommandExecutor:
                 # Without this, an objection fires and then "proceed" fails
                 # with an AP error, which is confusing.
                 # ═══════════════════════════════════════════════════════════
-                if action_costs_point and is_player_action_check:
+                if (action_costs_point and is_player_action_check
+                        and not counter_punch_waiver):
                     required_ap = 1  # Default cost
                     if action == 'stance_change':
                         target_stance_raw_ap = (command.get('target_stance') or command.get('target') or '').lower()
@@ -1881,6 +1922,15 @@ class CommandExecutor:
                 "success": False,
                 "message": f"Unknown command type: {command_type}"
             }
+
+        # A refused attack must not spend the counter-punch it never threw.
+        # See the snapshot above: the flag is cleared at the head of
+        # `_execute_attack`, long before that function's last failure return.
+        if (counter_punch_snapshot is not None
+                and not (isinstance(result, dict) and result.get("success", False))):
+            _cp_holder, _cp_turns = counter_punch_snapshot
+            _cp_holder.counter_punch_available = True
+            _cp_holder.counter_punch_turns = _cp_turns
 
         # ============================================================
         # ACTION ECONOMY: Consume action ONLY if command succeeded

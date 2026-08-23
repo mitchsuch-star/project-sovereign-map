@@ -194,29 +194,36 @@ class TestS53DotationRailLive:
     def test_open_then_refresh_then_dismiss(self):
         world, ney = self._europe_world()
 
-        # Turn 10 — shortfall opens.
+        from backend.game_logic.dotation import GRACE_TURNS
+
+        # Turn 10 — shortfall opens. The countdown starts at the full window.
         world._process_dotation_state()
         notices = self._notice(world)
         assert len(notices) == 1
         assert notices[0]["details"]["expectation"] == 80
-        assert notices[0]["details"]["remaining_grace"] == 2
+        assert notices[0]["details"]["remaining_grace"] == GRACE_TURNS
         assert "80g/turn" in notices[0]["message"]
 
-        # Turn 11 — expectation GROWS; the rail must track it (not stay 80).
+        # Expectation GROWS mid-window; the rail must track it (not stay 80)
+        # and the countdown must tick down with it. Walked to its LAST turn
+        # rather than assuming a two-turn window — the Aug-23 retune red-ed
+        # the hardcoded form.
         ney.battles_won = 4          # expectation = 160
-        world.current_turn = 11
-        world._process_dotation_state()
-        notices = self._notice(world)
-        assert len(notices) == 1, "must not stack a duplicate"
-        assert notices[0]["details"]["expectation"] == 160
-        assert notices[0]["details"]["remaining_grace"] == 1
-        assert "160g/turn" in notices[0]["message"]
-        assert "one more turn" in notices[0]["message"]
+        for step in range(1, GRACE_TURNS):
+            world.current_turn = 10 + step
+            world._process_dotation_state()
+            notices = self._notice(world)
+            assert len(notices) == 1, "must not stack a duplicate"
+            assert notices[0]["details"]["expectation"] == 160
+            assert notices[0]["details"]["remaining_grace"] == GRACE_TURNS - step
+            assert "160g/turn" in notices[0]["message"]
+        assert "one more turn" in notices[0]["message"], (
+            "the last turn of the window must say so in words")
 
-        # Turn 12 — grace elapses → erosion owns the narrative; the stale
-        # NORMAL expectation notice is dropped so the rail never contradicts
-        # the dispatch/erosion HIGH notice.
-        world.current_turn = 12
+        # Grace elapses → erosion owns the narrative; the stale NORMAL
+        # expectation notice is dropped so the rail never contradicts the
+        # dispatch/erosion HIGH notice.
+        world.current_turn = 10 + GRACE_TURNS
         world._process_dotation_state()
         assert self._notice(world) == []
         from backend.notifications import DOTATION_EROSION
@@ -224,10 +231,17 @@ class TestS53DotationRailLive:
                    if n["type"] == DOTATION_EROSION]
         assert erosion, "erosion notice should fire when grace elapses"
 
-    def test_paying_back_to_met_dismisses_notice(self):
-        """Adversarial-review finding: if the player DOES reward the marshal
-        mid-grace, the stale 'reward him' rail notice must clear — it must not
-        contradict the grant confirmation."""
+    def test_paying_back_to_met_dismisses_notice_at_the_turn_boundary(self):
+        """The TURN-BOUNDARY half: once satisfaction meets expectation, the
+        next reconciliation retires the stale 'reward him' rail notice.
+
+        Aug 23, 2026 — docstring corrected. This test claimed to cover "if
+        the player DOES reward the marshal mid-grace", but it sets
+        `ney.pension` by hand and then calls `_process_dotation_state`: it
+        never touches an executor, so it pinned only the per-turn pass and
+        was INERT against the defect the user actually reported — pay a
+        marshal and the tray goes on asking until the turn ends. The
+        executor path is pinned by the sibling below."""
         world, ney = self._europe_world()
 
         # Turn 10 — shortfall opens, notice posted.
@@ -240,6 +254,31 @@ class TestS53DotationRailLive:
         world._process_dotation_state()
         assert self._notice(world) == [], \
             "the reward-expectation notice must be dismissed once met"
+
+    def test_paying_through_the_executor_dismisses_it_in_the_same_call(self):
+        """The half that was missing: NO turn advance, NO reconciliation —
+        the grant itself must retire the row.
+
+        This is the user's report verbatim ("when you pay them it doesn't
+        dismiss their popup of wanting"). Before the fix the row survived the
+        grant, so the very same response carried both "his expectation is
+        met" and a tray row reading "holds 0g"."""
+        from backend.commands.executor import CommandExecutor
+
+        world, ney = self._europe_world()
+        world._process_dotation_state()
+        assert len(self._notice(world)) == 1, "precondition: the row is up"
+
+        turn_before = world.current_turn
+        result = CommandExecutor().execute(
+            {"command": {"action": "grant_pension", "marshal": "Ney"}},
+            {"world": world})
+
+        assert result.get("success") is True, result.get("message")
+        assert world.current_turn == turn_before, "no turn may have advanced"
+        assert self._notice(world) == [], (
+            "paying the marshal must retire his reward-rail row in the same "
+            "call — not at the next turn boundary")
 
 
 # ════════════════════════════════════════════════════════════════════════

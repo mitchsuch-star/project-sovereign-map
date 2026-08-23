@@ -302,7 +302,11 @@ class TestMinorAISide:
                        if m.nation == self.NATION and m.strength > 0)
         marshal.battles_won = 2  # expectation 80
         trust_start = marshal.trust.value
-        for _ in range(3):
+        # Derived from the grace window, not the literal 3 — this pin red-ed
+        # on the Aug-23 GRACE_TURNS retune only because it had the window
+        # baked into a range().
+        from backend.game_logic.dotation import GRACE_TURNS
+        for _ in range(GRACE_TURNS + 1):
             world.advance_turn()
         assert marshal.trust.value < trust_start  # eroding
         # endow a rich-enough province -> shortfall 0 -> bleed stops

@@ -2895,6 +2895,9 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
             marshal.pension = int(face)
             marshal.expectation_grace_turn = -1
             marshal.modify_trust(FONTAINEBLEAU_CONCEDE_TRUST)
+            # Aug 23, 2026: retire this petitioner's reward-rail rows in the
+            # same breath as paying him — see the note at grant_dotation.
+            dotation.dismiss_reward_notices(world, marshal)
             granted.append(f"{marshal.name} ({face}g/turn)")
             world.log_event({
                 "type": "rente_granted",

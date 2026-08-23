@@ -141,6 +141,49 @@ Curated from the RPG pack (CC0): `ship_creak_1/2.ogg`.
 The wiring session implements this table. "Shown = played": a cue listed here is a
 promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 
+> **§2a — CUE LENGTH IS PART OF THE CUE (added August 23, 2026).**
+>
+> User report from a live campaign: *"when clicking envoys and such the paper
+> noise goes on for a really long time."* `ui/letter_open.mp3` is **38.64
+> seconds** long. It was registered as a one-shot with no cap, so opening an
+> envoy started 38 seconds of paper — and its 300 ms throttle let a second
+> copy start over the first.
+>
+> The sourced CC0 libraries are full of whole *ambiences* rather than single
+> hits (`church_bells_peal` 77.2 s, `bugle_to_the_color` 42.4 s,
+> `fanfare_erafnaf` 36.5 s, `bell_toll_single` 31.7 s, `cavalry_gallop` 25.2 s,
+> `musket_battle_volley` 22.8 s). **A cue's budget now lives in the `CUES`
+> registry as `max_s`**, honoured by `_play_cue` with an 0.8 s fade; an
+> explicit `AudioManager.play(cue, seconds)` argument still wins. Eleven cues
+> are capped. `tests/test_ux_fixes_2026_08_23.py` walks every registry entry,
+> measures its asset with a stdlib header parse (no ffmpeg — its absence is
+> already recorded in §0), and fails any cue whose effective length outlives
+> the moment that fires it, with deliberate ceremonies allowlisted by name.
+>
+> Corrections to this document, from the same measurement pass:
+> * §1 records `bugle_first_call.mp3` as `~0:15`; it is **9.221 s**.
+> * The `ui/` and `ambient/` inventories have no length column. They should.
+>
+> **⚠ Acceptance condition, OPEN.** §0.6 records that nobody has *listened* to
+> these files — durations are verified, ears are not. A 1.4 s cap assumes the
+> envelope gesture occupies the first 1.4 s of a 38.6 s file, and nothing
+> establishes that. **If the head of a capped file is a fade-in or room tone,
+> the capped cue is worse than the bug.** The eleven capped cues owe a
+> re-audition.
+>
+> **The §3.5 audition gate has a structural blind spot, recorded here rather
+> than treated as carelessness:** an audition hears each cue once, in
+> isolation, judging character in the first second. It never sits through 38
+> seconds and never stacks four copies. Length needs the automated pin above,
+> not a listener.
+>
+> Still open, routed to `BUG_FIXES.md` §Live UX Report: there is **no stop API
+> for one-shots** (`stop_loop` and friends iterate `_loop_players` only), so a
+> cap shortens each instance but "closing the panel silences it" is still not
+> true; and every notification refresh mints a new uuid while the client's
+> chime dedupes on that id, so the desk bell re-rings per unmet marshal per
+> turn.
+
 ### The command flow (the user's named ask)
 | Moment | Cue | Asset |
 |---|---|---|

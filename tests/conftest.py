@@ -86,6 +86,38 @@ def _isolate_sovereign_scenario(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_save_dir(monkeypatch, tmp_path_factory):
+    """The suite must never write into the developer's own `saves/`.
+
+    Aug 23, 2026, found while diagnosing the live UX report. `end turn`
+    autosaves (`executor.py`, `meta_executor.py`), so ANY test that advances
+    a turn through the executor without patching `SAVE_DIR` overwrites
+    `saves/autosave.json` — and most of them build the legacy 19-region
+    fixture world. Measured: a full-suite run replaced a real campaign's
+    autosave with a 19-region test artifact, twice, and that is why the
+    reported live turn-3 campaign had no recoverable save at all.
+
+    Only `autosave.json` was ever at risk (named saves use their own
+    filenames), but the autosave is exactly the one the main menu's
+    "Continue" reaches for.
+
+    Redirected per-session rather than per-test so tests that write and then
+    read a save inside one module still see it. Tests that patch
+    `backend.save_manager.SAVE_DIR` themselves still win — this only moves
+    the default off the repo.
+    """
+    import backend.save_manager as save_manager
+
+    monkeypatch.setattr(
+        save_manager, "SAVE_DIR",
+        tmp_path_factory.mktemp("suite_saves", numbered=False)
+        if not hasattr(_isolate_save_dir, "_dir")
+        else _isolate_save_dir._dir,
+        raising=False)
+    _isolate_save_dir._dir = save_manager.SAVE_DIR
+
+
+@pytest.fixture(autouse=True)
 def _isolate_sovereign_seed(monkeypatch):
     """Pin SOVEREIGN_SEED to the historical seed for every test (AI-0b, D7).
 

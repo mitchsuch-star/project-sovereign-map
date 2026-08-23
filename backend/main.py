@@ -442,8 +442,13 @@ def build_base_response(world, success: bool = True, message: str = "",
         draft_notices = notice_drain()
         if draft_notices:
             response["settlement_draft_notices"] = draft_notices
-    # Notifications — persistent alerts for Godot notification bar
-    if include_notifications and world.notifications.has_pending():
+    # Notifications — persistent alerts for Godot notification bar.
+    # Aug 23, 2026: the `has_pending()` guard meant that when the LAST row
+    # cleared, the key was omitted entirely — and `main.gd` renders on
+    # `if response.has("notifications")`, so the rail was never told to empty
+    # and kept a ghost row on screen. Retiring a notification has to be
+    # something the client can be told about, so an empty rail ships `[]`.
+    if include_notifications:
         response["notifications"] = world.notifications.get_pending()
     return response
 
@@ -1396,8 +1401,9 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
 def _finalize_command_notifications(response: dict, world) -> None:
     """Drain informational notices into the persistent notification rail."""
     _queue_informational_diplomacy_notices(response, world)
-    if world.notifications.has_pending():
-        response["notifications"] = world.notifications.get_pending()
+    # Always emit the key — see the note in `build_base_response`. An omitted
+    # key reads to the client as "no change", not "nothing left".
+    response["notifications"] = world.notifications.get_pending()
 
 
 def _apply_command_result_layers(response: dict, result: dict, world) -> None:
@@ -4459,12 +4465,31 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     promote_pending_settlement_offers(world)
     dm = world.dialogue_manager
 
+    # Read the blocker BEFORE activating — a successful activation clears it.
+    blocker = dm.active_blocker_type()
     dialogue = dm.activate_mailbox_item(request.mailbox_id)
 
     if dialogue is None:
+        # Aug 23, 2026: this used to answer "Item not found or activation
+        # blocked by current dialogue" — one string for two unrelated causes,
+        # naming neither. This is also the route the mailbox panel's own row
+        # click takes AFTER the panel has hidden itself, so the player is left
+        # looking at an empty screen being told something they cannot see is
+        # in the way. Two causes, two sentences, and the blocker by name.
+        if blocker:
+            from backend.display_names import dialogue_display_name
+            named = dialogue_display_name(blocker)
+            message = (f"{named[:1].upper()}{named[1:]} is still before you, "
+                       f"Sire — settle that first.")
+        else:
+            message = "That letter is no longer in the mailbox, Sire."
         return {
             "success": False,
-            "message": "Item not found or activation blocked by current dialogue.",
+            "message": message,
+            # The client hides the panel on a BLOCKED refusal so the matter it
+            # names is actually visible (the panel is CanvasLayer 119; the
+            # dialogue modals it points at are 110).
+            "activation_blocked": bool(blocker),
             "items": list(dm.get_mailbox_items()),
             "count": int(dm.get_mailbox_count()),
         }
@@ -4570,13 +4595,29 @@ def respond_to_mailbox_item(request: MailboxRespondRequest):
         return _refuse("That matter is too weighty to answer from the "
                        "letter-book, Sire. Open it in full.")
 
+    # Read the blocker BEFORE activating — a successful activation clears it.
+    blocker = dm.active_blocker_type()
     activated = dm.activate_mailbox_item(int(request.mailbox_id))
     if activated is None:
-        # activate_mailbox_item refuses while a hard-stop / hybrid /
+        # activate_mailbox_item refuses while a hard-stop / hybrid / STAGED
         # local-planning dialogue holds the active slot. Say so rather than
-        # firing an answer that would land somewhere else.
-        return _refuse("Another matter holds your attention, Sire. Settle it "
-                       "before answering the lesser courts.")
+        # firing an answer that would land somewhere else — but NAME it.
+        # The old copy ("Another matter holds your attention, Sire. Settle it
+        # before answering the lesser courts.") was measured live against a
+        # Talleyrand advisory the player had no way to see, making it an
+        # instruction with no action behind it. Read-outs no longer reach here
+        # at all (DialogueManager.DISPOSABLE_ACTIVE_TYPES); what does reach
+        # here is real, staged, and has a surface the player can be sent to.
+        if blocker:
+            from backend.display_names import dialogue_display_name
+            named = dialogue_display_name(blocker)
+            response = _refuse(
+                f"{named[:1].upper()}{named[1:]} still holds your attention, "
+                f"Sire. Settle that before answering the lesser courts.")
+            response["activation_blocked"] = True
+            return response
+        return _refuse("That letter cannot be answered from the letter-book "
+                       "just now, Sire. Open it in full.")
 
     response = _respond_to_dialogue_sync(
         request.choice,

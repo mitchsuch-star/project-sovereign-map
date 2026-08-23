@@ -29,7 +29,13 @@ class_name AudioManager
 
 const AUDIO_ROOT := "res://assets/audio/"
 
-# Cue registry: cue -> {files: [...], bus, db (trim), throttle_ms}
+# Cue registry: cue -> {files: [...], bus, db (trim), throttle_ms, max_s}
+# `max_s` caps a one-shot that is LONGER THAN ITS MOMENT and fades it out over
+# 0.8s (`_fade_stop`). Sourced CC0 assets are frequently whole ambiences rather
+# than single hits — letter_open is 38.6s of paper, church_bells_peal is 77s —
+# and a cue with no cap plays to the end of the file no matter how brief the
+# interaction that fired it. Cap anything whose asset outlives its beat; leave
+# it off when the file is already the right length.
 const CUES := {
 	# ── UI chrome ──
 	# Aug 8, 2026 (user): the Interface-pack synth blips read as "laser" on the
@@ -65,32 +71,32 @@ const CUES := {
 	"quill_sign": {"files": ["ui/quill_sign.mp3"], "bus": "UI", "db": -6.0},
 	"wax_seal": {"files": ["ui/wax_seal.mp3"], "bus": "UI", "db": -4.0},
 	"command_ack": {"files": ["ui/command_ack_click.ogg"], "bus": "UI", "db": -12.0, "throttle_ms": 150},
-	"letter_open": {"files": ["ui/letter_open.mp3"], "bus": "UI", "db": -8.0, "throttle_ms": 300},
+	"letter_open": {"files": ["ui/letter_open.mp3"], "bus": "UI", "db": -8.0, "throttle_ms": 300, "max_s": 1.4},
 	"paper_crumple": {"files": ["ui/paper_crumple.mp3"], "bus": "UI", "db": -6.0},
 	"notification": {"files": ["ui/notification_bell.mp3"], "bus": "UI", "db": -10.0, "throttle_ms": 400},
 	"coins_small": {"files": ["ui/coins_small.ogg", "ui/coins_small_2.ogg"], "bus": "UI", "db": -8.0},
-	"coin_pour": {"files": ["ui/coin_pour.mp3"], "bus": "UI", "db": -6.0},
+	"coin_pour": {"files": ["ui/coin_pour.mp3"], "bus": "UI", "db": -6.0, "max_s": 3.0},
 	"end_turn": {"files": ["ui/end_turn_drum_roll.mp3"], "bus": "UI", "db": -8.0},
 	# ── battle ──
 	"cannon": {"files": ["battle/cannon_thud.ogg"], "bus": "SFX", "db": -8.0},
 	"cannon_distant": {"files": ["battle/cannon_distant.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 300},
 	"drum_sting": {"files": ["battle/drum_sting.wav"], "bus": "SFX", "db": -6.0},
-	"musket_volley": {"files": ["battle/musket_battle_volley.mp3"], "bus": "SFX", "db": -10.0},
+	"musket_volley": {"files": ["battle/musket_battle_volley.mp3"], "bus": "SFX", "db": -10.0, "max_s": 5.0},
 	"musket_shot": {"files": ["battle/musket_shot_1.ogg", "battle/musket_shot_2.ogg", "battle/musket_shot_3.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 120},
-	"cavalry": {"files": ["battle/cavalry_gallop.mp3"], "bus": "SFX", "db": -10.0},
+	"cavalry": {"files": ["battle/cavalry_gallop.mp3"], "bus": "SFX", "db": -10.0, "max_s": 3.5},
 	"whinny": {"files": ["battle/horse_whinny.ogg"], "bus": "SFX", "db": -14.0},
 	"sword_draw": {"files": ["battle/sword_draw.mp3"], "bus": "SFX", "db": -8.0},
-	"march_step": {"files": ["battle/army_march_loop_short.mp3"], "bus": "SFX", "db": -18.0, "throttle_ms": 1500},
+	"march_step": {"files": ["battle/army_march_loop_short.mp3"], "bus": "SFX", "db": -18.0, "throttle_ms": 1500, "max_s": 0.65},
 	# ── world / ceremony ──
-	"bells_peal": {"files": ["ambient/church_bells_peal.mp3"], "bus": "SFX", "db": -8.0},
-	"bell_toll": {"files": ["ambient/bell_toll_single.mp3"], "bus": "SFX", "db": -8.0},
+	"bells_peal": {"files": ["ambient/church_bells_peal.mp3"], "bus": "SFX", "db": -8.0, "max_s": 6.0},
+	"bell_toll": {"files": ["ambient/bell_toll_single.mp3"], "bus": "SFX", "db": -8.0, "max_s": 4.0},
 	"ship_bell": {"files": ["ambient/ship_bell.mp3"], "bus": "SFX", "db": -10.0, "throttle_ms": 400},
 	# ── field music used as one-shot cues (capped where long) ──
-	"reveille": {"files": ["music/bugle_reveille.ogg"], "bus": "SFX", "db": -14.0, "throttle_ms": 2000},
+	"reveille": {"files": ["music/bugle_reveille.ogg"], "bus": "SFX", "db": -14.0, "throttle_ms": 2000, "max_s": 5.0},
 	"mail_call": {"files": ["music/bugle_mail_call.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 2000},
-	"first_call": {"files": ["music/bugle_first_call.mp3"], "bus": "SFX", "db": -14.0},
-	"to_the_color": {"files": ["music/bugle_to_the_color.ogg"], "bus": "SFX", "db": -14.0},
-	"fanfare": {"files": ["music/fanfare_erafnaf.ogg"], "bus": "SFX", "db": -10.0, "throttle_ms": 2000},
+	"first_call": {"files": ["music/bugle_first_call.mp3"], "bus": "SFX", "db": -14.0, "max_s": 5.0},
+	"to_the_color": {"files": ["music/bugle_to_the_color.ogg"], "bus": "SFX", "db": -14.0, "max_s": 6.0},
+	"fanfare": {"files": ["music/fanfare_erafnaf.ogg"], "bus": "SFX", "db": -10.0, "throttle_ms": 2000, "max_s": 6.0},
 }
 
 # Named ambient loops: tag -> {file, bus, db}
@@ -304,15 +310,21 @@ func _play_cue(cue: String, max_seconds: float) -> void:
 		var now := Time.get_ticks_msec()
 		if _last_played_ms.has(cue) and now - int(_last_played_ms[cue]) < throttle:
 			return
-		_last_played_ms[cue] = now
 	if _oneshot_count >= MAX_ONESHOT_PLAYERS:
 		return
 	var files: Array = spec["files"]
 	var i := int(_rr.get(cue, 0)) % files.size()
-	_rr[cue] = i + 1
 	var stream = _stream(String(files[i]))
 	if stream == null:
 		return
+	# Aug 23, 2026: the throttle stamp and the round-robin advance used to run
+	# ABOVE the budget check and the missing-file check, so a play that never
+	# happened still poisoned the window — a cue rejected for lack of a player
+	# slot, or one whose file is absent, went silent for its whole throttle
+	# period afterwards. Both are recorded only once the play is certain.
+	_rr[cue] = i + 1
+	if throttle > 0:
+		_last_played_ms[cue] = Time.get_ticks_msec()
 	var p := _make_player(String(spec["bus"]))
 	p.stream = stream
 	p.volume_db = float(spec.get("db", 0.0))
@@ -321,8 +333,20 @@ func _play_cue(cue: String, max_seconds: float) -> void:
 		_oneshot_count -= 1
 		p.queue_free())
 	p.play()
-	if max_seconds > 0.0:
-		_fade_stop(p, max_seconds)
+	# Aug 23, 2026 (user: "the paper noise goes on for a really long time"):
+	# a cue's cap now lives in the registry beside its file, not only in the
+	# optional `max_seconds` argument. `_fade_stop` was NOT unreachable —
+	# three call sites passed a cap (the diorama's volley, the reveille, the
+	# reward fanfare) — but a cap a caller has to remember is a cap the other
+	# 68 call sites did not have, so `letter_open` ran its full 38.6 SECONDS
+	# every time an envoy was opened and the 300 ms throttle let a second
+	# copy start over the first. The registry is the single source now; those
+	# three sites dropped their arguments and their values moved here. The
+	# argument still wins where it is passed, so a one-off ceremony can ask
+	# for longer than its cue's own default.
+	var cap := max_seconds if max_seconds > 0.0 else float(spec.get("max_s", 0.0))
+	if cap > 0.0:
+		_fade_stop(p, cap)
 
 
 func _fade_stop(p: AudioStreamPlayer, after_s: float) -> void:

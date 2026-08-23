@@ -1004,7 +1004,7 @@ func _play_arm_flavor() -> void:
 	if has_infantry:
 		get_tree().create_timer(0.9).timeout.connect(func():
 			if is_instance_valid(self) and visible:
-				AudioManager.play("musket_volley", 5.0))
+				AudioManager.play("musket_volley"))
 	if has_cavalry:
 		get_tree().create_timer(1.6).timeout.connect(func():
 			if is_instance_valid(self) and visible:

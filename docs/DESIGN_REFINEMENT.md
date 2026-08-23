@@ -6,6 +6,48 @@
 
 ---
 
+## Live UX Report — the reward curve (August 23, 2026, rows UX23-D1..D4)
+
+> Filed from the Aug-23 live turn-3 France/1805 report (*"it happens so early
+> in the war them wanting raises etc. whole ux is off"*). The **delay** half
+> was fixed in-band the same day — `GRACE_TURNS` 2 → 4, landing record
+> `BUG_FIXES.md` §Live UX Report. These four are the **shape** half: each
+> changes the curve rather than the deadline, each is structural, and none is
+> built.
+>
+> Two measured facts belong in front of whichever gate takes these:
+>
+> * Across all 8 battles in the live campaign log, **Davout and Lannes appear
+>   in none of them** — and each holds 2 battle wins and an 80g/turn
+>   expectation. Both sit at Munich. One tactical victory credited the whole
+>   stack. (UX23-D4 attacks exactly this.)
+> * **`battles_won` is a monotonic ratchet.** All 7 write sites are `+= 1`;
+>   nothing anywhere decrements it. That is why every scaling lever inherits a
+>   curve that can only rise. `glory` is already graded, already gives
+>   participants only +1, already excludes garrison stomps, and already decays
+>   over 8 turns. (UX23-D2.)
+>
+> Not on this list, deliberately: a `REP_STEP` retune. It is technically
+> in-band, but it is the ONLY dotation constant that moves `BASELINE_SERIES`
+> at a plausible balance magnitude (measured: index 21; ~19 test failures plus
+> the sanctioned re-record + flip-attribution ritual). If it is ever taken, it
+> goes alone.
+
+| id | item | why it is gated |
+|---|---|---|
+| **UX23-D1** | **The free-wins floor.** `expectation = REP_STEP × max(0, wins − N)`. A marshal's first N victories raise no claim. | A new mechanic, not a retune. Measured at N=1 it clears all four live notifications *at that instant*, but three of the four marshals already held 2 wins — so it buys one battle, not the class of complaint. Cheap, and probably too small alone. |
+| **UX23-D2** | **Key expectation to `glory`, not `battles_won`.** | Structural: changes the field the entire reward economy is priced off. Also the most *designed* answer — glory already has every property the curve wants (graded, decaying, participation-aware, garrison-stomp-proof) and `battles_won` has none of them. |
+| **UX23-D3** | **A war-age / conquest damper** — the Empire does not owe estates it has not yet conquered. | Structural, and `get_expectation` **takes no `world`** — 11 production call sites would have to pass one. Strongest candidate for the principle *"the game should not ask before the player can pay"*, which is the actual complaint: at turn 3 France holds no conquered province, so the estate instrument does not exist and only the rente does. |
+| **UX23-D4** | **Stop crediting non-ordering co-locators.** A marshal standing in the province where someone else won should not bank the win. | Reverses an explicitly blessed W6-1 assumption (`combat_executor.py`, the comment is deliberate). **Attacks the root**: it would have turned the live turn-3 burst from four simultaneous claims into one or two, which is the difference between a demand and a pile-on. |
+
+**Recommended reading of the four:** D4 then D2. D4 removes the pile-on that
+made four claims arrive at once; D2 replaces a ratchet with a curve that can
+fall. D1 is a palliative and D3 is the largest change for the clearest reason.
+Whoever takes the gate should decide whether "too early" meant *too soon* or
+*too many at once* — the report says both, and they have different fixes.
+
+---
+
 ## WO slice 8 in-game pass — recorded, not fixed (August 22, 2026)
 
 > Found by driving the real client for the slice 6 + 8 visual pass

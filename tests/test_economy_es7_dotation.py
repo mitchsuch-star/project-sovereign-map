@@ -120,7 +120,11 @@ class TestBlessedConstants:
         assert INVESTITURE_FEE == 200
         assert EROSION_MAX == 3
         assert SHORTFALL_PER_POINT == 50
-        assert GRACE_TURNS == 2
+        # Aug 23, 2026: 2 -> 4, an in-band retune of a blessed STARTING
+        # value (§0.6.7 row E5 + its preamble). Erosion at turn 4 of 60 was
+        # measured on a live board and the binding constraint was admin AP,
+        # not patience — see the note at the constant.
+        assert GRACE_TURNS == 4
 
     def test_no_skim_constant_exists(self):
         """Amendment 1: the 0.30 skim constant is DELETED — satisfaction is
@@ -397,16 +401,21 @@ class TestIncomeRedirect:
 
 
 class TestReconciliation:
-    def test_grace_two_full_turns_before_erosion(self, world):
-        """Blessed grace-turn 2: a marshal must not begin souring two turns
-        after a victory — erosion starts on the THIRD unmet turn."""
+    def test_grace_holds_for_its_full_window_before_erosion(self, world):
+        """A marshal must not begin souring immediately after a victory:
+        trust is untouched for GRACE_TURNS observed turns, and erosion
+        begins on the turn after that.
+
+        Derived from the constant, not from the number 2 — this pin red-ed
+        on the Aug-23 retune purely because it had the window hardcoded in
+        its control flow, which tells you nothing about the mechanic."""
         m = _french_marshal(world)
         m.battles_won = 5  # expectation 200, shortfall 200 -> -3 capped
         trust_start = m.trust.value
-        world.advance_turn()  # shortfall observed: grace clock starts
-        assert m.trust.value == trust_start
-        world.advance_turn()  # within grace
-        assert m.trust.value == trust_start
+        for _ in range(GRACE_TURNS):
+            world.advance_turn()
+            assert m.trust.value == trust_start, (
+                "trust must not move while the grace window is open")
         world.advance_turn()  # grace elapsed: erosion begins
         assert m.trust.value == trust_start - EROSION_MAX
 
@@ -464,8 +473,8 @@ class TestReconciliation:
     def test_first_erosion_fires_notification_once(self, world):
         m = _french_marshal(world)
         m.battles_won = 5
-        world.advance_turn()
-        world.advance_turn()
+        for _ in range(GRACE_TURNS):
+            world.advance_turn()
         world.advance_turn()  # first eroding turn
         notes = [n for n in world.notifications.get_pending()
                  if n["type"] == "dotation_erosion"]

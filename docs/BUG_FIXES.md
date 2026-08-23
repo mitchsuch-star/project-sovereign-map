@@ -3,6 +3,18 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
+> Last Updated: **August 23, 2026 — the four live-report defects (row UX23).**
+> Landing record = §Live UX Report (Aug 23, 2026) below, authoritative.
+> Four user reports from a live turn-3 France/1805 campaign, all fixed:
+> the 38.6-second envoy sound; the end-turn soft-lock (THREE stacked faults,
+> the load-bearing one being that the typed `end turn` route could never
+> confirm the lapse it was told to confirm); the reward rail that asked to be
+> paid and then went on asking; and Bernadotte's counter-punch, which was
+> unusable at 0 AP — the only state in which "free" means anything.
+> `tests/test_ux_fixes_2026_08_23.py` (37) + `tests/test_counter_punch_ap_gate.py`
+> (14); 23 mutations swept, 23 killed, **two inert pins found and repaired by
+> the sweep**. M1–M7 and `BASELINE_SERIES` byte-identical, no re-record.
+>
 > Last Updated: August 21, 2026, third entry (**WO slice 7 "The Cabinet Is
 > The Only Door" LANDED — the G1 ruling**: typed diplomacy is redirected in
 > character on the terminal path (nothing sent, nothing spent) and the
@@ -2625,7 +2637,8 @@ User reported: (1) "Ney attack doesn't work / attack doesn't work", (2) "can't d
 - **Ordering consumer rule:** `mailbox_priority` / `mailbox_order` are the authoritative sort keys for both `GET /mailbox` and `DialogueManager._promote()` on `SOFT_STOP_MAILBOX_TYPES`. Keep `DIALOGUE_PRIORITY` only as fallback for non-mailbox types, and keep its mailbox-type fallback values aligned with the implementation order below (`counter_offer: 3`, `counter_offer_response: 3`, `conflict_alert: 4`).
 - Selecting the active row simply reopens the current popup.
 - Selecting a queued row must activate that item server-side before opening its popup. The previously active soft-stop item returns to the queue without data loss.
-  - **Activation guard:** Only swap when the active slot is empty or already holds a `SOFT_STOP_MAILBOX` item. If the active slot holds a `HARD_STOP`, `HYBRID_SOFT_STOP`, or `LOCAL_PLANNING` type, both mailbox open and `POST /mailbox/activate` must return a blocked message instead of burying the active non-mailbox flow.
+  - **Activation guard:** Only swap when the active slot is empty, already holds a `SOFT_STOP_MAILBOX` item, or holds a *disposable read-out*. If the active slot holds a `HARD_STOP`, `HYBRID_SOFT_STOP`, or a **staged** `LOCAL_PLANNING` type, both mailbox open and `POST /mailbox/activate` must return a blocked message — **naming the blocker** — instead of burying the active non-mailbox flow.
+    - **AMENDED Aug 23, 2026** (live turn-3 report: *"i cant end my turn ... it says i cant answer lesser courts ... but i see nothing else to resolve"*). The blanket `LOCAL_PLANNING` refusal was measured making every routine envoy unanswerable behind a Talleyrand `advisory` — a read-out with no flow to bury, rendered on a CanvasLayer the mailbox panel is drawn *over*. `DialogueManager.DISPOSABLE_ACTIVE_TYPES` (`advisory` / `feasibility` / `command_clarification`) is now discarded to make way; the wizard and confirm types are deliberately NOT in that set, because displacing a half-drafted set of terms is a worse bug than the one being fixed. The discard happens AFTER the queue lookup so the stale-`mailbox_id` rule below still holds. Anything in NO taxonomy set is now DENIED rather than silently overwritten (it used to fall through). Refusals name the blocker via `display_names.dialogue_display_name`.
   - **Cache invalidation:** `world.incoming_proposal_popup` (main.py:1898-1904) caches the popup payload set at delivery time. `POST /mailbox/activate` must overwrite this cache with the newly activated item's data, or the recovery path (`/pending_envoy`, response polling) will show data for the wrong proposal. The same rule applies when an active item mutates in place (for example incoming proposal → `counter_offer`): rebuild the cached popup payload from the new terms, do not only flip flags such as `is_counter_offer`.
   - **Re-queued item lifetime:** When the previously active item is re-queued, preserve its original `turn_created`. Do not refresh the timestamp — this keeps `clear_stale` consistent and prevents indefinite keep-alive via repeated activation cycling.
 - **Active popup-cache ownership:** `world.incoming_proposal_popup` is active-item-only state. Queued mailbox arrivals must NOT overwrite it just because a new item was pushed behind another current dialogue. Either store a popup-safe payload on each mailbox dialogue or guarantee `GET /mailbox` / `POST /mailbox/activate` / load-time recovery can rebuild it from dialogue context through one shared helper (including `counter_offer_response` created during `advance_turn`). On load or legacy `diplomatic_queue` migration, rebuild/validate the global cache from the active mailbox item only; ignore stale serialized popup data that points at a different mailbox item.
@@ -2747,7 +2760,9 @@ User reported: (1) "Ney attack doesn't work / attack doesn't work", (2) "can't d
   - mailbox item with `blocking=True` survives indefinitely (not force-cleared after `BLOCKING_TIMEOUT_TURNS`)
   - non-mailbox blocking dialogues still obey the existing safety valve timeout
 - Add activation guard tests:
-  - swap blocked when active slot holds `HARD_STOP`, `HYBRID_SOFT_STOP`, or `LOCAL_PLANNING`
+  - swap blocked when active slot holds `HARD_STOP`, `HYBRID_SOFT_STOP`, or a **staged** `LOCAL_PLANNING` type — and the refusal NAMES it (Aug 23, 2026 amendment above)
+  - swap ALLOWED when the active slot holds a disposable read-out (`DISPOSABLE_ACTIVE_TYPES`), which is discarded only once the swap is certain
+  - swap blocked for a dialogue type in no taxonomy set (deny, never overwrite)
   - `incoming_proposal_popup` cache updated on successful swap
   - `counter_offer` transition rebuilds cached popup clauses instead of only mutating `is_counter_offer`
   - re-queued item preserves original `turn_created`
@@ -3798,3 +3813,259 @@ MC-1. Tests: `tests/test_marshal_content_mc0_ability_display.py`.
 | PL-23 | Authority-driven pushback, pen nudge, trust removal | Session C |
 | PL-24 | Harshness scoring for all demand types | Session C |
 | PL-25 | Term novelty: jitter, personality nudge, desire bias, flavor | Session C |
+
+---
+
+## Live UX Report — August 23, 2026 (row UX23)
+
+Four defects reported by the user from a **live turn-3 France/1805 campaign**,
+diagnosed against the running backend over read-only `GET` and against the code
+at `f730758`. All four FIXED. A 13-agent verify→refute→synthesise fleet ran
+before the build and **corrected five of the session's own claims** — every
+correction is recorded inline below rather than quietly folded in.
+
+Landing record: this section. Pins: `tests/test_ux_fixes_2026_08_23.py` (37),
+`tests/test_counter_punch_ap_gate.py` (14). 23 mutations swept, 23 killed;
+**two of the new pins were INERT on the first sweep and were repaired** (see
+UX23-6 and UX23-2c). M1–M7 and `BASELINE_SERIES` byte-identical throughout —
+no re-record.
+
+### UX23-1 — "the paper noise goes on for a really long time" · P3 · FIXED
+
+`assets/audio/ui/letter_open.mp3` is **38.64 seconds** long and was registered
+as a one-shot cue, fired on every envoy open (`mailbox_panel.gd`,
+`incoming_proposal_popup.gd`, and four more producers). Its 300 ms throttle
+prevented nothing that matters: a second click 300 ms later started a second
+38-second stream over the first.
+
+**Correction to the session's first diagnosis:** `AudioManager._fade_stop` was
+NOT unreachable. Three call sites did pass a cap (`battle_diorama.gd` musket
+volley, `main.gd` reveille, `reward_dialog.gd` to-the-color). The defect is
+that a cap only 3 of 71 call sites remember is not a cap.
+
+Fix: `max_s` is a **registry** field on `CUES`, read by `_play_cue` as the
+default; an explicit `max_seconds` argument still wins. Eleven over-long cues
+capped, the three explicit arguments dropped so the registry is the single
+source and its values are the ones those sites had chosen. `letter_open` →
+1.4 s (+0.8 s fade).
+
+Found in passing and fixed: the throttle stamp and the round-robin advance ran
+**above** the player-budget check and the missing-file check, so a play that
+never happened silenced its cue for a whole throttle window.
+
+Also corrected: an agent reported `bells_peal` and `bell_toll` as having zero
+call sites. Both are live — `proclamation_popup.gd` fires the **77-second**
+church peal. Acting on that claim would have left the longest cue in the game
+uncapped.
+
+⚠ **Acceptance condition, open.** `MUSIC_SOUND_SPEC.md` §0.6 records that
+nobody has *listened* to these files — durations are verified, ears are not. A
+1.4 s cap assumes the gesture is in the first 1.4 s. If the head is a fade-in
+or room tone the capped cue is worse than the bug. **Re-audition the 11 capped
+cues.** The §3.5 audition gate has a structural blind spot here and it is
+recorded as such: an audition hears each cue once, in isolation, judging
+character in the first second — it never sits through 38 seconds.
+
+### UX23-2 — "i cant end my turn ... i see nothing else to resolve" · P1 · FIXED
+
+**THREE stacked faults.** The session's first diagnosis found only (b).
+
+**(a) The typed `end turn` route could never confirm the lapse.** `main.gd`
+`_execute_command` cleared `_awaiting_end_turn_confirmation` unconditionally
+and *then* dispatched `"end turn"`, so the latch was always false on arrival
+and the lapse warning fired forever. The warning's own text says *"or type end
+turn again to confirm the lapse"* — and that was the one route that could not
+work. Button, bare Enter and the `E` hotkey all could. **This is the user's
+literal sentence and it is the load-bearing fault.**
+
+Companion, same family: `_on_envoy_clicked` also cleared the latch — so
+following the warning's *first* instruction ("Click Open Envoys to review
+now") reset the confirmation and returned the player to the warning.
+
+**(b) A read-out held the letter-book shut.** `activate_mailbox_item` returned
+`None` for every `LOCAL_PLANNING` type, a set documented three lines above as
+"never a global blocker". Measured live: `advisory` dialogue_id 6 in the active
+slot, the Saxony letter (mailbox_id 5) queued behind it, every Accept/Decline
+answered *"Another matter holds your attention, Sire. Settle it before
+answering the lesser courts."* — an instruction with no possible action behind
+it.
+
+Fix: `DISPOSABLE_ACTIVE_TYPES` (`advisory` / `feasibility` /
+`command_clarification`) is discarded to make way. Staged drafts
+(`terms_guidance`, the ultimatum wizard, the confirm family) still refuse —
+displacing half-written terms is a worse bug. **The discard happens after the
+queue lookup**, so a stale `mailbox_id` still leaves the active item untouched.
+Anything in no taxonomy set is now DENIED rather than silently overwritten;
+several reachable types are unclassified. Both refusals now NAME the blocker
+through a new R7 chokepoint, `display_names.dialogue_display_name`.
+
+**(c) The panel covered the matter it named.** `mailbox_panel.tscn` is
+CanvasLayer **119**; the dialogue modals it points at are **110**. So the panel
+was drawn on top of the very thing it was telling the player to go and settle
+— *"i see nothing else to resolve"*, exactly. On a blocked refusal (new
+`activation_blocked` flag) the panel now hides and hands input back.
+
+**Also fixed, found by unit reproduction:** `_execute_diplomatic_advisory`
+used `replace()`, which **destroys** whatever holds the active slot. Envoy
+active → ask Talleyrand to assess the situation → envoy gone, mailbox count 0.
+Now `preempt()`. Scoped to this one call site deliberately: `replace()` has 37
+callers and is also the enrichment and wizard-step seam.
+
+*(Recorded: the live turn-3 state was NOT an instance of that data loss — the
+Saxony letter was queued, not destroyed. The advisory landed in an empty slot.
+The data-loss bug is real at unit level and worth fixing regardless; how the
+live world reached its state is not fully established.)*
+
+### UX23-3 — "no way to do it without menuing" · P2 · FIXED
+
+The reward rail's own copy was *"open the Generals screen (press G) and use
+[ Reward… ] on his card"* — an instruction to go elsewhere, printed on the
+surface the player is already looking at.
+
+Fix: the two reward notifications carry `review_target: "marshal_reward"` +
+`route_id: <marshal>`, which `notification_bar.gd` already renders as a button
+and already forwards. A new `main.gd` arm opens the reward dialog on the named
+marshal, sourcing his card from `/marshal_overview` — the one place that builds
+it — rather than inventing a second payload. The copy now also names a typed
+order that settles it where the player stands (`pension <name>`, a live
+golden-corpus utterance) and quotes the rente's true cost off the same two
+functions the executor prices the grant with.
+
+**Correction:** an agent proposed plumbing `route_id` through
+`notification_bar.gd`. That plumbing already exists; the work was already done.
+
+**Prerequisite fixed first — the no-op re-size.** `compute_rente_face` is
+`expectation − ESTATE income` and deliberately ignores the rente already held,
+so a marshal fully paid *by his rente* still reported a positive face and
+reached the **success** path: it rewrote `pension` to the same number,
+announced "his previous rente is folded in", and spent **1 of the turn's 2
+admin actions** on a literal no-op. Live in the reward dialog on the user's
+board. Now refused with a stated reason at zero cost.
+
+### UX23-4 — "it happens so early in the war" · balance · RETUNED
+
+Measured: `REP_STEP = 40` opens a shortfall on the **first** battle won. On the
+live board four marshals opened simultaneously on turn 3, each 40g/turn,
+against a fixed budget of **2 admin actions per turn** — so meeting them meant
+spending every admin action of two consecutive turns on rentes, at the moment a
+war opened. Erosion began on turn 4 of 60, and the **Fontainebleau collective
+petition — an end-of-Empire beat — was reachable on turn 4.**
+
+`GRACE_TURNS` **2 → 4**. An in-band retune of a blessed *starting* value
+(§0.6.7 row E5 + its preamble: retunes inside the band need no new gate). It
+buys two more turns of admin AP, which is the binding constraint. It does NOT
+stop the first nag: any positive `REP_STEP` opens a shortfall on win 1. Five
+test pins re-blessed, all now **derived from the constant** instead of
+hardcoding the window — four of the five red-ed only because they had the
+number baked into control flow, which pins nothing about the mechanic.
+`BASELINE_SERIES` byte-identical (measured both directions).
+
+**Honesty fix, same row:** the first thing the game ever says about this system
+offered *"endow an estate (a Duchy)"* — and France holds **zero** conquered
+provinces at the 1805 boot, so half the opening sentence was false. The
+three-arm honest-availability rule §0.6.8 item 4d applied to erosion only; the
+opening notice now carries it too.
+
+**Single-sourced:** `combat_executor` hand-rolled
+`int(min(REP_STEP * n, EXPECTATION_CAP))` 6,800 lines from `get_expectation` —
+a second implementation of the one curve the whole reward economy is priced
+off. Extracted as `dotation.expectation_for_wins`.
+
+### UX23-5 — "when you pay them it doesn't dismiss their popup of wanting" · P2 · FIXED
+
+The rail was reconciled **only** by the once-per-turn `process_dotation_state`.
+Paying a marshal mid-turn therefore shipped, in one response, both "his
+expectation is met" and a standing tray row reading "holds 0g".
+
+The dismisser and both notice producers were **closures inside** that per-turn
+pass. They are now module functions in `dotation.py`
+(`dismiss_reward_notices` / `post_expectation_notice` / `post_erosion_notice` /
+`reward_remedy_phrase`), called from the four payment seams —
+`grant_dotation`, `grant_pension`, `revoke_pension`, and the Fontainebleau
+concede arm — as well as by the per-turn pass. One implementation.
+
+**Deliberately dismiss-only, not re-post.** `create_notification` mints a fresh
+uuid every time and the client's chime dedupes on that id, so re-stating a
+still-short row would **ring the grievance bell at the moment of payment**. If
+a shortfall remains, the next turn's pass re-posts it honestly.
+
+**Also fixed:** `build_base_response` and `_finalize_command_notifications`
+guarded the `notifications` key on `has_pending()`, so when the **last** row
+cleared the key was omitted entirely — and `main.gd` renders on
+`if response.has("notifications")`. The rail was never told to empty and kept a
+ghost row. An empty rail now ships `[]`.
+
+### UX23-6 — the pin that appeared to cover UX23-5 was inert · FIXED
+
+`test_batch_q_fixes.py::test_paying_back_to_met_dismisses_notice` docstringed
+itself as *"if the player DOES reward the marshal mid-grace"* — but its body
+sets `ney.pension` by hand and calls `_process_dotation_state`. It never
+touches an executor, so it pinned the turn boundary only and was blind to the
+reported defect. Docstring corrected, and an executor-path sibling added
+(`test_paying_through_the_executor_dismisses_it_in_the_same_call`,
+mutation-verified).
+
+### UX23-7 — Bernadotte's free attack · P1 · FIXED
+
+A cautious marshal who wins a defence earns a counter-punch, and the
+notification says *"Use it THIS turn or the opportunity expires."* The two AP
+pre-gates in `executor.execute` had **no counter-punch exemption**; the
+exemption lived inside `combat_executor._execute_attack`, ~200 lines past the
+gate that stopped the command reaching it, and was honoured only by the
+post-execution charge. So the free attack worked silently while AP remained
+(where free changes nothing) and was **impossible at 0 AP** — the only state in
+which "free" means anything. The user's board was at 0/4 AP.
+
+It also broke **GR5**: `is_player_action_check` is False for an enemy marshal,
+so both gates are skipped for the AI and its counter-punch always worked.
+
+Fix: `Marshal.has_counter_punch()` is the one predicate (GR1), read by the
+consumption site and by both pre-gates via `counter_punch_waiver`. Same shape
+as the `strategic_order_ap` single-sourcing that fixed this exact class before.
+
+**Second half:** `_execute_attack` clears the flag at its head and only then
+runs the drill-lock / artillery-moved / range refusals, so a **refused** attack
+silently burned the free strike. The counter-punch is an action-economy
+resource and now obeys the same rule AP does — spent only on success.
+
+**Stated boundary (GR9, not an open deferral):** the waiver requires a NAMED
+marshal. A bare `"attack"` is resolved to a marshal further down `execute()`,
+after the first gate, so there is nobody to ask. The counter-punch notification
+names its marshal; naming him is what buys the waiver. Pinned as deliberate.
+
+### Routed, not built
+
+| id | item | owner |
+|---|---|---|
+| UX23-R1 | **No stop API for one-shot cues.** `stop_loop` and friends iterate `_loop_players` only; `_play_cue` keeps no handle. `capture_choice_dialog.gd` plays 8.7 s of coins then `hide()`s on the next line; one-shots survive `change_scene_to_file`. A cap shortens each instance but does not deliver "closing it silences it". | Music & Sound follow-up |
+| UX23-R2 | **Every rail refresh mints a new uuid**, and `notification_bar.gd`'s `_audio_seen_ids` dedupes the chime on an id that always changes — so the desk bell re-rings per unmet marshal per turn, forever. At the reported live state: four extra chimes every turn until paid. The strongest link between complaints 1 and 3. | Music & Sound follow-up |
+| UX23-R3 | **`_enforce_cap` evicts NORMAL rows only.** `DOTATION_EROSION` is HIGH and immune, so N eroding marshals produce N permanent un-evictable rows crowding out real news. | notification-rail row |
+| UX23-R4 | **The dispatch re-read screen stays stale all turn** — `GET /dispatch` returns the frozen `last_morning_dispatch`, so "Unmet Marshals" still names a marshal paid this turn. | dispatch row |
+| UX23-R5 | **A typed line can hijack a non-blocking dialogue.** `"Soult, cancel your march"` matches the advisory's `cancel` option; `"yes"` fires `execute_suggestion` and spends 1 DP. Same class as W6-0/BUG-CA-7. Narrow fix: on a non-blocking dialogue, require a whole-line match. | CR row |
+| UX23-R6 | **`battle_diorama.gd` is a second audio implementation** bypassing `CUES`, throttle, budget and `max_s`. No length defect today. | Music & Sound follow-up |
+| UX23-R7 | `MUSIC_SOUND_SPEC.md` §1 records `bugle_first_call.mp3` as `~0:15`; measured **9.221 s**. The `ui/` and `ambient/` inventories have no length column. | docs |
+| UX23-R8 | **The battle report's expectation chip** and the dispatch's Unmet Marshals block could carry the same deep link. Note: `expectation_note` is produced in the enemy phase too and `enemy_phase_dialog.gd` has zero `expectation` references, so it is invisible on defensive victories today. | reward-UX follow-up |
+
+### Needs a design gate — the structural answer to "too early"
+
+`GRACE_TURNS` delays the demand; it does not reshape the curve. Four levers do,
+and each is structural. Two measured facts belong in front of that gate:
+
+* Across all 8 battles in the live campaign log, **Davout and Lannes appear in
+  none of them** — and each holds 2 battle wins and an 80g/turn expectation.
+  Both sit at Munich. One tactical victory credited the whole stack.
+* **`battles_won` is a monotonic ratchet.** All 7 write sites are `+= 1` and
+  nothing ever decrements it, which is why every scaling lever inherits a curve
+  that can only rise. `glory` is already graded, already gives participants
+  only +1, already excludes garrison stomps, and already decays over 8 turns.
+
+Levers, all gated: a free-wins floor; keying expectation to `glory` instead of
+`battles_won`; a war-age / conquest damper (note `get_expectation` takes no
+`world` — 11 production sites); and ceasing to credit non-ordering co-locators
+(which would have turned the live turn-3 burst from four rows into one or two).
+Filed in `DESIGN_REFINEMENT.md`.
+
+**Also not built, with reason:** a `REP_STEP` retune is technically in-band but
+is the ONLY dotation constant that moves `BASELINE_SERIES` at a plausible
+magnitude (19 test failures + the sanctioned re-record ritual). It should not
+be bundled with anything.

@@ -208,10 +208,23 @@ class TestBuildBaseResponse:
         assert "notifications" in response
         assert len(response["notifications"]) > 0
 
-    def test_no_notifications_key_when_none_pending(self, fresh_world, main_module):
-        """Notifications key should not appear when nothing is pending."""
+    def test_an_empty_rail_is_reported_as_empty(self, fresh_world, main_module):
+        """CONSCIOUSLY FLIPPED, August 23, 2026.
+
+        This used to assert `"notifications" not in response` when nothing was
+        pending. That omission was the bug: `main.gd` renders the rail on
+        `if response.has("notifications")`, so an omitted key reads as "no
+        change", never as "nothing left". When the LAST row cleared — which is
+        exactly what happens the moment the player pays a marshal — the client
+        was never told, and a ghost row stayed on screen.
+
+        Retiring a notification has to be something the client can be told
+        about, so an empty rail now ships `[]`. Landing record:
+        `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026), UX23-5.
+        """
         response = main_module.build_base_response(fresh_world)
-        assert "notifications" not in response
+        assert "notifications" in response
+        assert response["notifications"] == []
 
     def test_can_skip_popup_and_notification_consumption(self, fresh_world, main_module):
         """Session 6: /command can start from the shared builder without draining deferred UI state."""

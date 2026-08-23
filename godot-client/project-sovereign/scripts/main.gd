@@ -275,6 +275,9 @@ var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "No
 var _pending_envoy_request_active: bool = false
 # IGR-F: the turn number the letter-book was last auto-raised on. -1 = never.
 var _envoy_digest_shown_turn: int = -1
+# The marshal a reward-rail notification asked us to open, held across the
+# /marshal_overview round trip (the dialog needs his whole card).
+var _reward_deep_link_name: String = ""
 # Music & Sound Core: war ids the audio layer has reacted to (anthem/fanfare).
 var _audio_seen_war_ids: Dictionary = {}
 # IGR-F: a digest seen on the wire but not yet raised. -1 = nothing waiting.
@@ -1309,14 +1312,24 @@ func _execute_command():
 			_send_end_turn()
 		return
 
-	_awaiting_end_turn_confirmation = false
-	_set_open_envoys_prompt_visible(false)
-
 	# Route typed "end turn" through the same confirmation gate as button/hotkey.
+	#
+	# Aug 23, 2026 (user: "i cant end my turn"). The latch used to be cleared
+	# UNCONDITIONALLY on the line above this block — including for the very
+	# command that is meant to consume it. So `_execute_end_turn` always saw
+	# `false`, always re-showed the lapse warning, and typing "end turn" a
+	# second, fifth, twentieth time never got past it. The warning's own text
+	# ("or type end turn again to confirm the lapse") named the one route that
+	# could not work; the button, bare Enter and the E hotkey all could.
 	if command.to_lower() == "end turn":
 		command_input.text = ""
 		_execute_end_turn()
 		return
+
+	# Any OTHER typed command means the player moved on — drop the latch so a
+	# later "end turn" starts the warning afresh rather than skipping it.
+	_awaiting_end_turn_confirmation = false
+	_set_open_envoys_prompt_visible(false)
 
 	# Add to history before clearing
 	_add_to_history(command)
@@ -3198,7 +3211,7 @@ func _display_morning_dispatch(data: Dictionary):
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
 	# Reveille — the camp wakes with the dispatch (capped: the full call is 21s).
-	AudioManager.play("reveille", 5.0)
+	AudioManager.play("reveille")
 
 	# ═══ DISPATCH HEADER ═══
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
@@ -5239,6 +5252,13 @@ func _on_notification_review_requested(review_target: String, route_id: String =
 	if review_target == "ally_settlement_petition_popup":
 		_on_envoy_clicked()
 		return
+	# Aug 23, 2026 (user: "there's no way to do it without menuing"): the
+	# reward-rail rows now open the reward dialog on the marshal they name,
+	# instead of telling the player to go and find him. `route_id` carries the
+	# name; the overview endpoint already ships every card the dialog needs.
+	if review_target == "marshal_reward":
+		_open_reward_for_marshal(route_id)
+		return
 	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 — settlement events
 	# either route to the live settlement review (war still active) or
 	# fall back to the diplomatic ledger settlements section once the
@@ -5266,7 +5286,11 @@ func _on_envoy_clicked():
 	"""Handle mailbox button click — Session 2 follow-up: open mailbox panel."""
 	if _pending_envoy_request_active:
 		return
-	_awaiting_end_turn_confirmation = false
+	# Aug 23, 2026: the latch is NOT cleared here. The lapse warning's first
+	# instruction is "Click Open Envoys to review now" — clearing it meant
+	# following the game's own advice reset the confirmation and sent the
+	# player back to the warning, forever. Reviewing the letters is part of
+	# answering the warning, not a change of mind.
 	_set_open_envoys_prompt_visible(false)
 	_dismissed_proposal_nation = ""  # Clear so popup can show again
 	_pending_envoy_request_active = true
@@ -5384,6 +5408,17 @@ func _on_mailbox_row_action_result(response: Dictionary):
 		var colour = Utils.COLOR_INFO if response.get("success", false) else "d9c08c"
 		add_output("[color=#" + colour + "]" + Utils.humanize_nation_keys_in_text(msg) + "[/color]")
 	if not response.get("success", false):
+		# Aug 23, 2026: when the refusal is "something else is before you",
+		# the letter-book must get OUT OF THE WAY. It is CanvasLayer 119 and
+		# the dialogue modals it points at are 110 — so the panel was drawn on
+		# top of the very matter it was telling the player to go and settle,
+		# which is why the report was "i see nothing else to resolve".
+		if response.get("activation_blocked", false):
+			if mailbox_panel and mailbox_panel.visible:
+				mailbox_panel.hide()
+			set_input_enabled(true)
+			command_input.grab_focus()
+			return
 		# Re-enable the buttons: the letter is still there to answer.
 		if mailbox_panel and mailbox_panel.visible:
 			mailbox_panel.set_row_buttons_enabled(true)
@@ -5430,6 +5465,14 @@ func _on_mailbox_activate_result(response: Dictionary):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Could not activate that item.")
 		))
+		# Same reason as the row-action path: the panel (layer 119) covers the
+		# dialogue modals (110) it is naming, so a blocked activation has to
+		# clear the screen or the player is told to settle something invisible.
+		if response.get("activation_blocked", false):
+			if mailbox_panel and mailbox_panel.visible:
+				mailbox_panel.hide()
+			set_input_enabled(true)
+			command_input.grab_focus()
 		return
 	var dtype = str(response.get("dialogue_type", ""))
 	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response", "incoming_ultimatum"]:
@@ -5509,6 +5552,33 @@ func _on_reward_requested(card: Dictionary):
 	"""The Generals screen's [Reward…] link — open the portfolio dialog."""
 	if reward_dialog:
 		reward_dialog.show_reward(card)
+
+
+func _open_reward_for_marshal(marshal_name: String):
+	"""Open the reward dialog for a marshal named from somewhere OTHER than
+	his card — today, a click on his reward-rail notification.
+
+	The dialog wants the whole card, and `/marshal_overview` is the one place
+	that builds it, so this fetches and picks rather than inventing a second
+	payload (the "two implementations of one rule" trap this codebase keeps
+	paying for)."""
+	if marshal_name.is_empty() or reward_dialog == null:
+		return
+	_reward_deep_link_name = marshal_name
+	api_client.get_marshal_overview(_on_reward_deep_link_overview)
+
+
+func _on_reward_deep_link_overview(response: Dictionary):
+	var wanted := _reward_deep_link_name
+	_reward_deep_link_name = ""
+	if wanted.is_empty() or reward_dialog == null:
+		return
+	for card in response.get("marshals", []):
+		if card is Dictionary and str(card.get("name", "")) == wanted:
+			reward_dialog.show_reward(card)
+			return
+	add_output("[color=#d9c08c]Marshal %s is not on the rolls, Sire.[/color]"
+			% wanted)
 
 
 func _on_commission_requested(candidate_name: String):

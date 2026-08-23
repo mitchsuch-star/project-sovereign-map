@@ -282,6 +282,38 @@ PROPOSAL_TYPE_DISPLAY = {
     "offer_vassalage": "Offer of Submission",
 }
 
+# ============================================================================
+# DIALOGUE TYPE DISPLAY — what is holding the player's attention
+# Used when a surface has to REFUSE because another dialogue owns the active
+# slot. Naming the obstacle is the whole point: "Settle it before answering
+# the lesser courts" was measured live against an invisible advisory, and an
+# instruction the player cannot act on reads as a soft-lock.
+# ============================================================================
+
+DIALOGUE_TYPE_DISPLAY = {
+    "advisory": "Talleyrand's counsel",
+    "feasibility": "a feasibility review",
+    "mission": "a diplomatic mission",
+    "terms_guidance": "the terms you are drafting",
+    "proposal_confirm": "a proposal awaiting your confirmation",
+    "proposal_execute": "a proposal awaiting your confirmation",
+    "proposal_options": "a proposal awaiting your choice",
+    "pushback_confirm": "a proposal awaiting your confirmation",
+    "ultimatum_demand_wizard": "the ultimatum you are drafting",
+    "ultimatum_confirm": "an ultimatum awaiting your confirmation",
+    "conflict_alert": "an alliance conflict",
+    "command_clarification": "an unanswered question from your staff",
+    "settlement_confirm": "the settlement under review",
+    "settlement_pair_substitute_confirm": "the settlement under review",
+    "war_purpose_selection": "a war purpose yet to be declared",
+    "force_declare_war_confirmation": "a declaration of war awaiting your word",
+    "force_break_treaty_confirmation": "a treaty you are about to break",
+    "commitment_paradox": "a contradiction in our commitments",
+    "alliance_paradox": "a contradiction in our commitments",
+    "sabotage_confrontation": "a confrontation in the chancery",
+    "vassal_rebellion_imminent": "a satellite on the edge of revolt",
+}
+
 CLAUSE_TYPE_DISPLAY = {
     "peace": "Peace",
     "gold_lump": "Gold payment",
@@ -1295,6 +1327,13 @@ def proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
     result, raw = _lookup_display_name(PROPOSAL_TYPE_DISPLAY, proposal_type)
     return result or _fallback_display_name(raw, default="Unknown Proposal")
+
+
+def dialogue_display_name(dialogue_type: str) -> str:
+    """Name the dialogue holding the player's attention, for a refusal that
+    would otherwise point at nothing."""
+    result, raw = _lookup_display_name(DIALOGUE_TYPE_DISPLAY, dialogue_type)
+    return result or _fallback_display_name(raw, default="another matter")
 
 
 def clause_display_name(clause_type: str) -> str:

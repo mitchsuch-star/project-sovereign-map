@@ -5935,70 +5935,23 @@ class WorldState:
         # sees an accurate honored-titles set.
         prune_respected_estates(self)
 
+        # Aug 23, 2026: these two were closures here, which is why the rail
+        # was only ever reconciled at a turn boundary — paying a marshal
+        # mid-turn left "expects reward … holds 0g" standing beside the grant
+        # confirmation. They live in `dotation.py` now so this per-turn pass
+        # and the grant/revoke executors share ONE implementation.
+        from backend.game_logic.dotation import (
+            dismiss_reward_notices as _dismiss_reward_notices_impl,
+            post_expectation_notice as _post_expectation_notice_impl,
+        )
+
         def _dismiss_reward_notices(world, m):
-            """CA9-N3: retire BOTH reward-rail notices for one marshal.
-
-            The two branches that end erosion — expectation MET, and the
-            W6-7 capture freeze — each left the HIGH `DOTATION_EROSION`
-            row standing while retiring only the NORMAL one. Measured: a
-            marshal paid in full still read "his victories remain
-            unrewarded … holds 0g/turn" eighteen turns later.
-
-            Filtered per marshal: an unfiltered dismiss would clear
-            everyone else's live grievance, which is the laziest wrong fix
-            and is pinned against.
-            """
-            if m.nation != world.player_nation:
-                return
-            from backend.notifications import (
-                DOTATION_EROSION, DOTATION_EXPECTATION,
-            )
-
-            def _mine(n, mn=m.name):
-                return n.get("details", {}).get("marshal") == mn
-
-            world.notifications.dismiss_by_type(
-                DOTATION_EXPECTATION, filter_fn=_mine)
-            world.notifications.dismiss_by_type(
-                DOTATION_EROSION, filter_fn=_mine)
+            _dismiss_reward_notices_impl(world, m)
 
         def _post_expectation_notice(m, expectation, satisfaction, shortfall,
                                      remaining_grace):
-            # S5-3: keep the reward-expectation rail notice LIVE. It was
-            # created once at shortfall-open with static numbers + a frozen
-            # grace copy, so it drifted from the same-response dispatch (rail
-            # "80g/turn … holds 2 turns" vs dispatch "160g/turn … fraying").
-            # Dismiss-by-type + re-add with current numbers and a live
-            # countdown (PF-5 details-filter pattern). Player-only.
-            from backend.notifications import (
-                DOTATION_EXPECTATION, NotificationPriority, create_notification,
-            )
-            self.notifications.dismiss_by_type(
-                DOTATION_EXPECTATION,
-                filter_fn=lambda n, mn=m.name: (
-                    n.get("details", {}).get("marshal") == mn))
-            if remaining_grace <= 1:
-                patience = "His patience holds one more turn"
-            else:
-                patience = f"His patience holds {remaining_grace} turns"
-            self.notifications.add(create_notification(
-                notification_type=DOTATION_EXPECTATION,
-                priority=NotificationPriority.NORMAL,
-                title=f"Marshal {m.name} expects reward",
-                message=(
-                    f"Marshal {m.name} looks for {expectation}g/turn and holds "
-                    f"{satisfaction}g. {patience} — open the Generals screen "
-                    f"(press G) and use [ Reward… ] on his card to endow an "
-                    f"estate (a Duchy) or grant a rente."
-                ),
-                turn_created=int(self.current_turn),
-                details={"marshal": m.name,
-                         "expectation": int(expectation),
-                         "satisfaction": int(satisfaction),
-                         "shortfall": int(shortfall),
-                         "grace_turns": int(GRACE_TURNS),
-                         "remaining_grace": int(max(0, remaining_grace))},
-            ))
+            _post_expectation_notice_impl(self, m, expectation, satisfaction,
+                                          shortfall, remaining_grace)
 
         for marshal in self.marshals.values():
             # W6-7: a captured marshal's expectations are FROZEN — his
@@ -6118,54 +6071,14 @@ class WorldState:
             # existing row and re-titles it "(x2)", which would render a
             # refresh as a second grievance.
             if elapsed >= GRACE_TURNS and marshal.nation == self.player_nation:
-                from backend.notifications import (
-                    DOTATION_EROSION, NotificationPriority,
-                    create_notification,
-                )
-                # §0.6.8 item 4d: honest advice — never tell the player to
-                # endow when no eligible province exists.
-                # CA8-20: "eligible" is not "useful" — a province that
-                # yields 0g stops no erosion, so recommending it was the same
-                # lie in a longer sentence. But NARROWING the predicate alone
-                # made the else-branch false in turn: it says no conquered
-                # province REMAINS while the marshal's own card is offering
-                # four by name. Three arms, so each sentence is true of the
-                # state that reaches it. The middle one covers BOTH of
-                # `estate_yield`'s terms — a raw conquest that has not settled
-                # AND an EC-W1 province with a hostile army standing on it —
-                # so it must not promise that waiting is enough: a disrupted
-                # province does not settle, it drains.
-                if list_paying_estates(self, marshal.nation):
-                    remedy = ("endow him with an estate or grant him a "
-                              "rente to stop the erosion.")
-                elif list_eligible_estates(self, marshal.nation):
-                    remedy = ("the provinces we hold yield him nothing yet — "
-                              "endow one against its recovery, or grant a "
-                              "rente for gold now.")
-                else:
-                    remedy = ("no conquered province remains to endow — "
-                              "grant a rente, or let victory furnish an "
-                              "estate.")
-                self.notifications.dismiss_by_type(
-                    DOTATION_EROSION,
-                    filter_fn=lambda n, mn=marshal.name: (
-                        n.get("details", {}).get("marshal") == mn))
-                self.notifications.add(create_notification(
-                    notification_type=DOTATION_EROSION,
-                    priority=NotificationPriority.HIGH,
-                    title=f"Marshal {marshal.name} grows bitter",
-                    message=(
-                        f"Marshal {marshal.name}'s victories remain unrewarded "
-                        f"(expects {expectation}g/turn of estates; holds "
-                        f"{satisfaction}g/turn). His loyalty is fraying — "
-                        f"{remedy}"
-                    ),
-                    turn_created=int(self.current_turn),
-                    details={"marshal": marshal.name,
-                             "expectation": int(expectation),
-                             "satisfaction": int(satisfaction),
-                             "shortfall": int(shortfall)},
-                ))
+                # Aug 23, 2026: the whole inline block (including the
+                # three-arm remedy sentence) moved to
+                # `dotation.post_erosion_notice`, so a mid-turn payment can
+                # re-state this row with live figures through the same code
+                # the per-turn pass uses. Behaviour here is unchanged.
+                from backend.game_logic.dotation import post_erosion_notice
+                post_erosion_notice(self, marshal, expectation, satisfaction,
+                                    shortfall)
 
         # ════════════════════════════════════════════════════════════
         # ESP-4 RENTE DEFAULT (Jealousy v3.2 build, spec §0.3) — GR5

@@ -138,9 +138,35 @@ class DialogueManager:
         "ultimatum_confirm",
         "conflict_alert",
         # CR-2: one-question command clarification ("Which marshal, Sire?").
+        # (Also DISPOSABLE_ACTIVE_TYPES below — see that set's note.)
         # Registered ONLY from main.py's player-command path (never for AI
         # commands); any next typed input consumes it, and clear_stale
         # dismisses a lingering one at the next turn boundary.
+        "command_clarification",
+    })
+
+    # ── Aug 23, 2026: what a mailbox answer may displace ────────────────
+    # LOCAL_PLANNING is documented above as "never a global blocker", and for
+    # ordinary commands that holds. It did NOT hold for the letter-book:
+    # `activate_mailbox_item` refused outright for every LOCAL_PLANNING type,
+    # so a Talleyrand `advisory` left in the active slot made every routine
+    # envoy unanswerable, and the refusal ("Settle it before answering the
+    # lesser courts") named nothing the player could see or act on. Measured
+    # live on a turn-3 France campaign: advisory dialogue_id 6 holding the
+    # slot with a Saxony letter queued behind it.
+    #
+    # These are the LOCAL_PLANNING types that are pure READ-OUTS — they carry
+    # no staged authoring state and can be re-derived on demand, so making way
+    # for a mailbox answer costs the player nothing. The wizard and confirm
+    # types (`terms_guidance`, `ultimatum_demand_wizard`, `proposal_confirm`,
+    # `proposal_execute`, `pushback_confirm`, `ultimatum_confirm`,
+    # `proposal_options`, `mission`, `conflict_alert`) are deliberately ABSENT:
+    # displacing a half-drafted set of terms would destroy the player's work
+    # silently, which is a worse bug than the one being fixed. Those still
+    # refuse — but by NAME now, via `active_blocker_type`.
+    DISPOSABLE_ACTIVE_TYPES = frozenset({
+        "advisory",
+        "feasibility",
         "command_clarification",
     })
 
@@ -516,6 +542,26 @@ class DialogueManager:
                               or terms.get("type", "unknown")),
         }
 
+    def active_blocker_type(self) -> str:
+        """The type of the dialogue that would refuse `activate_mailbox_item`.
+
+        Empty string when the slot is free, holds a mailbox item, or holds
+        something a mailbox answer may displace. Exists so the refusal can
+        NAME the obstacle: the old copy said "Settle it before answering the
+        lesser courts" about a dialogue the player frequently cannot see, and
+        an unactionable instruction is worse than no instruction.
+        """
+        if self._current is None:
+            return ""
+        current_type = self._current.get("type", "")
+        if current_type in self.DISPOSABLE_ACTIVE_TYPES:
+            return ""
+        if (current_type in self.HARD_STOP_TYPES
+                or current_type in self.HYBRID_SOFT_STOP_TYPES
+                or current_type in self.LOCAL_PLANNING_TYPES):
+            return current_type
+        return ""
+
     def activate_mailbox_item(self, mailbox_id: int) -> Optional[Dict]:
         """Swap a queued mailbox item into the active slot.
 
@@ -523,14 +569,30 @@ class DialogueManager:
         data loss. Returns the newly activated dialogue, or None if the
         mailbox_id was not found or activation is blocked.
         """
-        # Guard: only swap when active slot is empty or holds a mailbox item
+        # Guard: only swap when the active slot is empty, holds a mailbox
+        # item, or holds a read-out we are allowed to discard.
+        #
+        # NOTE the ordering below is load-bearing: the DISCARD happens AFTER
+        # the queue lookup, never before it. A first cut dropped the read-out
+        # up here and then failed the lookup on a stale/expired mailbox_id —
+        # which destroyed the player's advisory for nothing and broke the
+        # standing rule that a stale id must "leave the current active item
+        # untouched" (docs/BUG_FIXES.md, the IGR-F refusal contract).
         if self._current is not None:
             current_type = self._current.get("type", "")
-            if current_type in self.HARD_STOP_TYPES:
-                return None
-            if current_type in self.HYBRID_SOFT_STOP_TYPES:
-                return None
-            if current_type in self.LOCAL_PLANNING_TYPES:
+            if current_type in self.DISPOSABLE_ACTIVE_TYPES:
+                pass          # discardable — decided below, once we can swap
+            elif current_type in self.SOFT_STOP_MAILBOX_TYPES:
+                pass          # a mailbox item; it is re-queued below
+            else:
+                # HARD_STOP, HYBRID, staged LOCAL_PLANNING — and anything not
+                # in ANY taxonomy set. The default used to be fall-through,
+                # which silently OVERWROTE an unclassified dialogue
+                # (`clarification`, `settlement_scope_replace_confirm`,
+                # `diplomatic_treaty_failed`, `proposal_result` are all
+                # reachable and all unclassified). Deny is the safe default:
+                # a refusal the player can read beats a dialogue that
+                # vanishes.
                 return None
 
         # Find the target in queue
@@ -548,12 +610,13 @@ class DialogueManager:
 
         target = self._queue.pop(target_idx)
 
-        # Re-queue the current active item if it's a mailbox type
         if self._current is not None:
             current_type = self._current.get("type", "")
             if current_type in self.SOFT_STOP_MAILBOX_TYPES:
                 # Preserve original turn_created — no refresh
                 self._queue.append(self._current)
+            # else: a DISPOSABLE_ACTIVE_TYPES read-out, dropped here — the
+            # swap is certain now, so nothing is lost for nothing.
 
         self._current = target
         return target

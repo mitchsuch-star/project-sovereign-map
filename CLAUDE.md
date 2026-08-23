@@ -42,9 +42,39 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 16, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 23, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 18,175 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+>
+> **▶ ROW UX23 — THE FOUR LIVE UX DEFECTS, FIXED August 23, 2026. Landing
+> record = `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026), authoritative.**
+> Reported mid-campaign and diagnosed against the RUNNING backend over
+> read-only GET: (1) `letter_open.mp3` is **38.6 seconds** and played whole on
+> every envoy open — `max_s` is now a `CUES` registry field honoured by
+> `_play_cue`, 11 cues capped *(⚠ a re-audition is owed: durations are
+> verified, ears are not)*; (2) the end-turn soft-lock, **three stacked
+> faults** — the typed `end turn` route could never confirm the lapse its own
+> warning names, a `LOCAL_PLANNING` read-out held the letter-book shut behind
+> unactionable copy, and the mailbox panel (layer 119) was drawn over the
+> modals (layer 110) it pointed at, which is why the player saw nothing;
+> asking Talleyrand a question also **destroyed a waiting envoy**
+> (`replace()` → `preempt()`); (3) the reward rail asked to be paid and then
+> went on asking until the turn ended (the dismisser was a closure inside the
+> once-per-turn pass — now shared, called at all four payment seams,
+> dismiss-only so payment never rings the grievance bell), it told the player
+> to "press G" instead of acting (now a deep link + a typed order), it offered
+> an **estate France cannot grant at boot**, and a fully-paid marshal could
+> burn 1 of 2 admin actions re-writing his pension to the same number;
+> `GRACE_TURNS` **2 → 4** in-band, `BASELINE_SERIES` byte-identical; (4) the
+> **counter-punch was unusable at 0 AP** — the only state in which "free"
+> means anything — because both AP pre-gates ran ~200 lines before the
+> exemption, which also broke GR5 (those gates skip enemy marshals, so the
+> AI's free attack always worked). `tests/test_ux_fixes_2026_08_23.py` (37) +
+> `tests/test_counter_punch_ap_gate.py` (14); **23 mutations swept, 23 killed,
+> two inert pins found and repaired by the sweep**; M1–M7 byte-identical.
+> ⚠ OPEN: the audio re-audition · 8 routed rows UX23-R1..R8 (no stop API for
+> one-shot cues; the chime re-rings per unmet marshal per turn) · the
+> structural answer to "too early" = `DESIGN_REFINEMENT.md` UX23-D1..D4, gated.
 >
 > **▶ THE NPC P1 CLUSTER FIXED August 16, 2026 — landing record =
 > `docs/BUG_FIXES.md` §Napoleon Campaign (NPC), the boxed block above the

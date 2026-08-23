@@ -56,10 +56,34 @@ INVESTITURE_FEE = 200
 EROSION_MAX = 3
 SHORTFALL_PER_POINT = 50
 
-# Grace debounce (blessed 2, was 1): erosion fires only once a shortfall has
-# persisted GRACE_TURNS full turns — a marshal must not begin souring two
-# turns after a victory.
-GRACE_TURNS = 2
+# Grace debounce: erosion fires only once a shortfall has persisted
+# GRACE_TURNS full turns — a marshal must not begin souring two turns after a
+# victory.
+#
+# Aug 23, 2026: 2 -> 4 (user: "it happens so early in the war them wanting
+# raises"). An IN-BAND retune of a blessed starting value, not a new mechanic:
+# §0.6.7 row E5 blesses "grace-turn 2 (was 1)" as a starting value and its
+# preamble says retunes inside the band need no new gate. Measured on the
+# user's live turn-3 board, grace 2 meant erosion opened on turn 4 of 60 and
+# the Fontainebleau collective petition — an END-OF-EMPIRE beat — was
+# reachable on turn 4.
+#
+# The binding constraint is admin AP, not patience: four marshals opened
+# shortfalls simultaneously against a fixed budget of 2 admin actions per turn
+# (`world_state.py`, never scaled anywhere), so at grace 2 the player had to
+# spend EVERY admin action of two consecutive turns on rentes — no recruiting,
+# no building, no repair — at the exact moment a war opened. Grace 4 makes the
+# demand affordable without touching what is owed.
+#
+# What this does NOT fix: the nag still opens on the first victory, because
+# any positive REP_STEP opens a shortfall on win 1. That is the curve's shape,
+# and reshaping it (a free-wins floor, keying to `glory` instead of the
+# monotonic `battles_won` ratchet, a war-age damper) is structural and gated —
+# see docs/DESIGN_REFINEMENT.md.
+#
+# `BASELINE_SERIES` and M1-M7 are byte-identical across this change (measured,
+# both directions).
+GRACE_TURNS = 4
 
 # AI grant rung (GR5): the enemy AI endows its most-shortfalling marshal
 # once the shortfall clears this threshold (2 wins' worth of expectation).
@@ -171,6 +195,20 @@ def is_dotation_world(world) -> bool:
             and not dotation_dormant(world))
 
 
+def expectation_for_wins(battles_won: int) -> int:
+    """The curve itself: what N victories are felt to be worth, per turn.
+
+    GR1. `combat_executor` needed the value for a marshal's win count BEFORE
+    the battle (to say "victory RAISES his expectation") and hand-rolled
+    `int(min(REP_STEP * n, EXPECTATION_CAP))` inline — a second
+    implementation of the one formula the whole reward economy is priced
+    off, 6,800 lines from the first. That is the divergence pattern this
+    codebase keeps paying for, and it would have silently outlived any
+    future retune of the curve's shape.
+    """
+    return int(min(REP_STEP * int(battles_won), EXPECTATION_CAP))
+
+
 def get_expectation(marshal) -> int:
     """Per-turn income the marshal feels owed (deterministic, GR6).
 
@@ -181,8 +219,7 @@ def get_expectation(marshal) -> int:
     """
     if getattr(marshal, "is_sovereign", False):
         return 0
-    return int(min(REP_STEP * int(getattr(marshal, "battles_won", 0)),
-                   EXPECTATION_CAP))
+    return expectation_for_wins(getattr(marshal, "battles_won", 0))
 
 
 def get_estate_income(marshal, world, ignore_disruption: bool = False) -> int:
@@ -743,3 +780,181 @@ def respected_estate_mod(world, proposer: str, target: str) -> int:
                     world, entry.get("marshal"), entry.get("region"))):
             return int(RESPECT_ACCEPTANCE_BONUS)
     return 0
+
+
+# ══════════════════════════════════════════════════════════════════════
+# THE REWARD RAIL — one implementation of "what the tray currently says"
+#
+# Aug 23, 2026 (user: "when you pay them it doesn't dismiss their popup of
+# wanting"). These producers used to be closures and inline blocks inside
+# `WorldState.process_dotation_state`, which runs ONCE PER TURN. So the rail
+# was reconciled only at a turn boundary: paying a marshal mid-turn left
+# "Marshal Ney expects reward … holds 0g" standing beside the grant
+# confirmation that had just told the player his expectation was met, until
+# the turn ended.
+#
+# They live here now so the per-turn pass AND the grant/revoke executors
+# share ONE implementation. The tray's own docstring calls itself "a list of
+# things still true"; the moment satisfaction changes, that list has to
+# change with it.
+# ══════════════════════════════════════════════════════════════════════
+
+def dismiss_reward_notices(world, marshal) -> None:
+    """Retire BOTH reward-rail notices for one marshal.
+
+    CA9-N3: the two branches that end erosion — expectation MET, and the
+    W6-7 capture freeze — each left the HIGH `DOTATION_EROSION` row standing
+    while retiring only the NORMAL one. Measured: a marshal paid in full
+    still read "his victories remain unrewarded … holds 0g/turn" eighteen
+    turns later.
+
+    Filtered per marshal: an unfiltered dismiss would clear everyone else's
+    live grievance, which is the laziest wrong fix and is pinned against.
+    """
+    if marshal.nation != world.player_nation:
+        return
+    from backend.notifications import DOTATION_EROSION, DOTATION_EXPECTATION
+
+    def _mine(n, mn=marshal.name):
+        return n.get("details", {}).get("marshal") == mn
+
+    world.notifications.dismiss_by_type(DOTATION_EXPECTATION, filter_fn=_mine)
+    world.notifications.dismiss_by_type(DOTATION_EROSION, filter_fn=_mine)
+
+
+def post_expectation_notice(world, marshal, expectation, satisfaction,
+                            shortfall, remaining_grace) -> None:
+    """The NORMAL "expects reward" row, re-stated with live numbers.
+
+    S5-3: it was created once at shortfall-open with static numbers and a
+    frozen grace line, so it drifted from the same-response dispatch (rail
+    "80g/turn … holds 2 turns" vs dispatch "160g/turn … fraying").
+    Dismiss-by-type + re-add (PF-5 details-filter pattern). The dismiss MUST
+    precede the add: `NotificationCollector.add` collapses a duplicate into
+    the existing row and re-titles it "(x2)", which renders a refresh as a
+    second grievance. Player-only.
+    """
+    if marshal.nation != world.player_nation:
+        return
+    from backend.notifications import (
+        DOTATION_EXPECTATION, NotificationPriority, create_notification,
+    )
+    world.notifications.dismiss_by_type(
+        DOTATION_EXPECTATION,
+        filter_fn=lambda n, mn=marshal.name: (
+            n.get("details", {}).get("marshal") == mn))
+    if remaining_grace <= 1:
+        patience = "His patience holds one more turn"
+    else:
+        patience = f"His patience holds {remaining_grace} turns"
+    # Shown = applied: quoted off the SAME two functions the executor prices
+    # the grant with, so the figure on the rail is the figure the treasury
+    # pays if the player acts on it.
+    rente_cost = get_rente_cost(compute_rente_face(marshal, world))
+    # Honest availability, the same rule the erosion notice has carried since
+    # §0.6.8 item 4d — applied here too, because THIS is the first thing the
+    # player is ever told about the reward economy. France holds ZERO
+    # conquered provinces at the 1805 boot, so the old copy's "endow an estate
+    # (a Duchy)" named an instrument that did not exist, on turn 2, as the
+    # system's opening line. Only offer the land when land is actually paying.
+    estate_clause = ""
+    if list_paying_estates(world, marshal.nation):
+        estate_clause = (", or endow him with an estate from his card on "
+                         "the Generals screen (press G)")
+    world.notifications.add(create_notification(
+        notification_type=DOTATION_EXPECTATION,
+        priority=NotificationPriority.NORMAL,
+        title=f"Marshal {marshal.name} expects reward",
+        message=(
+            # Aug 23, 2026 (user: "there's no way to do it without
+            # menuing"): the row used to end "open the Generals screen
+            # (press G) and use [ Reward… ] on his card" — an instruction to
+            # go somewhere else, on a rail the player is already looking at.
+            # It now leads with the one-line typed order that settles it
+            # where they stand. `pension <name>` is a live golden-corpus
+            # utterance (es7sp-pension-davout), and the rente's face is
+            # auto-sized to the gap, so the short form is the whole action.
+            f"Marshal {marshal.name} looks for {expectation}g/turn and holds "
+            f"{satisfaction}g. {patience} — settle it now with "
+            f"\"pension {marshal.name}\" (a rente, {rente_cost}g/turn)"
+            f"{estate_clause}."
+        ),
+        turn_created=int(world.current_turn),
+        details={"marshal": marshal.name,
+                 "expectation": int(expectation),
+                 "satisfaction": int(satisfaction),
+                 "shortfall": int(shortfall),
+                 "grace_turns": int(GRACE_TURNS),
+                 "remaining_grace": int(max(0, remaining_grace)),
+                 # The rail row becomes a way IN, not just a sign-post. The
+                 # client already forwards `route_id` through
+                 # `notification_review_requested`; this is the arm that
+                 # opens the reward dialog on the named marshal.
+                 "review_target": "marshal_reward",
+                 "review_label": "Reward…",
+                 "route_id": marshal.name},
+    ))
+
+
+def reward_remedy_phrase(world, nation: str) -> str:
+    """§0.6.8 item 4d: honest advice — never tell the player to endow when
+    no eligible province exists.
+
+    CA8-20: "eligible" is not "useful" — a province that yields 0g stops no
+    erosion, so recommending it was the same lie in a longer sentence. But
+    NARROWING the predicate alone made the else-branch false in turn: it
+    says no conquered province REMAINS while the marshal's own card is
+    offering four by name. Three arms, so each sentence is true of the state
+    that reaches it. The middle one covers BOTH of `estate_yield`'s terms —
+    a raw conquest that has not settled AND an EC-W1 province with a hostile
+    army standing on it — so it must not promise that waiting is enough: a
+    disrupted province does not settle, it drains.
+    """
+    if list_paying_estates(world, nation):
+        return ("endow him with an estate or grant him a rente to stop the "
+                "erosion.")
+    if list_eligible_estates(world, nation):
+        return ("the provinces we hold yield him nothing yet — endow one "
+                "against its recovery, or grant a rente for gold now.")
+    return ("no conquered province remains to endow — grant a rente, or let "
+            "victory furnish an estate.")
+
+
+def post_erosion_notice(world, marshal, expectation, satisfaction,
+                        shortfall) -> None:
+    """The HIGH "grows bitter" row, re-stated with live numbers.
+
+    CA9-N3: this was posted ONCE, at the instant erosion began, and its
+    figures froze there — so a marshal now drawing a 240g rente against a
+    300g expectation still read "holds 0g/turn", contradicted by the same
+    screen's `"pension": 240`. It is REPLACED on every eroding turn, and on
+    any mid-turn change to his satisfaction, so its numbers are the numbers.
+    """
+    if marshal.nation != world.player_nation:
+        return
+    from backend.notifications import (
+        DOTATION_EROSION, NotificationPriority, create_notification,
+    )
+    remedy = reward_remedy_phrase(world, marshal.nation)
+    world.notifications.dismiss_by_type(
+        DOTATION_EROSION,
+        filter_fn=lambda n, mn=marshal.name: (
+            n.get("details", {}).get("marshal") == mn))
+    world.notifications.add(create_notification(
+        notification_type=DOTATION_EROSION,
+        priority=NotificationPriority.HIGH,
+        title=f"Marshal {marshal.name} grows bitter",
+        message=(
+            f"Marshal {marshal.name}'s victories remain unrewarded "
+            f"(expects {expectation}g/turn of estates; holds "
+            f"{satisfaction}g/turn). His loyalty is fraying — {remedy}"
+        ),
+        turn_created=int(world.current_turn),
+        details={"marshal": marshal.name,
+                 "expectation": int(expectation),
+                 "satisfaction": int(satisfaction),
+                 "shortfall": int(shortfall),
+                 "review_target": "marshal_reward",
+                 "review_label": "Reward…",
+                 "route_id": marshal.name},
+    ))

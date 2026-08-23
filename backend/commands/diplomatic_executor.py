@@ -822,7 +822,16 @@ class DiplomaticExecutor:
             advisory_type = "assess_nation" if target_nation else "compare_threats"
 
         dialogue = generate_advisory(target_nation or None, advisory_type, world)
-        world.dialogue_manager.replace(dialogue)
+        # Aug 23, 2026: `replace()` DESTROYED whatever held the active slot.
+        # Reproduced at unit level: an envoy waiting in the slot, the player
+        # asks Talleyrand to assess the situation, and the envoy is gone —
+        # current=advisory, queue=0, mailbox=0. Asking your foreign minister a
+        # question must never lose a letter. `preempt()` surfaces the counsel
+        # immediately and returns the displaced dialogue through normal queue
+        # promotion. Scoped to this call site deliberately: `replace()` has 37
+        # callers and is also the enrichment and wizard-step seam, so a broad
+        # swap needs its own census.
+        world.dialogue_manager.preempt(dialogue)
         return {
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),

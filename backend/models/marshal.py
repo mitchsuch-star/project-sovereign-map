@@ -842,6 +842,27 @@ class Marshal:
             return 1
         return 2
 
+    def has_counter_punch(self) -> bool:
+        """True when this marshal holds an UNSPENT counter-punch — the free
+        attack a cautious commander earns by winning a defence (Phase 2.8,
+        `combat.py:710`).
+
+        GR1: ONE source. This predicate had been written inline at the
+        CONSUMPTION site only (`combat_executor._execute_attack`), while the
+        two AP pre-gates in `executor.py` knew nothing about it. Those gates
+        run FIRST and refuse on `actions_remaining < 1`, so the free attack
+        was unreachable at 0 AP — the only state in which "free" means
+        anything. With AP in hand it silently worked (the post-execution
+        `free_action` arm at `executor.py:~1906` waived the charge), which is
+        why every test passed and the defect only ever surfaced in play.
+
+        It also broke GR5: `is_player_action_check` is False for an enemy
+        marshal, so the AI's counter-punch skipped both gates and worked.
+        Pinned in tests/test_counter_punch_ap_gate.py.
+        """
+        return (bool(getattr(self, "counter_punch_available", False))
+                and self.personality == "cautious")
+
     @property
     def is_reckless_cavalry(self) -> bool:
         """
