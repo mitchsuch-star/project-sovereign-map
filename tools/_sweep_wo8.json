@@ -1,0 +1,170 @@
+[
+  {
+    "id": "S8-1 the rate slope drifts (0.015 -> 0.02)",
+    "file": "backend/models/world_state.py",
+    "old": "            attrition = min(0.03, excess_ratio * 0.015) + stacking_penalty",
+    "new": "            attrition = min(0.03, excess_ratio * 0.02) + stacking_penalty",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestRateSingleSource::test_over_cap_formula_matches_the_engine_comment tests/test_wo_slice8_panel_states_its_terms.py::TestBaselineImmunity::test_the_engine_refactor_is_semantics_preserving"
+  },
+  {
+    "id": "S8-2 the 6% ceiling rises to 10%",
+    "file": "backend/models/world_state.py",
+    "old": "        return min(0.06, attrition)",
+    "new": "        return min(0.10, attrition)",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestRateSingleSource::test_the_six_percent_ceiling_holds tests/test_wo_slice8_panel_states_its_terms.py::TestBaselineImmunity::test_the_engine_refactor_is_semantics_preserving"
+  },
+  {
+    "id": "S8-3 the stacking arm needs 4 corps instead of 3",
+    "file": "backend/models/world_state.py",
+    "old": "            if stacking_penalty > 0 and num_marshals >= 3:",
+    "new": "            if stacking_penalty > 0 and num_marshals >= 4:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestRateSingleSource::test_under_cap_three_corps_pays_the_stacking_penalty tests/test_wo_slice8_panel_states_its_terms.py::TestPreviewPriceEqualsEngineBill::test_stacking_under_cap_quote_matches_the_engine"
+  },
+  {
+    "id": "S8-4 the engine grows its own drifted copy of the rate",
+    "file": "backend/models/world_state.py",
+    "old": "                attrition = self.supply_attrition_rate(\n                    total, cap, num_marshals)",
+    "new": "                attrition = min(0.06, max(0, (total - cap)) / max(1, cap) * 0.015)",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestPreviewPriceEqualsEngineBill::test_stacking_under_cap_quote_matches_the_engine tests/test_wo_slice8_panel_states_its_terms.py::TestRateSingleSource::test_engine_calls_the_rate_and_keeps_no_copy tests/test_balance_patch.py"
+  },
+  {
+    "id": "S8-5 the bill stops counting same-province non-joiners",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            if will_join or m.location == battle_region:\n                standing_bodies.append(int(m.strength))",
+    "new": "            if will_join:\n                standing_bodies.append(int(m.strength))",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestPreviewPriceEqualsEngineBill::test_a_same_province_non_joiner_still_eats"
+  },
+  {
+    "id": "S8-6 the preview quotes the raw cap (the two-figures trap returns)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                fed = int(world.get_effective_supply_cap(nation, region))",
+    "new": "                fed = int(region.supply_capacity)",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestPreviewPriceEqualsEngineBill::test_fed_figure_is_the_effective_cap tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_allied_soil_the_spec_example_swabia_feeds_60000"
+  },
+  {
+    "id": "S8-7 the preview's fog gate opens for every province",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            if world.region_econ_visible(battle_region):",
+    "new": "            if True:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestFogDiscipline::test_unscouted_province_sentinels_and_says_so"
+  },
+  {
+    "id": "S8-8 the supply sentence is produced but never rendered (NP-V)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if preview.get(\"supply_note\"):\n            lines.append(f\"  {preview['supply_note']}\")",
+    "new": "        if False:\n            lines.append(f\"  {preview['supply_note']}\")",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestTheSentences::test_both_sentences_are_rendered_by_the_formatter"
+  },
+  {
+    "id": "S8-9 the G3 sentence is produced but never rendered (NP-V)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if preview.get(\"province_fights_note\"):\n            lines.append(f\"  {preview['province_fights_note']}\")",
+    "new": "        if False:\n            lines.append(f\"  {preview['province_fights_note']}\")",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestTheSentences::test_both_sentences_are_rendered_by_the_formatter"
+  },
+  {
+    "id": "S8-10 the map payload reverts to the raw property",
+    "file": "backend/models/world_state.py",
+    "old": "                \"supply_capacity\": int(self.get_effective_supply_cap(\n                    self.player_nation, region, _shore_cache=_shore_cache)),",
+    "new": "                \"supply_capacity\": int(region.supply_capacity),",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_own_soil_summary_ledger_and_engine_agree tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_allied_soil_the_spec_example_swabia_feeds_60000"
+  },
+  {
+    "id": "S8-11 the ledger's figure reverts to the raw property",
+    "file": "backend/game_logic/ledger.py",
+    "old": "            \"supply_capacity\": int(effective_cap),",
+    "new": "            \"supply_capacity\": int(region.supply_capacity),",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_own_soil_summary_ledger_and_engine_agree"
+  },
+  {
+    "id": "S8-12 the ledger's verdict reverts to the raw threshold (the false alarm returns)",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        if total_occupant_strength > effective_cap:",
+    "new": "        if total_occupant_strength > region.supply_capacity:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_ledger_verdict_reads_the_effective_threshold"
+  },
+  {
+    "id": "S8-13 the filtered summary drops the terms pass-through",
+    "file": "backend/models/world_state.py",
+    "old": "                filtered_region[\"build_terms\"] = region_data.get(\n                    \"build_terms\", {})",
+    "new": "                filtered_region[\"build_terms\"] = {}",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_player_provinces_carry_terms_others_do_not"
+  },
+  {
+    "id": "S8-14 the shared fog predicate collapses to True",
+    "file": "backend/models/world_state.py",
+    "old": "        return self.get_region_intel(region_name).visibility == FULL",
+    "new": "        return True",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_fogged_summary_row_keeps_the_sentinel tests/test_wo_slice8_panel_states_its_terms.py::TestFogDiscipline::test_unscouted_province_sentinels_and_says_so"
+  },
+  {
+    "id": "S8-15 the depot chip quotes the brochure's flat 10,000",
+    "file": "backend/models/world_state.py",
+    "old": "                \"supply\": int(supply_with_depot - supply_now),",
+    "new": "                \"supply\": 10000,",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_depot_supply_figure_is_the_real_delta"
+  },
+  {
+    "id": "S8-16 the market chip quotes the brochure's 25%",
+    "file": "backend/models/world_state.py",
+    "old": "                \"income\": int(region.get_effective_income(\"market\")\n                              - income_now),",
+    "new": "                \"income\": int(region.income_value * 0.25),",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_market_on_hostile_soil_quotes_zero tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_depot_and_market_income_figures_are_delivered_gold"
+  },
+  {
+    "id": "S8-17 the stables chip sells the capped-away 750",
+    "file": "backend/models/world_state.py",
+    "old": "                \"cavalry\": int(stables_marginal),",
+    "new": "                \"cavalry\": 750,",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_stables_figure_is_the_nation_marginal"
+  },
+  {
+    "id": "S8-18 the upkeep figure hardcodes the capital's 40",
+    "file": "backend/models/world_state.py",
+    "old": "            \"upkeep\": int(infrastructure_upkeep_rate(region)),",
+    "new": "            \"upkeep\": 40,",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_upkeep_is_tier_scaled_not_flat"
+  },
+  {
+    "id": "S8-19 the fed table is dropped from the multiplier decision",
+    "file": "backend/models/world_state.py",
+    "old": "        is_home = (region.controller == nation)\n        is_fed = is_home",
+    "new": "        is_home = (region.controller == nation)\n        is_fed = False",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestOneSupplyFigure::test_own_soil_summary_ledger_and_engine_agree tests/test_pc15_d_rulings_2026_08_15.py::TestD2AllySupply"
+  },
+  {
+    "id": "S8-20 the marginal ignores the ES-1b cap",
+    "file": "backend/models/world_state.py",
+    "old": "        return int(min(cav_bonus + STABLES_CAVALRY_REGEN,\n                       CAVALRY_REGEN_BONUS_CAP)\n                   - min(cav_bonus, CAVALRY_REGEN_BONUS_CAP))",
+    "new": "        return int(STABLES_CAVALRY_REGEN)",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_stables_figure_is_the_nation_marginal"
+  },
+  {
+    "id": "S8-21 the recruit executor forks from the promoted constant",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        RECRUIT_MORALE = self.RECRUIT_MORALE_BASE",
+    "new": "        RECRUIT_MORALE = 40",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_the_executors_read_the_promoted_constants"
+  },
+  {
+    "id": "S8-22 a second preview call site appears (C-8 breaks)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    def _bad_odds_muster_note(self, marshal, enemy, world) -> str:",
+    "new": "    def _bad_odds_muster_note(self, marshal, enemy, world) -> str:\n        _ = self._build_muster_preview if False else None\n        if False:\n            self._build_muster_preview(marshal, enemy, world, {})",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBaselineImmunity::test_the_preview_has_exactly_one_call_site"
+  },
+  {
+    "id": "S8-23 the .gd chip hardcodes the depot's cost",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "str(def[1]) + \" \" + str(int(t.get(\"cost\", 0))) + \"g\"",
+    "new": "str(def[1]) + \" 300g\"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestPanelReadsThePayload::test_chips_derive_terms_from_the_payload"
+  },
+  {
+    "id": "S8-24 the G3 sentence degrades to a vague claim",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        preview[\"province_fights_note\"] = (\n            \"Every corps in the province shares the field — that is the \"\n            \"design. Only a corps still adjacent can be held out: fortify \"\n            \"him (1 AP) and he stands apart until you move him.\"\n        )",
+    "new": "        preview[\"province_fights_note\"] = \"Every corps fights.\"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestTheSentences::test_g3_sentence_is_always_stated tests/test_wo_slice8_panel_states_its_terms.py::TestTheSentences::test_g3_teaches_fortify_not_restrain"
+  }
+]

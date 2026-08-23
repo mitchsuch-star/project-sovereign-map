@@ -976,6 +976,11 @@ class CombatExecutor:
         rows = []
         shared_casualty_note = ""
         will_join_marshals = []
+        # WO slice 8: the supply price bills BODIES standing in the
+        # province — joiners, plus same-province corps that stand there
+        # whether they fight or not (shares_the_field_apart). Adjacent
+        # non-joiners stay home and eat at home.
+        standing_bodies = [int(marshal.strength)]
         region = world.get_region(battle_region)
         adjacent = set(region.adjacent_regions) if region else set()
         for m in world.marshals.values():
@@ -985,6 +990,8 @@ class CombatExecutor:
                 continue
             will_join, code = self._muster_reason(
                 m, marshal, battle_region, nation, world)
+            if will_join or m.location == battle_region:
+                standing_bodies.append(int(m.strength))
             if will_join:
                 will_join_marshals.append(m)
             row = {
@@ -1126,6 +1133,74 @@ class CombatExecutor:
             "rows": rows,
             "shared_casualty_note": shared_casualty_note,
         }
+
+        # ══════════════════════════════════════════════════════════════
+        # WO slice 8 — "The Panel States Its Terms" (G3 + the price).
+        #
+        # G3 (gate ruling, carried in the spec's §1): every corps in the
+        # battle province fights BY DESIGN, and the game says so HERE,
+        # on the screen the player commits from. The only lever that
+        # keeps a corps out is fortifying him while he is still
+        # ADJACENT (1 AP, stands until moved — `fortified_static` in
+        # `_muster_reason`, Rule 7 in `_is_reinforcement_eligible`).
+        # `restrain` is a charge-response verb and excludes nothing;
+        # HOLD's flag is literal-only. Verified at aafbecb.
+        #
+        # The price: BODIES (never `committed_strength`, which is
+        # α-scaled arrival-priced combat weight — pricing it as mouths
+        # would misquote the bill), against the player's effective cap,
+        # through the engine's own `supply_attrition_rate` — shown =
+        # applied by construction. The spec's illustrative "11,340 a
+        # turn" is unreachable (the engine caps the rate at 6%); the
+        # engine's real number is what prints.
+        #
+        # Fog: the quote gates on the SAME `region_econ_visible`
+        # predicate the map payload uses — the preview prices a
+        # province exactly when the panel would print its figure, and
+        # says "unscouted" exactly when the panel says Unknown (the
+        # PC15-16 sentinel discipline on a new surface).
+        # ══════════════════════════════════════════════════════════════
+        preview["province_fights_note"] = (
+            "Every corps in the province shares the field — that is the "
+            "design. Only a corps still adjacent can be held out: fortify "
+            "him (1 AP) and he stands apart until you move him."
+        )
+        if region is not None and hasattr(world, "region_econ_visible"):
+            total_bodies = sum(standing_bodies)
+            n_corps = len(standing_bodies)
+            if world.region_econ_visible(battle_region):
+                fed = int(world.get_effective_supply_cap(nation, region))
+                rate = world.supply_attrition_rate(
+                    total_bodies, fed, n_corps)
+                per_turn = sum(int(s * rate) for s in standing_bodies)
+                preview["supply"] = {
+                    "fed": fed,
+                    "bodies": int(total_bodies),
+                    "corps": int(n_corps),
+                    "attrition_per_turn": int(per_turn),
+                }
+                if per_turn > 0:
+                    preview["supply_note"] = (
+                        f"{battle_region} feeds {fed:,} — the whole muster "
+                        f"standing there would lose ~{per_turn:,} men a "
+                        f"turn to short supply."
+                    )
+                else:
+                    preview["supply_note"] = (
+                        f"{battle_region} feeds {fed:,} — the whole muster "
+                        f"can stand there fed."
+                    )
+            else:
+                preview["supply"] = {
+                    "fed": -1,
+                    "bodies": int(total_bodies),
+                    "corps": int(n_corps),
+                    "attrition_per_turn": -1,
+                }
+                preview["supply_note"] = (
+                    f"What {battle_region} can feed is not known — the "
+                    f"province is unscouted."
+                )
 
         # NP-2 §5.1 shown=applied: the muster names the Presence when a
         # sovereign stands with the assault (computed live — the transient
@@ -1334,6 +1409,14 @@ class CombatExecutor:
         # said the Emperor was on the field. This is the render.
         if preview.get("presence_note"):
             lines.append(f"  {preview['presence_note']}")
+        # WO slice 8: the price and the G3 design sentence — rendered, not
+        # just produced (the NP-V lesson three comments up). `.get()`
+        # because two test fixtures build literal preview dicts without
+        # these keys, and older callers may too.
+        if preview.get("supply_note"):
+            lines.append(f"  {preview['supply_note']}")
+        if preview.get("province_fights_note"):
+            lines.append(f"  {preview['province_fights_note']}")
         if preview.get("shared_casualty_note"):
             lines.append(f"  {preview['shared_casualty_note']}")
         if preview.get("hint"):

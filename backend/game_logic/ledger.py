@@ -162,6 +162,8 @@ def _build_forces(world, player: str) -> list:
 def _build_territories(world, player: str) -> list:
     """Build territories section: per player-controlled region."""
     territories = []
+    # WO slice 8: one naval shore-verdict memo for the whole pass (GR8).
+    _shore_cache: dict = {}
     for region in world.regions.values():
         if region.controller != player:
             continue
@@ -183,8 +185,16 @@ def _build_territories(world, player: str) -> list:
             m.strength for m in world.marshals.values()
             if m.location == region.name
         )
+        # WO slice 8 (§2 C-7): verdict AND figure read the player's
+        # EFFECTIVE cap — the threshold the attrition engine bills at.
+        # The raw property fired "Over capacity" inside the 1.5× home
+        # band where the engine charges nothing (the PT-D5 false alarm),
+        # and printed a figure a third below the bill on every own-soil
+        # row.
+        effective_cap = world.get_effective_supply_cap(
+            player, region, _shore_cache=_shore_cache)
         supply_status = "OK"
-        if total_occupant_strength > region.supply_capacity:
+        if total_occupant_strength > effective_cap:
             supply_status = "Over capacity"
 
         # Occupant count
@@ -199,7 +209,7 @@ def _build_territories(world, player: str) -> list:
             "region_type": region.region_type,
             "buildings": buildings,
             "garrison": int(region.garrison_strength),
-            "supply_capacity": int(region.supply_capacity),
+            "supply_capacity": int(effective_cap),
             "occupant_count": int(occupant_count),
             "supply_status": supply_status,
             "stability": int(region.stability),

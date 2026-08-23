@@ -1936,9 +1936,10 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
             "have": "have" if len(names) > 1 else "has",
             "over": f"{over:,}",
             "strength": f"{total:,}",
-            # CA8-2: the capacity is stated. It appears on no screen the
-            # player can reach — `ledger.py` skips regions France does not
-            # control — so "move a corps" had no target size.
+            # CA8-2: the capacity is stated — at the time, it appeared on
+            # no screen the player could reach. (WO slice 8 has since put
+            # the SAME effective figure on the ledger, the region panel
+            # and the map tooltip; this line stays their dispatch twin.)
             "capacity": f"{cap:,}",
             "region": region_name,
             "losses": f"{int(slot['losses']):,} men",

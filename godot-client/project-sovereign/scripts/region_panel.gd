@@ -248,18 +248,49 @@ func _render() -> void:
 		# Build — every missing building while a slot is free (slot math from
 		# the fog-filtered payload; towns/rural report 0 slots so the row
 		# hides itself). Watchtowers ride their own field, slot-exempt.
+		# WO slice 8 (WO-D4-A): each chip states its terms — cost on the
+		# chip, delivered yield after it — every digit read from the
+		# backend's `build_terms` payload (the executors' own numbers),
+		# never hardcoded here. Absent terms (older payload) fall back to
+		# the plain label row.
 		var buildings = data.get("buildings", [])
 		var used_slots = buildings.size() if buildings is Array else 0
 		if data.get("building_under_construction") != null:
 			used_slots += 1
 		var max_slots = int(data.get("max_building_slots", 0))
+		var terms = data.get("build_terms", {})
+		if not (terms is Dictionary):
+			terms = {}
+		var build_rows = []
 		var build_chips = ""
 		if max_slots > used_slots:
 			for def in _BUILD_CHIP_DEFS:
 				if not _region_has_building(data, str(def[0])):
-					build_chips += Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]), Utils.COLOR_GOLD, _CHIP_BG) + " "
+					var b_key := str(def[0])
+					var t = terms.get(b_key, {})
+					if t is Dictionary and t.has("cost"):
+						build_rows.append("    " + Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]) + " " + str(int(t.get("cost", 0))) + "g", Utils.COLOR_GOLD, _CHIP_BG)
+							+ " [color=#" + Utils.COLOR_GREY + "]" + _build_terms_text(b_key, t) + "[/color]")
+					else:
+						build_chips += Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]), Utils.COLOR_GOLD, _CHIP_BG) + " "
 		if str(data.get("watchtower", "none")) == "none":
-			build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
+			var wt = terms.get("watchtower", {})
+			if wt is Dictionary and wt.has("cost"):
+				build_rows.append("    " + Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower " + str(int(wt.get("cost", 0))) + "g", Utils.COLOR_GOLD, _CHIP_BG)
+					+ " [color=#" + Utils.COLOR_GREY + "]eyes on every adjacent province[/color]")
+			else:
+				build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
+		if build_rows.size() > 0:
+			# The tier upkeep is one figure for every work here — said
+			# once on the header, not repeated per row.
+			var upkeep := int(terms.get("upkeep", 0))
+			var build_head := "  Build"
+			if upkeep > 0:
+				build_head += " [color=#" + Utils.COLOR_GREY + "](each finished work keeps " + str(upkeep) + "g a turn)[/color]"
+			build_head += ":"
+			action_rows.append(build_head)
+			for br in build_rows:
+				action_rows.append(br)
 		if build_chips != "":
 			action_rows.append("  Build: " + build_chips)
 
@@ -270,8 +301,12 @@ func _render() -> void:
 				if b is Dictionary and b.get("damaged", false):
 					needs_repair = true
 		if needs_repair:
-			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair", Utils.COLOR_WARNING, _CHIP_BG)
-				+ "  [color=#" + Utils.COLOR_GREY + "]restore damaged works[/color]")
+			var rep = terms.get("repair", {})
+			var rep_label := "Repair"
+			if rep is Dictionary and rep.has("cost"):
+				rep_label += " " + str(int(rep.get("cost", 0))) + "g"
+			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, rep_label, Utils.COLOR_WARNING, _CHIP_BG)
+				+ "  [color=#" + Utils.COLOR_GREY + "]restore damaged works — and their upkeep[/color]")
 
 		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
 		# sites, price quoted from the backend's live constant (honest-chip
@@ -418,3 +453,27 @@ func _region_has_building(data: Dictionary, building_type: String) -> bool:
 	if construction is Dictionary and str(construction.get("type", "")) == building_type:
 		return true
 	return false
+
+
+func _build_terms_text(building_key: String, t: Dictionary) -> String:
+	# WO slice 8: the delivered terms after the chip — every digit from
+	# the backend's build_terms payload (this province's own arithmetic,
+	# stability and terrain included), never a constant kept here.
+	match building_key:
+		"supply_depot":
+			return "+" + Utils.format_number(int(t.get("supply", 0))) + " supply · +" \
+				+ str(int(t.get("income", 0))) + "g/turn"
+		"fortification":
+			return "+" + str(int(t.get("defense_pct", 0))) + "% to defenders here"
+		"training_ground":
+			return "recruits " + str(int(t.get("recruit_morale_base", 0))) + "→" \
+				+ str(int(t.get("recruit_morale", 0))) + " morale · drill +" \
+				+ str(int(t.get("drill_gain_base", 0))) + "→+" + str(int(t.get("drill_gain", 0)))
+		"market":
+			return "+" + str(int(t.get("income", 0))) + "g/turn"
+		"stables":
+			var cav := int(t.get("cavalry", 0))
+			if cav <= 0:
+				return "+0 cavalry/turn — the remount cap is already filled"
+			return "+" + Utils.format_number(cav) + " cavalry/turn"
+	return ""

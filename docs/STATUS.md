@@ -4,6 +4,84 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO SLICE 8 — "THE PANEL STATES ITS TERMS" LANDED, August 22, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 8,
+> authoritative.** All four contract items (WO-D1-A + WO-D4-A + G3), and
+> the pre-build recon fleet — three readers on the committed tree before a
+> line was written — **corrected the contract in three load-bearing
+> places**, the row's pattern for the fifth time:
+>
+> 1. **The spec's "costs 11,340 a turn" is unreachable** — the engine
+>    caps attrition at 6%/turn, so the sketched 78,676-man stack tops out
+>    at 4,720. The muster preview now quotes the engine's own number
+>    through the engine's own arithmetic: `supply_attrition_rate`
+>    extracted from `process_supply_attrition`'s loop, called by BOTH
+>    (0.015 exists once in `world_state.py`, AST-pinned), per-marshal
+>    `int()` floors and the death-ball stacking arm reproduced — an
+>    enact-the-counterfactual test relocates the muster and runs the real
+>    engine: **quoted == billed, to the man, both arms**.
+> 2. **`committed_strength` is combat weight, not a headcount** — the
+>    bill prices BODIES (lead + joiners + same-province corps that stand
+>    there whether they fight or not; the engine's pooled total is
+>    nation-blind and the quote matches it).
+> 3. **The exclusion G3 teaches is FORTIFY** (1 AP, stands until moved) —
+>    `restrain` is a Glorious-Charge response verb that excludes nothing,
+>    and HOLD's flag is literal-only. The G3 sentence ("Every corps in
+>    the province shares the field — that is the design…") renders on the
+>    commit screen, produced AND formatted (the NP-V lesson, pinned).
+>
+> **One supply figure everywhere:** the map payload ships the player's
+> EFFECTIVE cap (one key — region panel and map tooltip flip together,
+> zero `.gd` diff for that half); the ledger's figure AND "Over capacity"
+> verdict re-threshold on the same helper (the false-alarm band between
+> raw and 1.5×raw is dead — the raw/effective split differed on **47 of
+> 126 boot provinces**, every French row a third under the bill); the
+> dispatch headline (already effective since PC15-D2) pinned as the
+> agreeing twin. The fog rule is ONE new predicate `region_econ_visible`
+> shared by the filtered summary and the preview — the preview prices a
+> province exactly when the panel prints its figure and says "unscouted"
+> (no digit leaked) exactly when the panel says Unknown; the `-1`
+> sentinel block byte-untouched. The spec's own example measured true:
+> **Swabia raw 40,000 → France fed 60,000, through the ALLY arm**
+> (Bavaria's soil) — the ally's-table case, live in the suite.
+>
+> **Build chips state their terms** (WO-D4-A): per-region `build_terms`
+> on the summary (player provinces only, GR8), every figure the OUTPUT of
+> applied arithmetic — depot supply via `supply_capacity_with()` both
+> ways × the live `_supply_multiplier` decision (Paris quotes +15,000,
+> not the brochure's +10,000; `get_effective_supply_cap` decomposed
+> byte-identically); income deltas via `get_effective_income(extra_building)`
+> both ways, so **a market on hostile soil quotes +0** before the 350g;
+> stables = the NATION marginal (France's 24 plains saturate the ES-1b
+> cap → the boot chip honestly reads *"+0 cavalry/turn — the remount cap
+> is already filled"*: the gate's "stop selling a capped-away building",
+> built); tier upkeep said once per row header. `RECRUIT_MORALE_BASE/
+> TRAINED` + `REPAIR_COST` promoted from function-locals to class
+> constants the executors read. The panel renders one row per available
+> building — cost on the pill, delivered terms after, all payload reads
+> (no cost literal in the `.gd`, pinned; ui6 chip-stem contracts hold).
+>
+> **Inertness caught before the sweep** (the slice-4 lesson): the upkeep
+> pin's first draft used only Paris — a capital, whose tier digit equals
+> the flat fallback 40 — and the stables pin needed the boot marginal
+> measured (0) plus a positive-arm nation, or hardcodes would have
+> survived. Consciously NOT built: the contract's item-4 list, and
+> `_bad_odds_muster_note` does not gain the price (one-line force
+> addendum, nothing retired there — considered, not missed).
+>
+> `tests/test_wo_slice8_panel_states_its_terms.py` (44) · sweep
+> `tools/_sweep_wo8.json` **24 killed, 0 inert** · suite **18,605 / 3**
+> (the 7 subprocess "failures" under the build shell are the standing
+> `PYTHONIOENCODING` harness artifact, green in a clean env) · **M1–M7 +
+> `BASELINE_SERIES` byte-identical WITHOUT re-record** (the in-suite
+> subprocess series pin passed; the preview stays player-gated at exactly
+> ONE call site, AST-pinned) · ruff clean · parse harness EXIT=0 ·
+> headless boot **0 SCRIPT ERROR**.
+>
+> **NEXT = row WO slice 9** (the courting cap), then 10 → 17 → 11 → 12 →
+> 14. ⚠ Slices 6 and 8 are both owed an in-game pass (slice 8's new
+> surfaces: the chip term rows + the preview price block).
+
 > # ✅ WO SLICE 6 — "THE ADMIRALTY SPEAKS PLAINLY" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 6,
 > authoritative — and it records that THE CONTRACT WAS WRONG IN TWELVE

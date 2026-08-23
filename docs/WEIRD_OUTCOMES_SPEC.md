@@ -1748,6 +1748,99 @@ quotes the depot's terms; `BASELINE_SERIES` untouched (preview player-gated,
 §2 C-8 — one call site; assert, then prove by subprocess run per the method
 rule).
 
+> **✅ LANDED August 22, 2026 — landing record, authoritative.** All four
+> contract items, and the pre-build recon fleet corrected the contract in
+> THREE load-bearing places (the slice-6 method — run it BEFORE building):
+>
+> 1. **The spec's "11,340 a turn" is UNREACHABLE.** The engine caps the
+>    attrition rate at 6%/turn, so the sketched 78,676-man stack can never
+>    lose more than 4,720. The preview prints the engine's own number
+>    through the engine's own arithmetic — `supply_attrition_rate`,
+>    extracted verbatim from `process_supply_attrition`'s loop and now
+>    called by BOTH (the 0.015 slope literal appears exactly once in
+>    `world_state.py`, AST-pinned; the loop's dead `base_cap` read removed
+>    in passing). The quote reproduces the per-marshal `int()` floors and
+>    the death-ball stacking arm — for a large muster the stacking term is
+>    the DOMINANT cost, and it bills even under the cap.
+> 2. **`committed_strength` is combat weight, not a headcount** (α 0.6 ×
+>    effectiveness × modifiers × arrival probability). The bill prices
+>    BODIES: lead + joiners + same-province corps that stand there whether
+>    they fight or not (`shares_the_field_apart` eats too — the engine's
+>    pooled total is nation-blind and the quote matches it, pinned by an
+>    enact-the-counterfactual test that relocates the muster and runs the
+>    real engine: quoted == billed, to the man, both arms).
+> 3. **The exclusion G3 teaches is FORTIFY** (1 AP, stands until moved —
+>    `fortified_static` / Rule 7). `restrain` is a Glorious-Charge
+>    response verb that excludes nothing, and HOLD's `holding_position`
+>    flag is set for literal marshals only. The sentence names fortify and
+>    its real price, and a pin holds the taught 1 AP to `_action_costs`.
+>
+> **One figure.** `get_game_state_summary` ships the player's EFFECTIVE
+> cap (one payload key — the region panel and the map tooltip flip
+> together, zero `.gd` diff for that half); the ledger's figure AND its
+> "Over capacity" verdict re-threshold on the same helper (the false-alarm
+> band between raw and 1.5×raw is dead — at boot the raw/effective split
+> differed on **47 of 126 provinces**, every French row a third under the
+> bill); the dispatch headline was already effective (PC15-D2) and is
+> pinned as the fourth agreeing surface. The fog rule is ONE predicate —
+> new `region_econ_visible`, extracted from the filtered summary's econ
+> branch and shared by the muster preview — so the preview prices a
+> province exactly when the panel prints its figure and says *"unscouted"*
+> (no digit leaked) exactly when the panel says Unknown; the `-1`
+> sentinel block is byte-untouched. **The spec's own worked example
+> measured true:** Swabia raw 40,000 → France fed 60,000 — through the
+> ALLY arm (Bavaria's soil), so the example exercises the ally's-table
+> case, now pinned live. `get_effective_supply_cap` decomposed
+> byte-identically into `int(base × _supply_multiplier)` so the depot
+> chip's counterfactual scales by the SAME fed/naval decision.
+>
+> **Chips state their terms** (WO-D4-A): per-region `build_terms` on the
+> summary (player-held provinces only — the only place chips render, and
+> it keeps the pass off the other ~90 provinces, GR8), every figure the
+> OUTPUT of applied arithmetic: depot supply = `supply_capacity_with()`
+> run both ways × the live multiplier (Paris quotes +15,000, not the
+> brochure's +10,000); income deltas = `get_effective_income(extra_building)`
+> both ways — DELIVERED gold, so a market on hostile soil quotes **+0**
+> (the no-gaming rule stated on the chip, before the 350g); stables = the
+> NATION marginal via the extracted `_cavalry_territory_bonus` — France's
+> 24 plains already saturate the ES-1b cap, so the boot chip honestly
+> reads *"+0 cavalry/turn — the remount cap is already filled"* (the
+> gate's "stop selling a capped-away building", built; "exempt stables"
+> not); upkeep = `infrastructure_upkeep_rate` per tier, said once on the
+> row header. `RECRUIT_MORALE_BASE/TRAINED` and `REPAIR_COST` promoted
+> from function-locals to class constants the executors READ (no copies).
+> The panel renders one row per available building — cost on the pill,
+> delivered terms after, all payload reads (pinned: no cost literal in
+> the `.gd`; the ui6 chip-stem contracts hold).
+>
+> **Consciously NOT done:** contract item 4's list (no re-pricing, no
+> WO-D1 Option 2, ES-1b stands) — and `_bad_odds_muster_note` (the CR-5
+> bad-odds addendum) does NOT gain the supply price: it is a one-line
+> force addendum, no sentence there was retired, and the muster block
+> carrying the price already renders on both the interrupt and the
+> resolved-battle surface. Considered, not missed. The CA8-2 "appears on
+> no screen the player can reach" comment amended — this slice made it
+> stale.
+>
+> **Inertness found BEFORE the sweep** (the slice-4 lesson): the upkeep
+> pin's first draft asserted only Paris — a capital, whose tier digit
+> equals the flat fallback 40, so a hardcoded 40 would have survived; the
+> test now requires a city row to differ from the capital row. The
+> stables pin required the boot marginal measured (0) plus a
+> positive-arm nation under the cap, or a hardcoded 0 would have passed.
+>
+> **Proofs:** `tests/test_wo_slice8_panel_states_its_terms.py` (44) ·
+> 24-mutation sweep **24/24 killed, 0 inert** (`tools/_sweep_wo8.json`) ·
+> suite **18,605 passed / 3 skipped** (the 7 subprocess "failures" under
+> the build shell reproduce the standing `PYTHONIOENCODING` harness
+> artifact exactly and pass in a clean env) · **M1–M7 and
+> `BASELINE_SERIES` byte-identical WITHOUT re-record** — the in-suite
+> subprocess series pin passed, and the preview stays player-gated at
+> exactly ONE call site (AST-pinned) · Godot parse harness EXIT=0 ·
+> headless boot **0 SCRIPT ERROR**. ⚠ The standing visual sign-off on
+> the new chip rows + the preview price block rides the next play
+> session.
+
 ### Slice 9 — WO-8 the courting cap (est 0.5)
 
 **Scope.** Per-TARGET throttle on vassal courting + the two absent guards the

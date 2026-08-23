@@ -5729,12 +5729,7 @@ class WorldState:
         inf_regen = INFANTRY_BASE_REGEN
 
         # Cavalry: slow base + territory bonuses, summed bonus capped (ES-1b)
-        cav_bonus = 0
-        for region in controlled:
-            if region.terrain == "plains":
-                cav_bonus += PLAINS_CAVALRY_REGEN
-            if region.has_building("stables"):
-                cav_bonus += STABLES_CAVALRY_REGEN
+        cav_bonus = self._cavalry_territory_bonus(controlled)
         cav_regen = CAVALRY_BASE_REGEN + min(cav_bonus, CAVALRY_REGEN_BONUS_CAP)
 
         # Artillery: slow base + arsenal territory bonuses, hard-capped (ES-1a)
@@ -5756,6 +5751,32 @@ class WorldState:
             "cavalry": int(cav_regen),
             "artillery": int(art_regen),
         }
+
+    @staticmethod
+    def _cavalry_territory_bonus(controlled) -> int:
+        """ES-1b's summed territory bonus (plains + stables), pre-cap —
+        one arithmetic for the regen rate AND the stables chip's marginal
+        (WO slice 8: the chip may not keep a copy of this loop)."""
+        cav_bonus = 0
+        for region in controlled:
+            if region.terrain == "plains":
+                cav_bonus += PLAINS_CAVALRY_REGEN
+            if region.has_building("stables"):
+                cav_bonus += STABLES_CAVALRY_REGEN
+        return cav_bonus
+
+    def stables_cavalry_marginal(self, nation: str = None) -> int:
+        """WO slice 8: what ONE more stables actually adds to the nation's
+        cavalry regen — the ES-1b cap applies to the SUMMED bonus, so a
+        nation whose plains already fill the cap gains 0, and the chip
+        says so instead of selling a capped-away building (the gate's
+        "stop selling" clause; 'exempt stables' stays un-built)."""
+        nation = nation or self.player_nation
+        controlled = [self.regions[n] for n in self.get_nation_regions(nation)]
+        cav_bonus = self._cavalry_territory_bonus(controlled)
+        return int(min(cav_bonus + STABLES_CAVALRY_REGEN,
+                       CAVALRY_REGEN_BONUS_CAP)
+                   - min(cav_bonus, CAVALRY_REGEN_BONUS_CAP))
 
     def get_cavalry_regen_rate(self, nation: str) -> int:
         """Calculate current cavalry regen rate for a nation (for display/error messages)."""
@@ -6279,15 +6300,25 @@ class WorldState:
         construction (review round [13]). `_shore_cache` lets the
         attrition pass reuse one verdict per (nation, region) per turn.
         """
-        base_cap = region.supply_capacity
+        return int(region.supply_capacity
+                   * self._supply_multiplier(nation, region, _shore_cache))
+
+    def _supply_multiplier(self, nation: str, region,
+                           _shore_cache: Optional[dict] = None) -> float:
+        """WO slice 8: the fed/naval multiplier DECISION, split from the
+        capacity so the depot chip can price its counterfactual gain by
+        the same decision the live cap uses (`cap = int(base × M)`,
+        M ∈ {1.0, HOME_SUPPLY_MULTIPLIER}). The decision reads only
+        (nation, region-identity) — never the capacity — so applying it
+        to a with-depot capacity is exact, not an approximation.
+        """
         is_home = (region.controller == nation)
         is_fed = is_home
         if (not is_fed and region.controller
                 and self.get_diplomatic_state(nation, region.controller)
                 in self.ALLY_SUPPLY_STATES):
             is_fed = True
-        cap = (int(base_cap * self.HOME_SUPPLY_MULTIPLIER)
-               if is_fed else base_cap)
+        multiplier = self.HOME_SUPPLY_MULTIPLIER if is_fed else 1.0
         if (self.fleets and getattr(region, "is_coastal", False)
                 and self.get_nations_at_war_with(nation)):
             from backend.game_logic.naval import shore_supply_state
@@ -6300,10 +6331,38 @@ class WorldState:
             else:
                 verdict = shore_supply_state(self, nation, region.name)
             if verdict == "lifeline" and not is_fed:
-                cap = int(base_cap * self.HOME_SUPPLY_MULTIPLIER)
+                multiplier = self.HOME_SUPPLY_MULTIPLIER
             elif verdict == "strangled" and is_fed:
-                cap = base_cap
-        return cap
+                multiplier = 1.0
+        return multiplier
+
+    @staticmethod
+    def supply_attrition_rate(total: int, cap: int, num_marshals: int) -> float:
+        """WO slice 8: the ONE attrition-rate arithmetic, extracted verbatim
+        from `process_supply_attrition`'s loop so the muster preview can
+        quote the price the engine will bill (shown = applied by
+        construction — the engine calls this, the preview calls this,
+        neither keeps a copy).
+
+        `total` is the pooled strength standing in the province (the engine
+        pools nation-blind), `cap` the caller's own effective cap, and the
+        death-ball stacking penalty rides `num_marshals`. Returns the
+        per-turn fractional rate (0.0 = no attrition), capped at 0.06.
+        """
+        stacking_penalty = max(0, num_marshals - 1) * 0.01  # +1% per extra marshal
+        if cap <= 0 or total <= cap:
+            # Even under capacity, stacking penalty applies for death-balling
+            if stacking_penalty > 0 and num_marshals >= 3:
+                attrition = stacking_penalty
+            else:
+                return 0.0
+        else:
+            excess_ratio = (total - cap) / cap
+            # Balance patch: continuous formula replaces hard tiers
+            # Scales smoothly from 0% to 3% cap, avoids cliff effects
+            attrition = min(0.03, excess_ratio * 0.015) + stacking_penalty
+        # Total attrition cap: 6% (3% base + stacking)
+        return min(0.06, attrition)
 
     def process_supply_attrition(self) -> list:
         """Apply supply attrition to over-capacity regions. Returns event list.
@@ -6333,12 +6392,10 @@ class WorldState:
             marshals_here = [m for m in self._get_marshals_in_region_indexed(region.name)
                              if m.strength > 0]
             total = sum(m.strength for m in marshals_here)
-            base_cap = region.supply_capacity
 
             # Per-marshal attrition: home territory gets 1.5x supply capacity
             # Death-ball penalty: +1% per marshal beyond the 1st in the region
             num_marshals = len(marshals_here)
-            stacking_penalty = max(0, num_marshals - 1) * 0.01  # +1% per extra marshal
 
             for m in marshals_here:
                 # HC-4a "The Royal Navy's lifeline" (gate §5a): the
@@ -6352,19 +6409,13 @@ class WorldState:
                 # applied). Verdicts cached per (nation, region).
                 cap = self.get_effective_supply_cap(
                     m.nation, region, _shore_cache=_shore_cache)
-                if cap <= 0 or total <= cap:
-                    # Even under capacity, stacking penalty applies for death-balling
-                    if stacking_penalty > 0 and num_marshals >= 3:
-                        attrition = stacking_penalty
-                    else:
-                        continue
-                else:
-                    excess_ratio = (total - cap) / cap
-                    # Balance patch: continuous formula replaces hard tiers
-                    # Scales smoothly from 0% to 3% cap, avoids cliff effects
-                    attrition = min(0.03, excess_ratio * 0.015) + stacking_penalty
-                # Total attrition cap: 6% (3% base + stacking)
-                attrition = min(0.06, attrition)
+                # WO slice 8: the rate arithmetic lives in
+                # `supply_attrition_rate` so the muster preview quotes
+                # the same bill this loop collects.
+                attrition = self.supply_attrition_rate(
+                    total, cap, num_marshals)
+                if attrition <= 0.0:
+                    continue
                 losses = int(m.strength * attrition)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
@@ -8326,10 +8377,90 @@ class WorldState:
 
         return world
 
+    def _region_build_terms(self, region, stables_marginal: int,
+                            _shore_cache: Optional[dict] = None) -> Dict:
+        """WO slice 8 (WO-D4-A): the terms a build chip must state —
+        cost / delivered yield / upkeep — every figure the OUTPUT of the
+        arithmetic the executors and the income pass actually apply,
+        never a copied constant:
+
+        - income deltas run `Region.get_effective_income` both ways
+          (stability and war-damage included — the DELIVERED gold);
+        - the depot's supply delta runs `supply_capacity_with` both ways
+          and scales by the live `_supply_multiplier` decision (terrain
+          and the fed table can't make the chip lie);
+        - the stables figure is the caller-supplied NATION marginal
+          (ES-1b caps the summed bonus — a saturated nation reads +0,
+          the gate's "stop selling a capped-away building");
+        - upkeep is `infrastructure_upkeep_rate` for this tier.
+
+        All values int (Golden Rule 2).
+        """
+        from backend.commands.economy_executor import EconomyExecutor
+        from backend.commands.objection_v2 import (
+            REGION_FORTIFICATION_DEFENSE_BONUS,
+        )
+        from backend.models.region import BUILDING_TYPES
+
+        def _cost(b: str) -> int:
+            return int(BUILDING_TYPES[b]["gold_cost"])
+
+        income_now = region.get_effective_income()
+        mult = self._supply_multiplier(
+            self.player_nation, region, _shore_cache)
+        supply_now = int(region.supply_capacity_with() * mult)
+        supply_with_depot = int(
+            region.supply_capacity_with("supply_depot") * mult)
+        return {
+            "upkeep": int(infrastructure_upkeep_rate(region)),
+            "supply_depot": {
+                "cost": _cost("supply_depot"),
+                "supply": int(supply_with_depot - supply_now),
+                "income": int(region.get_effective_income("supply_depot")
+                              - income_now),
+            },
+            "fortification": {
+                "cost": _cost("fortification"),
+                "defense_pct": int(
+                    round(REGION_FORTIFICATION_DEFENSE_BONUS * 100)),
+            },
+            "training_ground": {
+                "cost": _cost("training_ground"),
+                "recruit_morale": int(EconomyExecutor.RECRUIT_MORALE_TRAINED),
+                "recruit_morale_base": int(EconomyExecutor.RECRUIT_MORALE_BASE),
+                "drill_gain": int(self.DRILL_MORALE_GAIN_TRAINED),
+                "drill_gain_base": int(self.DRILL_MORALE_GAIN),
+            },
+            "market": {
+                "cost": _cost("market"),
+                "income": int(region.get_effective_income("market")
+                              - income_now),
+            },
+            "stables": {
+                "cost": _cost("stables"),
+                "cavalry": int(stables_marginal),
+            },
+            "watchtower": {
+                "cost": int(EconomyExecutor.WATCHTOWER_GOLD_COST),
+            },
+            "repair": {
+                "cost": int(EconomyExecutor.REPAIR_COST),
+            },
+        }
+
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
         # Build map_data with marshals (including debug info for player marshals)
         map_data = {}
+        # WO slice 8: one naval shore-verdict memo for the whole pass —
+        # the per-region supply figure below is the player's EFFECTIVE
+        # cap, and without the cache every coastal province would run its
+        # own fleet scan on every API response (GR8).
+        _shore_cache: dict = {}
+        # WO slice 8: the stables chip's honest figure is the NATION-level
+        # marginal (plains + stables share one capped bonus) — computed
+        # once, never per region.
+        _stables_marginal = self.stables_cavalry_marginal()
         for region_name, region in self.regions.items():
             # Get all alive marshals in this region
             marshals_here = self.get_marshals_in_region(region_name)
@@ -8481,7 +8612,15 @@ class WorldState:
                 "stability": int(region.stability),
                 "stability_label": region.get_stability_label(),
                 "war_damage": int(region.war_damage * 100),  # Send as int % (0-100) — Godot crashes on floats
-                "supply_capacity": int(region.supply_capacity),
+                # WO slice 8 (§2 C-7): the player's EFFECTIVE cap — the
+                # figure the attrition engine bills — not the raw
+                # property. One payload key feeds the region panel AND
+                # the map tooltip, so both flip together; the ledger and
+                # the muster preview read the same helper. The -1 fog
+                # sentinel is applied downstream (filtered summary) and
+                # survives untouched.
+                "supply_capacity": int(self.get_effective_supply_cap(
+                    self.player_nation, region, _shore_cache=_shore_cache)),
                 # Building data for region tooltip
                 "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
                 "building_under_construction": {
@@ -8497,6 +8636,16 @@ class WorldState:
                 "garrison_detachment": region.garrison_detachment,
                 "marshals": marshals_data
             }
+
+            # WO slice 8 (WO-D4-A): build chips state their terms — the
+            # numbers the executors will actually apply, computed here
+            # (player-held provinces only: that is the only place the
+            # panel renders build chips, and it keeps the pass off the
+            # other ~90 provinces per response — GR8).
+            if region.controller == self.player_nation:
+                map_data[region_name]["build_terms"] = (
+                    self._region_build_terms(
+                        region, _stables_marginal, _shore_cache))
 
         return {
             "turn": int(self.current_turn),  # Explicit int cast
@@ -8545,6 +8694,23 @@ class WorldState:
             "victory": self.victory
         }
 
+    def region_econ_visible(self, region_name: str) -> bool:
+        """WO slice 8: the ONE predicate for whether the player's screens
+        may state a province's economic block (income / stability /
+        supply / buildings) — own soil always, foreign soil at FULL.
+
+        Extracted from `get_filtered_game_state_summary`'s fog branch so
+        the muster preview's supply quote and the map payload cannot
+        disagree: the preview prices a province exactly when the panel
+        would print its figure, and sentinels (-1) exactly when the
+        panel says Unknown (the PC15-16 discipline on a new surface).
+        """
+        from backend.models.intel import FULL
+        region = self.regions.get(region_name)
+        if region is not None and region.controller == self.player_nation:
+            return True
+        return self.get_region_intel(region_name).visibility == FULL
+
     def get_filtered_game_state_summary(self) -> Dict:
         """
         Fog-filtered game state for API responses (Session 34A).
@@ -8590,7 +8756,10 @@ class WorldState:
             }
 
             # Economic data: always for own regions, only at FULL for enemy
-            if is_own_region or intel.visibility == FULL:
+            # (WO slice 8: the branch is the shared `region_econ_visible`
+            # predicate, so the muster preview's supply quote and this
+            # payload gate on the SAME rule and cannot drift.)
+            if self.region_econ_visible(region_name):
                 filtered_region["income_value"] = region_data["income_value"]
                 filtered_region["effective_income"] = region_data["effective_income"]
                 filtered_region["stability"] = region_data["stability"]
@@ -8602,6 +8771,11 @@ class WorldState:
                 filtered_region["max_building_slots"] = region_data["max_building_slots"]
                 filtered_region["watchtower"] = region_data.get("watchtower", "none")
                 filtered_region["watchtower_turns_remaining"] = region_data.get("watchtower_turns_remaining", 0)
+                # WO slice 8: chip terms ride only where the econ block
+                # does (own soil in practice — the producer stamps them
+                # on player-held provinces only).
+                filtered_region["build_terms"] = region_data.get(
+                    "build_terms", {})
             else:
                 # Hidden economic data — send sentinels so Godot doesn't crash on missing keys
                 # CA9-F5 / PC15-16: -1 means "not known", never a fabricated 0.
@@ -8625,6 +8799,9 @@ class WorldState:
                 filtered_region["max_building_slots"] = 0
                 filtered_region["watchtower"] = "none"
                 filtered_region["watchtower_turns_remaining"] = 0
+                # WO slice 8: fogged rows carry no chip terms ({} — never
+                # a fabricated figure, the PC15-16 discipline).
+                filtered_region["build_terms"] = {}
 
             # Garrison filtering: own garrisons always visible, enemy by visibility
             if is_own_region:

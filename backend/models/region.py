@@ -288,9 +288,18 @@ class Region:
     @property
     def supply_capacity(self) -> int:
         """Max troops region can sustain. Computed from type + buildings + terrain."""
+        return self.supply_capacity_with()
+
+    def supply_capacity_with(self, extra_building: str = None) -> int:
+        """The supply-capacity arithmetic, runnable with ONE counterfactual
+        building assumed built (WO slice 8: the depot chip's figure is
+        `with("supply_depot") − with()` — the applied formula run both
+        ways, never a copied constant, so terrain scaling can't make the
+        chip lie). `extra_building=None` IS the live property."""
         base = SUPPLY_BY_TYPE.get(self.region_type, 20000)
         # Supply depot adds 10,000
-        if self.has_building("supply_depot"):
+        if (self.has_building("supply_depot")
+                or extra_building == "supply_depot"):
             base += 10000
         # Terrain modifier (mountains 0.5x, urban 1.2x, etc.)
         base = int(base * self.supply_modifier)
@@ -376,20 +385,27 @@ class Region:
         """Natural recovery per turn."""
         self.war_damage = max(0.0, self.war_damage - amount)
 
-    def get_effective_income(self) -> int:
+    def get_effective_income(self, extra_building: str = None) -> int:
         """Actual income after stability and war damage modifiers.
 
         Supply depot adds +50 to BASE income (before modifiers).
         Market applies +25% multiplier to base (after supply depot, before stability/damage).
         This means buildings in a hostile region still yield 0
         (base * 0.0 stability = 0) — no gaming by building in warzones.
+
+        WO slice 8: `extra_building` runs the same arithmetic with one
+        counterfactual building assumed built — a build chip's income
+        figure is `get_effective_income("market") − get_effective_income()`,
+        the DELIVERED delta (stability/damage included), never a copy of
+        the constants. Default None is the live value, byte-identical.
         """
         base = self.income_value
         # Supply depot bonus (Phase 6.2.E) — flat add on base, before modifiers
-        if self.has_building("supply_depot"):
+        if (self.has_building("supply_depot")
+                or extra_building == "supply_depot"):
             base += 50
         # Market bonus — +25% multiplier on base (after supply depot)
-        if self.has_building("market"):
+        if self.has_building("market") or extra_building == "market":
             base = int(base * 1.25)
         stability_mod = self._get_stability_modifier()
         damage_mod = 1.0 - self.war_damage

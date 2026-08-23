@@ -100,6 +100,13 @@ class EconomyExecutor:
     WATCHTOWER_GOLD_COST = 250
     WATCHTOWER_BUILD_TIME = 2
 
+    # WO slice 8: promoted from function-locals so the region panel's
+    # build chips can quote the SAME numbers the executors apply
+    # (`_execute_recruit` / `_execute_repair` read these — no copies).
+    RECRUIT_MORALE_BASE = 40      # Green conscripts base morale
+    RECRUIT_MORALE_TRAINED = 70   # with a training_ground in the province
+    REPAIR_COST = 150
+
     def __init__(self, parent_executor):
         self._executor = parent_executor
 
@@ -440,7 +447,9 @@ class EconomyExecutor:
         - Admin AP cost handled by executor routing layer (not here)
         """
         # Base recruit morale — upgraded by Training Ground (Phase 6.2.E)
-        RECRUIT_MORALE = 40   # Green conscripts base morale
+        # WO slice 8: the digits live on the class so the build chips
+        # quote what this function applies.
+        RECRUIT_MORALE = self.RECRUIT_MORALE_BASE
 
         marshal_specified = command.get("marshal")
         location_specified = command.get("target")
@@ -648,7 +657,7 @@ class EconomyExecutor:
 
         # Phase 6.2 Audit Fix #6: Training Ground morale bonus buffed from +15% to +30%
         if region.has_building("training_ground"):
-            RECRUIT_MORALE = 70
+            RECRUIT_MORALE = self.RECRUIT_MORALE_TRAINED
 
         # MC-1: Moore's "Shorncliffe System" — his recruits arrive drilled,
         # morale floor 60. max() keeps the Training Ground's 70 strictly
@@ -1543,7 +1552,8 @@ class EconomyExecutor:
         - No building_type: repair war damage (-0.15)
         - With building_type: repair that building (damaged -> functional)
         """
-        REPAIR_COST = 150
+        # WO slice 8: promoted to the class so the repair chip quotes it.
+        REPAIR_COST = self.REPAIR_COST
 
         world: WorldState = game_state.get("world")
         if not world:
