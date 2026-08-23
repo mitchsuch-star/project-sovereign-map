@@ -4206,11 +4206,16 @@ def get_campaign_log():
 def _player_marshal_names(world) -> list:
     """UX23-R5: the roster the dialogue matcher checks a typed line against.
 
-    Standing marshals only — a fallen or captured name is not an order the
-    player can give, and letting it block a dialogue answer would be a second
-    defect wearing the first one's coat."""
+    Commandable marshals only. A fallen name is gone from `world.marshals`
+    already (PC15-1's `destroy_marshal`), but a CAPTURED one is not —
+    `capture_marshal` leaves him in the roster at strength 0 under his own
+    nation, so `get_player_marshals()` still returns him. Letting a prisoner's
+    name veto a dialogue answer would be a second defect wearing the first
+    one's coat, so he is filtered here. (Review round: the docstring claimed
+    this before the code did.)"""
     try:
-        return [m.name for m in world.get_player_marshals()]
+        return [mm.name for mm in world.get_player_marshals()
+                if not getattr(mm, "captured_by", "")]
     except Exception:
         return []
 

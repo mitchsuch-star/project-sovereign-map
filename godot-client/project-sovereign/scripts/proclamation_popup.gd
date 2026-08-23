@@ -33,8 +33,7 @@ func _ready():
 
 func show_proclamation(data: Dictionary):
 	"""Display the formation card. §11.8 stage 2, top to bottom."""
-	AudioManager.play("bells_peal")
-	claim_cue("bells_peal")  # UX23-R1: an arrival sound goes when the panel does
+	claim_cue(AudioManager.play("bells_peal"))  # UX23-R1: an arrival sound goes when the panel does
 	# the new flag over the struck old
 	var new_name := str(data.get("display_name", ""))
 	var old_name := str(data.get("old_display_name", ""))

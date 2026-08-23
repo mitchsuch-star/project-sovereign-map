@@ -14,6 +14,9 @@ extends CanvasLayer
 signal reward_command(command: String)
 signal cancelled()
 
+# UX23-R1: the player this dialog started, silenced when it closes.
+var _own_cue = null
+
 @onready var title_label = $PanelContainer/VBoxContainer/TitleLabel
 @onready var info_label = $PanelContainer/VBoxContainer/InfoLabel
 @onready var options_container = $PanelContainer/VBoxContainer/ScrollContainer/OptionsContainer
@@ -28,7 +31,11 @@ func _ready():
 
 func show_reward(card: Dictionary):
 	"""Build the reward portfolio for one marshal from his overview card."""
-	AudioManager.play("to_the_color")  # honors for a marshal (capped in CUES)
+	_own_cue = AudioManager.play("to_the_color")  # honors for a marshal
+	# UX23-R1 review: 6.0 s of bugle on a dialog the player dismisses in
+	# one click — the longest cue in the tree that nothing was stopping.
+	# reward_dialog extends CanvasLayer, not PopupBase, so it holds its
+	# own handle rather than calling claim_cue.
 	var m_name = str(card.get("name", "?"))
 	title_label.text = "REWARD MARSHAL " + m_name.to_upper()
 
@@ -173,10 +180,14 @@ func _add_option(label_text: String, command: String, font_color: Color):
 
 
 func _on_option_pressed(command: String):
+	AudioManager.stop_player(_own_cue)
+	_own_cue = null
 	hide()
 	reward_command.emit(command)
 
 
 func _on_cancel():
+	AudioManager.stop_player(_own_cue)
+	_own_cue = null
 	hide()
 	cancelled.emit()

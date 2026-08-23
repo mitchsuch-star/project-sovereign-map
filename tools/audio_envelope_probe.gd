@@ -50,6 +50,9 @@ const TARGETS := [
 	["fanfare", "res://assets/audio/music/fanfare_erafnaf.ogg", 5.2],
 ]
 
+# The `start_s` offsets under test, mirrored from the CUES registry.
+const START_OFFSETS := {"letter_open": 1.9, "cavalry": 4.6}
+
 var _idx := -1
 var _player: AudioStreamPlayer = null
 var _capture: AudioEffectCapture = null
@@ -168,6 +171,16 @@ func _finish_current():
 			_mean(_windows, cap_windows, _windows.size()), 0.00001)
 		row["head_200ms_rms"] = snapped(_mean(_windows, 0, 4), 0.00001)
 		row["peak_inside_cap"] = peak_i < cap_windows
+		# THE FIX'S OWN ACCEPTANCE. `start_s` skips a dead head, so the window
+		# the player actually hears is [start_s, start_s + cap]. Measure THAT
+		# against the whole file: if the offset works, the played window is at
+		# least as loud as the file average.
+		var off_i := int(START_OFFSETS.get(cue, 0.0) / WINDOW_S)
+		row["start_s"] = START_OFFSETS.get(cue, 0.0)
+		row["rms_in_played_window"] = snapped(
+			_mean(_windows, off_i, off_i + cap_windows), 0.00001)
+		row["rms_whole_file"] = snapped(
+			_mean(_windows, 0, _windows.size()), 0.00001)
 		# Where the sound actually STARTS: the first window at a quarter of
 		# peak energy. A head of room tone or a slow fade shows up here as an
 		# onset later than the cap, which is the whole question UX23-1 left

@@ -23,19 +23,24 @@ func show_popup(_data: Dictionary = {}):
 	"""Override in subclass. Called with popup data from backend."""
 	show()
 
-func claim_cue(cue: String) -> void:
-	"""Declare a cue as this popup's own, so `close_popup` silences it.
+func claim_cue(p) -> void:
+	"""Declare the player `AudioManager.play()` returned as this popup's own,
+	so `close_popup` silences exactly THAT sound.
 
 	UX23-R1. One-shots are children of the AudioManager singleton, not of the
-	scene, so before `stop_cue` existed a 6-second peal outlived both the
-	panel that rang it and `change_scene_to_file`."""
-	if cue != "" and not _own_cues.has(cue):
-		_own_cues.append(cue)
+	scene, so before `stop_player` existed a 6-second peal outlived both the
+	panel that rang it and `change_scene_to_file`.
+
+	Review round: this used to claim a cue NAME, which made the ownership
+	nominal — closing this popup would have silenced every live play of that
+	name, including another surface's."""
+	if p != null and not _own_cues.has(p):
+		_own_cues.append(p)
 
 func close_popup():
 	"""Standard close: silence what we started, disable buttons, then hide."""
-	for cue in _own_cues:
-		AudioManager.stop_cue(cue)
+	for p in _own_cues:
+		AudioManager.stop_player(p)
 	_own_cues.clear()
 	if visible:
 		AudioManager.play("back")

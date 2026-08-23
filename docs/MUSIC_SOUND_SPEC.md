@@ -301,12 +301,20 @@ Curated from the RPG pack (CC0): `ship_creak_1/2.ogg`.
 
 | `wind_map_loop.mp3` | 41.21 s | `wind`, `wind (loop)` | — |
 
-**Two registry cues have no call site anywhere in the client** — `march_step`
-and `first_call`. Their FILES are wired (as the `march` loop and as sourcing
-for the bugle family), but nothing in any `.gd` calls
-`AudioManager.play("march_step")` or `("first_call")`. They are dead
-configuration rather than a broken player-facing promise, and are recorded
-here rather than deleted: the assets are licensed, credited and usable.
+**One registry cue has no call site anywhere in the client** — `first_call`.
+Its FILE is wired as sourcing for the bugle family, but nothing calls
+`AudioManager.play("first_call")`. Dead configuration rather than a broken
+player-facing promise, and recorded here rather than deleted: the asset is
+licensed, credited and usable.
+
+> ⚠ **Correction, same day (review round).** The first version of this
+> paragraph said the same of **`march_step`**, and it was wrong:
+> `scenes/war_table_piece.gd:162` plays it on every piece move, with a comment
+> explaining the design — *"one cadence per update batch; the cue's own
+> throttle collapses a fleet of simultaneous moves into a single play"*. The
+> grep behind the claim covered `scripts/` and the war-table piece lives in
+> `scenes/`. Its 0.65 s cap is load-bearing on a 7.5 s loop file, and retiring
+> the row on that claim would have silenced every march on the map.
 
 ---
 
@@ -366,7 +374,9 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 > **What still owes ears** is much narrower than "the eleven capped cues":
 > only phrase-completeness on the three bugle/fanfare cues (`reveille`,
 > `to_the_color`, `fanfare`), where the measurement can say the sound is
-> present and loud but not whether a musical phrase is cut mid-figure.
+> present and loud but not whether a musical phrase is cut mid-figure. That
+> remainder is **row UX23-R9**, with an owner, a landing slice and a
+> completion definition, in `BUG_FIXES.md` §UX23-B — not a floating sentence.
 >
 > **The §3.5 audition gate has a structural blind spot, recorded here rather
 > than treated as carelessness:** an audition hears each cue once, in

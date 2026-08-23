@@ -4447,9 +4447,8 @@ silencing their cue outright.
 R2 and R3 landed earlier the same day inside §UX23-A. R1, R4, R5, R6, R7 and R8
 close here, together with the **audio re-audition** that had been open since the
 morning. Landing record: this section. Pins:
-`tests/test_ux23b_the_desk_is_quiet.py` (40). **28 mutations swept, 28 killed,
-0 inert at close** (`tools/_sweep_ux23b.json`; two were inert on the first sweep
-and both were repaired — see the note at the end). Suite 18,832 / 3. M1–M7 and
+`tests/test_ux23b_the_desk_is_quiet.py` (61). **45 mutations swept, 45 killed,
+0 inert at close** (`tools/_sweep_ux23b.json`). Suite 18,853 / 3. M1–M7 and
 `BASELINE_SERIES` byte-identical. Godot parse harness EXIT=0.
 
 **A six-reader recon fleet ran on the committed tree before a line was written,
@@ -4470,10 +4469,15 @@ every cue is a fade-in.
 
 **Two of the eleven caps were silencing their cue outright:**
 
-| cue | cap | measured ONSET | what the player heard |
+| cue | cap | measured ONSET | what the capped window contains |
 |---|---|---|---|
-| `letter_open` | 1.4 s | **2.05 s** | nothing — the cap ended before the paper rustled |
-| `cavalry` | 3.2 s | **4.9 s** | the empty road; a gallop that approaches, 30 dB down |
+| `letter_open` | 1.4 s | **2.05 s** | the run-in before the paper: 0.0088 RMS against a 0.0255 file average — about a quarter of the sound, 9 dB down |
+| `cavalry` | 3.2 s | **4.9 s** | the approach, not the gallop: 0.0082 against 0.0238 |
+
+*(Precision, from the review round: "onset" is the first 50 ms window at a
+quarter of peak energy, so the capped window is not silence — it is the quiet
+run-in, well below the sound the cue is named for. An earlier draft of this
+paragraph said "nothing", which the slice's own follow-up numbers contradict.)*
 
 `letter_open` is the cue the user reported in the first place, and the morning's
 fix had made it silent. Raising the caps would restore the length they
@@ -4481,11 +4485,40 @@ complained about, so both carry a new registry field **`start_s`** instead —
 play from past the dead head, for the same short window. The other nine onsets
 land at 0.15–1.65 s, inside their caps, and carry no offset (pinned).
 
+**The fix has its own measurement, not just a rationale.** Re-running the probe
+against the window that now actually plays, `[start_s, start_s + cap]`:
+
+| cue | old capped window | window now played | whole-file average |
+|---|---|---|---|
+| `letter_open` | 0.0088 RMS | **0.0219** (2.5×) | 0.0255 |
+| `cavalry` | 0.0082 RMS | **0.0535** (6.6×) | 0.0238 |
+
+`letter_open` now delivers 86% of the file's average energy in 1.4 seconds —
+a representative sample of the sound rather than the silence before it. And
+`cavalry`'s played window is **louder than the file average**, because 4.6 s is
+where the gallop is at full tilt rather than approaching.
+
 Recorded honestly: the measurement answers the *silence* half of the question
 for all eleven. What still owes ears is narrower than "the eleven capped cues" —
 only phrase-completeness on `reveille` / `to_the_color` / `fanfare`, where the
 probe can say the sound is present and loud but not whether a musical figure is
 cut mid-phrase. `MUSIC_SOUND_SPEC.md` §2a is rewritten to say that.
+
+**UX23-R9 — the three bugle phrases (GR9 row).** The review round was right
+that "what still owes ears" was left as a floating sentence with none of the
+five things Golden Rule 9 requires, while the STATUS and CLAUDE.md blocks
+simultaneously said nothing but the reward curve was open. It is a row now.
+*Owner:* this section. *Landing slice:* the next play session that reaches the
+pause-menu audio settings — it needs a human and a pair of speakers, not a
+build. *Completion definition:* a person plays `reveille`, `to_the_color` and
+`fanfare` at their capped lengths and confirms each ends on a phrase rather
+than mid-figure; if one does not, its `max_s` moves to the next phrase
+boundary and the measured value is recorded in §1a. *STATUS line:*
+`docs/STATUS.md` ▶ NEXT UP carries "UX23-R9 open (three bugle phrases owe
+ears)" until it lands. *Behaviour test:* none is possible — this is the one
+question the envelope probe explicitly cannot answer, and saying so is the
+point of the row. The probe's own numbers are the standing evidence that the
+sound is present and loud; only the musical boundary is unverified.
 
 #### UX23-R1 — closing a panel silences the sound it started · FIXED
 
@@ -4607,10 +4640,127 @@ generated with the same stdlib header parse the standing pin uses so the doc and
 the test cannot disagree. `bugle_first_call.mp3` was recorded as `~0:15`; it is
 **9.22 s**, now corrected in the `music/` table.
 
-Found in passing: **two registry cues have no call site anywhere in the client**
-(`march_step`, `first_call`). Their files are wired under other cue names, so
-this is dead configuration rather than a broken player-facing promise; recorded
-in §1a rather than deleted, since the assets are licensed and credited.
+Found in passing: **one registry cue has no call site anywhere in the client**
+(`first_call`) — dead configuration rather than a broken player-facing
+promise; recorded in §1a rather than deleted, since the asset is licensed and
+credited.
+
+⚠ **A claim of mine, corrected by the review round:** this first said the
+same of **`march_step`**, and it is false. `scenes/war_table_piece.gd:162`
+plays it on every piece move. My grep covered `scripts/`; the war-table piece
+lives in `scenes/`. Its 0.65 s cap is load-bearing on a 7.5 s loop file, and
+retiring the row on that claim would have silenced every march on the map.
+
+#### Review round at `29bc53c` — 31 findings, a P1 the fix itself created
+
+A 6-lens fleet with an independent refuter per finding: 13 REAL, 5
+severity-corrected, 3 real-but-pre-existing, 7 refuted. Every surviving one is
+fixed below.
+
+**THE P1 IS THE ROW'S OWN DEFECT WEARING THE FIX'S CLOTHES.** UX23-R5's guard
+was placed *below* the verbatim arms, and the record above argued that
+placement was "the whole design" — a verbatim match is never a guess. But arm 1
+is **bare-substring containment**, so any dialogue whose option label is a
+single common word matched before the guard ever ran. Measured against
+production option sets: with an incoming **ultimatum** mounted (`Yield` /
+`Defy`), **`Ney, yield no ground` YIELDED THE ULTIMATUM** — an order to a
+marshal ceding the demanded provinces. Same for `Accept`/`Reject` on an
+incoming proposal and `Cancel` on the war-purpose chooser. The guard is now
+applied **per option** inside arm 1, exempting only an option whose *own* label
+names a marshal — which is what keeps `Recall Ney` working, since there the
+name is the answer rather than the address. Four hijacks and three legitimate
+one-word answers are pinned.
+
+And the reason it shipped is in the tests: the refusal pins used only the
+`ADVISORY` fixture, whose labels are multi-word, so arm 1 could never fire on
+it and the guard was always reached whatever its placement. The fixture that
+*does* carry one-word labels was used exclusively for the positive cases.
+
+**THE P2: six of the diorama's eight one-shots bypassed `_cue()`.** The record
+above said "closing the tableau silences its own guns", and that was
+substantially false — `_own_cues_started` was fed by `_cue()` alone, and only
+`cannon` (1.80 s) and `drum_sting` (1.55 s) went through it. Those are the two
+*shortest*, neither even capped. The verdict `fanfare` — 36.5 s of file, 5.2 s
+capped, fired at the exact moment the Close button appears — played on over the
+map after the tableau vanished, as did `bell_toll`, `musket_volley` and
+`cavalry`. All eight are routed now, which also closed a **pre-existing** hole:
+`musket_volley`, `cavalry` and `whinny` sat outside the `get_battle_sfx()`
+guard, so the "Battle sounds" toggle only ever silenced five of the eight.
+
+The pin that let it ship is fixed too, as a census: every `AudioManager.play(`
+in the diorama must be the one inside `_cue()`.
+
+**Ownership was nominal, and is now real.** `stop_cue(name)` is a global kill —
+the tableau's close would have silenced the strategic-interrupt popup's drum,
+still on screen. `AudioManager.play()` now **returns the player**, and both
+ownership surfaces hold the handle: `popup_base.claim_cue(p)` and the diorama's
+`_own_cues_started`. `stop_player(p)` silences exactly one sound. Also added:
+`stop_all_cues()`, called beside `stop_all_loops` on a world swap, because
+`dialog_manager.hide_all()` raw-hides every popup *without* running its close
+handler — so a 5-second peal rang on into a freshly loaded campaign.
+
+**And `reward_dialog`'s bugle** — `to_the_color`, 42.4 s of file capped to 5.2,
+the longest cue in the tree, on a dialog dismissed in one click — was never
+claimed at all. It extends CanvasLayer rather than PopupBase, so it holds its
+own handle now. Both exits stop it.
+
+**`start_s` could re-create the bug it was built to fix.** An offset past the
+end of a stream plays nothing, and the length census reads `files` and `max_s`
+only — it cannot see the new field. Clamped with a second of headroom, so a
+mis-typed offset degrades to a short cue rather than to silence.
+
+**Smaller, all fixed:** a mid-turn shortfall produced an Unmet row with
+`grace_turns_left = -1`, which the client renders with *neither* an erosion
+warning nor a countdown — the row that exists to prompt action was printing
+without the window it prompts about; it reports the full window now, since his
+patience has not started burning. `_player_marshal_names` documented itself as
+"standing marshals only" while `get_player_marshals()` returns **prisoners**
+(capture leaves the marshal on the roster at strength 0), so a captured name
+could veto a dialogue answer — filtered, and the pin is behavioural rather than
+a grep for the call that *was* the defect. The enemy-phase report now mirrors
+main.gd's ordering exactly (expectation before jealousy; the campaign cost
+closing the report, which is what HC-2's own contract calls it) — the first cut
+broke the ordering the arm three lines above declares it mirrors. And
+`GET /dispatch` finally has a **behavioural** test that issues the request:
+three of the four R4 pins grepped source and the fourth called the builder
+directly, so a refactor renaming the payload nesting would have left them all
+green while the fix went production-dead.
+
+**Two claims of mine the fleet killed.**
+
+* **`march_step` is NOT dead.** The record said two registry cues had no call
+  site; `scenes/war_table_piece.gd:162` plays `march_step` on every piece move,
+  with a comment explaining the design. My grep covered `scripts/`. Its 0.65 s
+  cap is load-bearing on a 7.5 s loop file, and retiring the row on that claim
+  would have silenced every march on the map. Only `first_call` is genuinely
+  unreferenced. Corrected in `MUSIC_SOUND_SPEC.md` §1a and above, and pinned.
+* **"What the player heard: nothing" overstates the measurement.** The capped
+  window holds 0.0088 RMS against a 0.0255 file average — the quiet run-in, 9 dB
+  down, not silence. The slice's own follow-up table contradicted its own prose.
+  The table now gives the numbers.
+
+**GR9: the surviving audition is a row.** "What still owes ears" was left as a
+floating sentence while STATUS and CLAUDE.md said nothing but the reward curve
+was open. It is **UX23-R9** now, with all five things the rule requires — and
+its behaviour test is honestly recorded as *impossible*, because a musical
+phrase boundary is the one question the envelope probe cannot answer.
+
+**A hole in the shared mutation harness, found by falling into it.** A test
+file with a syntax error does not collect, pytest exits non-zero, and
+`tools/mutation_sweep.py` reads non-zero as "the pin bound the mutation" — so a
+broken test file makes **every** mutation report KILLED. Measured: a clean
+30-of-30 against a file that could not be imported. That is the worst possible
+failure mode for an instrument whose job is telling you your pins are real: it
+reported perfect health precisely when it was blind. `_baseline_green` now runs
+every named target before a single mutation is applied and refuses to sweep on
+a red baseline.
+
+**Sweeps after the round: 45/45 on this slice, 0 inert** (and 21/21 + 9/9 +
+25/25 re-run on the earlier sets, now behind the baseline gate). Two more of my
+own pins were inert on the way and were repaired: one checked `play()`'s
+signature without checking that the body forwards the handle, and one grepped
+main.py for `get_player_marshals()` — the very call that *was* the prisoner
+defect.
 
 #### The visual sign-off on UX23-A
 

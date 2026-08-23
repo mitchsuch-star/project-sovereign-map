@@ -453,6 +453,11 @@ func _format_berthier_report(report: Dictionary) -> String:
 	# which is most of them, since the enemy phase is when the player is
 	# attacked — was reported nowhere. Mirrors main.gd's ordering
 	# (voice -> jealousy_note -> observation).
+	var exp_note = str(report.get("expectation_note", ""))
+	if exp_note != "" and exp_note != "<null>":
+		result += ("[color=#" + Utils.COLOR_GOLD + "]    "
+			+ Utils.humanize_nation_keys_in_text(exp_note) + "[/color]\n")
+
 	var jl_note = str(report.get("jealousy_note", ""))
 	if jl_note != "" and jl_note != "<null>":
 		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
@@ -472,24 +477,26 @@ func _format_berthier_report(report: Dictionary) -> String:
 	# re-pricing), so a phase gate would either regress that P1 or need the
 	# branch split; and deleting a player-facing beat is worse than showing it.
 	#
+	# ORDER MATTERS, and mirrors main.gd exactly. The first cut put
+	# `expectation_note` AFTER `jealousy_note` and `campaign_cost_note`
+	# BEFORE Berthier, while main.gd reads voice -> delegation ->
+	# expectation -> jealousy -> ... -> observation -> campaign cost --
+	# and HC-2's own contract calls the cost the line the report CLOSES
+	# on. Caught by the review round.
+	#
 	# The sentence only — NOT a [Reward…] chip. `enemy_phase_dialog.tscn` is
 	# CanvasLayer 118 and `reward_dialog.tscn` is 109, so a chip here would
 	# open the dialog BEHIND the modal that launched it. The chip belongs on
 	# the terminal report, which is a different slice.
-	var exp_note = str(report.get("expectation_note", ""))
-	if exp_note != "" and exp_note != "<null>":
-		result += ("[color=#" + Utils.COLOR_GOLD + "]    "
-			+ Utils.humanize_nation_keys_in_text(exp_note) + "[/color]\n")
+	# Observation
+	var observation = report.get("observation", "")
+	if observation != "":
+		result += "[color=#" + Utils.COLOR_OBSERVATION + "]    Berthier: \"" + observation + "\"[/color]\n"
 
 	var cost_note = str(report.get("campaign_cost_note", ""))
 	if cost_note != "" and cost_note != "<null>":
 		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
 			+ Utils.humanize_nation_keys_in_text(cost_note) + "[/color]\n")
-
-	# Observation
-	var observation = report.get("observation", "")
-	if observation != "":
-		result += "[color=#" + Utils.COLOR_OBSERVATION + "]    Berthier: \"" + observation + "\"[/color]\n"
 
 	return result
 

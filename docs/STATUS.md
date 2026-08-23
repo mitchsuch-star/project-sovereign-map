@@ -56,9 +56,11 @@
 > response said "Not enough actions"). All fixed in the same session.
 >
 > ✅ **ALL SIX ROUTED ROWS AND THE AUDIO CONDITION CLOSED, same day** — see
-> the UX23-B entry below. The only thing still open on row UX23 is the
-> structural answer to "too early", `DESIGN_REFINEMENT.md` UX23-D1..D4, which
-> is a separate gate about the reward CURVE and was deliberately not folded in.
+> the UX23-B entry below. Two things remain open on row UX23, both named:
+> **UX23-R9** (three bugle cues owe a human ear on phrase-completeness — the
+> one question the envelope probe cannot answer) and the structural answer to
+> "too early", `DESIGN_REFINEMENT.md` UX23-D1..D4, a separate gate about the
+> reward CURVE that was deliberately not folded in.
 
 > # ✅ UX23-B "THE DESK IS QUIET" — CLOSED, August 23, 2026.
 > **Landing record = `docs/BUG_FIXES.md` §UX23-B, authoritative.** R1, R4, R5,
@@ -110,10 +112,40 @@
 > recorded: the first capture showed mojibake and I nearly filed it against the
 > client — it was my own `curl | python` pipeline decoding UTF-8 as cp1252.*
 >
-> `tests/test_ux23b_the_desk_is_quiet.py` (40). **28 mutations swept, 28
-> killed, 0 inert at close** — two were inert on the first sweep, both mine,
-> both because the test data never exercised the mechanism. Suite **18,832/3**;
-> M1–M7 + `BASELINE_SERIES` byte-identical; parse harness EXIT=0.
+> **A 6-lens review round at the committed SHA then found 31 more, including a
+> P1 the fix itself created.** UX23-R5's guard was placed below the verbatim
+> arms — but arm 1 is bare-substring containment, so any dialogue with a
+> ONE-WORD label matched before the guard ran. Measured: with an incoming
+> **ultimatum** mounted, **`Ney, yield no ground` YIELDED THE ULTIMATUM**,
+> ceding the demanded provinces. It shipped because the refusal pins used only
+> the multi-word `ADVISORY` fixture, on which arm 1 can never fire. The guard
+> is per-option now, exempting only an option whose own label names a marshal.
+>
+> **A P2 in the same shape:** the record's "closing the tableau silences its
+> own guns" was substantially false — six of the diorama's eight one-shots
+> bypassed `_cue()`, and the two that did not were the two SHORTEST. The
+> verdict fanfare (36.5 s file, 5.2 s cap, fired exactly when Close appears)
+> played on over the map. All eight routed; a pre-existing hole closed with
+> them (three sat outside the "Battle sounds" guard). **Ownership is real
+> rather than nominal now** — `play()` returns the player, so a close silences
+> its OWN sound and not another surface's — plus `stop_all_cues()` for the
+> world swap, `reward_dialog`'s 6-second bugle finally claimed, and a clamp so
+> `start_s` cannot run past the end of a file and re-create the bug it fixed.
+>
+> **Two claims of mine the fleet killed:** `march_step` is NOT dead
+> (`scenes/war_table_piece.gd` plays it on every piece move — my grep covered
+> `scripts/`), and "the player heard nothing" overstates a measured 0.0088 RMS.
+> Both corrected on the record and pinned.
+>
+> **And a hole in the shared mutation harness, found by falling into it:** a
+> test file with a syntax error does not collect, pytest exits non-zero, and
+> the harness reads non-zero as KILLED — so a broken test file reports a
+> perfect sweep. Measured: 30 of 30 against a file that could not be imported.
+> `tools/mutation_sweep.py` now refuses to sweep on a red baseline.
+>
+> `tests/test_ux23b_the_desk_is_quiet.py` (61). **45 mutations swept, 45
+> killed, 0 inert at close.** Suite **18,853/3**; M1–M7 + `BASELINE_SERIES`
+> byte-identical; parse harness EXIT=0.
 
 > # ✅ UX23-A — "REWARD HIM WHERE HE STANDS" LANDED, August 23, 2026.
 > **Landing record = `docs/BUG_FIXES.md` §UX23-A, authoritative.** The user,

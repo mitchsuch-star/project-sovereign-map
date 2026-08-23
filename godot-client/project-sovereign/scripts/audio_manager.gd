@@ -170,10 +170,11 @@ static func boot() -> void:
 	inst._start_loop("wind")
 
 
-static func play(cue: String, max_seconds: float = 0.0) -> void:
+static func play(cue: String, max_seconds: float = 0.0) -> AudioStreamPlayer:
 	var inst := _inst()
 	if inst != null:
-		inst._play_cue(cue, max_seconds)
+		return inst._play_cue(cue, max_seconds)
+	return null
 
 
 static func start_loop(tag: String) -> void:
@@ -198,6 +199,33 @@ static func stop_cue(cue: String) -> void:
 	"""
 	var inst := _inst()
 	if inst != null:
+		inst._stop_cue(cue)
+
+
+static func stop_player(p: AudioStreamPlayer) -> void:
+	"""Silence ONE live one-shot — the player `play()` handed back.
+
+	Review round: `stop_cue(name)` is a global kill by cue name, so a closing
+	panel silenced every live play of that name including other surfaces'.
+	Measured shape: the tableau's close called `stop_cue("drum_sting")` and
+	would have cut the strategic-interrupt popup's drum, still on screen.
+	`_play_cue` has the handle in hand at the moment it registers it, so
+	ownership can be real rather than nominal."""
+	var inst := _inst()
+	if inst != null and p != null and is_instance_valid(p) and p.playing:
+		inst._fade_out_now(p, 0.15)
+
+
+static func stop_all_cues() -> void:
+	"""Silence every live one-shot. The sibling `stop_all_loops` has always
+	existed because the players live under this singleton and a scene change
+	does not free them; one-shots have exactly the same property and had no
+	equivalent, so `dialog_manager.hide_all()` on a world swap left a 5-second
+	peal ringing into the freshly loaded campaign."""
+	var inst := _inst()
+	if inst == null:
+		return
+	for cue in inst._live_players.keys().duplicate():
 		inst._stop_cue(cue)
 
 
@@ -325,23 +353,23 @@ func _set_bus_volume(bus_name: String, linear: float, persist: bool) -> void:
 
 # ── one-shot cues ───────────────────────────────────────────────────────────
 
-func _play_cue(cue: String, max_seconds: float) -> void:
+func _play_cue(cue: String, max_seconds: float) -> AudioStreamPlayer:
 	if not CUES.has(cue):
 		push_warning("AudioManager: unknown cue '%s'" % cue)
-		return
+		return null
 	var spec: Dictionary = CUES[cue]
 	var throttle := int(spec.get("throttle_ms", 0))
 	if throttle > 0:
 		var now := Time.get_ticks_msec()
 		if _last_played_ms.has(cue) and now - int(_last_played_ms[cue]) < throttle:
-			return
+			return null
 	if _oneshot_count >= MAX_ONESHOT_PLAYERS:
-		return
+		return null
 	var files: Array = spec["files"]
 	var i := int(_rr.get(cue, 0)) % files.size()
 	var stream = _stream(String(files[i]))
 	if stream == null:
-		return
+		return null
 	# Aug 23, 2026: the throttle stamp and the round-robin advance used to run
 	# ABOVE the budget check and the missing-file check, so a play that never
 	# happened still poisoned the window — a cue rejected for lack of a player
@@ -374,6 +402,15 @@ func _play_cue(cue: String, max_seconds: float) -> void:
 	# their caps and carry no offset.
 	_live_players.get_or_add(cue, []).append(p)
 	var start_at := float(spec.get("start_s", 0.0))
+	# An offset past the end of the file plays nothing at all — the very bug
+	# `start_s` exists to fix, re-created through the new mechanism. Clamp with
+	# a second of headroom so a mis-typed offset degrades to a short cue rather
+	# than to silence (review round; the length census cannot see this field).
+	var stream_len := 0.0
+	if stream != null:
+		stream_len = stream.get_length()
+	if stream_len > 0.0 and start_at >= stream_len - 0.25:
+		start_at = max(0.0, stream_len - 1.0)
 	if start_at > 0.0:
 		p.play(start_at)
 	else:
@@ -392,6 +429,7 @@ func _play_cue(cue: String, max_seconds: float) -> void:
 	var cap := max_seconds if max_seconds > 0.0 else float(spec.get("max_s", 0.0))
 	if cap > 0.0:
 		_fade_stop(p, cap)
+	return p
 
 
 func _forget_live(cue: String, p: AudioStreamPlayer) -> void:
@@ -416,10 +454,21 @@ func _fade_out_now(p: AudioStreamPlayer, secs: float) -> void:
 	that skips it leaks the MAX_ONESHOT_PLAYERS budget permanently, and the
 	game goes quiet after fourteen cues — a worse bug than the one being
 	fixed."""
+	# Idempotent, and it has to be. Two fade paths can now reach the same
+	# player: the `max_s` timer and a `stop_cue` from a closing panel. Without
+	# this latch both build a tween, both callbacks pass `is_instance_valid`,
+	# and `finished` fires TWICE — so the `_play_cue` lambda runs twice and
+	# `_oneshot_count` is decremented twice for one player, quietly corrupting
+	# the budget that exists to stop the game running out of voices. (Before
+	# `stop_cue` existed only one path could fade, so the callback never
+	# needed a second guard; the review round for this slice is what found it.)
+	if p.has_meta("_retiring"):
+		return
+	p.set_meta("_retiring", true)
 	var tw := create_tween()
 	tw.tween_property(p, "volume_db", -50.0, secs)
 	tw.tween_callback(func():
-		if is_instance_valid(p):
+		if is_instance_valid(p) and p.playing:
 			p.stop()
 			p.finished.emit())
 

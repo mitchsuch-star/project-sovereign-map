@@ -787,6 +787,11 @@ func _on_pause_main_menu_requested() -> void:
 	MenuBoot.came_from_game = true
 	MenuBoot.pending_action = ""
 	AudioManager.stop_all_loops()
+	# Review round: one-shots live under the same singleton and had no
+	# equivalent sweep, and `dialog_manager.hide_all()` below raw-hides
+	# every popup WITHOUT running its close handler — so a 5-second peal
+	# rang on into the freshly loaded campaign.
+	AudioManager.stop_all_cues()
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 

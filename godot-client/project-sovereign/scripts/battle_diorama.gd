@@ -144,7 +144,7 @@ func show_diorama(data: Dictionary, cinematic := true) -> void:
 			AudioManager.stop_loop("battle_bed")
 			AudioManager.start_loop("sea")
 			AudioManager.start_loop("creak")
-			AudioManager.play("ship_bell")
+			_cue("ship_bell")
 		else:
 			AudioManager.start_loop("battle_bed")
 	_populate(not cinematic)
@@ -999,14 +999,14 @@ func _play_arm_flavor() -> void:
 	if has_infantry:
 		get_tree().create_timer(0.9).timeout.connect(func():
 			if is_instance_valid(self) and visible:
-				AudioManager.play("musket_volley"))
+				_cue("musket_volley"))
 	if has_cavalry:
 		get_tree().create_timer(1.6).timeout.connect(func():
 			if is_instance_valid(self) and visible:
-				AudioManager.play("cavalry")
+				_cue("cavalry")
 				get_tree().create_timer(1.2).timeout.connect(func():
 					if is_instance_valid(self) and visible:
-						AudioManager.play("whinny")))
+						_cue("whinny")))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1203,9 +1203,9 @@ func _type_verdict() -> void:
 		AudioManager.start_loop("scribble")  # the verdict is written, not spoken
 		match str(_data.get("register", "")):
 			"triumph":
-				AudioManager.play("fanfare")
+				_cue("fanfare")
 			"defeat":
-				AudioManager.play("bell_toll")
+				_cue("bell_toll")
 	var tw := create_tween()
 	tw.tween_method(
 		func(v: float): _verdict.visible_characters = int(v),
@@ -1283,8 +1283,13 @@ func _cue(cue: String) -> void:
 	instructed, would have silently disabled the "Battle sounds" setting."""
 	if not UiSettings.get_battle_sfx():
 		return
-	AudioManager.play(cue)
-	_own_cues_started.append(cue)
+	var p := AudioManager.play(cue)
+	# The PLAYER, not the cue name (review round): claiming a name made the
+	# close a global kill that would have silenced another surface's play of
+	# the same sound. Deduped, because `_play_cinematic` runs again on Replay
+	# and an un-deduped list asks the manager to stop one player twice.
+	if p != null and not _own_cues_started.has(p):
+		_own_cues_started.append(p)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1323,8 +1328,8 @@ func _on_close_pressed() -> void:
 	AudioManager.stop_loop("scribble")
 	# UX23-R1/R6: the one-shots too — they are children of the AudioManager
 	# singleton, so closing the tableau never used to silence its own guns.
-	for cue in _own_cues_started:
-		AudioManager.stop_cue(cue)
+	for p in _own_cues_started:
+		AudioManager.stop_player(p)
 	_own_cues_started.clear()
 	if _music_ducked:
 		_music_ducked = false

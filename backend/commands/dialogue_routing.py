@@ -190,6 +190,15 @@ def whole_phrase_in(phrase: str, text: str) -> bool:
         r"(?<![a-z])" + re.escape(phrase) + r"(?![a-z])", text) is not None
 
 
+def _names_a_marshal(text: str,
+                     marshal_names: Optional[List[str]]) -> bool:
+    """True when `text` contains one of the roster names as a whole word."""
+    if not marshal_names or not text:
+        return False
+    return any(whole_phrase_in(n.lower(), text)
+               for n in marshal_names if n)
+
+
 def addresses_a_marshal(raw_lower: str,
                         marshal_names: Optional[List[str]]) -> bool:
     """True when the typed line names one of the player's own marshals.
@@ -216,7 +225,7 @@ def addresses_a_marshal(raw_lower: str,
     lowered = {n.lower() for n in marshal_names if n}
     if addressed and addressed.lower() in lowered:
         return True
-    return any(whole_phrase_in(name, raw_lower) for name in lowered)
+    return _names_a_marshal(raw_lower, marshal_names)
 
 
 def match_dialogue_answer(dialogue: Optional[dict],
@@ -227,17 +236,18 @@ def match_dialogue_answer(dialogue: Optional[dict],
     typed line is not an answer to THIS dialogue.
 
     Only the dialogue's own options may claim a line:
-      1. a full option label, or its action id, appearing in the text
-      2. — the UX23-R5 guard: a line that NAMES A MARSHAL stops here —
+      1. a full option label, or its action id, appearing in the text —
+         SKIPPED for a line that names a marshal, unless the option's own
+         label names one too
+      2. — the UX23-R5 guard: any other line that NAMES A MARSHAL stops here —
       3. every word of a label appearing in the text ("reject THE offer")
       4. a verb keyword — as a WHOLE WORD, and only when it maps onto an
          action this dialogue actually offers
 
-    The guard sits between the verbatim arms and the inferential ones, and
-    that placement is the whole design. Arms 1 stay above it so a label that
-    legitimately contains a name — `Commission Suchet` — still resolves
-    verbatim. Arms 3 and 4 are guesses about what the player meant, and a
-    guess must not outrank an order addressed to a general.
+    An order that names a marshal is an ORDER, and reaches none of these arms.
+    The per-option exemption in arm 1 is what keeps `Recall Ney` working: an
+    option whose own label names a marshal may still match verbatim, because
+    there the name is the answer rather than the address.
 
     Recorded trade: a conversational answer that happens to name a marshal —
     `accept, and let Ney hold` on an incoming proposal — now falls through to
@@ -249,18 +259,36 @@ def match_dialogue_answer(dialogue: Optional[dict],
     if not options:
         return None
     raw_words = set(re.findall(r"[a-z]+", raw_lower))
+    addressed = addresses_a_marshal(raw_lower, marshal_names)
 
     # 1. verbatim — a label or an action id, spelled out.
+    #
+    # The guard is applied PER OPTION here, not as a gate below this loop.
+    # A first cut put it below, reasoning that a verbatim match is never a
+    # guess — but arm 1 is bare-substring containment, so any dialogue whose
+    # option label is a single common word matched before the guard ever ran.
+    # Measured on production option sets: with an incoming ULTIMATUM mounted
+    # (labels `Yield` / `Defy`), **`Ney, yield no ground` YIELDED THE
+    # ULTIMATUM** — an order to a marshal ceding the demanded provinces. Same
+    # for `Accept`/`Reject` on an incoming proposal and `Cancel` on the war-
+    # purpose chooser. That is the very class of defect this row exists to
+    # close, and the fix had walked straight past it.
+    #
+    # The exemption is what keeps `Recall Ney` and `Commission Suchet`
+    # working: an option whose OWN label names a marshal may still be matched
+    # verbatim, because there the name is the answer rather than the address.
     for opt in options:
         label = (opt.get("label") or "").lower().strip()
         action = (opt.get("action") or "").lower().strip()
+        if addressed and not _names_a_marshal(label, marshal_names):
+            continue
         if label and label in raw_lower:
             return label
         if action and action in raw_lower:
             return action
 
-    # 2. the guard.
-    if addresses_a_marshal(raw_lower, marshal_names):
+    # 2. the guard, for the inferential arms below.
+    if addressed:
         return None
 
     # 3. every word of a label, in any order. A live hijack vector of its own:

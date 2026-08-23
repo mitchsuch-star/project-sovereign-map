@@ -995,6 +995,16 @@ def build_unmet_marshals(world, nation: str) -> List[Dict]:
             if grace_start >= 0:
                 grace_turns_left = max(
                     0, GRACE_TURNS - (int(world.current_turn) - grace_start))
+            else:
+                # Review round: the clock is written ONLY by the once-per-turn
+                # pass, so a shortfall that opened SINCE it ran (the player won
+                # a battle, and `battles_won` moved inside combat) produced a
+                # row with -1 — which `dispatch_view.gd` renders with neither
+                # an erosion warning nor a countdown. The action window §0.6.8
+                # item 4a exists to show would vanish from the very row that
+                # exists to prompt action. His patience has not started
+                # burning yet, so the honest figure is the full window.
+                grace_turns_left = GRACE_TURNS
         rows.append({
             "marshal": marshal.name,
             "expectation": int(expectation),

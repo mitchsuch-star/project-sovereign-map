@@ -98,10 +98,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > in the enemy-phase dialog. R7 = measured lengths for every audio file,
 > `MUSIC_SOUND_SPEC.md` §1a. **UX23-A's visual sign-off captured** via a new
 > offscreen harness (`docs/audits/UX23A_RAIL_*.png`).
-> `tests/test_ux23b_the_desk_is_quiet.py` (40); **28 mutations, 28 killed, 0
-> inert**; suite **18,832/3**; M1–M7 + `BASELINE_SERIES` byte-identical; parse
+> **A 6-lens review at the committed SHA then took 31 more, incl. a P1 the fix
+> itself created:** the R5 guard sat below arm 1's BARE-SUBSTRING label match,
+> so any one-word label bypassed it — measured, **`Ney, yield no ground`
+> YIELDED AN ULTIMATUM** (it shipped because the refusal pins used only a
+> multi-word fixture); guard is per-option now, exempting an option whose own
+> label names a marshal. P2: six of the diorama's EIGHT one-shots bypassed
+> `_cue()` and the two that did not were the shortest — the verdict fanfare
+> played on over the map; all eight routed, closing a pre-existing toggle hole
+> for three. **Ownership made real:** `AudioManager.play()` returns the player,
+> so a close silences its own sound not another surface's; plus
+> `stop_all_cues()` for the world swap (`dialog_manager.hide_all()` skips every
+> close handler), `reward_dialog`'s 42s/5.2s-capped bugle finally claimed, and
+> a clamp so `start_s` cannot run past a stream and re-create the bug it fixed.
+> Two claims of mine killed: **`march_step` is NOT dead** (`scenes/` —
+> my grep covered `scripts/`) and "heard nothing" overstates a measured 0.0088
+> RMS. **And a hole in `tools/mutation_sweep.py`:** a test file that fails to
+> COLLECT makes every mutation report KILLED — measured 30/30 against an
+> unimportable file — so it now refuses a red baseline.
+> `tests/test_ux23b_the_desk_is_quiet.py` (61); **45 mutations, 45 killed, 0
+> inert**; suite **18,853/3**; M1–M7 + `BASELINE_SERIES` byte-identical; parse
 > harness EXIT=0.
-> ⚠ OPEN: only the structural answer to "too early" =
+> ⚠ OPEN: **UX23-R9** (three bugle cues owe a human ear on phrase-
+> completeness — the one thing the envelope probe cannot measure; owner row in
+> `BUG_FIXES.md` §UX23-B) and the structural answer to "too early" =
 > `DESIGN_REFINEMENT.md` UX23-D1..D4, a separate gate about the reward CURVE.
 >
 > **▶ ROW UX23-A — "REWARD HIM WHERE HE STANDS", August 23, 2026. Landing

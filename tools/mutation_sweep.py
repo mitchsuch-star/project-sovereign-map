@@ -30,7 +30,36 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
 
 
+def _baseline_green(mutations: list[dict]) -> bool:
+    """Every named test target must PASS before a single mutation is applied.
+
+    Added Aug 23, 2026 (UX23-B), because the harness had been reporting a
+    false clean sweep. A test file with a SYNTAX ERROR does not collect, pytest
+    exits non-zero, and this harness reads non-zero as "the pin bound the
+    mutation" — so a broken test file makes every mutation report KILLED. That
+    is the most dangerous possible failure mode for an instrument whose whole
+    job is telling you your pins are real: it reports perfect health precisely
+    when it is blind. Measured: 30 of 30 "killed" against a file that could not
+    be imported.
+    """
+    targets = sorted({m["tests"] for m in mutations if m.get("tests")})
+    for target in targets:
+        proc = subprocess.run(
+            [PY, "-m", "pytest", *target.split(), "-q", "--tb=line",
+             "-p", "no:randomly"],
+            cwd=ROOT, capture_output=True, text=True, timeout=900)
+        if proc.returncode != 0:
+            print("!! BASELINE NOT GREEN — refusing to sweep.")
+            print(f"   {target} fails BEFORE any mutation is applied, so every")
+            print("   mutation would report KILLED and the sweep would be a lie.")
+            print((proc.stdout or "")[-1500:])
+            return False
+    return True
+
+
 def run(mutations: list[dict]) -> int:
+    if not _baseline_green(mutations):
+        return 2
     killed, inert, broken = [], [], []
     for i, m in enumerate(mutations, 1):
         path = ROOT / m["file"]

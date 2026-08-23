@@ -164,22 +164,77 @@ class TestClosingAPanelSilencesIt:
         assert "_fade_out_now(p" in stop
         assert "queue_free" not in stop
 
+    def test_the_fade_is_idempotent(self):
+        """Two fade paths can now reach the same player — the `max_s` timer
+        and a `stop_cue` from a closing panel. Without a latch both build a
+        tween, both callbacks pass `is_instance_valid`, and `finished` fires
+        TWICE: the `_play_cue` lambda runs twice and `_oneshot_count` is
+        decremented twice for ONE player, corrupting the very budget that
+        stops the game running out of voices. Found by this slice's own review
+        round; before `stop_cue` existed only one path could fade."""
+        src = _live("audio_manager.gd")
+        body = src[src.index("func _fade_out_now("):]
+        body = body[:body.index(chr(10) * 3)]
+        assert 'if p.has_meta("_retiring"):' in body
+        assert body.index('has_meta("_retiring")') < body.index("create_tween"), (
+            "the latch must precede the tween, or two tweens still start")
+        assert "is_instance_valid(p) and p.playing" in body, (
+            "and the callback needs the playing guard too — belt and braces "
+            "on the emit that decrements the budget")
+
     def test_popup_base_stops_what_a_subclass_CLAIMED(self):
         """Not "stop everything": the base itself plays "back" ON close."""
         src = _live("popup_base.gd")
-        assert "func claim_cue(cue: String) -> void:" in src
+        assert "func claim_cue(p) -> void:" in src
         body = src[src.index("func close_popup():"):]
-        assert "AudioManager.stop_cue(cue)" in body
-        assert body.index("AudioManager.stop_cue(cue)") < \
+        assert "AudioManager.stop_player(p)" in body
+        assert body.index("AudioManager.stop_player(p)") < \
             body.index('AudioManager.play("back")'), (
             "silence the arrival before playing the departure")
+
+    def test_ownership_is_a_PLAYER_not_a_cue_name(self):
+        """Review round: claiming a NAME made the ownership nominal — closing
+        one popup would silence every live play of that sound, including
+        another surface's. Measured shape: the tableau's close would have cut
+        the strategic-interrupt popup's drum, still on screen. `_play_cue` has
+        the handle at the moment it registers it, so `play()` hands it back."""
+        src = _live("audio_manager.gd")
+        assert ("static func play(cue: String, max_seconds: float = 0.0) "
+                "-> AudioStreamPlayer:") in src
+        assert "static func stop_player(p: AudioStreamPlayer) -> void:" in src
+        # ...and the static face must FORWARD it. A signature that promises a
+        # player while the body drops it on the floor is the ownership going
+        # nominal again, silently — the mutation sweep found this pin inert
+        # when it checked only the signature.
+        face = src[src.index("static func play(cue: String"):]
+        face = face[:face.index(chr(10) * 2 + "static func")]
+        assert "return inst._play_cue(cue, max_seconds)" in face
+        body = src[src.index("func _play_cue(cue: String, max_seconds: float)"):]
+        body = body[:body.index(chr(10) * 2 + "func ")]
+        assert body.rstrip().endswith("return p"), (
+            "the player must be handed back, or no caller can own it")
+        # every refusal path returns a typed null, not a bare return
+        assert "\n\t\treturn\n" not in body and "\n\t\t\treturn\n" not in body
+
+    def test_a_world_swap_silences_one_shots_as_well_as_loops(self):
+        """`dialog_manager.hide_all()` raw-hides every registered popup
+        WITHOUT running its close handler, so neither ownership seam fires.
+        `stop_all_loops` has always existed for exactly this; one-shots live
+        under the same singleton and had no equivalent, so a 5-second peal
+        rang on into the freshly loaded campaign."""
+        src = _live("audio_manager.gd")
+        assert "static func stop_all_cues() -> void:" in src
+        main = _live("main.gd")
+        assert "AudioManager.stop_all_cues()" in main
+        assert main.index("AudioManager.stop_all_cues()") > \
+            main.index("AudioManager.stop_all_loops()")
 
     def test_the_six_second_peal_is_claimed(self):
         """`proclamation_popup` is one of only two over-2s cues that route
         through PopupBase at all."""
         src = _live("proclamation_popup.gd")
-        assert 'AudioManager.play("bells_peal")' in src
-        assert 'claim_cue("bells_peal")' in src
+        assert 'claim_cue(AudioManager.play("bells_peal"))' in src, (
+            "claim the PLAYER the call returns, not the cue name")
 
     def test_the_departure_sound_is_deliberately_NOT_stopped(self):
         """The row's flagship example, and the one site to leave alone:
@@ -229,7 +284,40 @@ class TestOneAudioImplementation:
     def test_closing_the_tableau_silences_its_own_guns(self):
         src = _live("battle_diorama.gd")
         body = src[src.index("func _on_close_pressed() -> void:"):]
-        assert "AudioManager.stop_cue(cue)" in body
+        assert "AudioManager.stop_player(p)" in body
+
+    def test_EVERY_diorama_one_shot_goes_through_the_claim(self):
+        """The census the first draft of this class did not have, and the
+        reason a P2 shipped under a green pin.
+
+        `test_closing_the_tableau_silences_its_own_guns` only asserted that
+        the close CALLS the stop — which was satisfied while six of the
+        tableau's eight one-shots bypassed `_cue()` entirely and were never
+        claimed. The two that WERE routed happened to be the two shortest
+        (`cannon` 1.80 s, `drum_sting` 1.55 s, neither even capped), while the
+        verdict `fanfare` — 36.5 s of file, 5.2 s capped — played on over the
+        map after the tableau vanished.
+
+        Routing them also closed a pre-existing hole: `musket_volley`,
+        `cavalry` and `whinny` were outside the `get_battle_sfx()` guard, so
+        the "Battle sounds" toggle only ever silenced 5 of the 8."""
+        src = _live("battle_diorama.gd")
+        direct = [ln.strip() for ln in src.split("\n")
+                  if "AudioManager.play(" in ln]
+        assert direct == ["var p := AudioManager.play(cue)"], (
+            "every diorama one-shot must go through `_cue()`, which claims it "
+            f"for the close and applies the toggle: {direct}")
+        cued = [ln for ln in src.split("\n") if "_cue(\"" in ln]
+        assert len(cued) >= 8, (
+            f"expected the tableau's eight one-shots, found {len(cued)}")
+
+    def test_the_claim_list_is_deduped(self):
+        """`_play_cinematic` runs again on Replay, so an un-deduped list asks
+        the manager to stop one player twice."""
+        src = _live("battle_diorama.gd")
+        body = src[src.index("func _cue(cue: String) -> void:"):]
+        body = body[:body.index(chr(10) * 3)]
+        assert "not _own_cues_started.has(p)" in body
 
     def test_no_gd_file_outside_the_manager_owns_an_audio_player(self):
         """The structural guard the row asked for. Modelled on the colour and
@@ -326,6 +414,8 @@ ADVISORY = {"options": [{"label": "Act on this counsel",
 PROPOSAL = {"options": [{"label": "Accept", "action": "accept_proposal"},
                         {"label": "Reject", "action": "reject_proposal"},
                         {"label": "Counter", "action": "counter_offer"}]}
+ULTIMATUM = {"options": [{"label": "Yield", "action": "yield_ultimatum"},
+                         {"label": "Defy", "action": "defy_ultimatum"}]}
 
 
 class TestAnOrderIsNotAnAnswer:
@@ -365,6 +455,36 @@ class TestAnOrderIsNotAnAnswer:
         sentence the CA9 court guard was built to serve."""
         assert match_dialogue_answer(dialogue, line, ROSTER) == expected
 
+    @pytest.mark.parametrize("dialogue,line", [
+        (ULTIMATUM, "ney, yield no ground"),
+        (ULTIMATUM, "soult, defy them"),
+        (PROPOSAL, "ney, accept no excuses"),
+        (PROPOSAL, "davout, reject the flank"),
+    ])
+    def test_a_ONE_WORD_label_does_not_bypass_the_guard(self, dialogue, line):
+        """THE P1 the review round caught, and it is the row's own defect
+        wearing the fix's clothes.
+
+        Arm 1 is BARE-SUBSTRING containment, and the first cut put the guard
+        below it "because a verbatim match is never a guess". So any dialogue
+        whose option label is one common word matched before the guard ever
+        ran. Measured on production option sets: with an incoming ULTIMATUM
+        mounted, **`Ney, yield no ground` YIELDED THE ULTIMATUM** — an order
+        to a marshal ceding the demanded provinces. Same shape for
+        `Accept`/`Reject` on an incoming proposal and `Cancel` on the
+        war-purpose chooser.
+        """
+        assert match_dialogue_answer(dialogue, line, ROSTER) is None
+
+    @pytest.mark.parametrize("dialogue,line,expected", [
+        (ULTIMATUM, "yield", "yield"),
+        (ULTIMATUM, "defy", "defy"),
+        (PROPOSAL, "accept", "accept"),
+    ])
+    def test_but_the_one_word_answer_itself_still_works(
+            self, dialogue, line, expected):
+        assert match_dialogue_answer(dialogue, line, ROSTER) == expected
+
     def test_a_label_that_legitimately_names_a_marshal_still_resolves(self):
         """Why the guard sits BELOW the verbatim arms and above the
         inferential ones.
@@ -400,16 +520,31 @@ class TestAnOrderIsNotAnAnswer:
         assert calls == 2, (
             f"both matcher call sites must pass the roster; found {calls}")
 
-    def test_a_fallen_marshal_does_not_block_an_answer(self):
-        """The roster is STANDING marshals — a name the player can no longer
-        order is not an order, and letting it veto a dialogue answer would be
-        a second defect wearing the first one's coat."""
-        with io.open(os.path.join(REPO_ROOT, "backend", "main.py"),
-                     encoding="utf-8") as fh:
-            src = fh.read()
-        body = src[src.index("def _player_marshal_names(world) -> list:"):]
-        body = body[:body.index("\n\n@app")]
-        assert "get_player_marshals()" in body
+    def test_a_captured_marshal_does_not_block_an_answer(self):
+        """A name the player can no longer order is not an order, and letting
+        it veto a dialogue answer would be a second defect wearing the first
+        one's coat.
+
+        BEHAVIOURAL, deliberately. The first draft grepped main.py for
+        `get_player_marshals()` — which is exactly what the defect looked
+        like: that call does NOT filter prisoners (`capture_marshal` leaves
+        the marshal in the roster at strength 0 under his own nation), so the
+        pin passed while the docstring's claim was false. The sweep caught it.
+        """
+        from backend.main import _player_marshal_names
+        from backend.models.world_state import WorldState
+
+        world = WorldState.from_scenario(SCENARIO)
+        assert "Ney" in _player_marshal_names(world), "precondition"
+
+        ney = world.marshals["Ney"]
+        ney.captured_by = "Austria"
+        ney.strength = 0
+        assert "Ney" in world.marshals, (
+            "precondition: capture leaves him in the roster — that is the trap")
+
+        assert "Ney" not in _player_marshal_names(world), (
+            "a prisoner's name must not veto a dialogue answer")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -427,6 +562,14 @@ def world():
 
 
 class TestTheDispatchReReadIsNotStale:
+
+    def _world_owing_ney(self):
+        from backend.models.world_state import WorldState
+        w = WorldState.from_scenario(SCENARIO)
+        w.marshals["Ney"].battles_won = 3
+        w._dotation_processed_turn = None
+        w._process_dotation_state()
+        return w
 
     def test_paying_a_marshal_drops_him_from_a_re_read(self, world):
         from backend.commands.executor import CommandExecutor
@@ -493,6 +636,73 @@ class TestTheDispatchReReadIsNotStale:
         assert int(getattr(ney, "last_expectation_seen", 0)) == seen_before
         assert int(ney.expectation_grace_turn) == grace_before
 
+    def test_the_ENDPOINT_returns_the_refreshed_rows(self):
+        """The behavioural pin the first draft of this class lacked, and the
+        review round said so: three of its four R4 tests grepped main.py's
+        source, and the fourth called the builder directly. Nothing bound the
+        endpoint's payload SHAPE — a refactor renaming the nesting, or
+        returning the store instead of the copy, would have left every test
+        green while the fix went production-dead.
+        """
+        from fastapi.testclient import TestClient
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic.dispatch import build_morning_dispatch
+        import backend.main as main_module
+
+        world = self._world_owing_ney()
+        build_morning_dispatch(world)
+        stored_rows = world.last_morning_dispatch["situation"]["unmet_marshals"]
+        assert any(r["marshal"] == "Ney" for r in stored_rows), "precondition"
+
+        prev_world = main_module.world
+        prev_state = main_module.game_state.get("world")
+        try:
+            main_module.world = world
+            main_module.game_state["world"] = world
+            client = TestClient(main_module.app)
+
+            before = client.get("/dispatch").json()
+            assert any(r["marshal"] == "Ney" for r in
+                       before["dispatch"]["situation"]["unmet_marshals"])
+
+            CommandExecutor().execute(
+                {"command": {"action": "grant_pension", "marshal": "Ney"}},
+                {"world": world})
+
+            after = client.get("/dispatch").json()
+            assert not any(
+                r["marshal"] == "Ney" for r in
+                after["dispatch"]["situation"]["unmet_marshals"]), (
+                "the re-read still names a marshal the player already paid")
+            assert any(
+                r["marshal"] == "Ney" for r in
+                world.last_morning_dispatch["situation"]["unmet_marshals"]), (
+                "and it must do that WITHOUT mutating the store — a read "
+                "endpoint that mutates is the defect one level up")
+        finally:
+            main_module.world = prev_world
+            if prev_state is not None:
+                main_module.game_state["world"] = prev_state
+
+    def test_a_mid_turn_shortfall_still_states_its_window(self, world):
+        """The grace clock is written only by the once-per-turn pass, so a
+        shortfall that opens SINCE it ran had `grace_turns_left = -1` — and
+        `dispatch_view.gd` renders a note only when the row is eroding or the
+        countdown is >= 0. The row that exists to prompt action was printing
+        without the window it is prompting about."""
+        from backend.game_logic.dotation import GRACE_TURNS, build_unmet_marshals
+
+        ney = world.marshals["Ney"]
+        ney.battles_won = 3                     # a victory, mid-turn
+        assert int(ney.expectation_grace_turn) == -1, (
+            "precondition: the turn pass has not run since")
+
+        row = next(r for r in build_unmet_marshals(world, "France")
+                   if r["marshal"] == "Ney")
+        assert row["grace_turns_left"] == GRACE_TURNS, (
+            "his patience has not started burning yet, so the honest figure "
+            "is the full window — never -1, which renders as nothing at all")
+
     def test_the_dispatch_builder_reads_the_shared_helper(self):
         """GR1 — one implementation of the Unmet Marshals row, not two."""
         import inspect
@@ -505,6 +715,103 @@ class TestTheDispatchReReadIsNotStale:
 # ══════════════════════════════════════════════════════════════════════════
 # UX23-R8 — the sentence renders where it is produced
 # ══════════════════════════════════════════════════════════════════════════
+
+
+class TestTheReviewRoundsRemainingFixes:
+    """Seven smaller findings from the same fleet."""
+
+    def test_start_s_can_never_run_past_the_end_of_the_file(self):
+        """The new mechanism could re-create the bug it was built to fix: an
+        offset past the stream plays nothing at all, and the length census
+        (`_parse_cues`) reads `files` and `max_s` only — it cannot see
+        `start_s`. Clamped with a second of headroom, so a mis-typed offset
+        degrades to a short cue rather than to silence."""
+        src = _live("audio_manager.gd")
+        body = src[src.index("func _play_cue("):]
+        body = body[:body.index(chr(10) * 2 + "func ")]
+        assert "stream_len > 0.0 and start_at >= stream_len - 0.25" in body
+        assert "start_at = max(0.0, stream_len - 1.0)" in body
+
+    def test_the_reward_dialogs_six_second_bugle_is_stopped(self):
+        """`to_the_color` is 42.4 s of file capped to 5.2 — the longest cue in
+        the tree — on a dialog the player dismisses in one click. It was
+        unclaimed: `reward_dialog` extends CanvasLayer, not PopupBase, so it
+        holds its own handle."""
+        src = _live("reward_dialog.gd")
+        assert '_own_cue = AudioManager.play("to_the_color")' in src
+        assert src.count("AudioManager.stop_player(_own_cue)") == 2, (
+            "both exits — the option press and the cancel")
+
+    def test_the_enemy_phase_report_mirrors_main_gds_ordering(self):
+        """The arm three lines above declares it mirrors main.gd, which reads
+        voice -> delegation -> expectation -> jealousy -> ... -> observation
+        -> campaign cost. The first cut put expectation AFTER jealousy and the
+        campaign cost BEFORE Berthier — and HC-2's own contract calls the cost
+        the line the report CLOSES on."""
+        body = _live("enemy_phase_dialog.gd")
+        body = body[body.index("func _format_berthier_report"):]
+        body = body[:body.index("\nfunc _format_bombardment")]
+        assert body.index("expectation_note") < body.index("jealousy_note")
+        assert body.index('report.get("observation"') < \
+            body.index("campaign_cost_note")
+
+    def test_march_step_is_NOT_recorded_as_dead(self):
+        """A claim of mine the review round killed: `march_step` IS called,
+        from `scenes/war_table_piece.gd` — my grep covered `scripts/`. Its
+        0.65 s cap is load-bearing on a 7.5 s loop file, and retiring the row
+        on that claim would have silenced every march on the map."""
+        import os as _os
+        hits = []
+        for root, _d, files in _os.walk(GODOT):
+            for name in files:
+                if not name.endswith(".gd"):
+                    continue
+                with io.open(_os.path.join(root, name), encoding="utf-8") as fh:
+                    if 'play("march_step")' in fh.read():
+                        hits.append(name)
+        assert hits, "march_step must still have a call site"
+        with io.open(_os.path.join(REPO_ROOT, "docs", "MUSIC_SOUND_SPEC.md"),
+                     encoding="utf-8") as fh:
+            spec = fh.read()
+        assert "One registry cue has no call site" in spec
+        assert "Two registry cues have no call site" not in spec
+
+    def test_the_owed_audition_has_a_GR9_owner_row(self):
+        """It was a floating sentence while STATUS and CLAUDE.md said nothing
+        but the reward curve was open."""
+        with io.open(os.path.join(REPO_ROOT, "docs", "BUG_FIXES.md"),
+                     encoding="utf-8") as fh:
+            bug = fh.read()
+        assert "UX23-R9" in bug
+        for required in ("*Owner:*", "*Landing slice:*",
+                         "*Completion definition:*", "*STATUS line:*",
+                         "*Behaviour test:*"):
+            assert required in bug, f"GR9 needs {required}"
+        for path in ("docs/STATUS.md", "CLAUDE.md"):
+            with io.open(os.path.join(REPO_ROOT, path), encoding="utf-8") as fh:
+                assert "UX23-R9" in fh.read(), path
+
+    def test_the_record_does_not_claim_the_player_heard_nothing(self):
+        """The probe measured 0.0088 RMS in the capped window, not zero. The
+        slice's own follow-up table contradicted its own prose."""
+        with io.open(os.path.join(REPO_ROOT, "docs", "BUG_FIXES.md"),
+                     encoding="utf-8") as fh:
+            bug = fh.read()
+        assert "nothing — the cap ended before the paper rustled" not in bug
+        assert "0.0088 RMS" in bug
+
+    def test_the_sweep_harness_refuses_a_red_baseline(self):
+        """Found while fixing a syntax error in this very file: a test file
+        that does not COLLECT makes pytest exit non-zero, which the harness
+        reads as "the pin bound the mutation" — so every mutation reports
+        KILLED. Measured: a clean 30-of-30 against a file that could not be
+        imported. The instrument reported perfect health precisely when it was
+        blind."""
+        with io.open(os.path.join(REPO_ROOT, "tools", "mutation_sweep.py"),
+                     encoding="utf-8") as fh:
+            src = fh.read()
+        assert "def _baseline_green(" in src
+        assert "if not _baseline_green(mutations):" in src
 
 
 class TestTheEnemyPhaseShowsWhatItProduces:
