@@ -1916,6 +1916,111 @@ rule).
 > this record to the digit (47/126 split, Swabia 60,000, 24 plains,
 > Paris +15,000, the 4,720 ceiling).
 
+> **✅ THE IN-GAME PASS WAS DRIVEN August 22, 2026 — slices 6 AND 8
+> together, on the real client (Mode C), and it found THREE defects no
+> test could see.** Evidence pack `docs/audits/WO{6,8}_INGAME_*_2026_08_22.png`
+> (7 captures). A sandboxed pair on `SOVEREIGN_PORT=8006` with
+> `INK_IRON_SAVE_DIR` redirected — the player's 8005 session and saves
+> untouched — and a five-agent fleet derived each surface's expected text
+> from code FIRST, so the screen was read against a fresh derivation
+> rather than against my memory of building it.
+>
+> **VERIFIED ON SCREEN.** Slice 8: the build rows read
+> `Depot 300g +15,000 supply · +50g/turn` · `Training Ground 250g
+> recruits 40→70 morale · drill +10→+15` · `Market 350g +75g/turn` ·
+> **`Stables 300g +0 cavalry/turn — the remount cap is already filled`**
+> (the gate's "stop selling a capped-away building", live) ·
+> `Watchtower 250g eyes on every adjacent province`, under the header
+> `Build (each finished work keeps 40g a turn)`. Panel and map tooltip
+> both print `Supply: 75,000` for Paris — one payload key, no drift. A
+> foreign province at PARTIAL (Berlin) prints `Supply: Unknown`, never
+> `-1`, while France's own Picardy at the SAME partial visibility prints
+> 22,500 — the ownership split working. The Territories tab carries the
+> effective cap on every row, including **Gascony [city, mountains] cap
+> 30,000** (40,000 × 0.5 terrain × 1.5 home), which is the province that
+> proves a flat "+10,000 supply" chip would have lied. **The muster
+> price block reconciles to the man:** driving Ney onto Swabia and
+> attacking again produced `Swabia feeds 60,000 — the whole muster
+> standing there would lose ~4,790 men a turn to short supply`, and
+> 4,790 is exactly Σ int(strength × 4.93%) over the five corps
+> (97,217 bodies vs a 60,000 cap: 0.62 excess × 0.015 = 0.93%, plus 4%
+> stacking). The G3 sentence renders beneath it. Slice 6: THE ADMIRALTY
+> block verified whole — the −175/turn blockade line, `London–Normandy:
+> SHUT — the Royal Navy at 1.9×`, the Diversion's three green gate
+> terms, the corps-aware expedition line naming **Napoleon (9,600)** as
+> the one corps under the lift, and the headline fix itself:
+> **`Blockade the enemy — closes Austria and Russia — not Britain
+> (32 against her, 125 needed)`**.
+>
+> **THREE DEFECTS FOUND AND FIXED — every one a place where a backend
+> that computes the right answer hands it to a client that renders
+> something else.**
+>
+> **[V-1] P2, and it was MINE from the review round.** `strategic_ledger.gd`
+> colour-codes only `"Over capacity"`, so the `"Crowded"` verdict added by
+> fix [C-F2] fell through to the same `COLOR_INFO` as `"OK"` — a province
+> bleeding 2%/turn painted exactly like a healthy one. I added a verdict to
+> the producer and touched no `.gd`, and my test asserted the backend
+> STRING and never the render: the un-rewritten-sibling shape the review
+> round had just finished naming, committed by the person who named it.
+> Fixed with a warning colour and pinned by a PRODUCER→RENDERER JOIN
+> (every verdict `_build_territories` can emit must appear in the
+> renderer's code), verified live: `Supply: Crowded (3 marshals, cap
+> 60,000)` in amber above two grey `OK` rows. Fixed alongside: `(1
+> marshals`.
+>
+> **[V-2] P2 — the Repair chip repaired the wrong thing.** The chip sends
+> the U6 stem `repair buildings in <region>`, no keyword in
+> `_extract_building_type` matches the bare plural, and the order fell
+> through to the WAR-DAMAGE arm. The chip renders BECAUSE a work is
+> damaged, so the ordinary case is a ruined building with no war damage:
+> the player pressed "restore damaged works" and was answered *"No war
+> damage to repair in Paris"*. Pre-existing (U6), but **slice 8 made the
+> promise louder** by adding the price and "— and their upkeep", so it is
+> this slice's. The explicit plural now re-routes to the first damaged
+> work (then the watchtower); a bare `repair X` keeps its war-damage
+> meaning, pinned both ways.
+>
+> **[V-3] P3 — markup no consumer can render.** `interrupt_popup.gd`
+> assigns `.text` on a plain `Label`, and the muster gate's message
+> carried `[b]Commit the Attack[/b]` — literal brackets on the one
+> surface a player commits an army from. One string, one producer; the
+> quotes carry the emphasis and match the button's own label. Pinned
+> behaviourally on a REAL armed interrupt.
+>
+> **Recorded, not fixed:** the region panel's build rows fall below the
+> fold at the default panel height (the section grew from one chips row
+> to six, and the panel is terminal-clamped) — the terms are stated but
+> need a scroll; the wheel works. `Intel: Partial (reports only)` prints
+> on the player's OWN capital above four exact figures (pre-existing fog
+> labelling, not slice 8). Both → `DESIGN_REFINEMENT.md`.
+>
+> **A method failure worth recording, because it cost the user
+> something.** My input helper proved the game window was FRONTMOST but
+> never that the click coordinates were INSIDE it. When the window
+> snapped back to its original rect between calls, two clicks and a typed
+> sentence were delivered into the user's Chrome window. The guard now
+> takes WINDOW-RELATIVE coordinates, converts against the live rect on
+> every call, and REFUSES any point outside the window — verified by a
+> deliberate out-of-bounds call before resuming. *Proving the right
+> window is in front is only half the guard; the coordinates must land in
+> it.*
+>
+> **And the sweep caught its own round again, for the third time this
+> slice:** my explanatory comment for the [V-1] fix quotes the word
+> `"Crowded"`, which kept the producer→renderer pin green with the arm
+> deleted. Comment lines are now stripped before the search. The same
+> trap took the fort-bonus census and the BBCode scan earlier today —
+> **a source-substring pin must never read the prose written to explain
+> the fix.** Final sweep **39/39 killed, 0 inert**; tests 54 → **63**;
+> parse harness EXIT=0; headless boot 0 SCRIPT ERROR.
+>
+> ⚠ Reachability honestly stated: [V-2]'s and [V-3]'s fixes are pinned by
+> behaviour tests but were NOT re-confirmed on screen — a damaged
+> building needs a save edit to reach at boot, and the muster modal needs
+> a cautious marshal at a 1.43–2.0× band that the boot roster does not
+> hand you. [V-1] WAS re-confirmed on screen after the fix.
+
 ### Slice 9 — WO-8 the courting cap (est 0.5)
 
 **Scope.** Per-TARGET throttle on vassal courting + the two absent guards the

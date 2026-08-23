@@ -229,5 +229,47 @@
     "old": "                f\"Shorncliffe System (morale {RECRUIT_MORALE}, not \"\n                f\"{self.RECRUIT_MORALE_BASE}).\"",
     "new": "                f\"Shorncliffe System (morale {RECRUIT_MORALE}, not 40).\"",
     "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_shorncliffe_note_reads_the_constant"
+  },
+  {
+    "id": "S8-34 [V-1] Crowded is painted in the healthy colour again",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "elif supply_status == \"Crowded\":\n\t\t\tsupply_color = Utils.COLOR_WARNING",
+    "new": "elif supply_status == \"Crowded\":\n\t\t\tsupply_color = Utils.COLOR_INFO",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_crowded_is_not_painted_as_healthy"
+  },
+  {
+    "id": "S8-35 [V-1] the renderer loses its arm for a verdict the backend emits",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\telif supply_status == \"Crowded\":\n\t\t\tsupply_color = Utils.COLOR_WARNING\n",
+    "new": "",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_every_backend_verdict_has_a_colour_arm"
+  },
+  {
+    "id": "S8-36 [V-1] the single-corps row is pluralised again",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\" marshal, cap \" if occupants == 1 else \" marshals, cap \"",
+    "new": "\" marshals, cap \"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_single_corps_row_is_not_pluralised"
+  },
+  {
+    "id": "S8-37 [V-2] the Repair chip falls through to the war-damage arm again",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if \"building\" in _raw or \"works\" in _raw:",
+    "new": "            if False:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_repair_buildings_repairs_the_building tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_repair_buildings_prefers_the_watchtower_when_it_is_the_ruin"
+  },
+  {
+    "id": "S8-38 [V-2] the re-route widens and steals the bare `repair X` meaning",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if \"building\" in _raw or \"works\" in _raw:",
+    "new": "            if True:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_a_bare_repair_still_means_war_damage"
+  },
+  {
+    "id": "S8-39 [V-3] BBCode returns to the plain-Label modal",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                        f\"'Commit the Attack' to send him in \"",
+    "new": "                        f\"[b]Commit the Attack[/b] to send him in \"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestInGamePassFixes::test_no_bbcode_reaches_the_interrupt_modal"
   }
 ]

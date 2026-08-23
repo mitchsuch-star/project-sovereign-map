@@ -332,12 +332,23 @@ func _render_territories():
 			bbcode += "  Damage: " + str(war_dmg) + "%"
 		bbcode += "\n"
 
-		# Supply status
+		# Supply status.
+		# WO slice 8 in-game pass [V-1]: the backend gained a THIRD verdict
+		# ("Crowded" — the death-ball arm, 3+ corps billing 2%+/turn under
+		# the cap) and this colour map still knew only two, so a province
+		# bleeding men was painted in the same COLOR_INFO as a healthy one.
+		# The slice's own test asserted the backend STRING and never the
+		# render — the un-rewritten-sibling class the review round named,
+		# caught by driving the game.
 		var supply_color = Utils.COLOR_INFO
 		if supply_status == "Over capacity":
 			supply_color = Utils.COLOR_ERROR
+		elif supply_status == "Crowded":
+			supply_color = Utils.COLOR_WARNING
 		bbcode += "  Supply: [color=#" + supply_color + "]" + supply_status + "[/color]"
-		bbcode += " (" + str(occupants) + " marshals, cap " + _format_number(supply_cap) + ")"
+		# "(1 marshals" read as a typo on every single-corps province.
+		var _corps_word = " marshal, cap " if occupants == 1 else " marshals, cap "
+		bbcode += " (" + str(occupants) + _corps_word + _format_number(supply_cap) + ")"
 		if garrison > 0:
 			bbcode += "  Garrison: " + _format_number(garrison)
 		bbcode += "\n"

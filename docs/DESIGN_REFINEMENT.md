@@ -6,6 +6,20 @@
 
 ---
 
+## WO slice 8 in-game pass — recorded, not fixed (August 22, 2026)
+
+> Found by driving the real client for the slice 6 + 8 visual pass
+> (record = `WEIRD_OUTCOMES_SPEC.md` §3 slice 8, in-game addendum). Three
+> defects were fixed in-session; these two are design calls, deliberately
+> left for a gate rather than patched on the spot.
+
+| row | finding | why it is a design call |
+|---|---|---|
+| **WO-V-D1** | **The region panel's build rows fall below the fold.** Slice 8 grew the Build section from ONE chips row to a header plus six terms rows; the panel is terminal-clamped (the July UX pass) so only ~2 rows show at the default height. The terms the slice exists to state need a scroll — the wheel works, and the pattern is discoverable, but the headline content is not on first sight. | The remedies trade against each other and against a landed contract: raise the panel's clamp (re-opens the July UX pass), render terms on hover only (loses the at-a-glance comparison the slice was built for), or compact to two chips per line (loses the delivered-terms alignment). Owner: the next UI pass. |
+| **WO-V-D2** | **`Intel: Partial (reports only)` prints on the player's OWN capital**, directly above four exact figures (Income 300g / Stability 100% / Supply 75,000 / Garrison 25,000) that the same surface is happy to state. Pre-existing, not slice 8 — own soil is econ-visible by ownership while its intel level stays PARTIAL until a marshal stands there. | The label is not wrong (no army is reporting from Paris) but it reads as a hedge on figures that carry none. Fixing it means either a second label vocabulary for own soil or suppressing the line where `region_econ_visible` is true by ownership — a fog-copy decision, not a bug fix. |
+
+---
+
 ## Weird-Outcomes design questions — filed August 16, 2026 (**the WO-EVAL docket**)
 
 > **Evidence memo = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`

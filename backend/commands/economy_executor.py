@@ -1587,6 +1587,34 @@ class EconomyExecutor:
         # Check if repairing a building or war damage
         building_type = command.get("building_type") or self._extract_building_type(command)
 
+        # ══════════════════════════════════════════════════════════════
+        # WO slice 8 in-game pass [V-2]: the region panel's Repair chip
+        # sends "repair buildings in <region>" — the U6 stem — and NO
+        # keyword in `_extract_building_type` matches the bare plural, so
+        # the order fell straight through to the WAR-DAMAGE arm below.
+        # The chip renders when a BUILDING (or the watchtower) is
+        # damaged, so the ordinary case is a province with a ruined work
+        # and no war damage at all: the player pressed a chip reading
+        # "restore damaged works" and was answered "No war damage to
+        # repair in Paris". Slice 8 made that promise louder (it added
+        # the price and "— and their upkeep"), so it is this slice's to
+        # close.
+        #
+        # Scoped to the EXPLICIT plural: a bare "repair Lyon" keeps its
+        # war-damage meaning exactly as before. First damaged work in
+        # build order, then the watchtower — the same order the panel
+        # lists them in.
+        # ══════════════════════════════════════════════════════════════
+        if not building_type:
+            _raw = (command.get("raw_command") or "").lower()
+            if "building" in _raw or "works" in _raw:
+                _damaged = next((b["type"] for b in region.buildings
+                                 if b.get("damaged", False)), None)
+                if _damaged:
+                    building_type = _damaged
+                elif getattr(region, "watchtower", "none") == "damaged":
+                    building_type = "watchtower"
+
         if building_type:
             # Watchtower repair (Phase 6 Fog - Session 35): dedicated field, not in buildings list
             if building_type == "watchtower":

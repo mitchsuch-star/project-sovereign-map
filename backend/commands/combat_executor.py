@@ -5001,7 +5001,15 @@ class CombatExecutor:
                             marshal.name, int(world.current_turn))
                         + f"\n\nThe muster reads "
                         f"{muster_preview['odds_band']}. "
-                        f"[b]Commit the Attack[/b] to send him in "
+                        # WO slice 8 in-game pass [V-3]: this message is
+                        # rendered by `interrupt_popup.gd`'s MessageLabel,
+                        # a PLAIN Label — it cannot parse BBCode, so the
+                        # markup reached the player as literal "[b]" and
+                        # "[/b]" around the one phrase naming the button.
+                        # The producer stops emitting markup this consumer
+                        # cannot render; the quotes carry the emphasis and
+                        # match the button's own label exactly.
+                        f"'Commit the Attack' to send him in "
                         f"regardless — or Cancel to hold him "
                         f"back.\n{muster_text}"
                     ),

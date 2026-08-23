@@ -102,10 +102,61 @@
 > **33/33 killed, 0 inert**; tests 44 → **54**; suite green via the
 > commit hook.
 >
-> **NEXT = row WO slice 9** (the courting cap), then 10 → 17 → 11 → 12 →
-> 14. ⚠ Slices 6 and 8 are both owed an in-game pass (slice 8's new
-> surfaces: the chip term rows + the preview price block + the Crowded
-> verdict).
+> **✅ THE IN-GAME PASS WAS DRIVEN THE SAME DAY — slices 6 AND 8
+> together — AND IT FOUND THREE DEFECTS NO TEST COULD SEE.** Addendum =
+> spec §3 slice 8; evidence `docs/audits/WO{6,8}_INGAME_*_2026_08_22.png`
+> (7 captures). Sandboxed pair on `SOVEREIGN_PORT=8006` with
+> `INK_IRON_SAVE_DIR` redirected (the 8005 session and the real saves
+> untouched); a five-agent fleet derived each surface's expected text
+> from code FIRST, so the screen was read against a fresh derivation
+> instead of my memory of building it.
+>
+> **Seen and correct:** the six build rows with their delivered terms
+> (incl. **`Stables 300g +0 cavalry/turn — the remount cap is already
+> filled`**); panel and tooltip both reading `Supply: 75,000` for Paris;
+> Berlin at PARTIAL reading `Supply: Unknown` while France's own Picardy
+> at the same visibility reads 22,500; **Gascony cap 30,000** (the
+> mountains province that proves a flat +10,000 chip would have lied);
+> and the price block reconciling **to the man** — `Swabia feeds 60,000
+> — the whole muster standing there would lose ~4,790 men a turn`, which
+> is exactly Σ int(strength × 4.93%) over five corps. Slice 6's Admiralty
+> verified whole, headline included: **`Blockade the enemy — closes
+> Austria and Russia — not Britain (32 against her, 125 needed)`**.
+>
+> **Fixed, all three the same shape — a backend that computes the right
+> answer handing it to a client that renders something else:**
+> **[V-1] P2, and MINE from the review round** — `strategic_ledger.gd`
+> colours only `"Over capacity"`, so the `"Crowded"` verdict I had just
+> added fell through to the same grey as `"OK"`: a province bleeding
+> 2%/turn painted as healthy. I added a verdict to the producer, touched
+> no `.gd`, and pinned the string instead of the render — the exact
+> un-rewritten-sibling shape the review round had finished naming. Now a
+> PRODUCER→RENDERER JOIN pin, and re-confirmed on screen in amber.
+> **[V-2] P2** — the Repair chip sends `repair buildings in X`, which
+> matches no keyword and fell to the WAR-DAMAGE arm, so pressing
+> "restore damaged works" answered *"No war damage to repair"*;
+> pre-existing, but slice 8 made the promise louder, so it is ours.
+> **[V-3] P3** — `[b]Commit the Attack[/b]` reached a plain `Label` as
+> literal brackets on the surface a player commits an army from.
+>
+> **⚠ A method failure that cost the user something, recorded in full:**
+> my input helper proved the game was FRONTMOST but never that the click
+> was INSIDE it, so when the window snapped back to its old rect, two
+> clicks and a typed sentence landed in the user's Chrome. The guard is
+> now window-relative and REFUSES out-of-bounds points (verified by a
+> deliberate bad call). *Proving the right window is in front is only
+> half the guard.* And for the THIRD time this slice a source-substring
+> pin was satisfied by the comment written to explain its own fix —
+> comment lines are stripped now.
+>
+> Recorded not fixed → `DESIGN_REFINEMENT.md` **WO-V-D1** (build rows
+> below the panel fold) and **WO-V-D2** (own capital labelled "reports
+> only" above exact figures). Sweep **39/39 killed, 0 inert**; tests
+> **63**; parse harness EXIT=0; boot 0 SCRIPT ERROR.
+>
+> **NEXT = row WO slice 9** (the courting cap — the first WO slice that
+> moves ambient AI behaviour and takes a sanctioned, flip-attributed
+> `BASELINE_SERIES` re-record), then 10 → 17 → 11 → 12 → 14.
 
 > # ✅ WO SLICE 6 — "THE ADMIRALTY SPEAKS PLAINLY" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 6,

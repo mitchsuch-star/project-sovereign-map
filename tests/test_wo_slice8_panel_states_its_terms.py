@@ -929,3 +929,181 @@ class TestReviewRoundFixes:
         note = _preview(world, executor, ney, mack)["province_fights_note"]
         assert "exception" not in note
         assert "that is the design." in note
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 9. The IN-GAME PASS (driven live on the real client, Aug 22 2026)
+#
+# Three defects the suite could not see, because each is a place where a
+# backend that computes the right answer hands it to a client that renders
+# something else. Two were found by looking at the screen; the third by
+# reading the consumer of a string the producer had already shipped.
+# ════════════════════════════════════════════════════════════════════════
+
+LEDGER_GD = (
+    REPO / "godot-client" / "project-sovereign" / "scripts"
+    / "strategic_ledger.gd"
+)
+INTERRUPT_TSCN = (
+    REPO / "godot-client" / "project-sovereign" / "scenes"
+    / "interrupt_popup.tscn"
+)
+
+
+class TestInGamePassFixes:
+
+    # ── [V-1] the ledger colours the verdict it actually emits ────────
+
+    def test_every_backend_verdict_has_a_colour_arm(self):
+        """The un-rewritten-sibling class, caught by driving the game:
+        the review round added "Crowded" to ledger.py and touched no
+        `.gd`, so a province bleeding 2%/turn was painted in the same
+        COLOR_INFO as a healthy one. Pin the JOIN — every verdict the
+        producer can emit must be named in the renderer."""
+        from backend.game_logic import ledger as ledger_mod
+        producer = inspect.getsource(ledger_mod._build_territories)
+        emitted = set(re.findall(r'supply_status = "([^"]+)"', producer))
+        assert emitted == {"OK", "Crowded", "Over capacity"}, emitted
+        # CODE lines only. The first cut searched the whole file and the
+        # fix's own explanatory comment — which quotes "Crowded" — kept the
+        # pin green with the arm deleted (found by the sweep; the third
+        # comment-satisfies-a-substring-pin trap this slice hit, after the
+        # fort census and the BBCode scan).
+        code = "\n".join(
+            line for line in LEDGER_GD.read_text(encoding="utf-8").splitlines()
+            if not line.strip().startswith("#"))
+        for verdict in emitted - {"OK"}:
+            assert f'"{verdict}"' in code, (
+                f'the ledger renderer has no arm for the "{verdict}" '
+                f'verdict the backend emits')
+
+    def test_crowded_is_not_painted_as_healthy(self):
+        gd = LEDGER_GD.read_text(encoding="utf-8")
+        block = gd[gd.index("# Supply status"):]
+        block = block[:block.index("Garrison")]
+        assert "COLOR_WARNING" in block, (
+            "Crowded must carry a warning colour, not the OK colour")
+        assert block.index('"Crowded"') < block.index("bbcode +="), (
+            "the Crowded arm must be decided before the line is built")
+
+    def test_single_corps_row_is_not_pluralised(self):
+        gd = LEDGER_GD.read_text(encoding="utf-8")
+        assert "occupants == 1" in gd
+        assert '" marshal, cap "' in gd
+
+    # ── [V-2] the Repair chip repairs what it promised ────────────────
+
+    def test_repair_buildings_repairs_the_building(self, world):
+        """The chip renders BECAUSE a work is damaged, sends the U6 stem
+        "repair buildings in X", and the extractor matched no keyword —
+        so it fell to the war-damage arm and answered "No war damage to
+        repair" to a chip reading "restore damaged works"."""
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.buildings.append({"type": "market", "damaged": True})
+        region.war_damage = 0.0
+        world.nation_gold["France"] = 5000
+        result = executor.execute(
+            {"success": True,
+             "command": {"action": "repair", "target": "Paris",
+                         "raw_command": "repair buildings in Paris"}},
+            {"world": world})
+        assert result["success"] is True, result.get("message")
+        assert "war damage" not in result["message"].lower(), result["message"]
+        assert region.buildings[-1]["damaged"] is False, (
+            "the damaged work is still in ruins after a successful repair")
+
+    def test_repair_buildings_prefers_the_watchtower_when_it_is_the_ruin(
+            self, world):
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.watchtower = "damaged"
+        region.war_damage = 0.0
+        world.nation_gold["France"] = 5000
+        result = executor.execute(
+            {"success": True,
+             "command": {"action": "repair", "target": "Paris",
+                         "raw_command": "repair buildings in Paris"}},
+            {"world": world})
+        assert result["success"] is True, result.get("message")
+        assert region.watchtower == "under_construction"
+
+    def test_a_bare_repair_still_means_war_damage(self, world):
+        """The scoping guard: only the EXPLICIT plural re-routes. A bare
+        `repair Lyon` keeps its war-damage meaning byte-for-byte."""
+        executor = CommandExecutor()
+        region = world.get_region("Paris")
+        region.buildings.append({"type": "market", "damaged": True})
+        region.war_damage = 0.30
+        world.nation_gold["France"] = 5000
+        result = executor.execute(
+            {"success": True,
+             "command": {"action": "repair", "target": "Paris",
+                         "raw_command": "repair Paris"}},
+            {"world": world})
+        assert result["success"] is True, result.get("message")
+        assert "War damage repaired" in result["message"]
+        assert region.buildings[-1]["damaged"] is True, (
+            "a bare repair silently changed meaning")
+
+    # ── [V-3] no markup the consumer cannot render ────────────────────
+
+    def test_the_interrupt_modal_is_still_a_plain_label(self):
+        """The premise of the next pin. If this scene is ever upgraded to
+        a RichTextLabel, the producer may use BBCode again — and this
+        test is where that decision gets re-read."""
+        tscn = INTERRUPT_TSCN.read_text(encoding="utf-8")
+        assert 'name="MessageLabel" type="Label"' in tscn
+
+    def test_no_bbcode_reaches_the_interrupt_modal(self, monkeypatch):
+        """`interrupt_popup.gd` assigns `.text` on a plain Label, so any
+        BBCode arrives as literal characters.
+
+        Pinned on the REAL interrupt this time — the first cut scanned
+        source text and tripped on the fix's own explanatory comment,
+        which quotes the tags it removed (the same trap the fort-bonus
+        census hit). A behaviour pin cannot be fooled by prose.
+
+        Strengths are `test_ca9_row2_muster_gate_scope._MUSTER_WINDOW`:
+        above 2:1 a V2a OBJECTION owns the moment and the gate never
+        arms (my first cut used 6:1 and watched nothing — the
+        precondition below is what caught it). Mood variance is
+        neutralised for the same reason that file neutralises it.
+        """
+        monkeypatch.setattr(
+            "backend.commands.executor.apply_mood_variance",
+            lambda concern: concern)
+        davout = MarshalFactory.infantry(
+            name="Davout", location="Belgium", strength=30000,
+            personality="cautious")
+        mack = MarshalFactory.enemy(
+            name="Mack", location="Belgium", nation="Austria",
+            strength=50000)
+        world = WorldFactory.with_marshals([davout, mack])
+        _war(world)
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"success": True,
+             "command": {"marshal": "Davout", "action": "attack",
+                         "target": "Mack",
+                         "raw_command": "Davout, attack Mack"}},
+            {"world": world})
+        interrupt = result.get("pending_interrupt")
+        assert interrupt is not None, (
+            "precondition: a cautious marshal at unfavorable odds must "
+            "arm the muster gate, or this pin watches nothing")
+        assert interrupt["interrupt_type"] == "muster_confirm"
+        message = interrupt["message"]
+        for tag in ("[b]", "[/b]", "[i]", "[color=", "[/color]"):
+            assert tag not in message, (
+                f"{tag} reaches a plain-Label modal and renders as "
+                f"literal characters: {message!r}")
+        assert "Commit the Attack" in message, (
+            "the copy must still name the button it points at")
+
+    def test_the_named_button_label_matches_the_copy(self):
+        """The copy points at a button by name; the name lives in the
+        client's own label map. Pin the join so a rename breaks here."""
+        gd = (REPO / "godot-client" / "project-sovereign" / "scripts"
+              / "interrupt_popup.gd").read_text(encoding="utf-8")
+        assert '"attack_anyway": "Commit the Attack"' in gd
