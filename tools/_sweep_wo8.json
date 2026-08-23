@@ -30,8 +30,8 @@
   {
     "id": "S8-5 the bill stops counting same-province non-joiners",
     "file": "backend/commands/combat_executor.py",
-    "old": "            if will_join or m.location == battle_region:\n                standing_bodies.append(int(m.strength))",
-    "new": "            if will_join:\n                standing_bodies.append(int(m.strength))",
+    "old": "            if (m.location == battle_region\n                    or (will_join and not getattr(m, \"artillery\", False))):\n                standing_bodies.append(int(m.strength))",
+    "new": "            if (will_join and not getattr(m, \"artillery\", False)):\n                standing_bodies.append(int(m.strength))",
     "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestPreviewPriceEqualsEngineBill::test_a_same_province_non_joiner_still_eats"
   },
   {
@@ -121,7 +121,7 @@
   {
     "id": "S8-18 the upkeep figure hardcodes the capital's 40",
     "file": "backend/models/world_state.py",
-    "old": "            \"upkeep\": int(infrastructure_upkeep_rate(region)),",
+    "old": "            \"upkeep\": (int(infrastructure_upkeep_rate(region))\n                       if getattr(self, \"sovereign_map\", \"legacy\") == \"europe\"\n                       else 0),",
     "new": "            \"upkeep\": 40,",
     "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_upkeep_is_tier_scaled_not_flat"
   },
@@ -163,8 +163,71 @@
   {
     "id": "S8-24 the G3 sentence degrades to a vague claim",
     "file": "backend/commands/combat_executor.py",
-    "old": "        preview[\"province_fights_note\"] = (\n            \"Every corps in the province shares the field — that is the \"\n            \"design. Only a corps still adjacent can be held out: fortify \"\n            \"him (1 AP) and he stands apart until you move him.\"\n        )",
+    "old": "        preview[\"province_fights_note\"] = (\n            f\"Every corps in the province shares the field — \"\n            f\"{_design_clause}. Only a corps still adjacent can be held \"\n            f\"out: fortify him (1 AP) and he stands apart until you move \"\n            f\"him.\"\n        )",
     "new": "        preview[\"province_fights_note\"] = \"Every corps fights.\"",
     "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestTheSentences::test_g3_sentence_is_always_stated tests/test_wo_slice8_panel_states_its_terms.py::TestTheSentences::test_g3_teaches_fortify_not_restrain"
+  },
+  {
+    "id": "S8-25 [B-F2] adjacent artillery bodies billed again",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            if (m.location == battle_region\n                    or (will_join and not getattr(m, \"artillery\", False))):\n                standing_bodies.append(int(m.strength))",
+    "new": "            if will_join or m.location == battle_region:\n                standing_bodies.append(int(m.strength))",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_adjacent_artillery_joiner_is_not_billed"
+  },
+  {
+    "id": "S8-26 [G-F1] the stables payload leaf hardcodes 0",
+    "file": "backend/models/world_state.py",
+    "old": "                \"cavalry\": int(stables_marginal),",
+    "new": "                \"cavalry\": 0,",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_stables_marginal_positive_arm"
+  },
+  {
+    "id": "S8-27 [G-F1] the summary stops computing the marginal",
+    "file": "backend/models/world_state.py",
+    "old": "        _stables_marginal = self.stables_cavalry_marginal()",
+    "new": "        _stables_marginal = 0",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestBuildTermsPayload::test_stables_marginal_positive_arm"
+  },
+  {
+    "id": "S8-28 [B-F4] the field-battle fort bonus reverts to a literal",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if defender_region and defender_region.has_building(\"fortification\"):\n            fort_bonus = REGION_FORTIFICATION_DEFENSE_BONUS",
+    "new": "        if defender_region and defender_region.has_building(\"fortification\"):\n            fort_bonus = 0.25",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_fort_bonus_census_no_scattered_literals"
+  },
+  {
+    "id": "S8-29 [B-F5] the legacy world quotes the Europe upkeep again",
+    "file": "backend/models/world_state.py",
+    "old": "            \"upkeep\": (int(infrastructure_upkeep_rate(region))\n                       if getattr(self, \"sovereign_map\", \"legacy\") == \"europe\"\n                       else 0),",
+    "new": "            \"upkeep\": int(infrastructure_upkeep_rate(region)),",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_legacy_world_quotes_zero_upkeep"
+  },
+  {
+    "id": "S8-30 [B-F1] the shore memo stops hitting (per-region scans return)",
+    "file": "backend/models/world_state.py",
+    "old": "            if _shore_cache is not None and nation in _shore_cache:",
+    "new": "            if False and _shore_cache is not None and nation in _shore_cache:",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_one_shore_verdict_per_nation_per_summary"
+  },
+  {
+    "id": "S8-31 [C-F2] the ledger's Crowded arm is dropped",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        elif attrition_rate > 0:\n            supply_status = \"Crowded\"",
+    "new": "        elif False:\n            supply_status = \"Crowded\"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_ledger_crowded_verdict"
+  },
+  {
+    "id": "S8-32 [C-F1] the G3 note stops naming the quarrel exception",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            if _apart else \"that is the design\"",
+    "new": "            if False else \"that is the design\"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_g3_names_the_quarrel_exception_when_present"
+  },
+  {
+    "id": "S8-33 [B-F6] the Shorncliffe note hardcodes 40 again",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                f\"Shorncliffe System (morale {RECRUIT_MORALE}, not \"\n                f\"{self.RECRUIT_MORALE_BASE}).\"",
+    "new": "                f\"Shorncliffe System (morale {RECRUIT_MORALE}, not 40).\"",
+    "tests": "tests/test_wo_slice8_panel_states_its_terms.py::TestReviewRoundFixes::test_shorncliffe_note_reads_the_constant"
   }
 ]

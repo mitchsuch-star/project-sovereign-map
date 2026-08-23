@@ -3525,9 +3525,15 @@ class EnemyAI:
                     ai_debug(f"    P4.25: {adj_name} is across barred water")
                     continue
 
-            # Calculate garrison effective defense for AI decision
+            # Calculate garrison effective defense for AI decision.
+            # Slice-8 review [B-F4]: the AI estimates with the SAME named
+            # constant the resolver applies (GR5 — one retune moves both).
+            from backend.commands.objection_v2 import (
+                REGION_FORTIFICATION_DEFENSE_BONUS,
+            )
             terrain_bonus = TERRAIN_DEFENSE_BONUS.get(adj_region.terrain, 0.0)
-            fort_bonus = 0.25 if adj_region.has_building("fortification") else 0.0
+            fort_bonus = (REGION_FORTIFICATION_DEFENSE_BONUS
+                          if adj_region.has_building("fortification") else 0.0)
             garrison_effective = adj_region.garrison_strength * (1.0 + terrain_bonus) * (1.0 + fort_bonus)
 
             ratio = marshal.strength / garrison_effective if garrison_effective > 0 else 999

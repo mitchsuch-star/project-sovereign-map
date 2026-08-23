@@ -15,6 +15,11 @@ from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+# Slice-8 review [B-F4]: the region-fortification defense bonus was six
+# scattered inline copies while the build chip quoted the named constant
+# — a combat retune would have left the chip lying with the suite green.
+# One name now; objection_v2 has no imports back into commands (safe).
+from backend.commands.objection_v2 import REGION_FORTIFICATION_DEFENSE_BONUS
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -990,7 +995,15 @@ class CombatExecutor:
                 continue
             will_join, code = self._muster_reason(
                 m, marshal, battle_region, nation, world)
-            if will_join or m.location == battle_region:
+            # Slice-8 review [B-F2]: an ADJACENT artillery joiner never
+            # stands in the battle province — the resolver keeps guns
+            # adjacent as fire support (never relocated), and an
+            # artillery LEAD attacking from adjacent is routed to
+            # bombardment before this preview exists. Counting his
+            # bodies overstated the bill ~9× in the probe. Co-located
+            # guns DO stand there and eat.
+            if (m.location == battle_region
+                    or (will_join and not getattr(m, "artillery", False))):
                 standing_bodies.append(int(m.strength))
             if will_join:
                 will_join_marshals.append(m)
@@ -1160,15 +1173,42 @@ class CombatExecutor:
         # says "unscouted" exactly when the panel says Unknown (the
         # PC15-16 sentinel discipline on a new surface).
         # ══════════════════════════════════════════════════════════════
+        # Slice-8 review [C-F1]: the A5 quarrel arm
+        # (`shares_the_field_apart` — a co-located −2 pair without a
+        # SUPPORT order) is the ONE state where a corps stands in the
+        # province and does not fight. Stamping the design sentence
+        # unconditionally put "every corps in the province shares the
+        # field" on the same screen as a row reading "will do NOTHING"
+        # — the sentence now names the exception when the exception is
+        # on the page.
+        _apart = any(r.get("reason") == "shares_the_field_apart"
+                     for r in rows)
+        _design_clause = (
+            "that is the design, and the quarrel above is its one "
+            "exception: no order holds a corps out of its own province, "
+            "but a feud does"
+            if _apart else "that is the design"
+        )
         preview["province_fights_note"] = (
-            "Every corps in the province shares the field — that is the "
-            "design. Only a corps still adjacent can be held out: fortify "
-            "him (1 AP) and he stands apart until you move him."
+            f"Every corps in the province shares the field — "
+            f"{_design_clause}. Only a corps still adjacent can be held "
+            f"out: fortify him (1 AP) and he stands apart until you move "
+            f"him."
         )
         if region is not None and hasattr(world, "region_econ_visible"):
             total_bodies = sum(standing_bodies)
             n_corps = len(standing_bodies)
             if world.region_econ_visible(battle_region):
+                # Slice-8 review [B-F3]: the quote prices the province AS
+                # IT STANDS — current controller, muster-alone. Two
+                # recorded conservatisms, both in the player's favor and
+                # both covered by the sentence's conditional mood: a
+                # capturing victory flips the controller and RAISES the
+                # fed cap to 1.5× (the quoted cost is then never billed),
+                # and any survivor standing in the province (the engine
+                # pools nation-blind) would raise the real bill above a
+                # muster-alone quote. Exact-parity arms pinned: own soil,
+                # enemy soil uncaptured, stacking-under-cap.
                 fed = int(world.get_effective_supply_cap(nation, region))
                 rate = world.supply_attrition_rate(
                     total_bodies, fed, n_corps)
@@ -2727,7 +2767,8 @@ class CombatExecutor:
         """
         # Calculate garrison effective defense
         terrain_bonus = TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0)
-        fort_bonus = 0.25 if target_region.has_building("fortification") else 0.0
+        fort_bonus = (REGION_FORTIFICATION_DEFENSE_BONUS
+                      if target_region.has_building("fortification") else 0.0)
         garrison_effective = int(target_region.garrison_strength * (1.0 + terrain_bonus) * (1.0 + fort_bonus))
 
         # Recompute coordination for the attacker's current region before reading
@@ -2849,7 +2890,7 @@ class CombatExecutor:
             # Custom garrison authority (uses garrison_effective, not standard outnumbered check)
             if marshal.nation == world.player_nation:
                 garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
-                                         * (1.0 + (0.25 if target_region.has_building("fortification") else 0.0)))
+                                         * (1.0 + (REGION_FORTIFICATION_DEFENSE_BONUS if target_region.has_building("fortification") else 0.0)))
                 if pre_battle_atk_strength < garrison_effective:
                     world.authority_tracker.modify_authority(+5)
                 if getattr(target_region, 'is_capital', False):
@@ -2968,7 +3009,7 @@ class CombatExecutor:
             # Custom garrison authority (uses garrison_effective)
             if marshal.nation == world.player_nation:
                 garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
-                                         * (1.0 + (0.25 if target_region.has_building("fortification") else 0.0)))
+                                         * (1.0 + (REGION_FORTIFICATION_DEFENSE_BONUS if target_region.has_building("fortification") else 0.0)))
                 if pre_battle_atk_strength > garrison_effective:
                     world.authority_tracker.modify_authority(-5)
 
@@ -5094,7 +5135,7 @@ class CombatExecutor:
         # Fortification bonus (Phase 6.2.E): defender gets +25% if region has functional fortification
         fort_bonus = 0.0
         if defender_region and defender_region.has_building("fortification"):
-            fort_bonus = 0.25
+            fort_bonus = REGION_FORTIFICATION_DEFENSE_BONUS
 
         # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
         pre_battle_attacker_strength = marshal.strength
@@ -7389,7 +7430,9 @@ class CombatExecutor:
         # Read terrain from defender's region
         charge_defender_region = world.get_region(target_marshal.location)
         charge_terrain = charge_defender_region.terrain if charge_defender_region else "plains"
-        charge_fort_bonus = 0.25 if charge_defender_region and charge_defender_region.has_building("fortification") else 0.0
+        charge_fort_bonus = (REGION_FORTIFICATION_DEFENSE_BONUS
+                             if charge_defender_region and charge_defender_region.has_building("fortification")
+                             else 0.0)
 
         # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
         pre_battle_atk = marshal.strength

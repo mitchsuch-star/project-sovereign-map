@@ -669,7 +669,8 @@ class EconomyExecutor:
             RECRUIT_MORALE = 60
             shorncliffe_note = (
                 f" The recruits arrive drilled — {recruit_marshal.name}'s "
-                f"Shorncliffe System (morale {RECRUIT_MORALE}, not 40)."
+                f"Shorncliffe System (morale {RECRUIT_MORALE}, not "
+                f"{self.RECRUIT_MORALE_BASE})."
             )
 
         # --- Draw from manpower pool ---

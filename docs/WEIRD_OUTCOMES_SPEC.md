@@ -1765,10 +1765,16 @@ rule).
 > 2. **`committed_strength` is combat weight, not a headcount** (α 0.6 ×
 >    effectiveness × modifiers × arrival probability). The bill prices
 >    BODIES: lead + joiners + same-province corps that stand there whether
->    they fight or not (`shares_the_field_apart` eats too — the engine's
->    pooled total is nation-blind and the quote matches it, pinned by an
->    enact-the-counterfactual test that relocates the muster and runs the
->    real engine: quoted == billed, to the man, both arms).
+>    they fight or not (`shares_the_field_apart` eats too). ~~"the
+>    engine's pooled total is nation-blind and the quote matches it"~~ —
+>    **corrected by the review round [C-F3]:** the quote is
+>    NATION-SCOPED, pricing the muster-alone counterfactual; the engine
+>    pools nation-blind, so any surviving third party raises the real
+>    bill above the quote (conservative, covered by the sentence's
+>    conditional mood). Pinned by enact-the-counterfactual tests that
+>    relocate the muster and run the real engine: quoted == billed, to
+>    the man — over-cap, stacking-under-cap, and (review round) enemy
+>    soil uncaptured.
 > 3. **The exclusion G3 teaches is FORTIFY** (1 AP, stands until moved —
 >    `fortified_static` / Rule 7). `restrain` is a Glorious-Charge
 >    response verb that excludes nothing, and HOLD's `holding_position`
@@ -1810,8 +1816,12 @@ rule).
 > row header. `RECRUIT_MORALE_BASE/TRAINED` and `REPAIR_COST` promoted
 > from function-locals to class constants the executors READ (no copies).
 > The panel renders one row per available building — cost on the pill,
-> delivered terms after, all payload reads (pinned: no cost literal in
-> the `.gd`; the ui6 chip-stem contracts hold).
+> delivered terms after, all payload reads (pinned: none of THIS SLICE'S
+> chips carries a cost literal — the review round [C-F5] corrects the
+> first wording, which claimed the whole file: the pre-existing NV-12
+> dockyard chip keeps its `ship_cost` 400 payload-DEFAULT fallback,
+> outside the pin's reach and outside this slice; the ui6 chip-stem
+> contracts hold).
 >
 > **Consciously NOT done:** contract item 4's list (no re-pricing, no
 > WO-D1 Option 2, ES-1b stands) — and `_bad_odds_muster_note` (the CR-5
@@ -1840,6 +1850,71 @@ rule).
 > headless boot **0 SCRIPT ERROR**. ⚠ The standing visual sign-off on
 > the new chip rows + the preview price block rides the next play
 > session.
+
+> **✅ REVIEW ROUND HELD AND LANDED THE SAME DAY** at the committed SHA
+> `b089701`, clean tree (three lenses: sibling census + record accuracy /
+> backend correctness / GDScript + test quality, refutation built into
+> each). **Zero P1s. One P2 and nine P3/P4s survived refutation — ALL
+> FIXED**, and the fleet named TWO false claims on this record, corrected
+> in place above ([C-F3] the nation-blind parenthetical; [C-F5] the
+> whole-file no-literal claim).
+>
+> **[B-F1] P2 — the GR8 cache never hit.** The shore memo was keyed
+> `(nation, region)` while `shore_supply_state` never reads its region
+> argument (ONE water, §12) — measured **81 misses / 0 hits** per
+> summary: 81 identical fleet scans on every API response, tripling the
+> heaviest payload builder. Nation-keyed now, the at-war gate folded into
+> the memo, with a warning that the key must widen if the verdict ever
+> grows a region arm; the behavioral pin counts scans (one per summary,
+> was 81) and a sweep row reverts the key.
+>
+> **[C-F1]** the G3 sentence sat beside a `shares_the_field_apart` row
+> reading "will do NOTHING" — one screen asserting both "every corps in
+> the province fights" and its counterexample; the note now names the
+> quarrel as the design's one exception when the exception is on the
+> page. **[C-F2]** the ledger's verdict was stacking-blind — three corps
+> under the cap read "OK" beside a preview quoting their 2%/turn bill;
+> the verdict now reads the SAME rate function and says **"Crowded"**
+> (the same-shape sibling, one arm deep — the review's phrase).
+> **[B-F2]** adjacent ARTILLERY joiners were billed for a province they
+> never enter (the resolver keeps guns adjacent as fire support; probe
+> measured a ~9× overstatement) — excluded, co-located guns still count.
+> **[B-F4]** the fort chip quoted the odds-estimator's copy of a bonus
+> applied as SIX scattered `0.25` literals — all six now read
+> `REGION_FORTIFICATION_DEFENSE_BONUS` (incl. the auto-charge copy in
+> `world_state.py` that the reviewer's own list missed — found by this
+> round's census — and the AI's estimate copy, GR5), with a
+> proximity-census pin scoped to `has_building("fortification")` (a
+> line-based grep would miss the split form the field-battle site used).
+> **[B-F3]** recorded conservatism: a capturing victory flips the
+> controller and RAISES the fed cap to 1.5×, so on enemy soil the quoted
+> cost is never billed in the capturing case — comment at the seam + the
+> exact uncaptured-enemy-soil parity arm pinned. **[B-F5]** a legacy
+> world quoted an upkeep it never bills — Europe-gated (the MC-2b
+> idiom). **[B-F6]** Shorncliffe's ", not 40" literal now reads the
+> promoted constant. **[G-F1]** the stables pin bound only the ZERO
+> direction (France's boot marginal IS 0, so `0 == 0` proved nothing) —
+> the positive arm now runs at the PAYLOAD leaf with the under-cap
+> nation seated as player, plus two sweep rows on the payload seams.
+> **[C-F6]** `TUTORIAL_SCRIPT.md`'s brochure rows ("+10k supply", the
+> pre-balance-patch attrition tiers) corrected. Plus the [G-F2]/[G-F3]/
+> [G-F4] test-file polish (the predicate test now asserts the
+> partial-false arm its name promised; the dispatch-twin pin upgraded
+> from substring to AST call-count).
+>
+> **The sweep's own lesson, recorded:** the [B-F6] fix itself made
+> sweep row S8-21 INERT — adding a second occurrence of
+> `RECRUIT_MORALE_BASE` (the note) satisfied the bare-substring pin
+> after the assignment mutated. Caught by the re-run; the pin is now
+> anchored to the ASSIGNMENT form. Final sweep **33/33 killed, 0
+> inert**; tests 44 → **54**; suite green via the commit hook.
+>
+> Also recorded for the in-game pass: a CR-5 delegation-inferred attack
+> resolves under `_strategic_execution`, so that commit surface never
+> shows the price block — consistent with C-8's player gate, not a
+> regression. The fleet's fact-check verified every measured figure in
+> this record to the digit (47/126 split, Swabia 60,000, 24 plains,
+> Paris +15,000, the 4,720 ceiling).
 
 ### Slice 9 — WO-8 the courting cap (est 0.5)
 

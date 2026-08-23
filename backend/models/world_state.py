@@ -6297,8 +6297,9 @@ class WorldState:
 
         Consumed by `process_supply_attrition` (applied) AND the
         dispatch's supply_strain headline (shown) — shown = applied by
-        construction (review round [13]). `_shore_cache` lets the
-        attrition pass reuse one verdict per (nation, region) per turn.
+        construction (review round [13]). `_shore_cache` lets a pass
+        reuse one shore verdict per NATION (slice-8 review [B-F1] — the
+        one-water abstraction makes the verdict region-independent).
         """
         return int(region.supply_capacity
                    * self._supply_multiplier(nation, region, _shore_cache))
@@ -6319,17 +6320,26 @@ class WorldState:
                 in self.ALLY_SUPPLY_STATES):
             is_fed = True
         multiplier = self.HOME_SUPPLY_MULTIPLIER if is_fed else 1.0
-        if (self.fleets and getattr(region, "is_coastal", False)
-                and self.get_nations_at_war_with(nation)):
-            from backend.game_logic.naval import shore_supply_state
-            if _shore_cache is not None:
-                key = (nation, region.name)
-                if key not in _shore_cache:
-                    _shore_cache[key] = shore_supply_state(
-                        self, nation, region.name)
-                verdict = _shore_cache[key]
+        if self.fleets and getattr(region, "is_coastal", False):
+            # Slice-8 review [B-F1]: the memo is keyed by NATION, because
+            # `shore_supply_state` never reads its region argument — the
+            # abstraction has ONE water (§12: one fleet store, no naval
+            # map layer), so the verdict is a function of the army's
+            # nation alone. The old (nation, region) key took 81 misses
+            # and 0 hits per summary pass — 81 identical fleet scans per
+            # API response (GR8). The at-war gate rides inside the memo
+            # for the same reason. ⚠ If `shore_supply_state` ever grows
+            # a region-dependent arm, this key MUST widen with it.
+            if _shore_cache is not None and nation in _shore_cache:
+                verdict = _shore_cache[nation]
             else:
-                verdict = shore_supply_state(self, nation, region.name)
+                if self.get_nations_at_war_with(nation):
+                    from backend.game_logic.naval import shore_supply_state
+                    verdict = shore_supply_state(self, nation, region.name)
+                else:
+                    verdict = None
+                if _shore_cache is not None:
+                    _shore_cache[nation] = verdict
             if verdict == "lifeline" and not is_fed:
                 multiplier = self.HOME_SUPPLY_MULTIPLIER
             elif verdict == "strangled" and is_fed:
@@ -8412,7 +8422,13 @@ class WorldState:
         supply_with_depot = int(
             region.supply_capacity_with("supply_depot") * mult)
         return {
-            "upkeep": int(infrastructure_upkeep_rate(region)),
+            # Slice-8 review [B-F5]: the bill is Europe-gated
+            # (`calculate_turn_income`'s `europe` arm) — a legacy world
+            # collects 0, so the chip quotes 0 there and the panel's
+            # upkeep header suppresses itself (GR9, the MC-2b idiom).
+            "upkeep": (int(infrastructure_upkeep_rate(region))
+                       if getattr(self, "sovereign_map", "legacy") == "europe"
+                       else 0),
             "supply_depot": {
                 "cost": _cost("supply_depot"),
                 "supply": int(supply_with_depot - supply_now),
@@ -12114,8 +12130,17 @@ class WorldState:
                 # change the battle.
                 enemy.clear_coordination_transients()
 
-                # Region fortification bonus for defender (V2-45)
-                auto_charge_fort_bonus = 0.25 if enemy_region and enemy_region.has_building("fortification") else 0.0
+                # Region fortification bonus for defender (V2-45).
+                # Slice-8 review [B-F4]: the named constant, not a sixth
+                # inline copy (function-level import — models never
+                # import commands at module level).
+                from backend.commands.objection_v2 import (
+                    REGION_FORTIFICATION_DEFENSE_BONUS,
+                )
+                auto_charge_fort_bonus = (
+                    REGION_FORTIFICATION_DEFENSE_BONUS
+                    if enemy_region and enemy_region.has_building("fortification")
+                    else 0.0)
 
                 # Execute combat (glorious_charge=False if terrain blocks it)
                 combat_result = combat_resolver.resolve_battle(

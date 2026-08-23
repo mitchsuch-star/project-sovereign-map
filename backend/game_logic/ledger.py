@@ -193,9 +193,21 @@ def _build_territories(world, player: str) -> list:
         # row.
         effective_cap = world.get_effective_supply_cap(
             player, region, _shore_cache=_shore_cache)
+        # Slice-8 review [C-F2]: the verdict reads the SAME rate function
+        # the engine bills with, so the death-ball arm shows too — three
+        # corps under the cap read "Crowded" (2%+/turn), not "OK", on the
+        # tab beside the muster preview that quotes that exact cost.
+        living_occupants = sum(
+            1 for m in world.marshals.values()
+            if m.location == region.name and m.strength > 0)
+        attrition_rate = world.supply_attrition_rate(
+            int(total_occupant_strength), int(effective_cap),
+            living_occupants)
         supply_status = "OK"
         if total_occupant_strength > effective_cap:
             supply_status = "Over capacity"
+        elif attrition_rate > 0:
+            supply_status = "Crowded"
 
         # Occupant count
         occupant_count = sum(

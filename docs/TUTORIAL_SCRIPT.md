@@ -199,7 +199,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 |---------|----------|----------|
 | Build structures in regions you control | "'Build market in Paris' — costs admin AP + gold" | Should-know |
 | 5 building types with different effects | Help text lists building types | Should-know |
-| Supply Depot (300g, 2 turns): +10k supply, halves movement attrition nearby | Tooltip: "Depots project logistics to adjacent regions" | Should-know |
+| Supply Depot (300g, 2 turns): +10k BASE supply (delivered figure is terrain-scaled and ×1.5 fed — the build chip quotes the province's real delta, e.g. Paris +15,000), halves movement attrition nearby | Tooltip: "Depots project logistics to adjacent regions" | Should-know |
 | Fortification (400g, 3 turns): defense bonus + contested capture holdout | Tooltip: "Fortified regions hold out even after army retreats" | Should-know |
 | Training Ground (250g, 2 turns): recruits start at 70% morale | Tooltip: "Trained recruits barely dilute veteran armies" | Nice-to-know |
 | Market (350g, 2 turns): +25% region income | Tooltip: "Paris market: 300g -> 375g/turn" | Should-know |
@@ -221,8 +221,8 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| Regions have supply capacity based on type | Region tooltip: "Supply: 32,000 / 50,000" | Should-know |
-| Excess troops cause supply attrition (1%/3%/5% tiers) | Warning: "Army exceeds supply! 3% attrition this turn" | Must-know |
+| Regions have supply capacity based on type; every screen shows the EFFECTIVE cap (×1.5 on own/allied soil — WO slice 8) | Region panel / tooltip: "Supply: 60,000" | Should-know |
+| Excess troops cause supply attrition (continuous, up to 3% + 1%/extra corps stacking, 6% ceiling) | The muster preview quotes the real cost before you commit; the dispatch names it after | Must-know |
 | Movement causes attrition (base 1%, terrain multiplied) | Post-move: "March losses: 720 troops (mountains 2x)" | Should-know |
 | Moving through enemy fortification: +4% harassment | "Enemy fortification inflicts 4% harassment losses" | Should-know |
 | Supply depots halve movement attrition nearby | "Forward supply lines reduce march losses" | Nice-to-know |

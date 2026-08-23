@@ -78,9 +78,34 @@
 > ONE call site, AST-pinned) · ruff clean · parse harness EXIT=0 ·
 > headless boot **0 SCRIPT ERROR**.
 >
+> **✅ REVIEW ROUND HELD AND LANDED THE SAME DAY** at the committed SHA
+> `b089701` (addendum = spec §3 slice 8). Three lenses, refuters built
+> in: **0 P1 · 1 P2 · 9 P3/P4 — all fixed**, and TWO false claims on the
+> record corrected in place. Headlines: **the GR8 shore memo never hit**
+> (keyed `(nation, region)` while the verdict is region-independent —
+> measured 81 misses / 0 hits per API response; nation-keyed now, pinned
+> by a scan-count test); the G3 sentence sat beside its own
+> counterexample (a "will do NOTHING" quarrel row) and now names the
+> exception; the ledger's verdict gained the **"Crowded"** arm off the
+> SAME rate function (three corps under cap billed 2%/turn while the tab
+> read "OK" — the review's "same-shape sibling, one arm deep");
+> adjacent ARTILLERY joiners were billed for a province fire support
+> never enters (~9× probe overstatement); the fort bonus's SIX scattered
+> `0.25` literals (one more than the reviewer filed — the auto-charge
+> copy found by this round's own census) now read the ONE named constant
+> the chip quotes, proximity-census-pinned; a legacy world no longer
+> quotes an upkeep it never bills; the stables pin bound only the zero
+> direction and now runs the positive arm at the payload leaf. **The
+> sweep caught its own round:** the Shorncliffe fix made a bare-substring
+> pin inert (a second occurrence of the constant satisfied it) — the pin
+> follows the code, re-anchored to the assignment form. Final sweep
+> **33/33 killed, 0 inert**; tests 44 → **54**; suite green via the
+> commit hook.
+>
 > **NEXT = row WO slice 9** (the courting cap), then 10 → 17 → 11 → 12 →
 > 14. ⚠ Slices 6 and 8 are both owed an in-game pass (slice 8's new
-> surfaces: the chip term rows + the preview price block).
+> surfaces: the chip term rows + the preview price block + the Crowded
+> verdict).
 
 > # ✅ WO SLICE 6 — "THE ADMIRALTY SPEAKS PLAINLY" LANDED, August 22, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 6,

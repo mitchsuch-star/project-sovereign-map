@@ -238,8 +238,12 @@ class TestPreviewPriceEqualsEngineBill:
 
     def test_a_same_province_non_joiner_still_eats(self):
         """A −2 hostile corps in the battle province brings NOTHING to
-        the fighting (shares_the_field_apart) but stands there and eats —
-        the engine's total is nation-blind and the quote matches it."""
+        the fighting (shares_the_field_apart) but stands there and eats.
+        (Review [C-F3] precision: the quote prices the MUSTER-ALONE
+        counterfactual — player-side bodies only; the engine pools
+        nation-blind, so any surviving third party would raise the real
+        bill above it. The parity tests enact exactly the quoted
+        hypothesis.)"""
         world, executor, ney, soult, mack = _legacy_pair()
         soult.location = "Belgium"
         ney.set_relationship(soult.name, -2)
@@ -318,7 +322,9 @@ class TestTheSentences:
 
     def test_formatter_survives_a_preview_without_the_new_keys(self):
         """Two standing fixtures build literal preview dicts — the
-        formatter must .get(), never [] (their exact shape, minimal)."""
+        formatter must .get(), never []. (This dict is strictly SMALLER
+        than theirs — it also omits committed_strength — which exercises
+        more .get paths, not fewer.)"""
         executor = CommandExecutor()
         text = executor._combat._format_muster_lines({
             "attacker": {"name": "Ney", "strength": 24000},
@@ -371,13 +377,27 @@ class TestFogDiscipline:
         assert "region_econ_visible(" in src2
 
     def test_predicate_own_soil_true_full_true_partial_false(self, world):
+        from backend.models.intel import FULL, PARTIAL
         assert world.region_econ_visible("Paris") is True
         lead = next(m for m in world.marshals.values()
                     if m.nation == "France" and m.strength > 0)
         lead.location = "Tyrol"
         world.calculate_visibility()
+        assert world.get_region_intel("Tyrol").visibility == FULL
         assert world.region_econ_visible("Tyrol") is True, (
             "a marshal standing in the province is FULL")
+        # The partial-false arm the name promises (review [G-F2]): pull
+        # the marshal back out — Tyrol drops below FULL and the predicate
+        # closes with it.
+        lead.location = "Paris"
+        world.calculate_visibility()
+        vis = world.get_region_intel("Tyrol").visibility
+        assert vis != FULL, "fixture drifted: Tyrol stayed FULL from Paris"
+        if vis == PARTIAL:
+            assert world.region_econ_visible("Tyrol") is False, (
+                "PARTIAL must not open the econ block")
+        else:
+            assert world.region_econ_visible("Tyrol") is False
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -457,10 +477,21 @@ class TestOneSupplyFigure:
 
     def test_the_dispatch_twin_reads_the_same_helper(self):
         """PC15-D2 made the supply-strain headline effective; this slice
-        must not have forked it."""
+        must not have forked it. AST call-count, not a substring — a
+        docstring could satisfy a grep (review [G-F4]; the file's own
+        'a grep is not a census' rule applied to itself)."""
+        import textwrap
+
         from backend.game_logic import dispatch as dispatch_mod
-        src = inspect.getsource(dispatch_mod._supply_strain_candidate)
-        assert "get_effective_supply_cap(" in src
+        src = textwrap.dedent(
+            inspect.getsource(dispatch_mod._supply_strain_candidate))
+        tree = ast.parse(src)
+        calls = [n for n in ast.walk(tree)
+                 if isinstance(n, ast.Call)
+                 and isinstance(n.func, ast.Attribute)
+                 and n.func.attr == "get_effective_supply_cap"]
+        assert len(calls) >= 1, (
+            "the headline no longer CALLS the shared cap helper")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -564,7 +595,11 @@ class TestBuildTermsPayload:
 
     def test_stables_marginal_positive_arm(self, world):
         """A nation UNDER the cap is quoted the real +750 — both arms of
-        min() live, or a hardcoded 0 would survive the France case."""
+        min() live, or a hardcoded 0 would survive the France case.
+        Review [G-F1]: the assertion runs at the PAYLOAD leaf, not just
+        the function — with the under-cap nation seated as player, the
+        summary's own chip term must carry the +750, so a `= 0` hardcode
+        at either payload seam dies here."""
         from backend.models.world_state import (
             CAVALRY_REGEN_BONUS_CAP, STABLES_CAVALRY_REGEN,
         )
@@ -579,6 +614,15 @@ class TestBuildTermsPayload:
                       for n in world.get_nation_regions(under_cap)]
         bonus = world._cavalry_territory_bonus(controlled)
         assert bonus + STABLES_CAVALRY_REGEN <= CAVALRY_REGEN_BONUS_CAP
+        world.player_nation = under_cap
+        summary = world.get_filtered_game_state_summary()
+        own_rows = [rd for rd in summary["map_data"].values()
+                    if rd.get("controller") == under_cap
+                    and rd.get("build_terms")]
+        assert own_rows, f"{under_cap}: no chip terms on its own provinces"
+        for rd in own_rows:
+            assert rd["build_terms"]["stables"]["cavalry"] == \
+                STABLES_CAVALRY_REGEN
 
     def test_fort_pct_and_training_figures_are_the_applied_constants(
             self, world):
@@ -612,8 +656,11 @@ class TestBuildTermsPayload:
         """The chip quotes class constants; these pins hold the executors
         to the SAME names, so a retune moves both or neither."""
         src = inspect.getsource(EconomyExecutor._execute_recruit)
-        assert "self.RECRUIT_MORALE_BASE" in src
-        assert "self.RECRUIT_MORALE_TRAINED" in src
+        # The ASSIGNMENT form, not the bare name — the Shorncliffe note
+        # also mentions the constant, and a bare-substring pin went inert
+        # the moment it did (found by the sweep, review round).
+        assert "RECRUIT_MORALE = self.RECRUIT_MORALE_BASE" in src
+        assert "RECRUIT_MORALE = self.RECRUIT_MORALE_TRAINED" in src
         src = inspect.getsource(EconomyExecutor._execute_repair)
         assert "self.REPAIR_COST" in src
         assert EconomyExecutor.RECRUIT_MORALE_BASE == 40
@@ -692,3 +739,193 @@ class TestBaselineImmunity:
             mult = world._supply_multiplier("France", region)
             assert world.get_effective_supply_cap("France", region) == \
                 int(region.supply_capacity * mult), region.name
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 8. The review round (three-lens fleet at b089701) — confirmed findings
+# ════════════════════════════════════════════════════════════════════════
+
+class TestReviewRoundFixes:
+
+    # ── [B-F1] the shore memo is nation-keyed, not per-region ─────────
+
+    def test_one_shore_verdict_per_nation_per_summary(self, world,
+                                                      monkeypatch):
+        """The old (nation, region) key took 81 misses / 0 hits per
+        response — 81 identical fleet scans. The summary asks for ONE
+        nation (the player), so the whole pass costs at most one
+        verdict."""
+        from backend.game_logic import naval as naval_mod
+        calls = {"n": 0}
+        real = naval_mod.shore_supply_state
+
+        def counting(w, nation, region_name):
+            calls["n"] += 1
+            return real(w, nation, region_name)
+
+        monkeypatch.setattr(naval_mod, "shore_supply_state", counting)
+        world.get_filtered_game_state_summary()
+        assert calls["n"] <= 1, (
+            f"{calls['n']} shore scans for a one-nation pass — the memo "
+            f"key regressed to per-region")
+        assert calls["n"] == 1, (
+            "precondition: the naval arm must be live at boot (France is "
+            "at war and holds coastal provinces) or this pin is vacuous")
+
+    # ── [B-F2] artillery bodies never stand in the battle province ────
+
+    def test_adjacent_artillery_joiner_is_not_billed(self):
+        """The resolver keeps adjacent guns as fire support — they never
+        relocate, so their bodies never eat the battle province's bread.
+        A co-located gun DOES stand there and counts."""
+        world, executor, ney, soult, mack = _legacy_pair()
+        guns = MarshalFactory.infantry(name="Marmont", location="Paris",
+                                       strength=12000,
+                                       personality="aggressive")
+        guns.artillery = True
+        world.marshals["Marmont"] = guns
+        preview = _preview(world, executor, ney, mack)
+        row = next(r for r in preview["rows"] if r["marshal"] == "Marmont")
+        assert row["will_join"] is True, (
+            "precondition: the gun must be a JOINER for the exclusion "
+            "to mean anything")
+        assert preview["supply"]["bodies"] == \
+            int(ney.strength) + int(soult.strength)
+        # Co-located guns stand on the field and eat.
+        guns.location = "Belgium"
+        preview = _preview(world, executor, ney, mack)
+        assert preview["supply"]["bodies"] == (
+            int(ney.strength) + int(soult.strength) + int(guns.strength))
+
+    # ── [B-F3] enemy soil: quote == bill while the controller stands ──
+
+    def test_enemy_soil_parity_uncaptured(self):
+        """The third parity arm: on enemy-held soil the quote prices the
+        UNFED cap, and standing there without a capture bills exactly
+        that. (A capturing victory flips the controller and RAISES the
+        cap — the recorded conservatism; this arm pins the exact case.)"""
+        world, executor, ney, soult, mack = _legacy_pair(
+            lead_strength=90000, joiner_strength=40000)
+        region = world.get_region("Belgium")
+        region.controller = "Austria"
+        soult.location = "Belgium"      # gives FULL sight + joins
+        world.calculate_visibility()
+        preview = _preview(world, executor, ney, mack)
+        quote = preview["supply"]
+        assert quote["fed"] == region.supply_capacity, (
+            "enemy soil must quote the UNFED base cap")
+        assert quote["attrition_per_turn"] > 0, (
+            "fixture must stand over the base cap")
+        mack.location = "Paris"
+        ney.location = "Belgium"
+        events = world.process_supply_attrition()
+        billed = sum(e["losses"] for e in events
+                     if e.get("type") == "supply_attrition"
+                     and e.get("region") == "Belgium"
+                     and e.get("nation") == "France")
+        assert billed == quote["attrition_per_turn"]
+
+    # ── [B-F4] the fort bonus has ONE name ────────────────────────────
+
+    def test_fort_bonus_census_no_scattered_literals(self):
+        """Six 0.25 copies applied what the chip quotes by name. The
+        census is a proximity scan (the field-battle site kept its
+        literal two lines below the has_building check, so a line-based
+        grep would miss a resurrected split form)."""
+        backend_dir = REPO / "backend"
+        offenders = []
+        # The bonus is always keyed to `has_building("fortification")` —
+        # scoping the window there excludes the unrelated 0.25s (the
+        # building-damage chance keys on `building["type"]`).
+        needle = 'has_building("fortification")'
+        for py in backend_dir.rglob("*.py"):
+            if py.name == "objection_v2.py":
+                continue  # the definition + its docstring
+            text = py.read_text(encoding="utf-8")
+            for m in re.finditer(re.escape(needle), text):
+                window = text[max(0, m.start() - 150):m.end() + 150]
+                if "0.25" in window:
+                    offenders.append(f"{py.name}:{m.start()}")
+        assert not offenders, (
+            f"fort-bonus literal(s) beside the has_building check outside "
+            f"the named constant: {offenders}")
+
+    def test_resolver_and_chip_read_the_same_name(self, world):
+        from backend.commands import combat_executor as ce
+        src = Path(ce.__file__).read_text(encoding="utf-8")
+        assert src.count("REGION_FORTIFICATION_DEFENSE_BONUS") >= 5, (
+            "the resolver sites stopped reading the named constant")
+        from backend.commands.objection_v2 import (
+            REGION_FORTIFICATION_DEFENSE_BONUS,
+        )
+        terms = world.get_filtered_game_state_summary()[
+            "map_data"]["Paris"]["build_terms"]
+        assert terms["fortification"]["defense_pct"] == int(
+            round(REGION_FORTIFICATION_DEFENSE_BONUS * 100))
+
+    # ── [B-F5] a legacy world quotes no upkeep it never bills ─────────
+
+    def test_legacy_world_quotes_zero_upkeep(self):
+        world, executor, ney, soult, mack = _legacy_pair()
+        summary = world.get_filtered_game_state_summary()
+        rows = [rd for rd in summary["map_data"].values()
+                if rd.get("build_terms")]
+        assert rows, "legacy player provinces carry chip terms"
+        for rd in rows:
+            assert rd["build_terms"]["upkeep"] == 0, (
+                "the legacy world bills no infrastructure upkeep — "
+                "quoting the Europe rate there is the MC-2b class")
+
+    # ── [B-F6] the Shorncliffe note reads the promoted constant ───────
+
+    def test_shorncliffe_note_reads_the_constant(self):
+        src = inspect.getsource(EconomyExecutor._execute_recruit)
+        assert "{self.RECRUIT_MORALE_BASE}" in src, (
+            "the ', not 40' literal came back — the note must track the "
+            "promoted constant")
+        assert "not 40" not in src
+
+    # ── [C-F2] the ledger's verdict knows the death-ball arm ──────────
+
+    def test_ledger_crowded_verdict(self, world):
+        """Three corps under the effective cap bill 2%+/turn — the tab
+        beside the preview that quotes that cost must not read OK."""
+        region = world.get_region("Paris")
+        effective = world.get_effective_supply_cap("France", region)
+        french = [m for m in world.marshals.values()
+                  if m.nation == "France" and m.strength > 0]
+        assert len(french) >= 3
+        for m in french:
+            m.location = "Picardy"
+        per_corps = max(1000, (effective // 4) // 1000 * 1000)
+        for m in french[:3]:
+            m.location = "Paris"
+            m.strength = per_corps
+        rows = _build_territories(world, "France")
+        paris_row = next(r for r in rows if r["name"] == "Paris")
+        assert paris_row["supply_status"] == "Crowded", paris_row
+        # Two corps under cap stay OK (no stacking bill below 3).
+        french[2].location = "Picardy"
+        rows = _build_territories(world, "France")
+        paris_row = next(r for r in rows if r["name"] == "Paris")
+        assert paris_row["supply_status"] == "OK"
+
+    # ── [C-F1] the G3 sentence names its one exception ────────────────
+
+    def test_g3_names_the_quarrel_exception_when_present(self):
+        world, executor, ney, soult, mack = _legacy_pair()
+        soult.location = "Belgium"
+        ney.set_relationship(soult.name, -2)
+        soult.set_relationship(ney.name, -2)
+        preview = _preview(world, executor, ney, mack)
+        assert any(r.get("reason") == "shares_the_field_apart"
+                   for r in preview["rows"]), "precondition"
+        note = preview["province_fights_note"]
+        assert "its one exception" in note
+        assert "feud" in note
+
+    def test_g3_stays_plain_without_a_quarrel(self):
+        world, executor, ney, soult, mack = _legacy_pair()
+        note = _preview(world, executor, ney, mack)["province_fights_note"]
+        assert "exception" not in note
+        assert "that is the design." in note
