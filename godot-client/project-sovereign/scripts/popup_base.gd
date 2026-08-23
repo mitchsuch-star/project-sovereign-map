@@ -13,12 +13,30 @@ class_name PopupBase
 # signal interface. Each popup emits whatever main.gd expects.
 # =============================================================================
 
+# UX23-R1: cues this popup started and should take with it when it closes.
+# A subclass declares them rather than PopupBase guessing, because the rule is
+# not "stop everything" — an ARRIVAL sound stops on close; a DEPARTURE sound
+# IS the close (this very function plays "back" on the way out).
+var _own_cues: Array = []
+
 func show_popup(_data: Dictionary = {}):
 	"""Override in subclass. Called with popup data from backend."""
 	show()
 
+func claim_cue(cue: String) -> void:
+	"""Declare a cue as this popup's own, so `close_popup` silences it.
+
+	UX23-R1. One-shots are children of the AudioManager singleton, not of the
+	scene, so before `stop_cue` existed a 6-second peal outlived both the
+	panel that rang it and `change_scene_to_file`."""
+	if cue != "" and not _own_cues.has(cue):
+		_own_cues.append(cue)
+
 func close_popup():
-	"""Standard close: disable buttons, then hide."""
+	"""Standard close: silence what we started, disable buttons, then hide."""
+	for cue in _own_cues:
+		AudioManager.stop_cue(cue)
+	_own_cues.clear()
 	if visible:
 		AudioManager.play("back")
 	_disable_all_buttons()

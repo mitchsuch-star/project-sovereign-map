@@ -221,10 +221,23 @@ class TestNoCuePlaysLongerThanItsMoment:
             "the resolved cap must actually be handed to _fade_stop")
 
     def test_the_fade_really_stops_the_player(self):
+        """RE-DERIVED Aug 23, 2026 (UX23-R1). The stop and the tween moved out
+        of `_fade_stop` into `_fade_out_now`, which the timed cap and the new
+        `stop_cue` now SHARE — one fade, two callers. The claim is unchanged;
+        it is asserted against the shared helper, plus a pin that `_fade_stop`
+        still routes through it rather than growing a second copy."""
         src = _script("audio_manager.gd")
-        body = src[src.index("func _fade_stop("):]
-        body = body[:body.index("\n\n\n")]
-        assert "p.stop()" in body and "tween_property" in body
+        shared = src[src.index("func _fade_out_now("):]
+        shared = shared[:shared.index("\n\n\n")]
+        assert "p.stop()" in shared and "tween_property" in shared
+        assert "p.finished.emit()" in shared, (
+            "the finished lambda is the ONLY thing that decrements "
+            "_oneshot_count — skipping it leaks the 14-player budget and the "
+            "game goes silent after fourteen cues")
+        timed = src[src.index("func _fade_stop("):]
+        assert "_fade_out_now(p, 0.8)" in timed
+        assert "tween_property" not in timed[:timed.index("\n\n")], (
+            "one fade, not two")
 
     def test_a_rejected_play_does_not_poison_the_throttle(self):
         """The stamp used to be written above the budget and missing-file

@@ -4436,9 +4436,216 @@ excused.
   `atk_participants` feeds win credit, casualties AND CO-1 committed strength,
   so D4 moves combat math and `BASELINE_SERIES`.
 
-⚠ **Open:** a live visual pass on the new rail button and the two glyphs (the
-data is verified over the wire and the panel builds clean, but nobody has
-looked at it), and the Aug-23 audio re-audition, still owed.
+✅ **Both open items closed the same day** — see §UX23-B below: the visual pass
+was captured with an offscreen harness (`docs/audits/UX23A_RAIL_*.png`; the
+coins glyph and the full-width 15px CTA both confirmed), and the audio
+re-audition was **measured** rather than auditioned, finding two caps that were
+silencing their cue outright.
+
+### UX23-B "The Desk Is Quiet" — CLOSED, August 23, 2026
+
+R2 and R3 landed earlier the same day inside §UX23-A. R1, R4, R5, R6, R7 and R8
+close here, together with the **audio re-audition** that had been open since the
+morning. Landing record: this section. Pins:
+`tests/test_ux23b_the_desk_is_quiet.py` (40). **28 mutations swept, 28 killed,
+0 inert at close** (`tools/_sweep_ux23b.json`; two were inert on the first sweep
+and both were repaired — see the note at the end). Suite 18,832 / 3. M1–M7 and
+`BASELINE_SERIES` byte-identical. Godot parse harness EXIT=0.
+
+**A six-reader recon fleet ran on the committed tree before a line was written,
+and returned `CONFIRMED_BUT_ROW_IS_WRONG_ABOUT_DETAILS` on every single row.**
+Three of them would have shipped a worse bug than the one they named. Those
+corrections are the substance of this section.
+
+#### UX23-1 — the audio re-audition, MEASURED rather than owed
+
+The morning's acceptance note said it plainly: *"a 1.4 s cap assumes the gesture
+is in the first 1.4 s. If the head is a fade-in or room tone the capped cue is
+worse than the bug."* I cannot listen. But that question is measurable, and
+while the venv has no mp3/ogg decoder, **Godot decodes both natively** — so
+`tools/audio_envelope_probe.gd` routes each capped cue through an
+`AudioEffectCapture` bus and reads the PCM back. It **fails loudly** if Godot
+hands it a dummy audio driver, because a silent device would otherwise "prove"
+every cue is a fade-in.
+
+**Two of the eleven caps were silencing their cue outright:**
+
+| cue | cap | measured ONSET | what the player heard |
+|---|---|---|---|
+| `letter_open` | 1.4 s | **2.05 s** | nothing — the cap ended before the paper rustled |
+| `cavalry` | 3.2 s | **4.9 s** | the empty road; a gallop that approaches, 30 dB down |
+
+`letter_open` is the cue the user reported in the first place, and the morning's
+fix had made it silent. Raising the caps would restore the length they
+complained about, so both carry a new registry field **`start_s`** instead —
+play from past the dead head, for the same short window. The other nine onsets
+land at 0.15–1.65 s, inside their caps, and carry no offset (pinned).
+
+Recorded honestly: the measurement answers the *silence* half of the question
+for all eleven. What still owes ears is narrower than "the eleven capped cues" —
+only phrase-completeness on `reveille` / `to_the_color` / `fanfare`, where the
+probe can say the sound is present and loud but not whether a musical figure is
+cut mid-phrase. `MUSIC_SOUND_SPEC.md` §2a is rewritten to say that.
+
+#### UX23-R1 — closing a panel silences the sound it started · FIXED
+
+`_play_cue` kept **no handle** on the player it created, and one-shots are
+children of the AudioManager singleton rather than the scene, so a cue outlived
+both its panel and `change_scene_to_file`. New `_live_players` registry,
+`stop_cue(cue)` beside `stop_loop`, and `_fade_stop`'s tween extracted into a
+shared `_fade_out_now` so the timed cap and the new stop are **one fade**.
+
+`p.finished.emit()` is load-bearing and is pinned as such: the `finished` lambda
+is the only thing that decrements `_oneshot_count`, so a stop path that frees
+the player directly leaks the 14-player budget permanently and the game goes
+silent after fourteen cues — a worse bug than the one being fixed.
+
+**The row's completion definition named the wrong seam.** It put the wiring at
+`popup_base.close_popup`, which only **two of the fifteen** over-2-second cues
+route through; the diorama's six, the reward dialog's 6-second bugle and the
+vassal-rebellion toll all bypass PopupBase entirely. And its flagship example —
+`capture_choice_dialog`'s coins — is the one site that must be left alone: it
+fires inside the Plunder handler, one line before `hide()`, as the sound of the
+decision. The rule the wiring follows instead, and which the row never drew:
+**an arrival sound stops on close; a departure sound IS the close.**
+`close_popup` itself plays "back" on the way out, so the codebase already
+depended on that distinction. Both halves pinned, including the negative.
+
+#### UX23-R6 — one audio implementation · FIXED, but not as written
+
+The diorama's private `AudioStreamPlayer` is gone; `cannon` and `drum_sting`
+were already registered cues with byte-identical trims, so nothing changed
+audibly. A structural census over every `.gd` now forbids owning a player
+outside `audio_manager.gd` (with an anti-vacuity floor, and scoped to
+declaration/instantiation rather than the bare word — the first draft failed on
+the very docstring explaining why the diorama no longer has one).
+
+**The row's causal claim is INVERTED, and following it would have broken the
+game's only audio setting.** It said "the next diorama sound will forget the
+toggle guard". The guard is *inside* the diorama and is inherited by anything
+added there; `AudioManager._play_cue` is the side that has never read
+`UiSettings.get_battle_sfx()` at all. Routing the calls as instructed would have
+silently disabled "Battle sounds" — and nothing in the suite referenced that
+setting, so no test would have caught it. The guard stays at a private `_cue()`
+wrapper, and a pin now asserts it gates the play rather than following it.
+
+#### UX23-R4 — the dispatch re-read stops naming a marshal already paid · FIXED
+
+`GET /dispatch` returned the dispatch frozen at turn start, so "Unmet Marshals"
+went on naming a marshal the player had paid — the same shown≠applied class the
+reward rail fixed, one surface over.
+
+**The row offered "derive at read time" as an option, and taken literally that
+is a serious bug.** `build_morning_dispatch` is not a builder, it is a
+**consumer**: it clears `pending_dispatch_events`, overwrites the PC-7
+headline-lead memory, latches `Marshal.last_expectation_seen`, re-adds two
+notification families, and **rolls `check_sabotage_discovery`** — on a hit it
+pushes a confrontation dialogue, a notification, a popup and a campaign-log row.
+Rebuilding on a GET would have let the player re-roll Talleyrand's sabotage by
+pressing R. (Its second arm, "invalidated on any state change it reports", is
+unimplementable for the same reason: invalidation means rebuild.)
+
+So only the pure half moved. `dotation.build_unmet_marshals(world, nation)` is
+extracted (GR1 — the dispatch reads it, it is not a second copy), the latch
+stays behind in the once-per-turn pass, and the endpoint overlays fresh rows
+onto a **copy**. Four pins: the paid marshal is gone from a re-read, the stored
+dispatch is unmutated, the builder is pure when called twice, and the endpoint
+never mentions `build_morning_dispatch`.
+
+#### UX23-R5 — an order that names a marshal is never a dialogue answer · FIXED
+
+**The row was wrong three ways.** The advisory has no `cancel` option — the hit
+is the `cancel` KEYWORD mapping onto `dismiss`, so anyone fixing "the cancel
+option" would have found nothing to fix. Whole-line matching does not fix
+`"yes"`, the row's own second example, because `"yes"` *is* a whole line. And
+scoping the fix to "non-blocking dialogues" as written would have broken the
+letter-book, where `accept prussia's proposal` is the exact sentence the CA9
+court guard was built to serve.
+
+Built instead as the row's own *completion definition* stated as a rule: a
+guard in `match_dialogue_answer` that refuses a line naming one of the player's
+standing marshals — by comma address (reusing the parser's own
+`_leading_addressed_token`, so the "No, charge!" exclusions come free) or by
+whole-word name anywhere in the line.
+
+**Its placement is the design.** It sits *below* the verbatim arms so a label
+that legitimately contains a name still resolves, and *above* the inferential
+ones, because arms 3 and 4 are guesses about what the player meant and a guess
+must not outrank an order addressed to a general. That also closes a second
+hijack vector the row never named: the label "Send as ordered" is
+`{send, as, ordered}`, which `as ordered, send Ney` satisfies in any word order.
+
+**Recorded trade:** a conversational answer that happens to name a marshal —
+`accept, and let Ney hold` — now falls through to the parser instead of
+answering. That is the intended direction, and it is on the record rather than
+left to be discovered.
+
+#### UX23-R8 — the sentence renders where it is produced · FIXED
+
+`expectation_note` was produced on every defensive victory and rendered
+nowhere: it is built by the shared `_execute_attack`, and
+`enemy_phase_dialog.gd`'s whitelist read neither it **nor `campaign_cost_note`**
+(HC-2), which the row did not name and which has the identical defect at the
+identical seam. Both render now, mirroring the `jealousy_note` arm added to the
+same whitelist for the same reason.
+
+Rendered rather than gated at the producer, deliberately: that block also calls
+`restate_reward_notice`, so a phase gate would have regressed the same day's
+mid-turn stale-price P1.
+
+**The row's "the same `[Reward…]` affordance on EVERY surface" is unachievable
+and is restated.** `enemy_phase_dialog.tscn` is CanvasLayer **118** and
+`reward_dialog.tscn` is **109** — a chip there would open the dialog *behind*
+the modal that launched it. The sentence renders everywhere it is produced; the
+chip goes only where a chip works. Pinned, layer numbers and all.
+
+#### UX23-R7 — every inventory row carries a measured length · DONE
+
+`MUSIC_SOUND_SPEC.md` §1a is new: a measured length for every `ui/`, `battle/`
+and `ambient/` file, with the cue(s) pointing at it and its cap beside it,
+generated with the same stdlib header parse the standing pin uses so the doc and
+the test cannot disagree. `bugle_first_call.mp3` was recorded as `~0:15`; it is
+**9.22 s**, now corrected in the `music/` table.
+
+Found in passing: **two registry cues have no call site anywhere in the client**
+(`march_step`, `first_call`). Their files are wired under other cue names, so
+this is dead configuration rather than a broken player-facing promise; recorded
+in §1a rather than deleted, since the assets are licensed and credited.
+
+#### The visual sign-off on UX23-A
+
+Captured with a new offscreen harness (`tools/ux23a_rail_screenshot.gd`,
+following the IGR-G pattern) rather than by driving the client, because the
+user's own game was live on 8005. Evidence:
+`docs/audits/UX23A_RAIL_PANEL_2026_08_23.png` and
+`..._RAIL_PILLS_2026_08_23.png`, plus measured geometry.
+
+Both open questions answered: the two reward rows now carry the **coins** glyph
+and are visually distinct from the envoy scrolls beside them (they had been
+rendering as the priority-default text codes "INF" and "NEW"); and the
+full-width **`Grant rente — 180g/turn`** button renders at font-size **15** —
+the theme size — above `[Reward…] [Keep] [Acknowledge]`, in slot 3 of 4, which
+is the intended hierarchy.
+
+⚠ **A near-miss worth recording.** The first capture showed `Grant rente â€"
+180g/turn` and I was one step from filing a mojibake defect against the client.
+The client was innocent: I had piped `curl` into Python, whose `sys.stdin`
+decodes as cp1252 on Windows, so the UTF-8 em dash was mangled in the *capture*
+and faithfully rendered by Godot. Re-captured through a file with an explicit
+encoding, it is correct. This is the same trap recorded for PowerShell text
+round-trips, one tool over.
+
+#### Two inert pins, both mine, both repaired
+
+The mutation sweep found two of this slice's own pins proving nothing, and both
+had the same shape — test data that did not exercise the mechanism. The
+"a label naming a marshal still resolves" pin used `Commission Suchet`, and
+Suchet is a *bench* candidate, not a standing marshal, so the guard never fired
+on that line whatever its placement. And the substring pin used
+`counter with money`, which matches the label `Counter` verbatim in arm 1 and
+never reaches the guard at all; it is now `never mind the money` on the
+advisory, which reaches the keyword arm below the guard and so actually
+distinguishes `whole_phrase_in` from bare containment.
 
 ### Routed, not built
 
@@ -4449,11 +4656,15 @@ table gave none of them, naming four owners (`Music & Sound follow-up`,
 nowhere else in the repo. They are now one owned slice, **UX23-B "The Desk Is
 Quiet"**, plus two rows that belong to existing owners.
 
-**UX23-B — the slice these four rows land in.** **Two of the four (R2, R3) were
-pulled forward and LANDED Aug 23, 2026 as part of §UX23-A above** — R2 because
-the user named it as the prerequisite for updating the rail in place, R3
-because it is its sibling and the same tray. **R1 and R6 remain open and keep
-this owner.** Owner: this section.
+**UX23-B — ✅ THE SLICE IS CLOSED, August 23, 2026.** R2 and R3 were pulled
+forward into §UX23-A (R2 because the user named it as the prerequisite for
+updating the rail in place, R3 because it is its sibling and the same tray);
+**R1 and R6 — and the other-owner rows R4, R5, R7 and R8 — closed the same day
+in §UX23-B above**, together with the UX23-1 audio acceptance condition. The
+table below is kept as the original routing record; every row in it is struck.
+A six-reader recon fleet corrected all six before they were built, and three of
+them would otherwise have shipped a worse bug than the one they named. Owner:
+this section.
 Landing slice: one client-side pass, unscheduled, before Round 0 — it is a
 polish slice with no dependency, and R2 is the one row here a player would
 report unprompted. Completion definition: closing a surface silences the sound
@@ -4465,19 +4676,19 @@ Behaviour test: `tests/test_ux_fixes_2026_08_23.py` gains a
 
 | id | item | slice | completion definition | test |
 |---|---|---|---|---|
-| UX23-R1 | **No stop API for one-shot cues.** `stop_loop` and friends iterate `_loop_players` only; `_play_cue` keeps no handle, so nothing can silence a cue early. `capture_choice_dialog.gd` plays 8.7 s of coins then `hide()`s on the next line; one-shots survive `change_scene_to_file`. The Aug-23 caps shorten each instance but do NOT deliver "closing it silences it". | UX23-B | `AudioManager.stop_cue(cue)` exists, `popup_base.close_popup` calls it, and a cue started by a panel is inaudible one frame after the panel hides | structural: every `.tscn` popup that plays a >2 s cue stops it on close |
+| ~~UX23-R1~~ ✅ **CLOSED Aug 23, 2026** (§UX23-B above) | **No stop API for one-shot cues.** `stop_loop` and friends iterate `_loop_players` only; `_play_cue` keeps no handle, so nothing can silence a cue early. `capture_choice_dialog.gd` plays 8.7 s of coins then `hide()`s on the next line; one-shots survive `change_scene_to_file`. The Aug-23 caps shorten each instance but do NOT deliver "closing it silences it". | UX23-B | `AudioManager.stop_cue(cue)` exists, `popup_base.close_popup` calls it, and a cue started by a panel is inaudible one frame after the panel hides | structural: every `.tscn` popup that plays a >2 s cue stops it on close |
 | ~~UX23-R2~~ ✅ **FIXED Aug 23, 2026** (§UX23-A above) | **Every rail refresh mints a new uuid.** `create_notification` generates one per call and `notification_bar.gd`'s `_audio_seen_ids` dedupes the chime on that id — so the desk bell re-rings per unmet marshal per turn, forever. At the reported live state that is **four extra chimes every turn until paid**. The strongest link between complaints 1 and 3, and the reason the Aug-23 fix is deliberately dismiss-only rather than re-post. | UX23-B | a re-stated notification keeps its id, so the chime fires once per grievance, not once per turn | `post_expectation_notice` twice for the same marshal yields one id |
 | ~~UX23-R3~~ ✅ **FIXED Aug 23, 2026** (§UX23-A above) | **`_enforce_cap` evicts NORMAL rows only.** `DOTATION_EROSION` is HIGH and therefore immune, so N eroding marshals produce N permanent un-evictable rows that crowd real news off the rail. | UX23-B | the cap can evict a HIGH row that has been standing longer than the window | N+1 eroding marshals do not push the cap | 
-| UX23-R6 | **`battle_diorama.gd` is a second audio implementation**, bypassing `CUES`, the throttle, the player budget and `max_s`. No length defect today; the next diorama sound will forget the toggle guard. | UX23-B | the diorama plays through `AudioManager` | the AST guard over `backend/` gains a `.gd` sibling forbidding raw `AudioStreamPlayer` outside `audio_manager.gd` |
+| ~~UX23-R6~~ ✅ **CLOSED Aug 23, 2026** (§UX23-B above) | **`battle_diorama.gd` is a second audio implementation**, bypassing `CUES`, the throttle, the player budget and `max_s`. No length defect today; the next diorama sound will forget the toggle guard. | UX23-B | the diorama plays through `AudioManager` | the AST guard over `backend/` gains a `.gd` sibling forbidding raw `AudioStreamPlayer` outside `audio_manager.gd` |
 
 **Rows with existing owners:**
 
 | id | item | owner |
 |---|---|---|
-| UX23-R4 | **The dispatch re-read screen stays stale all turn.** `GET /dispatch` (`main.py`) returns the frozen `last_morning_dispatch`, so "Unmet Marshals" still names a marshal paid this turn — the same shown≠applied class this slice fixed on the rail, one surface over. | `DESIGN_REFINEMENT.md` UX23-D-adjacent; lands with whichever slice next touches the dispatch builder. Completion: the re-read is derived at read time or invalidated on any state change it reports. Test: pay a marshal, re-read the dispatch, assert he is absent from Unmet Marshals. |
-| UX23-R5 | **A typed line can hijack a non-blocking dialogue.** `"Soult, cancel your march"` matches the advisory's own `cancel` option; `"yes"` fires `execute_suggestion` and spends 1 DP. Same class as W6-0 / BUG-CA-7 / the CA9 typed-router defect. Narrow fix: on a NON-blocking dialogue, require a whole-line match rather than a contained keyword. | `COMMAND_ROBUSTNESS_SPEC.md` — the CR-6 successor row. Completion: an order naming a marshal is never consumed as a dialogue answer. Test: the golden corpus gains the two measured sentences. |
-| UX23-R7 | `MUSIC_SOUND_SPEC.md` §1 records `bugle_first_call.mp3` as `~0:15`; measured **9.221 s**. The `ui/` and `ambient/` inventories have no length column. | Docs-only; corrected in `MUSIC_SOUND_SPEC.md` §2a at the same time as the length census pin. Completion: every inventory row carries a measured length. |
-| UX23-R8 | **The battle report's expectation chip.** The report and the dispatch's Unmet Marshals block could carry the same `review_target` deep link the rail now has. Note: `expectation_note` is produced in the ENEMY phase too (GR5 shared `_execute_attack`) and `enemy_phase_dialog.gd` has zero `expectation` references, so a chip would be invisible on defensive victories — an unrendered backend string sits there today. | UX23-B (client pass). Completion: the same `[Reward…]` affordance on every surface that announces the expectation, or the surfaces that cannot render it stop producing it. Test: the enemy-phase dialog renders `expectation_note` or the producer is gated. |
+| ~~UX23-R4~~ ✅ **CLOSED Aug 23, 2026** (§UX23-B above) | **The dispatch re-read screen stays stale all turn.** `GET /dispatch` (`main.py`) returns the frozen `last_morning_dispatch`, so "Unmet Marshals" still names a marshal paid this turn — the same shown≠applied class this slice fixed on the rail, one surface over. | `DESIGN_REFINEMENT.md` UX23-D-adjacent; lands with whichever slice next touches the dispatch builder. Completion: the re-read is derived at read time or invalidated on any state change it reports. Test: pay a marshal, re-read the dispatch, assert he is absent from Unmet Marshals. |
+| ~~UX23-R5~~ ✅ **CLOSED Aug 23, 2026** (§UX23-B above) | **A typed line can hijack a non-blocking dialogue.** `"Soult, cancel your march"` matches the advisory's own `cancel` option; `"yes"` fires `execute_suggestion` and spends 1 DP. Same class as W6-0 / BUG-CA-7 / the CA9 typed-router defect. Narrow fix: on a NON-blocking dialogue, require a whole-line match rather than a contained keyword. | `COMMAND_ROBUSTNESS_SPEC.md` — the CR-6 successor row. Completion: an order naming a marshal is never consumed as a dialogue answer. Test: the golden corpus gains the two measured sentences. |
+| ~~UX23-R7~~ ✅ **CLOSED Aug 23, 2026** (§UX23-B above) | `MUSIC_SOUND_SPEC.md` §1 records `bugle_first_call.mp3` as `~0:15`; measured **9.221 s**. The `ui/` and `ambient/` inventories have no length column. | Docs-only; corrected in `MUSIC_SOUND_SPEC.md` §2a at the same time as the length census pin. Completion: every inventory row carries a measured length. |
+| ~~UX23-R8~~ ✅ **CLOSED Aug 23, 2026** (§UX23-B above) | **The battle report's expectation chip.** The report and the dispatch's Unmet Marshals block could carry the same `review_target` deep link the rail now has. Note: `expectation_note` is produced in the ENEMY phase too (GR5 shared `_execute_attack`) and `enemy_phase_dialog.gd` has zero `expectation` references, so a chip would be invisible on defensive victories — an unrendered backend string sits there today. | UX23-B (client pass). Completion: the same `[Reward…]` affordance on every surface that announces the expectation, or the surfaces that cannot render it stop producing it. Test: the enemy-phase dialog renders `expectation_note` or the producer is gated. |
 
 ### Needs a design gate — the structural answer to "too early"
 

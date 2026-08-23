@@ -963,6 +963,50 @@ def restate_reward_notice(world, marshal) -> None:
                             shortfall)
 
 
+def build_unmet_marshals(world, nation: str) -> List[Dict]:
+    """The dispatch's "Unmet Marshals" rows, derived from live state.
+
+    UX23-R4. This was inline in `dispatch._build_situation`, tangled with the
+    once-per-turn `last_expectation_seen` latch — so the only way to get fresh
+    rows was to rebuild the whole dispatch, and `build_morning_dispatch` is a
+    CONSUMER, not a builder: it clears `pending_dispatch_events`, overwrites
+    the PC-7 headline-lead memory, re-adds notification families, and **rolls
+    for Talleyrand sabotage discovery**. Re-deriving it on a GET would have let
+    the player re-roll sabotage by pressing R.
+
+    So only this half moved, and only this half is re-derived at read time.
+    The latch stays where it was.
+
+    Pure: reads state, writes nothing.
+    """
+    rows: List[Dict] = []
+    if not is_dotation_world(world):
+        return rows
+    for marshal in world.marshals.values():
+        if marshal.nation != nation or marshal.strength <= 0:
+            continue
+        expectation = get_expectation(marshal)
+        satisfaction = get_satisfaction(marshal, world)
+        if expectation <= satisfaction:
+            continue
+        grace_turns_left = -1
+        if not getattr(marshal, "captured_by", ""):
+            grace_start = int(getattr(marshal, "expectation_grace_turn", -1))
+            if grace_start >= 0:
+                grace_turns_left = max(
+                    0, GRACE_TURNS - (int(world.current_turn) - grace_start))
+        rows.append({
+            "marshal": marshal.name,
+            "expectation": int(expectation),
+            "satisfaction": int(satisfaction),
+            "shortfall": int(expectation - satisfaction),
+            "eroding": bool(is_eroding(marshal, world)),
+            "grace_turns_left": int(grace_turns_left),
+            "pension": int(getattr(marshal, "pension", 0)),
+        })
+    return rows
+
+
 def rente_action_keys(marshal, world) -> Dict:
     """The one-click rente affordance a reward-rail row carries, or `{}`.
 

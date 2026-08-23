@@ -2435,7 +2435,8 @@ def execute_command(request: CommandRequest):
                 # CA9: the third copy of the option-match rule, now the
                 # same call the routing gate below makes.
                 _consumed_as_dialogue_answer = bool(match_dialogue_answer(
-                    world.pending_diplomatic_dialogue, command_text.lower()))
+                    world.pending_diplomatic_dialogue, command_text.lower(),
+                    _player_marshal_names(world)))
         if parsed.get("success") and not _consumed_as_dialogue_answer:
             _parsed_command = parsed.get("command", {})
             world.add_to_command_history({
@@ -2595,7 +2596,8 @@ def execute_command(request: CommandRequest):
             # about. The list is gone; a verb now has to resolve onto an
             # action the live dialogue actually offers, as a whole word.
             matched_keyword = match_dialogue_answer(
-                world.pending_diplomatic_dialogue, raw_lower)
+                world.pending_diplomatic_dialogue, raw_lower,
+                _player_marshal_names(world))
 
             if matched_keyword:
                 print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
@@ -4200,12 +4202,43 @@ def get_campaign_log():
 # DISPATCH RE-READ ENDPOINT (Session A)
 # ════════════════════════════════════════════════════════════
 
+
+def _player_marshal_names(world) -> list:
+    """UX23-R5: the roster the dialogue matcher checks a typed line against.
+
+    Standing marshals only — a fallen or captured name is not an order the
+    player can give, and letting it block a dialogue answer would be a second
+    defect wearing the first one's coat."""
+    try:
+        return [m.name for m in world.get_player_marshals()]
+    except Exception:
+        return []
+
+
 @app.get("/dispatch")
 def get_dispatch():
     """Get the last morning dispatch for re-read screen."""
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
     dispatch = world.last_morning_dispatch
+    # UX23-R4: the stored dispatch is frozen at turn start, so "Unmet
+    # Marshals" went on naming a marshal the player had already paid — the
+    # same shown-not-applied class the reward rail fixed, one surface over.
+    #
+    # ONLY that block is re-derived, and onto a COPY. Rebuilding the whole
+    # dispatch is not an option: `build_morning_dispatch` consumes
+    # `pending_dispatch_events`, overwrites the PC-7 headline-lead memory,
+    # latches `last_expectation_seen`, re-adds notification families and rolls
+    # `check_sabotage_discovery` — pressing R would re-roll sabotage. A read
+    # endpoint must not mutate, and this one still does not: `dict(...)` twice,
+    # then a pure builder.
+    if dispatch:
+        from backend.game_logic.dotation import build_unmet_marshals
+        dispatch = dict(dispatch)
+        situation = dict(dispatch.get("situation") or {})
+        situation["unmet_marshals"] = build_unmet_marshals(
+            world, world.player_nation)
+        dispatch["situation"] = situation
     payload = {"success": True, "dispatch": dispatch or {}}
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
     return payload

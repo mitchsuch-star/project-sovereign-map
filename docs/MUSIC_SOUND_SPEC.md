@@ -90,7 +90,7 @@ per the UI-0 tracking policy. The three CC0 zips remain untracked master pools.
 | `fife_drum_warlike_medley.ogg` | Soldiers Farewell Fanfare / Montezuma / March of War medley | same | 2:17 |
 | `drums_rage_of_cornwallis.ogg` | Drum Feature: The Rage of Cornwallis — massed field drums | same | 2:05 |
 | `fanfare_erafnaf.ogg` | ERAFNAF Fanfare — brass/field fanfare | same | 0:37 |
-| `bugle_first_call.mp3` | First Call — solo bugle | US military bugle call — PD | ~0:15 |
+| `bugle_first_call.mp3` | First Call — solo bugle | US military bugle call — PD | **0:09** (9.22 s — was recorded `~0:15`; corrected UX23-R7) |
 | `bugle_reveille.ogg` | Reveille — solo bugle | same | 0:21 |
 | `bugle_mail_call.ogg` | Mail Call — solo bugle | same | 0:05 |
 | `bugle_to_the_color.ogg` | To the Color — honors bugle call | same | 0:42 |
@@ -136,6 +136,180 @@ Curated from the RPG pack (CC0): `ship_creak_1/2.ogg`.
 
 ---
 
+### §1a Measured lengths — every `ui/`, `battle/` and `ambient/` file (UX23-R7)
+
+> The three sections above are prose, and carried no length at all; `music/`
+> carried lengths but one of them (`bugle_first_call.mp3`) was wrong by 6
+> seconds. That is how a 38.6-second envelope-open shipped as a UI click.
+>
+> Measured with the same stdlib header parse the standing pin uses
+> (`tests/test_ux_fixes_2026_08_23.py` — `_asset_duration`), so this table and
+> the test cannot disagree. **`cue(s)`** names the registry entries that point
+> at the file; **`cap`** is its `max_s`. *(unwired)* means the file is on disk
+> and credited but no cue references it — kept deliberately as pool variants
+> and future material, not a promise to anybody.
+
+### ui/ — 40 files
+
+
+
+| file | measured | cue(s) | cap |
+
+|---|---|---|---|
+
+| `back_dismiss.ogg` | 0.07 s | *(unwired)* | — |
+
+| `book_close.ogg` | 0.23 s | `panel_close`, `book_close` | — |
+
+| `book_open.ogg` | 0.15 s | `panel_open`, `book_open` | — |
+
+| `click_primary.ogg` | 0.01 s | *(unwired)* | — |
+
+| `click_soft.ogg` | 0.01 s | *(unwired)* | — |
+
+| `cloth_rustle.ogg` | 0.42 s | `cloth` | — |
+
+| `coin_pour.mp3` | 8.72 s | `coin_pour` | 3.0 |
+
+| `coins_small.ogg` | 0.85 s | `coins_small` | — |
+
+| `coins_small_2.ogg` | 0.34 s | `coins_small` | — |
+
+| `command_ack_click.ogg` | 0.45 s | `command_ack` | — |
+
+| `confirm_chime.ogg` | 0.54 s | `confirm` | — |
+
+| `door_close_heavy.ogg` | 0.60 s | `door_close` | — |
+
+| `door_open_heavy.ogg` | 1.41 s | `door_open` | — |
+
+| `end_turn_drum_roll.mp3` | 4.83 s | `end_turn` | — |
+
+| `error_soft.ogg` | 0.10 s | `error` | — |
+
+| `latch_close.ogg` | 0.26 s | `latch` | — |
+
+| `leather_tap_1.ogg` | 0.34 s | `select` | — |
+
+| `leather_tap_2.ogg` | 0.31 s | `select`, `back` | — |
+
+| `letter_open.mp3` | 38.64 s | `letter_open` | 1.4 |
+
+| `notification_bell.mp3` | 2.74 s | `notification` | — |
+
+| `page_turn_1.ogg` | 0.77 s | `page_turn` | — |
+
+| `page_turn_2.ogg` | 0.43 s | `page_turn` | — |
+
+| `page_turn_3.ogg` | 0.23 s | `page_turn` | — |
+
+| `panel_close.ogg` | 0.15 s | *(unwired)* | — |
+
+| `panel_open.ogg` | 0.15 s | *(unwired)* | — |
+
+| `paper_crumple.mp3` | 0.60 s | `paper_crumple` | — |
+
+| `parchment_close_snd_close_map.wav` | 1.62 s | `parchment_close` | — |
+
+| `parchment_open_snd_use_map.wav` | 1.52 s | `parchment_open` | — |
+
+| `question_open.ogg` | 0.33 s | `question` | — |
+
+| `quill_flick.mp3` | 0.89 s | `quill_flick` | — |
+
+| `quill_scribble_long.ogg` | 54.24 s | `scribble_long`, `scribble_long (loop)` | — |
+
+| `quill_scribble_loop.ogg` | 6.00 s | `scribble`, `scribble (loop)` | — |
+
+| `quill_sign.mp3` | 2.64 s | `quill_sign` | — |
+
+| `select_item.ogg` | 0.04 s | *(unwired)* | — |
+
+| `tick_subtle.ogg` | 0.02 s | `tick` | — |
+
+| `toggle_switch.ogg` | 0.61 s | `toggle` | — |
+
+| `wax_seal.mp3` | 1.37 s | `wax_seal` | — |
+
+| `wood_tap_1.ogg` | 0.28 s | `click` | — |
+
+| `wood_tap_2.ogg` | 0.35 s | `click` | — |
+
+| `wood_tap_3.ogg` | 0.26 s | `click` | — |
+
+
+
+### battle/ — 13 files
+
+
+
+| file | measured | cue(s) | cap |
+
+|---|---|---|---|
+
+| `army_march.mp3` | 36.79 s | `march_long`, `march_long (loop)` | — |
+
+| `army_march_loop_short.mp3` | 7.58 s | `march_step`, `march`, `march (loop)` | 0.65 |
+
+| `battlefield_ambience.mp3` | 5:45 (345.99 s) | `battle_bed`, `battle_bed (loop)` | — |
+
+| `cannon_distant.ogg` | 0.92 s | `cannon_distant` | — |
+
+| `cannon_thud.ogg` | 1.80 s | `cannon` | — |
+
+| `cavalry_gallop.mp3` | 25.15 s | `cavalry` | 3.2 |
+
+| `drum_sting.wav` | 1.55 s | `drum_sting` | — |
+
+| `horse_whinny.ogg` | 2.27 s | `whinny` | — |
+
+| `musket_battle_volley.mp3` | 22.80 s | `musket_volley` | 4.2 |
+
+| `musket_shot_1.ogg` | 0.46 s | `musket_shot` | — |
+
+| `musket_shot_2.ogg` | 0.37 s | `musket_shot` | — |
+
+| `musket_shot_3.ogg` | 0.26 s | `musket_shot` | — |
+
+| `sword_draw.mp3` | 0.76 s | `sword_draw` | — |
+
+
+
+### ambient/ — 9 files
+
+
+
+| file | measured | cue(s) | cap |
+
+|---|---|---|---|
+
+| `bell_toll_single.mp3` | 31.71 s | `bell_toll` | 3.2 |
+
+| `campfire_loop.mp3` | 11.06 s | `campfire`, `campfire (loop)` | — |
+
+| `church_bells_peal.mp3` | 1:17 (77.24 s) | `bells_peal` | 5.2 |
+
+| `crowd_murmur.mp3` | 28.06 s | `crowd`, `crowd (loop)` | — |
+
+| `sea_loop.mp3` | 35.06 s | `sea`, `sea (loop)` | — |
+
+| `ship_bell.mp3` | 2.98 s | `ship_bell` | — |
+
+| `ship_creak_1.ogg` | 0.66 s | `creak`, `creak (loop)` | — |
+
+| `ship_creak_2.ogg` | 0.83 s | *(unwired)* | — |
+
+| `wind_map_loop.mp3` | 41.21 s | `wind`, `wind (loop)` | — |
+
+**Two registry cues have no call site anywhere in the client** — `march_step`
+and `first_call`. Their FILES are wired (as the `march` loop and as sourcing
+for the bugle family), but nothing in any `.gd` calls
+`AudioManager.play("march_step")` or `("first_call")`. They are dead
+configuration rather than a broken player-facing promise, and are recorded
+here rather than deleted: the assets are licensed, credited and usable.
+
+---
+
 ## §2 The cue map — surface → sound
 
 The wiring session implements this table. "Shown = played": a cue listed here is a
@@ -160,16 +334,39 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 > already recorded in §0), and fails any cue whose effective length outlives
 > the moment that fires it, with deliberate ceremonies allowlisted by name.
 >
-> Corrections to this document, from the same measurement pass:
-> * §1 records `bugle_first_call.mp3` as `~0:15`; it is **9.221 s**.
-> * The `ui/` and `ambient/` inventories have no length column. They should.
+> Corrections to this document, from the same measurement pass — **both
+> discharged August 23, 2026 (UX23-R7)**:
+> * ~~§1 records `bugle_first_call.mp3` as `~0:15`; it is **9.221 s**.~~ Fixed
+>   in the `music/` table.
+> * ~~The `ui/` and `ambient/` inventories have no length column.~~ §1a now
+>   carries a measured length for every `ui/`, `battle/` and `ambient/` file,
+>   with its cue and cap beside it.
 >
-> **⚠ Acceptance condition, OPEN.** §0.6 records that nobody has *listened* to
-> these files — durations are verified, ears are not. A 1.4 s cap assumes the
-> envelope gesture occupies the first 1.4 s of a 38.6 s file, and nothing
-> establishes that. **If the head of a capped file is a fade-in or room tone,
-> the capped cue is worse than the bug.** The eleven capped cues owe a
-> re-audition.
+> **⚠ Acceptance condition — MEASURED August 23, 2026, and it was half
+> right.** The worry was exact: *"if the head of a capped file is a fade-in or
+> room tone, the capped cue is worse than the bug."* I cannot listen, but that
+> question is measurable, and the venv has no mp3/ogg decoder while **Godot
+> decodes both natively** — so `tools/audio_envelope_probe.gd` routes each
+> capped cue through an `AudioEffectCapture` bus and reads the PCM back. (It
+> fails loudly if Godot hands it a dummy audio driver, because a silent device
+> would otherwise "prove" every cue is a fade-in.)
+>
+> **Two of the eleven caps were cutting the sound off entirely:**
+>
+> | cue | cap | sound ONSET | verdict |
+> |---|---|---|---|
+> | `letter_open` | 1.4 s | **2.05 s** | the cap ended before the paper rustled |
+> | `cavalry` | 3.2 s | **4.9 s** | a gallop that approaches; the capped window is the empty road, 30 dB down |
+>
+> Raising the caps would restore the length the player complained about, so
+> both instead carry a new registry field **`start_s`** — play from past the
+> dead head, for the same short window. The other nine onsets all land inside
+> their caps (0.15–1.65 s) and carry no offset.
+>
+> **What still owes ears** is much narrower than "the eleven capped cues":
+> only phrase-completeness on the three bugle/fanfare cues (`reveille`,
+> `to_the_color`, `fanfare`), where the measurement can say the sound is
+> present and loud but not whether a musical phrase is cut mid-figure.
 >
 > **The §3.5 audition gate has a structural blind spot, recorded here rather
 > than treated as carelessness:** an audition hears each cue once, in

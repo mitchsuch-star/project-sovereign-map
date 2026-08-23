@@ -29,7 +29,8 @@ class_name AudioManager
 
 const AUDIO_ROOT := "res://assets/audio/"
 
-# Cue registry: cue -> {files: [...], bus, db (trim), throttle_ms, max_s}
+# Cue registry: cue -> {files: [...], bus, db (trim), throttle_ms, max_s,
+#                       start_s}
 # `max_s` caps a one-shot that is LONGER THAN ITS MOMENT and fades it out over
 # 0.8s (`_fade_stop`). Sourced CC0 assets are frequently whole ambiences rather
 # than single hits — letter_open is 38.6s of paper, church_bells_peal is 77s —
@@ -71,7 +72,7 @@ const CUES := {
 	"quill_sign": {"files": ["ui/quill_sign.mp3"], "bus": "UI", "db": -6.0},
 	"wax_seal": {"files": ["ui/wax_seal.mp3"], "bus": "UI", "db": -4.0},
 	"command_ack": {"files": ["ui/command_ack_click.ogg"], "bus": "UI", "db": -12.0, "throttle_ms": 150},
-	"letter_open": {"files": ["ui/letter_open.mp3"], "bus": "UI", "db": -8.0, "throttle_ms": 300, "max_s": 1.4},
+	"letter_open": {"files": ["ui/letter_open.mp3"], "bus": "UI", "db": -8.0, "throttle_ms": 300, "max_s": 1.4, "start_s": 1.9},
 	"paper_crumple": {"files": ["ui/paper_crumple.mp3"], "bus": "UI", "db": -6.0},
 	"notification": {"files": ["ui/notification_bell.mp3"], "bus": "UI", "db": -10.0, "throttle_ms": 400},
 	"coins_small": {"files": ["ui/coins_small.ogg", "ui/coins_small_2.ogg"], "bus": "UI", "db": -8.0},
@@ -83,7 +84,7 @@ const CUES := {
 	"drum_sting": {"files": ["battle/drum_sting.wav"], "bus": "SFX", "db": -6.0},
 	"musket_volley": {"files": ["battle/musket_battle_volley.mp3"], "bus": "SFX", "db": -10.0, "max_s": 4.2},
 	"musket_shot": {"files": ["battle/musket_shot_1.ogg", "battle/musket_shot_2.ogg", "battle/musket_shot_3.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 120},
-	"cavalry": {"files": ["battle/cavalry_gallop.mp3"], "bus": "SFX", "db": -10.0, "max_s": 3.2},
+	"cavalry": {"files": ["battle/cavalry_gallop.mp3"], "bus": "SFX", "db": -10.0, "max_s": 3.2, "start_s": 4.6},
 	"whinny": {"files": ["battle/horse_whinny.ogg"], "bus": "SFX", "db": -14.0},
 	"sword_draw": {"files": ["battle/sword_draw.mp3"], "bus": "SFX", "db": -8.0},
 	"march_step": {"files": ["battle/army_march_loop_short.mp3"], "bus": "SFX", "db": -18.0, "throttle_ms": 1500, "max_s": 0.65},
@@ -142,6 +143,11 @@ var _streams: Dictionary = {}          # path -> AudioStream (lazy cache)
 var _rr: Dictionary = {}               # cue -> next round-robin index
 var _last_played_ms: Dictionary = {}   # cue -> tick of last play (throttle)
 var _loop_players: Dictionary = {}     # tag -> AudioStreamPlayer
+# UX23-R1: cue -> [AudioStreamPlayer]. `_play_cue` kept NO handle on the
+# one-shot it created, so nothing outside it could silence a cue early —
+# and one-shots are children of this singleton, not of the scene, so they
+# outlive `change_scene_to_file` as well as the panel that started them.
+var _live_players: Dictionary = {}
 var _oneshot_count: int = 0
 
 var _music_a: AudioStreamPlayer
@@ -174,6 +180,25 @@ static func start_loop(tag: String) -> void:
 	var inst := _inst()
 	if inst != null:
 		inst._start_loop(tag)
+
+
+static func stop_cue(cue: String) -> void:
+	"""Silence any live one-shot of `cue`, fading over 150 ms.
+
+	UX23-R1 — "closing a panel should silence the sound it started". The
+	Aug-23 caps bounded how long a cue can outlive its panel (6 s worst case);
+	this ends it at the moment of the close.
+
+	The rule the wiring follows, which the routed row did not draw: **an
+	arrival sound stops on close; a departure sound IS the close.** So the
+	envoy's paper and the diorama's cannon stop, and
+	`capture_choice_dialog`'s coins — played inside the Plunder handler, one
+	line before `hide()`, as the sound of the decision — deliberately do not.
+	`popup_base.close_popup` itself plays "back" ON close for the same reason.
+	"""
+	var inst := _inst()
+	if inst != null:
+		inst._stop_cue(cue)
 
 
 static func stop_loop(tag: String) -> void:
@@ -331,8 +356,28 @@ func _play_cue(cue: String, max_seconds: float) -> void:
 	_oneshot_count += 1
 	p.finished.connect(func():
 		_oneshot_count -= 1
+		_forget_live(cue, p)
 		p.queue_free())
-	p.play()
+	# UX23-1 follow-up, Aug 23 2026 — measured, not guessed. The Aug-23 caps
+	# assumed the gesture sits at the head of the file. An envelope probe
+	# through an AudioEffectCapture bus (tools/audio_envelope_probe.gd) says
+	# otherwise for two of the eleven:
+	#
+	#   letter_open  cap 1.4 s, sound ONSET 2.05 s  -> the cap ended before the
+	#                paper ever rustled. The fix "made" the reported cue silent.
+	#   cavalry      cap 3.2 s, onset 4.9 s         -> a gallop that approaches;
+	#                the capped window is the empty road, 30 dB down.
+	#
+	# Raising the caps would bring back the length the player complained about.
+	# `start_s` skips the dead head instead, so the cue stays short AND is the
+	# sound it is named for. The other nine measured onsets are all inside
+	# their caps and carry no offset.
+	_live_players.get_or_add(cue, []).append(p)
+	var start_at := float(spec.get("start_s", 0.0))
+	if start_at > 0.0:
+		p.play(start_at)
+	else:
+		p.play()
 	# Aug 23, 2026 (user: "the paper noise goes on for a really long time"):
 	# a cue's cap now lives in the registry beside its file, not only in the
 	# optional `max_seconds` argument. `_fade_stop` was NOT unreachable —
@@ -349,16 +394,41 @@ func _play_cue(cue: String, max_seconds: float) -> void:
 		_fade_stop(p, cap)
 
 
+func _forget_live(cue: String, p: AudioStreamPlayer) -> void:
+	var arr: Array = _live_players.get(cue, [])
+	arr.erase(p)
+	if arr.is_empty():
+		_live_players.erase(cue)
+
+
+func _stop_cue(cue: String) -> void:
+	for p in _live_players.get(cue, []).duplicate():
+		if is_instance_valid(p) and p.playing:
+			_fade_out_now(p, 0.15)
+
+
+func _fade_out_now(p: AudioStreamPlayer, secs: float) -> void:
+	"""Fade a live one-shot to silence and retire it.
+
+	`p.finished.emit()` is load-bearing and must not be replaced by a bare
+	`queue_free`: the `finished` lambda in `_play_cue` is the ONLY thing that
+	decrements `_oneshot_count` and drops the live-registry entry. A stop path
+	that skips it leaks the MAX_ONESHOT_PLAYERS budget permanently, and the
+	game goes quiet after fourteen cues — a worse bug than the one being
+	fixed."""
+	var tw := create_tween()
+	tw.tween_property(p, "volume_db", -50.0, secs)
+	tw.tween_callback(func():
+		if is_instance_valid(p):
+			p.stop()
+			p.finished.emit())
+
+
 func _fade_stop(p: AudioStreamPlayer, after_s: float) -> void:
 	var t := get_tree().create_timer(after_s)
 	t.timeout.connect(func():
 		if is_instance_valid(p) and p.playing:
-			var tw := create_tween()
-			tw.tween_property(p, "volume_db", -50.0, 0.8)
-			tw.tween_callback(func():
-				if is_instance_valid(p):
-					p.stop()
-					p.finished.emit()))
+			_fade_out_now(p, 0.8))
 
 
 # ── named ambient loops ─────────────────────────────────────────────────────

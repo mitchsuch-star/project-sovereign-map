@@ -2225,8 +2225,8 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     # Marshal.last_expectation_seen at dispatch build (once per turn).
     expectation_rises = []
     from backend.game_logic.dotation import (
-        GRACE_TURNS, get_expectation, get_satisfaction, is_dotation_world,
-        is_eroding,
+        build_unmet_marshals, get_expectation, get_satisfaction,
+        is_dotation_world,
     )
     if is_dotation_world(world):
         for m in world.marshals.values():
@@ -2246,22 +2246,12 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
                         "satisfaction": int(satisfaction),
                     })
                 m.last_expectation_seen = int(expectation)
-            if expectation > satisfaction:
-                grace_turns_left = -1
-                if not getattr(m, "captured_by", ""):
-                    grace_start = int(getattr(m, "expectation_grace_turn", -1))
-                    if grace_start >= 0:
-                        grace_turns_left = max(
-                            0, GRACE_TURNS - (world.current_turn - grace_start))
-                unmet_marshals.append({
-                    "marshal": m.name,
-                    "expectation": int(expectation),
-                    "satisfaction": int(satisfaction),
-                    "shortfall": int(expectation - satisfaction),
-                    "eroding": bool(is_eroding(m, world)),
-                    "grace_turns_left": int(grace_turns_left),
-                    "pension": int(getattr(m, "pension", 0)),
-                })
+        # UX23-R4: the rows themselves are now built by
+        # `dotation.build_unmet_marshals`, so `GET /dispatch` can re-derive
+        # them at read time without re-running this function — which latches
+        # `last_expectation_seen` above, clears queued events, and rolls for
+        # sabotage discovery. Byte-identical output; only the latch stayed.
+        unmet_marshals = build_unmet_marshals(world, player_nation)
 
     bankrupt = int(world.nation_bankruptcy_turns.get(player_nation, 0)) > 0
 

@@ -59,8 +59,6 @@ const FONT_VOICE := "res://assets/fonts/IMFeENit28P.ttf"       # period italic
 const FILIGREE := "res://assets/ui/ornaments/corner_floral_01.svg"
 const WAX_SEAL := "res://assets/ui/ornaments/wax_seal.png"
 const LAUREL := "res://assets/ui/ornaments/laurel_golden.svg"
-const AUDIO_CANNON := "res://assets/audio/battle/cannon_thud.ogg"
-const AUDIO_DRUM := "res://assets/audio/battle/drum_sting.wav"
 
 # Figures per corps by arm — a line of foot, a squadron, a battery.
 # NV-7 adds "ship": a squadron is three sail on the table, the same count
@@ -79,7 +77,8 @@ var _final := false            # sequence has settled (or was opened settled)
 var _seq: Tween = null         # master cinematic tween
 var _blocks_left: Array = []   # per-corps dicts (see _make_block)
 var _blocks_right: Array = []
-var _audio: AudioStreamPlayer = null
+# UX23-R6: cues this diorama started, silenced on close.
+var _own_cues_started: Array = []
 var _music_ducked := false
 
 # Chrome nodes (built once in _ready)
@@ -212,10 +211,6 @@ func _build_chrome() -> void:
 	_build_buttons()
 	_build_filigree()
 
-	_audio = AudioStreamPlayer.new()
-	_audio.name = "Audio"
-	_audio.bus = "SFX"
-	add_child(_audio)
 
 
 func _build_stage() -> void:
@@ -1024,7 +1019,7 @@ func _play_cinematic() -> void:
 
 	# Reveal: the tray settles into view under one cannon thud.
 	_tray.modulate.a = 0.0
-	_play_sound(AUDIO_CANNON, -8.0)
+	_cue("cannon")
 	_play_arm_flavor()
 	_seq = create_tween()
 	_seq.tween_property(_tray, "modulate:a", 1.0, 0.24)
@@ -1122,7 +1117,7 @@ func _schedule_standards(at: float) -> void:
 				if not drum_queued and register in ["triumph", "defeat"]:
 					drum_queued = true
 					_seq.parallel().tween_callback(
-						func(): _play_sound(AUDIO_DRUM, -6.0)) \
+						func(): _cue("drum_sting")) \
 						.set_delay(at + 0.55)
 
 	# The alarm register (§7 Q6): on a defeat the victor's lead standard
@@ -1143,7 +1138,7 @@ func _schedule_standards(at: float) -> void:
 				if not drum_queued:
 					drum_queued = true
 					_seq.parallel().tween_callback(
-						func(): _play_sound(AUDIO_DRUM, -6.0)) \
+						func(): _cue("drum_sting")) \
 						.set_delay(at + 0.5)
 				break
 
@@ -1271,14 +1266,25 @@ func _kill_sequence() -> void:
 	_seq = null
 
 
-func _play_sound(path: String, volume_db: float) -> void:
-	if _audio == null or not UiSettings.get_battle_sfx():
+func _cue(cue: String) -> void:
+	"""Play one diorama cue through the shared AudioManager.
+
+	UX23-R6. This used to be `_play_sound(path, db)` driving a private
+	`AudioStreamPlayer` — a second audio implementation that bypassed the
+	`CUES` registry, the throttle, the one-shot budget and `max_s`. Both files
+	were ALREADY registered cues (`cannon`, `drum_sting`) with byte-identical
+	trims, so routing changes no audible level.
+
+	The toggle guard stays HERE, and that is the whole point: the routed row
+	claimed "the next diorama sound will forget the toggle guard" and had it
+	exactly backwards — the guard is inherited by anything added to this
+	function, while `AudioManager._play_cue` has never read
+	`UiSettings.get_battle_sfx()` at all. Routing the calls naively, as the row
+	instructed, would have silently disabled the "Battle sounds" setting."""
+	if not UiSettings.get_battle_sfx():
 		return
-	if not ResourceLoader.exists(path):
-		return
-	_audio.stream = load(path)
-	_audio.volume_db = volume_db
-	_audio.play()
+	AudioManager.play(cue)
+	_own_cues_started.append(cue)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1315,6 +1321,11 @@ func _on_close_pressed() -> void:
 	AudioManager.stop_loop("sea")
 	AudioManager.stop_loop("creak")
 	AudioManager.stop_loop("scribble")
+	# UX23-R1/R6: the one-shots too — they are children of the AudioManager
+	# singleton, so closing the tableau never used to silence its own guns.
+	for cue in _own_cues_started:
+		AudioManager.stop_cue(cue)
+	_own_cues_started.clear()
 	if _music_ducked:
 		_music_ducked = false
 		AudioManager.duck_music(false)

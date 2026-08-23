@@ -55,10 +55,65 @@
 > gate for `pursue`, so the order attached and the marshal marched while the
 > response said "Not enough actions"). All fixed in the same session.
 >
-> ⚠ **OPEN:** the audio re-audition; six routed rows (UX23-R1/R4/R5/R6/R7/R8 —
-> headline: there is still **no stop API for one-shot cues**); and the
-> structural answer to "too early" — `DESIGN_REFINEMENT.md` UX23-D1..D4,
-> gated.
+> ✅ **ALL SIX ROUTED ROWS AND THE AUDIO CONDITION CLOSED, same day** — see
+> the UX23-B entry below. The only thing still open on row UX23 is the
+> structural answer to "too early", `DESIGN_REFINEMENT.md` UX23-D1..D4, which
+> is a separate gate about the reward CURVE and was deliberately not folded in.
+
+> # ✅ UX23-B "THE DESK IS QUIET" — CLOSED, August 23, 2026.
+> **Landing record = `docs/BUG_FIXES.md` §UX23-B, authoritative.** R1, R4, R5,
+> R6, R7 and R8, plus the audio acceptance condition open since the morning.
+>
+> **A six-reader recon fleet ran on the committed tree first and returned
+> `ROW IS WRONG ABOUT DETAILS` on every single row. Three would have shipped a
+> worse bug than the one they named:**
+>
+> * **R6** told us to route the diorama's audio through `AudioManager`, on the
+>   grounds that "the next diorama sound will forget the toggle guard". Exactly
+>   backwards — the guard is INSIDE the diorama and inherited; AudioManager has
+>   never read `get_battle_sfx()`. Following the row would have silently
+>   disabled the game's only audio setting, and no test referenced it.
+> * **R4** offered "derive the dispatch at read time". `build_morning_dispatch`
+>   is a CONSUMER — it clears queued events, latches `last_expectation_seen`
+>   and **rolls for Talleyrand sabotage discovery**. Pressing R would have
+>   re-rolled sabotage. Only the pure Unmet-Marshals half is re-derived, onto a
+>   copy.
+> * **R5** was wrong three ways (the advisory has no `cancel` option; whole-line
+>   matching does not fix `"yes"`; scoping to "non-blocking" breaks the
+>   letter-book). Built instead as the row's own completion definition: a guard
+>   that refuses a line naming a standing marshal, sited BELOW the verbatim
+>   arms and above the inferential ones.
+>
+> **The audio condition was MEASURED, not auditioned.** I cannot listen, and the
+> venv has no mp3/ogg decoder — but Godot decodes both, so a new
+> `tools/audio_envelope_probe.gd` reads each capped cue back through an
+> `AudioEffectCapture` bus (and fails loudly on a dummy device, or silence
+> would "prove" every cue is a fade-in). **Two of the eleven caps were
+> silencing their cue outright:** `letter_open` cap 1.4 s vs sound onset
+> **2.05 s** — the cue the user reported, which the morning's fix had made
+> silent — and `cavalry` cap 3.2 s vs onset **4.9 s**. Both carry a new
+> `start_s` offset rather than a longer cap, so they stay short AND audible.
+>
+> Also: **R1** `stop_cue` (the row's seam was wrong — `popup_base.close_popup`
+> reaches only 2 of the 15 over-2s cues, and its flagship example is the one
+> site to leave alone; the rule is *an arrival sound stops on close, a
+> departure sound IS the close*). **R8** renders `expectation_note` **and
+> `campaign_cost_note`**, which the row did not name and which had the
+> identical defect — every defensive victory produced a sentence nothing
+> showed; a `[Reward…]` chip there is impossible (CanvasLayer 118 vs 109) and
+> the row's promise is restated. **R7** every `ui`/`battle`/`ambient` file now
+> carries a measured length in `MUSIC_SOUND_SPEC.md` §1a.
+>
+> **The UX23-A visual sign-off is captured** with a new offscreen harness
+> (`docs/audits/UX23A_RAIL_*.png`): coins glyph confirmed on both reward pills,
+> full-width CTA at the theme's 15px above the secondary row. *A near-miss
+> recorded: the first capture showed mojibake and I nearly filed it against the
+> client — it was my own `curl | python` pipeline decoding UTF-8 as cp1252.*
+>
+> `tests/test_ux23b_the_desk_is_quiet.py` (40). **28 mutations swept, 28
+> killed, 0 inert at close** — two were inert on the first sweep, both mine,
+> both because the test data never exercised the mechanism. Suite **18,832/3**;
+> M1–M7 + `BASELINE_SERIES` byte-identical; parse harness EXIT=0.
 
 > # ✅ UX23-A — "REWARD HIM WHERE HE STANDS" LANDED, August 23, 2026.
 > **Landing record = `docs/BUG_FIXES.md` §UX23-A, authoritative.** The user,

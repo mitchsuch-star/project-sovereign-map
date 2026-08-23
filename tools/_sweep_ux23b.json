@@ -1,0 +1,198 @@
+[
+  {
+    "id": "B-1 stop_cue is removed entirely",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "static func stop_cue(cue: String) -> void:",
+    "new": "static func _retired_stop_cue(cue: String) -> void:",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-2 the one-shot is not registered (nothing can address it)",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\t_live_players.get_or_add(cue, []).append(p)",
+    "new": "\tpass",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-3 the registry entry is never dropped (leaks, walks freed players)",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\t\t_forget_live(cue, p)\n",
+    "new": "",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-4 the stop path frees directly (leaks the 14-player budget)",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\t\t\tp.stop()\n\t\t\tp.finished.emit())",
+    "new": "\t\t\tp.stop()\n\t\t\tp.queue_free())",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-5 start_s is ignored (letter_open goes silent again)",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\tvar start_at := float(spec.get(\"start_s\", 0.0))\n\tif start_at > 0.0:\n\t\tp.play(start_at)\n\telse:\n\t\tp.play()",
+    "new": "\tp.play()",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-6 letter_open loses its measured offset",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\"max_s\": 1.4, \"start_s\": 1.9},",
+    "new": "\"max_s\": 1.4},",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-7 cavalry loses its measured offset",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\"max_s\": 3.2, \"start_s\": 4.6},",
+    "new": "\"max_s\": 3.2},",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-8 an offset is added to a cue that did not need one",
+    "file": "godot-client/project-sovereign/scripts/audio_manager.gd",
+    "old": "\"ambient/bell_toll_single.mp3\"], \"bus\": \"SFX\", \"db\": -8.0, \"max_s\": 3.2},",
+    "new": "\"ambient/bell_toll_single.mp3\"], \"bus\": \"SFX\", \"db\": -8.0, \"max_s\": 3.2, \"start_s\": 2.0},",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-9 popup_base stops nothing on close",
+    "file": "godot-client/project-sovereign/scripts/popup_base.gd",
+    "old": "\tfor cue in _own_cues:\n\t\tAudioManager.stop_cue(cue)\n\t_own_cues.clear()\n",
+    "new": "",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-10 the peal is no longer claimed by the popup that rings it",
+    "file": "godot-client/project-sovereign/scripts/proclamation_popup.gd",
+    "old": "\tclaim_cue(\"bells_peal\")",
+    "new": "\tpass",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-11 the diorama's toggle guard is dropped (the row's own instruction)",
+    "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+    "old": "\tif not UiSettings.get_battle_sfx():\n\t\treturn\n\tAudioManager.play(cue)",
+    "new": "\tAudioManager.play(cue)",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-12 the diorama grows a private player again",
+    "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+    "old": "var _own_cues_started: Array = []",
+    "new": "var _own_cues_started: Array = []\nvar _audio: AudioStreamPlayer = null",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-13 closing the tableau stops silencing its guns",
+    "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+    "old": "\tfor cue in _own_cues_started:\n\t\tAudioManager.stop_cue(cue)\n\t_own_cues_started.clear()\n",
+    "new": "",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-14 R5: the addressed-marshal guard is removed",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    if addresses_a_marshal(raw_lower, marshal_names):\n        return None",
+    "new": "    pass",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-15 R5: the guard sits ABOVE the verbatim arms (kills 'Commission Suchet')",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    raw_words = set(re.findall(r\"[a-z]+\", raw_lower))\n\n    # 1. verbatim",
+    "new": "    raw_words = set(re.findall(r\"[a-z]+\", raw_lower))\n    if addresses_a_marshal(raw_lower, marshal_names):\n        return None\n\n    # 1. verbatim",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-16 R5: only the comma address is caught, not the mid-sentence name",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    return any(whole_phrase_in(name, raw_lower) for name in lowered)",
+    "new": "    return False",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-17 R5: the guard matches bare substrings (breaks the letter-book)",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    return any(whole_phrase_in(name, raw_lower) for name in lowered)",
+    "new": "    return any(name in raw_lower for name in lowered)",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-18 R5: one call site stops passing the roster",
+    "file": "backend/main.py",
+    "old": "                    world.pending_diplomatic_dialogue, command_text.lower(),\n                    _player_marshal_names(world)))",
+    "new": "                    world.pending_diplomatic_dialogue, command_text.lower()))",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-19 R5: the roster includes fallen marshals",
+    "file": "backend/main.py",
+    "old": "        return [m.name for m in world.get_player_marshals()]",
+    "new": "        return [m.name for m in world.marshals.values()]",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-20 R4: the endpoint stops overlaying fresh rows",
+    "file": "backend/main.py",
+    "old": "        situation[\"unmet_marshals\"] = build_unmet_marshals(\n            world, world.player_nation)",
+    "new": "        pass",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-21 R4: the endpoint mutates the stored dispatch in place",
+    "file": "backend/main.py",
+    "old": "        dispatch = dict(dispatch)\n        situation = dict(dispatch.get(\"situation\") or {})",
+    "new": "        situation = dispatch.get(\"situation\") or {}",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-22 R4: the builder latches last_expectation_seen (stops being pure)",
+    "file": "backend/game_logic/dotation.py",
+    "old": "        if expectation <= satisfaction:\n            continue\n        grace_turns_left = -1",
+    "new": "        marshal.last_expectation_seen = int(expectation)\n        if expectation <= satisfaction:\n            continue\n        grace_turns_left = -1",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-23 R4: dispatch re-implements the rows instead of sharing them",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        unmet_marshals = build_unmet_marshals(world, player_nation)",
+    "new": "        unmet_marshals.append({\n            \"marshal\": \"x\", \"expectation\": 0, \"satisfaction\": 0,\n            \"shortfall\": 0, \"eroding\": False, \"grace_turns_left\": 0,\n            \"pension\": 0})",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-24 R8: the expectation note is dropped from the enemy-phase render",
+    "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+    "old": "\tvar exp_note = str(report.get(\"expectation_note\", \"\"))",
+    "new": "\tvar exp_note = \"\"",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-25 R8: the campaign-cost note is dropped",
+    "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+    "old": "\tvar cost_note = str(report.get(\"campaign_cost_note\", \"\"))",
+    "new": "\tvar cost_note = \"\"",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-26 R8: the producer is gated instead (the render arms go decorative)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                        result[\"battle_report\"][\"expectation_note\"] = (",
+    "new": "                        result[\"battle_report\"][\"retired_note\"] = (",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-27 R7: the spec's measured inventory is removed",
+    "file": "docs/MUSIC_SOUND_SPEC.md",
+    "old": "### §1a Measured lengths",
+    "new": "### §1a Sourcing notes",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  },
+  {
+    "id": "B-28 the probe stops failing on a dummy audio device",
+    "file": "tools/audio_envelope_probe.gd",
+    "old": "\tquit(0 if _device_ok else 1)",
+    "new": "\tquit(0)",
+    "tests": "tests/test_ux23b_the_desk_is_quiet.py"
+  }
+]

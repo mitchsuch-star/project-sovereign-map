@@ -76,9 +76,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > 13-agent review round at `4b09e59` found **26 more defects incl. a P1 this
 > slice introduced** (the waiver also disabled the 2-AP `pursue` gate) — all
 > fixed.
-> ⚠ OPEN: the audio re-audition · 6 routed rows UX23-R1/R4/R5/R6/R7/R8 (no stop
-> API for one-shot cues) · the structural answer to "too early" =
-> `DESIGN_REFINEMENT.md` UX23-D1..D4, gated.
+> ✅ **UX23-B "THE DESK IS QUIET" CLOSED August 23, 2026** — all six routed rows
+> (R1/R4/R5/R6/R7/R8) AND the audio acceptance condition. Landing record =
+> `docs/BUG_FIXES.md` §UX23-B. A six-reader recon fleet ran first and returned
+> ROW-IS-WRONG on every row; **three would have shipped a worse bug**: R6's
+> instruction would have silently disabled the "Battle sounds" toggle (the
+> guard is IN the diorama, not in AudioManager — the row had it backwards);
+> R4's "derive at read time" would have let the player re-roll Talleyrand
+> sabotage by pressing R (`build_morning_dispatch` CONSUMES — only the pure
+> Unmet-Marshals half is re-derived, onto a copy); R5's whole-line rule would
+> have broken the letter-book (built instead as an addressed-marshal guard
+> sited below the verbatim arms). **The audio condition was MEASURED, not
+> auditioned** — `tools/audio_envelope_probe.gd` reads each capped cue back
+> through an `AudioEffectCapture` bus (Godot decodes mp3/ogg; the venv has no
+> decoder) and found **two caps silencing their cue outright**: `letter_open`
+> cap 1.4 s vs onset **2.05 s** (the reported cue, which the morning's fix had
+> made silent) and `cavalry` cap 3.2 s vs onset **4.9 s** — both now carry a
+> `start_s` offset instead of a longer cap. R1 = `AudioManager.stop_cue` +
+> `popup_base.claim_cue` (rule: an arrival sound stops on close, a departure
+> sound IS the close). R8 renders `expectation_note` AND `campaign_cost_note`
+> in the enemy-phase dialog. R7 = measured lengths for every audio file,
+> `MUSIC_SOUND_SPEC.md` §1a. **UX23-A's visual sign-off captured** via a new
+> offscreen harness (`docs/audits/UX23A_RAIL_*.png`).
+> `tests/test_ux23b_the_desk_is_quiet.py` (40); **28 mutations, 28 killed, 0
+> inert**; suite **18,832/3**; M1–M7 + `BASELINE_SERIES` byte-identical; parse
+> harness EXIT=0.
+> ⚠ OPEN: only the structural answer to "too early" =
+> `DESIGN_REFINEMENT.md` UX23-D1..D4, a separate gate about the reward CURVE.
 >
 > **▶ ROW UX23-A — "REWARD HIM WHERE HE STANDS", August 23, 2026. Landing
 > record = `docs/BUG_FIXES.md` §UX23-A, authoritative.** The user, on the

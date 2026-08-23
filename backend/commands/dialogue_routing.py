@@ -190,21 +190,67 @@ def whole_phrase_in(phrase: str, text: str) -> bool:
         r"(?<![a-z])" + re.escape(phrase) + r"(?![a-z])", text) is not None
 
 
+def addresses_a_marshal(raw_lower: str,
+                        marshal_names: Optional[List[str]]) -> bool:
+    """True when the typed line names one of the player's own marshals.
+
+    UX23-R5. An order that names a marshal is an ORDER, and must never be
+    consumed as an answer to a dialogue that merely happens to share a word
+    with it. Measured: with a Talleyrand advisory open, `Soult, cancel your
+    march` matched the `cancel` keyword (which maps onto the advisory's
+    `dismiss`) and was eaten as the answer — Soult marched on.
+
+    Two shapes, because the defect has two:
+      * the comma address — `Soult, cancel your march` — via the parser's own
+        `_leading_addressed_token`, so the interjection/bare-verb exclusions
+        ("No, charge!") are inherited rather than re-implemented;
+      * the name anywhere in the line as a whole word — `cancel Soult's
+        march`. `main.py` already runs exactly this pair inside the
+        strategic-interrupt block, for exactly this reason.
+    """
+    if not marshal_names:
+        return False
+    from backend.commands.parser import _leading_addressed_token
+
+    addressed = _leading_addressed_token(raw_lower)
+    lowered = {n.lower() for n in marshal_names if n}
+    if addressed and addressed.lower() in lowered:
+        return True
+    return any(whole_phrase_in(name, raw_lower) for name in lowered)
+
+
 def match_dialogue_answer(dialogue: Optional[dict],
-                          raw_lower: str) -> Optional[str]:
+                          raw_lower: str,
+                          marshal_names: Optional[List[str]] = None
+                          ) -> Optional[str]:
     """Return the token to hand the response handler, or None if this
     typed line is not an answer to THIS dialogue.
 
     Only the dialogue's own options may claim a line:
       1. a full option label, or its action id, appearing in the text
-      2. every word of a label appearing in the text ("reject THE offer")
-      3. a verb keyword — as a WHOLE WORD, and only when it maps onto an
+      2. — the UX23-R5 guard: a line that NAMES A MARSHAL stops here —
+      3. every word of a label appearing in the text ("reject THE offer")
+      4. a verb keyword — as a WHOLE WORD, and only when it maps onto an
          action this dialogue actually offers
+
+    The guard sits between the verbatim arms and the inferential ones, and
+    that placement is the whole design. Arms 1 stay above it so a label that
+    legitimately contains a name — `Commission Suchet` — still resolves
+    verbatim. Arms 3 and 4 are guesses about what the player meant, and a
+    guess must not outrank an order addressed to a general.
+
+    Recorded trade: a conversational answer that happens to name a marshal —
+    `accept, and let Ney hold` on an incoming proposal — now falls through to
+    the parser instead of answering. That is the intended direction (the row's
+    completion definition is "an order naming a marshal is never consumed as a
+    dialogue answer"), and it is stated here rather than discovered later.
     """
     options = dialogue_options(dialogue)
     if not options:
         return None
     raw_words = set(re.findall(r"[a-z]+", raw_lower))
+
+    # 1. verbatim — a label or an action id, spelled out.
     for opt in options:
         label = (opt.get("label") or "").lower().strip()
         action = (opt.get("action") or "").lower().strip()
@@ -212,9 +258,22 @@ def match_dialogue_answer(dialogue: Optional[dict],
             return label
         if action and action in raw_lower:
             return action
+
+    # 2. the guard.
+    if addresses_a_marshal(raw_lower, marshal_names):
+        return None
+
+    # 3. every word of a label, in any order. A live hijack vector of its own:
+    #    the label "Send as ordered" is {send, as, ordered}, which
+    #    `as ordered, send Ney` satisfies without meaning it.
+    for opt in options:
+        label = (opt.get("label") or "").lower().strip()
+        action = (opt.get("action") or "").lower().strip()
         label_words = set(re.findall(r"[a-z]+", label))
         if label_words and label_words <= raw_words:
             return action or label
+
+    # 4. a bare verb keyword.
     offered = {str(o.get("action") or "") for o in options}
     for keyword, actions in DIALOGUE_ACTION_KEYWORDS.items():
         if not whole_phrase_in(keyword, raw_lower):

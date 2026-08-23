@@ -459,6 +459,33 @@ func _format_berthier_report(report: Dictionary) -> String:
 			+ Utils.humanize_nation_keys_in_text(jl_note) + "[/color]
 ")
 
+	# UX23-R8: the same whitelist gap, two more keys. `expectation_note`
+	# (ES-7 §0.6.8 item 4c) and `campaign_cost_note` (HC-2) are produced by the
+	# SHARED `_execute_attack`, so they fire on the enemy phase too — and a
+	# defensive victory is where most of a player's battles are won. The
+	# terminal renderer in `main.gd` reads both; this whitelist read neither,
+	# so on every defence the backend built the sentence and nothing on any
+	# surface showed it.
+	#
+	# Rendered rather than gated at the producer, for two reasons: the
+	# producing block also calls `restate_reward_notice` (UX23-A's mid-turn
+	# re-pricing), so a phase gate would either regress that P1 or need the
+	# branch split; and deleting a player-facing beat is worse than showing it.
+	#
+	# The sentence only — NOT a [Reward…] chip. `enemy_phase_dialog.tscn` is
+	# CanvasLayer 118 and `reward_dialog.tscn` is 109, so a chip here would
+	# open the dialog BEHIND the modal that launched it. The chip belongs on
+	# the terminal report, which is a different slice.
+	var exp_note = str(report.get("expectation_note", ""))
+	if exp_note != "" and exp_note != "<null>":
+		result += ("[color=#" + Utils.COLOR_GOLD + "]    "
+			+ Utils.humanize_nation_keys_in_text(exp_note) + "[/color]\n")
+
+	var cost_note = str(report.get("campaign_cost_note", ""))
+	if cost_note != "" and cost_note != "<null>":
+		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
+			+ Utils.humanize_nation_keys_in_text(cost_note) + "[/color]\n")
+
 	# Observation
 	var observation = report.get("observation", "")
 	if observation != "":
