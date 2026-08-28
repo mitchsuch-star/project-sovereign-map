@@ -202,7 +202,7 @@ static func stop_cue(cue: String) -> void:
 		inst._stop_cue(cue)
 
 
-static func stop_player(p: AudioStreamPlayer) -> void:
+static func stop_player(p) -> void:
 	"""Silence ONE live one-shot — the player `play()` handed back.
 
 	Review round: `stop_cue(name)` is a global kill by cue name, so a closing
@@ -210,9 +210,18 @@ static func stop_player(p: AudioStreamPlayer) -> void:
 	Measured shape: the tableau's close called `stop_cue("drum_sting")` and
 	would have cut the strategic-interrupt popup's drum, still on screen.
 	`_play_cue` has the handle in hand at the moment it registers it, so
-	ownership can be real rather than nominal."""
+	ownership can be real rather than nominal.
+
+	The parameter is deliberately UNTYPED (Aug 28, 2026). Every one-shot
+	frees itself when its sound ends (`finished` -> `queue_free` in
+	`_play_cue`), so a claimed handle is routinely a freed object by the time
+	its owner closes — and a `p: AudioStreamPlayer` annotation made GDScript
+	throw "previously freed ... is not a subclass" AT THE CALL, before the
+	`is_instance_valid` guard below could ever run. Crashed live in the
+	diorama's `_on_close_pressed` after Napoleon attacked Mack."""
 	var inst := _inst()
-	if inst != null and p != null and is_instance_valid(p) and p.playing:
+	if inst != null and is_instance_valid(p) and p is AudioStreamPlayer \
+			and p.playing:
 		inst._fade_out_now(p, 0.15)
 
 

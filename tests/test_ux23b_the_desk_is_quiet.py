@@ -201,7 +201,16 @@ class TestClosingAPanelSilencesIt:
         src = _live("audio_manager.gd")
         assert ("static func play(cue: String, max_seconds: float = 0.0) "
                 "-> AudioStreamPlayer:") in src
-        assert "static func stop_player(p: AudioStreamPlayer) -> void:" in src
+        # CONSCIOUS FLIP (Aug 28, 2026): this pin used to assert
+        # `stop_player(p: AudioStreamPlayer)` — and the typed annotation WAS
+        # the bug. One-shots free themselves when the sound ends, so a claimed
+        # handle is routinely freed by close time, and a typed parameter makes
+        # GDScript throw at the CALL, before the body's is_instance_valid
+        # guard can run. Crashed live in the diorama's _on_close_pressed.
+        assert "static func stop_player(p) -> void:" in src
+        assert "static func stop_player(p: AudioStreamPlayer)" not in src, (
+            "re-typing the parameter re-creates the freed-handle crash: the "
+            "argument type check runs before the body's guard")
         # ...and the static face must FORWARD it. A signature that promises a
         # player while the body drops it on the floor is the ownership going
         # nominal again, silently — the mutation sweep found this pin inert
@@ -215,6 +224,28 @@ class TestClosingAPanelSilencesIt:
             "the player must be handed back, or no caller can own it")
         # every refusal path returns a typed null, not a bare return
         assert "\n\t\treturn\n" not in body and "\n\t\t\treturn\n" not in body
+
+    def test_stop_player_survives_a_freed_handle(self):
+        """The crash the typed signature shipped (Aug 28, 2026): a one-shot
+        frees itself when its sound ends (`finished` -> `queue_free` in
+        `_play_cue`), so by the time a diorama or popup closes, the handle it
+        claimed is often a freed object. `stop_player(p: AudioStreamPlayer)`
+        made GDScript reject the freed instance at the call site — "previously
+        freed ... is not a subclass of the expected argument class" — BEFORE
+        the body's own `is_instance_valid` could run. The parameter must stay
+        untyped and the body must validate before touching any property."""
+        src = _live("audio_manager.gd")
+        body = src[src.index("static func stop_player(p) -> void:"):]
+        body = body[:body.index("\n\n\n")]
+        assert "is_instance_valid(p)" in body
+        assert "p is AudioStreamPlayer" in body, (
+            "untyped parameter means the body owns the type check now")
+        assert body.index("is_instance_valid(p)") < body.index("p.playing"), (
+            "validity must be established before any property access")
+        assert body.index("is_instance_valid(p)") < \
+            body.index("p is AudioStreamPlayer"), (
+            "`p is Class` on a freed object is itself unsafe ordering — "
+            "validity first")
 
     def test_a_world_swap_silences_one_shots_as_well_as_loops(self):
         """`dialog_manager.hide_all()` raw-hides every registered popup
