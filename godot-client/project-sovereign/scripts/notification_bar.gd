@@ -67,6 +67,13 @@ const TYPE_ICONS = {
 	# able to pick it out of six pills first.
 	"dotation_expectation": "PAY",
 	"dotation_erosion": "PAY",
+	# Aug 30, 2026 visual pass — found ON SCREEN, not by a test. With the
+	# review's own `buildings_damaged` join in place the live rail STILL
+	# carried two anonymous "INF" pills: PT-J4's bench notice and HC-G's
+	# Gazette. Same defect, same shape — a producer shipped without its
+	# renderer join — and both are player-facing rows that named nothing.
+	"commission_available": "MAR",
+	"gazette_published": "GAZ",
 	# Aug 30, 2026 review: the same fallthrough, one slice later. The [V-6]
 	# damage-legibility work added the `buildings_damaged` producer so "the
 	# damage announces itself" and never made the renderer join, so a wrecked
@@ -110,6 +117,13 @@ const TYPE_ICON_SVGS = {
 	# HIGH), so the glyphs carry the subject instead.
 	"dotation_expectation": "coins",
 	"dotation_erosion": "medal",
+	# The glyphs for the rows the Aug 30 review and its visual pass caught: a
+	# wrecked works, a bench of officers waiting to be commissioned, and the
+	# newspaper. `buildings_damaged` had been given a LABEL and no glyph — a
+	# half-join, caught by this round's own floor pin rather than on screen.
+	"buildings_damaged": "house",
+	"commission_available": "users-three",
+	"gazette_published": "book-open",
 }
 
 const ROUTE_ICON_SVGS = {

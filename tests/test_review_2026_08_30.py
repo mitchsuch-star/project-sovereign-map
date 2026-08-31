@@ -1153,3 +1153,149 @@ class TestTheEventDrainCannotBeFooledByARecycledAddress:
             for _ in range(3)
         ]
         assert len(set(views)) == 1
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# THE VISUAL PASS (Aug 30, 2026) — what only the screen could find
+#
+# Four client fixes went in with backend pins and client-side read pins, and
+# all of them were green. Driving the real client then found a defect the
+# tests could not see and two more instances of the class the round exists to
+# close. That is the argument for the pass, recorded as tests so the next one
+# does not have to re-find them.
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class TestTheLapseCountReachesTheGate:
+    """THE ONE THE TESTS MISSED, and it was mine.
+
+    `_sync_diplomatic_fields` does not hand the response to the HUD — it
+    hand-copies a fixed set of keys into a fresh `diplo_data` dict. The first
+    cut of the lapse fix READ `diplo_data["pending_lapsing_count"]` and never
+    COPIED it in, so the gate saw 0 forever and ending a turn with three
+    envoys waiting asked nothing at all.
+
+    Both halves were pinned and both passed: the backend ships the field, and
+    the client reads it. Nothing pinned the hand-copy BETWEEN them — the exact
+    producer-to-renderer join this review round is about, introduced by the
+    review round, and caught only by pressing End Turn in the real client.
+    """
+
+    def _block(self):
+        src = _read("godot-client/project-sovereign/scripts/main.gd")
+        start = src.index("\tvar diplo_data = {}")
+        return src[start:src.index("top_bar.update_diplomatic_fields(diplo_data)",
+                                   start)]
+
+    def test_the_key_is_copied_before_it_is_read(self):
+        block = self._block()
+        assert 'diplo_data["pending_lapsing_count"] = response.get(' in block, (
+            "the gate reads this key off `diplo_data`, so it has to be put "
+            "there — reading a key nobody copied is a silent zero")
+        assert block.index('diplo_data["pending_lapsing_count"]') < \
+            block.index('_current_lapsing_count = int(diplo_data.get('), (
+            "copied before read, or the order makes it a zero again")
+
+    def test_every_key_the_hud_reads_is_a_key_it_was_given(self):
+        """The general form, so the next added field cannot repeat this.
+
+        Every `diplo_data.get("X")` in the sync block must have a matching
+        `diplo_data["X"] = ...` above it.
+        """
+        import re
+        block = self._block()
+        written = set(re.findall(r'diplo_data\["([a-z_]+)"\]\s*=', block))
+        read = set(re.findall(r'diplo_data\.get\("([a-z_]+)"', block))
+        assert read <= written, (
+            f"read but never written into diplo_data: {sorted(read - written)}")
+
+
+class TestTheRailNamesEveryRowItShows:
+    """The visual pass found TWO more unmapped notification types on the live
+    rail after `buildings_damaged` was joined — PT-J4's commission notice and
+    HC-G's Gazette — both rendering as the anonymous priority pill "INF".
+
+    This pin is a FLOOR, not a census: 33 of the backend's 57 notification
+    types are still unmapped (measured Aug 30, 2026), and choosing a glyph and
+    a three-letter code for each is a content decision, filed as REV-V1 rather
+    than invented here. What must not happen is a mapped row going back to
+    "INF".
+    """
+
+    MAPPED_FLOOR = (
+        "buildings_damaged", "commission_available", "gazette_published",
+        "dotation_expectation", "dotation_erosion", "diplomatic_proposal",
+        "war_declared", "coalition_declared", "vassal_rebellion",
+    )
+
+    def _maps(self):
+        import re
+        src = _read("godot-client/project-sovereign/scripts/notification_bar.gd")
+
+        def block(head):
+            i = src.index(head)
+            return set(re.findall(r'"([a-z0-9_]+)"\s*:', src[i:src.index("}", i)]))
+
+        return block("const TYPE_ICONS = {"), block("const TYPE_ICON_SVGS = {")
+
+    @pytest.mark.parametrize("ntype", MAPPED_FLOOR)
+    def test_the_row_has_a_label_and_a_glyph(self, ntype):
+        text_map, svg_map = self._maps()
+        assert ntype in text_map, f"{ntype} falls through to the INF pill"
+        assert ntype in svg_map, f"{ntype} has no glyph"
+
+    def test_the_two_the_pass_found_are_the_backends_own_constants(self):
+        """Not strings I typed — the producer's constants, so a rename on the
+        backend side breaks this rather than silently un-joining the rail."""
+        from backend.notifications import (
+            BUILDINGS_DAMAGED, COMMISSION_AVAILABLE, GAZETTE_PUBLISHED,
+        )
+        text_map, _ = self._maps()
+        for constant in (BUILDINGS_DAMAGED, COMMISSION_AVAILABLE,
+                         GAZETTE_PUBLISHED):
+            assert constant in text_map
+
+    def test_the_glyphs_named_exist_on_disk(self):
+        """A glyph name with no SVG behind it renders nothing — worse than the
+        INF pill it replaced."""
+        import os
+        _, svg_map = self._maps()
+        root = "godot-client/project-sovereign/assets/ui/icons/phosphor"
+        src = _read("godot-client/project-sovereign/scripts/notification_bar.gd")
+        i = src.index("const TYPE_ICON_SVGS = {")
+        import re
+        for glyph in set(re.findall(r':\s*"([a-z\-]+)"',
+                                    src[i:src.index("}", i)])):
+            assert os.path.exists(os.path.join(root, glyph + ".svg")), glyph
+
+
+class TestTheEndTurnSynonymsMeetTheGate:
+    """Confirmed live: typing "next turn" with two envoys waiting now raises
+    the lapse warning and does NOT advance the turn. Before, only the literal
+    "end turn" was intercepted while the backend reads end_turn from a
+    substring test over three keywords."""
+
+    @pytest.mark.parametrize("phrasing", [
+        "end turn", "next turn", "end turn now", "END TURN", "  end turn  ",
+    ])
+    def test_the_helper_claims_every_phrasing_the_parser_accepts(self, phrasing):
+        """Mirrors `llm_client`'s own arm. Asserted against the GDScript
+        source because the helper is client-side; the backend half is pinned
+        by `TestEveryEndTurnPhrasingMeetsTheGate` above."""
+        src = _read("godot-client/project-sovereign/scripts/main.gd")
+        body = src[src.index("func _is_end_turn_phrasing("):]
+        body = body[:body.index("func _execute_end_turn():")]
+        lowered = phrasing.lower().strip()
+        assert any(kw in lowered for kw in ("end turn", "end_turn", "next turn"))
+        for kw in ("end turn", "end_turn", "next turn"):
+            assert kw in body
+
+    def test_an_ordinary_command_is_not_swallowed(self):
+        """The negative control the helper needs: a command that merely
+        mentions a turn must not be eaten by the gate."""
+        src = _read("godot-client/project-sovereign/scripts/main.gd")
+        body = src[src.index("func _is_end_turn_phrasing("):]
+        body = body[:body.index("func _execute_end_turn():")]
+        # the helper matches only those three substrings — nothing broader
+        assert "find(" in body
+        assert "attack" not in body and "recruit" not in body

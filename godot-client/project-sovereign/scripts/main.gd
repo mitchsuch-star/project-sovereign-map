@@ -3757,6 +3757,17 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["coalition_brewing"] = response.get("coalition_brewing", false)
 		diplo_data["talleyrand_mission_summary"] = response.get("talleyrand_mission_summary", "Idle")
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
+		# Aug 30, 2026 VISUAL PASS — and this line is the pass earning its
+		# keep. `diplo_data` is hand-copied key by key out of the response,
+		# and the first cut of the lapse-count fix read
+		# `diplo_data["pending_lapsing_count"]` without ever copying it in:
+		# the gate saw 0 forever, so ending a turn with three envoys waiting
+		# asked nothing at all. Exactly the producer-to-renderer join this
+		# review round exists to close, introduced by the review round.
+		# Caught on screen, not by a test — the tests pinned the backend
+		# field and the client's READ, and neither could see the gap between.
+		diplo_data["pending_lapsing_count"] = response.get(
+			"pending_lapsing_count", 0)
 	if not diplo_data.is_empty():
 		_set_pending_envoy_count(int(diplo_data.get("pending_envoy_count", 0)))
 		_current_lapsing_count = int(diplo_data.get("pending_lapsing_count", 0))

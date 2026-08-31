@@ -7,6 +7,9 @@
 > a 14-finder / 2-refuter-per-finding fleet at `e206869` confirmed 45 defects
 > across every system and all 45 are fixed; see §Whole-Systems Review below,
 > which is authoritative. One PRE-EXISTING harness defect is filed there
+> A live VISUAL PASS then signed the client fixes off on screen and found one
+> more defect the tests could not see — REV-V1, a key the review itself read
+> without copying, so the end-turn lapse gate saw 0 forever. The harness row
 > named REV-X1 — the AI-V control arm's cold-cache non-determinism — was
 > then ROOT-CAUSED AND FIXED the same day: the harness drained the event log
 > by `id()`, which is unique only among LIVE objects, so a recycled address
@@ -243,6 +246,67 @@ would have been blamed for. Every pin in that file measures a digest this
 drain produces, so a dropped event reads as "the game did not do that". The
 arm that caught it is the one whose docstring says *"if this is red, nothing
 else means anything"* — it was right.
+
+### ✅ THE VISUAL PASS (August 30, 2026) — and the defect it found that the tests could not
+
+Driven in the real client against a SANDBOXED pair (`SOVEREIGN_PORT=8007`,
+`INK_IRON_SAVE_DIR` in a temp dir — never the player's 8005), plus a new
+committed offscreen harness `tools/rev_visual_screenshot.gd` for the two
+surfaces that are a RENDER rather than a flow. Evidence:
+`docs/audits/REV_REGION_PANEL_LEVY_2026_08_30.png`,
+`docs/audits/REV_RAIL_DMG_2026_08_30.png`.
+
+**Signed off on screen**
+
+| surface | what the screen showed |
+|---|---|
+| the reported crash | the diorama auto-played after an enemy-phase defeat and **Close** — the handler that threw — closed cleanly. **0 SCRIPT ERROR** across the session. |
+| region panel levy row | "66,000 under — **600g** per 10,000 foot **here**". The capital's rate is 450g, measured live on the same board; the old row printed 450 beside chips that charge 600. |
+| `buildings_damaged` rail row | the **DMG** pill, where the anonymous priority pill "INF" used to be. |
+| `turn_ended` | the enemy-phase dialog titled **"ENEMY PHASE - Turn 1"** while the HUD already reads Turn 2 — it used to be titled with the incremented turn. |
+| the lapse gate | "⚠ You have 2 unanswered envoy(s) that will lapse…", with the **Open Envoys (2)** button. |
+| end-turn synonyms | typing **"next turn"** now meets that warning and the turn does **not** advance. |
+
+**REV-V1 — what only the screen could find, and it was MINE.**
+`_sync_diplomatic_fields` does not hand the response to the HUD: it
+hand-copies a fixed set of keys into a fresh `diplo_data` dict. The
+lapse-count fix READ `diplo_data["pending_lapsing_count"]` and never COPIED
+it in, so the gate saw 0 forever and ending a turn with three envoys waiting
+asked **nothing at all**. Both halves were pinned and both were green — the
+backend ships the field, the client reads it — and nothing pinned the
+hand-copy between them. **The exact producer-to-renderer join this review
+round exists to close, introduced by the review round, and invisible to it.**
+Fixed, and pinned twice: the specific key, and a general rule that every
+`diplo_data.get("X")` in that block has a matching `diplo_data["X"] = …`.
+
+**REV-V2 — two more rows the pass caught.** With `buildings_damaged` joined,
+the live rail still carried two anonymous "INF" pills: `commission_available`
+(PT-J4's bench notice) and `gazette_published` (HC-G's Le Moniteur). Both
+joined, label and glyph. A third half-join was then caught by this round's own
+floor pin rather than on screen — `buildings_damaged` had been given a LABEL
+and no glyph.
+
+**REV-V3 — filed, NOT fixed: the rail's unmapped tail.** A census of the
+producer against the renderer measures **33 of the backend's 57 notification
+types with no join at all** — among them `nation_eliminated`, `nation_formed`,
+`estate_confiscated`, `manpower_depleted`, `vassal_loyalty_critical`,
+`jealousy_confrontation`, `counter_punch_earned`. They render as the priority
+pill ("INF"/"NEW"/"ALT"), naming neither the subject nor the matter. Choosing
+33 glyphs and three-letter codes is a content decision, not a bug fix, so it
+is filed rather than invented here. What IS pinned is a FLOOR: the nine rows
+that are mapped cannot regress to "INF", every glyph named must exist on disk,
+and the three the review touched are asserted against the BACKEND's own
+constants so a rename breaks the test instead of silently un-joining the rail.
+*Owner:* the next UI slice. *Completion definition:* every notification type a
+player can receive carries a label and a glyph, or is listed as deliberately
+rail-exempt with its reason.
+
+**Not visually staged, and honestly so:** the stashed capture question and the
+Morning Dispatch on the interrupt tail are flow-ORDERING fixes, not renders.
+Staging them needs a capture that lands inside end-turn processing; the attempt
+made for this pass was pre-empted when Austria attacked first and took Milan.
+Both remain pinned by tests. The rest of the turn chain around them was walked
+on screen — enemy phase → diorama → dispatch → control — and behaved.
 
 ### Method notes
 

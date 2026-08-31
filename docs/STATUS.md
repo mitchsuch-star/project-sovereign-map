@@ -65,6 +65,38 @@
 > under the exact failing condition (cold cache: three sweeps agree; the test
 > file 45/45), pinned, and mutation-swept 25/25.
 >
+> **✅ THE VISUAL PASS — held on the real client, and it earned its keep.**
+> Driven on a sandboxed pair (`SOVEREIGN_PORT=8007` + a temp save dir — never
+> the player's 8005) plus a new committed offscreen harness
+> `tools/rev_visual_screenshot.gd`; evidence
+> `docs/audits/REV_REGION_PANEL_LEVY_2026_08_30.png` and
+> `REV_RAIL_DMG_2026_08_30.png`. **Signed off on screen:** the reported
+> diorama-close crash (it auto-played after a defeat, Close ran clean, 0
+> SCRIPT ERROR all session) - the region panel's "66,000 under - 600g per
+> 10,000 foot HERE" against the capital's 450g measured on the same board -
+> the DMG pill - "ENEMY PHASE - Turn 1" while the HUD reads Turn 2 - the lapse
+> warning with its Open Envoys button - and typing "next turn" now meeting
+> that warning instead of ending the turn.
+>
+> **REV-V1 - the pass found a defect the tests could not, and it was mine.**
+> `_sync_diplomatic_fields` hand-copies keys into a fresh `diplo_data` dict;
+> the lapse fix READ `pending_lapsing_count` off it and never COPIED it in, so
+> the gate saw 0 forever and ending a turn with three envoys waiting asked
+> nothing. Both halves were pinned and both were green - the backend ships it,
+> the client reads it - and nothing pinned the hand-copy between them. The
+> exact producer-to-renderer join this round exists to close, introduced by
+> this round. Pinned now, plus a general rule for that whole block.
+> **REV-V2:** two more anonymous "INF" rows joined (`commission_available`,
+> `gazette_published`); a third half-join (a label with no glyph) was caught
+> by the round's own floor pin. **REV-V3 filed, not fixed:** 33 of 57
+> notification types still have no join - a content decision, so it is a named
+> owner row with a floor pin rather than 33 invented glyphs.
+>
+> Not visually staged, and said plainly: the stashed capture question and the
+> dispatch on the interrupt tail are flow-ORDERING fixes, not renders; the
+> staging attempt was pre-empted when Austria attacked first and took Milan.
+> Both stay pinned by tests.
+>
 > Two method lessons paid for in this round: **an instrumented probe must be
 > shown deterministic before its output is evidence** — my first trace driver
 > diverged run-to-run even warm, and the "gold diverged" reading taken from it
