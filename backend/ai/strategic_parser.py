@@ -71,6 +71,35 @@ NON_REGION_TARGET_PHRASES = (
     "the ranks", "current position", "present position", "my position",
 )
 
+# Aug 30, 2026 review: terrain the 126-province map does not model. These are
+# NOT routed generic — CA8-28's negative control is deliberate and stands: the
+# player named a PLACE, and quietly holding somewhere else while charging 2 AP
+# is the "did something other than what I said" defect, not a kindness. What
+# was wrong is the REFUSAL COPY, which complained it "could not make out a
+# destination" when the player had given a perfectly clear one the map simply
+# has no province for. The executor names the terrain instead.
+UNMAPPED_TERRAIN_NOUNS = frozenset({
+    "pass", "passes", "ford", "fords", "bridge", "bridges", "defile",
+    "heights", "ridge", "crossroads", "gap", "pastures", "moor", "marsh",
+    "hill", "hills", "valley", "woods", "forest", "river", "crossing",
+})
+
+
+def unmapped_terrain_noun(target_text: str) -> Optional[str]:
+    """The terrain noun in `target_text`, if that is all it names.
+
+    "the mountain pass" -> "pass"; "Swabia" -> None. Lets a refusal say what
+    is actually true — the map has no passes — instead of claiming no
+    destination was given.
+    """
+    if not target_text:
+        return None
+    for word in reversed(str(target_text).lower().replace("-", " ").split()):
+        stripped = word.strip(",.!?;:'\"")
+        if stripped in UNMAPPED_TERRAIN_NOUNS:
+            return stripped
+    return None
+
 # CR-0: irregular demonyms for live-nation generic-target classification
 # ("pursue the austrians" is a generic order, not a region named
 # "The Austrians"). Regular nations derive below (-a → +"n", else +"ian").

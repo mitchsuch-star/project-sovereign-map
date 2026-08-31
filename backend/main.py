@@ -2436,7 +2436,8 @@ def execute_command(request: CommandRequest):
                 # same call the routing gate below makes.
                 _consumed_as_dialogue_answer = bool(match_dialogue_answer(
                     world.pending_diplomatic_dialogue, command_text.lower(),
-                    _player_marshal_names(world)))
+                    _player_marshal_names(world),
+                    world_regions=list(world.regions.keys())))
         if parsed.get("success") and not _consumed_as_dialogue_answer:
             _parsed_command = parsed.get("command", {})
             world.add_to_command_history({
@@ -2597,7 +2598,8 @@ def execute_command(request: CommandRequest):
             # action the live dialogue actually offers, as a whole word.
             matched_keyword = match_dialogue_answer(
                 world.pending_diplomatic_dialogue, raw_lower,
-                _player_marshal_names(world))
+                _player_marshal_names(world),
+                world_regions=list(world.regions.keys()))
 
             if matched_keyword:
                 print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")

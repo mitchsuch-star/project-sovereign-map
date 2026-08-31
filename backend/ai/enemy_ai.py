@@ -1943,6 +1943,21 @@ class EnemyAI:
             glory_target = find_autonomous_attack_target(world, marshal)
             if glory_target is not None:
                 glory_enemy, _glory_region = glory_target
+                # DEF-5 §4.1 — Aug 30, 2026 review. NV-5 threaded the crossing
+                # gate through P4 / P4.25 / P4.5 and left this rung out, so a
+                # jealous marshal ordered an attack across water his own navy
+                # does not command. The executor refuses it, and that refusal
+                # is not free: the AI's own no-target bookkeeping bans EVERY
+                # attack by that marshal for two turns, so one impossible
+                # glory-hunt sidelined a corps that had legal targets inland.
+                # Same predicate, same origin-awareness (the host rule), GR5.
+                if getattr(world, "fleets", None):
+                    from backend.game_logic.naval import crossing_allowed
+                    if not crossing_allowed(world, nation, marshal.location,
+                                            glory_enemy.location):
+                        ai_debug("  -> P3.9 skipped: the crossing is barred")
+                        glory_target = None
+            if glory_target is not None:
                 ai_debug(f"  -> P3.9 Jealousy Glory Attack: {marshal.name} "
                          f"-> {glory_enemy.name} (weakest adjacent)")
                 return ({

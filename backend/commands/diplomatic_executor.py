@@ -34,6 +34,35 @@ _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
 })
 
 
+def _court_is_gone(world, nation: str) -> bool:
+    """True when `nation` holds no province and is not the player.
+
+    Aug 30, 2026 review. A queued letter outlives its sender: nothing sweeps
+    the dialogue queue when a state is eliminated, so an incoming proposal
+    delivered at turn start stays answerable after the player takes its last
+    province in that same turn. Elimination is derived from TERRITORY here for
+    the same reason `_eliminated_teardown` is: the notified-set means
+    "announced as marshal-less" and is pre-seeded at boot for army-less courts
+    like the Papal States, so reading it would call a living court dead.
+    """
+    if not nation or nation == getattr(world, "player_nation", None):
+        return False
+    try:
+        if world.get_nation_regions(nation):
+            return False
+        # ...and it must have HAD a country to lose. A court that never held
+        # a province on this map was not eliminated — it is simply not
+        # modelled here, which is the ordinary case for the minor courts on
+        # the legacy 19-region board, where they are diplomatically real and
+        # territorially absent. Without this half the guard refused every
+        # answer to those courts. `starting_controller` is the map's own
+        # record of whose home a province is.
+        return any(getattr(r, "starting_controller", None) == nation
+                   for r in world.regions.values())
+    except Exception:
+        return False
+
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -579,7 +608,7 @@ class DiplomaticExecutor:
                     "terms": {"target_nation": known_nation},
                 })
 
-            world.dialogue_manager.replace({
+            world.dialogue_manager.open_flow({
                 "type": "proposal_options",
                 "target_nation": "",
                 "talleyrand_text": (
@@ -682,7 +711,7 @@ class DiplomaticExecutor:
         dialogue = generate_dialogue(intent, diplomatic_data, world)
 
         # Set pending dialogue
-        world.dialogue_manager.replace(dialogue)
+        world.dialogue_manager.open_flow(dialogue)
 
         return {
             "success": True,
@@ -918,7 +947,7 @@ class DiplomaticExecutor:
             )
             # IGR-A2: `warnings` rides the dialogue and the popup renders it
             # under "Political Context:" — never inline it here as well.
-            world.dialogue_manager.replace({
+            world.dialogue_manager.open_flow({
                 "type": "force_break_treaty_confirmation",
                 "target_nation": target_nation,
                 "message": confirm_text,
@@ -2091,7 +2120,7 @@ class DiplomaticExecutor:
                     })
             options.append({"label": "Back Out", "action": "reconsider"})
 
-            world.dialogue_manager.replace({
+            world.dialogue_manager.open_flow({
                 "type": "war_purpose_selection",
                 "target_nation": target_nation,
                 "message": f"Choose your war purpose against {target_nation}.",
@@ -2169,7 +2198,7 @@ class DiplomaticExecutor:
                 f"longer memory, and will price our next undertaking "
                 f"accordingly. Shall I proceed regardless?"
             )
-            world.dialogue_manager.replace({
+            world.dialogue_manager.open_flow({
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,
                 "war_objective": war_objective,
@@ -2352,7 +2381,7 @@ class DiplomaticExecutor:
                     opportunities,
                     bargain_warnings,
                 )
-                world.dialogue_manager.replace(dialogue)
+                world.dialogue_manager.open_flow(dialogue)
                 return {
                     "success": True,
                     "message": "Review ally entry opportunities before proceeding.",
@@ -2440,7 +2469,7 @@ class DiplomaticExecutor:
                     })
             options.append({"label": "Cancel", "action": "reconsider"})
 
-            world.dialogue_manager.replace({
+            world.dialogue_manager.open_flow({
                 "type": "war_purpose_selection",
                 "target_nation": target_nation,
                 "message": f"Choose your war purpose against {target_nation}.",
@@ -2990,7 +3019,7 @@ class DiplomaticExecutor:
                 "blocking": True,
                 "turn_created": int(world.current_turn),
             }
-            world.dialogue_manager.replace(dialogue)
+            world.dialogue_manager.open_flow(dialogue)
             return {
                 "success": True,
                 "message": dialogue["talleyrand_text"],
@@ -6179,6 +6208,28 @@ class DiplomaticExecutor:
         if not source_nation or not terms:
             world.dialogue_manager.pop()
             return {"success": False, "message": "Error: proposal data missing."}
+
+        # Aug 30, 2026 review: a queued letter outlives the court that sent
+        # it. Nothing sweeps the dialogue when a nation is eliminated, so a
+        # letter delivered at turn start could still be ACCEPTED after the
+        # player stormed its last province in the same turn — ratifying a
+        # permanent treaty with a state that no longer exists (and, for a
+        # gift, paying its gold out of a dead treasury). The ledger then
+        # carries a treaty nobody can ever break, honour or answer.
+        dead = _court_is_gone(world, source_nation)
+        if dead:
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            from backend.display_names import display_nation
+            return {
+                "success": False,
+                "message": (
+                    f"There is no longer a court at {display_nation(source_nation)} "
+                    f"to receive that answer, Sire — the state has ceased to "
+                    f"exist since the letter was written."
+                ),
+            }
 
         proposal_type = terms.get("type", "")
 

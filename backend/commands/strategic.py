@@ -408,8 +408,14 @@ class StrategicOrderProcessor:
                     toll_note = (f" The Guard bought the road with its own "
                                  f"ranks — {toll:,} men fall covering the "
                                  f"escape.")
-                msg = combat._apply_forced_retreat_or_break(
-                    marshal, enemy, world, skip_fate=True)
+                # Aug 30, 2026 review: NOT `_apply_forced_retreat_or_break`.
+                # This interrupt is only ever raised for an ENCIRCLED marshal
+                # (the producer sets it when `get_safe_retreat_destination`
+                # returns None), so that call asked the same question again,
+                # got the same None, and shattered the army to 3-10% — a won
+                # roll paying the toll AND the rout, under the words "cuts his
+                # way out".
+                msg = combat.apply_successful_breakout(marshal, enemy, world)
                 return {"success": True, "no_action_cost": True,
                         "message": (f"{marshal.name} cuts his way out!"
                                     f"{toll_note} {msg}")}

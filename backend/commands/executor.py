@@ -1976,6 +1976,15 @@ class CommandExecutor:
                 or _res.get("war_purpose_popup")         # war purpose staged
                 or _res.get("opening_attack_guidance")   # a briefing, not a blow
                 or _res.get("occupation_started")        # walked in unopposed
+                # Aug 30, 2026 review: writing a standing order is not
+                # throwing a punch. An `attack` on an out-of-range enemy
+                # auto-upgrades to a strategic PURSUE, and this block read the
+                # successful ORDER as a strike delivered: it burned the
+                # cautious marshal's hard-won free attack AND stamped
+                # `free_action` on the result, so the 2-AP standing order was
+                # issued for nothing. Both halves wrong in the same breath —
+                # the reward spent, and the price waived.
+                or _res.get("strategic_order")
                 or _res.get("state") == "awaiting_clarification"
             )
             if _no_strike:

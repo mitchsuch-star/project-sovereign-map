@@ -2168,9 +2168,27 @@ def queue_fontainebleau_petition(world, eroding: List) -> str:
     # via compute_rente_face — the EWC-F2 rule, which ignores disruption and
     # subtracts estate worth, NOT get_shortfall. Price the quoted bill off
     # the executor's own predicate so the card promises what the arm pays.
-    faces = [dotation.compute_rente_face(m, world) for m in eroding]
-    granted_count = sum(1 for f in faces if f > 0)
-    rente_bill = sum(dotation.get_rente_cost(f) for f in faces if f > 0)
+    #
+    # Aug 30, 2026 review: and the arm's gate is `rente_grant_would_not_help`,
+    # not `face > 0` — so the preview must ask the same question or it is back
+    # to promising what the arm will not pay. A marshal whose estate is
+    # disrupted has a positive face the arm now (correctly) declines, and the
+    # old count promised him a rente anyway.
+    _payable = [m for m in eroding
+                if not dotation.rente_grant_would_not_help(m, world)]
+    granted_count = len(_payable)
+    rente_bill = sum(
+        dotation.get_rente_cost(dotation.compute_rente_face(m, world))
+        for m in _payable)
+    # Aug 30, 2026 review: this log_event used to sit AFTER the return below,
+    # so the collective petition's ARRIVAL never reached the campaign log —
+    # the most dramatic beat the reward economy produces was invisible in the
+    # chronicle. Moved above the return, where it runs.
+    world.log_event({
+        "type": "fontainebleau_petition",
+        "marshals": names,
+        "nation": world.player_nation,
+    })
     return _push_petition(world, {
         "kind": "fontainebleau",
         "title": "The marshals petition the Emperor",
@@ -2201,11 +2219,6 @@ def queue_fontainebleau_petition(world, eroding: List) -> str:
         ],
         "context": {"marshals": names},
         "turn": int(world.current_turn),
-    })
-    world.log_event({
-        "type": "fontainebleau_petition",
-        "marshals": names,
-        "nation": world.player_nation,
     })
 
 
@@ -2801,6 +2814,15 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
             else:
                 if roll < 0.20:
                     _restore(0)
+                    # Aug 30, 2026 review: the two bands above call
+                    # `_mend_grievance` and this one did not, so the rarest
+                    # and most gratifying arm in the whole channel — a
+                    # discredited Emperor pulling it off at 20% — printed "the
+                    # breach is mended" and left the grievance standing, live,
+                    # to keep feeding coordination refusals and objections.
+                    # The Q4(a) inert-mend fixed at the other two bands, one
+                    # band lower.
+                    _mend_grievance("the Emperor's mediation")
                     outcome = "Somehow, it lands. The breach is mended."
                 elif roll < 0.60:
                     outcome = "They ignore you. Nothing changes."
@@ -2890,7 +2912,17 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
         granted = []
         for marshal in marshals:
             face = dotation.compute_rente_face(marshal, world)
-            if face <= 0:
+            # Aug 30, 2026 review: the bare `face <= 0` is the SAME gate the
+            # UX23-A review replaced everywhere else, and this arm kept it —
+            # so the Fontainebleau concession could still cut a standing
+            # rente. Measured shape: a marshal with a 100g rente whose estate
+            # an enemy corps is standing on has a disruption-blind face BELOW
+            # what he holds, so conceding set his pension DOWN and deepened
+            # the very shortfall the concession is granted to close. One
+            # predicate — a grant must leave him better off, or still met —
+            # read by the executor, the card, the AI rung, the rail button
+            # and now the collective petition (GR1).
+            if dotation.rente_grant_would_not_help(marshal, world):
                 continue
             marshal.pension = int(face)
             marshal.expectation_grace_turn = -1

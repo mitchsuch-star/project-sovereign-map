@@ -660,7 +660,17 @@ class TestPC15n7DiversionQuoteConfirm:
         assert result.get("state") == "awaiting_clarification"
         msg = result.get("message", "")
         assert "once only" in msg
-        assert "readiness (53)" in msg
+        # CONSCIOUS FLIP (Aug 30, 2026 review): this asserted the modal quoted
+        # "her current readiness (53)" — and that sentence was false. The
+        # failure arm docks EXPEDITION_TURNBACK_READINESS BEFORE the battle,
+        # so she is brought to action at 43, not 53: shown was not applied on
+        # the single number the player is being asked to bet a fleet on. The
+        # quote now comes from `naval.diversion_failure_readiness`, the same
+        # function `resolve_diversion` assigns from, so the two cannot drift.
+        from backend.game_logic import naval as _naval
+        _expected = _naval.diversion_failure_readiness(world.fleets["France"])
+        assert _expected == 53 - _naval.EXPEDITION_TURNBACK_READINESS
+        assert f"readiness {_expected}" in msg, msg
         assert not world.fleets["France"].get("diversion_used"), (
             "the quote consumed the once-per-war attempt")
 

@@ -1450,6 +1450,19 @@ def _island_war_enemies(world, nation: str) -> List[str]:
     return out
 
 
+def diversion_failure_readiness(rec: Optional[dict]) -> int:
+    """The readiness the fleet ACTUALLY fights at if the Diversion fails.
+
+    Aug 30, 2026 review: the confirm modal quoted "she is caught coming home
+    and fights at her current readiness (N)" while the failure arm docked
+    `EXPEDITION_TURNBACK_READINESS` first and fought at N minus that — shown
+    was not applied on the one number the player is being asked to bet on.
+    One source now, read by the modal and by the resolver.
+    """
+    current = int((rec or {}).get("readiness", 0) or 0)
+    return int(max(READINESS_MIN, current - EXPEDITION_TURNBACK_READINESS))
+
+
 def resolve_diversion(world, nation: str) -> Dict:
     """§5.3.3(a) — the Grand Diversion, once per war: seeded 45%. Success
     halves the enemy's coverage for 2 turns (`window_turns`) and fires
@@ -1498,9 +1511,7 @@ def resolve_diversion(world, nation: str) -> Dict:
                 f"station. The Strait lies open: {WINDOW_TURNS} turns."),
         }
     # Intercepted returning, at bad readiness.
-    rec["readiness"] = int(max(READINESS_MIN,
-                               int(rec.get("readiness", 0) or 0)
-                               - EXPEDITION_TURNBACK_READINESS))
+    rec["readiness"] = diversion_failure_readiness(rec)
     action = resolve_fleet_action(world, nation, hostile, context="diversion")
     ships_lost = int(sum(action["losses"].get(nation, {}).values()))
     return {
@@ -1786,7 +1797,17 @@ def process_naval_turn(world) -> List[Dict]:
 
     # 4. camp / window / build-rate / diversion resets.
     events.extend(_camp_tick(world))
-    for nation, rec in iter_fleets(world):
+    # Aug 30, 2026 review: NOT `iter_fleets`, which yields only records with
+    # ships > 0 — so a navy sunk to the last hull stopped being ticked at all.
+    # `built_this_turn` then stayed frozen at whatever it held when the fleet
+    # died, and the yard refused to lay a keel ("0/1 keels this turn") for the
+    # rest of the war; `window_turns` never counted down and `diversion_used`
+    # never cleared. The nation that most needs to rebuild was the one locked
+    # out of rebuilding. Housekeeping runs on every real record; the ships > 0
+    # rule stays where it belongs, on the questions that ask about a FLEET.
+    for nation, rec in list(get_fleets(world).items()):
+        if nation == META_KEY or not isinstance(rec, dict):
+            continue
         window = int(rec.get("window_turns", 0) or 0)
         if window > 0:
             rec["window_turns"] = int(window - 1)

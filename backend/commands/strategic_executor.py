@@ -7,6 +7,7 @@ Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 import random
 from typing import Dict, List, Optional
 from backend.ai.generic_targets import is_generic_target
+from backend.ai.strategic_parser import unmapped_terrain_noun
 # NP-V: who SAYS an interrupt line (see marshal_voice.interrupt_speaker).
 from backend.game_logic.marshal_voice import interrupt_speaker
 from backend.ai.nation_names import (
@@ -781,13 +782,32 @@ class StrategicExecutor:
                     elif typo_err is not None:
                         return {**typo_err, "variable_action_cost": 0}
                     else:
-                        return {
-                            "success": False,
-                            "message": (
+                        # Aug 30, 2026 review: the shrug was misleading for a
+                        # whole family of perfectly clear orders — "Ney, hold
+                        # the mountain pass" names a destination plainly, and
+                        # the map simply has no province for it. Saying so is
+                        # true; "I could not make out a destination" is not,
+                        # and it sent the player looking for a typo he had not
+                        # made. The refusal itself stands (CA8-28's negative
+                        # control: never invent a hold somewhere else and
+                        # charge 2 AP for it).
+                        terrain = unmapped_terrain_noun(dest)
+                        if terrain:
+                            message = (
+                                f"The map knows no {terrain} by that name, Sire "
+                                f"- the campaign is fought province by province. "
+                                f"Name one (e.g. '{marshal.name}, hold "
+                                f"{marshal.location}')."
+                            )
+                        else:
+                            message = (
                                 f"I could not make out a destination in that order, "
                                 f"Sire - name a province (e.g. '{marshal.name}, move "
                                 f"to {marshal.location}')."
-                            ),
+                            )
+                        return {
+                            "success": False,
+                            "message": message,
                             "variable_action_cost": 0,
                         }
                 dest = resolved

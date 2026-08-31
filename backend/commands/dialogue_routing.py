@@ -228,9 +228,94 @@ def addresses_a_marshal(raw_lower: str,
     return _names_a_marshal(raw_lower, marshal_names)
 
 
+# Aug 30, 2026 review: the vocabulary of an ORDER. Reused rather than
+# re-listed where possible — the verb half is `clause_guards._ORDER_NOUNS`,
+# which already enumerates attack/advance/march/retreat/bombard/siege and
+# their inflections for the negation guard. What is added here is the nouns an
+# order acts ON, which that regex has no reason to carry.
+_MILITARY_OBJECT_WORDS = frozenset({
+    "corps", "army", "armies", "troops", "men", "soldiers", "regiment",
+    "regiments", "division", "divisions", "battalion", "guard", "column",
+    "infantry", "cavalry", "artillery", "guns", "cannon", "horse", "foot",
+    "depot", "depots", "fort", "fortress", "fortification", "garrison",
+    "watchtower", "market", "stables", "ships", "fleet", "squadron",
+    "north", "south", "east", "west", "flank", "rear", "front", "line",
+})
+# Ordinary words a real ANSWER may carry — "cancel it", "yes, do that then".
+_ANSWER_FILLER_WORDS = frozenset({
+    "the", "a", "an", "it", "this", "that", "those", "these", "them",
+    "please", "sire", "then", "just", "now", "ok", "okay", "well", "very",
+    "do", "does", "did", "is", "are", "be", "and", "but", "or", "so", "if",
+    "we", "i", "you", "us", "our", "my", "let", "lets", "with", "for", "to",
+    "of", "on", "in", "at", "by", "as", "all", "any", "matter", "offer",
+    "terms", "proposal", "letter", "answer", "reply", "decision", "choice",
+    "one", "two", "three", "first", "second", "third", "instead", "rather",
+})
+
+
+def _dialogue_subject_words(dialogue: Optional[dict]) -> set:
+    """Every word the dialogue itself speaks — its prompt, its options, its
+    context. A word the matter at hand already contains is the SUBJECT, not a
+    foreign order: `yield Hanover` answering Prussia's demand for Hanover is
+    an answer, while `cancel the march` on a proposal confirm is an order,
+    because that dialogue says nothing of a march.
+    """
+    if not isinstance(dialogue, dict):
+        return set()
+    blob = []
+    for key in ("message", "prompt", "text", "talleyrand_text", "title"):
+        value = dialogue.get(key)
+        if isinstance(value, str):
+            blob.append(value)
+    context = dialogue.get("context")
+    if isinstance(context, dict):
+        blob.append(repr(context))
+    for option in dialogue.get("options") or []:
+        if isinstance(option, dict):
+            blob.append(repr(option))
+    return set(re.findall(r"[a-z']+", " ".join(blob).lower()))
+
+
+def _carries_military_content(raw_lower: str, keyword: str,
+                              world_regions=None,
+                              dialogue: Optional[dict] = None) -> bool:
+    """True when what remains after the keyword reads as an ORDER.
+
+    An answer names the decision in front of the player; an order names the
+    war. `send the corps north` and `cancel the march` were both consumed as
+    dialogue answers — the order never reached the executor and the player was
+    never told.
+
+    Words the dialogue ITSELF uses are exempt, which is what keeps `yield
+    Hanover` answering an ultimatum that demands Hanover: nineteen province
+    names double as court names and several are ordinary military nouns, so
+    without that exemption the guard would refuse the answers it exists to
+    protect.
+    """
+    from backend.ai.clause_guards import _ORDER_NOUNS
+
+    leftover = re.sub(r"(?<![a-z])" + re.escape(keyword) + r"(?![a-z])",
+                      " ", raw_lower)
+    subject = _dialogue_subject_words(dialogue)
+    words = [w for w in re.findall(r"[a-z']+", leftover)
+             if w not in _ANSWER_FILLER_WORDS and w not in subject]
+    if not words:
+        return False
+    order_verb = re.compile(r"^(?:" + _ORDER_NOUNS + r")$")
+    for word in words:
+        if word in _MILITARY_OBJECT_WORDS or order_verb.match(word):
+            return True
+    if world_regions:
+        lowered = {str(r).lower() for r in world_regions}
+        if any(w in lowered for w in words):
+            return True
+    return False
+
+
 def match_dialogue_answer(dialogue: Optional[dict],
                           raw_lower: str,
-                          marshal_names: Optional[List[str]] = None
+                          marshal_names: Optional[List[str]] = None,
+                          world_regions=None
                           ) -> Optional[str]:
     """Return the token to hand the response handler, or None if this
     typed line is not an answer to THIS dialogue.
@@ -282,7 +367,15 @@ def match_dialogue_answer(dialogue: Optional[dict],
         action = (opt.get("action") or "").lower().strip()
         if addressed and not _names_a_marshal(label, marshal_names):
             continue
+        # Aug 30, 2026 review: arm 1 is bare-substring containment, so a
+        # ONE-WORD label is as loose as the keyword scan below — measured, the
+        # label `Cancel` claimed "cancel the march", an order to break a
+        # standing move, and the executor never saw it. Same rule as arms 3
+        # and 4: an answer names the decision, an order names the war.
         if label and label in raw_lower:
+            if _carries_military_content(raw_lower, label, world_regions,
+                                         dialogue):
+                continue
             return label
         if action and action in raw_lower:
             return action
@@ -299,15 +392,41 @@ def match_dialogue_answer(dialogue: Optional[dict],
         action = (opt.get("action") or "").lower().strip()
         label_words = set(re.findall(r"[a-z]+", label))
         if label_words and label_words <= raw_words:
+            # Aug 30, 2026 review: the same order-vs-answer rule as arm 4.
+            # A ONE-WORD label makes this arm as loose as a bare-substring
+            # scan — measured, the label `Cancel` claimed "cancel the march",
+            # an order to break a standing move, and the executor never saw
+            # it.
+            if _carries_military_content(raw_lower, label, world_regions,
+                                         dialogue):
+                continue
             return action or label
 
     # 4. a bare verb keyword.
+    #
+    # Aug 30, 2026 review: "bare" was never enforced — the arm asked only
+    # whether the keyword appeared ANYWHERE in the sentence, so a marshal-less
+    # ORDER carrying one of these words was silently consumed as an answer.
+    # Measured against a live `proposal_confirm` option set: "send the corps
+    # north" -> `send` and "cancel the march" -> `cancel`. The order never
+    # reached the executor and the player was never told, which is the same
+    # class of defect as the `Ney, yield no ground` hijack arm 1 guards
+    # against — one rung down, and without a marshal name for that guard to
+    # catch.
+    #
+    # An answer names the decision; an order names the war. If anything
+    # military survives once the keyword and ordinary filler are removed, this
+    # is an order and the arm declines it.
     offered = {str(o.get("action") or "") for o in options}
     for keyword, actions in DIALOGUE_ACTION_KEYWORDS.items():
         if not whole_phrase_in(keyword, raw_lower):
             continue
-        if any(a in offered for a in actions):
-            return keyword
+        if not any(a in offered for a in actions):
+            continue
+        if _carries_military_content(raw_lower, keyword, world_regions,
+                                     dialogue):
+            continue
+        return keyword
     return None
 
 
@@ -394,6 +513,37 @@ def courts_addressed_in(text: str, world) -> List[str]:
     return found
 
 
+def _names_the_matter_at_hand(name: str, dialogue: Optional[dict],
+                              world) -> bool:
+    """True when `name` is a PROVINCE the active dialogue is about.
+
+    Nineteen 1805 province names double as court names (Hanover, Bavaria,
+    Saxony, Naples…), so "yield Hanover" reads as addressing Hanover's court
+    when it is in fact answering Prussia's demand FOR Hanover. Both halves are
+    required: the name must be a real region, and the dialogue must already be
+    about it — so "declare war on Hanover" typed at Prussia's table is still
+    refused, because Prussia's matter says nothing of Hanover.
+    """
+    if not name or not dialogue:
+        return False
+    regions = getattr(world, "regions", None) or {}
+    if name not in regions:
+        return False
+    haystack = []
+    for key in ("message", "prompt", "text", "talleyrand_text", "title"):
+        value = dialogue.get(key)
+        if isinstance(value, str):
+            haystack.append(value)
+    context = dialogue.get("context")
+    if isinstance(context, dict):
+        haystack.append(repr(context))
+    for option in dialogue.get("options") or []:
+        if isinstance(option, dict):
+            haystack.append(repr(option))
+    lowered = " ".join(haystack).lower()
+    return name.lower() in lowered
+
+
 def court_mismatch_refusal(world, dialogue: Optional[dict],
                            raw_text: str) -> Optional[dict]:
     """Refuse a typed answer aimed at a court that is not on the table.
@@ -406,6 +556,15 @@ def court_mismatch_refusal(world, dialogue: Optional[dict],
     if not active:
         return None
     addressed = courts_addressed_in(raw_text, world)
+    # Aug 30, 2026 review: nineteen of the map's province names are also court
+    # names, so a player answering the matter in front of him by naming the
+    # PROVINCE it is about was refused for addressing a third court. Measured
+    # shape: Prussia's ultimatum demands Hanover, the player types "yield
+    # Hanover", and the guard answers that nothing from Hanover is before him.
+    # A name the ACTIVE dialogue is itself about is the subject, not an
+    # addressee.
+    addressed = [n for n in addressed
+                 if not _names_the_matter_at_hand(n, dialogue, world)]
     if not addressed or active in addressed:
         return None
 

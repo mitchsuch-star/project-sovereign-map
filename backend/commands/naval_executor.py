@@ -299,6 +299,31 @@ class NavalExecutor:
                     marshal.nation, controller):
                 defenders = [m for m in world.get_marshals_in_region(target)
                              if m.nation != marshal.nation and m.strength > 0]
+                # Aug 30, 2026 review: "the existing land game takes over" was
+                # only half true — the land game asks TWO questions before it
+                # captures, is there a marshal AND is there a garrison, and
+                # this arm asked only the first. A capital's garrison is not a
+                # marshal, so 14,000 men put ashore at London walked past
+                # 25,000 defenders and took the city, which then flipped to
+                # the conqueror. Same predicate as `_execute_attack`'s
+                # garrison gate: a detachment always fights, a capital
+                # garrison fights above the 5,000 collapse threshold.
+                garrison_fights = False
+                if (getattr(target_region, "garrison_strength", 0) > 0
+                        and target_region.controller != marshal.nation):
+                    if getattr(target_region, "garrison_detachment", False):
+                        garrison_fights = True
+                    elif target_region.garrison_strength >= 5000:
+                        garrison_fights = True
+                if not defenders and garrison_fights:
+                    garrison_result = (
+                        self._executor._combat._resolve_garrison_combat(
+                            marshal, target_region, world, game_state))
+                    message += " " + str(garrison_result.get("message") or "")
+                    garrison_result["message"] = message
+                    garrison_result["landed"] = True
+                    garrison_result["odds"] = int(outcome["odds"])
+                    return garrison_result
                 if not defenders:
                     # The existing land game takes over (§4.3): undefended
                     # soil falls through the SAME capture pipeline every
@@ -464,7 +489,11 @@ class NavalExecutor:
                         "The fleet has already attempted its grand "
                         "diversion this war — the squadrons cannot repeat "
                         "the feint while the enemy watches for it.")}
-                readiness = int(rec.get("readiness", 0) or 0)
+                # Aug 30, 2026 review: shown = applied. The failure arm
+                # docks readiness BEFORE the battle, so the quoted "current
+                # readiness" was never the readiness she fought at. One
+                # source, read here and by `resolve_diversion`.
+                readiness = naval.diversion_failure_readiness(rec)
                 return {
                     "success": True,
                     "free_action": True,
@@ -494,7 +523,7 @@ class NavalExecutor:
                         f"{naval.DIVERSION_SUCCESS_PCT} times in 100 the "
                         f"strait opens for {naval.WINDOW_TURNS} turns; "
                         f"otherwise she is caught coming home and fights "
-                        f"at her current readiness ({readiness}). "
+                        f"at readiness {readiness}. "
                         f"Sail? (yes / no)"),
                     "options": [
                         {"label": "Order the diversion",

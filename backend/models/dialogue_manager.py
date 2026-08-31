@@ -284,6 +284,41 @@ class DialogueManager:
         self._assign_dialogue_id(dialogue)
         self._current = dialogue
 
+    def open_flow(self, dialogue: dict) -> None:
+        """Start a NEW player-initiated flow without destroying the player's mail.
+
+        Aug 30, 2026 review. `replace()` overwrites `_current` and, unless BOTH
+        the old and the new dialogue are mailbox types, the displaced one is
+        gone — never re-queued. That is correct for a wizard advancing its OWN
+        step (and for `_handle_accept_ai_proposal`, which replaces the letter it
+        has just answered: re-queueing there would ask the player the same
+        question twice). It is wrong for the FIRST step of a new flow, because
+        soft-stop mailbox dialogues do not block ordinary commands — so while
+        Saxony's open-borders letter or Austria's persistent settlement offer
+        holds the slot, "propose an alliance with Prussia", "declare war on
+        Austria", "break the treaty with Bavaria", or simply attacking a
+        neutral province (which stages War Purpose) silently destroyed it.
+
+        The Aug-23 fix converted three READ-OUT sites (advisory / mission /
+        feasibility) to `preempt()` and its own comment claimed the remaining
+        `replace()` calls only ever replace the wizard's own dialogue. That was
+        false for the eight creation sites this method now serves.
+
+        The rule stated once: a standing letter the player owns is preserved;
+        a transient step of some other planning flow is still overwritten, so
+        re-issuing a wizard verb does not pile up stale steps.
+        """
+        previous = self._current
+        displaced_is_mail = (
+            previous is not None
+            and previous.get("type", "") in self.SOFT_STOP_MAILBOX_TYPES
+            and dialogue.get("type", "") not in self.SOFT_STOP_MAILBOX_TYPES
+        )
+        if displaced_is_mail:
+            self.preempt(dialogue)
+        else:
+            self.replace(dialogue)
+
     def preempt(self, dialogue: dict) -> None:
         """Make a dialogue current while preserving the displaced one.
 

@@ -460,10 +460,20 @@ class TestAnOrderIsNotAnAnswer:
         assert match_dialogue_answer(ADVISORY, line, ROSTER) is None
 
     def test_without_the_guard_it_really_did_hijack(self):
-        """Falsifiable negative: the same line, no roster, still matches — so
-        the pin above is testing the guard and not something else."""
-        assert match_dialogue_answer(
-            ADVISORY, "soult, cancel your march", None) == "cancel"
+        """Falsifiable negative: the same shape, no roster, still matches — so
+        the pin above is testing the guard and not something else.
+
+        Aug 30, 2026: the line was "soult, cancel your march", which a SECOND
+        guard landed that day now refuses on its own — "march" is an order
+        noun, so the answer arms decline it whether or not a marshal is named
+        (an order names the war; an answer names the decision). Keeping the
+        old line would have made this control pass for the wrong reason, so
+        it is narrowed to a line whose ONLY order-ish content is the address
+        itself. The control's meaning is unchanged: with a roster the marshal
+        guard refuses; without one, the line still matches.
+        """
+        assert match_dialogue_answer(ADVISORY, "soult, cancel", None) == "cancel"
+        assert match_dialogue_answer(ADVISORY, "soult, cancel", ROSTER) is None
 
     @pytest.mark.parametrize("dialogue,line,expected", [
         (PROPOSAL, "accept", "accept"),

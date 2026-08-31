@@ -108,6 +108,43 @@ SUPPORT_OBJECT_PREFIX_RE = re.compile(
 # condition marshal ("hold until Ney arrives"), never the executor.
 CONDITION_CLAUSE_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 
+# Aug 30, 2026 review: a PURPOSE infinitive is a "to" that no destination
+# follows — "move to Venetia TO CUT THEM OFF". The Sweep-5 destination
+# fallback keeps the LAST preposition (correct for the leading infinitive in
+# "I would like TO MOVE to Alsace"), and with no arm for the purpose "to" the
+# phantom "Cut Them Off" beat the province the player actually typed, so the
+# reply never even named Venetia. One list serves both halves: prepositions
+# introducing one of these verbs are skipped as anchors, and the same shape is
+# cut off the tail of an earlier anchor's phrase.
+_PURPOSE_VERBS = (
+    r"cut|cover|block|secure|take|hold|support|reinforce|protect|defend|join"
+    r"|help|aid|stop|prevent|relieve|screen|threaten|flank|harass|pursue"
+    r"|chase|intercept|guard|watch|scout|probe|seize|capture|destroy|crush"
+    r"|engage|meet|link|keep|deny|delay|draw|force|encircle|surround"
+    r"|outflank|march|move|attack|advance|retreat|fall|strike|save|rescue"
+    r"|close|finish|press|push|drive|clear|retake|recapture|reclaim|besiege"
+    r"|storm|bombard|raid|blockade|occupy|garrison|fortify|entrench|rest"
+    r"|refit|resupply|escape|evade|avoid|shield|anchor|be|make|give|open"
+    r"|reach|hunt|find|catch|bring|put|set|guard"
+)
+PURPOSE_INFINITIVE_RE = re.compile(
+    r"\bto\s+(?:" + _PURPOSE_VERBS + r")\b", re.IGNORECASE)
+
+# Aug 30, 2026 review: "pass" is the turn-passing VERB, but a determiner or a
+# modifier in front of it makes it the NOUN — a mountain pass, the Brenner
+# pass. The fixed lookbehinds this replaces covered only "the/a/this/that
+# pass", so "Ney, hold the mountain pass" fired WAIT (and then died as a HOLD
+# on the phantom province "Mountain Pass"): a plain defensive order refused
+# with a destination complaint. Any hold-family verb in the sentence is the
+# second tell — an order that already says "hold"/"guard"/"defend" is not a
+# request to pass the turn.
+PASS_AS_NOUN_RE = re.compile(
+    r"\b(?:the|a|an|this|that|these|those|his|her|its|their|our|your|every"
+    r"|each|[a-z]+'s)\s+(?:[a-z'\-]+\s+){0,2}pass(?:es)?\b"
+    r"|\b(?:hold|guard|defend|secure|watch|block|seize|take|storm|force"
+    r"|fortify|garrison)\b[^.!?]*\bpass(?:es)?\b",
+    re.IGNORECASE)
+
 
 def _name_match_patterns(name: str) -> List[str]:
     """Lowercase match patterns for a roster name: a space-split alias for
@@ -1310,8 +1347,9 @@ class LLMClient:
         # noun. "Ney, hold the pass" — a plain order — was answered with WAIT
         # (and a HOLD on the fuzzy-matched province Nassau). The article
         # lookbehinds keep the bare verb working.
-        elif "wait" in command_lower or "stand by" in command_lower or re.search(
-                r'(?<!the )(?<!a )(?<!this )(?<!that )\bpass\b', command_lower):
+        elif "wait" in command_lower or "stand by" in command_lower or (
+                re.search(r'\bpass(?:es)?\b', command_lower)
+                and not PASS_AS_NOUN_RE.search(command_lower)):
             action = "wait"  # Free action - marshal passes turn
         # DEF-5 naval ordering guard: "guard home waters" is the fleet
         # posture phrase, not a land HOLD — it must claim the words before
@@ -1771,18 +1809,34 @@ class LLMClient:
             # contains. `finditer` + last-match fixes the head; the widened
             # tail-cutter fixes "move to Alsace after Davout arrives", which
             # had been marching to "Alsace After Davout Arrives".
+            # Aug 30, 2026: the tail-cutter gains the PURPOSE infinitive
+            # ("... to cut them off"), which had no arm at all — so an earlier
+            # anchor's phrase now ends at the purpose clause instead of
+            # swallowing it.
             _dest_re = re.compile(
                 r"\b(?:to|towards?|into)\s+(?:the\s+)?"
                 r"([A-Za-z][A-Za-z '\-]{2,40}?)"
                 r"(?:\s+(?:via|until|then|and|after|once|when|while|before"
-                r"|if|unless|so|because|in\s+order)\s.*)?[.!?]?\s*$",
+                r"|if|unless|so|because|in\s+order)\s.*"
+                r"|\s+to\s+(?:" + _PURPOSE_VERBS + r")\b.*)?[.!?]?\s*$",
                 re.IGNORECASE)
             # finditer alone is not enough: the first match already runs to
             # end-of-string, so the later preposition falls inside it and is
             # never offered. Anchor a fresh attempt at each preposition and
             # keep the LAST that succeeds.
+            #
+            # Aug 30, 2026 review: "keep the last" is right for the LEADING
+            # infinitive ("I would like TO MOVE to Alsace") and wrong for the
+            # TRAILING purpose ("move to Venetia TO CUT them off") — measured,
+            # the latter shipped target "Cut Them Off" and the executor's
+            # refusal never mentioned Venetia, defeating the Sweep-5 fix this
+            # passthrough exists for. One rule covers both: a preposition that
+            # introduces a verb is not introducing a destination, so it is
+            # never an anchor.
             dest = None
             for _prep in re.finditer(r"\b(?:to|towards?|into)\b", command_lower):
+                if PURPOSE_INFINITIVE_RE.match(command_lower, _prep.start()):
+                    continue
                 _m = _dest_re.match(command_lower, _prep.start())
                 if _m:
                     dest = _m

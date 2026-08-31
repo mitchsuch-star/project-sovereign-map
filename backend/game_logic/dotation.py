@@ -1168,7 +1168,7 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     ))
 
 
-def reward_remedy_phrase(world, nation: str) -> str:
+def reward_remedy_phrase(world, nation: str, marshal=None) -> str:
     """§0.6.8 item 4d: honest advice — never tell the player to endow when
     no eligible province exists.
 
@@ -1182,14 +1182,35 @@ def reward_remedy_phrase(world, nation: str) -> str:
     army standing on it — so it must not promise that waiting is enough: a
     disrupted province does not settle, it drains.
     """
+    # Aug 30, 2026 review: and never tell him to grant a RENTE the executor
+    # will refuse. When an enemy corps is standing on the marshal's estate the
+    # disruption-blind face falls below the pension he already holds, so
+    # `rente_grant_would_not_help` (the single source every reward surface now
+    # reads) declines the grant — while this advice, the loudest row on the
+    # rail, went on naming it as the remedy. The advisory calls the gate.
+    rente_helps = True
+    if marshal is not None:
+        rente_helps = not rente_grant_would_not_help(marshal, world)
+
     if list_paying_estates(world, nation):
-        return ("endow him with an estate or grant him a rente to stop the "
-                "erosion.")
+        if rente_helps:
+            return ("endow him with an estate or grant him a rente to stop "
+                    "the erosion.")
+        return ("endow him with an estate — a rente cannot help while his "
+                "own lands are overrun.")
     if list_eligible_estates(world, nation):
+        if rente_helps:
+            return ("the provinces we hold yield him nothing yet — endow one "
+                    "against its recovery, or grant a rente for gold now.")
         return ("the provinces we hold yield him nothing yet — endow one "
-                "against its recovery, or grant a rente for gold now.")
-    return ("no conquered province remains to endow — grant a rente, or let "
-            "victory furnish an estate.")
+                "against its recovery; a rente cannot close a gap his own "
+                "overrun estates opened.")
+    if rente_helps:
+        return ("no conquered province remains to endow — grant a rente, or "
+                "let victory furnish an estate.")
+    return ("no conquered province remains to endow, and a rente cannot help "
+            "while his estates are overrun — driving the enemy off his land "
+            "is the remedy.")
 
 
 def post_erosion_notice(world, marshal, expectation, satisfaction,
@@ -1207,7 +1228,7 @@ def post_erosion_notice(world, marshal, expectation, satisfaction,
     from backend.notifications import (
         DOTATION_EROSION, NotificationPriority, create_notification,
     )
-    remedy = reward_remedy_phrase(world, marshal.nation)
+    remedy = reward_remedy_phrase(world, marshal.nation, marshal)
     # UX23-R2: refreshed in place — see `post_expectation_notice`. This row is
     # HIGH and stands for as long as the neglect does, so it was the loudest
     # instance of the per-turn bell.

@@ -26,6 +26,19 @@ from backend.utils.fuzzy_matcher import FuzzyMatcher
 # word forms when building skip-word sets (mirrors llm_client)
 _CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
 
+# Aug 30, 2026 review: actions that are a READ or a housekeeping verb, never an
+# order to a marshal. A parse that resolves to one of these must never be
+# stamped `is_strategic` — the executor intercepts on that flag alone and would
+# create (and begin) a real standing order off a question or a status query.
+# Deliberately NOT the parser's `meta_actions` list, which also holds genuine
+# orders (charge, restrain, build, repair, recruit); and deliberately NOT the
+# executor's `free_actions`, which holds order-shaped verbs (retreat, wait)
+# whose long-standing strategic upgrade is out of scope here.
+_NON_ORDER_ACTIONS = frozenset({
+    "help", "status", "debug", "cheat", "economy", "treasury", "finances",
+    "end_turn", "meta_command",
+})
+
 # CR-2: sequential compound orders — "attack Bern, then hold your positions".
 # The second clause used to leak into target extraction and strategic
 # detection (phantom region "Your Positions" + a stray HOLD upgrade).
@@ -443,6 +456,54 @@ _NON_TARGET_WORDS = frozenset({
 # Words shorter than this can only bind as an EXACT name — a three-letter
 # fuzzy hit is noise, not a typo.
 _MIN_FUZZY_TARGET_LEN = 4
+
+
+# Aug 30, 2026 review: a word that an article or a locative preposition
+# introduces is a common noun, not a commander — "across the moor" is not a
+# typo for Moore. Used by the free-text enemy scan, which had no shape gate at
+# all where its siblings gate on `_plausible_name_typo`.
+_NAME_BLOCKING_PREFIXES = frozenset({
+    "the", "a", "an", "this", "that", "these", "those",
+    "across", "over", "through", "along", "behind", "beyond", "near",
+    "past", "around", "beside", "below", "above", "under", "onto", "upon",
+})
+
+
+def _introduced_by_article(command_text: str, token: str) -> bool:
+    """True when `token` appears in `command_text` behind an article or a
+    locative preposition — "attack across the moor", "hold the pass".
+
+    Companion to `_NAME_BLOCKING_PREFIXES` for the arm that has already
+    extracted a target PHRASE and so cannot look at the previous word itself.
+    """
+    if not command_text or not token:
+        return False
+    words = [w.strip(",.!?;:").lower() for w in command_text.split()]
+    head = token.strip().split()[0].strip(",.!?;:").lower()
+    for i, w in enumerate(words):
+        if w == head and i and words[i - 1] in _NAME_BLOCKING_PREFIXES:
+            return True
+    return False
+
+
+def _is_targetable_enemy(name: str, world) -> bool:
+    """False for a prisoner or a spent corps.
+
+    A captured marshal stays in `world.marshals` at strength 0 sitting at his
+    captor's capital, so the omniscient roster the free-text scan reads still
+    offers him as an attack target. PC15-4 refuses him by name one layer down;
+    this stops a stray sentence word from ever nominating him.
+    """
+    if world is None:
+        return True
+    try:
+        marshal = world.get_marshal(name)
+    except Exception:
+        return True
+    if marshal is None:
+        return True
+    return not getattr(marshal, "captured_by", None) and getattr(
+        marshal, "strength", 0) > 0
 
 
 def _plausible_name_typo(word: str, candidate: str) -> bool:
@@ -1134,8 +1195,19 @@ class CommandParser:
                 llm_result["target"],
                 known_regions
             )
+            # Aug 30, 2026 review: the WO-2 comment below records the shape
+            # gate being added to the two auto_correct arms — and this
+            # edit-distance arm, which OUTRANKS both, was left ungated, so the
+            # very family WO-2 names ("Moon->Moore") still binds one rung up:
+            # measured, "Ney, attack across the moor" -> Moore. A proper name
+            # does not take an article, and a prisoner is not a target.
             near_enemy = (_closest_by_edit_distance(llm_result["target"], known_enemies)
-                          if len(llm_result["target"]) >= 3 else None)
+                          if (len(llm_result["target"]) >= 3
+                              and not _introduced_by_article(
+                                  command_text, llm_result["target"]))
+                          else None)
+            if near_enemy is not None and not _is_targetable_enemy(near_enemy, world):
+                near_enemy = None
             if enemy_result["action"] == "exact":
                 llm_result["target"] = enemy_result["match"]
             elif region_result["action"] == "exact":
@@ -1213,7 +1285,10 @@ class CommandParser:
 
             # Extract potential target words from command (words after action)
             words = command_text.split()
-            for word in words:
+            for _wi, word in enumerate(words):
+                # Aug 30, 2026 review: the word BEFORE matters (see the
+                # near-enemy arm below), so the raw previous token is kept.
+                _prev_word = words[_wi - 1].strip(",.!?;:").lower() if _wi else ""
                 # CR-0: strip trailing punctuation so "Bernadotte," is
                 # recognized as the (skipped) marshal name, not fuzzy-matched
                 # into a region ("Bern")
@@ -1247,9 +1322,23 @@ class CommandParser:
                 # CR-0: an exact or edit-distance-1 enemy name wins before
                 # the combined fuzzy pass (partial-ratio scoring rewarded
                 # "La Mancha" over "Mack" for the typo "Mach")
+                #
+                # Aug 30, 2026 review: this arm carried NONE of the shape gates
+                # its two sibling auto-correct arms below carry, so any
+                # sentence word within one edit of a commander's name became
+                # the attack target — measured, "Ney, attack across the moor"
+                # resolved target=Moore, a fogged British marshal in London,
+                # and the refusal ("No intelligence on Moore's position")
+                # confirmed a hidden commander's existence from a landscape
+                # noun. Two rules, both stating something true about names:
+                # a proper name does not take an article or sit behind a
+                # locative preposition ("the moor", "across the moor"), and a
+                # PRISONER is not a target — he is at his captor's capital at
+                # strength 0, and PC15-4 already refuses him by name.
+                _articled = _prev_word in _NAME_BLOCKING_PREFIXES
                 near_enemy = (_closest_by_edit_distance(word, known_enemies)
-                              if len(word) >= 3 else None)
-                if near_enemy is not None:
+                              if len(word) >= 3 and not _articled else None)
+                if near_enemy is not None and _is_targetable_enemy(near_enemy, world):
                     llm_result["target"] = near_enemy
                     break
 
@@ -1266,12 +1355,24 @@ class CommandParser:
                 # sentence words no stopword list would ever catch — "relieved"
                 # became Rhineland, and "Ney, hold until relieved" issued a HOLD
                 # on a province 400km away, at confidence 0.9.
+                # Aug 30, 2026 review: `_plausible_name_typo` cannot separate a
+                # real typo from an ordinary English word that happens to sit
+                # one edit from a name — "moor" and "Moore" share a first
+                # letter and one edit, so "Ney, attack across the moor" bound
+                # a fogged British marshal in London and the refusal ("No
+                # intelligence on Moore's position") disclosed him. Grammar
+                # separates them where spelling cannot: a proper NAME does not
+                # take an article. Applied to commander names ONLY — plenty of
+                # provinces are spoken with one ("the Rhineland", "the Tyrol"),
+                # so gating regions here would break ordinary orders.
+                _match_name = target_result.get("match") or ""
+                if _articled and _match_name in known_enemies:
+                    continue
                 if target_result["action"] == "exact":
                     llm_result["target"] = target_result["match"]
                     break
                 if (target_result["action"] == "auto_correct"
-                        and _plausible_name_typo(
-                            word, target_result.get("match") or "")):
+                        and _plausible_name_typo(word, _match_name)):
                     llm_result["target"] = target_result["match"]
                     break
 
@@ -1556,7 +1657,32 @@ class CommandParser:
                 # STRATEGIC COMMAND DETECTION (Phase 5.2)
                 # Check if this is a multi-turn strategic order
                 # ════════════════════════════════════════════════════════════
-                if world is not None:
+                # Aug 30, 2026 review: this block used to be gated on `world`
+                # ALONE, so it re-read the utterance no matter WHAT the action
+                # chain had resolved — and stamped is_strategic on a parse the
+                # chain had already ruled was not an order. The executor
+                # intercepts on is_strategic + strategic_type alone, so:
+                #
+                #   "Davout, can you support Ney?"  ->  action=help (llm_client
+                #   routes every interrogative there, PARSE-NEG "a question is
+                #   not an order"), marshal bound by the CR-2 address fix,
+                #   is_strategic=SUPPORT stamped here -> a REAL standing SUPPORT
+                #   order created and begun.
+                #
+                # And because "help" is in the executor's `free_actions`, the
+                # 2-AP strategic pre-gate AND the charge were both skipped:
+                # measured on the 1805 boot, "march to Frankfurt" cost 4->3 AP
+                # while "can you march to Frankfurt?" produced the identical
+                # order for free, at 0 AP, while the reply still printed
+                # "(2 AP — a standing strategic order…)".
+                #
+                # Two gates, both stating a rule rather than patching a symptom:
+                # a pure-read/meta action is not an order, and a QUESTION is not
+                # an order — the same doctrine the action chain already applies.
+                _resolved_action = (command_dict.get("action") or "").lower()
+                _is_order = (_resolved_action not in _NON_ORDER_ACTIONS
+                             and not is_question(command_text))
+                if world is not None and _is_order:
                     marshal_name = command_dict.get("marshal")
                     # PARSE-NEG: the strategic layer reads the raw utterance
                     # too, so it needs the same negation guard the action chain

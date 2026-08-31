@@ -2186,7 +2186,17 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         # Consume action if successful
         is_admin = action in {"recruit", "build", "repair"}
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
-        if result.get("success", False) and action_costs_point and charge_ap:
+        # Aug 30, 2026 review: the WAIVER above exempts only the GATE, and this
+        # charge never read the flags the combat executor stamps on a free
+        # strike. So insisting past an objection on a counter-punch attack
+        # printed "This attack costs NO actions." in the battle report and took
+        # 1 AP anyway — the free strike sold twice. Same predicate as
+        # `executor.execute`'s `is_free_action`, which is where the honest
+        # `action_info` comes from on the ordinary (non-objection) route.
+        _is_free_result = bool(result.get("free_action")
+                               or result.get("no_action_cost"))
+        if (result.get("success", False) and action_costs_point and charge_ap
+                and not _is_free_result):
             if is_admin:
                 world.use_admin_action(1)
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1}

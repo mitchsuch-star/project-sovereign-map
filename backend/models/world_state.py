@@ -6034,6 +6034,16 @@ class WorldState:
             if marshal.expectation_grace_turn < 0:
                 # First unmet turn: start the grace clock, no erosion yet.
                 marshal.expectation_grace_turn = int(self.current_turn)
+                # Aug 30, 2026 review: CA9-N3 retired the HIGH erosion row on
+                # the MET branch and left this one — a marshal who was eroding,
+                # was paid enough to stop it, and then earned a NEW expectation
+                # re-enters grace here with the old "his loyalty frays" row
+                # still standing above the fresh "reward him within N turns"
+                # row. Two contradictory rows about one man, one of them false:
+                # he is not eroding, the clock has just restarted.
+                from backend.game_logic.dotation import (
+                    dismiss_reward_notices as _drop_reward_rows)
+                _drop_reward_rows(self, marshal)
                 # §0.6.8 item 4b: the grace window IS the player's action
                 # window — announce it when it opens (one per episode).
                 # PF-5: at most one live reward-expectation notice per marshal.
@@ -9906,7 +9916,7 @@ class WorldState:
                 )
                 # R12C: push() instead of overwrite — fixes latent bug where counter-offer
                 # could silently overwrite an active blocking dialogue during advance_turn
-                self.dialogue_manager.push({
+                counter_dialogue = {
                     "type": "counter_offer_response",
                     "target_nation": target,
                     "talleyrand_text": (
@@ -9935,8 +9945,22 @@ class WorldState:
                     "turn_created": int(self.current_turn),
                     "blocking": True,
                     "popup_payload": popup_payload,
-                })
-                self.incoming_proposal_popup = copy.deepcopy(popup_payload)
+                }
+                self.dialogue_manager.push(counter_dialogue)
+                # Aug 30, 2026 review: the un-rewritten sibling of the IGR-F
+                # conditional write. `push` makes a dialogue current only when
+                # NOTHING is current, so on a turn that already carries a
+                # letter (or a second counter-offer) this write was
+                # last-write-wins: the client rendered a popup belonging to a
+                # QUEUED dialogue while a different one was active, and the
+                # id-bound answer came back through the W6-0 stale guard —
+                # "another matter has arrived since" — with every click
+                # bouncing. Same rule as ai_diplomacy's arm: only the ACTIVE
+                # dialogue owns the blocking-modal slot; a queued one carries
+                # its payload on the dialogue itself and the mailbox renders
+                # it there.
+                if self.dialogue_manager.peek() is counter_dialogue:
+                    self.incoming_proposal_popup = copy.deepcopy(popup_payload)
                 # Talleyrand returns to IDLE for immediate response
                 self.talleyrand_state = "IDLE"
             else:
@@ -12030,6 +12054,33 @@ class WorldState:
             enemy, distance = nearest
 
             if distance <= marshal.movement_range:
+                # DEF-5 naval §4.1 — Aug 30, 2026 review. The gate was fitted
+                # to the auto-MOVE branch below and not to this one, so the
+                # reckless charge did what NV-9 exists to forbid: it fought
+                # across water a hostile fleet commands and, on victory,
+                # ADVANCED INTO the province beyond it. `crossing_check_reach`
+                # is the right predicate rather than the direct-pair check,
+                # because a charge has range 2 and the water can lie on the
+                # middle leg (Paris→[Normandy]→London reads "open" to the
+                # pairwise test).
+                if getattr(self, "fleets", None):
+                    from backend.game_logic.naval import crossing_check_reach
+                    _reach = crossing_check_reach(
+                        self, marshal.nation, marshal.location,
+                        enemy.location, marshal.strength)
+                    if not _reach.get("allowed", True):
+                        events.append({
+                            "type": "reckless_blocked",
+                            "marshal": marshal.name,
+                            "recklessness": recklessness,
+                            "message": (
+                                f"[Cavalry][!] {marshal.name} is UNCONTROLLABLE "
+                                f"(Recklessness: {recklessness}) but cannot reach "
+                                f"{enemy.name} — hostile sail command the water "
+                                f"between {marshal.location} and {enemy.location}!"
+                            ),
+                        })
+                        continue
                 # Can charge! Execute auto-charge
                 # V2-4: Auto-charge does NOT skip fortified defenders — reckless cavalry
                 # charges regardless. Fortification bonus is applied via resolve_battle.

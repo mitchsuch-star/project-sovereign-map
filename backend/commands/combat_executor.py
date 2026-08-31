@@ -3342,6 +3342,48 @@ class CombatExecutor:
         fire there for every road into captivity)."""
         return world.capture_marshal(marshal, captor_nation, context=context)
 
+    def apply_successful_breakout(self, marshal, enemy, world: 'WorldState') -> str:
+        """A marshal who WINS the breakout roll gets out — he is not routed.
+
+        Aug 30, 2026 review. The last-stand interrupt is only ever raised when
+        `get_safe_retreat_destination` has already returned None, i.e. the
+        marshal is encircled. The success arm paid the escape price and then
+        called `_apply_forced_retreat_or_break`, which asked that same question
+        again, got the same None, and shattered the army to 3-10% — so a won
+        roll cost the toll AND the rout, and the sovereign's arm charged the
+        30% Guard toll on top of that. "He cuts his way out!" was printed over
+        a broken army fleeing to the capital.
+
+        The escape is a fighting withdrawal: he loses his standing order and
+        takes a retreat's disorder, but the army that got out is the army that
+        got out.
+        """
+        old_loc = marshal.location
+        destination = world.find_safe_spawn(marshal, exclude=marshal.location)
+        marshal.occupation_region = None
+        marshal.occupation_turns_held = 0
+        marshal.occupation_turns_required = 0
+        if marshal.strategic_order:
+            marshal.strategic_order = None
+            clear_order_bound_interrupt(marshal)  # NPC-2
+        marshal.move_to(destination)
+        marshal.retreating = True
+        marshal.retreat_recovery = 0
+        marshal.retreated_this_turn = True
+        marshal.clear_combat_transient_state()
+        world.log_event({
+            "type": "retreat",
+            "marshal": marshal.name,
+            "nation": getattr(marshal, "nation", ""),
+            "from": old_loc,
+            "to": destination,
+            # CA8-5: a breakout under fire is a forced movement, and the
+            # dispatch's own_broken/rout classes read this flag.
+            "forced": True,
+        })
+        return (f"{marshal.name} falls back on {destination}, his corps "
+                f"disordered but in the field.")
+
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
                                        skip_fate: bool = False) -> str:
         """
@@ -4530,13 +4572,25 @@ class CombatExecutor:
                 if enemy_by_name and is_player_nation:
                     # Pre-check: strategic commands cost 2 AP (1 for the
                     # literal / the sovereign). NP-V: single source on the
-                    # marshal (GR1). NOTE the charge site prices this as an
-                    # AUTO-UPGRADE (1 AP for anyone) — a pre-existing skew
-                    # that over-gates every non-literal marshal here, and
-                    # which NP-1 made player-reachable by skipping the
-                    # objection battery that used to intercept first.
+                    # marshal (GR1).
+                    #
+                    # Aug 30, 2026 review: the pre-check priced this as an
+                    # AUTO-UPGRADE (1 AP for anyone) while the dict below
+                    # declares `auto_upgrade: False`, so the CHARGE priced it
+                    # at 2 — and the stale comment here asserted the opposite
+                    # of what the code did. At exactly 1 AP the pre-check
+                    # passed, `_execute_strategic_command` created the PURSUE
+                    # order and marched the marshal, and only then did the
+                    # action-economy "safety net" (executor.py, whose own
+                    # comment says it "should be caught by pre-checks above")
+                    # answer "Not enough actions! Need 2, have 1" with
+                    # success:False. The player saw a refusal and a moved army.
+                    #
+                    # One local now feeds BOTH the price and the flag, so the
+                    # gate and the charge cannot disagree again.
+                    priced_as_auto_upgrade = False
                     strategic_cost = marshal.strategic_order_ap(
-                        auto_upgrade=True)
+                        auto_upgrade=priced_as_auto_upgrade)
                     if world.actions_remaining < strategic_cost:
                         return {
                             "success": False,
@@ -4556,7 +4610,10 @@ class CombatExecutor:
                         "is_strategic": True,
                         "strategic_type": "PURSUE",
                         "attack_on_arrival": True,  # Player said "attack", not "pursue"
-                        "auto_upgrade": False,  # Same cost as explicit strategic command
+                        # Same cost as an explicit strategic command — and the
+                        # pre-check above is priced off this very local, so the
+                        # gate and the charge move together.
+                        "auto_upgrade": priced_as_auto_upgrade,
                         "raw_input": f"{marshal.name} attack {target}",
                         "strategic_score": 60,
                         "ambiguity": 15,
@@ -6179,6 +6236,14 @@ class CombatExecutor:
             involved_regions.add(enemy_marshal.location)
         involved_regions.add(battle_region_name)
         involved_regions.update(p.location for p in atk_participants)
+        # Aug 30, 2026 review: and the DEFENDER's side, for the very reason the
+        # comment above gives. The seed was attacker-only, so a defending gun
+        # firing in support from an adjacent province — which deliberately
+        # never relocates — kept whatever this battle stamped on it, including
+        # `sovereign_presence`. A stale aura then rode into later muster
+        # previews and odds bands as a strength the army does not have. The
+        # bug is a missing REGION, and half the regions were missing.
+        involved_regions.update(p.location for p in def_participants)
         self._clear_coordination_fields(involved_regions, world)
 
         # Log battle event
@@ -7911,7 +7976,7 @@ class CombatExecutor:
                     "target_nation": target_nation,
                 })
         options.append({"label": "Back Out", "action": "reconsider"})
-        world.dialogue_manager.replace({
+        world.dialogue_manager.open_flow({
             "type": "war_purpose_selection",
             "target_nation": target_nation,
             "message": f"Choose your war purpose against {target_nation}.",

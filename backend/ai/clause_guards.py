@@ -89,6 +89,21 @@ _NEGATION_MARKER_RE = re.compile(
     r"|avoid(?:s|ing)?"
     r"|no\s+(?:attack|advance|assault|charge|retreat|move|movement|march"
     r"|bombardment|pursuit|offensive)\b"
+    # Aug 30, 2026 review: the two most idiomatic English prohibitives carried
+    # NO marker at all, because the bare-"no" arm above demands an order-NOUN
+    # straight after "no" and here the noun is "circumstances"/"account".
+    # Measured on the 1805 boot: "Ney, under no circumstances attack Mack"
+    # marched Rhineland->Swabia and FOUGHT him at confidence 0.95 — above the
+    # 0.7 gate, so the LLM was never consulted in any mode. The §PARSE-NEG
+    # headline shape, recurring for the phrasings its table never sampled.
+    # These are whole prepositional phrases, so they are matched in full and
+    # the clause is blanked from "under"/"on"/"by"/"in" onward.
+    r"|under\s+no\s+circumstances?"
+    r"|on\s+no\s+account"
+    r"|by\s+no\s+means"
+    r"|in\s+no\s+(?:case|event)"
+    r"|at\s+no\s+(?:time|point)"
+    r"|no\s+(?:circumstances?|account)"
     r")\b",
     re.IGNORECASE,
 )
