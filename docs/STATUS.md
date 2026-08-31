@@ -110,10 +110,13 @@
 > deliberate negative control. Both are recorded in the test file's header, and
 > five first-sweep pins were INERT and were rebuilt as behavioural tests.
 >
-> ⚠ OPEN: a live visual pass on the client-side fixes (the region panel's levy
-> figure, the `DMG` rail pill, the stashed capture question, the dispatch on
-> the interrupt tail) — the backend halves are pinned, the surfaces are not
-> yet seen. And UX23-R9's three bugle cues still owe a human ear.
+> ~~⚠ OPEN: a live visual pass on the client-side fixes.~~ **HELD the same day
+> — see the visual-pass block above.** Two of the four were signed off on
+> screen (the levy figure, the `DMG` pill); the other two are flow-ORDERING,
+> not renders, and stay pinned by tests. What remains open from this round is
+> collected in `docs/REV_FOLLOWUPS.md`: REV-V3 (33 unmapped rail rows), the two
+> unstaged flow fixes, REV-F1 (the `battles_this_turn` wipe, plausible-only),
+> and UX23-R9's three bugle cues, which still owe a human ear.
 
 > # ✅ THE FOUR LIVE UX DEFECTS FIXED — August 23, 2026 (row UX23).
 > **Landing record = `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026),
