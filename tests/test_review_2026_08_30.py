@@ -1033,3 +1033,123 @@ class TestAQuestionIsNotAnOrderInLiveMode:
             "a question resolving to a real verb must still issue no standing "
             "order — the half of the gate mock mode cannot exercise")
         assert board.actions_remaining == before
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# REV-X1 — the assurance harness reported the game wrongly
+#
+# Filed unfixed in the first pass with an explicitly-unproven hypothesis that
+# blamed an id()-backed ordering "on the AI-AI proposal path". THE HYPOTHESIS
+# WAS WRONG and the record is corrected: the game is deterministic — a clean
+# 40-turn driver snapshotting gold, relations, marshals, controllers,
+# manpower, refusals, cooldowns and war intents is byte-identical cold vs
+# warm. What varied was the harness's REPORT of it.
+#
+# `RunCapture._drain_events` answered "have I already reported this event?"
+# with `id(e)`. `id()` is unique only among LIVE objects, and the file chose
+# addresses PRECISELY because the 500-cap evicts — which is what makes them
+# unsound: an evicted event is freed, CPython recycles its address, and the
+# next event dict allocated there carries an id the seen-set already holds,
+# so a genuinely new event is dropped from the digest. Compiling the backend
+# changes the heap layout, which is why the failure tracked a cold
+# __pycache__ and why the FIRST of two child processes was always the odd one.
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class _StubWorld:
+    """The minimum `RunCapture.__init__` reads."""
+
+    def __init__(self):
+        self.player_nation = "France"
+        self.marshals = {}
+        self.event_log = []
+        self.war_instances = {}
+        self.dialogue_manager = None
+        self.pending_dispatch_events = []
+
+
+class TestTheEventDrainCannotBeFooledByARecycledAddress:
+
+    def _capture(self):
+        import sys
+        sys.path.insert(0, ".")
+        from tools.ai_v_sweep import RunCapture
+        world = _StubWorld()
+        return RunCapture(world), world
+
+    def test_the_seen_map_pins_the_objects_it_has_seen(self):
+        """The load-bearing assertion, and the one the old code fails.
+
+        After the log has turned over completely, the map must still hold
+        every event it has ever reported — that is what keeps their addresses
+        reserved. The old implementation REBUILT the set from the live log
+        each turn, so it held 1, and the two evicted events' addresses were
+        free to be handed to a future event that would then be read as
+        already-seen.
+        """
+        import gc
+        cap, world = self._capture()
+
+        world.event_log[:] = [{"type": "a", "turn": 1},
+                              {"type": "b", "turn": 1}]
+        assert len(cap._drain_events()) == 2
+
+        world.event_log[:] = []          # the 500-cap evicts
+        gc.collect()
+        world.event_log[:] = [{"type": "c", "turn": 2}]
+        assert len(cap._drain_events()) == 1, (
+            "a fresh event after a full turnover must still be reported")
+
+        assert len(cap._seen_events) == 3, (
+            "the map must ACCUMULATE and pin: 2 evicted + 1 live. Rebuilding "
+            "it from the live log is the defect — it releases exactly the "
+            "addresses the id test depends on")
+
+    def test_every_id_in_the_map_belongs_to_a_live_object_it_holds(self):
+        """The invariant stated directly: an id is only a valid identity while
+        its object is alive, so the map must BE the thing keeping it alive."""
+        import gc
+        cap, world = self._capture()
+        world.event_log[:] = [{"type": "a", "turn": 1}]
+        cap._drain_events()
+        world.event_log[:] = []
+        gc.collect()
+        for key, obj in cap._seen_events.items():
+            assert id(obj) == key, (
+                "the map's key must be the identity of the object it holds — "
+                "a bare id set proves nothing once the object is freed")
+
+    def test_an_unchanged_log_reports_nothing_twice(self):
+        """The negative control: pinning must not turn the drain into a
+        firehose that re-reports everything each turn."""
+        cap, world = self._capture()
+        world.event_log[:] = [{"type": "a", "turn": 1}]
+        assert len(cap._drain_events()) == 1
+        assert cap._drain_events() == []
+
+    def test_the_control_arm_is_deterministic_from_a_cold_bytecode_cache(self):
+        """The end-to-end proof, run as its own subprocess pair.
+
+        Skipped by default because it costs two 40-turn runs; the unit pins
+        above are the standing guard. Enable with REV_X1_E2E=1 when touching
+        the drain.
+        """
+        import json
+        import os
+        import subprocess
+        import sys
+        if os.environ.get("REV_X1_E2E") != "1":
+            pytest.skip("set REV_X1_E2E=1 to run the two-process check")
+        sys.path.insert(0, ".")
+        import tools.ai_v_sweep as sweep
+        for root, dirs, _ in os.walk("backend"):
+            for d in list(dirs):
+                if d == "__pycache__":
+                    subprocess.run(["rm", "-rf", os.path.join(root, d)])
+        views = [
+            json.dumps(sweep._control_view(
+                sweep.spawn_run("historical", sweep.AMBIENT_K, 40)),
+                sort_keys=True)
+            for _ in range(3)
+        ]
+        assert len(set(views)) == 1

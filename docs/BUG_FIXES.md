@@ -7,8 +7,12 @@
 > a 14-finder / 2-refuter-per-finding fleet at `e206869` confirmed 45 defects
 > across every system and all 45 are fixed; see §Whole-Systems Review below,
 > which is authoritative. One PRE-EXISTING harness defect is filed there
-> unfixed and named: REV-X1, the AI-V control arm's cold-cache
-> non-determinism.
+> named REV-X1 — the AI-V control arm's cold-cache non-determinism — was
+> then ROOT-CAUSED AND FIXED the same day: the harness drained the event log
+> by `id()`, which is unique only among LIVE objects, so a recycled address
+> silently dropped a genuinely new event from the digest. The game is
+> deterministic; the instrument was not. The first pass's hypothesis blamed
+> the AI path and is corrected on the record.
 >
 > Previously: **August 23, 2026 — the four live-report defects (row UX23).**
 > Landing record = §Live UX Report (Aug 23, 2026) below, authoritative.
@@ -183,40 +187,62 @@ Dispatch · the in-scene world swap never silencing live audio · the
 panel quoting the CAPITAL's levy price beside chips that charge the local one
 (measured 654g shown, 872g charged).
 
-### ⚠ REV-X1 — found in passing, PRE-EXISTING, NOT fixed here
+### ✅ REV-X1 — the assurance harness reported the game wrongly (FIXED August 30, 2026)
 
-**The AI-V assurance harness's control arm is non-deterministic whenever
-Python is writing bytecode.** `test_ai_intent_assurance.py::TestArmAControl::
-test_two_processes_byte_identical` — whose own docstring says *"If this is
-red, nothing else means anything"* — fails on a cold `__pycache__` and passes
-on a warm one. Measured A/B, each way twice:
+Filed in the first pass as *found in passing, pre-existing, NOT fixed*, with an
+explicitly-unproven hypothesis. **The hypothesis was wrong and is corrected
+here rather than quietly replaced.** It read: *"an `id()`-backed or
+allocation-dependent ordering on the AI-AI proposal path"* — i.e. it blamed the
+GAME. The game is fine.
 
-| condition | result |
-|---|---|
-| cold `__pycache__`, bytecode writes ON | **divergent** |
-| cold `__pycache__`, `PYTHONDONTWRITEBYTECODE=1` | identical |
-| warm `__pycache__` | identical |
+**What was actually broken.** `RunCapture._drain_events` in
+`tools/ai_v_sweep.py` answered *"have I already reported this event?"* with
+`id(e)`, against a set rebuilt from the live log each turn. `id()` is unique
+only among **live** objects — and the file chose addresses *precisely because*
+`world.event_log` is 500-capped and evicts (its own docstring: "drained by
+object identity each turn because the 500-cap EVICTS — the IGR-B trap this
+file refuses to re-learn"). That is the unsoundness, not the workaround for
+it: an evicted event is freed, CPython recycles its address, and the next
+event dict allocated there carries an id the seen-set already holds, so a
+**genuinely new event is silently dropped from the digest**. Compiling the
+backend changes the heap layout, which is why the failure tracked a cold
+`__pycache__` and why the FIRST of the two child processes was always the odd
+one out.
 
-The divergence is small and real: one run carries an extra
-`ai_ai_proposal_refused` (Naples→Sardinia, turn 11) that the other does not,
-which means an acceptance score crossed the 50 threshold in one process and
-not the other. **It predates this review** — the same test fails the same way
-on the stashed clean tree at `c50c0e4`, which is why nothing here is a
-regression and why it is filed rather than patched.
+**How it was established, and what the first pass got wrong.** The cold/warm
+A/B in the original row was real but its *interpretation* was not. Three
+experiments settled it:
 
-*Leading hypothesis, explicitly UNPROVEN:* the backend contains no wall-clock
-read at all (grepped: zero `time.time` / `perf_counter` / `datetime.now`), and
-`PYTHONHASHSEED=0` is pinned into the child env, so ordinary hash-order
-variance is excluded. What remains is order derived from something that varies
-per PROCESS rather than per input — an `id()`-backed hash or an allocation-
-dependent iteration somewhere on the AI-AI proposal path. **Do not "fix" this
-by setting `PYTHONDONTWRITEBYTECODE` in `spawn_run`**: that would make the
-harness green while leaving the game's own determinism unproven, which is the
-opposite of what this arm exists for.
+1. A clean 40-turn driver (no monkeypatching) snapshotting gold, relations,
+   marshals, controllers, manpower, `diplomatic_refusals`, proposal cooldowns
+   and `war_intents` after every turn is **byte-identical cold vs warm**. The
+   engine is deterministic; only the harness's report of it varied.
+2. An *instrumented* trace driver diverged run-to-run **even warm** — so that
+   probe was itself the noise source, and the "gold diverged" reading taken
+   from it is withdrawn. A probe has to be shown deterministic before its
+   output is evidence.
+3. Four warm sweeps are identical; three sequential sweeps from a cold cache
+   put run 1 alone against runs 2 and 3 — the compiling process is the odd
+   one, exactly as an address-recycling defect predicts.
 
-*Owner:* the next AI-Intent or assurance slice. *Completion definition:* the
-control arm passes from a cold `__pycache__` with bytecode writes ON, and the
-cause is named in code.
+**The fix.** `{id}` becomes `{id: the object}`, accumulating rather than
+rebuilt. Holding the object keeps its address reserved, so an id in the map
+can never be re-issued to a different event. Bounded by the number of events a
+run produces, which the digest already retains anyway.
+
+**Verified under the exact failing condition:** from a cold `__pycache__`,
+three sequential sweeps now agree, and
+`test_ai_intent_assurance.py` passes 45/45 cold. Pinned by
+`TestTheEventDrainCannotBeFooledByARecycledAddress` — whose load-bearing
+assertion is that the map still holds evicted events after a full log turnover
+(the old code holds one) — plus an opt-in end-to-end two-process check behind
+`REV_X1_E2E=1`. Mutation sweep 25/25.
+
+**Worth keeping:** the harness bug was strictly worse than the game bug it
+would have been blamed for. Every pin in that file measures a digest this
+drain produces, so a dropped event reads as "the game did not do that". The
+arm that caught it is the one whose docstring says *"if this is red, nothing
+else means anything"* — it was right.
 
 ### Method notes
 

@@ -129,7 +129,30 @@ class RunCapture:
                     if getattr(m, "nation", None) == self.player]
         self.france_needles = tuple(
             [self.player.lower(), "french"] + [n.lower() for n in marshals])
-        self._event_ids = {id(e) for e in world.event_log}
+        # REV-X1 (Aug 30, 2026) — `{id: the object itself}`, not `{id}`.
+        #
+        # `id()` is unique only among LIVE objects. This harness drained the
+        # event log by address precisely BECAUSE the 500-cap evicts... and
+        # that is exactly what makes the address unsound: an evicted event is
+        # freed, CPython recycles its address, and the next event dict
+        # allocated there reports an id this set already holds. The genuinely
+        # new event is then silently dropped from the digest.
+        #
+        # Measured: `TestArmAControl::test_two_processes_byte_identical` — the
+        # arm whose own docstring says "if this is red, nothing else means
+        # anything" — failed reproducibly whenever the first of the two child
+        # processes was also COMPILING the backend, because compiling changes
+        # the heap layout and therefore which addresses get recycled. The GAME
+        # is deterministic: a clean 40-turn driver snapshotting gold,
+        # relations, marshals, controllers, manpower, refusals, cooldowns and
+        # war intents is byte-identical cold vs warm. Only the harness's
+        # REPORT of the game varied — the worse of the two bugs to have in an
+        # instrument, and the one that would have been blamed on the game.
+        #
+        # Holding the object keeps its address reserved, so an id in this map
+        # can never be re-issued to a different event. Bounded by the number
+        # of events a run produces, which the digest already retains anyway.
+        self._seen_events = {id(e): e for e in world.event_log}
         self._war_ids = set((getattr(world, "war_instances", None) or {}))
         self._ended_ids = {
             wid for wid, inst in
@@ -185,8 +208,14 @@ class RunCapture:
 
     def _drain_events(self) -> list:
         world = self.world
-        fresh = [e for e in world.event_log if id(e) not in self._event_ids]
-        self._event_ids = {id(e) for e in world.event_log}
+        # REV-X1: the map ACCUMULATES and pins. Rebuilding it from the live
+        # log each turn (what this used to do) threw away the references that
+        # keep the addresses reserved, which is the whole point — see the
+        # note on `_seen_events`.
+        fresh = [e for e in world.event_log
+                 if id(e) not in self._seen_events]
+        for event in world.event_log:
+            self._seen_events[id(event)] = event
         return [_project(e) for e in fresh]
 
     def _incoming_proposals(self) -> list:

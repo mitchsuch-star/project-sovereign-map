@@ -166,5 +166,12 @@
     "old": "                    f\"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops, \"\n                    \"and the battles fought so far are struck from the war \"",
     "new": "                    f\"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops \"\n                    \"and the war score freezes. Nothing is struck from the war \"",
     "tests": "tests/test_review_2026_08_30.py::TestTheTruceDoesNotFreezeTheScore"
+  },
+  {
+    "id": "REV-X1 the drain pins what it has seen",
+    "file": "tools/ai_v_sweep.py",
+    "old": "        for event in world.event_log:\n            self._seen_events[id(event)] = event",
+    "new": "        self._seen_events = {id(e): e for e in world.event_log}",
+    "tests": "tests/test_review_2026_08_30.py::TestTheEventDrainCannotBeFooledByARecycledAddress"
   }
 ]

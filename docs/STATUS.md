@@ -48,17 +48,29 @@
 > of two sibling branches. Four separate fixes this round were "make the second
 > site CALL the first".
 >
-> **⚠ REV-X1, found in passing, PRE-EXISTING, filed NOT fixed.** The AI-V
+> **✅ REV-X1 — found in passing, then ROOT-CAUSED AND FIXED.** The AI-V
 > assurance control arm — the one whose docstring says *"if this is red,
-> nothing else means anything"* — is non-deterministic on a cold
-> `__pycache__`. Measured A/B, twice each way: cold + bytecode writes ON →
-> divergent (one extra `ai_ai_proposal_refused`, Naples→Sardinia, turn 11);
-> cold + `PYTHONDONTWRITEBYTECODE=1` → identical; warm → identical. It fails
-> identically on the stashed clean tree, so it is not this row's doing. The
-> hypothesis (an `id()`-backed or allocation-dependent ordering on the AI-AI
-> proposal path) is recorded as UNPROVEN, and the tempting one-line harness
-> workaround is explicitly forbidden in the row, because it would turn the arm
-> green while leaving the thing it exists to prove unproven.
+> nothing else means anything"* — was non-deterministic from a cold
+> `__pycache__`. **My first-pass hypothesis was wrong and is corrected on the
+> record: it blamed the game's AI path; the game is fine.** A clean 40-turn
+> driver snapshotting gold, relations, marshals, controllers, manpower,
+> refusals, cooldowns and war intents is byte-identical cold vs warm. The
+> harness's `_drain_events` answered "have I reported this event?" with
+> `id(e)` — unique only among LIVE objects — and it chose addresses *because*
+> the 500-cap evicts, which is exactly what makes them unsound: an evicted
+> event is freed, CPython recycles the address, and the next event allocated
+> there is dropped as already-seen. Compiling changes the heap layout, hence
+> the cold-cache correlation and hence the FIRST child always being the odd
+> one. Fixed by pinning (`{id}` → `{id: the object}`, accumulating), verified
+> under the exact failing condition (cold cache: three sweeps agree; the test
+> file 45/45), pinned, and mutation-swept 25/25.
+>
+> Two method lessons paid for in this round: **an instrumented probe must be
+> shown deterministic before its output is evidence** — my first trace driver
+> diverged run-to-run even warm, and the "gold diverged" reading taken from it
+> is withdrawn — and **a harness bug is worse than the game bug it would have
+> been blamed for**, because every pin in that file measures a digest the
+> broken drain produced.
 >
 > **Two claims of my own were corrected by measurement during the round** — a
 > finding's cited line was one rung off (a spy on the function proved that arm
