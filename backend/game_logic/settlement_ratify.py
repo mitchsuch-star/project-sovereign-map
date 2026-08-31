@@ -807,7 +807,21 @@ def _record_common_peace_treaties(
                     pair_terms.append(term)
             elif term_from == covered_enemy:
                 pair_terms.append(term)
-            elif term_to == proposer_member and term_from:
+            # Aug 30, 2026 review: the arm this replaces was
+            # `term_to == proposer_member and term_from` — ANY clause pointing
+            # at the leader, from ANY court. In a settlement where France
+            # covers both Austria and Prussia, Prussia's indemnity to France
+            # was therefore written into the France–Austria treaty record too,
+            # so the ledger showed Austria paying a bill Prussia owed. Any
+            # clause from `covered_enemy` is already caught one arm above, and
+            # a clause from a third court belongs to that court's own pair.
+            #
+            # What genuinely had no arm is the other direction: a clause the
+            # LEADER gives to this enemy — the sweetener that buys the
+            # signature — matched neither test and was dropped from the record
+            # entirely, so a peace bought with a province recorded only the
+            # taking.
+            elif term_from == proposer_member and term_to == covered_enemy:
                 pair_terms.append(term)
         treaty_type = {
             "ALLIANCE": "alliance",

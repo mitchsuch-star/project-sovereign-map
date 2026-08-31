@@ -2815,6 +2815,19 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     if old_state == "WAR" and new_state != "WAR":
         from backend.game_logic.withdrawal import open_evacuation_corridor
         open_evacuation_corridor(world, nation_a, nation_b)
+    # Aug 30, 2026 review: ...and again when the TRUCE becomes a peace. The
+    # arm above fires on WAR->ARMISTICE (§5's pin: a truce strands an army
+    # exactly as a peace does), but that grant expires — or is rolled back
+    # outright when nobody was stranded yet — and it is the PEACE, signed
+    # turns later, whose cession clauses actually cut the road home. The
+    # truce-then-treaty route is the one IGR-X3 encourages, so this was the
+    # common case, not the corner: measured shape is a corps in captured
+    # Volhynia whose only road runs through captured Podolia, which the peace
+    # hands back. Cheap when nothing is stranded: the opener re-derives from
+    # the live map and rolls its own provisional grant back.
+    elif old_state == "ARMISTICE" and new_state not in ("WAR", "ARMISTICE"):
+        from backend.game_logic.withdrawal import open_evacuation_corridor
+        open_evacuation_corridor(world, nation_a, nation_b)
     elif new_state == "WAR" and old_state != "WAR":
         from backend.game_logic.withdrawal import revoke_evacuation_grant
         revoke_evacuation_grant(world, nation_a, nation_b)
@@ -3362,6 +3375,25 @@ def recalculate_war_scores(world) -> None:
                 score = calculate_war_score(parts[0], parts[1], world)
                 war_scores[diplo_key] = int(score)
     world.war_scores = war_scores
+
+
+def armistice_variant_for(world, proposer: str, target: str) -> str:
+    """Which armistice a war score buys — ONE rule (GR1).
+
+    Aug 30, 2026 review. Four sites resolved this and they disagreed at
+    exactly zero: the scoring seam read `ws < 0 -> losing` (so a level war is
+    `armistice_winning`, BASE_DISPOSITION 20) while the wizard likelihood, the
+    acceptance preview and the BPH-B snapshot all read `ws > 0 -> winning` (so
+    a level war is `armistice_losing`, base 40). A dead-even war is the most
+    ordinary state a truce is asked for in, and the preview promised a court
+    twenty base points more willing than the send actually found it.
+
+    The scoring seam's rule wins because it is the one that RESOLVES the deal:
+    only a proposer who is actually behind asks from weakness.
+    """
+    return ("armistice_losing"
+            if get_war_score_for(world, proposer, target) < 0
+            else "armistice_winning")
 
 
 def get_war_score_for(world, nation: str, opponent: str) -> int:
@@ -4353,10 +4385,21 @@ def build_war_context_snapshot(
             "current_relation": relation_now,
             "projected_outcome": "peace" if on_course_for_peace else "war",
             "display_lines": [
+                # Aug 30, 2026 review: this said "the war score freezes", and
+                # it does not — ratifying WAR->ARMISTICE runs `cleanup_war_end`,
+                # which POPS `war_scores`, `battle_records` and
+                # `decisive_battles` for the pair. Every battle won before the
+                # truce is amnestied, permanently, and if the war resumes it
+                # resumes from nothing. The player was being told the opposite
+                # of that at the exact moment of deciding. PT-J2's campaign
+                # ledger (provinces taken, own dead) is the half that DOES
+                # survive by design, so the sentence names both.
                 (
-                    f"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops "
-                    "and the war score freezes. No territory or gold "
-                    "changes hands at its end."
+                    f"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops, "
+                    "and the battles fought so far are struck from the war "
+                    "score — if the war resumes, it resumes from nothing. "
+                    "The campaign ledger of provinces and dead still stands. "
+                    "No territory or gold changes hands at its end."
                 ),
                 (
                     f"When it expires: peace if relations have healed to "
@@ -7048,10 +7091,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # thresholds. Same losing-rule as _build_base_terms: proposer losing →
     # armistice_losing.
     if proposal_type == "armistice" and target:
-        _ws_for_variant = get_war_score_for(world, proposer, target)
-        proposal_type = (
-            "armistice_losing" if _ws_for_variant < 0 else "armistice_winning"
-        )
+        proposal_type = armistice_variant_for(world, proposer, target)
 
     # Get diplomats
     diplomats = getattr(world, 'diplomats', {})
@@ -9724,6 +9764,16 @@ def sovereign_seat_bonus(world, nation: str) -> int:
     capital = world.get_nation_capital(nation)
     if not capital:
         return 0
+    # Aug 30, 2026 review: the capital is a NAME here, and `get_nation_capital`
+    # reads the authored map with no controller check — so an Emperor standing
+    # in a Paris the enemy holds still "held court" and drew the Seat's point.
+    # The caller computes `controls_capital` three lines above this call and
+    # charges -1 for the loss inside `calculate_dp`, so the two halves of one
+    # fact disagreed in the same function: the occupied capital cost a point
+    # and paid one back. He must be in his OWN capital.
+    region = world.get_region(capital) if hasattr(world, "get_region") else None
+    if region is not None and getattr(region, "controller", nation) != nation:
+        return 0
     sovereign = _standing_sovereign(world, nation)
     if sovereign is not None and sovereign.location == capital:
         return 1
@@ -10867,8 +10917,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 }
                 ptype = _type_map.get(target_state, "peace")
                 if target_state == "ARMISTICE":
-                    ws = get_war_score_for(world, player, target_nation)
-                    ptype = "armistice_winning" if ws > 0 else "armistice_losing"
+                    ptype = armistice_variant_for(world, player, target_nation)
                 proposal = {
                     "type": ptype,
                     "proposer_nation": player,
@@ -11431,7 +11480,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         try:
             # Build a mock proposal to get components
             action_to_type = {
-                "propose_armistice": "armistice_winning" if (get_war_score_for(world, player, target_nation) > 0) else "armistice_losing",
+                "propose_armistice": armistice_variant_for(
+                    world, player, target_nation),
                 "propose_peace": "peace",
                 "propose_open_borders": "open_borders",
                 "propose_non_aggression": "non_aggression",
@@ -11518,7 +11568,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
             action_id = a.get("action", "")
             if action_id in PEACE_CLASS_ACTIONS and a.get("available"):
                 ptype_map = {
-                    "propose_armistice": "armistice_winning" if get_war_score_for(world, player, target_nation) > 0 else "armistice_losing",
+                    "propose_armistice": armistice_variant_for(
+                        world, player, target_nation),
                     "propose_peace": "peace",
                 }
                 ptype = ptype_map.get(action_id, "peace")

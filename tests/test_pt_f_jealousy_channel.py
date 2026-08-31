@@ -150,7 +150,7 @@ class TestAnUnopposedCaptureIsNotIdling:
         block = src.split("# Move attacker to captured region")[1].split(
             "# Attempt capture")[0]
         assert "marshal.idle_turns = 0" in block
-        assert "marshal._acted_this_turn = True" in block
+        assert "marshal.acted_this_turn = True" in block
 
     def test_the_inert_pin_was_replaced_not_extended(self):
         """⚠ The spec names this one: `test_idle_turns_reset_on_attack`

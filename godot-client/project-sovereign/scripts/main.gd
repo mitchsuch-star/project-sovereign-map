@@ -225,6 +225,15 @@ var _redemption_recheck_turn: int = -1  # PT-B1: once-per-turn recovery poll
 # BD: the Battle Diorama tableau (layer 121)
 var battle_diorama = null
 var pending_diorama_data = null   # stashed payload, raised when control returns
+# Aug 30, 2026 review: the same stash, for the same reason. A capture
+# question mounted DURING end-turn processing (the strategic loop takes a
+# province) arrives on the SAME response as the enemy phase, the strategic
+# reports, the jealousy battles and the Morning Dispatch — and the capture
+# route matched first, returned, and `_display_result` never ran. The player
+# was asked to sack or secure a town and the entire report of the turn that
+# took it was gone. The question is not dropped: it is raised when control
+# returns, exactly as the tableau is.
+var pending_capture_response = null
 var last_battle_diorama = null    # latest payload for the "⚔ View the field" link
 var _diorama_standalone := false  # dismissal owns the input chain only when true
 
@@ -283,6 +292,12 @@ var _audio_seen_war_ids: Dictionary = {}
 # IGR-F: a digest seen on the wire but not yet raised. -1 = nothing waiting.
 var _pending_envoy_digest_turn: int = -1
 var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gate
+# Aug 30, 2026 review: the gate needs a DIFFERENT number from the badge.
+# `pending_envoy_count` counts every letter in the book, including the
+# persistent settlement offers that survive an end turn by design — so the
+# warning claimed a loss that could not happen, and when a persistent offer
+# was the only item it produced a stop nothing could clear.
+var _current_lapsing_count: int = 0
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
@@ -1270,6 +1285,23 @@ func _toggle_terminal():
 	else:
 		_restore_terminal()
 
+func _is_end_turn_phrasing(command: String) -> bool:
+	"""Every phrasing the backend parser accepts as `end_turn`.
+
+	Aug 30, 2026 review. The lapse-confirmation gate matched the literal
+	string "end turn" while `llm_client` reads the action from a SUBSTRING
+	test over three keywords — so "next turn" and "end turn now" advanced
+	the turn without ever meeting the warning that unanswered envoys were
+	about to lapse. A client-side gate on a server-side vocabulary has to
+	speak that vocabulary; this mirrors `llm_client.py`s own arm."""
+	var c := command.to_lower().strip_edges()
+	if c.find("end turn") != -1:
+		return true
+	if c.find("end_turn") != -1:
+		return true
+	return c.find("next turn") != -1
+
+
 func _execute_end_turn():
 	"""Execute end turn command with client-side lapse confirmation gate."""
 	if _awaiting_end_turn_confirmation:
@@ -1278,7 +1310,7 @@ func _execute_end_turn():
 		return
 
 	# Client-side confirmation gate — spec §5
-	if _current_envoy_count > 0:
+	if _current_lapsing_count > 0:
 		_show_lapse_confirmation()
 		return
 
@@ -1305,7 +1337,7 @@ func _send_end_turn():
 
 func _show_lapse_confirmation():
 	"""Show confirmation before ending turn with pending envoys."""
-	var msg = "You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_envoy_count
+	var msg = "You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_lapsing_count
 	add_output("")
 	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
 	add_output("[color=#d9c08c]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
@@ -1333,7 +1365,12 @@ func _execute_command():
 	# second, fifth, twentieth time never got past it. The warning's own text
 	# ("or type end turn again to confirm the lapse") named the one route that
 	# could not work; the button, bare Enter and the E hotkey all could.
-	if command.to_lower() == "end turn":
+	# Aug 30, 2026 review: an EXACT string match, against a parser that reads
+	# end_turn from a substring — so "next turn", "end turn now", "end the
+	# turn" and "finish turn" all reached the backend as an ordinary command
+	# and advanced the turn without ever meeting the lapse warning. The one
+	# phrasing the gate knew was the one it had; every synonym was a bypass.
+	if _is_end_turn_phrasing(command):
 		command_input.text = ""
 		_execute_end_turn()
 		return
@@ -1919,7 +1956,15 @@ func _route_commitment_paradox_response(response: Dictionary):
 	commitment_paradox_popup.show_paradox(response.commitment_paradox_popup)
 
 func _response_has_capture_choice_route(response: Dictionary) -> bool:
-	return response.has("pending_capture_choice") and response.pending_capture_choice
+	if not (response.has("pending_capture_choice") and response.pending_capture_choice):
+		return false
+	# An end-turn response carries the whole narrative of the turn. Let it be
+	# told; the question waits for control to come back (see
+	# `pending_capture_response`).
+	if response.has("enemy_phase") and response.enemy_phase != null:
+		pending_capture_response = response
+		return false
+	return true
 
 func _route_capture_choice_response(response: Dictionary):
 	_show_capture_choice_dialog(response)
@@ -2078,6 +2123,17 @@ func _stash_diorama(response: Dictionary) -> void:
 		if best != null:
 			last_battle_diorama = best
 			pending_diorama_data = best
+
+
+func _show_pending_capture_choice() -> bool:
+	"""Raise a capture question stashed out of an end-turn response. True when
+	shown — the caller must then NOT re-enable input."""
+	if pending_capture_response == null or capture_choice_dialog == null:
+		return false
+	var stashed = pending_capture_response
+	pending_capture_response = null
+	_show_capture_choice_dialog(stashed)
+	return true
 
 
 func _show_pending_diorama() -> bool:
@@ -3520,10 +3576,18 @@ func _display_morning_dispatch(data: Dictionary):
 	add_output("")
 
 func _show_pending_dispatch():
-	"""Display pending morning dispatch if any, then clear it."""
+	"""Display pending morning dispatch if any, then clear it.
+
+	This is the last thing shown before the player gets control back, which
+	makes it the right place to raise a capture question stashed out of an
+	end-turn response (Aug 30, 2026 review) — the turn is told in full, and
+	then the town asks what to do with it.
+	"""
 	if pending_dispatch_data != null:
 		_display_morning_dispatch(pending_dispatch_data)
 		pending_dispatch_data = null
+	if _show_pending_capture_choice():
+		return
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""
@@ -3695,6 +3759,7 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
 	if not diplo_data.is_empty():
 		_set_pending_envoy_count(int(diplo_data.get("pending_envoy_count", 0)))
+		_current_lapsing_count = int(diplo_data.get("pending_lapsing_count", 0))
 		top_bar.update_diplomatic_fields(diplo_data)
 
 
@@ -4434,6 +4499,14 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 		region_panel.close_panel()
 	if dialog_manager:
 		dialog_manager.hide_all()
+	# Aug 30, 2026 review: `hide_all()` raw-hides every popup WITHOUT running
+	# its close handler, so neither ownership seam fires and the one-shots —
+	# children of the AudioManager singleton, not of any scene — ring on into
+	# the freshly loaded campaign. UX23-B added exactly this sweep for the
+	# main-menu path and this in-scene swap (Load / New Campaign / the
+	# tutorial boot) never got it: the same 5-second peal, one door over.
+	AudioManager.stop_all_cues()
+	AudioManager.stop_all_loops()
 	if notification_bar and notification_bar.has_method("update_notifications"):
 		notification_bar.update_notifications([])
 
@@ -4944,6 +5017,17 @@ func _process_next_interrupt():
 		pending_strategic_response = null
 		pending_enemy_phase_response = null
 		_update_war_panel_visibility()
+		# Aug 30, 2026 review: this tail is a control-return tail like the
+		# other four, and it was missing their shared chain. The end-turn
+		# route that passes through an input-requiring interrupt early-returns
+		# out of BOTH `_on_enemy_phase_dismissed` and
+		# `_on_strategic_report_dismissed` ahead of their own
+		# `_show_pending_dispatch()` calls — so on exactly the turns that
+		# produced an interrupt worth stopping for, the Morning Dispatch was
+		# stashed and never shown, and the player began the turn with no
+		# briefing. The redemption arm above already knew to call it; the
+		# ordinary exit did not.
+		_show_pending_dispatch()
 		# BD: a muster-confirmed "Attack Anyway" resolves a battle inside
 		# this flow — raise its stashed tableau now that control returns.
 		if _show_pending_diorama():

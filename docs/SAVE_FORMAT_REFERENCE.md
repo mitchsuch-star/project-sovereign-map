@@ -456,6 +456,7 @@ Reserved future `event_log` payloads:
   "pending_interrupt": null,
 
   "in_combat_this_turn": false,
+  "acted_this_turn": false,
   "last_combat_turn": null,
   "last_combat_result": null,
   "last_combat_location": null,
@@ -625,7 +626,8 @@ Reserved future `event_log` payloads:
 #### Combat Tracking
 | Field | Type | Description |
 |-------|------|-------------|
-| `in_combat_this_turn` | bool | Fought this turn |
+| `in_combat_this_turn` | bool | Fought this turn. NOT cleared by `load_game` (Aug 30, 2026): it is one of only two exemptions the turn-end idle pass honours, so wiping it made a mid-turn save/load mark every marshal who had fought as IDLE. Cleared at the real turn boundary by `clear_turn_battles`. |
+| `acted_this_turn` | bool | Moved or attacked this turn (Aug 30, 2026). Promoted from the setattr-created `_acted_this_turn`, which nothing serialized and which the underscore filter in `test_serialization_enforcement` could not see — the second half of the same idle-clock defect. |
 | `last_combat_turn` | int\|null | Turn of last combat |
 | `last_combat_result` | string\|null | "victory", "defeat", "stalemate" |
 | `last_combat_location` | string\|null | Region of last combat |

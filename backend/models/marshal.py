@@ -401,6 +401,17 @@ class Marshal:
 
         # Battle tracking (for cannon fire detection and until_battle_won)
         self.in_combat_this_turn: bool = False
+        # Aug 30, 2026 review: promoted from the setattr-created
+        # `_acted_this_turn`, which nothing serialized. It is the ONLY record
+        # that a marshal moved (as opposed to fought) this turn, and the idle
+        # pass at turn end reads it — so a mid-turn save/load, the most
+        # ordinary of habits, marked every marshal who had already marched as
+        # IDLE. `idle_turns` is not cosmetic: it lowers the jealousy grievance
+        # threshold at >= 3, gates the hostile-pair triggers at >= 2, and
+        # decays vindication. An underscore name was also structurally
+        # invisible to `test_serialization_enforcement`, which filters them —
+        # the A10 class this file's own header documents as closed.
+        self.acted_this_turn: bool = False
         self.last_combat_turn: Optional[int] = None
         self.last_combat_result: Optional[str] = None  # "victory", "defeat", "stalemate"
         self.last_combat_location: Optional[str] = None
@@ -1652,6 +1663,7 @@ class Marshal:
 
             # ═══════ COMBAT TRACKING ═══════
             "in_combat_this_turn": self.in_combat_this_turn,
+            "acted_this_turn": self.acted_this_turn,
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
             "last_combat_location": self.last_combat_location,
@@ -1848,6 +1860,7 @@ class Marshal:
 
         # ═══════ COMBAT TRACKING ═══════
         marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)
+        marshal.acted_this_turn = bool(data.get("acted_this_turn", False))
         marshal.last_combat_turn = data.get("last_combat_turn")
         marshal.last_combat_result = data.get("last_combat_result")
         marshal.last_combat_location = data.get("last_combat_location")

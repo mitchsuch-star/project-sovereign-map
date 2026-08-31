@@ -2814,6 +2814,38 @@ def _handle_pair_peace_substitute_action(
     actor = str(getattr(world, "player_nation", "France") or "France")
     proposal_type = "armistice" if action == "seek_armistice_instead" else "peace"
 
+    # IGR-D Q2(b) — Aug 30, 2026 review. The gate that DISABLES this route
+    # when the draft holds a settlement-tier identity clause against the
+    # target was enforced at option-RENDER time only. Nothing re-checked it
+    # here, and `evaluate_pair_peace_substitute_eligibility` cannot see the
+    # draft by its own siting comment — so the greyed-out row was fully
+    # executable by typing its number or its label, and the drafting the gate
+    # exists to protect (vassalage, liberation, subjugation, forced alliance)
+    # was silently thrown away after all. Same function, same arguments, same
+    # answer: the reason a route is refused must be the reason it refuses.
+    if action == "seek_bilateral_peace":
+        from backend.game_logic.settlement_staging import (
+            pair_substitute_settlement_tier_block,
+        )
+        _tier_block = pair_substitute_settlement_tier_block(
+            list(dialogue.get("settlement_terms") or []),
+            target=selected_target,
+            proposer_leader=actor,
+        )
+        if _tier_block:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_confirm",
+                "action": action,
+                "war_id": war_id,
+                "selected_target_nation": selected_target,
+                "scope": "selected_pair",
+                "error": "settlement_tier_clause_blocks_substitute",
+                "error_display": _tier_block,
+                "mutated": False,
+                "suppress_proposal_result_popup": True,
+            }
+
     eligibility = evaluate_pair_peace_substitute_eligibility(
         world,
         war_id=war_id,

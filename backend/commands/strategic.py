@@ -1297,10 +1297,22 @@ class StrategicOrderProcessor:
             return self._break_order(marshal, world,
                                      f"Peace with {target.nation} — pursuit cancelled")
 
-        # Target destroyed?
+        # Target destroyed — or TAKEN. Aug 30, 2026 review: `strength <= 0`
+        # is satisfied by two different fates, and the project distinguishes
+        # them everywhere else — a W6-7 prisoner stays in `world.marshals` at
+        # strength 0 with `captured_by` set. So a marshal who ran his quarry
+        # down and captured him was told the man was "destroyed", and the
+        # sentence interpolated `order.target`, which is the raw scenario KEY
+        # ("ArchdukeCharles"), the exact NPC-12 shape.
         if not target or target.strength <= 0:
+            from backend.display_names import humanize_entity_name
+            _quarry = humanize_entity_name(
+                getattr(target, "name", None) or str(order.target))
+            _fate = "destroyed"
+            if target is not None and getattr(target, "captured_by", ""):
+                _fate = "taken prisoner"
             return self._complete_order(marshal, world,
-                                        f"{order.target} destroyed")
+                                        f"{_quarry} {_fate}")
 
         # ═══════════════════════════════════════════════════════════
         # FOG OF WAR: No intelligence on target -> reject PURSUE

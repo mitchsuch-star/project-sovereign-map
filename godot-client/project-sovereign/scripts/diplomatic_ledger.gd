@@ -107,6 +107,16 @@ func _input(event):
 	"""Handle number keys 1-6 for sub-tab switching. Only when visible."""
 	if not visible:
 		return
+	# Aug 30, 2026 review: `visible` is not the whole question. `Node._input`
+	# runs BEFORE GUI input reaches a focused control, so with any of these
+	# screens open — and they are all non-modal, the terminal stays live
+	# behind them — every bare digit typed into the command line was eaten
+	# here and `set_input_as_handled()` stopped it ever arriving. The player
+	# typed "recruit 5000 infantry" and got "recruit  infantry" plus a tab
+	# switch. A digit belongs to whoever has the caret.
+	var _focused = get_viewport().gui_get_focus_owner()
+	if _focused is LineEdit or _focused is TextEdit:
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var switched = true
 		match event.keycode:

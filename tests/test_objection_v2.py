@@ -1777,7 +1777,7 @@ class TestV2aIdleTurnsIntegration:
         assert result.get("success"), result.get("message")
         assert world.marshals["Davout"].idle_turns == 0, (
             "taking a province is not idling")
-        assert world.marshals["Davout"]._acted_this_turn is True
+        assert world.marshals["Davout"].acted_this_turn is True
 
     def test_idle_turns_reset_on_move(self):
         """The move path already did it correctly
@@ -1802,7 +1802,7 @@ class TestV2aIdleTurnsIntegration:
 
         assert result.get("success"), result.get("message")
         assert world.marshals["Davout"].idle_turns == 0
-        assert world.marshals["Davout"]._acted_this_turn is True
+        assert world.marshals["Davout"].acted_this_turn is True
 
     def test_idle_turns_incremented_for_enemy_too(self):
         """Jealousy v3.2 §0.2 item 6 CONSCIOUSLY FLIPPED this pin: idle
@@ -1832,7 +1832,7 @@ class TestV2aIdleTurnsIntegration:
         world = WorldState()
         davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
         davout.idle_turns = 0
-        davout._acted_this_turn = True
+        davout.acted_this_turn = True
         world.marshals["Davout"] = davout
         world.player_nation = "France"
 
@@ -1840,7 +1840,7 @@ class TestV2aIdleTurnsIntegration:
 
         assert davout.idle_turns == 0
         # Flag should be cleared
-        assert not getattr(davout, '_acted_this_turn', False)
+        assert not getattr(davout, 'acted_this_turn', False)
 
     def test_idle_turns_serialization_roundtrip(self):
         """idle_turns survives to_dict/from_dict cycle."""

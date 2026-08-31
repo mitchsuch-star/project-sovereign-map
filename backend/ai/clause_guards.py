@@ -98,12 +98,13 @@ _NEGATION_MARKER_RE = re.compile(
     # headline shape, recurring for the phrasings its table never sampled.
     # These are whole prepositional phrases, so they are matched in full and
     # the clause is blanked from "under"/"on"/"by"/"in" onward.
-    r"|under\s+no\s+circumstances?"
-    r"|on\s+no\s+account"
-    r"|by\s+no\s+means"
-    r"|in\s+no\s+(?:case|event)"
-    r"|at\s+no\s+(?:time|point)"
-    r"|no\s+(?:circumstances?|account)"
+    # One arm, not six. The mutation sweep found the first draft's specific
+    # phrase arms ("under no circumstances", "on no account") INERT: a general
+    # `no (circumstances|account)` arm sat below them and matched the same
+    # text, so deleting a specific arm changed nothing and its pin proved
+    # nothing. The general form is also the correct one — the prohibitive is
+    # "no <abstract noun>" whatever preposition introduces it.
+    r"|no\s+(?:circumstances?|account|means|case|event|time|point)\b"
     r")\b",
     re.IGNORECASE,
 )

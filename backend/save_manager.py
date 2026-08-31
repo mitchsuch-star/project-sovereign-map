@@ -186,8 +186,16 @@ def load_game(filepath: Path) -> Dict:
 
         # Clear transient per-turn data that shouldn't persist across save/load
         world.battles_this_turn = []
-        for marshal in world.marshals.values():
-            marshal.in_combat_this_turn = False
+        # Aug 30, 2026 review — a FOURTH deliberate non-clear, for the reason
+        # the first three were added. `in_combat_this_turn` was wiped here,
+        # and the turn-end idle pass reads it as one of its only two
+        # exemptions, so a mid-turn save/load marked every marshal who had
+        # fought that turn as IDLE. `idle_turns` drives real mechanics: the
+        # jealousy grievance threshold drops to hair-trigger at >= 3, the
+        # hostile-pair triggers REQUIRE >= 2, and vindication decays on it.
+        # The flag is serialized, restored by `from_dict`, and cleared at the
+        # real turn boundary by `clear_turn_battles` — which is precisely the
+        # contract the other three non-clears cite.
         world.mild_concerns_this_turn = []
         world.gold_spent_this_turn = {}
         # Aug 2026 health-check audit — deliberate NON-clears:

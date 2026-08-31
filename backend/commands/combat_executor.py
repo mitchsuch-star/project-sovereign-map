@@ -2367,7 +2367,7 @@ class CombatExecutor:
         # ── 6. Idle reset ──
         if not ctx.get('skip_idle_reset'):
             attacker.idle_turns = 0
-            attacker._acted_this_turn = True
+            attacker.acted_this_turn = True
 
         # ── 7. Record battle for cannon fire detection ──
         if not ctx.get('skip_cannon_fire_record'):
@@ -3774,7 +3774,7 @@ class CombatExecutor:
         marshal.increment_attacks_this_turn()  # Shares exhaustion counter
         marshal.in_combat_this_turn = True  # For cannon fire interrupt detection
         marshal.idle_turns = 0
-        marshal._acted_this_turn = True  # Prevents idle increment at turn end
+        marshal.acted_this_turn = True  # Prevents idle increment at turn end
 
         # Record attack for flanking system (bombardment counts)
         world.record_attack(marshal.name, marshal.location, target_location,
@@ -4429,7 +4429,7 @@ class CombatExecutor:
 
                         # [4A-1] Reset idle tracking
                         marshal.idle_turns = 0
-                        marshal._acted_this_turn = True
+                        marshal.acted_this_turn = True
 
                         # [4A-1] Refresh fog of war
                         if marshal.nation == world.player_nation:
@@ -4911,7 +4911,7 @@ class CombatExecutor:
                     # the dispatch and the marshal card.
                     # ══════════════════════════════════════════════════
                     marshal.idle_turns = 0
-                    marshal._acted_this_turn = True
+                    marshal.acted_this_turn = True
 
                     # Movement attrition (Phase 6.2.F)
                     attrition_info = self._executor._calculate_movement_attrition(marshal, resolved_target, world)
@@ -6391,7 +6391,7 @@ class CombatExecutor:
 
         # V2a: Reset idle tracking on attack
         marshal.idle_turns = 0
-        marshal._acted_this_turn = True
+        marshal.acted_this_turn = True
 
         # Record battle for cannon fire detection (hearing the guns)
         world.record_battle(target_location, marshal.name, enemy_marshal.name,

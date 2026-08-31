@@ -67,6 +67,12 @@ const TYPE_ICONS = {
 	# able to pick it out of six pills first.
 	"dotation_expectation": "PAY",
 	"dotation_erosion": "PAY",
+	# Aug 30, 2026 review: the same fallthrough, one slice later. The [V-6]
+	# damage-legibility work added the `buildings_damaged` producer so "the
+	# damage announces itself" and never made the renderer join, so a wrecked
+	# market or depot arrived as the anonymous priority pill "INF" — naming
+	# neither the province nor the matter, in a rail the player scans by icon.
+	"buildings_damaged": "DMG",
 }
 
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-

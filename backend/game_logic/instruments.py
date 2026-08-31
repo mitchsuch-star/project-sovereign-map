@@ -598,6 +598,19 @@ def process_instruments(world) -> List[Dict]:
                 break
             if world.is_at_war(guarantor, attacker):
                 continue  # honoured — the guarantor is in the fight
+            # Aug 30, 2026 review: a guarantee is a promise to DEFEND, and
+            # attribution decides here exactly as it does in the arm above.
+            # This loop walked every war the ward was in and branded the
+            # guarantor for all of them, so a ward that DECLARED an offensive
+            # war of its own dragged its protector's name through the mud for
+            # not joining an attack it never promised to make — and the
+            # `guarantee_abandoned` brand is the strongest casus belli the
+            # instrument system has. The same `_pair_aggressor` resolver the
+            # guarantor-attacks-ward arm already uses; an unattributable war
+            # (no record either way) keeps the old behaviour and still brands,
+            # because a defensive reading is the safer default for the ward.
+            if _pair_aggressor(world, protected, attacker) == protected:
+                continue
             # Grace runs from the LATER of the war start and the pledge
             # (review fix: a guarantee pledged into an old war branded
             # the guarantor one turn later, before it could ever march).

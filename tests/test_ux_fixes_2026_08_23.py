@@ -444,10 +444,17 @@ class TestTypedEndTurnCanActuallyConfirmTheLapse:
     # inside `if command.is_empty():` sits three tabs deep and is legitimate
     # (that branch confirms the lapse on a bare Enter).
     _FN_LEVEL_CLEAR = "\n\t_awaiting_end_turn_confirmation = false"
+    # Aug 30, 2026 review: the anchor MOVED, the rule did not. The dispatch
+    # used to be `if command.to_lower() == "end turn":` — an exact-string
+    # match against a backend that reads end_turn from a SUBSTRING, so "next
+    # turn" and "end turn now" walked past the lapse warning entirely. It is
+    # now a helper that speaks the parser's own vocabulary. A pin must follow
+    # the code rather than keep a green name.
+    _DISPATCH = "if _is_end_turn_phrasing(command):"
 
     def test_the_latch_is_not_cleared_before_the_end_turn_dispatch(self):
         body = self._execute_command_body()
-        dispatch = body.index('if command.to_lower() == "end turn":')
+        dispatch = body.index(self._DISPATCH)
         assert self._FN_LEVEL_CLEAR not in body[:dispatch], (
             "clearing the latch above the dispatch makes the typed "
             "confirmation route structurally impossible")
@@ -460,7 +467,7 @@ class TestTypedEndTurnCanActuallyConfirmTheLapse:
         Cabinet-redirect return kept the pin green while every redirected
         sentence left the latch armed (review round, 4b09e59)."""
         body = self._execute_command_body()
-        after = body[body.index('if command.to_lower() == "end turn":'):]
+        after = body[body.index(self._DISPATCH):]
         # skip the dispatch branch's own return
         rest = after[after.index("return") + len("return"):]
         clear = rest.find(self._FN_LEVEL_CLEAR)

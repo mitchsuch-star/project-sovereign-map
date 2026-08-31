@@ -3,7 +3,14 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: **August 23, 2026 — the four live-report defects (row UX23).**
+> Last Updated: **August 30, 2026 — the whole-systems review (row REV):**
+> a 14-finder / 2-refuter-per-finding fleet at `e206869` confirmed 45 defects
+> across every system and all 45 are fixed; see §Whole-Systems Review below,
+> which is authoritative. One PRE-EXISTING harness defect is filed there
+> unfixed and named: REV-X1, the AI-V control arm's cold-cache
+> non-determinism.
+>
+> Previously: **August 23, 2026 — the four live-report defects (row UX23).**
 > Landing record = §Live UX Report (Aug 23, 2026) below, authoritative.
 > Four user reports from a live turn-3 France/1805 campaign, all fixed:
 > the 38.6-second envoy sound; the end-turn soft-lock (THREE stacked faults,
@@ -91,6 +98,146 @@
 
 ---
 
+
+## Whole-Systems Review (REV) — held August 30, 2026 (**✅ ALL 45 CONFIRMED DEFECTS FIXED, same session**)
+
+**Landing record = this section, authoritative.** Method: a 14-finder fleet at
+committed SHA `e206869` (one finder per system, read-only, six findings max
+each), then TWO adversarial refuters per deduped finding — one on the
+MECHANISM, one on REACHABILITY on the shipped 1805 board — with instructions
+to default to *refuted* on thin evidence. 55 raw findings → 53 after dedupe →
+**45 CONFIRMED · 6 plausible · 2 killed**. Every confirmed row is fixed;
+`tests/test_review_2026_08_30.py` (98) pins them, and
+`tools/_sweep_review_2026_08_30.json` sweeps **24 mutations, 24 killed, 0
+inert** (five were inert on the first sweep and were rebuilt as behavioural
+pins — see the method note at the end).
+
+### The P1s
+
+| # | Defect | Root |
+|---|--------|------|
+| REV-1 | **A question issued a real standing strategic order, at 0 AP.** `parser.parse`'s strategic block was gated on `world` ALONE, so it stamped `is_strategic` on a parse the action chain had already ruled was not an order; the executor intercepts on that flag alone, and `help` is in its `free_actions`, so the 2-AP pre-gate AND the charge were skipped. Measured: "Lannes, march to Frankfurt" charged, "Lannes, can you march to Frankfurt?" produced the identical order free — while printing "(2 AP — a standing strategic order…)". | `parser.py` |
+| REV-2 | **"Under no circumstances attack Mack" ATTACKED.** The bare-`no` negation arm demands an order-NOUN straight after "no"; here the noun is "circumstances", so nothing matched and the keyword chain fired at 0.95 — above the LLM gate in every mode. §PARSE-NEG's headline shape, for phrasings its table never sampled. | `clause_guards.py` |
+| REV-3 | **A new diplomatic flow destroyed the player's mail.** `replace()` drops the current dialogue, and soft-stop letters do not block commands, so "declare war on Austria" — or simply attacking a neutral province, which stages War Purpose — silently deleted Saxony's standing letter. New `DialogueManager.open_flow` preserves a standing mailbox item and still overwrites a transient step; nine creation sites converted. | `dialogue_manager.py` |
+| REV-4 | **Fontainebleau "concede" could CUT a standing rente**, deepening the shortfall it claims to pay — the same bare `face <= 0` gate UX23-A replaced everywhere else. The petition's own preview now prices off the arm's predicate too. | `jealousy.py` |
+| REV-5 | **The counter-punch snapshot read a standing order as a strike thrown**: it burned the cautious marshal's free attack AND stamped `free_action`, so a 2-AP order was issued for nothing. | `executor.py` |
+| REV-6 | **attack→PURSUE at exactly 1 AP**: the pre-check priced the upgrade at 1 while the charge priced it at 2, so the order was created and the marshal marched before the action-economy "safety net" answered "Not enough actions!" with `success:False`. | `combat_executor.py` |
+| REV-7 | **A naval landing captured a garrisoned capital.** The arm asked "is there a marshal" and not "is there a garrison", so 14,000 ashore took London past 25,000 defenders. | `naval_executor.py` |
+| REV-8 | **Reckless cavalry charged across water the crossing gate calls SHUT** — the gate was fitted to the auto-MOVE branch and never to the auto-CHARGE branch, and on victory the corps ADVANCED across it. | `world_state.py` |
+| REV-9 | **A guarantor was branded `guarantee_abandoned` for its WARD's own aggression.** The loop walked every war the ward was in, so a ward that DECLARED an offensive war dragged its protector's name through the mud — and that brand is the strongest casus belli the instrument system has. | `instruments.py` |
+
+### The rest
+
+Diplomacy and settlement — the counter-offer popup written unconditionally
+(the un-rewritten sibling of the IGR-F fix, so a queued dialogue's popup was
+delivered and every click bounced off the stale-id guard) · an ORDER consumed
+as a dialogue answer ("send the corps north" → `send`, "cancel the march" →
+`cancel`); all three matcher arms now ask whether anything military survives
+the keyword, with the dialogue's OWN words exempt so "yield Hanover" still
+answers Prussia's ultimatum · the court guard refusing a legitimate answer
+when the demanded province doubles as a court name (nineteen do) · accepting a
+letter from a court eliminated this turn ratifying a permanent ghost treaty ·
+the armistice variant resolved four ways, disagreeing at exactly war score 0 ·
+the armistice surface promising "the war score freezes" while ratification
+DELETES it · the Seat's +1 DP paid while the capital is enemy-held · a crisis
+whose pair went to war by another road announced as "the moment passed" while
+that war raged · peace-created stranding evading the evacuation corridor
+(ARMISTICE→PEACE opened none, and the bilateral corridor was computed before
+the cessions that do the stranding) · the common-peace record mixing a third
+court's clauses into every pair and dropping the leader's sweeteners · the
+disabled "make peace with X only" route fully executable by typing its number.
+
+Combat, marshals and naval — insisting past an objection charging 1 AP under a
+report saying "This attack costs NO actions" · the post-battle transient clear
+covering attacker-side participants only, so a defending gun carried a stale
+`sovereign_presence` into later muster previews · a WON breakout paying the
+Guard toll and then the 3–10% surrounded shatter, because the success arm
+re-asked the question that had produced the encirclement · P3.9 glory attacks
+ignoring the crossing gate, whose refusal then banned that marshal's attacks
+for two turns · the Grand Diversion modal quoting a readiness the failure arm
+does not fight at · the per-turn naval tick skipping zero-ship fleets, so a
+wiped navy could never reset `built_this_turn` and was locked out of rebuilding
+for the rest of the war · the Fontainebleau petition's arrival `log_event`
+sitting after a `return` · the low-authority mediate success printing "the
+breach is mended" without mending it · a standing erosion row never retired
+when a marshal re-enters grace · the erosion notice naming a remedy the
+executor refuses.
+
+State and the client — a mid-turn save/load marking every marshal who had
+already acted as IDLE (`_acted_this_turn` was a setattr-created underscore
+attribute nothing serialized, and `test_serialization_enforcement` filters
+underscore names, so it was structurally invisible; `in_combat_this_turn` was
+additionally wiped on load) · a ransomed marshal spawning inside an
+enemy-occupied capital · PURSUE reporting a CAPTURED enemy as "destroyed", by
+its raw scenario key · the interned Emperor reported "disarmed and interned"
+while the death guard had CAPTURED him · Le Moniteur silent on the fall of the
+player's capital when an ally held it · `turn_ended` produced by no executor,
+so the enemy-phase dialog was titled with the already-incremented turn · the
+reckless charge's Butcher's Bill charged but never tallied · the end-turn
+lapse warning counting persistent envoys that cannot lapse · every end-turn
+synonym bypassing that warning entirely · the ledger/Generals screens eating
+digits typed into the focused command line · a fresh capture question
+swallowing the whole end-turn report · the interrupt tail skipping the Morning
+Dispatch · the in-scene world swap never silencing live audio · the
+`buildings_damaged` rail row rendering as the anonymous "INF" pill · the region
+panel quoting the CAPITAL's levy price beside chips that charge the local one
+(measured 654g shown, 872g charged).
+
+### ⚠ REV-X1 — found in passing, PRE-EXISTING, NOT fixed here
+
+**The AI-V assurance harness's control arm is non-deterministic whenever
+Python is writing bytecode.** `test_ai_intent_assurance.py::TestArmAControl::
+test_two_processes_byte_identical` — whose own docstring says *"If this is
+red, nothing else means anything"* — fails on a cold `__pycache__` and passes
+on a warm one. Measured A/B, each way twice:
+
+| condition | result |
+|---|---|
+| cold `__pycache__`, bytecode writes ON | **divergent** |
+| cold `__pycache__`, `PYTHONDONTWRITEBYTECODE=1` | identical |
+| warm `__pycache__` | identical |
+
+The divergence is small and real: one run carries an extra
+`ai_ai_proposal_refused` (Naples→Sardinia, turn 11) that the other does not,
+which means an acceptance score crossed the 50 threshold in one process and
+not the other. **It predates this review** — the same test fails the same way
+on the stashed clean tree at `c50c0e4`, which is why nothing here is a
+regression and why it is filed rather than patched.
+
+*Leading hypothesis, explicitly UNPROVEN:* the backend contains no wall-clock
+read at all (grepped: zero `time.time` / `perf_counter` / `datetime.now`), and
+`PYTHONHASHSEED=0` is pinned into the child env, so ordinary hash-order
+variance is excluded. What remains is order derived from something that varies
+per PROCESS rather than per input — an `id()`-backed hash or an allocation-
+dependent iteration somewhere on the AI-AI proposal path. **Do not "fix" this
+by setting `PYTHONDONTWRITEBYTECODE` in `spawn_run`**: that would make the
+harness green while leaving the game's own determinism unproven, which is the
+opposite of what this arm exists for.
+
+*Owner:* the next AI-Intent or assurance slice. *Completion definition:* the
+control arm passes from a cold `__pycache__` with bytecode writes ON, and the
+cause is named in code.
+
+### Method notes
+
+* **Two findings named the wrong LINE for a real defect.** "Free-text target
+  scan binds ordinary words to enemy commanders" cited the edit-distance arm;
+  a spy on `_closest_by_edit_distance` proved that arm never fired for the
+  measured case — the bind was the `auto_correct` arm one rung below. Verify
+  the mechanism, not the citation.
+* **One finding's prescribed fix would have broken a deliberate contract.**
+  "'hold the mountain pass' parses as WAIT" is two defects in one coat: the
+  WAIT misroute (real, fixed) and the refusal that follows (correct — CA8-28's
+  negative control exists so the game never invents a hold somewhere else and
+  charges 2 AP for it). Only the misleading refusal COPY changed.
+* **Five of the first sweep's pins were INERT, all the same shape**: a
+  source-substring pin whose searched-for words survived in the comment
+  explaining the fix, or in a sibling line. Rebuilt as behavioural tests, plus
+  a shared `_code_only()` that strips comments and docstrings before any
+  source scan — itself proven non-inert before being relied on.
+* **The sweep's own baseline guard earned its keep twice**, refusing to run
+  against a misspelled test class and a JSON `\b` escape that silently became
+  a backspace character.
 
 ## Weird-Outcomes Playtest (WO) — filed August 16, 2026; **EXTENDED August 21, 2026** (WO-17..WO-32 from the spec-authoring session's defect hunt; **build contract = `docs/WEIRD_OUTCOMES_SPEC.md`**; ALL OPEN)
 

@@ -53,7 +53,7 @@ class MockMarshal:
         self.retreating = False
         self.location = "Belgium"
         self.idle_turns = 0
-        self._acted_this_turn = False
+        self.acted_this_turn = False
         self._relationships = {}
 
     def modify_trust(self, delta):

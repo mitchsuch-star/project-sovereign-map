@@ -884,7 +884,26 @@ def _intern(world, marshal, nation: str) -> Dict:
         host = _encircling_power(world, marshal) or ""
     name = marshal.name
     location = marshal.location
-    world.destroy_marshal(marshal, cause="interned", victor=host)
+    # Aug 30, 2026 review: `destroy_marshal` returns False when it CAPTURES
+    # instead of removing — the sovereign death-guard converts every removal
+    # of a standing Emperor into a capture (NP-4: the road to the Eagle in
+    # Chains is captivity, never a quiet deletion). This was the one removal
+    # call site that discarded the return, so an Emperor whose safe passage
+    # lapsed was reported "disarmed and interned" while the engine had in fact
+    # taken him prisoner — the single most consequential event in the game,
+    # announced as a footnote about paperwork.
+    removed = world.destroy_marshal(marshal, cause="interned", victor=host)
+    if removed is False:
+        return {
+            "type": "sovereign_captured",
+            "marshal": name,
+            "nation": marshal.nation,
+            "location": location,
+            "host": host,
+            "message": (
+                f"{name} failed to quit {host} soil before his safe passage "
+                f"expired — the Emperor is taken."),
+        }
     return {
         "type": "marshal_interned",
         "marshal": name,

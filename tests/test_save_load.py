@@ -149,7 +149,16 @@ class TestLoadGameRestoresState:
         assert loaded_world.battles_this_turn == []
         loaded_ney = loaded_world.get_marshal("Ney")
         if loaded_ney:
-            assert loaded_ney.in_combat_this_turn is False
+            # CONSCIOUS FLIP (Aug 30, 2026 review): `in_combat_this_turn` is
+            # now a deliberate NON-clear, the fourth in `load_game`'s list and
+            # for the same reason as the first three. It is one of only two
+            # exemptions the turn-end idle pass honours, so wiping it here
+            # marked every marshal who had fought that turn as IDLE after a
+            # mid-turn save/load — and `idle_turns` drives the jealousy
+            # grievance threshold, the hostile-pair triggers and vindication
+            # decay. It is serialized, restored by `from_dict`, and cleared at
+            # the real turn boundary by `clear_turn_battles`.
+            assert loaded_ney.in_combat_this_turn is True
 
 
 class TestAutosave:
@@ -384,7 +393,10 @@ class TestRoundtripTransientData:
         assert w.battles_this_turn == []
         loaded_ney = w.get_marshal("Ney")
         if loaded_ney:
-            assert loaded_ney.in_combat_this_turn is False
+            # See the flip note in TestLoadGameRestoresState: the combat flag
+            # is restored, not wiped, so the idle clock survives a mid-turn
+            # save/load.
+            assert loaded_ney.in_combat_this_turn is True
 
 
 # ============================================================================

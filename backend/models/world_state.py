@@ -4620,9 +4620,21 @@ class WorldState:
         marshal.captured_turn = -1
         marshal.strength = int(self.RANSOM_RETURN_STRENGTH)
         marshal.morale = 50
+        # Aug 30, 2026 review: `get_nation_capital` returns the AUTHORED
+        # capital with no controller check, so a ransomed marshal was set down
+        # inside a capital the enemy holds — standing on hostile soil he could
+        # not legally have marched to, which is the movement law the whole
+        # WIN-D3 corridor exists to uphold. `find_safe_spawn` is the engine's
+        # own answer to exactly this question (V2-65: "checks spawn_location
+        # and nation capital — if enemy-occupied, falls back to the nearest
+        # friendly region"), and the broken-army path has used it for years.
         home = (self.get_nation_capital(marshal.nation)
                 or getattr(marshal, "spawn_location", None)
                 or marshal.location)
+        home_region = self.get_region(home) if home else None
+        if home_region is not None and getattr(
+                home_region, "controller", marshal.nation) != marshal.nation:
+            home = self.find_safe_spawn(marshal) or home
         marshal.location = home
         # MC-1c review fix (MED): direct location assignment bypasses
         # move_to — a released prisoner comes home with no coil.
@@ -8580,6 +8592,14 @@ class WorldState:
                 # survives untouched.
                 "supply_capacity": int(self.get_effective_supply_cap(
                     self.player_nation, region, _shore_cache=_shore_cache)),
+                # Aug 30, 2026 review: what a levy COSTS HERE. The region
+                # panel had been quoting `levy_status.infantry_price`, which
+                # `get_levy_status` prices at the CAPITAL, on the same row as
+                # chips that recruit in THIS province — and the per-region
+                # cost runs up to twice that. The player read one number and
+                # was charged another, at the moment of choosing. Fogged
+                # downstream with the rest of the econ block.
+                "recruit_price_here": int(self._region_recruit_price(region)),
                 # Building data for region tooltip
                 "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
                 "building_under_construction": {
@@ -8653,6 +8673,19 @@ class WorldState:
             "victory": self.victory
         }
 
+    def _region_recruit_price(self, region) -> int:
+        """Gold for one infantry levy raised in THIS province (GR1: the
+        executor's own pricer, not a second formula)."""
+        try:
+            from backend.commands.economy_executor import (
+                INFANTRY_RECRUIT_GOLD_COST_BASE, _levy_pricer,
+            )
+            return int(_levy_pricer()._calculate_recruit_cost(
+                region, self, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,
+                nation=self.player_nation))
+        except Exception:
+            return 0
+
     def region_econ_visible(self, region_name: str) -> bool:
         """WO slice 8: the ONE predicate for whether the player's screens
         may state a province's economic block (income / stability /
@@ -8725,6 +8758,8 @@ class WorldState:
                 filtered_region["stability_label"] = region_data["stability_label"]
                 filtered_region["war_damage"] = region_data["war_damage"]
                 filtered_region["supply_capacity"] = region_data["supply_capacity"]
+                filtered_region["recruit_price_here"] = region_data.get(
+                    "recruit_price_here", 0)
                 filtered_region["buildings"] = region_data["buildings"]
                 filtered_region["building_under_construction"] = region_data["building_under_construction"]
                 filtered_region["max_building_slots"] = region_data["max_building_slots"]
@@ -10742,6 +10777,27 @@ class WorldState:
                     "turn": int(self.current_turn),
                 })
 
+        # WIN-D3 — Aug 30, 2026 review. The corridor was opened by
+        # `set_diplomatic_state` a few hundred lines above, BEFORE this
+        # function's `territory_cede` clauses moved a single province — so it
+        # judged who was stranded on the PRE-cession map. A corps whose only
+        # road home ran through a province the treaty itself gives away read
+        # as connected, got no road-home order, and (if nobody else was
+        # stranded) the provisional grant was rolled back entirely: the peace
+        # created the stranding and then denied it had.
+        #
+        # Re-run it here, where the map has settled. The opener is written to
+        # be re-entrant — it re-derives stranding from the live map, flushes
+        # the direction cache first, and rolls its own provisional grant back
+        # when nobody needs it — so a second call on a treaty that stranded
+        # nobody costs a scan and changes nothing.
+        try:
+            from backend.game_logic.withdrawal import open_evacuation_corridor
+            if final_state not in ("WAR",):
+                open_evacuation_corridor(self, proposer, target_nation)
+        except Exception:
+            pass
+
         # AI-5b(ii) beat 5 — THE VOLTE-FACE: an ALLIANCE just landed on
         # this pair; if either party was a beaten-then-courted great power
         # toward the other, the reversal is announced (§3.6-4, Tilsit).
@@ -11791,10 +11847,10 @@ class WorldState:
             # from "was reset to 0". So use in_combat_this_turn for attacks, and a new
             # per-turn flag for moves.
             #
-            # Simpler: use _acted_this_turn flag set by executor on attack/move.
-            if getattr(marshal, '_acted_this_turn', False):
+            # Simpler: use acted_this_turn flag set by executor on attack/move.
+            if getattr(marshal, 'acted_this_turn', False):
                 # Marshal moved or attacked — not idle (idle_turns already reset to 0)
-                marshal._acted_this_turn = False  # Clear for next turn
+                marshal.acted_this_turn = False  # Clear for next turn
                 continue
             marshal.idle_turns = getattr(marshal, 'idle_turns', 0) + 1
 
@@ -12561,7 +12617,18 @@ class WorldState:
                 # outside Net, plunder-gold precedent; Europe-scoped N1).
                 ac_materiel_msg = ""
                 if getattr(self, "sovereign_map", "legacy") == "europe":
-                    from backend.display_names import humanize_entity_name
+                    # Aug 30, 2026 review: this copy of the Butcher's Bill
+                    # DEBITED the treasury and then did neither of the two
+                    # things its maintained sibling in the executor pipeline
+                    # does. It never TALLIED the charge (PT-C4), so the money
+                    # left the chest while the end-turn banner hid it in
+                    # "Other" — the exact accounting hole PT-C4 was landed to
+                    # close, still open on the one combat path the player does
+                    # not order. And it humanised the raw tag instead of using
+                    # `formed_display_name` (NA-6 §11.8-3), so a formed nation
+                    # was billed under its dead name.
+                    from backend.game_logic.formations import (
+                        formed_display_name)
                     ac_materiel_parts = []
                     for _m_nation, _m_cas in ((marshal.nation, ac_atk_cas),
                                               (enemy.nation, ac_def_cas)):
@@ -12569,8 +12636,15 @@ class WorldState:
                         if _bill > 0 and _m_nation:
                             self.nation_gold[_m_nation] = int(
                                 self.nation_gold.get(_m_nation, 0) - _bill)
+                            _tally = getattr(
+                                self, "materiel_spent_this_turn", None)
+                            if _tally is None:
+                                _tally = self.materiel_spent_this_turn = {}
+                            _tally[_m_nation] = int(
+                                _tally.get(_m_nation, 0)) + _bill
                             ac_materiel_parts.append(
-                                f"{humanize_entity_name(_m_nation)} -{_bill}g")
+                                f"{formed_display_name(self, _m_nation)} "
+                                f"-{_bill}g")
                     if ac_materiel_parts:
                         ac_materiel_msg = (
                             "\n[Materiel] Guns, horses and stores lost with "

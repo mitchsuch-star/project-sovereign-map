@@ -411,6 +411,14 @@ class MetaExecutor:
             "events": events,
             "tactical_events": tactical_events,  # Full event objects, not just messages
             "enemy_phase": enemy_phase,
+            # Aug 30, 2026 review: the PT-F1 seam documented thirty lines
+            # below, one key short. `TurnManager.end_turn` returns
+            # `turn_ended` (the turn the enemy phase ran IN) and this fresh
+            # dict hand-copied a fixed key set that omitted it — so no
+            # executor has ever produced it, and the client's enemy-phase
+            # dialog fell back to the already-incremented `current_turn`,
+            # titling last turn's report with next turn's number.
+            "turn_ended": turn_result.get("turn_ended"),
             "new_state": game_state
         }
         if tactical_battle_report:

@@ -437,6 +437,30 @@ class DialogueManager:
                 count += 1
         return count
 
+    def get_lapsing_count(self) -> int:
+        """Count of items that will actually LAPSE if the turn ends now.
+
+        Aug 30, 2026 review. The client's end-turn warning ("N unanswered
+        envoy(s) that will lapse if you end the turn now") was fed from
+        `get_mailbox_count`, which counts SOFT_STOP_MAILBOX_TYPES — the
+        current-turn offers that DO lapse plus the PERSISTENT ones that
+        explicitly do not (`lapse_pending_offers` excludes them by design, so
+        a standing settlement offer survives every end turn). The player was
+        stopped, and told he was about to lose something he could not lose;
+        worse, a turn whose only "envoy" was persistent produced a warning
+        that could never be satisfied by answering anything.
+
+        The badge keeps `get_mailbox_count` — the letter-book really does
+        hold both. Only the LAPSE claim narrows.
+        """
+        count = 0
+        if self._current and self._current.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+            count += 1
+        for item in self._queue:
+            if item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+                count += 1
+        return count
+
     def get_mailbox_items(self) -> List[Dict]:
         """Return ordered list of mailbox items for the inbox panel.
 

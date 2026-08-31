@@ -553,7 +553,7 @@ class MovementExecutor:
 
         # V2a: Reset idle tracking on move
         marshal.idle_turns = 0
-        marshal._acted_this_turn = True
+        marshal.acted_this_turn = True
 
         # Refresh visibility immediately so destination (FULL) and new adjacents
         # (PARTIAL) are available for capture hints and the UI this turn

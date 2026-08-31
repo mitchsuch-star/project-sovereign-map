@@ -1,0 +1,170 @@
+[
+  {
+    "id": "R1 question-is-not-an-order gate",
+    "file": "backend/commands/parser.py",
+    "old": "                if world is not None and _is_order:",
+    "new": "                if world is not None:",
+    "tests": "tests/test_review_2026_08_30.py::TestAQuestionIsNotAnOrder"
+  },
+  {
+    "id": "R1b the question half of the gate",
+    "file": "backend/commands/parser.py",
+    "old": "                _is_order = (_resolved_action not in _NON_ORDER_ACTIONS\n                             and not is_question(command_text))",
+    "new": "                _is_order = (_resolved_action not in _NON_ORDER_ACTIONS)",
+    "tests": "tests/test_review_2026_08_30.py::TestAQuestionIsNotAnOrderInLiveMode"
+  },
+  {
+    "id": "R2 prohibitive negation markers",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    r\"|no\\s+(?:circumstances?|account|means|case|event|time|point)\\b\"",
+    "new": "    r\"|no\\s+(?:NEVERMATCHES)\\b\"",
+    "tests": "tests/test_review_2026_08_30.py::TestTheProhibitiveIsHeard"
+  },
+  {
+    "id": "R22 purpose-infinitive anchor skip",
+    "file": "backend/ai/llm_client.py",
+    "old": "                if PURPOSE_INFINITIVE_RE.match(command_lower, _prep.start()):\n                    continue",
+    "new": "                if False:\n                    continue",
+    "tests": "tests/test_review_2026_08_30.py::TestThePurposeClauseIsNotADestination"
+  },
+  {
+    "id": "R23 the article rule on enemy names",
+    "file": "backend/commands/parser.py",
+    "old": "                if _articled and _match_name in known_enemies:\n                    continue",
+    "new": "                if False and _match_name in known_enemies:\n                    continue",
+    "tests": "tests/test_review_2026_08_30.py::TestAProperNameDoesNotTakeAnArticle"
+  },
+  {
+    "id": "R24 pass-as-noun guard",
+    "file": "backend/ai/llm_client.py",
+    "old": "                and not PASS_AS_NOUN_RE.search(command_lower)):",
+    "new": "                and True):",
+    "tests": "tests/test_review_2026_08_30.py::TestTheMountainPass"
+  },
+  {
+    "id": "R24b the honest terrain refusal",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                        terrain = unmapped_terrain_noun(dest)",
+    "new": "                        terrain = None",
+    "tests": "tests/test_review_2026_08_30.py::TestTheMountainPass"
+  },
+  {
+    "id": "R25 the one armistice rule",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    return (\"armistice_losing\"\n            if get_war_score_for(world, proposer, target) < 0\n            else \"armistice_winning\")",
+    "new": "    return (\"armistice_winning\"\n            if get_war_score_for(world, proposer, target) > 0\n            else \"armistice_losing\")",
+    "tests": "tests/test_review_2026_08_30.py::TestOneArmisticeRule"
+  },
+  {
+    "id": "R43 the Seat needs the capital",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    if region is not None and getattr(region, \"controller\", nation) != nation:\n        return 0",
+    "new": "    if False:\n        return 0",
+    "tests": "tests/test_review_2026_08_30.py::TestTheSeatNeedsTheCapital"
+  },
+  {
+    "id": "R9 guarantor attribution",
+    "file": "backend/game_logic/instruments.py",
+    "old": "            if _pair_aggressor(world, protected, attacker) == protected:\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_review_2026_08_30.py::TestTheGuarantorIsNotBrandedForItsWardsWar"
+  },
+  {
+    "id": "R14 the crisis that became a war",
+    "file": "backend/game_logic/war_council.py",
+    "old": "            if preview[\"reason\"] == \"already_at_war\":",
+    "new": "            if False:",
+    "tests": "tests/test_review_2026_08_30.py::TestACrisisThatBecameAWar"
+  },
+  {
+    "id": "R11 the corridor after a truce",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    elif old_state == \"ARMISTICE\" and new_state not in (\"WAR\", \"ARMISTICE\"):",
+    "new": "    elif False:",
+    "tests": "tests/test_review_2026_08_30.py::TestTheRoadHomeAfterATruce"
+  },
+  {
+    "id": "R17 the acted flag serializes",
+    "file": "backend/models/marshal.py",
+    "old": "            \"acted_this_turn\": self.acted_this_turn,",
+    "new": "            \"acted_this_turn_NOT\": self.acted_this_turn,",
+    "tests": "tests/test_review_2026_08_30.py::TestTheIdleClockSurvivesASave"
+  },
+  {
+    "id": "R41 a prisoner is not destroyed",
+    "file": "backend/commands/strategic.py",
+    "old": "            if target is not None and getattr(target, \"captured_by\", \"\"):\n                _fate = \"taken prisoner\"",
+    "new": "            if False:\n                _fate = \"taken prisoner\"",
+    "tests": "tests/test_review_2026_08_30.py::TestAPrisonerIsNotDestroyedBehaviour"
+  },
+  {
+    "id": "R42 the interned Emperor",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    if removed is False:",
+    "new": "    if False:",
+    "tests": "tests/test_review_2026_08_30.py::TestTheInternedEmperor"
+  },
+  {
+    "id": "R39 the gazette capital detector",
+    "file": "backend/game_logic/gazette.py",
+    "old": "                and not _taker_is_ours)",
+    "new": "                and True)",
+    "tests": "tests/test_review_2026_08_30.py::TestTheFallOfTheCapitalIsPrinted"
+  },
+  {
+    "id": "R45 turn_ended reaches the response",
+    "file": "backend/commands/meta_executor.py",
+    "old": "            \"turn_ended\": turn_result.get(\"turn_ended\"),",
+    "new": "            \"turn_ended_NOT\": turn_result.get(\"turn_ended\"),",
+    "tests": "tests/test_review_2026_08_30.py::TestTheTurnTheEnemyActedOn"
+  },
+  {
+    "id": "R19 only what lapses is counted",
+    "file": "backend/models/dialogue_manager.py",
+    "old": "        if self._current and self._current.get(\"type\", \"\") in self.CURRENT_TURN_OFFER_TYPES:\n            count += 1\n        for item in self._queue:\n            if item.get(\"type\", \"\") in self.CURRENT_TURN_OFFER_TYPES:\n                count += 1\n        return count\n\n    def get_mailbox_items",
+    "new": "        if self._current and self._current.get(\"type\", \"\") in self.SOFT_STOP_MAILBOX_TYPES:\n            count += 1\n        for item in self._queue:\n            if item.get(\"type\", \"\") in self.SOFT_STOP_MAILBOX_TYPES:\n                count += 1\n        return count\n\n    def get_mailbox_items",
+    "tests": "tests/test_review_2026_08_30.py::TestTheLapseWarningCountsOnlyWhatLapses"
+  },
+  {
+    "id": "R48 the disabled route refuses when typed",
+    "file": "backend/game_logic/settlement_actions.py",
+    "old": "        if _tier_block:",
+    "new": "        if False:",
+    "tests": "tests/test_review_2026_08_30.py::TestTheDisabledRouteIsRefusedWhenTypedBehaviour"
+  },
+  {
+    "id": "R27 the pair's own clauses",
+    "file": "backend/game_logic/settlement_ratify.py",
+    "old": "            elif term_from == proposer_member and term_to == covered_enemy:",
+    "new": "            elif term_to == proposer_member and term_from:",
+    "tests": "tests/test_review_2026_08_30.py::TestTheCommonPeaceRecordsThePairsOwnClauses"
+  },
+  {
+    "id": "R21 the ransomed marshal's spawn",
+    "file": "backend/models/world_state.py",
+    "old": "            home = self.find_safe_spawn(marshal) or home",
+    "new": "            pass",
+    "tests": "tests/test_review_2026_08_30.py::TestTheRansomedMarshalComesHomeSomewhereReal"
+  },
+  {
+    "id": "R28 the reckless charge's bill is tallied",
+    "file": "backend/models/world_state.py",
+    "old": "                            _tally[_m_nation] = int(\n                                _tally.get(_m_nation, 0)) + _bill",
+    "new": "                            _tally[_m_nation] = int(\n                                _tally.get(_m_nation, 0))",
+    "tests": "tests/test_review_2026_08_30.py::TestTheRecklessChargeBillIsTalliedBehaviour"
+  },
+  {
+    "id": "R12 the levy price is the price here",
+    "file": "backend/models/world_state.py",
+    "old": "                \"recruit_price_here\": int(self._region_recruit_price(region)),",
+    "new": "                \"recruit_price_here_NOT\": int(self._region_recruit_price(region)),",
+    "tests": "tests/test_review_2026_08_30.py::TestTheLevyPriceIsThePriceHere"
+  },
+  {
+    "id": "R26 the truce does not freeze the score",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "                    f\"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops, \"\n                    \"and the battles fought so far are struck from the war \"",
+    "new": "                    f\"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops \"\n                    \"and the war score freezes. Nothing is struck from the war \"",
+    "tests": "tests/test_review_2026_08_30.py::TestTheTruceDoesNotFreezeTheScore"
+  }
+]

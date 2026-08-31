@@ -119,8 +119,27 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
                        or event.get("previous_controller")
                        or event.get("old_controller") or "")
             region = str(event.get("region") or "")
-            if prev and region \
-                    and world.get_nation_capital(prev) == region:
+            # Aug 30, 2026 review: "the capital of whoever held it" misses the
+            # case slice 4's own review widened the DISPATCH for — an ALLY
+            # holding a liberated Paris loses it, so `prev` is Bavaria and
+            # `get_nation_capital("Bavaria")` is Munich. The dispatch then runs
+            # its highest ceremony ("PARIS HAS FALLEN", weight 100) while Le
+            # Moniteur, the paper of record, printed nothing about it at all.
+            # The player's own capital falling is a capital falling whoever was
+            # standing in it — provided it fell to someone who is not us.
+            _taker = str(event.get("captured_by") or event.get("captor") or "")
+            _taker_is_ours = bool(_taker) and (
+                _taker == player
+                or (hasattr(world, "are_allies")
+                    and world.are_allies(player, _taker))
+                or _taker in (getattr(world, "vassals", {}) or {}))
+            _player_capital = world.get_nation_capital(player)
+            _is_our_capital_lost = bool(
+                region and _player_capital and region == _player_capital
+                and not _taker_is_ours)
+            if region and (_is_our_capital_lost
+                           or (prev
+                               and world.get_nation_capital(prev) == region)):
                 # WO-D6 (slice 4): Le Moniteur is OUR paper. When the
                 # stormed capital is the player's own, the caption was
                 # still the victor's phrasing - the player read the
@@ -128,7 +147,7 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
                 # mirror the sovereign arm below: our own catastrophe
                 # shouts, every other court's is a lowercase noun
                 # phrase.
-                if prev == player:
+                if prev == player or _is_our_capital_lost:
                     # ...but never above the Emperor himself. See
                     # `_player_sovereign_taken`: the arms are ranked by
                     # LOG ORDER, so without this the fall of Paris

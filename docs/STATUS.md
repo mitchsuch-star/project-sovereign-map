@@ -4,6 +4,73 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE WHOLE-SYSTEMS REVIEW — August 30, 2026 (row REV): 45 DEFECTS, ALL FIXED.
+> **Landing record = `docs/BUG_FIXES.md` §Whole-Systems Review (REV),
+> authoritative.** The user asked for the live diorama-close crash fixed and
+> then "a comprehensive bug fix and review of all systems including ux, diplo,
+> commands", with the Weird-Outcomes row assured. Both halves are done.
+>
+> **The crash first (`e206869`).** `AudioManager.stop_player(p: AudioStreamPlayer)`
+> — a one-shot frees itself when its sound ends, so a claimed handle is
+> routinely a freed object by the time its owner closes, and the TYPED
+> parameter made GDScript throw *"previously freed … is not a subclass"* AT
+> THE CALL, before the body's own `is_instance_valid` could run. Untyped now,
+> with the body owning the checks in order. The signature pin that had pinned
+> the bug was flipped consciously.
+>
+> **Then the review.** A 14-finder fleet at the committed SHA (one per system,
+> read-only) → TWO adversarial refuters per deduped finding, one on MECHANISM
+> and one on REACHABILITY, both told to default to *refuted*. **55 raw → 53
+> deduped → 45 CONFIRMED, 6 plausible, 2 killed.** All 45 fixed in two
+> commits. `tests/test_review_2026_08_30.py` (98) pins them;
+> `tools/_sweep_review_2026_08_30.json` sweeps **24 mutations, 24 killed, 0
+> inert**. Suite **18,952 / 3 skipped**, ruff clean, Godot parse harness
+> EXIT=0, M1–M7 byte-identical.
+>
+> **The nine P1s, in one line each.** A QUESTION issued a real standing
+> strategic order at 0 AP (and the reply printed "(2 AP …)" while charging
+> nothing) · "under no circumstances attack Mack" ATTACKED, at confidence 0.95,
+> above the LLM gate in every mode · opening any new diplomatic flow silently
+> DESTROYED the player's standing envoy letter · the Fontainebleau concession
+> could CUT a marshal's rente and deepen the shortfall it claims to pay · the
+> counter-punch snapshot read a standing order as a strike thrown, burning the
+> free attack AND waiving the 2 AP · attack→PURSUE at exactly 1 AP created the
+> order, marched the marshal, and THEN refused · a 14,000-man landing took
+> London past its 25,000-man garrison · reckless cavalry charged across water
+> the crossing gate calls SHUT, and advanced over it · a guarantor was branded
+> a traitor for its WARD's own war of aggression.
+>
+> **The through-line is the familiar one and it is worth naming again:** most
+> of these are one rule with two implementations, and only one was maintained.
+> The pre-check priced what the charge did not; the preview counted what the
+> arm would not pay; the gate ran at render time and not at execution; the
+> producer stamped a key the renderer never mapped; the guard was fitted to one
+> of two sibling branches. Four separate fixes this round were "make the second
+> site CALL the first".
+>
+> **⚠ REV-X1, found in passing, PRE-EXISTING, filed NOT fixed.** The AI-V
+> assurance control arm — the one whose docstring says *"if this is red,
+> nothing else means anything"* — is non-deterministic on a cold
+> `__pycache__`. Measured A/B, twice each way: cold + bytecode writes ON →
+> divergent (one extra `ai_ai_proposal_refused`, Naples→Sardinia, turn 11);
+> cold + `PYTHONDONTWRITEBYTECODE=1` → identical; warm → identical. It fails
+> identically on the stashed clean tree, so it is not this row's doing. The
+> hypothesis (an `id()`-backed or allocation-dependent ordering on the AI-AI
+> proposal path) is recorded as UNPROVEN, and the tempting one-line harness
+> workaround is explicitly forbidden in the row, because it would turn the arm
+> green while leaving the thing it exists to prove unproven.
+>
+> **Two claims of my own were corrected by measurement during the round** — a
+> finding's cited line was one rung off (a spy on the function proved that arm
+> never fired), and a finding's prescribed fix would have broken CA8-28's
+> deliberate negative control. Both are recorded in the test file's header, and
+> five first-sweep pins were INERT and were rebuilt as behavioural tests.
+>
+> ⚠ OPEN: a live visual pass on the client-side fixes (the region panel's levy
+> figure, the `DMG` rail pill, the stashed capture question, the dispatch on
+> the interrupt tail) — the backend halves are pinned, the surfaces are not
+> yet seen. And UX23-R9's three bugle cues still owe a human ear.
+
 > # ✅ THE FOUR LIVE UX DEFECTS FIXED — August 23, 2026 (row UX23).
 > **Landing record = `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026),
 > authoritative.** Reported by the user mid-campaign, diagnosed against the

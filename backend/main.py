@@ -416,6 +416,12 @@ def build_base_response(world, success: bool = True, message: str = "",
         ) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+        # Aug 30, 2026 review: the badge counts every letter in the book;
+        # the end-turn LAPSE warning must count only the ones that lapse.
+        # A persistent settlement offer survives the turn by design, so
+        # including it made the warning claim a loss that could not happen
+        # — and, when it was the only item, a warning nothing could clear.
+        "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
         # IGR-F: the letter-book. Derived fresh from the dialogue manager on
         # every response so it can never go stale against the queue it
         # describes; None when no small court is waiting. It rides the base
@@ -2047,6 +2053,7 @@ def test_connection():
         "coalition_brewing_turns": int(_player_coalition_brewing(world).get("turns_remaining", 0)) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+        "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
@@ -4409,6 +4416,7 @@ def get_pending_envoy():
         "success": True,
         "has_pending": False,
         "pending_envoy_count": int(dm.get_mailbox_count()),
+        "pending_lapsing_count": int(dm.get_lapsing_count()),
     }
 
     current = dm.peek()
@@ -4774,6 +4782,7 @@ def get_diplomatic_preview_endpoint(
                 "dp_available": int(dp),
                 "dialogue_pending": dialogue_pending,
                 "pending_envoy_count": int(dm.get_mailbox_count()),
+                "pending_lapsing_count": int(dm.get_lapsing_count()),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
             }
@@ -4800,6 +4809,7 @@ def get_diplomatic_preview_endpoint(
                 or world.dialogue_manager.is_local_planning()
             ),
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+            "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
             **preview,
         }
     except Exception as e:

@@ -268,11 +268,22 @@ func _render() -> void:
 					+ Utils.format_number(int(levy.get("over_by", 0))) \
 					+ " over the ordinance[/color]"
 			else:
+				# Aug 30, 2026 review: `levy_status.infantry_price` is priced
+				# at the CAPITAL, and this row sits beside chips that recruit
+				# in THIS province — measured on the 1805 boot, 654g quoted
+				# against 872g charged in Rhineland, a third more than the
+				# number the player read while choosing. The backend now ships
+				# the per-region figure with the rest of the fogged econ block;
+				# the capital's rate is the fallback for a province that has
+				# none (fog, or a legacy payload).
+				var _here = int(data.get("recruit_price_here", 0))
+				if _here <= 0:
+					_here = int(levy.get("infantry_price", 0))
 				levy_note = "  [color=#" + Utils.COLOR_SUCCESS + "]" \
 					+ Utils.format_number(int(levy.get("headroom", 0))) \
-					+ " under — " + str(int(levy.get("infantry_price", 0))) + "g per " \
+					+ " under — " + str(_here) + "g per " \
 					+ Utils.format_number(int(levy.get("infantry_amount", 0))) \
-					+ " foot[/color]"
+					+ " foot here[/color]"
 		action_rows.append("  Recruit: " + recruit_chips + levy_note)
 
 		# Build — every missing building while a slot is free (slot math from

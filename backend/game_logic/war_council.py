@@ -98,6 +98,15 @@ _CRISIS_CAUSE_COPY = {
                "armed at their back",
     "outmatched": "the odds never came — the design outweighs the army",
     "penniless": "the treasury could not bear a campaign",
+    # Aug 30, 2026 review: a crisis whose pair reached WAR by ANOTHER road —
+    # a mutual-crisis counterpart declaring first, a guarantor joining, a
+    # coalition cascade — had no arm at all. `can_declare_war` answered
+    # `already_at_war`, which the loop below read as a refused predicate and
+    # counted as a STALL, so after the hard-stall turns the beat announced
+    # "the crisis passes — the moment passed" while that very war was being
+    # fought. The design is not abandoned; it is being pressed by arms.
+    "war_joined": "the war came by another road — the design is pressed "
+                  "by arms",
 }
 
 # SHORT-form beat-7 cause copy, for the compact surfaces: the campaign-log
@@ -116,6 +125,7 @@ _CRISIS_CAUSE_SHORT = {
     "exposed": "their frontier could not be stripped",
     "outmatched": "the odds never came",
     "penniless": "the treasury could not bear it",
+    "war_joined": "the war came anyway",
 }
 
 
@@ -839,6 +849,15 @@ def process_war_council(world) -> List[Dict]:
 
         preview = can_declare_war(world, coveter, str(record.get("target")))
         if not preview["ok"]:
+            if preview["reason"] == "already_at_war":
+                # Not a stall — the thing the crisis was building toward has
+                # happened, by a road the council did not walk. Close it with
+                # its own cause rather than letting the stall counter cool it
+                # as "the moment passed" over a live war.
+                _emit_crisis_passed(world, coveter, record, "war_joined",
+                                    events)
+                del store[coveter]
+                continue
             if (preview["reason"] == "treaty_in_the_way"
                     and not record.get("treaty_broken_turn")):
                 # §4.3a-2: break it first — a visible ladder step. The

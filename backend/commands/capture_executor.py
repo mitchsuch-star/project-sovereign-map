@@ -236,8 +236,15 @@ class CaptureExecutor:
             f"\n\nSire — {region.name} sustains Marshal {holder.name}'s "
             f"household ({derive_estate_noun(region.name)}). "
             f"Confiscate the estate (+{estate_pending['windfall']:,} gold; "
-            f"{holder.nation} will not forgive it) or respect the title "
-            f"({holder.nation} will remember the courtesy)?")
+            # Aug 30, 2026 review: the confiscate branch below was routed
+            # through `formed_display_name` (NA-6 §11.8-3 — a formed nation
+            # must not be named by its dead tag, and the camelCase split
+            # mangles "KingdomOfItaly" into "Kingdom Of Italy"); its three
+            # siblings, including this prompt, kept interpolating the raw key.
+            f"{formed_display_name(world, holder.nation)} will not forgive "
+            f"it) or respect the title "
+            f"({formed_display_name(world, holder.nation)} will remember "
+            f"the courtesy)?")
 
     def _handle_estate_choice(self, choice: str, pending: Dict, world) -> Dict:
         """Resolve the confiscate/respect question (stage 2)."""
@@ -293,7 +300,8 @@ class CaptureExecutor:
                 "message": (f"Marshal {holder.name}'s title stands — "
                             f"{derive_estate_noun(region.name)} "
                             f"keeps its revenues under our occupation. "
-                            f"{holder.nation} will remember the courtesy."),
+                            f"{formed_display_name(world, holder.nation)} "
+                            f"will remember the courtesy."),
                 "events": [{
                     "type": "estate_respected",
                     "region": region.name,
