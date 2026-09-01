@@ -1,0 +1,100 @@
+[
+ {
+  "id": "WO11-1 filler strip is the identity",
+  "file": "backend/ai/llm_client.py",
+  "old": "    match = _LEADING_FILLER_RE.match(command_lower)\n    if not match:\n        return command_lower\n    if not command_lower[match.end():].strip():\n        return command_lower\n    return \" \" * match.end() + command_lower[match.end():]",
+  "new": "    return command_lower",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-2 filler strip not called at the chain head",
+  "file": "backend/ai/llm_client.py",
+  "old": "            command_lower = strip_leading_filler(command_lower)",
+  "new": "            pass",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-3 nothing-follows guard removed (a bare 'wait.' is blanked away)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    if not command_lower[match.end():].strip():\n        return command_lower\n    return \" \" * match.end() + command_lower[match.end():]",
+  "new": "    return \" \" * match.end() + command_lower[match.end():]",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-4 filler spliced instead of blanked (length changes)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return \" \" * match.end() + command_lower[match.end():]",
+  "new": "    return command_lower[match.end():]",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-5 peace-intent early route deleted",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if _mentions_peace_intent(command_lower):\n            return self._parse_diplomatic_command(command_text, command_lower)\n",
+  "new": "",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-6 declare-war arm guard dropped",
+  "file": "backend/ai/llm_client.py",
+  "old": "        elif not _mentions_peace_intent(command_lower) and any(\n                kw in command_lower for kw in [\n                    \"declare war\", \"go to war\", \"war on \", \"war against \",",
+  "new": "        elif any(\n                kw in command_lower for kw in [\n                    \"declare war\", \"go to war\", \"war on \", \"war against \",",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-7 FINAL-21 peace arm dropped",
+  "file": "backend/ai/llm_client.py",
+  "old": "            has_target_required = (\n                any(kw in command_lower for kw in _target_required_actions)\n                or _mentions_peace_intent(command_lower))",
+  "new": "            has_target_required = any(kw in command_lower for kw in _target_required_actions)",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-8 routing break predicate dropped",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if (any(kw in command_lower for kw in _break_keywords + _downgrade_keywords)\n                or _mentions_treaty_break(command_lower)):",
+  "new": "        if any(kw in command_lower for kw in _break_keywords + _downgrade_keywords):",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-9 action-chain break predicate dropped",
+  "file": "backend/ai/llm_client.py",
+  "old": "        ]) or _mentions_treaty_break(command_lower):\n            # WO-20: the articled/alliance forms (\"break the alliance with\n            # Austria\") used to fall through to the proposal arm below.\n            action = \"diplomatic_break\"",
+  "new": "        ]):\n            action = \"diplomatic_break\"",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-10 peace predicate reads 'fighting' too",
+  "file": "backend/ai/llm_client.py",
+  "old": "    r\"(?:war|hostilities)\\b\"",
+  "new": "    r\"(?:war|hostilities|fighting)\\b\"",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-11 the soft-stop wall restored",
+  "file": "backend/main.py",
+  "old": "                print(f\"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}\")\n        if not _dialogue_took_the_line:",
+  "new": "                print(f\"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}\")\n                result = executor.execute(parsed, game_state)\n                _dialogue_took_the_line = True\n        if not _dialogue_took_the_line:",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-12 matched answer not marked as taken",
+  "file": "backend/main.py",
+  "old": "                print(f\"[DIPLOMATIC] Routing dialogue response: {matched_keyword}\")\n                _dialogue_took_the_line = True",
+  "new": "                print(f\"[DIPLOMATIC] Routing dialogue response: {matched_keyword}\")",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-13 hard stop not marked as taken",
+  "file": "backend/main.py",
+  "old": "            elif is_hard_stop:\n                _dialogue_took_the_line = True",
+  "new": "            elif is_hard_stop:",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "WO11-14 m1 arm fires behind a letter",
+  "file": "backend/main.py",
+  "old": "            raw_lower_check = (command_text.lower().strip()\n                               if world.pending_diplomatic_dialogue is None\n                               else \"\")",
+  "new": "            raw_lower_check = command_text.lower().strip()",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ }
+]

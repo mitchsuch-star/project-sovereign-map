@@ -349,6 +349,79 @@ def _mentions_screening_idiom(command_lower: str) -> bool:
         command_lower))
 
 
+# ═══════ Row WO slice 11 — the typed-route residue ═══════
+#
+# WO-6: a LEADING English filler outranked the real verb. "no wait, Ney,
+# retreat" issued WAIT at 0.8 (and "hold on, Ney, retreat" issued HOLD),
+# because the bare "wait"/"stand by" substring test sits above
+# retreat/move/scout/build/restrain/drill in the elif chain — and moving it
+# to the bottom would break "Ney, wait for reinforcements" (whose
+# "reinforce" would then win as a SUPPORT order). So the chain keeps its
+# order and the FILLER is removed first: a sentence that OPENS with a
+# filler word followed by punctuation ("wait, …" / "no wait, …" /
+# "hold on, …" / "stand by, …") has that opening stripped for the keyword
+# match when something substantive follows. A bare "wait" (nothing
+# follows) and "wait for Davout" (no punctuation — the filler IS the order)
+# are untouched. Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 11.
+_LEADING_FILLER_RE = re.compile(
+    r"^\s*(?:no,?\s+)?(?:wait|hold on|hang on|stand by|actually|okay|ok|"
+    r"right|hmm+|um+|er+)\s*[,;:!.—–-]+\s*")
+
+
+def strip_leading_filler(command_lower: str) -> str:
+    """The lower-cased command with a leading filler phrase BLANKED (WO-6).
+
+    Blanked with spaces, never spliced — the PARSE-NEG rule: every
+    position-aware rule downstream indexes into the text, so the result is
+    the same length as the input. Returns the input unchanged when nothing
+    substantive follows the filler, so a bare 'wait.' still waits."""
+    match = _LEADING_FILLER_RE.match(command_lower)
+    if not match:
+        return command_lower
+    if not command_lower[match.end():].strip():
+        return command_lower
+    return " " * match.end() + command_lower[match.end():]
+
+
+# WO-5/§2 H-15 at the diplomatic tier: "end the war ON any terms" contains
+# the war-declaration keyword "war on " and parsed as a DECLARATION. A
+# peace-intent sentence is routed to the diplomatic parser first and the
+# declare-war arm there yields to it; a nation-less form then reaches the
+# honest FINAL-21 target ask instead of a war. Deliberately "war |
+# hostilities" and not "fighting": "Ney, stop the fighting" is an order to
+# a marshal (PARSE-NEG's stand-down), not a peace overture.
+_PEACE_INTENT_RE = re.compile(
+    r"\b(?:end|stop|finish|cease|halt|conclude)\s+(?:the\s+|this\s+|our\s+)?"
+    r"(?:war|hostilities)\b"
+    r"|\b(?:sue|ask|plead|press)\s+for\s+peace\b"
+    r"|\b(?:make|want|seek|negotiate|offer|propose)\s+(?:a\s+)?peace\b"
+    r"|\bpeace\s+(?:with|treaty|terms)\b")
+
+
+def _mentions_peace_intent(command_lower: str) -> bool:
+    return bool(_PEACE_INTENT_RE.search(command_lower))
+
+
+# WO-20: "break the alliance with Austria" PROPOSED an alliance when
+# addressed to Talleyrand (the break keywords are treaty-phrasings only —
+# "break treaty" — so the articled and alliance forms fell through to the
+# proposal arm, where `extract_proposal_type` read "alliance" as the thing
+# to CREATE) and was unparseable when bare. One predicate for the routing
+# and the action chain: a break verb + an optional article + a treaty noun.
+# "withdraw from" stays the DOWNGRADE family's; truce/armistice are not
+# treaties a marshal's court "breaks" by this verb (they lapse or resume).
+_TREATY_BREAK_RE = re.compile(
+    r"\b(?:break|breaks|breaking|end|ending|cancel|renounce|dissolve|"
+    r"terminate|revoke|void|abrogate|nullify|leave|quit|tear\s+up)\s+"
+    r"(?:the\s+|our\s+|this\s+|my\s+|that\s+)?"
+    r"(?:treaty|alliance|agreement|pact|non-?\s?aggression(?:\s+pact)?|"
+    r"open\s+borders|defensive\s+alliance)\b")
+
+
+def _mentions_treaty_break(command_lower: str) -> bool:
+    return bool(_TREATY_BREAK_RE.search(command_lower))
+
+
 def _mentions_abstract_restore(command_lower: str) -> bool:
     """The abstract senses of "restore" — none of which is a repair order.
 
@@ -988,6 +1061,10 @@ class LLMClient:
 
             command_text = guarded
             command_lower = guarded.lower()
+            # WO-6 (slice 11): a leading filler ("no wait, …", "hold on, …")
+            # is blanked for the keyword match — same-length, so the
+            # position-aware rules below still index into `command_text`.
+            command_lower = strip_leading_filler(command_lower)
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMAT ROUTING (Phase 8 Session 3): Check for Talleyrand
@@ -1045,7 +1122,14 @@ class LLMClient:
         ]
         _downgrade_keywords = ["downgrade", "reduce commitment", "step down relations",
                                "lower relations", "cool relations"]
-        if any(kw in command_lower for kw in _break_keywords + _downgrade_keywords):
+        if (any(kw in command_lower for kw in _break_keywords + _downgrade_keywords)
+                or _mentions_treaty_break(command_lower)):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
+        # WO slice 11 (§2 H-15): a peace overture routes to diplomacy BEFORE
+        # the war keywords below can read "end the war ON any terms" as a
+        # declaration; `_parse_diplomatic_command` finishes the job.
+        if _mentions_peace_intent(command_lower):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # War declaration commands route to diplomacy (R10)
@@ -2073,7 +2157,11 @@ class LLMClient:
                                      "make amends", "offer amends", "repair relations",
                                      "offer reparations"}
         if not target_nation and not mission_type and not is_question:
-            has_target_required = any(kw in command_lower for kw in _target_required_actions)
+            # WO slice 11: a nation-less peace overture ("end the war",
+            # "I want peace") asks which court, as its keyword siblings do.
+            has_target_required = (
+                any(kw in command_lower for kw in _target_required_actions)
+                or _mentions_peace_intent(command_lower))
             if has_target_required:
                 return ParseResult(
                     matched=True,
@@ -2117,7 +2205,9 @@ class LLMClient:
             "tear up treaty", "abrogate", "dissolve treaty", "terminate treaty",
             "nullify treaty", "revoke treaty", "cancel agreement",
             "end agreement", "void treaty",
-        ]):
+        ]) or _mentions_treaty_break(command_lower):
+            # WO-20: the articled/alliance forms ("break the alliance with
+            # Austria") used to fall through to the proposal arm below.
             action = "diplomatic_break"
         # Voluntary downgrade (must come before general proposal fallback)
         elif any(kw in command_lower for kw in [
@@ -2125,12 +2215,15 @@ class LLMClient:
             "lower relations", "cool relations",
         ]):
             action = "diplomatic_downgrade"
-        # War declaration (R10) — must come before demand/ultimatum catch
-        elif any(kw in command_lower for kw in [
-            "declare war", "go to war", "war on ", "war against ",
-            "open hostilities", "declare hostilities",
-            "invade ", "launch war",
-        ]):
+        # War declaration (R10) — must come before demand/ultimatum catch.
+        # WO slice 11 (§2 H-15): never for a peace overture — "end the war
+        # on any terms" carries "war on " and was a DECLARATION.
+        elif not _mentions_peace_intent(command_lower) and any(
+                kw in command_lower for kw in [
+                    "declare war", "go to war", "war on ", "war against ",
+                    "open hostilities", "declare hostilities",
+                    "invade ", "launch war",
+                ]):
             action = "diplomatic_declare_war"
         # Ultimatum (R21) — distinct from demand/proposal
         elif any(kw in command_lower for kw in [

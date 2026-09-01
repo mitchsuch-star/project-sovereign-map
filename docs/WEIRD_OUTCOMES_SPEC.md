@@ -3088,6 +3088,106 @@ terms` never reaches `diplomatic_declare_war` in any mode; `break the
 alliance with Austria` never proposes one; corpus green with the deltas
 reviewed row-by-row.
 
+> **✅ LANDED September 1, 2026 — landing record, authoritative.** Tests =
+> `tests/test_wo_slice11_typed_route_residue.py` (61); `tools/_sweep_wo11.json`
+> — **14 mutations, 14 killed, 0 inert at close** (two INERT on the first
+> sweep, both real coverage gaps, both repaired — below); golden corpus
+> **524 → 548, every pre-existing row byte-identical** (twelve rows added,
+> the diplomatic ones `mock_only`); M1–M7 and `BASELINE_SERIES`
+> byte-identical, the series proven by a real hash-pinned subprocess run —
+> structurally so (the ambient AI issues dict commands, never text, and
+> `main.py` is not on the turn path), which is a fact about the harness.
+> **One `.gd`:** the G1 corpus census (slice 7's
+> `test_every_family_utterance_is_claimed`) caught that the Cabinet's head
+> list did not claim the articled/alliance break forms the parser now
+> accepts — `main.gd`'s `DIPLO_FAMILY_KEYWORDS` gains them, so a typed
+> `break the alliance with Austria` reaches the wizard's break flow and
+> never the backend by the terminal; parse harness EXIT=0 (the report is
+> regenerated and committed).
+>
+> **Measured before a line was written** (mock parser, the legacy world; the
+> endpoint over a swapped TestClient): `no wait, Ney, retreat` → WAIT at
+> 0.8; `hold on, Ney, retreat` → HOLD; `stand by, Ney, move to Paris` → WAIT
+> with the destination attached; `end the war on any terms` →
+> `diplomatic_declare_war`; `end the war` / `stop the war` / `I want peace` /
+> `stop the war with Britain` / `end the war with Britain` → *Unknown
+> action*; **`break the alliance with Austria` is NOT "proposes an alliance"
+> when bare — it is unparseable** (the row's claim holds only for the
+> Talleyrand-addressed form, which does propose), and `break the treaty with
+> Austria` is exactly as unparseable (a substring test on `break treaty`);
+> and behind a pending envoy's letter, `Ney, never attack Blucher` got the
+> executor's generic shrug instead of PARSE-NEG's refusal **and a bare
+> `move to Belgium` MARCHED DAVOUT without the CR-2 "Which marshal?"
+> question** — WO-7 is wider than filed: the wall did not only replace the
+> recovery arms, it skipped the marshal-choice clarification and issued an
+> order to a marshal the player never named.
+>
+> **Built.**
+> 1. **WO-6 — the filler is BLANKED, the chain is not reordered.** The
+>    contract's fix (demote the bare `wait`/`stand by` test below
+>    retreat/move/scout/build/restrain/drill) was measured and REJECTED:
+>    `Ney, wait for reinforcements` carries the substring `reinforce`, which
+>    would then win as a SUPPORT order — pinned as the negative control, in
+>    the corpus too. Instead `strip_leading_filler` blanks a leading filler
+>    phrase (*wait / no wait / hold on / hang on / stand by / actually /
+>    okay …* followed by punctuation) with SPACES for the keyword match —
+>    same length, PARSE-NEG's rule, so every position-aware rule downstream
+>    still indexes into the text — and only when something substantive
+>    follows, so a bare `wait.` still waits and `wait for Davout` (no
+>    punctuation — the filler IS the order) is untouched. It closes the
+>    `hold on` row of the same class in the same stroke. Driven end to end:
+>    Ney retreats.
+> 2. **§2 H-15 — one peace-intent predicate.** `_mentions_peace_intent`
+>    (*end/stop/cease … the war|hostilities*, *sue/ask for peace*,
+>    *make/want/seek … peace*, *peace with/treaty/terms* — deliberately not
+>    "fighting": `Ney, stop the fighting` is an order to a marshal) routes to
+>    the diplomatic parser BEFORE the war keywords, the declare-war arm
+>    yields to it, and the FINAL-21 target ask counts it — so a nation-less
+>    overture asks *which court* and a named one is a peace proposal.
+>    **The declare-war guard is reachable ONLY by a sentence carrying a war
+>    keyword AND a court** (`end the war on Britain's terms`, `stop the war
+>    against Britain`): the nation-less forms are answered by FINAL-21
+>    before the arm is reached — which is how the sweep found the first
+>    pin inert.
+> 3. **WO-20 — one treaty-break predicate at both seams.**
+>    `_mentions_treaty_break` (a break verb — *break/end/cancel/renounce/
+>    dissolve/terminate/revoke/void/abrogate/nullify/leave/quit/tear up* —
+>    an optional article, a treaty noun — *treaty/alliance/agreement/pact/
+>    non-aggression/open borders/defensive alliance*) at the routing seam
+>    (the bare form now routes) AND the action chain (the addressed form
+>    now breaks instead of proposing). *withdraw from* stays the DOWNGRADE
+>    family's; truce/armistice are not nouns this verb breaks.
+> 4. **WO-7 — the dialogue takes the line only when it claims it.** The
+>    soft-stop pass-through no longer calls `executor.execute` itself: it
+>    falls into the ordinary road (`_dialogue_took_the_line`), so the
+>    enemy-addressee refusal, CR-2's did-you-mean, PARSE-NEG's refusal,
+>    Berthier's recovery and the marshal-choice question are all reached
+>    from behind a letter exactly as with nothing pending (parity pinned
+>    per arm), an ordinary order still passes through, a hard stop still
+>    walls, and the letter's own answer still takes the line. The m1
+>    *"no pending diplomatic matter"* arm now fires only when NO dialogue is
+>    pending — a dialogue word the letter does not offer takes the recovery
+>    road rather than being told the letter does not exist.
+>
+> **The two inert pins, both real.** (a) The declare-war guard mutation
+> survived because every test phrasing was either nation-less (answered by
+> FINAL-21 upstream) or carried no war keyword (`war with`) — the arm's
+> only reachable shape had no pin; two phrasings added. (b) "The letter's
+> own answer still takes the line" was pinned with a bare `accept`, which
+> the **W6-0 pending-question router consumes one block EARLIER** (exact
+> tokens only), so the arm this slice touches was never reached; `accept
+> the offer` reaches it through `match_dialogue_answer`'s label arm, and an
+> executor spy proves the line is not ALSO run as an order.
+>
+> **Contract corrections.** WO-20's "PROPOSES an alliance" is true of the
+> addressed form only; the bare form was unparseable. The `withdraw from`
+> downgrade phrasing has never routed to diplomacy when bare (no routing
+> keyword) — noted, not built (the addressed form works and is pinned).
+> The WO-6-wider amendment (overruling the WAIT objection with `trust` made
+> Ney charge) needs nothing: the WAIT no longer arises, and an objection
+> answered with `trust` executing the marshal's preferred alternative is the
+> objection system as designed.
+
 ### Slice 12 — the copy sweep (est 1)
 
 **Scope.** WO-9 (the two conquest producers stamp `captured_from` —
@@ -4127,8 +4227,8 @@ toggling has no positive arm.
 > → 3 → 13 → 7 → **15 → 16 (both landed August 21, 2026 — the three
 > hand-verified P1s are closed)** → 18 → **5 (landed August 22, 2026)** →
 > **4 ✅ → 6 ✅ → 8 ✅ → 9 ✅ (September 1, 2026) → 10 ✅
-> (September 1, 2026) → 17 ✅ (September 1, 2026)** → 11 → 12 → 14.
-> **Landed through slice 17**; the row's DoD is keyed on this list, so it is updated per slice
+> (September 1, 2026) → 17 ✅ (September 1, 2026) → 11 ✅ (September 1,
+> 2026)** → 12 → 14. **Landed through slice 11**; the row's DoD is keyed on this list, so it is updated per slice
 > rather than at the end — recorded because a review found it three
 > slices behind.
 > The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and

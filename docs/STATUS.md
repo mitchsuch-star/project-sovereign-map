@@ -4,6 +4,42 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW WO SLICE 11 — "THE TYPED-ROUTE RESIDUE" (WO-6/WO-7/WO-20/§2 H-15) — September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 11, authoritative.**
+> `tests/test_wo_slice11_typed_route_residue.py` (61); `tools/_sweep_wo11.json` —
+> **14 mutations, 14 killed, 0 inert at close** (two inert on the first sweep, both
+> real coverage gaps, repaired). Golden corpus **524 → 548, every pre-existing row
+> byte-identical**. M1–M7 + `BASELINE_SERIES` byte-identical (proven by subprocess;
+> structural — the AI issues dict commands, never text). **One `.gd`** — the G1
+> census caught that the Cabinet head list did not claim the new break forms;
+> `main.gd` gains them, parse harness EXIT=0. **NEXT = slice 12** (the copy sweep),
+> then 14.
+>
+> **Measured first.** `no wait, Ney, retreat` → WAIT; `hold on, Ney, retreat` → HOLD;
+> `end the war on any terms` → a DECLARATION; `break the alliance with Austria` —
+> unparseable bare, and a PROPOSAL of alliance when addressed to Talleyrand (the row's
+> claim held for the addressed form only); and **behind a pending envoy's letter a bare
+> `move to Belgium` MARCHED DAVOUT without the "Which marshal?" question** — WO-7 was
+> wider than filed (it skipped the marshal-choice clarification, not only the recovery
+> arms).
+>
+> **Built:** the leading filler is BLANKED (same length, PARSE-NEG's rule) before the
+> keyword match rather than the wait branch being demoted — demoting it would turn
+> `Ney, wait for reinforcements` into a SUPPORT order (pinned as the negative control);
+> one peace-intent predicate routes to diplomacy before the war keywords, the
+> declare-war arm yields to it, and the FINAL-21 ask counts it (a nation-less overture
+> asks which court; a named one proposes peace); one treaty-break predicate at the
+> routing AND the action chain (`break the alliance / end the alliance / break the
+> treaty / leave the alliance` all break; `withdraw from` stays the downgrade family's);
+> the soft-stop pass-through falls into the ordinary road — recovery arms,
+> marshal-choice question, then the executor — so the dialogue takes the line only
+> when it claims it (parity pinned per arm; a hard stop still walls; the letter's own
+> answer still routes). **The two inert pins were real:** the declare-war guard is
+> reachable only by a sentence carrying a war keyword AND a court (nation-less forms
+> are answered upstream by FINAL-21), and a bare `accept` is consumed by the W6-0
+> router one block EARLIER than the arm this slice touches — `accept the offer` is
+> what reaches it.
+
 > # ✅ ROW WO SLICE 17 — "THE FRONTIER HALTS THE CHARGE" (WO-24/25/28/31) — September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 17, authoritative.**
 > `tests/test_wo_slice17_frontier_halts_the_charge.py` (49); `tools/_sweep_wo17.json`

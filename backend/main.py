@@ -2587,6 +2587,18 @@ def execute_command(request: CommandRequest):
         # Cheat commands bypass dialogue guard
         is_cheat = parsed.get("success") and parsed.get("command", {}).get("action") == "cheat"
 
+        # WO-7 (row WO slice 11): a pending SOFT-STOP dialogue must not wall
+        # off the ordinary road. The soft-stop pass-through used to call
+        # `executor.execute(parsed, …)` directly — skipping every recovery
+        # arm below (the enemy-addressee refusal, CR-2's did-you-mean,
+        # PARSE-NEG's honest refusal, Berthier's recovery) AND the CR-2
+        # marshal-choice question — so with an envoy's letter waiting, a
+        # typed `Ney, never attack Blucher` got the executor's generic shrug
+        # and a bare `move to Belgium` MARCHED DAVOUT without asking. The
+        # dialogue takes the line only when it claims it (an answer to its
+        # own options, or a hard stop); otherwise the sentence goes exactly
+        # where it goes when nothing is pending.
+        _dialogue_took_the_line = False
         if world.pending_diplomatic_dialogue is not None and not is_cheat:
             raw_lower = command_text.lower()
             is_hard_stop = world.dialogue_manager.is_hard_stop()
@@ -2610,9 +2622,11 @@ def execute_command(request: CommandRequest):
 
             if matched_keyword:
                 print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
+                _dialogue_took_the_line = True
                 result = executor.handle_diplomatic_dialogue_response(
                     matched_keyword, game_state, raw_text=command_text)
             elif is_hard_stop:
+                _dialogue_took_the_line = True
                 # ══════════════════════════════════════════════════════
                 # PT-A3 — A HARD STOP MUST NOT SWALLOW AN UNRELATED ORDER.
                 #
@@ -2657,12 +2671,19 @@ def execute_command(request: CommandRequest):
                     "diplomatic_dialogue": _dlg,
                 }
             else:
-                # PL-27: Soft-stop — no dialogue keyword match, execute normally
+                # PL-27: Soft-stop — no dialogue keyword match. WO-7: the
+                # line falls through to the ORDINARY road below (recovery
+                # arms, marshal-choice question, then the executor) instead
+                # of a bare `executor.execute`.
                 print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
-                result = executor.execute(parsed, game_state)
-        else:
-            # m1: Dialogue keywords typed with no active dialogue — clear message
-            raw_lower_check = command_text.lower().strip()
+        if not _dialogue_took_the_line:
+            # m1: Dialogue keywords typed with no active dialogue — clear
+            # message. WO-7: only when NO dialogue is pending — with a
+            # soft-stop letter waiting, an unmatched dialogue word is not
+            # "no pending diplomatic matter" and takes the recovery road.
+            raw_lower_check = (command_text.lower().strip()
+                               if world.pending_diplomatic_dialogue is None
+                               else "")
             # Only keywords that are NEVER valid game commands.
             # Excludes: cancel (strategic order cancel), garrison, more, execute, start, yes, no
             _DIALOGUE_ONLY_KEYWORDS = [

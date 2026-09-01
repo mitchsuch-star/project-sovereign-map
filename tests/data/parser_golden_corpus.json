@@ -4081,6 +4081,185 @@
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1) / NP-V",
       "notes": "NP-V: the no-comma lead arm originally required only the article and NO verb, so ANY sentence opening 'the Emperor ...' — including one about a DIFFERENT sovereign — was rewritten into a Napoleon order."
+    },
+    {
+      "id": "wo6-no-wait-ney-retreat",
+      "utterance": "no wait, Ney, retreat",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "retreat",
+        "marshal": "Ney"
+      },
+      "source": "WO slice 11 (WO-6) — WEIRD_OUTCOMES_SPEC.md §3 slice 11",
+      "notes": "The leading-filler hijack: the bare 'wait' substring sat above retreat in the mock chain and this issued WAIT at 0.8. The filler is blanked before the keyword match (strip_leading_filler)."
+    },
+{
+      "id": "wo6-hold-on-ney-retreat",
+      "utterance": "hold on, Ney, retreat",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "retreat",
+        "marshal": "Ney"
+      },
+      "source": "WO slice 11 (WO-6)",
+      "notes": "Same class one word over: 'hold on' matched the hold branch's bare 'hold'."
+    },
+{
+      "id": "wo6-stand-by-ney-move-to-paris",
+      "utterance": "stand by, Ney, move to Paris",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Paris"
+      },
+      "source": "WO slice 11 (WO-6)",
+      "notes": "'stand by' is the other filler the wait branch reads."
+    },
+{
+      "id": "wo6-wait-for-reinforcements-is-still-wait",
+      "utterance": "Ney, wait for reinforcements",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "wait",
+        "marshal": "Ney"
+      },
+      "source": "WO slice 11 (WO-6) — the negative control",
+      "notes": "Why the wait branch was NOT moved to the bottom of the chain: 'reinforce' would then win as a SUPPORT order. No punctuation after 'wait' means the filler IS the order."
+    },
+{
+      "id": "wo6-wait-then-hold-position",
+      "utterance": "wait, hold position",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "hold"
+      },
+      "source": "WO slice 11 (WO-6)",
+      "notes": "A comma after the filler hands the sentence to the verb that follows."
+    },
+{
+      "id": "wo11-end-the-war-on-any-terms-never-declares",
+      "utterance": "end the war on any terms",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_error",
+        "not_action": "diplomatic_declare_war",
+        "diplo": {
+          "action": "diplomatic_error"
+        }
+      },
+      "source": "WO slice 11 (§2 H-15) — WEIRD_OUTCOMES_SPEC.md §3 slice 11",
+      "notes": "Contained the war keyword 'war on ' and parsed as a DECLARATION. A peace overture with no court named now reaches the honest FINAL-21 target ask. mock_only: pins the fast-parser chain the driver/HTTP path uses."
+    },
+{
+      "id": "wo11-stop-the-war-with-britain-bare",
+      "utterance": "stop the war with Britain",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_proposal",
+        "diplo": {
+          "proposal_type": "peace",
+          "target_nation": "Britain",
+          "tone": "propose"
+        }
+      },
+      "source": "WO slice 11 (§2 H-15)",
+      "notes": "Was 'Unknown action' when not addressed to Talleyrand; the addressed form was already a corpus row. Peace intent routes to diplomacy before the war keywords."
+    },
+{
+      "id": "wo11-i-want-peace-asks-which-court",
+      "utterance": "I want peace",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_error",
+        "not_action": "diplomatic_declare_war",
+        "diplo": {
+          "action": "diplomatic_error"
+        }
+      },
+      "source": "WO slice 11 (§2 H-15)",
+      "notes": "Nation-less peace overture -> the FINAL-21 ask, never a war."
+    },
+{
+      "id": "wo20-break-the-alliance-with-austria",
+      "utterance": "break the alliance with Austria",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "target": "Austria",
+        "diplo": {
+          "target_nation": "Austria"
+        }
+      },
+      "source": "WO slice 11 (WO-20)",
+      "notes": "Was unparseable bare and PROPOSED an alliance when addressed to Talleyrand (the break keywords were treaty-phrasings only)."
+    },
+{
+      "id": "wo20-talleyrand-break-the-alliance-with-austria",
+      "utterance": "Talleyrand, break the alliance with Austria",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "not_action": "diplomatic_proposal",
+        "diplo": {
+          "action": "diplomatic_break",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "WO slice 11 (WO-20) — the measured addressed form",
+      "notes": "The form that proposed the alliance it was asked to break."
+    },
+{
+      "id": "wo20-end-the-alliance-with-austria",
+      "utterance": "end the alliance with Austria",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "target_nation": "Austria"
+        }
+      },
+      "source": "WO slice 11 (WO-20)",
+      "notes": "The contract's second phrasing."
+    },
+{
+      "id": "wo20-break-the-treaty-with-austria",
+      "utterance": "break the treaty with Austria",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "target_nation": "Austria"
+        }
+      },
+      "source": "WO slice 11 (WO-20) — found while measuring",
+      "notes": "The articled treaty form was as unparseable as the alliance one ('break treaty' is a substring test)."
     }
   ]
 }

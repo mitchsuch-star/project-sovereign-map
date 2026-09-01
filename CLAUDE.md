@@ -44,6 +44,27 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ ROW WO SLICE 11 — "THE TYPED-ROUTE RESIDUE" (WO-6/WO-7/WO-20/§2
+> H-15) — ✅ LANDED September 1, 2026.** Landing record =
+> `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 11, authoritative. **NEXT = slice
+> 12** (the copy sweep), then 14. Measured first: `no wait, Ney, retreat`
+> → WAIT, `end the war on any terms` → a DECLARATION, `break the alliance
+> with Austria` unparseable bare / a PROPOSAL when addressed, and behind a
+> pending letter a bare `move to Belgium` **marched Davout without the
+> "Which marshal?" question** (WO-7 wider than filed). Built: the leading
+> filler is BLANKED same-length before the keyword match (demoting the
+> wait branch would make `wait for reinforcements` a SUPPORT order —
+> pinned); one peace-intent predicate (routes before the war keywords, the
+> declare-war arm yields, FINAL-21 counts it); one treaty-break predicate
+> at both seams; the soft-stop pass-through falls into the ordinary road
+> so the dialogue takes the line only when it claims it. Corpus 524 → 548
+> with every old row byte-identical; 61 tests, **14/14 mutations killed**
+> (two inert on the first sweep, both real gaps: the declare-war guard is
+> reachable only with a war keyword AND a court; a bare `accept` is eaten
+> by the W6-0 router one block earlier). `BASELINE_SERIES` + M1–M7
+> byte-identical (structural, proven); ONE `.gd` (the Cabinet head list
+> claims the new break forms — the G1 census caught it; harness EXIT=0).
+>
 > **▶ ROW WO SLICE 17 — "THE FRONTIER HALTS THE CHARGE" (WO-24/25/28/31)
 > — ✅ LANDED September 1, 2026.** Landing record =
 > `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 17, authoritative. **NEXT = slice
