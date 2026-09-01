@@ -85,6 +85,28 @@ SHORTFALL_PER_POINT = 50
 # both directions).
 GRACE_TURNS = 4
 
+# WO-18 (row WO slice 14) — THE GRACE CLOCK KEYS ON UNMET-TURN COUNT.
+# The rente bill (get_nation_rente_bill) is charged on the LIVE pension at
+# income time, and the erosion reconcile reset the grace clock to -1 on ANY
+# met turn — so grant / revoke / re-grant paid ceil(1.5×face) only on the
+# turns the pension was live and NEVER reached erosion, because each
+# re-grant reset the clock inside the grace window. ~300g/turn per capped
+# marshal, zero loyalty cost, while the revoke copy still promised the
+# unmet expectation "frays loyalty after its grace expires".
+#
+# The reset rule changes (GRACE_TURNS stands): a met turn resets the clock
+# ONLY when the marshal's ESTATE INCOME alone covers his expectation
+# (durable — paying with land stops the bleed) OR the clock was never open.
+# When a RENTE is the load-bearing thing closing the shortfall and the
+# clock is already open, it is FROZEN, not reset — so the unmet turns
+# accumulate ACROSS an interleaved grant/revoke and erosion fires
+# GRACE_TURNS turns after the FIRST unmet turn regardless of the toggle. A
+# marshal genuinely kept on a rente never erodes anyway: every such turn
+# has shortfall <= 0 and takes the met branch, so the frozen clock is never
+# read. Flip lever (HOST_RULE_ACTIVE idiom): False restores the pre-slice
+# "any met turn resets" byte-identically.
+PENSION_CHURN_GUARD_ACTIVE = True
+
 # AI grant rung (GR5): the enemy AI endows its most-shortfalling marshal
 # once the shortfall clears this threshold (2 wins' worth of expectation).
 AI_GRANT_SHORTFALL_THRESHOLD = 80

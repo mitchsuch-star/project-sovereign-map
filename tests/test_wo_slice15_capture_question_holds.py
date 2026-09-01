@@ -382,7 +382,12 @@ class TestWO26TheQuestionIsNotOverwritten:
         # Absolute, so a dropped arm in the ONE implementation reds here
         # even though both paths would drop it together.
         assert direct.stability == 25
-        assert direct.plundered is False
+        # WO-19 (WO slice 14, Sept 1 2026): securing NO LONGER un-sacks —
+        # the plundered flag survives every change of hands and clears only
+        # on stability > 50 (process_stability_growth). Both secure paths
+        # keep it, so the shape-equality above still binds the two
+        # implementations; the absolute is flipped True consciously.
+        assert direct.plundered is True
         assert all(b.get("damaged") for b in direct.buildings)
         assert direct.building_under_construction is None
         assert direct.watchtower == "damaged"

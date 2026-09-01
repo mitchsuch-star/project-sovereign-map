@@ -44,6 +44,23 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ ROW WO IS BUILD-COMPLETE.** All eighteen slices landed (order
+> 1→1b→2→3→13→7→15→16→18→5→4→6→8→9→10→17→11→12→14); §5's definition of
+> done is discharged. **Slice 14 "THE CLOCK AND THE FLAG" (WO-18/WO-19) —
+> ✅ LANDED September 1, 2026**, landing record `docs/WEIRD_OUTCOMES_SPEC.md`
+> §3 slice 14. **WO-18** the pension-churn dodge: the grace clock reset on
+> any met turn, so grant/revoke/re-grant dodged the rente bill with zero
+> loyalty cost — now a met turn resets only when the ESTATE alone covers
+> the expectation, a load-bearing rente FREEZES an open clock, and unmet
+> turns accumulate across the toggle (a genuinely kept rente never reads
+> the frozen clock). **WO-19** the sacked flag: three secure sites cleared
+> `region.plundered` on any hand-change; now only the documented
+> stability-50 clear does, so abandon→AI-secures→retake pays 0 while the
+> flag stands. 15 tests, **9/9 mutations** (two first-sweep inert pins
+> resolved — one deleted as redundant, one was a real coverage gap in the
+> AI-vs-player secure path); series + M1–M7 byte-identical; 357 dotation
+> pins green; zero `.gd`.
+>
 > **▶ ROW WO SLICE 12 — "THE COPY SWEEP" (WO-9/10/12/15/16/33/42/43/44/45
 > + N-8b + WO-D10's copy half) — ✅ LANDED September 1, 2026.** Landing
 > record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 12, authoritative.

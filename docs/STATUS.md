@@ -4,6 +4,32 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW WO IS BUILD-COMPLETE — SLICE 14 "THE CLOCK AND THE FLAG" (WO-18/WO-19) LANDED September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 14, authoritative.**
+> `tests/test_wo_slice14_the_clock_and_the_flag.py` (15); `tools/_sweep_wo14.json`
+> — **9 mutations, 9 killed, 0 inert at close** (two inert on the first sweep, both
+> real, both resolved). M1–M7 + `BASELINE_SERIES` byte-identical (proven by
+> subprocess). Zero `.gd`. **All eighteen slices of row WO are landed; §5's DoD is
+> discharged.**
+>
+> **WO-18 (pension churn):** the erosion reconcile reset the grace clock on ANY met
+> turn, so a grant/revoke/re-grant toggle dodged the rente bill on revoked turns with
+> zero loyalty cost. The reset now happens only when ESTATE income alone covers the
+> expectation (durable); a load-bearing rente while the clock is OPEN FREEZES it, so
+> unmet turns accumulate across the toggle and erosion fires GRACE_TURNS turns after
+> the first unmet one. A genuinely kept rente never reads the frozen clock (met branch
+> every turn). Every existing dotation pin holds (357 green).
+>
+> **WO-19 (the sacked flag):** three sites cleared `region.plundered` on any
+> hand-change (the shared secure + two occupation-completion branches); now only the
+> documented stability-50 clear does, so abandon→AI-secures→retake quotes and pays 0
+> while the flag stands. A fresh capture is unplundered, so the common case is
+> untouched. **The two first-sweep inert pins were real:** WO14-4 was provably
+> redundant dead code (deleted, not pinned); WO14-9's test drove the player
+> foreign-soil path (which routes through the shared secure, already pinned) instead
+> of the AI branch's own inline clear — rewritten to drive an AI secure. Method note:
+> ES-7 is Europe-scoped, so the WO-18 tests build a `from_scenario` world.
+
 > # ✅ ROW WO SLICE 12 — "THE COPY SWEEP" (WO-9/10/12/15/16/33/42/43/44/45 + N-8b + WO-D10's copy half) — September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 12, authoritative.**
 > `tests/test_wo_slice12_copy_sweep.py` (48); `tools/_sweep_wo12.json` — **22

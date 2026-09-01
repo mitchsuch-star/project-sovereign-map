@@ -1,0 +1,65 @@
+[
+ {
+  "id": "WO14-1 met branch always resets the clock (the churn dodge)",
+  "file": "backend/models/world_state.py",
+  "old": "                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:\n                    marshal.expectation_grace_turn = -1",
+  "new": "                marshal.expectation_grace_turn = -1",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-2 the guard lever is frozen off",
+  "file": "backend/models/world_state.py",
+  "old": "                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:\n                    marshal.expectation_grace_turn = -1",
+  "new": "                if True or _estate_covers:\n                    marshal.expectation_grace_turn = -1",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-3 estate coverage no longer resets (freezes durable land)",
+  "file": "backend/models/world_state.py",
+  "old": "                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:",
+  "new": "                if not PENSION_CHURN_GUARD_ACTIVE:",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-5 estate coverage uses satisfaction (rente slips through)",
+  "file": "backend/models/world_state.py",
+  "old": "                _estate_covers = get_estate_income(marshal, self) >= expectation",
+  "new": "                _estate_covers = get_satisfaction(marshal, self) >= expectation",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-6 apply_secure_effects clears the flag again",
+  "file": "backend/models/world_state.py",
+  "old": "    if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:\n        region.plundered = False\n    for building in region.buildings:",
+  "new": "    region.plundered = False\n    for building in region.buildings:",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-7 the secure lever is frozen off",
+  "file": "backend/models/world_state.py",
+  "old": "    if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:\n        region.plundered = False\n    for building in region.buildings:",
+  "new": "    if True:\n        region.plundered = False\n    for building in region.buildings:",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-8 the own-soil occupation liberation clears the flag",
+  "file": "backend/models/world_state.py",
+  "old": "                # WO-19 (slice 14): the flag survives — see apply_secure_effects.\n                if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:\n                    region.plundered = False\n                self._last_occupation_capture_choice = \"secure\"",
+  "new": "                region.plundered = False\n                self._last_occupation_capture_choice = \"secure\"",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-9 the AI occupation secure clears the flag",
+  "file": "backend/models/world_state.py",
+  "old": "                # WO-19 (slice 14): the flag survives — see apply_secure_effects.\n                if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:\n                    region.plundered = False\n                for building in region.buildings:",
+  "new": "                region.plundered = False\n                for building in region.buildings:",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ },
+ {
+  "id": "WO14-10 the documented stability-50 clear is removed",
+  "file": "backend/models/world_state.py",
+  "old": "            if region.plundered and region.stability > 50:\n                region.plundered = False",
+  "new": "            if False and region.plundered and region.stability > 50:\n                region.plundered = False",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ }
+]

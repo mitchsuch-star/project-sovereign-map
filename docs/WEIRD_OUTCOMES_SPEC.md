@@ -3548,6 +3548,63 @@ the docstring's promise becomes true; IGR-E's dissent counter is untouched
 M1–M7 harness and prove `BASELINE_SERIES` by subprocess (threat accrues on
 conquest, not the flag, so it should hold — prove it).
 
+> **✅ LANDED September 1, 2026 — landing record, authoritative. THE ROW WO
+> BUILD IS COMPLETE.** Tests = `tests/test_wo_slice14_the_clock_and_the_flag.py`
+> (15); `tools/_sweep_wo14.json` — **9 mutations, 9 killed, 0 inert at
+> close** (two INERT on the first sweep, both real and both resolved —
+> below); M1–M7 byte-identical; `BASELINE_SERIES` byte-identical, proven by
+> subprocess (WO-19's ambient prediction held — threat accrues on the
+> conquest, not the flag). Zero `.gd`.
+>
+> **WO-18 — the grace clock keys on unmet-turn count, via a FREEZE.** The
+> reset rule was "any met turn → clock = -1", so a grant / revoke / re-grant
+> toggle reset the clock inside the grace window on every re-grant and never
+> reached erosion, dodging the rente bill on revoked turns with zero loyalty
+> cost. The rule now resets ONLY when the ESTATE income alone covers the
+> expectation (durable — paying with land stops the bleed) or the lever is
+> off; a load-bearing rente while the clock is OPEN FREEZES it, so unmet
+> turns accumulate across the toggle and erosion fires GRACE_TURNS turns
+> after the FIRST unmet one. **The `expectation_grace_turn < 0` third arm
+> the first draft carried was provably redundant** — freezing a −1 clock
+> leaves it −1, exactly as resetting would — so it was deleted rather than
+> pinned (the first sweep's inert WO14-4). **A genuinely kept rente never
+> reads the frozen clock:** every such turn has `shortfall <= 0` and takes
+> the met branch, so it never erodes (pinned across GRACE_TURNS+3 turns).
+> The blessed `GRACE_TURNS = 4` stands; the "regardless of interleaved
+> grant/revoke" acceptance test is written against the constant, not the
+> stale "2" the contract quoted. Every existing dotation pin holds
+> (`test_revoke_reopens_the_shortfall_machinery`,
+> `test_met_expectation_stops_the_bleed`, the serialization pins — 357
+> green): the freeze only bites while the clock is ALREADY open, which no
+> existing pin exercises with a rente.
+>
+> **WO-19 — the sack survives a change of hands.** THREE sites cleared
+> `region.plundered` on any hand-change: the shared `apply_secure_effects`,
+> the own-soil occupation-completion liberation, and the AI
+> occupation-completion secure (its own inline clear — that branch does not
+> delegate to the shared one). All three gated behind
+> `PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE`; the documented
+> `process_stability_growth` stability-50 clear is now the ONLY one, so
+> `plunder_yield`'s docstring promise is true end to end — abandon →
+> AI-secures → retake quotes and pays 0 while the flag stands. A FRESH
+> capture is unplundered, so nothing changes for the common case. **The
+> second inert pin (WO14-9) was a real coverage gap:** the "foreign
+> occupation" test drove the PLAYER foreign-soil path, which routes through
+> `mount_or_auto_secure_capture` → the shared secure (already pinned by
+> WO14-6) and never touches the AI branch's inline clear; the test was
+> rewritten to drive an enemy marshal securing an occupied plundered
+> province (`ai_prefers_plunder` forced False), with the player path pinned
+> separately as defence in depth.
+>
+> **Method note kept:** ES-7 is Europe-scoped (`is_dotation_world`), so the
+> WO-18 tests build a `from_scenario` 1805 world — the legacy fixture world
+> the reflex reaches for has no dotations and the rente bill returns 0
+> there. Five WO-18 tests red-ed on that before the fixture was corrected.
+>
+> **Row WO closes here.** Slices 1 → 1b → 2 → 3 → 13 → 7 → 15 → 16 → 18 →
+> 5 → 4 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14 all landed; §5's DoD list is
+> discharged.
+
 ### Slice 15 — "The Capture Question Holds" (est 1) — **this spec's addition**
 
 **One lifecycle, five holes (WO-22/26/27/29/30).** The single-slot

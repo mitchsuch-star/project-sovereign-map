@@ -436,6 +436,26 @@ def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
     return starting.get(region_name) == nation
 
 
+# ═══════ WO-19 (row WO slice 14) — THE SACK SURVIVES A CHANGE OF HANDS ═══════
+#
+# `plunder_yield`'s docstring promises the repeat-sack guard holds "until
+# stability recovers past 50 … >= 9 unguarded turns", and `plundered` was
+# the flag that made a re-sack pay 0 (IGR-X6). But THREE sites cleared it on
+# ANY change of hands — `apply_secure_effects` (the shared secure), and the
+# two occupation-completion branches (own-soil liberation and foreign
+# secure) — so the abandon → AI-secures → retake cycle quoted and paid the
+# FULL income×4 again. Securing a province does not un-sack it; only TIME
+# does (`process_stability_growth`, stability > 50 — the documented clear,
+# and now the ONLY one). A FRESH capture is unplundered, so this changes
+# nothing for the common case; only an already-stripped province stays
+# stripped across the hand-change.
+#
+# Flip lever for the BASELINE_SERIES attribution experiment: False restores
+# the pre-slice clears byte-identically (the HOST_RULE_ACTIVE idiom). Not a
+# config surface. Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 14.
+PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE = True
+
+
 def apply_plunder_effects(world, region, receiving_nation: str) -> int:
     """Sack a captured province — THE one implementation of plunder's
     effects, both sides (post-landing review P3 #5).
@@ -495,7 +515,10 @@ def apply_secure_effects(region) -> None:
     in byte-identical shape — which is the whole point of having one.
     """
     region.stability = 25
-    region.plundered = False
+    # WO-19 (slice 14): securing does not un-sack. The flag survives to
+    # `process_stability_growth`'s stability-50 clear — the documented one.
+    if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:
+        region.plundered = False
     for building in region.buildings:
         building["damaged"] = True
     region.building_under_construction = None
@@ -4079,7 +4102,9 @@ class WorldState:
             if is_own_soil_recapture(self, region_name, marshal.nation):
                 # CA8-13: no question is asked about liberating France.
                 region.stability = 25
-                region.plundered = False
+                # WO-19 (slice 14): the flag survives — see apply_secure_effects.
+                if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:
+                    region.plundered = False
                 self._last_occupation_capture_choice = "secure"
                 # WO-42 (slice 12): the occupation-completes liberation logs
                 # its row too (the attack-capture sibling lives in
@@ -4136,7 +4161,9 @@ class WorldState:
             else:
                 # Secure: stability 25, damage buildings, cancel construction
                 region.stability = 25
-                region.plundered = False
+                # WO-19 (slice 14): the flag survives — see apply_secure_effects.
+                if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:
+                    region.plundered = False
                 for building in region.buildings:
                     building["damaged"] = True
                 region.building_under_construction = None
@@ -6022,9 +6049,11 @@ class WorldState:
         self._dotation_processed_turn = self.current_turn
 
         from backend.game_logic.dotation import (
-            EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
-            capture_choice_pending, get_expectation, get_satisfaction,
-            is_estate_respected, log_estate_lost, prune_respected_estates,
+            EROSION_MAX, GRACE_TURNS, PENSION_CHURN_GUARD_ACTIVE,
+            SHORTFALL_PER_POINT,
+            capture_choice_pending, get_estate_income, get_expectation,
+            get_satisfaction, is_estate_respected, log_estate_lost,
+            prune_respected_estates,
         )
 
         # W6-8: drop dead respect entries FIRST so the estate prune below
@@ -6101,7 +6130,20 @@ class WorldState:
             if shortfall <= 0:
                 # Met (or no expectation): the grace clock resets — paying
                 # stops the bleed. It never buys trust (no bump here).
-                marshal.expectation_grace_turn = -1
+                #
+                # WO-18 (slice 14): reset ONLY when the estate income alone
+                # covers him (durable) or the clock was never open; a rente
+                # that is load-bearing while the clock is OPEN freezes it
+                # rather than resetting, so a grant/revoke toggle cannot
+                # dodge erosion. A genuinely kept rente never reads the
+                # frozen clock (it takes this met branch every turn).
+                # A met turn where the clock is already -1 (met-from-met)
+                # leaves it -1 whether we reset or freeze, so the condition
+                # only has two real arms: durable estate coverage, and the
+                # lever.
+                _estate_covers = get_estate_income(marshal, self) >= expectation
+                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:
+                    marshal.expectation_grace_turn = -1
                 # S5-3: symmetric with the open/erosion branches — once the
                 # player rewards him, drop the stale "reward him" rail notice
                 # so it never contradicts the grant confirmation ("his
