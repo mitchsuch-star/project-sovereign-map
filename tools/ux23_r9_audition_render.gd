@@ -24,6 +24,7 @@ const OUT_DIR := "user://ux23_r9/"
 const BUS_NAME := "AuditionRender"
 const FADE_S := 0.8               # `_fade_stop`'s fade, mirrored
 const GAP_S := 1.0                # silence between cues in the combined file
+const FULL_MAX_S := 45.0          # wall clock for the uncapped renders
 
 # (cue, path, db, max_s, start_s) — mirrored from audio_manager.gd's CUES.
 # A literal on purpose, exactly as in the probe: this is an instrument, and it
@@ -44,9 +45,15 @@ var _mix_rate := 44100.0
 var _bus_idx := -1
 var _device_ok := false
 var _log: Array = []
+# UX23_R9_FULL=1 renders each cue WHOLE and untrimmed instead, so the
+# envelope around the cap can be measured from a plain PCM file. It cannot
+# answer the phrase question - only a person can - but it can say whether
+# the cap falls in a note or in the gap between two.
+var _full := false
 
 
 func _init():
+	_full = OS.get_environment("UX23_R9_FULL") == "1"
 	process_frame.connect(_tick)
 	_mix_rate = AudioServer.get_mix_rate()
 	_bus_idx = AudioServer.bus_count
@@ -82,13 +89,15 @@ func _next():
 	_player = AudioStreamPlayer.new()
 	_player.stream = stream
 	_player.bus = BUS_NAME
-	_player.volume_db = float(TARGETS[_idx][2])
+	_player.volume_db = 0.0 if _full else float(TARGETS[_idx][2])
 	root.add_child(_player)
 	_player.play(float(TARGETS[_idx][4]))
 	# The cap's own fade, reproduced: `_fade_stop` starts a 0.8s tween to
 	# -50 dB AFTER `max_s`, so what the player hears is max_s + 0.8s with the
 	# tail fading. Rendering only the first max_s would answer a question
 	# nobody asked.
+	if _full:
+		return
 	var cap: float = float(TARGETS[_idx][3])
 	var target := _player
 	var timer := get_root().get_tree().create_timer(cap)
@@ -115,7 +124,7 @@ func _tick():
 			_frames.append(frame)
 			if absf(frame.x) > 0.01 or absf(frame.y) > 0.01:
 				_device_ok = true
-	var cap: float = float(TARGETS[_idx][3])
+	var cap: float = FULL_MAX_S if _full else float(TARGETS[_idx][3])
 	if not _player.playing or _elapsed > cap + FADE_S + 1.0:
 		_next()
 
@@ -123,7 +132,7 @@ func _tick():
 func _write_one():
 	var cue: String = TARGETS[_idx][0]
 	var cap: float = float(TARGETS[_idx][3])
-	var name := "%s_capped_%.1fs.wav" % [cue, cap]
+	var name := ("%s_FULL.wav" % cue) if _full else ("%s_capped_%.1fs.wav" % [cue, cap])
 	_save_wav(OUT_DIR + name, _frames)
 	_note("%s -> %s (%d frames, %.2fs)"
 		% [cue, name, _frames.size(), _frames.size() / _mix_rate])
@@ -144,6 +153,9 @@ func _write_combined():
 			+ "silent, and a silent audition answers nothing. Run windowed "
 			+ "with a real output device.")
 		quit(1)
+		return
+	if _full:
+		quit(0)
 		return
 	_save_wav(OUT_DIR + "ux23_r9_all_three.wav", _all)
 	_note("combined -> ux23_r9_all_three.wav (%.2fs)"

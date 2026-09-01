@@ -81,8 +81,16 @@
 > `to_the_color` and `fanfare` exactly as the game plays them (registry `db`,
 > `max_s`, and the 0.8 s `_fade_stop` fade) to `audition/ux23_r9/`
 > (gitignored) as three files plus one combined ~20 s file, so the audition is
-> a single action. A machine cannot answer whether a capped bugle ends on a
-> phrase; that is the row.
+> a single action. The user declined it, so the next best thing was measured:
+> `tools/ux23_r9_phrase_probe.py` reads the uncapped renders as plain PCM and
+> finds the gaps longer than the median — which is what a phrase boundary is
+> made of. **It falsified the row's own completion definition:**
+> `to_the_color` has NO phrase gap between 0.70 s and 14.52 s, so "move
+> `max_s` to the next phrase boundary" is unsatisfiable for it; `fanfare`'s
+> next boundary is 0.20 s past its cap and INSIDE the fade (as good as it
+> gets); `reveille`'s is at 6.28 s, so ending on a phrase costs a 7.1 s cue
+> once per turn against 5.0 s today. **Nothing was changed** — that is the
+> judgement the row exists to put to a person, now priced rather than guessed.
 
 
 > # ✅ THE WHOLE-SYSTEMS REVIEW — August 30, 2026 (row REV): 45 DEFECTS, ALL FIXED.

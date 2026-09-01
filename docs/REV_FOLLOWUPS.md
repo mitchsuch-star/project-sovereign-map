@@ -116,7 +116,47 @@ Regenerate with:
 "C:/Users/User/Downloads/Godot_v4.4.1-stable_win64.exe/Godot_v4.4.1-stable_win64.exe" --path godot-client/project-sovereign --script ../../tools/ux23_r9_audition_render.gd
 ```
 
-**Completion definition (unchanged):** a person confirms each ends on a phrase
-rather than mid-figure; if one does not, its `max_s` moves to the next phrase
-boundary and the measured value is recorded in `MUSIC_SOUND_SPEC.md` §1a.
-**Behaviour test: none is possible** — that is the point of the row.
+### The measurement, and the correction it forces
+
+The user was asked and declined the audition ("do what u think best"), so the
+next best thing was done instead: **measure what a phrase boundary is made
+of.** A bugle separates notes with short gaps and ends a phrase on a
+noticeably longer one, so `tools/ux23_r9_phrase_probe.py` reads the uncapped
+renders (`UX23_R9_FULL=1`) as plain PCM — which the stdlib `wave` module can
+do, sidestepping the venv's missing decoder — and asks where each `max_s`
+sits relative to the gaps materially longer than the median.
+
+| cue | cap | at the cap | next phrase boundary |
+|---|---|---|---|
+| `reveille` | 4.2 s | 52% of peak | **6.28 s** — 2.08 s out, past the fade |
+| `to_the_color` | 5.2 s | 8% of peak | **14.52 s** — 9.32 s out |
+| `fanfare` | 5.2 s | 16% of peak | **5.40 s** — 0.20 s out, INSIDE the fade |
+
+**`fanfare` is as good as it gets**: the fade begins 0.2 s before a real
+phrase gap and that gap falls inside the fade, so the cue ends into a break.
+
+**`to_the_color` has no phrase boundary anywhere near its cap** — none at all
+between 0.70 s and 14.52 s. **This falsifies the row's own completion
+definition**, which said that a cue failing the audition has its `max_s`
+"moved to the next phrase boundary": for this cue no cap under ~15 s can end
+on a phrase, and a 15 s honours call is not a UI cue. The 0.8 s fade is the
+only available mechanism, and the measurement says it is doing its job (8% of
+peak at the cap — the fade starts in a note gap even though the *phrase*
+runs on).
+
+**`reveille` is the one with a real choice.** Its next phrase boundary is at
+6.28 s, so `max_s = 6.28` would end it exactly on a phrase — at the cost of a
+**7.1 s** cue (6.28 + fade) fired once per turn on the morning dispatch,
+against 5.0 s today. **Nothing was changed**: that is a judgement about cue
+length versus musical completeness, the very judgement this row exists to put
+to a person, and moving a blessed number on proxy evidence — against the
+cue-length rationale the caps were introduced for — would be worse than
+leaving it. The number is now priced, so whoever listens is choosing between
+two known options rather than guessing.
+
+**Completion definition (AMENDED):** a person confirms each ends acceptably;
+if `reveille` does not, its `max_s` moves to the measured **6.28 s** and the
+value is recorded in `MUSIC_SOUND_SPEC.md` §1a. For `to_the_color` the
+original instruction is retired as unsatisfiable — the only lever is the fade
+length, and any change there is a new decision, not this row's. **Behaviour
+test: none is possible** — that is the point of the row.

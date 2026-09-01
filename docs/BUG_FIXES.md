@@ -474,8 +474,32 @@ A machine cannot answer whether a capped bugle ends on a phrase. New
 `audition/ux23_r9/` (gitignored; regenerate rather than commit), as three
 files plus one combined file so the audition is a single action. It inherits
 the probe's honesty guard: a dummy audio driver fails the run loudly rather
-than writing three silent files. **The row stays open** until a person
-listens.
+than writing three silent files.
+
+**The user declined the audition ("do what u think best"), so the next best
+thing was measured instead — and it falsified the row's own completion
+definition.** `tools/ux23_r9_phrase_probe.py` renders each cue uncapped
+(`UX23_R9_FULL=1`) and reads it back as plain PCM through the stdlib `wave`
+module — sidestepping the venv's missing decoder — then asks where each
+`max_s` sits relative to the gaps materially longer than the median, which is
+what a phrase boundary is made of.
+
+* `fanfare` (5.2 s) — the next phrase gap is **0.20 s past the cap and inside
+  the 0.8 s fade**. It ends into a break; as good as it gets.
+* `to_the_color` (5.2 s) — there is **no phrase-length gap between 0.70 s and
+  14.52 s.** No cap under ~15 s can end this cue on a phrase, so the row's
+  instruction to "move `max_s` to the next phrase boundary" is
+  **unsatisfiable** for it. The fade is the only lever, and at 8% of peak the
+  cap does at least start in a note gap.
+* `reveille` (4.2 s) — a real boundary exists at **6.28 s**, so ending on a
+  phrase is possible at the cost of a 7.1 s cue fired once per turn on the
+  morning dispatch, against 5.0 s today.
+
+**Nothing was changed.** That last one is a judgement about cue length versus
+musical completeness — the judgement this row exists to put to a person — and
+moving a blessed number on proxy evidence, against the cue-length rationale
+the caps were introduced for, would be worse than leaving it. **The row stays
+open**, with the options now priced rather than guessed.
 
 #### Method notes
 

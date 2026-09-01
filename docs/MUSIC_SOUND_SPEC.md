@@ -378,6 +378,16 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 > remainder is **row UX23-R9**, with an owner, a landing slice and a
 > completion definition, in `BUG_FIXES.md` §UX23-B — not a floating sentence.
 >
+> **Measured August 31, 2026, and it narrowed the row further (`tools/ux23_r9_phrase_probe.py`).** A phrase boundary is a gap materially longer than the gaps between notes, and that IS measurable from the uncapped renders. Where each cap falls:
+>
+> | cue | `max_s` | envelope at the cap | next phrase boundary |
+> |---|---|---|---|
+> | `reveille` | 4.2 s | 52% of peak | 6.28 s — 2.08 s out, past the fade |
+> | `to_the_color` | 5.2 s | 8% of peak | 14.52 s — 9.32 s out |
+> | `fanfare` | 5.2 s | 16% of peak | 5.40 s — 0.20 s out, INSIDE the fade |
+>
+> So `fanfare` already ends into a phrase break; **`to_the_color` has no phrase boundary within 9 s of its cap at all**, which makes the row's "move `max_s` to the next phrase boundary" instruction unsatisfiable for it — the 0.8 s fade is the only lever; and `reveille` alone has a real choice, at 6.28 s, costing a 7.1 s cue once per turn against 5.0 s today. **Nothing was retuned** — the ear still decides, but it now chooses between priced options.
+>
 > **The §3.5 audition gate has a structural blind spot, recorded here rather
 > than treated as carelessness:** an audition hears each cue once, in
 > isolation, judging character in the first second. It never sits through 38

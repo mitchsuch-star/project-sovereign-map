@@ -59,7 +59,13 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > killed, 0 inert at close** (one INERT found and repaired); suite
 > **18,996 / 4 skipped**; M1–M7 + `BASELINE_SERIES` byte-identical.
 > ⚠ OPEN: **UX23-R9** — three bugle cues owe a human ear; rendered
-> ready to play at `audition/ux23_r9/` (one combined file).
+> ready to play at `audition/ux23_r9/` (one combined file). The audition was
+> declined, so `tools/ux23_r9_phrase_probe.py` measured the phrase gaps
+> instead and **falsified the row's own completion definition**:
+> `to_the_color` has no phrase boundary between 0.70 s and 14.52 s, so no cap
+> under ~15 s can end it on one. `fanfare` already ends into a gap inside its
+> fade; `reveille`'s boundary is 6.28 s (a 7.1 s cue, once per turn, against
+> 5.0 s today). Nothing was retuned — the options are priced, not chosen.
 >
 > **ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
