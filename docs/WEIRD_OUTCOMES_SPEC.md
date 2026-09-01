@@ -4010,6 +4010,98 @@ independently attributable), M1–M7 checked.
 > cleared field). Every weak-enemy fixture now breaks deterministically
 > (2,000 men at morale 26 — one exchange routs him) and the file was run six
 > times under fresh random seeds, 49/49 each.
+>
+> ### The review round — three lenses at the committed SHA `611013f2`
+>
+> **Two P2s, three P3s, two P4s — all fixed; one of the P2s falsified a
+> claim in the record above.** Tests 49 → 62 (`TestTheReviewRound`);
+> `tools/_sweep_wo17r.json` **14 mutations, 14 killed**, the original 25
+> re-anchored and re-swept 25/25; `BASELINE_SERIES` re-proven byte-identical
+> by subprocess AFTER the round; M1–M7 byte-identical.
+>
+> **[P2] "`respond_to_glorious_charge` is player-only by construction" was
+> FALSE.** The two DEFIANCE callers (`strategic_executor` and
+> `meta_executor`, an aggressive marshal answering a defend/hold/wait/
+> retreat order with an attack of his own) passed NO command, so
+> `_no_charge_popup` read `(None or {})` and a reckless-3 cavalryman
+> defying a defend order armed the CHARGE/RESTRAIN popup; the caller
+> discarded the question (reported a wait, spent the AP), and the
+> serialized flag stayed armed for the next bare `charge` — which fired a
+> 2× charge AND the war-purpose HARD STOP from an attack nobody ordered.
+> The AST census could not see it: it pins WRITES under the predicate, not
+> callers that make the predicate vacuous. Fixed as ONE predicate
+> `_attack_is_unordered(command)` (`_jealousy_autonomous` OR `_defiance`),
+> read by both charge popups, all three staging sites and the muster gate
+> (a stamped defiance carries a command dict, which used to be the gate's
+> whole arming condition); both defiance sites stamp `_defiance`. The
+> PC15-D1 census now counts predicate CALL SITES, code-only (its first cut
+> scanned raw source — a comment naming the flag would have satisfied it).
+>
+> **[P2, pre-existing, re-gated but not re-read by the slice] the redirect
+> popup's RESTRAIN option lied.** *"RESTRAIN: Normal attack on {original}"*
+> while `pending_charge_target` held the ALTERNATIVE and the restrain
+> branch attacked him — the player committed to one man and the game
+> fought another. **ONE new serialized field**, `Marshal.
+> pending_charge_restrain_target` (the blocked original; legacy saves omit
+> it and fall back to the charge target, as before), `SAVE_FORMAT_REFERENCE`
+> updated.
+>
+> **[P2] the pending question outlived the momentum it asked about.** The
+> flag was cleared at exactly one site (the answer), so a popup armed by a
+> player attack and overtaken by an auto-charge (the turn-start reckless
+> copy, the 4+ arm, and NOW the autonomous glory attack, which used to
+> return the popup and now spends the momentum) stayed armed — serialized —
+> and the next bare `charge` fired a 2× charge at recklessness 0 on a
+> turn-old decision, staging the war-purpose HARD STOP. `reset_recklessness`
+> disarms the trio: the question dies with the momentum.
+>
+> **[P3 ×2, both lenses] the sortie copy gave the wrong reason on a third
+> party's soil** — *"a province is taken by the army that stands on it"*
+> where standing on it would take nothing either (PT-F1). The sortie arm
+> now reads `pursuit_block`: *"Rhineland remains Prussia's soil — the sally
+> was against the enemy standing on it, not the province."* The slice's
+> own test had pinned the misleading sentence; corrected.
+>
+> **[P3] a FORTIFIED jealous marshal was warned every turn and refused
+> every turn** — the warning step never consulted the fortified gate, so
+> the fore-warning promised a battle WO-28's refusal arm then retracted,
+> per cycle. The warning step skips a fortified marshal (his works hold
+> him). **[P3] a consumed warning could still go silent**: when the quarry
+> moved, was taken, or now stood on soil the glory-hunt may not enter,
+> `process_autonomous_attacks` cleared the flag and emitted nothing — it
+> now tells *"no enemy stood within his reach when the moment came"* on the
+> same `jealousy_autonomous_refused` type, which also moves to the dispatch's
+> **warning** register beside its siblings (it rendered `info`).
+>
+> **[P4] `_current_sortie`** is initialised in `CommandExecutor.__init__`
+> (it now suppresses capture, not only the advance). **[P4, recorded, not
+> fixed]** the refusal arm's "an order-bound interrupt the refused attack
+> itself raised is dropped / a standalone decision is never overwritten"
+> clauses are unreachable today — no `_strategic_execution` refusal in
+> `_execute_attack` writes `pending_interrupt` (the muster site is gated
+> off, the last-stand/encircled sites are post-battle) — so they are
+> defence in depth, pinned by the hand-set interrupt test only.
+>
+> **Six inert-mutation candidates the fleet named were all taken:** the
+> halted charge no longer doubles its line (*"halts at the edge of
+> conquest"* pinned absent); a neutral bystander on the enemy's province no
+> longer silences the sally line (`is_at_war` in `_sortie_remaining`
+> pinned); a same-province reckless charge on neutral soil prints no
+> frontier line; the AST census no longer credits an `else`/`elif` arm with
+> its parent's test. **A method note met again:** `_code_only` emits one
+> token per line, so a multi-token needle never matches it — squeeze first
+> (two pins were 0-of-5 until squeezed, then 6-of-5 until the definition
+> line was subtracted). Also corrected: the PC15-D1 docstring's second
+> "battle-advance" site is the auto-BOMBARDMENT advance.
+>
+> **Checked clean by the fleet:** naval-vs-frontier ordering; the ally/
+> OPEN_BORDERS arms through the real autonomous path; GR5 (an AI charge
+> onto Prussian soil halts on both implementations, no staging); WO-28's
+> restore against every `success: False` exit (all precede combat; no
+> non-refusal non-success shape is constructible for an adjacent at-war
+> target); the consumer chain (the dropped result reaches nothing that
+> would print *"went in without orders"*); the campaign log needs no new
+> type; `_pending_events` list identity across `execute`.
 
 ### Slice 18 — "The Answer Finds Its Question" (WO-35/36/38/39/40) — ✅ LANDED August 22, 2026
 

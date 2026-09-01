@@ -30,7 +30,7 @@
  {
   "id": "WO17-5 charge staging guard deleted",
   "file": "backend/commands/combat_executor.py",
-  "old": "                            and marshal.nation == world.player_nation\n                            and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                                     and (command or {}).get(\"_jealousy_autonomous\"))):",
+  "old": "                            and marshal.nation == world.player_nation\n                            and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                                     and _attack_is_unordered(command))):",
   "new": "                            and marshal.nation == world.player_nation):",
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
@@ -44,7 +44,7 @@
  {
   "id": "WO17-7 popup predicate loses the autonomous arm",
   "file": "backend/commands/combat_executor.py",
-  "old": "            _no_charge_popup = bool(\n                marshal.in_strategic_mode\n                or (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                    and (command or {}).get(\"_jealousy_autonomous\")))",
+  "old": "            _no_charge_popup = bool(\n                marshal.in_strategic_mode\n                or (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                    and _attack_is_unordered(command)))",
   "new": "            _no_charge_popup = bool(marshal.in_strategic_mode)",
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
@@ -79,8 +79,8 @@
  {
   "id": "WO17-12 sortie copy printed with defenders left",
   "file": "backend/commands/combat_executor.py",
-  "old": "            if not _sortie_remaining:\n                conquest_msg = (",
-  "new": "            if True:\n                conquest_msg = (",
+  "old": "            elif not _sortie_remaining:\n                conquest_msg = (",
+  "new": "            elif True:\n                conquest_msg = (",
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {

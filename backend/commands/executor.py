@@ -368,6 +368,11 @@ class CommandExecutor:
         """Initialize the command executor."""
         self.combat_resolver = CombatResolver()
         self.fuzzy_matcher = FuzzyMatcher()
+        # WO slice 17 review round: the HOLD-sally flag `execute()` stamps
+        # per command, initialised rather than left to `getattr` defaults —
+        # it now suppresses capture as well as the advance, so a stale True
+        # would be a stand-off, not a mere no-advance.
+        self._current_sortie = False
         self._combat = CombatExecutor(self)
         self._strategic = StrategicExecutor(self)
         self._diplomatic = DiplomaticExecutor(self)

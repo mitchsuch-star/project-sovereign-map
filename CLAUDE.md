@@ -89,6 +89,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > MEASURED (0 charges / 0 sorties / 0 frontier calls on the ambient board —
 > a fact about the harness, not evidence); M1–M7 byte-identical; 49 tests,
 > **25/25 mutations killed**; two pins flipped consciously; zero `.gd`.
+> **Review round (3 lenses at `611013f2`): 2 P2 + 3 P3 + 2 P4 fixed** —
+> "player-only by construction" was FALSE (the DEFIANCE callers passed no
+> command → a defiant reckless cavalryman armed the popup, the question was
+> thrown away, the next bare `charge` fired 2× + the war HARD STOP); ONE
+> predicate `_attack_is_unordered` now; RESTRAIN attacked the redirect's
+> alternative (one new serialized field `pending_charge_restrain_target`);
+> `reset_recklessness` disarms the stale question; sortie copy on foreign
+> soil names the soil; a fortified marshal is never warned; a consumed
+> warning is told. 62 tests, **39/39 mutations**, series re-proven.
 >
 > **▶ ROW WO SLICE 10 — "THE ENEMY-DIRECTION GATE" (WO-13) —
 > ✅ LANDED September 1, 2026.** Landing record =

@@ -1746,7 +1746,12 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 elif defiant_action == "attack":
                     nearest = world.find_nearest_enemy(marshal.location)
                     if nearest:
-                        defiant_execution = self._executor._combat._execute_attack(marshal, nearest[0].name, world, game_state)
+                        # WO slice 17 review round: a defiance is an attack
+                        # the player did not order — stamped so it never
+                        # arms a charge popup nor stages a war decision.
+                        defiant_execution = self._executor._combat._execute_attack(
+                            marshal, nearest[0].name, world, game_state,
+                            command={"_defiance": True})
                     else:
                         defiant_action = "wait"
                         defiant_execution = self._executor._tactical._execute_wait(marshal, world, game_state)

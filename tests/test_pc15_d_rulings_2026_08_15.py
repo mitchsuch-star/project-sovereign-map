@@ -154,13 +154,42 @@ class TestD1GhostChainClosed:
         it with the provenance gone. Measured: the answered charge staged
         `war_purpose_selection` from an attack the player never ordered.
         The charge takes `command` now; the behaviour pins live in
-        test_wo_slice17_frontier_halts_the_charge.py."""
+        test_wo_slice17_frontier_halts_the_charge.py.
+
+        Slice-17 REVIEW ROUND: the flag is read in ONE place now — the
+        `_attack_is_unordered` predicate (which also reads `_defiance`, the
+        review's P2: the defiance callers passed no command and armed the
+        popup anyway) — and the sites consult the predicate. So the census
+        counts predicate CALL SITES, code-only (the first cut scanned raw
+        source, which a comment naming the flag would have satisfied): the
+        two battle-advance staging sites, the charge's staging site, the
+        reckless-popup predicate and the muster gate. Site two is the
+        auto-BOMBARDMENT advance, not a second battle-advance."""
+        import io
+        import tokenize
+
         src = (REPO / "backend" / "commands"
                / "combat_executor.py").read_text(encoding="utf-8")
-        guarded = src.count('.get("_jealousy_autonomous")')
-        assert guarded >= 4, (
-            "a war-purpose staging site (or the reckless-popup predicate) "
-            "lost its autonomous guard")
+        code = []
+        for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+            if tok.type == tokenize.COMMENT:
+                continue
+            if (tok.type == tokenize.STRING
+                    and tok.line.strip().startswith(('"""', "'''"))):
+                continue
+            code.append(tok.string)
+        import re
+
+        code_text = "\n".join(code)
+        # One token per line above - squeeze before a multi-token needle.
+        code_text = re.sub(r"\s+", "", code_text)
+        calls = (code_text.count("_attack_is_unordered(command)")
+                 - code_text.count("def_attack_is_unordered(command)"))
+        assert calls >= 5, (
+            "a war-purpose staging site, the reckless-popup predicate or the "
+            "muster gate lost its unordered-attack guard")
+        assert '"_jealousy_autonomous"' in code_text
+        assert '"_defiance"' in code_text
 
     def test_dp_shortage_declaration_is_a_visible_receipt(self):
         """'Three modals of theater, no war, no receipt' — the DP-shortage

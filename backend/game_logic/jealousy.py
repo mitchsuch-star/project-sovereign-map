@@ -3398,6 +3398,13 @@ def process_turn(world) -> List[Dict]:
         if not _is_standing(marshal):
             marshal.jealousy_autonomous_warned = False
             continue
+        # Slice-17 review round: a FORTIFIED marshal cannot attack at all
+        # (the executor refuses him: "order 'unfortify' first"), so warning
+        # that he will go on his own initiative promised a battle the
+        # refusal arm then had to retract, every turn of the window. No
+        # warning, no attack — his works hold him, as they hold the enemy.
+        if getattr(marshal, "fortified", False):
+            continue
         if marshal.jealousy_autonomous_warned or warning_given:
             continue
         target_region = find_autonomous_attack_target(world, marshal)
@@ -3618,6 +3625,20 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             continue
         target_info = find_autonomous_attack_target(world, marshal)
         if target_info is None:
+            # Slice-17 review round: the quarry moved, was taken, or now
+            # stands on soil the glory-hunt may not enter. The warning
+            # promised a battle; say why none came (WO-28's rule reaches
+            # this arm too — a consumed warning is never silent).
+            _pending_events(world).append({
+                "type": "jealousy_autonomous_refused",
+                "nation": marshal.nation,
+                "marshal": marshal.name,
+                "message": (
+                    f"{humanize_entity_name(marshal.name)} meant to go at "
+                    f"the enemy on his own initiative, but no enemy stood "
+                    f"within his reach when the moment came — he stands "
+                    f"where he was, and his orders are unchanged."),
+            })
             continue
         enemy, _region = target_info
         # He acts on his own initiative — clears any standing order (EC-B).

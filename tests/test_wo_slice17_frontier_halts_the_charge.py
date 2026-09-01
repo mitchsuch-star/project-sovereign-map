@@ -143,6 +143,9 @@ class TestWO24TheGloriousChargeHaltsAtTheFrontier:
         assert world.get_region("Rhineland").controller == "Prussia"
         assert "halts at the frontier of Rhineland" in res["message"]
         assert "advances into Rhineland" not in res["message"]
+        # Review round: the halt line is not doubled by the capture block's
+        # own "halts at the edge of conquest" (killed by `if True:` there).
+        assert "edge of conquest" not in res["message"]
 
     def test_the_halted_player_charge_still_stages_the_war_choice(self):
         """Parity with `_execute_attack`: the halt is not a silence. Killed
@@ -390,8 +393,6 @@ class TestWO25TheAutonomousAttackNeverAsks:
         writes = []
 
         def walk(node, guards):
-            if isinstance(node, ast.If):
-                guards = guards + [ast.unparse(node.test)]
             if isinstance(node, ast.Assign):
                 for tgt in node.targets:
                     if (isinstance(tgt, ast.Attribute)
@@ -399,6 +400,16 @@ class TestWO25TheAutonomousAttackNeverAsks:
                             and isinstance(node.value, ast.Constant)
                             and node.value.value is True):
                         writes.append(guards)
+            if isinstance(node, ast.If):
+                # Review round: only the BODY sits behind the test — an
+                # `else`/`elif` arm sits behind its negation, and the first
+                # cut credited it with the guard anyway.
+                body_guards = guards + [ast.unparse(node.test)]
+                for child in node.body:
+                    walk(child, body_guards)
+                for child in node.orelse:
+                    walk(child, guards)
+                return
             for child in ast.iter_child_nodes(node):
                 walk(child, guards)
 
@@ -407,13 +418,23 @@ class TestWO25TheAutonomousAttackNeverAsks:
         for guards in writes:
             assert any("_no_charge_popup" in g for g in guards), guards
 
-    def test_the_four_pc15_d1_sites_are_a_census(self):
-        """Code-only count of the flag reads in combat_executor: the two
-        `_execute_attack` staging sites, the charge's staging site, and the
-        reckless-popup predicate. A fifth read or a lost one changes this
-        number consciously."""
+    def test_the_unordered_attack_predicate_is_a_census(self):
+        """Code-only count of `_attack_is_unordered(command)` call sites in
+        combat_executor: the two `_execute_attack` staging sites, the
+        charge's staging site, the reckless-popup predicate and the muster
+        gate (review round). The flags themselves are read ONCE, inside the
+        predicate. A sixth site or a lost one changes this consciously."""
         code = _code_only(COMBAT_PY.read_text(encoding="utf-8"))
-        assert code.count('"_jealousy_autonomous"') == 4
+        # `_code_only` emits one token per line - squeeze before matching
+        # a multi-token needle (the slice-10 trap, met again here).
+        squeezed = re.sub(r"\s+", "", code)
+        # The definition line matches the needle too - subtract it, so a
+        # lost site cannot hide behind the def.
+        calls = (squeezed.count("_attack_is_unordered(command)")
+                 - squeezed.count("def_attack_is_unordered(command)"))
+        assert calls == 5
+        assert code.count('"_jealousy_autonomous"') == 1
+        assert code.count('"_defiance"') == 1
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -685,7 +706,12 @@ class TestWO31TheSallyDoesNotTakeTheGround:
         assert ney.location == "Belgium"
         msg = (reports[0].get("battle_details") or {}).get("message", "")
         assert "choose our purpose" not in msg
-        assert "sally clears Rhineland but does not hold it" in msg
+        # Review round: on a third party's soil the reason is the soil,
+        # not the standing - "the army that stands on it" would take
+        # nothing either. Killed by printing the at-war line here.
+        assert "Rhineland remains Prussia's soil" in msg
+        assert "the sally was against the enemy standing on it" in msg
+        assert "does not hold it" not in msg
 
     def test_a_won_sally_with_defenders_left_claims_nothing(self):
         """The "clears ... but does not hold it" line is for a CLEARED
@@ -755,3 +781,251 @@ class TestTheLeversAreRealLevers:
         squeezed = re.sub(r"\s+", "", code)
         assert "_ws_mod.CHARGE_FRONTIER_HALT_ACTIVE" in squeezed
         assert "importCHARGE_FRONTIER_HALT_ACTIVE" not in squeezed
+
+
+# ══════════════════════════════════════════════════════════════════
+# 6. The review round at the committed SHA (611013f2) - three lenses
+# ══════════════════════════════════════════════════════════════════
+
+def _objection_to_defend(marshal="Ney"):
+    """The pending tactical objection the meta executor answers - the
+    reviewer's reproduction shape."""
+    return {
+        "type": "major_objection", "concern_level": "MODERATE",
+        "trust_tier": "TRUSTING", "tone": "firm", "insist_penalty": -10,
+        "trust_gain": 3, "compromise_gain": 2, "trust_gain_modifier": 1.0,
+        "severity": "major",
+        "message": f"{marshal} objects to sitting on the defensive.",
+        "marshal": marshal, "personality": "aggressive",
+        "original_order": {"marshal": marshal, "action": "defend", "target": ""},
+        "suggested_alternative": None, "compromise": None,
+    }
+
+
+def _force_defiance(monkeypatch):
+    import backend.commands.defiance as DF
+    import backend.commands.meta_executor as ME
+
+    monkeypatch.setattr(DF, "calculate_defiance_chance", lambda *a, **k: 1.0)
+    monkeypatch.setattr(ME.random, "random", lambda: 0.0)
+
+
+class TestTheReviewRound:
+
+    def test_a_defiant_charge_never_arms_the_popup_nor_stages_a_war(
+            self, monkeypatch):
+        """[P2] The defiance callers passed NO command, so a reckless-3
+        cavalryman defying a defend order armed the CHARGE/RESTRAIN popup,
+        the caller discarded the question, and the flag stayed armed for the
+        next bare `charge` - which then fired a 2x charge AND the war-purpose
+        HARD STOP from an attack nobody ordered. Killed by dropping
+        `_defiance` from `_attack_is_unordered`, or the stamp from the
+        objection defiance site."""
+        world, ney, _ = _charge_world(3)          # Wellington on PEACE soil
+        world.actions_remaining = 3
+        world.pending_objection = _objection_to_defend()
+        _force_defiance(monkeypatch)
+        ex = _executor()
+        res = _quiet(ex._meta.handle_objection_response, "insist", {"world": world})
+        assert ney.pending_glorious_charge is False
+        assert ney.pending_charge_target == ""
+        # He DID go - the charge fired at once (recklessness spent)...
+        assert ney.recklessness == 0
+        assert "pending_glorious_charge" not in res
+        # ...halted at the frontier, and staged nothing.
+        assert ney.location == "Belgium"
+        assert world.pending_diplomatic_dialogue is None
+        later = _quiet(ex._combat.respond_to_glorious_charge, "charge", world)
+        assert later["success"] is False
+        assert "No pending Glorious Charge" in later["message"]
+
+    def test_both_defiance_sites_carry_the_stamp(self):
+        """Census: the strategic-objection defiance site is reached only
+        through a strategic objection answer, so its stamp is pinned by
+        source (code-only) rather than driven."""
+        for name in ("strategic_executor.py", "meta_executor.py"):
+            code = _code_only((REPO / "backend" / "commands" / name)
+                              .read_text(encoding="utf-8"))
+            assert re.sub(r"\s+", "", code).count(
+                'command={"_defiance":True}') == 1, name
+
+    def test_the_muster_gate_never_arms_on_a_defiance(self, monkeypatch):
+        """A stamped defiance carries a command dict, which used to be the
+        muster gate's whole arming condition. Killed by dropping the
+        predicate from the gate (the defiance returns the muster confirm
+        instead of fighting)."""
+        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                      strength=40000, personality="aggressive")
+        wel = MarshalFactory.enemy(name="Wellington", location="Netherlands",
+                                   nation="Britain", strength=2000)
+        wel.morale = 26
+        world = WorldFactory.with_marshals([ney, wel])
+        _pair(world, "France", "Britain", "WAR")
+        world.actions_remaining = 3
+        world.pending_objection = _objection_to_defend()
+        _force_defiance(monkeypatch)
+        ex = _executor()
+        res = _quiet(ex._meta.handle_objection_response, "insist", {"world": world})
+        assert not res.get("muster_confirm")
+        assert res.get("state") != "awaiting_clarification"
+        assert "muster" not in (res.get("message") or "").lower()
+
+    def _blocked_terrain_world(self):
+        ney = MarshalFactory.cavalry(name="Ney", location="Belgium",
+                                     strength=40000, personality="aggressive")
+        ney.recklessness = 3
+        wel = MarshalFactory.enemy(name="Wellington", location="Paris",
+                                   nation="Britain", strength=3000)
+        alt = MarshalFactory.enemy(name="Uxbridge", location="Netherlands",
+                                   nation="Britain", strength=2000)
+        world = WorldFactory.with_marshals([ney, wel, alt])
+        _pair(world, "France", "Britain", "WAR")
+        return world, ney, wel, alt
+
+    def test_restrain_attacks_the_man_the_popup_named(self):
+        """[P2, pre-existing] The redirect popup says "RESTRAIN: Normal
+        attack on {original}" and fought the ALTERNATIVE. Killed by
+        `if False:` on the restrain-target arm, or by dropping the
+        `from_dict` restore."""
+        world, ney, wel, alt = self._blocked_terrain_world()
+        ex = _executor()
+        res = _quiet(ex.execute, _attack_cmd("Ney", "Wellington"), {"world": world})
+        assert res.get("charge_redirected") is True
+        assert ney.pending_charge_target == "Uxbridge"
+        assert ney.pending_charge_restrain_target == "Wellington"
+        assert "Normal attack on Wellington" in res["message"]
+        res2 = _quiet(ex._combat.respond_to_glorious_charge, "restrain", world)
+        assert res2["success"] is True
+        assert wel.strength < 3000, "the promised man was not attacked"
+        assert alt.strength == 2000, "the alternative was attacked instead"
+        assert ney.pending_charge_restrain_target == ""
+
+    def test_the_restrain_target_survives_a_save(self):
+        from backend.models.marshal import Marshal
+
+        ney = MarshalFactory.cavalry(name="Ney", location="Belgium",
+                                     strength=10000, personality="aggressive")
+        ney.pending_glorious_charge = True
+        ney.pending_charge_target = "Uxbridge"
+        ney.pending_charge_restrain_target = "Wellington"
+        back = Marshal.from_dict(ney.to_dict())
+        assert back.pending_charge_restrain_target == "Wellington"
+        legacy = ney.to_dict()
+        del legacy["pending_charge_restrain_target"]
+        assert Marshal.from_dict(legacy).pending_charge_restrain_target == ""
+
+    def test_the_pending_question_dies_with_the_momentum(self):
+        """[P2] A popup armed by a player attack and overtaken by an
+        auto-charge stayed armed - serialized - and the next bare `charge`
+        fired a 2x charge at recklessness 0 on a turn-old decision, staging
+        the war-purpose HARD STOP with it. Killed by restoring
+        `reset_recklessness` to the bare `recklessness = 0`."""
+        world, ney, _ = _charge_world(3)
+        ex = _executor()
+        armed = _quiet(ex.execute, _attack_cmd("Ney", "Wellington"), {"world": world})
+        assert armed.get("pending_glorious_charge") is True
+        assert ney.pending_glorious_charge is True
+        # The autonomous glory attack overtakes the question and spends
+        # the momentum it asked about.
+        _quiet(ex.execute, _attack_cmd("Ney", "Wellington", **AUTONOMOUS),
+               {"world": world})
+        assert ney.recklessness == 0
+        assert ney.pending_glorious_charge is False
+        assert ney.pending_charge_target == ""
+        later = _quiet(ex._combat.respond_to_glorious_charge, "charge", world)
+        assert later["success"] is False
+
+    def test_a_neutral_bystander_does_not_silence_the_sally_line(self):
+        """The cleared-field test reads AT-WAR defenders: a peaceful
+        court's corps standing on the enemy's province is not a defender.
+        Killed by dropping `is_at_war` from `_sortie_remaining`."""
+        world, ney = _sally_world()
+        bystander = MarshalFactory.enemy(name="Blucher", location="Netherlands",
+                                         nation="Prussia", strength=30000)
+        world.marshals["Blucher"] = bystander
+        _pair(world, "France", "Prussia", "PEACE")
+        _pair(world, "Britain", "Prussia", "PEACE")
+        reports, _ = _run_hold(world)
+        assert [r.get("action") for r in reports] == ["sally"]
+        assert reports[0]["outcome"] == "attacker_tactical_victory"
+        msg = (reports[0].get("battle_details") or {}).get("message", "")
+        assert "sally clears Netherlands but does not hold it" in msg
+        assert world.get_region("Netherlands").controller == "Britain"
+
+    def test_a_same_province_reckless_charge_prints_no_frontier(self):
+        """The reckless copy halts a MOVE, never a stand: on his own field
+        (however he got there) there is no frontier to halt at. Killed by
+        dropping the location clause from the halt arm."""
+        ney = MarshalFactory.cavalry(name="Ney", location="Rhineland",
+                                     strength=40000, personality="aggressive")
+        ney.recklessness = 4
+        wel = MarshalFactory.enemy(name="Wellington", location="Rhineland",
+                                   nation="Britain", strength=2000)
+        wel.morale = 26
+        world = WorldFactory.with_marshals([ney, wel])
+        _pair(world, "France", "Britain", "WAR")
+        _pair(world, "France", "Prussia", "PEACE")
+        events = _quiet(world._process_reckless_cavalry_turn_start)
+        assert [e["type"] for e in events] == ["auto_glorious_charge"]
+        assert ney.location == "Rhineland"
+        assert "halts at the frontier" not in events[0]["message"]
+
+    def _jealous_ney_world(self):
+        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                      strength=40000, personality="aggressive")
+        ney.jealous_of = "Davout"
+        ney.jealousy_turns_remaining = 4
+        dav = MarshalFactory.infantry(name="Davout", location="Paris",
+                                      strength=30000, personality="cautious")
+        wel = MarshalFactory.enemy(name="Wellington", location="Netherlands",
+                                   nation="Britain", strength=2000)
+        world = WorldFactory.with_marshals([ney, dav, wel])
+        _pair(world, "France", "Britain", "WAR")
+        world._jealousy_processed_turn = None
+        return world, ney
+
+    def test_a_fortified_marshal_is_never_warned(self):
+        """[P3] The warning promised a battle the fortified gate then
+        refused, every turn of the window. Killed by removing the
+        `fortified` skip from the warning step."""
+        world, ney = self._jealous_ney_world()
+        ney.fortified = True
+        events = _quiet(J.process_turn, world)
+        assert ney.jealousy_autonomous_warned is False
+        assert not [e for e in events
+                    if e["type"] == "jealousy_autonomous_warning"]
+        # ...and unfortified, the same marshal IS warned (the skip is the
+        # fortification, not the marshal).
+        world2, ney2 = self._jealous_ney_world()
+        events2 = _quiet(J.process_turn, world2)
+        assert ney2.jealousy_autonomous_warned is True
+        assert [e for e in events2
+                if e["type"] == "jealousy_autonomous_warning"]
+
+    def test_a_warned_marshal_whose_quarry_left_is_told(self):
+        """[P3] A consumed warning is never silent. Killed by restoring the
+        bare `continue`."""
+        world, ney = self._jealous_ney_world()
+        ney.jealousy_autonomous_warned = True
+        world.get_marshal("Wellington").location = "Hanover"   # out of reach
+        results = _quiet(J.process_autonomous_attacks, world, _executor(),
+                         {"world": world})
+        assert results == []
+        assert ney.jealousy_autonomous_warned is False
+        refused = [e for e in _types(world) if e == "jealousy_autonomous_refused"]
+        assert len(refused) == 1
+        msg = [e for e in world._pending_jealousy_turn_events
+               if e["type"] == "jealousy_autonomous_refused"][0]["message"]
+        assert "no enemy stood within his reach" in msg
+        assert "his orders are unchanged" in msg
+
+    def test_the_refused_line_renders_in_its_siblings_register(self):
+        """Killed by dropping the type from the dispatch's warning tuple."""
+        rows = D._build_turn_events([{
+            "type": "jealousy_autonomous_refused", "nation": "France",
+            "marshal": "Ney", "message": "Ney meant to go, but did not."}],
+            "France")
+        assert rows and rows[0]["severity"] == "warning"
+
+    def test_the_sortie_flag_is_initialised(self):
+        assert _executor()._current_sortie is False

@@ -520,6 +520,10 @@ class Marshal:
         # Pending Glorious Charge state (for popup at recklessness 3)
         self.pending_glorious_charge: bool = False
         self.pending_charge_target: str = ""
+        # WO slice 17 review round: the man RESTRAIN attacks — on a
+        # terrain-blocked redirect the charge target is the ALTERNATIVE and
+        # this is the blocked original the popup promised a normal attack on.
+        self.pending_charge_restrain_target: str = ""
 
         # ════════════════════════════════════════════════════════════
         # EXHAUSTION SYSTEM (Phase 3 - Attack Spam Prevention)
@@ -952,8 +956,21 @@ class Marshal:
             self.recklessness = current + 1
 
     def reset_recklessness(self) -> None:
-        """Reset recklessness to 0 (on loss or after Glorious Charge)."""
+        """Reset recklessness to 0 (on loss or after Glorious Charge).
+
+        WO slice 17 review round: the pending CHARGE/RESTRAIN question dies
+        with the momentum it asked about. It was cleared at exactly one
+        site (the answer), so a popup armed by a player attack and then
+        overtaken by an auto-charge (the turn-start reckless copy, the 4+
+        arm, the autonomous glory attack) or a losing battle stayed armed —
+        serialized — and the next bare `charge` fired a 2x charge at
+        recklessness 0 on a turn-old decision, staging the war-purpose
+        HARD STOP with it.
+        """
         self.recklessness = 0
+        self.pending_glorious_charge = False
+        self.pending_charge_target = ""
+        self.pending_charge_restrain_target = ""
 
     # ════════════════════════════════════════════════════════════
     # EXHAUSTION SYSTEM (Phase 3 - Attack Spam Prevention)
@@ -1712,6 +1729,7 @@ class Marshal:
             "recklessness": int(self.recklessness),
             "pending_glorious_charge": self.pending_glorious_charge,
             "pending_charge_target": self.pending_charge_target,
+            "pending_charge_restrain_target": self.pending_charge_restrain_target,
 
             # ═══════ EXHAUSTION ═══════
             "attacks_this_turn": int(self.attacks_this_turn),
@@ -1910,6 +1928,8 @@ class Marshal:
         marshal.recklessness = data.get("recklessness", 0)
         marshal.pending_glorious_charge = data.get("pending_glorious_charge", False)
         marshal.pending_charge_target = data.get("pending_charge_target", "")
+        marshal.pending_charge_restrain_target = data.get(
+            "pending_charge_restrain_target", "")
 
         # ═══════ EXHAUSTION ═══════
         marshal.attacks_this_turn = data.get("attacks_this_turn", 0)

@@ -492,6 +492,7 @@ Reserved future `event_log` payloads:
   "recklessness": 0,
   "pending_glorious_charge": false,
   "pending_charge_target": "",
+  "pending_charge_restrain_target": "",
 
   "attacks_this_turn": 0,
 
@@ -670,6 +671,7 @@ Reserved future `event_log` payloads:
 | `recklessness` | int | 0-4, builds from wins |
 | `pending_glorious_charge` | bool | Popup pending |
 | `pending_charge_target` | string | Target of pending charge |
+| `pending_charge_restrain_target` | string | WO slice 17 review round (Sept 1, 2026): the man RESTRAIN attacks — on a terrain-blocked redirect the charge target is the alternative and this is the blocked original the popup promised. Legacy saves omit it → `""` → RESTRAIN falls back to the charge target, as before |
 
 #### Exhaustion
 | Field | Type | Description |

@@ -320,6 +320,26 @@ AUTONOMOUS_CHARGE_GUARD_ACTIVE = True
 SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE = True
 
 
+def _attack_is_unordered(command) -> bool:
+    """An attack the player did not order THIS INSTANT: a jealousy-
+    autonomous glory attack (`_jealousy_autonomous`) or a DEFIANCE — the
+    marshal answering an order with an attack of his own (`_defiance`,
+    stamped by the two defiance sites in strategic_executor / meta_executor).
+
+    Slice-17 review round: the defiance callers passed NO command, so
+    `_no_charge_popup` read `(None or {})` and an aggressive reckless-3
+    cavalryman defying a defend order armed the CHARGE/RESTRAIN popup, the
+    caller discarded the question (reported a wait), and the serialized
+    flag stayed armed for the next bare `charge` — which then fired a 2x
+    charge and the war-purpose HARD STOP from an attack nobody ordered.
+    ONE predicate now, read by both charge popups, all three war-purpose
+    staging sites and the muster gate; a fresh `command` flag needs one
+    line here, not five.
+    """
+    cmd = command or {}
+    return bool(cmd.get("_jealousy_autonomous") or cmd.get("_defiance"))
+
+
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
 
@@ -4191,7 +4211,7 @@ class CombatExecutor:
             _no_charge_popup = bool(
                 marshal.in_strategic_mode
                 or (AUTONOMOUS_CHARGE_GUARD_ACTIVE
-                    and (command or {}).get("_jealousy_autonomous")))
+                    and _attack_is_unordered(command)))
 
             # At recklessness 3, player gets popup choice
             # AI at 3+ auto-charges
@@ -4291,6 +4311,10 @@ class CombatExecutor:
 
                             marshal.pending_glorious_charge = True
                             marshal.pending_charge_target = chargeable_alternatives[0]["name"]
+                            # Review round: RESTRAIN promises a normal attack
+                            # on the BLOCKED original, so remember him — the
+                            # answer used to attack the alternative instead.
+                            marshal.pending_charge_restrain_target = resolved_target
 
                             return {
                                 "success": False,
@@ -4326,6 +4350,7 @@ class CombatExecutor:
                             # Set pending state for popup
                             marshal.pending_glorious_charge = True
                             marshal.pending_charge_target = resolved_target
+                            marshal.pending_charge_restrain_target = resolved_target
 
                             return {
                                 "success": False,  # Not executed yet - waiting for response
@@ -5145,6 +5170,7 @@ class CombatExecutor:
         if (command is not None
                 and not command.get("_strategic_execution")
                 and not command.get("_autonomous_execution")
+                and not _attack_is_unordered(command)
                 and marshal.nation == world.player_nation):
             muster_preview = self._build_muster_preview(
                 marshal, enemy_marshal, world, game_state)
@@ -5693,7 +5719,7 @@ class CombatExecutor:
                     # province stands.
                     if (pursuit_block["arm"] == "neutral"
                             and marshal.nation == world.player_nation
-                            and not (command or {}).get("_jealousy_autonomous")):
+                            and not _attack_is_unordered(command)):
                         staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg = (
@@ -6762,7 +6788,7 @@ class CombatExecutor:
                 if (pursuit_block["arm"] == "neutral"
                         and marshal.nation == world.player_nation
                         and can_advance and marshal.strength > 0
-                        and not (command or {}).get("_jealousy_autonomous")):
+                        and not _attack_is_unordered(command)):
                     staged_war_purpose = self._stage_war_purpose_selection(
                         world, marshal.nation, pursuit_block["owner"])
                     conquest_msg += (
@@ -6789,7 +6815,15 @@ class CombatExecutor:
                 and m.nation != marshal.nation
                 and world.is_at_war(marshal.nation, m.nation)
             ]
-            if not _sortie_remaining:
+            if not _sortie_remaining and pursuit_block is not None:
+                # Review round: on a third party's soil "the army that
+                # stands on it" would take nothing either (PT-F1) — say
+                # the true reason, in the reckless copy's own words.
+                conquest_msg = (
+                    f" {target_location} remains {pursuit_block['owner']}'s "
+                    f"soil — the sally was against the enemy standing on "
+                    f"it, not the province.")
+            elif not _sortie_remaining:
                 conquest_msg = (
                     f" {marshal.name}'s sally clears {target_location} but "
                     f"does not hold it — a province is taken by the army "
@@ -7857,7 +7891,7 @@ class CombatExecutor:
                     if (pursuit_block["arm"] == "neutral"
                             and marshal.nation == world.player_nation
                             and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE
-                                     and (command or {}).get("_jealousy_autonomous"))):
+                                     and _attack_is_unordered(command))):
                         staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg += (
@@ -8010,11 +8044,18 @@ class CombatExecutor:
             }
 
         target = getattr(pending_marshal, 'pending_charge_target', '')
+        # Review round: the man RESTRAIN promised (the terrain-blocked
+        # original on a redirect; the same man on a plain popup). Legacy
+        # saves carry no field — fall back to the charge target, as before.
+        restrain_target = (getattr(pending_marshal,
+                                   'pending_charge_restrain_target', '')
+                           or target)
         print(f"[GLORIOUS CHARGE] Marshal: {pending_marshal.name}, stored target: '{target}'")
 
         # Clear pending state
         pending_marshal.pending_glorious_charge = False
         pending_marshal.pending_charge_target = ""
+        pending_marshal.pending_charge_restrain_target = ""
 
         # Verify target still exists and is reachable
         target_marshal = world.get_marshal(target)
@@ -8049,7 +8090,18 @@ class CombatExecutor:
         else:
             # Restrain - execute normal attack, recklessness continues
             # Pass skip_reckless_popup=True to avoid retriggering the popup
-            result = self._execute_attack(pending_marshal, target_marshal.name, world, game_state, skip_reckless_popup=True)
+            # Review round: on the ORIGINAL man the popup named, not the
+            # redirect's alternative (the popup said "Normal attack on
+            # {original}" and fought the other one).
+            restrain_marshal = target_marshal
+            if restrain_target and restrain_target != target:
+                _candidate = world.get_marshal(restrain_target)
+                if (_candidate is not None and _candidate.strength > 0
+                        and _candidate.nation != pending_marshal.nation
+                        and world.is_at_war(pending_marshal.nation,
+                                            _candidate.nation)):
+                    restrain_marshal = _candidate
+            result = self._execute_attack(pending_marshal, restrain_marshal.name, world, game_state, skip_reckless_popup=True)
             if result.get("success"):
                 result["message"] = f"[{pending_marshal.name} is restrained - normal attack]\n\n" + result.get("message", "")
             return result

@@ -1,0 +1,100 @@
+[
+ {
+  "id": "WO17R-1 unordered predicate ignores a defiance",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    return bool(cmd.get(\"_jealousy_autonomous\") or cmd.get(\"_defiance\"))",
+  "new": "    return bool(cmd.get(\"_jealousy_autonomous\"))",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-2 the objection defiance site drops the stamp",
+  "file": "backend/commands/meta_executor.py",
+  "old": "                            marshal, nearest[0].name, world, game_state,\n                            command={\"_defiance\": True})",
+  "new": "                            marshal, nearest[0].name, world, game_state,\n                            command=None)",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-3 the strategic defiance site drops the stamp (census)",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                            marshal, nearest[0].name, world, game_state,\n                            command={\"_defiance\": True})",
+  "new": "                            marshal, nearest[0].name, world, game_state)",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-4 restrain attacks the redirect's alternative again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if restrain_target and restrain_target != target:",
+  "new": "            if False:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-5 the pending question survives the momentum reset",
+  "file": "backend/models/marshal.py",
+  "old": "        self.recklessness = 0\n        self.pending_glorious_charge = False\n        self.pending_charge_target = \"\"\n        self.pending_charge_restrain_target = \"\"",
+  "new": "        self.recklessness = 0",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-6 sortie prints the at-war line on a third party's soil",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if not _sortie_remaining and pursuit_block is not None:",
+  "new": "            if False:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-7 a neutral bystander silences the sally line",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if m.location == target_location and m.strength > 0\n                and m.nation != marshal.nation\n                and world.is_at_war(marshal.nation, m.nation)\n            ]\n            if not _sortie_remaining and pursuit_block is not None:",
+  "new": "                if m.location == target_location and m.strength > 0\n                and m.nation != marshal.nation\n            ]\n            if not _sortie_remaining and pursuit_block is not None:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-8 reckless copy prints a frontier line on its own field",
+  "file": "backend/models/world_state.py",
+  "old": "                    if marshal.location != auto_charge_battle_region and _halt_owner:",
+  "new": "                    if _halt_owner:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-9 a fortified marshal is warned again",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if getattr(marshal, \"fortified\", False):\n            continue\n        if marshal.jealousy_autonomous_warned or warning_given:",
+  "new": "        if marshal.jealousy_autonomous_warned or warning_given:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-10 a consumed warning goes silent again",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if target_info is None:\n            # Slice-17 review round: the quarry moved, was taken, or now",
+  "new": "        if target_info is None:\n            continue\n            # Slice-17 review round: the quarry moved, was taken, or now",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-11 the refused line drops to info",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                          \"jealousy_autonomous_refused\",   # WO-28: same register as its siblings\n",
+  "new": "",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-12 the restrain target is not restored from a save",
+  "file": "backend/models/marshal.py",
+  "old": "        marshal.pending_charge_restrain_target = data.get(\n            \"pending_charge_restrain_target\", \"\")",
+  "new": "        pass",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-13 the sortie flag is not initialised",
+  "file": "backend/commands/executor.py",
+  "old": "        self._current_sortie = False",
+  "new": "        pass",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17R-14 the muster gate arms on a defiance",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                and not command.get(\"_autonomous_execution\")\n                and not _attack_is_unordered(command)\n                and marshal.nation == world.player_nation):",
+  "new": "                and not command.get(\"_autonomous_execution\")\n                and marshal.nation == world.player_nation):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ }
+]

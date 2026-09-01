@@ -65,6 +65,21 @@
 > would have let a fortified holder strip every adjacent province without leaving
 > his works. The sally clears the field and the copy says the ground is not held.
 >
+> **The review round (three lenses at `611013f2`) took 2 P2 + 3 P3 + 2 P4, all
+> fixed** — headline: **"player-only by construction" was FALSE** — the two DEFIANCE
+> callers passed no command, so a defiant reckless cavalryman armed the charge popup,
+> the caller threw the question away, and the next bare `charge` fired a 2× charge
+> and the war-purpose HARD STOP from an attack nobody ordered; fixed as ONE
+> predicate `_attack_is_unordered` (jealousy OR defiance) on both popups, all three
+> staging sites and the muster gate. Also: the redirect popup's RESTRAIN attacked the
+> alternative it promised not to (ONE new serialized field,
+> `pending_charge_restrain_target`); the pending question now dies with the momentum
+> (`reset_recklessness` disarms it — a stale flag fired a 2× charge at recklessness 0);
+> the sortie copy on a third party's soil gives the soil as the reason; a fortified
+> jealous marshal is no longer warned every turn and refused every turn; a consumed
+> warning is never silent; the refused line renders as a warning. Tests 49 → 62;
+> **39/39 mutations across both sweeps**; series + M1–M7 re-proven byte-identical.
+>
 > **Built:** ONE predicate `world_state.frontier_halt_owner` (the pursuit guard's
 > neutral arm, drift-pinned against it on all eight states) halts both charge
 > advances; **WO-25 closed at the source, not by threading a flag through the popup

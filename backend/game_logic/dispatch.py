@@ -2715,7 +2715,9 @@ def _build_turn_events(
                           "marshal_captured", "last_stand",
                           "marshal_destroyed",
                           "jealousy_fired", "jealousy_autonomous_warning",
-                          "jealousy_autonomous_attack", "jealousy_escalation",
+                          "jealousy_autonomous_attack",
+                          "jealousy_autonomous_refused",   # WO-28: same register as its siblings
+                          "jealousy_escalation",
                           "jealousy_separation_warning", "glory_crown_lost",
                           "fontainebleau_petition", "shadow_petition"):
             severity = "warning"
