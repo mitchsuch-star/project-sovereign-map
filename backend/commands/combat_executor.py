@@ -4495,7 +4495,8 @@ class CombatExecutor:
             # "Region 'Kutz' not found. Did you mean 'Frankfurt'?" — a guess
             # in the wrong register, which is CA8-28's rule one seam over.
             if (region_error and "Did you mean" in region_error.get("message", "")
-                    and not (enemy_error or {}).get("implausible_correction")):
+                    and not (enemy_error or {}).get(
+                        "refused_marshal_correction")):
                 return region_error
 
             # IGR-A3: "Ney, attack Austria" names a COUNTRY. Say so and list
@@ -4509,7 +4510,7 @@ class CombatExecutor:
                 resolved_target = target_region_fuzzy.name
             elif enemy_error and (
                     "Did you mean" in enemy_error.get("message", "")
-                    or enemy_error.get("implausible_correction")):
+                    or enemy_error.get("refused_marshal_correction")):
                 # Enemy suggestion, or a WO-13 refusal that named the real
                 # (visible) enemies instead of guessing.
                 return enemy_error
@@ -8433,7 +8434,25 @@ class CombatExecutor:
                 "message": "Error: No target or world state"}}
 
         # FIRST: Try to find target as enemy marshal name
+        # WO-13: through the SAME seam as the named route. This path
+        # (CR-6's bare `attack <x>` and auto-assign) used a bare
+        # `get_enemy_by_name`, so it inherited neither the gate nor the
+        # register fix — measured, `attack Kutz` answered honestly on the
+        # named route and "Region 'Kutz' not found. Did you mean
+        # 'Frankfurt'?" on this one, and `attack mack` in lowercase missed
+        # the marshal entirely because that lookup has no case fallback
+        # while the seam matches case-insensitively. One player sentence,
+        # two routes, two answers.
+        # EXACT first, because `_fuzzy_match_enemy`'s candidate list is
+        # `strength > 0` and a DESTROYED enemy must still answer "already
+        # been destroyed" (PC15-4's sibling, pinned by
+        # `test_auto_assign_attack.py`). Fuzzy second, for the case fallback
+        # and the gate.
         enemy = world.get_enemy_by_name(target)
+        _auto_enemy_error = None
+        if enemy is None:
+            enemy, _auto_enemy_error = self._executor._fuzzy_match_enemy(
+                target, world, world.player_nation)
         if not enemy:
             # PC15-4 (enemy side): a DESTROYED enemy is popped from the
             # roster entirely, so "attack Mack" after his annihilation fell
@@ -8467,6 +8486,12 @@ class CombatExecutor:
         # SECOND: Check if target is a region name with fuzzy matching
         target_region, error = self._executor._fuzzy_match_region(target, world)
         if error:
+            # WO-13: a refused MARSHAL query is answered in the marshal
+            # register, not with a province guess — the same rule the named
+            # route follows.
+            if ((_auto_enemy_error or {}).get("refused_marshal_correction")
+                    and "Did you mean" in error.get("message", "")):
+                return {"kind": "error", "error": _auto_enemy_error}
             return {"kind": "error", "error": error}
         target_name = target_region.name if hasattr(target_region, 'name') else target
         result = world.find_nearest_marshal_to_region(target_name)

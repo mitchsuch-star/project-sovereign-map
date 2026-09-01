@@ -160,12 +160,22 @@ _META_DELEGATED = {
 # Napoleon and `Rome` -> Armfelt at 75.
 #
 # What that cost, measured on the 40-turn ambient board:
-#   * Britain's Iberian army was FROZEN for 22 consecutive turns. Paget
-#     stood at Bearn, adjacent to Gascony, and every attack he ordered on
-#     that province was redirected to Ney — in Vienna, eight provinces
-#     away — and refused as out of range, with the message
-#     "Paget cannot reach Gascony (Vienna) from Bearn!" naming the
-#     province and printing another man's location beside it.
+#   * Britain's Iberian army STALLED FOR TWELVE TURNS. Paget stood at
+#     Bearn from turn 17 to 28, adjacent to Gascony, and six times — turns
+#     17, 19, 21, 23, 25, 27, every OTHER turn, because a failed action
+#     writes a 2-turn cooldown — his attack on that province was redirected
+#     to Ney, wherever Ney happened to be, and refused as out of range:
+#     "Paget cannot reach Gascony (Vienna) from Bearn! Range: 1, Distance:
+#     8" names the province and prints another man's location beside it. A
+#     second corps, the artillerist Shrapnel, spent the alternate turns the
+#     same way. The seventeen collapses span turns 6–27 in two phases: six
+#     `Leon → Napoleon` ordered from Lisbon, then eleven `Gascony → Ney`
+#     from Bearn. Paget never took Gascony; on turn 29 he gave up and
+#     marched on Bordelais instead.
+#     (⚠ The first draft of this comment said "FROZEN for 22 consecutive
+#     turns", which was the SPAN of all seventeen collapses read as one
+#     marshal's ordeal. Two marshals, two provinces, two phases. Corrected
+#     on measurement.)
 #   * Twelve of the twenty nations boot with NO war-enemies at all, and
 #     for those the broad diplomatic check answers instead — it matches
 #     over every non-allied marshal and hands back a man the caller is at
@@ -190,9 +200,14 @@ _META_DELEGATED = {
 # pinned; it is a recorded exception, not an oversight.
 #
 # Three levers rather than one, so the BASELINE_SERIES attribution can
-# name which seam moved the board. False reproduces the pre-slice
-# behaviour byte-identically (the HOST_RULE_ACTIVE idiom). Not a config
-# surface.
+# name which seam moved the board. False restores the pre-slice
+# RESOLUTION byte-identically (the HOST_RULE_ACTIVE idiom) — which is what
+# the attribution measures, since a refusal message never feeds the series.
+# It does NOT restore the pre-slice MESSAGE: `_display_candidates` (R5) and
+# the own-roster/prisoner filter sit outside all three levers on purpose,
+# because a fog leak must not be switchable. Stated precisely because the
+# first draft of this comment said "the pre-slice behaviour", and a review
+# measured the difference. Not a config surface.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 10.
 ENEMY_DIRECTION_GATE_ACTIVE = True
 BROAD_DIPLOMATIC_GATE_ACTIVE = True
@@ -209,31 +224,43 @@ def _correction_survives(query: str, match: Optional[str],
 
     Scope, stated because the first draft of this docstring overclaimed
     and a review caught it: this covers the auto-correct arms ONLY. The
-    exact marshal-first arm is six further sites (`_check_diplomatic_block`
-    :377, `_fuzzy_match_enemy` :426/:430, `_fuzzy_match_marshal` :216,
-    `strategic_executor` :626/:742, `combat_executor` :8426) and no typo
-    gate can reach them, because an identical string IS a plausible typo.
-    That arm is governed by the POSITIONAL rule below, not by this
-    predicate.
+    exact marshal-first arm is six further sites — `_check_diplomatic_block`
+    and the heads of `_fuzzy_match_enemy` and `_fuzzy_match_marshal` in this
+    file, `StrategicExecutor`'s two PURSUE resolvers, and
+    `CombatExecutor._resolve_auto_assign_attacker` — and no typo gate can
+    reach them, because an identical string IS a plausible typo. That arm is
+    governed by the POSITIONAL rule below, not by this predicate. (Named,
+    not numbered: the first draft cited line numbers and four of the six
+    were already stale by the time it shipped — in a slice whose own commit
+    message corrects the contract for stale line numbers.)
 
     THE POSITIONAL RULE for a name that is both a province and a marshal
     (`Brunswick`, and on the shipped board only `Brunswick`) — stated once,
     here, because writing it per-seam is how two contradictory versions of
     it came to exist:
 
-        ADDRESSEE position  -> the PROVINCE. "Brunswick, hold" is a
-                               garrison order. (WO slice 2,
-                               `parser._resolve_enemy_addressee`.)
-        TARGET position     -> the MARSHAL. "attack Brunswick" names the
-                               man; the province is reached by `move to
-                               Brunswick`, which is region-only and
-                               therefore never ambiguous.
+        THE NAME MEANS THE MAN wherever a man can be meant. As an
+        ADDRESSEE ("Brunswick, hold") he is a foreign commander and is
+        refused by name, exactly as `Mack` and `Kutuzov` are. As a TARGET
+        ("attack Brunswick") he is the quarry.
 
-    Both halves are pinned. The durable half is
-    `modding/validator.py`, which refuses to let a scenario author a NEW
-    collision — the typo gate closes today's twelve by lexical accident
-    (different first letters, large edit distance), not because it knows
-    `Gascony` is a place.
+        THE PROVINCE IS REACHED BY A REGION-ONLY VERB — `move to
+        Brunswick`, which can mean nothing else and is therefore never
+        ambiguous.
+
+    ⚠ The first draft of this rule said "ADDRESSEE position -> the
+    PROVINCE. 'Brunswick, hold' is a garrison order." Both halves were
+    false: there is no province-addressee route at all, and what the
+    addressee carve-out actually bought was that FRANCE COULD FORTIFY A
+    PRUSSIAN MARSHAL AT BERLIN — the one collision on the board punching
+    the one hole in WO slice 2's guard. It is fixed at
+    `parser._resolve_enemy_addressee`, where the exact enemy roster now
+    outranks the region carve-out.
+
+    Both halves are pinned. The durable half is `modding/validator.py`,
+    which refuses to let a scenario author a NEW collision — the typo gate
+    closes today's twelve by lexical accident (different first letters,
+    large edit distance), not because it knows `Gascony` is a place.
     """
     if not gate_active:
         return True
@@ -241,7 +268,15 @@ def _correction_survives(query: str, match: Optional[str],
     return _plausible_name_typo(query or "", match or "")
 
 
-def _honest_alternatives(result: Dict, candidates: List[str]) -> List[str]:
+def _humanised(names: List[str]) -> List[str]:
+    """Roster keys as the player reads them (`ArchdukeJohn` -> `Archduke
+    John`), through the chokepoint CR-5 created for exactly this."""
+    from backend.display_names import humanize_entity_name
+    return [humanize_entity_name(name) for name in names]
+
+
+def _honest_alternatives(result: Dict, candidates: List[str],
+                         query: str = "") -> List[str]:
     """The names to offer when nothing resolved.
 
     `match_with_context` populates `suggestions` only on its low-score
@@ -259,7 +294,26 @@ def _honest_alternatives(result: Dict, candidates: List[str]) -> List[str]:
     permitted = {name.lower() for name in allowed}
     offered = [name for name in (result.get("suggestions") or [])
                if name.lower() in permitted]
-    return offered[:3] or allowed[:3]
+    # HUMANISED at the end, never at the start: `_display_candidates` and
+    # the `offered` filter both compare against RAW roster keys, so
+    # humanising earlier breaks the comparison (measured — the fog pin went
+    # red on "Archduke John" not being in a set of raw names). CR-5's
+    # post-completion audit created `humanize_entity_name` for the
+    # identical defect one register over; this refusal printed the raw key,
+    # "Available: ArchdukeJohn, Mack".
+    if offered:
+        return _humanised(offered[:3])
+    if query:
+        # RANK, never truncate. `match_with_context` returns an EMPTY
+        # `suggestions` list on the auto-correct arm by design, so a refused
+        # near-miss fell through to `allowed[:3]` — a constant. Measured, and
+        # it inverted the message against confidence: gibberish ("Zorblax",
+        # score 0) got the two nearest names while "Nurat" (score 80) was
+        # answered "Available: Ney, Davout, Soult" with Murat absent.
+        matcher = FuzzyMatcher()
+        allowed = sorted(
+            allowed, key=lambda name: -matcher._get_best_score(query, name))
+    return _humanised(allowed[:3])
 
 
 def _display_candidates(world, from_nation: Optional[str],
@@ -285,7 +339,11 @@ def _display_candidates(world, from_nation: Optional[str],
     try:
         visible = {m.name.lower() for m in world.get_visible_enemies(from_nation)}
     except Exception:
-        return list(candidates)
+        # FAIL CLOSED. The first cut returned `candidates` here — the
+        # omniscient roster, i.e. exactly the list this function exists to
+        # stop printing. On an R5 boundary an error must cost the player a
+        # helpful message, never cost them the fog.
+        return []
     return [name for name in candidates if name.lower() in visible]
 
 
@@ -383,8 +441,16 @@ class CommandExecutor:
             # Exact match or plausible-typo correction - use corrected name
             marshal = world.get_marshal(result["match"])
             return (marshal, None)
-        elif result["action"] == "suggest":
-            # Medium confidence - ask for confirmation
+        elif (result["action"] == "suggest"
+                and _display_candidates(
+                    world, world.player_nation, [result.get("match") or ""])
+                + [n for n in [result.get("match") or ""]
+                   if world.get_marshal(n) is not None
+                   and world.get_marshal(n).nation == world.player_nation]):
+            # Medium confidence - ask for confirmation. R5: only about one of
+            # OUR marshals, or an enemy we can actually see. `Kuzutov` used
+            # to answer "Did you mean 'Kutuzov'?" about an unscouted Russian
+            # corps, from a seam whose sibling arm filters.
             return (None, {
                 "success": False,
                 "message": f"Marshal '{marshal_name}' not found. Did you mean '{result['match']}'?",
@@ -394,11 +460,42 @@ class CommandExecutor:
         else:
             # Low confidence, or an auto-correct the WO-13 gate refused.
             # "Available" here answers "which of YOUR marshals" — naming a
-            # foreign commander would be both unhelpful and a fog leak.
+            # foreign commander would be both unhelpful and a fog leak, and
+            # a man in enemy captivity is not available to be ordered
+            # (`captured_by` + strength, the predicate `parser`
+            # and `economy_executor` already share).
             own = [name for name in all_marshals
-                   if (world.get_marshal(name).nation
-                       == world.player_nation)] or all_marshals
-            alternatives = _honest_alternatives(result, own)
+                   if (world.get_marshal(name).nation == world.player_nation
+                       and not getattr(world.get_marshal(name),
+                                       "captured_by", "")
+                       and world.get_marshal(name).strength > 0)]
+            # NO `or all_marshals` fallback. It re-opened the exact leak
+            # this slice landed to close, one line below the comment
+            # forbidding it: with the player's roster emptied — reachable,
+            # since PC15-1's `destroy_marshal` pops marshals — the refusal
+            # fell back to the omniscient roster and printed
+            # "Available: ArchdukeJohn, Castanos, Mack", naming the same
+            # unscouted Spanish corps the review round quoted as its P1.
+            # An empty list reads "Available: none", which is honest.
+            # WO-13: a refused auto-correct that is NOT a place name is an
+            # ordinary mistyped marshal, and the region seam's own idiom
+            # applies — demote it to a QUESTION rather than throwing the
+            # candidate away. `Nurat` asks about Murat; `Gascony` does not
+            # ask about Ney, because the world says Gascony is a province.
+            # That discriminator is exactly what the runtime lacked and it
+            # is in hand here.
+            if (result["action"] == "auto_correct"
+                    and world.get_region(marshal_name) is None
+                    and (result.get("match") or "") in own):
+                return (None, {
+                    "success": False,
+                    "message": (f"Marshal '{marshal_name}' not found. "
+                                f"Did you mean '{result['match']}'?"),
+                    "suggestion": result["match"],
+                    "refused_marshal_correction": True,
+                    "score": int(result["score"] * 100)
+                })
+            alternatives = _honest_alternatives(result, own, marshal_name)
             suggestions_text = ", ".join(alternatives) if alternatives else "none"
             return (None, {
                 "success": False,
@@ -638,8 +735,19 @@ class CommandExecutor:
             else:
                 enemy = world.get_enemy_by_name(result["match"])
             return (enemy, None)
-        elif result["action"] == "suggest":
-            # Medium confidence - ask for confirmation
+        elif (result["action"] == "suggest"
+                and _display_candidates(world, from_nation,
+                                        [result.get("match") or ""])):
+            # Medium confidence - ask for confirmation. R5: only about a
+            # marshal the asker can SEE. This is the third arm of this seam
+            # that prints a name and the review found it was the one
+            # `_display_candidates` did not cover — `attack Leon` would have
+            # answered "Did you mean 'ArchdukeCharles'?" about a corps France
+            # has never scouted, while the arm fourteen lines below, on the
+            # same query class, names only the two it can see.
+            # `strategic_executor` already scopes the identical question for
+            # PURSUE ("a ranked guess at a hidden army is free intelligence").
+            # A fogged suggestion falls through to the filtered `else`.
             return (None, {
                 "success": False,
                 "message": f"Enemy '{enemy_name}' not found. Did you mean '{result['match']}'?",
@@ -653,7 +761,8 @@ class CommandExecutor:
                 return broad_block
             # Low confidence, or an auto-correct the WO-13 gate refused
             alternatives = _honest_alternatives(
-                result, _display_candidates(world, from_nation, all_enemies))
+                result, _display_candidates(world, from_nation, all_enemies),
+                enemy_name)
             suggestions_text = ", ".join(alternatives) if alternatives else "none"
             return (None, {
                 "success": False,
@@ -664,7 +773,13 @@ class CommandExecutor:
                 # handing the question to the region seam's guess — `Kutz`
                 # used to reach Kutuzov and now must not become "Did you
                 # mean 'Frankfurt'?".
-                "implausible_correction": (result["action"] == "auto_correct"),
+                # Its own key, deliberately: `implausible_correction` was
+                # already taken by the WO-2 REGION demotion and means
+                # something different there, and `strategic_executor`
+                # SWALLOWS errors carrying that one. Two meanings on one key
+                # is a collision waiting for the next reader.
+                "refused_marshal_correction": (
+                    result["action"] == "auto_correct"),
             })
 
     def _attack_target_beyond_range(self, marshal, target, world) -> bool:

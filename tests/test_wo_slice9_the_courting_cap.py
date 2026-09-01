@@ -946,7 +946,10 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         """Series index i is the reading after the i-th `end_turn`, i.e.
         at `current_turn` i+1. The capped rebellion is not a coincidence
         in the series — it IS the series' largest single-turn fall (-12,
-        where every other step moves by at most 8).
+        where every other FALL is at most 2; the series does contain a
+        +18 RISE at index 13->14, which an earlier draft of this
+        sentence got wrong. The assertion uses `min(steps)` and was
+        always correct).
 
         Killed by: any change to the rebellion timing that does not also
         move the recorded series."""

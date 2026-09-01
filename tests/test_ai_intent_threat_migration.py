@@ -614,12 +614,17 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # (`Bern` -> Bernadotte and `Leon` -> Napoleon at a full 100, seven more
 # -> Ney at 80). The ambient AI hit it SEVENTEEN times in the 40 turns,
 # every one of them from `enemy_ai._execute_action` -> `_execute_attack`,
-# and the consequence was a FREEZE: Britain's Paget stood at Bearn,
-# adjacent to Gascony, and for twenty-two consecutive turns every attack
-# he ordered on that province was redirected to Ney - in Vienna, eight
-# provinces away - and refused as out of range. Gated, Britain fights in
-# Iberia and France is not stripped: final provinces move from
-# France 18 / Britain 19 to France 26 / Britain 12.
+# and the consequence was a STALL: Britain's Paget stood at Bearn from
+# turn 17 to 28, adjacent to Gascony, and six times - turns 17, 19, 21,
+# 23, 25, 27, every OTHER turn, because a failed action writes a 2-turn
+# cooldown - his attack on that province was redirected to Ney, wherever
+# Ney was, and refused as out of range. Shrapnel spent the alternate
+# turns the same way. The seventeen span turns 6-27 in two phases: six
+# `Leon -> Napoleon` from Lisbon, then eleven `Gascony -> Ney` from
+# Bearn. Gated, Britain fights in Iberia and France is not stripped:
+# final provinces move from France 18 / Britain 19 to France 26 /
+# Britain 12. (An earlier draft said "twenty-two consecutive turns",
+# which read the whole span as one marshal's ordeal. Corrected.)
 #
 # Attribution, SEVEN arms, each a real source edit + a hash-pinned
 # `--emit-series` subprocess run:

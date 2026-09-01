@@ -4,6 +4,160 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW WO SLICE 10 — "THE ENEMY-DIRECTION GATE" (WO-13) — September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 10, authoritative.**
+> Commits `1347119d` + `da454728`.
+> `tests/test_wo_slice10_enemy_direction_gate.py` (88); `tools/_sweep_wo10.json`
+> — **56 mutations, 56 killed, 0 inert at close** (fifteen rows
+> reported INERT across five sweeps; the review fleet found six more no
+> sweep can see; 21 pins repaired). Suite **19,143 / 4 skipped**,
+> ruff clean, **zero `.gd`**. `BASELINE_SERIES` re-recorded ONCE, **seven-arm**
+> flip-attributed. **NEXT = slice 17** (the frontier halts the charge), then
+> 11 → 12 → 14.
+>
+> **The defect, measured before a line was written.** Three seams in
+> `executor.py` auto-corrected a query onto a MARSHAL with no typo gate, while
+> their region sibling has been gated since WO-2. The matcher scores by partial
+> ratio, which rewards a short word for being CONTAINED in a long name, so
+> twelve province names collapse — `Bern → Bernadotte` and `Leon → Napoleon`
+> at a full 100, seven more → Ney at 80.
+>
+> **It is a P1, not the filed P2, and both arms are worse than the row says.**
+> The ambient board hits it **17× in 40 turns**, every one from
+> `enemy_ai._execute_action`, and the effect is a **FREEZE**: Britain's Paget
+> stood at **Bearn, adjacent to Gascony**, and for **twenty-two consecutive
+> turns** every attack he ordered on that province was redirected to Ney — in
+> Vienna, eight provinces away — and refused as out of range, in a message that
+> names the province and prints another man's location beside it. Separately,
+> **twelve of the twenty nations boot with no war-enemies at all**, and in that
+> state the broad check answers instead and returns a marshal they are at
+> **PEACE** with, for auto-war-declaration: reproduced by hand, a Prussian
+> order to attack the **province** `Gascony` **declared war on France** and
+> cascaded Spain, Bavaria, Holland, the Kingdom of Italy and Switzerland in
+> behind it.
+>
+> **Built:** ONE predicate `_correction_survives` wrapping the project's own
+> `_plausible_name_typo`, on all three auto-correct arms, behind three flip
+> levers. An implausible correction **falls through** to the honest not-found
+> arm rather than becoming a guess, and the fall-through still consults the
+> absorber so a plausible armistice typo is still caught. Boot collapses
+> **216 → 19 / 199 → 19 / 12 → 1**, every survivor the exact `Brunswick`;
+> ambient **17 → 0**. The single clearest demonstration: `Mack attack Lorraine`
+> fought **Ney at Rhineland** before and fights **Soult at Lorraine** after —
+> the order named a province and now the battle happens at that province.
+>
+> **The contract was wrong in five places**, all measured: the absorber is
+> `_broad_fuzzy_diplomatic_check`, not `_make_diplomatic_error` (that function
+> resolves no names at all — the wrong name comes from reading the stale
+> `:370` against the current file); two of the three line numbers are stale by
+> **exactly −22** with the provenance traced to WO slice 2's own `+22`
+> insertion, while `:230` is still exact; **"gating `:433` alone re-routes 16
+> of 17 to the absorber" is FALSE and the true number is ZERO** (the absorber
+> only answers when the courts are NOT at war, and all seventeen are
+> Britain-vs-France); "30 boot-live collapse pairs" is neither 30 pairs nor 30
+> resolutions (it is the provinces that NAME a marshal *including the suggest
+> band*; twelve resolve); and the done-when's player-direction clause was very
+> nearly a no-op whose goal is mis-stated — a province name should resolve to
+> **the province**, which is what the fall-through delivers.
+>
+> **Seven arms, not four** (three levers make the space eight): arm 0
+> reproduces the prior series byte-for-byte; **A is necessary**; **B is inert
+> ALONE but load-bearing in combination** — `AB ≠ A`, and arm A alone ends
+> Britain 27 / France 8, so gating the first seam alone is a *different bug*,
+> not a partial fix; **C is measured completely inert** with a written reason
+> (all 58 of its ambient touches are the EXACT `Brunswick`) and is pinned by
+> construction. **M1–M7 byte-identical without re-record — and that is worth
+> nothing as evidence**, because the sweep harness contains no `end_turn`,
+> `.execute(` or `fuzzy_match` at all; the structural reason is the claim.
+>
+> **A 13-agent review round then found three defects, one of them mine.**
+> **[P1]** the refusal **leaked fog** — `Available: ArchdukeJohn, Castanos,
+> Mack`, and Castanos is a Spanish corps France had never scouted; both arms
+> are filtered now through one player-scoped source, while *matching* stays
+> omniscient. **[P2]** a refused marshal query was answered with a **province
+> guess** (`attack Kutz` → *"Did you mean 'Frankfurt'?"*) — it now answers in
+> the register the player was speaking. **[durable]** `modding/validator.py`
+> WARNS on a marshal named after a province, or within a typed mistake of one:
+> the gate closes today's twelve **by lexical accident**, not because it knows
+> `Gascony` is a place, and content grows.
+>
+> **The record had held two contradictory rules**, each calling itself "the
+> WO-13 collision rule". They are the same rule read in two POSITIONS and it is
+> now stated once: **addressee → province** (slice 2), **target → marshal**,
+> and the province is reached by `move to Brunswick` — measured working once
+> the province is legally enterable. The review's *"unattackable forever"*
+> conflated the collision with France being at PEACE with Hanover.
+>
+> **The re-stated done-when, measured rather than argued:** a refused AI order
+> is expensive on the **wrong axis** (a 2-turn cooldown keyed on marshal +
+> ACTION TYPE, not target), so the gate could have re-created the freeze one
+> layer down. It does the opposite — `_record_failed_action` writes fall
+> **31 → 11** over the same 40 turns, because the orders now succeed.
+>
+> **Three pins flipped consciously**, each attributed by flipping this slice's
+> own levers: the two slice-9 rebellion timings (32 → 33, and the hard-coded
+> series index replaced by one **derived** from the series — the rebellion is
+> its largest single-turn fall) and the AI-V mirror arm, whose magnitude clause
+> now measures the fall from the series **PEAK**; anchoring on the first
+> reading had silently assumed the first reading was the maximum, true only of
+> a board where nobody could reach France.
+>
+> **A harness defect found by accident — and the second attempt at it was also
+> wrong, which is how the real one surfaced.** The lever-setter matched
+> LF-anchored patterns, so once the mutation sweep re-emitted `executor.py` as
+> CRLF it **silently set nothing** and the "ungated" arm ran the shipped tree.
+> Normalising fixed that and **left the bigger defect in place**: a test that
+> writes to a production source file makes the whole suite unsafe to run beside
+> anything else — measured, when a pre-commit run failed at
+> `TestArmAControl::test_threat_series_is_the_standing_baseline` **with the
+> PRE-slice series** because the review fleet was reading the file mid-arm.
+> **Slice 9 already had the right idiom** (set the module global in the CHILD)
+> and this slice had missed it; the source-edit machinery is now deleted, not
+> repaired, and a **suite-wide AST census** pins that no test writes under
+> `backend/` or `godot-client/` — zero offenders today, with its own
+> sensitivity test.
+>
+> **A SECOND review round — 8 lenses + 2 refuters at the committed SHA —
+> took fourteen more fixes, five of them defects this slice introduced.**
+> Headline: **`Brunswick, hold` let FRANCE COMMAND A PRUSSIAN MARSHAL** —
+> slice 2's carve-out ran before the enemy roster, so the one collision on
+> the board punched the one hole in slice 2's own guard (`Mack` and
+> `Kutuzov` were refused all along). Also: a one-key slip on your OWN
+> marshal stopped working and the refusal named the wrong three (the message
+> was inverted against confidence — gibberish got the nearest names, a
+> near-miss got a constant); the fog fix covered two of the seam's THREE
+> display arms; the register fix did not reach CR-6's bare `attack <x>`; the
+> validator crashed the BOOT path on a malformed scenario and checked the
+> wrong map for any mod with its own regions; **two ungated fuzzy-marshal
+> seams UPSTREAM of the gate in `parser.py`**, which the census could not
+> see because it is scoped to `executor.py` by construction; and the
+> refusal printed raw roster keys.
+>
+> **The refuters asked the question the eight lenses did not: can a player
+> see the message at all?** Measured over the real `/command` route —
+> **no**. Validation clears a target in neither register and ESP-EV-4's
+> `auto_resolved` arm picks the nearest visible enemy and **discloses** it.
+> So the fog fix and the register fix are defence in depth on a seam no
+> typed sentence reaches; the auto-assign route this round wired through it,
+> and the AI's seventeen ambient hits, are what reach it. Three pins now
+> drive the real endpoint, and the guarantee they carry is stronger than
+> "the message is correct": **the typed path never silently attacks a man
+> you did not name.**
+>
+> **And a claim of mine was falsified and corrected in four places:** *"22
+> consecutive turns"* read the span of all seventeen collapses as one
+> marshal's ordeal. Measured — TWO marshals alternating every other turn
+> (the 2-turn failed-action cooldown), TWO provinces, TWO phases; Paget
+> stood at Bearn for **twelve** turns and then marched on Bordelais instead.
+> The effect claim is untouched and independently confirmed.
+>
+> **The method lesson, which is not the sweep's lesson.** A mutation sweep
+> proves a pin binds to production. It cannot prove the pin is about the
+> right thing, that its input reaches the branch it names, or that anyone
+> can see the string it checks. **Ten INERT pins were found by the sweeps;
+> six more were found only by a fleet that read each pin against the code
+> and then applied the killer the pin's own docstring named.**
+
 > # ✅ ROW WO SLICE 9 — "THE COURTING CAP" (WO-8) + WO-D9's DAMPER — September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9, authoritative.**
 > `tests/test_wo_slice9_the_courting_cap.py` (35); `tools/_sweep_wo9.json` —

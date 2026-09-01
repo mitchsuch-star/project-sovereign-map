@@ -153,7 +153,7 @@ Marshals represent commanders on the map.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | string | **REQUIRED** | Marshal's name |
+| `name` | string | **REQUIRED** | Marshal's name. **Do not name a marshal after a province** (WO-13, Sept 1, 2026): the resolution seams fuzzy-match a query onto a marshal, so a marshal within a typed mistake of a province name silently answers when that province is named, and an *identically* named one is unreachable by any gate. The validator WARNS on both (never errors — `europe_1805.json` ships exactly one, `Brunswick`, and must keep booting). For an identical name the **positional rule** decides: **the name means the MAN wherever a man can be meant** — addressing him (`"Brunswick, hold"`) is refused as a foreign commander, attacking him (`"attack Brunswick"`) targets him — and the **PROVINCE is reached by the region-only verb** `move to <name>`, which can mean nothing else. (An earlier version of this row said the addressee is the province. That was false in both halves: there is no province-addressee route, and the rule as written was letting the player command a foreign marshal.) |
 | `location` | string | **REQUIRED** | Region name where marshal starts |
 | `strength` | integer | **REQUIRED** | Number of troops (e.g., 50000) |
 | `personality` | string | "balanced" | One of: `aggressive`, `cautious`, `literal` — the ONLY valid authoring values (MC-4, July 10, 2026: `balanced`/`loyal` are retired reserved values, a hard validation ERROR — a scenario authoring one cannot boot). Omitting the field falls back to the inert save-compat default `"balanced"` (no objection triggers ever fire) and logs a boot warning — author the field explicitly. |

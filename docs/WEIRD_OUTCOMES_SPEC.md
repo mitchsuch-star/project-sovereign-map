@@ -169,7 +169,7 @@ drift):**
 | H-8 | **WO-1's real seam is NOT the eval's `executor.py:1794-1805`** — that is only the routing hop (`general_retreat` → `_execute_general_retreat` at `:1802-1803`). The recognise-and-strip happens at **`parser.py:688-702`**: an extracted "marshal" that IS a known enemy is demoted to a target (`llm_result["marshal"] = None` at `:700`, target backfill `:701-702`), then `_classify_command` (`:1560-1576`) reads `marshal is None` + `retreat` → `general_retreat` (`:1575-1576`), which never reads the demoted name. `Kutuzov, scout Swabia` → Soult via the same strip + auto-assign sibling. Roster confirmed: Mack/Kutuzov/Buxhowden/Moore all enemy-roster in `europe_1805.json` | ⚠ ✚ |
 | H-9 | WO-2 parser arms: the two ungated `auto_correct` arms at `parser.py:983-986` exactly; `_plausible_name_typo` at `:349` (first-letter match `:361`, edit distance ≤2/1 `:363-364`); **the gate has FOUR sibling application sites, not three** (`parser.py:1098`, `:1413`, `strategic_executor.py:136`, `:178`); ungated strategic-marshal arm `:1421-1422`; the region match is COMPUTED at `:968-971` and APPLIED at `:985-986` | ⚠ |
 | H-10 | WO-2 executor backstop: `executor.py:299-304` inside `_fuzzy_match_region` (def `:253`) — ungated `auto_correct` over ALL regions (`:290`); "Morocco" is a real registry region, so `move to the Moon` has a live wrong target | ✅ |
-| H-11 | WO-13: `executor.py:432-441` (`_fuzzy_match_enemy`, def `:381`, ungated arm `:435-441`); absorber `_broad_fuzzy_diplomatic_check` `:364-371` over ALL non-allied marshals; fifth seam `:230-235` over ALL marshals (`:221`); reach path `combat_executor.py:4224-4249` is ENEMY-FIRST (region only tried after the enemy match fails). `Brunswick` = marshal (Prussia, `europe_1805.json`) AND live registry province — exact collision on both ladders, uncloseable by a typo gate | ✅ |
+| H-11 | ⚠ **Line numbers CORRECTED by slice 10, Sept 1, 2026: two of the three are stale by exactly −22** (WO slice 2 inserted the WO-2 backstop `@@ -299,+22`), and the reach path by ~+240. Current: `_fuzzy_match_enemy` def `:403`, call `:455`, arm `:457-463`; absorber def `:386`, call `:392`, arm `:393-400`; fifth seam `:230-235` / `:221` **unchanged** (it sits above the insertion); reach path `combat_executor.py:4459-4505`. **And "gating `:433` re-routes 16 of 17 to the absorber" is FALSE — it is ZERO of 17**, because the absorber only answers when the courts are NOT at war and all seventeen are Britain-vs-France. Original text follows. | WO-13: `executor.py:432-441` (`_fuzzy_match_enemy`, def `:381`, ungated arm `:435-441`); absorber `_broad_fuzzy_diplomatic_check` `:364-371` over ALL non-allied marshals; fifth seam `:230-235` over ALL marshals (`:221`); reach path `combat_executor.py:4224-4249` is ENEMY-FIRST (region only tried after the enemy match fails). `Brunswick` = marshal (Prussia, `europe_1805.json`) AND live registry province — exact collision on both ladders, uncloseable by a typo gate | ✅ |
 | H-12 | WO-6: `llm_client.py:1313-1315` — bare `"wait"`/`"stand by"` substring (plus a guarded `\bpass\b`); branches BELOW it in the same chain: hold `:1321`, defend `:1330`, retreat `:1335`, move `:1342`, scout `:1381`, build `:1447`, restrain `:1450`, drill `:1452` | ✅ |
 | H-13 | WO-7: the dialogue wall opens at `main.py:2523`; soft-stop pass-through `:2591-2593`; the `else:` at `:2594`; the three recovery arms inside it — CR-2 `:2660`, PARSE-NEG `:2685`, Berthier `:2749`. The clarification pop is `main.py:2098` (eval said `:2097`) and is **unconditional before the `resolution["kind"]` check** — `{"kind": "pass"}` destroys the pending clarification (reachable by driver/raw HTTP; the client holds a modal over it) | Δ ⚠ |
 | H-14 | driver: `_option_id` `:449-452` reads `id`/`choice`/`keyword` (an `action`-only option → None); fallback literal "confirm" `:120` + `:659-660`; blind chain `:726-730`; battles `:519-520` top-level only while autonomous attacks ship on `jealousy_attacks` (`turn_manager.py:405-415`) — 0 driver reads; `"state"` 0 reads (the Grand Diversion confirm rides exactly `"state": "awaiting_clarification"`, `naval_executor.py:413`); `envoy_digest` 0 reads. **Capture-arm precision: the driver DOES answer on bare `True`** (`:569-579` posts `/capture_choice`) — what it loses is the sibling `capture_data` (`main.py:3413-3415`: stage / summary / `dialogue_id`), so the ESTATE stage is undetectable → wrong policy token → the WO-H3 wedge | ⚠ |
@@ -414,8 +414,10 @@ guards (PC15-4) stay byte-identical; verbs with no bare form
 > camelCase split forms. Both extraction layers inherit one guard.
 > Deliberate boundaries recorded at the helper: a lead that is also a
 > REGION name is never an enemy (`Vienna, hold` stays a region address;
-> `Brunswick` resolves as the province — the WO-13 collision rule ahead of
-> slice 10); the TYPO arm requires the explicit comma-address shape, so a
+> `Brunswick` resolves as the province — the ADDRESSEE half of the
+> WO-13 positional rule, **completed by slice 10**, whose TARGET half
+> reads the same name as the marshal; the rule is now stated once, in
+> `executor._correction_survives`'s docstring); the TYPO arm requires the explicit comma-address shape, so a
 > bare common word can never fuzzy-bind (`more cavalry` is not Moore) —
 > residual: a typo'd addressee WITHOUT a comma (`Kutuzof retreat`) falls
 > through to the old target shape, accepted and recorded.
@@ -2471,6 +2473,580 @@ collapse pairs (measured count — the memo's 197 was wrong) refuse or
 clarify in the player direction; four-arm flip attribution recorded;
 `Brunswick` behavior documented + pinned as the known exception.
 
+> **✅ LANDED September 1, 2026 — landing record, authoritative. THE
+> CONTRACT ABOVE IS WRONG IN FIVE PLACES and this record is what was
+> built.** Commits `1347119d` (build) + `da454728` (review round).
+> `tests/test_wo_slice10_enemy_direction_gate.py` (88);
+> `tools/_sweep_wo10.json` — **56 mutations, 56 killed, 0 inert at close** (FIFTEEN rows reported INERT across five sweeps, and they were three different things: **six real pin or coverage findings** — the census matched an *import* rather than a call, the ranking pin drove the wrong branch, the fail-open `except` had no test at all, the parser's seam A is unreachable from the mock path, the player-scope pin used marshals its own fixture could see, and the first-letter rule measured NOT load-bearing; **eight bad mutations**, of which four were over-determined code — exact resolution has three independent paths, so no single-site edit can break it, which is the same structural fact as `Brunswick` being uncloseable — two deleted or weakened an assertion, which can never fail a suite, and two were masked by a sibling test; and **one imprecise claim of mine**, whose correction was stronger than the original. **The review fleet then found SIX MORE that no sweep can see** — pins whose own stated killer, applied in a scratch tree, left the file green. Twenty-one pins repaired in total.)
+> Suite **19,143 / 4 skipped**,
+> ruff clean. **No `.gd` touched**, so no parse harness or boot smoke is
+> owed. Zero new serialized fields.
+>
+> **The defect, measured on the real board before a line was written.**
+> The fuzzy matcher scores by partial ratio, which rewards a short word
+> for being CONTAINED in a long name, so on the shipped 1805 board twelve
+> province names collapse onto marshals:
+>
+> ```
+> Bern      -> Bernadotte  100      Lorraine  -> Ney         80
+> Leon      -> Napoleon    100      Maine     -> Ney         80
+> Brunswick -> Brunswick   100 EXACT  Ukraine -> Ney         80
+> Brittany  -> Ney          80      Oslo      -> Napoleon    75
+> Champagne -> Ney          80      Rome      -> Armfelt     75
+> Gascony   -> Ney          80
+> Guyenne   -> Ney          80
+> ```
+>
+> **The consequence is a FREEZE, and that is a P1, not the filed P2.**
+> Instrumented over the 40 ambient turns: **seventeen collapses, every one
+> from `enemy_ai._execute_action` -> `combat_executor._execute_attack`**.
+> Britain's Paget stood at **Bearn, adjacent to Gascony**, and for
+> **twenty-two consecutive turns** every attack he ordered on that
+> province was redirected to Ney — in Vienna, eight provinces away — and
+> refused as out of range:
+>
+> ```
+> turn 17  Paget attack Gascony -> "Paget cannot reach Gascony (Vienna)
+>                                   from Bearn! Range: 1, Distance: 8"
+> ```
+>
+> The message names the province and prints another man's location beside
+> it. Turns 6–15 are the same shape with `Leon -> Napoleon`.
+>
+> **And a second, worse arm the contract does not mention.** `_broad_
+> fuzzy_diplomatic_check` is independently reachable through
+> `_fuzzy_match_enemy`'s `if not all_enemies` branch — the state **twelve
+> of the twenty nations boot in** — and it returns a marshal the caller is
+> at **PEACE** with, explicitly "for auto-war-declaration". Reproduced by
+> hand on the boot world: a Prussian order to attack the **province**
+> `Gascony` resolved to Ney, **declared war on France**, and cascaded
+> Spain, Bavaria, Holland, the Kingdom of Italy and Switzerland in behind
+> it before fighting a battle at Rhineland.
+>
+> **What was built.** One predicate, `executor._correction_survives`,
+> wrapping the project's own `_plausible_name_typo` exactly as the WO-2
+> region backstop does, applied to the auto-correct arm of all three fuzzy
+> seams, each behind its own flip lever
+> (`ENEMY_DIRECTION_GATE_ACTIVE` / `BROAD_DIPLOMATIC_GATE_ACTIVE` /
+> `MARSHAL_DIRECTION_GATE_ACTIVE`). An implausible correction **falls
+> through** to the honest not-found arm rather than returning a guess, and
+> the fall-through still consults the absorber, so an armistice target
+> that IS a plausible typo is still caught. `_honest_alternatives` names
+> the real candidates, because `match_with_context` populates
+> `suggestions` only on its low-score arm and a refused auto-correct
+> arrived with an empty list ("Available: none" on a board full of
+> enemies).
+>
+> Measured, boot: `_fuzzy_match_enemy` collapses **216 -> 19**,
+> `_broad_fuzzy_diplomatic_check` **199 -> 19**, `_fuzzy_match_marshal`
+> **12 -> 1** — every survivor being the exact `Brunswick`. Ambient:
+> **17 -> 0**. The Prussian order no longer declares war, and now says
+> *"Brunswick cannot reach Gascony from Rhineland! Range: 1, Distance:
+> 5"* — the real province, the real distance.
+>
+> **The contract's corrections, all five measured:**
+>
+> - **"the absorber `_make_diplomatic_error`" is the wrong function.**
+>   That function takes an already-resolved marshal object and performs no
+>   name resolution at all; it cannot absorb anything. §2 H-11 names the
+>   absorber correctly (`_broad_fuzzy_diplomatic_check`) — the wrong name
+>   comes from reading the stale line `:370` against the current file,
+>   where it lands inside `_make_diplomatic_error`'s armistice f-string.
+>   **Anyone gating `:370` literally today would edit a message string and
+>   change nothing.**
+> - **Two of the three line numbers are stale by exactly −22**, and the
+>   provenance is exact: at the parent of WO slice 2 (`349402b9^`), lines
+>   `230` / `370` / `433` ARE the three `match_with_context` calls — a
+>   coherent census. Slice 2 then inserted the WO-2 backstop `@@ -299,+22`
+>   inside `_fuzzy_match_region`, so `:370 -> :392` and `:433 -> :455`.
+>   **`:230` sits above the insertion and is still exactly right.** The
+>   reach path `combat_executor.py:4224-4249` is `4459-4505` today, stale
+>   by ~+240.
+> - **"gating `:433` alone re-routes 16 of 17 events to `:370`" is FALSE,
+>   and the true number is ZERO.** The absorber only returns a marshal
+>   `if not world.is_at_war(...)`, and **all seventeen ambient collapses
+>   are Britain-vs-France, at war** — it is structurally incapable of
+>   catching them. Arm A does produce 15 absorber collapses, but they are
+>   `Leon -> Napoleon` issued by **Spain**, in a *different world* that
+>   arm A itself creates. **The conclusion survives and the mechanism does
+>   not:** gate both, because the absorber is independently reachable at
+>   `if not all_enemies` — which is the arm that declares the war.
+> - **"the 30 boot-live collapse pairs" is neither 30 pairs nor 30
+>   resolutions.** 30 is the count of distinct provinces that NAME a
+>   marshal *including the suggest band*, which already clarified. The
+>   silent resolutions are **twelve**; unique (province, marshal) pairs
+>   **twelve**; (nation, province, marshal) triples **216**; pairs
+>   including the suggest band **39**. Seed-stable across
+>   `historical`/`ulm`/`austerlitz`/`42`. The memo's 197 reproduces under
+>   no definition (nearest: 199 broad triples).
+> - **The done-when's player-direction clause was very nearly a no-op, and
+>   its goal is mis-stated.** In the player direction only **three**
+>   provinces ever resolved (`Bern -> Brunswick`, `Brunswick`,
+>   `Rome -> Armfelt`) — because the collapsing names are FRENCH marshals
+>   and France is the player, so `Gascony -> Ney` cannot happen to the
+>   player at all. And "refuse or clarify" states the wrong outcome: a
+>   province name should resolve to **the province**, which is what the
+>   fall-through delivers. Post-gate the player direction resolves exactly
+>   one, and it is the documented exception.
+>
+> **The seven-arm attribution, each arm a real source edit plus a
+> hash-pinned `--emit-series` subprocess run.** The contract asked for
+> four; three independent levers make the space eight, of which seven were
+> measured and one (`BC`) is redundant.
+>
+> | arm | levers | series |
+> |---|---|---|
+> | 0 | none | **prior `BASELINE_SERIES`, BYTE-FOR-BYTE** |
+> | A | enemy only | diverges at [11], decays to 0 by [35] |
+> | B | absorber only | **prior, BYTE-FOR-BYTE** |
+> | C | marshal only | **prior, BYTE-FOR-BYTE** |
+> | AB | enemy + absorber | **identical to the full tree** |
+> | AC | enemy + marshal | **identical to arm A** |
+> | ABC | full tree | the recorded series |
+>
+> So **A is necessary** (nothing moves without it); **B is inert ALONE but
+> load-bearing in combination** — `AB != A`, and arm A alone ends
+> Britain 27 / France 8 against the full tree's France 26 / Britain 12, so
+> **gating the first seam alone is a different bug, not a partial fix**;
+> and **C is measured completely inert on this board** (`C == 0`,
+> `AC == A`, `AB == ABC`) with a written reason — all 58 of the ambient
+> run's touches of that seam are the EXACT string `Brunswick`, so the
+> fuzzy arm is never reached there. C is kept because the hole is
+> identical and IS reachable from the typed direction (proven by driving
+> a real order whose marshal slot is a province name) and is pinned by
+> construction, the discipline slice 9's stake rider used.
+>
+> The new series moves from index [13] on; [0]–[12] are byte-identical.
+> **M1–M7 are byte-identical WITHOUT re-record, and that is worth
+> nothing as evidence** — `test_combat_sweep_metrics.py` contains no
+> `advance_turn`, `end_turn`, `.execute(` or `fuzzy_match` at all, so the
+> harness is structurally blind to this slice. The structural reason is
+> the claim; the green run is not.
+>
+> **A counting trap for the next reader.** A naive "the query is also a
+> region key" instrument reports **75** ambient hits. **58 of them are
+> marshal Brunswick being looked up by his own name** — legitimate exact
+> matches through the fifth seam. The number that means anything is the
+> **17** non-exact ones.
+>
+> ---
+>
+> ### The review round (`da454728`) — three defects, one of them mine
+>
+> A 13-agent read-then-refute fleet ran against the committed SHA and
+> against a pristine `git archive HEAD` extract.
+>
+> - **[P1, introduced by this slice] The refusal leaked fog.**
+>   `_honest_alternatives` fell back to the seam's candidate list, which
+>   for the player is `world.get_enemy_marshals()` — omniscient by design
+>   (R5). Measured: *"Enemy 'Gascony' not found. Available: ArchdukeJohn,
+>   **Castanos**, Mack"*, and Castanos is a Spanish corps France has never
+>   scouted. The low-score arm leaked the same way **before** this slice,
+>   so both are filtered now, through the new single source
+>   `_display_candidates`. It is **player-scoped**: the fog store is the
+>   player's, and no `enemy_ai` site renders this string. **Matching stays
+>   omniscient** — combat must find a fogged marshal by name — and that is
+>   pinned in both directions.
+> - **[P2, introduced by this slice] A refused marshal query was answered
+>   with a province guess.** `Ney, attack Kutz` used to auto-correct to
+>   Kutuzov; gated, it answered *"Region 'Kutz' not found. Did you mean
+>   'Frankfurt'?"* — CA8-28's own rule one register over. (`Kutz` is four
+>   letters, so the typo limit is one edit and `Kutz`->`Kutuzov` is three;
+>   the gate is right to refuse it.) The enemy refusal now carries
+>   `implausible_correction` and `_execute_attack` answers in the register
+>   the player was speaking. A genuine province typo still asks about the
+>   province; a province that resolves still wins over both.
+> - **[the durable half] `modding/validator.py`.** The typo gate closes
+>   today's twelve **by lexical accident** — different first letters,
+>   large edit distance — not because it knows `Gascony` is a place, and
+>   content grows: the 22-name recruitment bench already contributes
+>   `Oran -> Shrapnel` at 75. The validator now WARNS (never errors —
+>   `europe_1805.json` ships one collision and must keep booting) on a
+>   marshal whose name IS a province, and on one within a typed mistake of
+>   a province, which is the case the runtime gate cannot see. Measured:
+>   one warning on the shipped scenario, naming Brunswick and the
+>   positional rule; the scenario still passes.
+>
+> **The record held two contradictory rules.** Slice 2's landing record
+> says a lead token that is also a region name is never an enemy —
+> *"`Brunswick` resolves as the province — the WO-13 collision rule"* —
+> and this slice's first draft said the marshal wins, also calling itself
+> the WO-13 rule. They are the same rule read in two POSITIONS, and it is
+> now written **once**, in `_correction_survives`'s docstring:
+>
+> > **ADDRESSEE position → the PROVINCE.** *"Brunswick, hold"* is a
+> > garrison order (WO slice 2).
+> > **TARGET position → the MARSHAL.** *"attack Brunswick"* names the man;
+> > the province is reached by `move to Brunswick`, which is region-only
+> > and therefore never ambiguous.
+>
+> The review's stronger claim — *"the province Brunswick is unattackable
+> by any typed command, for France, forever"* — **conflates two causes and
+> is measured false.** At boot nothing can enter Brunswick because France
+> is at PEACE with **Hanover**, which holds it, and that is true of every
+> Hanoverian province. Set France at war with Hanover and `move to
+> Brunswick` takes it: *"Ney moves from Frankfurt to Brunswick. Brunswick
+> falls to France!"* Both halves are pinned.
+>
+> **The production docstring over-claimed and the review caught it.** It
+> said "a census can prove no seam was missed"; that is true of the
+> **fuzzy** arms only. The exact marshal-first arm is six further sites
+> (`_check_diplomatic_block`, `_fuzzy_match_enemy` ×2, `_fuzzy_match_
+> marshal`, `strategic_executor` ×2, `combat_executor._resolve_auto_
+> assign_attacker`) and **no typo gate can reach any of them**, because an
+> identical string IS a plausible typo. That arm is governed by the
+> positional rule and the validator, and the docstring now says so.
+>
+> **The re-stated done-when, measured rather than argued.** The review's
+> sharpest question was whether the gate re-creates the freeze one layer
+> down: a refused AI order is expensive on the **wrong axis**, because
+> `enemy_ai._record_failed_action` writes a 2-turn cooldown keyed on
+> `(marshal, ACTION TYPE)` — not on the target — so refusing *Paget attack
+> Gascony* would stop Paget attacking anything at all. **It does the
+> opposite.** Over the same 40 turns, `_record_failed_action` writes fall
+> **31 → 11**, because the orders now succeed. The fall-through at
+> `combat_executor.py` is what earns that, and it is pinned with both
+> numbers so a future change that quietly re-freezes the AI shows up here.
+>
+> **The clearest single demonstration of the fix**, from the review's own
+> probe: an Austrian order `Mack attack Lorraine` — a French-held province
+> adjacent to him — fought **Ney at Rhineland** before, and fights
+> **Soult at Lorraine** after. The order named a province and now the
+> battle happens at that province.
+>
+> **The inert pins, and what they taught.** Ten INERT across three sweeps,
+> and they were not the same kind of thing:
+>
+> - **Two were real code findings.** The census pin read `ast.dump(node)`
+>   for the guard's NAME — but each seam *imports* its guard inside the
+>   function, so the name is in the dump whether or not anything calls it.
+>   Proven by replacing the region seam's real gate with `bool(...)` and
+>   watching the pin pass. It walks `ast.Call` nodes now. And the
+>   player-scope pin used two French marshals, who ARE visible to Austria
+>   through the player's fog store, so a mutation that filtered every
+>   nation passed anyway.
+> - **One was a claim of mine that was imprecise**, not a weak pin. I had
+>   pinned "the AI shape carries no `_raw_input`, so ESP-EV-4 cannot
+>   protect it". The truer and stronger statement is that
+>   `guessed_target_refusal` cannot protect **anyone** here: its first
+>   clause is `_named_in_raw(target)`, and the player typed the province
+>   name, so it grounds itself and the guard stands aside. Both shapes are
+>   pinned now, with the resolution fully populated.
+> - **Four were bad MUTATIONS, and the reason is a property worth
+>   recording: exact resolution is OVER-DETERMINED.** A marshal name
+>   resolves through three independent paths (`get_enemy_by_name`'s early
+>   return, `_check_diplomatic_block`, and the matcher's own exact
+>   branch); a region name through two. No single-site mutation can break
+>   it — which is the *same structural fact* as "a typo gate is powerless
+>   over Brunswick", and is exactly why that arm is governed by
+>   documentation and a validator rather than by a gate. Those rows were
+>   deleted with the reason recorded rather than replaced by compound
+>   mutations nobody would ever write.
+> - **One was a mutation that WEAKENED an assertion**, which by
+>   construction cannot fail a suite. Deleted.
+> - **One measured that the first-letter rule is not load-bearing here.**
+>   Deleting it from `_plausible_name_typo` changes nothing for this
+>   slice: all twelve collapses are refused by the edit-distance limit
+>   alone. Replaced with a mutation of the length floor, which is
+>   load-bearing (it is why `_plausible_name_typo('Ney','Ney')` is False —
+>   a hazard the review found, harmless only because the gate never guards
+>   the exact arm, and pinned so it stays that way).
+>
+> **A harness defect found by accident, and the second attempt at it was
+> also wrong — which is how the real one was found.** The in-suite lever
+> setter rewrote `backend/commands/executor.py` for each arm and restored
+> it afterwards.
+>
+> 1. It matched `"\nNAME = True\n"` against the raw file, so once the
+>    mutation sweep touched `executor.py` — `pathlib.write_text` re-emits
+>    with `os.linesep` — the file became CRLF, every pattern missed, and
+>    **the helper silently set nothing**: the "ungated" arm ran the
+>    shipped tree. It failed loudly only because the series assertion is
+>    specific.
+> 2. Normalising the line endings and asserting the edit landed fixed
+>    that, and **left the bigger defect in place**. A test that writes to
+>    a production source file makes the WHOLE SUITE unsafe to run beside
+>    anything else, and that was measured, by accident: with the review
+>    fleet reading the repo concurrently, a pre-commit run of the full
+>    suite failed at
+>    `test_ai_intent_assurance.py::TestArmAControl::test_threat_series_is_
+>    the_standing_baseline` **with the PRE-slice series**, because a
+>    reader had caught the file mid-arm.
+>
+> **Slice 9 already had the right idiom and this slice missed it:**
+> `_rebellion_turn` sets the lever as a module global *in the child*
+> (`V.COURTING_TARGET_CAP_ACTIVE = sys.argv[3] == "1"`) and never touches
+> the source. The runners now do the same, via a prelude the child
+> executes before the probe, which is exact because the seams read their
+> lever at CALL time — pinned directly by the sweep's three "frozen at def
+> time" mutations. The source-edit machinery is deleted, not repaired.
+>
+> Two pins came out of it, both of them about the instrument rather than
+> the game: `_spawn` **refuses a non-boolean lever** (the first cut of the
+> rewrite passed `("False", "False", "False")` and every non-empty string
+> is truthy, so it set all three levers ON and compared the gated board to
+> itself), and the child is **asked what levers it actually sees** rather
+> than trusted. Plus a **suite-wide AST census** — no test may write to a
+> path constant that points under `backend/` or `godot-client/` — which
+> measures **zero** offenders today and carries its own sensitivity test,
+> because a clean result from a blind instrument is the UX23-B lesson.
+> (The census reads with `utf-8-sig`: at least one test file in the suite
+> carries a BOM, and `ast.parse` rejects U+FEFF outright.)
+>
+> The ATTRIBUTION EXPERIMENT is a different thing and did use real source
+> edits — one arm at a time, in a scratch driver, never in the suite.
+> §5's "prove it by a real source-edit run" is satisfied there.
+>
+> **Three pins flipped consciously, each attributed by flipping this
+> slice's own levers** (with the levers down all three pass verbatim;
+> with them up all three fail):
+>
+> - `test_the_cap_delays_the_rebellion_it_does_not_prevent_it` — the
+>   capped rebellion moves 32 → **33** (uncapped stays 29, so the cap now
+>   buys four turns, not three), because slice 10 changes the board from
+>   turn 13 on.
+> - `test_the_delay_is_where_the_series_reconverges` → renamed
+>   **`..._where_the_series_falls_furthest`**. Its premise is retired: the
+>   two trajectories no longer re-converge. What survives is the truer
+>   form — the rebellion IS the series' largest single-turn fall (−12,
+>   where every other step moves by at most 8) — and the index is now
+>   **derived from the series** rather than hard-coded, so the next board
+>   change fails loudly at the right place.
+> - `TestArmAAmbientDoD::test_mirror_drifts_down_for_a_passive_france` —
+>   the magnitude clause now measures the fall from the series **PEAK**
+>   rather than from its first reading. Anchoring on the first reading
+>   silently assumed the first reading was the maximum, which was true
+>   only of a board where nobody could reach France. Unfrozen, the mirror
+>   rises 68 → **97** mid-campaign and decays to 56: a **42%** fall, and
+>   the rung still never rises. The direction clauses are untouched.
+>
+> **Also corrected in passing, in the `BASELINE_SERIES` comment block
+> itself:** slice 9's landing record had corrected two claims that were
+> never fixed in the copy sitting above the constant — "the last **ten**
+> courts moving it from 0 to 0" (nine) and "bottoms at 8 and **recovers
+> instead of rebelling**" (it rebels anyway, three turns later). Both now
+> say what slice 9 measured.
+>
+> **Deliberately NOT built, with reasons on the record.**
+>
+> - **A direction gate** ("if the string is a live region key, never
+>   resolve it to a marshal") — measured redundant *and* insufficient. On
+>   the shipped board the only region name that is a plausible typo of a
+>   marshal is `Brunswick` itself, which never reaches the fuzzy arm, so
+>   the direction gate closes **nothing** the typo gate does not; and it
+>   closes **zero** of the seventeen non-region collapses a probe found
+>   (`south -> Soult`, `Saxony -> Ney`, `Duke -> ArchdukeCharles`,
+>   `more -> Moore` …), which outnumber the region ones. The typo gate is
+>   also the project's own idiom, identical to the WO-2 region backstop.
+> - **A CR-2 clarification for the ambiguous target position** ("did you
+>   mean the province or the marshal?") — the review's recommendation, and
+>   the honest long answer. Not built: it is a new player-facing question
+>   for a one-case-per-board ambiguity, it must honour the CR-2
+>   one-question contract (pinned twice in `WO_EVAL` §7 #5) without
+>   becoming a soft-stop, and this slice's contract rules the exact
+>   collision **documented rather than fixed**. The positional rule plus a
+>   working `move to` escape plus a validator that prevents a second case
+>   is the smaller, complete answer.
+> - **A `campaign_log` line for a refused AI order** — a fall-through is
+>   the normal path, not an error, and logging it would spam the log on
+>   ordinary content. IGR-B's exact lesson.
+>
+> ---
+>
+> ### The SECOND review round — 8 lenses at the committed SHA, and it found more than the first
+>
+> A 10-agent fleet (8 lenses + 2 refuters) ran against `da454728`. It
+> confirmed the headline measurements and then took **fourteen more fixes,
+> five of them defects this slice had introduced.** Everything below was
+> reproduced by driving the real code, not argued.
+>
+> **Production, seven:**
+>
+> - **[P2, mine] `Brunswick, hold` let FRANCE COMMAND A PRUSSIAN MARSHAL.**
+>   Slice 2's carve-out ("a lead that is also a region name is never an
+>   enemy") ran BEFORE the enemy roster, so the address skipped slice 2's
+>   own refusal and the executor fortified Brunswick at Berlin for zero AP.
+>   `Mack` and `Kutuzov` were refused all along — **the one collision on
+>   the board punched the one hole in slice 2's guard.** The exact roster
+>   now outranks the carve-out; an ordinary place word is still never an
+>   address. *This is also what makes the positional rule TRUE, and it is
+>   why the rule as first written was false in both halves.*
+> - **[P2, mine] A one-key slip on your OWN marshal stopped working and the
+>   refusal named the wrong men.** `Nurat` (score 80) answered "Available:
+>   Ney, Davout, Soult" with Murat absent, while gibberish (`Zorblax`,
+>   score 0) got the two NEAREST names — the message inverted against
+>   confidence, because `match_with_context` returns an empty `suggestions`
+>   list on the auto-correct arm and the fallback truncated the roster
+>   instead of ranking it. Now `_honest_alternatives` RANKS, and
+>   `_fuzzy_match_marshal` demotes a refused correction to a QUESTION —
+>   the region seam's own idiom — **gated on the query not being a live
+>   region name**, which is exactly the discriminator the runtime lacks
+>   elsewhere and has in hand here. `Nurat` asks about Murat; `Gascony`
+>   does not ask about Ney.
+> - **[P2, mine] The fog fix covered two of the seam's THREE display
+>   arms.** The `suggest` band printed `result["match"]` straight off the
+>   omniscient roster: `attack Leon` answered *"Did you mean
+>   'ArchdukeCharles'?"* about an unscouted corps. Both seams' suggest arms
+>   are scoped now. The slice's own `test_the_suggest_band_still_clarifies`
+>   had **certified the leak** — it asserted `len(clarified) == 7` and never
+>   checked whom; six of the seven named a marshal France had never seen.
+>   A count is not a check.
+> - **[P2, mine] The register fix did not reach CR-6's bare `attack <x>`.**
+>   `_resolve_auto_assign_attacker` used a bare `get_enemy_by_name`, so one
+>   player sentence got two answers by route: named → *"Enemy 'Kutz' not
+>   found. Available: …"*, bare → *"Region 'Kutz' not found. Did you mean
+>   'Frankfurt'?"*. That route also had no case fallback, so `attack mack`
+>   answered *"Did you mean 'La Mancha'?"* while `attack Mack` mustered. It
+>   goes through the same seam now — **exact first**, because
+>   `_fuzzy_match_enemy` filters `strength > 0` and routing fuzzy-first
+>   silently lost PC15-4's *"already been destroyed"* answer (a regression
+>   the fix itself introduced, caught by the suite).
+> - **[P2, mine] The validator crashed the BOOT path on a malformed
+>   scenario.** `(data.get("marshals") or {}).keys()` — and `[] or {}`
+>   masks only the EMPTY list, so a non-empty list or a string raised
+>   `AttributeError` out of `validate_scenario`, which
+>   `WorldState.from_scenario` calls. Typed reads now; five malformed
+>   shapes pinned.
+> - **[P2, mine] The validator checked the wrong map.** It hardcoded the
+>   Europe registry, so it MISSED a mod colliding with its own province and
+>   FALSE-POSITIVED on a Europe name absent from that mod. It resolves
+>   regions the same three ways `from_scenario` does. It also now reports a
+>   bench candidate under its `marshal_pool.<Nation>[i]` path, reads the
+>   name the SEAM matches on (`marshal["name"]`, not the dict key), and
+>   **says so loudly if the region source fails** rather than reporting
+>   "clean" when it did not run.
+> - **[P3] Two more honesty fixes on the same seam:** a man in enemy
+>   captivity is no longer offered as "Available", and `_display_candidates`
+>   **fails CLOSED** — its `except` used to return the omniscient roster,
+>   the exact list it exists to suppress. On an R5 boundary an error must
+>   cost the player a message, never the fog.
+>
+> **A claim of mine, falsified by measurement and corrected in four
+> places.** *"Britain's Iberian army was FROZEN for 22 consecutive turns"*
+> read the span of all seventeen collapses as one marshal's ordeal. The
+> measured shape: **two** marshals, **two** provinces, **two** phases —
+> six `Leon → Napoleon` ordered from Lisbon (turns 6–15), eleven
+> `Gascony → Ney` from Bearn (16–27), with Paget and the artillerist
+> Shrapnel alternating **every other turn** because a failed action writes
+> a 2-turn cooldown. Paget stood at Bearn for **twelve** turns (17–28), and
+> on turn 29 gave up and marched on Bordelais. The *effect* claim is
+> untouched and independently confirmed (France 18 / Britain 19 ungated
+> vs France 26 / Britain 12 gated); only the number and its attribution
+> were wrong. The split is pinned now (6 and 11, by pair) so it cannot
+> drift back.
+>
+> **Three more inert or vacuous pins of mine, found by the fleet rather
+> than by the sweep** — worth recording because the sweep had already
+> reported 0 inert, and these are the shapes a mutation sweep cannot see:
+> a test whose assertion sits behind a guard that is False on its own
+> fixture (`test_the_suggest_band_is_untouched` asserted nothing); a test
+> that asserts a *parser* fact under a docstring naming the *runtime*
+> (`test_the_bench_collapse_is_closed_at_runtime_too` passed with every
+> gate neutralised — the THIRTEENTH collapse, the one the validator section
+> exists for, was unprotected); and a guard test whose chosen input never
+> sets the flag it guards (`Venetia` has enemy-action `error`, not
+> `auto_correct`). All three now drive the thing they name. **A sweep
+> proves a pin binds to production; it cannot prove the pin is about the
+> right thing.**
+>
+> **Two more corrections to my own record, both about line numbers, and the
+> answer is to stop publishing them.** §2 H-11's correction and
+> `BUG_FIXES.md`'s seam column both shipped a fresh set of numbers that
+> **slice 10's own +231 lines invalidated the same day** — in a slice whose
+> commit message corrects the contract for stale line numbers. Both now
+> name the seams. So does the production docstring, four of whose six cited
+> sites were already pointing at unrelated lines.
+>
+> **Recorded, not changed:** the levers restore the pre-slice RESOLUTION,
+> not the pre-slice MESSAGE — `_display_candidates` and the own-roster
+> filter sit outside all three on purpose, because a fog leak must not be
+> switchable, and the attribution is unaffected since a refusal message
+> never feeds the series. The comment says so now. And the AI-V mirror arm
+> is a **weaker** softening than it reads: the mirror weights ARE the
+> threat series, so neither anchor can red without the byte-identical
+> series pin redding first; it keeps both anchors, is derived from
+> `BASELINE_SERIES`, and records its measured headroom (0.577 against 0.60
+> and 0.824 against 0.90) so the next board change is read against a
+> number.
+>
+> **`refused_marshal_correction`** is its own key rather than reusing
+> `implausible_correction`: that one already means "a REGION auto-correct
+> was demoted" (WO-2) and `strategic_executor` **swallows** errors carrying
+> it. Two meanings on one key is a collision waiting for the next reader.
+>
+> **And the two REFUTERS found what the eight lenses looked past — starting
+> with the question none of them asked.**
+>
+> - **[P2] Is the message reachable at all?** Eight reviewers argued about
+>   what the refusal SAYS; a refuter asked whether a player can see it, and
+>   measured 26 probes over the real `/command` route with **zero**
+>   occurrences of `not found. Available:`. `Ney, attack Gascony` answers
+>   *"Your words named no foe our maps know, Sire — Ney marches on Mack at
+>   Swabia, the nearest in sight"* — validation clears a target that is in
+>   neither register, and ESP-EV-4's `auto_resolved` arm picks the nearest
+>   visible enemy and **discloses** it. A 28,871-string sweep for the
+>   register clause's precondition found 50 matches, of which **zero**
+>   survive the parser as a target. **So the fog leak's own evidence
+>   sentence describes a seam call, not a screen**, and the record says so.
+>   The fixes stand as defence in depth on a shared seam — and the
+>   auto-assign route this same round wired through it, plus the AI's
+>   seventeen ambient hits, are what reach it. Three pins now drive the real
+>   `/command` endpoint, and the guarantee they carry is stronger than "the
+>   message is correct": **the typed path never silently attacks a man you
+>   did not name** — it acts on the province, or it says whose army it is
+>   marching on instead.
+> - **[P3] The refusal printed raw roster keys** — *"Available: ArchdukeJohn,
+>   Mack"*. CR-5's own post-completion audit created
+>   `display_names.humanize_entity_name` for the identical defect one
+>   register over. Humanised at `_honest_alternatives`' return — **not** at
+>   `_display_candidates`, which is where the first attempt put it and where
+>   it broke the fog filter, since both that filter and the `offered`
+>   comparison match against RAW roster keys. Measured going red before it
+>   was re-sited.
+> - **[P3] Two ungated fuzzy-marshal seams UPSTREAM of the gate, in
+>   `parser.py`** — and the census could not see them, being scoped to
+>   `executor.py` by construction. The live-LLM marshal slot rewrote SEVEN
+>   province names to "Ney"; the addressee scan bound `"Gascony, charge"` to
+>   **Ney** at 0.55. The CR-0 guard written for exactly this (*"'Hold Bern!'
+>   must not hijack Bernadotte"*) fails because `_get_known_regions` falls
+>   back to the **19-region legacy map** whenever the world does not arrive.
+>   Both arms are gated like their five siblings, which fixes the
+>   consequence world-or-no-world. **Bounded honestly: no downstream
+>   consequence could be exhibited** — the marshal is discarded for all four
+>   reachable verbs and `command_history` records `marshal: null`, so CR-4
+>   focus is not poisoned. Fixed because it is the identical defect one
+>   layer up, and the census now states its own boundary rather than
+>   implying a whole-backend guarantee.
+> - **[P3] Three more of the slice's own pins could not see their stated
+>   killers**, each proven by APPLYING that killer in a scratch tree and
+>   watching the file stay green. `test_matching_itself_stays_omniscient`
+>   drove only an EXACT fogged name, which never reaches the matcher — the
+>   half that crosses the line is a TYPO of a fogged enemy, now added.
+>   `test_the_filter_is_player_scoped` bound the "filter everyone" mutation
+>   but not "filter nobody", the direction that re-opens the P1. And
+>   `test_the_length_floor_would_unaddress_a_short_marshal` named a killer
+>   that **cannot occur**: `_fuzzy_match_marshal` short-circuits on a
+>   case-insensitive `world.get_marshal` before the gate is consulted, so
+>   that seam's `result["action"] == "exact"` disjunct is dead code. It is
+>   kept — the ENEMY seam's identical disjunct IS reachable, through a
+>   lowercase name — and the test now pins the head short-circuit, which is
+>   the real reason the length floor is harmless, with a matcher spy.
+> - **[P3] `_display_candidates` failed OPEN**, and its `except` branch had
+>   no test, which is why the mutation that re-opened it was inert. It
+>   returns `[]` now — on an R5 boundary an error must cost the player a
+>   message, never the fog — and a test forces the exception to reach it.
+>
+> **The lesson these six share, and it is NOT the sweep's lesson.** A
+> mutation sweep proves a pin binds to production. It cannot prove the pin
+> is about the right thing, that its input reaches the branch it names, or
+> that anyone can see the string it checks. **Ten INERT pins were found by
+> three sweeps; six more were found only by a fleet that read each pin
+> against the code and then applied the killer the pin's own docstring
+> named.** Two sweep rows were also deleted as bad mutations of a third
+> kind: a mutation that WEAKENS or DELETES an assertion can never fail a
+> suite, and one row's coverage was fully masked by a sibling test over the
+> same file.
+
 ### Slice 11 — the typed-route residue (est 0.5)
 
 **Scope — shrunk by G1** (WO-4 and most of WO-5 are absorbed by slice 7's
@@ -2531,6 +3107,33 @@ variant** (§4 N-8b: *"Archduke John broken and flees"* seven times across a
 campaign is literally true and materially empty — the enemy-rout sentence
 gains a repeat-aware variant riding the existing serialized `battle_counts`
 rotation seam (XR-5), copy only, no new fields).
+
+> **ADDED by slice 10, September 1, 2026 — WO-45 "the short-name guess",
+> measured and deliberately NOT built there.** `Ney, attack Nye` answers
+> ***"Region 'Nye' not found. Did you mean 'Ukraine'?"*** — a nonsense
+> guess, and CA8-28's own rule (*ordinary words never become a province,
+> not even as a guess*) one length-band over. **Measured pre-existing:
+> byte-identical with slice 10's three levers up and down**, so it is not
+> a regression that slice introduced, and slice 10's own cross-register
+> fix cannot reach it (`Nye` produces no enemy auto-correct at all for
+> France, so there is no refused-marshal marker to key on).
+>
+> Root cause, read: `FuzzyMatcher._get_thresholds` drops to
+> `SHORT_NAME_SUGGEST = 50` for a query of four characters or fewer, and
+> `_get_best_score` switches to `partial_ratio` in the same band — so a
+> three-letter string reaches the suggest band against almost anything.
+> It is in this slice because the fix is COPY-shaped at the seam (suppress
+> the region suggestion when the query is under the fuzzy-target length
+> floor, the same `_MIN_FUZZY_TARGET_LEN` the WO-2/WO-13 gates already
+> read) rather than a change to `FuzzyMatcher`, whose blast radius is
+> every name lookup in the game.
+>
+> **Completion definition:** `attack Nye` no longer names a province it
+> cannot justify; a genuine four-plus-letter province typo (`Venetia` →
+> *"Did you mean 'Vienna'?"*) still asks; `test_parse_negation` and the
+> golden corpus unchanged. **Tracking line:** this bullet and
+> `BUG_FIXES.md` §WO. **Behavior test:** a pin per arm in slice 12's test
+> file, mutation-swept like the rest of the row.
 
 **Done when:** each row's measured reproduction reads correctly; zero
 mechanics diffs (copy/event-field additions only; the `captured_from` stamp is
@@ -3382,7 +3985,11 @@ toggling has no positive arm.
 > position moved. Realised order so far: 1 → 1b → 2
 > → 3 → 13 → 7 → **15 → 16 (both landed August 21, 2026 — the three
 > hand-verified P1s are closed)** → 18 → **5 (landed August 22, 2026)** →
-> 4 → 6 → 8 → 9 → 10 → 17 → 11 → 12 → 14.
+> **4 ✅ → 6 ✅ → 8 ✅ → 9 ✅ (September 1, 2026) → 10 ✅
+> (September 1, 2026)** → 17 → 11 → 12 → 14. **Landed through slice
+> 10**; the row's DoD is keyed on this list, so it is updated per slice
+> rather than at the end — recorded because a review found it three
+> slices behind.
 > The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and
 > has), and 4 before 12 for the shared dispatch files. (~13 sessions to the line; the eval's ~10 plus the hunt
 slices). Slice 13 rides high because it is a P1 exploit on a days-old

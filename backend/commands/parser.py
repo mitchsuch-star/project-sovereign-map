@@ -305,9 +305,16 @@ def _resolve_enemy_addressee(command_text: str, known_enemies: List[str],
 
     Deliberate boundaries:
     * a lead that is ALSO a region name is NOT treated as an enemy
-      ("Vienna, hold" stays a region address; `Brunswick` — both a
-      Prussian marshal and a live province — resolves as the province,
-      the recorded WO-13 collision rule);
+      ("Vienna, hold" stays a region address) — but the EXACT enemy roster
+      is consulted first, so a real commander who shares a province name is
+      still refused by name. ⚠ AMENDED by WO slice 10, September 1, 2026:
+      this clause used to read "`Brunswick` … resolves as the province, the
+      recorded WO-13 collision rule", and that was false in both halves.
+      There is no province-addressee route at all, and the carve-out was
+      letting the player COMMAND the Prussian marshal Brunswick. The rule,
+      stated once in `executor._correction_survives`, is that the name means
+      the MAN wherever a man can be meant; the province is reached by a
+      region-only verb (`move to Brunswick`);
     * possessive leads are narration, not address ("Kutuzov's corps…"),
       and so is a lead followed by a third-person/auxiliary form
       (`_NARRATION_NEXT_WORDS` — none of them can be an imperative, so
@@ -353,13 +360,22 @@ def _resolve_enemy_addressee(command_text: str, known_enemies: List[str],
                 or token_lower.endswith("'s") or token_lower.endswith("s'")
                 or token_lower.endswith("’s")):
             continue
-        if token_lower in region_forms:
-            return None
+        # WO-13: the ENEMY roster is consulted BEFORE the region carve-out.
+        # The carve-out exists so an ordinary place word is never read as an
+        # address ("Vienna, hold"); it must not shelter a real enemy
+        # commander who happens to share a province name. Measured: with the
+        # carve-out first, `Brunswick, hold` skipped slice 2's refusal
+        # entirely and the executor let FRANCE FORTIFY A PRUSSIAN MARSHAL AT
+        # BERLIN — the one collision on the board punched the one hole in
+        # slice 2's guard. `Mack` and `Kutuzov` were refused all along; only
+        # the province-named marshal escaped.
         match = enemy_forms.get(token_lower)
         if match:
             if _narration_follows(n_words):
                 return None
             return (match, "exact", token)
+        if token_lower in region_forms:
+            return None
 
     addressed = _leading_addressed_token(command_text)
     if (addressed and addressed.lower() not in region_forms
@@ -931,7 +947,20 @@ class CommandParser:
                 llm_result["marshal"],
                 valid_marshals
             )
-            if marshal_result["action"] in ["exact", "auto_correct"]:
+            # WO-13, September 1, 2026: gated like its five siblings in this
+            # file. UPSTREAM of the executor's three seams and invisible to
+            # their census, which is scoped to `executor.py` by construction
+            # — measured, this arm rewrote SEVEN province names to "Ney"
+            # (Brittany, Champagne, Gascony, Guyenne, Lorraine, Maine,
+            # Ukraine). The CR-0 guard below is written for exactly this
+            # ("'Hold Bern!' must not hijack Bernadotte") and cannot cover
+            # this arm, because it filters the ADDRESSEE scan, not the
+            # LLM-supplied marshal slot.
+            if (marshal_result["action"] == "exact"
+                    or (marshal_result["action"] == "auto_correct"
+                        and _plausible_name_typo(
+                            llm_result["marshal"],
+                            marshal_result.get("match") or ""))):
                 llm_result["marshal"] = marshal_result["match"]
             elif marshal_result["action"] == "suggest":
                 # Medium confidence match - suggest to user
@@ -987,7 +1016,22 @@ class CommandParser:
                         and addressed.lower() not in existing_target_words):
                     marshal_result = self.fuzzy_matcher.match_with_context(
                         addressed, valid_marshals)
-                    if marshal_result["action"] in ("exact", "auto_correct"):
+                    # WO-13: gated. The CR-0 filter above reads
+                    # `_get_known_regions(world)`, which falls back to the
+                    # 19-region LEGACY map whenever the world does not
+                    # arrive — so on the 126-province board "Gascony, charge"
+                    # passed the filter and this arm bound marshal "Ney" at
+                    # 0.55 confidence. Gating here fixes the consequence
+                    # world-or-no-world; the plumbing question is recorded
+                    # rather than papered over, and no consequence could be
+                    # exhibited downstream (the marshal is discarded for all
+                    # four reachable verbs and `command_history` records
+                    # `marshal: null`, so CR-4 focus is not poisoned).
+                    if (marshal_result["action"] == "exact"
+                            or (marshal_result["action"] == "auto_correct"
+                                and _plausible_name_typo(
+                                    addressed,
+                                    marshal_result.get("match") or ""))):
                         llm_result["marshal"] = marshal_result["match"]
                     elif marshal_result["action"] == "suggest":
                         return (llm_result, {

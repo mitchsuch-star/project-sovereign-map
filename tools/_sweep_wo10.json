@@ -65,15 +65,15 @@
  {
   "id": "WO10-11 honest alternatives stop naming real candidates",
   "file": "backend/commands/executor.py",
-  "old": "    return offered[:3] or allowed[:3]",
-  "new": "    return offered[:3]",
+  "old": "    return _humanised(allowed[:3])",
+  "new": "    return []",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
   "id": "WO10-12 refusal becomes a guess at a marshal's name",
   "file": "backend/commands/executor.py",
-  "old": "                \"message\": f\"Enemy '{enemy_name}' not found. Available: {suggestions_text}\",\n                \"suggestions\": alternatives,",
-  "new": "                \"message\": f\"Enemy '{enemy_name}' not found. Did you mean '{suggestions_text}'?\",\n                \"suggestions\": alternatives,",
+  "old": "                \"message\": f\"Enemy '{enemy_name}' not found. Available: {suggestions_text}\",",
+  "new": "                \"message\": f\"Enemy '{enemy_name}' not found. Did you mean '{suggestions_text}'?\",",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
@@ -177,8 +177,8 @@
  {
   "id": "WO10-31 the low-score arm's suggestions bypass the filter",
   "file": "backend/commands/executor.py",
-  "old": "    offered = [name for name in (result.get(\"suggestions\") or [])\n               if name.lower() in permitted]\n    return offered[:3] or allowed[:3]",
-  "new": "    offered = list(result.get(\"suggestions\") or [])\n    return offered[:3] or allowed[:3]",
+  "old": "    offered = [name for name in (result.get(\"suggestions\") or [])\n               if name.lower() in permitted]",
+  "new": "    offered = list(result.get(\"suggestions\") or [])",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
@@ -191,29 +191,29 @@
  {
   "id": "WO10-33 the marshal seam lists foreign commanders again",
   "file": "backend/commands/executor.py",
-  "old": "            own = [name for name in all_marshals\n                   if (world.get_marshal(name).nation\n                       == world.player_nation)] or all_marshals\n            alternatives = _honest_alternatives(result, own)",
-  "new": "            alternatives = _honest_alternatives(result, all_marshals)",
+  "old": "            own = [name for name in all_marshals\n                   if (world.get_marshal(name).nation == world.player_nation",
+  "new": "            own = [name for name in all_marshals\n                   if (True or world.get_marshal(name).nation == world.player_nation",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
   "id": "WO10-34 the region guess answers a refused marshal query again",
   "file": "backend/commands/combat_executor.py",
-  "old": "            if (region_error and \"Did you mean\" in region_error.get(\"message\", \"\")\n                    and not (enemy_error or {}).get(\"implausible_correction\")):\n                return region_error",
+  "old": "            if (region_error and \"Did you mean\" in region_error.get(\"message\", \"\")\n                    and not (enemy_error or {}).get(\n                        \"refused_marshal_correction\")):\n                return region_error",
   "new": "            if region_error and \"Did you mean\" in region_error.get(\"message\", \"\"):\n                return region_error",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
   "id": "WO10-35 the enemy refusal is no longer returned",
   "file": "backend/commands/combat_executor.py",
-  "old": "            elif enemy_error and (\n                    \"Did you mean\" in enemy_error.get(\"message\", \"\")\n                    or enemy_error.get(\"implausible_correction\")):",
+  "old": "            elif enemy_error and (\n                    \"Did you mean\" in enemy_error.get(\"message\", \"\")\n                    or enemy_error.get(\"refused_marshal_correction\")):",
   "new": "            elif enemy_error and \"Did you mean\" in enemy_error.get(\"message\", \"\"):",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
   "id": "WO10-36 the enemy seam stops marking a refused correction",
   "file": "backend/commands/executor.py",
-  "old": "                \"implausible_correction\": (result[\"action\"] == \"auto_correct\"),",
-  "new": "                \"implausible_correction\": False,",
+  "old": "                \"refused_marshal_correction\": (\n                    result[\"action\"] == \"auto_correct\"),",
+  "new": "                \"refused_marshal_correction\": False,",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
@@ -240,22 +240,155 @@
  {
   "id": "WO10-40 the positional rule is stated twice",
   "file": "backend/commands/executor.py",
-  "old": "        ADDRESSEE position  -> the PROVINCE.",
-  "new": "        ADDRESSEE position  -> the PROVINCE. ADDRESSEE position again.",
+  "old": "        THE NAME MEANS THE MAN wherever a man can be meant.",
+  "new": "        THE NAME MEANS THE MAN wherever a man can be meant. THE NAME MEANS THE MAN again.",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestThePositionalRule"
  },
  {
-  "id": "WO10-27 lever rewrite loses its newline normalisation",
+  "id": "WO10-27 the spawn helper accepts string flags again",
   "file": "tests/test_wo_slice10_enemy_direction_gate.py",
-  "old": "    text = source.replace(\"\\r\\n\", \"\\n\")\n",
-  "new": "    text = source\n",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheLeverRewrite"
+  "old": "    assert len(levers) == 3 and all(isinstance(v, bool) for v in levers), (\n        f\"levers must be three booleans, got {levers!r}\")\n",
+  "new": "",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheSpawnHelperCannotLie"
  },
  {
-  "id": "WO10-28 lever rewrite stops verifying the edit landed",
+  "id": "WO10-28 the child stops receiving the levers",
   "file": "tests/test_wo_slice10_enemy_direction_gate.py",
-  "old": "    for name, value in zip(LEVER_NAMES, levers):\n        assert f\"\\n{name} = {value}\\n\" in text, (\n            f\"lever {name} was not set to {value} - the rewrite no-opped\")\n    return text",
-  "new": "    return text",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheLeverRewrite"
+  "old": "    setattr(_EX, _name, _flag == \"1\")",
+  "new": "    setattr(_EX, _name, True)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheSpawnHelperCannotLie"
+ },
+ {
+  "id": "WO10-44 the region carve-out outranks the enemy roster again",
+  "file": "backend/commands/parser.py",
+  "old": "        match = enemy_forms.get(token_lower)\n        if match:\n            if _narration_follows(n_words):\n                return None\n            return (match, \"exact\", token)\n        if token_lower in region_forms:\n            return None",
+  "new": "        if token_lower in region_forms:\n            return None\n        match = enemy_forms.get(token_lower)\n        if match:\n            if _narration_follows(n_words):\n                return None\n            return (match, \"exact\", token)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-45 the alternatives stop being ranked",
+  "file": "backend/commands/executor.py",
+  "old": "        matcher = FuzzyMatcher()\n        allowed = sorted(\n            allowed, key=lambda name: -matcher._get_best_score(query, name))",
+  "new": "        pass",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-46 the marshal seam stops demoting a non-region miss",
+  "file": "backend/commands/executor.py",
+  "old": "            if (result[\"action\"] == \"auto_correct\"\n                    and world.get_region(marshal_name) is None\n                    and (result.get(\"match\") or \"\") in own):",
+  "new": "            if False:",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-47 the marshal demotion loses its region discriminator",
+  "file": "backend/commands/executor.py",
+  "old": "                    and world.get_region(marshal_name) is None\n",
+  "new": "",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-48 prisoners are offered as available again",
+  "file": "backend/commands/executor.py",
+  "old": "                       and not getattr(world.get_marshal(name),\n                                       \"captured_by\", \"\")\n                       and world.get_marshal(name).strength > 0)",
+  "new": "                       )",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-49 the marshal suggest arm stops being fog-scoped",
+  "file": "backend/commands/executor.py",
+  "old": "        elif (result[\"action\"] == \"suggest\"\n                and _display_candidates(\n                    world, world.player_nation, [result.get(\"match\") or \"\"])\n                + [n for n in [result.get(\"match\") or \"\"]\n                   if world.get_marshal(n) is not None\n                   and world.get_marshal(n).nation == world.player_nation]):",
+  "new": "        elif result[\"action\"] == \"suggest\":",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-50 the enemy suggest arm stops being fog-scoped",
+  "file": "backend/commands/executor.py",
+  "old": "        elif (result[\"action\"] == \"suggest\"\n                and _display_candidates(world, from_nation,\n                                        [result.get(\"match\") or \"\"])):",
+  "new": "        elif result[\"action\"] == \"suggest\":",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-51 the display filter fails OPEN again",
+  "file": "backend/commands/executor.py",
+  "old": "        # FAIL CLOSED. The first cut returned `candidates` here \u2014 the\n        # omniscient roster, i.e. exactly the list this function exists to\n        # stop printing. On an R5 boundary an error must cost the player a\n        # helpful message, never cost them the fog.\n        return []",
+  "new": "        return list(candidates)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheRefusalDoesNotLeakFog"
+ },
+ {
+  "id": "WO10-52 the auto-assign route goes back to a bare exact lookup",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        enemy = world.get_enemy_by_name(target)\n        _auto_enemy_error = None\n        if enemy is None:\n            enemy, _auto_enemy_error = self._executor._fuzzy_match_enemy(\n                target, world, world.player_nation)\n        if not enemy:",
+  "new": "        enemy = world.get_enemy_by_name(target)\n        _auto_enemy_error = None\n        if not enemy:",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheAutoAssignRouteJoinsTheSeam"
+ },
+ {
+  "id": "WO10-53 the auto-assign route loses its register clause",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if ((_auto_enemy_error or {}).get(\"refused_marshal_correction\")\n                    and \"Did you mean\" in error.get(\"message\", \"\")):\n                return {\"kind\": \"error\", \"error\": _auto_enemy_error}\n",
+  "new": "",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheAutoAssignRouteJoinsTheSeam"
+ },
+ {
+  "id": "WO10-54 the validator reads dict keys instead of the seam's name",
+  "file": "backend/modding/validator.py",
+  "old": "            name = key\n            if isinstance(marshal_data, dict) and isinstance(\n                    marshal_data.get(\"name\"), str):\n                name = marshal_data[\"name\"]",
+  "new": "            name = key",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheValidatorRule"
+ },
+ {
+  "id": "WO10-55 the validator hardcodes the Europe map again",
+  "file": "backend/modding/validator.py",
+  "old": "        if isinstance(data.get(\"regions\"), dict) and data[\"regions\"]:\n            region_names = set(data[\"regions\"])\n        else:",
+  "new": "        if False:\n            region_names = set(data[\"regions\"])\n        else:",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheValidatorRule"
+ },
+ {
+  "id": "WO10-56 the validator reverts to an untyped read",
+  "file": "backend/modding/validator.py",
+  "old": "    raw_marshals = data.get(\"marshals\")\n    if isinstance(raw_marshals, dict):\n        for key, marshal_data in raw_marshals.items():",
+  "new": "    raw_marshals = data.get(\"marshals\") or {}\n    if True:\n        for key, marshal_data in raw_marshals.items():",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheValidatorRule"
+ },
+ {
+  "id": "WO10-57 the validator loses the bench path",
+  "file": "backend/modding/validator.py",
+  "old": "                    named.setdefault(candidate[\"name\"],\n                                     f\"marshal_pool.{nation}[{index}]\")",
+  "new": "                    named.setdefault(candidate[\"name\"],\n                                     f\"marshals.{candidate['name']}\")",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheValidatorRule"
+ },
+ {
+  "id": "WO10-59 the omniscient fallback returns",
+  "file": "backend/commands/executor.py",
+  "old": "                       and world.get_marshal(name).strength > 0)]\n",
+  "new": "                       and world.get_marshal(name).strength > 0)] or all_marshals\n",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheFallbackDoesNotReopenTheLeak"
+ },
+ {
+  "id": "WO10-60 the whole-suite source-write census goes blind",
+  "file": "tests/test_wo_slice10_enemy_direction_gate.py",
+  "old": "    offenders = []\n    for node in ast.walk(tree):\n        if not isinstance(node, ast.Call):",
+  "new": "    offenders = []\n    for node in []:\n        if not isinstance(node, ast.Call):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestNoTestWritesToProductionSource"
+ },
+ {
+  "id": "WO10-61 the parser's LLM marshal slot loses its gate",
+  "file": "backend/commands/parser.py",
+  "old": "            if (marshal_result[\"action\"] == \"exact\"\n                    or (marshal_result[\"action\"] == \"auto_correct\"\n                        and _plausible_name_typo(\n                            llm_result[\"marshal\"],\n                            marshal_result.get(\"match\") or \"\"))):",
+  "new": "            if marshal_result[\"action\"] in [\"exact\", \"auto_correct\"]:",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheParserSeams"
+ },
+ {
+  "id": "WO10-62 the parser's addressee scan loses its gate",
+  "file": "backend/commands/parser.py",
+  "old": "                    if (marshal_result[\"action\"] == \"exact\"\n                            or (marshal_result[\"action\"] == \"auto_correct\"\n                                and _plausible_name_typo(\n                                    addressed,\n                                    marshal_result.get(\"match\") or \"\"))):",
+  "new": "                    if marshal_result[\"action\"] in (\"exact\", \"auto_correct\"):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheParserSeams"
+ },
+ {
+  "id": "WO10-63 the refusal prints raw roster keys again",
+  "file": "backend/commands/executor.py",
+  "old": "    return [humanize_entity_name(name) for name in names]",
+  "new": "    return list(names)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheRefusalDoesNotLeakFog"
  }
 ]

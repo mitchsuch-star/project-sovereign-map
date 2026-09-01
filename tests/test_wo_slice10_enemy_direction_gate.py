@@ -20,11 +20,10 @@ Measured, not asserted, before a line was written:
 
   * The ambient 40-turn board hits it SEVENTEEN times, every one from
     `enemy_ai._execute_action` -> `_execute_attack`, and the consequence is
-    a FREEZE. Britain's Paget stood at Bearn, adjacent to Gascony, and for
-    twenty-two consecutive turns his attack on that province was redirected
-    to Ney - in Vienna, eight provinces away - and refused as out of range:
-    "Paget cannot reach Gascony (Vienna) from Bearn! Range: 1, Distance: 8"
-    names the province and prints another man's location beside it.
+    a STALL. Britain's Iberian army stalled for TWELVE turns. Paget stood at Bearn from turn 17 to 28, adjacent to Gascony, and six times - turns 17, 19, 21, 23, 25, 27, every OTHER turn, because a failed action writes a 2-turn cooldown - his attack on that province was redirected to Ney, wherever Ney happened to be. A second corps, the artillerist Shrapnel, spent the alternate turns the same way. The seventeen collapses span turns 6-27 in two phases: six `Leon -> Napoleon` ordered from Lisbon, then eleven `Gascony -> Ney` from Bearn. Paget never took Gascony; on turn 29 he gave up and marched on Bordelais instead.
+    The refusal names the province and prints another man's province beside
+    it: "Paget cannot reach Gascony (Vienna) from Bearn! Range: 1,
+    Distance: 8".
 
   * TWELVE of the twenty nations boot with no war-enemies at all, and for
     those the broad diplomatic check answers instead - it matches over every
@@ -53,6 +52,7 @@ import contextlib
 import io
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -216,8 +216,12 @@ def _british_corps_at(world, region, name="Paget", strength=18000):
 
 
 class TestTheFrozenArmy:
-    """Britain's Iberian army stood still for 22 turns because every order
-    it gave named a province the resolver handed to a marshal elsewhere."""
+    """Britain's Iberian army stalled because every order it gave named a
+    province the resolver handed to a marshal elsewhere.
+
+    ⚠ The shape was overstated in the first draft ("22 consecutive turns")
+    and the review corrected it on measurement; `TestTheAmbientBoard` now
+    pins the real split so it cannot drift back."""
 
     def _order(self, world, ex, marshal, target):
         with _suppress():
@@ -468,14 +472,33 @@ class TestTheLegitimateCases:
         marshal, _ = ex._fuzzy_match_enemy("Kutuzof", world, "France")
         assert marshal is not None and marshal.name == "Kutuzov"
 
-    def test_the_suggest_band_is_untouched(self, ex, world):
-        """The medium-confidence arm never went through the gate and must
-        still ask.
+    def test_the_suggest_band_still_asks_about_a_visible_enemy(
+            self, ex, world, monkeypatch):
+        """The medium-confidence arm never went through the WO-13 typo gate
+        and must still ask.
 
-        Killed by: moving the gate above the `suggest` branch."""
-        marshal, error = ex._fuzzy_match_enemy("Kutz", world, "France")
-        if marshal is None and error and error.get("suggestion"):
-            assert "Did you mean" in error["message"]
+        ⚠ The first cut of this test was INERT and the review found it: it
+        guarded its single assertion behind `if error.get("suggestion")`,
+        which is False on its own fixture (`Kutz` reaches the low-score arm,
+        not the suggest band), so it asserted nothing at all. It now uses a
+        query that genuinely lands in the band, and asserts unconditionally.
+
+        Killed by: moving the typo gate above the `suggest` branch, or
+        dropping the branch."""
+        def ask():
+            _m, err = ex._fuzzy_match_enemy("La Mancha", world, None)
+            return _m, dict(err or {})
+
+        marshal, gated = ask()
+        assert marshal is None
+        assert gated.get("suggestion") == "Mack", gated
+        assert "Did you mean 'Mack'?" in gated["message"]
+
+        # And the sharp half: the WO-13 gate touches the AUTO-CORRECT arm
+        # only, so the suggest band is byte-identical with the lever down.
+        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
+        _, ungated = ask()
+        assert ungated == gated, (gated, ungated)
 
     def test_an_exact_armistice_target_still_blocks(self):
         """Killed by: gating `_check_diplomatic_block`'s exact lookup."""
@@ -546,18 +569,49 @@ class TestBrunswick:
         region, _ = ex._fuzzy_match_region("Brunswick", world)
         assert region is not None and region.name == "Brunswick"
 
-    def test_the_parser_addressee_gives_the_province(self, world):
-        """Slice 2's precedent, unchanged: a lead token that is also a
-        region name is never an enemy addressee.
+    def test_the_parser_addressee_refuses_him_by_name(self, world):
+        """⚠ CONSCIOUSLY INVERTED, and the inversion IS the fix.
 
-        Killed by: deleting slice 2's region carve-out in
-        `_resolve_enemy_addressee`."""
-        resolved = P._resolve_enemy_addressee(
-            "Brunswick, hold",
-            [m.name for m in world.marshals.values()
-             if m.nation != world.player_nation],
-            list(world.regions.keys()))
-        assert not resolved, resolved
+        This pin used to assert that `Brunswick, hold` resolves to nothing,
+        because slice 2's carve-out ("a lead that is also a region name is
+        never an enemy") ran BEFORE the enemy roster. The review measured
+        what that bought: the address fell through to ordinary marshal
+        resolution and **France fortified a Prussian marshal at Berlin**.
+        `Mack` and `Kutuzov` were refused all along; only the
+        province-named marshal escaped, so the one collision on the board
+        punched the one hole in slice 2's own guard.
+
+        The carve-out now runs AFTER the exact enemy roster: an ordinary
+        place word is still never an address, and a real commander who
+        happens to share a province name is refused by name.
+
+        Killed by: putting the region carve-out back above the roster."""
+        enemies = [m.name for m in world.marshals.values()
+                   if m.nation != world.player_nation]
+        regions = list(world.regions.keys())
+        assert P._resolve_enemy_addressee(
+            "Brunswick, hold", enemies, regions) == (
+                "Brunswick", "exact", "Brunswick")
+        # and the carve-out still does its own job
+        for place in ("Vienna, hold", "Gascony, hold"):
+            assert P._resolve_enemy_addressee(place, enemies, regions) is None
+
+    def test_the_player_can_no_longer_command_him(self):
+        """The behaviour the inversion buys, driven through the real parse
+        path rather than the seam.
+
+        Killed by: the same mutation."""
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        prussian = world.get_marshal("Brunswick")
+        before = bool(getattr(prussian, "fortified", False))
+        enemies = [m.name for m in world.marshals.values()
+                   if m.nation != world.player_nation]
+        assert P._resolve_enemy_addressee(
+            "Brunswick, fortify", enemies, list(world.regions.keys()))
+        assert bool(getattr(prussian, "fortified", False)) is before
+        del ex
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -656,61 +710,72 @@ class TestTheCensus:
 LEVER_NAMES = ("ENEMY_DIRECTION_GATE_ACTIVE", "BROAD_DIPLOMATIC_GATE_ACTIVE",
                "MARSHAL_DIRECTION_GATE_ACTIVE")
 
+_LEVER_PRELUDE = """
+import backend.commands.executor as _EX
+for _name, _flag in zip(
+        ("ENEMY_DIRECTION_GATE_ACTIVE", "BROAD_DIPLOMATIC_GATE_ACTIVE",
+         "MARSHAL_DIRECTION_GATE_ACTIVE"), sys.argv[1]):
+    setattr(_EX, _name, _flag == "1")
+"""
 
-def _rewrite_levers(source: str, levers) -> str:
-    """`source` with the three levers set, line-ending agnostic.
 
-    The first cut of this helper matched on `"\n{name} = {other}\n"` against
-    the raw file bytes. That worked until the mutation sweep touched
-    `executor.py` - `pathlib.write_text` re-emits with `os.linesep`, so the
-    file became CRLF, every pattern missed, and the helper SILENTLY set
-    nothing: the "ungated" arm ran the gated tree and the tests below
-    compared the wrong world. A lever-setter that can quietly do nothing is
-    the same class of instrument failure as an inert pin, so it now
-    normalises first and the caller asserts the edit landed.
+def _spawn(probe, levers, marker):
+    """Run `probe` in a hash-pinned child with the three levers set.
+
+    THE LEVERS ARE SET IN THE CHILD, never by editing the source. The first
+    cut of this helper rewrote `backend/commands/executor.py` for each arm
+    and restored it afterwards, and that was wrong twice over:
+
+      * it silently NO-OPPED once the mutation sweep had touched the file,
+        because `pathlib.write_text` re-emits with `os.linesep`, the file
+        became CRLF, and every LF-anchored pattern missed. The "ungated" arm
+        then ran the shipped tree and the assertions compared the wrong
+        world.
+      * worse, and the reason it is gone rather than repaired: a test that
+        writes to a production source file makes the WHOLE SUITE unsafe to
+        run beside anything else. Measured, by accident: a concurrent reader
+        caught the file mid-arm and `test_threat_series_is_the_standing_
+        baseline` failed with the PRE-slice series.
+
+    Slice 9's `_rebellion_turn` had the right idiom already - set the module
+    global in the child - and this is it. It is equivalent because the seams
+    read their lever at CALL time, which the sweep pins directly (the three
+    "frozen at def time" mutations all kill).
+
+    The ATTRIBUTION EXPERIMENT in the landing record is a different thing and
+    did use real source edits, in a scratch driver, one arm at a time.
     """
-    text = source.replace("\r\n", "\n")
-    for name, value in zip(LEVER_NAMES, levers):
-        for other in ("True", "False"):
-            text = text.replace(f"\n{name} = {other}\n",
-                                f"\n{name} = {value}\n")
-    for name, value in zip(LEVER_NAMES, levers):
-        assert f"\n{name} = {value}\n" in text, (
-            f"lever {name} was not set to {value} - the rewrite no-opped")
-    return text
+    env = dict(os.environ)
+    env.update(PYTHONHASHSEED="0", PYTHONPATH=str(REPO),
+               SOVEREIGN_SEED="historical", LLM_MODE="mock")
+    env.pop("SOVEREIGN_SCENARIO", None)
+    env.pop("SOVEREIGN_MAP", None)
+    env.pop("PYTHONIOENCODING", None)
+    # STRICT, and the strictness is the point: the first cut took
+    # ("False", "False", "False") from the call sites and every non-empty
+    # string is truthy, so it set all three levers ON and reported the
+    # gated board as the "ungated" arm. An instrument must refuse to
+    # guess.
+    assert len(levers) == 3 and all(isinstance(v, bool) for v in levers), (
+        f"levers must be three booleans, got {levers!r}")
+    flags = "".join("1" if value else "0" for value in levers)
+    proc = subprocess.run(
+        [sys.executable, "-c", "import sys\n" + _LEVER_PRELUDE + probe, flags],
+        env=env, cwd=str(REPO), capture_output=True, text=True, timeout=900)
+    assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
+    return json.loads(proc.stdout.split(marker)[-1].splitlines()[0])
 
 
 def _run_ambient(levers):
     """The 40-turn ambient board under a named lever configuration, in a
-    hash-pinned subprocess with a REAL source edit - the §5 discipline. An
-    in-process run of the same forty turns is not reproducible and is
-    worthless for these claims (slice 9 measured turn 25 in-suite against
-    32 pinned)."""
-    original = EXECUTOR_PY.read_bytes()
-    raw = _rewrite_levers(original.decode("utf-8"), levers)
-    env = dict(os.environ)
-    env["PYTHONHASHSEED"] = "0"
-    env["PYTHONPATH"] = str(REPO)
-    env["SOVEREIGN_SEED"] = "historical"
-    env["LLM_MODE"] = "mock"
-    env.pop("SOVEREIGN_SCENARIO", None)
-    env.pop("SOVEREIGN_MAP", None)
-    env.pop("PYTHONIOENCODING", None)
-    try:
-        EXECUTOR_PY.write_bytes(raw.encode("utf-8"))
-        proc = subprocess.run(
-            [sys.executable, "-c", _AMBIENT_PROBE],
-            env=env, cwd=str(REPO), capture_output=True, text=True,
-            timeout=600)
-    finally:
-        EXECUTOR_PY.write_bytes(original)
-    assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
-    blob = proc.stdout.split("WO10=")[-1].splitlines()[0]
-    return json.loads(blob)
+    hash-pinned subprocess - the §5 discipline. An in-process run of the same
+    forty turns is not reproducible and is worthless for these claims (slice
+    9 measured turn 25 in-suite against 32 pinned)."""
+    return _spawn(_AMBIENT_PROBE, levers, "WO10=")
 
 
 _AMBIENT_PROBE = r'''
-import json, random, sys
+import json, random
 from pathlib import Path
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
@@ -745,33 +810,119 @@ for turn in range(40):
     random.seed(10_000 + turn)
     tm.end_turn(game_state)
     series.append(int(world.threat_level))
-sys.stderr.write("done\n")
 print("WO10=" + json.dumps({"hits": hits, "series": series}))
 '''
 
 
-class TestTheLeverRewrite:
-    """The instrument that measures the arms must not be able to lie."""
+def _writes_to_repo_source(path: pathlib.Path) -> list:
+    """Every `X.write_text/​write_bytes(...)` in `path` whose receiver `X` is a
+    module constant bound to a path under `backend/` or `godot-client/`.
 
-    def test_the_rewrite_refuses_to_no_op_on_crlf(self):
-        """Found by accident, and it is the reason this pin exists: the
-        mutation sweep re-emits `executor.py` with `os.linesep`, so the
-        file becomes CRLF and an LF-anchored replace matches nothing. The
-        arms then run the SHIPPED tree while claiming to be ungated.
+    AST, not a substring scan, and for a reason this row has paid for twice:
+    `_code_only` emits ONE TOKEN PER LINE, so a first cut of this census that
+    filtered lines containing "tmp" could never match anything and reported
+    every fixture write in the suite as an offender.
+    """
+    # utf-8-sig: at least one test file in the suite carries a BOM, and
+    # `ast.parse` rejects U+FEFF outright.
+    tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+    source_names = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        dumped = ast.dump(node)
+        if "backend" in dumped or "godot-client" in dumped:
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    source_names.add(target.id)
+    offenders = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Attribute):
+            continue
+        if func.attr not in ("write_text", "write_bytes"):
+            continue
+        if isinstance(func.value, ast.Name) and func.value.id in source_names:
+            offenders.append(f"{path.name}:{node.lineno} "
+                             f"{func.value.id}.{func.attr}")
+    return offenders
 
-        Killed by: dropping the newline normalisation, or the assertion."""
-        body = "\n".join(f"{name} = True" for name in LEVER_NAMES)
-        source = ("# header\n\n" + body + "\n\n# tail\n"
-                  ).replace("\n", "\r\n")
-        assert "\r\r\n" not in source
-        rewritten = _rewrite_levers(source, ("False", "False", "False"))
-        for name in LEVER_NAMES:
-            assert f"\n{name} = False\n" in rewritten
 
-    def test_the_rewrite_raises_when_a_lever_is_missing(self):
-        """Killed by: deleting the verification loop."""
+class TestNoTestWritesToProductionSource:
+    """A census, because this slice shipped the hazard once and it is not the
+    kind of thing a review looks for.
+
+    The first cut of the ambient runner rewrote
+    `backend/commands/executor.py` for each arm and restored it afterwards.
+    That makes the WHOLE SUITE unsafe to run beside anything else, and it was
+    caught by accident: a concurrent reader saw the file mid-arm and
+    `test_ai_intent_assurance.py::TestArmAControl::
+    test_threat_series_is_the_standing_baseline` failed with the PRE-slice
+    series. Nothing in the suite had been asserting this.
+
+    Measured at close: every other test that writes a file writes to a tmp
+    fixture, so the suite-wide count is ZERO.
+    """
+
+    def test_this_file_writes_no_repository_source(self):
+        """Killed by: reintroducing a source edit in this file."""
+        assert _writes_to_repo_source(pathlib.Path(__file__)) == []
+
+    def test_no_test_in_the_suite_writes_to_backend_or_the_client(self):
+        """Killed by: any test gaining a write to a path constant that
+        points at production source."""
+        offenders = []
+        for path in sorted((REPO / "tests").glob("test_*.py")):
+            offenders += _writes_to_repo_source(path)
+        assert offenders == [], offenders
+
+    def test_the_census_can_see_an_offender(self):
+        """The census's own sensitivity, proven rather than assumed - a
+        clean result from a blind instrument is the UX23-B lesson.
+
+        Killed by: any census that cannot detect the pattern it forbids."""
+        probe = pathlib.Path(REPO) / "tests" / "__wo10_census_probe.py"
+        probe.write_text(
+            'import pathlib\n'
+            'VICTIM = pathlib.Path("backend/commands/executor.py")\n'
+            'def f():\n'
+            '    VICTIM.write_bytes(b"")\n', encoding="utf-8")
+        try:
+            found = _writes_to_repo_source(probe)
+        finally:
+            probe.unlink()
+        assert found and "VICTIM.write_bytes" in found[0], found
+
+
+class TestTheSpawnHelperCannotLie:
+    """The instrument that measures the arms must not be able to quietly
+    measure the wrong one. Both failures below actually happened."""
+
+    def test_it_refuses_string_flags(self):
+        """`("False", "False", "False")` set all three levers ON, because
+        every non-empty string is truthy - and the arms then compared the
+        gated board to itself.
+
+        Killed by: dropping the isinstance check in `_spawn`."""
         with pytest.raises(AssertionError):
-            _rewrite_levers("nothing to see here\n", ("False",) * 3)
+            _spawn("print('WO10=' + '{}')", ("False",) * 3, "WO10=")
+
+    def test_the_child_actually_receives_the_levers(self):
+        """The prelude sets the module global in the CHILD; the seams read
+        it at call time. Proven by asking the child what it sees, rather
+        than by trusting the mechanism.
+
+        Killed by: deleting the prelude, or passing the flags wrongly."""
+        probe = ("import json\n"
+                 "print('WO10L=' + json.dumps([_EX.ENEMY_DIRECTION_GATE_ACTIVE,"
+                 " _EX.BROAD_DIPLOMATIC_GATE_ACTIVE,"
+                 " _EX.MARSHAL_DIRECTION_GATE_ACTIVE]))")
+        assert _spawn(probe, (False, True, False), "WO10L=") == [
+            False, True, False]
+        assert _spawn(probe, (True, True, True), "WO10L=") == [
+            True, True, True]
 
 
 class TestTheAmbientBoard:
@@ -782,11 +933,11 @@ class TestTheAmbientBoard:
 
     @pytest.fixture(scope="class")
     def ungated(self):
-        return _run_ambient(("False", "False", "False"))
+        return _run_ambient((False, False, False))
 
     @pytest.fixture(scope="class")
     def gated(self):
-        return _run_ambient(("True", "True", "True"))
+        return _run_ambient((True, True, True))
 
     def test_the_ungated_board_collapses_seventeen_times(self, ungated):
         """Killed by: nothing in this slice - it is the defect's own
@@ -798,10 +949,17 @@ class TestTheAmbientBoard:
         assert seams == {"_fuzzy_match_enemy": 17}, seams
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
-        """Killed by: nothing - it records WHICH provinces, so a future
-        board change is legible rather than merely different."""
-        assert {(q, m) for _s, q, m in ungated["hits"]} == {
-            ("Leon", "Napoleon"), ("Gascony", "Ney")}
+        """Records WHICH provinces AND the split, so the shape cannot drift
+        back to the overstated one: six `Leon -> Napoleon` and eleven
+        `Gascony -> Ney`, spanning turns 6-27 in two phases.
+
+        Killed by: nothing in this slice - it pins the defect's measured
+        shape, and it fails when the board changes under it, which is the
+        warning the next slice needs."""
+        from collections import Counter
+        pairs = Counter((q, m) for _s, q, m in ungated["hits"])
+        assert dict(pairs) == {("Leon", "Napoleon"): 6,
+                               ("Gascony", "Ney"): 11}, pairs
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -888,16 +1046,29 @@ class TestTheContractsThirty:
         assert resolved == {"Bern": "Brunswick", "Brunswick": "Brunswick",
                             "Rome": "Armfelt"}, resolved
 
-    def test_the_suggest_band_still_clarifies(self, ex, world):
-        """The other half of the 30 never resolved - it asked, and must go
-        on asking.
+    def test_the_suggest_band_clarifies_only_about_what_we_can_see(
+            self, ex, world):
+        """The other half of the 30 never resolved - it asked. It must go on
+        asking, but only about a marshal the asker can SEE.
 
-        Killed by: making the gate refuse the `suggest` arm too."""
-        clarified = [name for name in sorted(world.regions)
-                     if (lambda pair: pair[0] is None and pair[1]
-                         and pair[1].get("suggestion"))(
-                             ex._fuzzy_match_enemy(name, world, None))]
-        assert len(clarified) == 7, clarified
+        ⚠ RE-BLESSED, and the reason is the point. The first cut asserted
+        `len(clarified) == 7` and never checked WHOM, so it certified a fog
+        leak as correct behaviour: six of the seven named a corps France had
+        never scouted (`Asturias → Castanos`, `Berry → Deroy`,
+        `Karaman → Abdurrahman`, `Leon → ArchdukeCharles`, `Oran → Moore`,
+        `Oslo → Moore`) while a test three classes below asserted the exact
+        opposite rule about the same function. A count is not a check.
+
+        Killed by: dropping `_display_candidates` from the `suggest` arm,
+        which restores all seven."""
+        clarified = {}
+        for name in sorted(world.regions):
+            marshal, error = ex._fuzzy_match_enemy(name, world, None)
+            if marshal is None and error and error.get("suggestion"):
+                clarified[name] = error["suggestion"]
+        visible = {m.name for m in world.get_visible_enemies("France")}
+        assert set(clarified.values()) <= visible, clarified
+        assert clarified == {"La Mancha": "Mack"}, clarified
 
     def test_no_bench_marshal_can_mint_a_second_brunswick(self, world):
         """The exception must stay a single named case. Every name on the
@@ -943,7 +1114,13 @@ class TestTheRefusalDoesNotLeakFog:
     """
 
     def _visible(self, world):
-        return {m.name for m in world.get_visible_enemies("France")}
+        """The visible set as the REFUSAL spells it. The refusal humanises
+        (`ArchdukeJohn` -> `Archduke John`, CR-5's chokepoint), so a pin
+        comparing raw roster keys reads a leak where there is none — which
+        is exactly how this pin first went red."""
+        from backend.display_names import humanize_entity_name
+        return {humanize_entity_name(m.name)
+                for m in world.get_visible_enemies("France")}
 
     def test_a_refused_auto_correct_names_only_visible_enemies(self, ex, world):
         """Killed by: passing `all_enemies` to `_honest_alternatives`
@@ -953,6 +1130,8 @@ class TestTheRefusalDoesNotLeakFog:
         assert error["suggestions"], "the refusal named nobody"
         assert set(error["suggestions"]) <= visible, (
             f"leaked {set(error['suggestions']) - visible}")
+        assert "ArchdukeJohn" not in error["message"], (
+            "the refusal printed a raw roster key: " + error["message"])
 
     def test_the_low_score_arm_is_filtered_too(self, ex, world):
         """The PRE-EXISTING half of the same leak: `Zorblax` printed
@@ -971,11 +1150,21 @@ class TestTheRefusalDoesNotLeakFog:
         mechanics and mechanics are not fogged.
 
         Killed by: filtering the candidate list used for MATCHING."""
+        from backend.display_names import humanize_entity_name
         hidden = [m for m in world.get_enemy_marshals()
-                  if m.strength > 0 and m.name not in self._visible(world)]
+                  if m.strength > 0
+                  and humanize_entity_name(m.name) not in self._visible(world)]
         assert hidden, "fixture precondition: some enemy must be fogged"
         marshal, _ = ex._fuzzy_match_enemy(hidden[0].name, world, None)
         assert marshal is not None and marshal.name == hidden[0].name
+        # The half that actually crosses the line, and the first cut of this
+        # pin missed it: an EXACT name never reaches the matcher at all (the
+        # head short-circuits), so filtering the MATCHING list left this
+        # test green. A TYPO of a fogged enemy is the only form of the claim
+        # the matcher participates in — a refuter proved it by applying the
+        # mutation this docstring names and watching the test pass.
+        typo, _ = ex._fuzzy_match_enemy("Kutuzof", world, None)
+        assert typo is not None and typo.name == "Kutuzov"
 
     def test_the_filter_is_player_scoped(self, ex, world):
         """An AI court's list is not filtered - the fog store is the
@@ -989,6 +1178,26 @@ class TestTheRefusalDoesNotLeakFog:
         assert EX._display_candidates(
             world, "Austria", ["Ney", "Nobody"]) == ["Ney", "Nobody"]
         assert EX._display_candidates(world, None, ["Nobody"]) == ["Nobody"]
+        # BOTH directions. The first cut bound only the "filter everyone"
+        # mutation; the "filter nobody" one — the direction that re-opens
+        # the P1 — it could not see, and a refuter proved it by applying
+        # exactly that mutation and watching this test pass.
+        assert EX._display_candidates(
+            world, world.player_nation, ["Ney", "Nobody"]) == []
+
+    def test_the_filter_fails_CLOSED_when_the_fog_store_raises(
+            self, ex, world, monkeypatch):
+        """The `except` branch had no test at all, so the mutation that
+        re-opens it (`return list(candidates)`) was INERT. On an R5 boundary
+        an error must cost the player a message, never the fog.
+
+        Killed by: returning `candidates` from the except branch."""
+        def boom(_nation):
+            raise RuntimeError("fog store unavailable")
+
+        monkeypatch.setattr(world, "get_visible_enemies", boom)
+        assert EX._display_candidates(
+            world, world.player_nation, ["Ney", "Mack"]) == []
 
     def test_the_marshal_seam_offers_your_own_marshals(self, ex, world):
         """"Available" in the marshal register answers "which of YOUR
@@ -1037,12 +1246,23 @@ class TestTheCrossRegisterGuess:
         assert "Did you mean" not in message, message
         assert "Enemy 'Kutz' not found" in message, message
 
-    def test_a_genuine_province_typo_still_asks_about_the_province(self):
+    def test_a_genuine_province_typo_still_asks_about_the_province(self, ex):
         """The branch must not be disabled wholesale: a mistyped PROVINCE
         still gets its own register's question.
 
+        ⚠ The first cut of this test was VACUOUS and the review measured it:
+        `Venetia` never sets the marker at all (its enemy-seam action is
+        `error`, not `auto_correct`), so the test passed whether or not the
+        clause existed. The marker's value is asserted in BOTH directions
+        now, so a matcher change cannot make it vacuous again.
+
         Killed by: removing the region-suggestion branch instead of
         conditioning it."""
+        world = _fresh_world()
+        _, safe = ex._fuzzy_match_enemy("Venetia", world, "France")
+        assert not (safe or {}).get("refused_marshal_correction"), safe
+        _, marked = ex._fuzzy_match_enemy("Kutz", world, "France")
+        assert (marked or {}).get("refused_marshal_correction") is True, marked
         message = str(self._attack("Venetia").get("message") or "")
         assert "Did you mean" in message, message
 
@@ -1077,8 +1297,10 @@ class TestThePositionalRule:
         """Killed by: restating it per-seam, which is how the two
         contradictory versions came to exist."""
         code = _read(EXECUTOR_PY)
-        assert code.count("ADDRESSEE position") == 1
-        assert code.count("TARGET position") == 1
+        assert code.count("THE NAME MEANS THE MAN") == 1
+        assert code.count("THE PROVINCE IS REACHED BY A REGION-ONLY VERB") == 1
+        # and the false first draft must not survive anywhere
+        assert "ADDRESSEE position  -> the PROVINCE" not in code
 
     def test_move_reaches_the_province_when_the_law_allows(self):
         """The escape, driven: region-only verbs are never ambiguous.
@@ -1118,20 +1340,42 @@ class TestThePositionalRule:
         assert not result.get("success")
         assert "Hanover" in str(result.get("message") or "")
 
-    def test_the_length_floor_would_unaddress_a_short_marshal(self):
-        """A hazard the review found, harmless today and pinned so it stays
-        harmless: `_plausible_name_typo` rejects any query under four
-        characters, so it says a marshal's OWN name is not a plausible typo
-        of itself. That is fine only because the gate never guards the
-        EXACT arm.
+    def test_the_length_floor_is_harmless_because_exact_short_circuits(self):
+        """`_plausible_name_typo` rejects any query under four characters,
+        so it says a marshal's OWN name is not a plausible typo of itself.
 
-        Killed by: moving the gate onto the exact arm - at which point Ney
-        becomes unaddressable and this fails, loudly, naming the reason."""
+        ⚠ The first cut of this test named a killer that CANNOT OCCUR, and a
+        refuter proved it by applying that killer — moving the gate onto the
+        exact arm — and watching the whole file stay green. The reason is
+        the fact this test now pins instead: `_fuzzy_match_marshal`
+        short-circuits on a case-insensitive `world.get_marshal` BEFORE the
+        matcher is consulted, so the fuzzy `exact` action is unreachable at
+        that seam and its `result["action"] == "exact"` disjunct is dead
+        code. It is kept for symmetry with its two siblings — at the ENEMY
+        seam the same disjunct IS reachable, through a lowercase name — and
+        recorded here rather than deleted.
+
+        Killed by: removing the head short-circuit, which is what actually
+        makes the length floor harmless."""
         assert _plausible_name_typo("Ney", "Ney") is False
         world = _fresh_world()
         with _suppress():
             ex = CommandExecutor()
-        assert ex._fuzzy_match_marshal("Ney", world)[0] is not None
+        seen = []
+        original = ex.fuzzy_matcher.match_with_context
+
+        def spy(query, candidates):
+            seen.append(query)
+            return original(query, candidates)
+
+        ex.fuzzy_matcher.match_with_context = spy
+        try:
+            assert ex._fuzzy_match_marshal("Ney", world)[0] is not None
+            assert seen == [], (
+                "the matcher was consulted for an exact name, so the length "
+                "floor is no longer harmless: " + repr(seen))
+        finally:
+            ex.fuzzy_matcher.match_with_context = original
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1179,12 +1423,116 @@ class TestTheValidatorRule:
         assert any("Gascon" in w.message and "typed mistake" in w.message
                    for w in result.warnings), [w.message for w in result.warnings]
 
-    def test_the_bench_collapse_is_closed_at_runtime_too(self, ex, world):
-        """`Oran -> Shrapnel` (75) is the 13th collapse, contributed by the
-        commissionable bench rather than the board.
+    def test_it_names_a_colliding_BENCH_candidate_by_its_bench_path(self):
+        """The `marshal_pool` arm had no test at all - deleting it was inert
+        against the whole suite, because the shipped bench contributes
+        nothing and the one test that mentioned the bench never called the
+        validator.
+
+        It also pins the PATH: a bench candidate reported as
+        `marshals.<Name>` sends the author grepping for a key that does not
+        exist.
+
+        Killed by: deleting the pool arm, or hard-coding the `marshals.`
+        path prefix."""
+        from backend.modding.validator import validate_scenario
+        data = json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+        data["marshal_pool"]["France"].append(
+            dict(data["marshal_pool"]["France"][0], name="Gascogny"))
+        with _suppress():
+            result = validate_scenario(data)
+        hits = [w for w in result.warnings if "Gascogny" in w.message]
+        assert hits, [w.message for w in result.warnings]
+        assert hits[0].path.startswith("marshal_pool.France["), hits[0].path
+
+    def test_it_checks_the_map_the_scenario_actually_boots_into(self):
+        """`from_scenario` resolves regions three ways; hardcoding the Europe
+        registry made the rule MISS a mod colliding with its own province and
+        FALSE-POSITIVE on a Europe name absent from that mod.
+
+        Killed by: reverting to `create_europe_regions()` unconditionally."""
+        from backend.modding.validator import validate_scenario
+        own = {
+            "scenario_schema_version": 1, "player_nation": "France",
+            "regions": {"Wavre": {"name": "Wavre", "terrain": "plains",
+                                  "region_type": "rural",
+                                  "starting_controller": "France",
+                                  "adjacent_regions": []}},
+            "marshals": {"Wavre": {"name": "Wavre", "location": "Wavre",
+                                   "strength": 1000,
+                                   "personality": "aggressive"}},
+        }
+        with _suppress():
+            hit = validate_scenario(own)
+        assert any("Wavre" in w.message and "also a province" in w.message
+                   for w in hit.warnings), [w.message for w in hit.warnings]
+
+        foreign = dict(own)
+        foreign["marshals"] = {"Brunswick": dict(
+            own["marshals"]["Wavre"], name="Brunswick")}
+        with _suppress():
+            miss = validate_scenario(foreign)
+        assert not any("also a province" in w.message
+                       for w in miss.warnings), [w.message for w in miss.warnings]
+
+    def test_a_malformed_scenario_is_reported_not_crashed(self):
+        """A regression this slice introduced and the review caught: the
+        block read `(data.get("marshals") or {}).keys()`, and `[] or {}`
+        masks only the EMPTY list. `validate_scenario` is called from
+        `WorldState.from_scenario`, so a malformed scenario raised
+        `AttributeError` out of the BOOT path instead of being reported.
+
+        Killed by: reverting either typed read to `or {}`."""
+        from backend.modding.validator import validate_scenario
+        for payload in ({"marshals": [{"name": "Ney"}]},
+                        {"marshals": "nope"},
+                        {"marshal_pool": ["x"]},
+                        {"marshal_pool": "nope"},
+                        {"marshal_pool": {"France": [{"name": 123}]}}):
+            data = {"scenario_schema_version": 1, "player_nation": "France"}
+            data.update(payload)
+            with _suppress():
+                validate_scenario(data)     # must not raise
+
+    def test_the_name_checked_is_the_name_the_seam_matches_on(self):
+        """The seam builds its candidate list from `marshal.name`, not from
+        the dict key, so the validator must read the same string.
+
+        Killed by: reverting to `set(data["marshals"].keys())`."""
+        from backend.modding.validator import validate_scenario
+        data = json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+        entry = dict(data["marshals"]["Ney"], name="Gascony")
+        data["marshals"]["M1"] = entry
+        with _suppress():
+            result = validate_scenario(data)
+        assert any("'Gascony' is also a province" in w.message
+                   for w in result.warnings), [w.message for w in result.warnings]
+
+    def test_the_bench_collapse_is_closed_at_runtime_too(self, monkeypatch):
+        """`Oran -> Shrapnel` (75) is the THIRTEENTH collapse, contributed by
+        the commissionable bench rather than the board — the case the whole
+        validator section exists for.
+
+        ⚠ The first cut of this test asserted `_plausible_name_typo("Oran",
+        "Shrapnel") is False` and nothing else: a parser fact, not the
+        runtime it named. The review proved it passed with every gate
+        neutralised. It now commissions the man onto the board and drives
+        the seam.
 
         Killed by: deleting the enemy-seam gate."""
-        assert _plausible_name_typo("Oran", "Shrapnel") is False
+        from backend.models.marshal import Marshal
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        assert world.get_region("Oran") is not None
+        world.marshals["Shrapnel"] = Marshal(
+            name="Shrapnel", nation="Britain", location="London",
+            strength=8000, personality="cautious")
+        assert ex._fuzzy_match_enemy("Oran", world, "France")[0] is None
+        assert ex._fuzzy_match_marshal("Oran", world)[0] is None
+        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
+        recovered, _ = ex._fuzzy_match_enemy("Oran", world, "France")
+        assert recovered is not None and recovered.name == "Shrapnel"
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1207,8 +1555,8 @@ class TestTheAiIsNotFrozenInstead:
     @pytest.fixture(scope="class")
     def cooldowns(self):
         return {label: _run_ambient_cooldowns(levers)
-                for label, levers in (("ungated", ("False",) * 3),
-                                      ("gated", ("True",) * 3))}
+                for label, levers in (("ungated", (False,) * 3),
+                                      ("gated", (True,) * 3))}
 
     def test_the_gate_does_not_increase_failed_action_cooldowns(self, cooldowns):
         """Killed by: a gate that refuses instead of falling through to the
@@ -1251,20 +1599,405 @@ print("WO10C=" + json.dumps({"writes": writes[0]}))
 
 
 def _run_ambient_cooldowns(levers):
-    original = EXECUTOR_PY.read_bytes()
-    raw = _rewrite_levers(original.decode("utf-8"), levers)
-    env = dict(os.environ)
-    env.update(PYTHONHASHSEED="0", PYTHONPATH=str(REPO),
-               SOVEREIGN_SEED="historical", LLM_MODE="mock")
-    env.pop("SOVEREIGN_SCENARIO", None)
-    env.pop("SOVEREIGN_MAP", None)
-    env.pop("PYTHONIOENCODING", None)
-    try:
-        EXECUTOR_PY.write_bytes(raw.encode("utf-8"))
-        proc = subprocess.run([sys.executable, "-c", _COOLDOWN_PROBE],
-                              env=env, cwd=str(REPO), capture_output=True,
-                              text=True, timeout=600)
-    finally:
-        EXECUTOR_PY.write_bytes(original)
-    assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
-    return json.loads(proc.stdout.split("WO10C=")[-1].splitlines()[0])["writes"]
+    return _spawn(_COOLDOWN_PROBE, levers, "WO10C=")["writes"]
+
+
+# ══════════════════════════════════════════════════════════════════
+# 15. The review round's own findings, pinned
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheRefusalIsUsefulAndHonest:
+    """Five things the review measured wrong with the first cut, each fixed
+    and each pinned by driving the real seam."""
+
+    def test_a_mistyped_marshal_is_asked_about_not_discarded(self, ex, world):
+        """`_plausible_name_typo` requires the first letter to match, so a
+        one-key slip on your OWN marshal refuses — and the first cut then
+        threw the candidate away and printed a constant. Measured:
+        `Nurat` (score 80) answered "Available: Ney, Davout, Soult", with
+        Murat absent. The region seam's own idiom applies: demote to a
+        QUESTION.
+
+        Killed by: deleting the demotion arm in `_fuzzy_match_marshal`."""
+        for typo, real in (("Nurat", "Murat"), ("avout", "Davout"),
+                           ("Aoult", "Soult")):
+            marshal, error = ex._fuzzy_match_marshal(typo, world)
+            assert marshal is None, typo
+            assert error.get("suggestion") == real, (typo, error)
+            assert f"Did you mean '{real}'?" in error["message"]
+
+    def test_a_province_is_still_never_asked_about_as_a_marshal(
+            self, ex, world):
+        """The discriminator that makes the demotion safe, and the reason it
+        can exist here and not at the enemy seam: the world knows `Gascony`
+        is a place.
+
+        Killed by: dropping the `world.get_region(...) is None` clause."""
+        marshal, error = ex._fuzzy_match_marshal("Gascony", world)
+        assert marshal is None
+        assert "Did you mean" not in error["message"], error
+
+    def test_the_alternatives_are_ranked_not_truncated(self, ex, world):
+        """The message was inverted against confidence: gibberish got the
+        two nearest names and a near-miss got a constant.
+
+        ⚠ The query matters and the first cut got it wrong — the sweep
+        reported the ranking pin INERT because `Zorblax` takes the
+        LOW-SCORE arm, whose `suggestions` list `match_with_context`
+        populates, so `offered` is non-empty and the ranking branch never
+        runs. `Kuzutov` is the shape that reaches it: a `suggest` whose
+        match is not one of ours, so the fog-scoped arm declines it and the
+        honest arm ranks OUR roster. Ranked it reads Soult, Murat, Davout;
+        unranked it would read the roster's own order, Ney, Davout, Soult.
+
+        Killed by: reverting `_honest_alternatives` to `allowed[:3]`."""
+        _, error = ex._fuzzy_match_marshal("Kuzutov", world)
+        assert error["suggestions"] == ["Soult", "Murat", "Davout"], error
+        assert error["suggestions"][:3] != ["Ney", "Davout", "Soult"]
+        # the low-score arm keeps its own (already-ranked) suggestions
+        _, low = ex._fuzzy_match_marshal("Zorblax", world)
+        assert low["suggestions"][:2] == ["Soult", "Murat"], low
+
+    def test_a_prisoner_is_not_offered_as_available(self):
+        """Three men in Austrian captivity were offered while five free
+        marshals were not.
+
+        Killed by: dropping the `captured_by` / strength clause."""
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        for name in ("Ney", "Davout", "Soult"):
+            captive = world.get_marshal(name)
+            captive.strength = 0
+            captive.captured_by = "Austria"
+        _, error = ex._fuzzy_match_marshal("Zorblax", world)
+        assert not ({"Ney", "Davout", "Soult"} & set(error["suggestions"])), error
+
+    def test_the_marshal_suggest_arm_does_not_name_a_fogged_enemy(
+            self, ex, world):
+        """`Kuzutov` answered "Did you mean 'Kutuzov'?" about an unscouted
+        Russian corps, from the sibling arm of a seam this slice had already
+        filtered.
+
+        Killed by: dropping `_display_candidates` from the marshal suggest
+        arm."""
+        _, error = ex._fuzzy_match_marshal("Kuzutov", world)
+        assert "Kutuzov" not in str(error.get("message")), error
+        assert error.get("suggestion") != "Kutuzov", error
+
+
+class TestTheAutoAssignRouteJoinsTheSeam:
+    """CR-6's bare `attack <x>` and auto-assign resolve through
+    `_resolve_auto_assign_attacker`, which used a bare `get_enemy_by_name`
+    — so it inherited neither the gate nor the register fix, and one player
+    sentence got two different answers by route."""
+
+    def _bare(self, target, world=None, ex=None):
+        if world is None:
+            world = _fresh_world()
+        if ex is None:
+            with _suppress():
+                ex = CommandExecutor()
+        with _suppress():
+            return ex.execute({"command": {
+                "action": "attack", "target": target,
+                "type": "auto_assign_attack"}},
+                {"world": world, "executor": ex})
+
+    def test_the_bare_route_answers_in_the_marshal_register(self):
+        """Measured before: named route "Enemy 'Kutz' not found…", bare
+        route "Region 'Kutz' not found. Did you mean 'Frankfurt'?".
+
+        Killed by: reverting the route to `get_enemy_by_name` alone, or
+        dropping its `implausible_correction` clause."""
+        message = str(self._bare("Kutz").get("message") or "")
+        assert "Did you mean" not in message, message
+        assert "Enemy 'Kutz' not found" in message, message
+
+    def test_the_bare_route_is_case_insensitive_like_its_sibling(self):
+        """`get_enemy_by_name` has no case fallback while the seam matches
+        case-insensitively, so `attack mack` answered "Did you mean 'La
+        Mancha'?" while `attack Mack` mustered.
+
+        Killed by: reverting the route to `get_enemy_by_name` alone."""
+        lower = str(self._bare("mack").get("message") or "")
+        upper = str(self._bare("Mack").get("message") or "")
+        assert "Mack" in lower and "La Mancha" not in lower, lower
+        assert lower.split("—")[0] == upper.split("—")[0], (lower, upper)
+
+    def test_a_destroyed_enemy_still_answers_honestly(self):
+        """The regression the fix itself introduced and the suite caught:
+        `_fuzzy_match_enemy` filters `strength > 0`, so routing through it
+        FIRST lost PC15-4's "already been destroyed" answer.
+
+        Killed by: removing the exact `get_enemy_by_name` probe above the
+        fuzzy call."""
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        mack = world.get_marshal("Mack")
+        mack.strength = 0
+        message = str(self._bare("Mack", world, ex).get("message") or "")
+        assert "destroyed" in message.lower(), message
+
+
+# ══════════════════════════════════════════════════════════════════
+# 16. The two the SECOND refuter found that the eight lenses missed
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheFallbackDoesNotReopenTheLeak:
+
+    def test_an_emptied_roster_names_nobody_rather_than_everybody(self):
+        """`or all_marshals` sat one line below the comment forbidding it,
+        and re-opened the slice's own P1: with the player's roster emptied —
+        reachable, since PC15-1's `destroy_marshal` pops marshals — the
+        refusal fell back to the omniscient roster and printed
+        "Available: ArchdukeJohn, Castanos, Mack", naming the same unscouted
+        Spanish corps the review round quoted.
+
+        Killed by: restoring the `or all_marshals` fallback."""
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        for name in [m.name for m in list(world.marshals.values())
+                     if m.nation == world.player_nation]:
+            world.marshals.pop(name, None)
+        _, error = ex._fuzzy_match_marshal("Nurat", world)
+        assert error["suggestions"] == [], error
+        assert "none" in error["message"], error
+
+
+class TestTheTranspositionResidue:
+    """The gate's real cost, named because no lens did until the second
+    refuter's differential: `_plausible_name_typo`'s limit is ONE edit under
+    six characters, so a double-transposition on a five-letter name refuses
+    where it used to resolve. `Solut`/`Soutl` -> Soult, `Mruat`/`Muart` ->
+    Murat, 383 flips over 2,636 generated variants.
+
+    That is the documented contract, not a defect — but it must ASK rather
+    than shrug, which is what the demotion buys."""
+
+    def test_a_double_transposition_asks_rather_than_shrugs(self, ex, world):
+        """Killed by: deleting the demotion arm in `_fuzzy_match_marshal`."""
+        for typo, real in (("Solut", "Soult"), ("Mruat", "Murat"),
+                           ("Muart", "Murat")):
+            marshal, error = ex._fuzzy_match_marshal(typo, world)
+            assert marshal is None, typo
+            assert error.get("suggestion") == real, (typo, error)
+
+    def test_the_gate_is_what_refuses_them(self, ex, world, monkeypatch):
+        """The other half: with the lever down they resolve silently again,
+        so the demotion is answering a real refusal rather than decorating
+        one that never happens.
+
+        Killed by: freezing `MARSHAL_DIRECTION_GATE_ACTIVE`."""
+        monkeypatch.setattr(EX, "MARSHAL_DIRECTION_GATE_ACTIVE", False)
+        marshal, _ = ex._fuzzy_match_marshal("Solut", world)
+        assert marshal is not None and marshal.name == "Soult"
+
+
+# ══════════════════════════════════════════════════════════════════
+# 17. The seams UPSTREAM of the gate, which the census cannot see
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheParserSeams:
+    """`parser.py` has eleven `match_with_context` sites; the census in
+    `TestTheCensus` is scoped to `executor.py` BY CONSTRUCTION and could
+    never have seen them. Two of the eleven auto-corrected onto a marshal
+    with no typo gate while their five siblings all gate:
+
+      * the live-LLM marshal slot — measured, it rewrote SEVEN province
+        names to "Ney" (Brittany, Champagne, Gascony, Guyenne, Lorraine,
+        Maine, Ukraine);
+      * the addressee scan in the meta-action branch — `"Gascony, charge"`
+        bound marshal **Ney** at 0.55 confidence.
+
+    The CR-0 guard above the second is written for exactly this ("'Hold
+    Bern!' must not hijack Bernadotte") and fails on the 126-province board
+    because `_get_known_regions` falls back to the **19-region legacy map**
+    whenever the world does not arrive. Gating the arms fixes the
+    consequence world-or-no-world; the plumbing question is recorded in the
+    landing record rather than papered over.
+
+    **Bounded honestly:** no downstream consequence could be exhibited —
+    the marshal is discarded for all four reachable verbs and
+    `command_history` records `marshal: null`, so CR-4 focus is not
+    poisoned. This is the identical defect one layer up, fixed because it
+    is the identical defect.
+    """
+
+    def _parse(self, text, world):
+        from backend.commands.parser import CommandParser
+        with _suppress():
+            parser = CommandParser(use_real_llm=False)
+            return parser.parse(text, {"world": world})
+
+    def test_a_province_addressee_no_longer_binds_a_marshal(self):
+        """Killed by: deleting the gate on the parser's addressee scan."""
+        world = _fresh_world()
+        result = self._parse("Gascony, charge", world)
+        assert (result.get("command") or result).get("marshal") != "Ney", result
+
+    def test_an_ordinary_addressee_typo_still_binds(self):
+        """The gate must not cost the CR-2 did-you-mean flow its input.
+
+        Killed by: making the parser gate refuse unconditionally."""
+        world = _fresh_world()
+        result = self._parse("Davout, charge", world)
+        assert (result.get("command") or result).get("marshal") == "Davout", result
+
+    def test_the_llm_marshal_slot_no_longer_rewrites_a_province(self):
+        """Seam A, driven directly — the mock parse route reaches seam B
+        (the addressee scan) and NOT this one, which is why the sweep
+        reported its pin inert. Measured before: this arm rewrote seven
+        province names to "Ney".
+
+        Killed by: deleting the gate on the parser's LLM marshal slot."""
+        from backend.commands.parser import CommandParser
+        world = _fresh_world()
+        with _suppress():
+            parser = CommandParser(use_real_llm=False)
+            out, err = parser._apply_fuzzy_matching(
+                {"marshal": "Gascony", "action": "fortify", "target": None},
+                "Gascony, fortify", world=world, game_state={"world": world})
+        assert out.get("marshal") != "Ney", (out, err)
+        assert (err or {}).get("kind") == "marshal_not_found", err
+
+    def test_a_real_marshal_typo_still_survives_that_seam(self):
+        """Killed by: making the parser gate refuse unconditionally."""
+        from backend.commands.parser import CommandParser
+        world = _fresh_world()
+        with _suppress():
+            parser = CommandParser(use_real_llm=False)
+            out, err = parser._apply_fuzzy_matching(
+                {"marshal": "Davout", "action": "fortify", "target": None},
+                "Davout, fortify", world=world, game_state={"world": world})
+        assert out.get("marshal") == "Davout", (out, err)
+        assert err is None, err
+
+    def test_the_seam_census_states_its_own_boundary(self):
+        """The `executor.py` census is scoped by construction, and a reader
+        must not mistake it for a whole-backend guarantee. This asserts the
+        boundary is WRITTEN, and counts the parser's own gated sites so a
+        new ungated one shows up as a number change.
+
+        Killed by: removing the boundary sentence, or adding an ungated
+        `match_with_context` to `parser.py`."""
+        parser_src = _code_only(_read(REPO / "backend" / "commands" / "parser.py"))
+        assert parser_src.count("match_with_context") == 10, (
+            parser_src.count("match_with_context"))
+        assert parser_src.count("_plausible_name_typo") >= 7
+
+
+class TestWhatThePlayerActuallySees:
+    """The question eight reviewers did not ask, and a refuter did: is the
+    refusal reachable at all?
+
+    Measured over the real `/command` route it is NOT reached by a typed
+    province name — validation clears a target that is in neither register,
+    and ESP-EV-4's `auto_resolved` arm then picks the nearest visible enemy
+    and **discloses** the choice. So the fog fix and the register fix are
+    defence in depth on a seam no typed sentence reaches today; the
+    auto-assign route this slice wired through it is what makes it
+    reachable, and an AI order reaches it seventeen times in forty turns.
+
+    What these pins guarantee is the thing that matters to a player, and it
+    is stronger than "the message is correct": **the typed path never
+    silently attacks a man you did not name.** It either acts on the
+    province, or it says whose army it is marching on instead.
+    """
+
+    @staticmethod
+    def _client():
+        import contextlib as _c
+        from fastapi.testclient import TestClient
+        from backend.commands.parser import CommandParser
+        import backend.main as main_module
+
+        @_c.contextmanager
+        def _ctx():
+            saved = (main_module.parser, main_module.world,
+                     main_module.game_state, main_module.executor)
+            with _suppress():
+                main_module.parser = CommandParser(use_real_llm=False)
+                main_module.world = _fresh_world()
+                main_module.executor = CommandExecutor()
+                main_module.game_state = {"world": main_module.world,
+                                          "executor": main_module.executor}
+                client = TestClient(main_module.app)
+            try:
+                yield client, main_module.world
+            finally:
+                (main_module.parser, main_module.world,
+                 main_module.game_state, main_module.executor) = saved
+        return _ctx()
+
+    def _say(self, client, text):
+        with _suppress():
+            response = client.post("/command", json={"command": text})
+        return str((response.json() or {}).get("message") or "")
+
+    def test_no_typed_order_silently_attacks_an_unnamed_marshal(self):
+        """The player-facing guarantee. Every province name the collapse
+        used to eat is typed at the real endpoint; each answer must either
+        concern that province or DISCLOSE the substitution by name.
+
+        Killed by: deleting the enemy-seam gate (the answer then names a
+        marshal with no disclosure)."""
+        with self._client() as (client, world):
+            for province in ("Gascony", "Bern", "Leon", "Oslo", "Rome",
+                             "Ukraine", "Maine", "Brittany"):
+                message = self._say(client, f"Ney, attack {province}")
+                grounded = (province in message
+                            or "named no foe our maps know" in message
+                            or "already controlled" in message
+                            or "not found" in message)
+                assert grounded, (province, message[:200])
+
+    def test_no_typed_REFUSAL_prints_a_raw_roster_key(self):
+        """The humanisation, at the surface rather than at the seam.
+
+        Scoped to REFUSALS deliberately. A first cut asserted no message may
+        contain a raw key and went red on a SUCCESS line — *"moving toward
+        ArchdukeJohn at Tyrol"* — which is a real camelCase leak but a
+        pre-existing one, owned by NPC-12's open census of ~426
+        enemy-reachable interpolations, not by this slice. The sweep's
+        baseline gate caught it, which is what that gate is for.
+
+        Killed by: reverting `_humanised` to `list(names)`."""
+        with self._client() as (client, world):
+            camel = [k for k in world.marshals if k != _humanise(k)]
+            assert camel, "fixture precondition: some key needs humanising"
+            checked = 0
+            for text in ("attack Zorblax", "Zorblax, fortify",
+                         "Zorblax, hold", "Kuzutov, fortify",
+                         "Ney, attack Zorblax"):
+                message = self._say(client, text)
+                if not any(mark in message for mark in
+                           ("not found", "Available:", "Did you mean",
+                            "no Marshal", "does not answer to us",
+                            "named no foe")):
+                    continue
+                checked += 1
+                for key in camel:
+                    assert key not in message, (text, key, message[:200])
+            assert checked >= 3, ("too few typed refusals reached — the "
+                                  "battery no longer exercises the surface")
+
+    def test_the_seam_message_is_defence_in_depth_not_a_screen(self):
+        """Recorded as a measurement rather than a claim: the `Available:`
+        refusal is NOT produced by these typed orders. If this ever starts
+        failing, the message became player-visible and its copy is then
+        worth reviewing on its own.
+
+        Killed by: nothing in this slice — it is the reachability finding,
+        pinned so the next reader inherits the measurement."""
+        with self._client() as (client, world):
+            seen = [self._say(client, f"Ney, attack {q}")
+                    for q in ("Gascony", "Kutz", "Zorblax")]
+        assert not any("not found. Available:" in m for m in seen), seen
+
+
+def _humanise(name):
+    from backend.display_names import humanize_entity_name
+    return humanize_entity_name(name)

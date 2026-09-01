@@ -293,10 +293,27 @@ class TestArmAAmbientDoD:
         first_price, first_weight, _ = series[0]
         last_price, last_weight, _ = series[-1]
         peak_weight = max(weight for _p, weight, _n in series)
+        # The mirror weights ARE the threat series (`get_france_perceived_
+        # intent` clamps and returns it), so anchor on the recorded constant
+        # and say so — the precedent slice 10 set for the slice-9 pin. It is
+        # also why the "softening" below is smaller than it reads: neither
+        # form can red without `TestArmAControl::test_threat_series_is_the_
+        # standing_baseline` redding first.
+        assert peak_weight == max(BASELINE_SERIES), (peak_weight,
+                                                     max(BASELINE_SERIES))
         assert last_weight < first_weight
+        # BOTH anchors. Peak-relative is the arm the board change made
+        # correct; first-relative is kept, loosened, so the clause still
+        # says something about where the campaign OPENED. Measured at the
+        # re-record: last/peak = 0.577 against 0.60 and last/first = 0.824
+        # against 0.90 — 2.2 and 4.2 points of headroom, recorded as numbers
+        # so the next board change is read against a measurement rather than
+        # against a threshold.
         assert last_weight <= peak_weight * 0.6, (
             "restraint must remain legible as a substantial fall in price, "
             f"got peak {peak_weight} -> {last_weight}")
+        assert last_weight <= first_weight * 0.9, (
+            f"got first {first_weight} -> {last_weight}")
         assert rung_index(last_price) <= rung_index(first_price), (
             "a passive France must never be read as ESCALATING")
 

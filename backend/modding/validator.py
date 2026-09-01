@@ -1017,36 +1017,81 @@ def validate_scenario(
     # exactly one such marshal and must keep booting. The warning names the
     # positional rule so an author knows what they are choosing, rather than
     # discovering it in someone's campaign.
-    marshal_names = set((data.get("marshals") or {}).keys())
-    for candidates in (data.get("marshal_pool") or {}).values():
-        if isinstance(candidates, list):
-            for candidate in candidates:
-                if isinstance(candidate, dict) and candidate.get("name"):
-                    marshal_names.add(candidate["name"])
-    if marshal_names:
-        try:
-            from backend.commands.parser import _plausible_name_typo
-            from backend.models.region import create_europe_regions
-            region_names = set(create_europe_regions().keys())
-        except Exception:                                # pragma: no cover
-            region_names = set()
+    # Every read below is TYPED rather than `or {}`-defaulted. The first cut
+    # was not, and `[] or {}` masks only the EMPTY list: a non-empty list or
+    # a string raised `AttributeError` out of `validate_scenario` — which
+    # `WorldState.from_scenario` calls, so a malformed scenario crashed the
+    # BOOT path instead of being reported. A regression, caught by review.
+    #
+    # The name is `marshal_data["name"] or the key`, because that is the
+    # string the SEAM matches on (`all_enemies = [m.name for m in ...]`),
+    # not the dict key the rest of this file reads.
+    named: dict = {}
+    raw_marshals = data.get("marshals")
+    if isinstance(raw_marshals, dict):
+        for key, marshal_data in raw_marshals.items():
+            name = key
+            if isinstance(marshal_data, dict) and isinstance(
+                    marshal_data.get("name"), str):
+                name = marshal_data["name"]
+            named.setdefault(name, f"marshals.{key}")
+    raw_pool = data.get("marshal_pool")
+    if isinstance(raw_pool, dict):
+        for nation, candidates in raw_pool.items():
+            if not isinstance(candidates, list):
+                continue
+            for index, candidate in enumerate(candidates):
+                if isinstance(candidate, dict) and isinstance(
+                        candidate.get("name"), str):
+                    named.setdefault(candidate["name"],
+                                     f"marshal_pool.{nation}[{index}]")
+    if named:
+        # The map this scenario will actually boot into, resolved the same
+        # three ways `WorldState.from_scenario` resolves it. Hardcoding the
+        # Europe registry made the rule MISS a mod colliding with its own
+        # province and FALSE-POSITIVE on a Europe name absent from that mod.
+        from backend.commands.parser import _plausible_name_typo
+        region_names: set = set()
+        skipped = None
+        if isinstance(data.get("regions"), dict) and data["regions"]:
+            region_names = set(data["regions"])
+        else:
+            try:
+                from backend.models.region import (create_europe_regions,
+                                                   create_regions)
+                europe = str(data.get("sovereign_map")
+                             or "legacy").strip().lower() == "europe"
+                region_names = set(
+                    (create_europe_regions() if europe
+                     else create_regions()).keys())
+            except Exception as exc:                     # pragma: no cover
+                skipped = exc
+        if skipped is not None:                          # pragma: no cover
+            # Never silently disable: a rule that reports "clean" when it did
+            # not run is worse than no rule (the UX23-B lesson).
+            result.add_warning(
+                "marshals",
+                f"WO-13 province-collision check SKIPPED: {skipped}")
         by_lower = {name.lower(): name for name in region_names}
-        for marshal_name in sorted(marshal_names):
+        for marshal_name in sorted(named):
+            path = named[marshal_name]
             exact = by_lower.get(marshal_name.lower())
             if exact is not None:
                 result.add_warning(
-                    f"marshals.{marshal_name}",
+                    path,
                     f"'{marshal_name}' is also a province. No typo gate can "
                     f"separate identical strings, so the WO-13 positional "
-                    f"rule decides: as an ADDRESSEE the name is the "
-                    f"province, as an attack TARGET it is the marshal, and "
-                    f"the province is reached by 'move to {exact}'")
+                    f"rule decides: the NAME MEANS THE MAN wherever a man "
+                    f"can be meant (addressing him is refused as a foreign "
+                    f"commander; attacking him targets him), and the "
+                    f"PROVINCE is reached by the region-only verb "
+                    f"'move to {exact}'")
                 continue
             near = [name for name in sorted(region_names)
                     if _plausible_name_typo(name, marshal_name)]
             if near:
                 result.add_warning(
-                    f"marshals.{marshal_name}",
+                    path,
                     f"'{marshal_name}' is within a typed mistake of the "
                     f"province(s) {near} — a player or the AI naming that "
                     f"province may silently reach this marshal instead "
