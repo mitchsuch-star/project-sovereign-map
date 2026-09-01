@@ -44,6 +44,31 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ ROW WO SLICE 17 — "THE FRONTIER HALTS THE CHARGE" (WO-24/25/28/31)
+> — ✅ LANDED September 1, 2026.** Landing record =
+> `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 17, authoritative. **NEXT = slice
+> 11** (the typed-route residue), then 12 → 14. All four rows re-reproduced
+> first: both charge advances stood victorious cavalry on a peaceful court's
+> soil; an autonomous attack's answered CHARGE popup relocated the marshal
+> AND staged the war-purpose HARD STOP; a refused autonomous attack was
+> narrated as fought with the order lost; a HOLD sally flipped a province
+> the marshal never entered and mounted its plunder question. **WO-31
+> DECIDED (a) — a province is taken by the army that STANDS on it** (the
+> artillery arm and the charge path already say so; (b) would let a
+> fortified holder strip every neighbour without leaving his works). Built:
+> ONE predicate `frontier_halt_owner` (drift-pinned against the pursuit
+> guard on all eight states) halts both advances; WO-25 closed at the SOURCE
+> — an autonomous attack takes the strategic-sally road so neither charge
+> popup is ever mounted by it and `respond_to_glorious_charge` is
+> player-only by construction (the contract's "carry the flag through the
+> popup" would have needed a serialized field); the redirect popup's missing
+> sally guard closed by the same predicate; a refusal restores order + hold
+> + NPC-2 interrupt and SAYS why on `jealousy_autonomous_refused`. Four
+> levers. `BASELINE_SERIES` byte-identical across SIX arms with the reason
+> MEASURED (0 charges / 0 sorties / 0 frontier calls on the ambient board —
+> a fact about the harness, not evidence); M1–M7 byte-identical; 49 tests,
+> **25/25 mutations killed**; two pins flipped consciously; zero `.gd`.
+>
 > **▶ ROW WO SLICE 10 — "THE ENEMY-DIRECTION GATE" (WO-13) —
 > ✅ LANDED September 1, 2026.** Landing record =
 > `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 10, authoritative. Commits

@@ -3770,6 +3770,147 @@ the holes are one layer down:
 takes a flip-attributed `BASELINE_SERIES` re-record if moved (each fix
 independently attributable), M1–M7 checked.
 
+> **✅ LANDED September 1, 2026 — landing record, authoritative.** Tests =
+> `tests/test_wo_slice17_frontier_halts_the_charge.py` (49);
+> `tools/_sweep_wo17.json` — **25 mutations, 25 killed, 0 inert**; M1–M7
+> byte-identical; **`BASELINE_SERIES` byte-identical across SIX arms**
+> (all four levers off / each lever alone / the full tree), each a
+> hash-pinned `--emit-series` child with the lever set as a module global
+> (the slice-9 idiom — no source edit), so **no re-record**; the REASON it
+> did not move is measured too (below). Zero `.gd`.
+>
+> **All four rows re-reproduced on the current tree before a line was
+> written** (the legacy fixture: Ney at Belgium, Rhineland is Prussia's,
+> Netherlands is Britain's, France at war with Britain): the glorious charge
+> against a British corps on Rhineland with France|Prussia at PEACE ended
+> with **Ney standing in Rhineland** and the war-purpose modal staged; the
+> reckless turn-start auto-charge did the same; a jealousy-autonomous attack
+> on a reckless-3 cavalryman returned the CHARGE/RESTRAIN popup and the
+> answered "charge" **relocated him onto Prussian soil AND staged the modal**
+> from an attack nobody ordered; the refused autonomous attack wrote
+> `order_voided_by_battle` + `jealousy_autonomous_attack` + the campaign-log
+> row with `strategic_order` gone; and the HOLD sally **flipped Netherlands
+> to France with Ney still at Belgium and mounted the plunder/secure question
+> for a province he never entered.**
+>
+> **WO-31 DECIDED — option (a): a province is taken by the army that stands
+> on it.** Three reasons, in order of weight. The seam already encodes the
+> rule for artillery (*"Region must be secured by infantry to complete the
+> capture"*) and the charge path already gates its capture on
+> `marshal.location == charge_battle_region` — (a) makes the third
+> non-advancing attack agree with the two beside it. Option (b) would have
+> let a FORTIFIED holder strip every adjacent province in turn without ever
+> leaving his works (the sally keeps him in position, so it keeps whatever
+> that position confers), a farm the hold order was never meant to be. And
+> (b)'s copy would have to explain a marshal who "returns to hold position"
+> while a province flips behind him — the CA9 shape one sentence over. The
+> sally now clears the field and the copy says the ground is not held:
+> *"Ney's sally clears Netherlands but does not hold it — a province is
+> taken by the army that stands on it."* No capture, no occupation, no
+> question mounted — and, because a sally can seize nothing even at war, the
+> neutral-arm *"choose our purpose"* modal has nothing to offer it and is
+> short-circuited with the rest of the block.
+>
+> **Built — four levers, one shared predicate.**
+> 1. **WO-24** — `world_state.frontier_halt_owner(world, nation, region)`,
+>    the pursuit guard's neutral arm restated as a module-level function so
+>    the reckless copy (a `WorldState` method that cannot import the
+>    executor) and the glorious charge read ONE source; a drift pin holds it
+>    and `_pursuit_capture_guard` to the same answer on all eight diplomatic
+>    states. `_execute_glorious_charge` now classifies the field's owner
+>    BEFORE the advance (the capture block used to compute `pursuit_block`
+>    after the move — too late to halt anything) and halts on the neutral
+>    arm with `_execute_attack`'s own sentence; a halted PLAYER charge still
+>    reaches the staging block, so the war choice is offered exactly as it is
+>    for an infantry advance (parity, pinned). The reckless copy gains the
+>    same halt before its `move_to`. **Deliberately the PT-F1 vocabulary,
+>    not `can_enter_territory`:** a battle-advance is not a march (PT-F1's
+>    ruling), so an OPEN_BORDERS frontier halts a charge exactly as it halts
+>    an infantry advance and the two attack paths cannot disagree; the two
+>    predicates agree on PEACE soil, which is the measured case. Lever
+>    `CHARGE_FRONTIER_HALT_ACTIVE` (world_state), read by the executor
+>    through a module alias so it is a call-time read.
+> 2. **WO-25** — **closed at the source, not by carrying a flag through the
+>    popup round-trip** (a recorded deviation from the contract's "carry the
+>    flag through all four sites"): surviving a save would have needed a new
+>    serialized field on the marshal. Instead an autonomous attack takes the
+>    road the reckless block already had for strategic sallies (*"Ney on
+>    HOLD sallies autonomously; he wouldn't stop mid-charge to ask
+>    permission"*): ONE predicate `_no_charge_popup` (in strategic mode, or
+>    `_jealousy_autonomous` under `AUTONOMOUS_CHARGE_GUARD_ACTIVE`) gates
+>    BOTH charge popups, so the glorious charge fires at once with its
+>    command intact, `_execute_glorious_charge` takes `command` and guards
+>    its own staging site (the third), and `respond_to_glorious_charge` (the
+>    fourth) is reachable only from a player-ordered attack **by
+>    construction** — pinned structurally (every `pending_glorious_charge =
+>    True` write sits under the predicate, AST census) and behaviourally
+>    (the popup door answers *"No pending Glorious Charge"* after an
+>    autonomous attack). **Scope extension, recorded:** the terrain-REDIRECT
+>    popup had no strategic-sally guard at all — a HOLD sally on blocked
+>    terrain with an alternative in range returned that popup from INSIDE
+>    end-turn processing, invisible to the client (`main.gd` reads
+>    `pending_glorious_charge` at the top level only, the strategic report
+>    nests it), leaving the flag armed for the next bare `charge`. The same
+>    predicate closes it; the sally falls through to the normal attack the
+>    AI/4+ arm already takes.
+> 3. **WO-28** — `process_autonomous_attacks` snapshots what the void takes
+>    (the order, the hold it expressed, the NPC-2 order-bound interrupt),
+>    voids exactly as before, runs the attack, and on a refusal
+>    (`success` False) **restores all three, fires no beat, writes no log
+>    row, hands no result to the enemy-phase renderer** (which would have
+>    printed *"went in without orders"*) — and SAYS so once, on a new
+>    pending-event type `jealousy_autonomous_refused` carrying the
+>    executor's own first sentence (*"…but Ney is fortified at Belgium and
+>    cannot attack — he stands where he was, and his orders are
+>    unchanged."*), whitelisted in the dispatch and exempt from the drama
+>    cap because it answers the fore-warning directly above it. The
+>    success path is byte-for-byte the old one: the void beat's index is
+>    taken before the attack and the line inserted there afterwards, so
+>    anything the battle appends still reads after it (pinned with a stub
+>    executor). Lever `AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE`.
+> 4. **WO-31** — `sortie_stands_off` = `_current_sortie` AND not standing
+>    on the field, under `SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE`, skips
+>    the whole capture block; a same-province sortie still captures (pinned:
+>    the standing clause, not the sortie flag alone); a lost sally and a won
+>    sally with defenders left claim nothing.
+>
+> **The contract, corrected by building.** (1) WO-28's *"live refusals
+> include the recklessness popup — the common case for cavalry"* was TRUE
+> on the pre-slice tree and is now IMPOSSIBLE by WO-25's fix; the refusal
+> shape that survives is the executor's pre-validation — a FORTIFIED
+> jealous marshal is refused every cycle (*"fortified … cannot attack"*), and
+> before this slice each such cycle narrated a battle and lost his order —
+> which is what the tests use. (2) The "fourth staging site" is closed by
+> unreachability, not by a flag (above). (3) Every line number in the
+> contract was stale (the file grew by ~250 lines since `bd0be0c`); the
+> record cites functions.
+>
+> **Harness, measured rather than asserted.** Six arms, all byte-identical
+> to the prior series. A wrapped-seam probe over the same 40 turns says why:
+> the ambient board fires **14 jealousy-autonomous attacks (all France, all
+> succeed, 0 refused)**, **0 glorious charges, 0 reckless turn-start
+> charges, 0 sorties**, and `frontier_halt_owner` is called **0 times** —
+> three of the four seams are never reached by the ambient board and the
+> fourth only on its success path, because France issues no HOLD orders
+> there and no French cavalryman reaches recklessness 3. **So the
+> byte-identity is a fact about the harness, not evidence of safety**, and
+> every behaviour is pinned directly instead. M1–M7 byte-identical for the
+> same structural reason (`test_combat_sweep_metrics.py` has no `end_turn`
+> and no `.execute(`).
+>
+> **Pins flipped consciously:** `test_ca9_row3_a13_drama_cap.py`'s
+> auditable exempt tuple gains `jealousy_autonomous_refused`;
+> `test_pc15_d_rulings_2026_08_15.py`'s census rises `>= 2` → `>= 4` and its
+> docstring is rewritten — its *"reached only by direct player charges"*
+> was FALSE, as the contract predicted.
+>
+> **A test defect the sweep's own baseline gate caught:** the neutral-soil
+> sally pin rode the combat RNG — green in one run, red in the sweep's
+> baseline (*"Wellington stands firm against superior numbers"*, no rout, no
+> cleared field). Every weak-enemy fixture now breaks deterministically
+> (2,000 men at morale 26 — one exchange routs him) and the file was run six
+> times under fresh random seeds, 49/49 each.
+
 ### Slice 18 — "The Answer Finds Its Question" (WO-35/36/38/39/40) — ✅ LANDED August 22, 2026
 
 > **Landing record — authoritative.** Built from
@@ -3986,8 +4127,8 @@ toggling has no positive arm.
 > → 3 → 13 → 7 → **15 → 16 (both landed August 21, 2026 — the three
 > hand-verified P1s are closed)** → 18 → **5 (landed August 22, 2026)** →
 > **4 ✅ → 6 ✅ → 8 ✅ → 9 ✅ (September 1, 2026) → 10 ✅
-> (September 1, 2026)** → 17 → 11 → 12 → 14. **Landed through slice
-> 10**; the row's DoD is keyed on this list, so it is updated per slice
+> (September 1, 2026) → 17 ✅ (September 1, 2026)** → 11 → 12 → 14.
+> **Landed through slice 17**; the row's DoD is keyed on this list, so it is updated per slice
 > rather than at the end — recorded because a review found it three
 > slices behind.
 > The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and

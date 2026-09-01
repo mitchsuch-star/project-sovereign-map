@@ -179,6 +179,27 @@ JEALOUSY_RIVAL_MEMORY = True
 # the prior series reproduces byte-identically — not as a config surface.
 JEALOUSY_SUPPRESS_SAME_PASS_REFIRE = True
 
+# WO-28 (row WO slice 17): THE BEAT NARRATES ONLY AN ATTACK THAT HAPPENED.
+# `process_autonomous_attacks` voided the standing order, ran the attack,
+# and then logged the "has attacked Y on his own initiative" beat with no
+# success check — so a refusal (a fortified corps that cannot attack; before this
+# slice, the recklessness popup) left the player reading a battle that
+# never happened, with the order gone anyway. Measured: a refused
+# autonomous attack produced `order_voided_by_battle` AND
+# `jealousy_autonomous_attack` AND the campaign-log row, and
+# `strategic_order` was None. Now a refusal restores the order it voided
+# (and the order-bound interrupt the void cleared), fires no beat, writes
+# no log row, returns no result to the enemy-phase renderer — and SAYS so,
+# once, with the executor's own reason, on a type of its own so the
+# fore-warning's "he will go on his own initiative" is answered rather
+# than left hanging.
+#
+# Flip lever for the BASELINE_SERIES attribution experiment: False
+# reproduces the pre-slice behaviour byte-identically (the HOST_RULE_ACTIVE
+# idiom). Not a config surface.
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
+AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE = True
+
 
 def jealousy_dormant(world) -> bool:
     """TUT-F5 (Aug 8, 2026 tutorial live report): the School of War keeps the
@@ -3043,6 +3064,7 @@ JEALOUSY_NARRATION_EXEMPT = (
     "glory_crown_lost",
     "jealousy_autonomous_warning",   # the fore-warning and its counter-lever
     "jealousy_autonomous_attack",    # ...and the attack actually landing
+    "jealousy_autonomous_refused",   # WO-28: ...or NOT landing, and why
     "jealousy_separation_warning",   # the one arm the player OPTED INTO
     "fontainebleau_petition",        # a petition arriving
     "shadow_petition",               # NP-3: ...and this one too
@@ -3614,10 +3636,57 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         # (`campaign_log.py:251`/`:1520`, `dispatch.py:2241`/`:2331`), so
         # this needs no new type and no client change.
         _voided = getattr(marshal, "strategic_order", None)
+        # WO-28 (slice 17): snapshot what the void takes, so a REFUSED
+        # attack can give it back — the order, the hold it expressed, and
+        # the order-bound interrupt NPC-2 clears with it.
+        _hold_before = (bool(getattr(marshal, "holding_position", False)),
+                        str(getattr(marshal, "hold_region", "") or ""))
+        _interrupt_before = getattr(marshal, "pending_interrupt", None)
         marshal.strategic_order = None
         clear_order_bound_interrupt(marshal)  # NPC-2
         marshal.holding_position = False
         marshal.hold_region = ""
+        events = _pending_events(world)
+        # The void beat keeps its place BEFORE anything the battle itself
+        # appends (its index is taken now, the line written only once the
+        # attack has actually gone in).
+        _void_index = len(events)
+        command = {
+            "command": {
+                "marshal": marshal.name,
+                "action": "attack",
+                "target": enemy.name,
+                "_strategic_execution": True,
+                "_jealousy_autonomous": True,
+            }
+        }
+        result = executor.execute(command, game_state)
+        if (AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE
+                and not (isinstance(result, dict) and result.get("success"))):
+            # WO-28: nothing happened. Restore what the void took, say why
+            # he did not go, and fire no beat, no log row, no report.
+            marshal.strategic_order = _voided
+            marshal.holding_position, marshal.hold_region = _hold_before
+            # NPC-2: the question dies with the order and is reborn with it.
+            # Anything order-bound the REFUSED attack itself raised belongs
+            # to no standing order and is dropped; the restored order's own
+            # question goes back unless a standalone decision (last stand,
+            # muster) arrived meanwhile — those are never overwritten.
+            clear_order_bound_interrupt(marshal)
+            if (_interrupt_before is not None
+                    and getattr(marshal, "pending_interrupt", None) is None):
+                marshal.pending_interrupt = _interrupt_before
+            events.append({
+                "type": "jealousy_autonomous_refused",
+                "nation": marshal.nation,
+                "marshal": marshal.name,
+                "message": (
+                    f"{humanize_entity_name(marshal.name)} meant to go at "
+                    f"{humanize_entity_name(enemy.name)} on his own "
+                    f"initiative, but {_refusal_reason(result)} — he "
+                    f"stands where he was, and his orders are unchanged."),
+            })
+            continue
         if _voided is not None and marshal.nation == world.player_nation:
             # PT-G5 discipline, applied here too (review fleet): the
             # marshal and the enemy are humanized two lines below and
@@ -3629,7 +3698,7 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                 str(getattr(_voided, "target", "") or ""))
             _what = (f"his standing order to {_verb} {_object}".rstrip()
                      if _verb else "his standing order")
-            _pending_events(world).append({
+            events.insert(_void_index, {
                 "type": "order_voided_by_battle",
                 "nation": marshal.nation,
                 "marshal": marshal.name,
@@ -3639,17 +3708,6 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                     f"initiative — {_what} is void. He awaits fresh "
                     f"orders."),
             })
-        command = {
-            "command": {
-                "marshal": marshal.name,
-                "action": "attack",
-                "target": enemy.name,
-                "_strategic_execution": True,
-                "_jealousy_autonomous": True,
-            }
-        }
-        result = executor.execute(command, game_state)
-        events = _pending_events(world)
         events.append({
             "type": "jealousy_autonomous_attack",
             "message": (f"{humanize_entity_name(marshal.name)}, hungry for "
@@ -3669,6 +3727,26 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             result["jealousy_autonomous"] = marshal.name
             results.append(result)
     return results
+
+
+def _refusal_reason(result) -> str:
+    """WO-28: the executor's own first sentence, stripped of markup and
+    internal keys, for the refusal line. Falls back to a neutral clause
+    when the refusal carried no message."""
+    import re as _re
+    message = str((result or {}).get("message") or "") if isinstance(
+        result, dict) else ""
+    message = _re.sub(r"\[/?[^\]]*\]", " ", message)   # bbcode / [Tag] chrome
+    message = _re.sub(r"\s+", " ", message).strip()
+    if not message:
+        return "the attack could not be made"
+    first = _re.split(r"(?<=[.!?])\s", message, maxsplit=1)[0].strip()
+    first = first.rstrip(".!?").strip()
+    if not first:
+        return "the attack could not be made"
+    if len(first) > 160:
+        first = first[:157].rstrip() + "..."
+    return humanize_entity_name(first)
 
 
 def cancel_autonomous_warning_on_order(world, marshal) -> Optional[str]:

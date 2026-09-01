@@ -139,15 +139,28 @@ class TestD1JealousyHuntRespectsNeutrality:
 
 class TestD1GhostChainClosed:
     def test_autonomous_attack_never_stages_the_war_purpose_dialogue(self):
-        """Source census: both battle-advance staging sites in
-        _execute_attack carry the _jealousy_autonomous guard (the charge
-        site takes no command and is reached only by direct player
-        charges; the deliberate gate at the attack head is untouched)."""
+        """Source census: FOUR sites in combat_executor read the
+        `_jealousy_autonomous` flag — the two battle-advance staging sites
+        in _execute_attack, the glorious charge's OWN staging site, and the
+        reckless-popup predicate that keeps an autonomous attack from ever
+        arming `respond_to_glorious_charge`. (The deliberate gate at the
+        attack head is untouched.)
+
+        Rewritten by WO slice 17 (Sept 1, 2026). This docstring used to say
+        the charge site "takes no command and is reached only by direct
+        player charges" — FALSE: `_execute_attack`'s auto-charge arm fires
+        `_execute_glorious_charge` for a jealousy-autonomous attack at
+        recklessness 3+, and the answered CHARGE/RESTRAIN popup re-entered
+        it with the provenance gone. Measured: the answered charge staged
+        `war_purpose_selection` from an attack the player never ordered.
+        The charge takes `command` now; the behaviour pins live in
+        test_wo_slice17_frontier_halts_the_charge.py."""
         src = (REPO / "backend" / "commands"
                / "combat_executor.py").read_text(encoding="utf-8")
         guarded = src.count('.get("_jealousy_autonomous")')
-        assert guarded >= 2, (
-            "a battle-advance staging site lost its autonomous guard")
+        assert guarded >= 4, (
+            "a war-purpose staging site (or the reckless-popup predicate) "
+            "lost its autonomous guard")
 
     def test_dp_shortage_declaration_is_a_visible_receipt(self):
         """'Three modals of theater, no war, no receipt' — the DP-shortage

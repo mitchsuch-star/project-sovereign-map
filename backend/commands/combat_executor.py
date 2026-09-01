@@ -10,6 +10,12 @@ from backend.models.world_state import (
     PLUNDER_INCOME_MULTIPLIER as WS_PLUNDER_INCOME_MULTIPLIER,
     WorldState,
 )
+# WO-24 (slice 17): the frontier-halt lever and predicate live in
+# world_state so the reckless auto-charge (a WorldState method) and the
+# glorious charge (here) read ONE source. Module alias, not a from-import,
+# so the lever is read at CALL time — a from-import would freeze it at
+# import and make the attribution flip a no-op on this path.
+from backend.models import world_state as _ws_mod
 from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
@@ -266,6 +272,52 @@ def _voice_rotation_key(world, region_name: str) -> int:
 # stamp in _calculate_coordination_context; the modifier reads see 0.0
 # when nothing was stamped.
 SOVEREIGN_PRESENCE_ACTIVE = True
+
+# ═══════ Row WO slice 17 — "The Frontier Halts the Charge" ═══════
+#
+# WO-25: an attack the player never ordered must never stage a war
+# decision. PC15-D1(c) wrote that rule for the two battle-advance staging
+# sites in `_execute_attack` and keyed it on the `_jealousy_autonomous`
+# command flag — but the flag reached only those two. The glorious charge
+# took no command at all, and an autonomous attack on a reckless-3
+# cavalryman returned the CHARGE/RESTRAIN popup instead of fighting, so the
+# answered popup re-entered `_execute_glorious_charge` with the provenance
+# gone and staged `war_purpose_selection` — a HARD STOP mounted with
+# `replace()`, able to destroy whatever dialogue was live. Measured: the
+# autonomous attack returned `pending_glorious_charge`; the "charge"
+# answer relocated Ney onto Prussian PEACE soil AND staged the war modal.
+#
+# Closed at the source rather than by threading a flag through a popup
+# round-trip (which would need a serialized field to survive a save): an
+# autonomous attack takes the STRATEGIC-SALLY road the reckless block
+# already has — "Ney on HOLD sallies autonomously; he wouldn't stop
+# mid-charge to ask permission" — so it never mounts either charge popup,
+# the glorious charge receives the command and guards its own staging
+# site, and `respond_to_glorious_charge` is reachable only from a
+# player-ordered attack, by construction. The redirect popup (blocked
+# terrain, alternatives in range) is covered by the same predicate: a
+# strategic sally used to return that popup from INSIDE end-turn
+# processing, invisible to the client, leaving `pending_glorious_charge`
+# armed for the next bare "charge".
+#
+# WO-31: a HOLD sortie suppresses the ADVANCE (`_current_sortie`) but not
+# the CAPTURE, so a sally that "returns to hold position" flipped a
+# province the marshal never stood on — and mounted the plunder/secure
+# question for it. DECIDED at build (spec slice 17 item 4, the rules call):
+# a province is taken by the army that STANDS on it. The artillery arm at
+# the same seam already says so ("Region must be secured by infantry to
+# complete the capture"), the charge path already gates its capture on
+# `marshal.location == charge_battle_region`, and the alternative — the
+# flip as the spoils of a won sally — would let a fortified holder strip
+# every adjacent province in turn without ever leaving his works. So the
+# sally clears the field and the copy says the ground is not held.
+#
+# Flip levers for the BASELINE_SERIES attribution experiment: False
+# reproduces the pre-slice behaviour byte-identically (the HOST_RULE_ACTIVE
+# idiom). Not config surfaces.
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
+AUTONOMOUS_CHARGE_GUARD_ACTIVE = True
+SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE = True
 
 
 class CombatExecutor:
@@ -4129,6 +4181,17 @@ class CombatExecutor:
         if marshal.is_reckless_cavalry and not skip_reckless_popup:
             recklessness = getattr(marshal, 'recklessness', 0)
             is_player = marshal.nation == world.player_nation
+            # WO-25 (slice 17): neither charge popup is ever mounted by an
+            # attack the player did not order this instant. A HOLD sally
+            # never asked (the strategic-sally arm below); a jealousy-
+            # autonomous attack now takes the same road, so the glorious
+            # charge fires at once with its provenance intact and
+            # `pending_glorious_charge` — the only door into
+            # `respond_to_glorious_charge` — is never armed by it.
+            _no_charge_popup = bool(
+                marshal.in_strategic_mode
+                or (AUTONOMOUS_CHARGE_GUARD_ACTIVE
+                    and (command or {}).get("_jealousy_autonomous")))
 
             # At recklessness 3, player gets popup choice
             # AI at 3+ auto-charges
@@ -4217,7 +4280,8 @@ class CombatExecutor:
                         # Nearest first, weakest as tiebreaker
                         chargeable_alternatives.sort(key=lambda a: (a["distance"], a["strength"]))
 
-                        if chargeable_alternatives and is_player and recklessness < 4:
+                        if (chargeable_alternatives and is_player and recklessness < 4
+                                and not _no_charge_popup):
                             # Offer popup to redirect charge to an alternative target
                             alt_lines = []
                             for alt in chargeable_alternatives:
@@ -4258,8 +4322,7 @@ class CombatExecutor:
                         # Strategic execution (sally, etc.) auto-charges — no popup.
                         # Ney on HOLD sallies autonomously; he wouldn't stop mid-charge
                         # to ask permission. Result shows in strategic report.
-                        is_strategic_sally = marshal.in_strategic_mode
-                        if is_player and recklessness < 4 and not is_strategic_sally:  # Player at exactly 3 - popup
+                        if is_player and recklessness < 4 and not _no_charge_popup:  # Player at exactly 3 - popup
                             # Set pending state for popup
                             marshal.pending_glorious_charge = True
                             marshal.pending_charge_target = resolved_target
@@ -4278,7 +4341,11 @@ class CombatExecutor:
                             }
                         else:
                             # AI at 3+ or Player at 4+ - auto-charge
-                            return self._execute_glorious_charge(marshal, resolved_target, world, game_state)
+                            # WO-25: the command rides along so the charge's
+                            # own staging site can read the autonomous flag.
+                            return self._execute_glorious_charge(
+                                marshal, resolved_target, world, game_state,
+                                command=command)
 
         # ESP-EV-4 fix (July 12, 2026): remember when the ENGINE chose the
         # target because the player left it open (bare "Ney, attack"). The
@@ -6660,7 +6727,18 @@ class CombatExecutor:
         # Use target_location (the region) not resolved_target (which might be marshal name)
         # ARTILLERY: Skip capture for artillery attacking from adjacent (no advance = no capture)
         target_region = world.get_region(target_location)
-        if target_region and target_region.controller != marshal.nation and not is_artillery_no_advance:
+        # WO-31 (slice 17): a HOLD sortie fights from its own position and
+        # never advances (`_current_sortie` above) — so, like the artillery
+        # arm beside it, it does not TAKE the ground either. A province is
+        # taken by the army that stands on it. Decided at build; the
+        # alternative (the flip as the spoils of a won sally) is recorded
+        # and rejected at the lever's definition.
+        sortie_stands_off = bool(
+            SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE
+            and getattr(self._executor, '_current_sortie', False)
+            and marshal.location != target_location)
+        if (target_region and target_region.controller != marshal.nation
+                and not is_artillery_no_advance and not sortie_stands_off):
             # Find all remaining defenders (marshals from nations other than attacker)
             # NOTE: This check happens AFTER forced retreats, so fled defenders aren't counted
             remaining_defenders = [
@@ -6700,6 +6778,22 @@ class CombatExecutor:
                     conquest_msg = f" {target_location} has been captured by {marshal.nation}!"
                 elif capture_result["occupation_started"]:
                     conquest_msg = f" {capture_result['message']}"
+        elif (sortie_stands_off and target_region
+              and target_region.controller != marshal.nation
+              and can_advance and marshal.strength > 0):
+            # WO-31: the sally won the field. Say what that does and does
+            # not buy — shown = applied.
+            _sortie_remaining = [
+                m for m in world.marshals.values()
+                if m.location == target_location and m.strength > 0
+                and m.nation != marshal.nation
+                and world.is_at_war(marshal.nation, m.nation)
+            ]
+            if not _sortie_remaining:
+                conquest_msg = (
+                    f" {marshal.name}'s sally clears {target_location} but "
+                    f"does not hold it — a province is taken by the army "
+                    f"that stands on it.")
 
         # Build message with flanking info if applicable
         flanking_prefix = ""
@@ -7433,17 +7527,27 @@ class CombatExecutor:
             }
 
         # Execute as a Glorious Charge attack
-        return self._execute_glorious_charge(marshal, target, world, game_state)
+        return self._execute_glorious_charge(marshal, target, world, game_state,
+                                             command=command)
 
-    def _execute_glorious_charge(self, marshal, target: str, world: WorldState, game_state: Dict) -> Dict:
+    def _execute_glorious_charge(self, marshal, target: str, world: WorldState,
+                                 game_state: Dict, command: Dict = None) -> Dict:
         """
         Execute the actual Glorious Charge combat.
 
         This is the internal method that performs the 2x damage attack.
         Called by:
         - _execute_charge (explicit charge command)
-        - respond_to_glorious_charge (popup response)
-        - auto-charge at recklessness 4+
+        - respond_to_glorious_charge (popup response — reachable only from a
+          player-ordered attack, see WO-25 at the reckless block)
+        - auto-charge at recklessness 4+ / strategic sally / jealousy-
+          autonomous attack (from `_execute_attack`, which passes `command`)
+
+        `command` (WO-25, slice 17): the originating command dict when the
+        caller has one. Read for exactly one thing — the
+        `_jealousy_autonomous` flag that keeps this path's war-purpose
+        staging site (the third of the four PC15-D1 sites) from mounting a
+        war decision the player never asked for.
         """
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(marshal, "attack")
@@ -7659,6 +7763,15 @@ class CombatExecutor:
         # Move attacker if victorious and still alive
         attacker_won = combat_result.get("attacker_won", False)
         movement_msg = ""
+        # WO-24 (slice 17): classify the field's OWNER before the advance,
+        # exactly as `_execute_attack` does — this path checked only the
+        # water, so a victorious charge stood its cavalry on a peaceful
+        # court's soil (capture refused below, the standing itself
+        # illegal). `pursuit_block` is reused by the capture block, which
+        # used to compute it too late to halt anything.
+        pursuit_block = self._pursuit_capture_guard(
+            marshal, charge_battle_region, world)
+        charge_halted = False
         if attacker_won and marshal.strength > 0:
             # DEF-5 naval §4.1: cavalry does not swim — a charge's advance
             # never crosses a covered strait (the battle itself was fought
@@ -7666,7 +7779,17 @@ class CombatExecutor:
             # NV-9: one advance seam for every post-combat move, reach-aware.
             _charge_cross_ok = self._naval_advance_allowed(
                 marshal, charge_battle_region, world)
-            if marshal.location != charge_battle_region and _charge_cross_ok:
+            if (marshal.location != charge_battle_region
+                    and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE
+                    and pursuit_block and pursuit_block["arm"] == "neutral"):
+                # The frontier halt: the cavalry stops at the border it
+                # cannot legally cross (PT-F1's own vocabulary).
+                charge_halted = True
+                movement_msg = (
+                    f" {marshal.name} halts at the frontier of "
+                    f"{charge_battle_region} — {pursuit_block['owner']}'s soil, "
+                    f"and we are not at war with {pursuit_block['owner']}.")
+            elif marshal.location != charge_battle_region and _charge_cross_ok:
                 marshal.move_to(charge_battle_region)
                 charge_attrition = self._executor._calculate_movement_attrition(marshal, charge_battle_region, world)
                 combat_result["attacker_moved"] = True
@@ -7708,7 +7831,11 @@ class CombatExecutor:
         conquest_msg = ""
         capture_result = None  # IGR-X8: read by the event-parity block below
         staged_war_purpose = None  # CA9-F6: delivered on charge_result below
-        if attacker_won and marshal.strength > 0 and marshal.location == charge_battle_region:
+        # WO-24: a frontier-halted charge still reaches this block so the
+        # player's war choice can be staged (parity with `_execute_attack`);
+        # the CAPTURE arm below additionally requires standing on the field.
+        if (attacker_won and marshal.strength > 0
+                and (marshal.location == charge_battle_region or charge_halted)):
             target_region = world.get_region(charge_battle_region)
             if target_region and target_region.controller != marshal.nation:
                 remaining_defenders = [
@@ -7718,19 +7845,26 @@ class CombatExecutor:
                 ]
                 # PT-F1: the charge's momentum carried the cavalry in, but a
                 # third party's soil still never transfers by pursuit.
-                pursuit_block = self._pursuit_capture_guard(
-                    marshal, charge_battle_region, world)
+                # (`pursuit_block` was classified above, before the advance.)
                 if pursuit_block is not None and not remaining_defenders:
-                    conquest_msg = pursuit_block["message"]
+                    if not charge_halted:
+                        conquest_msg = pursuit_block["message"]
+                    # PC15-D1(c) / WO-25 (slice 17): the THIRD staging site —
+                    # never for a jealousy-autonomous attack, which reaches
+                    # here through `_execute_attack`'s auto-charge arm with
+                    # its command intact. The frontier line still prints;
+                    # the province stands.
                     if (pursuit_block["arm"] == "neutral"
-                            and marshal.nation == world.player_nation):
+                            and marshal.nation == world.player_nation
+                            and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE
+                                     and (command or {}).get("_jealousy_autonomous"))):
                         staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg += (
                             f" To seize it is to make war on "
                             f"{pursuit_block['owner']} — choose our purpose, "
                             f"or let the province stand.")
-                elif not remaining_defenders:
+                elif not remaining_defenders and marshal.location == charge_battle_region:
                     capture_result = self._attempt_region_capture(
                         marshal, charge_battle_region, world, game_state, had_garrison=True
                     )
@@ -7847,6 +7981,13 @@ class CombatExecutor:
         Handle player response to Glorious Charge popup.
 
         Called when player responds to the popup that appears at recklessness 3.
+
+        WO-25 (slice 17): the pending state this answers is armed at exactly
+        two sites in `_execute_attack`, both behind `_no_charge_popup`, so an
+        attack the player did not order (a strategic sally, a jealousy-
+        autonomous attack) can never reach here — its provenance would be
+        lost across the popup round-trip, and this method passes no command
+        on either branch BY DESIGN: what it re-issues is a player decision.
 
         Args:
             response: "charge" or "restrain"

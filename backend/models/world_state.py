@@ -370,6 +370,59 @@ def ai_prefers_plunder(marshal, world, region_name: str) -> bool:
     return (getattr(marshal, "personality", None) or "") == "aggressive"
 
 
+# ═══════ WO-24 (row WO slice 17) — THE FRONTIER HALTS THE CHARGE ═══════
+#
+# A battle-advance is a MOVE, and the movement law does not let an army
+# walk onto the soil of a court it is at peace with. `_execute_attack` has
+# honoured that since PT-F1 (Aug 1, 2026): its neutral arm halts the victor
+# at the frontier. The two CHARGE advances never did — the glorious charge
+# (`combat_executor._execute_glorious_charge`) relocated the victor with
+# only the naval check, and the reckless auto-charge
+# (`WorldState._process_reckless_cavalry_turn_start`) with no check at all,
+# while that very function's auto-MOVE arm consults `can_enter_territory`.
+# Measured before a line was written: Ney's charge out of Belgium against a
+# British corps standing on PRUSSIAN soil, France and Prussia at PEACE,
+# ended with Ney standing in Rhineland — capture correctly refused, the
+# standing itself illegal (the CA9-F13 shape).
+#
+# ONE predicate for both implementations, the pursuit guard's own neutral
+# arm restated: the soil belongs to another court, we are not at war with
+# it, and it is not an ally/vassal (an ally's province is entered as a
+# liberator and never transfers — `_pursuit_capture_guard`'s ally arm).
+# Deliberately the PT-F1 vocabulary rather than `can_enter_territory`: a
+# battle-advance is not a march (PT-F1's ruling), so an OPEN_BORDERS court's
+# frontier halts a charge exactly as it halts an infantry advance, and the
+# two attack paths cannot disagree. A drift pin in
+# `test_wo_slice17_frontier_halts_the_charge.py` holds the executor's guard
+# and this helper to the same answer on every diplomatic state.
+#
+# Flip lever for the BASELINE_SERIES attribution experiment: False
+# reproduces the pre-slice relocation byte-identically (the HOST_RULE_ACTIVE
+# idiom). Not a config surface.
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
+CHARGE_FRONTIER_HALT_ACTIVE = True
+
+
+def frontier_halt_owner(world, nation: str, region_name: str) -> Optional[str]:
+    """The court whose frontier halts a charge's advance onto
+    ``region_name``, or None when the victor may advance.
+
+    Returns the owner ONLY on the neutral arm (peace, no alliance): own
+    soil, unclaimed soil, an enemy's war soil and an ally's or vassal's
+    province all answer None — the last two advance as liberators and are
+    refused the TRANSFER further down, which is a different question.
+    """
+    region = world.get_region(region_name)
+    owner = getattr(region, "controller", None) if region else None
+    if not owner or owner == nation:
+        return None
+    if world.is_at_war(nation, owner):
+        return None
+    if not world.can_attack_nation(nation, owner):
+        return None
+    return owner
+
+
 def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
     """True when `nation` is retaking soil that opened the campaign as its own.
 
@@ -12441,8 +12494,22 @@ class WorldState:
                 # Move attacker if victorious and still alive
                 attacker_won = combat_result.get("attacker_won", False)
                 movement_msg = ""
+                # WO-24 (slice 17): the frontier halt this advance never
+                # had — the auto-MOVE arm below checks the movement law
+                # and this arm relocated the victor onto a peaceful
+                # court's soil unchecked. Same predicate as the executor's
+                # charge advance (`frontier_halt_owner`, module level).
+                _halt_owner = (
+                    frontier_halt_owner(self, marshal.nation,
+                                        auto_charge_battle_region)
+                    if CHARGE_FRONTIER_HALT_ACTIVE else None)
                 if attacker_won and marshal.strength > 0:
-                    if marshal.location != auto_charge_battle_region:
+                    if marshal.location != auto_charge_battle_region and _halt_owner:
+                        movement_msg = (
+                            f" {marshal.name} halts at the frontier of "
+                            f"{auto_charge_battle_region} — {_halt_owner}'s "
+                            f"soil, and we are not at war with {_halt_owner}.")
+                    elif marshal.location != auto_charge_battle_region:
                         marshal.move_to(auto_charge_battle_region)
                         movement_msg = f" {marshal.name} advances into {auto_charge_battle_region}."
 

@@ -4,6 +4,50 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW WO SLICE 17 — "THE FRONTIER HALTS THE CHARGE" (WO-24/25/28/31) — September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 17, authoritative.**
+> `tests/test_wo_slice17_frontier_halts_the_charge.py` (49); `tools/_sweep_wo17.json`
+> — **25 mutations, 25 killed, 0 inert**. M1–M7 byte-identical; **`BASELINE_SERIES`
+> byte-identical across SIX arms, no re-record** — and a wrapped-seam probe measured
+> WHY (14 autonomous attacks on the ambient board, all succeed; 0 charges, 0 sorties,
+> 0 frontier calls — three of the four seams are never reached there, so the
+> byte-identity is a fact about the harness, not evidence). Zero `.gd`. **NEXT = slice
+> 11** (the typed-route residue), then 12 → 14.
+>
+> **All four rows re-reproduced first.** The glorious charge and the reckless
+> auto-charge both stood victorious cavalry on a peaceful court's soil (Ney in
+> Prussian Rhineland, France|Prussia at PEACE — capture refused, the standing
+> illegal); a jealousy-autonomous attack on a reckless-3 cavalryman returned the
+> CHARGE/RESTRAIN popup and the answered charge **relocated him AND staged the
+> war-purpose HARD STOP** from an attack nobody ordered; a refused autonomous attack
+> was narrated as fought with the order lost; a HOLD sally **flipped Netherlands with
+> Ney still at Belgium and mounted the plunder question** for a province he never
+> entered.
+>
+> **WO-31 DECIDED (a): a province is taken by the army that STANDS on it** — the
+> artillery arm and the charge path at the same seam already say so, and option (b)
+> would have let a fortified holder strip every adjacent province without leaving
+> his works. The sally clears the field and the copy says the ground is not held.
+>
+> **Built:** ONE predicate `world_state.frontier_halt_owner` (the pursuit guard's
+> neutral arm, drift-pinned against it on all eight states) halts both charge
+> advances; **WO-25 closed at the source, not by threading a flag through the popup
+> round-trip** (that needs a serialized field) — an autonomous attack takes the
+> strategic-sally road, so neither charge popup is ever mounted by it, the charge
+> receives `command` and guards its own staging site, and `respond_to_glorious_charge`
+> is reachable only from a player-ordered attack by construction (AST-pinned); the
+> terrain-REDIRECT popup's missing sally guard closed by the same predicate (a HOLD
+> sally used to return it from inside end-turn processing, invisible, leaving the
+> flag armed for the next bare `charge`); a refused autonomous attack **restores the
+> order, the hold and the NPC-2 interrupt**, fires no beat/log/report, and SAYS why on
+> a new `jealousy_autonomous_refused` line (whitelisted, cap-exempt). **Corrected in
+> the contract:** WO-28's "recklessness popup" refusal is now impossible (the
+> surviving shape is a FORTIFIED jealous marshal, refused every cycle); the fourth
+> staging site is closed by unreachability. Two pins flipped consciously (the exempt
+> tuple; the PC15-D1 census `>= 2 → >= 4` whose docstring was false). **The sweep's
+> baseline gate caught a flaky pin of mine** (the neutral sally rode the combat RNG);
+> every weak-enemy fixture now breaks deterministically, six seeded runs 49/49.
+
 > # ✅ ROW WO SLICE 10 — "THE ENEMY-DIRECTION GATE" (WO-13) — September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 10, authoritative.**
 > Commits `1347119d` + `da454728`.

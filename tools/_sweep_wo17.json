@@ -1,0 +1,177 @@
+[
+ {
+  "id": "WO17-1 charge frontier halt deleted",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE\n                    and pursuit_block and pursuit_block[\"arm\"] == \"neutral\"):",
+  "new": "                    and False):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-2 charge halts on the ally arm too",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    and pursuit_block and pursuit_block[\"arm\"] == \"neutral\"):",
+  "new": "                    and pursuit_block is not None):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-3 charge lever frozen at import",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE\n",
+  "new": "                    and True\n",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-4 halted charge no longer reaches the staging block",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                and (marshal.location == charge_battle_region or charge_halted)):",
+  "new": "                and marshal.location == charge_battle_region):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-5 charge staging guard deleted",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                            and marshal.nation == world.player_nation\n                            and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                                     and (command or {}).get(\"_jealousy_autonomous\"))):",
+  "new": "                            and marshal.nation == world.player_nation):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-6 auto-charge arm drops the command",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                            return self._execute_glorious_charge(\n                                marshal, resolved_target, world, game_state,\n                                command=command)",
+  "new": "                            return self._execute_glorious_charge(\n                                marshal, resolved_target, world, game_state,\n                                command=None)",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-7 popup predicate loses the autonomous arm",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            _no_charge_popup = bool(\n                marshal.in_strategic_mode\n                or (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                    and (command or {}).get(\"_jealousy_autonomous\")))",
+  "new": "            _no_charge_popup = bool(marshal.in_strategic_mode)",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-8 redirect popup ungated",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        if (chargeable_alternatives and is_player and recklessness < 4\n                                and not _no_charge_popup):",
+  "new": "                        if (chargeable_alternatives and is_player and recklessness < 4):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-9 charge popup ungated",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        if is_player and recklessness < 4 and not _no_charge_popup:  # Player at exactly 3 - popup",
+  "new": "                        if is_player and recklessness < 4:  # Player at exactly 3 - popup",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-10 sortie stand-off deleted",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        sortie_stands_off = bool(\n            SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE\n            and getattr(self._executor, '_current_sortie', False)\n            and marshal.location != target_location)",
+  "new": "        sortie_stands_off = False",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-11 sortie predicate loses the standing clause",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            and getattr(self._executor, '_current_sortie', False)\n            and marshal.location != target_location)",
+  "new": "            and getattr(self._executor, '_current_sortie', False))",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-12 sortie copy printed with defenders left",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if not _sortie_remaining:\n                conquest_msg = (",
+  "new": "            if True:\n                conquest_msg = (",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-13 reckless halt arm deleted",
+  "file": "backend/models/world_state.py",
+  "old": "                _halt_owner = (\n                    frontier_halt_owner(self, marshal.nation,\n                                        auto_charge_battle_region)\n                    if CHARGE_FRONTIER_HALT_ACTIVE else None)",
+  "new": "                _halt_owner = None",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-14 reckless lever frozen",
+  "file": "backend/models/world_state.py",
+  "old": "                    if CHARGE_FRONTIER_HALT_ACTIVE else None)",
+  "new": "                    if True else None)",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-15 frontier predicate drops the ally arm",
+  "file": "backend/models/world_state.py",
+  "old": "    if not world.can_attack_nation(nation, owner):\n        return None\n    return owner",
+  "new": "    return owner",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-16 frontier predicate drops the at-war arm",
+  "file": "backend/models/world_state.py",
+  "old": "    if world.is_at_war(nation, owner):\n        return None\n    if not world.can_attack_nation(nation, owner):",
+  "new": "    if not world.can_attack_nation(nation, owner):",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-17 refusal arm deleted",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if (AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE\n                and not (isinstance(result, dict) and result.get(\"success\"))):",
+  "new": "        if False:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-18 refusal lever frozen",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if (AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE\n                and not",
+  "new": "        if (True\n                and not",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-19 the hold is not restored",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            marshal.holding_position, marshal.hold_region = _hold_before",
+  "new": "            pass",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-20 the interrupt is not restored",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            if (_interrupt_before is not None\n                    and getattr(marshal, \"pending_interrupt\", None) is None):\n                marshal.pending_interrupt = _interrupt_before",
+  "new": "            pass",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-21 void beat appended instead of inserted",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            events.insert(_void_index, {",
+  "new": "            events.append({",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-22 refused beat collapsible into the drama tail",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    \"jealousy_autonomous_refused\",   # WO-28: ...or NOT landing, and why\n",
+  "new": "",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-23 refused beat dropped at the dispatch whitelist",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"jealousy_autonomous_refused\",\n    \"jealousy_escalation\",",
+  "new": "    \"jealousy_escalation\",",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-24 refused result still handed to the renderer",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            continue\n        if _voided is not None and marshal.nation == world.player_nation:",
+  "new": "            results.append(result)\n            continue\n        if _voided is not None and marshal.nation == world.player_nation:",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ },
+ {
+  "id": "WO17-25 reason keeps the markup chrome",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    message = _re.sub(r\"\\[/?[^\\]]*\\]\", \" \", message)   # bbcode / [Tag] chrome",
+  "new": "    message = message   # bbcode / [Tag] chrome",
+  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
+ }
+]

@@ -167,11 +167,17 @@ class TestBeatsAreNeverCollapsed:
         # "shadow_petition" joins — the Petition for Independent Command's
         # arrival beat, exempt for the same reason fontainebleau_petition
         # is (a petition arriving must never collapse into the tail).
+        # Pin flipped consciously again (WO-28, WO slice 17, Sept 1 2026):
+        # "jealousy_autonomous_refused" joins — the fore-warned attack
+        # that did NOT go in, with the executor's reason. It answers the
+        # warning beat directly above it; collapsing it into the tail
+        # would leave "he will go on his own initiative" unanswered.
         assert J.JEALOUSY_NARRATION_EXEMPT == (
             "glory_crowned",
             "glory_crown_lost",
             "jealousy_autonomous_warning",
             "jealousy_autonomous_attack",
+            "jealousy_autonomous_refused",
             "jealousy_separation_warning",
             "fontainebleau_petition",
             "shadow_petition",

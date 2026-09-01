@@ -2644,6 +2644,9 @@ _DISPATCH_EVENT_TYPES = {
     "jealousy_fired",
     "jealousy_autonomous_warning",
     "jealousy_autonomous_attack",
+    # WO-28 (WO slice 17): the fore-warned attack that was REFUSED, with
+    # the executor's reason — the beat above narrated it as fought.
+    "jealousy_autonomous_refused",
     "jealousy_escalation",
     "jealousy_resolved",
     "jealousy_separation_warning",
