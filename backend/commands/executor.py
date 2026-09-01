@@ -1615,8 +1615,14 @@ class CommandExecutor:
                                                 "neglect — his victories remain "
                                                 "unrewarded.)")
 
-                                # V2 scaled trust values
-                                trust_gain = calculate_trust_gain(concern, trust_tier)
+                                # V2 scaled trust values. WO-D9: damped at
+                                # the QUOTE so the figure on the button is the
+                                # figure the marshal is paid.
+                                from backend.models.authority import (
+                                    damp_objection_trust_gain,
+                                )
+                                trust_gain = damp_objection_trust_gain(
+                                    world, calculate_trust_gain(concern, trust_tier))
 
                                 objection = {
                                     # V2 fields

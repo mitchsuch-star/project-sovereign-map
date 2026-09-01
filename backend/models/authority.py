@@ -531,3 +531,53 @@ def courting_effectiveness_scale(grip: int) -> float:
         return 1.0
     span = AUTHORITY_ACCELERATE_BELOW
     return 1.0 + 0.5 * (span - grip) / span
+
+
+# ═══════════════════════════════════════════════════════
+# WO-D9 — THE ANTI-PUSHOVER DAMPER, WIRED (row WO slice 9)
+# ═══════════════════════════════════════════════════════
+#
+# `AuthorityTracker.get_trust_gain_modifier` has existed since the V2
+# objection work and was read by exactly one caller — the BATTLE
+# vindication award (`vindication.py`). On the objection path, the surface
+# it was written for, it was wired to nothing: a player who answered
+# "trust" every time paid full price for every marshal's goodwill.
+#
+# The user ruled this on August 22, 2026 at the recommended default
+# (`DESIGN_REFINEMENT.md` §WO-D7..D11, row WO-D9): (a) NO per-marshal
+# cooldown — no new mechanic; (b) diminishing returns via this modifier
+# exactly as it stands; (c) the authority-band asymmetry is DELIBERATE and
+# stays. Nothing here re-opens any of the three.
+#
+# It is applied where the number is MINTED, not where it is paid. The six
+# pay sites across the tactical and strategic handlers all read the figure
+# back off the objection dict, and the objection dialog puts that same
+# figure on its button ("Trust Ney's Judgment (+8 trust)"). Damping at the
+# quote therefore damps all six for free AND keeps shown == applied;
+# damping at the payment would have made the button lie, which is the
+# defect class this whole row exists to close.
+#
+# Flip lever for the BASELINE_SERIES attribution experiment: False
+# reproduces the pre-slice behaviour byte-identically (the
+# HOST_RULE_ACTIVE idiom). Not a config surface.
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 9.
+OBJECTION_TRUST_DAMPER_ACTIVE = True
+
+
+def damp_objection_trust_gain(world, trust_gain: int) -> int:
+    """Scale a quoted objection trust gain by the anti-pushover modifier.
+
+    Gains only — an insist PENALTY is never softened, and a zero gain
+    (MILD/NONE concerns) is returned untouched. Defensive about the
+    tracker so legacy worlds and test doubles keep working: the
+    `hasattr` probe mirrors `vindication.py`'s, which several fixtures
+    already satisfy with a hand-rolled stub.
+    """
+    if not OBJECTION_TRUST_DAMPER_ACTIVE:
+        return int(trust_gain)
+    if trust_gain <= 0:
+        return int(trust_gain)
+    tracker = getattr(world, "authority_tracker", None)
+    if tracker is None or not hasattr(tracker, "get_trust_gain_modifier"):
+        return int(trust_gain)
+    return int(trust_gain * tracker.get_trust_gain_modifier())

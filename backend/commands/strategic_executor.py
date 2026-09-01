@@ -968,7 +968,13 @@ class StrategicExecutor:
                         trust_tier = get_trust_tier(marshal.trust.value)
                         tone = get_objection_tone(trust_tier)
                         insist_penalty = get_insist_penalty(trust_tier)
-                        trust_gain = calculate_trust_gain(strategic_concern, trust_tier)
+                        # WO-D9: damped at the QUOTE (see executor.py).
+                        from backend.models.authority import (
+                            damp_objection_trust_gain,
+                        )
+                        trust_gain = damp_objection_trust_gain(
+                            world,
+                            calculate_trust_gain(strategic_concern, trust_tier))
                         legacy_severity = concern_to_legacy_severity(strategic_concern)
 
                         # Generate alternatives using V1 personality helpers
@@ -1085,6 +1091,19 @@ class StrategicExecutor:
                                 marshal, strategic_type.lower(), command,
                                 strategic_concern, tone
                             )
+
+                        # WO-D9: the three v1_options producers above
+                        # (`:986`, `:1018`, `:1062`) each mint the trust arm's
+                        # label from an UNDAMPED `calculate_trust_gain`, while
+                        # the handler pays `objection["trust_gain"]`. One
+                        # normalisation here — rather than three patches, or
+                        # threading `world` through _build_strategic_options'
+                        # eight call sites — keeps the button and the payment
+                        # the same number, which is the whole point of damping
+                        # at the quote.
+                        for _opt in v1_options:
+                            if _opt.get("type") == "preferred":
+                                _opt["trust_change"] = trust_gain
 
                         objection = {
                             # V2 fields

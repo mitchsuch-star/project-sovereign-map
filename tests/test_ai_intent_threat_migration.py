@@ -557,9 +557,48 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #
 # M1-M7 were run before and after and are byte-identical WITHOUT
 # re-record.
+#
+# WO-8 re-record (September 1, 2026, slice 9 "The Courting Cap") - THREE
+# indices move: [28] 59 -> 69, [29] 56 -> 66, [30] 53 -> 63. Every other
+# index, [31] onward included, is byte-identical: the two trajectories
+# re-converge at 50 and stay together to the end.
+#
+# Cause, measured before a line was written. Every throttle on enemy
+# vassal courting was keyed per-COURTIER, none per-TARGET, so on THIS
+# board at turn 28 all nineteen enemy nations spent their first court on
+# the same satellite in one tick: Switzerland 47 -> 42 -> ... -> 2 -> 0,
+# the last ten courts moving it from 0 to 0 while still charging 2 DP
+# each, ending `Switzerland-France: VASSAL -> WAR (vassal_rebellion)`.
+# France lost a satellite, and its threat reading fell with it. Capped,
+# Switzerland is courted ONCE per turn - Britain 28, Russia 29, Austria
+# 30, Britain again 31 as its cooldown expires - bottoms at 8 and
+# recovers instead of rebelling, so France holds the satellite and reads
+# ten points higher for three turns.
+#
+# Attribution, four arms:
+#   0. both levers False .................. prior series, BYTE-FOR-BYTE
+#   A. COURTING_TARGET_CAP_ACTIVE only .... diverges at [28][29][30]
+#   B. OBJECTION_TRUST_DAMPER_ACTIVE only . prior series, BYTE-FOR-BYTE
+#   AB. full tree ......................... identical to arm A
+# So the courting cap is the SOLE lever, and WO-D9's trust damper is
+# measured inert here rather than assumed to be: the objection channel is
+# gated on `marshal.nation == world.player_nation` and France issues no
+# orders on this board, so no objection is ever raised to damp.
+#
+# Note for the next reader: `attempt_vassal_courting` lives inside
+# `_process_ai_diplomatic_phase`, which `end_turn` runs only `if
+# game_state` (`turn_manager.py:258`). A probe calling `tm.end_turn()`
+# bare - as a first pass of mine did - measures ZERO courting events on a
+# board that in fact fires nineteen, and would retire the defect as
+# unreachable. Pass the runner's own `game_state`.
+#
+# M1-M7 were run before and after and are byte-identical WITHOUT
+# re-record - structurally, not by luck: M1-M6 drive `resolve_battle`
+# directly with no turn loop, and M7 never calls `end_turn`, so the
+# courting phase is unreachable from all seven.
 BASELINE_SERIES = [
     70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70, 68,
-    66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 59, 56, 53, 50, 47, 44,
+    66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 69, 66, 63, 50, 47, 44,
     41, 38, 35, 32, 29, 26, 23,
 ]
 

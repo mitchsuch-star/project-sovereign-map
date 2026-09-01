@@ -1,0 +1,142 @@
+[
+  {
+    "id": "WO9-1 the per-target cap is deleted (the 19-court pile-on returns)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if state.get(\"courted_turn\") == int(world.current_turn):\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestOneCourtPerTargetPerTurn tests/test_wo_slice9_the_courting_cap.py::TestTheCapIsSitedBelowTheOlderCooldown"
+  },
+  {
+    "id": "WO9-2 the self-court guard is deleted (Switzerland courts Switzerland)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if nation == vassal_name:\n                continue",
+    "new": "            if nation is None:\n                continue",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite"
+  },
+  {
+    "id": "WO9-3 the fellow-satellite guard is deleted",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            courtier_row = world.vassals.get(nation)\n            if (courtier_row is not None and courtier_row is not state\n                    and courtier_row.get(\"lord\") == state[\"lord\"]):\n                continue",
+    "new": "            courtier_row = world.vassals.get(nation)\n            if courtier_row is None:\n                continue",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite"
+  },
+  {
+    "id": "WO9-4 the lord guard degenerates to `nation in world.vassals` (an enemy lord's satellite is wrongly blocked)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if (courtier_row is not None and courtier_row is not state\n                    and courtier_row.get(\"lord\") == state[\"lord\"]):",
+    "new": "            if nation in world.vassals:",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite::test_the_guard_compares_lords_not_the_player"
+  },
+  {
+    "id": "WO9-5 the target stamp is never written (the cap can never engage)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        if COURTING_TARGET_CAP_ACTIVE:\n            state[\"courted_turn\"] = int(world.current_turn)",
+    "new": "        if False:\n            state[\"courted_turn\"] = int(world.current_turn)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestOneCourtPerTargetPerTurn::test_the_second_courtier_of_the_same_vassal_wins_nothing tests/test_wo_slice9_the_courting_cap.py::TestTheStampRidesTheVassalRow"
+  },
+  {
+    "id": "WO9-6 the stamp becomes a constant (the cap never lifts)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            state[\"courted_turn\"] = int(world.current_turn)",
+    "new": "            state[\"courted_turn\"] = -1",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestOneCourtPerTargetPerTurn::test_the_cap_lifts_on_the_next_turn tests/test_wo_slice9_the_courting_cap.py::TestTheStampRidesTheVassalRow::test_courted_turn_survives_a_save_load_round_trip"
+  },
+  {
+    "id": "WO9-7 the cap moves BELOW the DP debit (the loser pays)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if state.get(\"courted_turn\") == int(world.current_turn):\n                continue\n\n        # Cost 2 DP\n        dp_nations = getattr(world, 'nation_dp', {})\n        if dp_nations.get(nation, 0) < 2:\n            continue\n\n        dp_nations[nation] = dp_nations.get(nation, 0) - 2\n",
+    "new": "            pass\n\n        # Cost 2 DP\n        dp_nations = getattr(world, 'nation_dp', {})\n        if dp_nations.get(nation, 0) < 2:\n            continue\n\n        dp_nations[nation] = dp_nations.get(nation, 0) - 2\n        if state.get(\"courted_turn\") == int(world.current_turn):\n            continue\n",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestOneCourtPerTargetPerTurn::test_the_losing_courtier_spends_no_dp tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite::test_the_self_court_costs_the_courtier_nothing"
+  },
+  {
+    "id": "WO9-8 the cap moves ABOVE the per-courtier cooldown read (shadowing the older pin)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        # Anti-spam cooldown\n        cooldown_key = f\"court|{nation}|{vassal_name}\"\n        cooldown = getattr(world, 'ai_proposal_cooldowns', {}).get(cooldown_key, 0)\n        if cooldown > 0:\n            continue\n",
+    "new": "        cooldown_key = f\"court|{nation}|{vassal_name}\"\n",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheCapIsSitedBelowTheOlderCooldown tests/test_session5_diplomacy.py::TestEnemyCourting::test_courting_anti_spam"
+  },
+  {
+    "id": "WO9-9 the flip lever is left down in production",
+    "file": "backend/game_logic/vassal.py",
+    "old": "COURTING_TARGET_CAP_ACTIVE = True",
+    "new": "COURTING_TARGET_CAP_ACTIVE = False",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheFlipLever::test_the_lever_is_true_at_rest tests/test_ai_intent_threat_migration.py::TestStep4SeriesPin::test_series_matches_recorded_baseline"
+  },
+  {
+    "id": "WO9-10 the damper is bypassed at the TACTICAL quote site",
+    "file": "backend/commands/executor.py",
+    "old": "                                trust_gain = damp_objection_trust_gain(\n                                    world, calculate_trust_gain(concern, trust_tier))",
+    "new": "                                trust_gain = calculate_trust_gain(concern, trust_tier)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestShownEqualsApplied::test_both_quote_sites_route_through_the_damper"
+  },
+  {
+    "id": "WO9-11 the damper is bypassed at the STRATEGIC quote site",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                        trust_gain = damp_objection_trust_gain(\n                            world,\n                            calculate_trust_gain(strategic_concern, trust_tier))",
+    "new": "                        trust_gain = calculate_trust_gain(strategic_concern, trust_tier)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestShownEqualsApplied::test_both_quote_sites_route_through_the_damper"
+  },
+  {
+    "id": "WO9-12 the strategic option label stops mirroring the dict (the button lies again)",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                        for _opt in v1_options:\n                            if _opt.get(\"type\") == \"preferred\":\n                                _opt[\"trust_change\"] = trust_gain",
+    "new": "                        for _opt in v1_options:\n                            if _opt.get(\"type\") == \"__never__\":\n                                _opt[\"trust_change\"] = trust_gain",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestShownEqualsApplied::test_the_strategic_option_label_mirrors_the_dict"
+  },
+  {
+    "id": "WO9-13 the damper softens an insist PENALTY too",
+    "file": "backend/models/authority.py",
+    "old": "    if trust_gain <= 0:\n        return int(trust_gain)",
+    "new": "    if trust_gain == 0:\n        return int(trust_gain)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_an_insist_penalty_is_never_softened"
+  },
+  {
+    "id": "WO9-14 the damper stops consulting the tracker (returns the raw gain)",
+    "file": "backend/models/authority.py",
+    "old": "    return int(trust_gain * tracker.get_trust_gain_modifier())",
+    "new": "    return int(trust_gain)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_pushover_is_paid_less_than_a_balanced_player tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_the_ruled_thresholds_are_the_ones_applied"
+  },
+  {
+    "id": "WO9-15 the tracker's defensive probe is removed (a legacy world crashes)",
+    "file": "backend/models/authority.py",
+    "old": "    if tracker is None or not hasattr(tracker, \"get_trust_gain_modifier\"):\n        return int(trust_gain)",
+    "new": "    if tracker is None and False:\n        return int(trust_gain)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_world_without_a_tracker_does_not_crash"
+  },
+  {
+    "id": "WO9-16 the damper flip lever is left down",
+    "file": "backend/models/authority.py",
+    "old": "OBJECTION_TRUST_DAMPER_ACTIVE = True",
+    "new": "OBJECTION_TRUST_DAMPER_ACTIVE = False",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_the_lever_is_true_at_rest tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_pushover_is_paid_less_than_a_balanced_player"
+  },
+  {
+    "id": "WO9-17 the ruled >0.80 threshold is retuned",
+    "file": "backend/models/authority.py",
+    "old": "        if trust_ratio > 0.80:\n            return 0.5  # Severe penalty for always trusting",
+    "new": "        if trust_ratio > 0.80:\n            return 0.9  # Severe penalty for always trusting",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_the_ruled_thresholds_are_the_ones_applied"
+  },
+  {
+    "id": "WO9-18 the >=5-answers guard is dropped (a two-answer player is damped)",
+    "file": "backend/models/authority.py",
+    "old": "        if len(self.recent_responses) < 5:\n            return 1.0",
+    "new": "        if len(self.recent_responses) < 0:\n            return 1.0",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_under_five_recorded_answers_nothing_is_damped"
+  },
+  {
+    "id": "WO9-19 the cap keys on the world instead of the row (a second vassal becomes uncourtable)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if state.get(\"courted_turn\") == int(world.current_turn):",
+    "new": "            if getattr(world, \"_courted_turn\", None) == int(world.current_turn):",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestOneCourtPerTargetPerTurn::test_the_second_courtier_of_the_same_vassal_wins_nothing"
+  },
+  {
+    "id": "WO9-20 the stamp stops round-tripping (vassals rows shallow-copied by key)",
+    "file": "backend/models/world_state.py",
+    "old": "            \"vassals\": {k: v.copy() for k, v in self.vassals.items()},",
+    "new": "            \"vassals\": {k: {kk: vv for kk, vv in v.items() if kk != \"courted_turn\"} for k, v in self.vassals.items()},",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheStampRidesTheVassalRow"
+  }
+]

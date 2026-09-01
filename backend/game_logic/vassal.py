@@ -106,6 +106,23 @@ GRANT_COOLDOWN = 3  # turns, per-vassal (mirrors invest); anti land-shuffle
 LOYALTY_MIN = 0
 LOYALTY_MAX = 100
 
+# ═══════ WO-8 — THE COURTING CAP (row WO slice 9) ═══════
+# Every throttle on enemy vassal courting was keyed per-COURTIER (the
+# `court|{nation}|{vassal}` cooldown; the per-call `break`), never
+# per-TARGET, so on the ambient 1805 board all nineteen enemy nations
+# spent their first court on the same satellite in a single tick —
+# Switzerland, loyalty 47 -> 0, ten of the nineteen moving it from 0 to 0
+# while still charging 2 DP and raising a notification apiece. Two of the
+# courtiers were France's OTHER satellites and the last was Switzerland
+# courting itself, both reachable because the three French client states
+# are full roster nations: they sit in world.enemy_nations AND in
+# world.vassals at once.
+# Flip lever for the BASELINE_SERIES attribution experiment: False
+# reproduces the pre-slice behaviour byte-identically (the
+# HOST_RULE_ACTIVE idiom). Not a config surface.
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 9.
+COURTING_TARGET_CAP_ACTIVE = True
+
 # ═══════ MARSHAL ASSIMILATION ═══════
 ASSIMILATION_TRUST = 40  # Starting trust for assimilated marshals
 
@@ -1999,6 +2016,37 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         if cooldown > 0:
             continue
 
+        # WO-8 (a)(b)(c). Sited BELOW the per-courtier cooldown read — which
+        # keeps that older pin live — and ABOVE every side effect this body
+        # has: the DP debit, the loyalty write, the cooldown set, the
+        # notification, the event, and the 60% dispatch roll. A courtier the
+        # cap turns away therefore spends nothing.
+        if COURTING_TARGET_CAP_ACTIVE:
+            # (b) a nation does not court itself.
+            if nation == vassal_name:
+                continue
+            # (c) nor does it court a FELLOW satellite of its own lord —
+            # `is not state`, because "fellow" means another one. Written
+            # without that clause the guard silently subsumed (b) above (a
+            # row trivially shares a lord with itself), which a mutation
+            # sweep caught by reporting (b)'s pin INERT.
+            # Compared lord-to-lord rather than against `player`: a vassal
+            # row's lord is NOT always the player (formations.py stamps the
+            # carver on a carved client; the VS-6 defection transfers one to
+            # the briber), so the general comparison is the one that stays
+            # correct if this loop is ever widened past player-held vassals.
+            courtier_row = world.vassals.get(nation)
+            if (courtier_row is not None and courtier_row is not state
+                    and courtier_row.get("lord") == state["lord"]):
+                continue
+            # (a) one successful court per TARGET per turn, world-wide. The
+            # first courtier in enemy-nation order wins; that order is a
+            # list all the way down (EUROPE_ROSTER -> enemy_nations ->
+            # turn_manager's filtering comprehension), so it is deterministic
+            # without a sort.
+            if state.get("courted_turn") == int(world.current_turn):
+                continue
+
         # Cost 2 DP
         dp_nations = getattr(world, 'nation_dp', {})
         if dp_nations.get(nation, 0) < 2:
@@ -2018,6 +2066,14 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         cooldowns_dict = getattr(world, 'ai_proposal_cooldowns', {})
         cooldowns_dict[cooldown_key] = 3
         world.ai_proposal_cooldowns = cooldowns_dict
+
+        # WO-8 (a): stamp the TARGET. A turn-stamp rather than a countdown
+        # needs no tick-down maintenance and cannot expire wrongly, and it
+        # rides the vassal row, so it serializes for free with the vassals
+        # dict — zero new serialized fields (the VS-3 `grant_cooldown`
+        # precedent above).
+        if COURTING_TARGET_CAP_ACTIVE:
+            state["courted_turn"] = int(world.current_turn)
 
         # Notification: courting detected (Session 8C)
         from backend.notifications import (
