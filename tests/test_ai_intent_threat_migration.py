@@ -567,13 +567,20 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # vassal courting was keyed per-COURTIER, none per-TARGET, so on THIS
 # board at turn 28 all nineteen enemy nations spent their first court on
 # the same satellite in one tick: Switzerland 47 -> 42 -> ... -> 2 -> 0,
-# the last ten courts moving it from 0 to 0 while still charging 2 DP
+# NINE of the courts moving it from 0 to 0 while still charging 2 DP
 # each, ending `Switzerland-France: VASSAL -> WAR (vassal_rebellion)`.
 # France lost a satellite, and its threat reading fell with it. Capped,
 # Switzerland is courted ONCE per turn - Britain 28, Russia 29, Austria
-# 30, Britain again 31 as its cooldown expires - bottoms at 8 and
-# recovers instead of rebelling, so France holds the satellite and reads
-# ten points higher for three turns.
+# 30, Britain again 31 as its cooldown expires - bleeding 47 * 34 * 21 * 8
+# and rebelling ANYWAY, at turn 32. The cap does not save the satellite,
+# it delays its fall by three turns, which is why the two trajectories
+# re-converge at [31]: that index IS the delayed rebellion arriving.
+# (Corrected September 1, 2026 by slice 10. This block previously said
+# "the last ten courts" - off by one - and "bottoms at 8 and recovers
+# instead of rebelling", which was read off a trace that stopped short.
+# Both were already corrected in the slice-9 landing record; the copy
+# here was missed. Pinned by
+# `test_wo_slice9_the_courting_cap.py::TestWhatTheCapActuallyDoesToTheSatellite`.)
 #
 # Attribution, four arms:
 #   0. both levers False .................. prior series, BYTE-FOR-BYTE
@@ -596,10 +603,61 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # re-record - structurally, not by luck: M1-M6 drive `resolve_battle`
 # directly with no turn loop, and M7 never calls `end_turn`, so the
 # courting phase is unreachable from all seven.
+#
+# WO-13 re-record (September 1, 2026, slice 10 "The Enemy-Direction
+# Gate") - indices [0]-[12] are byte-identical and everything from [13]
+# on moves. The series no longer decays to 23; it rises and holds.
+#
+# Cause, measured before a line was written. Three name-resolution seams
+# in `executor.py` auto-corrected a query onto a MARSHAL with no typo
+# gate, so on this board twelve province names collapse onto marshals
+# (`Bern` -> Bernadotte and `Leon` -> Napoleon at a full 100, seven more
+# -> Ney at 80). The ambient AI hit it SEVENTEEN times in the 40 turns,
+# every one of them from `enemy_ai._execute_action` -> `_execute_attack`,
+# and the consequence was a FREEZE: Britain's Paget stood at Bearn,
+# adjacent to Gascony, and for twenty-two consecutive turns every attack
+# he ordered on that province was redirected to Ney - in Vienna, eight
+# provinces away - and refused as out of range. Gated, Britain fights in
+# Iberia and France is not stripped: final provinces move from
+# France 18 / Britain 19 to France 26 / Britain 12.
+#
+# Attribution, SEVEN arms, each a real source edit + a hash-pinned
+# `--emit-series` subprocess run:
+#   0.  no lever ..................... prior series, BYTE-FOR-BYTE
+#   A.  ENEMY_DIRECTION_GATE only .... diverges at [11] - and NOT toward
+#       the fix: with the absorber still open, 15 of the collapses simply
+#       re-route into `_broad_fuzzy_diplomatic_check` and the world ends
+#       Britain 27 / France 8. Gating the first seam alone is a different
+#       bug, not a partial fix. This is the eval's "gating :433 re-routes
+#       to :370" claim, measured rather than asserted.
+#   B.  BROAD_DIPLOMATIC_GATE only ... prior series, BYTE-FOR-BYTE
+#   C.  MARSHAL_DIRECTION_GATE only .. prior series, BYTE-FOR-BYTE
+#   AB. enemy + absorber ............. IDENTICAL to the full tree
+#   AC. enemy + marshal .............. IDENTICAL to arm A
+#   ABC full tree .................... the series below
+# So: A is necessary (nothing moves without it); B is inert ALONE but
+# load-bearing in combination (AB != A, AB == ABC); and C is measured
+# completely inert on this board (C == 0, AC == A, AB == ABC) with a
+# written reason - all 58 of the ambient run's touches of that seam are
+# the EXACT string `Brunswick`, a Prussian marshal who is also a
+# province, so the fuzzy arm is never reached there. C is kept because
+# the hole is identical and IS reachable from the typed direction, and it
+# is pinned by construction rather than by the ambient board.
+#
+# Note for the next reader: an instrumented count of this defect must
+# treat an EXACT match as legitimate. A naive "query is also a region
+# key" counter reports 75 hits, of which 58 are marshal Brunswick being
+# looked up by his own name - the number that matters is the 17
+# non-exact ones.
+#
+# M1-M7 were run before and after and are byte-identical WITHOUT
+# re-record - structurally: none of the seven routes a target string
+# through `_fuzzy_match_enemy`; M1-M6 call `resolve_battle` directly and
+# M7 drives marshals by object, never by name.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70, 68,
-    66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 69, 66, 63, 50, 47, 44,
-    41, 38, 35, 32, 29, 26, 23,
+    70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 73, 91, 89, 87,
+    85, 83, 86, 89, 92, 90, 97, 95, 96, 94, 92, 90, 88, 86, 84, 72, 70,
+    68, 66, 64, 62, 60, 58, 56,
 ]
 
 

@@ -906,36 +906,55 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
 
         uncapped  the turn-28 tick strips 47 -> 0; the state flip is
                   observable at current_turn 29
-        capped    t28 47 · t29 34 · t30 21 · t31 8; flip observable at 32
+        capped    a four-turn bleed instead of a single tick; the flip is
+                  observable four turns later
 
     (Observed AFTER `end_turn`, so a rebellion resolved inside the
     advance shows on the following turn's reading — which is why the
     uncapped number is 29 and not the 28 of the courting tick itself.)
 
     The cap does not save the satellite. It converts a vanishing between
-    two screens into a four-turn bleed the player can see and act on —
-    which is the whole value of it, and is why `BASELINE_SERIES`
-    re-converges at index [31]: that is exactly where the delayed
-    rebellion lands.
+    two screens into a multi-turn bleed the player can see and act on —
+    which is the whole value of it, and it is visible in
+    `BASELINE_SERIES` as that series' single largest fall.
+
+    ── AMENDED September 1, 2026 by slice 10 (WO-13) ───────────────────
+    The capped rebellion moved 32 -> 33 and the two arms no longer
+    re-converge, because slice 10 changed the board from turn 13 on:
+    Britain's Iberian army had been FROZEN by a name-resolution defect
+    and now fights, so every downstream number shifts. Attribution is by
+    experiment, not inference — with slice 10's three levers down both
+    tests below pass verbatim; with them up both fail.
+
+    What was pinned as a fixed index [31] is now DERIVED from the
+    recorded series, so the next board change makes this pin fail loudly
+    at the right place instead of drifting: the rebellion is the largest
+    single-turn fall the series contains.
     """
 
     def test_the_cap_delays_the_rebellion_it_does_not_prevent_it(self):
-        """Killed by: deleting the cap (both arms then rebel at 28), and
+        """Killed by: deleting the cap (both arms then rebel at 29), and
         by any change that lets the satellite hold indefinitely."""
         uncapped = _rebellion_turn(False)
         capped = _rebellion_turn(True)
         assert uncapped == 29, uncapped
-        assert capped == 32, capped
-        assert capped - uncapped == 3, (
+        assert capped == 33, capped
+        assert capped - uncapped == 4, (
             "the cap must buy the lord turns to react, not save him")
 
-    def test_the_delay_is_where_the_series_reconverges(self):
-        """`BASELINE_SERIES` diverges at [28][29][30] and rejoins at [31].
-        Series index i is the reading after the i-th `end_turn`, i.e. at
-        `current_turn` i+1 — so index 31 IS turn 32, the capped
-        rebellion. The re-convergence is the delayed rebellion arriving,
-        not a coincidence.
+    def test_the_delay_is_where_the_series_falls_furthest(self):
+        """Series index i is the reading after the i-th `end_turn`, i.e.
+        at `current_turn` i+1. The capped rebellion is not a coincidence
+        in the series — it IS the series' largest single-turn fall (-12,
+        where every other step moves by at most 8).
 
         Killed by: any change to the rebellion timing that does not also
         move the recorded series."""
-        assert _rebellion_turn(True) == 31 + 1
+        from tests.test_ai_intent_threat_migration import BASELINE_SERIES
+        steps = [BASELINE_SERIES[i + 1] - BASELINE_SERIES[i]
+                 for i in range(len(BASELINE_SERIES) - 1)]
+        worst = min(steps)
+        assert steps.count(worst) == 1, (
+            f"the largest fall {worst} is no longer unique: {steps}")
+        index = steps.index(worst) + 1
+        assert _rebellion_turn(True) == index + 1

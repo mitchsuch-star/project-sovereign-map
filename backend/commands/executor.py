@@ -13,7 +13,7 @@ TODO (Future): Multi-Army Battles
 - Combined strength calculations with command bonuses
 - Coordinated attacks with flanking bonuses
 """
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from backend.ai.generic_targets import is_generic_target
 from backend.ai.nation_names import (
     nation_not_a_province_message,
@@ -148,6 +148,86 @@ _META_DELEGATED = {
 # _filter_tactical_events_by_fog) moved to meta_executor.py (R13B)
 
 
+# ═══════════════ WO-13 — THE ENEMY-DIRECTION GATE ═══════════════
+# Three name-resolution seams in this file auto-corrected a query into a
+# MARSHAL with no typo gate at all, while their region sibling
+# (`_fuzzy_match_region`, the WO-2 backstop) has been gated since August
+# 2026. The fuzzy matcher scores by partial ratio, which rewards a short
+# word for being CONTAINED in a long name, so on the shipped 1805 board
+# twelve province names collapse onto marshals — `Bern` -> Bernadotte and
+# `Leon` -> Napoleon at a full score of 100, `Gascony`/`Guyenne`/`Maine`/
+# `Brittany`/`Champagne`/`Lorraine`/`Ukraine` -> Ney at 80, `Oslo` ->
+# Napoleon and `Rome` -> Armfelt at 75.
+#
+# What that cost, measured on the 40-turn ambient board:
+#   * Britain's Iberian army was FROZEN for 22 consecutive turns. Paget
+#     stood at Bearn, adjacent to Gascony, and every attack he ordered on
+#     that province was redirected to Ney — in Vienna, eight provinces
+#     away — and refused as out of range, with the message
+#     "Paget cannot reach Gascony (Vienna) from Bearn!" naming the
+#     province and printing another man's location beside it.
+#   * Twelve of the twenty nations boot with NO war-enemies at all, and
+#     for those the broad diplomatic check answers instead — it matches
+#     over every non-allied marshal and hands back a man the caller is at
+#     PEACE with, for auto-war-declaration. Reproduced: a Prussian order
+#     to attack the province `Gascony` resolved to Ney, DECLARED WAR ON
+#     FRANCE, and cascaded Spain, Bavaria, Holland, the Kingdom of Italy
+#     and Switzerland in behind it.
+#
+# The gate is the project's own `_plausible_name_typo`, applied exactly as
+# the region backstop applies it: an auto-correct that does not look like
+# a typed mistake is not a match. An implausible correction FALLS THROUGH
+# to the honest not-found arm rather than returning a suggestion, because
+# a guess at a marshal's name is the same defect one register over
+# (CA8-28: ordinary English never becomes a province, not even as a
+# guess) — and because falling through keeps the armistice path below it
+# reachable for corrections that ARE plausible.
+#
+# `Brunswick` is the ONE case this cannot close and is not meant to: it is
+# a live province AND a Prussian marshal, identical strings, so it never
+# reaches the fuzzy arm at all — the exact lookup at the head of each seam
+# resolves it first. That resolution order is documented at each seam and
+# pinned; it is a recorded exception, not an oversight.
+#
+# Three levers rather than one, so the BASELINE_SERIES attribution can
+# name which seam moved the board. False reproduces the pre-slice
+# behaviour byte-identically (the HOST_RULE_ACTIVE idiom). Not a config
+# surface.
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 10.
+ENEMY_DIRECTION_GATE_ACTIVE = True
+BROAD_DIPLOMATIC_GATE_ACTIVE = True
+MARSHAL_DIRECTION_GATE_ACTIVE = True
+
+
+def _correction_survives(query: str, match: Optional[str],
+                         gate_active: bool) -> bool:
+    """WO-13 — True when a fuzzy auto-correct onto a MARSHAL may stand.
+
+    ONE predicate behind all three seams, so a census can prove no seam
+    was missed. `gate_active` is the seam's own flip lever: False restores
+    the ungated behaviour for the attribution experiment.
+
+    Never consulted for an EXACT match — `Brunswick` the marshal must
+    still answer to his own name.
+    """
+    if not gate_active:
+        return True
+    from backend.commands.parser import _plausible_name_typo
+    return _plausible_name_typo(query or "", match or "")
+
+
+def _honest_alternatives(result: Dict, candidates: List[str]) -> List[str]:
+    """The names to offer when nothing resolved.
+
+    `match_with_context` populates `suggestions` only on its low-score
+    arm; an auto-correct the WO-13 gate refuses arrives with an EMPTY
+    list, which printed "Available: none" on a board full of enemies.
+    Naming the real candidates is honest and is not a guess — it makes no
+    claim that the query meant any of them.
+    """
+    return list(result.get("suggestions") or [])[:3] or list(candidates)[:3]
+
+
 class CommandExecutor:
     """
     Executes validated commands and returns results.
@@ -229,8 +309,17 @@ class CommandExecutor:
         # Try fuzzy match
         result = self.fuzzy_matcher.match_with_context(marshal_name, all_marshals)
 
-        if result["action"] == "exact" or result["action"] == "auto_correct":
-            # Exact match or high confidence - use corrected name
+        # WO-13 gate (the "fifth seam"): an EXACT name always stands - that
+        # is the documented resolution order for `Brunswick`, who is a
+        # Prussian marshal and a province at once. An auto-correct must look
+        # like a typed mistake or it is not a match, and falls to the honest
+        # arm below.
+        if (result["action"] == "exact"
+                or (result["action"] == "auto_correct"
+                    and _correction_survives(marshal_name,
+                                             result.get("match"),
+                                             MARSHAL_DIRECTION_GATE_ACTIVE))):
+            # Exact match or plausible-typo correction - use corrected name
             marshal = world.get_marshal(result["match"])
             return (marshal, None)
         elif result["action"] == "suggest":
@@ -242,12 +331,13 @@ class CommandExecutor:
                 "score": int(result["score"] * 100)
             })
         else:
-            # Low confidence - show suggestions
-            suggestions_text = ", ".join(result["suggestions"][:3]) if result["suggestions"] else "none"
+            # Low confidence, or an auto-correct the WO-13 gate refused
+            alternatives = _honest_alternatives(result, all_marshals)
+            suggestions_text = ", ".join(alternatives) if alternatives else "none"
             return (None, {
                 "success": False,
                 "message": f"Marshal '{marshal_name}' not found. Available: {suggestions_text}",
-                "suggestions": result["suggestions"]
+                "suggestions": alternatives
             })
 
     def _fuzzy_match_region(self, region_name: str, world: WorldState,
@@ -390,7 +480,17 @@ class CommandExecutor:
         if not all_non_allied:
             return None
         result = self.fuzzy_matcher.match_with_context(enemy_name, all_non_allied)
-        if result["action"] in ("exact", "auto_correct"):
+        # WO-13 gate. This seam is not merely the place the first gate
+        # re-routes to - it is independently reachable above (`not
+        # all_enemies`), which is the state TWELVE of the twenty nations
+        # boot in, and it hands back a marshal the caller is at PEACE with
+        # for auto-war-declaration. Ungated, a Prussian order to attack the
+        # province `Gascony` resolved to Ney and declared war on France.
+        if (result["action"] == "exact"
+                or (result["action"] == "auto_correct"
+                    and _correction_survives(enemy_name,
+                                             result.get("match"),
+                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):
             matched = world.get_marshal(result["match"])
             if matched:
                 error = self._make_diplomatic_error(world, from_nation, matched)
@@ -454,8 +554,19 @@ class CommandExecutor:
         # Try fuzzy match against war-enemies first
         result = self.fuzzy_matcher.match_with_context(enemy_name, all_enemies)
 
-        if result["action"] == "exact" or result["action"] == "auto_correct":
-            # Exact match or high confidence - use corrected name
+        # WO-13 gate. An EXACT name always stands (`attack Brunswick` reaches
+        # the Prussian marshal - the documented collision order). An
+        # auto-correct must look like a typed mistake; an implausible one
+        # falls to the low-confidence arm below, which still consults the
+        # broad diplomatic check - so an armistice target that IS a plausible
+        # typo is still caught - and then answers honestly instead of
+        # attacking a man the caller never named.
+        if (result["action"] == "exact"
+                or (result["action"] == "auto_correct"
+                    and _correction_survives(enemy_name,
+                                             result.get("match"),
+                                             ENEMY_DIRECTION_GATE_ACTIVE))):
+            # Exact match or plausible-typo correction - use corrected name
             if attacker_nation:
                 enemy = world.get_enemy_by_name_for_nation(result["match"], attacker_nation)
             else:
@@ -474,12 +585,13 @@ class CommandExecutor:
             broad_block = self._broad_fuzzy_diplomatic_check(world, from_nation, enemy_name)
             if broad_block:
                 return broad_block
-            # Low confidence - show suggestions
-            suggestions_text = ", ".join(result["suggestions"][:3]) if result["suggestions"] else "none"
+            # Low confidence, or an auto-correct the WO-13 gate refused
+            alternatives = _honest_alternatives(result, all_enemies)
+            suggestions_text = ", ".join(alternatives) if alternatives else "none"
             return (None, {
                 "success": False,
                 "message": f"Enemy '{enemy_name}' not found. Available: {suggestions_text}",
-                "suggestions": result["suggestions"]
+                "suggestions": alternatives
             })
 
     def _attack_target_beyond_range(self, marshal, target, world) -> bool:

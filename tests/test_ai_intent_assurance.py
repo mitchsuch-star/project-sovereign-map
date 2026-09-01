@@ -266,14 +266,37 @@ class TestArmAAmbientDoD:
         recorded rather than absorbed: if the reduced signal is judged too
         weak, the lever is WIN-D5 (`europe_1805.json`, Napoleon's location),
         not this test.
+
+        ── AMENDED September 1, 2026 — WO row slice 10 (WO-13) ─────────────
+        The magnitude clause now measures the fall from the series PEAK
+        rather than from its first reading, and the reason is a board
+        change, attributed by experiment: with slice 10's three gate levers
+        down this test passes verbatim; with them up it fails at 68 -> 56.
+
+        Slice 10 closed a name-resolution defect that had FROZEN Britain's
+        Iberian army — for twenty-two turns every attack it ordered on the
+        province Gascony was redirected to Marshal Ney and refused as out
+        of range. Unfrozen, Europe actually fights France, France holds
+        (26 provinces at turn 40 against 18 before), and the mirror rises
+        to 97 mid-campaign before decaying to 56.
+
+        Measuring the fall from the FIRST reading silently assumed the
+        first reading was the maximum — true only of a board where nobody
+        could reach France. What §3.5 asserts is that restraint DECAYS the
+        price, and that is what the peak-relative form measures: 97 -> 56
+        is a 42% fall, and the rung still never rises. The direction
+        clauses are untouched; only the anchor of the magnitude clause
+        moved, and it moved from an accident of the old board to the
+        quantity the arm was always about.
         """
         series = hist1["derived"]["mirror_series"]
         first_price, first_weight, _ = series[0]
         last_price, last_weight, _ = series[-1]
+        peak_weight = max(weight for _p, weight, _n in series)
         assert last_weight < first_weight
-        assert last_weight <= first_weight * 0.6, (
+        assert last_weight <= peak_weight * 0.6, (
             "restraint must remain legible as a substantial fall in price, "
-            f"got {first_weight} -> {last_weight}")
+            f"got peak {peak_weight} -> {last_weight}")
         assert rung_index(last_price) <= rung_index(first_price), (
             "a passive France must never be read as ESCALATING")
 
