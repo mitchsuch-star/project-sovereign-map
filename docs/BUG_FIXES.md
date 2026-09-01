@@ -329,6 +329,176 @@ on screen — enemy phase → diorama → dispatch → control — and behaved.
   against a misspelled test class and a JSON `\b` escape that silently became
   a backspace character.
 
+### ✅ THE FOLLOW-UPS (August 31, 2026) — three of four closed, one owes a human ear
+
+`docs/REV_FOLLOWUPS.md` carried the four things this review left open, each
+with the reason it was left. Three are closed here; the fourth cannot be
+closed by a machine and is prepared instead. Pins:
+`tests/test_rev_followups_2026_08_31.py` (22); sweep
+`tools/_sweep_rev_followups.json` — **20 mutations, 20 killed, 0 inert at
+close** (one INERT found and repaired, below).
+
+#### ✅ REV-F1 — `battles_this_turn` wiped on load · REAL, not masked · FIXED
+
+Filed PLAUSIBLE because one adversarial refuter confirmed the mechanism and
+the other called the consequence masked by another guard. **Settled by
+experiment.** The reachable sequence, driven through `executor.execute` —
+the same door the typed order uses, so cavalry / aggressive / recklessness /
+AP / range / terrain / the naval crossing are all live:
+
+> Ney carries recklessness 2 from an earlier turn (it persists; it resets
+> only on an attacking loss or on a charge). He attacks Wellington; the
+> exchange is inconclusive, so recklessness is untouched. He charges the same
+> enemy → **"Ney has already engaged Wellington this turn!"** Save mid-turn,
+> reload, charge again → **the full 2× GLORIOUS CHARGE lands.**
+
+Five seeds, two runs each, byte-identical per seed. Every other gate survives
+the round trip, so nothing masks it — **the refuter was wrong, and the likely
+reason is that charge→save→load→charge IS masked** (`reset_recklessness`
+zeroes a serialized field), while attack→save→load→charge is not. The vector
+is not "charge twice"; it is "fight once, then charge the man you fought".
+
+Fixed the way its four neighbours already are: a documented NON-clear in
+`save_manager.load_game`, the fifth. The list is serialized under `to_dict`'s
+mid-turn-save contract and cleared at the real turn boundary by
+`clear_turn_battles` — the same contract the other four cite. It also feeds
+cannon-fire detection, vassal loyalty and the war-score reader, all of which
+were reading an empty list after a mid-turn load. **Two pins flipped
+consciously** in `tests/test_save_load.py`, both of which asserted the clear.
+
+#### ✅ REV-V3 — the rail's unmapped tail · FIXED, and the census was wrong by seven
+
+The review measured 33 unmapped notification types by diffing the maps
+against `backend/notifications.py`'s constants. **An AST census over every
+`create_notification` producer says the real number is 34 — and the two sets
+differ by seven rows in both directions:**
+
+* **Four live types the constant list could not see.** `armistice_expired`,
+  `marshal_last_stand` and `vindication_expired` ship as bare string literals
+  at the producer; `settlement_summary` is derived from `SETTLEMENT_ROUTES`
+  and reaches the rail whenever `rail_spotlight == "yes"`. All four are
+  player-facing and all four rendered as the anonymous pill.
+* **Three of the filed 33 have no producer at all.** `jealousy_confrontation`
+  and `rivalry_confrontation` are marshal-petition dialogue kinds, live in
+  that channel and never a rail row; `vassal_loyalty_critical` was superseded
+  before it shipped by `VASSAL_REBELLION_IMMINENT`. Mapping them would have
+  asserted something false about the rail.
+
+So: the three literals are promoted to constants (values unchanged, producers
+and both `dismiss_by_type` readers now name them), the three dead ones stand
+in a new **`notifications.RAIL_EXEMPT_TYPES`** with their reason, and **34
+rows are joined in both maps** — 66 keys each, identical sets.
+
+**The content decision, stated once.** Glyphs are a FAMILY signal, not a
+unique id: this file already runs `warning` six times and `check-circle` six
+times, and the tooltip names the particular matter. So rows meaning the same
+KIND of thing deliberately share one — `hourglass` is "a window closed"
+(drill lost, coalition cooldown, armistice, vindication), `flag` is "a
+nation's standing changed" (proclaimed, eliminated), `warning-circle` is the
+coalition alarm whose rung the pill COLOUR already carries (tension /
+murmurs / brewing). Everything else is the plainest available reading:
+`horse` for Murat slipping his leash, `bank` for bankruptcy, `arrow-arc-left`
+for a routed marshal's torn-up orders, `magnifying-glass` for sabotage
+discovered, `shield` for a last stand, `medal-military` for a new marshal's
+baton. All 27 glyph names exist under `assets/ui/icons/phosphor` — pinned,
+because a name with no SVG renders nothing, which is worse than the pill it
+replaced.
+
+**`marshal_last_stand` is NOT sovereign-only** — the recon summary implied it
+was, and `crown` was chosen on that basis before the code said otherwise. The
+encircled-Emperor arm and the ordinary cornered-marshal arm both raise it.
+Verify the mechanism, not the summary.
+
+**The floor pin is now a full census**, and it runs in both directions: every
+producible type must be joined, every declared constant that is NOT
+producible must be in the exempt set, and the exempt set must have no
+producer. So reviving one of the three means joining the rail in the same
+commit. Three further pins close the ways this could rot quietly: a
+**fourth dynamic producer** fails the census rather than slipping past it
+(three are resolved from the backend's own tables and enumerated); a **typo'd
+map key** fails (the only legitimate non-producible residents are the six
+`COMMITMENTS_ROUTES` event keys the routing layer never ships as a type); and
+a **join that spells `INF`/`NEW`/`ALT`** — the priority default it replaces —
+fails as the no-op it is.
+
+#### ✅ REV-V4 — the two flow fixes, staged and seen · and the row's own recipe was wrong
+
+Evidence: `docs/audits/REV_V4_*_2026_08_31.png` + `..._TERMINAL_2026_08_31.txt`,
+produced by `tools/rev_v4_signoff_screenshot.gd` driving the real `main.tscn`
+against a real backend on a sandboxed 8007 pair. Every step goes through the
+client's own entry points — `_execute_command`, the dialogs' real button
+handlers.
+
+**The row's staging recipe cannot work, and that is why the review's attempt
+failed.** It says to give a marshal a standing march into an undefended enemy
+province; an automated hop passes `auto_secure=True` (IGR-X5), so it takes
+the province in silence and no question is ever asked. The review attributed
+the failure to Archduke Charles pre-empting the march. The ONE route that
+mounts a capture question inside `advance_turn` is an **occupation
+completing**: a FORTIFIED province is occupied rather than captured, and
+`_process_tactical_states` finishes the occupation inside the turn advance.
+Staged as Ney → fortified Bohemia; the end-turn response carries
+`pending_capture_choice` + `capture_data` + `enemy_phase` + `morning_dispatch`
++ `events[0].type == "turn_end"` together, which is the exact collision the
+stash exists for.
+
+The PNG shows the question raised over the report, but a modal covers most of
+the terminal — so the harness also dumps the scrollback while the question
+stands, and *that* is the ordering evidence: the whole Morning Dispatch, then
+"Turn 1 ended… Turn 2 begins!", then the economy line, then "Your forces
+await orders: Plunder or Secure?". (A shot taken after answering proves
+nothing either way: answering is a fresh command whose result trims the
+scrollback. That third shot was rendered, read, and discarded rather than
+filed as evidence it is not.)
+
+Flow (2) staged as Soult — the authored LITERAL — under a standing march two
+hops out whose destination Mack holds: `destination_blocked`,
+`requires_input`, no odds maths and no combat RNG. Issued from an *adjacent*
+province the order resolves on the spot and produces no end-turn report at
+all, which is the second trap in staging this. The dispatch appears on screen
+at Turn 3 after the interrupt is answered.
+
+Three reachability pins are added for what the client tests cannot say,
+because the wrong recipe survived precisely because nothing pinned it: the
+occupation route asks inside the end turn, the standing march auto-secures
+and never asks (the negative control, and the correction), and a blocked
+literal march puts an input-requiring report on the same response as the
+dispatch.
+
+#### ⚠ UX23-R9 — prepared, not closed
+
+A machine cannot answer whether a capped bugle ends on a phrase. New
+`tools/ux23_r9_audition_render.gd` renders `reveille`, `to_the_color` and
+`fanfare` exactly as the game plays them — the registry's `db` trim, its
+`max_s` cap and the 0.8 s fade `_fade_stop` applies at the cap — to
+`audition/ux23_r9/` (gitignored; regenerate rather than commit), as three
+files plus one combined file so the audition is a single action. It inherits
+the probe's honesty guard: a dummy audio driver fails the run loudly rather
+than writing three silent files. **The row stays open** until a person
+listens.
+
+#### Method notes
+
+* **The mutation sweep found one INERT pin, the same shape as the five this
+  review's own first sweep found.** `test_the_interrupt_tail_shows_the_dispatch`
+  scanned the whole of `_process_next_interrupt` for
+  `_show_pending_dispatch()` — and that function *already* called it in its
+  redemption arm, so deleting the fix left the pin green. Scoped to the
+  ordinary exit, with an ordering assertion against the diorama raise.
+* **A comment-stripping helper is not automatically safe.** `_code_only`
+  returns one token per line, so a multi-token needle like
+  `world.battles_this_turn = []` never matches it — a pin that reads as
+  passing while asserting nothing. `_code_norm` squeezes whitespace from both
+  sides; `_code_only_gd` does the same job for GDScript, respecting quotes so
+  it does not eat colour literals. The battles pin was then probed in the
+  other direction too: a comment containing the retired expression verbatim
+  leaves it green, so it binds the code and ignores the prose.
+* **The probe was shown deterministic before its output was used as
+  evidence** — five seeds, two runs each, byte-identical per seed — because
+  the reason REV-F1 was filed rather than fixed is that two readings of the
+  same code disagreed.
+
+
 ## Weird-Outcomes Playtest (WO) — filed August 16, 2026; **EXTENDED August 21, 2026** (WO-17..WO-32 from the spec-authoring session's defect hunt; **build contract = `docs/WEIRD_OUTCOMES_SPEC.md`**; ALL OPEN)
 
 > **Evidence memo = `docs/audits/PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md`

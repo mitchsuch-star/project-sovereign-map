@@ -185,7 +185,25 @@ def load_game(filepath: Path) -> Dict:
         world = WorldState.from_dict(world_data)
 
         # Clear transient per-turn data that shouldn't persist across save/load
-        world.battles_this_turn = []
+        #
+        # REV-F1 (Aug 31, 2026) — a FIFTH deliberate non-clear, and the reason
+        # the fourth is documented two lines down. `battles_this_turn` was
+        # wiped here, and the glorious charge's V2-2 engagement gate
+        # (`combat_executor._execute_glorious_charge`) reads exactly that list
+        # to refuse a second engagement of the same pair in one turn. MEASURED
+        # through the typed command path on five seeds: Ney (recklessness
+        # carried from an earlier turn) attacks Wellington to a stalemate,
+        # then `charge` — refused, "has already engaged". Save mid-turn,
+        # reload, charge again — the full 2x-damage GLORIOUS CHARGE lands.
+        # Every other gate on that path (cavalry, aggressive, recklessness,
+        # AP, range, terrain, the naval crossing) survives the round trip, so
+        # nothing masked it. The list is serialized under `to_dict`'s
+        # mid-turn-save contract, restored by `from_dict`, and cleared at the
+        # real turn boundary by `clear_turn_battles` — the same contract the
+        # other four non-clears cite. It also feeds cannon-fire detection,
+        # vassal loyalty and the war-score reader, all of which were reading
+        # an empty list after a mid-turn load.
+        #
         # Aug 30, 2026 review — a FOURTH deliberate non-clear, for the reason
         # the first three were added. `in_combat_this_turn` was wiped here,
         # and the turn-end idle pass reads it as one of its only two

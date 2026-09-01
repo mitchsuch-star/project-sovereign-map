@@ -87,3 +87,7 @@ tools/mapgen_out/
 # Playtest driver run outputs (digests, sandboxed saves, server consoles) —
 # the COMMITTED fixtures live in tests/fixtures/playtest_saves/ instead
 tools/playtest_runs/
+
+# UX23-R9 audition renders — derived from the gitignored audio assets by
+# tools/ux23_r9_audition_render.gd; regenerate rather than commit.
+audition/

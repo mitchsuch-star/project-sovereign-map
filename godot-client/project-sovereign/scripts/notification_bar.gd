@@ -80,6 +80,67 @@ const TYPE_ICONS = {
 	# market or depot arrived as the anonymous priority pill "INF" — naming
 	# neither the province nor the matter, in a rail the player scans by icon.
 	"buildings_damaged": "DMG",
+	# ── REV-V3 (Aug 31, 2026): the rail's unmapped tail ──────────────────
+	# The Aug 30 review measured 33 of the backend's 57 notification types
+	# with no renderer join, arriving as the anonymous priority pill "INF" /
+	# "NEW" / "ALT" — naming neither the subject nor the matter, in a rail
+	# the player scans by icon. Re-measuring with an AST census over every
+	# `create_notification` producer found FOUR more the constant list could
+	# not see (three shipped as bare string literals, one derived from
+	# SETTLEMENT_ROUTES), and three of the filed 33 that no producer has ever
+	# emitted — those stand in `notifications.RAIL_EXEMPT_TYPES` with their
+	# reason instead.
+	#
+	# Both maps are keyed identically on purpose: a label without a glyph is
+	# a half-join, which is the mistake `buildings_damaged` shipped with.
+	# The label is a FALLBACK (the glyph blanks the button text), so it only
+	# shows if an SVG fails to load — but it must still name the matter.
+
+	# The marshal and his corps
+	"strategic_order_complete": "ARR",
+	"forced_retreat_order_voided": "RTR",
+	"friendly_fire_trust": "FFR",
+	"reckless_cavalry_action": "CAV",
+	"counter_punch_earned": "CTR",
+	"drill_cancelled": "DRL",
+	"marshal_defied_order": "DFY",
+	"marshal_commissioned": "CMS",
+	"marshal_last_stand": "ENC",
+	"vindication_expired": "VIN",
+
+	# Men, money and land
+	"manpower_depleted": "DRY",
+	"manpower_replenished": "MEN",
+	"bankruptcy_escalation": "BNK",
+	"rente_defaulted": "RNT",
+	"estate_lost": "EST",
+	"estate_confiscated": "SZD",
+
+	# The map of Europe
+	"nation_formed": "PRC",
+	"nation_eliminated": "END",
+
+	# The coalition ladder, and what becomes of one
+	"coalition_threat_tension": "TNS",
+	"coalition_murmurs": "MUR",
+	"coalition_brewing": "BRW",
+	"coalition_member_peaced": "SEP",
+	"coalition_dissolved": "DIS",
+	"coalition_cooldown_ended": "CDN",
+	"alliance_cascade_war": "CSC",
+
+	# The satellites
+	"vassal_courting_detected": "CRT",
+	"defection_cascade": "CSD",
+
+	# The chancery and the peace table
+	"sabotage_discovered": "SAB",
+	"diplo_auto_downgrade": "DWN",
+	"incoming_settlement_offer": "OFR",
+	"settlement_terms_request_result": "TRM",
+	"ally_settlement_petition": "PET",
+	"settlement_summary": "STL",
+	"armistice_expired": "ARM",
 }
 
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
@@ -124,6 +185,63 @@ const TYPE_ICON_SVGS = {
 	"buildings_damaged": "house",
 	"commission_available": "users-three",
 	"gazette_published": "book-open",
+	# ── REV-V3 (Aug 31, 2026) ────────────────────────────────────────────
+	# Every glyph below exists under assets/ui/icons/phosphor (a name with no
+	# SVG renders NOTHING, which is worse than the pill it replaced — pinned).
+	# Glyphs are a FAMILY signal, not a unique id: this file already runs
+	# `warning` six times and `check-circle` six times, and the tooltip is
+	# what names the particular matter. So rows that mean the same KIND of
+	# thing deliberately share one — `hourglass` is "a window closed",
+	# `flag` is "a nation's standing changed", `warning-circle` is the
+	# coalition alarm whose rung the pill COLOUR already carries.
+
+	# The marshal and his corps
+	"strategic_order_complete": "arrow-right",
+	"forced_retreat_order_voided": "arrow-arc-left",
+	"friendly_fire_trust": "warning",
+	"reckless_cavalry_action": "horse",
+	"counter_punch_earned": "shield-check",
+	"drill_cancelled": "hourglass",
+	"marshal_defied_order": "x-circle",
+	"marshal_commissioned": "medal-military",
+	# NOT sovereign-only, despite the Emperor's copy: the ordinary cornered
+	# marshal raises the same row, and both ask the player to answer.
+	"marshal_last_stand": "shield",
+	"vindication_expired": "hourglass",
+
+	# Men, money and land
+	"manpower_depleted": "minus",
+	"manpower_replenished": "plus",
+	"bankruptcy_escalation": "bank",
+	"rente_defaulted": "coins",
+	"estate_lost": "house",
+	"estate_confiscated": "house",
+
+	# The map of Europe — a flag raised, a flag struck
+	"nation_formed": "flag",
+	"nation_eliminated": "flag",
+
+	# The coalition ladder, and what becomes of one
+	"coalition_threat_tension": "warning-circle",
+	"coalition_murmurs": "warning-circle",
+	"coalition_brewing": "warning-circle",
+	"coalition_member_peaced": "handshake",
+	"coalition_dissolved": "arrows-out",
+	"coalition_cooldown_ended": "hourglass",
+	"alliance_cascade_war": "sword",
+
+	# The satellites
+	"vassal_courting_detected": "eye",
+	"defection_cascade": "castle-turret",
+
+	# The chancery and the peace table
+	"sabotage_discovered": "magnifying-glass",
+	"diplo_auto_downgrade": "caret-down",
+	"incoming_settlement_offer": "scroll",
+	"settlement_terms_request_result": "x-circle",
+	"ally_settlement_petition": "flag-banner",
+	"settlement_summary": "check",
+	"armistice_expired": "hourglass",
 }
 
 const ROUTE_ICON_SVGS = {

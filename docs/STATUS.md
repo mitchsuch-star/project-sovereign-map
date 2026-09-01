@@ -4,6 +4,87 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW REV'S FOLLOW-UPS — August 31, 2026: THREE OF FOUR CLOSED.
+> **Landing record = `docs/BUG_FIXES.md` §THE FOLLOW-UPS (August 31, 2026),
+> authoritative; the owner file `docs/REV_FOLLOWUPS.md` is struck through to
+> match.** `tests/test_rev_followups_2026_08_31.py` (22); sweep
+> `tools/_sweep_rev_followups.json` — **20 mutations, 20 killed, 0 inert at
+> close.** Suite **18,996 / 4 skipped**, ruff clean, Godot parse harness
+> EXIT=0 (47 scripts), M1–M7 and `BASELINE_SERIES` byte-identical WITHOUT a
+> re-record.
+>
+> **REV-F1 — settled by EXPERIMENT, and it is real.** Two refuters had
+> disagreed: one confirmed the mechanism, one called the consequence masked.
+> Driven through the typed command path on five seeds, byte-identical per
+> seed: Ney (recklessness carried from an earlier turn) attacks Wellington to
+> a stalemate, then charges — *"Ney has already engaged Wellington this
+> turn!"* Save mid-turn, reload, charge again — **the full 2× GLORIOUS CHARGE
+> lands.** Every other gate on that path survives the round trip. The
+> refuter's likely error is now on the record: charge→save→load→charge IS
+> masked (a charge zeroes serialized recklessness), attack→save→load→charge is
+> not — the vector was never "charge twice", it was "fight once, then charge
+> the man you fought". Fixed as a documented NON-clear in `load_game`, the
+> fifth; two pins asserting the clear flipped consciously.
+>
+> **REV-V3 — the rail's tail is joined, and the census was wrong by seven in
+> both directions.** The review's 33 came from diffing the maps against
+> `notifications.py`'s constants. An AST census over every
+> `create_notification` producer says **34**: four live types the constant
+> list could not see (`armistice_expired`, `marshal_last_stand`,
+> `vindication_expired` shipped as bare literals; `settlement_summary` is
+> derived from `SETTLEMENT_ROUTES`), and three of the filed 33 that no
+> producer has ever emitted. The three literals are promoted to constants;
+> the three dead ones stand in a new `notifications.RAIL_EXEMPT_TYPES` with
+> their reason; **34 rows joined in both maps, 66 keys each, identical sets.**
+> The content rule, stated once: a glyph is a FAMILY signal, not a unique id —
+> `hourglass` is "a window closed", `flag` is "a nation's standing changed",
+> `warning-circle` is the coalition alarm whose rung the pill COLOUR already
+> carries. The floor pin becomes a **two-directional census** (every
+> producible type joined; every non-producible constant exempt; every exempt
+> type producer-free), plus pins against a fourth dynamic producer, a typo'd
+> key, and a join that spells `INF`/`NEW`/`ALT` — the default it replaces.
+> **`marshal_last_stand` is NOT sovereign-only**, and `crown` had been chosen
+> on a recon summary that implied it was: verify the mechanism, not the
+> summary.
+>
+> **REV-V4 — staged and seen, and the row's own recipe could never have
+> worked.** Evidence `docs/audits/REV_V4_*_2026_08_31.png` + the terminal
+> transcripts, from a new committed harness
+> `tools/rev_v4_signoff_screenshot.gd` driving the real `main.tscn` against a
+> sandboxed 8007 pair. A standing march cannot produce the capture question —
+> an automated hop passes `auto_secure=True` (IGR-X5) and takes the province
+> in silence — so the review's failure was misattributed to Archduke Charles.
+> The one route that mounts a question inside `advance_turn` is an
+> **occupation completing** (a FORTIFIED province is occupied, not captured).
+> Flow (2) needs the literal's order issued TWO hops out or it resolves on the
+> spot. Both traps are now reachability pins. The PNG shows the question over
+> the report, and because a modal covers most of the terminal the harness also
+> dumps the scrollback — the whole Morning Dispatch, then *"Turn 1 ended… Turn
+> 2 begins!"*, then the economy line, then *"Your forces await orders: Plunder
+> or Secure?"* A third shot taken after answering was rendered, read, and
+> **discarded rather than filed**: answering trims the scrollback, so it would
+> have proved nothing either way.
+>
+> **The sweep found one INERT pin, the same shape as the five the review's own
+> first sweep found**: `test_the_interrupt_tail_shows_the_dispatch` scanned
+> the whole of `_process_next_interrupt`, which already called
+> `_show_pending_dispatch()` in its redemption arm — green with the fix
+> deleted. Scoped to the ordinary exit with an ordering assertion. And a
+> comment-stripping helper is not automatically safe: `_code_only` returns one
+> token per line, so a multi-token needle silently never matches; `_code_norm`
+> and a quote-respecting `_code_only_gd` fix that, and the battles pin was
+> probed in the other direction (a comment containing the retired expression
+> verbatim leaves it green).
+>
+> ⚠ **OPEN: UX23-R9 — three bugle cues owe a human ear.** Prepared, not
+> closed: `tools/ux23_r9_audition_render.gd` renders `reveille`,
+> `to_the_color` and `fanfare` exactly as the game plays them (registry `db`,
+> `max_s`, and the 0.8 s `_fade_stop` fade) to `audition/ux23_r9/`
+> (gitignored) as three files plus one combined ~20 s file, so the audition is
+> a single action. A machine cannot answer whether a capped bugle ends on a
+> phrase; that is the row.
+
+
 > # ✅ THE WHOLE-SYSTEMS REVIEW — August 30, 2026 (row REV): 45 DEFECTS, ALL FIXED.
 > **Landing record = `docs/BUG_FIXES.md` §Whole-Systems Review (REV),
 > authoritative.** The user asked for the live diorama-close crash fixed and
@@ -114,9 +195,10 @@
 > — see the visual-pass block above.** Two of the four were signed off on
 > screen (the levy figure, the `DMG` pill); the other two are flow-ORDERING,
 > not renders, and stay pinned by tests. What remains open from this round is
-> collected in `docs/REV_FOLLOWUPS.md`: REV-V3 (33 unmapped rail rows), the two
-> unstaged flow fixes, REV-F1 (the `battles_this_turn` wipe, plausible-only),
-> and UX23-R9's three bugle cues, which still owe a human ear.
+> collected in `docs/REV_FOLLOWUPS.md`. **Worked August 31, 2026 — three of
+> the four are CLOSED** (REV-V3's rail census, REV-F1's wipe, and both
+> unstaged flow fixes, now staged and shot); only UX23-R9's three bugle cues
+> remain, and they need a person, not a build. See the entry above.
 
 > # ✅ THE FOUR LIVE UX DEFECTS FIXED — August 23, 2026 (row UX23).
 > **Landing record = `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026),

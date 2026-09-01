@@ -1,0 +1,100 @@
+
+═══════════════════════════════════════
+        IMPERIAL HEADQUARTERS
+═══════════════════════════════════════
+
+September 1805 — The War of the Third Coalition
+You are Napoleon Bonaparte.
+
+Establishing connection to headquarters...
+✓ Communications established!
+
+Your marshals await your orders, Sire.
+
+Commands:
+  • "Ney, attack Mack"
+  • "scout Swabia" or "move to Flanders"
+  • "recruit" or "end turn"
+  • Diplomacy: click [Diplomacy] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight
+  • Generals: press G to review your marshals — their loyalty, rewards (duchies & rentes), and grievances
+  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters
+
+─────────────────────────────────────
+
+► end turn
+
+═══════════════════════════════════════
+         TURN 2 BEGINS
+═══════════════════════════════════════
+Income: 3450g | Occupation: -70g | Infrastructure: -30g | Admiralty: -90g | Blockade: -175g | Other: +1337g | Upkeep: -4584g | Net: -162g
+Treasury: 638g
+Actions refreshed: 4/4
+
+Ney has secured the fortress at Bohemia! Bohemia captured by France! Plunder it for 800 gold, or secure it?
+Supply shortage at Bohemia: Ney loses 495 troops
+Supply shortage at Swabia: Mack loses 233 troops
+Switzerland loyalty 98 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them.
+Sweden and Russia have signed an Open Borders Agreement.
+Naples and Russia have signed an Open Borders Agreement.
+════════════════════════════════════
+  MORNING DISPATCH — Turn 2
+  Chief of Staff Berthier reporting
+════════════════════════════════════
+
+SITUATION
+  France holds 29 regions. Treasury: 638g (-162 by the accounts)
+  Enemy nations hold 97 regions. Estimated enemy strength: 55% of French forces.
+  Your authority: 100 (Strong)
+
+MARSHAL STATUS
+  - Ney — Bohemia — 83,205 — Awaiting orders.
+  - Massena — Milan — 42,000 — Awaiting orders.
+  - Soult — Lorraine — 30,000 — Awaiting orders.
+  - Davout — Rhineland — 26,000 — Awaiting orders.
+  - Murat — Franche-Comte — 22,000 — Awaiting orders.
+  - Lannes — Franche-Comte — 18,000 — Awaiting orders.
+  - Bernadotte — Franconia — 17,000 — Awaiting orders. Trust:40
+  - Napoleon — Lorraine — 10,000 — Awaiting orders.
+
+INTELLIGENCE
+  Deroy — Franconia — 22,000 [confirmed]
+  Archduke Charles — Carniola — large force [partial]
+  Brunswick — Berlin — large force [partial]
+  Mack — Swabia — large force [partial]
+  Archduke John — Tyrol — substantial force [partial]
+
+TURN EVENTS
+  Ney has secured the fortress at Bohemia! Bohemia captured by France! Plunder it for 800 gold, or secure it?
+  Supply shortage at Bohemia: Ney loses 495 troops
+  Switzerland loyalty 98 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them.
+
+DIPLOMATIC EVENTS
+  A Prussia envoy has arrived with a proposal.
+  A Ottoman envoy has arrived with a proposal.
+  A Portugal envoy has arrived with a proposal.
+  Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority).
+  The Emperor has taken the field — Talleyrand holds the portfolio at the capital.
+  BLOCKADE: Britain closes France's ports. Trade is halved and the fleet is pinned at anchor, where crews rot.
+  BLOCKADE: Britain closes Holland's ports. Trade is halved and the fleet is pinned at anchor, where crews rot.
+  BLOCKADE: Britain closes Spain's ports. Trade is halved and the fleet is pinned at anchor, where crews rot.
+
+ENVOYS AWAITING RESPONSE
+  Talleyrand: 3 envoy(s) await your reply this turn. Open Envoys before ending the turn.
+    - Prussia — Open Borders
+    - Ottoman — Open Borders
+    - Portugal — Open Borders
+  Berthier: "I have placed the diplomatic packet atop the morning dispatch, Sire."
+
+COALITION THREAT
+  Threat: 70/100 [Formed]
+  ACTIVE: Third Coalition — Leader: Britain
+
+  Berthier: "Our finances strain, Sire. The treasury bleeds 162g this turn."
+════════════════════════════════════
+
+Turn 1 ended. (Warning: 3 action(s) unused) Turn 2 begins!
+
+Income: 3450g | Occupation: -70g | Infrastructure: -30g | Admiralty: -90g | Blockade: -175g | Upkeep: -4584g (incl. 656g over-limit, 1944g Grande Armée) | Other: +1337g | Net: -162g | Treasury: 638g
+
+Your forces await orders: Plunder or Secure?
+

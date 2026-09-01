@@ -9895,9 +9895,11 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 "message": f"The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
             })
             # Fix 12: Notification + dispatch for armistice expiration (peace)
-            from backend.notifications import create_notification, NotificationPriority
+            from backend.notifications import (
+                ARMISTICE_EXPIRED, create_notification, NotificationPriority,
+            )
             world.notifications.add(create_notification(
-                "armistice_expired", NotificationPriority.HIGH,
+                ARMISTICE_EXPIRED, NotificationPriority.HIGH,
                 "Armistice Concluded",
                 f"The armistice with {nation_b if nation_a == world.player_nation else nation_a} has concluded. Peace declared.",
                 int(world.current_turn),
@@ -9944,9 +9946,11 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 "message": f"The armistice between {nation_a} and {nation_b} has collapsed. War resumes.",
             })
             # Fix 12: Notification + dispatch for armistice expiration (war)
-            from backend.notifications import create_notification, NotificationPriority
+            from backend.notifications import (
+                ARMISTICE_EXPIRED, create_notification, NotificationPriority,
+            )
             world.notifications.add(create_notification(
-                "armistice_expired", NotificationPriority.CRITICAL,
+                ARMISTICE_EXPIRED, NotificationPriority.CRITICAL,
                 "Armistice Collapsed",
                 f"The armistice with {nation_b if nation_a == world.player_nation else nation_a} has collapsed. War resumes!",
                 int(world.current_turn),

@@ -4510,8 +4510,9 @@ class WorldState:
         # Once he is taken there is nothing left to decide, and a notice that
         # outlives its decision is what left a turn-3 alert live at turn 42.
         try:
+            from backend.notifications import MARSHAL_LAST_STAND
             self.notifications.dismiss_by_type(
-                "marshal_last_stand",
+                MARSHAL_LAST_STAND,
                 lambda n: n.get("details", {}).get("marshal") == marshal.name)
         except Exception:
             pass
@@ -11902,10 +11903,11 @@ class WorldState:
                         note = (f"Berthier notes: {name}'s defensive position went unchallenged. "
                                 f"The vindication window has passed.")
                     from backend.notifications import (
-                        create_notification, NotificationPriority,
+                        VINDICATION_EXPIRED, create_notification,
+                        NotificationPriority,
                     )
                     self.notifications.add(create_notification(
-                        "vindication_expired", NotificationPriority.NORMAL,
+                        VINDICATION_EXPIRED, NotificationPriority.NORMAL,
                         f"{name} — Vindication Expired",
                         note,
                         int(self.current_turn),

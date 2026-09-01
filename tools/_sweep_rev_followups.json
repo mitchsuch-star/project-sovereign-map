@@ -1,0 +1,142 @@
+[
+  {
+    "id": "F1-1 revert the non-clear (load_game wipes the battle record again)",
+    "file": "backend/save_manager.py",
+    "old": "        world.mild_concerns_this_turn = []",
+    "new": "        world.battles_this_turn = []\n        world.mild_concerns_this_turn = []",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheChargeGateSurvivesAMidTurnReload tests/test_rev_followups_2026_08_31.py::TestTheNonClearIsDocumentedWhereItLives"
+  },
+  {
+    "id": "F1-2 break the V2-2 engagement gate itself",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        for battle in world.battles_this_turn:",
+    "new": "        for battle in []:",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheChargeGateSurvivesAMidTurnReload"
+  },
+  {
+    "id": "F1-3 the real turn boundary stops clearing",
+    "file": "backend/models/world_state.py",
+    "old": "        self.battles_this_turn = []\n        for marshal in self.marshals.values():\n            marshal.in_combat_this_turn = False",
+    "new": "        for marshal in self.marshals.values():\n            marshal.in_combat_this_turn = False",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheNonClearIsDocumentedWhereItLives::test_the_contract_the_non_clear_cites_is_real"
+  },
+  {
+    "id": "F1-4 the record stops crossing from_dict",
+    "file": "backend/models/world_state.py",
+    "old": "        world.battles_this_turn = [b.copy() for b in data.get(\"battles_this_turn\", [])]",
+    "new": "        world.battles_this_turn = []",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheChargeGateSurvivesAMidTurnReload"
+  },
+  {
+    "id": "F1-5 a field that SHOULD still be cleared stops being cleared",
+    "file": "backend/save_manager.py",
+    "old": "        world.gold_spent_this_turn = {}",
+    "new": "        pass",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheNonClearIsDocumentedWhereItLives::test_the_fields_that_should_still_be_cleared_still_are"
+  },
+  {
+    "id": "V3-1 a joined row loses its label",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"nation_formed\": \"PRC\",",
+    "new": "",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_every_producible_type_has_a_label_and_a_glyph tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_the_two_maps_are_keyed_identically"
+  },
+  {
+    "id": "V3-2 a joined row loses its glyph (the half-join)",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"defection_cascade\": \"castle-turret\",",
+    "new": "",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_every_producible_type_has_a_label_and_a_glyph"
+  },
+  {
+    "id": "V3-3 a glyph name with no SVG behind it",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"reckless_cavalry_action\": \"horse\",",
+    "new": "\t\"reckless_cavalry_action\": \"warhorse\",",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_the_glyphs_named_exist_on_disk"
+  },
+  {
+    "id": "V3-4 a join that spells the priority default it replaces",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"strategic_order_complete\": \"ARR\",",
+    "new": "\t\"strategic_order_complete\": \"INF\",",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_no_label_is_the_priority_default_it_replaces"
+  },
+  {
+    "id": "V3-5 an exempt type acquires a producer",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        from backend.notifications import (\n            create_notification, NotificationPriority, DEFECTION_CASCADE,\n        )\n        world.notifications.add(create_notification(\n            DEFECTION_CASCADE,",
+    "new": "        from backend.notifications import (\n            create_notification, NotificationPriority, VASSAL_LOYALTY_CRITICAL,\n        )\n        world.notifications.add(create_notification(\n            VASSAL_LOYALTY_CRITICAL,",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_the_exempt_set_is_exactly_what_no_producer_emits tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_no_map_key_is_a_type_nothing_can_emit"
+  },
+  {
+    "id": "V3-6 an exempt row loses its reason",
+    "file": "backend/notifications.py",
+    "old": "    RIVALRY_CONFRONTATION: (\n        \"The same: a marshal_petition_dialog kind, never a rail row.\"),",
+    "new": "    RIVALRY_CONFRONTATION: \"\",",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_every_exempt_type_carries_its_reason"
+  },
+  {
+    "id": "V3-7 a FOURTH dynamic producer appears",
+    "file": "backend/game_logic/gazette.py",
+    "old": "            notification_type=GAZETTE_PUBLISHED,",
+    "new": "            notification_type=_some_runtime_type,",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_no_unknown_dynamic_producer"
+  },
+  {
+    "id": "V3-8 a producer goes back to spelling the type as a literal",
+    "file": "backend/models/world_state.py",
+    "old": "                        VINDICATION_EXPIRED, NotificationPriority.NORMAL,",
+    "new": "                        \"vindication_expired\", NotificationPriority.NORMAL,",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_the_producers_name_the_constants"
+  },
+  {
+    "id": "V3-9 one of the three new constants loses its join",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"armistice_expired\": \"ARM\",",
+    "new": "",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_the_new_constants_are_the_backends_own"
+  },
+  {
+    "id": "V3-10 a typo'd key joins the maps",
+    "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+    "old": "\t\"bankruptcy_escalation\": \"BNK\",",
+    "new": "\t\"bankrupcy_escalation\": \"BNK\",",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_no_map_key_is_a_type_nothing_can_emit tests/test_rev_followups_2026_08_31.py::TestTheRailNamesEveryRowItShows::test_every_producible_type_has_a_label_and_a_glyph"
+  },
+  {
+    "id": "V4-1 a fortified province is captured outright (no occupation)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        has_fort = region.has_building(\"fortification\")\n\n        if has_fort:",
+    "new": "        has_fort = region.has_building(\"fortification\")\n\n        if False:",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheEndTurnShapesTheTwoFixesExistFor::test_a_completing_occupation_asks_inside_the_end_turn_response"
+  },
+  {
+    "id": "V4-2 the standing march stops auto-securing",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                auto_secure=bool(strategic_execution))",
+    "new": "                auto_secure=False)",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheEndTurnShapesTheTwoFixesExistFor::test_a_standing_march_auto_secures_and_never_asks"
+  },
+  {
+    "id": "V4-3 the literal no longer asks at a blocked destination",
+    "file": "backend/commands/strategic.py",
+    "old": "            # Session 37: If enemy is AT the destination, don't reroute \u2014 halt\n            # and report. Rerouting around the destination itself is nonsensical.\n            if blocked_region == destination:",
+    "new": "            if False:",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheEndTurnShapesTheTwoFixesExistFor::test_a_blocked_literal_march_puts_an_ask_on_the_end_turn_response"
+  },
+  {
+    "id": "V4-4 the interrupt tail loses its dispatch call",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t# ordinary exit did not.\n\t\t_show_pending_dispatch()",
+    "new": "\t\t# ordinary exit did not.",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheTwoOrderingFixesAreStillInMainGd::test_the_interrupt_tail_shows_the_dispatch"
+  },
+  {
+    "id": "V4-5 the capture stash is removed",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tpending_capture_response = response\n\t\treturn false",
+    "new": "\t\treturn false",
+    "tests": "tests/test_rev_followups_2026_08_31.py::TestTheTwoOrderingFixesAreStillInMainGd::test_the_capture_stash_is_keyed_on_the_end_turn_response"
+  }
+]

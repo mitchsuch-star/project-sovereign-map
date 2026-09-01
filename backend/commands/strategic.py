@@ -381,8 +381,9 @@ class StrategicOrderProcessor:
             # so a turn-3 alert was still sitting in the tray at turn 42 —
             # for a marshal whose fate had been decided 39 turns earlier.
             try:
+                from backend.notifications import MARSHAL_LAST_STAND
                 world.notifications.dismiss_by_type(
-                    "marshal_last_stand",
+                    MARSHAL_LAST_STAND,
                     lambda n: n.get("details", {}).get("marshal") == marshal.name)
             except Exception:
                 pass

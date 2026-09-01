@@ -1,0 +1,99 @@
+
+═══════════════════════════════════════
+        IMPERIAL HEADQUARTERS
+═══════════════════════════════════════
+
+September 1805 — The War of the Third Coalition
+You are Napoleon Bonaparte.
+
+Establishing connection to headquarters...
+✓ Communications established!
+
+Your marshals await your orders, Sire.
+
+Commands:
+  • "Ney, attack Mack"
+  • "scout Swabia" or "move to Flanders"
+  • "recruit" or "end turn"
+  • Diplomacy: click [Diplomacy] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight
+  • Generals: press G to review your marshals — their loyalty, rewards (duchies & rentes), and grievances
+  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters
+
+─────────────────────────────────────
+
+⚠ You have 3 unanswered envoy(s) that will lapse if you end the turn now.
+  Click Open Envoys to review now, or press End Turn again, Enter, or type end turn again to confirm the lapse.
+
+► end turn
+
+═══════════════════════════════════════
+         TURN 3 BEGINS
+═══════════════════════════════════════
+Income: 3400g | Charges of Empire: -24g | Admiralty: -90g | Blockade: -175g | Other: +1337g | Upkeep: -2630g | Net: +1818g
+Treasury: 4,460g
+Actions refreshed: 4/4
+
+Construction complete: Market in Franconia!
+Supply shortage at Swabia: Mack loses 228 troops
+Switzerland loyalty 96 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them.
+Britain subsidizes Austria with 200 gold.
+
+--- Strategic Order Updates ---
+Soult: Soult: 'Enemy forces discovered at Swabia! Cannot proceed to destination. Awaiting orders.'
+
+Soult awaits your orders!
+> Soult: hold position
+Soult holds position, abandoning his march.
+════════════════════════════════════
+  MORNING DISPATCH — Turn 3
+  Chief of Staff Berthier reporting
+════════════════════════════════════
+
+SITUATION
+  France holds 28 regions. Treasury: 4,460g (+1818 by the accounts)
+  Enemy nations hold 98 regions. Estimated enemy strength: 44% of French forces.
+  Your authority: 100 (Strong)
+
+MARSHAL STATUS
+  - Massena — Milan — 42,000 — Awaiting orders.
+  - Soult — Lorraine — 30,000 — HALTED at Swabia — Mack bars the way. Awaiting your word.
+  - Davout — Rhineland — 26,000 — Awaiting orders.
+  - Ney — Rhineland — 24,000 — Awaiting orders.
+  - Murat — Franche-Comte — 22,000 — Awaiting orders.
+  - Lannes — Franche-Comte — 18,000 — Awaiting orders.
+  - Bernadotte — Franconia — 17,000 — Awaiting orders. Trust:40
+  - Napoleon — Lorraine — 10,000 — Awaiting orders.
+
+INTELLIGENCE
+  Deroy — Franconia — 22,000 [confirmed]
+  Brunswick — Berlin — large force [partial]
+  Mack — Swabia — large force [partial]
+  Archduke John — Tyrol — substantial force [partial]
+
+TURN EVENTS
+  Switzerland loyalty 96 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them.
+
+DIPLOMATIC EVENTS
+  A Denmark envoy has arrived with a proposal.
+  A Saxony envoy has arrived with a proposal.
+  Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority).
+  Britain's gold reaches Austria — the subsidy stands at 200 this season.
+
+LAPSED ENVOYS
+  Prussia's Open Borders offer lapsed unanswered
+  Ottoman's Friendly Gift offer lapsed unanswered
+  Portugal's Friendly Gift offer lapsed unanswered
+
+ENVOYS AWAITING RESPONSE
+  Talleyrand: 2 envoy(s) await your reply this turn. Open Envoys before ending the turn.
+    - Denmark — Non Aggression
+    - Saxony — Open Borders
+  Berthier: "I have placed the diplomatic packet atop the morning dispatch, Sire."
+
+COALITION THREAT
+  Threat: 66/100 [Formed]
+  ACTIVE: Third Coalition — Leader: Britain
+
+  Berthier: "Your armies stand ready, Sire. The initiative is ours."
+════════════════════════════════════
+

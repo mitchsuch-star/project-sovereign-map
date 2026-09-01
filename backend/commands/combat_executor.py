@@ -3200,10 +3200,11 @@ class CombatExecutor:
                 marshal.pending_interrupt = interrupt
                 try:
                     from backend.notifications import (
-                        NotificationPriority, create_notification,
+                        MARSHAL_LAST_STAND, NotificationPriority,
+                        create_notification,
                     )
                     world.notifications.add(create_notification(
-                        notification_type="marshal_last_stand",
+                        notification_type=MARSHAL_LAST_STAND,
                         priority=NotificationPriority.CRITICAL,
                         title=f"{marshal.name} is encircled",
                         message=(
@@ -3253,10 +3254,11 @@ class CombatExecutor:
             # the decision is visible and actionable after the turn report.
             try:
                 from backend.notifications import (
-                    NotificationPriority, create_notification,
+                    MARSHAL_LAST_STAND, NotificationPriority,
+                    create_notification,
                 )
                 world.notifications.add(create_notification(
-                    notification_type="marshal_last_stand",
+                    notification_type=MARSHAL_LAST_STAND,
                     priority=NotificationPriority.CRITICAL,
                     title=f"{marshal.name} is cornered",
                     message=(

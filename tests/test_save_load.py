@@ -146,7 +146,14 @@ class TestLoadGameRestoresState:
 
         assert result["success"]
         loaded_world = result["world"]
-        assert loaded_world.battles_this_turn == []
+        # CONSCIOUS FLIP (REV-F1, Aug 31, 2026): `battles_this_turn` is now a
+        # deliberate NON-clear too — the fifth. The glorious charge's V2-2
+        # engagement gate reads it to refuse a second engagement of the same
+        # pair in one turn, so wiping it here handed the player a free extra
+        # 2x-damage charge for the price of a save and a load. Measured
+        # through the typed command path; every other gate survived the round
+        # trip, so nothing masked it.
+        assert loaded_world.battles_this_turn == [{"test": "battle"}]
         loaded_ney = loaded_world.get_marshal("Ney")
         if loaded_ney:
             # CONSCIOUS FLIP (Aug 30, 2026 review): `in_combat_this_turn` is
@@ -376,7 +383,12 @@ class TestRoundtripEconomyState:
 
 
 class TestRoundtripTransientData:
-    """Transient data cleared on load."""
+    """Transient per-turn data across a save/load round trip.
+
+    Most of it is cleared; five fields are deliberate NON-clears, each
+    documented at the site in `save_manager.load_game` with the mechanic it
+    is load-bearing for.
+    """
 
     def test_transient_cleared(self, test_save_dir, world):
         world.battles_this_turn = [{"type": "battle"}]
@@ -390,7 +402,10 @@ class TestRoundtripTransientData:
 
         assert result["success"]
         w = result["world"]
-        assert w.battles_this_turn == []
+        # See the REV-F1 flip note in TestLoadGameRestoresState: the battle
+        # record is restored, not wiped, so the charge's once-per-pair gate
+        # survives a mid-turn save/load.
+        assert w.battles_this_turn == [{"type": "battle"}]
         loaded_ney = w.get_marshal("Ney")
         if loaded_ney:
             # See the flip note in TestLoadGameRestoresState: the combat flag

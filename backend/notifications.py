@@ -138,6 +138,44 @@ GAZETTE_PUBLISHED = "gazette_published"              # NORMAL: new issue
 # NORMAL, deliberately: it is a recurring economic beat, and NORMAL is the
 # only priority the cap will evict — a HIGH spray would starve the tray.
 BUILDINGS_DAMAGED = "buildings_damaged"              # NORMAL: works wrecked
+# REV-V3 (Aug 31, 2026): three types the game has always emitted as bare
+# string literals at the producer, so the constant list above under-reported
+# what a player can actually receive by three rows — and the rail census that
+# reads this module could not see them. Values are unchanged; only the
+# producers now name them here.
+#
+# `marshal_last_stand` is NOT sovereign-only: the encircled-Emperor arm and
+# the ordinary cornered-marshal arm both raise it, and both ask the player to
+# answer before the man is taken.
+ARMISTICE_EXPIRED = "armistice_expired"              # HIGH/CRITICAL: truce ran out
+MARSHAL_LAST_STAND = "marshal_last_stand"            # CRITICAL: encircled, decide
+VINDICATION_EXPIRED = "vindication_expired"          # NORMAL: window passed
+
+
+# ── The rail-exempt set (REV-V3) ────────────────────────────────────────────
+# Every notification type a player can receive must carry a label AND a glyph
+# on the notice rail (`notification_bar.gd`'s TYPE_ICONS / TYPE_ICON_SVGS), or
+# stand here with its reason. The distinction matters because a census cannot
+# otherwise tell "deliberately exempt" from "forgotten", which is how 33 types
+# came to arrive as the anonymous priority pill.
+#
+# Membership is checked BOTH ways by `tests/test_rev_followups_2026_08_31.py`:
+# a type here that acquires a producer fails the pin, and a producible type
+# missing from the maps fails it too. So reviving one of these means joining
+# the rail in the same commit.
+RAIL_EXEMPT_TYPES = {
+    JEALOUSY_CONFRONTATION: (
+        "Declared for the Jealousy v3.2 petition families, but no producer "
+        "ever called create_notification with it — the grievance reaches the "
+        "player through the marshal-petition channel (a popup + its dialogue "
+        "kind), and the string is live there, not here."),
+    RIVALRY_CONFRONTATION: (
+        "The same: a marshal_petition_dialog kind, never a rail row."),
+    VASSAL_LOYALTY_CRITICAL: (
+        "Superseded before it shipped by VASSAL_REBELLION_IMMINENT, which is "
+        "produced, mapped, and says the same thing with a threshold behind "
+        "it. Nothing has ever emitted this one."),
+}
 
 
 def create_notification(
