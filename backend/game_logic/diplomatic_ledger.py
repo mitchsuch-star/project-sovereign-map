@@ -11,7 +11,7 @@ national-level visibility based on best marshal visibility per nation.
 from typing import Dict, Any, List
 
 from backend.models.intel import (
-    FULL, PARTIAL, STALE, UNKNOWN,
+    FULL, LAST_KNOWN, PARTIAL, STALE, UNKNOWN,
     VISIBILITY_PRIORITY,
 )
 from backend.game_logic.agendas import build_agenda_payload
@@ -199,6 +199,18 @@ def _format_army_strength(total_strength: int, visibility: str) -> str:
         rounded = round(total_strength / 5000) * 5000
         rounded = max(rounded, 5000) if total_strength > 0 else 0
         return f"~{int(rounded):,} men"
+
+    if visibility == LAST_KNOWN:
+        # WO-10 (slice 12): LAST_KNOWN is a real tier (`models/intel.py`)
+        # with no arm here, so it fell through to the FULL exact aggregate
+        # — Britain's UNSCOUTED national total printed to the man. A last
+        # sighting earns the STALE band, said to be a last sighting.
+        return _format_army_strength(total_strength, STALE) + " (last seen)"
+
+    if visibility != FULL:
+        # Any tier this function does not know is not FULL — never the
+        # exact figure by default.
+        return "Unknown"
 
     # FULL
     return f"{int(total_strength):,} men"

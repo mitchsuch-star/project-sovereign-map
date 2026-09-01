@@ -95,6 +95,19 @@ def resolve_order_destination(world, marshal, order):
     return destination
 
 
+def _combat_carry(result) -> Dict:
+    """WO-33 (slice 12): the keys a strategic-report row carries for the
+    battle it reports — Berthier's `battle_report` and the executor's
+    cleaned result as `battle_details` (the HOLD sally's own key), with
+    `new_state` stripped (the standing serialization rule: it holds the
+    WorldState and would drop the whole report on the wire)."""
+    if not isinstance(result, dict):
+        return {"battle_report": None, "battle_details": None}
+    cleaned = {k: v for k, v in result.items() if k != "new_state"}
+    return {"battle_report": cleaned.get("battle_report"),
+            "battle_details": cleaned}
+
+
 def clear_order_bound_interrupt(marshal) -> bool:
     """NPC-2: the question dies with the order that raised it.
 
@@ -1873,6 +1886,8 @@ class StrategicOrderProcessor:
                     "outcome": sally_outcome,
                     "battle_message": battle_message,
                     "battle_details": cleaned_combat,
+                    # WO-33: uniform with the combat rows.
+                    "battle_report": (cleaned_combat or {}).get("battle_report"),
                     "glorious_charge": is_glorious_charge,
                     "returned_to": hold_position,
                     "order_status": "continues",
@@ -2004,6 +2019,8 @@ class StrategicOrderProcessor:
             "target": target.name,
             "order_status": "continues",
             "battle_details": cleaned,
+            # WO-33: uniform with the combat rows.
+            "battle_report": cleaned.get("battle_report"),
             "message": f"{marshal.name}'s guns bombard {target.name}'s position from {hold_position}. {battle_message}".strip(),
         }
 
@@ -2842,8 +2859,18 @@ class StrategicOrderProcessor:
 
     def _handle_combat_result(self, marshal, enemy, result,
                               world, game_state) -> Dict:
-        """Handle combat result during strategic execution."""
+        """Handle combat result during strategic execution.
+
+        WO-33 (slice 12): every row this returns carries the battle it
+        reports — `battle_report` (Berthier's after-action report) and
+        `battle_details` (the executor's cleaned result) — the same keys
+        the HOLD sally and the artillery HOLD already ship. The pursue arms
+        kept only the message, so a real battle fought during end-turn
+        strategic processing reached the client and every digest reader
+        with no report at any depth (the CA8-25 class, one seam over).
+        """
         order = marshal.strategic_order
+        carry = _combat_carry(result)
         if not order:
             # Order was cleared (e.g., by break during combat)
             return {
@@ -2851,7 +2878,8 @@ class StrategicOrderProcessor:
                 "command": "unknown",
                 "action": "combat",
                 "order_status": "breaks",
-                "message": f"{marshal.name} engaged {enemy.name}."
+                "message": f"{marshal.name} engaged {enemy.name}.",
+                **carry,
             }
 
         # Determine outcome from result
@@ -2897,13 +2925,17 @@ class StrategicOrderProcessor:
                 "target": enemy.name,
                 "outcome": "victory",
                 "order_status": "continues",
-                "message": f"{marshal.name} defeats {enemy.name}! Continuing."
+                "message": f"{marshal.name} defeats {enemy.name}! Continuing.",
+                **carry,
             }
 
         elif outcome == "defeat":
             marshal.last_combat_result = "defeat"
-            return self._break_order(marshal, world,
-                                     f"Defeated by {enemy.name}")
+            broken = self._break_order(marshal, world,
+                                       f"Defeated by {enemy.name}")
+            broken.update({"action": "combat", "target": enemy.name,
+                           "outcome": "defeat", **carry})
+            return broken
 
         else:  # stalemate / unknown
             marshal.last_combat_result = "stalemate"
@@ -2927,7 +2959,8 @@ class StrategicOrderProcessor:
                 "pending_interrupt": marshal.pending_interrupt,
                 "interrupt_type": "combat_stalemate",
                 "message": f"{marshal.name} attacked {enemy.name} during march but the battle was inconclusive. Continue {order.command_type.replace('_', ' ').lower()}?",
-                "options": ["continue_order", "hold_position", "cancel_order"]
+                "options": ["continue_order", "hold_position", "cancel_order"],
+                **carry,
             }
 
     def _should_auto_attack(self, marshal, enemy, world) -> bool:

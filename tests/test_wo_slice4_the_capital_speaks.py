@@ -434,7 +434,12 @@ class TestTheWoundStillFiresWhenItIsReal:
         assert not missing, f"producers omitting captured_from: {missing}"
         # The count is pinned too, so a NEW producer is a conscious edit
         # here rather than something that slips in unread.
-        assert len(producers) == 6, [p for p, _ in producers]
+        # Pin flipped consciously 6 -> 8 (WO slice 12, Sept 1 2026): WO-42's
+        # two LIBERATION producers — the player's own-soil recapture by
+        # attack (combat_executor) and by completed occupation
+        # (world_state), both stamping `captured_from` and `method:
+        # "liberated"` — the mirror of the wound this file's slice built.
+        assert len(producers) == 8, [p for p, _ in producers]
 
 
 # ════════════════════════════════════════════════════════════════════════

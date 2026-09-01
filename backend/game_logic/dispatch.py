@@ -286,7 +286,9 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # the beats it lacks.
     "marshal_reversal": "Sire — {line}",
     "own_broken": "Sire — {marshal}'s corps has been broken at {region}. He must reform before he fights again.",
-    "own_mauled": "Sire — {marshal} was mauled at {region}: {casualties} men lost in a single action.",
+    # WO-16 (slice 12): the proportion EARNED the word; the absolute figure
+    # alone read "29 men lost" as trivial and withheld it.
+    "own_mauled": "Sire — {marshal} was mauled at {region}: {proportion} of his corps — {casualties} men — lost in a single action.",
     "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
     "region_lost": "Sire — {region} has been taken by {captor}.",
     "region_lost_estate": ("Sire — {captor} has taken {region} — the estate "
@@ -749,14 +751,19 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 if m is None or casualties <= 0:
                     continue
                 pre = m.strength + casualties
-                if pre > 0 and casualties >= 0.25 * pre:
+                # WO-16 (slice 12): the absolute floor. A quarter of an
+                # 87-man remnant is 22 men and led the briefing on the turn
+                # a vassal defected and a homeland province fell.
+                if (pre > 0 and casualties >= 0.25 * pre
+                        and casualties >= OWN_MAULED_MIN_CASUALTIES):
                     # CA8-5: identity is the MAN, not the casualty figure.
                     # Three distinct battles at one province in one phase are
                     # one story, not three headline slots.
                     _add("own_mauled", f"own_mauled:{name}",
                          marshal=humanize_entity_name(name),
                          region=e.get("location", "the field"),
-                         casualties=f"{casualties:,}")
+                         casualties=f"{casualties:,}",
+                         proportion=_mauled_proportion(casualties, pre))
             # CA8-26: record a French battle WIN for the success composer
             # below. Annihilation outcomes stand alone; tactical wins count
             # only when joined to an enemy rout at the same field.
@@ -904,7 +911,9 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
         defenders = [m.name for m in world.get_marshals_in_region(region_name)
                      if m.nation == player_nation and m.strength > 0]
         if defenders:
-            defenders_line = f"{' and '.join(defenders)} stand in his path."
+            # WO slice 12 (found in passing): "Ney stand in his path."
+            _verb = "stands" if len(defenders) == 1 else "stand"
+            defenders_line = f"{' and '.join(defenders)} {_verb} in his path."
         else:
             defenders_line = "No French corps stands in his path."
         _add("enemy_on_our_soil", identity=f"enemy_on_our_soil:{region_name}",
@@ -1005,9 +1014,14 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                        f"{_loser_disp}'s corps at {_loc}. No enemy "
                        f"formation remains in that field."))
         elif _routed:
+            # WO slice 12 (§4 N-8b): "broken and flees" seven times across a
+            # campaign is literally true and materially empty — the rout
+            # sentence is repeat-aware, riding the serialized `battle_counts`
+            # rotation seam (XR-5): the second and later battles on the same
+            # field say so. Copy only; no new field.
             _add("victory_won", f"victory_won:{_loc}",
                  line=(f"{_victor_hon} holds the field at {_loc} — "
-                       f"{_routed}'s corps is broken and flees."))
+                       f"{_rout_clause(world, _loc, _routed)}"))
     # Absorption: the conquest of a field France just won is the SAME story
     # told twice — the victory line carries it; the bare map fact yields.
     # (`capital_stormed` is never absorbed: the capital falling and the
@@ -1701,9 +1715,53 @@ def _derive_danger(marshal, world, player_nation: str,
                 break
             run += 1
         if run >= 2:
+            # WO-12 (slice 12): the under-capacity concentration tax is not
+            # starvation — the province feeds him; the press of corps on
+            # one road does the killing. The event carries the cause.
+            if _latest_supply_cause(world, marshal.name) == "concentration":
+                return (f"Crowded — {marshal.location} carries more corps "
+                        f"than its roads can bear, "
+                        f"{_COUNT_WORDS.get(run, str(run))} turns running.")
             return (f"Starving — supply has failed at {marshal.location} "
                     f"{_COUNT_WORDS.get(run, str(run))} turns running.")
     return ""
+
+
+_ROUT_CLAUSES = (
+    "{routed}'s corps is broken and flees.",
+    "{routed}'s corps breaks a second time on this ground and flees.",
+    "{routed}'s corps is driven from {loc} yet again — broken, and fleeing.",
+)
+
+
+def _rout_clause(world, region_name: str, routed: str) -> str:
+    """WO slice 12 (N-8b): the enemy-rout clause, rotated by how many
+    battles this field has seen (`world.battle_counts`, serialized,
+    incremented by `compose_battle_name` before the dispatch reads it).
+    The first battle keeps the sentence the game has always printed."""
+    count = int((getattr(world, "battle_counts", {}) or {}).get(region_name, 1) or 1)
+    index = min(max(count, 1) - 1, len(_ROUT_CLAUSES) - 1)
+    return _ROUT_CLAUSES[index].format(routed=routed, loc=region_name)
+
+
+# WO-16 (slice 12): the absolute floor under the proportional "mauled"
+# predicate. In-band tunable. RECORDED DISSENT, carried from the eval's
+# §7.7 (this is a conscious re-open of the playtest's own killed claim
+# #4): if 500 is tuned TWICE, take the fraction-of-national-strength
+# form instead of tuning a third time.
+OWN_MAULED_MIN_CASUALTIES = 500
+
+
+def _mauled_proportion(casualties: int, pre_battle: int) -> str:
+    """The share of the corps that fell, in the briefing's words."""
+    ratio = casualties / pre_battle if pre_battle > 0 else 0.0
+    if ratio >= 0.75:
+        return "three-quarters"
+    if ratio >= 0.5:
+        return "half"
+    if ratio >= 0.33:
+        return "a third"
+    return "a quarter"
 
 
 def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
@@ -1719,6 +1777,24 @@ def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
         if name:
             result.setdefault(name, []).append(int(e.get("turn", 0)))
     return result
+
+
+def _latest_supply_cause(world, marshal_name: str) -> str:
+    """WO-12: the cause stamped on the marshal's most recent attrition
+    event in the same window `_collect_supply_attrition_turns` reads
+    ("shortage" / "concentration"; an unstamped legacy row reads
+    "shortage")."""
+    window_start = world.current_turn - 5
+    cause, latest = "shortage", -1
+    for e in world.event_log:
+        if e.get("type") != "supply_attrition" or e.get("marshal") != marshal_name:
+            continue
+        turn = int(e.get("turn", 0) or 0)
+        if turn < window_start or turn < latest:
+            continue
+        latest = turn
+        cause = str(e.get("cause") or "shortage")
+    return cause
 
 
 def _lower_first(text: str) -> str:
@@ -2257,7 +2333,13 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
 
     # Fog-filtered strength ratio
     french_strength = _get_nation_total_strength(world, player_nation)
-    estimated_enemy_strength = _estimate_enemy_strength_from_intel(world, player_nation)
+    _estimate = _enemy_strength_estimate_detail(world, player_nation)
+    estimated_enemy_strength = int(_estimate["total"])
+    # WO-10 (slice 12): the estimator's own docstring records deliberate
+    # under-estimation as the cost of poor intelligence; the sentence
+    # rendered it unqualified ("2% of French forces" against a true 107%).
+    # The client appends this note to the ratio sentence.
+    enemy_strength_note = _enemy_strength_note(_estimate)
     if french_strength > 0:
         strength_ratio_pct = int(round(
             (estimated_enemy_strength / french_strength) * 100
@@ -2317,6 +2399,7 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "over_force_limit": bool(upkeep_data.get("over_limit", False)),
         "bankrupt": bankrupt,
         "strength_ratio_pct": strength_ratio_pct,
+        "enemy_strength_note": enemy_strength_note,
         "authority": int(authority),
         "authority_label": authority_label,
     }
@@ -2342,7 +2425,32 @@ def _estimate_enemy_strength_from_intel(world, player_nation: str) -> int:
     This intentionally underestimates when visibility is low —
     that's the cost of poor intelligence.
     """
+    return int(_enemy_strength_estimate_detail(world, player_nation)["total"])
+
+
+def _enemy_strength_note(detail: Dict[str, int]) -> str:
+    """WO-10: the qualifier the ratio sentence owes its own estimator.
+    Empty only when every known corps was read exactly AND something was
+    counted — and even then the sentence says "known corps"."""
+    counted = int(detail.get("counted", 0))
+    exact = int(detail.get("exact", 0))
+    if counted == 0:
+        return "(no enemy corps in view — the figure counts nothing)"
+    banded = counted - exact
+    if banded > 0:
+        return (f"(an estimate — {banded} of {counted} known corps read "
+                f"from stale reports; unscouted armies are not counted)")
+    return "(known corps only — unscouted armies are not counted)"
+
+
+def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, int]:
+    """WO-10 (slice 12): the estimator's arithmetic with its COVERAGE —
+    `total` (what the dispatch always used), `counted` (known enemy corps)
+    and `exact` (those read at FULL). One pass; the ratio and its
+    qualifier come from the same walk."""
     total = 0
+    counted = 0
+    exact = 0
     # Track which marshal names we've already counted to avoid doubles
     counted_marshals: set = set()
 
@@ -2357,9 +2465,11 @@ def _estimate_enemy_strength_from_intel(world, player_nation: str) -> int:
             if name in counted_marshals:
                 continue
             counted_marshals.add(name)
+            counted += 1
 
             if intel.visibility == FULL and "strength" in km:
                 total += int(km["strength"])
+                exact += 1
             elif "band" in km:
                 total += BAND_MIDPOINTS.get(km["band"], 0)
             elif "strength" in km:
@@ -2370,7 +2480,7 @@ def _estimate_enemy_strength_from_intel(world, player_nation: str) -> int:
                 # No strength data at all — use region-level band
                 total += BAND_MIDPOINTS.get(intel.strength_band, 0)
 
-    return int(total)
+    return {"total": int(total), "counted": int(counted), "exact": int(exact)}
 
 
 # ============================================================================

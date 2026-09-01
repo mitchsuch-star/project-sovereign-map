@@ -3069,6 +3069,12 @@ class CombatExecutor:
                 "marshal": marshal.name,
                 "region": target_region.name,
                 "garrison_destroyed": True,
+                # WO-9 (slice 12): PT-E5's own-soil carve-out in the
+                # enemy-phase filter keys on `captured_from`, which only
+                # the MOVE producer stamped — an AI taking the player's
+                # province by ATTACK vanished from the report.
+                "captured_by": marshal.nation,
+                "captured_from": old_controller,
             }
             if capture_result.get("capture_choice"):
                 conquest_event["capture_choice"] = capture_result["capture_choice"]
@@ -5061,6 +5067,10 @@ class CombatExecutor:
                         "marshal": marshal.name,
                         "region": resolved_target,
                         "unopposed": True,
+                        # WO-9 (slice 12): the second conquest producer —
+                        # same carve-out, same missing stamp.
+                        "captured_by": marshal.nation,
+                        "captured_from": old_controller,
                     }
                     if capture_result.get("capture_choice"):
                         conquest_event["capture_choice"] = capture_result["capture_choice"]
@@ -8342,6 +8352,18 @@ class CombatExecutor:
                 if is_own_soil_recapture(world, region_name, marshal.nation):
                     self._apply_secure(region)
                     ai_choice = "secure"
+                    # WO-42 (slice 12): the liberation is the one moment
+                    # the chronicle could not see — CA8-13 removed the
+                    # question and the `region_captured` row went with
+                    # it, so the dispatch's "is French again" line and
+                    # the campaign log had nothing to read.
+                    world.log_event({
+                        "type": "region_captured",
+                        "region": region_name,
+                        "captured_by": marshal.nation,
+                        "captured_from": old_controller,
+                        "method": "liberated",
+                    })
                 else:
                     # WO-26: through the shared guard, never a bare write —
                     # an automated capture arriving on top of an EARLIER

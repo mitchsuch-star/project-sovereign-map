@@ -63,6 +63,27 @@ def _court_is_gone(world, nation: str) -> bool:
         return False
 
 
+def _specify_courts(world) -> str:
+    """WO slice 12: the courts a target-less diplomatic order may name,
+    read from the LIVE world. Six refusals carried a pre-cutover literal —
+    "Britain, Prussia, Austria, or Saxony" — on a board of twenty courts
+    where Saxony is a vassal and Russia was never mentioned."""
+    from backend.display_names import display_nation
+    player = getattr(world, "player_nation", "France")
+    try:
+        courts = [n for n in world.get_active_nations() if n != player]
+    except Exception:  # a bare test world without the cache seam
+        courts = [n for n in world.get_known_nations() if n != player]
+    names = sorted(display_nation(n) for n in courts)
+    if not names:
+        return "a court"
+    if len(names) > 8:
+        return ", ".join(names[:8]) + f", or one of {len(names) - 8} others"
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + f", or {names[-1]}"
+
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -909,7 +930,7 @@ class DiplomaticExecutor:
         if not target_nation:
             return {
                 "success": False,
-                "message": "Sire, which nation's treaty shall I break? Specify: Britain, Prussia, Austria, or Saxony.",
+                "message": f"Sire, which nation's treaty shall I break? Specify: {_specify_courts(world)}.",
             }
 
         player = world.player_nation
@@ -996,7 +1017,7 @@ class DiplomaticExecutor:
         if not target_nation:
             return {
                 "success": False,
-                "message": "Sire, which nation's relations shall I downgrade? Specify: Britain, Prussia, Austria, or Saxony.",
+                "message": f"Sire, which nation's relations shall I downgrade? Specify: {_specify_courts(world)}.",
             }
 
         player = world.player_nation
@@ -1118,7 +1139,7 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": (
                     "Sire, with which nation shall I arrange reparations? "
-                    "Specify: Britain, Prussia, Austria, or Saxony."
+                    f"Specify: {_specify_courts(world)}."
                 ),
             }
 
@@ -1509,7 +1530,7 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": (
                     "Sire, with which nation shall I arrange reparations? "
-                    "Specify: Britain, Prussia, Austria, or Saxony."
+                    f"Specify: {_specify_courts(world)}."
                 ),
             }
 
@@ -2082,7 +2103,7 @@ class DiplomaticExecutor:
         if not target_nation:
             return {
                 "success": False,
-                "message": "Sire, against which nation shall we declare war? Specify: Britain, Prussia, Austria, or Saxony.",
+                "message": f"Sire, against which nation shall we declare war? Specify: {_specify_courts(world)}.",
             }
 
         player = world.player_nation
@@ -3049,7 +3070,7 @@ class DiplomaticExecutor:
         if not target_nation:
             return {
                 "success": False,
-                "message": "Sire, to which nation shall we deliver this ultimatum? Specify: Britain, Prussia, Austria, or Saxony.",
+                "message": f"Sire, to which nation shall we deliver this ultimatum? Specify: {_specify_courts(world)}.",
             }
 
         player = world.player_nation

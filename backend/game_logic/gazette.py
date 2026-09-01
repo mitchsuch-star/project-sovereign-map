@@ -87,30 +87,77 @@ def _player_sovereign_taken(world, turn_events: List[Dict]) -> bool:
     )
 
 
+# WO-43 (WO slice 12): the special-edition captions RANKED BY GRAVITY.
+# Every arm of `_special_reason` used to return on the first matching
+# event inside `for event in turn_events`, so the masthead was decided by
+# which catastrophe was appended to the log first — measured: an enemy
+# capital stormed by France preempted THE EMPEROR TAKEN on a turn that
+# carried both, while the dispatch ranks the same two events 101 > 100.
+# The weights mirror the dispatch's own band order (sovereign > our
+# capital > a crown struck > a nation proclaimed > a crowned head taken >
+# the great powers at war / at peace > a capital stormed > a marshal
+# lost). The slice-4 `_player_sovereign_taken` guard inside the capital
+# arm is retired by construction — it existed only because the arms were
+# ranked by log order.
+_SPECIAL_WEIGHTS = {
+    "THE EMPEROR TAKEN": 100,
+    "THE CAPITAL HAS FALLEN": 95,
+    "a crown struck from the map": 90,
+    "a nation proclaimed": 85,
+    "a crowned head taken": 80,
+    "war between the great powers": 70,
+    "peace between the great powers": 65,
+    "a capital stormed": 60,
+    "a marshal of France lost": 50,
+}
+
+
 def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
     """A forced special edition's cause among THIS turn's visible
-    events, or None. The detector runs per-turn at publish time — never
-    a later scan over the evictable log (the IGR-B trap)."""
+    events, or None — the GRAVEST of them (WO-43), never merely the
+    first logged. The detector runs per-turn at publish time — never a
+    later scan over the evictable log (the IGR-B trap)."""
+    candidates = _special_candidates(world, turn_events)
+    if not candidates:
+        return None
+    return max(candidates, key=lambda c: c[0])[1]
+
+
+def _special_candidates(world, turn_events: List[Dict]):
+    """Every special-edition cause among `turn_events`, as
+    `(weight, reason, key)` triples — `key` identifies the EVENT the
+    caption is about (a region, a court pair, a marshal), so the
+    publisher can tell "the same event again" from "another one".
+    Pure; `_special_reason` reads the heaviest."""
     player = getattr(world, "player_nation", "France")
+    found = []
+
+    def _add(reason: str, key: str) -> None:
+        found.append((_SPECIAL_WEIGHTS[reason], reason, f"{reason}|{key}"))
+
     for event in turn_events:
         etype = str(event.get("type", ""))
         if etype == "nation_eliminated":
-            return "a crown struck from the map"
+            _add("a crown struck from the map",
+                 str(event.get("nation") or event.get("eliminated") or ""))
         if etype == "nation_formed":
-            return "a nation proclaimed"
+            _add("a nation proclaimed",
+                 str(event.get("nation") or event.get("formed") or ""))
         if etype in ("war_declaration", "diplomatic_war_declared"):
             aggressor = str(event.get("aggressor")
                             or event.get("nation") or "")
             target = str(event.get("target") or "")
             if _is_great_power(world, aggressor) \
                     and _is_great_power(world, target):
-                return "war between the great powers"
+                _add("war between the great powers",
+                     "|".join(sorted((aggressor, target))))
         if etype in ("peace_ratified", "third_party_peace",
                      "diplomatic_treaty_signed"):
             parties = [str(event.get(k) or "") for k in
                        ("proposer", "target", "nation", "with")]
             if sum(1 for p in parties if _is_great_power(world, p)) >= 2:
-                return "peace between the great powers"
+                _add("peace between the great powers",
+                     "|".join(sorted(p for p in parties if p)))
         if etype == "region_captured":
             # Review round [17]: every production producer stamps
             # `captured_from` (capture_executor, movement_executor, the
@@ -148,38 +195,27 @@ def _special_reason(world, turn_events: List[Dict]) -> Optional[str]:
                 # shouts, every other court's is a lowercase noun
                 # phrase.
                 if prev == player or _is_our_capital_lost:
-                    # ...but never above the Emperor himself. See
-                    # `_player_sovereign_taken`: the arms are ranked by
-                    # LOG ORDER, so without this the fall of Paris
-                    # preempts "THE EMPEROR TAKEN" whenever it happens
-                    # to be logged first, and the paper contradicts the
-                    # dispatch that ranks the same two events 101 > 100.
-                    if _player_sovereign_taken(world, turn_events):
-                        # RETURN, never `continue`. The first cut deferred
-                        # to "whatever matches next", and because the arms
-                        # are ranked by log order that next match is often
-                        # LOWER than both: measured, a turn carrying Paris
-                        # + a marshal + the Emperor captioned itself "a
-                        # marshal of France lost". `_player_sovereign_taken`
-                        # has already proved the sovereign event is in this
-                        # turn's visible set, so naming its caption here is
-                        # both correct and order-independent.
-                        return "THE EMPEROR TAKEN"
-                    return "THE CAPITAL HAS FALLEN"
-                return "a capital stormed"
+                    # WO-43: no sovereign guard needed here any more —
+                    # THE EMPEROR TAKEN outranks this caption by WEIGHT,
+                    # whatever the log order (the slice-4 pins hold).
+                    _add("THE CAPITAL HAS FALLEN", region)
+                else:
+                    _add("a capital stormed", region)
         if etype == "marshal_captured" and event.get("sovereign"):
             # NP-4 (NAPOLEON_SPEC §9): the Eagle in Chains outranks every
-            # other cause on this page — checked before the generic
-            # marshal-lost arm so the sovereign's capture never prints as
-            # one more marshal.
+            # other cause on this page — by weight now, and the sovereign's
+            # capture never also counts as "one more marshal" below.
             if str(event.get("nation") or "") == player:
-                return "THE EMPEROR TAKEN"
+                _add("THE EMPEROR TAKEN", str(event.get("marshal") or ""))
+                continue
             if str(event.get("captor") or "") == player:
-                return "a crowned head taken"
+                _add("a crowned head taken", str(event.get("marshal") or ""))
+                continue
         if etype in ("marshal_captured", "last_stand", "marshal_destroyed"):
             if str(event.get("nation") or "") == player:
-                return "a marshal of France lost"
-    return None
+                _add("a marshal of France lost",
+                     str(event.get("marshal") or ""))
+    return found
 
 
 def _press_lead(world, war_rows: List[Dict]) -> str:
@@ -336,13 +372,29 @@ def process_gazette(world) -> Optional[Dict]:
     # + enemy phase) are stamped with the PRE-increment turn, and this
     # check runs post-increment — a detector scanning only the NEW stamp
     # would never see a stormed capital. The scan floor is therefore the
-    # just-played turn, clamped above the last issue's turn so a
-    # tail-stamped special (a congress peace, a proclamation) never
-    # forces two editions off one event.
-    scan_floor = max(last_turn + 1, turn - 1)
+    # just-played turn.
+    #
+    # WO-44 (WO slice 12): the floor used to be clamped above the last
+    # issue's turn — `max(last_turn + 1, turn - 1)` — so whenever ANY issue
+    # had published on the immediately preceding tick, the just-played
+    # turn's events were excluded entirely: measured, with the last issue
+    # at turn 11 and Paris falling on turn 11, no paper at all. The clamp
+    # existed so a TAIL-stamped special (a congress peace, a proclamation,
+    # stamped with the post-increment turn) never forced two editions off
+    # one event; that is now done by identity — the previous issue records
+    # the KEY of the event its special was about, and the same key seen
+    # again from the previous tick is not a second special.
+    scan_floor = turn - 1
     turn_events = filter_campaign_log(
         world.get_events_since_turn(scan_floor), world)
-    special = _special_reason(world, turn_events)
+    candidates = _special_candidates(world, turn_events)
+    if issues and last_turn == turn - 1:
+        _seen = str(issues[-1].get("special_key") or "")
+        if _seen:
+            candidates = [c for c in candidates if c[2] != _seen]
+    special = max(candidates, key=lambda c: c[0])[1] if candidates else None
+    special_key = (max(candidates, key=lambda c: c[0])[2]
+                   if candidates else "")
     due = (turn - last_turn) >= ISSUE_INTERVAL if issues \
         else turn >= ISSUE_INTERVAL
     if not special and not due:
@@ -350,6 +402,10 @@ def process_gazette(world) -> Optional[Dict]:
 
     issue = compose_issue(world, last_turn, special,
                           previous_issue=issues[-1] if issues else None)
+    # WO-44: the event this special was about, so the next tick can tell
+    # the same tail-stamped event from a new one (older issues lack the
+    # key and are treated as "nothing to dedupe against").
+    issue["special_key"] = special_key
     issues.append(issue)
     del issues[:-MAX_ISSUES]
 

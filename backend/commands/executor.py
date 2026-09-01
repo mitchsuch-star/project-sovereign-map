@@ -554,9 +554,17 @@ class CommandExecutor:
             })
 
         # Try fuzzy match
-        from backend.commands.parser import _plausible_name_typo
+        from backend.commands.parser import (
+            _MIN_FUZZY_TARGET_LEN, _plausible_name_typo,
+        )
 
         result = self.fuzzy_matcher.match_with_context(region_name, all_regions)
+        # WO-45 (slice 12): a query under the fuzzy-target floor is never
+        # answered with a guess, on EITHER refusing arm — the matcher's
+        # short-name bands (SHORT_NAME_AUTO_CORRECT 70 / SUGGEST 50, on
+        # partial_ratio) let `Nye` reach `Ukraine` as an implausible
+        # auto-correct, which the WO-2 arm below then offered as a question.
+        _too_short = len((region_name or "").strip()) < _MIN_FUZZY_TARGET_LEN
 
         if result["action"] == "exact" or result["action"] == "auto_correct":
             # WO-2 backstop: the parser's arms are typo-gated, but this
@@ -567,6 +575,12 @@ class CommandExecutor:
             if (result["action"] == "auto_correct"
                     and not _plausible_name_typo(
                         region_name, result.get("match") or "")):
+                if _too_short:
+                    return (None, {
+                        "success": False,
+                        "message": f"Region '{region_name}' not found.",
+                        "implausible_correction": True,
+                    })
                 return (None, {
                     "success": False,
                     "message": (f"Region '{region_name}' not found. "
@@ -582,13 +596,27 @@ class CommandExecutor:
             # Exact match or plausible-typo correction - use corrected name
             region = world.get_region(result["match"])
             return (region, None)
-        elif result["action"] == "suggest":
+        elif result["action"] == "suggest" and not _too_short:
             # Medium confidence - ask for confirmation
             return (None, {
                 "success": False,
                 "message": f"Region '{region_name}' not found. Did you mean '{result['match']}'?",
                 "suggestion": result["match"],
                 "score": int(result["score"] * 100)
+            })
+        elif result["action"] == "suggest":
+            # WO-45 (slice 12): `Ney, attack Nye` answered "Did you mean
+            # 'Ukraine'?" — for a query of four characters or fewer the
+            # matcher drops to SHORT_NAME_SUGGEST = 50 and switches to
+            # partial_ratio, so a three-letter string reaches the suggest
+            # band against almost anything. CA8-28's rule one length-band
+            # over: a name the game cannot justify is not offered as a
+            # guess. The floor is the SAME `_MIN_FUZZY_TARGET_LEN` the WO-2
+            # and WO-13 gates read; the matcher itself is untouched (its
+            # blast radius is every name lookup in the game).
+            return (None, {
+                "success": False,
+                "message": f"Region '{region_name}' not found.",
             })
         else:
             # Low confidence - show suggestions

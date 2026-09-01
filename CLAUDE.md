@@ -44,6 +44,24 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ ROW WO SLICE 12 — "THE COPY SWEEP" (WO-9/10/12/15/16/33/42/43/44/45
+> + N-8b + WO-D10's copy half) — ✅ LANDED September 1, 2026.** Landing
+> record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 12, authoritative.
+> **NEXT = slice 14** (the clock and the flag), the last of row WO. Twelve
+> rows: conquest events stamp `captured_from`; the ratio sentence carries
+> an honest estimate note (two `.gd` renderers) and LAST_KNOWN prints a
+> band; the concentration tax narrates as a crowd; a prisoner is a
+> prisoner; *mauled* publishes the proportion under a 500-man floor
+> (dissent at the constant); the rout clause rotates on `battle_counts`;
+> **WO-45 wider than filed** (`Sco → Gascony` at 100; `Ulm → Stockholm` on
+> the suggest arm) — one floor on both refusing arms; strategic combat rows
+> carry `battle_report`; liberations are logged (census 6 → 8, conscious);
+> the Gazette ranks captions by gravity and its scan floor keeps the
+> just-played turn (`special_key` dedupe); six Specify-lists read the live
+> world; the exile refusal names the HOME-soil gate; "Ney stand in his
+> path" fixed. 48 tests, **22/22 mutations** (one inert repaired);
+> series + M1–M7 byte-identical; parse harness EXIT=0.
+>
 > **▶ ROW WO SLICE 11 — "THE TYPED-ROUTE RESIDUE" (WO-6/WO-7/WO-20/§2
 > H-15) — ✅ LANDED September 1, 2026.** Landing record =
 > `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 11, authoritative. **NEXT = slice

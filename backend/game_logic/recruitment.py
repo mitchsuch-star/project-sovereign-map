@@ -171,7 +171,15 @@ def check_commission(world, nation: str, candidate: Dict) -> Optional[str]:
         return (f"Raising {name}'s corps needs {size:,} men from the "
                 f"{arm} pool — only {have:,} remain.")
     if find_spawn_region(world, nation) is None:
-        return f"No soil remains on which {name} could raise his corps."
+        # WO-D10's copy half (WO slice 12): `find_spawn_region` considers
+        # the capital and the HOME provinces only, so an exiled court
+        # holding a dozen rich conquests was told "no soil remains" on the
+        # map it was looking at. Name the actual gate. (The mechanic —
+        # spawn at the richest held province — is carried to the Victory &
+        # Objectives Pass, DESIGN_REFINEMENT §WO-D7..D11.)
+        return (f"No HOME soil remains on which {name} could raise his "
+                f"corps — a marshal is commissioned at the capital or on a "
+                f"home province, and we hold neither.")
     return None
 
 

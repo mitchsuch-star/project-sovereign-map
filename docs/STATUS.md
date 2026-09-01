@@ -4,6 +4,33 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW WO SLICE 12 — "THE COPY SWEEP" (WO-9/10/12/15/16/33/42/43/44/45 + N-8b + WO-D10's copy half) — September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 12, authoritative.**
+> `tests/test_wo_slice12_copy_sweep.py` (48); `tools/_sweep_wo12.json` — **22
+> mutations, 22 killed, 0 inert at close** (one inert on the first sweep — the
+> suggest-arm floor — a real gap, repaired). M1–M7 + `BASELINE_SERIES`
+> byte-identical (proven by subprocess). Two `.gd` (the ratio sentence's renderers
+> append the new estimate note), parse harness EXIT=0. **NEXT = slice 14** (the
+> clock and the flag) — the LAST slice of row WO.
+>
+> **Twelve rows closed.** Both conquest events stamp `captured_from` (an AI attack-
+> capture of our province no longer vanishes from the enemy-phase report); the ratio
+> sentence says how good its estimate is and a LAST_KNOWN court prints a band, never
+> its exact aggregate; the concentration tax narrates as a crowd, not starvation, on
+> both surfaces; a prisoner is a prisoner; *mauled* publishes the proportion under a
+> 500-man floor (dissent carried at the constant); the rout sentence is repeat-aware
+> on `battle_counts`; **WO-45 measured wider than filed** — `Sco → Gascony` at a full
+> 100 and `Ulm → "Did you mean 'Stockholm'?"` on the suggest arm — one
+> `_MIN_FUZZY_TARGET_LEN` floor on BOTH refusing arms; strategic combat rows carry
+> `battle_report` uniformly; a liberation is logged at both own-soil paths (the
+> slice-4 producer census flips 6 → 8 consciously, and *"Belgium is French again"*
+> finally has a producer); the Gazette's captions rank by gravity and its scan floor
+> no longer loses the just-played turn (tail-stamped specials dedupe by `special_key`);
+> SIX legacy Specify-lists read the live world; the exile refusal names the HOME-soil
+> gate; and *"Ney stand in his path"* found in passing. Pre-existing, recorded:
+> `test_systems_audit_session3::TestMarshalTrustEndpoint` reads the module-global
+> boot world and fails when run alone.
+
 > # ✅ ROW WO SLICE 11 — "THE TYPED-ROUTE RESIDUE" (WO-6/WO-7/WO-20/§2 H-15) — September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 11, authoritative.**
 > `tests/test_wo_slice11_typed_route_residue.py` (61); `tools/_sweep_wo11.json` —

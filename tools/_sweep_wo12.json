@@ -1,0 +1,156 @@
+[
+ {
+  "id": "WO12-1 unopposed conquest loses its stamp",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        \"unopposed\": True,\n                        # WO-9 (slice 12): the second conquest producer —\n                        # same carve-out, same missing stamp.\n                        \"captured_by\": marshal.nation,\n                        \"captured_from\": old_controller,\n                    }",
+  "new": "                        \"unopposed\": True,\n                    }",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-2 garrison-destroyed conquest loses its stamp (census)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                \"garrison_destroyed\": True,\n                # WO-9 (slice 12): PT-E5's own-soil carve-out in the\n                # enemy-phase filter keys on `captured_from`, which only\n                # the MOVE producer stamped — an AI taking the player's\n                # province by ATTACK vanished from the report.\n                \"captured_by\": marshal.nation,\n                \"captured_from\": old_controller,\n            }",
+  "new": "                \"garrison_destroyed\": True,\n            }",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-3 the strength note is always empty",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    counted = int(detail.get(\"counted\", 0))\n    exact = int(detail.get(\"exact\", 0))\n    if counted == 0:",
+  "new": "    return \"\"\n    counted = int(detail.get(\"counted\", 0))\n    exact = int(detail.get(\"exact\", 0))\n    if counted == 0:",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-4 the note is not on the situation dict",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        \"enemy_strength_note\": enemy_strength_note,\n",
+  "new": "",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-5 LAST_KNOWN falls through to the exact aggregate",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    if visibility == LAST_KNOWN:",
+  "new": "    if False:",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-6 every attrition event is a shortage",
+  "file": "backend/models/world_state.py",
+  "old": "                    cause = \"concentration\" if total <= cap else \"shortage\"",
+  "new": "                    cause = \"shortage\"",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-7 the roster note starves whatever the cause",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if _latest_supply_cause(world, marshal.name) == \"concentration\":",
+  "new": "            if False:",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-8 a prisoner is dead again",
+  "file": "backend/models/world_state.py",
+  "old": "                captor = getattr(m, \"captured_by\", \"\")\n                if captor:",
+  "new": "                captor = getattr(m, \"captured_by\", \"\")\n                if False:",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-9 the mauled floor is gone",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                if (pre > 0 and casualties >= 0.25 * pre\n                        and casualties >= OWN_MAULED_MIN_CASUALTIES):",
+  "new": "                if (pre > 0 and casualties >= 0.25 * pre):",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-10 the proportion is always a quarter",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    ratio = casualties / pre_battle if pre_battle > 0 else 0.0\n    if ratio >= 0.75:",
+  "new": "    ratio = 0.0\n    if ratio >= 0.75:",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-11 the rout clause never rotates",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    index = min(max(count, 1) - 1, len(_ROUT_CLAUSES) - 1)",
+  "new": "    index = 0",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-12 the short-name floor is gone on the suggest arm",
+  "file": "backend/commands/executor.py",
+  "old": "        elif result[\"action\"] == \"suggest\" and not _too_short:",
+  "new": "        elif result[\"action\"] == \"suggest\":",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-13 the short-name floor is gone on the implausible arm",
+  "file": "backend/commands/executor.py",
+  "old": "                if _too_short:\n                    return (None, {\n                        \"success\": False,\n                        \"message\": f\"Region '{region_name}' not found.\",\n                        \"implausible_correction\": True,\n                    })",
+  "new": "                pass",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-14 the combat carry is empty",
+  "file": "backend/commands/strategic.py",
+  "old": "    cleaned = {k: v for k, v in result.items() if k != \"new_state\"}\n    return {\"battle_report\": cleaned.get(\"battle_report\"),\n            \"battle_details\": cleaned}",
+  "new": "    return {\"battle_report\": None, \"battle_details\": None}",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-15 the attack-capture liberation is not logged",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    world.log_event({\n                        \"type\": \"region_captured\",\n                        \"region\": region_name,\n                        \"captured_by\": marshal.nation,\n                        \"captured_from\": old_controller,\n                        \"method\": \"liberated\",\n                    })",
+  "new": "                    pass",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-16 the occupation liberation is not logged",
+  "file": "backend/models/world_state.py",
+  "old": "                self.log_event({\n                    \"type\": \"region_captured\",\n                    \"region\": region_name,\n                    \"captured_by\": marshal.nation,\n                    \"captured_from\": old_controller,\n                    \"method\": \"liberated\",\n                })",
+  "new": "                pass",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-17 the Gazette returns the first caption, not the gravest",
+  "file": "backend/game_logic/gazette.py",
+  "old": "    return max(candidates, key=lambda c: c[0])[1]",
+  "new": "    return candidates[0][1]",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-18 the scan-floor clamp is restored",
+  "file": "backend/game_logic/gazette.py",
+  "old": "    scan_floor = turn - 1\n    turn_events = filter_campaign_log(",
+  "new": "    scan_floor = max(last_turn + 1, turn - 1)\n    turn_events = filter_campaign_log(",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-19 the tail-stamped dedupe is gone",
+  "file": "backend/game_logic/gazette.py",
+  "old": "        if _seen:\n            candidates = [c for c in candidates if c[2] != _seen]",
+  "new": "        if False:\n            candidates = [c for c in candidates if c[2] != _seen]",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-20 the Specify helper returns the old literal",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "    names = sorted(display_nation(n) for n in courts)\n    if not names:",
+  "new": "    return \"Britain, Prussia, Austria, or Saxony\"\n    names = sorted(display_nation(n) for n in courts)\n    if not names:",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-21 the exile refusal loses its gate",
+  "file": "backend/game_logic/recruitment.py",
+  "old": "        return (f\"No HOME soil remains on which {name} could raise his \"\n                f\"corps — a marshal is commissioned at the capital or on a \"\n                f\"home province, and we hold neither.\")",
+  "new": "        return f\"No soil remains on which {name} could raise his corps.\"",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "WO12-22 one defender stands ungrammatically again",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            _verb = \"stands\" if len(defenders) == 1 else \"stand\"",
+  "new": "            _verb = \"stand\"",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ }
+]

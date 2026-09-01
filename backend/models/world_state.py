@@ -4081,6 +4081,17 @@ class WorldState:
                 region.stability = 25
                 region.plundered = False
                 self._last_occupation_capture_choice = "secure"
+                # WO-42 (slice 12): the occupation-completes liberation logs
+                # its row too (the attack-capture sibling lives in
+                # combat_executor) — the dispatch's home arm and the campaign
+                # log read `region_captured`, and neither path wrote one.
+                self.log_event({
+                    "type": "region_captured",
+                    "region": region_name,
+                    "captured_by": marshal.nation,
+                    "captured_from": old_controller,
+                    "method": "liberated",
+                })
                 return (f" {region_name} is ours again — {marshal.name} "
                         f"restores the Imperial administration.")
             # WO-26: through the shared guard, never a bare write. Two
@@ -5092,7 +5103,17 @@ class WorldState:
             distance = self.get_distance(m.location, region_name)
 
             if m.strength <= 0:
-                filtered_out.append(f"{m.name} (dead)")
+                # WO-15 (slice 12): a prisoner is a strength-0 marshal who
+                # stays on the roster BY DESIGN (W6-7) — the recruit refusal
+                # called him dead while the prisoner refusal one screen over
+                # named his captor.
+                captor = getattr(m, "captured_by", "")
+                if captor:
+                    from backend.display_names import display_nation
+                    filtered_out.append(
+                        f"{m.name} (a prisoner of {display_nation(captor)})")
+                else:
+                    filtered_out.append(f"{m.name} (dead)")
             elif m.strength < 1000:
                 filtered_out.append(f"{m.name} ({m.strength:,} troops - too weak)")
             elif distance > m.movement_range:
@@ -6434,19 +6455,34 @@ class WorldState:
                 losses = int(m.strength * attrition)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
+                    # WO-12 (slice 12): the under-capacity CONCENTRATION tax
+                    # (three or more corps on one province, `total <= cap`)
+                    # rode the same event and narrated as starvation — "a
+                    # corps at 18% of Paris's capacity reads Starving". The
+                    # cause is stamped and both surfaces read it.
+                    cause = "concentration" if total <= cap else "shortage"
+                    if cause == "concentration":
+                        message = (
+                            f"Crowded at {region.name}: "
+                            f"{_hum_marshal(m.name)} loses {losses:,} troops "
+                            f"to the press of {num_marshals} corps on one "
+                            f"province's roads")
+                    else:
+                        message = (
+                            f"Supply shortage at {region.name}: "
+                            f"{_hum_marshal(m.name)} loses "
+                            f"{losses:,} troops")
                     event = {
                         "type": "supply_attrition",
                         "marshal": m.name,
                         "nation": m.nation,
                         "region": region.name,
                         "losses": int(losses),
+                        "cause": cause,
                         # N27 (CA9): `m.name` is a raw marshal key —
                         # "ArchdukeCharles loses 1,400 troops". This is the
                         # most-repeated of the leaking message fields.
-                        "message": (
-                            f"Supply shortage at {region.name}: "
-                            f"{_hum_marshal(m.name)} loses "
-                            f"{losses:,} troops")
+                        "message": message,
                     }
                     events.append(event)
                     # W6-3 §5.2: the dispatch danger flag needs attrition

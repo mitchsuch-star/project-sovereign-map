@@ -3253,6 +3253,96 @@ live world.
 > absence the player can see is untrue. Carry contract:
 > `DESIGN_REFINEMENT.md` §WO-D7..D11.
 
+> **✅ LANDED September 1, 2026 — landing record, authoritative.** Tests =
+> `tests/test_wo_slice12_copy_sweep.py` (48); `tools/_sweep_wo12.json` —
+> **22 mutations, 22 killed, 0 inert at close** (one INERT on the first
+> sweep, a real coverage gap — below); M1–M7 byte-identical;
+> `BASELINE_SERIES` byte-identical, proven by subprocess (display and event
+> FIELDS only — the one behaviour-adjacent change, two new `region_captured`
+> rows, is player-branch-gated and France issues no orders there); **two
+> `.gd`** (the ratio sentence's two renderers append the new note), parse
+> harness EXIT=0. **Twelve rows closed** — the ten filed plus WO-D10's copy
+> half and one found in passing.
+>
+> 1. **WO-9** — both `conquest` producers stamp `captured_by` /
+>    `captured_from` (`old_controller` was live three lines above each);
+>    pinned through the real `_filter_enemy_phase_by_visibility` with own
+>    soil set PARTIAL (the played shape — the legacy fixture stamps own soil
+>    FULL, which satisfies the gate regardless of the stamp).
+> 2. **WO-10** — the estimator's arithmetic is split into
+>    `_enemy_strength_estimate_detail` (total / counted / exact, one walk)
+>    and the situation dict carries `enemy_strength_note` — *"(an estimate —
+>    3 of 5 known corps read from stale reports; unscouted armies are not
+>    counted)"*, or *"(known corps only …)"*, or *"(no enemy corps in view —
+>    the figure counts nothing)"* — which `main.gd` and `dispatch_view.gd`
+>    append to the ratio sentence. `_format_army_strength` gains the
+>    LAST_KNOWN arm (the STALE band + *"(last seen)"*) and refuses any tier
+>    it does not know rather than falling through to the exact aggregate.
+> 3. **WO-12** — the attrition event carries `cause` (`concentration` when
+>    `total <= cap`, else `shortage`) with its own sentence (*"Crowded at
+>    Paris: Ney loses 120 troops to the press of 3 corps on one province's
+>    roads"*), and the roster note reads it (*"Crowded — Belgium carries more
+>    corps than its roads can bear, two turns running."*); a legacy row
+>    without the key reads shortage. The starving HEADLINE was already
+>    cause-safe (it yields when `over <= 0`, CA8-2(a)).
+> 4. **WO-15** — a prisoner is *"(a prisoner of Britain)"*, never *"(dead)"*.
+> 5. **WO-16** — *"Sire — Ney was mauled at Bohemia: a third of his corps —
+>    3,000 men — lost in a single action."*; `OWN_MAULED_MIN_CASUALTIES =
+>    500` under the proportional predicate, **the recorded dissent carried at
+>    the constant** (a conscious re-open of the playtest's killed claim #4:
+>    if 500 is tuned twice, take the fraction-of-national-strength form).
+> 6. **§4 N-8b** — the rout clause is repeat-aware on the serialized
+>    `battle_counts` seam (*"breaks a second time on this ground"*, *"driven
+>    from Belgium yet again"*); copy only, no new field.
+> 7. **WO-45** — measured wider than filed: not only `Nye → Ukraine` (80, the
+>    implausible-auto-correct arm) but **`Sco → Gascony` at a full 100** (a
+>    contained three-letter string), and **`Ulm → "Did you mean
+>    'Stockholm'?"`** and `Sax → White Russia` at 67 on the native SUGGEST
+>    arm. One floor, `_MIN_FUZZY_TARGET_LEN`, on BOTH refusing arms of
+>    `_fuzzy_match_region`; the matcher itself untouched. **The first sweep
+>    found the suggest-arm pin inert** — every test query had gone through
+>    the other door; `Ulm` and `Sax` now pin it.
+> 8. **WO-33** — `_combat_carry` stamps `battle_report` + `battle_details`
+>    (the executor's result, `new_state` stripped) on every row
+>    `_handle_combat_result` returns — victory, defeat (via `_break_order`),
+>    stalemate, cleared-order — and the HOLD sally / artillery HOLD rows gain
+>    `battle_report` beside their `battle_details`.
+> 9. **WO-42** — both own-soil recapture paths log `region_captured` with
+>    `method: "liberated"`; the dispatch's *"Belgium is French again"* arm is
+>    reachable (pinned with a BLOODLESS liberation — when a battle wins the
+>    field, CA8-26's victory line absorbs the map fact by design); the
+>    slice-4 producer census flips 6 → 8 consciously.
+> 10. **WO-43** — `_special_candidates` collects `(weight, reason, key)` and
+>     `_special_reason` returns the heaviest: EMPEROR 100 > OUR CAPITAL 95 >
+>     a crown struck 90 > a nation proclaimed 85 > a crowned head taken 80 >
+>     war / peace between the great powers 70 / 65 > a capital stormed 60 >
+>     a marshal of France lost 50. The slice-4 sovereign guard inside the
+>     capital arm is retired by construction; every slice-4 and NP-4 pin
+>     holds unchanged.
+> 11. **WO-44** — `scan_floor = turn - 1` (the clamp
+>     `max(last_turn + 1, turn - 1)` excluded the just-played turn whenever
+>     ANY issue had published on the preceding tick); the double-edition
+>     the clamp guarded against is prevented by IDENTITY instead — the
+>     issue records `special_key` (the event its special was about) and the
+>     same key seen again from the previous tick is not a second special
+>     (older issues lack the key → nothing to dedupe against).
+> 12. **The Specify-lists** — SIX, not two: `_specify_courts(world)` reads
+>     the live active courts (*"Austria, Britain, Prussia, or Saxony"* on
+>     the legacy fixture; the eight first courts *"or one of 11 others"* on
+>     1805), replacing the pre-cutover literal at break / downgrade /
+>     amends ×2 / declare war / ultimatum. **WO-D10's copy half** — *"No
+>     HOME soil remains on which X could raise his corps — a marshal is
+>     commissioned at the capital or on a home province, and we hold
+>     neither."* **Found in passing:** `enemy_on_our_soil` printed *"Ney
+>     stand in his path."* — verb agreement fixed and pinned.
+>
+> **Pre-existing, not this slice's:**
+> `test_systems_audit_session3.py::TestMarshalTrustEndpoint` reads
+> `backend.main.world` — the module-global boot world — which under
+> conftest's `SOVEREIGN_SCENARIO=none` carries no marshals; it fails when
+> run alone and passes in the full suite's order. Recorded here because the
+> slice's own neighbouring-pins run tripped over it.
+
 ### Slice 13 — WO-17 "The Corridor Has a Direction" (est 0.5–1) — **this spec's addition, P1**
 
 **The defect (found by this session's loop hunt; permission arm re-verified
@@ -4320,7 +4410,7 @@ toggling has no positive arm.
 > hand-verified P1s are closed)** → 18 → **5 (landed August 22, 2026)** →
 > **4 ✅ → 6 ✅ → 8 ✅ → 9 ✅ (September 1, 2026) → 10 ✅
 > (September 1, 2026) → 17 ✅ (September 1, 2026) → 11 ✅ (September 1,
-> 2026)** → 12 → 14. **Landed through slice 11**; the row's DoD is keyed on this list, so it is updated per slice
+> 2026) → 12 ✅ (September 1, 2026)** → 14. **Landed through slice 12**; the row's DoD is keyed on this list, so it is updated per slice
 > rather than at the end — recorded because a review found it three
 > slices behind.
 > The dependency notes below still hold: 7 before 11 (7 shrinks 11 — and

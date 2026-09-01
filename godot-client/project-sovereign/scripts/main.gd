@@ -3346,7 +3346,10 @@ func _display_morning_dispatch(data: Dictionary):
 	if bankrupt:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]")
 	else:
-		add_output("[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]")
+		# WO-10 (WO slice 12): the estimate says how good it is.
+		var strength_note = str(situation.get("enemy_strength_note", ""))
+		var note_suffix = "" if strength_note == "" else " " + strength_note
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]")
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))

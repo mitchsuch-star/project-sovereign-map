@@ -114,7 +114,10 @@ func _on_dispatch_received(response):
 	if bankrupt:
 		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"
 	else:
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]\n"
+		# WO-10 (WO slice 12): the estimate says how good it is.
+		var strength_note = str(situation.get("enemy_strength_note", ""))
+		var note_suffix = "" if strength_note == "" else " " + strength_note
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]\n"
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
