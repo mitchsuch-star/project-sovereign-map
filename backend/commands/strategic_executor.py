@@ -972,6 +972,7 @@ class StrategicExecutor:
                         from backend.models.authority import (
                             OBJECTION_TRUST_DAMPER_ACTIVE as _DAMPER_ACTIVE,
                             damp_objection_trust_gain,
+                            objection_trust_modifier,
                         )
                         trust_gain = damp_objection_trust_gain(
                             world,
@@ -1124,6 +1125,9 @@ class StrategicExecutor:
                             "insist_penalty": insist_penalty,
                             "trust_gain": trust_gain,
                             "compromise_gain": COMPROMISE_TRUST_GAIN,
+                            # WO-D12 — see executor.py. Display-only.
+                            "trust_gain_modifier": (
+                                objection_trust_modifier(world)),
                             "should_object": True,
                             # Backward compat fields
                             "severity": legacy_severity,

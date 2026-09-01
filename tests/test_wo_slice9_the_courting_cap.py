@@ -46,6 +46,7 @@ Every test names the mutation that kills it.
 
 import contextlib
 import io
+import os
 import re
 from pathlib import Path
 
@@ -55,6 +56,8 @@ from backend.models.world_state import WorldState
 
 REPO = Path(__file__).resolve().parents[1]
 VASSAL_PY = REPO / "backend" / "game_logic" / "vassal.py"
+OBJECTION_DIALOG_GD = (REPO / "godot-client" / "project-sovereign"
+                       / "scripts" / "objection_dialog.gd")
 
 _DOCSTRING_HEADS = ('"""', "'''", 'r"""')
 
@@ -584,3 +587,355 @@ class TestTheCapRedistributesRatherThanReduces:
         self._sweep(world)
         spent = [n for n in self.ROSTER if world.nation_dp[n] < before[n]]
         assert spent == ["Britain"]
+
+
+def _code_only_gd(text: str) -> str:
+    """GDScript with `#` comments stripped, quotes respected.
+
+    Same lesson as `_code_only`: the fix carries a comment naming the
+    expression it added, so a bare substring scan finds the prose and
+    passes with the code deleted. A blunt `split("#")` would also eat
+    every colour literal in the file.
+    """
+    out = []
+    for line in text.splitlines():
+        quote = ""
+        cut = len(line)
+        for index, char in enumerate(line):
+            if quote:
+                if char == quote:
+                    quote = ""
+            elif char in (chr(34), chr(39)):
+                quote = char
+            elif char == "#":
+                cut = index
+                break
+        out.append(line[:cut])
+    return chr(10).join(out)
+
+
+class TestTheKinshipGuardIsGeneralAndPinnedAsSuch:
+    """The guard is unfalsifiable inside the loop.
+
+    `attempt_vassal_courting` skips any vassal whose lord is not the
+    player, so `courtier_row["lord"] == state["lord"]` and `== player`
+    are equivalent at every point the loop can reach — a review found the
+    earlier test could not tell the two formulations apart. The rule is
+    now a pure predicate and is pinned HERE, where a non-player lord is
+    reachable.
+    """
+
+    def test_a_nation_is_of_its_own_house(self):
+        """Killed by: deleting the `nation == vassal_name` arm."""
+        world = _world()
+        state = world.vassals["Switzerland"]
+        assert V.courtier_is_of_the_same_house(
+            world, "Switzerland", "Switzerland", state) is True
+
+    def test_two_satellites_of_one_lord_are_of_the_same_house(self):
+        """Killed by: deleting the lord comparison."""
+        world = _world({"Switzerland": _satellite(),
+                        "Holland": _satellite(loyalty=90)})
+        state = world.vassals["Switzerland"]
+        assert V.courtier_is_of_the_same_house(
+            world, "Holland", "Switzerland", state) is True
+
+    def test_satellites_of_different_lords_are_not(self):
+        """The arm the in-loop test could never reach: an AUSTRIAN
+        satellite courting a FRENCH one. This is what makes the guard a
+        lord comparison rather than a `== player` test, and it is the
+        shape a carved client (formations stamps the carver) or a
+        defected satellite (VS-6) actually has.
+
+        Killed by: rewriting the predicate as `nation in world.vassals`
+        or as a comparison against `world.player_nation`."""
+        world = _world({"Switzerland": _satellite(lord="France"),
+                        "Bavaria": _satellite(lord="Austria", loyalty=90)})
+        state = world.vassals["Switzerland"]
+        assert V.courtier_is_of_the_same_house(
+            world, "Bavaria", "Switzerland", state) is False
+
+    def test_a_non_vassal_courtier_is_never_kin(self):
+        world = _world()
+        state = world.vassals["Switzerland"]
+        assert V.courtier_is_of_the_same_house(
+            world, "Britain", "Switzerland", state) is False
+
+    def test_two_satellites_of_one_non_player_lord_are_kin(self):
+        """The full generality, with the player nowhere in the fixture.
+
+        Killed by: any formulation that reads `world.player_nation`."""
+        world = _world({"Tuscany": _satellite(lord="Austria"),
+                        "Bavaria": _satellite(lord="Austria", loyalty=90)})
+        state = world.vassals["Tuscany"]
+        assert V.courtier_is_of_the_same_house(
+            world, "Bavaria", "Tuscany", state) is True
+
+
+class TestTheDesignStakeOutranksTheRoster:
+    """NA-2 section 5.4's bias sorts a courtier's candidate VASSALS, never
+    courtiers per target — so before this rider the cap handed the slot to
+    whoever came first in EUROPE_ROSTER, and the bias was overruled on
+    exactly the contested case it exists for.
+
+    Measured inert on the ambient board for a STATED reason: nobody holds
+    a design stake in Switzerland, the only satellite that goes under the
+    gate there (Holland's stakeholder is Britain, KingdomOfItaly's is
+    Sardinia, and neither falls below 50). So it is pinned by
+    construction here.
+    """
+
+    @staticmethod
+    def _patch_stake(mp, holders):
+        mp.setattr("backend.game_logic.agendas.vassal_holds_agenda_target",
+                   lambda courter, vassal, world: courter in holders)
+
+    def test_a_stakeless_courtier_stands_aside_for_a_stakeholder(
+            self, monkeypatch):
+        """Britain leads the roster; Austria holds the design. Austria
+        takes the slot.
+
+        Killed by: deleting the yield call from the loop."""
+        self._patch_stake(monkeypatch, {"Austria"})
+        world = _world()
+        assert _court(world, "Britain") == [], "Britain did not stand aside"
+        won = _court(world, "Austria")
+        assert len(won) == 1 and won[0]["nation"] == "Austria"
+
+    def test_standing_aside_is_free(self, monkeypatch):
+        """A courtier that yields must spend no DP and burn no cooldown —
+        it is sited with the other guards, above every side effect.
+
+        Killed by: siting the yield below the DP debit."""
+        self._patch_stake(monkeypatch, {"Austria"})
+        world = _world()
+        before = world.nation_dp["Britain"]
+        _court(world, "Britain")
+        assert world.nation_dp["Britain"] == before
+        assert "court|Britain|Switzerland" not in world.ai_proposal_cooldowns
+
+    def test_the_stakeholder_itself_never_yields(self, monkeypatch):
+        """Killed by: dropping the `we ARE the stakeholder` early return,
+        which would deadlock the target — everyone yields, nobody
+        courts."""
+        self._patch_stake(monkeypatch, {"Britain"})
+        world = _world()
+        assert len(_court(world, "Britain")) == 1
+
+    def test_a_stakeholder_does_not_yield_to_a_FELLOW_stakeholder(
+            self, monkeypatch):
+        """The deadlock case, and the one that makes the self-check
+        load-bearing: with TWO stakeholders, dropping the `we ARE the
+        stakeholder` early return makes each stand aside for the other
+        and NOBODY courts. A single-stakeholder fixture cannot see this —
+        a mutation sweep reported the pin INERT until this case existed.
+
+        Killed by: deleting the self-check."""
+        self._patch_stake(monkeypatch, {"Britain", "Austria"})
+        world = _world()
+        won = _court(world, "Britain")
+        assert len(won) == 1, "both stakeholders yielded; the target deadlocked"
+
+    def test_nobody_yields_to_a_stakeholder_that_cannot_act(self, monkeypatch):
+        """Yielding to a courtier that cannot pay, or is on its own
+        cooldown, would waste the turn's court for nothing.
+
+        Killed by: dropping the DP / cooldown eligibility checks from the
+        rival scan."""
+        self._patch_stake(monkeypatch, {"Austria"})
+        world = _world()
+        world.nation_dp["Austria"] = 0
+        assert len(_court(world, "Britain")) == 1, (
+            "Britain stood aside for a court that could not be paid for")
+
+    def test_nobody_yields_to_kin(self, monkeypatch):
+        """A fellow satellite holding the stake cannot take the slot
+        either, so it is not a reason to stand aside.
+
+        Killed by: dropping the kinship check from the rival scan."""
+        self._patch_stake(monkeypatch, {"Holland"})
+        world = _world({"Switzerland": _satellite(),
+                        "Holland": _satellite(loyalty=90)})
+        assert len(_court(world, "Britain")) == 1
+
+    def test_no_stakeholder_means_roster_order_still_decides(self, monkeypatch):
+        """The ambient case, and the negative control.
+
+        Killed by: making the yield unconditional."""
+        self._patch_stake(monkeypatch, set())
+        world = _world()
+        won = _court(world, "Britain")
+        assert len(won) == 1 and won[0]["nation"] == "Britain"
+
+    def test_the_lever_is_true_at_rest(self):
+        assert V.COURTING_STAKE_PRIORITY_ACTIVE is True
+
+    def test_the_lever_down_restores_roster_order(self, monkeypatch):
+        """The attribution arm.
+
+        Killed by: reading the flag anywhere but at call time."""
+        self._patch_stake(monkeypatch, {"Austria"})
+        monkeypatch.setattr(V, "COURTING_STAKE_PRIORITY_ACTIVE", False)
+        world = _world()
+        assert len(_court(world, "Britain")) == 1
+
+
+class TestTheDamperExplainsItself:
+    """WO-D12. The damper halved the trust reward and NOTHING said so:
+    `affects_trust_gains` and `trust_modifier` have zero consumers in the
+    client, and the objection payload did not even carry the modifier, so
+    a surface was unbuildable rather than merely unwritten.
+    """
+
+    def test_the_modifier_rides_the_tactical_objection(self):
+        """Killed by: dropping the key from the tactical dict."""
+        _, clean = TestTheDamperOnTheRealPath._raise_objection([])
+        _, pushover = TestTheDamperOnTheRealPath._raise_objection(PUSHOVER)
+        assert clean["trust_gain_modifier"] == 1.0
+        assert pushover["trust_gain_modifier"] == 0.5
+
+    def test_the_modifier_is_the_same_read_that_pays(self):
+        """One source, or the explanation becomes its own shown-vs-applied
+        bug.
+
+        Killed by: computing the displayed modifier independently of the
+        one the damper multiplies by."""
+        from backend.commands.objection_v2 import (
+            ConcernLevel, TrustTier, calculate_trust_gain)
+        _, objection = TestTheDamperOnTheRealPath._raise_objection(PUSHOVER)
+        raw = calculate_trust_gain(ConcernLevel[objection["concern_level"]],
+                                   TrustTier[objection["trust_tier"]])
+        assert objection["trust_gain"] == int(
+            raw * objection["trust_gain_modifier"])
+
+    def test_the_modifier_reads_one_when_nothing_is_damped(self):
+        """So a caller can render only when it is < 1.0.
+
+        Killed by: returning the raw tracker value past the lever or past
+        the >= 5-answers guard."""
+        world = _world()
+        assert AUTH.objection_trust_modifier(world) == 1.0
+        _answers(world, ["trust"] * 4)
+        assert AUTH.objection_trust_modifier(world) == 1.0
+
+    def test_the_dialog_renders_it_only_when_damped(self):
+        """Client half, comment-blind.
+
+        Killed by: rendering it unconditionally, or dropping the
+        branch."""
+        code = _code_only_gd(_read(OBJECTION_DIALOG_GD))
+        assert "trust_gain_modifier" in code
+        assert "if trust_mod < 1.0:" in code
+        assert "taken your measure" in code
+        assert 'authority_label.text = "Authority: %d" % authority' in code
+
+
+# ══════════════════════════════════════════════════════════════════
+# What the cap actually does to the satellite — measured in a
+# hash-pinned subprocess, because an in-process ambient run is not
+# reproducible (the spec's own method rule, and a first draft of this
+# class read turn 25 in-suite against 32 in the pinned runner).
+# ══════════════════════════════════════════════════════════════════
+
+_REBELLION_RUNNER = '''
+import contextlib, io, os, random, sys
+sys.path.insert(0, sys.argv[1])
+os.environ.setdefault("LLM_MODE", "mock")
+from backend.commands.executor import CommandExecutor
+from backend.game_logic.turn_manager import TurnManager
+from backend.game_logic import vassal as V
+from backend.models.world_state import WorldState
+
+V.COURTING_TARGET_CAP_ACTIVE = sys.argv[3] == "1"
+answer = None
+with contextlib.redirect_stdout(io.StringIO()):
+    world = WorldState.from_scenario(sys.argv[2])
+    executor = CommandExecutor()
+    manager = TurnManager(world, executor=executor)
+    state = {"world": world, "executor": executor}
+    key = world._make_diplo_key("France", "Switzerland")
+    for turn in range(40):
+        random.seed(10_000 + turn)
+        manager.end_turn(state)
+        if answer is None and world.diplomatic_states.get(key) != "VASSAL":
+            answer = int(world.current_turn)
+sys.stderr.write("REBELLION=%s\\n" % answer)
+'''
+
+
+def _rebellion_turn(cap: bool):
+    """The turn France|Switzerland stops being a VASSAL, or None."""
+    import json  # noqa: F401  (kept: mirrors the series runner's imports)
+    import subprocess
+    import sys
+    import tempfile
+
+    env = dict(os.environ)
+    env["PYTHONHASHSEED"] = "0"
+    env["PYTHONPATH"] = str(REPO)
+    env["SOVEREIGN_SEED"] = "historical"
+    env["LLM_MODE"] = "mock"
+    env.pop("SOVEREIGN_SCENARIO", None)
+    env.pop("SOVEREIGN_MAP", None)
+    scenario = (REPO / "godot-client" / "project-sovereign" / "assets"
+                / "maps" / "europe_1805.json")
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False,
+                                     encoding="utf-8") as handle:
+        handle.write(_REBELLION_RUNNER)
+        script = handle.name
+    try:
+        result = subprocess.run(
+            [sys.executable, script, str(REPO), str(scenario),
+             "1" if cap else "0"],
+            env=env, cwd=str(REPO), capture_output=True, text=True,
+            timeout=300)
+    finally:
+        os.unlink(script)
+    assert result.returncode == 0, result.stderr[-2000:]
+    line = [ln for ln in result.stderr.splitlines()
+            if ln.startswith("REBELLION=")][-1]
+    raw = line[len("REBELLION="):]
+    return None if raw == "None" else int(raw)
+
+
+class TestWhatTheCapActuallyDoesToTheSatellite:
+    """This class exists because the first draft of this slice's landing
+    record claimed the capped satellite "bottoms at 8 and recovers
+    instead of rebelling". That is FALSE, and the record is corrected.
+    Traced turn by turn on the shipped 1805 board:
+
+        uncapped  the turn-28 tick strips 47 -> 0; the state flip is
+                  observable at current_turn 29
+        capped    t28 47 · t29 34 · t30 21 · t31 8; flip observable at 32
+
+    (Observed AFTER `end_turn`, so a rebellion resolved inside the
+    advance shows on the following turn's reading — which is why the
+    uncapped number is 29 and not the 28 of the courting tick itself.)
+
+    The cap does not save the satellite. It converts a vanishing between
+    two screens into a four-turn bleed the player can see and act on —
+    which is the whole value of it, and is why `BASELINE_SERIES`
+    re-converges at index [31]: that is exactly where the delayed
+    rebellion lands.
+    """
+
+    def test_the_cap_delays_the_rebellion_it_does_not_prevent_it(self):
+        """Killed by: deleting the cap (both arms then rebel at 28), and
+        by any change that lets the satellite hold indefinitely."""
+        uncapped = _rebellion_turn(False)
+        capped = _rebellion_turn(True)
+        assert uncapped == 29, uncapped
+        assert capped == 32, capped
+        assert capped - uncapped == 3, (
+            "the cap must buy the lord turns to react, not save him")
+
+    def test_the_delay_is_where_the_series_reconverges(self):
+        """`BASELINE_SERIES` diverges at [28][29][30] and rejoins at [31].
+        Series index i is the reading after the i-th `end_turn`, i.e. at
+        `current_turn` i+1 — so index 31 IS turn 32, the capped
+        rebellion. The re-convergence is the delayed rebellion arriving,
+        not a coincidence.
+
+        Killed by: any change to the rebellion timing that does not also
+        move the recorded series."""
+        assert _rebellion_turn(True) == 31 + 1

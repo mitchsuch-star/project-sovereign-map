@@ -110,7 +110,16 @@ func show_objection(objection_data: Dictionary):
 	vindication_label.text = "Track record: %s" % _get_vindication_text(vindication)
 
 	var authority = int(objection_data.get("authority", 100))
-	authority_label.text = "Authority: %d" % authority
+	# WO-D12: the anti-pushover damper halves trust rewards for a player
+	# who answers "trust" to everything, and until now nothing said so —
+	# the figure on the Trust button simply shrank. The cause is the
+	# authority mechanic, so the explanation rides the authority line the
+	# player is already reading. Display-only; 1.0 means nothing is damped.
+	var trust_mod = float(objection_data.get("trust_gain_modifier", 1.0))
+	if trust_mod < 1.0:
+		authority_label.text = "Authority: %d — they have taken your measure (trust rewards x%.2f)" % [authority, trust_mod]
+	else:
+		authority_label.text = "Authority: %d" % authority
 
 	# V2a trust change values for button previews
 	var trust_gain = int(objection_data.get("trust_gain", 3))

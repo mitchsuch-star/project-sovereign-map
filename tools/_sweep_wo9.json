@@ -9,22 +9,22 @@
   {
     "id": "WO9-2 the self-court guard is deleted (Switzerland courts Switzerland)",
     "file": "backend/game_logic/vassal.py",
-    "old": "            if nation == vassal_name:\n                continue",
-    "new": "            if nation is None:\n                continue",
+    "old": "    if nation == vassal_name:\n        return True",
+    "new": "    if nation is None:\n        return True",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite"
   },
   {
     "id": "WO9-3 the fellow-satellite guard is deleted",
     "file": "backend/game_logic/vassal.py",
-    "old": "            courtier_row = world.vassals.get(nation)\n            if (courtier_row is not None and courtier_row is not state\n                    and courtier_row.get(\"lord\") == state[\"lord\"]):\n                continue",
-    "new": "            courtier_row = world.vassals.get(nation)\n            if courtier_row is None:\n                continue",
+    "old": "            and courtier_row.get(\"lord\") == state[\"lord\"])",
+    "new": "            and courtier_row.get(\"lord\") is None)",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite"
   },
   {
     "id": "WO9-4 the lord guard degenerates to `nation in world.vassals` (an enemy lord's satellite is wrongly blocked)",
     "file": "backend/game_logic/vassal.py",
-    "old": "            if (courtier_row is not None and courtier_row is not state\n                    and courtier_row.get(\"lord\") == state[\"lord\"]):",
-    "new": "            if nation in world.vassals:",
+    "old": "    courtier_row = world.vassals.get(nation)\n    return (courtier_row is not None\n            and courtier_row is not state\n            and courtier_row.get(\"lord\") == state[\"lord\"])",
+    "new": "    return nation in world.vassals",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite::test_the_guard_compares_lords_not_the_player"
   },
   {
@@ -93,15 +93,15 @@
   {
     "id": "WO9-14 the damper stops consulting the tracker (returns the raw gain)",
     "file": "backend/models/authority.py",
-    "old": "    return int(trust_gain * tracker.get_trust_gain_modifier())",
+    "old": "    return int(trust_gain * objection_trust_modifier(world))",
     "new": "    return int(trust_gain)",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_pushover_is_paid_less_than_a_balanced_player tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_the_ruled_thresholds_are_the_ones_applied"
   },
   {
     "id": "WO9-15 the tracker's defensive probe is removed (a legacy world crashes)",
     "file": "backend/models/authority.py",
-    "old": "    if tracker is None or not hasattr(tracker, \"get_trust_gain_modifier\"):\n        return int(trust_gain)",
-    "new": "    if tracker is None and False:\n        return int(trust_gain)",
+    "old": "    tracker = getattr(world, \"authority_tracker\", None)\n    if tracker is None or not hasattr(tracker, \"get_trust_gain_modifier\"):\n        return 1.0",
+    "new": "    tracker = world.authority_tracker",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_world_without_a_tracker_does_not_crash"
   },
   {
@@ -149,16 +149,16 @@
   {
     "id": "WO9-22 the damper is unreachable from the tactical quote though the call survives",
     "file": "backend/models/authority.py",
-    "old": "    if not OBJECTION_TRUST_DAMPER_ACTIVE:\n        return int(trust_gain)",
-    "new": "    if True:\n        return int(trust_gain)",
+    "old": "    if not OBJECTION_TRUST_DAMPER_ACTIVE:\n        return 1.0",
+    "new": "    if True:\n        return 1.0",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_a_raised_objection_quotes_a_damped_figure"
   },
   {
     "id": "WO9-23 the flag is frozen at import time (monkeypatch stops reaching it)",
     "file": "backend/models/authority.py",
-    "old": "def damp_objection_trust_gain(world, trust_gain: int) -> int:",
-    "new": "def damp_objection_trust_gain(world, trust_gain: int,\n                              OBJECTION_TRUST_DAMPER_ACTIVE=OBJECTION_TRUST_DAMPER_ACTIVE) -> int:",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_lever_down_restores_the_undamped_quote"
+    "old": "def objection_trust_modifier(world) -> float:",
+    "new": "def objection_trust_modifier(world,\n                             OBJECTION_TRUST_DAMPER_ACTIVE=OBJECTION_TRUST_DAMPER_ACTIVE) -> float:",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_lever_down_restores_the_undamped_quote tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_false_is_a_no_op"
   },
   {
     "id": "WO9-24 shown stops equalling applied on the real path",
@@ -173,5 +173,75 @@
     "old": "            if state.get(\"courted_turn\") == int(world.current_turn):\n                continue",
     "new": "            if state.get(\"courted_turn\") == int(world.current_turn):\n                break",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheCapRedistributesRatherThanReduces"
+  },
+  {
+    "id": "WO9-26 the kinship predicate degenerates to a player comparison",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    return (courtier_row is not None\n            and courtier_row is not state\n            and courtier_row.get(\"lord\") == state[\"lord\"])",
+    "new": "    return (courtier_row is not None\n            and courtier_row is not state\n            and courtier_row.get(\"lord\") == getattr(world, \"player_nation\", None))",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheKinshipGuardIsGeneralAndPinnedAsSuch::test_two_satellites_of_one_non_player_lord_are_kin"
+  },
+  {
+    "id": "WO9-27 the kinship predicate loses its self-court arm",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if nation == vassal_name:\n        return True\n    courtier_row = world.vassals.get(nation)",
+    "new": "    courtier_row = world.vassals.get(nation)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheKinshipGuardIsGeneralAndPinnedAsSuch::test_a_nation_is_of_its_own_house tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite"
+  },
+  {
+    "id": "WO9-28 the stake yield is deleted (roster order overrules the design again)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if courtier_yields_to_a_design_stake(world, nation, vassal_name,\n                                                 state):\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster"
+  },
+  {
+    "id": "WO9-29 a courtier yields to a stakeholder that cannot pay",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        if dp_nations.get(rival, 0) < 2:\n            continue\n        if cooldowns.get(\"court|%s|%s\" % (rival, vassal_name), 0) > 0:\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_nobody_yields_to_a_stakeholder_that_cannot_act"
+  },
+  {
+    "id": "WO9-30 the stakeholder yields to itself (the target deadlocks)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if vassal_holds_agenda_target(nation, vassal_name, world):\n        return False",
+    "new": "    if False:\n        return False",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_the_stakeholder_itself_never_yields tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_a_stakeholder_does_not_yield_to_a_FELLOW_stakeholder"
+  },
+  {
+    "id": "WO9-31 the stake rider's lever is left down",
+    "file": "backend/game_logic/vassal.py",
+    "old": "COURTING_STAKE_PRIORITY_ACTIVE = True",
+    "new": "COURTING_STAKE_PRIORITY_ACTIVE = False",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_the_lever_is_true_at_rest tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_a_stakeless_courtier_stands_aside_for_a_stakeholder"
+  },
+  {
+    "id": "WO9-32 the modifier stops riding the tactical objection (WO-D12 dies)",
+    "file": "backend/commands/executor.py",
+    "old": "                                    \"trust_gain_modifier\": (\n                                        objection_trust_modifier(world)),",
+    "new": "",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperExplainsItself::test_the_modifier_rides_the_tactical_objection"
+  },
+  {
+    "id": "WO9-33 the displayed modifier diverges from the one that pays",
+    "file": "backend/models/authority.py",
+    "old": "    return float(tracker.get_trust_gain_modifier())",
+    "new": "    return 0.9",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperExplainsItself::test_the_modifier_is_the_same_read_that_pays tests/test_wo_slice9_the_courting_cap.py::TestTheDamperExplainsItself::test_the_modifier_rides_the_tactical_objection"
+  },
+  {
+    "id": "WO9-34 the dialog renders the damping line unconditionally",
+    "file": "godot-client/project-sovereign/scripts/objection_dialog.gd",
+    "old": "\tif trust_mod < 1.0:",
+    "new": "\tif true:",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperExplainsItself::test_the_dialog_renders_it_only_when_damped"
+  },
+  {
+    "id": "WO9-35 the cap stops delaying the rebellion",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        if COURTING_TARGET_CAP_ACTIVE:\n            state[\"courted_turn\"] = int(world.current_turn)",
+    "new": "        if False:\n            state[\"courted_turn\"] = int(world.current_turn)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestWhatTheCapActuallyDoesToTheSatellite"
   }
 ]

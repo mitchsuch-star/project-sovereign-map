@@ -123,6 +123,85 @@ LOYALTY_MAX = 100
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 9.
 COURTING_TARGET_CAP_ACTIVE = True
 
+
+# ═══════ WO-8 rider — THE DESIGN STAKE OUTRANKS THE ROSTER ═══════
+# The cap hands the one slot to whoever comes FIRST in enemy-nation order,
+# which is EUROPE_ROSTER order — Britain before Austria, always. That
+# silently overruled NA-2 §5.4's courting bias on exactly the case it was
+# written for: the bias sorts a COURTIER's candidate vassals, never
+# courtiers per target, so a Britain court with no design stake consumed
+# the slot an Austria that covets Milan should have had. A courtier with
+# no stake now stands aside for one that has, when that one can still act
+# this turn.
+# Flip lever for the BASELINE_SERIES attribution experiment: False
+# reproduces the pre-rider behaviour byte-identically (the
+# HOST_RULE_ACTIVE idiom). Not a config surface.
+COURTING_STAKE_PRIORITY_ACTIVE = True
+
+
+def courtier_yields_to_a_design_stake(world, nation: str, vassal_name: str,
+                                      state: dict) -> bool:
+    """True when `nation` should stand aside on this target.
+
+    Only ever asked of a courtier that holds NO stake itself, and only
+    yields to a rival that (a) holds one, (b) is not kin to the target,
+    (c) can pay the 2 DP, and (d) is not on its own per-pair cooldown —
+    i.e. a rival that will actually be able to take the slot. Yielding to
+    a courtier that cannot act would just waste the turn's court.
+
+    Deliberately NOT a guarantee: the stakeholder's own candidate sort may
+    still send it elsewhere (it breaks after one success), in which case
+    the target simply goes uncourted this turn. Courting was never
+    guaranteed, and the alternative — reserving the slot — would need
+    cross-courtier state the cap deliberately does not keep.
+    """
+    if not COURTING_STAKE_PRIORITY_ACTIVE:
+        return False
+    from backend.game_logic.agendas import vassal_holds_agenda_target
+    if vassal_holds_agenda_target(nation, vassal_name, world):
+        return False
+    dp_nations = getattr(world, "nation_dp", {})
+    cooldowns = getattr(world, "ai_proposal_cooldowns", {})
+    for rival in getattr(world, "enemy_nations", []):
+        if rival == nation:
+            continue
+        if dp_nations.get(rival, 0) < 2:
+            continue
+        if cooldowns.get("court|%s|%s" % (rival, vassal_name), 0) > 0:
+            continue
+        if courtier_is_of_the_same_house(world, rival, vassal_name, state):
+            continue
+        if vassal_holds_agenda_target(rival, vassal_name, world):
+            return True
+    return False
+
+
+def courtier_is_of_the_same_house(world, nation: str, vassal_name: str,
+                                  state: dict) -> bool:
+    """True when `nation` may not court `vassal_name` on kinship grounds.
+
+    Two arms: a nation never courts ITSELF, and never courts a FELLOW
+    satellite of its own lord ("fellow" means another one, hence the
+    identity check — written without it the second arm silently subsumes
+    the first, since a row trivially shares a lord with itself).
+
+    Extracted as a pure predicate on purpose. Inside the loop the guard
+    is unfalsifiable: `attempt_vassal_courting` skips any vassal whose
+    lord is not the player, so `courtier_row["lord"] == state["lord"]`
+    and `== player` are equivalent at every reachable point and no test
+    through that path can tell the two formulations apart. The generality
+    is real intent for the day the loop widens past player-held vassals —
+    a carved client (formations.py stamps the carver) or a defected
+    satellite (VS-6 transfers one to the briber) has a non-player lord —
+    so it is pinned HERE, where a non-player lord is reachable.
+    """
+    if nation == vassal_name:
+        return True
+    courtier_row = world.vassals.get(nation)
+    return (courtier_row is not None
+            and courtier_row is not state
+            and courtier_row.get("lord") == state["lord"])
+
 # ═══════ MARSHAL ASSIMILATION ═══════
 ASSIMILATION_TRUST = 40  # Starting trust for assimilated marshals
 
@@ -2022,22 +2101,16 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         # notification, the event, and the 60% dispatch roll. A courtier the
         # cap turns away therefore spends nothing.
         if COURTING_TARGET_CAP_ACTIVE:
-            # (b) a nation does not court itself.
-            if nation == vassal_name:
+            # (b) + (c) — no self-court, no courting a fellow satellite of
+            # one's own lord. Both live in the pure predicate above, where
+            # a non-player lord is reachable and the rule is falsifiable.
+            if courtier_is_of_the_same_house(world, nation, vassal_name, state):
                 continue
-            # (c) nor does it court a FELLOW satellite of its own lord —
-            # `is not state`, because "fellow" means another one. Written
-            # without that clause the guard silently subsumed (b) above (a
-            # row trivially shares a lord with itself), which a mutation
-            # sweep caught by reporting (b)'s pin INERT.
-            # Compared lord-to-lord rather than against `player`: a vassal
-            # row's lord is NOT always the player (formations.py stamps the
-            # carver on a carved client; the VS-6 defection transfers one to
-            # the briber), so the general comparison is the one that stays
-            # correct if this loop is ever widened past player-held vassals.
-            courtier_row = world.vassals.get(nation)
-            if (courtier_row is not None and courtier_row is not state
-                    and courtier_row.get("lord") == state["lord"]):
+            # The design stake outranks the roster (rider above). Sited
+            # with the other guards, above every side effect, so a
+            # courtier that stands aside spends nothing doing it.
+            if courtier_yields_to_a_design_stake(world, nation, vassal_name,
+                                                 state):
                 continue
             # (a) one successful court per TARGET per turn, world-wide. The
             # first courtier in enemy-nation order wins; that order is a

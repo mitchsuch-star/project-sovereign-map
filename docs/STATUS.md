@@ -56,20 +56,42 @@
 > `TestTheDamperOnTheRealPath`, four tests driving the real executor, plus a
 > def-time flag freeze no grep could see.
 >
-> **Recorded, not fixed:** the cap **redistributes** courting rather than
-> reducing it (10-satellite probe: uncapped 19 events / 47 loss / 1 victim;
-> capped 10 events / **50** loss / **10** victims), so "the losers spend
-> nothing" holds only with a single eligible target; the winner is first in
-> roster order, not hardest-biting, which silently overrules the NA-2 agenda
-> bias on the contested case; and the guard-(c) lord comparison is
-> **unpinnable today** (the loop's own `lord == player` invariant makes both
-> formulations equivalent), so the cap is not GR5-symmetric. **Routed:**
-> **WO-D12** — the damper is now invisible (nothing renders `affects_trust_gains`,
-> and the objection payload doesn't even carry the modifier), owned by slice 12
-> with a completion definition.
+> **Then everything that round left flagged was BUILT rather than filed.**
+> **WO-D12** — both objection dicts stamp a display-only
+> `trust_gain_modifier` off the NEW single source
+> `authority.objection_trust_modifier` (the same read the damper multiplies
+> by), and `objection_dialog.gd` spends it on the line already carrying the
+> cause: *"Authority: 62 — they have taken your measure (trust rewards
+> x0.50)"*. **The unpinnable guard** became the pure predicate
+> `courtier_is_of_the_same_house`, pinned where a non-player lord IS
+> reachable — including a fixture with the player nowhere in it, which kills
+> any formulation reading `player_nation`. **The roster overruling NA-2's
+> agenda bias** is fixed by a yield rider (own lever): a stakeless courtier
+> stands aside for a stakeholder that can actually take the slot — measured
+> inert on the ambient board for a STATED reason (nobody covets Switzerland,
+> the only satellite under the gate), so pinned entirely by construction.
+> **The redistribution worry was measured on the shipped board and does not
+> bind**: over the same 40 turns, uncapped 19 events / 38 DP / 95 nominal,
+> capped **4 / 8 / 20**. It falls on every axis; the 10-satellite case was
+> synthetic.
 >
-> ⚠ **UX23-R9 still needs a human ear** — three bugle cues, renders at
-> `audition/ux23_r9/`. A machine cannot hear a phrase.
+> **And a claim of mine was falsified by tracing it.** The record said the
+> capped satellite "recovers instead of rebelling". It does not — it bleeds
+> 47 · 34 · 21 · 8 and **rebels anyway, three turns later**. The cap buys
+> the lord time to act, which is the whole value, and it is exactly why the
+> series re-converges at index [31]: that index IS the delayed rebellion
+> arriving. Pinned in the same hash-pinned subprocess discipline the series
+> uses — an in-process run of those 40 turns reads turn 25 and is worthless
+> for the claim.
+>
+> ✅ **UX23-R9 CLOSED** — by asking the answerable question. Not "does it
+> sound abrupt" but *how loud is the cue when the fade starts*: `reveille`
+> cuts at 51.6% of peak and the music RISES to 85.0% under the 0.8 s fade;
+> `to_the_color` starts in a real gap (8.1%) but the next phrase hits 90.5%
+> inside it; `fanfare` never exceeds 22.5%. A search over caps 3.0–9.0 s
+> found no better cut for either bugle, so **the cap was never the lever** —
+> `fade_s` is now a per-cue field and the two condemned cues get a 2.0 s
+> decrescendo. `fanfare` left alone on the evidence.
 
 > # ✅ ROW REV'S FOLLOW-UPS — August 31, 2026: THREE OF FOUR CLOSED.
 > **Landing record = `docs/BUG_FIXES.md` §THE FOLLOW-UPS (August 31, 2026),

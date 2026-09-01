@@ -564,6 +564,24 @@ def courting_effectiveness_scale(grip: int) -> float:
 OBJECTION_TRUST_DAMPER_ACTIVE = True
 
 
+def objection_trust_modifier(world) -> float:
+    """The effective anti-pushover modifier, as the objection surface sees it.
+
+    Single source with `damp_objection_trust_gain` — the number a marshal
+    is paid by and the number the dialog explains itself with must be the
+    same read, or the explanation becomes its own shown-vs-applied bug.
+    Returns 1.0 whenever nothing is being damped (lever down, no tracker,
+    or under the >=5-answers guard), so a caller can render only when it
+    is < 1.0.
+    """
+    if not OBJECTION_TRUST_DAMPER_ACTIVE:
+        return 1.0
+    tracker = getattr(world, "authority_tracker", None)
+    if tracker is None or not hasattr(tracker, "get_trust_gain_modifier"):
+        return 1.0
+    return float(tracker.get_trust_gain_modifier())
+
+
 def damp_objection_trust_gain(world, trust_gain: int) -> int:
     """Scale a quoted objection trust gain by the anti-pushover modifier.
 
@@ -573,11 +591,6 @@ def damp_objection_trust_gain(world, trust_gain: int) -> int:
     `hasattr` probe mirrors `vindication.py`'s, which several fixtures
     already satisfy with a hand-rolled stub.
     """
-    if not OBJECTION_TRUST_DAMPER_ACTIVE:
-        return int(trust_gain)
     if trust_gain <= 0:
         return int(trust_gain)
-    tracker = getattr(world, "authority_tracker", None)
-    if tracker is None or not hasattr(tracker, "get_trust_gain_modifier"):
-        return int(trust_gain)
-    return int(trust_gain * tracker.get_trust_gain_modifier())
+    return int(trust_gain * objection_trust_modifier(world))

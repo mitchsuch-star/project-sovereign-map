@@ -1620,6 +1620,7 @@ class CommandExecutor:
                                 # figure the marshal is paid.
                                 from backend.models.authority import (
                                     damp_objection_trust_gain,
+                                    objection_trust_modifier,
                                 )
                                 trust_gain = damp_objection_trust_gain(
                                     world, calculate_trust_gain(concern, trust_tier))
@@ -1633,6 +1634,11 @@ class CommandExecutor:
                                     "insist_penalty": insist_penalty,
                                     "trust_gain": trust_gain,
                                     "compromise_gain": COMPROMISE_TRUST_GAIN,
+                                    # WO-D12: the dialog cannot explain a
+                                    # figure it cannot see. Display-only —
+                                    # 1.0 whenever nothing is damped.
+                                    "trust_gain_modifier": (
+                                        objection_trust_modifier(world)),
                                     # Backward compat fields
                                     "severity": legacy_severity,
                                     "message": message,

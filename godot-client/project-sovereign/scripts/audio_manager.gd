@@ -93,10 +93,10 @@ const CUES := {
 	"bell_toll": {"files": ["ambient/bell_toll_single.mp3"], "bus": "SFX", "db": -8.0, "max_s": 3.2},
 	"ship_bell": {"files": ["ambient/ship_bell.mp3"], "bus": "SFX", "db": -10.0, "throttle_ms": 400},
 	# ── field music used as one-shot cues (capped where long) ──
-	"reveille": {"files": ["music/bugle_reveille.ogg"], "bus": "SFX", "db": -14.0, "throttle_ms": 2000, "max_s": 4.2},
+	"reveille": {"files": ["music/bugle_reveille.ogg"], "bus": "SFX", "db": -14.0, "throttle_ms": 2000, "max_s": 4.2, "fade_s": 2.0},
 	"mail_call": {"files": ["music/bugle_mail_call.ogg"], "bus": "SFX", "db": -12.0, "throttle_ms": 2000},
 	"first_call": {"files": ["music/bugle_first_call.mp3"], "bus": "SFX", "db": -14.0, "max_s": 4.2},
-	"to_the_color": {"files": ["music/bugle_to_the_color.ogg"], "bus": "SFX", "db": -14.0, "max_s": 5.2},
+	"to_the_color": {"files": ["music/bugle_to_the_color.ogg"], "bus": "SFX", "db": -14.0, "max_s": 5.2, "fade_s": 2.0},
 	"fanfare": {"files": ["music/fanfare_erafnaf.ogg"], "bus": "SFX", "db": -10.0, "throttle_ms": 2000, "max_s": 5.2},
 }
 
@@ -437,7 +437,16 @@ func _play_cue(cue: String, max_seconds: float) -> AudioStreamPlayer:
 	# for longer than its cue's own default.
 	var cap := max_seconds if max_seconds > 0.0 else float(spec.get("max_s", 0.0))
 	if cap > 0.0:
-		_fade_stop(p, cap)
+		# UX23-R9: how long the fade runs is per-cue. A cap does not fall in
+		# a quiet place just because we chose it — measured on the uncapped
+		# renders, `reveille`'s 4.2 s cut sits at 51.6% of peak and the music
+		# RISES to 85% underneath the 0.8 s fade, and `to_the_color`'s starts
+		# in a note gap only to have the next phrase hit 90.5% inside it. A
+		# search over 3-9 s found no better cap for either (the best still
+		# fades from ~60%): these are continuous bugle calls with no trough,
+		# so the cap was never the lever. A long decrescendo reads as an
+		# ending where a 0.8 s pull reads as someone hitting stop.
+		_fade_stop(p, cap, float(spec.get("fade_s", 0.8)))
 	return p
 
 
@@ -482,11 +491,11 @@ func _fade_out_now(p: AudioStreamPlayer, secs: float) -> void:
 			p.finished.emit())
 
 
-func _fade_stop(p: AudioStreamPlayer, after_s: float) -> void:
+func _fade_stop(p: AudioStreamPlayer, after_s: float, fade_s: float = 0.8) -> void:
 	var t := get_tree().create_timer(after_s)
 	t.timeout.connect(func():
 		if is_instance_valid(p) and p.playing:
-			_fade_out_now(p, 0.8))
+			_fade_out_now(p, fade_s))
 
 
 # ── named ambient loops ─────────────────────────────────────────────────────

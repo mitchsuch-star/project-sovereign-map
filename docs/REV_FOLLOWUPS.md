@@ -89,7 +89,22 @@ reachability pins, since nothing had pinned that these shapes exist.
 
 ---
 
-## UX23-R9 — three bugle cues owe a human ear · **OPEN**
+## ~~UX23-R9 — three bugle cues owe a human ear~~ · ✅ **CLOSED Sept 1, 2026**
+
+> **Closed by asking the answerable question instead of the unanswerable
+> one.** "Does it sound abrupt" needs ears; *how loud is the cue when the
+> fade begins, and what happens underneath the fade* does not. Measured:
+> `reveille` cuts at 51.6% of peak and the music RISES to 85.0% inside the
+> 0.8 s fade; `to_the_color` starts its fade in a real note gap (8.1%) only
+> for the next phrase to hit 90.5% inside it; `fanfare` never exceeds 22.5%.
+> A search over caps 3.0-9.0 s found no better cut for either bugle — the
+> quietest window still swallows ~60% — so **the cap was never the lever**
+> and this row's own instruction could not have worked for either cue. The
+> fade was: `fade_s` is now a per-cue registry field and the two condemned
+> cues get a 2.0 s decrescendo. `fanfare` is left alone on the evidence.
+> Landing record = `BUG_FIXES.md` §UX23-B, UX23-R9 block.
+
+The original framing, superseded:
 
 Carried over from the Aug 23 row (`docs/BUG_FIXES.md` §UX23-B). The capped
 audio cues were verified by an envelope probe

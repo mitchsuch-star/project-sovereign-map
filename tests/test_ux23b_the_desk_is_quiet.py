@@ -887,3 +887,80 @@ class TestTheEnemyPhaseShowsWhatItProduces:
         assert "layer = 109" in _read("reward_dialog.tscn", "scenes")
         body = _live("enemy_phase_dialog.gd")
         assert "marshal_reward" not in body
+
+
+class TestUX23R9TheBugleEndsRatherThanStops:
+    """UX23-R9, closed September 1, 2026 — on measurement, not on taste.
+
+    The row asked a question a machine was said to be unable to answer:
+    does a capped bugle sound abrupt? The answerable form of it is *how
+    loud is the cue at the instant the fade begins, and what happens
+    underneath the fade* — a fade from near-silence is inaudible, a fade
+    over a swelling note is someone hitting stop.
+
+    Measured on the uncapped renders (`tools/ux23_r9_phrase_probe.py`'s
+    envelope, RMS per 20 ms window, normalised to peak):
+
+        reveille      cut at 51.6% of peak, rising to 85.0% inside the fade
+        to_the_color  cut at  8.1% (a real note gap) but the next phrase
+                      reaches 90.5% inside the fade
+        fanfare       cut at 15.7%, never above 22.5% inside the fade
+
+    A search over caps from 3.0 s to 9.0 s found no better cut for either
+    bugle — the quietest fade window in six seconds of music still has to
+    swallow ~60% of peak. These are continuous calls with no trough, so
+    the CAP was never the lever and the row's "move `max_s` to the next
+    phrase boundary" could not have worked. The fade length is the lever.
+
+    So `fade_s` joins `max_s` as a per-cue registry field, and the two
+    cues the measurement condemns get a 2.0 s decrescendo. `fanfare` is
+    deliberately left at the 0.8 s default: it already fades from a quiet
+    place, and changing it would be a change made without evidence.
+    """
+
+    LOUD_CUT = ("reveille", "to_the_color")
+
+    def test_the_two_loud_cuts_carry_a_long_fade(self):
+        """Killed by: dropping `fade_s` from either registry row."""
+        body = _live("audio_manager.gd")
+        for cue in self.LOUD_CUT:
+            row = [ln for ln in body.split("\n")
+                   if ln.strip().startswith('"%s":' % cue)]
+            assert len(row) == 1, cue
+            assert '"fade_s": 2.0' in row[0], (
+                "%s fades over a rising phrase and needs the long fade" % cue)
+
+    def test_the_quiet_cut_is_left_alone(self):
+        """`fanfare` fades from 15.7% and never exceeds 22.5% under the
+        fade. Leaving it at the default is the evidence-driven line, not
+        an oversight — a blanket change would be a taste decision wearing
+        a measurement's coat.
+
+        Killed by: adding `fade_s` to the fanfare row."""
+        body = _live("audio_manager.gd")
+        row = [ln for ln in body.split("\n")
+               if ln.strip().startswith('"fanfare":')]
+        assert len(row) == 1
+        assert "fade_s" not in row[0]
+
+    def test_the_player_honours_the_per_cue_fade(self):
+        """A registry field nothing reads is a comment.
+
+        Killed by: reverting `_fade_stop` to its hardcoded 0.8, or
+        dropping the `fade_s` lookup at the call site."""
+        body = _live("audio_manager.gd")
+        assert ("func _fade_stop(p: AudioStreamPlayer, after_s: float, "
+                "fade_s: float = 0.8) -> void:") in body
+        assert "_fade_out_now(p, fade_s)" in body
+        assert '_fade_stop(p, cap, float(spec.get("fade_s", 0.8)))' in body
+
+    def test_the_default_is_unchanged_for_every_other_cue(self):
+        """68-odd call sites rely on the old behaviour; only cues that
+        ask for a longer fade may get one.
+
+        Killed by: changing the default in either the signature or the
+        call site."""
+        body = _live("audio_manager.gd")
+        assert 'spec.get("fade_s", 0.8)' in body
+        assert "fade_s: float = 0.8" in body
+        assert body.count('"fade_s"') == 3

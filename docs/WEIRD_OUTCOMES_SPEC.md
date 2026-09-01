@@ -2098,10 +2098,12 @@ prior series).
 > **✅ LANDED September 1, 2026 — landing record, authoritative. THE
 > CONTRACT ABOVE IS WRONG IN FOUR PLACES and this record is what was
 > built.** Commit `59befa22`.
-> `tests/test_wo_slice9_the_courting_cap.py` (35);
-> `tools/_sweep_wo9.json` — **25 mutations, 25 killed, 0 inert at close**
-> (three INERT on the first sweep and one more after the review round;
-> two were real code findings, see below). Suite **19,025 / 4 skipped**, ruff clean, **zero `.gd`**, **zero new
+> `tests/test_wo_slice9_the_courting_cap.py` (55);
+> `tools/_sweep_wo9.json` — **35 mutations, 35 killed, 0 inert at close**
+> (six INERT across three sweeps; **three of them were real code or
+> coverage findings**, see below). Suite **19,055 / 4 skipped**, ruff clean, Godot parse harness EXIT=0
+> (47 scripts) + boot smoke 0 SCRIPT ERROR — the slice DOES touch `.gd`
+> now (WO-D12's dialog line and the UX23-R9 fade field). **Zero new
 > serialized FIELDS — but one new optional row KEY**, and the commit
 > message's bare "zero new serialized fields" overstates that: nothing
 > is added to any model class's `to_dict`, but `courted_turn` does land
@@ -2292,8 +2294,9 @@ prior series).
 > sweep mutations WO9-21..24, including a genuine def-time freeze of the
 > flag that no grep could detect.
 >
-> **A second measured consequence, recorded rather than fixed: the cap
-> REDISTRIBUTES courting rather than reducing it.** A blocked courtier
+> **A second measured consequence — worst-case only, and NOT what the
+> shipped board does. The cap can REDISTRIBUTE courting rather than
+> reduce it.** A blocked courtier
 > `continue`s to the next eligible satellite, and the uncapped pile-on had
 > been wasting most of its courts against `LOYALTY_MIN`. On a 10-satellite
 > probe: uncapped = 19 events, 47 realized loss, 38 DP, **one** victim;
@@ -2301,20 +2304,31 @@ prior series).
 > empire-wide realized bleed can rise (at `relation > 0`, ~3x), and this
 > slice's own "the losers spend nothing" holds only when there is no other
 > eligible target — with ten, ten courtiers each spend their 2 DP, on
-> someone else. On the real 1805 board France has three satellites and
-> usually one under the gate, so the practical effect is small; it is
-> pinned by `TestTheCapRedistributesRatherThanReduces` so the property is
-> visible instead of invisible. A global per-turn courting cap would be a
-> new mechanic the gate did not ask for.
+> someone else. **But that is a synthetic ten-satellite worst case, and
+> the shipped board was then measured directly: over the same 40 turns,
+> uncapped = 19 events / 38 DP / 95 nominal loss / 19 in a single tick;
+> capped = 4 events / 8 DP / 20 nominal loss / at most 1 per turn.**
+> Courting falls on every axis, because France has three satellites and
+> only Switzerland ever goes under the gate. The redistribution property
+> is real and is pinned by `TestTheCapRedistributesRatherThanReduces` so
+> it is visible rather than latent; it simply does not bind here. A
+> global per-turn courting cap would be a new mechanic the gate did not
+> ask for.
 >
-> **Also corrected on the record:** the guard-(c) lord comparison is
-> **unpinnable today** — `state["lord"] != player: continue` makes
-> `lord == player` a loop invariant, so `== state["lord"]` and `== player`
-> are literally equivalent at every reachable point and the test passes
-> under either. The generality is real intent for a future widening, not a
-> pinned behaviour, and the test says so now. Same root: **the cap is not
-> GR5-symmetric today**, because no non-player lord's vassal is ever a
-> courting target — the stamp is only ever written on player vassal rows.
+> **The unpinnable guard — FIXED by extraction.** The kinship rule was
+> unfalsifiable where it sat: `attempt_vassal_courting` skips any vassal
+> whose lord is not the player, so `== state["lord"]` and `== player`
+> are equivalent at every point the loop can reach, and no test through
+> that path could tell the formulations apart. It is now the pure
+> predicate `vassal.courtier_is_of_the_same_house`, pinned where a
+> non-player lord IS reachable — including a case with the player
+> nowhere in the fixture (two Austrian satellites), which kills any
+> formulation that reads `world.player_nation`. The claimed generality
+> is a tested behaviour now, not an intention in a comment. **The cap
+> itself remains player-scoped in practice**, because the loop only ever
+> targets the player's vassals — widening that is AI-courts-AI, a
+> mechanic nobody asked for — but the predicate it rests on is correct
+> for the day it widens, and is proven so.
 > And `test_a_zero_gain_stays_zero` was DELETED rather than kept: with the
 > guard removed the expression is still `int(0 * m) == 0`, so no mutation
 > of the function could ever kill it.
@@ -2348,6 +2362,28 @@ prior series).
 > runner's own `game_state`, or a probe of this phase measures nothing
 > and says so confidently.**
 >
+> **The design stake now outranks the roster (rider, own flip lever).**
+> The cap hands its one slot to whoever comes first in `EUROPE_ROSTER`,
+> which silently overruled NA-2 §5.4's courting bias on exactly the case
+> that bias exists for — it sorts a COURTIER's candidate vassals, never
+> courtiers per target, so a stakeless Britain consumed the slot an
+> Austria that covets Milan should have had. A courtier holding no stake
+> now stands aside for one that does, and only for a rival that can
+> actually take the slot (has the 2 DP, is off its own per-pair cooldown,
+> is not kin) — yielding to a courtier that cannot act would merely waste
+> the turn's court. Sited with the other guards, so standing aside is
+> free. Lever: `COURTING_STAKE_PRIORITY_ACTIVE`.
+>
+> **Measured inert on the ambient board for a STATED reason rather than
+> by luck:** nobody holds a design stake in Switzerland, the only
+> satellite that goes under the gate there — Holland's stakeholder is
+> Britain, KingdomOfItaly's is Sardinia, and neither falls below 50. The
+> series is byte-identical with this rider's lever both up and down, so
+> it needs no re-record. Because that also makes it untested in the
+> wild, it is pinned entirely by construction
+> (`TestTheDesignStakeOutranksTheRoster`, seven cases including both
+> negative controls and the two ways a yield would be wasted).
+>
 > **Harness, measured rather than asserted.**
 >
 > Prior series, indices 28–30: `..., 73, 71, 59, 56, 53, 50, 47, 44, ...`
@@ -2372,13 +2408,28 @@ prior series).
 > issues no orders here, so no objection is ever raised to damp. (Arms 0
 > and B were re-run after the guard-(c) narrowing and still reproduce.)
 >
-> Mechanism, not just a diff: uncapped, Switzerland is stripped 47→0 in
-> the turn-28 tick and rebels, and France's threat reading falls with the
-> lost satellite. Capped, Switzerland is courted **once** per turn —
-> Britain 28, Russia 29, Austria 30, Britain again 31 as its 3-turn
-> cooldown expires — bottoms at 8 and **recovers instead of rebelling**,
-> so France holds the satellite and reads ten points higher for three
-> turns before the trajectories rejoin.
+> Mechanism, traced turn by turn in a hash-pinned subprocess — and the
+> first draft of this paragraph was WRONG, so the correction is the
+> record. Uncapped, Switzerland is stripped 47→0 in the turn-28 tick and
+> the rebellion is observable at turn 29. Capped, it is courted **once**
+> per turn — Britain 28, Russia 29, Austria 30, Britain again 31 as its
+> 3-turn cooldown expires — bleeding 47 · 34 · 21 · 8 **and rebelling
+> anyway, at turn 32.**
+>
+> **The cap does not save the satellite. It delays its fall by three
+> turns**, which is the whole value: a vanishing between two screens
+> becomes a four-turn bleed the player can see, with the VS-1 recovery
+> hint reachable in the [40,50) band it had been skipping in a single
+> tick, and the VS-6 defection window genuinely live instead of
+> theoretically live. It is also why the series re-converges at index
+> [31] rather than drifting: index 31 is the reading at `current_turn`
+> 32 — **the re-convergence IS the delayed rebellion arriving.** The
+> earlier claim that it "bottoms at 8 and recovers instead of
+> rebelling" was read off a trace that stopped short; it is pinned now
+> by `TestWhatTheCapActuallyDoesToTheSatellite`, which runs both arms in
+> the same hash-pinned subprocess discipline the series pin uses — an
+> in-process run of the same 40 turns reads turn 25 and is worthless
+> for this claim.
 >
 > **M1–M7 byte-identical without re-record, and structurally so, not by
 > luck:** M1–M6 drive `resolve_battle` directly with no turn loop at all,

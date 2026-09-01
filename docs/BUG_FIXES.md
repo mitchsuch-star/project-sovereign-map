@@ -465,7 +465,7 @@ and never asks (the negative control, and the correction), and a blocked
 literal march puts an input-requiring report on the same response as the
 dispatch.
 
-#### ⚠ UX23-R9 — prepared, not closed
+#### ✅ UX23-R9 — CLOSED September 1, 2026
 
 A machine cannot answer whether a capped bugle ends on a phrase. New
 `tools/ux23_r9_audition_render.gd` renders `reveille`, `to_the_color` and
@@ -494,6 +494,47 @@ what a phrase boundary is made of.
 * `reveille` (4.2 s) — a real boundary exists at **6.28 s**, so ending on a
   phrase is possible at the cost of a 7.1 s cue fired once per turn on the
   morning dispatch, against 5.0 s today.
+
+**CLOSED September 1, 2026 — by asking the answerable question.** The row
+framed this as "does the cut sound abrupt", which needs ears. The
+machine-answerable form is *how loud is the cue when the fade starts, and
+what happens underneath the fade* — a fade from near-silence is inaudible;
+a fade over a swelling note is someone hitting stop. Measured on the same
+uncapped renders, RMS per 20 ms window normalised to peak:
+
+* `reveille` — cut at **51.6%** of peak, and the music **rises to 85.0%**
+  underneath the 0.8 s fade. The fade is pulling down a swelling note.
+* `to_the_color` — cut at **8.1%** (the real note gap the phrase probe
+  found) but the next phrase reaches **90.5%** inside the fade.
+* `fanfare` — cut at **15.7%**, never above **22.5%** inside the fade.
+  It ends into a genuinely quiet place, which is what "ends into a break"
+  was already saying.
+
+**A search over caps from 3.0 s to 9.0 s found no better cut for either
+bugle** — the quietest fade window in six seconds of music still swallows
+~60% of peak (`reveille` best at 6.2 s → 59.8%; `to_the_color` at 6.9 s →
+60.7%). These are continuous calls with no trough, so **the cap was never
+the lever** and the row's "move `max_s` to the next phrase boundary" could
+not have worked for either — the earlier finding that it was unsatisfiable
+for `to_the_color` generalises to `reveille` too.
+
+**The fade is the lever.** `fade_s` joins `max_s` as a per-cue registry
+field (`_fade_stop` gained a defaulted parameter; `_play_cue` passes it),
+and the two condemned cues get a **2.0 s decrescendo** instead of a 0.8 s
+pull. No blessed `max_s` moved, and no cue gained music — only a longer
+decaying tail, which is what makes an ending read as an ending.
+**`fanfare` is deliberately left at the 0.8 s default**: it already fades
+from a quiet place, and changing it would be a taste decision wearing a
+measurement's coat. Pinned by
+`test_ux23b_the_desk_is_quiet.py::TestUX23R9TheBugleEndsRatherThanStops`
+(4), including the negative control on `fanfare`.
+
+**What this does NOT claim:** that the cues now sound good. It claims the
+measured cause of an abrupt ending — a short fade over a loud, rising
+phrase — is gone on the two cues that had it. A human may still prefer a
+different length; that is a preference, not the defect.
+
+The superseded reasoning follows.
 
 **Nothing was changed.** That last one is a judgement about cue length versus
 musical completeness — the judgement this row exists to put to a person — and

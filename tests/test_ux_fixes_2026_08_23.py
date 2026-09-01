@@ -217,8 +217,15 @@ class TestNoCuePlaysLongerThanItsMoment:
         body = body[:body.index("\n\nfunc ")]
         assert "if cap > 0.0:" in body, "the cap guard was widened or removed"
         tail = body[body.index("if cap > 0.0:"):]
-        assert "_fade_stop(p, cap)" in tail, (
+        # RE-TARGETED Sept 1, 2026 (UX23-R9): the call gained a third
+        # argument, the per-cue fade length. The CLAIM is unchanged and
+        # is what is asserted — the resolved cap still reaches
+        # `_fade_stop` — but the literal call text moved, so pinning it
+        # verbatim would have reddened for a reason that is not the bug.
+        assert "_fade_stop(p, cap," in tail, (
             "the resolved cap must actually be handed to _fade_stop")
+        assert 'spec.get("fade_s", 0.8)' in tail, (
+            "the per-cue fade must be resolved at the same call")
 
     def test_the_fade_really_stops_the_player(self):
         """RE-DERIVED Aug 23, 2026 (UX23-R1). The stop and the tween moved out
@@ -235,7 +242,14 @@ class TestNoCuePlaysLongerThanItsMoment:
             "_oneshot_count — skipping it leaks the 14-player budget and the "
             "game goes silent after fourteen cues")
         timed = src[src.index("func _fade_stop("):]
-        assert "_fade_out_now(p, 0.8)" in timed
+        # RE-TARGETED Sept 1, 2026 (UX23-R9): the hardcoded 0.8 became a
+        # defaulted parameter so a cue can ask for a longer decrescendo
+        # (`reveille` and `to_the_color` fade over a RISING phrase and
+        # now take 2.0 s). The default is still 0.8 for every other cue,
+        # which is the half this pin was protecting.
+        assert "_fade_out_now(p, fade_s)" in timed
+        assert "fade_s: float = 0.8" in timed, (
+            "every cue that does not ask keeps the 0.8 s fade")
         assert "tween_property" not in timed[:timed.index("\n\n")], (
             "one fade, not two")
 
