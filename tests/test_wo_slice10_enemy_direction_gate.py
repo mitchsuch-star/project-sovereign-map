@@ -260,24 +260,47 @@ class TestTheFrozenArmy:
             "the pre-slice redirection did not reproduce; the fixture no "
             f"longer exercises the defect. message={message!r}")
 
-    def test_the_ai_command_shape_carries_no_raw_input(self):
-        """Why the AI direction needed this gate at all: ESP-EV-4's
-        `guessed_target_refusal` - the guard that catches exactly this
-        substitution for the PLAYER - returns None without `_raw_input`,
-        and `enemy_ai._execute_action` builds a command dict of four keys
-        that has never carried one.
+    def test_esp_ev_4_never_guarded_this_in_either_direction(self):
+        """Why a gate was needed at all - and the claim is stronger than
+        the one I first wrote, which the mutation sweep exposed as
+        imprecise.
 
-        Killed by: nothing in this slice; it is a standing explanation
-        pin, and it fails the day the AI path gains that protection, at
-        which point this slice's own justification should be re-read."""
+        ESP-EV-4's `guessed_target_refusal` catches the PARSER substituting
+        one real foe for the name the player typed. It cannot catch this
+        defect, because the substitution here happens one layer DOWN: the
+        target string is still `Gascony`, and the guard's first clause is
+        `_named_in_raw(target)` - the player typed the word, so it grounds
+        itself and the guard stands aside. Measured on both shapes below,
+        with the resolution fully populated exactly as `_execute_attack`
+        populates it.
+
+        The AI shape additionally carries no `_raw_input` at all
+        (`enemy_ai._execute_action` builds four keys), which short-circuits
+        the guard at its second line - so the AI is doubly unprotected.
+
+        Killed by: deleting the `_named_in_raw(target)` clause from
+        `guessed_target_refusal` (the player arm then refuses), which is
+        also the change that would make this slice's justification
+        stale."""
         from backend.commands.combat_executor import guessed_target_refusal
         world = _fresh_world()
         marshal = _british_corps_at(world, "Bearn")
+        ney = world.get_marshal("Ney")
+
         ai_command = {"marshal": marshal.name, "action": "attack",
                       "target": "Gascony", "type": "specific"}
         assert "_raw_input" not in ai_command
         assert guessed_target_refusal(
-            world, marshal, ai_command, "Gascony") is None
+            world, marshal, ai_command, "Gascony",
+            resolved_target=ney.name, enemy_candidates=(ney,)) is None, (
+            "the AI path is guarded after all - re-read the slice's case")
+
+        player_command = dict(ai_command,
+                              _raw_input="Paget, attack Gascony")
+        assert guessed_target_refusal(
+            world, marshal, player_command, "Gascony",
+            resolved_target=ney.name, enemy_candidates=(ney,)) is None, (
+            "ESP-EV-4 guards the player here after all - re-read the case")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -574,13 +597,30 @@ class TestTheCensus:
             "_broad_fuzzy_diplomatic_check", "_fuzzy_match_enemy",
         }, sorted(seams)
         for name, node in seams.items():
-            body = ast.dump(node)
             guard = ("_plausible_name_typo" if name == "_fuzzy_match_region"
                      else "_correction_survives")
-            assert guard in body, f"{name} matches names with no {guard} gate"
+            # Must be CALLED, not merely named. The first cut of this pin
+            # read `ast.dump(node)` for the guard's name and was INERT: each
+            # seam imports its guard inside the function, so the name is in
+            # the dump whether or not anything calls it - and the mutation
+            # sweep proved it by replacing the region seam's call with
+            # `bool(...)` and watching the pin pass.
+            called = {c.func.id for c in ast.walk(node)
+                      if isinstance(c, ast.Call)
+                      and isinstance(c.func, ast.Name)}
+            assert guard in called, (
+                f"{name} matches names with no {guard} CALL")
 
     def test_one_predicate_stands_behind_all_three_gates(self):
-        """Killed by: inlining the predicate at one seam, which is how the
+        """One predicate behind the three FUZZY seams - and the wording
+        matters, because the first draft of the production docstring said
+        "a census can prove no seam was missed" full stop, and a review
+        showed that is true of the auto-correct arms only. The EXACT
+        marshal-first arm is six further sites and no typo gate can reach
+        it; that arm is governed by the positional rule, pinned in
+        `TestBrunswick`.
+
+        Killed by: inlining the predicate at one seam, which is how the
         three drift apart."""
         code = _code_only(_read(EXECUTOR_PY))
         assert code.count("_correction_survives") == 4, (
@@ -613,19 +653,41 @@ class TestTheCensus:
 # 8. The harness - measured in a subprocess, never in-process
 # ══════════════════════════════════════════════════════════════════
 
+LEVER_NAMES = ("ENEMY_DIRECTION_GATE_ACTIVE", "BROAD_DIPLOMATIC_GATE_ACTIVE",
+               "MARSHAL_DIRECTION_GATE_ACTIVE")
+
+
+def _rewrite_levers(source: str, levers) -> str:
+    """`source` with the three levers set, line-ending agnostic.
+
+    The first cut of this helper matched on `"\n{name} = {other}\n"` against
+    the raw file bytes. That worked until the mutation sweep touched
+    `executor.py` - `pathlib.write_text` re-emits with `os.linesep`, so the
+    file became CRLF, every pattern missed, and the helper SILENTLY set
+    nothing: the "ungated" arm ran the gated tree and the tests below
+    compared the wrong world. A lever-setter that can quietly do nothing is
+    the same class of instrument failure as an inert pin, so it now
+    normalises first and the caller asserts the edit landed.
+    """
+    text = source.replace("\r\n", "\n")
+    for name, value in zip(LEVER_NAMES, levers):
+        for other in ("True", "False"):
+            text = text.replace(f"\n{name} = {other}\n",
+                                f"\n{name} = {value}\n")
+    for name, value in zip(LEVER_NAMES, levers):
+        assert f"\n{name} = {value}\n" in text, (
+            f"lever {name} was not set to {value} - the rewrite no-opped")
+    return text
+
+
 def _run_ambient(levers):
     """The 40-turn ambient board under a named lever configuration, in a
     hash-pinned subprocess with a REAL source edit - the §5 discipline. An
     in-process run of the same forty turns is not reproducible and is
     worthless for these claims (slice 9 measured turn 25 in-suite against
     32 pinned)."""
-    names = ["ENEMY_DIRECTION_GATE_ACTIVE", "BROAD_DIPLOMATIC_GATE_ACTIVE",
-             "MARSHAL_DIRECTION_GATE_ACTIVE"]
     original = EXECUTOR_PY.read_bytes()
-    raw = original.decode("utf-8")
-    for name, value in zip(names, levers):
-        for other in ("True", "False"):
-            raw = raw.replace(f"\n{name} = {other}\n", f"\n{name} = {value}\n")
+    raw = _rewrite_levers(original.decode("utf-8"), levers)
     env = dict(os.environ)
     env["PYTHONHASHSEED"] = "0"
     env["PYTHONPATH"] = str(REPO)
@@ -686,6 +748,30 @@ for turn in range(40):
 sys.stderr.write("done\n")
 print("WO10=" + json.dumps({"hits": hits, "series": series}))
 '''
+
+
+class TestTheLeverRewrite:
+    """The instrument that measures the arms must not be able to lie."""
+
+    def test_the_rewrite_refuses_to_no_op_on_crlf(self):
+        """Found by accident, and it is the reason this pin exists: the
+        mutation sweep re-emits `executor.py` with `os.linesep`, so the
+        file becomes CRLF and an LF-anchored replace matches nothing. The
+        arms then run the SHIPPED tree while claiming to be ungated.
+
+        Killed by: dropping the newline normalisation, or the assertion."""
+        body = "\n".join(f"{name} = True" for name in LEVER_NAMES)
+        source = ("# header\n\n" + body + "\n\n# tail\n"
+                  ).replace("\n", "\r\n")
+        assert "\r\r\n" not in source
+        rewritten = _rewrite_levers(source, ("False", "False", "False"))
+        for name in LEVER_NAMES:
+            assert f"\n{name} = False\n" in rewritten
+
+    def test_the_rewrite_raises_when_a_lever_is_missing(self):
+        """Killed by: deleting the verification loop."""
+        with pytest.raises(AssertionError):
+            _rewrite_levers("nothing to see here\n", ("False",) * 3)
 
 
 class TestTheAmbientBoard:
@@ -832,3 +918,353 @@ class TestTheContractsThirty:
                               if isinstance(entry, dict) else entry)
         assert bench, "the bench is empty - the pin has stopped measuring"
         assert not (bench & set(world.regions)), sorted(bench & set(world.regions))
+
+
+# ══════════════════════════════════════════════════════════════════
+# 10. R5 - a refusal must not print an army nobody has seen
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheRefusalDoesNotLeakFog:
+    """Found by the review fleet, and it was introduced by this slice's own
+    first cut: `_honest_alternatives` fell back to the seam's candidate
+    list, which for the player is `world.get_enemy_marshals()` - omniscient
+    by design (`world_state.py`, R5). Measured before the fix:
+
+        Enemy 'Gascony' not found. Available: ArchdukeJohn, Castanos, Mack
+
+    Castanos is a Spanish corps France has never scouted. A ranked list of
+    hidden armies is free intelligence, which is what CA8-28 forbids one
+    register over. The low-score arm leaked the same way BEFORE this slice
+    (its `suggestions` come from the same roster), so both arms are filtered
+    now, not just the new one.
+
+    Resolution stays omniscient - combat must find a fogged marshal by name,
+    and `test_fog_filtered_access` pins that. Only the message is filtered.
+    """
+
+    def _visible(self, world):
+        return {m.name for m in world.get_visible_enemies("France")}
+
+    def test_a_refused_auto_correct_names_only_visible_enemies(self, ex, world):
+        """Killed by: passing `all_enemies` to `_honest_alternatives`
+        instead of `_display_candidates(...)`."""
+        _, error = ex._fuzzy_match_enemy("Gascony", world, None)
+        visible = self._visible(world)
+        assert error["suggestions"], "the refusal named nobody"
+        assert set(error["suggestions"]) <= visible, (
+            f"leaked {set(error['suggestions']) - visible}")
+
+    def test_the_low_score_arm_is_filtered_too(self, ex, world):
+        """The PRE-EXISTING half of the same leak: `Zorblax` printed
+        "Available: Moore, Kutuzov, Armfelt", none of them visible.
+
+        Killed by: filtering only the new arm - i.e. returning
+        `result["suggestions"]` unfiltered from `_honest_alternatives`."""
+        _, error = ex._fuzzy_match_enemy("Zorblax", world, None)
+        visible = self._visible(world)
+        assert set(error["suggestions"]) <= visible, (
+            f"leaked {set(error['suggestions']) - visible}")
+
+    def test_matching_itself_stays_omniscient(self, ex, world):
+        """The other side of R5, and the line this slice must not cross:
+        a FOGGED enemy is still resolvable by name, because combat is
+        mechanics and mechanics are not fogged.
+
+        Killed by: filtering the candidate list used for MATCHING."""
+        hidden = [m for m in world.get_enemy_marshals()
+                  if m.strength > 0 and m.name not in self._visible(world)]
+        assert hidden, "fixture precondition: some enemy must be fogged"
+        marshal, _ = ex._fuzzy_match_enemy(hidden[0].name, world, None)
+        assert marshal is not None and marshal.name == hidden[0].name
+
+    def test_the_filter_is_player_scoped(self, ex, world):
+        """An AI court's list is not filtered - the fog store is the
+        player's, and no enemy_ai site renders this string.
+
+        Killed by: dropping the `from_nation != world.player_nation` arm."""
+        # The names must survive UNFILTERED, including one that is on no
+        # visibility list at all - the first cut used two French marshals,
+        # who are visible to Austria through the player's own fog store, so
+        # a mutation that filtered every nation passed anyway.
+        assert EX._display_candidates(
+            world, "Austria", ["Ney", "Nobody"]) == ["Ney", "Nobody"]
+        assert EX._display_candidates(world, None, ["Nobody"]) == ["Nobody"]
+
+    def test_the_marshal_seam_offers_your_own_marshals(self, ex, world):
+        """"Available" in the marshal register answers "which of YOUR
+        marshals" - naming a foreign commander there is both unhelpful and
+        a leak.
+
+        Killed by: passing `all_marshals` unfiltered."""
+        _, error = ex._fuzzy_match_marshal("Zorblax", world)
+        for name in error["suggestions"]:
+            assert world.get_marshal(name).nation == world.player_nation, name
+
+
+# ══════════════════════════════════════════════════════════════════
+# 11. A refused marshal query is answered in the marshal register
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheCrossRegisterGuess:
+    """A regression this slice introduced and the review measured:
+    `Ney, attack Kutz` used to auto-correct to Kutuzov and answer, fog-
+    honestly, "No intelligence on Kutuzov's position". Gated - and before
+    this fix - it answered "Region 'Kutz' not found. Did you mean
+    'Frankfurt'?": a guess in the WRONG register, which is CA8-28's own
+    rule one seam over.
+
+    `Kutz` is not a plausible typo of anything (four letters, so the limit
+    is one edit, and `Kutz`->`Kutuzov` is three), which is exactly why the
+    gate refuses it - and exactly why the answer must stay in the register
+    the player was speaking.
+    """
+
+    def _attack(self, target, world=None, ex=None):
+        if world is None:
+            world = _fresh_world()
+        if ex is None:
+            with _suppress():
+                ex = CommandExecutor()
+        with _suppress():
+            return ex.execute({"command": {
+                "marshal": "Ney", "action": "attack", "target": target,
+                "type": "specific"}}, {"world": world, "executor": ex})
+
+    def test_a_refused_marshal_query_is_not_answered_with_a_province(self):
+        """Killed by: dropping the `implausible_correction` clause from the
+        region-suggestion branch in `_execute_attack`."""
+        message = str(self._attack("Kutz").get("message") or "")
+        assert "Did you mean" not in message, message
+        assert "Enemy 'Kutz' not found" in message, message
+
+    def test_a_genuine_province_typo_still_asks_about_the_province(self):
+        """The branch must not be disabled wholesale: a mistyped PROVINCE
+        still gets its own register's question.
+
+        Killed by: removing the region-suggestion branch instead of
+        conditioning it."""
+        message = str(self._attack("Venetia").get("message") or "")
+        assert "Did you mean" in message, message
+
+    def test_a_province_that_resolves_still_wins_over_both(self, ex):
+        """`Gascony` is a real province: it resolves, and neither register
+        asks anything.
+
+        Killed by: returning the enemy refusal before the region
+        resolution."""
+        message = str(self._attack("Gascony").get("message") or "")
+        assert "Gascony" in message and "not found" not in message, message
+
+
+# ══════════════════════════════════════════════════════════════════
+# 12. The positional rule, stated once and true in both registers
+# ══════════════════════════════════════════════════════════════════
+
+class TestThePositionalRule:
+    """The review found the record holding two contradictory rules, each
+    calling itself "the WO-13 collision rule": slice 2 said the province
+    wins, this slice's first draft said the marshal wins. They are the same
+    rule read in two POSITIONS, and it is now written once, in
+    `_correction_survives`'s docstring.
+
+    The consequence the review feared - "the province Brunswick is
+    unattackable by any typed command, forever" - conflates two causes and
+    is measured false below: at boot France is at PEACE with Hanover, which
+    is why nothing can enter it; at war, `move to Brunswick` takes it.
+    """
+
+    def test_the_rule_is_written_in_exactly_one_place(self):
+        """Killed by: restating it per-seam, which is how the two
+        contradictory versions came to exist."""
+        code = _read(EXECUTOR_PY)
+        assert code.count("ADDRESSEE position") == 1
+        assert code.count("TARGET position") == 1
+
+    def test_move_reaches_the_province_when_the_law_allows(self):
+        """The escape, driven: region-only verbs are never ambiguous.
+
+        Killed by: making `move` resolve marshal-first."""
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Hanover")] = "WAR"
+        ney = world.get_marshal("Ney")
+        ney.location = "Frankfurt"
+        with _suppress():
+            result = ex.execute({"command": {
+                "marshal": "Ney", "action": "move", "target": "Brunswick",
+                "type": "specific"}}, {"world": world, "executor": ex})
+        assert result.get("success"), result
+        assert ney.location == "Brunswick"
+
+    def test_at_peace_the_refusal_is_about_diplomacy_not_the_collision(self):
+        """Why the review's "unattackable forever" is overstated: at boot
+        the province cannot be entered because France is at PEACE with
+        Hanover, which is true of every Hanoverian province and has nothing
+        to do with the name.
+
+        Killed by: nothing in this slice - it pins the distinction the
+        record makes."""
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        ney = world.get_marshal("Ney")
+        ney.location = "Frankfurt"
+        with _suppress():
+            result = ex.execute({"command": {
+                "marshal": "Ney", "action": "move", "target": "Brunswick",
+                "type": "specific"}}, {"world": world, "executor": ex})
+        assert not result.get("success")
+        assert "Hanover" in str(result.get("message") or "")
+
+    def test_the_length_floor_would_unaddress_a_short_marshal(self):
+        """A hazard the review found, harmless today and pinned so it stays
+        harmless: `_plausible_name_typo` rejects any query under four
+        characters, so it says a marshal's OWN name is not a plausible typo
+        of itself. That is fine only because the gate never guards the
+        EXACT arm.
+
+        Killed by: moving the gate onto the exact arm - at which point Ney
+        becomes unaddressable and this fails, loudly, naming the reason."""
+        assert _plausible_name_typo("Ney", "Ney") is False
+        world = _fresh_world()
+        with _suppress():
+            ex = CommandExecutor()
+        assert ex._fuzzy_match_marshal("Ney", world)[0] is not None
+
+
+# ══════════════════════════════════════════════════════════════════
+# 13. The durable half - a new collision cannot be authored quietly
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheValidatorRule:
+    """The typo gate closes today's twelve by lexical accident, not because
+    it knows `Gascony` is a place. Content grows: the 22-name recruitment
+    bench already contributes `Oran -> Shrapnel` at score 75, and ES-7
+    mints province-derived titles. The durable half is a validator rule.
+    """
+
+    def _validate(self):
+        from backend.modding.validator import validate_scenario
+        with _suppress():
+            return validate_scenario(
+                json.loads(SCENARIO_PATH.read_text(encoding="utf-8")))
+
+    def test_the_shipped_scenario_still_passes(self):
+        """WARNING, not error, deliberately: `europe_1805.json` ships the
+        one collision and must keep booting.
+
+        Killed by: `add_error` instead of `add_warning`."""
+        assert self._validate().is_valid
+
+    def test_it_names_brunswick(self):
+        """Killed by: deleting the exact-collision arm."""
+        messages = [w.message for w in self._validate().warnings]
+        assert any("Brunswick" in m and "also a province" in m
+                   for m in messages), messages
+
+    def test_it_would_catch_a_new_typo_band_collision(self):
+        """The arm that is inert on the shipped board and is the whole
+        point: a marshal authored within a typed mistake of a province
+        sails straight through the runtime gate.
+
+        Killed by: deleting the typo-band arm."""
+        from backend.modding.validator import validate_scenario
+        data = json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+        data["marshals"]["Gascon"] = dict(
+            data["marshals"]["Ney"], name="Gascon")
+        with _suppress():
+            result = validate_scenario(data)
+        assert any("Gascon" in w.message and "typed mistake" in w.message
+                   for w in result.warnings), [w.message for w in result.warnings]
+
+    def test_the_bench_collapse_is_closed_at_runtime_too(self, ex, world):
+        """`Oran -> Shrapnel` (75) is the 13th collapse, contributed by the
+        commissionable bench rather than the board.
+
+        Killed by: deleting the enemy-seam gate."""
+        assert _plausible_name_typo("Oran", "Shrapnel") is False
+
+
+# ══════════════════════════════════════════════════════════════════
+# 14. The done-when, re-stated: is the AI frozen on the OTHER axis?
+# ══════════════════════════════════════════════════════════════════
+
+class TestTheAiIsNotFrozenInstead:
+    """The review's sharpest question, and it deserved a measurement rather
+    than an argument. A refused AI order is expensive on the wrong axis:
+    `enemy_ai._record_failed_action` writes a 2-turn cooldown keyed on
+    (marshal, ACTION TYPE) - not on the target - so refusing `Paget attack
+    Gascony` would stop Paget attacking anything at all. That is the
+    Paget-frozen-for-22-turns shape re-created one layer down, and it would
+    be invisible to every test that only asserts a seam's return value.
+
+    Measured over the same 40 ambient turns: the gate makes the AI LESS
+    stuck, not more, because the orders now succeed.
+    """
+
+    @pytest.fixture(scope="class")
+    def cooldowns(self):
+        return {label: _run_ambient_cooldowns(levers)
+                for label, levers in (("ungated", ("False",) * 3),
+                                      ("gated", ("True",) * 3))}
+
+    def test_the_gate_does_not_increase_failed_action_cooldowns(self, cooldowns):
+        """Killed by: a gate that refuses instead of falling through to the
+        region - the fall-through at `combat_executor.py` is what keeps this
+        number down."""
+        assert cooldowns["gated"] <= cooldowns["ungated"], cooldowns
+
+    def test_it_measurably_decreases_them(self, cooldowns):
+        """Recorded as a number so a future change that quietly re-freezes
+        the AI shows up here: 31 -> 11 on the shipped board.
+
+        Killed by: deleting the enemy-seam gate."""
+        assert cooldowns["ungated"] == 31, cooldowns
+        assert cooldowns["gated"] == 11, cooldowns
+
+
+_COOLDOWN_PROBE = r'''
+import json, random
+from pathlib import Path
+from backend.models.world_state import WorldState
+from backend.commands.executor import CommandExecutor
+from backend.game_logic.turn_manager import TurnManager
+from backend.ai import enemy_ai as EA
+scen = Path("godot-client/project-sovereign/assets/maps/europe_1805.json")
+world = WorldState.from_scenario(str(scen))
+executor = CommandExecutor()
+tm = TurnManager(world, executor=executor)
+gs = {"world": world, "executor": executor}
+writes = [0]
+orig = EA.EnemyAI._record_failed_action
+def rec(self, *a, **kw):
+    writes[0] += 1
+    return orig(self, *a, **kw)
+EA.EnemyAI._record_failed_action = rec
+for turn in range(40):
+    random.seed(10_000 + turn)
+    tm.end_turn(gs)
+print("WO10C=" + json.dumps({"writes": writes[0]}))
+'''
+
+
+def _run_ambient_cooldowns(levers):
+    original = EXECUTOR_PY.read_bytes()
+    raw = _rewrite_levers(original.decode("utf-8"), levers)
+    env = dict(os.environ)
+    env.update(PYTHONHASHSEED="0", PYTHONPATH=str(REPO),
+               SOVEREIGN_SEED="historical", LLM_MODE="mock")
+    env.pop("SOVEREIGN_SCENARIO", None)
+    env.pop("SOVEREIGN_MAP", None)
+    env.pop("PYTHONIOENCODING", None)
+    try:
+        EXECUTOR_PY.write_bytes(raw.encode("utf-8"))
+        proc = subprocess.run([sys.executable, "-c", _COOLDOWN_PROBE],
+                              env=env, cwd=str(REPO), capture_output=True,
+                              text=True, timeout=600)
+    finally:
+        EXECUTOR_PY.write_bytes(original)
+    assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
+    return json.loads(proc.stdout.split("WO10C=")[-1].splitlines()[0])["writes"]

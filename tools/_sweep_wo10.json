@@ -1,0 +1,261 @@
+[
+ {
+  "id": "WO10-1 enemy gate deleted",
+  "file": "backend/commands/executor.py",
+  "old": "        if (result[\"action\"] == \"exact\"\n                or (result[\"action\"] == \"auto_correct\"\n                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
+  "new": "        if (result[\"action\"] == \"exact\"\n                or result[\"action\"] == \"auto_correct\"):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-2 absorber gate deleted",
+  "file": "backend/commands/executor.py",
+  "old": "        if (result[\"action\"] == \"exact\"\n                or (result[\"action\"] == \"auto_correct\"\n                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):\n            matched = world.get_marshal(result[\"match\"])",
+  "new": "        if result[\"action\"] in (\"exact\", \"auto_correct\"):\n            matched = world.get_marshal(result[\"match\"])",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-3 marshal gate deleted",
+  "file": "backend/commands/executor.py",
+  "old": "        if (result[\"action\"] == \"exact\"\n                or (result[\"action\"] == \"auto_correct\"\n                    and _correction_survives(marshal_name,\n                                             result.get(\"match\"),\n                                             MARSHAL_DIRECTION_GATE_ACTIVE))):",
+  "new": "        if result[\"action\"] == \"exact\" or result[\"action\"] == \"auto_correct\":",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-4 predicate always allows (gate dead)",
+  "file": "backend/commands/executor.py",
+  "old": "    if not gate_active:\n        return True\n    from backend.commands.parser import _plausible_name_typo\n    return _plausible_name_typo(query or \"\", match or \"\")",
+  "new": "    return True",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-5 predicate always refuses (over-gates)",
+  "file": "backend/commands/executor.py",
+  "old": "    if not gate_active:\n        return True\n    from backend.commands.parser import _plausible_name_typo\n    return _plausible_name_typo(query or \"\", match or \"\")",
+  "new": "    return not gate_active",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-6 predicate ignores its lever",
+  "file": "backend/commands/executor.py",
+  "old": "    if not gate_active:\n        return True\n    from backend.commands.parser import _plausible_name_typo",
+  "new": "    if not gate_active and False:\n        return True\n    from backend.commands.parser import _plausible_name_typo",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-7 lever frozen at def time (enemy seam)",
+  "file": "backend/commands/executor.py",
+  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):",
+  "new": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             True))):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-8 lever frozen at def time (marshal seam)",
+  "file": "backend/commands/executor.py",
+  "old": "                    and _correction_survives(marshal_name,\n                                             result.get(\"match\"),\n                                             MARSHAL_DIRECTION_GATE_ACTIVE))):",
+  "new": "                    and _correction_survives(marshal_name,\n                                             result.get(\"match\"),\n                                             True))):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-9 lever frozen at def time (absorber)",
+  "file": "backend/commands/executor.py",
+  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):",
+  "new": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             True))):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-11 honest alternatives stop naming real candidates",
+  "file": "backend/commands/executor.py",
+  "old": "    return offered[:3] or allowed[:3]",
+  "new": "    return offered[:3]",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-12 refusal becomes a guess at a marshal's name",
+  "file": "backend/commands/executor.py",
+  "old": "                \"message\": f\"Enemy '{enemy_name}' not found. Available: {suggestions_text}\",\n                \"suggestions\": alternatives,",
+  "new": "                \"message\": f\"Enemy '{enemy_name}' not found. Did you mean '{suggestions_text}'?\",\n                \"suggestions\": alternatives,",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-13 enemy lever shipped down",
+  "file": "backend/commands/executor.py",
+  "old": "\nENEMY_DIRECTION_GATE_ACTIVE = True\n",
+  "new": "\nENEMY_DIRECTION_GATE_ACTIVE = False\n",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-14 absorber lever shipped down",
+  "file": "backend/commands/executor.py",
+  "old": "\nBROAD_DIPLOMATIC_GATE_ACTIVE = True\n",
+  "new": "\nBROAD_DIPLOMATIC_GATE_ACTIVE = False\n",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-15 marshal lever shipped down",
+  "file": "backend/commands/executor.py",
+  "old": "\nMARSHAL_DIRECTION_GATE_ACTIVE = True\n",
+  "new": "\nMARSHAL_DIRECTION_GATE_ACTIVE = False\n",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-16 the typo predicate loses its length floor",
+  "file": "backend/commands/parser.py",
+  "old": "_MIN_FUZZY_TARGET_LEN = 4",
+  "new": "_MIN_FUZZY_TARGET_LEN = 0",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-17 typo predicate loses its distance limit",
+  "file": "backend/commands/parser.py",
+  "old": "    limit = 2 if len(word) >= 6 else 1\n    return _edit_distance_at_most(word.lower(), candidate.lower(), limit)",
+  "new": "    limit = 20 if len(word) >= 6 else 20\n    return _edit_distance_at_most(word.lower(), candidate.lower(), limit)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-18 BASELINE_SERIES reverted to the pre-slice values",
+  "file": "tests/test_ai_intent_threat_migration.py",
+  "old": "BASELINE_SERIES = [\n    70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 73, 91, 89, 87,\n    85, 83, 86, 89, 92, 90, 97, 95, 96, 94, 92, 90, 88, 86, 84, 72, 70,\n    68, 66, 64, 62, 60, 58, 56,\n]",
+  "new": "BASELINE_SERIES = [\n    70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70, 68,\n    66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 69, 66, 63, 50, 47, 44,\n    41, 38, 35, 32, 29, 26, 23,\n]",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py tests/test_ai_intent_threat_migration.py"
+ },
+ {
+  "id": "WO10-19 slice-9 rebellion index hard-coded again",
+  "file": "tests/test_wo_slice9_the_courting_cap.py",
+  "old": "        index = steps.index(worst) + 1\n        assert _rebellion_turn(True) == index + 1",
+  "new": "        index = 31\n        assert _rebellion_turn(True) == index + 1",
+  "tests": "tests/test_wo_slice9_the_courting_cap.py::TestWhatTheCapActuallyDoesToTheSatellite"
+ },
+ {
+  "id": "WO10-20 AI-V mirror anchored on the first reading again",
+  "file": "tests/test_ai_intent_assurance.py",
+  "old": "        assert last_weight <= peak_weight * 0.6, (",
+  "new": "        assert last_weight <= first_weight * 0.6, (",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmAAmbientDoD::test_mirror_drifts_down_for_a_passive_france"
+ },
+ {
+  "id": "WO10-21 the region seam loses its WO-2 gate (census must notice)",
+  "file": "backend/commands/executor.py",
+  "old": "            if (result[\"action\"] == \"auto_correct\"\n                    and not _plausible_name_typo(\n                        region_name, result.get(\"match\") or \"\")):",
+  "new": "            if (result[\"action\"] == \"auto_correct\"\n                    and not bool(\n                        region_name and result.get(\"match\") or \"\")):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheCensus"
+ },
+ {
+  "id": "WO10-22 the gate reads the match against itself",
+  "file": "backend/commands/executor.py",
+  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
+  "new": "                    and _correction_survives(result.get(\"match\"),\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-23 the absorber reads the wrong lever",
+  "file": "backend/commands/executor.py",
+  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):\n            matched = world.get_marshal(result[\"match\"])",
+  "new": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            matched = world.get_marshal(result[\"match\"])",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-24 guessed_target_refusal loses its self-grounding clause",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    if not raw_target_words or _named_in_raw(target):\n        return None",
+  "new": "    if not raw_target_words:\n        return None",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheFrozenArmy"
+ },
+ {
+  "id": "WO10-25 the enemy seam short-circuits the broad check on refusal",
+  "file": "backend/commands/executor.py",
+  "old": "            # PT-4 FIX: Before giving up, try broad fuzzy match for diplomatic context\n            broad_block = self._broad_fuzzy_diplomatic_check(world, from_nation, enemy_name)\n            if broad_block:\n                return broad_block\n            # Low confidence, or an auto-correct the WO-13 gate refused",
+  "new": "            # Low confidence, or an auto-correct the WO-13 gate refused",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-30 display candidates stop being fog-filtered",
+  "file": "backend/commands/executor.py",
+  "old": "    return [name for name in candidates if name.lower() in visible]",
+  "new": "    return list(candidates)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-31 the low-score arm's suggestions bypass the filter",
+  "file": "backend/commands/executor.py",
+  "old": "    offered = [name for name in (result.get(\"suggestions\") or [])\n               if name.lower() in permitted]\n    return offered[:3] or allowed[:3]",
+  "new": "    offered = list(result.get(\"suggestions\") or [])\n    return offered[:3] or allowed[:3]",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-32 the fog filter stops being player-scoped",
+  "file": "backend/commands/executor.py",
+  "old": "    if world is None or from_nation != getattr(world, \"player_nation\", None):\n        return list(candidates)",
+  "new": "    if world is None:\n        return list(candidates)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-33 the marshal seam lists foreign commanders again",
+  "file": "backend/commands/executor.py",
+  "old": "            own = [name for name in all_marshals\n                   if (world.get_marshal(name).nation\n                       == world.player_nation)] or all_marshals\n            alternatives = _honest_alternatives(result, own)",
+  "new": "            alternatives = _honest_alternatives(result, all_marshals)",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-34 the region guess answers a refused marshal query again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if (region_error and \"Did you mean\" in region_error.get(\"message\", \"\")\n                    and not (enemy_error or {}).get(\"implausible_correction\")):\n                return region_error",
+  "new": "            if region_error and \"Did you mean\" in region_error.get(\"message\", \"\"):\n                return region_error",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-35 the enemy refusal is no longer returned",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            elif enemy_error and (\n                    \"Did you mean\" in enemy_error.get(\"message\", \"\")\n                    or enemy_error.get(\"implausible_correction\")):",
+  "new": "            elif enemy_error and \"Did you mean\" in enemy_error.get(\"message\", \"\"):",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-36 the enemy seam stops marking a refused correction",
+  "file": "backend/commands/executor.py",
+  "old": "                \"implausible_correction\": (result[\"action\"] == \"auto_correct\"),",
+  "new": "                \"implausible_correction\": False,",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-37 the validator hard-fails the shipped scenario",
+  "file": "backend/modding/validator.py",
+  "old": "            if exact is not None:\n                result.add_warning(",
+  "new": "            if exact is not None:\n                result.add_error(",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-38 the validator loses its typo-band arm",
+  "file": "backend/modding/validator.py",
+  "old": "            near = [name for name in sorted(region_names)\n                    if _plausible_name_typo(name, marshal_name)]",
+  "new": "            near = []",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-39 the validator loses its exact-collision arm",
+  "file": "backend/modding/validator.py",
+  "old": "            exact = by_lower.get(marshal_name.lower())",
+  "new": "            exact = None",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
+ },
+ {
+  "id": "WO10-40 the positional rule is stated twice",
+  "file": "backend/commands/executor.py",
+  "old": "        ADDRESSEE position  -> the PROVINCE.",
+  "new": "        ADDRESSEE position  -> the PROVINCE. ADDRESSEE position again.",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestThePositionalRule"
+ },
+ {
+  "id": "WO10-27 lever rewrite loses its newline normalisation",
+  "file": "tests/test_wo_slice10_enemy_direction_gate.py",
+  "old": "    text = source.replace(\"\\r\\n\", \"\\n\")\n",
+  "new": "    text = source\n",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheLeverRewrite"
+ },
+ {
+  "id": "WO10-28 lever rewrite stops verifying the edit landed",
+  "file": "tests/test_wo_slice10_enemy_direction_gate.py",
+  "old": "    for name, value in zip(LEVER_NAMES, levers):\n        assert f\"\\n{name} = {value}\\n\" in text, (\n            f\"lever {name} was not set to {value} - the rewrite no-opped\")\n    return text",
+  "new": "    return text",
+  "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheLeverRewrite"
+ }
+]

@@ -203,12 +203,37 @@ def _correction_survives(query: str, match: Optional[str],
                          gate_active: bool) -> bool:
     """WO-13 — True when a fuzzy auto-correct onto a MARSHAL may stand.
 
-    ONE predicate behind all three seams, so a census can prove no seam
-    was missed. `gate_active` is the seam's own flip lever: False restores
-    the ungated behaviour for the attribution experiment.
+    ONE predicate behind all three FUZZY seams, so a census can prove no
+    fuzzy seam was missed. `gate_active` is the seam's own flip lever:
+    False restores the ungated behaviour for the attribution experiment.
 
-    Never consulted for an EXACT match — `Brunswick` the marshal must
-    still answer to his own name.
+    Scope, stated because the first draft of this docstring overclaimed
+    and a review caught it: this covers the auto-correct arms ONLY. The
+    exact marshal-first arm is six further sites (`_check_diplomatic_block`
+    :377, `_fuzzy_match_enemy` :426/:430, `_fuzzy_match_marshal` :216,
+    `strategic_executor` :626/:742, `combat_executor` :8426) and no typo
+    gate can reach them, because an identical string IS a plausible typo.
+    That arm is governed by the POSITIONAL rule below, not by this
+    predicate.
+
+    THE POSITIONAL RULE for a name that is both a province and a marshal
+    (`Brunswick`, and on the shipped board only `Brunswick`) — stated once,
+    here, because writing it per-seam is how two contradictory versions of
+    it came to exist:
+
+        ADDRESSEE position  -> the PROVINCE. "Brunswick, hold" is a
+                               garrison order. (WO slice 2,
+                               `parser._resolve_enemy_addressee`.)
+        TARGET position     -> the MARSHAL. "attack Brunswick" names the
+                               man; the province is reached by `move to
+                               Brunswick`, which is region-only and
+                               therefore never ambiguous.
+
+    Both halves are pinned. The durable half is
+    `modding/validator.py`, which refuses to let a scenario author a NEW
+    collision — the typo gate closes today's twelve by lexical accident
+    (different first letters, large edit distance), not because it knows
+    `Gascony` is a place.
     """
     if not gate_active:
         return True
@@ -224,8 +249,44 @@ def _honest_alternatives(result: Dict, candidates: List[str]) -> List[str]:
     list, which printed "Available: none" on a board full of enemies.
     Naming the real candidates is honest and is not a guess — it makes no
     claim that the query meant any of them.
+
+    `candidates` must ALREADY be the display-safe list — see
+    `_display_candidates`. Both arms are filtered here, not just the new
+    one: the low-score arm's `suggestions` come from the same omniscient
+    roster and leaked the same way before this slice.
     """
-    return list(result.get("suggestions") or [])[:3] or list(candidates)[:3]
+    allowed = list(candidates)
+    permitted = {name.lower() for name in allowed}
+    offered = [name for name in (result.get("suggestions") or [])
+               if name.lower() in permitted]
+    return offered[:3] or allowed[:3]
+
+
+def _display_candidates(world, from_nation: Optional[str],
+                        candidates: List[str]) -> List[str]:
+    """R5 — the names a refusal may PRINT, as opposed to match against.
+
+    Resolution stays omniscient by design (combat must find a fogged
+    marshal by name; `test_fog_filtered_access` pins it). The message
+    must not be, and it was: the enemy seam's candidate list is
+    `world.get_enemy_marshals()`, which returns every non-French marshal
+    with no visibility filter, so "Enemy 'Gascony' not found. Available:
+    ArchdukeJohn, Castanos, Mack" named Castanos — a Spanish corps France
+    had never scouted. A ranked list of hidden armies is free
+    intelligence, which is what CA8-28 forbids one register over.
+
+    Only the PLAYER's own messages are filtered: an AI caller never
+    renders this string (no enemy_ai site reads `message` beyond a 60-char
+    stdout print), and the fog store is the player's, so filtering an AI
+    nation's list would apply the wrong fog to nobody's benefit.
+    """
+    if world is None or from_nation != getattr(world, "player_nation", None):
+        return list(candidates)
+    try:
+        visible = {m.name.lower() for m in world.get_visible_enemies(from_nation)}
+    except Exception:
+        return list(candidates)
+    return [name for name in candidates if name.lower() in visible]
 
 
 class CommandExecutor:
@@ -331,8 +392,13 @@ class CommandExecutor:
                 "score": int(result["score"] * 100)
             })
         else:
-            # Low confidence, or an auto-correct the WO-13 gate refused
-            alternatives = _honest_alternatives(result, all_marshals)
+            # Low confidence, or an auto-correct the WO-13 gate refused.
+            # "Available" here answers "which of YOUR marshals" — naming a
+            # foreign commander would be both unhelpful and a fog leak.
+            own = [name for name in all_marshals
+                   if (world.get_marshal(name).nation
+                       == world.player_nation)] or all_marshals
+            alternatives = _honest_alternatives(result, own)
             suggestions_text = ", ".join(alternatives) if alternatives else "none"
             return (None, {
                 "success": False,
@@ -586,12 +652,19 @@ class CommandExecutor:
             if broad_block:
                 return broad_block
             # Low confidence, or an auto-correct the WO-13 gate refused
-            alternatives = _honest_alternatives(result, all_enemies)
+            alternatives = _honest_alternatives(
+                result, _display_candidates(world, from_nation, all_enemies))
             suggestions_text = ", ".join(alternatives) if alternatives else "none"
             return (None, {
                 "success": False,
                 "message": f"Enemy '{enemy_name}' not found. Available: {suggestions_text}",
-                "suggestions": alternatives
+                "suggestions": alternatives,
+                # WO-13: tells the caller this refusal is a REFUSED MARSHAL
+                # query, so it answers in the marshal register rather than
+                # handing the question to the region seam's guess — `Kutz`
+                # used to reach Kutuzov and now must not become "Did you
+                # mean 'Frankfurt'?".
+                "implausible_correction": (result["action"] == "auto_correct"),
             })
 
     def _attack_target_beyond_range(self, marshal, target, world) -> bool:

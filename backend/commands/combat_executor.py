@@ -4487,8 +4487,15 @@ class CombatExecutor:
             # Not an enemy - try fuzzy matching for region names
             target_region_fuzzy, region_error = self._executor._fuzzy_match_region(target, world)
 
-            # If region has a suggestion, ask for confirmation
-            if region_error and "Did you mean" in region_error.get("message", ""):
+            # If region has a suggestion, ask for confirmation — unless the
+            # ENEMY seam refused an implausible marshal correction, in which
+            # case the player was speaking the marshal register and must be
+            # answered there. WO-13: `Ney, attack Kutz` used to auto-correct
+            # to Kutuzov; gated, and without this clause, it answered
+            # "Region 'Kutz' not found. Did you mean 'Frankfurt'?" — a guess
+            # in the wrong register, which is CA8-28's rule one seam over.
+            if (region_error and "Did you mean" in region_error.get("message", "")
+                    and not (enemy_error or {}).get("implausible_correction")):
                 return region_error
 
             # IGR-A3: "Ney, attack Austria" names a COUNTRY. Say so and list
@@ -4500,8 +4507,11 @@ class CombatExecutor:
 
             if target_region_fuzzy:
                 resolved_target = target_region_fuzzy.name
-            elif enemy_error and "Did you mean" in enemy_error.get("message", ""):
-                # Enemy suggestion - show it
+            elif enemy_error and (
+                    "Did you mean" in enemy_error.get("message", "")
+                    or enemy_error.get("implausible_correction")):
+                # Enemy suggestion, or a WO-13 refusal that named the real
+                # (visible) enemies instead of guessing.
                 return enemy_error
 
         # ============================================================

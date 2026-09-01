@@ -1003,6 +1003,55 @@ def validate_scenario(
                             f"References unknown marshal '{other_name}' - the edge will never be read"
                         )
 
+    # ── WO-13 — a marshal must not be named after a province ──────────
+    # The enemy/marshal-resolution seams fuzzy-match a query onto a marshal,
+    # and `executor._correction_survives` closes today's twelve province
+    # collapses by LEXICAL ACCIDENT (different first letters, large edit
+    # distance), not because it knows `Gascony` is a place. Content grows;
+    # the gate does not. One authored marshal within two edits of a province
+    # name, sharing its first letter, sails straight through it — and an
+    # EXACTLY-named one (`Brunswick`) never reaches the gate at all, because
+    # the exact lookup resolves first.
+    #
+    # WARNING, not error, and deliberately so: `europe_1805.json` ships
+    # exactly one such marshal and must keep booting. The warning names the
+    # positional rule so an author knows what they are choosing, rather than
+    # discovering it in someone's campaign.
+    marshal_names = set((data.get("marshals") or {}).keys())
+    for candidates in (data.get("marshal_pool") or {}).values():
+        if isinstance(candidates, list):
+            for candidate in candidates:
+                if isinstance(candidate, dict) and candidate.get("name"):
+                    marshal_names.add(candidate["name"])
+    if marshal_names:
+        try:
+            from backend.commands.parser import _plausible_name_typo
+            from backend.models.region import create_europe_regions
+            region_names = set(create_europe_regions().keys())
+        except Exception:                                # pragma: no cover
+            region_names = set()
+        by_lower = {name.lower(): name for name in region_names}
+        for marshal_name in sorted(marshal_names):
+            exact = by_lower.get(marshal_name.lower())
+            if exact is not None:
+                result.add_warning(
+                    f"marshals.{marshal_name}",
+                    f"'{marshal_name}' is also a province. No typo gate can "
+                    f"separate identical strings, so the WO-13 positional "
+                    f"rule decides: as an ADDRESSEE the name is the "
+                    f"province, as an attack TARGET it is the marshal, and "
+                    f"the province is reached by 'move to {exact}'")
+                continue
+            near = [name for name in sorted(region_names)
+                    if _plausible_name_typo(name, marshal_name)]
+            if near:
+                result.add_warning(
+                    f"marshals.{marshal_name}",
+                    f"'{marshal_name}' is within a typed mistake of the "
+                    f"province(s) {near} — a player or the AI naming that "
+                    f"province may silently reach this marshal instead "
+                    f"(WO-13). Rename one of them")
+
     # Validate marshal_pool (Marshal Recruitment, Jealousy v3.2 final phase)
     # {nation: [candidate, ...]} — candidates are marshal entries WITHOUT
     # location/strength (spawn-derived at commission) plus a `cost` price.
