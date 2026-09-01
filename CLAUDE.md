@@ -42,7 +42,42 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 31, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+>
+> **▶ ROW WO SLICE 9 — "THE COURTING CAP" (WO-8) + WO-D9's DAMPER —
+> ✅ LANDED September 1, 2026.** Landing record =
+> `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9, authoritative. **NEXT = slice
+> 10** (WO-13 the enemy-direction gate), then 17 → 11 → 12 → 14.
+> Measured first: turn 28 of the baseline board, **19 courting events, all
+> against Switzerland**, in one tick, 47 → 0, ending in rebellion — nineteen
+> because `EUROPE_ROSTER` is 20 minus the player, and Holland/KingdomOfItaly/
+> Switzerland are roster nations AND French vassals at once, which is what
+> makes the fellow-satellite court and the self-court reachable. Three guards
+> behind one flip lever + a `courted_turn` stamp on the vassal row.
+> **The contract was wrong in six places, two of which changed the build:**
+> the "−95" is nominal not realized (measured −47; **nine of nineteen courts
+> moved loyalty 0→0** while still charging 2 DP); "−5..−15" ignores the VS-R
+> grip scale (real bound −5..−22); §2 H-6's line numbers stale by +14; and
+> **"ONE call at the objection trust-pay seam" does not exist** — six
+> positive-gain sites across two handlers that never meet, all reading the
+> figure back off the objection dict, which is the figure on the dialog's
+> button. Damping at the payment would have made the button lie, so it is
+> applied at the **quote**. `BASELINE_SERIES` re-recorded ONCE, four-arm
+> flip-attributed (arms 0 and B reproduce the prior series byte-for-byte, so
+> the cap is the sole lever and the damper is *measured* inert); M1–M7
+> byte-identical without re-record, structurally. **The sweep and the review
+> each found a real code defect**: guard (c) subsumed guard (b) (a row shares
+> a lord with itself — "fellow" means *another*), and the `v1_options`
+> normalisation loop sat OUTSIDE its own flip lever, so the lever DOWN left
+> the strategic Trust button reading +6/+9 where it had read +3. The lesson:
+> **both WO-D9 pins were source-text greps, and a text mutation is killed by
+> a text pin by construction** — answered with four tests driving the real
+> executor. Recorded not fixed: the cap **redistributes** courting rather than
+> reducing it, and the guard-(c) lord comparison is unpinnable today (the
+> loop's `lord == player` invariant), so the cap is not GR5-symmetric.
+> Routed: **WO-D12**, the damper is invisible — owner slice 12.
+> `tests/test_wo_slice9_the_courting_cap.py` (35); **25 mutations, 25 killed,
+> 0 inert at close**; suite **19,031 / 4 skipped**; zero `.gd`.
 >
 > **▶ ROW REV'S FOLLOW-UPS — three of four CLOSED August 31, 2026.**
 > Landing record = `docs/BUG_FIXES.md` §THE FOLLOW-UPS (August 31,
@@ -67,7 +102,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > fade; `reveille`'s boundary is 6.28 s (a 7.1 s cue, once per turn, against
 > 5.0 s today). Nothing was retuned — the options are priced, not chosen.
 >
-> **ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
+> **ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR** (slice 9 touched no `.gd`, so neither was re-run for it).
 >
 > **▶ ROW UX23 — THE FOUR LIVE UX DEFECTS, FIXED August 23, 2026. Landing
 > record = `docs/BUG_FIXES.md` §Live UX Report (Aug 23, 2026), authoritative.**

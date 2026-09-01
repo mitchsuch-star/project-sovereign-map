@@ -970,6 +970,7 @@ class StrategicExecutor:
                         insist_penalty = get_insist_penalty(trust_tier)
                         # WO-D9: damped at the QUOTE (see executor.py).
                         from backend.models.authority import (
+                            OBJECTION_TRUST_DAMPER_ACTIVE as _DAMPER_ACTIVE,
                             damp_objection_trust_gain,
                         )
                         trust_gain = damp_objection_trust_gain(
@@ -1101,9 +1102,18 @@ class StrategicExecutor:
                         # eight call sites — keeps the button and the payment
                         # the same number, which is the whole point of damping
                         # at the quote.
-                        for _opt in v1_options:
-                            if _opt.get("type") == "preferred":
-                                _opt["trust_change"] = trust_gain
+                        # Behind the SAME lever as the damper, or the lever
+                        # would be a lie: the three producers mint that label
+                        # from an undamped MODERATE fallback while `trust_gain`
+                        # carries the real `strategic_concern`, so leaving the
+                        # loop unguarded made the button read +6/+9 instead of
+                        # +3 with the lever DOWN — not the pre-slice behaviour
+                        # the lever promises to reproduce. Found by review, not
+                        # by the sweep, whose text pins cannot see reachability.
+                        if _DAMPER_ACTIVE:
+                            for _opt in v1_options:
+                                if _opt.get("type") == "preferred":
+                                    _opt["trust_change"] = trust_gain
 
                         objection = {
                             # V2 fields

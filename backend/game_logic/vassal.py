@@ -2044,6 +2044,19 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
             # list all the way down (EUROPE_ROSTER -> enemy_nations ->
             # turn_manager's filtering comprehension), so it is deterministic
             # without a sort.
+            #
+            # Two consequences, recorded rather than fixed (WO slice 9):
+            # the winner is whoever comes FIRST, not whoever bites hardest,
+            # so a Britain court worth -5 can consume the slot and block a
+            # Prussia court worth -15; and the NA-2 courting bias above
+            # sorts a courtier's candidate VASSALS, never courtiers per
+            # target, so it is overruled by roster order on exactly the
+            # contested case. A strongest-bite tiebreak would be a new
+            # mechanic and would re-open the determinism this cap was
+            # asked for. Note this is a `continue`, not a `break`: a
+            # courtier the cap turns away still courts a DIFFERENT
+            # eligible satellite this turn, so the cap redistributes
+            # courting rather than destroying it.
             if state.get("courted_turn") == int(world.current_turn):
                 continue
 

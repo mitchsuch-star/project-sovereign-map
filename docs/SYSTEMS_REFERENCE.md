@@ -3508,6 +3508,8 @@ Requires war_score > 80. Reduces target nation's `nation_actions` by amount per 
 
 AI nations with 2+ DP can court player's vassals (loyalty < 50; the VS-R spiral widens the unlock and scales the bite ×1.5). Cost: 2 DP. Loyalty reduction: -15 (positive relation) or -5 (negative). 3-turn cooldown.
 
+**The courting cap (WO-8, September 1, 2026).** Three guards, all behind `vassal.COURTING_TARGET_CAP_ACTIVE`: at most **one successful court per TARGET vassal per turn, world-wide** (first courtier in enemy-nation order wins; the rest skip ABOVE the DP debit, so they spend nothing and may try again next turn); **no self-courting**; and **no courting a fellow satellite of one's own lord** (compared lord-to-lord, not against the player, since a carved client or a defected satellite has a non-player lord). State is a `courted_turn` stamp on the vassal row — zero new serialized fields. Before it, all three throttles were keyed per-COURTIER, so on the 1805 board all nineteen enemy nations spent their first court on the same satellite in one tick, stripping it 47→0 and triggering rebellion — with Holland and KingdomOfItaly among the courtiers and Switzerland courting itself.
+
 ### Vassal Depth (July 16, 2026 — `VASSAL_DEEPENING_SPEC.md` §8 build record)
 
 - **Land grants (VS-3):** `grant_region_to_vassal` — cede a conquered, non-capital, non-estate province adjoining the vassal (contiguity waived for landless vassals + homeland returns). Loyalty `min(25, 10 + income_value//200)`, NEVER spiral-blunted; 1 DP, 3-turn per-vassal cooldown; `granted_regions` provenance reclaims on a WAR-path rebellion/defection. F1-wizard province picker + typed "cede X to Y". GR5 lord-neutral.

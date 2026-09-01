@@ -4,6 +4,73 @@
 
 ## ▶ NEXT UP
 
+> # ✅ ROW WO SLICE 9 — "THE COURTING CAP" (WO-8) + WO-D9's DAMPER — September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9, authoritative.**
+> `tests/test_wo_slice9_the_courting_cap.py` (35); `tools/_sweep_wo9.json` —
+> **25 mutations, 25 killed, 0 inert at close.** Suite **19,031 / 4 skipped**,
+> ruff clean, zero `.gd`. `BASELINE_SERIES` re-recorded ONCE, four-arm
+> flip-attributed; M1–M7 byte-identical **without** re-record.
+> **NEXT = slice 10** (WO-13 the enemy-direction gate).
+>
+> **The defect, measured on the baseline board before a line was written.**
+> Turn 28: **19 courting events, every one against Switzerland**, in one tick,
+> in roster order — 47 → 42 → … → 2 → 0 — ending
+> `Switzerland-France: VASSAL -> WAR (vassal_rebellion)`. Nineteen is not a
+> coincidence: `EUROPE_ROSTER` is 20 nations minus the player, and **Holland,
+> KingdomOfItaly and Switzerland are roster nations AND French vassals at
+> once**, which is what makes the fellow-satellite court and the self-court
+> reachable rather than hypothetical. Three guards behind one flip lever, and
+> a `courted_turn` stamp riding the vassal row (VS-3's `grant_cooldown`
+> precedent — no new model field, though the key does land in every save, and
+> the commit message's bare "zero new serialized fields" overstates that).
+>
+> **The contract was wrong in six places and two changed the build.** The
+> "−95" is a NOMINAL sum, not a realized swing (measured −47; **nine of the
+> nineteen courts moved loyalty from 0 to 0** while still charging 2 DP
+> apiece). "Bounded −5..−15" ignores the VS-R grip scale — it is −5..−22. §2
+> H-6's line numbers are stale by **+14** since NA-2. And **"ONE call at the
+> objection trust-pay seam" does not exist**: six positive-gain sites across
+> two handlers that never meet, all of which read the figure back off the
+> objection dict — which is the figure the dialog puts on its button. Damping
+> at the payment would have made the button lie. It is applied at the **quote**
+> instead, which is what makes shown == applied.
+>
+> **My own first probe was wrong and nearly retired the defect.** It measured
+> ZERO courting events across 40 ambient turns; `attempt_vassal_courting` sits
+> inside `_process_ai_diplomatic_phase`, which `end_turn` runs only
+> `if game_state`, and I had called `tm.end_turn()` bare. Pass the runner's own
+> `game_state` or a probe of that phase measures nothing and says so
+> confidently.
+>
+> **The sweep and the review each found a real code defect, not just weak
+> tests.** The sweep: guard (c) subsumed guard (b), because a row trivially
+> shares a lord with itself — "fellow" means *another*, now `is not state`.
+> The post-commit review: **the `v1_options` normalisation loop sat OUTSIDE
+> its own flip lever**, so with the lever DOWN the strategic Trust button read
+> **+6/+9 where it had read +3** — the lever's comment promised byte-identical
+> pre-slice behaviour and was false, and arms 0/B were clean only because that
+> board raises no objections. Its diagnosis is the lesson worth keeping:
+> **both WO-D9 pins were source-text greps, and a text mutation is killed by a
+> text pin by construction** — a mutation preserving the substring while
+> breaking reachability survives, which is exactly what happened. Answered with
+> `TestTheDamperOnTheRealPath`, four tests driving the real executor, plus a
+> def-time flag freeze no grep could see.
+>
+> **Recorded, not fixed:** the cap **redistributes** courting rather than
+> reducing it (10-satellite probe: uncapped 19 events / 47 loss / 1 victim;
+> capped 10 events / **50** loss / **10** victims), so "the losers spend
+> nothing" holds only with a single eligible target; the winner is first in
+> roster order, not hardest-biting, which silently overrules the NA-2 agenda
+> bias on the contested case; and the guard-(c) lord comparison is
+> **unpinnable today** (the loop's own `lord == player` invariant makes both
+> formulations equivalent), so the cap is not GR5-symmetric. **Routed:**
+> **WO-D12** — the damper is now invisible (nothing renders `affects_trust_gains`,
+> and the objection payload doesn't even carry the modifier), owned by slice 12
+> with a completion definition.
+>
+> ⚠ **UX23-R9 still needs a human ear** — three bugle cues, renders at
+> `audition/ux23_r9/`. A machine cannot hear a phrase.
+
 > # ✅ ROW REV'S FOLLOW-UPS — August 31, 2026: THREE OF FOUR CLOSED.
 > **Landing record = `docs/BUG_FIXES.md` §THE FOLLOW-UPS (August 31, 2026),
 > authoritative; the owner file `docs/REV_FOLLOWUPS.md` is struck through to

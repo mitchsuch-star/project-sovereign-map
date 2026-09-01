@@ -79,8 +79,8 @@
   {
     "id": "WO9-12 the strategic option label stops mirroring the dict (the button lies again)",
     "file": "backend/commands/strategic_executor.py",
-    "old": "                        for _opt in v1_options:\n                            if _opt.get(\"type\") == \"preferred\":\n                                _opt[\"trust_change\"] = trust_gain",
-    "new": "                        for _opt in v1_options:\n                            if _opt.get(\"type\") == \"__never__\":\n                                _opt[\"trust_change\"] = trust_gain",
+    "old": "                            for _opt in v1_options:\n                                if _opt.get(\"type\") == \"preferred\":\n                                    _opt[\"trust_change\"] = trust_gain",
+    "new": "                            for _opt in v1_options:\n                                if _opt.get(\"type\") == \"__never__\":\n                                    _opt[\"trust_change\"] = trust_gain",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestShownEqualsApplied::test_the_strategic_option_label_mirrors_the_dict"
   },
   {
@@ -138,5 +138,40 @@
     "old": "            \"vassals\": {k: v.copy() for k, v in self.vassals.items()},",
     "new": "            \"vassals\": {k: {kk: vv for kk, vv in v.items() if kk != \"courted_turn\"} for k, v in self.vassals.items()},",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheStampRidesTheVassalRow"
+  },
+  {
+    "id": "WO9-21 the normalisation loop escapes its flip lever (the review's headline)",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                        if _DAMPER_ACTIVE:\n                            for _opt in v1_options:",
+    "new": "                        if True:\n                            for _opt in v1_options:",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_normalisation_loop_sits_behind_the_lever"
+  },
+  {
+    "id": "WO9-22 the damper is unreachable from the tactical quote though the call survives",
+    "file": "backend/models/authority.py",
+    "old": "    if not OBJECTION_TRUST_DAMPER_ACTIVE:\n        return int(trust_gain)",
+    "new": "    if True:\n        return int(trust_gain)",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_a_raised_objection_quotes_a_damped_figure"
+  },
+  {
+    "id": "WO9-23 the flag is frozen at import time (monkeypatch stops reaching it)",
+    "file": "backend/models/authority.py",
+    "old": "def damp_objection_trust_gain(world, trust_gain: int) -> int:",
+    "new": "def damp_objection_trust_gain(world, trust_gain: int,\n                              OBJECTION_TRUST_DAMPER_ACTIVE=OBJECTION_TRUST_DAMPER_ACTIVE) -> int:",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_lever_down_restores_the_undamped_quote"
+  },
+  {
+    "id": "WO9-24 shown stops equalling applied on the real path",
+    "file": "backend/commands/disobedience.py",
+    "old": "objection.get('trust_gain', 3)",
+    "new": "objection.get('trust_gain', 3) + 1",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_damped_quote_is_exactly_what_is_paid"
+  },
+  {
+    "id": "WO9-25 the cap breaks out of the candidate loop (courting stops redistributing)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if state.get(\"courted_turn\") == int(world.current_turn):\n                continue",
+    "new": "            if state.get(\"courted_turn\") == int(world.current_turn):\n                break",
+    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheCapRedistributesRatherThanReduces"
   }
 ]

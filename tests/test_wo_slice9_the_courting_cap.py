@@ -339,8 +339,10 @@ class TestTheDamperIsWired:
         pushover player's objection trust gain is strictly less than a
         balanced player's for the same press.
 
-        Killed by: reverting either quote site to a bare
-        `calculate_trust_gain`."""
+        This pins the RULE, at the helper. It does NOT pin the wiring —
+        reverting either quote site leaves it green, as a review caught
+        when the first draft of this docstring claimed otherwise. The
+        wiring is pinned end-to-end by TestTheDamperOnTheRealPath."""
         pushover, balanced = _world(), _world()
         _answers(pushover, PUSHOVER)
         _answers(balanced, BALANCED)
@@ -375,11 +377,6 @@ class TestTheDamperIsWired:
         world = _world()
         _answers(world, PUSHOVER)
         assert AUTH.damp_objection_trust_gain(world, -12) == -12
-
-    def test_a_zero_gain_stays_zero(self):
-        world = _world()
-        _answers(world, PUSHOVER)
-        assert AUTH.damp_objection_trust_gain(world, 0) == 0
 
     def test_a_world_without_a_tracker_does_not_crash(self):
         """Legacy worlds and hand-rolled doubles.
@@ -431,10 +428,159 @@ class TestShownEqualsApplied:
         battle award has its own, older application in `vindication.py`
         and must not be double-damped.
 
-        Killed by: calling the new helper from any third site."""
+        Honest about what this proves: only that no FOURTH file calls the
+        helper. It would still pass if the helper were applied to a
+        battle award inside `executor.py` itself. The stronger guarantee
+        is structural — both call sites assign only the local
+        `trust_gain`, which nothing but the objection dict reads."""
         callers = []
         for path in REPO.joinpath("backend").rglob("*.py"):
             if "damp_objection_trust_gain(" in _code_norm(_read(path)):
                 callers.append(path.name)
         assert sorted(callers) == ["authority.py", "executor.py",
                                    "strategic_executor.py"], callers
+
+
+class TestTheDamperOnTheRealPath:
+    """End-to-end coverage the first draft of this file did not have.
+
+    A review found BOTH wiring pins were source-text greps, and that a
+    mutation preserving the substring while breaking reachability would
+    survive the whole sweep — which is exactly what happened to the
+    `v1_options` normalisation, whose lever guard was missing and which
+    no test could see. These drive the real executor.
+    """
+
+    @staticmethod
+    def _raise_objection(answers):
+        """Davout (cautious, TRUSTING) attacks Blucher at 2.4:1 against —
+        the standing V2a integration fixture — and objects for real."""
+        from unittest.mock import patch
+        from backend.commands.executor import CommandExecutor
+        from tests.test_objection_v2 import TestV2aIntegrationFixtures
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        world.marshals["Davout"].location = "Rhineland"
+        if answers:
+            _answers(world, answers)
+        executor = CommandExecutor()
+        command = {"command": {"marshal": "Davout", "action": "attack",
+                               "target": "Blucher"}}
+        with patch("backend.commands.objection_v2.random.random",
+                   return_value=0.5), _suppress():
+            result = executor.execute(command, {"world": world})
+        return world, result.get("objection")
+
+    def test_a_raised_objection_quotes_a_damped_figure(self):
+        """Killed by: reverting the tactical quote site (which the
+        source-grep pin catches too) AND by any change that makes the
+        damper unreachable from it (which only this catches)."""
+        _, clean = self._raise_objection([])
+        _, pushover = self._raise_objection(PUSHOVER)
+        assert clean is not None and pushover is not None
+        assert pushover["trust_gain"] < clean["trust_gain"], (
+            "the raised objection quoted an undamped figure")
+
+    def test_the_damped_quote_is_exactly_what_is_paid(self):
+        """shown == applied, on the real path: the button's number and
+        the marshal's trust delta are the same integer.
+
+        Killed by: damping at the payment instead of the quote."""
+        world, objection = self._raise_objection(PUSHOVER)
+        davout = world.marshals["Davout"]
+        before = davout.trust.value
+        with _suppress():
+            world.disobedience_system.handle_response(
+                world.pending_objection, "trust", world)
+        assert davout.trust.value - before == objection["trust_gain"]
+
+    def test_the_lever_down_restores_the_undamped_quote(self):
+        """The attribution arm, behaviourally: with the lever down a
+        pushover is quoted exactly what a clean player is.
+
+        Killed by: freezing the flag at import time (a module-level
+        `from ... import OBJECTION_TRUST_DAMPER_ACTIVE` would do it) —
+        which no source-text pin can see."""
+        import pytest
+        _, clean = self._raise_objection([])
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(AUTH, "OBJECTION_TRUST_DAMPER_ACTIVE", False)
+            _, pushover = self._raise_objection(PUSHOVER)
+        assert pushover["trust_gain"] == clean["trust_gain"]
+
+    def test_the_normalisation_loop_sits_behind_the_lever(self):
+        """The review's headline: the loop was OUTSIDE the flip lever, so
+        with the lever down the strategic Trust button read +6/+9 where
+        it had read +3 — the lever's own comment promises byte-identical
+        pre-slice behaviour, and it was not.
+
+        Killed by: hoisting the loop back out of the `if _DAMPER_ACTIVE`
+        block."""
+        code = _code_norm(_read(REPO / "backend" / "commands"
+                                / "strategic_executor.py"))
+        guarded = ('if_DAMPER_ACTIVE:for_optinv1_options:'
+                   'if_opt.get("type")=="preferred":'
+                   '_opt["trust_change"]=trust_gain')
+        assert guarded in code, "the normalisation loop escaped its lever"
+
+
+class TestTheCapRedistributesRatherThanReduces:
+    """Measured consequence, recorded rather than fixed.
+
+    A blocked courtier `continue`s to the next eligible satellite, so with
+    several satellites under the gate the cap SPREADS courting instead of
+    suppressing it — and because the uncapped pile-on wasted most of its
+    courts against `LOYALTY_MIN`, empire-wide realized loss can go UP.
+    Pinned so the property is visible; the one-vassal fixture the rest of
+    this file uses cannot see it.
+    """
+
+    ROSTER = ["Britain", "Russia", "Austria", "Prussia", "Spain", "Ottoman",
+              "Sweden", "Naples", "Portugal", "Denmark"]
+
+    def _board(self, n):
+        world = WorldState(player_nation="France")
+        world.current_turn = 5
+        world.vassals = {f"Sat{i}": _satellite(loyalty=47) for i in range(n)}
+        for nation in self.ROSTER:
+            world.nation_dp[nation] = 10
+        world.ai_proposal_cooldowns = {}
+        return world
+
+    def _sweep(self, world):
+        return [e for n in self.ROSTER for e in _court(world, n)]
+
+    def test_one_court_per_satellite_not_one_court_in_total(self):
+        """Ten courtiers, ten eligible satellites: ten courts, each on a
+        different target, each satellite hit exactly once.
+
+        Killed by: turning the cap's `continue` into a `break`."""
+        world = self._board(10)
+        events = self._sweep(world)
+        assert len(events) == 10
+        assert len({e["vassal"] for e in events}) == 10
+        assert all(v["loyalty"] == 42 for v in world.vassals.values())
+
+    def test_a_blocked_courtier_still_pays_for_the_target_it_does_reach(self):
+        """Corrects this slice's own commit message: "the losers spend
+        nothing" holds only when there is no OTHER eligible target. With
+        ten satellites, ten courtiers each spend their 2 DP — on someone
+        else.
+
+        Killed by: making the cap `break` out of the candidate loop."""
+        world = self._board(10)
+        before = {n: world.nation_dp[n] for n in self.ROSTER}
+        self._sweep(world)
+        spent = [n for n in self.ROSTER if world.nation_dp[n] < before[n]]
+        assert len(spent) == 10, (
+            "a courtier redirected by the cap did not court anyone")
+
+    def test_with_a_single_target_the_losers_truly_spend_nothing(self):
+        """The claim as originally written, and the case it is true in.
+
+        Killed by: moving the cap below the DP debit."""
+        world = self._board(1)
+        before = {n: world.nation_dp[n] for n in self.ROSTER}
+        self._sweep(world)
+        spent = [n for n in self.ROSTER if world.nation_dp[n] < before[n]]
+        assert spent == ["Britain"]

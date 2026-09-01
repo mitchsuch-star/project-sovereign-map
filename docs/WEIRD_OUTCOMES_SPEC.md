@@ -2079,7 +2079,7 @@ rule).
 > M1–M7 and `BASELINE_SERIES` green by their real runs (the notification
 > is player-scoped and touches no AI decision).
 
-### Slice 9 — WO-8 the courting cap (est 0.5)
+### Slice 9 — WO-8 the courting cap (est 0.5) — ✅ LANDED September 1, 2026
 
 **Scope.** Per-TARGET throttle on vassal courting + the two absent guards the
 loop head shows (§2 H-6): (a) at most ONE successful courting event per vassal
@@ -2094,6 +2094,297 @@ flip-attributed `BASELINE_SERIES` re-record (this is ambient AI behavior — the
 one sanctioned re-record for this slice, flip = the cap OFF reproduces the
 prior series).
 
+
+> **✅ LANDED September 1, 2026 — landing record, authoritative. THE
+> CONTRACT ABOVE IS WRONG IN FOUR PLACES and this record is what was
+> built.** Commit `59befa22`.
+> `tests/test_wo_slice9_the_courting_cap.py` (35);
+> `tools/_sweep_wo9.json` — **25 mutations, 25 killed, 0 inert at close**
+> (three INERT on the first sweep and one more after the review round;
+> two were real code findings, see below). Suite **19,025 / 4 skipped**, ruff clean, **zero `.gd`**, **zero new
+> serialized FIELDS — but one new optional row KEY**, and the commit
+> message's bare "zero new serialized fields" overstates that: nothing
+> is added to any model class's `to_dict`, but `courted_turn` does land
+> in every save, riding the existing `vassals` store exactly as VS-3's
+> `granted_regions`/`grant_cooldown` do. Documented at
+> `SAVE_FORMAT_REFERENCE.md:254` alongside them; no test can catch that
+> drift, because the serialization-enforcement suite cannot see inside
+> plain dicts. `BASELINE_SERIES` re-recorded ONCE,
+> four-arm flip-attributed; M1–M7 byte-identical **without** re-record.
+>
+> **The defect, measured on the real board before a line was written.**
+> The `--emit-series` runner's own 40-turn ambient board, turn 28: **19
+> `vassal_courting` events, every one against Switzerland**, in one tick,
+> in `EUROPE_ROSTER` order —
+>
+> ```
+> Britain 47->42  Russia ->37  Austria ->32  Prussia ->27  Spain ->22
+> Ottoman ->17  Sweden ->12  Naples ->7  Portugal ->2  Denmark ->0
+> Bavaria ->0  Saxony ->0  Hanover ->0  Hesse ->0  PapalStates ->0
+> Sardinia ->0  Holland ->0  KingdomOfItaly ->0  Switzerland ->0
+> ```
+>
+> ending `Switzerland-France: VASSAL -> WAR (vassal_rebellion)` on the same
+> tick. The archived 30-turn absurdist run
+> (`tools/playtest_runs/1b-absurdist-austerlitz-r1/server_console.log:11638-11656`)
+> shows the identical nineteen, closing on *"Switzerland is courting
+> Switzerland!"*.
+>
+> Nineteen is not a coincidence: `EUROPE_ROSTER` is 20 nations, France is
+> the player, so `enemy_nations` is exactly 19 — and **Holland,
+> KingdomOfItaly and Switzerland are full roster nations AND French
+> vassals at once**, which is what makes the self-court and the
+> fellow-satellite court reachable rather than hypothetical.
+>
+> **What was built.** Three guards and a stamp in
+> `attempt_vassal_courting`, all behind ONE flip lever
+> `COURTING_TARGET_CAP_ACTIVE`:
+>
+> 1. **(a) one success per TARGET per turn, world-wide.** The first
+>    courtier in enemy-nation order wins. Sited **below** the per-courtier
+>    cooldown read and **above** every side effect the body has — the DP
+>    debit, the loyalty write, the cooldown set, the notification, the
+>    event append and the 60% dispatch roll — so a courtier the cap turns
+>    away spends nothing and is free to try again next turn.
+> 2. **(b) no self-courting** (`nation == vassal_name`).
+> 3. **(c) no courting a FELLOW satellite of one's own lord** — compared
+>    lord-to-lord, not against `player`, because a carved client
+>    (`formations.py` stamps the carver) or a defected satellite (VS-6
+>    transfers one to the briber) has a non-player lord.
+> 4. **The stamp is `state["courted_turn"]` on the vassal row** — a
+>    turn-stamp, not a countdown, so it needs no tick-down maintenance and
+>    cannot expire wrongly; and it round-trips for free with the vassals
+>    dict (`to_dict` copies the whole row, `from_dict` deepcopies it), the
+>    VS-3 `grant_cooldown` precedent. **Zero new serialized fields.**
+>
+> **A consequence of the blessed rule, recorded not fixed.** "First
+> courtier in deterministic nation order wins" means the winner is
+> whoever comes first in `EUROPE_ROSTER`, not whoever would bite
+> hardest: a Britain court worth −5 consumes the target's slot and
+> blocks a Prussia court worth −15, and Britain still burns its own
+> 3-turn cooldown on the −5. It also means the **NA-2 §5.4 agenda
+> bias is silently overruled on the contested case it was written
+> for** — that bias sorts a courtier's candidate VASSALS, never
+> courtiers per target, so if only Austria holds the agenda stake in
+> Switzerland, roster order still hands the slot to Britain. A
+> strongest-bite tiebreak is NOT built: it is a new mechanic, it
+> re-opens the determinism the contract asked for, and the gate did
+> not ask for it. Recorded at the seam and here.
+>
+> One property worth stating because it is not obvious: a blocked
+> courtier `continue`s, it does not `break` — the `break` is still
+> only at the end of a SUCCESSFUL court. So a courtier the cap turns
+> away goes on to court a different eligible satellite in the same
+> turn. The cap redistributes courting across targets rather than
+> destroying it.
+>
+> **The contract's corrections, all four measured:**
+>
+> - **"−95 loyalty" is WRONG.** That is the NOMINAL sum of nineteen
+>   printed `loyalty_reduction` values; the write floors at
+>   `LOYALTY_MIN = 0`, so most of it lands on nothing. **Measured −47**,
+>   with **nine of the nineteen courts moving loyalty from 0 to 0** and a
+>   tenth (Denmark) realising 2 of its 5 — all of them still charging
+>   2 DP, adding a notification and rolling the dispatch.
+>   **This bullet's first draft said "the gate requires `loyalty < 50`, so
+>   the realized maximum is ~−49" and that was WRONG — it made the exact
+>   VS-R oversight the next bullet faults the spec for, one line away.**
+>   `courting_unlock_bonus` reaches **15** at collapsed grip, so the gate
+>   reaches `loyalty < 65` and the true realized maximum is **−64**
+>   (probed directly at grip 0). It also said "the last **ten**", which is
+>   off by one: from 47 at −5 a court, nine courts land on a floored zero. The defect is the event/DP
+>   flood and the self-court, not a −95 swing. The same correction is owed
+>   in `BUG_FIXES.md` WO-8, `PLAYTEST_WEIRD_OUTCOMES_2026_08_16.md:64` and
+>   `:179`, `DESIGN_REFINEMENT.md`, and `WO_EVAL_2026_08_17.md:255`.
+> - **"becomes bounded −5..−15" is WRONG** — it ignores the VS-R grip
+>   scale applied at the reduction (`int(round(base × eff_scale))`,
+>   eff_scale up to 1.5). The real bound is **−5..−22**, already pinned at
+>   `test_vassal_authority_coupling.py:310`.
+> - **§2 H-6's line numbers are stale by +14 throughout** (and H-5's by
+>   the same), since commit `91195b3c` inserted NA-2's courting-bias
+>   block. Loop head is `:1990` not `:1976`; the `break` `:2053` not
+>   `:2039`.
+> - **"first courtier in deterministic nation order wins" needs no
+>   `sorted()`** — the order is a list all the way down (`EUROPE_ROSTER` →
+>   `build_europe_enemy_nations` → `world.enemy_nations: List[str]` →
+>   `turn_manager`'s filtering comprehension; the `active` set is used for
+>   membership only). Confirmed empirically: the live 19 arrive in roster
+>   order.
+>
+> **WO-D9's damper — the contract's landing instruction is WRONG and this
+> is what changed the build.** It says *"one call at the objection
+> trust-pay seam"*. There is no such seam: there are **six positive-gain
+> sites across two handlers that never meet** (`disobedience.py` for
+> tactical, `strategic_executor.py` for strategic;
+> `meta_executor.py:1635` forks between them). Worse, all six read the
+> figure back off the objection dict — and the objection dialog puts that
+> same figure on its button (`objection_dialog.gd:116/137/139`). Damping
+> at the payment would have made the button quote one number and the
+> engine pay another: **the exact shown-vs-applied split this row exists
+> to close.**
+>
+> So it is applied where the number is MINTED — `executor.py:1619` and
+> `strategic_executor.py:971` — which damps **four** of the six pay sites
+> for free (the commit message's "all six" is wrong: the two compromise
+> arms read `compromise_gain`, which the damper correctly never touches —
+> the ruling is about trust, not about every gain),
+> keeps shown == applied, and is already inside the
+> `marshal.nation == world.player_nation` gate, so GR5 costs nothing. A
+> third change normalises the strategic `v1_options` "preferred" label to
+> the dict's value, because its three producers each mint that label from
+> an undamped table read. `calculate_trust_gain` itself is untouched — it
+> is a pure table pinned by ~20 assertions.
+>
+> Nothing was re-gated: no per-marshal cooldown (ruled NO), the
+> modifier's own ≥5-answers guard and >0.80→×0.5 / >0.60→×0.75 thresholds
+> as they stand, and the authority-band asymmetry left alone as recorded
+> deliberate. Two further corrections to the row's own text: the stated
+> range **"+3..+12" is actually +2..+12** (`int(3 × 0.7) = 2`), and the
+> cited HUD line **`main.py:3835` is `:3855`**, with a second unlisted
+> site at `:3761` — and **nothing in `godot-client/` renders either**, so
+> the ruled test's "the value the UI shows equals the value paid" anchors
+> on the objection dialog's button, not on that field.
+>
+> **Routed, not built.** The slice-9 integration review found the damper
+> is now **invisible**: shown == applied, but nothing tells the player the
+> figure has been halved, and the objection payload does not even carry
+> the modifier — so a client surface is currently unbuildable, not merely
+> unwritten. Filed as **WO-D12** with an owner (**slice 12**, the copy
+> sweep) and a completion definition. Not absorbed here because the WO-D9
+> gate scoped this build to wiring the existing modifier and ruled out new
+> mechanics.
+>
+> **Recorded, not changed:** for a damped player the flat
+> `COMPROMISE_TRUST_GAIN = 3` now pays MORE than the trust arm across most
+> of the tier table (at x0.5, a MODERATE/TRUSTING trust arm pays 1 against
+> compromise's 3). That reads as accidentally good — compromise is also
+> the escape hatch, since `recent_responses` counts only `'trust'`, so five
+> compromises restore the modifier to 1.0 — but it is undocumented and
+> un-narrated, and the tier table does not say it. No button ever reads
+> `+0 trust`: the smallest undamped gain is 2 and `int(2 * 0.5) == 1`, all
+> eight cells checked. There is also a soft reinforcing loop (slower trust
+> -> stays under the 80 threshold -> more objections -> more trust answers)
+> which is bounded four ways and is not a lock-in: the damper floors at
+> 0.5, the window is the last ten answers, HOSTILE's x1.5 compensates at
+> the low end, and the defiance path only fires after an INSIST, which a
+> pure-trust player never issues.
+>
+> **The post-commit review round, and the P2 it found in the attribution
+> machinery itself.** Two adversarial reviewers ran against the committed
+> SHA. The headline finding is one no pin in this slice could have caught:
+> **the `v1_options` normalisation loop was sited OUTSIDE
+> `OBJECTION_TRUST_DAMPER_ACTIVE`.** Because the three producers mint that
+> label from a MODERATE fallback while `trust_gain` carries the real
+> `strategic_concern`, the lever DOWN left the strategic Trust button
+> reading **+6 / +9 where it had read +3** — so the lever's own comment
+> ("False reproduces the pre-slice behaviour byte-identically") was FALSE,
+> and arms 0 and B were byte-identical only because that board raises no
+> objections at all. Fixed: the loop now sits inside the lever.
+>
+> The reviewer's diagnosis of why the sweep missed it is correct and is
+> the lesson: **both WO-D9 pins were source-text greps, and a text
+> mutation is killed by a text pin by construction.** A mutation that
+> preserves the substring while breaking REACHABILITY survives — which is
+> exactly the shape of the defect, and it did survive. The fix is
+> `TestTheDamperOnTheRealPath`: four tests that drive the real executor
+> through the standing V2a integration fixture and observe the damped
+> figure, the payment matching it, and the lever restoring it — plus
+> sweep mutations WO9-21..24, including a genuine def-time freeze of the
+> flag that no grep could detect.
+>
+> **A second measured consequence, recorded rather than fixed: the cap
+> REDISTRIBUTES courting rather than reducing it.** A blocked courtier
+> `continue`s to the next eligible satellite, and the uncapped pile-on had
+> been wasting most of its courts against `LOYALTY_MIN`. On a 10-satellite
+> probe: uncapped = 19 events, 47 realized loss, 38 DP, **one** victim;
+> capped = 10 events, **50** realized loss, 20 DP, **ten** victims. So
+> empire-wide realized bleed can rise (at `relation > 0`, ~3x), and this
+> slice's own "the losers spend nothing" holds only when there is no other
+> eligible target — with ten, ten courtiers each spend their 2 DP, on
+> someone else. On the real 1805 board France has three satellites and
+> usually one under the gate, so the practical effect is small; it is
+> pinned by `TestTheCapRedistributesRatherThanReduces` so the property is
+> visible instead of invisible. A global per-turn courting cap would be a
+> new mechanic the gate did not ask for.
+>
+> **Also corrected on the record:** the guard-(c) lord comparison is
+> **unpinnable today** — `state["lord"] != player: continue` makes
+> `lord == player` a loop invariant, so `== state["lord"]` and `== player`
+> are literally equivalent at every reachable point and the test passes
+> under either. The generality is real intent for a future widening, not a
+> pinned behaviour, and the test says so now. Same root: **the cap is not
+> GR5-symmetric today**, because no non-player lord's vassal is ever a
+> courting target — the stamp is only ever written on player vassal rows.
+> And `test_a_zero_gain_stays_zero` was DELETED rather than kept: with the
+> guard removed the expression is still `int(0 * m) == 0`, so no mutation
+> of the function could ever kill it.
+>
+> **The inert pins, and what they taught.** The first sweep returned
+> **3 INERT of 20**, and they were not the same kind of thing:
+>
+> - **WO9-2 was a real code finding.** Guard (c) as first written
+>   subsumed guard (b) — a row trivially shares a lord with itself — so
+>   deleting the self-court guard changed nothing and its pin proved
+>   nothing. "Fellow" means *another*: (c) is now `courtier_row is not
+>   state`, which is both semantically right and makes (b) load-bearing.
+>   The mutation sweep found a design error, not just a weak test.
+> - **WO9-7 and WO9-8 were bad MUTATIONS, not bad pins.** Each *added* a
+>   second check instead of *moving* the original, so the original still
+>   guarded. Rewritten as genuine moves (the cap relocated below the DP
+>   debit; the cooldown read deleted from above the cap), both kill.
+>
+> A fourth was caught by the sweep's own baseline gate, which refused to
+> run against a mistyped node id (`TestVassalCourting` for
+> `TestEnemyCourting`) — the UX23-B guard doing exactly its job.
+>
+> **Claims in this record's own working that were false and are corrected
+> here.** A first probe of mine measured **zero** courting events across
+> the 40 ambient turns and I came close to filing the defect as
+> unreachable on this board. The probe was wrong, not the game:
+> `attempt_vassal_courting` sits inside `_process_ai_diplomatic_phase`,
+> which `end_turn` runs only `if game_state` (`turn_manager.py:258`), and
+> I had called `tm.end_turn()` bare. The real runner passes its
+> `game_state` (`test_ai_intent_threat_migration.py:816`). **Pass the
+> runner's own `game_state`, or a probe of this phase measures nothing
+> and says so confidently.**
+>
+> **Harness, measured rather than asserted.**
+>
+> Prior series, indices 28–30: `..., 73, 71, 59, 56, 53, 50, 47, 44, ...`
+> New series, indices 28–30: `..., 73, 71, 69, 66, 63, 50, 47, 44, ...`
+>
+> **Three indices move — [28] 59→69, [29] 56→66, [30] 53→63 — and every
+> other index is byte-identical**; the two trajectories re-converge at
+> [31] = 50 and stay together to the end.
+>
+> Attribution, four arms, each a real `--emit-series` subprocess run:
+>
+> | arm | levers | result |
+> |---|---|---|
+> | 0 | both `False` | **prior series, BYTE-FOR-BYTE** |
+> | A | `COURTING_TARGET_CAP_ACTIVE` only | diverges at [28][29][30] |
+> | B | `OBJECTION_TRUST_DAMPER_ACTIVE` only | **prior series, BYTE-FOR-BYTE** |
+> | AB | full tree | identical to arm A |
+>
+> So the courting cap is the **sole** lever, and **WO-D9's damper is
+> measured inert on this board rather than assumed to be** — the objection
+> channel is gated on `marshal.nation == world.player_nation` and France
+> issues no orders here, so no objection is ever raised to damp. (Arms 0
+> and B were re-run after the guard-(c) narrowing and still reproduce.)
+>
+> Mechanism, not just a diff: uncapped, Switzerland is stripped 47→0 in
+> the turn-28 tick and rebels, and France's threat reading falls with the
+> lost satellite. Capped, Switzerland is courted **once** per turn —
+> Britain 28, Russia 29, Austria 30, Britain again 31 as its 3-turn
+> cooldown expires — bottoms at 8 and **recovers instead of rebelling**,
+> so France holds the satellite and reads ten points higher for three
+> turns before the trajectories rejoin.
+>
+> **M1–M7 byte-identical without re-record, and structurally so, not by
+> luck:** M1–M6 drive `resolve_battle` directly with no turn loop at all,
+> and M7 never calls `end_turn` — so the AI diplomatic phase, and with it
+> `attempt_vassal_courting`, is unreachable from all seven.
+
 ### Slice 10 — WO-13 the enemy-direction gate (est 1)
 
 **Scope.** A province name must stop silently resolving to an enemy marshal.
@@ -2102,6 +2393,23 @@ Gate `executor.py:433` AND the absorber `:370` (gating `:433` alone re-routes
 AI hits this 17× in 40 turns — this slice **moves `BASELINE_SERIES`** and
 takes the sanctioned re-record with a FOUR-ARM flip attribution (each gate
 independently off must reproduce its share of the divergence).
+> **AMENDED by slice 9, September 1, 2026:** slice 9 took its sanctioned
+> re-record and MOVED `BASELINE_SERIES` at indices [28][29][30]
+> (59/56/53 -> 69/66/63). Slice 10's four-arm attribution must be
+> measured against the NEW series, not the one any older text quotes:
+> its "each gate independently off must reproduce its share of the
+> divergence" means reproduce it against the post-slice-9 baseline.
+> **And the amendment covers the series AND every ambient-board count
+> this contract quotes.** The "17x in 40 turns" census was taken on a
+> board where Switzerland rebelled at turn 28 and spent turns 28-40 as
+> an independent belligerent with its own marshals and orders.
+> Post-slice-9 it stays a French vassal for those twelve turns: the
+> threat series re-converges at [31], the WORLD does not. Re-measure
+> the 17x before leaning on it — the done-when hangs on it. The
+> companion "30 boot-live collapse pairs" is a turn-0 measurement and
+> is safe. Slice 14's WO-19 acceptance shares the same post-turn-28
+> exposure.
+
 **`Brunswick` is recorded as an uncloseable exact collision** (both a province
 and a Prussian marshal at score 100 — `_plausible_name_typo` cannot
 distinguish identical strings; the resolution order for exact collisions is
