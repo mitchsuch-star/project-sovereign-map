@@ -750,7 +750,23 @@ def process_vassal_loyalty(world) -> List[dict]:
                 int(world.current_turn),
             ))
             # V2-90: Append to popup list instead of overwriting (multiple vassals)
-            world.vassal_rebellion_imminent_popups.append({
+            #
+            # FA-N5 / FA-N37: the popup and the dialogue that answers it are
+            # two separate dicts, and only the dialogue was ever given an
+            # identity — `DialogueManager.push` stamps `dialogue_id`, the
+            # hand-built popup got nothing. So the client rendered a modal it
+            # could not name, answered with a bare verb, and the W6-0 guard
+            # (which is gated on `dialogue_id is not None`) had nothing to
+            # bind. Measured on the shipped 1805 boot: with Prussia's letter
+            # holding the dialogue slot, clicking **Accept Risk** on the
+            # *Holland* rebellion modal signed **PEACE -> NON_AGGRESSION with
+            # Prussia** — `accept_vassal_rebellion` reaches the resolver's
+            # label-containment arm, where the option label "Accept" is a
+            # substring of it.
+            #
+            # The dialogue is therefore pushed FIRST and its identity copied
+            # onto the popup, so the two travel together from here on.
+            rebellion_popup = {
                 "nation": vassal_name,
                 "loyalty": int(new_loyalty),
                 "loyalty_max": int(100),
@@ -759,9 +775,9 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "invest_effect": "Loyalty +10",
                 "garrison_effect": "Loyalty +10, AP -2 this turn",
                 "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
-            })
+            }
             # V2-89 → R12C: push() auto-queues if another dialogue is active
-            world.dialogue_manager.push({
+            rebellion_dialogue = {
                 "type": "vassal_rebellion_imminent",
                 "target_nation": vassal_name,
                 "talleyrand_text": (
@@ -788,7 +804,13 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "context": {"vassal_name": vassal_name, "loyalty": int(new_loyalty)},
                 "turn_created": int(world.current_turn),
                 "blocking": True,
-            })
+            }
+            world.dialogue_manager.push(rebellion_dialogue)
+            # FA-N5: the popup now carries the identity of the dialogue that
+            # answers it, so the client can name what it is answering and the
+            # W6-0 stale-dialogue guard can refuse an answer aimed elsewhere.
+            rebellion_popup["dialogue_id"] = rebellion_dialogue.get("dialogue_id")
+            world.vassal_rebellion_imminent_popups.append(rebellion_popup)
             # Dispatch event (Session 8D)
             from backend.game_logic.dispatch import queue_dispatch_event as _qde_vassal
             _qde_vassal(world, "diplomatic_vassal_rebellion_imminent",

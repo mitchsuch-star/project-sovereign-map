@@ -1591,6 +1591,76 @@ def _digest_owns(dialogue, world) -> bool:
     return is_routine_small_court(dialogue, world)
 
 
+# ══════════════════════════════════════════════════════════════════════
+# FA-N5 / FA-N37 — A BLOCKING MODAL MUST ANSWER ITS OWN DIALOGUE
+#
+# Three producers build a popup dict and push the dialogue that answers it
+# as a SEPARATE dict (`vassal.py`'s rebellion, `diplomacy.py`'s commitment
+# paradox, `dispatch.py`'s sabotage discovery). `DialogueManager.push` only
+# makes a dialogue CURRENT when the slot is empty, but the popup queue had
+# no such rule — so a modal about Holland was delivered while Prussia's
+# letter held the slot, and the client's answer landed on the letter.
+#
+# Measured on the shipped 1805 boot: clicking **Accept Risk** on the Holland
+# rebellion modal returned `PEACE -> NON_AGGRESSION with Prussia`. The
+# commitment-paradox modal is worse — it answers by bare OPTION INDEX, so it
+# needs no keyword collision at all to sign the wrong thing.
+#
+# The rule is the IGR-F rule ("deliver a queued item on the cycle where it
+# is current"), applied to the popup queue. It is deliberately scoped to
+# popups that CARRY a `dialogue_id`: everything that never had one behaves
+# exactly as before, so this cannot silently change a surface it was not
+# written for.
+# ══════════════════════════════════════════════════════════════════════
+
+def _popup_dialogue_is_current(world, popup) -> bool:
+    """True when this popup may be shown now.
+
+    A popup with no `dialogue_id` is not bound to a dialogue and is always
+    deliverable — that is every popup that behaved correctly before this
+    guard existed. A popup that names a dialogue is deliverable only while
+    that dialogue is the one the player would be answering.
+    """
+    if not isinstance(popup, dict):
+        return True
+    popup_id = popup.get("dialogue_id")
+    if popup_id is None:
+        return True
+    current = getattr(world, "pending_diplomatic_dialogue", None)
+    if not isinstance(current, dict):
+        # No dialogue at all: nothing can be mis-answered.
+        return True
+    current_id = current.get("dialogue_id")
+    if current_id is None:
+        return True
+    try:
+        return int(popup_id) == int(current_id)
+    except (TypeError, ValueError):
+        return True
+
+
+def _pop_deliverable_popup(world):
+    """`pop_highest`, skipping popups whose dialogue is not current.
+
+    Skipped popups are pushed back onto the queue, so priority order and
+    the one-popup-per-cycle contract both survive: the modal is delayed,
+    never dropped. A lower-priority popup that IS answerable still gets
+    delivered this cycle rather than being starved behind a blocked one.
+    """
+    held = []
+    try:
+        while True:
+            winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
+            if winner_attr is None:
+                return None, None, None
+            if _popup_dialogue_is_current(world, winner_value):
+                return winner_attr, winner_key, winner_value
+            held.append((winner_attr, winner_value))
+    finally:
+        for attr, value in held:
+            world._popup_queue.push(attr, value)
+
+
 def _include_popup_passthroughs(response: dict, world) -> None:
     """Read the HIGHEST-PRIORITY popup from world, include in response, clear from world.
 
@@ -1607,7 +1677,17 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     from backend.models.cooldown_manager import PopupQueue
     # V2-90: Auto-pop rebellion popup from list if single field is empty
     if (world.vassal_rebellion_imminent_popup is None
-            and getattr(world, 'vassal_rebellion_imminent_popups', None)):
+            and getattr(world, 'vassal_rebellion_imminent_popups', None)
+            and _popup_dialogue_is_current(
+                world, world.vassal_rebellion_imminent_popups[0])):
+        # FA-N37: the auto-pop used to promote a queued rebellion into the
+        # delivery slot regardless of which dialogue was current, and
+        # `vassal_rebellion_imminent_popup` outranks `incoming_proposal_popup`
+        # in PRIORITY_ORDER, so it won `pop_highest` on the very next
+        # response. The rebellion modal then appeared over a letter it could
+        # not answer. Nothing is lost: the popup stays at the head of its own
+        # list and is promoted on the cycle where its dialogue is current,
+        # which is the IGR-F rule the other two producers already follow.
         world.vassal_rebellion_imminent_popup = world.vassal_rebellion_imminent_popups.pop(0)
 
     # NA-6: same auto-pop for the Proclamation overflow — two nations can
@@ -1617,7 +1697,9 @@ def _include_popup_passthroughs(response: dict, world) -> None:
         world.nation_proclamation_popup = world.nation_proclamation_popups.pop(0)
 
     # R6: Pop highest-priority popup from queue (clears from world automatically)
-    winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
+    # FA-N5: ...but never deliver a BLOCKING modal whose own dialogue is not
+    # the one on top. See `_popup_dialogue_is_current`.
+    winner_attr, winner_key, winner_value = _pop_deliverable_popup(world)
 
     # Include the winner in response. Golden Rule 4 (cleared by pop) holds
     # for the queue-backed property slots; NOT for marshal_petition, whose

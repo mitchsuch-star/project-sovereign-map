@@ -5281,7 +5281,8 @@ func _on_sabotage_discovery_choice(choice: String, data: Dictionary):
 	}.get(choice, choice)
 	add_output("[color=#d9c08c]%s Talleyrand's sabotage...[/color]" % choice.capitalize())
 	set_input_enabled(false)
-	api_client.send_dialogue_response(action, _on_command_result)
+	# FA-N5: answer the dialogue this modal RENDERED, not whatever is on top.
+	api_client.send_dialogue_response(action, _on_command_result, int(data.get("dialogue_id", -1)))
 
 # PL-23: _on_talleyrand_redemption_choice removed (trust system deleted)
 
@@ -5296,7 +5297,10 @@ func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
 	var nation = data.get("nation", "unknown")
 	add_output("[color=#d9c08c]Vassal %s: %s[/color]" % [nation, choice])
 	set_input_enabled(false)
-	api_client.send_dialogue_response(action, _on_command_result)
+	# FA-N5: without this id the backend could not tell that "Accept Risk"
+	# about Holland was not "Accept" on an envoy's letter — and it signed the
+	# letter. Measured on the 1805 boot: PEACE -> NON_AGGRESSION with Prussia.
+	api_client.send_dialogue_response(action, _on_command_result, int(data.get("dialogue_id", -1)))
 
 func _on_commitment_paradox_choice(choice: String, data: Dictionary):
 	"""Handle player response to commitment paradox popup (Fix 15).
@@ -5307,10 +5311,14 @@ func _on_commitment_paradox_choice(choice: String, data: Dictionary):
 	set_input_enabled(false)
 	if choice == "honor_defender":
 		add_output("[color=#" + Utils.COLOR_GOLD + "]Honoring alliance with %s — declaring war on %s![/color]" % [defender, attacker])
-		api_client.send_dialogue_response(1, _on_command_result)  # Option 1: honor_defender
+		# FA-N5: an OPTION INDEX is the most dangerous shape to send blind —
+		# it names no verb at all, so the backend applies it to options[0] of
+		# whatever dialogue is current. The id is what makes "1" mean this
+		# paradox.
+		api_client.send_dialogue_response(1, _on_command_result, int(data.get("dialogue_id", -1)))  # Option 1: honor_defender
 	elif choice == "break_defender_alliance":
 		add_output("[color=#" + Utils.COLOR_ERROR + "]Breaking alliance with %s — siding with %s.[/color]" % [defender, attacker])
-		api_client.send_dialogue_response(2, _on_command_result)  # Option 2: break_defender_alliance
+		api_client.send_dialogue_response(2, _on_command_result, int(data.get("dialogue_id", -1)))  # Option 2: break_defender_alliance
 	else:
 		# WO-39: input was disabled above and BOTH sends live inside the two
 		# branches. A third emitted choice used to leave input disabled with

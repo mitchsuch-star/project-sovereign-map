@@ -1,0 +1,170 @@
+[
+  {
+    "id": "FA-N2 (a) the negation strip is not applied at all",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    raw_lower = text_the_player_still_means(raw_lower, options)",
+    "new": "    raw_lower = raw_lower",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2NegatedAnswers"
+  },
+  {
+    "id": "FA-N2 (b) the ultimatum arm \u2014 same seam, other dialogue",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    effective, negated = strip_negated_clauses(raw_lower)\n    if not negated:\n        return raw_lower",
+    "new": "    effective, negated = strip_negated_clauses(raw_lower)\n    if True:\n        return raw_lower",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2NegatedAnswers::test_a_negated_yield_concedes_nothing"
+  },
+  {
+    "id": "FA-N2 (c) the self-negating exemption is dropped (label half)",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    return [t for t in tokens if t and negation_marker_spans(t)]",
+    "new": "    return []",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2SelfNegatingTokensAreExempt"
+  },
+  {
+    "id": "FA-N2 (d) the exemption is widened to any occurrence (the naive form)",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "            if own and not preceded:",
+    "new": "            if own or True:",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2SelfNegatingTokensAreExempt::test_negating_that_label_does_not_answer_with_it"
+  },
+  {
+    "id": "FA-N2 (e) the keyword half of the exemption is dropped",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    tokens.extend(DIALOGUE_ACTION_KEYWORDS)",
+    "new": "    tokens.extend([])",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2SelfNegatingTokensAreExempt::test_the_keyword_that_is_a_negation_still_answers"
+  },
+  {
+    "id": "FA-N2 (f) the third copy on the free-text endpoint is reverted",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "                choice_lower = text_the_player_still_means(\n                    choice.lower(), options)",
+    "new": "                choice_lower = choice.lower()",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2ThirdCopyOnTheFreeTextEndpoint"
+  },
+  {
+    "id": "FA-N2 (g) the index-preserving contract is broken (splice, not blank)",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    return (\"\".join(chars), applied) if applied else (text, False)",
+    "new": "    return (\"\".join(chars).strip(), applied) if applied else (text, False)",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2IndexPreservation"
+  },
+  {
+    "id": "FA-N3 (a) the victor read is reverted to the dead outcome word",
+    "file": "backend/commands/strategic.py",
+    "old": "            if victor and victor == marshal.name:\n                outcome = \"victory\"\n            elif victor:\n                outcome = \"defeat\"",
+    "new": "            if False:\n                outcome = \"victory\"\n            elif False:\n                outcome = \"defeat\"",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheBattleReportsItsOutcome"
+  },
+  {
+    "id": "FA-N3 (b) the glorious-charge arm is dropped",
+    "file": "backend/commands/strategic.py",
+    "old": "            if event.get(\"type\") == \"glorious_charge\":\n                outcome = \"victory\" if event.get(\"attacker_won\") else \"defeat\"\n                break",
+    "new": "            if False:\n                outcome = \"victory\" if event.get(\"attacker_won\") else \"defeat\"\n                break",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheGloriousChargeIsNotADraw"
+  },
+  {
+    "id": "FA-N3 (c) only events[0] is scanned (the row's own one-liner)",
+    "file": "backend/commands/strategic.py",
+    "old": "            if event.get(\"type\") == \"battle\" or \"victor\" in event:\n                victor = str(event.get(\"victor\") or \"\")\n                break",
+    "new": "            victor = str(event.get(\"victor\") or \"\")\n            break",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheGloriousChargeIsNotADraw::test_the_battle_is_found_when_it_is_not_the_first_event"
+  },
+  {
+    "id": "FA-N5 (a) the vassal producer stops stamping identity",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            rebellion_popup[\"dialogue_id\"] = rebellion_dialogue.get(\"dialogue_id\")",
+    "new": "            rebellion_popup.pop(\"dialogue_id\", None)",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN5ProducersStampIdentity tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue"
+  },
+  {
+    "id": "FA-N5 (b) the paradox producer stops stamping identity",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            paradox_popup[\"dialogue_id\"] = paradox_dialogue.get(\"dialogue_id\")",
+    "new": "            paradox_popup.pop(\"dialogue_id\", None)",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN5ProducersStampIdentity::test_every_modal_producer_binds_popup_to_dialogue"
+  },
+  {
+    "id": "FA-N5 (c) the sabotage producer stops stamping identity",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                \"dialogue_id\": confrontation.get(\"dialogue_id\"),",
+    "new": "",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN5ProducersStampIdentity::test_every_modal_producer_binds_popup_to_dialogue"
+  },
+  {
+    "id": "FA-N37 (d) the delivery gate is reverted to a bare pop_highest",
+    "file": "backend/main.py",
+    "old": "    winner_attr, winner_key, winner_value = _pop_deliverable_popup(world)",
+    "new": "    winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_the_delivery_gate_stands_on_its_own"
+  },
+  {
+    "id": "FA-N37 (e) the auto-pop gate is reverted",
+    "file": "backend/main.py",
+    "old": "            and _popup_dialogue_is_current(\n                world, world.vassal_rebellion_imminent_popups[0])):",
+    "new": "            and True):",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_the_rebellion_modal_waits_for_its_turn"
+  },
+  {
+    "id": "FA-N37 (f) the gate drops rather than delays (starvation)",
+    "file": "backend/main.py",
+    "old": "        for attr, value in held:\n            world._popup_queue.push(attr, value)",
+    "new": "        pass",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_the_held_popup_is_delivered_when_its_dialogue_is_current"
+  },
+  {
+    "id": "FA-N5 (g) the machine-token guard is removed",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            if not selected and _MACHINE_ACTION_ID_RE.match(choice.strip()):\n                return _unresolved_choice_failure(_enumerated_choice_prompt())",
+    "new": "            if False:\n                return _unresolved_choice_failure(_enumerated_choice_prompt())",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN5TheAnswerCannotLandOnAnotherCourt"
+  },
+  {
+    "id": "FA-N5 (h) the machine-token guard swallows legitimate buttons",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            if not selected and _MACHINE_ACTION_ID_RE.match(choice.strip()):",
+    "new": "            if _MACHINE_ACTION_ID_RE.match(choice.strip()):",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN5TheAnswerCannotLandOnAnotherCourt::test_the_dialogues_own_action_id_still_resolves"
+  },
+  {
+    "id": "FA-N5 (i) a client answer site drops its dialogue id again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tapi_client.send_dialogue_response(action, _on_command_result, int(data.get(\"dialogue_id\", -1)))\n\nfunc _on_commitment_paradox_choice",
+    "new": "\tapi_client.send_dialogue_response(action, _on_command_result)\n\nfunc _on_commitment_paradox_choice",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestClientAnswerSitesCarryIdentity"
+  },
+  {
+    "id": "FA-N4 the success voice is assigned unconditionally again",
+    "file": "backend/game_logic/settlement_offers.py",
+    "old": "            if result.get(\"success\"):\n                result[\"message\"] = revision_voice",
+    "new": "            result[\"message\"] = revision_voice",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN4TheRefusalSpeaksAsARefusal"
+  },
+  {
+    "id": "FA-N4 the failure stops saying what happened",
+    "file": "backend/game_logic/settlement_offers.py",
+    "old": "            result[\"message\"] = result.get(\"error_display\")",
+    "new": "            pass",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN4TheRefusalSpeaksAsARefusal"
+  },
+  {
+    "id": "FA-N37 (g) the popup-vs-current identity comparison is inverted",
+    "file": "backend/main.py",
+    "old": "        return int(popup_id) == int(current_id)",
+    "new": "        return int(popup_id) != int(current_id)",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue"
+  },
+  {
+    "id": "FA-N37 (h) an unbound popup is treated as blocked (over-reach)",
+    "file": "backend/main.py",
+    "old": "    if popup_id is None:\n        return True",
+    "new": "    if popup_id is None:\n        return False",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_an_unbound_popup_is_still_delivered_immediately"
+  },
+  {
+    "id": "FA-N2 (h) the second self-negating label loses its exemption",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    tokens = [(opt.get(\"label\") or \"\").lower().strip() for opt in options]",
+    "new": "    tokens = []",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2SelfNegatingTokensAreExempt::test_the_second_self_negating_label_is_protected_too"
+  }
+]

@@ -8422,7 +8422,15 @@ def declare_war(
             diplomats = getattr(world, "diplomats", {}) or {}
             attacker_diplomat = getattr(diplomats.get(aggressor), "name", "")
             defender_diplomat = getattr(diplomats.get(target), "name", "")
-            world.commitment_paradox_popup = {
+            # FA-N5: the popup and the dialogue that answers it are two
+            # separate dicts, and only the dialogue was ever given an
+            # identity. The client's paradox handler answers with a bare
+            # OPTION INDEX (1 or 2), which the resolver applies to
+            # `options[choice - 1]` of whatever dialogue is current — so a
+            # paradox modal raised behind an envoy's letter answered the
+            # LETTER. Build the popup as a local, push the dialogue, then
+            # copy its identity across so the two travel together.
+            paradox_popup = {
                 "episode_id": paradox_episode_id,
                 "primary_nation": aggressor,
                 "secondary_nation": target,
@@ -8442,7 +8450,7 @@ def declare_war(
                 "break_defender_preview": defender_breach_preview,
             }
             # V2-89 → R12C: push() auto-queues if another dialogue is active
-            world.dialogue_manager.push({
+            paradox_dialogue = {
                 "type": "commitment_paradox",
                 "target_nation": "",
                 "talleyrand_text": paradox_msg,
@@ -8481,7 +8489,11 @@ def declare_war(
                 "context": {"attacker": aggressor, "defender": target},
                 "turn_created": int(world.current_turn),
                 "blocking": True,
-            })
+            }
+            world.dialogue_manager.push(paradox_dialogue)
+            # FA-N5: identity travels with the popup from here on.
+            paradox_popup["dialogue_id"] = paradox_dialogue.get("dialogue_id")
+            world.commitment_paradox_popup = paradox_popup
 
     # ── DEFENSIVE_ALLIANCE CASCADE ──
     # If paradox detected, exclude the player from cascade (player must choose)

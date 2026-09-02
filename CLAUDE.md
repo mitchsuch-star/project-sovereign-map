@@ -73,7 +73,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > all four seams — three of France's seven marshals sit at trust 0 by turn 41.
 >
 > **▶ AND 88 DEFECTS THE AUDIT MISSED** — FA-N2..FA-N89 in `BUG_FIXES.md`
-> §Verification-Pass Findings. **Five new P1s**, all the audit's own through-line
+> §Verification-Pass Findings. **Five new P1s** (**✅ four FIXED + one half-fixed September 2, 2026 —
+> see the slice-0 block below**), all the audit's own through-line
 > one layer out: **FA-N2** a negated answer to a pending dialogue executes the
 > affirmative (`do not accept` SIGNS the treaty — hand-verified; PARSE-NEG's class,
 > above the seam its guards cover), **FA-N3** every battle under a standing order
@@ -85,6 +86,28 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > All 43 sweeps completed, so that list is a census — and it is larger than the audit's
 > own P1+P2 count put together.
 >
+> **▶ SLICE 0 — THE FIVE NEW P1s — ✅ LANDED September 2, 2026. Landing record =
+> `BUG_FIXES.md` §Verification-Pass Findings, the boxed block above the table.**
+> Four closed, one split. **FA-N2** fixed at ONE seam every matching arm
+> inherits — plus **a third copy of the scan the row never named** (free-text
+> `POST /respond_to_diplomatic_dialogue`) — with the exemption widened from
+> option labels to answer TOKENS, because `never mind` carries a negation
+> marker too and the label-only form reds a real UX23-B pin; a bare `not` stays
+> a stated, pinned limit. **FA-N3** fixed by reading the VICTOR (the row's
+> "EVERY battle" narrows to the aggressive arm, 4 of 8 French marshals — but it
+> UNDERSTATES the defect: `marshal.last_combat_result` was being corrupted after
+> `_execute_attack` wrote it correctly). **FA-N5 + FA-N37** fixed as one rule in
+> four parts — identity stamped by all three producers, a delivery gate that
+> delays and never drops, all four client sites sending their id, and a
+> machine-token floor; the misroute fires at the resolver's LABEL-CONTAINMENT
+> arm, not at `whole_phrase_in` as filed. **FA-N4** half fixed (a refusal no
+> longer wears the success voice); **its staging half is ROUTED to slice 3**
+> with FA-4/FA-N17/FA-N18, because the reorder alone opens a counter surface
+> that can be neither submitted nor backed out of — the corrected three-seam
+> design is on the row. Suite 19,440/4; sweep 24/24 killed, 0 inert; M1–M7 and
+> `BASELINE_SERIES` byte-identical without re-record; boot 0 `SCRIPT ERROR`.
+> **No existing test caught any of them.**
+>
 > **▶ NEXT = the memo's §6 build order, RE-ORDERED per report §7.** Slice 8
 > (the harness) is scheduled last but is the instrument every other slice's
 > reproduction depends on — **do its reproduction-critical half first** (FA-10,
@@ -92,8 +115,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > rows — **0 of 345 entries contain any deferral phrasing**), then slice 2 with
 > FA-1 re-scoped (the rail alert IS delivered and answering works; the harm is
 > that the enemy phase does not pause, so ~92% of the corps dies in one phase),
-> then FA-26. Then position 10, the shippable build. ⚠ **Still no pillar
-> re-score** — it should run AFTER slice 8, on a harness that works.
+> then FA-26 **as a shared helper across all four trust-writing families**
+> (FA-N1), not one call at one seam. Then position 10, the shippable build.
+> ⚠ **Still no pillar re-score** — it should run AFTER slice 8, on a harness
+> that works.
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

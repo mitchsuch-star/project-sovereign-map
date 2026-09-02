@@ -2882,22 +2882,75 @@ class StrategicOrderProcessor:
                 **carry,
             }
 
-        # Determine outcome from result
+        # ══════════════════════════════════════════════════════════════
+        # FA-N3 — DERIVE THE OUTCOME FROM THE VICTOR, NOT FROM A WORD
+        # NOTHING EVER WRITES.
+        #
+        # Both prior reads were production-dead, so EVERY battle fought
+        # under a standing strategic order fell through to the stalemate
+        # arm below:
+        #
+        #   (a) `events[0]["outcome"]` — `combat.py` assigns exactly six
+        #       outcome words (`attacker_victory`, `defender_victory`,
+        #       `attacker_tactical_victory`, `defender_tactical_victory`,
+        #       `mutual_destruction`, `stalemate`). None of them is the
+        #       literal "victory" or "defeat" the arms below compare
+        #       against, so the read could never satisfy them.
+        #   (b) `result["battle_result"]` — `_execute_attack` returns no
+        #       such top-level key. Measured: its result keys are
+        #       action_info / action_summary / battle_diorama / battle_name
+        #       / battle_report / events / message / reinforcement_* /
+        #       success.
+        #
+        # Measured on the shipped 1805 boot: Ney with a standing MOVE_TO
+        # ANNIHILATED Mack at Frankfurt — defender strength 0,
+        # `enemy_destroyed`, event outcome `attacker_victory`, victor
+        # `Ney` — and this function reported "the battle was inconclusive.
+        # Continue move to?", mounted a `combat_stalemate` interrupt, and
+        # charged the order a failed `combat_attempts` for a total
+        # victory. The core multi-turn loop of the game ("march to Vienna
+        # and fight through whatever stands in the way") could not report
+        # its own outcome.
+        #
+        # `_respond_blocked_path` has read the victor correctly since it
+        # was written; this is that idiom, in the one place that lacked
+        # it. The marshal is always the ATTACKER here — both callers
+        # execute `action: attack` for him — so victor == his name is a
+        # win, a different victor is a defeat, and no victor (stalemate or
+        # mutual destruction) is a draw.
+        #
+        # The scan looks for the battle event rather than trusting index
+        # 0, and honours the `glorious_charge` event's own `attacker_won`
+        # flag the way the HOLD sally arm above already does — a charge
+        # names a winner, not a victor.
+        # ══════════════════════════════════════════════════════════════
         outcome = "unknown"
         events = result.get("events", [])
-        if events:
-            first_event = events[0] if isinstance(events, list) else events
-            outcome = first_event.get("outcome", "unknown")
-
-        # Also check result-level fields
-        if result.get("battle_result"):
-            br = result["battle_result"]
-            victor = br.get("victor", "")
-            if victor == marshal.name:
+        if not isinstance(events, list):
+            events = [events] if events else []
+        victor = ""
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            if event.get("type") == "glorious_charge":
+                outcome = "victory" if event.get("attacker_won") else "defeat"
+                break
+            if event.get("type") == "battle" or "victor" in event:
+                victor = str(event.get("victor") or "")
+                break
+        if outcome == "unknown":
+            if not victor:
+                victor = str((result.get("battle_result") or {}).get("victor") or "")
+            if victor and victor == marshal.name:
                 outcome = "victory"
-            elif victor and victor != marshal.name:
+            elif victor:
                 outcome = "defeat"
             else:
+                # No victor: a genuine draw, mutual destruction — or an
+                # attack the executor REFUSED, which reaches here with no
+                # battle at all. Narrating that refusal as a fought battle
+                # is FA-N26 / FA-N40's row, not this one; the draw arm's
+                # behaviour is unchanged.
                 outcome = "stalemate"
 
         # Record combat for loop prevention

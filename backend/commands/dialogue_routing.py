@@ -30,6 +30,11 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 
+from backend.ai.clause_guards import (
+    negation_marker_spans,
+    strip_negated_clauses,
+)
+
 # ── The verb→action table, lifted verbatim out of
 # `handle_diplomatic_dialogue_response` so the gate in main.py and the
 # resolver in the executor cannot disagree about what a word means.
@@ -312,6 +317,84 @@ def _carries_military_content(raw_lower: str, keyword: str,
     return False
 
 
+def _self_negating_answer_tokens(options: List[dict]) -> List[str]:
+    """FA-N2: the answer tokens that ARE a negation, rather than a refusal
+    of one.
+
+    Exactly two exist in the shipped game, and both are load-bearing: the
+    option label ``Proceed Without Allies`` (the ally-entry confirm,
+    `diplomatic_executor.py`) and the verb keyword ``never mind`` (which maps
+    onto ``dismiss``). ``without`` and ``never`` are negation markers, so
+    blanking negated clauses would silently make both unanswerable. They are
+    restored below rather than special-cased, so the rule is stated once:
+    *a token that is itself an answer may carry a negation; a negation ABOUT
+    an answer is not one.*
+
+    Measured census over `backend/` at the time of writing: 229 distinct
+    literal option labels, of which one carries a marker; 45 keywords, of
+    which one does. A third arriving later is restored automatically —
+    nothing here enumerates them by name.
+    """
+    tokens = [(opt.get("label") or "").lower().strip() for opt in options]
+    tokens.extend(DIALOGUE_ACTION_KEYWORDS)
+    return [t for t in tokens if t and negation_marker_spans(t)]
+
+
+def text_the_player_still_means(raw_lower: str,
+                                options: List[dict]) -> str:
+    """FA-N2 (verification pass, September 2, 2026): blank the clauses the
+    player NEGATED, so a refusal can never be read as consent.
+
+    Every arm of `match_dialogue_answer` reads the raw line, and a negated
+    sentence carries the same words as its affirmative — so `do not accept`
+    returned ``accept`` and SIGNED THE TREATY; `we will not yield` conceded
+    an ultimatum; `don't accept`, `never accept`, `I refuse to accept these
+    terms` and `under no circumstances accept` all did the same. This is
+    PARSE-NEG's exact defect class alive one layer ABOVE the seam PARSE-NEG
+    guards: `clause_guards` runs inside the parser, and this router answers
+    before the parser is ever consulted. The two sibling routers in `main.py`
+    already strip negated clauses before reading the line; this one never
+    did, and the last maintenance pass on this function (UX23-R5) added a
+    marshal-address guard, not a negation guard.
+
+    The blank is index-preserving by `strip_negated_clauses`'s own documented
+    contract, which is what lets the exemption above be a RESTORE of the
+    original characters rather than a second copy of arm 1's matching rule.
+    Every arm below then runs unchanged, keeping its own address and
+    military-content guards — the "two implementations of one rule, only one
+    maintained" failure this codebase keeps finding is avoided by
+    construction.
+
+    When nothing survives, no arm can claim the line: a hard stop answers
+    with its own numbered re-prompt, and a soft stop falls through to the
+    ordinary road, where the parser refuses the order the player forbade.
+    Neither executes it.
+    """
+    effective, negated = strip_negated_clauses(raw_lower)
+    if not negated:
+        return raw_lower
+    markers = negation_marker_spans(raw_lower)
+    chars = list(effective)
+    for token in _self_negating_answer_tokens(options):
+        start = raw_lower.find(token)
+        while start != -1:
+            end = start + len(token)
+            # The token is restored only when the negation that blanked it is
+            # the token's OWN — a marker inside the span, with none standing
+            # before it. `never proceed without allies` REFUSES the option
+            # whose label happens to read `Proceed Without Allies`, and must
+            # not be answered with it; `sire, never mind` is that answer.
+            # A line that negates something else FIRST ("do not attack, never
+            # mind") declines to restore: two clauses, and refusing to guess
+            # is the safe half of the trade.
+            own = any(start <= m_start < end for m_start, _ in markers)
+            preceded = any(m_start < start for m_start, _ in markers)
+            if own and not preceded:
+                chars[start:end] = list(token)
+            start = raw_lower.find(token, start + 1)
+    return "".join(chars)
+
+
 def match_dialogue_answer(dialogue: Optional[dict],
                           raw_lower: str,
                           marshal_names: Optional[List[str]] = None,
@@ -343,6 +426,11 @@ def match_dialogue_answer(dialogue: Optional[dict],
     options = dialogue_options(dialogue)
     if not options:
         return None
+    # FA-N2: read what the player still MEANS, not what they typed. A
+    # negated clause is blanked before any arm below sees it, so a refusal
+    # can never be matched as the consent it negates. See
+    # `text_the_player_still_means`.
+    raw_lower = text_the_player_still_means(raw_lower, options)
     raw_words = set(re.findall(r"[a-z]+", raw_lower))
     addressed = addresses_a_marshal(raw_lower, marshal_names)
 

@@ -5,6 +5,7 @@ Handles all diplomatic execution: proposals, dialogue, missions, trust reactions
 Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import copy
+import re
 from typing import Dict, Optional
 
 from backend.nation_config import get_player_diplomat, get_player_nation
@@ -32,6 +33,13 @@ _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
     "settlement_demand_remove",
     "settlement_demand_set_magnitude",
 })
+
+
+# FA-N5: a machine action id — lowercase snake_case with at least one
+# underscore and no whitespace. Everything a player or a keyword table can
+# produce is either a single word or a phrase with spaces; only a button
+# sends one of these.
+_MACHINE_ACTION_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$")
 
 
 def _court_is_gone(world, nation: str) -> bool:
@@ -3570,9 +3578,47 @@ class DiplomaticExecutor:
                     if str(opt.get("action") or "") == choice_id:
                         selected = opt
                         break
+            # ══════════════════════════════════════════════════════════
+            # FA-N5 — A MACHINE TOKEN MATCHES EXACTLY OR NOT AT ALL.
+            #
+            # Below this point the resolver matches human words, and its
+            # first arm is bare containment in BOTH directions
+            # (`label_lower in choice_lower`). An action id is not a human
+            # word: `accept_vassal_rebellion` contains the label `Accept`,
+            # so a button on the vassal-rebellion modal resolved onto an
+            # envoy's `accept_ai_proposal` and SIGNED A TREATY. Measured on
+            # the 1805 boot: `PEACE -> NON_AGGRESSION with Prussia`, from a
+            # modal about Holland.
+            #
+            # (The row credited the underscore hole in `whole_phrase_in` —
+            # real, since `_` is not `[a-z]` — but the containment arm two
+            # rungs above it fires first, so gating only the keyword arm
+            # would have left the defect standing.)
+            #
+            # Identity binding (`dialogue_id`, stamped by the producers and
+            # sent by the client) is the primary fix; this is the floor
+            # under it, for an older save, a client that sends no id, or the
+            # next producer that forgets. A snake_case id that matches no
+            # option's action is not an answer to THIS dialogue, and the
+            # honest reply is the numbered re-prompt below.
+            # ══════════════════════════════════════════════════════════
+            if not selected and _MACHINE_ACTION_ID_RE.match(choice.strip()):
+                return _unresolved_choice_failure(_enumerated_choice_prompt())
             # Keyword matching
             if not selected:
-                choice_lower = choice.lower()
+                # FA-N2: the THIRD copy of this scan. `POST
+                # /respond_to_diplomatic_dialogue` accepts FREE TEXT, and the
+                # arms below read it the same keyword-first way
+                # `match_dialogue_answer` did — so `do not accept` signed the
+                # treaty here too, on an endpoint the typed-route guard never
+                # touches. Same rule, same function, one place: a negated
+                # clause is blanked before any arm reads it, and a token that
+                # is ITSELF a negation ("never mind") survives.
+                from backend.commands.dialogue_routing import (
+                    text_the_player_still_means,
+                )
+                choice_lower = text_the_player_still_means(
+                    choice.lower(), options)
                 for opt in options:
                     label_lower = opt.get("label", "").lower()
                     if choice_lower in label_lower or label_lower in choice_lower:

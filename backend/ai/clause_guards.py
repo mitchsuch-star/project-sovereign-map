@@ -49,7 +49,7 @@ existing keyword chain reads, and whether the caller should refuse.
 """
 
 import re
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Clause terminators
@@ -108,6 +108,25 @@ _NEGATION_MARKER_RE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+
+
+def negation_marker_spans(text: str) -> List[Tuple[int, int]]:
+    """Where the negation markers are, as ``(start, end)`` character spans.
+
+    FA-N2: `dialogue_routing` needs to know not merely THAT a line was
+    negated but WHERE, so it can tell an answer that contains a negation
+    ("Proceed Without Allies", "never mind") from a negation OF an answer
+    ("never proceed without allies"). Exposing the spans keeps that one
+    rule in one place; the alternative was a second copy of the marker
+    vocabulary in the router, which is the drift this codebase keeps
+    finding and re-fixing.
+
+    Returns spans in left-to-right order over the ORIGINAL string, so
+    callers may index into the text they passed in.
+    """
+    if not text:
+        return []
+    return [(m.start(), m.end()) for m in _NEGATION_MARKER_RE.finditer(text)]
 
 
 def strip_negated_clauses(text: str) -> Tuple[str, bool]:

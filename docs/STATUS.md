@@ -4,6 +4,56 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD HAS STARTED — SLICE 0, "THE FIVE NEW P1s", LANDED September 2, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Verification-Pass Findings, the boxed
+> block above the table (authoritative).** The verification pass's §11 said to
+> build these before anything else — most are one-seam, and all of them are the
+> audit's own through-line one layer out. **Four closed, one split.**
+>
+> - **FA-N2** — `do not accept` SIGNED THE TREATY; `we will not yield` conceded
+>   an ultimatum. Closed at ONE seam that all four matching arms inherit, plus
+>   **a third copy of the same scan the row never named** (the free-text
+>   `POST /respond_to_diplomatic_dialogue`, which the typed guard cannot reach).
+>   The row's exemption was insufficient: the same hazard lives in the KEYWORD
+>   table, and the label-only form reds a real UX23-B pin.
+> - **FA-N3** — a battle that ANNIHILATED the enemy under a standing order was
+>   reported *"inconclusive. Continue move to?"*, armed a stalemate interrupt,
+>   and charged the order a failed attempt. It is also a state corruption the
+>   row missed (`marshal.last_combat_result` overwritten with `stalemate` after
+>   `_execute_attack` had written it correctly) — and its "EVERY battle" is
+>   narrowed to the aggressive arm, 4 of France's 8 marshals.
+> - **FA-N5 + FA-N37** — one rule, four parts: *a blocking modal answers its own
+>   dialogue.* Reproduced: clicking **Accept Risk** on the Holland rebellion
+>   modal returned `PEACE -> NON_AGGRESSION with Prussia`.
+> - **FA-N4** — the honest-refusal half landed; **the staging half is routed to
+>   the memo's slice 3** with FA-4 / FA-N17 / FA-N18, because an adversarial
+>   pass measured that the reorder alone opens a counter surface the player can
+>   neither submit nor back out of. The corrected three-seam design is recorded
+>   on the row so that slice inherits it.
+>
+> **Gates: suite 19,387 → 19,440 / 4 skipped · ruff clean · Godot parse harness
+> EXIT=0 (47 scripts) · headless boot 0 `SCRIPT ERROR` · live-verified over HTTP
+> · M1–M7 and `BASELINE_SERIES` byte-identical WITHOUT re-record ·
+> `tests/test_fa_n_p1_cluster_2026_09_02.py` (53) · mutation sweep 24/24 killed,
+> 0 inert.**
+>
+> **No existing test caught any of these** — the suite passed 19,387 green while
+> a typed refusal signed a treaty. Four of the sweep's first 21 mutations came
+> back INERT (two guards masking each other; a one-event result making a scan
+> and an index read indistinguishable) and were answered with isolation pins,
+> not by deleting the mutation.
+>
+> **▶ NEXT, per the verification pass's §7 re-ordering:** slice 8's
+> reproduction-critical half (**FA-10, FA-37, FA-40, FA-74, FA-87, FA-92**) —
+> the harness every other slice's reproduction depends on — then slice 1
+> (**FA-7**, and *write the corpus rows: 0 of 345 entries contain any deferral
+> phrasing*), then slice 2 with **FA-1 re-scoped** (the alert IS delivered and
+> answering works; the harm is that the enemy phase does not pause, so ~92% of
+> the corps dies in one phase), then **FA-26 as a shared helper across all four
+> trust-writing families** (FA-N1), not one call at one seam. ⚠ Still no pillar
+> re-score — it should run AFTER slice 8, on a harness that works.
+
 > # ✅ THE AUDIT VERIFICATION PASS — HELD September 2, 2026. **All 128 filed rows re-checked adversarially. The audit is safe to build from; it is NOT safe to build from verbatim.**
 > **Report of record = `docs/audits/FINAL_AUDIT_VERIFICATION_2026_09_02.md`
 > (authoritative where it amends the audit).** Every filed row now carries a

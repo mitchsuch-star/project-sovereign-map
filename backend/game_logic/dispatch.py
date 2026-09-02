@@ -3577,7 +3577,16 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
             # Set popup data for Godot (Session 8C)
             original = sabotage.get("original_proposal", {})
             modified = sabotage.get("modified_proposal", {})
+            # FA-N5: the discovery popup is answered through the
+            # `sabotage_confrontation` dialogue pushed a few lines above, but
+            # it never carried that dialogue's identity, so the client
+            # answered with a bare verb and the W6-0 stale-dialogue guard had
+            # nothing to bind. `confront_sabotage` / `overlook_sabotage`
+            # happen to resolve onto no other dialogue's options today — the
+            # binding is what keeps that true when a future option label
+            # contains one of those words.
             world.diplomatic_sabotage_popup = {
+                "dialogue_id": confrontation.get("dialogue_id"),
                 "target_nation": target,
                 "defiance_type": defiance_type,
                 "ordered_summary": sabotage.get("original_summary", str(original)),

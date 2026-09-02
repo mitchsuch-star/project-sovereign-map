@@ -2602,11 +2602,31 @@ def handle_incoming_settlement_offer_action(
             staged = result.get("diplomatic_dialogue")
             if isinstance(staged, dict):
                 staged["talleyrand_text"] = revision_voice
-            result["message"] = revision_voice
+            # FA-N4 (second half): this assignment used to run unconditionally,
+            # so a REFUSED Request Revision was narrated in Talleyrand's
+            # success voice — "Sire, I shall lay the offered terms for France
+            # vs Britain on our own table, court by court…" — while the
+            # `error` beneath it read `cross_war_settlement_collision` and
+            # nothing had opened. The player was told a counter draft was
+            # being written; it was not.
+            #
+            # The staging half of FA-N4 (the pop that CAUSES that collision)
+            # is a settlement-slice change of its own — the reorder alone
+            # opens a counter surface that can be neither submitted nor
+            # backed out of, so it must land with its siblings (FA-4,
+            # FA-N17, FA-N18) rather than here. This guard is independent of
+            # that ordering, and the row asks for it either way: whatever
+            # refuses, the refusal must not wear the success voice.
+            if result.get("success"):
+                result["message"] = revision_voice
         if not result.get("success"):
             result["error_display"] = result.get("error_display") or _error_display(
                 str(result.get("error") or "invalid_war_id")
             )
+            # FA-N4: and say what actually happened, in the failure's own
+            # words, rather than leaving whatever `stage_settlement_confirm`
+            # put there to be read as an outcome.
+            result["message"] = result.get("error_display")
             result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
         return result
 
