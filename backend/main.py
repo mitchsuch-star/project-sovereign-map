@@ -1613,6 +1613,53 @@ def _digest_owns(dialogue, world) -> bool:
 # written for.
 # ══════════════════════════════════════════════════════════════════════
 
+def _live_dialogue_ids(world) -> set:
+    """Every dialogue identity the manager can still present.
+
+    FA-N5 / FA-N37, second round: `DialogueManager.clear_stale` silently
+    drops a QUEUED blocking dialogue two turns after it was created and
+    touches no popup, and `push` stamps an id BEFORE the QUEUE_CAP check so
+    an over-cap dialogue is stamped and then discarded. Both leave a popup
+    naming a dialogue that no longer exists — and a gate that only asks "is
+    it current?" would hold such a popup FOREVER, which turns this fix into
+    a worse bug than the one it closes: the vassal-rebellion warning channel
+    goes permanently silent, and the zombie is serialized into every save.
+
+    A popup whose dialogue is gone is not waiting its turn; it is dead, and
+    it is reaped. The producers re-raise a live pair on the next tick, so
+    the channel heals itself.
+    """
+    manager = getattr(world, "dialogue_manager", None)
+    if manager is None:
+        return set()
+    live = set()
+    current = manager.peek()
+    if isinstance(current, dict) and current.get("dialogue_id") is not None:
+        live.add(int(current["dialogue_id"]))
+    try:
+        queued = list(manager.iter_queue())
+    except (AttributeError, TypeError):
+        queued = []
+    for dialogue in queued:
+        if isinstance(dialogue, dict) and dialogue.get("dialogue_id") is not None:
+            live.add(int(dialogue["dialogue_id"]))
+    return live
+
+
+def _popup_dialogue_is_dead(world, popup) -> bool:
+    """True when the popup names a dialogue the manager no longer holds."""
+    if not isinstance(popup, dict):
+        return False
+    popup_id = popup.get("dialogue_id")
+    if popup_id is None:
+        return False
+    try:
+        popup_id = int(popup_id)
+    except (TypeError, ValueError):
+        return False
+    return popup_id not in _live_dialogue_ids(world)
+
+
 def _popup_dialogue_is_current(world, popup) -> bool:
     """True when this popup may be shown now.
 
@@ -1655,6 +1702,11 @@ def _pop_deliverable_popup(world):
                 return None, None, None
             if _popup_dialogue_is_current(world, winner_value):
                 return winner_attr, winner_key, winner_value
+            if _popup_dialogue_is_dead(world, winner_value):
+                # Reaped, not held: its dialogue was swept and it can never
+                # become answerable. Holding it would brick the slot and
+                # serialize a zombie into every save.
+                continue
             held.append((winner_attr, winner_value))
     finally:
         for attr, value in held:
@@ -1677,18 +1729,32 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     from backend.models.cooldown_manager import PopupQueue
     # V2-90: Auto-pop rebellion popup from list if single field is empty
     if (world.vassal_rebellion_imminent_popup is None
-            and getattr(world, 'vassal_rebellion_imminent_popups', None)
-            and _popup_dialogue_is_current(
-                world, world.vassal_rebellion_imminent_popups[0])):
-        # FA-N37: the auto-pop used to promote a queued rebellion into the
-        # delivery slot regardless of which dialogue was current, and
-        # `vassal_rebellion_imminent_popup` outranks `incoming_proposal_popup`
-        # in PRIORITY_ORDER, so it won `pop_highest` on the very next
-        # response. The rebellion modal then appeared over a letter it could
-        # not answer. Nothing is lost: the popup stays at the head of its own
-        # list and is promoted on the cycle where its dialogue is current,
-        # which is the IGR-F rule the other two producers already follow.
-        world.vassal_rebellion_imminent_popup = world.vassal_rebellion_imminent_popups.pop(0)
+            and getattr(world, 'vassal_rebellion_imminent_popups', None)):
+        # FA-N5 second round: REAP then SCAN, never peek at index 0.
+        # `process_vassal_loyalty` appends a fresh entry every turn a vassal
+        # sits at loyalty <= 10 with no once-per-vassal latch, so a single
+        # blocked head would starve the whole list permanently rather than
+        # transiently. And an entry whose dialogue was swept by `clear_stale`
+        # can never become current, so it is dropped rather than held.
+        world.vassal_rebellion_imminent_popups = [
+            popup for popup in world.vassal_rebellion_imminent_popups
+            if not _popup_dialogue_is_dead(world, popup)
+        ]
+    # FA-N37: this auto-pop used to promote a queued rebellion into the
+    # delivery slot regardless of which dialogue was current, and
+    # `vassal_rebellion_imminent_popup` outranks `incoming_proposal_popup` in
+    # PRIORITY_ORDER, so it won `pop_highest` on the very next response — the
+    # rebellion modal appeared over a letter it could not answer. It is now
+    # the IGR-F rule the other producers follow: deliver a queued item on the
+    # cycle where it is current. Nothing is lost; it is delayed.
+    if (world.vassal_rebellion_imminent_popup is None
+            and getattr(world, 'vassal_rebellion_imminent_popups', None)):
+        _ready = next(
+            (i for i, popup in enumerate(world.vassal_rebellion_imminent_popups)
+             if _popup_dialogue_is_current(world, popup)), None)
+        if _ready is not None:
+            world.vassal_rebellion_imminent_popup = (
+                world.vassal_rebellion_imminent_popups.pop(_ready))
 
     # NA-6: same auto-pop for the Proclamation overflow — two nations can
     # form on one tick and the queue slot holds one.

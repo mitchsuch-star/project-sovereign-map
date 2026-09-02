@@ -2912,9 +2912,11 @@ class StrategicOrderProcessor:
         # and fight through whatever stands in the way") could not report
         # its own outcome.
         #
-        # `_respond_blocked_path` has read the victor correctly since it
-        # was written; this is that idiom, in the one place that lacked
-        # it. The marshal is always the ATTACKER here — both callers
+        # `_respond_blocked_path` reads the victor rather than the outcome
+        # word, and this is that idiom in the one place that lacked it —
+        # though not a claim that the sibling is complete: it handles
+        # neither no-victor shape, and closing that gap is FA-14's slice.
+        # The marshal is always the ATTACKER here — both callers
         # execute `action: attack` for him — so victor == his name is a
         # win, a different victor is a defeat, and no victor (stalemate or
         # mutual destruction) is a draw.
@@ -2929,6 +2931,7 @@ class StrategicOrderProcessor:
         if not isinstance(events, list):
             events = [events] if events else []
         victor = ""
+        outcome_word = ""
         for event in events:
             if not isinstance(event, dict):
                 continue
@@ -2937,6 +2940,7 @@ class StrategicOrderProcessor:
                 break
             if event.get("type") == "battle" or "victor" in event:
                 victor = str(event.get("victor") or "")
+                outcome_word = str(event.get("outcome") or "")
                 break
         if outcome == "unknown":
             if not victor:
@@ -2945,12 +2949,30 @@ class StrategicOrderProcessor:
                 outcome = "victory"
             elif victor:
                 outcome = "defeat"
+            elif outcome_word:
+                # A battle event that names its outcome but NOT its victor.
+                # There is exactly one such shape and the first cut of this
+                # fix missed it: `combat_executor`'s `auto_kill_event` (the
+                # auto-bombardment kill) is `type: "battle"`,
+                # `outcome: "attacker_victory"`, and carries no `victor` key
+                # at all — so a corps annihilated by artillery under a
+                # standing order still reported a draw. The marshal is
+                # always the ATTACKER at this seam, so the attacker/defender
+                # half of combat.py's vocabulary IS the answer.
+                if outcome_word.startswith("attacker"):
+                    outcome = "victory"
+                elif outcome_word.startswith("defender"):
+                    outcome = "defeat"
+                else:  # stalemate, mutual_destruction
+                    outcome = "stalemate"
             else:
-                # No victor: a genuine draw, mutual destruction — or an
-                # attack the executor REFUSED, which reaches here with no
-                # battle at all. Narrating that refusal as a fought battle
-                # is FA-N26 / FA-N40's row, not this one; the draw arm's
-                # behaviour is unchanged.
+                # No battle at all. This is an attack the executor REFUSED —
+                # reachable, e.g. through the NV-4 crossing gate — and it is
+                # narrated below as an inconclusive battle, which is a lie.
+                # That lie is FA-14's row (its `not result.get("success")`
+                # guard belongs at the head of this function) with FA-N26 and
+                # FA-N40 as its narration siblings; it is UNCHANGED here, and
+                # named rather than silently inherited.
                 outcome = "stalemate"
 
         # Record combat for loop prevention

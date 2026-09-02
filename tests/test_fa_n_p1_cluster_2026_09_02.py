@@ -211,6 +211,72 @@ class TestFAN2SelfNegatingTokensAreExempt:
         assert negating == ["never mind"], negating
 
 
+class TestFAN2TheGuardsStillReadWhatWasSaid:
+    """The regression the first cut of this fix SHIPPED, and the reason the
+    file says *an answer is read from what the player still MEANS; an order
+    is detected from what they SAID.*
+
+    Reassigning ``raw_lower`` to the stripped line fed the blanked text to
+    the two guards as well as to the matching arms — silently disarming
+    both, because a prohibition is still military content and a name inside
+    a prohibition is still a name. **No pin in the suite bound either guard
+    against negated input**, so the full suite stayed green at 19,387 with
+    the regression in tree, and the one pin that should have caught it went
+    VACUOUS instead of red (``never mind the money`` stopped reaching
+    ``_names_a_marshal``, so mutating that guard to bare containment — the
+    precise defect its own comment cites — no longer failed).
+    """
+
+    CONFIRM = {"type": "settlement_confirm", "options": [
+        {"label": "Confirm", "action": "confirm_settlement"},
+        {"label": "Revise Terms", "action": "revise_terms"},
+        {"label": "Cancel", "action": "cancel_settlement"},
+    ]}
+
+    @pytest.mark.parametrize("line", [
+        "without ney, cancel",
+        "avoid ney, cancel",
+        "instead of ney, cancel",
+        "rather than send ney, cancel",
+        "davout will not march, cancel",
+    ])
+    def test_a_marshal_named_inside_a_negation_is_still_a_marshal(self, line):
+        """UX23-R5 under negation. The first cut answered ``cancel`` to all
+        but the last — measured, ``without ney, cancel`` CANCELLED THE
+        SETTLEMENT."""
+        assert match_dialogue_answer(
+            self.CONFIRM, line, ROSTER,
+            world_regions=["Paris", "Swabia"]) is None
+
+    @pytest.mark.parametrize("dialogue_key,line", [
+        ("confirm", "cancel, do not march north"),
+        ("confirm", "cancel; never attack swabia"),
+        ("confirm", "confirm, do not attack"),
+        ("proposal", "accept, never march on paris"),
+    ])
+    def test_a_forbidden_order_is_still_military_content(self, dialogue_key,
+                                                         line):
+        """The Aug-30 guard under negation. The first cut answered every one
+        of these, discarding the order half of the sentence without telling
+        the player — and `accept, never march on paris` SIGNED THE TREATY,
+        measured end to end through /command on the 1805 boot."""
+        dialogue = self.CONFIRM if dialogue_key == "confirm" else PROPOSAL
+        assert match_dialogue_answer(
+            dialogue, line, ROSTER,
+            world_regions=["Paris", "Swabia"]) is None
+
+    def test_the_negation_fix_still_holds_alongside_both_guards(self):
+        """The three rules coexist: refuse the negated answer, keep the
+        marshal guard, keep the military guard, and still answer plainly."""
+        assert match_dialogue_answer(
+            PROPOSAL, "do not accept", ROSTER, world_regions=[]) is None
+        assert match_dialogue_answer(
+            PROPOSAL, "accept", ROSTER, world_regions=[]) == "accept"
+        assert match_dialogue_answer(
+            self.CONFIRM, "cancel", ROSTER,
+            world_regions=["Paris"]) == "cancel"
+
+
 class TestFAN2IndexPreservation:
     """The restore is a character splice into an index-preserving blank. If
     ``strip_negated_clauses`` ever stopped preserving length the splice would
@@ -369,6 +435,98 @@ class TestFAN3TheGloriousChargeIsNotADraw:
             _W(), {})
         assert lost["outcome"] == "defeat"
 
+    def test_an_artillery_annihilation_is_not_a_draw(self):
+        """The shape the first cut of this fix MISSED, found by attacking it.
+
+        `combat_executor`'s `auto_kill_event` (the auto-bombardment kill) is
+        `type: "battle"` with `outcome: "attacker_victory"` and **no victor
+        key at all** — a fourth event shape. A victor-only read finds nothing
+        and falls to the draw arm, so a corps annihilated by artillery under
+        a standing order still reported "inconclusive". The marshal is always
+        the attacker at this seam, so the attacker/defender half of
+        combat.py's own vocabulary is the answer."""
+        from backend.commands.strategic import StrategicOrderProcessor
+
+        class _Order:
+            command_type = "MOVE_TO"
+            combat_attempts = 0
+            last_combat_enemy = ""
+            last_combat_turn = 0
+            last_combat_result = ""
+
+        class _M:
+            def __init__(self):
+                self.name = "Ney"
+                self.location = "Rhineland"
+                self.strategic_order = _Order()
+                self.in_combat_this_turn = False
+                self.last_combat_turn = 0
+                self.last_combat_location = ""
+                self.last_combat_result = ""
+                self.pending_interrupt = None
+
+        class _E:
+            name = "Mack"
+
+        class _W:
+            current_turn = 3
+
+        proc = StrategicOrderProcessor.__new__(StrategicOrderProcessor)
+        for word, expected in (("attacker_victory", "victory"),
+                               ("attacker_tactical_victory", "victory"),
+                               ("defender_victory", "defeat"),
+                               ("defender_tactical_victory", "defeat"),
+                               ("mutual_destruction", "stalemate"),
+                               ("stalemate", "stalemate")):
+            row = proc._handle_combat_result(
+                _M(), _E(),
+                {"events": [{"type": "battle", "outcome": word,
+                             "auto_bombardment_kill": True}]},
+                _W(), {})
+            assert row["outcome"] == expected, (word, row["outcome"])
+
+    def test_a_victor_with_no_outcome_word_is_still_read(self):
+        """ISOLATION for the victor read. With the outcome-word fallback in
+        place the two paths agree on every real event, so a sweep found the
+        victor mutation inert. This shape has only the victor — which is the
+        idiom `_respond_blocked_path` uses and the one this fix was written
+        around."""
+        from backend.commands.strategic import StrategicOrderProcessor
+
+        class _Order:
+            command_type = "MOVE_TO"
+            combat_attempts = 0
+            last_combat_enemy = ""
+            last_combat_turn = 0
+            last_combat_result = ""
+
+        class _M:
+            def __init__(self):
+                self.name = "Ney"
+                self.location = "Rhineland"
+                self.strategic_order = _Order()
+                self.in_combat_this_turn = False
+                self.last_combat_turn = 0
+                self.last_combat_location = ""
+                self.last_combat_result = ""
+                self.pending_interrupt = None
+
+        class _E:
+            name = "Mack"
+
+        class _W:
+            current_turn = 3
+
+        proc = StrategicOrderProcessor.__new__(StrategicOrderProcessor)
+        won = proc._handle_combat_result(
+            _M(), _E(), {"events": [{"type": "battle", "victor": "Ney"}]},
+            _W(), {})
+        assert won["outcome"] == "victory"
+        lost = proc._handle_combat_result(
+            _M(), _E(), {"events": [{"type": "battle", "victor": "Mack"}]},
+            _W(), {})
+        assert lost["outcome"] == "defeat"
+
     def test_the_battle_is_found_when_it_is_not_the_first_event(self):
         """ISOLATION PIN. The row's own prescribed one-liner reads
         `events[0]` and trusts it. Every arm above happens to put the battle
@@ -451,6 +609,24 @@ def _letter_then_rebellion(world):
     process_vassal_loyalty(world)
 
 
+def _queue_a_sabotage_dialogue(world) -> int:
+    """A live-but-not-current dialogue, so its popup is DELAYED rather than
+    reaped. A synthetic id belonging to no dialogue is a DEAD id, and the
+    gate correctly drops those — which is a different rule being tested
+    elsewhere in this class."""
+    dialogue = {
+        "type": "sabotage_confrontation",
+        "target_nation": "Austria",
+        "turn_created": int(world.current_turn),
+        "options": [{"label": "Confront", "action": "confront_sabotage"},
+                    {"label": "Overlook", "action": "overlook_sabotage"}],
+    }
+    world.dialogue_manager.push(dialogue)
+    assert world.dialogue_manager.peek() is not dialogue, (
+        "precondition: the letter must still hold the slot")
+    return int(dialogue["dialogue_id"])
+
+
 class TestFAN5ProducersStampIdentity:
 
     def test_the_rebellion_popup_carries_its_dialogues_id(self, monkeypatch):
@@ -531,15 +707,14 @@ class TestFAN37TheModalIsNotShownOverAnotherDialogue:
         Reverting the gate must make the wrong modal appear."""
         world, client = _client_world(monkeypatch)
         _prussian_letter(world)
-        letter_id = world.dialogue_manager.peek().get("dialogue_id")
+        own_id = _queue_a_sabotage_dialogue(world)
         world._popup_queue.push("diplomatic_sabotage_popup", {
-            "target_nation": "Austria",
-            "dialogue_id": (letter_id or 0) + 500,
+            "target_nation": "Austria", "dialogue_id": own_id,
         })
         body = client.post("/command", json={"command": "status"}).json()
         assert body.get("diplomatic_sabotage") is None, (
             "a sabotage modal was delivered over an envoy's letter")
-        # Delayed, never dropped.
+        # Delayed, never dropped — its dialogue is alive, merely queued.
         assert world._popup_queue.get("diplomatic_sabotage_popup") is not None
 
     def test_the_held_popup_is_delivered_when_its_dialogue_is_current(
@@ -549,8 +724,7 @@ class TestFAN37TheModalIsNotShownOverAnotherDialogue:
         assertion above and silently lose the question."""
         world, client = _client_world(monkeypatch)
         _prussian_letter(world)
-        letter_id = world.dialogue_manager.peek().get("dialogue_id")
-        own_id = (letter_id or 0) + 500
+        own_id = _queue_a_sabotage_dialogue(world)
         world._popup_queue.push("diplomatic_sabotage_popup", {
             "target_nation": "Austria", "dialogue_id": own_id,
         })
@@ -581,6 +755,96 @@ class TestFAN37TheModalIsNotShownOverAnotherDialogue:
         assert body.get("diplomatic_sabotage") is None
         assert body.get("incoming_proposal") is not None, (
             "the answerable popup was starved behind a blocked one")
+
+    def test_a_swept_dialogue_does_not_silence_the_channel_forever(
+            self, monkeypatch):
+        """P1 THE GATE ITSELF WOULD HAVE INTRODUCED, found by attacking it.
+
+        `DialogueManager.clear_stale` drops a QUEUED blocking dialogue two
+        turns after it was created and touches no popup, and `push` stamps an
+        id BEFORE the QUEUE_CAP check — so a popup can name a dialogue that
+        no longer exists. A gate that only asks *is it current?* holds such a
+        popup forever: the vassal-rebellion warning goes permanently silent
+        and the zombie is serialized into every save. A dead dialogue's popup
+        is reaped, not held."""
+        world, client = _client_world(monkeypatch)
+        _letter_then_rebellion(world)
+        # Sweep the queued rebellion dialogues out from under their popups.
+        world.dialogue_manager._queue = [
+            d for d in world.dialogue_manager.iter_queue()
+            if d.get("type") != "vassal_rebellion_imminent"]
+        assert world.vassal_rebellion_imminent_popups, "precondition"
+        client.post("/command", json={"command": "status"})
+        assert world.vassal_rebellion_imminent_popups == [], (
+            "orphaned popups were held instead of reaped")
+        # And the channel heals: a fresh pair is delivered normally.
+        world.dialogue_manager.pop()
+        from backend.game_logic.vassal import process_vassal_loyalty
+        for row in world.vassals.values():
+            if row.get("lord") == "France":
+                row["loyalty"] = 9
+        process_vassal_loyalty(world)
+        body = client.post("/command", json={"command": "status"}).json()
+        assert body.get("vassal_rebellion_imminent") is not None
+
+    def test_an_orphan_that_reaches_the_queue_directly_is_reaped_too(
+            self, monkeypatch):
+        """ISOLATION for the QUEUE-side reaper. The rebellion list has its
+        own reaper, which masks this one for that producer — so use a popup
+        that never travels through a list. Held forever, it would brick the
+        slot and be serialized into every save from then on."""
+        world, client = _client_world(monkeypatch)
+        _prussian_letter(world)
+        letter_id = world.dialogue_manager.peek().get("dialogue_id")
+        world._popup_queue.push("diplomatic_sabotage_popup", {
+            "target_nation": "Austria",
+            "dialogue_id": (letter_id or 0) + 900,  # no such dialogue
+        })
+        body = client.post("/command", json={"command": "status"}).json()
+        assert body.get("diplomatic_sabotage") is None
+        assert world._popup_queue.get("diplomatic_sabotage_popup") is None, (
+            "a popup whose dialogue no longer exists was held, not reaped")
+
+    def test_a_blocked_head_does_not_starve_the_rest_of_the_list(
+            self, monkeypatch):
+        """`process_vassal_loyalty` appends a fresh entry every turn a vassal
+        sits at loyalty <= 10, with no once-per-vassal latch — so peeking at
+        index 0 turns transient head-of-line blocking into permanent
+        blocking. The auto-pop scans."""
+        world, client = _client_world(monkeypatch)
+        _prussian_letter(world)
+        letter_id = world.dialogue_manager.peek().get("dialogue_id")
+        world.vassal_rebellion_imminent_popups.append(
+            {"nation": "Holland", "loyalty": 9,
+             "dialogue_id": (letter_id or 0) + 500})
+        world.vassal_rebellion_imminent_popups.append(
+            {"nation": "Switzerland", "loyalty": 8,
+             "dialogue_id": (letter_id or 0) + 501})
+        world.dialogue_manager.push({
+            "type": "vassal_rebellion_imminent", "target_nation": "Holland",
+            "dialogue_id": (letter_id or 0) + 500, "blocking": True,
+            "turn_created": int(world.current_turn),
+            "options": [{"label": "Accept Risk",
+                         "action": "accept_vassal_rebellion"}]})
+        world.dialogue_manager.push({
+            "type": "vassal_rebellion_imminent",
+            "target_nation": "Switzerland",
+            "dialogue_id": (letter_id or 0) + 501, "blocking": True,
+            "turn_created": int(world.current_turn),
+            "options": [{"label": "Accept Risk",
+                         "action": "accept_vassal_rebellion"}]})
+        # Make SWITZERLAND's dialogue current — the second entry, not the head.
+        world.dialogue_manager.replace({
+            "type": "vassal_rebellion_imminent",
+            "target_nation": "Switzerland",
+            "dialogue_id": (letter_id or 0) + 501, "blocking": True,
+            "turn_created": int(world.current_turn),
+            "options": [{"label": "Accept Risk",
+                         "action": "accept_vassal_rebellion"}]})
+        body = client.post("/command", json={"command": "status"}).json()
+        modal = body.get("vassal_rebellion_imminent")
+        assert modal is not None, "the list was starved behind its head"
+        assert modal.get("nation") == "Switzerland"
 
     def test_an_unbound_popup_is_still_delivered_immediately(self, monkeypatch):
         """The gate is scoped to popups that CARRY an id, which is what keeps

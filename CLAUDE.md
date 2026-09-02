@@ -104,9 +104,19 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > longer wears the success voice); **its staging half is ROUTED to slice 3**
 > with FA-4/FA-N17/FA-N18, because the reorder alone opens a counter surface
 > that can be neither submitted nor backed out of — the corrected three-seam
-> design is on the row. Suite 19,440/4; sweep 24/24 killed, 0 inert; M1–M7 and
-> `BASELINE_SERIES` byte-identical without re-record; boot 0 `SCRIPT ERROR`.
-> **No existing test caught any of them.**
+> design is on the row. **A review round then took THREE more, one a P1 this
+> slice had itself SHIPPED**: the negation strip fed the BLANKED line to the
+> marshal and military-content guards as well as the matching arms, so
+> `accept, never march on paris` signed the treaty and silently discarded the
+> order (fixed as *an answer is read from what the player still MEANS; an order
+> is detected from what they SAID*); FA-N3 missed the auto-bombardment kill's
+> event shape (outcome word, no victor); and the delivery gate would have
+> **permanently silenced the vassal-rebellion channel** whenever `clear_stale`
+> swept a queued dialogue out from under its popup — dead-dialogue popups are
+> reaped now, and the list is scanned rather than peeked. Suite 19,455/4; sweep
+> **31/31 killed, 0 inert**; M1–M7 and `BASELINE_SERIES` byte-identical without
+> re-record; boot 0 `SCRIPT ERROR`. **No existing test caught any of them**, and
+> the pin that should have caught the shipped regression went VACUOUS, not red.
 >
 > **▶ NEXT = the memo's §6 build order, RE-ORDERED per report §7.** Slice 8
 > (the harness) is scheduled last but is the instrument every other slice's

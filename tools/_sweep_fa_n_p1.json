@@ -53,7 +53,7 @@
     "file": "backend/commands/strategic.py",
     "old": "            if victor and victor == marshal.name:\n                outcome = \"victory\"\n            elif victor:\n                outcome = \"defeat\"",
     "new": "            if False:\n                outcome = \"victory\"\n            elif False:\n                outcome = \"defeat\"",
-    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheBattleReportsItsOutcome"
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheGloriousChargeIsNotADraw::test_a_victor_with_no_outcome_word_is_still_read"
   },
   {
     "id": "FA-N3 (b) the glorious-charge arm is dropped",
@@ -65,8 +65,8 @@
   {
     "id": "FA-N3 (c) only events[0] is scanned (the row's own one-liner)",
     "file": "backend/commands/strategic.py",
-    "old": "            if event.get(\"type\") == \"battle\" or \"victor\" in event:\n                victor = str(event.get(\"victor\") or \"\")\n                break",
-    "new": "            victor = str(event.get(\"victor\") or \"\")\n            break",
+    "old": "            if event.get(\"type\") == \"battle\" or \"victor\" in event:\n                victor = str(event.get(\"victor\") or \"\")\n                outcome_word = str(event.get(\"outcome\") or \"\")\n                break",
+    "new": "            victor = str(event.get(\"victor\") or \"\")\n            outcome_word = str(event.get(\"outcome\") or \"\")\n            break",
     "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheGloriousChargeIsNotADraw::test_the_battle_is_found_when_it_is_not_the_first_event"
   },
   {
@@ -100,8 +100,8 @@
   {
     "id": "FA-N37 (e) the auto-pop gate is reverted",
     "file": "backend/main.py",
-    "old": "            and _popup_dialogue_is_current(\n                world, world.vassal_rebellion_imminent_popups[0])):",
-    "new": "            and True):",
+    "old": "        _ready = next(\n            (i for i, popup in enumerate(world.vassal_rebellion_imminent_popups)\n             if _popup_dialogue_is_current(world, popup)), None)\n        if _ready is not None:",
+    "new": "        _ready = 0\n        if _ready is not None:",
     "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_the_rebellion_modal_waits_for_its_turn"
   },
   {
@@ -166,5 +166,54 @@
     "old": "    tokens = [(opt.get(\"label\") or \"\").lower().strip() for opt in options]",
     "new": "    tokens = []",
     "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2SelfNegatingTokensAreExempt::test_the_second_self_negating_label_is_protected_too"
+  },
+  {
+    "id": "FA-N2 (i) the marshal guard reads the BLANKED line (the shipped regression)",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    addressed = addresses_a_marshal(typed, marshal_names)",
+    "new": "    addressed = addresses_a_marshal(raw_lower, marshal_names)",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2TheGuardsStillReadWhatWasSaid::test_a_marshal_named_inside_a_negation_is_still_a_marshal"
+  },
+  {
+    "id": "FA-N2 (j) the military-content guard reads the BLANKED line",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "_carries_military_content(typed, keyword, world_regions,",
+    "new": "_carries_military_content(raw_lower, keyword, world_regions,",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2TheGuardsStillReadWhatWasSaid::test_a_forbidden_order_is_still_military_content"
+  },
+  {
+    "id": "FA-N3 (d) the outcome-word fallback is dropped (auto-bombardment kill)",
+    "file": "backend/commands/strategic.py",
+    "old": "            elif outcome_word:",
+    "new": "            elif False:",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheGloriousChargeIsNotADraw::test_an_artillery_annihilation_is_not_a_draw"
+  },
+  {
+    "id": "FA-N3 (e) the outcome-word fallback reads the wrong side",
+    "file": "backend/commands/strategic.py",
+    "old": "                if outcome_word.startswith(\"attacker\"):",
+    "new": "                if outcome_word.startswith(\"defender\"):",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN3TheGloriousChargeIsNotADraw::test_an_artillery_annihilation_is_not_a_draw"
+  },
+  {
+    "id": "FA-N5 (k) an orphaned popup is HELD instead of reaped (the P1 the gate would have introduced)",
+    "file": "backend/main.py",
+    "old": "            if _popup_dialogue_is_dead(world, winner_value):\n                # Reaped, not held: its dialogue was swept and it can never\n                # become answerable. Holding it would brick the slot and\n                # serialize a zombie into every save.\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_an_orphan_that_reaches_the_queue_directly_is_reaped_too"
+  },
+  {
+    "id": "FA-N5 (l) the rebellion list stops reaping orphans",
+    "file": "backend/main.py",
+    "old": "        world.vassal_rebellion_imminent_popups = [\n            popup for popup in world.vassal_rebellion_imminent_popups\n            if not _popup_dialogue_is_dead(world, popup)\n        ]",
+    "new": "        pass",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_a_swept_dialogue_does_not_silence_the_channel_forever"
+  },
+  {
+    "id": "FA-N5 (m) the auto-pop peeks at index 0 instead of scanning",
+    "file": "backend/main.py",
+    "old": "        _ready = next(\n            (i for i, popup in enumerate(world.vassal_rebellion_imminent_popups)\n             if _popup_dialogue_is_current(world, popup)), None)",
+    "new": "        _ready = 0 if _popup_dialogue_is_current(\n            world, world.vassal_rebellion_imminent_popups[0]) else None",
+    "tests": "tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN37TheModalIsNotShownOverAnotherDialogue::test_a_blocked_head_does_not_starve_the_rest_of_the_list"
   }
 ]

@@ -426,13 +426,30 @@ def match_dialogue_answer(dialogue: Optional[dict],
     options = dialogue_options(dialogue)
     if not options:
         return None
-    # FA-N2: read what the player still MEANS, not what they typed. A
-    # negated clause is blanked before any arm below sees it, so a refusal
-    # can never be matched as the consent it negates. See
-    # `text_the_player_still_means`.
+    # ══════════════════════════════════════════════════════════════════
+    # FA-N2 — AN ANSWER IS READ FROM WHAT THE PLAYER STILL MEANS; AN ORDER
+    # IS DETECTED FROM WHAT THEY SAID.
+    #
+    # The MATCHING arms below read the negation-stripped line, so a refusal
+    # can never be matched as the consent it negates.
+    #
+    # The two GUARDS keep the line as typed, and that distinction is
+    # load-bearing. A first cut reassigned `raw_lower` and let everything
+    # read the blanked text — which silently disarmed both guards, because
+    # a prohibition is still military content and a name inside a
+    # prohibition is still a name. Measured on that first cut:
+    # `without ney, cancel` CANCELLED THE SETTLEMENT (the UX23-R5 marshal
+    # guard saw no marshal — the name had been blanked), and
+    # `accept, never march on paris` SIGNED THE TREATY and threw the order
+    # away without telling the player — the exact Aug-30 defect that guard
+    # was landed to close, re-opened by the fix for this one. The pin that
+    # should have caught it went VACUOUS rather than red: `never mind the
+    # money` stopped reaching `_names_a_marshal` at all.
+    # ══════════════════════════════════════════════════════════════════
+    typed = raw_lower
     raw_lower = text_the_player_still_means(raw_lower, options)
     raw_words = set(re.findall(r"[a-z]+", raw_lower))
-    addressed = addresses_a_marshal(raw_lower, marshal_names)
+    addressed = addresses_a_marshal(typed, marshal_names)
 
     # 1. verbatim — a label or an action id, spelled out.
     #
@@ -461,7 +478,7 @@ def match_dialogue_answer(dialogue: Optional[dict],
         # standing move, and the executor never saw it. Same rule as arms 3
         # and 4: an answer names the decision, an order names the war.
         if label and label in raw_lower:
-            if _carries_military_content(raw_lower, label, world_regions,
+            if _carries_military_content(typed, label, world_regions,
                                          dialogue):
                 continue
             return label
@@ -485,7 +502,7 @@ def match_dialogue_answer(dialogue: Optional[dict],
             # scan — measured, the label `Cancel` claimed "cancel the march",
             # an order to break a standing move, and the executor never saw
             # it.
-            if _carries_military_content(raw_lower, label, world_regions,
+            if _carries_military_content(typed, label, world_regions,
                                          dialogue):
                 continue
             return action or label
@@ -511,7 +528,7 @@ def match_dialogue_answer(dialogue: Optional[dict],
             continue
         if not any(a in offered for a in actions):
             continue
-        if _carries_military_content(raw_lower, keyword, world_regions,
+        if _carries_military_content(typed, keyword, world_regions,
                                      dialogue):
             continue
         return keyword

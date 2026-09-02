@@ -111,8 +111,8 @@
 > ### ✅ THE P1 CLUSTER IS FIXED — September 2, 2026 (the audit build's first slice)
 >
 > **Landing record: this block. Tests `tests/test_fa_n_p1_cluster_2026_09_02.py`
-> (53), mutation sweep `tools/_sweep_fa_n_p1.json` — 24 mutations, 24 killed,
-> 0 inert. Suite 19,387 → 19,440 / 4 skipped; ruff clean; Godot parse harness
+> (68), mutation sweep `tools/_sweep_fa_n_p1.json` — **31 mutations, 31 killed,
+> 0 inert** (across two rounds). Suite 19,387 → 19,455 / 4 skipped; ruff clean; Godot parse harness
 > EXIT=0 (47 scripts); headless boot 0 `SCRIPT ERROR`; M1–M7 and
 > `BASELINE_SERIES` byte-identical WITHOUT re-record.**
 >
@@ -218,6 +218,64 @@
 > isolation pins, not by deleting the mutation. A first isolation attempt was
 > itself inert: it used the paradox popup, which sits BELOW `incoming_proposal`
 > in `PRIORITY_ORDER`, so priority rather than the gate was doing the work.
+>
+> ### Round 2 — the review round took THREE more, one of them a P1 this slice
+> ### had itself introduced and shipped
+>
+> An adversarial fleet attacked the fixes rather than the findings. It was
+> right three times, and the first of the three is the whole reason to run it.
+>
+> - **⛔ A REGRESSION THIS SLICE SHIPPED, of the exact class it was fixing.**
+>   The first cut reassigned `raw_lower` to the negation-stripped line, so the
+>   blanked text reached the two GUARDS as well as the matching arms — silently
+>   disarming both, because *a prohibition is still military content, and a name
+>   inside a prohibition is still a name*. Measured: `without ney, cancel`
+>   CANCELLED THE SETTLEMENT (the UX23-R5 marshal guard saw no marshal — the
+>   name had been blanked), and **`accept, never march on paris` SIGNED THE
+>   TREATY and threw the order away without telling the player** — the Aug-30
+>   defect that guard exists to close, re-opened by the fix for this one. Fixed
+>   by binding `typed` before the strip: **an answer is read from what the
+>   player still MEANS; an order is detected from what they SAID.** The pin that
+>   should have caught it did not go red — it went **VACUOUS**: `never mind the
+>   money` stopped reaching `_names_a_marshal` at all, so mutating that guard to
+>   bare containment (the precise defect its own comment cites) no longer
+>   failed. Both guards are now pinned against negated input; nothing had been.
+> - **FA-N3's fix left the defect live on a fourth event shape.**
+>   `combat_executor`'s `auto_kill_event` (the auto-bombardment kill) is
+>   `type: "battle"` with `outcome: "attacker_victory"` and **no `victor` key at
+>   all**, so a victor-only read found nothing and still reported a draw. The
+>   derivation now falls back to the event's own outcome word, read through the
+>   attacker/defender half of combat.py's vocabulary (the marshal is always the
+>   attacker at this seam). Also corrected: an in-code claim that
+>   `_respond_blocked_path` "has read the victor correctly since it was written"
+>   over-reached — it reads the victor, but handles neither no-victor shape, and
+>   closing that is FA-14's slice. FA-14's refusal case (an attack the executor
+>   REFUSED reaches this function with no battle and is narrated as an
+>   inconclusive one — reachable through the NV-4 crossing gate) is UNCHANGED
+>   and now named at the seam rather than silently inherited.
+> - **⛔ A P1 THE DELIVERY GATE WOULD HAVE INTRODUCED.**
+>   `DialogueManager.clear_stale` drops a QUEUED blocking dialogue two turns
+>   after it was created and touches no popup, and `push` stamps a
+>   `dialogue_id` BEFORE the `QUEUE_CAP` check — so a popup can name a dialogue
+>   that no longer exists. A gate that only asks *is it current?* holds such a
+>   popup **forever**: the vassal-rebellion warning channel goes permanently
+>   silent and the zombie is serialized into every save from then on. A popup
+>   whose dialogue is dead is now REAPED, not held, on both the queue and the
+>   rebellion list. And the auto-pop **scans that list instead of peeking at
+>   index 0** — `process_vassal_loyalty` appends a fresh entry every turn a
+>   vassal sits at loyalty ≤ 10, with no once-per-vassal latch, so one blocked
+>   head would have made the blocking permanent rather than transient.
+>
+> Two of the fleet's objections did NOT apply: the prescribed "push it back and
+> deliver nothing" would have deadlocked the `incoming_proposal` safety valve
+> and starved lower-priority popups, but the built fix is skip-and-continue,
+> which is what the refuter itself recommends and what the starvation pin
+> covers.
+>
+> Round 2 sweep: **31 mutations, 31 killed, 0 inert** (two more re-targeted
+> after the round-2 edits changed their anchors, and one more found inert
+> because the list-side reaper masks the queue-side one — isolated with a popup
+> that never travels through a list).
 
 ### The remaining FA-N rows (**OPEN**)
 

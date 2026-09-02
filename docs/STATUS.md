@@ -32,11 +32,23 @@
 >   neither submit nor back out of. The corrected three-seam design is recorded
 >   on the row so that slice inherits it.
 >
-> **Gates: suite 19,387 → 19,440 / 4 skipped · ruff clean · Godot parse harness
+> **Gates: suite 19,387 → 19,455 / 4 skipped · ruff clean · Godot parse harness
 > EXIT=0 (47 scripts) · headless boot 0 `SCRIPT ERROR` · live-verified over HTTP
 > · M1–M7 and `BASELINE_SERIES` byte-identical WITHOUT re-record ·
-> `tests/test_fa_n_p1_cluster_2026_09_02.py` (53) · mutation sweep 24/24 killed,
+> `tests/test_fa_n_p1_cluster_2026_09_02.py` (68) · mutation sweep 31/31 killed,
 > 0 inert.**
+>
+> **⚠ A REVIEW ROUND FOUND THREE MORE, ONE OF THEM A P1 THIS SLICE HAD ITSELF
+> SHIPPED** — the negation strip was feeding the BLANKED line to the marshal
+> and military-content guards as well as to the matching arms, so
+> `accept, never march on paris` signed the treaty and discarded the order, and
+> `without ney, cancel` cancelled the settlement. The pin that should have
+> caught it went VACUOUS rather than red. Also: FA-N3's fix missed a fourth
+> event shape (the auto-bombardment kill carries an outcome word and no
+> victor), and the delivery gate would have **permanently silenced the
+> vassal-rebellion channel** whenever `clear_stale` swept a queued dialogue out
+> from under its popup. All three fixed and pinned; see the landing record's
+> Round 2 block.
 >
 > **No existing test caught any of these** — the suite passed 19,387 green while
 > a typed refusal signed a treaty. Four of the sweep's first 21 mutations came
