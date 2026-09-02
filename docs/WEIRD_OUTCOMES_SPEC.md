@@ -2438,6 +2438,64 @@ prior series).
 > and M7 never calls `end_turn` — so the AI diplomatic phase, and with it
 > `attempt_vassal_courting`, is unreachable from all seven.
 
+#### Slice 9 addendum — WO-41 "The Question Survives the Save" — ✅ LANDED September 1, 2026
+
+> **The row's one unowned residue.** WO-41 (P2, filed August 22 by
+> slice 18's verification memo) was assigned to slice 9 and slice 9
+> landed without it — no mention in its landing record, no test, and
+> the mechanism intact: `world.pending_redemption` written only at the
+> API boundary in `main.py` while both autosaves run inside the
+> executor. The "what's next" census after slice 14 found it by
+> reading the code (`grep pending_redemption backend/commands/executor.py
+> backend/save_manager.py` → nothing), not the ledger. **Lesson for the
+> DoD idiom:** a row's done-when list keyed on its slice list cannot
+> see a row that was re-homed INTO a slice after the list was written —
+> WO-41's owner line lived only in `BUG_FIXES.md` and STATUS.
+>
+> **Built exactly as the memo's "seam fix" (§ Fix shape), with its
+> hazards answered in code:** the checker writes the world field
+> beside the latch it already set (`REDEMPTION_LATCH_AT_GENERATION_ACTIVE`
+> flip lever; arm-off reproduces the prior behaviour and is pinned in
+> three places); **hazard 2 (which of two marshals wins a tick)** is
+> decided at the SAME seam — a second marshal crossing behind a LIVE
+> question is not latched and gets no event, so he asks at his next
+> check once the first is answered (before: response key = first,
+> world field = last, loser latched forever); a stored question is
+> LIVE only while the named marshal stands and carries the latch, via
+> ONE predicate `standing_redemption` (stale → cleared on read, GR4)
+> read by the generation seam, `GET /pending_redemption` and `/load`;
+> ONE hoist `hoist_tactical_redemption` shared by `_execute_end_turn`
+> and the auto-advance mirror (§6b — it hoisted `battle_report` only);
+> `/load` attaches `redemption_event` (the WO-30/WO-35 idiom) and the
+> client's `_apply_world_swap_response` STASHES it above the two
+> early-returning arms and raises it last (**hazard 1**: never the
+> route — its success arm re-renders the whole load payload); the
+> debug trigger latches the marshal it names. **Hazard 3** landed as
+> two conscious pin flips: the PT-B1 shape test stored a question for
+> "Bernadotte" without latching anyone (stale by the new contract — it
+> now names a real, latched marshal), and the slice-15 load census
+> moves `redemption_event` from RECOVERED_BY_POLL to LOAD_REATTACHED
+> (the WO-36 once-per-turn poll survives as the belt). **Hazard 4
+> measured, not assumed:** `BASELINE_SERIES` + M1–M7 byte-identical
+> without re-record — structurally so (nothing but the two endpoints
+> ever read the field), and worth exactly that much as evidence.
+>
+> **Corrections to the filed row:** its line numbers are stale
+> (`meta_executor.py:398-419` → `:398-428`, `executor.py:2076-2089` →
+> `:2543-2553`); the memo's "four API-boundary writes" are FIVE
+> (`main.py` ×4 + the debug trigger); and the driver's `"redemption":
+> "dismiss"` policy key is READ BY NOTHING — `tools/playtest_driver.py`
+> cannot answer `awaiting_redemption_choice`, so no unattended arm
+> has ever exercised this state (routed to the final audit as a
+> harness row). `tests/test_wo41_redemption_survives_the_save.py`
+> (24) — every test names its mutation; `tools/_sweep_wo41.json`
+> **18/18 killed, 0 inert** (three client pins strip comment lines
+> first, because the fix's own explanatory comment quoted the route
+> name a pin forbids — the standing lesson, hit again and caught
+> before it shipped); parse harness EXIT=0 (47 scripts / 7 scenes),
+> boot smoke 0 SCRIPT ERROR. **BUG_FIXES WO-41 → FIXED. Row WO has no
+> open residue.**
+
 ### Slice 10 — WO-13 the enemy-direction gate (est 1)
 
 **Scope.** A province name must stop silently resolving to an enemy marshal.

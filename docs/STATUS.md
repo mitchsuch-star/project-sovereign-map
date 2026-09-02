@@ -4,6 +4,36 @@
 
 ## ▶ NEXT UP
 
+> # ✅ WO-41 "THE QUESTION SURVIVES THE SAVE" — the row's one unowned residue, FIXED September 1, 2026.
+> **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9 addendum,
+> authoritative; `BUG_FIXES.md` WO-41 → FIXED.** Found by the "what's
+> next" census after slice 14: WO-41 had been assigned to slice 9, slice 9
+> landed without it, and the row's DoD list (keyed on its slice list)
+> could not see a row re-homed INTO a slice after the list was written.
+> The mechanism was intact — `world.pending_redemption` written only at
+> the API boundary, AFTER both autosaves — so the end-turn autosave (the
+> menu's Continue arm) recorded the latch without the question and the
+> marshal never asked again; the auto-advance path never hoisted the
+> event at all; two marshals in one tick lost the loser forever.
+> **Built as the memo's seam fix:** the checker writes the world field
+> beside the latch (flip lever `REDEMPTION_LATCH_AT_GENERATION_ACTIVE`,
+> arm-off pinned three ways); ONE liveness predicate
+> `disobedience.standing_redemption` read by the generation seam, GET and
+> `/load` (stale = the man recovered/fell/was taken → cleared on read);
+> a second marshal behind a LIVE question is NOT latched and asks at his
+> next check; ONE hoist `hoist_tactical_redemption` for BOTH turn-advance
+> paths; `/load` attaches the key and the client's world-swap tail
+> stashes-and-raises it (never the route). Two pins flipped consciously
+> (PT-B1's shape test names a latched marshal; the slice-15 census moves
+> `redemption_event` to LOAD_REATTACHED). Found in passing: the driver's
+> `"redemption": "dismiss"` policy is read by nothing — no unattended
+> arm can answer this state (→ the final audit, harness row).
+> `tests/test_wo41_redemption_survives_the_save.py` (24); **18/18
+> mutations killed, 0 inert**; `BASELINE_SERIES` + M1–M7 byte-identical
+> without re-record; parse harness EXIT=0; boot smoke 0 SCRIPT ERROR.
+> **Row WO has no open residue. NEXT = the final whole-game audit, then
+> position 10 (the shippable build).**
+
 > # ✅ ROW WO IS BUILD-COMPLETE — SLICE 14 "THE CLOCK AND THE FLAG" (WO-18/WO-19) LANDED September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 14, authoritative.**
 > `tests/test_wo_slice14_the_clock_and_the_flag.py` (15); `tools/_sweep_wo14.json`

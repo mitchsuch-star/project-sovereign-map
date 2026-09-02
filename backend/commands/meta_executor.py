@@ -396,13 +396,14 @@ class MetaExecutor:
         # Hoist battle_report from tactical events (e.g. auto-charge) to result level
         # so Godot's _display_berthier_report() can find it at response.battle_report
         tactical_battle_report = None
-        tactical_redemption = None
         for te in tactical_events:
             if te.get("battle_report") and not tactical_battle_report:
                 # Use first battle report found (auto-charge is typically the only one)
                 tactical_battle_report = te["battle_report"]
-            if te.get("redemption_event") and not tactical_redemption:
-                tactical_redemption = te["redemption_event"]
+        # WO-41: ONE hoist rule shared with the auto-advance path
+        # (`executor.py`), which used to hoist battle_report only.
+        from backend.commands.disobedience import hoist_tactical_redemption
+        tactical_redemption = hoist_tactical_redemption(tactical_events)
 
         # Build result with all data for frontend
         result = {

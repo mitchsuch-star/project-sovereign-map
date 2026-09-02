@@ -4627,6 +4627,16 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	# prints response.message itself.
 	# The dialog owns input from here — both of its exits emit choice_made,
 	# and _on_capture_choice_response re-enables input on every path.
+	#
+	# WO-41: a save can carry an unanswered redemption audience — the checker
+	# now writes the question beside the latch, so the end-turn autosave
+	# carries it and /load attaches it. Same stash-and-raise discipline as
+	# the command path (PT-B1), NEVER the route: _route_redemption_response's
+	# success arm calls _display_result, which would re-render the whole
+	# load payload. Stashed HERE, above the two arms that return early, so
+	# a capture or interrupt raised first leaves the stash standing for the
+	# next control-return tail; raised below, last, behind both.
+	_stash_redemption(response)
 	if _response_has_capture_choice_route(response):
 		var raised = response.duplicate()
 		raised.erase("message")
@@ -4651,6 +4661,9 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 		raised_interrupt.erase("message")
 		_route_interrupt_response(raised_interrupt)
 		return
+
+	if _show_pending_redemption():
+		return  # WO-41: the dialog owns input from here
 
 	set_input_enabled(true)
 	command_input.grab_focus()

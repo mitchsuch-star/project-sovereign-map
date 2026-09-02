@@ -3632,13 +3632,16 @@ def get_pending_redemption():
     - trust: Current trust level
     - options: Available choices
     """
-    if not hasattr(world, 'pending_redemption') or world.pending_redemption is None:
+    # WO-41: the ONE liveness predicate — a question whose marshal has
+    # recovered, fallen or been taken is stale and is cleared on read.
+    from backend.commands.disobedience import standing_redemption
+    redemption = standing_redemption(world)
+    if redemption is None:
         return {
             "has_pending": False,
             "message": "No pending redemption event"
         }
 
-    redemption = world.pending_redemption
     return {
         "has_pending": True,
         "marshal": redemption.get("marshal"),
@@ -4124,6 +4127,19 @@ async def load_endpoint(request: LoadRequest):
                 and getattr(_lm, "pending_interrupt", None)):
             response["pending_interrupt"] = _lm.pending_interrupt
             break
+    # WO-41: an unanswered redemption audience. `world.pending_redemption`
+    # round-trips the save and — now that the checker writes it beside the
+    # latch — the end-turn autosave finally carries it. Attached through the
+    # same liveness predicate GET /pending_redemption answers from (a stale
+    # question is cleared, not raised); the client's world-swap handler
+    # STASHES it and raises it on control return (PT-B1's discipline),
+    # never through the route, whose success arm re-renders the whole
+    # payload. Precedence: the capture and interrupt arms above return
+    # first in the client; the stash then raises at the next tail.
+    from backend.commands.disobedience import standing_redemption
+    _standing = standing_redemption(world)
+    if _standing:
+        response["redemption_event"] = _standing
     return response
 
 
@@ -5164,8 +5180,10 @@ def debug_trigger_redemption(marshal_name: str):
     old_trust = int(marshal.trust.value)
     marshal.trust.set(15)  # Set to critical level
 
-    # Create redemption event
+    # Create redemption event. WO-41: latch the marshal beside the question,
+    # exactly as the checker does — the liveness predicate reads both.
     redemption_event = world.disobedience_system._create_redemption_event(marshal)
+    marshal.redemption_pending = True
     world.pending_redemption = redemption_event
 
     print(f"[DEBUG] Triggered redemption for {marshal_name} (trust: {old_trust} -> 15)")

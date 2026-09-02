@@ -653,6 +653,57 @@ OBJECTION_TEMPLATES = {
 }
 
 
+# ── WO-41 (September 1, 2026): the redemption question survives the save ──
+# Flip lever for attribution runs (set False in a CHILD process to reproduce
+# the prior behaviour: world field written only at the API boundary, second
+# marshal latched behind a standing question, auto-advance never hoisting).
+REDEMPTION_LATCH_AT_GENERATION_ACTIVE = True
+
+
+def standing_redemption(world) -> Optional[Dict]:
+    """The redemption question the world is still waiting on, or ``None``.
+
+    ONE predicate for "a redemption is standing": read by the generation
+    seam (a second marshal must not latch behind a live question), by
+    ``GET /pending_redemption`` and by ``/load``'s re-attach. A stored
+    question is LIVE only while the marshal it names still stands AND still
+    carries the latch the checker set beside it. Otherwise it is stale —
+    trust recovered above 20 (``Marshal.modify_trust`` clears the latch), or
+    the man was destroyed or captured — and it is cleared on read (state
+    clearing AFTER reading, golden rule 4) so the next marshal to cross can
+    ask. The debug trigger latches the marshal for the same reason.
+    """
+    event = getattr(world, "pending_redemption", None)
+    if not isinstance(event, dict):
+        return None
+    getter = getattr(world, "get_marshal", None)
+    marshal = getter(event.get("marshal", "")) if callable(getter) else None
+    live = (marshal is not None
+            and getattr(marshal, "strength", 0) > 0
+            and not getattr(marshal, "captured_by", "")
+            and bool(getattr(marshal, "redemption_pending", False)))
+    if not live:
+        world.pending_redemption = None
+        return None
+    return event
+
+
+def hoist_tactical_redemption(tactical_events) -> Optional[Dict]:
+    """The redemption a turn tick produced, for the response's top level.
+
+    ONE rule for BOTH turn-advance paths — ``meta_executor._execute_end_turn``
+    and the executor's auto-advance mirror, which hoisted ``battle_report``
+    from the same list and never this (WO-41 §6b: a last-AP turn advance
+    that tripped a cavalry/fortify redemption dropped the audience with no
+    save involved). First wins, and since the generation seam latches only
+    the first marshal of a tick, the first IS the world's standing question.
+    """
+    for te in tactical_events or []:
+        if isinstance(te, dict) and te.get("redemption_event"):
+            return te["redemption_event"]
+    return None
+
+
 class DisobedienceSystem:
     """
     Main system for handling marshal objections.
@@ -1518,6 +1569,27 @@ class DisobedienceSystem:
 
         Centralizes the redemption gate used at multiple points in executor.py.
         Returns redemption event dict if threshold crossed, None otherwise.
+
+        WO-41 (September 1, 2026): the question is written WHERE THE LATCH
+        IS. This checker has always set ``marshal.redemption_pending`` at
+        generation, but ``world.pending_redemption`` — the field the save
+        carries, ``GET /pending_redemption`` answers from and ``/load``
+        re-attaches — was written only at the API boundary in ``main.py``,
+        AFTER both autosaves had already run inside the executor. So the
+        end-turn autosave (the main menu's own Continue arm) recorded the
+        latch without the question: ``has_pending: False`` forever, and the
+        marshal never asked again. Now every event this checker returns is
+        also the world's standing question at that moment, so the two
+        cannot drift; the four ``main.py`` writes become idempotent (same
+        dict) and the auto-advance hoist rides
+        :func:`hoist_tactical_redemption` like its end-turn sibling.
+
+        The two-marshals-one-tick winner is decided HERE too: a second
+        marshal crossing while a LIVE question stands is NOT latched and
+        gets no event — he asks again at his next check, once the first is
+        answered. Before, the response key carried the first and the world
+        field was overwritten with the last, and the loser's latch meant he
+        never asked again either.
         """
         if not (marshal and hasattr(marshal, 'trust')):
             return None
@@ -1536,8 +1608,18 @@ class DisobedienceSystem:
         if getattr(world, 'current_turn', 0) < cooldown:
             return None
 
+        # WO-41: one live question at a time. A stale one (the man recovered,
+        # fell or was taken) is cleared by the predicate so it never blocks.
+        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None
+                and standing_redemption(world) is not None):
+            return None
+
         marshal.redemption_pending = True
-        return self._create_redemption_event(marshal, world)
+        event = self._create_redemption_event(marshal, world)
+        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None
+                and hasattr(world, "pending_redemption")):
+            world.pending_redemption = event
+        return event
 
     def handle_redemption_response(
         self,

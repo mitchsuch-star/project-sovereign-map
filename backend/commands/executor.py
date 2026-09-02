@@ -2551,6 +2551,15 @@ class CommandExecutor:
                     if te.get("battle_report"):
                         result["battle_report"] = te["battle_report"]
                         break
+                # WO-41 §6b: this path hoisted battle_report and never the
+                # redemption, unlike its end-turn sibling — a last-AP turn
+                # advance that tripped a cavalry/fortify redemption latched
+                # the marshal and dropped the audience with no save involved.
+                # Same shared rule; main.py stamps `state` at the boundary.
+                from backend.commands.disobedience import hoist_tactical_redemption
+                _auto_redemption = hoist_tactical_redemption(tactical_events)
+                if _auto_redemption:
+                    result["redemption_event"] = _auto_redemption
 
             # Add strategic reports — CRITICAL: without this, strategic popups
             # (hold battles, movement progress) never appear in Godot when the

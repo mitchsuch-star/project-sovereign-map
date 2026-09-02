@@ -767,6 +767,15 @@ class TestWO30TheLoadedSaveRaisesIt:
             # pair the command path uses. Order-free interrupts (last_stand,
             # muster_confirm) had no other road back.
             "pending_interrupt",
+            # WO-41 (September 1, 2026): `/load` attaches the standing
+            # redemption through the ONE liveness predicate
+            # `disobedience.standing_redemption`, now that the checker writes
+            # `world.pending_redemption` beside the latch (the end-turn
+            # autosave used to record the latch WITHOUT the question, and
+            # the man never asked again). The world-swap handler STASHES it
+            # and raises it on control return — PT-B1's discipline, never
+            # the route. The WO-36 once-per-turn poll stays as the belt.
+            "redemption_event",
         }
         TRANSIENT_BY_DESIGN = {
             # per-command results; nothing survives a save to re-raise
@@ -781,17 +790,11 @@ class TestWO30TheLoadedSaveRaisesIt:
             "strategic_reports": "an end-turn tail, not blocking state",
             "enemy_phase": "an end-turn tail, not blocking state",
         }
-        RECOVERED_BY_POLL = {
-            # WO-36 (slice 18): NOT a /load attach. `world.pending_redemption`
-            # survives the save and PT-B1's once-per-turn GET
-            # /pending_redemption poll fires at every control-return tail —
-            # the audience arrives at the end of the player's first command
-            # after loading. The defect was the client's stale
-            # `_redemption_recheck_turn` latch skipping that poll on a
-            # same-turn reload; the world-swap reset now clears it (the
-            # IGR-F `_envoy_digest_shown_turn` idiom).
-            "redemption_event",
-        }
+        # WO-36 (slice 18) had `redemption_event` here — recovered by the
+        # PT-B1 once-per-turn poll rather than attached at load. WO-41 moved
+        # it to LOAD_REATTACHED (the poll survives as the belt); the class is
+        # kept empty so a future poll-only key has a named home.
+        RECOVERED_BY_POLL = set()
         KNOWN_SILENT_AT_LOAD = {
             # WO-35's declared remainder (slice 18 corrected the rationale):
             # the objection dict survives the save, but the ORIGINAL comment

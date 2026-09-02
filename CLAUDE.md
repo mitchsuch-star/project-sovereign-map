@@ -44,6 +44,18 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ WO-41 "THE QUESTION SURVIVES THE SAVE" — the row's one unowned
+> residue, ✅ FIXED September 1, 2026** (landing record
+> `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9 addendum; BUG_FIXES WO-41 →
+> FIXED). The checker writes `world.pending_redemption` beside the latch
+> it sets (both autosaves now carry the question; the Continue arm used to
+> load the latch without it), ONE liveness predicate
+> `disobedience.standing_redemption` for the generation seam / GET /
+> `/load`, ONE hoist for both turn-advance paths, `/load` attaches the key
+> and the client stashes-and-raises it. 24 tests, 18/18 mutations, series
+> + M1–M7 byte-identical, harness EXIT=0, boot 0 SCRIPT ERROR. **Row WO
+> has no open residue. NEXT = the final whole-game audit → position 10.**
+>
 > **▶ ROW WO IS BUILD-COMPLETE.** All eighteen slices landed (order
 > 1→1b→2→3→13→7→15→16→18→5→4→6→8→9→10→17→11→12→14); §5's definition of
 > done is discharged. **Slice 14 "THE CLOCK AND THE FLAG" (WO-18/WO-19) —

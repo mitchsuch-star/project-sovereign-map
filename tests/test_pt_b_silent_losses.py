@@ -244,8 +244,16 @@ class TestTheRecoveryEndpointIsWired:
         from tests.conftest import WorldFactory
 
         world = WorldFactory.basic()
+        # WO-41 (Sept 1, 2026): the endpoint answers through the ONE liveness
+        # predicate `disobedience.standing_redemption`, so the question must
+        # name a marshal who STANDS and CARRIES the latch the checker sets
+        # beside it — a stored question with no latch is stale by contract
+        # (the man recovered, fell or was taken) and is cleared on read.
+        # The pin is still the shape join; it just names a real man now.
+        subject = world.get_player_marshals()[0]
+        subject.redemption_pending = True
         world.pending_redemption = {
-            "marshal": "Bernadotte", "trust": 2,
+            "marshal": subject.name, "trust": 2,
             "message": "requests an urgent audience",
             "options": [{"id": "grant_autonomy"}],
         }

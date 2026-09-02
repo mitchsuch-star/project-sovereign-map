@@ -1,0 +1,128 @@
+[
+ {
+  "id": "WO41-1 the checker no longer writes the world field",
+  "file": "backend/commands/disobedience.py",
+  "old": "        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and hasattr(world, \"pending_redemption\")):\n            world.pending_redemption = event\n        return event",
+  "new": "        return event",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-2 the lever is frozen ON (lever-off arms no longer reproduce the defect)",
+  "file": "backend/commands/disobedience.py",
+  "old": "        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and standing_redemption(world) is not None):\n            return None\n\n        marshal.redemption_pending = True\n        event = self._create_redemption_event(marshal, world)\n        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and hasattr(world, \"pending_redemption\")):",
+  "new": "        if (world is not None\n                and standing_redemption(world) is not None):\n            return None\n\n        marshal.redemption_pending = True\n        event = self._create_redemption_event(marshal, world)\n        if (world is not None\n                and hasattr(world, \"pending_redemption\")):",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-3 a second marshal latches behind a live question",
+  "file": "backend/commands/disobedience.py",
+  "old": "        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and standing_redemption(world) is not None):\n            return None\n",
+  "new": "",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-4 liveness ignores the latch (a recovered marshal's question stays)",
+  "file": "backend/commands/disobedience.py",
+  "old": "            and bool(getattr(marshal, \"redemption_pending\", False)))",
+  "new": "            and True)",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-5 liveness ignores strength (a fallen marshal's question stays)",
+  "file": "backend/commands/disobedience.py",
+  "old": "            and getattr(marshal, \"strength\", 0) > 0\n            and not getattr(marshal, \"captured_by\", \"\")",
+  "new": "            and not getattr(marshal, \"captured_by\", \"\")",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-6 liveness ignores capture",
+  "file": "backend/commands/disobedience.py",
+  "old": "            and getattr(marshal, \"strength\", 0) > 0\n            and not getattr(marshal, \"captured_by\", \"\")",
+  "new": "            and getattr(marshal, \"strength\", 0) > 0",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-7 a stale question is not cleared (it blocks the next marshal)",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if not live:\n        world.pending_redemption = None\n        return None",
+  "new": "    if not live:\n        return None",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-8 the shared hoist returns nothing",
+  "file": "backend/commands/disobedience.py",
+  "old": "    for te in tactical_events or []:\n        if isinstance(te, dict) and te.get(\"redemption_event\"):\n            return te[\"redemption_event\"]\n    return None",
+  "new": "    return None",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py tests/test_redemption_v2b.py"
+ },
+ {
+  "id": "WO41-9 the shared hoist keeps the LAST event",
+  "file": "backend/commands/disobedience.py",
+  "old": "    for te in tactical_events or []:\n        if isinstance(te, dict) and te.get(\"redemption_event\"):\n            return te[\"redemption_event\"]\n    return None",
+  "new": "    found = None\n    for te in tactical_events or []:\n        if isinstance(te, dict) and te.get(\"redemption_event\"):\n            found = te[\"redemption_event\"]\n    return found",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-10 the auto-advance path drops the audience again",
+  "file": "backend/commands/executor.py",
+  "old": "                from backend.commands.disobedience import hoist_tactical_redemption\n                _auto_redemption = hoist_tactical_redemption(tactical_events)\n                if _auto_redemption:\n                    result[\"redemption_event\"] = _auto_redemption\n",
+  "new": "",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-11 the end-turn hoist no longer reads the shared rule",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        tactical_redemption = hoist_tactical_redemption(tactical_events)",
+  "new": "        tactical_redemption = None",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py tests/test_redemption_v2b.py"
+ },
+ {
+  "id": "WO41-12 /load no longer attaches the standing question",
+  "file": "backend/main.py",
+  "old": "    _standing = standing_redemption(world)\n    if _standing:\n        response[\"redemption_event\"] = _standing\n    return response",
+  "new": "    return response",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py tests/test_wo_slice15_capture_question_holds.py"
+ },
+ {
+  "id": "WO41-13 /load attaches the raw field (a stale question is raised)",
+  "file": "backend/main.py",
+  "old": "    _standing = standing_redemption(world)\n    if _standing:\n        response[\"redemption_event\"] = _standing\n    return response",
+  "new": "    _standing = getattr(world, \"pending_redemption\", None)\n    if _standing:\n        response[\"redemption_event\"] = _standing\n    return response",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-14 GET reads the raw field again",
+  "file": "backend/main.py",
+  "old": "    redemption = standing_redemption(world)\n    if redemption is None:",
+  "new": "    redemption = getattr(world, \"pending_redemption\", None)\n    if redemption is None:",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-15 the debug trigger stops latching the marshal",
+  "file": "backend/main.py",
+  "old": "    marshal.redemption_pending = True\n    world.pending_redemption = redemption_event",
+  "new": "    world.pending_redemption = redemption_event",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-16 the world-swap tail no longer stashes (client)",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t_stash_redemption(response)\n\tif _response_has_capture_choice_route(response):",
+  "new": "\tif _response_has_capture_choice_route(response):",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-17 the world-swap tail no longer raises (client)",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif _show_pending_redemption():\n\t\treturn  # WO-41: the dialog owns input from here\n\n\tset_input_enabled(true)\n\tcommand_input.grab_focus()\n\n\nfunc _on_load_result(response):",
+  "new": "\tset_input_enabled(true)\n\tcommand_input.grab_focus()\n\n\nfunc _on_load_result(response):",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ },
+ {
+  "id": "WO41-18 the stash moves below the early-returning arms (client)",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t_stash_redemption(response)\n\tif _response_has_capture_choice_route(response):\n\t\tvar raised = response.duplicate()\n\t\traised.erase(\"message\")\n\t\t_route_capture_choice_response(raised)\n\t\treturn\n",
+  "new": "\tif _response_has_capture_choice_route(response):\n\t\tvar raised = response.duplicate()\n\t\traised.erase(\"message\")\n\t\t_route_capture_choice_response(raised)\n\t\treturn\n\t_stash_redemption(response)\n",
+  "tests": "tests/test_wo41_redemption_survives_the_save.py"
+ }
+]
