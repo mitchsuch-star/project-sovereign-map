@@ -4,7 +4,61 @@
 
 ## ▶ NEXT UP
 
-> # ✅ THE FINAL WHOLE-GAME AUDIT — HELD September 1, 2026. **128 findings filed; NEXT = the memo's §6 build order, then position 10 (the shippable build).**
+> # ✅ THE AUDIT VERIFICATION PASS — HELD September 2, 2026. **All 128 filed rows re-checked adversarially. The audit is safe to build from; it is NOT safe to build from verbatim.**
+> **Report of record = `docs/audits/FINAL_AUDIT_VERIFICATION_2026_09_02.md`
+> (authoritative where it amends the audit).** Every filed row now carries a
+> Sept-2 verdict in the machine record under `verification_2026_09_02`, and the
+> memo, both routing tables, `STATUS.md` and `CLAUDE.md` are corrected in place.
+>
+> **The numbers: 43 VERIFIED · 65 NARROWED · 19 DUPLICATE · 1 REFUTED.** A real
+> defect survives in **108 of 128 rows (84%)**, and **all nine P1s are real**
+> (3 VERIFIED, 6 NARROWED, none refuted, none duplicate). **UNVERIFIED was not a
+> quality signal** — of the 46 rows nobody had tried to kill, **zero were
+> refuted**. Both of the audit's only false positives were AUTHOR-VERIFIED rows,
+> not fleet rows.
+>
+> **⚠ The standing rule for the build: reproduce before fixing, and read
+> `_corrected` and the Sept-2 verdict BEFORE the title.** Measured across the
+> 128: **~80% carry a stale line number** (navigate by symbol, never by line),
+> ~50% over-state a magnitude, **~44% carry a wrong `already_filed`**, ~25% have
+> a title that over-reaches its own body. **And in six rows — FA-54, FA-D13,
+> FA-D18, FA-D24, FA-D25, FA-100 — `fix_shape` still prescribes the fix the
+> row's own corrected summary rejects.**
+>
+> **FA-N1, the substantive new finding:** memo §7's claim that the ES-7 erosion
+> tick is *the only* trust-writing seam that never consults
+> `check_redemption_threshold` is **FALSE**. An AST census over both trust-write
+> APIs finds **four** unchecked families — the erosion tick, `_execute_attack`
+> (whose sibling `_execute_bombardment` checks), the typed strategic-objection
+> route (whose endpoint sibling checks), and `jealousy.py`'s eight
+> confrontation/rivalry docks in a module with zero checker calls. Two are
+> unmaintained siblings of copies the memo cites as covered — the audit's own
+> through-line, inside the row it recommends building first. **FA-26's own row
+> is clean; the over-claim was editorial** and had propagated to three files.
+> The recommendation gets BETTER: three of France's seven marshals sit at trust
+> 0 by turn 41, not the one the memo named. Build it as a shared helper across
+> all four seams.
+>
+> **▶ NEXT = the memo's §6 build order, re-ordered.** Report §7 records four
+> problems with it, headed by **slice 8 (the harness) being scheduled last while
+> being the instrument every other slice's reproduction depends on**. Start with
+> slice 8's reproduction-critical half (FA-10, FA-37, FA-40, FA-74, FA-87,
+> FA-92), then slice 1 (FA-7 — `Ney, delay the attack` resolves a real battle,
+> hand-reproduced again on Sept 2: 1,099 casualties, 1 AP, no confirmation; and
+> **write the corpus rows, because 0 of 345 entries contain any deferral
+> phrasing**), then slice 2 with FA-1 re-scoped (the harm is not "never asked" —
+> the rail alert IS delivered and answering works — it is that the enemy phase
+> does not pause, so a measured 92% of the corps dies in one phase), then FA-26.
+> Then position 10, the shippable build.
+>
+> **⚠ Still no pillar re-score.** This pass did not attempt one; the Aug-16
+> priors stand. It should run AFTER slice 8, so it is measured on a harness that
+> works. **And this pass hit a usage limit exactly as the audit did**, losing
+> 155 of 280 agents; the work was relaunched and every row has a verdict, but
+> only 21 rows were cross-checked, so a single-verdict row is better evidenced
+> than it was and still not settled.
+
+> # ✅ THE FINAL WHOLE-GAME AUDIT — HELD September 1, 2026. **128 findings filed. ⚠ Read the September 2 verification pass ABOVE before building from any row.**
 > **Memo of record = `docs/audits/FINAL_AUDIT_2026_09_01.md` (authoritative);
 > untruncated machine record = `docs/audits/final_audit_2026_09_01_findings.json`;
 > routing = `BUG_FIXES.md` §Final Whole-Game Audit (FA-1..FA-102) +

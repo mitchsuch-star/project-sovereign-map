@@ -26,31 +26,88 @@
 
 **The audit is safe to build from. It is not safe to build from verbatim.**
 
-Across every row examined, **not one finding was refuted.** The audit's finders
-were accurate about mechanism: where they said the code does X, it does X. Both
-headline parsing defects reproduce by hand on the shipped mock-default build in
-under a minute, and every number in the memo's evidence table reconciles exactly
-against the archived digests.
+Of the 128 filed rows, **exactly one was refuted** — and a second refutation, on
+FA-67, was itself over-broad and is adjudicated back to NARROWED here. A real
+defect survives in **108 of 128 rows (84%)**. **All nine P1s are real.** The
+audit's finders were accurate about *mechanism* to an unusual degree: where a row
+says the code does X, it does X. Both headline parsing defects reproduce by hand
+on the shipped mock-default build in under a minute, the §0 evidence table
+reconciles exactly against the archived digests, and the machine record agrees
+with the memo on all 128 rows with zero severity, kind or verdict mismatches.
 
-What the pass did find, in order of consequence:
+What the pass found, in order of consequence:
 
-1. **~40% of rows need correction before a builder touches them** — the right
-   defect, but a stale line number, an over-stated magnitude, a wrong seam, or a
-   universality claim the body contradicts. This is the dominant failure mode
-   and it is why "reproduce before fixing" must stay a hard rule, not advice.
-2. **`already_filed` is the audit's least reliable field.** It was written
-   per-row by finders who could not see each other's work and was never
-   re-checked after dedupe, so rows assert "NEW" while duplicating a sibling
-   *in the same audit*. Several confirmed duplicates are FA-row-to-FA-row.
-3. **The memo's own §7 headline claim is false** in a way that makes its
-   recommended first build wider than "one call at one seam" (FA-N1 below).
-4. **UNVERIFIED did not mean lower quality.** Rows nobody had tried to kill
-   verified at about the same rate as rows that had already survived a refuter.
-   The status was a budget artefact, not a signal — exactly as the memo said.
+1. **Half the rows need correction before a builder touches them** — 65 of 128
+   came back NARROWED: the right defect, but a stale line number, an over-stated
+   magnitude, a wrong seam, or a universality claim the body itself contradicts.
+   This is the dominant failure mode and it is why *reproduce before fixing* has
+   to be a hard rule, not advice.
+2. **In six rows the `fix_shape` field prescribes the fix the row's own corrected
+   summary rejects** (FA-54, FA-D13, FA-D18, FA-D24, FA-D25, FA-100). The memo
+   warns about this for the *title*; the danger is in the field a builder
+   actually executes.
+3. **`already_filed` is the audit's least reliable field** (~44% wrong). It was
+   written per-row by finders who could not see each other's work and was never
+   reconciled after dedupe, so rows assert "NEW" while duplicating a sibling *in
+   the same audit* — five such pairs, both members born in the same commit.
+4. **The memo's own §7 headline claim is false**, in a way that makes its
+   recommended first build wider than "one call at one seam" (FA-N1, §5).
+5. **UNVERIFIED did not mean lower quality.** Of the 46 rows nobody had tried to
+   kill, **zero were refuted.** The status was a budget artefact, not a signal —
+   exactly as the memo said it was.
+
+Two boundaries worth stating plainly, because both cut against a tidier story:
+the memo's **§0 evidence table is exact** but its **§1/§2 narrative is materially
+looser** (four claims corrected here, including one that reports an allied
+capital's loss as a French conquest); and **this pass hit the same usage limit
+that crippled the audit**, losing 155 of 280 agents. Every row has a verdict, but
+only 21 were cross-checked (§10).
 
 ## 1. What the verification found, row by row
 
-<!--VERDICT-SUMMARY-->
+**Every one of the 128 filed rows now carries a verdict.** 21 were cross-checked by a second, independent agent.
+
+| | VERIFIED | NARROWED | DUPLICATE | REFUTED | n |
+|---|---|---|---|---|---|
+| **all filed rows** | 43 | 65 | 19 | 1 | **128** |
+
+*A defect survives in **108 of 128 rows (84%)** — VERIFIED or NARROWED.*
+
+**by original severity**
+
+| | VERIFIED | NARROWED | DUPLICATE | REFUTED | n |
+|---|---|---|---|---|---|
+| P1 | 3 | 6 | 0 | 0 | 9 |
+| P2 | 14 | 22 | 5 | 0 | 41 |
+| P3 | 19 | 32 | 12 | 0 | 63 |
+| P4 | 7 | 5 | 2 | 1 | 15 |
+
+**by kind**
+
+| | VERIFIED | NARROWED | DUPLICATE | REFUTED | n |
+|---|---|---|---|---|---|
+| defect | 28 | 31 | 10 | 1 | 70 |
+| tie_in | 9 | 13 | 4 | 0 | 26 |
+| harness | 4 | 16 | 5 | 0 | 25 |
+| missing | 2 | 5 | 0 | 0 | 7 |
+
+**by the status the audit published**
+
+| | VERIFIED | NARROWED | DUPLICATE | REFUTED | n |
+|---|---|---|---|---|---|
+| UNVERIFIED | 12 | 27 | 7 | 0 | 46 |
+| AUTHOR_VERIFIED | 14 | 8 | 2 | 1 | 25 |
+| HARNESS (author-checked) | 4 | 14 | 5 | 0 | 23 |
+| PLAUSIBLE | 9 | 8 | 2 | 0 | 19 |
+| NARROWED | 4 | 8 | 3 | 0 | 15 |
+
+**The three readings that matter:**
+
+1. **Every one of the nine P1s is a real defect** — 3 VERIFIED, 6 NARROWED, none refuted and none a duplicate. The audit's top tier is trustworthy.
+2. **UNVERIFIED was not a quality signal.** Of the 46 rows nobody had tried to kill, **zero were refuted** (12 VERIFIED, 27 NARROWED, 7 DUPLICATE). "Nobody tested it" turned out to say nothing about whether it would survive — exactly as the memo warned.
+3. **Both refutations landed on AUTHOR-VERIFIED rows**, not on the fleet's. The session author's own hand-checks produced the audit's only two false positives — and one of those (FA-67) this pass re-adjudicated to NARROWED, because the refutation answered only half the row.
+
+Harness rows fared worst as filed (4 of 25 VERIFIED), which is consistent with §3(a): they are claims about the instrument and its backlog rather than about game code.
 
 ### The one-line reading
 
@@ -343,5 +400,133 @@ seams rather than one.
 Read this with §1. `prior status` is what the audit published; **verdict** is this pass's.
 `x-checked` marks a row a second, independent agent attacked.
 
-<!--TABLE-->
-
+| row | sev | kind | prior status | **verdict** | x-checked | what it got wrong (short) |
+|---|---|---|---|---|---|---|
+| **FA-1** | P1 | defect | UNVERIFIED | **NARROWED** | yes | 1. "never asked" is FALSE, and it is the row's headline. A CRITICAL `marshal_last_stand` notification heads the same e… |
+| **FA-2** | P1 | defect | UNVERIFIED | **NARROWED** | yes | 1. STALE LINE NUMBER: the rebellion queue is at vassal.py:1009 (call spanning 1009-1010), not the cited ":1005-1007". … |
+| **FA-3** | P1 | defect | UNVERIFIED | **NARROWED** | yes | 1. UNIVERSALITY IS FALSE. "no offering court reaches the 50 threshold" and "winning or losing" are both wrong. At Fran… |
+| **FA-4** | P1 | defect | UNVERIFIED | **VERIFIED** | yes | Materially, nothing. Four small things: 1. `already_filed: "none"` is right about pre-existing rows, but FA-4 now exis… |
+| **FA-5** | P1 | defect | AUTHOR_VERIFIED | **NARROWED** | yes | Three things, none fatal. (1) Severity: P1 is one level high — see severity_verdict. (2) "`_fill_popup_keys_without_dr… |
+| **FA-7** | P1 | defect | AUTHOR_VERIFIED | **VERIFIED** | yes | Five corrections, none of which touches the finding: 1. **Confidence is 0.9, not 0.95.** The `player_consequence` clos… |
+| **FA-8** | P1 | defect | UNVERIFIED | **VERIFIED** | yes | Four corrections. None touches the seam, the mechanism, the fix shape, or the severity — they are all in the consequen… |
+| **FA-9** | P1 | defect | UNVERIFIED | **NARROWED** | yes | 1. HEADLINE MAGNITUDE — the load-bearing error. "loses six French homeland provinces by turn 10 to a **1,218-man retre… |
+| **FA-10** | P1 | harness | HARNESS-CHK | **NARROWED** | yes | 1. `already_filed` is wrong: "the over-correction is not filed anywhere" — it is FA-74 (P3, BUG_FIXES.md:218, same sea… |
+| **FA-6** | P2 | defect | AUTHOR_VERIFIED | **NARROWED** |  | CALIBRATION OF THE EARLIER VERIFICATION: half sound. The Sept 2 amendment did the hard part right — it killed the fals… |
+| **FA-11** | P2 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-12** | P2 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | Two things, both in the row's favour on the substance. (1) UNDERSTATED REACHABILITY — the material one. The row's stat… |
+| **FA-13** | P2 | defect | UNVERIFIED | **VERIFIED** | yes | — |
+| **FA-14** | P2 | defect | UNVERIFIED | **VERIFIED** | yes | 1. **`already_filed` is false.** "This seam is unfiled" — FA-19 files the identical seam at the identical line with an… |
+| **FA-15** | P2 | defect | UNVERIFIED | **NARROWED** | yes | 1. **"NEW seam and NEW repro" is false.** Two OPEN rows in the same audit already carry ~two-thirds of it: FA-14 (BUG_… |
+| **FA-16** | P2 | defect | UNVERIFIED | **NARROWED** |  | 1. `fix_shape` names the wrong seam. "ONE seam: `strategic.py:874`" would be a no-op — `_execute_strategic_turn` is ne… |
+| **FA-17** | P2 | defect | UNVERIFIED | **NARROWED** |  | Five things, one of which invalidates the headline. 1. MECHANISM (invalidates the title). "A persistent settlement off… |
+| **FA-18** | P2 | defect | UNVERIFIED | **DUPLICATE** |  | 1. **`already_filed` is wrong.** "NEW" is false — FA-28 (`docs/BUG_FIXES.md:172`, P2, OPEN) is the same defect with th… |
+| **FA-19** | P2 | defect | UNVERIFIED | **DUPLICATE** | yes | 1. `already_filed: "none found"` is wrong. FA-14 (BUG_FIXES.md:158) and FA-15 (:159) are OPEN P2 rows in the same tabl… |
+| **FA-20** | P2 | defect | UNVERIFIED | **NARROWED** | yes | Two corrections, neither large enough to narrow the verdict — the authoritative `_corrected`/`summary` text is accurat… |
+| **FA-21** | P2 | defect | UNVERIFIED | **NARROWED** | yes | Five corrections; none weakens the finding, and the first two make it larger. 1. **The headline number is wrong for th… |
+| **FA-22** | P2 | defect | UNVERIFIED | **VERIFIED** |  | Three corrections, none touching the seam, the repro or the severity: 1. **"a battle_report (Mack strength 0 afterward… |
+| **FA-23** | P2 | defect | UNVERIFIED | **VERIFIED** |  | Three inaccuracies, none of which weakens the finding; two of them make it look milder than it is. 1. **The repro's sc… |
+| **FA-24** | P2 | defect | AUTHOR_VERIFIED | **DUPLICATE** |  | The earlier AUTHOR_VERIFIED pass was **sound on mechanism and player consequence and unsound on novelty**. I set out t… |
+| **FA-25** | P2 | defect | UNVERIFIED | **NARROWED** |  | 1. **`player_consequence` is false.** "no headline, no sub-beat, no turn-event line and no Gazette row; the player… be… |
+| **FA-26** | P2 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-27** | P2 | defect | UNVERIFIED | **VERIFIED** |  | — |
+| **FA-28** | P2 | defect | UNVERIFIED | **DUPLICATE** |  | 1. `already_filed` is false — FA-18 (OPEN, BUG_FIXES.md:162 / memo §3b:544) is the same defect with the same evidence;… |
+| **FA-29** | P2 | defect | UNVERIFIED | **NARROWED** | yes | 1. **The already_filed claim missed the row's own twin.** "NEW: the exact shipped strings, the README contradiction, a… |
+| **FA-30** | P2 | defect | UNVERIFIED | **NARROWED** |  | 1. THE FREQUENCY EVIDENCE IS FALSE. All four cited digest lines are non-instances. audit-flagship-mock:8 is turn 1's o… |
+| **FA-31** | P2 | defect | UNVERIFIED | **NARROWED** |  | 1. THE HEADLINE IS INVERTED. "By the time the camp is staged, a WON roll leaves London-Normandy SHUT" — staging the ca… |
+| **FA-32** | P2 | defect | UNVERIFIED | **NARROWED** |  | 1. **The title is false.** "a captured marshal vanishes from every daily surface" — he does not. `ledger._build_forces… |
+| **FA-33** | P2 | defect | UNVERIFIED | **NARROWED** |  | Three things, one of them material to anyone fixing it. 1. MATERIAL — the scope claim in the title and in `_corrected`… |
+| **FA-34** | P2 | defect | PLAUSIBLE | **NARROWED** |  | Three things, plus a calibration note on the earlier verification. 1. SCOPE UNDERSTATED. The row frames this as the af… |
+| **FA-35** | P2 | defect | UNVERIFIED | **NARROWED** |  | 1. WRONG SEAM (the load-bearing error). The title and the first clause blame P4 (`enemy_ai.py:2739`). P4 is structural… |
+| **FA-36** | P2 | harness | HARNESS-CHK | **VERIFIED** |  | CALIBRATION — the author's self-check was sound on the load-bearing parts (mechanism, seam, fix shape, the digest-357 … |
+| **FA-37** | P2 | harness | HARNESS-CHK | **VERIFIED** |  | **Calibration on the prior HARNESS_AUTHOR_CHECK: sound.** Unusually so for a self-check — all three cited line numbers… |
+| **FA-38** | P2 | missing | UNVERIFIED | **NARROWED** |  | 1. **Title over-counts.** "three vassals lost in one morning" — the deterministic re-run of the archived board shows t… |
+| **FA-39** | P2 | harness | HARNESS-CHK | **NARROWED** |  | Six things, two of them load-bearing. (1) TITLE over-reaches: "no digest can tell" is false at the run level — every d… |
+| **FA-40** | P2 | harness | HARNESS-CHK | **VERIFIED** |  | — |
+| **FA-41** | P2 | harness | HARNESS-CHK | **DUPLICATE** |  | Not the mechanism — that is exactly right and reproduces on a hash-pinned run byte-identical to the archived digest. W… |
+| **FA-42** | P2 | missing | UNVERIFIED | **NARROWED** |  | Five things, none fatal to the finding: 1. "captures Kienmayer on T2" is stated as certain; measured 2 of 6 trust runs… |
+| **FA-43** | P2 | missing | UNVERIFIED | **NARROWED** |  | Three things, none fatal to the finding: 1. THE LEGAL FRAMING, which is the title's load-bearing half. "The zip ships … |
+| **FA-D1** | P2 | tie_in | UNVERIFIED | **NARROWED** | yes | 1. "fires on every fresh conquest … every conquest opens 3-6 turns of +75 rate" — overstates. The scan `break`s at wor… |
+| **FA-D2** | P2 | tie_in | UNVERIFIED | **NARROWED** | yes | 1. THE SEAM IS WRONG. `war_status.py:56` and `:157` do not "resolve through the coalition leader". `opponent` at :56 c… |
+| **FA-D3** | P2 | tie_in | AUTHOR_VERIFIED | **NARROWED** |  | Three things, two of which change the fix. 1. "the acceptance formula already prices each one" — FALSE for the sweeten… |
+| **FA-D4** | P2 | tie_in | UNVERIFIED | **VERIFIED** | yes | — |
+| **FA-D5** | P2 | tie_in | UNVERIFIED | **VERIFIED** | yes | Four corrections, none touching the finding itself: 1. **The inline `repro` does not reproduce.** `m.trust.set(15)` + … |
+| **FA-D6** | P2 | tie_in | AUTHOR_VERIFIED | **VERIFIED** |  | Four things, all secondary; the headline, the seam, the repro and the severity are all sound, and unusually for this a… |
+| **FA-D7** | P2 | tie_in | UNVERIFIED | **NARROWED** | yes | 1. The worked example is unreproducible on the court it names. "with Britain's settlement offer covering Austria curre… |
+| **FA-44** | P3 | defect | PLAUSIBLE | **NARROWED** |  | FOUR things, in descending importance. 1. **`player_consequence` overcounts by ~2x and borrows another row's defect.**… |
+| **FA-45** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-46** | P3 | defect | PLAUSIBLE | **VERIFIED** |  | Small things, and one calibration finding against the single refuter. 1. The refuter's rewrite made the row LESS accur… |
+| **FA-47** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-48** | P3 | defect | AUTHOR_VERIFIED | **DUPLICATE** |  | Five things. (1) DUPLICATE, undeclared: FA-24 [P2, OPEN] in the same audit is the same finding on the same evidence wi… |
+| **FA-49** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | CALIBRATION: the earlier AUTHOR_VERIFIED hand-check was SOUND. Every load-bearing claim survived an adversarial re-che… |
+| **FA-50** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | CALIBRATION: the author's hand-check was SOUND. All three probes they reported reproduce essentially verbatim, includi… |
+| **FA-51** | P3 | defect | PLAUSIBLE | **VERIFIED** |  | Three things, one of them in the row's favour. 1. FALSE CLAUSE (also asserted by the refuter, so it survived one pass … |
+| **FA-52** | P3 | defect | AUTHOR_VERIFIED | **NARROWED** |  | Three things, one material. 1. **MATERIAL — `already_filed: none.` is false.** FA-49 (BUG_FIXES.md:193, OPEN, same tab… |
+| **FA-53** | P3 | defect | UNVERIFIED | **NARROWED** |  | Five things, in descending order of consequence. 1. **`already_filed` is false on the captor half.** It is NPC-15, OPE… |
+| **FA-54** | P3 | defect | NARROWED | **VERIFIED** |  | **Calibration on the prior verification: the single refuter was SOUND, and its correction was load-bearing.** The orig… |
+| **FA-55** | P3 | defect | UNVERIFIED | **DUPLICATE** |  | Four things, one fatal to the row's existence. 1. FATAL — the "NEW here" differentiator is false. The AI P-1 rung as t… |
+| **FA-56** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-57** | P3 | defect | PLAUSIBLE | **VERIFIED** |  | — |
+| **FA-58** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | The mechanism, seam, cited line, reachability and severity are all right — the earlier AUTHOR_VERIFIED call was sound,… |
+| **FA-59** | P3 | defect | PLAUSIBLE | **VERIFIED** |  | — |
+| **FA-60** | P3 | defect | PLAUSIBLE | **DUPLICATE** |  | **Calibration of the single refuter: mechanism work excellent, disposition wrong.** Right, and independently confirmed… |
+| **FA-61** | P3 | defect | PLAUSIBLE | **NARROWED** |  | FIVE things, plus the calibration question on the prior refuter. 1. THE HEADLINE NUMBER IS MIS-ATTRIBUTED. The row's m… |
+| **FA-62** | P3 | defect | UNVERIFIED | **DUPLICATE** |  | Three things, none of them factual — every string, line number and premise in FA-62 is correct. 1. **It is a duplicate… |
+| **FA-63** | P3 | defect | UNVERIFIED | **NARROWED** |  | Five things, none fatal to the finding. 1. ATTACKER ATTRIBUTION. "Archduke Charles attacks Senarmont at Munich in the … |
+| **FA-64** | P3 | defect | UNVERIFIED | **NARROWED** |  | Three things, one of them material. 1. MATERIAL — the player_consequence inverts causation. It reads: "the typed confi… |
+| **FA-65** | P3 | defect | PLAUSIBLE | **NARROWED** |  | Four things, one of them the row's whole reason for existing. 1. THE DEAD ZONE DOES NOT EXIST. `_corrected` says "loya… |
+| **FA-66** | P3 | defect | UNVERIFIED | **DUPLICATE** |  | `_corrected` is byte-identical to `summary`, so no refuter had moved this seam — consistent with its UNVERIFIED status… |
+| **FA-67** | P3 | defect | AUTHOR_VERIFIED | **NARROWED** |  | (1) The headline is false: a won battle raises trust +3 through `vindication.resolve_battle`, called from combat_execu… |
+| **FA-68** | P3 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-69** | P3 | defect | NARROWED | **NARROWED** |  | Four things, one of which would have caused the row to be silently dropped. 1. THE DUPLICATE ATTRIBUTION IS FALSE, AND… |
+| **FA-70** | P3 | defect | PLAUSIBLE | **VERIFIED** |  | — |
+| **FA-71** | P3 | missing | AUTHOR_VERIFIED | **VERIFIED** |  | Four things, none of them fatal to the claim: 1. **The repro names the wrong endpoint.** The row's repro calls `handle… |
+| **FA-72** | P3 | harness | HARNESS-CHK | **VERIFIED** |  | Three things, all minor; none touches the verdict. 1. It attributes behaviour to POLICY KEYS that are dead. `"interrup… |
+| **FA-73** | P3 | harness | AUTHOR_VERIFIED | **NARROWED** |  | Five things, and a calibration failure that explains them. 1. The load-bearing quote is truncated at the clause that r… |
+| **FA-74** | P3 | harness | HARNESS-CHK | **DUPLICATE** |  | The author's hand-check ("Verified by opening") confirmed the code reading — which is accurate, line for line — but it… |
+| **FA-75** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Three things, one of them load-bearing. 1. LOAD-BEARING — "`lapsed_offers` on the wire = [] every turn" is FALSE, and … |
+| **FA-76** | P3 | harness | HARNESS-CHK | **DUPLICATE** |  | Four things, none of which touch the truth of the underlying defect: 1. **`already_filed: "none found"` is wrong.** FA… |
+| **FA-77** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Three things, and a calibration note on the author check. 1. FABRICATED-BY-INFERENCE CITATION. "the route-through-Hano… |
+| **FA-78** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Four things, all found by opening the code and re-deriving from the committed digests rather than trusting the row. 1.… |
+| **FA-79** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Three substantive errors plus one calibration failure on the author's self-check. 1. **already_filed misses its own si… |
+| **FA-80** | P3 | missing | PLAUSIBLE | **NARROWED** |  | **Calibration of the earlier verification: the single "mechanism" refuter was sound but over-confirmed.** All seven of… |
+| **FA-81** | P3 | missing | PLAUSIBLE | **NARROWED** |  | **One substantive error, one trivial one — and a calibration finding about the single refuter.** 1. **`player_conseque… |
+| **FA-82** | P3 | missing | UNVERIFIED | **VERIFIED** |  | One thing, and it matters for whoever fixes it: **the row's anchor line is wrong and always was.** The `file`/`line` f… |
+| **FA-83** | P3 | harness | AUTHOR_VERIFIED | **NARROWED** |  | The author's hand-check was sound on quotation and weak on causation — it confirmed the strings appeared and did not a… |
+| **FA-84** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Five things — one of them would misdirect a builder. 1. **Wrong seam for the banner half (material).** The row credits… |
+| **FA-85** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Five things, in descending order of consequence. 1. THE FIX WOULD NOT HAVE WORKED, and the same audit already held the… |
+| **FA-86** | P3 | harness | HARNESS-CHK | **DUPLICATE** |  | The author's hand-check was sound on the mechanism and careless on everything around it — which is the signature of ch… |
+| **FA-87** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Four things, one of which is a calibration failure of the author check itself. 1. **`already_filed` is wrong on both c… |
+| **FA-88** | P3 | harness | HARNESS-CHK | **DUPLICATE** |  | Calibration of the earlier HARNESS_AUTHOR_CHECK: the author verified the code correctly and reproduced nothing. Every … |
+| **FA-89** | P3 | harness | HARNESS-CHK | **NARROWED** |  | CALIBRATION OF THE EARLIER PASS: the HARNESS_AUTHOR_CHECK verified the citations and did not test the inference. Every… |
+| **FA-90** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Six things, three of them material. MATERIAL: 1. "no ... sub-gate LLM script" (repro) and the implication that no live… |
+| **FA-91** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Four things, one of which matters. 1. THE EXEMPLAR (matters). The row's headline pairs blind spot (1) with "`_recovery… |
+| **FA-92** | P3 | harness | HARNESS-CHK | **NARROWED** |  | Three things, one of them material. 1. MATERIAL — the record citation is backwards. "The record already knows the fail… |
+| **FA-D8** | P3 | tie_in | NARROWED | **NARROWED** |  | 1. THE TITLE IS BACKWARDS. "only a >= 5,000 garrison detachment makes the AI stop" fuses two different mechanics and n… |
+| **FA-D9** | P3 | tie_in | PLAUSIBLE | **NARROWED** |  | 1. THE ARITHMETIC, and it is load-bearing. `player_consequence` claims drill "would have fixed it in two turns"; the f… |
+| **FA-D10** | P3 | tie_in | NARROWED | **NARROWED** |  | 1. `_corrected` asserts the spec "explicitly list[s] 'contribution shares' as required content for the war detail popu… |
+| **FA-D11** | P3 | tie_in | PLAUSIBLE | **VERIFIED** |  | Four small things, none of which touch the defect (`_corrected` itself is accurate throughout): 1. `player_consequence… |
+| **FA-D12** | P3 | tie_in | PLAUSIBLE | **VERIFIED** |  | Three things, none fatal. (1) THE DIGEST CITATION IS THE WRONG EPISODE AND THE LINE NUMBERS ARE OFF. The summary cites… |
+| **FA-D13** | P3 | tie_in | NARROWED | **DUPLICATE** |  | 1. **`already_filed: "none"` is wrong, decisively.** FA-D14 (DESIGN_REFINEMENT.md:39, same audit, OPEN) is a strict su… |
+| **FA-D14** | P3 | tie_in | UNVERIFIED | **DUPLICATE** |  | Four things, none of which kill the finding — they kill its right to be a separate row. (1) THE BIG ONE: `already_file… |
+| **FA-D15** | P3 | tie_in | NARROWED | **VERIFIED** |  | `_corrected` is sound; the corrections below are against the rest of the row, which was NOT rewritten to match it and … |
+| **FA-D16** | P3 | tie_in | UNVERIFIED | **NARROWED** |  | Three things, one of them load-bearing. 1. LOAD-BEARING — the remedy is boot-dead, and the behaviour_test as written w… |
+| **FA-D17** | P3 | tie_in | NARROWED | **NARROWED** |  | 1. **The title is false as written.** "The Cabinet's 'Propose Peace' row stays green" — there is no such row at WAR. `… |
+| **FA-D18** | P3 | tie_in | NARROWED | **NARROWED** |  | 1. THE TITLE IS INVERTED. "The armistice preview promises a peace the thaw arithmetic cannot deliver" - the shipped ch… |
+| **FA-D19** | P3 | tie_in | AUTHOR_VERIFIED | **NARROWED** |  | Three things, one material. 1. MATERIAL — the player_consequence is wrong in its own cited scene. The row builds its c… |
+| **FA-D20** | P3 | tie_in | PLAUSIBLE | **NARROWED** |  | Four things, none of which kill it. 1. `already_filed: none` is wrong. Six of the ten verbs are an explicitly owned Go… |
+| **FA-D21** | P3 | tie_in | PLAUSIBLE | **DUPLICATE** |  | Three things, none of them the mechanism. (1) `already_filed: "none"` — it is a duplicate of FA-66 from the same audit… |
+| **FA-93** | P4 | defect | AUTHOR_VERIFIED | **VERIFIED** |  | — |
+| **FA-94** | P4 | defect | NARROWED | **NARROWED** |  | Three things, in descending order of consequence. 1. THE CENSUS IS INCOMPLETE IN THE ROW'S OWN DIRECTION — nobody, fin… |
+| **FA-95** | P4 | defect | PLAUSIBLE | **VERIFIED** |  | — |
+| **FA-96** | P4 | defect | NARROWED | **DUPLICATE** |  | 1. **`already_filed: none` is false — the row's one material error.** The defect is filed, gate-RULED (Aug 15, 2026), … |
+| **FA-97** | P4 | defect | AUTHOR_VERIFIED | **REFUTED** |  | It verified the last link of the chain in isolation. Every static citation is right and every line number is current —… |
+| **FA-98** | P4 | defect | PLAUSIBLE | **VERIFIED** |  | — |
+| **FA-99** | P4 | defect | UNVERIFIED | **VERIFIED** |  | — |
+| **FA-100** | P4 | defect | NARROWED | **NARROWED** |  | Four things, one of them serious. 1. SERIOUS — the authoritative `_corrected` block describes a different defect from … |
+| **FA-101** | P4 | defect | UNVERIFIED | **NARROWED** |  | 1. UNDERCOUNTS THE CARRIERS — the material error. The row says "two documents" (main.py + WEIRD_OUTCOMES_SPEC.md). The… |
+| **FA-102** | P4 | harness | HARNESS-CHK | **NARROWED** |  | Two factual clauses, both understating the gap: 1. "audit-latewar-t20 … a turn-boundary snapshot carrying no pending q… |
+| **FA-D22** | P4 | tie_in | NARROWED | **VERIFIED** |  | Three things, none fatal; `_corrected` had already caught two of them. 1. The top-level `line: 233` field is OFF BY ON… |
+| **FA-D23** | P4 | tie_in | UNVERIFIED | **VERIFIED** |  | Five errors, none fatal to the finding; the first is the one a builder would trip over. 1. WRONG SEAM for the objectio… |
+| **FA-D24** | P4 | tie_in | NARROWED | **VERIFIED** |  | — |
+| **FA-D25** | P4 | tie_in | NARROWED | **DUPLICATE** |  | Four things, in descending order of consequence. 1. `_corrected` states a FALSE fact and states it as verified: "'will… |
+| **FA-D26** | P4 | tie_in | NARROWED | **NARROWED** |  | Six things, in descending order of consequence. 1. **The headline is measurably false of the shipped screen.** "The EC… |

@@ -42,9 +42,47 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (September 2, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026.** Memo of
+> **▶ THE AUDIT VERIFICATION PASS — ✅ HELD September 2, 2026. Report of
+> record = `docs/audits/FINAL_AUDIT_VERIFICATION_2026_09_02.md`, authoritative
+> where it amends the audit.** All 128 filed rows re-checked adversarially
+> (default REFUTED), the neighbourhoods swept, the prose read against the
+> evidence. **43 VERIFIED · 65 NARROWED · 19 DUPLICATE · 1 REFUTED** — a real
+> defect survives in **108 of 128 (84%)**, and **all nine P1s are real**. Every
+> row now carries its verdict in the machine record under
+> `verification_2026_09_02`.
+>
+> **⚠ THE STANDING RULE FOR THE BUILD: reproduce before fixing, and read
+> `_corrected` and the Sept-2 verdict BEFORE the title.** Measured: **~80% of
+> rows carry a stale line number** — navigate by the symbol a row names, never
+> by its line; ~50% over-state a magnitude; **~44% carry a wrong
+> `already_filed`** (it was written per-row by finders who could not see each
+> other and was never reconciled after dedupe — several rows duplicate a sibling
+> in the SAME audit); ~25% have a title that over-reaches its own body. **In six
+> rows — FA-54, FA-D13, FA-D18, FA-D24, FA-D25, FA-100 — `fix_shape` still
+> prescribes the fix the row's own corrected summary rejects.**
+>
+> **FA-N1:** memo §7's "the only trust-writing seam that never consults
+> `check_redemption_threshold`" is **FALSE** — an AST census over BOTH APIs
+> (`modify_trust()` and `trust.modify()`) finds **four** unchecked families:
+> the erosion tick, `_execute_attack` (sibling `_execute_bombardment` checks),
+> the typed strategic-objection route (endpoint sibling checks), and
+> `jealousy.py`'s eight docks in a module with zero checker calls. FA-26's own
+> row is clean; the over-claim was editorial. Build it as a shared helper across
+> all four seams — three of France's seven marshals sit at trust 0 by turn 41.
+>
+> **▶ NEXT = the memo's §6 build order, RE-ORDERED per report §7.** Slice 8
+> (the harness) is scheduled last but is the instrument every other slice's
+> reproduction depends on — **do its reproduction-critical half first** (FA-10,
+> FA-37, FA-40, FA-74, FA-87, FA-92), then slice 1 (FA-7; and write the corpus
+> rows — **0 of 345 entries contain any deferral phrasing**), then slice 2 with
+> FA-1 re-scoped (the rail alert IS delivered and answering works; the harm is
+> that the enemy phase does not pause, so ~92% of the corps dies in one phase),
+> then FA-26. Then position 10, the shippable build. ⚠ **Still no pillar
+> re-score** — it should run AFTER slice 8, on a harness that works.
+>
+> **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);
 > machine record = `docs/audits/final_audit_2026_09_01_findings.json`;
 > routing = `BUG_FIXES.md` §Final Whole-Game Audit **FA-1..FA-102** +
