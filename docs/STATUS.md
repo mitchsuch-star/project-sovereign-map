@@ -39,21 +39,22 @@
 > 0 by turn 41, not the one the memo named. Build it as a shared helper across
 > all four seams.
 >
-> **▶ AND 35 DEFECTS THE AUDIT MISSED — filed FA-N2..FA-N36 in `BUG_FIXES.md`
+> **▶ AND 57 DEFECTS THE AUDIT MISSED — filed FA-N2..FA-N58 in `BUG_FIXES.md`
 > §Verification-Pass Findings (two tie-ins in `DESIGN_REFINEMENT.md`).** Found by
 > the neighbourhood sweeps, which asked four questions of every surviving row:
 > census the seam's other callers, look for the enemy-AI mirror, check the
 > producer→renderer join, and **ask what the row's own fix would break**. That last
-> question is why **FA-N17 and FA-N23** exist — they are defects in FA-4's and
-> FA-7's *prescribed fixes*, which would have shipped as regressions.
-> **Four new P1s:** **FA-N2** a negated answer to any pending dialogue executes the
+> question is why **FA-N17, FA-N23, FA-N38 and FA-N51** exist — they are defects in
+> FA-4's, FA-7's, FA-27's and FA-21's *prescribed fixes*, which would have shipped as
+> regressions. **Five new P1s:** **FA-N2** a negated answer to any pending dialogue executes the
 > affirmative (typed `do not accept` SIGNS the treaty — hand-verified independently;
 > PARSE-NEG's exact defect class one layer above the seam PARSE-NEG guards);
 > **FA-N3** every battle under a standing strategic order reports INCONCLUSIVE;
 > **FA-N4** the offer popup's third button destroys the offer; **FA-N5** two blocking
-> client modals answer whichever dialogue is on top, sending no W6-0 identity.
-> ⚠ **§5 is a floor, not a census** — the sweeps are partial (they were still running
-> when the pass closed) and the ones that ran averaged >2 findings each.
+> client modals answer whichever dialogue is on top, sending no W6-0 identity; and
+> **FA-N37** clicking 'Accept Risk' on the vassal-rebellion modal SIGNS A TREATY.
+> ⚠ **§5 is a floor, not a census** — only 22 of 43 sweeps finished before the pass
+> closed, and those averaged ~2.6 confirmed findings each.
 >
 > **▶ NEXT = the memo's §6 build order, re-ordered.** Report §7 records four
 > problems with it, headed by **slice 8 (the harness) being scheduled last while
