@@ -146,8 +146,10 @@ POLICY_DEFAULTS = {
     "glorious_charge": "restrain",  # restrain | charge
     # Talleyrand pre-proposal objection:
     "diplomatic_objection": "proceed",   # proceed | modify | cancel
-    # Talleyrand redemption arc (rare):
-    "redemption": "dismiss",
+    # A marshal's redemption audience (trust <= 20; rare). Answered through
+    # POST /respond_to_redemption since Sept 1, 2026 — before that this key
+    # was read by nothing (WO-41's landing found it).
+    "redemption": "dismiss",        # dismiss | grant_autonomy | administrative_role
     # Marshal petitions (jealousy/rivalry/Fontainebleau/war-weary):
     # first ENABLED option — usually the free acknowledge arm.
     "petition": "first_enabled",
@@ -852,6 +854,20 @@ class Answerer:
             self.d.popup("glorious_charge", _summ(payload, "marshal", "target"),
                          choice)
             followups.append(self.t.post("/respond_to_glorious_charge",
+                                         {"choice": choice}))
+
+        # 6b. Redemption audience (found by the WO-41 landing, Sept 1 2026) ----
+        # The `"redemption"` policy key had existed since Aug 15 and was READ
+        # BY NOTHING: no unattended arm could answer
+        # `awaiting_redemption_choice`, so the whole trust-collapse arc was a
+        # blind spot of every digest before this date. Same shape as the
+        # glorious-charge arm; the choice is logged like every other answer.
+        if response.get("redemption_event"):
+            payload = _as_dict(response.get("redemption_event"))
+            choice = self.policy.get("redemption", "dismiss")
+            self.d.popup("redemption", _summ(payload, "marshal", "trust"),
+                         choice)
+            followups.append(self.t.post("/respond_to_redemption",
                                          {"choice": choice}))
 
         # 7. Diplomatic dialogue (incoming proposals, settlement offers,

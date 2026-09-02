@@ -1,0 +1,37 @@
+{
+  "name": "audit-flagship-live",
+  "seed": "historical",
+  "llm": "anthropic",
+  "transport": "in-process",
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 12,
+  "started": "2026-09-01 21:18",
+  "from_save": "",
+  "rng": {
+    "deterministic": false,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "llm_note": "NONDETERMINISTIC \u2014 live parser (--llm anthropic): parses vary run to run even with the module RNG pinned",
+    "pythonhashseed": "0"
+  },
+  "status": "completed",
+  "counters": {
+    "commands": 37,
+    "popups": 52,
+    "battles": 22,
+    "turns": 12
+  },
+  "unknown_blockers": []
+}
