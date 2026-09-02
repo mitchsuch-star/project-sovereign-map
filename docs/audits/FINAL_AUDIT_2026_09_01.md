@@ -68,7 +68,8 @@ at all. Consequences, each visible per finding in §3:
   did run, they killed real claims with real probes.
 - The critic's gap round never ran, so the audit's own blind spots are unnamed.
 
-**Verdict vocabulary used in §3:** CONFIRMED (two refuters agreed) · NARROWED
+**Verdict vocabulary used in §3:** CONFIRMED (two refuters agreed — *no row
+reached this bar; the budget allowed at most one refuter per row*) · NARROWED
 (a refuter corrected the claim; the corrected reading is the one printed) ·
 PLAUSIBLE (one refuter) · AUTHOR-VERIFIED (hand-reproduced by the session
 author, independently of the fleet) · HARNESS (author-checked) · UNVERIFIED (as
@@ -85,7 +86,7 @@ is corrected here rather than dropped.**
 cleared the fast parser's 0.7 confidence gate and never reached the LLM. So the
 identity measures fast-parser determinism, not live-parser equivalence. What it
 does show is worth keeping: **the shipped scripts never exercise the escalation
-path**, and the two P1 parsing defects below are exactly the sentences that
+path**, and the two parsing defects below (FA-7, P1; FA-6, P2) are exactly the sentences that
 path would have had to see.
 
 ## 1. The verdict — the user's five questions, answered
@@ -113,9 +114,10 @@ never shown a marshal's petition (FA-5). None of these is a regression from a
 recent slice; they are what a 200-turn evidence base loads that a 9-turn one
 cannot.
 
-**Do commands work well?** Mostly, with **two P1 exceptions that a first-time
-player will hit in their first hour, both hand-reproduced, both live in the
-shipped mock-default build, and neither rescued by the live parser** (measured:
+**Do commands work well?** Mostly, with **two exceptions that a first-time
+player will hit in their first hour — one of them a P1 — both hand-reproduced,
+both live in the shipped mock-default build, and neither rescued by the live
+parser** (measured:
 the LLM is never consulted for either, because the fast parser is confident):
 
 - `what happens next turn` **ends the turn** and runs the enemy phase (FA-6).
@@ -135,7 +137,7 @@ nation demonyms, refusals — answered honestly, and the corpus is 548/548.
 
 **Does the AI work well?** Strategically yes, tactically no. Europe is alive:
 designs promote, coalitions hold, Britain runs a real Peninsular campaign at
-Lisbon on every seed (§6), and Austria fights a coherent war. But three
+Lisbon on every seed (§5), and Austria fights a coherent war. But three
 measured behaviours would read as dumb to a Paradox player. **P4.25 prices a
 garrison and never looks at the field army standing on it** (FA-8), which is why
 Austria's corps suicide into the French stack at Munich turn after turn — 48
@@ -146,21 +148,26 @@ the late-war arm. And **one corps flips a homeland province per action point
 with nothing to stop it** (FA-D14): Paget walked ten French provinces in eight
 turns because an unfortified, ungarrisoned province is an instant capture.
 
-**What would tie things together?** Six joins, in the order I would build them,
-are in §7. The cheapest one that changes the most: **make the neglect arc end.**
-Reward erosion drives a marshal's trust to zero (measured: Lannes, trust 0 at
-turn 41 of the ambient arm, eleven battles won, never endowed) and nothing ever
-asks the redemption question, because the erosion seam is the one trust-writing
-seam that does not consult `check_redemption_threshold` (FA-26). One call, at one
-seam, turns forty turns of a marshal quietly rotting into the audience the
-system was built to deliver.
+**What would tie things together?** The join I would build first is argued in
+§7; the rest are grouped into the eight slices of §6 (slice 7 is FA-26's own
+neighbourhood). The cheapest one that changes the most: **make the neglect arc end.**
+Reward erosion drives a marshal's trust to zero (measured: **three of France's
+seven marshals** — Lannes, Bernadotte and Massena — at trust 0 by turn 41 of the
+ambient arm, none ever endowed, Lannes with eleven battles won) and nothing ever
+asks the redemption question, because the erosion seam does not consult
+`check_redemption_threshold` (FA-26). One call turns forty turns of a marshal
+quietly rotting into the audience the system was built to deliver. *(⚠ Sept 2,
+2026: this read "**the** one trust-writing seam" and "one call, at one seam".
+Both over-claimed — see the FA-N1 amendment at §7: there are four unchecked
+families, and the fix should be a shared helper.)*
 
 ## 2. What the campaigns actually were
 
 **The flagship (mock, 24 turns).** France opens historically, masses on Mack and
-wins every battle it fights — Bernadotte on t1, Ney and Davout through t5, Murat
-taking 26,371 Austrians for 348 of his own on t3. Vienna is pressed, Munich
-taken, and the arc turns on t23 when **Ney is taken prisoner** (`Marshal Ney is
+wins every battle it starts until t19, when Murat's assault on a fortified
+Buxhowden is repulsed for 4,328 men against 807 — Bernadotte on t1, Ney and
+Davout through t5, Murat
+taking 26,371 Austrians for 348 of his own on t3. Vienna is pressed and the arc turns on t23 when **Ney is taken prisoner** (`Marshal Ney is
 a prisoner of Austria, Sire — no order can reach him until his release`) and
 Napoleon's own corps is broken on t24. Treasury peaks at 20,333 and falls to
 15,735; provinces 28 → 26. Sixteen marshal petitions arrive and are answered.
@@ -181,7 +188,7 @@ the treasury turns from −687/turn to +2,270 the moment it is signed.
 economy converges exactly as EB-1 designed: +1,961/turn at t1, +839 by t15,
 negative from t16, and the homeland collapse from t29. France ends on **six
 provinces** with 4,683 gold. Britain storms the Flanders garrison on t38. And
-across all forty turns **not one marshal petition is delivered** (FA-4) while a
+across all forty turns **not one marshal petition is delivered** (FA-5) while a
 grievance ages to 34 turns.
 
 **Two more seeds (24 turns each).** A passive France ends on 13 provinces
@@ -191,8 +198,9 @@ variance contract doing its job.
 **Late war, from the committed t20 fixture (10 turns).** The bleakest arm, and
 the one that produced the most findings. Paget takes Gascony, Guyenne and Anjou
 in a single enemy phase, then Maine and Brittany, then Normandy, Artois, Picardy
-and Ile-de-France. Massena's corps is ground from thousands to 41 men over
-eleven attacks and destroyed. France falls 16 → 6 provinces. Britain and the
+and Ile-de-France. Massena's corps is ground from 21,067 men to 32 over eleven attacks in four
+turns and destroyed (FA-1's own trace; the digest's `Massena (lost 41)` is one
+battle's casualties, not his remaining strength). France falls 16 → 6 provinces. Britain and the
 coalition offer peace, and the accept path stages a review the offering court
 itself rejects (FA-3).
 
@@ -205,7 +213,7 @@ so after the order is given (FA-51).
 
 **The School of War (10 turns).** The lesson completes. It also, played exactly
 as Berthier counsels, loses six French homeland provinces by turn 10 to a
-1,218-man retreating remnant FA-9, tells the player Kienmayer
+1,218-man retreating remnant (FA-9), tells the player Kienmayer
 "is our prisoner" and then answers `Unknown target: Kienmayer` when they attack
 him (FA-48), and promises a trust-branch pivot the scenario never delivers
 (FA-42).
@@ -217,7 +225,7 @@ him (FA-48), and promises a trust-branch pivot the scenario never delivers
 > `FA-Dn` in `DESIGN_REFINEMENT.md`). Read the verdict line before building:
 > UNVERIFIED means no refuter tried to kill it.
 
-### 3a. Defects — P1 (fix first) (9)
+### 3a. Defects — P1 (fix first) (8, plus FA-6, downgraded to P2 on Sept 2 and left in place)
 
 #### FA-1 [P1 · defect] A standing last-stand ASK suppresses the retreat on every re-attack: the marshal is ground to nothing over 11 battles and DESTROYED, never asked, never captured
 
@@ -277,7 +285,7 @@ him (FA-48), and promises a trust-branch pivot the scenario never delivers
 
 **What it is.** The accept branch removes the pending entry and pops the dialogue first (settlement_offers.py:2714-2716), `dialogue_manager.pop()` promotes the next queued item (dialogue_manager.py:347-351, 779-793), and only THEN `stage_settlement_confirm` runs its SC-26 collision check against `_mounted_settlement_dialogue` = the CURRENT dialogue (settlement_staging.py:3388-3405; settlement_routes.py:359-371, whose docstring says queued items must NOT count). With Britain's war_1 offer current and Switzerland's war_2 offer queued, accepting the offer ON SCREEN returns `cross_war_settlement_collision` — 'the settlement of war_2 is already on the table; resolve it before opening a separate review for war_1' — naming an offer the player has never seen, and Britain's offer is gone (current becomes Switzerland's). The archived late-war digest shows exactly this at T23, and the raw war ids leak into the sentence.
 
-**What the player sees.** A losing France (13 provinces, Paget walking the homeland) clicks Review on the coalition leader's peace offer and is told a different, invisible war is 'on the table'; the offer disappears; the collision copy prints `war_2`/`war_1`. Peace with the court that is actually beating France cannot be accepted until the unrelated rebel war's offer is dealt with — and that one is itself un-ratifiable (finding 1).
+**What the player sees.** A losing France (13 provinces, Paget walking the homeland) clicks Review on the coalition leader's peace offer and is told a different, invisible war is 'on the table'; the offer disappears; the collision copy prints `war_2`/`war_1`. Peace with the court that is actually beating France cannot be accepted until the unrelated rebel war's offer is dealt with — and that one is itself un-ratifiable (FA-3).
 
 **Evidence.** verified by running: scratchpad probe_slot_and_collision.py part B — load probe-latewar-dip_t3 (turn 22), end turn → `CURRENT=incoming_settlement_offer#8 war=war_1 from=Britain | queue=[('incoming_settlement_offer', 29, 'Switzerland'), …]`; accept #8 → `False | Sire, the settlement of war_2 is already on the table; resolve it before opening a separate review for war_1. | error: cross_war_settlement_collision`; afterwards `CURRENT=incoming_settlement_offer#29 war=war_2` and #8 absent. verified by opening: backend/game_logic/settlement_offers.py:2714-2716; backend/game_logic/settlement_staging.p…
 
@@ -298,7 +306,7 @@ him (FA-48), and promises a trust-branch pivot the scenario never delivers
 
 **Evidence.** main.py:1355-1361 (`if not response.get('enemy_phase'): … _include_popup_passthroughs(response, world); return`); jealousy.py:1861-1862 (`if pending is not None and pending is not petition: return PETITION_BLOCKED`); jealousy.py:3175 (per-turn re-push of the same object); jealousy.py:2269 (`if status != PETITION_QUEUED: return`); main.gd:2276-2278 (`_show_pending_redemption` / `_maybe_recover_dropped_redemption` only). Probe logs scratchpad/probe_endturn24.log and probe_status14.log.
 
-**Reproduce.** TestClient as in finding 1; loop `end turn` 8×; after turn 5 `mm.world.pending_marshal_petition` is a dict and no response contained a `marshal_petition` key; then POST `/command` `{'command':'status'}` — that response carries it. Archive check: `grep -c POPUP docs/audits/playtest_digests/audit-ambient40/digest.md` → 0.
+**Reproduce.** TestClient as in FA-75; loop `end turn` 8×; after turn 5 `mm.world.pending_marshal_petition` is a dict and no response contained a `marshal_petition` key; then POST `/command` `{'command':'status'}` — that response carries it. Archive check: `grep -c POPUP docs/audits/playtest_digests/audit-ambient40/digest.md` → 0.
 
 **Fix shape (one seam).** ONE seam: in `_apply_command_popup_contract` (main.py:1353) treat `marshal_petition` like `redemption_event` — when `enemy_phase` is present, attach `refresh_petition_affordability(world.pending_marshal_petition, world)` (jealousy.py:1870) to the response and let the client stash-and-raise it at `_return_control_to_player` (mirror of `pending_redemption_data`, main.gd:222/2276). (The tier split F1 'The Antechamber' in PETITION_POPUP_REVISIT_SPEC.md fixes the starvation of the OTHER petitions; this delivery hole exists independently of it and is one line on the backend plus one stash on the client.)
 
@@ -1003,7 +1011,7 @@ him (FA-48), and promises a trust-branch pivot the scenario never delivers
 
 **What it is.** `calculate_side_war_score` sums the `ticking` component across EVERY opponent pair of a coalition war (`diplomacy.py:3259-3281`), but `build_active_wars` resolves the row's `objective`/`enemy_objective` through `diplo_key = _make_diplo_key(france, opponent)` where `opponent` is the coalition leader (`war_status.py:56`, `:157`). Verified by running: `set war purpose` vs Austria → `war_objectives == {'Austria|France': ['France']}` and the row still shows `objective None`; vs Britain (the leader) → `objective {'type':'conquest','target_regions':['London'],...}` renders. So the only renderable French purpose in the 1805 coalition targets London — the province the Wooden Wall (A5) makes unreachable — while the historically correct aim (Vienna) is computed and hidden.
 
-**What the player sees.** A player who does discover `set war purpose against Austria` (finding 1) sees nothing change on the War Status panel: no Objective block, no Enemy Objective, no ticking progress line, even though the score is moving. Two implementations of 'which pair carries the war' disagree — the CA9 through-line (the executor computes one answer and the surface shows another).
+**What the player sees.** A player who does discover `set war purpose against Austria` (FA-D4) sees nothing change on the War Status panel: no Objective block, no Enemy Objective, no ticking progress line, even though the score is moving. Two implementations of 'which pair carries the war' disagree — the CA9 through-line (the executor computes one answer and the surface shows another).
 
 **Evidence.** verified by running: after `ex._diplomatic._set_war_purpose_inner('Austria','conquest',w)` → `build_active_wars(w)['wars'][0]` has `opponent='Britain'`, `opponents=['Britain','Austria','Russia']`, `objective=None`; after `_set_war_purpose_inner('Britain','conquest',w)` → `objective={'type':'conquest','type_display':'Conquest','target_regions':['London'],'ticking_rate':2,'ticking_active':False}`. verified by opening: `backend/game_logic/war_status.py:56` (row diplo_key from the leader opponent), `:152-172` (objective block read from `world.war_objectives.get(diplo_key)`), `:237-238`; `backend/g…
 
@@ -1403,7 +1411,7 @@ vassal.py:711 `if delta < 0 and new_loyalty >= 40:` gates recovery_hint on the P
 `backend/models/world_state.py:12097` · AUTHOR-VERIFIED (hand-reproduced this session)  
 The one-time <40 warning (world_state.py:12094-12100) says 'Trust his judgment when he objects, and give him a battle he can win — at 20 he will ask to be released', and its comment (12084-12089) asserts 'a won battle is the reliable earner'. Verified by grepping every positive trust write in backend/: objection 'trust'/'compromise' (disobedience.py:1382/1412), vindication (vindication.py:194), literal order completion +5 (strategic.py:2522), autonomy end (turn_manager.py:811-824), petition arms…  
 *Repro:* m=w.marshals['Lannes']; m.trust.set(38); print(w._check_trust_warnings()[0]['message']) # '...give him a battle he can win — at 20 he will ask to be released.' m.battles_won+=1; print(dotation.get_expectation(m)) # +40 — the win deepens the shortfall  
-*Fix:* ONE seam: `_check_trust_warnings` — build the remedy from what is true: 'trust his judgment when he objects' (kept), and when `dotation.is_eroding(marshal, self)` append `dotation.reward_remedy_phrase(self, marshal.nation, marshal)`; delete the battle clause; say 'he will ask to be released the next time you order him' unless finding 1 lands.  
+*Fix:* ONE seam: `_check_trust_warnings` — build the remedy from what is true: 'trust his judgment when he objects' (kept), and when `dotation.is_eroding(marshal, self)` append `dotation.reward_remedy_phrase(self, marshal.nation, marshal)`; delete the battle clause; say 'he will ask to be released the next time you order him' unless FA-26 lands.  
 *Test:* tests/test_trust_warning_names_real_levers.py: eroding marshal at 38 -> message contains the reward remedy phrase and never 'battle he can win'; non-eroding marshal at 38 -> no reward clause; pin that…
 
 **FA-68 [P3 · defect] Two marshals raising interrupts in one end turn: only the first is asked, the rest silently lose the turn and their question**  
@@ -1550,7 +1558,7 @@ tests/data/parser_golden_corpus.json:3460-3481 assert `success:false` + 'Unknown
 
 **FA-74 [P3 · harness] Harness: a REFUSED dialogue answer is recorded as answered, so the driver never retries an offer after its blocker clears — the digest under-reports the AI's offers and cannot tell a stale-order refusal from a real one**  
 `tools/playtest_driver.py:909` · HARNESS (author-checked, no refuter)  
-tools/playtest_driver.py:906-909 adds `did` to `_answered_dialogue_ids` BEFORE the POST reply is read; :931-935 then adds the refused word to `_refused_choices` keyed by dialogue id; `_dialogue_choice` (:987-1005) returns None once the only known word is refused → '(left standing)' (:904). So after the finding-1 stale refusal the SAME offer, now legitimately active and re-derived by the safety valve on every response, is logged '(stale passthrough — #17 already answered this chain)' (audit-flags…  
+tools/playtest_driver.py:906-909 adds `did` to `_answered_dialogue_ids` BEFORE the POST reply is read; :931-935 then adds the refused word to `_refused_choices` keyed by dialogue id; `_dialogue_choice` (:987-1005) returns None once the only known word is refused → '(left standing)' (:904). So after the FA-28-style stale refusal the SAME offer, now legitimately active and re-derived by the safety valve on every response, is logged '(stale passthrough — #17 already answered this chain)' (audit-flags…  
 *Repro:* Run any scripted arm where a proposal and a settlement offer are both pending and a petition/advisory precedes them (flagship script turn 9); read digest.md for '(stale passthrough' followed by '(left standing)' on the same dialogue id.  
 *Fix:* In the dialogue arm (driver:906-935): only add `did` to `_answered_dialogue_ids` and `_refused_choices` when `reply.get('stale_dialogue')` is falsy; on a stale refusal, leave the id un-answered so the next passthrough of that id is answered again (one retry per chain).  
 *Test:* Driver unit test with a fake transport: first POST returns `{'success': False, 'stale_dialogue': True}`, the re-derived dialogue with the same id appears on the next response, and the driver POSTs aga…
@@ -1643,7 +1651,7 @@ Verified by opening godot-client/project-sovereign/scripts/tutorial_overlay.gd: 
 `tools/playtest_driver.py:129` · HARNESS (author-checked, no refuter)  
 Derived from what the eight archived arms structurally could not reach (each gap verified above): (1) THE NEGOTIATOR — `--diplomacy negotiate`: polls /pending_envoy and /mailbox items every turn, ACCEPTS counter-offers and settlement offers, walks `accept_settlement_offer` → settlement_confirm → confirm_settlement to ratification, and digests `peace_ratification_summary` (backend/main.py:588-600, a key the driver never reads) so a digest finally says WHAT was signed; today no unattended run has…  
 *Repro:* grep -n 'peace_ratification_summary\|"notifications"\|pending_envoy' tools/playtest_driver.py → no matches; ls tools/playtest_scripts/ → no homeland-defence or sub-gate LLM script.  
-*Fix:* Add three policy/script arms to tools/playtest_driver.py: `--diplomacy negotiate` (the /pending_envoy + mailbox/activate loop of finding 1 plus the settlement_confirm→confirm_settlement ladder and a RATIFIED digest line from peace_ratification_summary), `--reward pay|ignore` (rail-driven typed reward commands + rail-driven fate words), and two committed scripts `homeland_defenc…  
+*Fix:* Add three policy/script arms to tools/playtest_driver.py: `--diplomacy negotiate` (the /pending_envoy + mailbox/activate loop of FA-75 plus the settlement_confirm→confirm_settlement ladder and a RATIFIED digest line from peace_ratification_summary), `--reward pay|ignore` (rail-driven typed reward commands + rail-driven fate words), and two committed scripts `homeland_defenc…  
 *Test:* tests/test_playtest_driver_instrument.py: (1) StubTransport settlement ladder: incoming_settlement_offer → accept → settlement_confirm → confirm → reply carrying peace_ratification_summary produces a…
 
 **FA-91 [P3 · harness] test_serialization_enforcement.py cannot see the field classes that have actually bitten (private, lazily-created, load-cleared) and never round-trips a played world**  
@@ -1719,7 +1727,7 @@ the verdict above is "joins, not systems". Deduped:
 - **The R7 nation-name chokepoints honour formation overrides first, so a formed nation cannot show its dead name on any surface** — utils.gd:163-170 `display_nation_name` consults `formation_overrides` before the static NATION_DISPLAY_NAMES map and before the camelCase split; :232-245 `humanize_nation_keys_in_text` applies the overrides BEFORE the authored prose substitutions (with the load-bearing ordering comment); api_client.gd adopts `nation_display_overrides`/`nation_flag_overrides` from every response and `set_formation_overrides` (:150-160… (`godot-client/project-sovereign/scripts/utils.gd:163`)
 - **Working well: the enemy phase is a scene — antagonist voice, our marshal's answer, Berthier's observation, jealousy/expectation notes, and the escalation ladders vary the standing crises** — `_format_berthier_report` renders `enemy_voice` → `marshal_voice` → `expectation_note` → `jealousy_note` → observation → campaign cost in a fixed dramatic order (`enemy_phase_dialog.gd:436-503`), and the standing-class ladders read as a rising voice rather than a repeat: audit-ambient40 turns 36-37 print '3 turns now with enemy colours on French soil. The country is watching to see how long we permit it.' then 'the e… (`godot-client/project-sovereign/scripts/enemy_phase_dialog.gd:436`)
 - **Working well: the success and arc headline classes fire in a played campaign with distinct, specific sentences** — In the 24-turn flagship campaign the CA8-9 reversal arc, the CA9-F12 enemy-capture mirror, the CA8-26 victory/conquest classes and the PC15-1 destruction arm all led on their own days with non-template prose: 'Marshal Archduke John of Austria is taken at Tyrol — he is our prisoner, and their order of battle is one commander shorter.' (line 147), 'Marshal Lannes's corps has been DESTROYED at Munich. He will not return… (`backend/game_logic/dispatch.py:1012`)
-- **Working well: the alliance-paradox block arrives disabled at mount with its reason AND two named routes** — The BPH-C paradox no longer dead-ends silently: the `proposal_confirm` mount disables `execute_proposal` and sets `unavailable_reason` = 'I cannot deliver this, Sire — Making peace with Austria while allied with Bavaria (who is still at war with Austria) creates a diplomatic contradiction. Settle the war jointly at the settlement table, or resolve Bavaria's war first.' while modify/adjust/reconsider stay live (diplom… (`backend/game_logic/diplomatic_dialogue.py:868`)
+- **Working well: the alliance-paradox block arrives disabled at mount with its reason AND two named routes** — *(⚠ Sept 2, 2026, verification pass: this note and **FA-D17**, a filed P2 in slice 3, describe the same surface and disagree. Both are partly right: the block IS disabled with its reason — that half works — but FA-D17 shows the two routes it names are wrong, one being unexecutable and the one the executor actually exempts being omitted. Read them together; do not take this note as evidence the surface needs no work.)* — The BPH-C paradox no longer dead-ends silently: the `proposal_confirm` mount disables `execute_proposal` and sets `unavailable_reason` = 'I cannot deliver this, Sire — Making peace with Austria while allied with Bavaria (who is still at war with Austria) creates a diplomatic contradiction. Settle the war jointly at the settlement table, or resolve Bavaria's war first.' while modify/adjust/reconsider stay live (diplom… (`backend/game_logic/diplomatic_dialogue.py:868`)
 - **Working well: the peace vocabulary is coherent — 'offer peace', 'propose peace', 'request terms' each resolve to the right instrument and the redirects explain themselves** — `offer peace to Austria` (audit-flagship-mock T18) and `propose peace with Austria` (audit-propose T1) both parse to the Peace Treaty proposal_confirm; `Talleyrand, request terms from Austria` under a coalition war explains the substitution ('Austria fights under Britain's lead in …, Sire — the coalition's terms are the leader's to name, not each court's own. I shall ask Britain's chancery to speak for their alliance… (`backend/game_logic/diplomatic_templates.py:2138`)
 - **Working well: Mode A determinism is real and auditable — a fresh replay reproduced an archived 24-turn arm byte-for-byte through turn 13, and refusals are printed in the engine's own words** — Verified by running: `playtest_driver.py --turns 13 --diplomacy propose` and diffing against docs/audits/playtest_digests/audit-propose/digest.md — zero differing lines through the turn-13 block, exactly as PLAYTESTING.md promises (the sha256 per-turn reseed at tools/playtest_driver.py:90-96 plus the PYTHONHASHSEED re-exec at :1433-1437, both recorded in meta.json's `rng` block). This is what made every finding above… (`tools/playtest_driver.py:90`)
 
@@ -1740,31 +1748,72 @@ shippable build is unblocked by slice 4.
 
 | # | slice | rows | size | why here |
 |---|---|---|---|---|
-| 1 | **"The Two Words"** — the fast parser stops acting on keywords it does not understand | FA-6, FA-7, FA-11, FA-50, FA-22, FA-54 | ~0.5 session | The parsing family a first-time player hits in an hour: FA-7 (P1, an order inverted), plus FA-6/FA-11/FA-22 (P2) and FA-50/FA-54 (P3). All one-seam, all hand-reproduced, and corpus rows exist for every phrasing. *(Amended Sept 2: this row read "two P1s" before FA-6 was downgraded.)* |
+| 1 | **"The Two Words"** — the fast parser stops acting on keywords it does not understand | FA-6, FA-7, FA-11, FA-50, FA-22, FA-54 | ~0.5 session | The parsing family a first-time player hits in an hour: FA-7 (P1, an order inverted), plus FA-6/FA-11/FA-22 (P2) and FA-50/FA-54 (P3). All one-seam. **⚠ Amended Sept 2, 2026 (verification pass): the rest of this sentence was wrong.** Not all six are hand-reproduced — FA-22 and FA-54 carry no author check — and **there are ZERO golden-corpus rows for any deferral phrasing** (measured: 0 entries of 345 contain `delay`, `later`, `postpone`, `tomorrow`, `hold off`, `defer` or `next turn`). The regression pins this slice needs do not exist yet and must be written as part of it. *(Amended Sept 2: this row read "two P1s" before FA-6 was downgraded.)* |
 | 2 | **"The Question Reaches the Player"** — a pending question is delivered, once, and answerable | FA-5, FA-1, FA-16, FA-36, FA-28, FA-30 | ~1 session | The end-turn deferral (FA-5) is the widest: on a quiet stretch the player is shown nothing at all. FA-1 destroys a marshal while asking about him. |
 | 3 | **"The Peace Can Be Signed"** — the settlement route stops refusing itself | FA-3, FA-4, FA-17, FA-D7, FA-D17, FA-21 | ~1 session | France cannot end the 1805 war by accepting the coalition's own offer, winning or losing. This is the arc the whole diplomacy layer exists to close. |
 | 4 | **"It Runs on a Stranger's Machine"** — the position-10 blockers this audit found | FA-29, FA-43, FA-62, FA-81, FA-82, FA-9, FA-42, FA-57, FA-63 | ~1 session | Every row here is something a Round-0 tester meets in ten minutes: a Python command they cannot run, missing licence text for CC-BY assets, and a tutorial that loses six provinces when followed. **Do this before the export.** |
 | 5 | **"The AI Stops Suiciding"** — three rungs that read as dumb | FA-8, FA-35, FA-27, FA-55, FA-D13, FA-D14 | ~1 session | 48 measured attacks where the attacker lost ≥1,000 men to a garrison it never checked for a field army; a whole action budget spent on a 100-man remnant; a corps flipping a homeland province per AP. |
 | 6 | **"The Briefing Tells the Truth"** — the narration layer stops contradicting the engine | FA-2, FA-25, FA-12, FA-23, FA-32, FA-53, FA-38, FA-D12 | ~1 session | A live rebelling vassal announced as dissolved (FA-2) is the worst single sentence in the game. |
 | 7 | **"The Neglect Arc Ends"** — the marshal systems close their own loops | FA-26, FA-D5, FA-67, FA-47, FA-56, FA-71, FA-D23 | ~1 session | The single highest-leverage change in the audit is FA-26 (§7 below), and the rest of the row is its neighbourhood. |
-| 8 | **The instrument** — fix the harness before the next audit trusts it | FA-10, FA-74, FA-76, FA-41, FA-39, FA-86, FA-87, FA-92, FA-102 | ~0.5 session | Every one of these silently degraded THIS audit's evidence. FA-92 is the worst: `tools/mutation_sweep.py` reports a mutation that crashes the module as KILLED. |
+| 8 (**see the ordering note below — this arguably belongs FIRST**) | **The instrument** — fix the harness before the next audit trusts it | FA-10, FA-74, FA-76, FA-41, FA-39, FA-86, FA-87, FA-92, FA-102 | ~0.5 session | Every one of these silently degraded THIS audit's evidence. FA-92 is the worst: `tools/mutation_sweep.py` reports a mutation that crashes the module as KILLED. |
 
-**Coverage, stated so nobody mistakes this for a complete plan (measured Sept 2,
-2026):** the eight slices name **59 of the 128 filed rows**. All 9 P1s are
-covered; **16 of the 50 P1/P2 rows are not in any slice**, and **17 of the 26
-FA-D tie-ins sit outside them**. The uncovered rows are not lower value by
+**Coverage, stated so nobody mistakes this for a complete plan (re-measured
+Sept 2, 2026 by the verification pass — the three figures first published here
+were wrong and are corrected in place):** the eight slices name **57 of the 128
+filed rows**. All 9 P1s are covered; **17 of the 50 P1/P2 rows are not in any
+slice**, and **19 of the 26 FA-D tie-ins sit outside them**. The uncovered rows are not lower value by
 construction — they are what did not group cleanly. Take an FA-D join
 opportunistically when a slice is already open in the file it names, and decide
-explicitly whether the 16 unslotted P1/P2 rows need a ninth slice.
+explicitly whether the 17 unslotted P1/P2 rows need a ninth slice.
+
+> **⚠ ORDERING NOTE, added September 2, 2026 by the verification pass.** Four
+> problems with the order as published, each found by an independent reader:
+>
+> 1. **Slice 8 is last, and it is the instrument every other slice depends on.**
+>    The standing rule six lines above tells the builder to reproduce each
+>    UNVERIFIED row before building it — and slice 8 is precisely the set of
+>    harness defects that corrupt reproduction (FA-10, the only P1 harness row,
+>    turns a transient refusal into a permanent one). Do slice 8 FIRST, or accept
+>    that every reproduction before it runs on a known-faulty instrument.
+> 2. **Slice 8 says "FA-92 is the worst".** FA-92 is P3. On the evidential ladder
+>    this memo uses for harness rows, FA-10 (P1) is the worst, and it is in the
+>    same slice. The slice also omits both P2 harness rows, FA-37 and FA-40.
+> 3. **Slice 4 is labelled "packaging — do this before the export" but carries
+>    FA-9**, whose own fix shape is a scenario/design change, not packaging.
+> 4. **Slice 5 is sized at ~1 session with no gate step**, but FA-D13's own fix
+>    shape opens "A design ruling…" — it cannot be built until that ruling is
+>    taken. Size it with the gate, or move the gated rows out.
+>
+> Also unslotted and worth deciding on: **FA-24 and FA-48 are one defect filed
+> twice** (both `_fuzzy_match_enemy`, `executor.py:719` and `:727`).
 
 ## 7. The single highest-leverage recommendation
 
-**Make the neglect arc end — FA-26, one call at one seam.**
+**Make the neglect arc end — FA-26, one call, at four seams.**
 
-`world_state.py:6207` is the ES-7 erosion tick: it is the only trust-writing
-seam in the backend that does not consult `check_redemption_threshold`. Every
-other one does (objection, defiance, the cavalry limits, bombardment friendly
-fire, the strategic penalties). So a marshal whose reward expectation goes unmet
+> **⚠ AMENDED September 2, 2026 (verification pass, FA-N1).** This section
+> originally read "one call at one seam" and claimed `world_state.py:6207` was
+> *the only* trust-writing seam that does not consult
+> `check_redemption_threshold`. **The word "only" is wrong.** An AST census
+> over the whole backend, covering BOTH trust-write APIs (`modify_trust()` and
+> `trust.modify()` — a `modify_trust`-only grep misses the cavalry seams the
+> paragraph itself cites), finds 49 trust writes, 16 negative, and **four
+> unchecked families, not one**: the erosion tick; `_execute_attack`
+> (combat_executor.py:7316) while its sibling `_execute_bombardment` checks at
+> :3839; `_handle_strategic_objection_response` (strategic_executor.py:1691) on
+> the typed route while the endpoint route checks at :2502/:2657; and
+> `jealousy.py`'s eight confrontation/rivalry docks (:2717, :2832-2875), in a
+> module containing **zero** calls to the checker. There is no global per-turn
+> sweep. The five families named below ARE covered — the list is right, the
+> quantifier is not. **FA-26's own row is clean and claims no uniqueness; this
+> was the memo's editorial framing.** The recommendation gets *better*: more
+> marshals rot silently than stated, and the fix should be a shared helper
+> applied at all four families.
+
+`world_state.py:6207` is the ES-7 erosion tick: it is one of four trust-writing
+seams in the backend that do not consult `check_redemption_threshold`. The
+families that DO consult it are objection, defiance, the cavalry limits,
+bombardment friendly fire, and the strategic-objection endpoint route. So a marshal whose reward expectation goes unmet
 bleeds trust every turn to zero and is never asked, never petitions, never
 leaves — the arc simply stops. Measured on the ambient board: Lannes, eleven
 battles won, expectation 300 unmet since turn 4, trust 0 at turn 41, and
@@ -1784,10 +1833,25 @@ Two rows in its neighbourhood make it land properly rather than merely fire:
 **FA-D5** (the redemption audience has no arm that settles the unpaid
 expectation that caused it — the player is offered autonomy, an administrative
 role or dismissal, none of which is "pay him") and **FA-67** (the trust warning
-tells the player to "give him a battle he can win", and no combat seam anywhere
-raises trust — measured: the backend's only positive trust writes are a
-vindicated defiance, a literal completing an order, and the autonomy-return
-outcomes).
+tells the player to "give him a battle he can win", and for a dotation-eroding
+marshal a victory RAISES the expectation that is eroding him —
+`battles_won` increments at `combat.py:706/718/733/746` and
+`dotation.expectation_for_wins` is `min(REP_STEP * battles_won,
+EXPECTATION_CAP)`).
+
+> **⚠ AMENDED September 2, 2026 (verification pass).** This paragraph
+> originally continued *"and no combat seam anywhere raises trust — measured:
+> the backend's only positive trust writes are a vindicated defiance, a literal
+> completing an order, and the autonomy-return outcomes"*. **That clause is
+> wrong, and it contradicts its own list.** A *vindicated defiance* IS resolved
+> by a battle: answering `trust` to an objection arms a pending vindication
+> (`disobedience.py:1421`), `combat_executor.py:2632-2644` calls
+> `resolve_battle` after every non-bombardment battle, and
+> `vindication.py:117-121` sets `trust_change = +3` on `trust`+`victory`,
+> applied at `:194`. So a won battle DOES raise trust — conditionally, when a
+> vindication is pending. FA-67 is therefore **NARROWED, not confirmed**: its
+> first clause falls, its second (the expectation half, kept above) stands. The
+> advice is conditionally correct, not a phantom lever.
 
 ## 8. Method notes
 
@@ -1801,7 +1865,8 @@ outcomes).
   a pillar table it did not measure. An audit that hides its own gaps is worth
   less than one that names them.
 - **The author's hand-verification ran in parallel with the fleet, not after
-  it** — 37 notes, and it caught the fleet's two P1 parsing claims independently
+  it** — 37 notes, and it caught the fleet's two parsing claims (both filed P1 at the time)
+  independently
   as well as producing rows the fleet missed (the prisoner family, the
   letter-book's two-vocabulary cooldown, the Low-Countries coastline).
 - **One of my own claims was wrong and is corrected in §0.1, not deleted.** The

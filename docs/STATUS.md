@@ -21,7 +21,8 @@
 > engine computes the right answer and a surface says something else (a live
 > rebelling vassal briefed as *"Switzerland has ceased to exist"*, FA-2; a
 > bombardment campaign that narrates as nothing, FA-25). COMMANDS work except
-> for two P1s a first-time player hits in an hour, **both hand-reproduced and
+> for two defects a first-time player hits in an hour — one a P1, one a P2 —
+> **both hand-reproduced and
 > both live under `--llm anthropic` because the fast parser never escalates**:
 > `Ney, delay the attack` FIGHTS NOW (FA-7), and a non-command such as
 > `what happens next turn` advances the turn irreversibly (FA-6). **FA-6 was
@@ -30,9 +31,9 @@
 > forfeited and there is no cheat vector — corrected in the memo and the row.** The AI is strategically alive and tactically dumb in three
 > measured ways (P4.25 prices a garrison and ignores the field army on it,
 > FA-8 — 48 attacks across nine digests where the attacker lost ≥1,000 men).
-> The one join worth building first is **FA-26**: the ES-7 erosion tick is the
-> only trust-writing seam that never consults `check_redemption_threshold`, so a
-> neglected marshal bleeds to trust 0 and is never asked (measured: Lannes,
+> The one join worth building first is **FA-26**: the ES-7 erosion tick never
+> consults `check_redemption_threshold`, so a neglected marshal bleeds to trust
+> 0 and is never asked (measured: Lannes,
 > eleven battles won, trust 0 at turn 41 of the ambient arm).
 >
 > **⚠ What the audit did NOT do, and the memo says so at the top.** Three

@@ -133,9 +133,8 @@
 > was AMENDED to P2 on Sept 2, 2026 after an owner challenge** — action points do
 > not carry over, so nothing is forfeited; what remains is that a non-command
 > such as `what happens next turn` advances the turn irreversibly.) **The single highest-leverage row is FA-26** — the ES-7
-> erosion tick is the only trust-writing seam that never consults
-> `check_redemption_threshold`, so a neglected marshal bleeds to trust 0 and is
-> never asked (measured: Lannes, trust 0 at turn 41 of the ambient arm).
+> erosion tick never consults `check_redemption_threshold`, so a neglected
+> marshal bleeds to trust 0 and is never asked (measured: Lannes, trust 0 at turn 41 of the ambient arm).
 >
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).

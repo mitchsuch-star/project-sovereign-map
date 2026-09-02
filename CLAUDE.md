@@ -53,13 +53,13 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > then sixteen lens finders → dedupe → refuters: **207 raw → 130 deduped →
 > 128 live (2 refuted)**. Report-only. **NEXT = the memo's §6 build order
 > (eight slices; slice 4 is the position-10 blockers and lands BEFORE the
-> export), then position 10, the shippable build.** Headline P1s, both
-> hand-reproduced and live under `--llm anthropic` (the fast parser never
-> escalates): `Ney, delay the attack` FIGHTS NOW (FA-7); a non-command like
+> export), then position 10, the shippable build.** The two headline parsing
+> defects — one P1, one P2 — both hand-reproduced and live under
+> `--llm anthropic` (the fast parser never escalates): `Ney, delay the attack` FIGHTS NOW (FA-7); a non-command like
 > `what happens next turn` advances the turn irreversibly (FA-6, **amended
 > P1→P2 Sept 2, 2026 on an owner challenge — AP do not carry over**). Highest-leverage single row =
-> **FA-26** (the ES-7 erosion tick is the only trust-writing seam that never
-> consults `check_redemption_threshold` — a neglected marshal bleeds to trust
+> **FA-26** (the ES-7 erosion tick never consults
+> `check_redemption_threshold` — a neglected marshal bleeds to trust
 > 0 and is never asked). ⚠ **No pillar re-score exists**: three session usage
 > limits killed the scorers and most of the refuter pass, so 46 rows are
 > UNVERIFIED (nobody tried to kill them) and the Aug-16 priors stand. Every
