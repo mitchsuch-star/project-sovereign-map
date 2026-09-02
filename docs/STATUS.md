@@ -39,7 +39,7 @@
 > 0 by turn 41, not the one the memo named. Build it as a shared helper across
 > all four seams.
 >
-> **▶ AND 70 DEFECTS THE AUDIT MISSED — filed FA-N2..FA-N71 in `BUG_FIXES.md`
+> **▶ AND 88 DEFECTS THE AUDIT MISSED — filed FA-N2..FA-N89 in `BUG_FIXES.md`
 > §Verification-Pass Findings (two tie-ins in `DESIGN_REFINEMENT.md`).** Found by
 > the neighbourhood sweeps, which asked four questions of every surviving row:
 > census the seam's other callers, look for the enemy-AI mirror, check the
@@ -53,8 +53,9 @@
 > **FA-N4** the offer popup's third button destroys the offer; **FA-N5** two blocking
 > client modals answer whichever dialogue is on top, sending no W6-0 identity; and
 > **FA-N37** clicking 'Accept Risk' on the vassal-rebellion modal SIGNS A TREATY.
-> ⚠ **§5 is a floor, not a census** — 30 of 43 sweeps finished before the pass closed,
-> averaging ~2.3 confirmed findings each; the workflow is resumable.
+> **All 43 sweeps completed** (67/67 agents, zero errors) — this half IS a census, and
+> it found **more new rows than the audit filed at P1 and P2 combined**, every one in the
+> neighbourhood of a row the audit had already found.
 >
 > **▶ NEXT = the memo's §6 build order, re-ordered.** Report §7 records four
 > problems with it, headed by **slice 8 (the harness) being scheduled last while
