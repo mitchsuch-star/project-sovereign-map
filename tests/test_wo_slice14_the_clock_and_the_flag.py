@@ -186,6 +186,34 @@ class TestWO18PensionChurn:
         m.pension = 0
         assert get_nation_rente_bill(world, "France") == 0
 
+    def test_the_revoke_copy_is_honest_about_the_grace_window(self, europe):
+        """Review round: WO-18 freezes the clock for an already-owed
+        marshal, so revoking resumes erosion AT ONCE — the old copy
+        promised "after its grace expires" for everyone. The copy now
+        branches on the frozen clock. Killed by restoring the single line."""
+        from backend.commands.economy_executor import EconomyExecutor
+
+        world = self._world(europe)
+        m = self._owed_marshal(world)          # owed 200, no estate
+        ex = EconomyExecutor(CommandExecutor())
+        # Case A: a marshal already OWED (clock open) then put on a rente —
+        # the freeze holds his clock open; revoking bites at once.
+        m.pension = 200
+        m.expectation_grace_turn = world.current_turn - 1   # frozen open
+        res_a = _quiet(ex._execute_revoke_pension,
+                       {"marshal": m.name}, {"world": world})
+        assert res_a["success"] is True
+        assert "at once" in res_a["message"]
+        assert "after its grace expires" not in res_a["message"]
+        # Case B: a marshal met from a clean slate (clock -1) — revoking
+        # opens a fresh grace window, and the copy still says so.
+        m.pension = 200
+        m.expectation_grace_turn = -1
+        res_b = _quiet(ex._execute_revoke_pension,
+                       {"marshal": m.name}, {"world": world})
+        assert res_b["success"] is True
+        assert "after its grace expires" in res_b["message"]
+
     def test_with_the_lever_down_the_toggle_dodges_erosion_again(self, monkeypatch, europe):
         """The measured defect, reproduced by the flip lever."""
         monkeypatch.setattr(DOT, "PENSION_CHURN_GUARD_ACTIVE", False)

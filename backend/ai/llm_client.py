@@ -422,6 +422,28 @@ def _mentions_treaty_break(command_lower: str) -> bool:
     return bool(_TREATY_BREAK_RE.search(command_lower))
 
 
+# Slice-11 review round: the peace-intent and treaty-break EARLY routes
+# select the diplomatic parser on keyword presence alone, before marshal
+# parsing — so `Ney, end the war of attrition` and `Ney, make peace
+# impossible` (an aggressive "give no quarter" order) were hijacked to the
+# "which court?" nation-picker, Ney dropped. A marshal-addressed sentence
+# is a MARSHAL order: if the command LEADS with a player marshal's name,
+# the two new routes stand down and it falls to ordinary action parsing
+# (pre-slice behaviour — an unparseable one becomes Berthier's honest
+# shrug). Talleyrand-addressed commands never reach here (the diplomat
+# route fires first), so a legitimate `Talleyrand, end the war` is
+# untouched.
+_LEADING_ADDRESS_RE = re.compile(r"^\s*(?:marshal\s+)?([^,]{1,40}?)\s*,")
+
+
+def _leads_with_marshal(command_lower: str, marshal_names) -> bool:
+    match = _LEADING_ADDRESS_RE.match(command_lower)
+    if not match:
+        return False
+    head = match.group(1).strip()
+    return bool(head) and _match_known_name(head, marshal_names) is not None
+
+
 def _mentions_abstract_restore(command_lower: str) -> bool:
     """The abstract senses of "restore" — none of which is a repair order.
 
@@ -977,6 +999,12 @@ class LLMClient:
         # the nation-keyed keyword forms below
         known_nations = _extract_known_nations(game_state)
         known_nations_lower = sorted(known_nations)
+        # Slice-11 review round: a command that LEADS with a player marshal's
+        # name is a marshal order, not a diplomatic overture — the two new
+        # keyword routes below (peace-intent, treaty-break) stand down for it.
+        _player_roster = (list(_game_state_dict(game_state, "marshals"))
+                          or ["Ney", "Davout", "Grouchy", "Drouot"])
+        _addressed_marshal = _leads_with_marshal(command_lower, _player_roster)
 
         # ════════════════════════════════════════════════════════════
         # CHEAT/DEBUG COMMANDS: Check FIRST before any keyword routing
@@ -1123,13 +1151,15 @@ class LLMClient:
         _downgrade_keywords = ["downgrade", "reduce commitment", "step down relations",
                                "lower relations", "cool relations"]
         if (any(kw in command_lower for kw in _break_keywords + _downgrade_keywords)
-                or _mentions_treaty_break(command_lower)):
+                or (_mentions_treaty_break(command_lower) and not _addressed_marshal)):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # WO slice 11 (§2 H-15): a peace overture routes to diplomacy BEFORE
         # the war keywords below can read "end the war ON any terms" as a
-        # declaration; `_parse_diplomatic_command` finishes the job.
-        if _mentions_peace_intent(command_lower):
+        # declaration; `_parse_diplomatic_command` finishes the job. Review
+        # round: never for a marshal-addressed order (`Ney, end the war of
+        # attrition` is Ney's business, not Talleyrand's).
+        if _mentions_peace_intent(command_lower) and not _addressed_marshal:
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # War declaration commands route to diplomacy (R10)
@@ -1183,7 +1213,15 @@ class LLMClient:
             "open borders with", "non-aggression with", "non aggression with",
             "defensive alliance", "pact with",
         ]
-        if any(kw in command_lower for kw in _proposal_keywords):
+        # Review round: the same marshal-address guard the peace-intent route
+        # carries, applied to this PRE-EXISTING proposal route — `make peace`
+        # / `sue for peace` have always been proposal keywords, so
+        # `Ney, make peace impossible` (an aggressive order) was hijacked to
+        # the "which court?" picker long before slice 11. No pin addresses a
+        # proposal to a marshal (proposals go to Talleyrand, who routes
+        # first), so guarding it is safe.
+        if (any(kw in command_lower for kw in _proposal_keywords)
+                and not _addressed_marshal):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Mission keywords route to diplomacy (without Talleyrand)

@@ -200,6 +200,48 @@ class TestThePeaceOverture:
         assert _cmd(parsed)["action"] == "diplomatic_declare_war"
         assert _diplo(parsed)["target_nation"] == nation
 
+    @pytest.mark.parametrize("text", [
+        "Ney, end the war of attrition",
+        "Ney, stop the war",
+        "Ney, halt the war machine",
+        "Ney, make peace impossible",
+        "Ney, sue for peace",
+        "Davout, end the siege",
+        "Ney, break the alliance with Austria",   # the treaty-break route
+        "Davout, end the alliance",
+    ])
+    def test_a_marshal_addressed_order_is_never_hijacked_to_diplomacy(
+            self, parser, text):
+        """Review round: the peace-intent / treaty-break / proposal routes
+        fire on keyword presence BEFORE marshal parsing, so a marshal order
+        carrying a war/peace word was hijacked to the "which court?" picker
+        (`Ney, make peace impossible` — an aggressive 'give no quarter'
+        order — answered by an offer to sue for peace). A command that
+        LEADS with a player marshal's name never routes to diplomacy.
+        Killed by dropping the `_addressed_marshal` guard from any of the
+        three routes."""
+        parsed = _parse(parser, text)
+        assert _cmd(parsed).get("action") != "diplomatic_error"
+        assert _diplo(parsed).get("action") is None
+        # It falls to ordinary marshal parsing — an unparseable one is
+        # Berthier's honest shrug (never a diplomatic proposal).
+        assert (parsed.get("success") is False
+                or _cmd(parsed).get("marshal") is not None)
+
+    def test_the_leading_address_guard_reads_the_roster(self):
+        from backend.ai.llm_client import _leads_with_marshal
+        roster = ["Ney", "Davout", "Grouchy", "Drouot"]
+        assert _leads_with_marshal("ney, end the war", roster)
+        assert _leads_with_marshal("marshal davout, end the war", roster)
+        assert not _leads_with_marshal("end the war", roster)
+        assert not _leads_with_marshal("talleyrand, end the war", roster)
+        # A bare marshal name with no comma is not a leading ADDRESS.
+        assert not _leads_with_marshal("end the war for ney", roster)
+        # ...and a marshal name AFTER the comma is not the address either —
+        # only the segment BEFORE the first comma is the address (kills a
+        # matcher that scans the whole string).
+        assert not _leads_with_marshal("end the war, ney", roster)
+
     def test_the_predicate_reads_war_and_hostilities_but_not_fighting(self):
         """`Ney, stop the fighting` is an order to a marshal (PARSE-NEG's
         stand-down), not a peace overture."""

@@ -1,0 +1,44 @@
+[
+ {
+  "id": "REV-1 peace-intent route drops the marshal-address guard",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if _mentions_peace_intent(command_lower) and not _addressed_marshal:",
+  "new": "        if _mentions_peace_intent(command_lower):",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "REV-2 treaty-break route drops the marshal-address guard",
+  "file": "backend/ai/llm_client.py",
+  "old": "                or (_mentions_treaty_break(command_lower) and not _addressed_marshal)):",
+  "new": "                or _mentions_treaty_break(command_lower)):",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "REV-3 proposal route drops the marshal-address guard",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if (any(kw in command_lower for kw in _proposal_keywords)\n                and not _addressed_marshal):",
+  "new": "        if any(kw in command_lower for kw in _proposal_keywords):",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "REV-4 leading-address matcher ignores the comma anchor",
+  "file": "backend/ai/llm_client.py",
+  "old": "    head = match.group(1).strip()\n    return bool(head) and _match_known_name(head, marshal_names) is not None",
+  "new": "    return _match_known_name(command_lower, marshal_names) is not None",
+  "tests": "tests/test_wo_slice11_typed_route_residue.py"
+ },
+ {
+  "id": "REV-5 specify list stops excluding vassals",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        courts = [n for n in world.get_active_nations()\n                  if n != player and n not in _vassals]",
+  "new": "        courts = [n for n in world.get_active_nations()\n                  if n != player]",
+  "tests": "tests/test_wo_slice12_copy_sweep.py"
+ },
+ {
+  "id": "REV-6 revoke copy over-promises grace again",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            if int(getattr(marshal, \"expectation_grace_turn\", -1)) >= 0:\n                consequence = (\"He will remember who stopped paying, Sire — \"\n                               \"the debt the rente only masked frays his \"\n                               \"loyalty at once.\")\n            else:",
+  "new": "            if False:\n                consequence = (\"He will remember who stopped paying, Sire — \"\n                               \"the debt the rente only masked frays his \"\n                               \"loyalty at once.\")\n            else:",
+  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
+ }
+]

@@ -679,6 +679,20 @@ class TestTheSpecifyListIsLive:
         assert "Russia" in listed or "or one of" in listed
         assert "France" not in listed
 
+    def test_the_players_own_vassals_are_not_offered(self, europe):
+        """Slice-12 review round: the list named the player's own vassals
+        (Holland, Kingdom of Italy, Switzerland on the 1805 boot) as
+        diplomatic targets - the unusable-option flaw the rewrite existed
+        to stop. Killed by dropping the vassal filter."""
+        from backend.commands.diplomatic_executor import _specify_courts
+        vassals = {v for v, s in europe.vassals.items()
+                   if isinstance(s, dict) and s.get("lord") == "France"}
+        assert vassals, "the 1805 boot has France-vassals to exclude"
+        listed = _specify_courts(europe)
+        from backend.display_names import display_nation
+        for v in vassals:
+            assert display_nation(v) not in listed, (display_nation(v), listed)
+
     def test_the_declare_war_refusal_reads_the_live_list(self, europe):
         """Killed by returning the old literal from the helper."""
         import copy

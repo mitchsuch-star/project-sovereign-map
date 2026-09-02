@@ -3135,7 +3135,12 @@ reviewed row-by-row.
 >    still indexes into the text — and only when something substantive
 >    follows, so a bare `wait.` still waits and `wait for Davout` (no
 >    punctuation — the filler IS the order) is untouched. It closes the
->    `hold on` row of the same class in the same stroke. Driven end to end:
+>    `hold on` row FOR NON-STRATEGIC verbs (`hold on, Ney,
+>    retreat`); a `hold on, X, move to Y` still misfires as a strategic
+>    HOLD on a phantom region because the strategic layer
+>    (`parser.py`'s `detect_strategic_command`) re-reads the UN-blanked
+>    text — pre-existing and fails safe (`Region 'On' not found`), noted
+>    by the review round, not fixed here. Driven end to end:
 >    Ney retreats.
 > 2. **§2 H-15 — one peace-intent predicate.** `_mentions_peace_intent`
 >    (*end/stop/cease … the war|hostilities*, *sue/ask for peace*,
@@ -3187,6 +3192,43 @@ reviewed row-by-row.
 > Ney charge) needs nothing: the WAIT no longer arises, and an objection
 > answered with `trust` executing the marshal's preferred alternative is the
 > objection system as designed.
+
+> ### The review round — slices 11, 12, 14 at their committed SHAs
+>
+> **Three fleets (one per slice), three confirmed findings, all fixed; two
+> more claims corrected on the record.** `tools/_sweep_wo_review.json` —
+> **6 mutations, 6 killed, 0 inert at close** (two INERT on the first
+> sweep, both real coverage gaps, both repaired). Corpus 548/548; the three
+> slice files 70 + 50 + 17.
+>
+> **[slice 11, P2 — the one regression I introduced]** the peace-intent and
+> treaty-break EARLY routes select the diplomatic parser on keyword presence
+> BEFORE marshal parsing, so `Ney, end the war of attrition` and
+> `Ney, stop the war` were hijacked to the "which court?" nation-picker
+> (Ney dropped) — pre-slice these were an honest *Unknown action*. A
+> command that LEADS with a player marshal's name (`_leads_with_marshal`,
+> matched only in the segment BEFORE the first comma) now stands the two
+> routes down; Talleyrand-addressed commands never reach here (the diplomat
+> route fires first). **The reviewer's headline case `Ney, make peace
+> impossible` was NOT this regression** — `make peace` / `sue for peace`
+> have been proposal keywords since long before slice 11, so it was
+> pre-existing; the same guard is extended to that PRE-EXISTING proposal
+> route (no pin addresses a proposal to a marshal, so it is safe), which
+> closes it too.
+>
+> **[slice 12, P3]** `_specify_courts` listed the player's OWN vassals
+> (Holland, Kingdom of Italy, Switzerland on the 1805 boot) as diplomatic
+> targets — the exact unusable-option flaw the rewrite named ("Saxony is a
+> vassal"). The player's vassals are excluded now.
+>
+> **[slice 14, P3]** `_execute_revoke_pension`'s copy said unmet expectation
+> "frays loyalty after its grace expires" for everyone — but WO-18 freezes
+> the grace clock for a marshal who was ALREADY owed before the rente, so
+> revoking then bites AT ONCE with no fresh window. The copy branches on the
+> frozen clock now (the slice's own problem statement had flagged this exact
+> sentence as a lie). Both of the review's edge questions — the
+> paid-then-revoke instant erosion (A2) and the stuck-forever plundered
+> province (B4) — were ruled ACCEPTABLE-BY-DESIGN with reasons.
 
 ### Slice 12 — the copy sweep (est 1)
 

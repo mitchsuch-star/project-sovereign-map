@@ -1479,8 +1479,20 @@ class EconomyExecutor:
             # already describing — re-quote it rather than leave the button
             # offering the pre-revocation price.
             restate_reward_notice(world, marshal)
-            consequence = ("He will remember who stopped paying, Sire: unmet "
-                           "expectation frays loyalty after its grace expires.")
+            # WO slice 14 review round: WO-18 freezes the grace clock while a
+            # load-bearing rente covers a marshal who was ALREADY owed, so
+            # revoking then resumes erosion AT ONCE — the "after its grace
+            # expires" line over-promised a fresh window it no longer gets.
+            # A −1 clock (the rente met him from a clean slate) does open a
+            # grace window; a frozen-open clock does not. Say which.
+            if int(getattr(marshal, "expectation_grace_turn", -1)) >= 0:
+                consequence = ("He will remember who stopped paying, Sire — "
+                               "the debt the rente only masked frays his "
+                               "loyalty at once.")
+            else:
+                consequence = ("He will remember who stopped paying, Sire: "
+                               "unmet expectation frays loyalty after its "
+                               "grace expires.")
 
         return {
             "success": True,

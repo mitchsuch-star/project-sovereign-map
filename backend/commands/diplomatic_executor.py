@@ -67,13 +67,23 @@ def _specify_courts(world) -> str:
     """WO slice 12: the courts a target-less diplomatic order may name,
     read from the LIVE world. Six refusals carried a pre-cutover literal —
     "Britain, Prussia, Austria, or Saxony" — on a board of twenty courts
-    where Saxony is a vassal and Russia was never mentioned."""
+    where Saxony is a vassal and Russia was never mentioned.
+
+    Slice-12 review round: the player's OWN vassals are excluded — the
+    literal named Saxony (a vassal) as the very kind of unusable target the
+    rewrite existed to stop, and `get_active_nations` returns vassals too.
+    None of the six callers (break treaty / downgrade / amends / declare
+    war / ultimatum) can sensibly aim at a court the player already owns."""
     from backend.display_names import display_nation
     player = getattr(world, "player_nation", "France")
+    _vassals = {v for v, state in (getattr(world, "vassals", {}) or {}).items()
+                if isinstance(state, dict) and state.get("lord") == player}
     try:
-        courts = [n for n in world.get_active_nations() if n != player]
+        courts = [n for n in world.get_active_nations()
+                  if n != player and n not in _vassals]
     except Exception:  # a bare test world without the cache seam
-        courts = [n for n in world.get_known_nations() if n != player]
+        courts = [n for n in world.get_known_nations()
+                  if n != player and n not in _vassals]
     names = sorted(display_nation(n) for n in courts)
     if not names:
         return "a court"
