@@ -72,6 +72,17 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > row is clean; the over-claim was editorial. Build it as a shared helper across
 > all four seams — three of France's seven marshals sit at trust 0 by turn 41.
 >
+> **▶ AND 35 DEFECTS THE AUDIT MISSED** — FA-N2..FA-N36 in `BUG_FIXES.md`
+> §Verification-Pass Findings. **Four new P1s**, all the audit's own through-line
+> one layer out: **FA-N2** a negated answer to a pending dialogue executes the
+> affirmative (`do not accept` SIGNS the treaty — hand-verified; PARSE-NEG's class,
+> above the seam its guards cover), **FA-N3** every battle under a standing order
+> reports INCONCLUSIVE, **FA-N4** the offer popup's third button destroys the offer,
+> **FA-N5** two blocking client modals answer whichever dialogue is on top. And
+> **FA-N17/FA-N23 are defects in FA-4's and FA-7's own prescribed fixes** — build
+> those two rows as written and you ship a regression. ⚠ The sweeps are PARTIAL:
+> treat that list as a floor.
+>
 > **▶ NEXT = the memo's §6 build order, RE-ORDERED per report §7.** Slice 8
 > (the harness) is scheduled last but is the instrument every other slice's
 > reproduction depends on — **do its reproduction-critical half first** (FA-10,
