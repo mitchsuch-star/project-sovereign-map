@@ -1740,7 +1740,7 @@ shippable build is unblocked by slice 4.
 
 | # | slice | rows | size | why here |
 |---|---|---|---|---|
-| 1 | **"The Two Words"** — the fast parser stops acting on keywords it does not understand | FA-6, FA-7, FA-11, FA-50, FA-22, FA-54 | ~0.5 session | Two P1s a first-time player hits in an hour, both one-seam, both hand-reproduced. Corpus rows exist for every phrasing. |
+| 1 | **"The Two Words"** — the fast parser stops acting on keywords it does not understand | FA-6, FA-7, FA-11, FA-50, FA-22, FA-54 | ~0.5 session | The parsing family a first-time player hits in an hour: FA-7 (P1, an order inverted), plus FA-6/FA-11/FA-22 (P2) and FA-50/FA-54 (P3). All one-seam, all hand-reproduced, and corpus rows exist for every phrasing. *(Amended Sept 2: this row read "two P1s" before FA-6 was downgraded.)* |
 | 2 | **"The Question Reaches the Player"** — a pending question is delivered, once, and answerable | FA-5, FA-1, FA-16, FA-36, FA-28, FA-30 | ~1 session | The end-turn deferral (FA-5) is the widest: on a quiet stretch the player is shown nothing at all. FA-1 destroys a marshal while asking about him. |
 | 3 | **"The Peace Can Be Signed"** — the settlement route stops refusing itself | FA-3, FA-4, FA-17, FA-D7, FA-D17, FA-21 | ~1 session | France cannot end the 1805 war by accepting the coalition's own offer, winning or losing. This is the arc the whole diplomacy layer exists to close. |
 | 4 | **"It Runs on a Stranger's Machine"** — the position-10 blockers this audit found | FA-29, FA-43, FA-62, FA-81, FA-82, FA-9, FA-42, FA-57, FA-63 | ~1 session | Every row here is something a Round-0 tester meets in ten minutes: a Python command they cannot run, missing licence text for CC-BY assets, and a tutorial that loses six provinces when followed. **Do this before the export.** |
@@ -1749,8 +1749,13 @@ shippable build is unblocked by slice 4.
 | 7 | **"The Neglect Arc Ends"** — the marshal systems close their own loops | FA-26, FA-D5, FA-67, FA-47, FA-56, FA-71, FA-D23 | ~1 session | The single highest-leverage change in the audit is FA-26 (§7 below), and the rest of the row is its neighbourhood. |
 | 8 | **The instrument** — fix the harness before the next audit trusts it | FA-10, FA-74, FA-76, FA-41, FA-39, FA-86, FA-87, FA-92, FA-102 | ~0.5 session | Every one of these silently degraded THIS audit's evidence. FA-92 is the worst: `tools/mutation_sweep.py` reports a mutation that crashes the module as KILLED. |
 
-The 26 FA-D tie-ins outside those slices are one-session joins each; take them
-opportunistically when a slice is already in the file they name.
+**Coverage, stated so nobody mistakes this for a complete plan (measured Sept 2,
+2026):** the eight slices name **59 of the 128 filed rows**. All 9 P1s are
+covered; **16 of the 50 P1/P2 rows are not in any slice**, and **17 of the 26
+FA-D tie-ins sit outside them**. The uncovered rows are not lower value by
+construction — they are what did not group cleanly. Take an FA-D join
+opportunistically when a slice is already open in the file it names, and decide
+explicitly whether the 16 unslotted P1/P2 rows need a ninth slice.
 
 ## 7. The single highest-leverage recommendation
 
