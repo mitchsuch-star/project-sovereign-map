@@ -18,7 +18,7 @@
     "clarification": "first"
   },
   "turns_requested": 10,
-  "started": "2026-09-01 21:18",
+  "started": "2026-09-01 21:22",
   "from_save": "",
   "rng": {
     "deterministic": true,
@@ -28,8 +28,8 @@
   "status": "completed",
   "counters": {
     "commands": 22,
-    "popups": 35,
-    "battles": 17,
+    "popups": 3,
+    "battles": 5,
     "turns": 10
   },
   "unknown_blockers": []

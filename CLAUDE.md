@@ -44,6 +44,26 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 1, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026.** Memo of
+> record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);
+> machine record = `docs/audits/final_audit_2026_09_01_findings.json`;
+> routing = `BUG_FIXES.md` §Final Whole-Game Audit **FA-1..FA-102** +
+> `DESIGN_REFINEMENT.md` §FA-D **FA-D1..FA-D26**. Nine archived seeded
+> campaigns (~200 turns, `docs/audits/playtest_digests/audit-*`) read first,
+> then sixteen lens finders → dedupe → refuters: **207 raw → 130 deduped →
+> 128 live (2 refuted)**. Report-only. **NEXT = the memo's §6 build order
+> (eight slices; slice 4 is the position-10 blockers and lands BEFORE the
+> export), then position 10, the shippable build.** Headline P1s, both
+> hand-reproduced and live under `--llm anthropic` (the fast parser never
+> escalates): `Davout, attack next turn` ENDS THE TURN (FA-6);
+> `Ney, delay the attack` FIGHTS NOW (FA-7). Highest-leverage single row =
+> **FA-26** (the ES-7 erosion tick is the only trust-writing seam that never
+> consults `check_redemption_threshold` — a neglected marshal bleeds to trust
+> 0 and is never asked). ⚠ **No pillar re-score exists**: three session usage
+> limits killed the scorers and most of the refuter pass, so 46 rows are
+> UNVERIFIED (nobody tried to kill them) and the Aug-16 priors stand. Every
+> row states its own verdict; reproduce before fixing.
+>
 > **▶ WO-41 "THE QUESTION SURVIVES THE SAVE" — the row's one unowned
 > residue, ✅ FIXED September 1, 2026** (landing record
 > `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9 addendum; BUG_FIXES WO-41 →

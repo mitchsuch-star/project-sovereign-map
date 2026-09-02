@@ -4,6 +4,52 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE FINAL WHOLE-GAME AUDIT — HELD September 1, 2026. **128 findings filed; NEXT = the memo's §6 build order, then position 10 (the shippable build).**
+> **Memo of record = `docs/audits/FINAL_AUDIT_2026_09_01.md` (authoritative);
+> untruncated machine record = `docs/audits/final_audit_2026_09_01_findings.json`;
+> routing = `BUG_FIXES.md` §Final Whole-Game Audit (FA-1..FA-102) +
+> `DESIGN_REFINEMENT.md` §FA-D (FA-D1..FA-D26).** The last audit before the
+> build, run at master `ccf5f111` on nine archived seeded campaigns (~200 played
+> turns, `docs/audits/playtest_digests/audit-*`) read BEFORE the fleet was
+> briefed, then sixteen lens finders → dedupe → adversarial refuters.
+> **207 raw → 130 deduped → 128 live (2 refuted) + 41 working-well notes.**
+> Report-only: zero production behaviour changed by the audit.
+>
+> **The answers to the user's five questions** (memo §1): nothing structural is
+> MISSING that is not already owned — the holes are *joins*, 26 of them, filed
+> FA-D. What works POORLY is the CA9 through-line one seam further down: the
+> engine computes the right answer and a surface says something else (a live
+> rebelling vassal briefed as *"Switzerland has ceased to exist"*, FA-2; a
+> bombardment campaign that narrates as nothing, FA-25). COMMANDS work except
+> for two P1s a first-time player hits in an hour, **both hand-reproduced and
+> both live under `--llm anthropic` because the fast parser never escalates**:
+> `Davout, attack next turn` ENDS THE TURN (FA-6) and `Ney, delay the attack`
+> FIGHTS NOW (FA-7). The AI is strategically alive and tactically dumb in three
+> measured ways (P4.25 prices a garrison and ignores the field army on it,
+> FA-8 — 48 attacks across nine digests where the attacker lost ≥1,000 men).
+> The one join worth building first is **FA-26**: the ES-7 erosion tick is the
+> only trust-writing seam that never consults `check_redemption_threshold`, so a
+> neglected marshal bleeds to trust 0 and is never asked (measured: Lannes,
+> eleven battles won, trust 0 at turn 41 of the ambient arm).
+>
+> **⚠ What the audit did NOT do, and the memo says so at the top.** Three
+> session usage limits: the finders all completed, the refuter pass did not, and
+> **the ten pillar scorers never ran — so there is NO pillar re-score and the
+> Aug-16 priors stand un-refreshed.** 36 rows carry a refuter verdict, 25 are
+> AUTHOR-VERIFIED (hand-reproduced by the session author in parallel with the
+> fleet), 23 are author-checked harness rows, and **46 are UNVERIFIED — nobody
+> tried to kill them.** Every row states its own verdict; reproduce before
+> fixing. The two REFUTED rows are the calibration: both died to probes the
+> refuters ran themselves.
+>
+> **Corrected on the record:** my own mid-session claim that the live-parser arm
+> matched the mock arm 37/37 measured fast-parser determinism, not live-parser
+> agreement — the run made exactly ONE Anthropic call in twelve turns (memo
+> §0.1). **Build order = memo §6**, eight slices, with slice 4 (the position-10
+> blockers this audit found: a Python command a stranger cannot run, CC-BY
+> assets shipping without `THIRD_PARTY_LICENSES.md`, and a tutorial that loses
+> six homeland provinces when followed) landing BEFORE the export.
+
 > # ✅ WO-41 "THE QUESTION SURVIVES THE SAVE" — the row's one unowned residue, FIXED September 1, 2026.
 > **Landing record = `docs/WEIRD_OUTCOMES_SPEC.md` §3 slice 9 addendum,
 > authoritative; `BUG_FIXES.md` WO-41 → FIXED.** Found by the "what's
