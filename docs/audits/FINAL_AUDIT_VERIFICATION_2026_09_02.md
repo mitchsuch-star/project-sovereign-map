@@ -56,9 +56,9 @@ What the pass found, in order of consequence:
    kill, **zero were refuted.** The status was a budget artefact, not a signal —
    exactly as the memo said it was.
 
-The sweeps also found **57 defects the audit missed**, filed FA-N2..FA-N58 — five of
-them P1, and **four** of them defects in the audit's OWN prescribed fixes (FA-4's, FA-7's,
-FA-21's and FA-27's), which would have shipped as regressions (§5).
+The sweeps also found **70 defects the audit missed**, filed FA-N2..FA-N71 — five of
+them P1, and **five** of them defects in the audit's OWN prescribed fixes (FA-4's, FA-7's,
+FA-21's, FA-27's and FA-36's), which would have shipped as regressions (§5).
 
 Two boundaries worth stating plainly, because both cut against a tidier story:
 the memo's **§0 evidence table is exact** but its **§1/§2 narrative is materially
@@ -264,7 +264,7 @@ one the memo named.
 `modify_trust` / `trust.modify` site sits on a call path to `check_redemption_threshold`,
 with the four known families enumerated so the pin fails when a fifth appears.
 
-### The neighbourhood sweeps — 57 new findings the audit missed
+### The neighbourhood sweeps — 70 new findings the audit missed
 
 Every audit row that survived verification went to a sweep asking four questions:
 **census the seam's other callers** (`grep -c` or an AST pass over the whole backend,
@@ -273,8 +273,8 @@ puts both sides through the same executor; **check the producer → renderer joi
 backend key no `.gd` reads or a `.gd` read no producer emits; and **ask what the row's
 own `fix_shape` would break**.
 
-That produced **57 confirmed new rows from 24 sweeps — 5 P1, 26 P2, 23 P3** — filed as
-**FA-N2..FA-N58** in `BUG_FIXES.md` §Verification-Pass Findings (the two tie-ins in
+That produced **70 confirmed new rows from 30 sweeps — 5 P1, 31 P2, 29 P3** — filed as
+**FA-N2..FA-N71** in `BUG_FIXES.md` §Verification-Pass Findings (the two tie-ins in
 `DESIGN_REFINEMENT.md`). FA-N1 is the §7 prose defect above and is not in that table.
 
 **The three P1s, all of them the audit's own through-line one layer further out:**
@@ -307,6 +307,7 @@ pass otherwise confirmed:
 - **FA-N13** — Cancelling an order the marshal does not have destroys his parked last-stand decision, charges 1 AP and -3 trust, and leaves the rail telling the player to answer it
 - **FA-N17** — FA-4's own fix_shape, applied as written, breaks the ordinary accept: staging before the pop leaves the offer mounted, so the same-war arm answers with the scope-replace chooser instead of the ratification review
 - **FA-N19** — The VS-6 defection announces 'Switzerland has ceased to exist.' beside 'THE DEFECTION…' — FA-2's false fact at a second seam FA-2's own fix does not touch
+- **FA-N63** — FA-36's own fix, applied where it says, makes the end-turn interrupt popup swallow the entire turn report — the WIN-H1 defer guard only knows about order-BOUND asks by construction
 - **FA-N23** — FA-7's own fix, applied as written, stops bare `next turn` from ending the turn — the trailing-adverb refusal collides with a pinned end-turn synonym the client mirrors
 - **FA-N51** — FA-21's own fix makes the demand SMALLER: the EC-W4 figure collapses through _reduce_p8_demands to a flat 200g with _force_send, because the bilateral acceptance formula prices gold linearly and uncapped while the settlement path caps its harshness term at -45
 
@@ -322,6 +323,7 @@ pass otherwise confirmed:
 | **FA-N7** | P2 | defect | `backend/ai/enemy_ai.py:2618` | P3.25 counter-punch has no odds floor at all — a cautious AI corps hurls itself for free at any adjacent stack, priced against ONE man |
 | **FA-N39** | P2 | defect | `backend/ai/llm_client.py:72` | The honorific alternation diverged: ADDRESS_TOKEN_RE strips only "Marshal", so "General Ney, attack Mack" makes all 7 address guards blind — a DEAD ma |
 | **FA-N8** | P2 | defect | `backend/ai/llm_client.py:1560` | A bare `\blay down\b` routes any sentence to build_fleet — "lay down a pontoon bridge" spends 400g (half the boot treasury) and 1 of 2 admin AP, with  |
+| **FA-N59** | P2 | defect | `backend/commands/combat_executor.py:3131` | A garrison assault never writes the exhaustion counter it reads: storming a capital 3x in one turn costs nothing, and the same two engagements fight a |
 | **FA-N9** | P2 | defect | `backend/commands/parser.py:1004` | The three marshal-free naval verbs are missing from parser.py's `meta_actions` list, so the marshal word-scan eats a stray token — the in-game help te |
 | **FA-N10** | P2 | missing | `backend/commands/strategic.py:107` | A battle fought under a standing strategic order reaches the player with no casualties, no after-action report and no diorama — _combat_carry omits th |
 | **FA-N11** | P2 | defect | `backend/commands/strategic.py:1666` | The HOLD verb discards `order.path` every turn, so every reroute is thrown away: with an enemy standing on the terrain-cheapest route a literal marsha |
@@ -329,6 +331,7 @@ pass otherwise confirmed:
 | **FA-N40** | P2 | defect | `backend/commands/strategic.py:1841` | The aggressive HOLD sally narrates a REFUSED attack as a battle fought — every turn, forever, with the refusal printed underneath it |
 | **FA-N41** | P2 | defect | `backend/commands/strategic.py:2203` | A SUPPORT order blocked at its first step re-stalls silently and forever — the PF-8 fix reached MOVE_TO and PURSUE and never reached SUPPORT |
 | **FA-N42** | P2 | defect | `backend/commands/strategic_executor.py:2145` | The first-step auto-attack's battle reaches the client stripped: no after-action report, no diorama, no battle event, and the plunder/secure modal is  |
+| **FA-N60** | P2 | defect | `backend/commands/strategic_executor.py:2158` | Every first-step strategic interrupt asks its question with the body text "Awaiting your orders, Sire." — the marshal's actual line is computed and th |
 | **FA-N13** | P2 | defect | `backend/commands/strategic_executor.py:2251` | Cancelling an order the marshal does not have destroys his parked last-stand decision, charges 1 AP and -3 trust, and leaves the rail telling the play |
 | **FA-N43** | P2 | defect | `backend/game_logic/diplomacy.py:4225` | The "Assessment" line on every incoming peace offer is computed on the swapped orientation, so its sign is inverted: an AI demand for 405 gold reads G |
 | **FA-N44** | P2 | defect | `backend/game_logic/diplomacy.py:8425` | The commitment-paradox modal is raised while another dialogue holds the slot, so 'Honor the alliance' is applied to option 1 of whatever is current -  |
@@ -339,13 +342,17 @@ pass otherwise confirmed:
 | **FA-N17** | P2 | tie_in | `backend/game_logic/settlement_offers.py:2734` | FA-4's own fix_shape, applied as written, breaks the ordinary accept: staging before the pop leaves the offer mounted, so the same-war arm answers wit |
 | **FA-N18** | P2 | defect | `backend/game_logic/settlement_staging.py:3405` | An incoming settlement offer is counted as a mounted DRAFT by the SC-26 same-war branch, so opening Settlement on a war that has a live offer destroys |
 | **FA-N19** | P2 | defect | `backend/game_logic/vassal.py:2216` | The VS-6 defection announces 'Switzerland has ceased to exist.' beside 'THE DEFECTION…' — FA-2's false fact at a second seam FA-2's own fix does not t |
+| **FA-N61** | P2 | defect | `backend/game_logic/withdrawal.py:786` | A corps stranded AFTER the peace is never handed the treaty's road-home order — it is warned three times and interned; two French marshals are destroy |
 | **FA-N20** | P2 | defect | `backend/main.py:462` | Ten of the twelve `/command` early returns still DRAIN the PopupQueue into a response the client discards — IGR-X7 fixed 2 of 12, and the one-shot Tal |
+| **FA-N62** | P2 | defect | `backend/main.py:4962` | The Orders-tab [Cancel] button blocks on ANY pending dialogue while the typed `cancel` blocks only on hard stops — measured refused on 12 of 12 ambien |
 | **FA-N46** | P2 | defect | `backend/models/world_state.py:6145` | A rente-paid marshal forfeits his grace window forever — WO-18's frozen clock turns his NEXT victory into instant trust erosion, while an estate-paid  |
 | **FA-N21** | P2 | defect | `godot-client/project-sovereign/scripts/enemy_phase_dialog.gd:251` | An AI assault on the player's own garrison renders as a bare 'attacks X' — `garrison_assault` has no consumer in any .gd, no campaign-log row and no b |
 | **FA-N22** | P2 | defect | `godot-client/project-sovereign/scripts/main.gd:1373` | The client's end-turn gate is coarser than the parser it mirrors — 'Davout, fortify until next turn' ends the turn in the shipped client instead of fo |
+| **FA-N63** | P2 | tie_in | `godot-client/project-sovereign/scripts/main.gd:2403` | FA-36's own fix, applied where it says, makes the end-turn interrupt popup swallow the entire turn report — the WIN-H1 defer guard only knows about or |
 | **FA-N23** | P3 | tie_in | `backend/ai/clause_guards.py:148` | FA-7's own fix, applied as written, stops bare `next turn` from ending the turn — the trailing-adverb refusal collides with a pinned end-turn synonym  |
 | **FA-N24** | P3 | defect | `backend/ai/llm_client.py:1569` | A bare `\bdiversion\b` claims any sentence for the once-per-war Grand Diversion — "Murat, mount a diversion on the left" opens the Admiralty modal, th |
 | **FA-N25** | P3 | defect | `backend/commands/combat_executor.py:3425` | A won breakout teleports the player's marshal four provinces to his capital, on a premise the code states in its own docstring and the code beside it  |
+| **FA-N64** | P3 | defect | `backend/commands/diplomatic_defiance.py:632` | The 'was overriding Talleyrand right?' payoff is undeliverable twice over — the only writer records "override" while the only reader matches "good"/"b |
 | **FA-N47** | P3 | defect | `backend/commands/executor.py:2493` | A REFUSED order destroys the square and says nothing — the break notice is dropped on failure and wiped by any nested execute() |
 | **FA-N48** | P3 | defect | `backend/commands/strategic.py:146` | The shared combat allowlist omits the war-purpose triad, so a staged war_purpose_selection HARD STOP is delivered by no strategic combat route |
 | **FA-N49** | P3 | defect | `backend/commands/strategic.py:1727` | A HOLD order whose position lies past a closed border is accepted, charges 2 AP, marches for a turn and then dies with the reasonless line "Cannot rea |
@@ -358,15 +365,22 @@ pass otherwise confirmed:
 | **FA-N30** | P3 | defect | `backend/game_logic/dispatch.py:4306` | Three dispatch event types have no formatter, so the Morning Dispatch prints the raw internal key — 'Diplomatic event: settlement_offer_arrival' is on |
 | **FA-N52** | P3 | defect | `backend/game_logic/gazette.py:37` | Le Moniteur can never report a coalition forming against France, a vassal rebellion, a vassal's creation or an incoming ultimatum — six of its collect |
 | **FA-N53** | P3 | defect | `backend/game_logic/jealousy.py:2991` | Fontainebleau's "promise" option says it buys 3 turns of patience and buys 7 — and the very next dispatch prints the real number |
+| **FA-N65** | P3 | defect | `backend/game_logic/ledger.py:76` | The Strategic Ledger shows a captured marshal as 'Idle' standing in the enemy capital at 100% morale, and lists him among the marshals awaiting orders |
 | **FA-N31** | P3 | defect | `backend/game_logic/vassal.py:993` | A foreign lord's vassal rebelling raises a CRITICAL alert on the player's notification rail — the one vassal-crisis notification in vassal.py with no  |
+| **FA-N66** | P3 | defect | `backend/main.py:1798` | The enemy-phase report says a court's 'formations remain beyond our sight' on the turn its army marched into France and began a siege -- `occupation_s |
+| **FA-N67** | P3 | defect | `backend/main.py:4963` | Five of /cancel_order's six return arms still DRAIN the PopupQueue into a response whose client callback discards it by construction — the Aug-2026 co |
+| **FA-N68** | P3 | defect | `backend/models/world_state.py:2630` | A marshal destroyed with a standing last-stand question keeps his CRITICAL 'decide his fate' row at the top of the rail forever — capture retires it,  |
 | **FA-N54** | P3 | defect | `backend/models/world_state.py:12125` | `_check_cavalry_limits` is player-only — an enemy cavalry marshal holds a fortified defensive position forever and never pays the −6 trust the player' |
 | **FA-N32** | P3 | defect | `backend/models/world_state.py:12429` | A routed corps below 1,000 men ENDS THE BATTLE STRONGER than it entered it — the auto-charge combat copy never got the July-6 survivor clamp its maint |
+| **FA-N69** | P3 | defect | `godot-client/project-sovereign/scripts/dispatch_view.gd:352` | The dispatch re-read screen (R) silently drops DIPLOMATIC STATUS and COALITION THREAT — two sections main.gd prints from the same payload, non-empty o |
 | **FA-N33** | P3 | defect | `godot-client/project-sovereign/scripts/enemy_phase_dialog.gd:261` | An enemy army walking into a French province takes it in silence: the enemy-phase report renders 'Region captured' for the attack route only, and no c |
 | **FA-N55** | P3 | defect | `godot-client/project-sovereign/scripts/enemy_phase_dialog.gd:382` | Fort-degradation percentages are scaled twice in the enemy-phase dialog — a corps dug in at 15% is reported as "Fort degraded: 1500% -> 1000%" |
 | **FA-N56** | P3 | defect | `godot-client/project-sovereign/scripts/main.gd:889` | PC15-18 gave six screen keys a focus-safe form and left the rest behind: the boot help and the shipped README still advertise E, Tab, M, +/-, Home and |
 | **FA-N34** | P3 | missing | `tests/test_review_2026_08_30.py:1293` | The client gate's own negative control never runs the gate — it asserts the GDScript source does not contain the words 'attack' or 'recruit', and all  |
 | **FA-N35** | P3 | harness | `tools/playtest_driver.py:215` | Harness: the driver files the vassal-rebellion, commitment-paradox and sabotage popups as DISPLAY_ONLY, so no archived campaign ever exercises the cli |
+| **FA-N70** | P4 | defect | `backend/commands/combat_executor.py:7433` | `form square` cancels a standing march and reports "Strategic order (MOVE_TO) cancelled" — the raw internal enum, at the one player-facing site that b |
 | **FA-N57** | P4 | defect | `backend/commands/strategic_executor.py:1562` | The Berthier 'is in square formation — consider breaking square first' advisory is production-dead; its `fortified` sibling one line up is live |
+| **FA-N71** | P4 | defect | `backend/game_logic/dispatch.py:2137` | The dispatch's WPS-A 'War Purpose' section is built and read by no renderer — the third silent surface for the same information |
 | **FA-N58** | P4 | defect | `backend/game_logic/dispatch.py:2733` | A routed corps' recovery is never reported in the morning dispatch: `retreat_recovered` is dropped at the whitelist and the stage-3 branch it was trad |
 | **FA-N36** | P4 | missing | `backend/game_logic/ledger.py:86` | The Strategic Ledger's Forces tab reports a marshal frozen by an unanswered interrupt as 'moving_to' with turns-remaining - the same lie the dispatch  |
 
@@ -481,8 +495,8 @@ relaunched, but the shape of the gap should be read honestly:
   moved DUPLICATE to NARROWED on a point of definition. **A row with a single verdict in the
   table below is better evidenced than it was yesterday, and still not settled.**
 - **The neighbourhood sweeps are PARTIAL.** 43 surviving P1/P2 rows were queued for a
-  sweep; the ones that completed (22 of 43) produced the 57 new findings in §5, including
-  all five new P1s. The rest were still running when this pass closed. **So §5 is a floor, not a
+  sweep; the 30 that completed produced the 70 new findings in §5, including all five new
+  P1s. The rest were still running when this pass closed. **So §5 is a floor, not a
   census** — the sweeps that did run averaged more than two confirmed findings each, and
   there is no reason to think the remainder are empty. Re-running them is cheap, and the
   workflow is resumable.
