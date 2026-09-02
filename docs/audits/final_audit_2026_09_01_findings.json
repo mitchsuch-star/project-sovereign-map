@@ -109,10 +109,10 @@
   },
   {
    "_id": "FA-6",
-   "_sev": "P1",
+   "_sev": "P2",
    "kind": "defect",
-   "_status": "AUTHOR_VERIFIED",
-   "title": "Any sentence containing \"next turn\"/\"end turn\" ENDS THE TURN — \"Davout, attack next turn\" forfeits all 4 AP and runs the enemy phase",
+   "_status": "AUTHOR_VERIFIED (amended 2026-09-02)",
+   "title": "A sentence containing \"next turn\" advances the turn irreversibly — including a QUESTION (\"what happens next turn\")",
    "_corrected": "The mock chain's end_turn arm is a bare substring test that sits above every order verb: llm_client.py:1411 `elif \"end turn\" in command_lower or \"end_turn\" in command_lower or \"next turn\" in command_lower: action = \"end_turn\"` (verified by opening). A qualifier on an order (\"…next turn\", \"…and end turn\") therefore becomes the end-turn command itself, and meta_executor.py:164-167 only WARNS about unused AP (\"PT-6: Warn about unused AP (informational — turn still ends)\", verified by opening). Mock is the shipped EA default, so no LLM ever sees these.",
    "summary": "The mock chain's end_turn arm is a bare substring test that sits above every order verb: llm_client.py:1411 `elif \"end turn\" in command_lower or \"end_turn\" in command_lower or \"next turn\" in command_lower: action = \"end_turn\"` (verified by opening). A qualifier on an order (\"…next turn\", \"…and end turn\") therefore becomes the end-turn command itself, and meta_executor.py:164-167 only WARNS about unused AP (\"PT-6: Warn about unused AP (informational — turn still ends)\", verified by opening). Mock is the shipped EA default, so no LLM ever sees these.",
    "player_consequence": "Verified by running on the 1805 boot via POST /command: `Davout, attack next turn` → \"Turn 1 ended. (Warning: 4 action(s) unused) Turn 2 begins!\", world.current_turn 2, enemy phase ran, Davout never moved. Same for `recruit next turn`, `next turn Ney attacks Mack`, `Ney, scout Swabia and next turn attack`, and `Ney attack Mack and end turn` (the attack is LOST and the turn ends). The player loses a whole turn of orders silently and cannot undo the enemy phase. BUG_FIXES.md:268 (REV row) only adds the envoy-lapse warning for bare \"next turn\" — with no envoy waiting, nothing intercepts.",
@@ -126,7 +126,8 @@
    "lens": null,
    "_hv": "HV-15 'next turn' anywhere ends the turn (mock AND live)",
    "merged": null,
-   "refuters": []
+   "refuters": [],
+   "amendment": "Downgraded P1->P2 on 2026-09-02 after an owner challenge, upheld. (a) 'forfeits all 4 AP' was wrong: actions_remaining resets to calculate_max_actions() at every turn start (world_state.py:9608), so AP never carry over — nothing is banked or stolen and there is no cheat vector. The fix must NOT queue the order: no deferred-order system exists and inventing one would hand out free actions. (b) 'Davout, attack next turn' is not a sentence a real player types, and the substring arm is deliberate synonym handling the client gate was widened to mirror (main.gd:1292-1302, Aug 30 2026). WHAT SURVIVES, re-measured 2026-09-02 on the 1805 boot via POST /command: 'what happens next turn' -> turn 1->2 with the enemy phase run; likewise 'we will decide next turn' and 'Ney, hold here and attack next turn'; but 'what should we do next turn?' and 'can Davout attack next turn?' hit the help arm and hold the turn. The defect is that a NON-COMMAND advances the turn irreversibly with no confirmation unless envoys are lapsing, and inconsistently — a question mark saves you, its absence does not."
   },
   {
    "_id": "FA-7",
@@ -3301,6 +3302,13 @@
    "file": "tools/playtest_driver.py",
    "line": 90,
    "lens": null
+  }
+ ],
+ "amendments": [
+  {
+   "id": "FA-6",
+   "date": "2026-09-02",
+   "change": "P1 -> P2; framing corrected (AP do not carry over); worst case re-measured as a question, not an order"
   }
  ]
 }

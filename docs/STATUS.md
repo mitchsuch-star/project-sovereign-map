@@ -23,8 +23,11 @@
 > bombardment campaign that narrates as nothing, FA-25). COMMANDS work except
 > for two P1s a first-time player hits in an hour, **both hand-reproduced and
 > both live under `--llm anthropic` because the fast parser never escalates**:
-> `Davout, attack next turn` ENDS THE TURN (FA-6) and `Ney, delay the attack`
-> FIGHTS NOW (FA-7). The AI is strategically alive and tactically dumb in three
+> `Ney, delay the attack` FIGHTS NOW (FA-7), and a non-command such as
+> `what happens next turn` advances the turn irreversibly (FA-6). **FA-6 was
+> published as a P1 and AMENDED to P2 on September 2, 2026 after the owner
+> challenged the framing: action points reset every turn, so nothing is
+> forfeited and there is no cheat vector — corrected in the memo and the row.** The AI is strategically alive and tactically dumb in three
 > measured ways (P4.25 prices a garrison and ignores the field army on it,
 > FA-8 — 48 attacks across nine digests where the attacker lost ≥1,000 men).
 > The one join worth building first is **FA-26**: the ES-7 erosion tick is the

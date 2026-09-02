@@ -118,8 +118,11 @@ player will hit in their first hour, both hand-reproduced, both live in the
 shipped mock-default build, and neither rescued by the live parser** (measured:
 the LLM is never consulted for either, because the fast parser is confident):
 
-- `Davout, attack next turn` **ends the turn** and forfeits four AP (FA-6). Any
-  sentence containing "next turn" or "end turn" does.
+- `what happens next turn` **ends the turn** and runs the enemy phase (FA-6).
+  So does `we will decide next turn`. A question mark saves you; the same
+  sentence without one does not. *(Amended Sept 2: downgraded to P2 — action
+  points do not carry over, so nothing is banked or stolen. The defect is that a
+  non-command irreversibly advances the turn, inconsistently.)*
 - `Ney, delay the attack` / `attack Mack later` **fight the battle immediately**
   (FA-7). PARSE-NEG taught the guards negation and contingency; it never taught
   them deferral.
@@ -303,7 +306,7 @@ him (FA-48), and promises a trust-branch pivot the scenario never delivers
 
 **Author note.** HV-2 end-turn-only player starves the popup queue
 
-#### FA-6 [P1 · defect] Any sentence containing "next turn"/"end turn" ENDS THE TURN — "Davout, attack next turn" forfeits all 4 AP and runs the enemy phase
+#### FA-6 [P2 · defect] A sentence containing "next turn" advances the turn irreversibly — including a QUESTION ("what happens next turn")
 
 **Verdict:** AUTHOR-VERIFIED (hand-reproduced this session) · **Seam:** `backend/ai/llm_client.py:1411`
 
@@ -320,6 +323,46 @@ him (FA-48), and promises a trust-branch pivot the scenario never delivers
 **Behaviour test.** tests: for each of `Davout, attack next turn`, `recruit next turn`, `Ney attack Mack and end turn`, `next turn Ney attacks Mack`: after POST /command, world.current_turn unchanged, actions_remaining unchanged, no `turn_ended` key, and the message names no turn advance; bare `next turn` and `end turn` still advance (keep the existing REV pin).
 
 **Author note.** HV-15 'next turn' anywhere ends the turn (mock AND live)
+
+> **⚠ AMENDED September 2, 2026, and DOWNGRADED P1 → P2 — the owner challenged
+> the framing and was right.** Two things in the original write-up were wrong.
+> (1) **"Forfeits all 4 AP" implies a resource is stolen. It is not.**
+> `actions_remaining` is reset to `calculate_max_actions()` at every turn start
+> (`world_state.py:9608`) — action points never carry over — so ending a turn
+> with four unused is exactly what pressing End Turn does. There is no banking
+> and no cheat vector, and the fix must NOT be "queue the attack for next turn":
+> a deferred-order system does not exist, and inventing one here would hand the
+> player free actions. (2) **"Davout, attack next turn" is not a sentence a real
+> player types**, so it is a poor headline case. The end_turn substring arm is
+> also *deliberate synonym handling*, not an oversight — the client's own gate
+> was widened on Aug 30, 2026 to mirror it (`main.gd:1292-1302`, comment: "a
+> client-side gate on a server-side vocabulary has to speak that vocabulary").
+>
+> **What survives, re-measured September 2, 2026 on the 1805 boot via
+> POST /command, and it is still a real defect:** a sentence that is not a
+> command at all advances the turn and runs the enemy phase, with no
+> confirmation unless envoys happen to be lapsing.
+>
+> | typed | result |
+> |---|---|
+> | `what happens next turn` | **turn 1 → 2, enemy phase ran** |
+> | `we will decide next turn` | **turn 1 → 2, enemy phase ran** |
+> | `Ney, hold here and attack next turn` | **turn 1 → 2, enemy phase ran** |
+> | `Davout, attack next turn` | **turn 1 → 2, enemy phase ran** |
+> | `what should we do next turn?` | help screen (turn held) |
+> | `can Davout attack next turn?` | help screen (turn held) |
+>
+> The last two rows are the reason this is worth fixing rather than shrugging
+> at: **the behaviour is inconsistent**, so it cannot be learned. A question
+> ending in a question mark is safe; the same question without one ends your
+> turn. And the loss is irreversible without a reload — the enemy phase resolves
+> battles and can take provinces.
+>
+> **The fix shape is unchanged and still one seam** (bare-form match at
+> `llm_client.py:1411`, mirrored at `main.gd:1292`), but the *right* fallthrough
+> for an order-shaped sentence is the existing clarification or refusal, never a
+> deferred order.
+
 
 #### FA-7 [P1 · defect] Deferral orders launch the attack NOW — "Ney, delay the attack" / "attack Mack later" / "wait for Davout then attack Mack" all fight a battle immediately
 

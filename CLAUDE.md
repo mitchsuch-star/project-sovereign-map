@@ -55,8 +55,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (eight slices; slice 4 is the position-10 blockers and lands BEFORE the
 > export), then position 10, the shippable build.** Headline P1s, both
 > hand-reproduced and live under `--llm anthropic` (the fast parser never
-> escalates): `Davout, attack next turn` ENDS THE TURN (FA-6);
-> `Ney, delay the attack` FIGHTS NOW (FA-7). Highest-leverage single row =
+> escalates): `Ney, delay the attack` FIGHTS NOW (FA-7); a non-command like
+> `what happens next turn` advances the turn irreversibly (FA-6, **amended
+> P1→P2 Sept 2, 2026 on an owner challenge — AP do not carry over**). Highest-leverage single row =
 > **FA-26** (the ES-7 erosion tick is the only trust-writing seam that never
 > consults `check_redemption_threshold` — a neglected marshal bleeds to trust
 > 0 and is never asked). ⚠ **No pillar re-score exists**: three session usage
