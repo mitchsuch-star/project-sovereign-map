@@ -1,0 +1,22 @@
+{
+  "name": "tutorial-lesson-trust",
+  "seed": "historical",
+  "llm": "mock",
+  "scenario": "tutorial",
+  "_note": "FA-40: the TRUST branch of the School of War. Identical beats to tutorial_lesson.json; only the objection policy differs. The card's step V advises INSIST, so the insist arm is the primary evidence and this one exists so the other branch of the lesson's own choice has an archived digest too. Its step VII and IX commands DIFFER because the branch differs: trusting Ney on turn 2 makes him strike at once, he WINS and CAPTURES Kienmayer, and the first-blood beat is satisfied two gates early — so at gate 4 this arm takes the card's own follow-up, 'Then occupy Swabia', and at gate 6 the corps holding Bohemia is Schwarzenberg. That is the lesson working, not a script error — the PC15-9 window pin walks enemy phases with no player action and can see neither.",
+  "turns": {
+    "1": ["economy", "Senarmont, move to Munich"],
+    "2": ["Ney, defend", "Senarmont, bombard Jellacic"],
+    "3": [],
+    "4": ["Ney, move to Swabia"],
+    "5": ["Davout, march to Franconia"],
+    "6": ["Davout, move to Bohemia", "Davout, attack Schwarzenberg"],
+    "7": ["Soult, recruit troops", "build watchtower in Lorraine"],
+    "8": ["Davout, scout Bohemia"],
+    "9": ["Ney, fortify"],
+    "10": ["status"],
+    "11": [],
+    "12": []
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline"}
+}

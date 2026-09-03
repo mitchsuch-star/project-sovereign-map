@@ -2,13 +2,15 @@
   "name": "tutorial-lesson",
   "seed": "historical",
   "llm": "mock",
+  "scenario": "tutorial",
+  "_note": "FA-40: the turn keys are the DRIVER's 1-based loop index and must mirror `tutorial_overlay.gd`'s STEPS `turn_gate`s, or the archived digest evidences a lesson the client does not teach. Kept in step with a drift pin in tests/test_fa_slice8_the_instrument_2026_09_02.py. The policy is INSIST because the card's step V says 'I advise INSIST, Sire'; the trust branch is the sibling tutorial_lesson_trust.json.",
   "turns": {
     "1": ["economy", "Senarmont, move to Munich"],
-    "2": ["Ney, defend"],
-    "3": ["Ney, attack Kienmayer"],
-    "4": ["Senarmont, bombard Jellacic"],
+    "2": ["Ney, defend", "Senarmont, bombard Jellacic"],
+    "3": [],
+    "4": ["Ney, attack Kienmayer"],
     "5": ["Davout, march to Franconia"],
-    "6": ["Ney, attack Jellacic"],
+    "6": ["Davout, move to Bohemia", "Davout, attack Archduke Charles"],
     "7": ["Soult, recruit troops", "build watchtower in Lorraine"],
     "8": ["Davout, scout Bohemia"],
     "9": ["Ney, fortify"],
@@ -16,5 +18,5 @@
     "11": [],
     "12": []
   },
-  "policy": {"objection": "trust", "diplomacy": "decline"}
+  "policy": {"objection": "insist", "diplomacy": "decline"}
 }

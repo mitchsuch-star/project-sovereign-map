@@ -1,0 +1,282 @@
+[
+ {
+  "id": "FA-92/a classify on failures, not the exit code",
+  "file": "tools/mutation_sweep.py",
+  "old": "        elif counts[\"failed\"]:",
+  "new": "        elif True:",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheSweepTellsAKillFromADetonation"
+ },
+ {
+  "id": "FA-92/b a run with no failures is BROKEN",
+  "file": "tools/mutation_sweep.py",
+  "old": "            detonated.append(m.get(\"id\"))",
+  "new": "            killed.append(m.get(\"id\"))",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheSweepTellsAKillFromADetonation"
+ },
+ {
+  "id": "FA-92/c BROKEN exits non-zero",
+  "file": "tools/mutation_sweep.py",
+  "old": "    return 1 if (inert or broken or detonated) else 0",
+  "new": "    return 1 if (inert or broken) else 0",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheSweepTellsAKillFromADetonation::test_a_detonating_mutation_is_broken_not_killed"
+ },
+ {
+  "id": "FA-92/d an <error> is not a failure",
+  "file": "tools/mutation_sweep.py",
+  "old": "        elif \"error\" in kinds:\n            counts[\"errored\"] += 1",
+  "new": "        elif \"error\" in kinds:\n            counts[\"failed\"] += 1",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheClassifierReadsOutcomesNotExitCodes"
+ },
+ {
+  "id": "FA-92/e a missing report is not a kill",
+  "file": "tools/mutation_sweep.py",
+  "old": "    if not report.exists():\n        return counts",
+  "new": "    if not report.exists():\n        return {\"failed\": 1, \"errored\": 0, \"other\": 0}",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheClassifierReadsOutcomesNotExitCodes::test_a_missing_report_is_not_a_kill"
+ },
+ {
+  "id": "FA-92/f the purge on APPLY",
+  "file": "tools/mutation_sweep.py",
+  "old": "        _invalidate_bytecode(path)\n        with tempfile.TemporaryDirectory() as tmp:",
+  "new": "        with tempfile.TemporaryDirectory() as tmp:",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAMutationIsNeverMaskedByStaleBytecode"
+ },
+ {
+  "id": "FA-92/g the purge on RESTORE",
+  "file": "tools/mutation_sweep.py",
+  "old": "                # Symmetric with the apply: the NEXT mutation must not read\n                # bytecode compiled from this one.\n                _invalidate_bytecode(path)",
+  "new": "                pass",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAMutationIsNeverMaskedByStaleBytecode::test_both_the_apply_and_the_restore_purge"
+ },
+ {
+  "id": "FA-92/h the purge actually unlinks",
+  "file": "tools/mutation_sweep.py",
+  "old": "    for stale in cache.glob(path.stem + \".*.pyc\"):",
+  "new": "    for stale in cache.glob(path.stem + \".never-matches.pyc\"):",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAMutationIsNeverMaskedByStaleBytecode"
+ },
+ {
+  "id": "FA-92/i the purge is scoped to ONE module",
+  "file": "tools/mutation_sweep.py",
+  "old": "    for stale in cache.glob(path.stem + \".*.pyc\"):",
+  "new": "    for stale in cache.glob(\"*.pyc\"):",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAMutationIsNeverMaskedByStaleBytecode::test_the_purge_leaves_other_modules_alone"
+ },
+ {
+  "id": "FA-92/j the restore is byte-exact",
+  "file": "tools/mutation_sweep.py",
+  "old": "                path.write_bytes(original_bytes)",
+  "new": "                path.write_text(original, encoding=\"utf-8\")",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRestoreRestores"
+ },
+ {
+  "id": "FA-92/k the mutant keeps the file's own newline",
+  "file": "tools/mutation_sweep.py",
+  "old": "    return text.replace(\"\\n\", newline).encode(\"utf-8\")",
+  "new": "    return text.encode(\"utf-8\")",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRestoreRestores::test_the_mutant_is_written_in_the_files_own_ending"
+ },
+ {
+  "id": "FA-92/l anchors match LF-normalized text",
+  "file": "tools/mutation_sweep.py",
+  "old": "    text = raw.decode(\"utf-8\")\n    return text.replace(\"\\r\\n\", \"\\n\"), (\"\\r\\n\" if b\"\\r\\n\" in raw else \"\\n\")",
+  "new": "    text = raw.decode(\"utf-8\")\n    return text, (\"\\r\\n\" if b\"\\r\\n\" in raw else \"\\n\")",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRestoreRestores::test_a_multiline_lf_anchor_still_matches_a_crlf_file"
+ },
+ {
+  "id": "FA-10/a a stale refusal is not remembered as a judgement",
+  "file": "tools/playtest_driver.py",
+  "old": "                if reply.get(\"success\") is False and not stale:\n                    self._refused_choices.setdefault(",
+  "new": "                if reply.get(\"success\") is False:\n                    self._refused_choices.setdefault(",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAStaleRefusalIsNotAnAnswer::test_the_word_is_not_blacklisted_for_the_rest_of_the_run"
+ },
+ {
+  "id": "FA-10/b a REAL refusal is still remembered",
+  "file": "tools/playtest_driver.py",
+  "old": "                if reply.get(\"success\") is False and not stale:\n                    self._refused_choices.setdefault(",
+  "new": "                if False:\n                    self._refused_choices.setdefault(",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAStaleRefusalIsNotAnAnswer::test_a_real_executor_refusal_is_still_remembered"
+ },
+ {
+  "id": "FA-74/a a stale refusal does not mark the id answered",
+  "file": "tools/playtest_driver.py",
+  "old": "                    if stale:\n                        self._stale_refusals[did] = (",
+  "new": "                    self._answered_dialogue_ids.add(did)\n                    if stale:\n                        self._stale_refusals[did] = (",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAStaleRefusalIsNotAnAnswer"
+ },
+ {
+  "id": "FA-74/b a delivered answer IS marked answered",
+  "file": "tools/playtest_driver.py",
+  "old": "                    else:\n                        self._answered_dialogue_ids.add(did)",
+  "new": "                    else:\n                        pass",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestAStaleRefusalIsNotAnAnswer::test_a_delivered_answer_is_marked_answered"
+ },
+ {
+  "id": "FA-10/c the cycle-guard trail is discounted",
+  "file": "tools/playtest_driver.py",
+  "old": "                        self.d.discount_answer(\n                            \"diplomatic_dialogue\", label, choice)",
+  "new": "                        pass",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRetryDoesNotReadAsACycle"
+ },
+ {
+  "id": "FA-10/d discount_answer actually removes the signature",
+  "file": "tools/playtest_driver.py",
+  "old": "        sig = (str(key), str(summary), str(answer))\n        if sig in self.recent:\n            self.recent.remove(sig)\n\n    def note(self, text):",
+  "new": "        sig = (str(key), str(summary), str(answer))\n        if False:\n            self.recent.remove(sig)\n\n    def note(self, text):",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRetryDoesNotReadAsACycle"
+ },
+ {
+  "id": "FA-74/c the retry is bounded",
+  "file": "tools/playtest_driver.py",
+  "old": "                  and self._stale_refusals.get(did, 0) >= MAX_STALE_ATTEMPTS):",
+  "new": "                  and False):",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRetryIsBounded"
+ },
+ {
+  "id": "FA-74/d the bound is reset per chain",
+  "file": "tools/playtest_driver.py",
+  "old": "        self._answered_dialogue_ids = set()\n        self._stale_refusals = {}",
+  "new": "        self._answered_dialogue_ids = set()",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheRetryIsBounded::test_the_bound_is_per_chain"
+ },
+ {
+  "id": "FA-37/a the moved components are printed",
+  "file": "tools/playtest_driver.py",
+  "old": "            if moved:\n                self._md(\"  - NET \" + \" · \".join(",
+  "new": "            if False:\n                self._md(\"  - NET \" + \" · \".join(",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheLedgerLineNamesTheComponents"
+ },
+ {
+  "id": "FA-37/b a zero component is not printed",
+  "file": "tools/playtest_driver.py",
+  "old": "                     and int(economy[key])}",
+  "new": "                     }",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheLedgerLineNamesTheComponents::test_a_component_that_did_not_move_is_not_printed"
+ },
+ {
+  "id": "FA-37/c the HIGH rail rows are archived",
+  "file": "tools/playtest_driver.py",
+  "old": "                if isinstance(e, dict) and str(e.get(\"priority\")) == \"HIGH\"]",
+  "new": "                if isinstance(e, dict) and str(e.get(\"priority\")) == \"NEVER\"]",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDispatchLineCarriesTheRail"
+ },
+ {
+  "id": "FA-37/d routine chatter is excluded",
+  "file": "tools/playtest_driver.py",
+  "old": "                if isinstance(e, dict) and str(e.get(\"priority\")) == \"HIGH\"]",
+  "new": "                if isinstance(e, dict)]",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDispatchLineCarriesTheRail::test_routine_intent_chatter_is_not"
+ },
+ {
+  "id": "FA-37/e the rail cap has an honest tail",
+  "file": "tools/playtest_driver.py",
+  "old": "        if len(rows) > self.MAX_RAIL_ROWS:",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDispatchLineCarriesTheRail::test_the_rail_is_capped_with_an_honest_tail"
+ },
+ {
+  "id": "FA-37/f turn events are counted",
+  "file": "tools/playtest_driver.py",
+  "old": "        if turn_events:\n            self._md(f\"  - TURN EVENTS {len(turn_events)}\")",
+  "new": "        if False:\n            self._md(f\"  - TURN EVENTS {len(turn_events)}\")",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDispatchLineCarriesTheRail::test_turn_events_are_counted"
+ },
+ {
+  "id": "FA-87/a a punctuation-only line is never the summary",
+  "file": "tools/playtest_driver.py",
+  "old": "        if line and _HAS_WORD_RE.search(line):\n            return (line[: limit - 1] + \"…\") if len(line) > limit else line\n    return \"\"",
+  "new": "        if line:\n            return (line[: limit - 1] + \"…\") if len(line) > limit else line\n    return \"\"",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheEnemyPhaseSummaryIsReadable::test_a_banner_is_never_the_summary"
+ },
+ {
+  "id": "FA-87/b a tactical annotation yields to the prose",
+  "file": "tools/playtest_driver.py",
+  "old": "        if (line and _HAS_WORD_RE.search(line)\n                and not _ANNOTATION_RE.match(line)):",
+  "new": "        if line and _HAS_WORD_RE.search(line):",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheEnemyPhaseSummaryIsReadable::test_a_tactical_annotation_yields_to_the_prose"
+ },
+ {
+  "id": "FA-87/c an all-annotation message still says something",
+  "file": "tools/playtest_driver.py",
+  "old": "    return first_line(text, limit)\n\n\ndef matching_line(text, needles, limit=170):",
+  "new": "    return \"\"\n\n\ndef matching_line(text, needles, limit=170):",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheEnemyPhaseSummaryIsReadable::test_an_all_annotation_message_still_says_something"
+ },
+ {
+  "id": "FA-87/d the capture caption names the capture",
+  "file": "tools/playtest_driver.py",
+  "old": "                     f\"{matching_line(act.get('message'), needles, 150)}\")",
+  "new": "                     f\"{first_line(act.get('message'), 150)}\")",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheCallSitesActuallyUseThem::test_the_capture_row_is_captioned_by_the_capture_sentence"
+ },
+ {
+  "id": "FA-87/e the caption keeps its run-up",
+  "file": "tools/playtest_driver.py",
+  "old": "            while start > 0 and len(\" \".join(parts[start - 1:i + 1])) <= limit:\n                start -= 1",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheEnemyPhaseSummaryIsReadable::test_the_capture_caption_keeps_the_run_up_when_it_fits"
+ },
+ {
+  "id": "FA-87/f the jsonl keeps the whole message",
+  "file": "tools/playtest_driver.py",
+  "old": "                              \"message\": a.get(\"message\")}",
+  "new": "                              \"message\": first_line(a.get(\"message\"), 200)}",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheEnemyPhaseSummaryIsReadable::test_the_jsonl_keeps_the_whole_message"
+ },
+ {
+  "id": "FA-37/g the threat figure comes from the dispatch",
+  "file": "tools/playtest_driver.py",
+  "old": "                           dig(morning.get(\"coalition_status\"), \"threat_level\",\n                               \"threat\"),",
+  "new": "                           dig(ledger, \"threat_level\", \"threat\"),",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheCallSitesActuallyUseThem::test_a_real_run_prints_a_threat_figure"
+ },
+ {
+  "id": "FA-40/a the script issues each suggestion at its own gate",
+  "file": "tools/playtest_scripts/tutorial_lesson.json",
+  "old": "    \"2\": [\"Ney, defend\", \"Senarmont, bombard Jellacic\"],",
+  "new": "    \"2\": [\"Ney, defend\"],",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheTutorialScriptMirrorsTheShippedLesson::test_every_suggested_command_is_issued_at_its_own_gate"
+ },
+ {
+  "id": "FA-40/b the policy follows the card's counsel",
+  "file": "tools/playtest_scripts/tutorial_lesson.json",
+  "old": "  \"policy\": {\"objection\": \"insist\", \"diplomacy\": \"decline\"}",
+  "new": "  \"policy\": {\"objection\": \"trust\", \"diplomacy\": \"decline\"}",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheTutorialScriptMirrorsTheShippedLesson::test_the_policy_follows_the_cards_own_counsel"
+ },
+ {
+  "id": "FA-40/c both scripts declare the lesson scenario",
+  "file": "tools/playtest_scripts/tutorial_lesson_trust.json",
+  "old": "  \"scenario\": \"tutorial\",",
+  "new": "  \"scenario\": \"\",",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheTutorialScriptMirrorsTheShippedLesson::test_both_scripts_declare_the_lesson_scenario"
+ },
+ {
+  "id": "FA-40/d the driver reads the script's scenario",
+  "file": "tools/playtest_driver.py",
+  "old": "    args.scenario = args.scenario or script.get(\"scenario\") or \"\"",
+  "new": "    args.scenario = args.scenario or \"\"",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheTutorialScriptMirrorsTheShippedLesson::test_the_driver_reads_the_scripts_scenario"
+ },
+ {
+  "id": "FA-40/e the card census can read the overlay",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t\t\"id\": \"bombardment\",",
+  "new": "\t\t\"id\": \"bombardment_renamed\",",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheTutorialScriptMirrorsTheShippedLesson::test_the_census_can_read_the_card"
+ },
+ {
+  "id": "FA-10/e the digest double cannot drift",
+  "file": "tools/playtest_driver.py",
+  "old": "                        self.d.discount_answer(",
+  "new": "                        self.d.discount_answer_missing(",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDigestDoubleCannotDrift"
+ },
+ {
+  "id": "FA-37/h the NET line reaches a real digest",
+  "file": "tools/playtest_driver.py",
+  "old": "                           economy=(body or {}).get(\"economy\"))",
+  "new": "                           economy=None)",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheCallSitesActuallyUseThem::test_a_real_run_prints_a_threat_figure"
+ }
+]

@@ -88,6 +88,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import shutil
 import sys
 import time
@@ -231,6 +232,28 @@ DISPLAY_ONLY_KEYS = (
 # ("you must decide the fate of Marshal X's estate first"), and the run
 # reported `blocked` on what is a HARNESS limit, not an engine defect.
 MAX_ANSWERS_PER_POST = 16
+# FA-74: how many times one dialogue id may be ANSWERED in a chain when the
+# backend keeps refusing it as STALE (a DIFFERENT dialogue was on top).
+# Two attempts = one retry: the refusal reply carries the dialogue actually
+# current, so the chain answers that and the original comes back under its
+# own identity. A surface that goes stale twice is wedged, and the digest
+# says so rather than spinning.
+MAX_STALE_ATTEMPTS = 2
+
+
+# FA-87/FA-86: a line of pure punctuation carries nothing. The bombardment
+# message opens with `'=' * 40` on its own line (combat_executor), so every
+# artillery attack in every archived digest rendered as
+# `========================================` — six times in audit-ambient40
+# alone, and once under a 🏴 capture flag.
+_HAS_WORD_RE = re.compile(r"[0-9A-Za-z]")
+# A leading bracketed annotation — `[Shield] …`, `[Combat] …`, `[!] …`,
+# `[Square broken — …]` — is a tactical FOOTNOTE the engine prepends to the
+# real prose. It won the summary slot on every row that carried one, which
+# is why `audit-propose` reports "ArchdukeJohn's DEFENSIVE stance hampers
+# offensive operations" as the enemy's action for a turn he captured two
+# French provinces.
+_ANNOTATION_RE = re.compile(r"^\[[^\]]*\]")
 
 
 def first_line(text, limit=170):
@@ -238,9 +261,58 @@ def first_line(text, limit=170):
         return ""
     for line in str(text).splitlines():
         line = line.strip()
-        if line:
+        if line and _HAS_WORD_RE.search(line):
             return (line[: limit - 1] + "…") if len(line) > limit else line
     return ""
+
+
+def salient_line(text, limit=170):
+    """`first_line`, but a bracketed tactical annotation yields to the prose.
+
+    Falls back to `first_line` when every line is an annotation — an
+    annotation is better than nothing.
+    """
+    for line in str(text or "").splitlines():
+        line = line.strip()
+        if (line and _HAS_WORD_RE.search(line)
+                and not _ANNOTATION_RE.match(line)):
+            return (line[: limit - 1] + "…") if len(line) > limit else line
+    return first_line(text, limit)
+
+
+def matching_line(text, needles, limit=170):
+    """The SENTENCE that carries one of `needles`; else `salient_line`.
+
+    The capture detector greps the whole message and then printed its FIRST
+    line, so a real conquest was captioned with whatever annotation happened
+    to precede it — measured in the archive, `🏴 Austria: [Shield] Massena is
+    at his best with his back to the wall!` and, once,
+    `🏴 Austria: ========================================`.
+
+    Sentence, not line, because the engine puts the conquest at the END of a
+    long combat paragraph: *"…Casualties: ArchdukeCharles's army 1,188, Deroy
+    7,465. Both armies remain in the field. Bohemia has been captured by
+    Austria!"* — a whole-line answer truncates before the only clause that
+    justifies the flag.
+    """
+    for line in str(text or "").splitlines():
+        parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", line.strip())]
+        for i, sentence in enumerate(parts):
+            if not sentence or not any(n in sentence.lower() for n in needles):
+                continue
+            # Keep as much of the run-up as fits, ending on the match — the
+            # capture clause is often a trailing fragment whose subject is
+            # the sentence before it ("ArchdukeJohn marches from Tyrol into
+            # Carniola unopposed! (232 lost to march) Captured: Bavaria →
+            # Austria").
+            start = i
+            while start > 0 and len(" ".join(parts[start - 1:i + 1])) <= limit:
+                start -= 1
+            excerpt = " ".join(parts[start:i + 1])
+            if len(excerpt) > limit:
+                excerpt = "…" + excerpt[-(limit - 1):]
+            return excerpt
+    return salient_line(text, limit)
 
 
 def dig(payload, *names, default=None):
@@ -428,6 +500,25 @@ class Digest:
         self._md(f"  - POPUP {key}: {summary} → {answer}")
         self.record("popup", key=key, summary=summary, answer=answer)
 
+    def discount_answer(self, key, summary, answer):
+        """Retract an answer from the cycle-guard trail — it did not happen.
+
+        FA-10/FA-74. `popup()` records the signature BEFORE the POST,
+        because the digest line must read in order (the answer, then the
+        `↳ refused` note under it). When the backend refuses the answer as
+        STALE, that attempt never reached the executor: the dialogue is
+        re-offered once, and without this the legitimate retry would answer
+        the same surface with the same word twice in one chain — which is
+        precisely what `drain()`'s guard calls an ANSWER CYCLE. It would
+        stop the chain and leave every other blocker standing.
+
+        The LINE stays in the digest (WO slice 5's rule: a wedge must be
+        legible). Only the signature is withdrawn.
+        """
+        sig = (str(key), str(summary), str(answer))
+        if sig in self.recent:
+            self.recent.remove(sig)
+
     def note(self, text):
         self._md(f"  - {text}")
         self.record("note", text=text)
@@ -443,8 +534,12 @@ class Digest:
         # about how often the AI attacks. Read the real key, keep the old
         # ones as fallbacks.
         attacks = [a for a in actions if "attack" in _verb(a)]
-        lines = [first_line(a.get("message") or a.get("action")
-                            or a.get("action_type"), 120)
+        # FA-87: `salient_line`, not `first_line` — the engine prepends
+        # tactical annotations (`[Shield] …`, `[Combat] …`, `[!] …`) and a
+        # `'=' * 40` banner to the prose, and those won the slot on every
+        # row that carried one.
+        lines = [salient_line(a.get("message") or a.get("action")
+                              or a.get("action_type"), 120)
                  for a in attacks[:4]]
         summary = f"enemy phase: {len(actions)} actions, {len(attacks)} attacks"
         if lines:
@@ -457,13 +552,18 @@ class Digest:
         # Bavaria, taking Vienna and four more Austrian provinces while
         # France destroyed the field army — never appeared in any digest.
         # Surface conquest explicitly; keep it player-visible text only.
+        needles = ("captur", "has fallen", "falls to", "taken by", "seized")
         taken = [a for a in actions
                  if any(w in str(a.get("message") or "").lower()
-                        for w in ("captur", "has fallen", "falls to",
-                                  "taken by", "seized"))]
+                        for w in needles)]
         for act in taken[:6]:
+            # FA-87: the detector greps the WHOLE message and then printed
+            # its FIRST line, so a real conquest was captioned with the
+            # annotation above it — measured in the archive, `🏴 Austria:
+            # ========================================` and `🏴 Austria:
+            # [Shield] Massena is at his best with his back to the wall!`.
             self._md(f"  - 🏴 {act.get('nation', '?')}: "
-                     f"{first_line(act.get('message'), 150)}")
+                     f"{matching_line(act.get('message'), needles, 150)}")
 
         # WO-H2: an enemy-phase attack that resolved combat carries the full
         # battle_report on its own row (the fog filter strips only
@@ -483,13 +583,21 @@ class Digest:
                                               key=lambda kv: -kv[1])))
         # Full fidelity to the jsonl — the query surface should never be
         # thinner than the markdown.
+        #
+        # FA-87: it WAS thinner, in the exact way that comment forbids. The
+        # message was stored as `first_line(..., 200)`, so the jsonl held the
+        # bombardment banner or the tactical annotation and nothing else —
+        # and a capture clause that sits later in the same line was cut off.
+        # Measured while building this row: a probe scanning the jsonl for
+        # capture prose found ONE of the three the markdown had flagged.
+        # This is a machine surface; store the message.
         self.record("enemy_phase", count=len(actions), attacks=len(attacks),
                     captures=len(taken), verbs=verbs,
                     actions=[{"nation": a.get("nation"),
                               "action": _verb(a),
                               "marshal": (a.get("ai_action") or {}).get("marshal")
                               if isinstance(a.get("ai_action"), dict) else None,
-                              "message": first_line(a.get("message"), 200)}
+                              "message": a.get("message")}
                              for a in actions])
 
     def autonomous_attacks(self, rows):
@@ -522,7 +630,27 @@ class Digest:
                     proposal_type=row.get("proposal_type"),
                     choice=choice, outcome=outcome.strip() or "answered")
 
-    def ledger_line(self, treasury, net, threat, provinces=None):
+    # FA-37: the signed Net components, in the order the ledger states them.
+    # `net` alone answers "is France solvent"; it cannot answer WHY, which is
+    # the only question an economy evaluation asks. Every archived digest had
+    # to be re-derived with a bespoke probe to learn that Contributions fired
+    # when Paget stood on Normandy, or that the restless-interior term flipped
+    # Net negative. The keys are `GET /ledger`'s own — measured against a live
+    # payload, not guessed.
+    NET_COMPONENTS = (
+        ("income", "income"), ("trade_income", "trade"),
+        ("overseas", "overseas"), ("vassal_tribute", "tribute"),
+        ("treaty_gold", "treaty"), ("settlement_gold", "settlement"),
+        ("upkeep", "upkeep"), ("state_charges", "charges"),
+        ("contributions", "contributions"), ("requisitions", "requisitions"),
+        ("occupation", "occupation"), ("blockade", "blockade"),
+        ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
+        ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
+    )
+    MAX_RAIL_ROWS = 6
+
+    def ledger_line(self, treasury, net, threat, provinces=None,
+                    economy=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -544,12 +672,46 @@ class Digest:
             self._md("- LEDGER " + " · ".join(bits))
             self.record("ledger", treasury=treasury, net=net, threat=threat,
                         provinces=provinces)
+        # FA-37. Only the components that MOVED — a run's economy story is
+        # which term turned on, and a line of eleven zeroes hides it.
+        if isinstance(economy, dict):
+            moved = {label: int(economy[key])
+                     for key, label in self.NET_COMPONENTS
+                     if isinstance(economy.get(key), (int, float))
+                     and int(economy[key])}
+            if moved:
+                self._md("  - NET " + " · ".join(
+                    f"{label} {value}" for label, value in moved.items()))
+            self.record("economy", **moved)
 
-    def dispatch(self, text):
+    def dispatch(self, text, events=None, turn_events=None):
         head = first_line(text, 200)
         if head:
             self._md(f"- DISPATCH: {head}")
             self.record("dispatch", headline=head)
+        # FA-37: the DIPLOMATIC EVENTS rail. Defections, transfers,
+        # rebellions, eliminations, war declarations and every naval and
+        # AI-Intent beat land here and nowhere else, so the archived
+        # audit-ambient40 digest holds 40 turns with no mention of France's
+        # three vassals although all three were lost.
+        #
+        # HIGH only. The six LOW types are the AI-6 routine intent chatter
+        # the cap already governs, and MEDIUM is the tide rather than the
+        # event; every family this row was filed for — vassal defected /
+        # transferred / rebelled, nation eliminated, treaty broken, war
+        # declared — is graded HIGH in `dispatch._DIPLOMATIC_EVENT_PRIORITY`,
+        # which a drift pin holds there.
+        rows = [e for e in (events or [])
+                if isinstance(e, dict) and str(e.get("priority")) == "HIGH"]
+        for event in rows[:self.MAX_RAIL_ROWS]:
+            self._md(f"  - RAIL {event.get('type', '?')}: "
+                     f"{first_line(event.get('text'), 150)}")
+            self.record("rail", dtype=event.get("type"), text=event.get("text"))
+        if len(rows) > self.MAX_RAIL_ROWS:
+            self._md(f"  - RAIL +{len(rows) - self.MAX_RAIL_ROWS} more")
+        if turn_events:
+            self._md(f"  - TURN EVENTS {len(turn_events)}")
+            self.record("turn_events", count=len(turn_events))
 
     def unknown_blocker(self, key, payload):
         self.unknown_blockers.append(key)
@@ -649,7 +811,17 @@ class Answerer:
         # Choices the backend REFUSED, per dialogue identity. Never reset:
         # a word the executor rejected is not worth re-sending on any later
         # turn either. See the refusal arm in scan(). (WO slice 5 review.)
+        #
+        # FA-10: an ORDERING refusal never lands here. `stale_dialogue` says
+        # only that a different dialogue was on top at that instant — the
+        # executor did not judge the word, and treating it as a judgement
+        # blacklisted the only sane answer to four major-court offers for
+        # the whole run.
         self._refused_choices = {}
+        # FA-74: how often a dialogue id has been refused as STALE in this
+        # chain. Bounded so a genuinely wedged surface is left standing with
+        # its reason instead of spinning. Reset by begin_post().
+        self._stale_refusals = {}
 
     def begin_post(self):
         """Start a fresh answer chain (called by drain()).
@@ -676,6 +848,7 @@ class Answerer:
         skips only a surface that is provably the same instance.
         """
         self._answered_dialogue_ids = set()
+        self._stale_refusals = {}
 
     def scan(self, response):
         followups = []
@@ -892,6 +1065,17 @@ class Answerer:
                              f"(stale passthrough — #{did} already answered "
                              f"this chain)")
                 dialogue = None
+            elif (did is not None
+                  and self._stale_refusals.get(did, 0) >= MAX_STALE_ATTEMPTS):
+                # FA-74: the retry bound. One re-offer per chain; a surface
+                # the backend calls stale twice is genuinely wedged, and the
+                # honest digest line is that it was left standing AND WHY —
+                # not a silent skip, and not an ANSWER CYCLE the guard would
+                # otherwise raise on the third attempt.
+                self.d.popup("diplomatic_dialogue", summary,
+                             f"(left standing — #{did} refused as stale "
+                             f"{self._stale_refusals[did]}× this chain)")
+                dialogue = None
         if dialogue and isinstance(dialogue, dict):
             choice = self._dialogue_choice(dialogue)
             # The cycle guard's signature carries the dialogue identity, so
@@ -899,15 +1083,64 @@ class Answerer:
             # in one chain no longer read as a loop (WO slice 5 review: the
             # legitimate five-stage settlement ceremony ends in two distinct
             # `proposal_confirm`s and tripped it every long propose run).
-            self.d.popup("diplomatic_dialogue",
-                         summary + (f" #{did}" if did is not None else ""),
+            label = summary + (f" #{did}" if did is not None else "")
+            self.d.popup("diplomatic_dialogue", label,
                          choice or "(left standing)")
             if choice is not None:
                 body = {"choice": choice}
                 if did is not None:
                     body["dialogue_id"] = did
-                    self._answered_dialogue_ids.add(did)
                 reply = self.t.post("/respond_to_diplomatic_dialogue", body)
+                # ══════════════════════════════════════════════════════
+                # FA-10 + FA-74: A STALE REFUSAL IS NOT AN ANSWER.
+                #
+                # The backend's W6-0 guard returns success False with
+                # `stale_dialogue` purely because a DIFFERENT dialogue was
+                # on top at that instant ("Sire, another matter has arrived
+                # since") — it is the guard WORKING, and it says nothing
+                # about the word we sent. The driver was recording it in
+                # three separate memories as though it did:
+                #
+                #   `_answered_dialogue_ids` (chain-scoped) — so the same
+                #       offer, promoted back in the same chain, logged
+                #       "(stale passthrough — already answered)" [FA-74];
+                #   `_refused_choices` (RUN-scoped, never reset) — so the
+                #       only sane answer to that offer was blacklisted for
+                #       the rest of the campaign, and a bare-shape popup
+                #       with no options list had nothing else to try, so it
+                #       was "(left standing)" forever [FA-10];
+                #   the digest's cycle signature — which is why the naive
+                #       fix cannot stop at the first two: a legitimate
+                #       retry answers the same dialogue with the same word
+                #       twice in one chain, which is exactly what
+                #       `drain()`'s guard calls an ANSWER CYCLE. It would
+                #       have stopped the chain and left every OTHER
+                #       blocker standing — a worse failure than the one
+                #       being fixed.
+                #
+                # Measured cost of the old behaviour: four major-court
+                # offers in the archived 24-turn flagship (Russia and
+                # Britain armistices, Prussia open borders twice) neither
+                # accepted nor declined, and an `--diplomacy accept` run
+                # answering a settlement with "request revision" because
+                # `accept` had been banned.
+                #
+                # The reply CARRIES the dialogue actually on top, so the
+                # chain answers that one next and the original comes back
+                # under its own identity. One retry per chain is the bound
+                # — a surface that goes stale twice is genuinely wedged and
+                # is left standing WITH ITS REASON, which is the honest
+                # digest line.
+                # ══════════════════════════════════════════════════════
+                stale = bool(reply.get("stale_dialogue"))
+                if did is not None:
+                    if stale:
+                        self._stale_refusals[did] = (
+                            self._stale_refusals.get(did, 0) + 1)
+                        self.d.discount_answer(
+                            "diplomatic_dialogue", label, choice)
+                    else:
+                        self._answered_dialogue_ids.add(did)
                 # WO slice 5 review: the digest rendered a REFUSED answer
                 # exactly like a signed one. Measured on the archived run:
                 # of the seven bare-shape popups the new arm answered, FIVE
@@ -929,7 +1162,10 @@ class Answerer:
                 # turn until `end turn` was refused forever — `blocked` on 3
                 # of 7 seeds. Remembering the refusal turns the DP shortage
                 # into the evidence the arm was built to produce.
-                if reply.get("success") is False:
+                #
+                # FA-10: an ORDERING refusal is exempt — the executor never
+                # judged the word, so there is nothing to remember.
+                if reply.get("success") is False and not stale:
                     self._refused_choices.setdefault(
                         self._refusal_key(dialogue), set()).add(str(choice))
                 followups.append(reply)
@@ -1233,6 +1469,12 @@ def run(args):
     args.name = args.name or script.get("name") or "run"
     args.seed = args.seed or script.get("seed") or "historical"
     args.llm = args.llm or script.get("llm") or "mock"
+    # FA-40: a script that only makes sense on one scenario must be able to
+    # SAY so. `scenario` was CLI-only, so `tutorial_lesson.json` could be run
+    # against the 1805 campaign — silently, and the archive could not show
+    # which board produced it. Same precedence as name/seed/llm: the flag
+    # wins, the script fills in.
+    args.scenario = args.scenario or script.get("scenario") or ""
 
     out_dir = Path(args.out) / args.name
     if out_dir.exists() and args.fresh:
@@ -1384,13 +1626,27 @@ def run(args):
         # rather than via dig(), which would happily find some other list.
         body = ledger.get("ledger") if isinstance(ledger, dict) else None
         own = (body or {}).get("territories") if isinstance(body, dict) else None
+        try:
+            morning = (transport.get("/dispatch") or {}).get("dispatch") or {}
+        except Exception:
+            morning = {}
+        # FA-37 / FA-39: `threat` sat in `ledger_line`'s signature and never
+        # printed. Measured against a live payload: `GET /ledger` carries no
+        # `threat_level` and no `threat` at any depth, so the recursive dig
+        # returned None on EVERY turn of every archived run — no digest has
+        # a coalition-threat trajectory. The figure lives on the morning
+        # dispatch, under `coalition_status`.
         digest.ledger_line(dig(ledger, "treasury", "gold"),
                            dig(ledger, "net_gold", "net"),
-                           dig(ledger, "threat_level", "threat"),
-                           len(own) if isinstance(own, list) else None)
+                           dig(morning.get("coalition_status"), "threat_level",
+                               "threat"),
+                           len(own) if isinstance(own, list) else None,
+                           economy=(body or {}).get("economy"))
         try:
-            digest.dispatch(dig(transport.get("/dispatch"),
-                                "text", "content", "message", default=""))
+            digest.dispatch(dig(morning, "text", "content", "message",
+                                default=""),
+                            events=morning.get("diplomatic_events"),
+                            turn_events=morning.get("turn_events"))
         except Exception:
             pass
 

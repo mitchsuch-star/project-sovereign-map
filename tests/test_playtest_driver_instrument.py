@@ -102,6 +102,11 @@ class StubDigest:
                                "(no options)"):
             self.recent.append((str(key), str(summary), str(answer)))
 
+    def discount_answer(self, key, summary, answer):
+        sig = (str(key), str(summary), str(answer))
+        if sig in self.recent:
+            self.recent.remove(sig)
+
     def battle(self, report):
         self.counters["battles"] += 1
         self.battles_seen.append(report)
