@@ -1293,13 +1293,22 @@ func _is_end_turn_phrasing(command: String) -> bool:
 	test over three keywords — so "next turn" and "end turn now" advanced
 	the turn without ever meeting the warning that unanswered envoys were
 	about to lapse. A client-side gate on a server-side vocabulary has to
-	speak that vocabulary; this mirrors `llm_client.py`s own arm."""
+	speak that vocabulary; this mirrors `llm_client.py`s own arm.
+
+	FA-6 / FA-N22, Sept 2, 2026. The vocabulary is unchanged; what changed
+	is that it must be the WHOLE command. A substring gate intercepted every
+	sentence that merely mentioned one of the three words and sent "end
+	turn" instead — measured against the backend with a mock parser,
+	"Davout, fortify until next turn" FORTIFIES on the server and ended the
+	turn in the shipped client, and so did "Davout, defend Ulm until next
+	turn", "Murat, wait until next turn" and "Ney, hold Bavaria until the
+	end turn". The two gates had to change together: narrowing either one
+	alone leaves the other classifying."""
 	var c := command.to_lower().strip_edges()
-	if c.find("end turn") != -1:
-		return true
-	if c.find("end_turn") != -1:
-		return true
-	return c.find("next turn") != -1
+	while c.length() > 0 and ".!? 	".find(c[c.length() - 1]) != -1:
+		c = c.substr(0, c.length() - 1)
+	c = c.strip_edges()
+	return c == "end turn" or c == "end_turn" or c == "next turn"
 
 
 func _execute_end_turn():

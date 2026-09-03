@@ -2954,6 +2954,22 @@ def execute_command(request: CommandRequest):
                         "relayed. Give me the order for THIS turn and I shall "
                         "carry it at once; a standing order I can hold is "
                         "'hold until Davout arrives'.\"")
+                elif parsed["refusal"] == "deferral":
+                    # FA-7. A DIFFERENT failure from a prohibition and it must
+                    # not wear the same words: the player did not forbid the
+                    # order, they named a turn the engine cannot hold a
+                    # dispatch until. Answering "then no order goes out" would
+                    # be true and useless; this says what to do instead, and
+                    # names the one thing the player might actually have meant
+                    # by "next turn".
+                    refusal_msg = (
+                        "Berthier holds the dispatch unsealed. \"For a later "
+                        "day, Sire — but I keep no drawer for tomorrow's "
+                        "orders, so nothing has gone out and nothing is "
+                        "owed. Give me the order on the morning you want it "
+                        "carried, or 'end turn' and I shall bring it to you "
+                        "again. If the marshal is to sit still meanwhile, "
+                        "say 'hold'.\"")
                 else:
                     refusal_msg = (
                         "Berthier lowers the dispatch. \"Then no order goes "

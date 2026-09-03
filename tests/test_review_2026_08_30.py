@@ -690,12 +690,20 @@ class TestEveryEndTurnPhrasingMeetsTheGate:
 
     def test_the_backend_vocabulary_is_the_same_three(self):
         """Falsifiable join: if the parser grows a fourth phrasing this pin
-        fails, rather than the gate silently going porous again."""
+        fails, rather than the gate silently going porous again.
+
+        ⚠ FLIPPED CONSCIOUSLY Sept 2, 2026 (FA-6 / FA-N22). The vocabulary
+        is unchanged — what changed is that it must now be the WHOLE
+        command, and it moved out of an inline `elif` into `clause_guards`
+        so both gates read one list. This pin reads that list. The
+        behavioural drift pin that EVALUATES both gates against a fixture
+        set lives in `tests/test_fa_slice1_the_two_words_2026_09_02.py`.
+        """
+        from backend.ai.clause_guards import END_TURN_PHRASINGS
+        assert END_TURN_PHRASINGS == ("end turn", "end_turn", "next turn")
         src = _read("backend/ai/llm_client.py")
-        line = [ln for ln in src.split("\n")
-                if 'elif "end turn" in command_lower' in ln]
-        assert line, "the parser arm moved — re-derive the client's list"
-        assert line[0].count(" in command_lower") == 3
+        assert "elif is_bare_end_turn(command_lower):" in src, (
+            "the parser arm moved — re-derive the client's list")
 
 
 class TestTheDigitsGoToTheCommandLine:
@@ -1275,8 +1283,12 @@ class TestTheEndTurnSynonymsMeetTheGate:
     "end turn" was intercepted while the backend reads end_turn from a
     substring test over three keywords."""
 
+    # ⚠ "end turn now" REMOVED Sept 2, 2026 (FA-6): it is no longer an
+    # end-turn phrasing on either side. The substring gate it documented
+    # also intercepted "Davout, fortify until next turn" and sent "end turn"
+    # instead of the order the player had typed.
     @pytest.mark.parametrize("phrasing", [
-        "end turn", "next turn", "end turn now", "END TURN", "  end turn  ",
+        "end turn", "next turn", "END TURN", "  end turn  ", "next turn.",
     ])
     def test_the_helper_claims_every_phrasing_the_parser_accepts(self, phrasing):
         """Mirrors `llm_client`'s own arm. Asserted against the GDScript

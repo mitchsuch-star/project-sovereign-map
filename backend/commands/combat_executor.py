@@ -8644,9 +8644,18 @@ class CombatExecutor:
         """
         target = command.get("target")
         if not world or not target:
+            # FA-22: this leaked a raw internal string to the player.
+            # Measured: `the Guard, attack Mack` — where the hold keyword
+            # inside "Guard" claims the sentence and leaves the attack with
+            # no target — answered "Error: No target or world state". It is
+            # the ONE shape the addressee guard cannot claim, because the
+            # unit's name IS an order verb.
             return {"kind": "error", "error": {
                 "success": False,
-                "message": "Error: No target or world state"}}
+                "message": (
+                    "Berthier waits, pen raised. \"Whom shall I send, Sire, "
+                    "and against whom? Name the marshal and the foe — "
+                    "'Ney, attack Mack'.\"")}}
 
         # FIRST: Try to find target as enemy marshal name
         # WO-13: through the SAME seam as the named route. This path

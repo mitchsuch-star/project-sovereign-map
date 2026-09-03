@@ -52,19 +52,91 @@ _SEQUEL_SPLIT_RE = re.compile(r'[,;]?\s+then\b\s+', re.IGNORECASE)
 # ANY suffix, and _extract_target_text already strips the tail cleanly).
 _ATTACK_ON_ARRIVAL_TAIL_RE = re.compile(
     r'^(?:attack|engage|assault)\b', re.IGNORECASE)
+# FA-7. "Ney, wait for Davout then attack Mack" fought Mack immediately: the
+# exemption above refuses to split ANY tail beginning with an attack verb, so
+# the whole sentence stayed one parse and `attack` outranked `wait`. But
+# attack-on-arrival is a MOVEMENT idiom — it means "march there and hit
+# whatever you find". A first clause that orders the marshal to STAND STILL
+# cannot carry an arrival, so the exemption has nothing to protect.
+#
+# `until` is excluded because it is the one condition the engine actually
+# implements: "Ney, hold until Davout arrives then attack" is a supported
+# standing HOLD and a pinned corpus row, and must stay one parse.
+_STAND_FAST_FIRST_CLAUSE_RE = re.compile(
+    r'\b(?:wait|hold|halt|stand\s+fast|stay\s+put|remain)\b', re.IGNORECASE)
+_ENGINE_CONDITION_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 
 
-def _split_sequential_orders(command_text: str):
+# ── FA-50: the compound shapes `then` never covered ─────────────────────────
+# The split fired only on the literal word "then" (a `;` was consumed merely
+# as an optional PREFIX to it), so every other way of writing two orders on
+# one line went unsplit — and the title's "silently drop the second clause"
+# is the kinder half of what happened. Measured on the 1805 boot, in 9 of 14
+# compound shapes the SECOND clause's action and target were executed BY THE
+# FIRST MARSHAL, in place of the order actually given, at 2 AP, reported as
+# success: `Ney, attack Mack and hold Rhineland` made Ney HOLD, and
+# `Ney, attack Mack and march to Vienna` marched him to Vienna.
+#
+# Two patterns, because they need different evidence.
+_SEMICOLON_SPLIT_RE = re.compile(r'\s*;\s*')
+# `and <Marshal>, <verb>` — a second marshal named outright.
+_AND_MARSHAL_SPLIT_RE_TEMPLATE = r'\s+and\s+(?={names}\b)'
+# A bare `and <verb>` cannot be split on sight: "defend and hold belgium",
+# "secure and hold vienna", "Ney, defend and hold" and "Ney, fortify and
+# hold position" are all LEGITIMATE single orders, pinned in the corpus and
+# in test_systems_audit_v2_session5. The discriminator is measurable, not
+# stylistic — see `_and_clause_is_a_second_order`.
+_AND_VERB_SPLIT_RE = re.compile(
+    r'\s+and\s+(?=(?:attack|assault|engage|storm|charge|bombard|retreat'
+    r'|withdraw|move|march|advance|scout|hold|defend|fortify|entrench'
+    r'|drill|wait|garrison|recruit|build|repair|support|reinforce'
+    r'|pursue|chase|blockade)\b)',
+    re.IGNORECASE)
+# The hold IDIOMS. These are one order, not two, and `llm_client`'s own hold
+# branch enumerates them verbatim — "defend and hold", "fortify and hold",
+# "secure and hold". `defend and hold belgium` and `Ney, fortify and hold
+# position` are pinned in the golden corpus and in
+# test_systems_audit_v2_session5; splitting them would turn a single order
+# into an order plus a warning about a clause the player never meant to give.
+# A drift pin holds this list against `llm_client`'s.
+_HOLD_IDIOM_RE = re.compile(r'\b(?:defend|fortify|secure)\s+and\s+hold\b',
+                            re.IGNORECASE)
+
+
+def _player_marshal_names(game_state) -> list:
+    world = (game_state or {}).get("world")
+    player = getattr(world, "player_nation", None)
+    return [name for name, m in (getattr(world, "marshals", {}) or {}).items()
+            if getattr(m, "nation", None) == player]
+
+
+def _split_sequential_orders(command_text: str, game_state=None):
     """Split "<first order>, then <second order>" into (first, tail), or
-    None when the command is not a sequential compound."""
+    None when the command is not a sequential compound.
+
+    FA-50 widens the boundary from `then` alone to `;` and to `and` before a
+    second marshal. The bare `and <verb>` arm is decided by the caller,
+    which alone can trial-parse both clauses.
+    """
     match = _SEQUEL_SPLIT_RE.search(command_text)
+    if not match:
+        match = _SEMICOLON_SPLIT_RE.search(command_text)
+    if not match:
+        names = _player_marshal_names(game_state)
+        if names:
+            pattern = _AND_MARSHAL_SPLIT_RE_TEMPLATE.format(
+                names="|".join(re.escape(n) for n in sorted(names, key=len,
+                                                            reverse=True)))
+            match = re.search(pattern, command_text, re.IGNORECASE)
     if not match:
         return None
     first = command_text[:match.start()].strip().rstrip(',;')
     tail = command_text[match.end():].strip()
     if not first or not tail:
         return None
-    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail):
+    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and not (
+            _STAND_FAST_FIRST_CLAUSE_RE.search(first)
+            and not _ENGINE_CONDITION_RE.search(first)):
         return None
     return (first, tail)
 
@@ -1422,6 +1494,42 @@ class CommandParser:
 
         return (llm_result, None)
 
+    def _and_clause_is_a_second_order(self, command_text: str, game_state):
+        """FA-50: the bare `and <verb>` arm, decided by evidence.
+
+        "Ney, attack Mack and hold Rhineland" is two orders; "Ney, defend
+        and hold" and "secure and hold vienna" are one, and both are pinned.
+        The discriminator is evidence, not style: SPLIT only when clause 1
+        parses to a real action on its own AND clause 2 carries its OWN
+        object. A bare second verb names no object, so "Ney, defend and
+        hold" stays one order — and the three hold IDIOMS are exempted
+        outright, because `defend and hold belgium` DOES name an object and
+        is still one order.
+
+        Returns (first, tail) or None. Never splits when both clauses name
+        the same object — "attack Mack and destroy Mack" is one order said
+        twice.
+        """
+        if _HOLD_IDIOM_RE.search(command_text):
+            return None
+        match = _AND_VERB_SPLIT_RE.search(command_text)
+        if not match:
+            return None
+        first = command_text[:match.start()].strip().rstrip(',;')
+        tail = command_text[match.end():].strip()
+        if not first or not tail:
+            return None
+        head_parse = self.llm.fast_parse(first, game_state)
+        if head_parse.action == "unknown":
+            return None
+        tail_parse = self.llm.fast_parse(tail, game_state)
+        if tail_parse.action == "unknown" or not tail_parse.target:
+            return None
+        if head_parse.target and str(tail_parse.target).strip().lower() == str(
+                head_parse.target).strip().lower():
+            return None
+        return (first, tail)
+
     def parse(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:
         """
         Parse a command from the player.
@@ -1484,9 +1592,18 @@ class CommandParser:
             # text keeps its historical behavior.
             effective_text = command_text
             dropped_sequel = None
-            sequel_split = _split_sequential_orders(command_text)
+            sequel_split = _split_sequential_orders(command_text, game_state)
+            if sequel_split is None:
+                sequel_split = self._and_clause_is_a_second_order(
+                    command_text, game_state)
             if sequel_split is not None:
                 first_clause, sequel_tail = sequel_split
+                # FA-50: this gate is what stops the ADDRESS form
+                # "Ney and Davout, attack Mack" from splitting into
+                # ("Ney", "Davout, attack Mack") — `fast_parse("Ney")`
+                # returns `unknown`. That protection was incidental and
+                # unasserted; it is pinned now, because the muster surface
+                # depends on it.
                 if self.llm.fast_parse(first_clause, game_state).action != "unknown":
                     effective_text = first_clause
                     dropped_sequel = sequel_tail

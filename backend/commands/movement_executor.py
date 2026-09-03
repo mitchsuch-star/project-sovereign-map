@@ -13,6 +13,62 @@ from backend.display_names import display_nation
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# FA-54 — THE DESTINATION THE PLAYER DID NOT NAME
+#
+# `_plausible_name_typo` accepts 2 edits at six letters or more when the
+# first letter matches, and the region auto-correct arm rewrites the target
+# on that test alone. Measured on the 1805 boot: `Ney, march to Mainz` — the
+# Rhine crossing of the 1805 campaign, one march from where Ney boots —
+# marches SIX PROVINCES WEST to Maine, and says nothing. `march to Bayern`
+# heads for Bern. `march to Lisboa` is an eight-hop march across three
+# realms. And `Soult, hold Mainz` prints
+#
+#     Soult will hold Maine. Marching to Maine. "Soult, hold Mainz."
+#
+# — the CR-5 rider-(d) verbatim quote and the substituted destination
+# contradicting each other inside one sentence, on a STANDING order.
+#
+# Three things this fixes that the row and its own `_corrected` text do not:
+#
+#  (1) THE PREDICATE WAS BLIND TO ITS OWN CASE. The old grounding test was
+#      `any(len(w) >= 4 and (w in _tn or _tn in w))` — containment either
+#      way — so a PREFIX exonym grounds its own substitution. Measured:
+#      `Ney, move to Main` marched six provinces to Maine with NO note, on
+#      the route the row calls "the one that discloses". Main is the
+#      Frankfurt river line; a player who knows 1805 types it for the same
+#      reason he types Mainz. Ground on an exact token match instead.
+#  (2) THE NOTE REACHED THE PLAYER ON 2 OF 8 PATHS. Six of the returns
+#      between the note's construction and its two render sites print the
+#      substituted name and drop the note.
+#  (3) IT IS A DISPLAY FIX, NOT A GATE FIX. `_corrected` moves the row's fix
+#      to the parser's auto-correct arm; measured, killing that arm alone
+#      leaves `order.path` still ending at Maine and only changes the LABEL —
+#      an order whose target names a province that does not exist while its
+#      path marches to a real different one. Each route has TWO producers in
+#      series and gating any ONE of the four is inert.
+# ═══════════════════════════════════════════════════════════════════════════
+
+def destination_grounding_note(raw_text, resolved_name: str) -> str:
+    """" (Our maps read X as the province nearest your order, Sire.)", or "".
+
+    Empty when the player's own words name the destination, and when no raw
+    text rides (AI / strategic / mock callers, which synthesize the name and
+    have nothing to disclose).
+    """
+    raw = str(raw_text or "").lower()
+    name = str(resolved_name or "")
+    if not raw or not name:
+        return ""
+    typed = set(re.findall(r"[a-z']+", raw))
+    # Exact tokens only. Containment made `main` ground `maine` — the very
+    # substitution the note exists to disclose.
+    if name.lower() in raw or typed & set(re.findall(r"[a-z']+", name.lower())):
+        return ""
+    return (f" (Our maps read {name} as the province nearest your order, "
+            f"Sire.)")
+
+
 class MovementExecutor:
     """Handles movement and reconnaissance actions: move, scout, retreat."""
 
@@ -340,19 +396,8 @@ class MovementExecutor:
         # so the marshal never marches somewhere silently. NOTE only — a move
         # is reversible. Silent on an exact/echoed destination or when no raw
         # text rides (AI / strategic / mock callers).
-        move_substitution_note = ""
-        _raw_move_text = str(raw_input or "").lower()
-        if _raw_move_text and target_name:
-            _tn = target_name.lower()
-            _grounded = _tn in _raw_move_text or any(
-                len(w) >= 4 and (w in _tn or _tn in w)
-                for w in re.findall(r"[a-z']+", _raw_move_text)
-            )
-            if not _grounded:
-                move_substitution_note = (
-                    f" (Our maps read {target_name} as the province nearest "
-                    f"your order, Sire.)"
-                )
+        move_substitution_note = destination_grounding_note(
+            raw_input, target_name)
 
         current_region = world.get_region(marshal.location)
 
@@ -366,6 +411,15 @@ class MovementExecutor:
         _refusal = self.move_refusal_probe(world, marshal, target_region,
                                            target_name)
         if _refusal is not None:
+            # FA-54: a REFUSAL names the substituted province too, and used
+            # to drop the note — measured, `Ney, move to Lisboa` answered
+            # "Cannot enter Lisbon" without ever admitting the player had
+            # typed Lisboa. Appended here, at the one call site inside
+            # `_execute_move`, so the probe itself stays a pure read for the
+            # dispatch and the executor, which have nothing to disclose.
+            if move_substitution_note and _refusal.get("message"):
+                _refusal = dict(_refusal)
+                _refusal["message"] = str(_refusal["message"]) + move_substitution_note
             return _refusal
 
         distance = world.get_distance(marshal.location, target_name)
@@ -459,7 +513,9 @@ class MovementExecutor:
                 marshal_type = "cavalry" if move_range == 2 else "infantry"
                 return {
                     "success": False,
-                    "message": f"{marshal.location} is too far from {target_name} (distance: {distance}, {marshal_type} range: {move_range})",
+                    "message": (f"{marshal.location} is too far from {target_name} "
+                            f"(distance: {distance}, {marshal_type} range: "
+                            f"{move_range})" + move_substitution_note),
                     "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
                 }
 
@@ -540,7 +596,8 @@ class MovementExecutor:
                     }
                 return {
                     "success": False,
-                    "message": f"No valid path from {marshal.location} to {target_name}",
+                    "message": (f"No valid path from {marshal.location} to "
+                            f"{target_name}" + move_substitution_note),
                     "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
                 }
 

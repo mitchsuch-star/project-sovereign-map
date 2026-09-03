@@ -13,6 +13,8 @@ TODO (Future): Multi-Army Battles
 - Combined strength calculations with command bonuses
 - Coordinated attacks with flanking bonuses
 """
+import re
+
 from typing import Dict, List, Optional, Tuple
 from backend.ai.generic_targets import is_generic_target
 from backend.ai.nation_names import (
@@ -899,6 +901,62 @@ class CommandExecutor:
             )
         return " ".join(reasons)
 
+    # FA-22. The marshal-LESS command types a dropped addressee degrades
+    # into. Every one of them picks somebody, or acts army-wide, without the
+    # player naming who — which is correct for a BARE order and wrong the
+    # moment the player did name someone.
+    _MARSHAL_LESS_TYPES = (
+        "general_attack", "auto_assign_attack", "general_retreat",
+        "auto_assign_scout", "auto_assign_bombardment",
+    )
+    # An addressee is only unbound if it is not itself an ORDER. This is what
+    # keeps "attack Bern, then hold your positions" working: its pre-comma
+    # phrase is "attack Bern", which names a verb, so nobody was addressed.
+    _ADDRESSEE_IS_AN_ORDER_RE = re.compile(
+        r"\b(?:attack|assault|engage|storm|charge|bombard|retreat|withdraw"
+        r"|fall\s+back|move|march|advance|scout|reconnoitre|reconnoiter"
+        r"|hold|defend|fortify|entrench|drill|wait|halt|stop|cancel|recruit"
+        r"|raise|build|repair|garrison|blockade|guard|secure|pursue|chase"
+        r"|support|reinforce|declare|propose|demand|end|status|help)\b",
+        re.IGNORECASE,
+    )
+
+    def _unbound_addressee(self, command: Dict, parsed_command: Dict,
+                           world) -> Optional[str]:
+        """The phrase the player addressed, when the roster cannot bind it.
+
+        Returns None for every command that is not of the marshal-less
+        family, for a BARE order (no comma), and whenever the pre-comma
+        phrase names a live player marshal or is itself an order.
+        """
+        if command.get("type") not in self._MARSHAL_LESS_TYPES:
+            return None
+        if command.get("marshal"):
+            return None
+        raw = str(parsed_command.get("raw_input")
+                  or command.get("raw_input") or "")
+        head, sep, _tail = raw.partition(",")
+        if not sep:
+            return None
+        phrase = head.strip().strip("'\"").strip()
+        if phrase.lower().startswith("the "):
+            phrase = phrase[4:].strip()
+        if not phrase or len(phrase) > 40:
+            return None
+        if self._ADDRESSEE_IS_AN_ORDER_RE.search(phrase):
+            return None
+        words = {w.lower() for w in re.findall(r"[A-Za-z'-]+", phrase)}
+        if not words:
+            return None
+        player = getattr(world, "player_nation", None)
+        for name, marshal in (getattr(world, "marshals", {}) or {}).items():
+            if getattr(marshal, "nation", None) != player:
+                continue
+            if name.lower() in phrase.lower() or words & {
+                    w.lower() for w in re.findall(r"[A-Za-z'-]+", name)}:
+                return None
+        return phrase
+
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command against the current game state."""
         # Clear transient square-break notification (set by _auto_break_square)
@@ -1290,6 +1348,43 @@ class CommandExecutor:
         # GR5: AI / strategic-execution / autonomous callers never issue these
         # command types and are guarded out regardless.
         # ════════════════════════════════════════════════════════════
+        # ════════════════════════════════════════════════════════════
+        # FA-22: AN ADDRESSEE THE ROSTER CANNOT BIND IS A REFUSAL, NOT A
+        # LICENCE TO PICK SOMEBODY ELSE.
+        #
+        # Two gaps let a NAMED addressee fall through to the marshal-less
+        # family: `ADDRESS_TOKEN_RE` captures one word, so "the Iron Marshal,"
+        # and "Prince of Moskowa," never reach the did-you-mean; and a
+        # single-word addressee that merely RESEMBLES a region is skipped as
+        # "might be a target" ("Berthier" fuzzy-matches Bern at 75). Either
+        # way `marshal` is None, the command degrades, and CR-6's resolver
+        # names the nearest marshal — who then fights a real battle in the
+        # same response.
+        #
+        # Measured on the 1805 boot: "the Iron Marshal, attack Mack",
+        # "Berthier, attack Mack", "Prince of Moskowa, attack Mack" and
+        # "the cavalry, attack Mack" ALL sent SOULT, with a battle report.
+        # And it is wider than the row: "Berthier, retreat" ran a WHOLE-ARMY
+        # retreat — eight marshals, 2,270 men, ZERO AP, no confirm — while
+        # "Ney, retreat" costs none.
+        #
+        # This gates only the marshal-LESS family, and only when the player
+        # actually addressed someone. A BARE command is untouched, so CR-6's
+        # blessed instant pick and the bare general retreat both stand.
+        _unbound = self._unbound_addressee(command, parsed_command, world)
+        if (_unbound
+                and not is_ai_command
+                and not is_strategic_execution
+                and not command.get("_autonomous_execution")):
+            return {
+                "success": False,
+                "message": (
+                    f"There is no '{_unbound}' in the order of battle, Sire. "
+                    f"Whom did you intend?"),
+                "kind": "marshal_not_found",
+                "new_state": world,
+            }
+
         if (command.get("type") in ("general_attack", "auto_assign_attack")
                 and not is_ai_command
                 and not is_strategic_execution

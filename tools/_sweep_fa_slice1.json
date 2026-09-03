@@ -1,0 +1,331 @@
+[
+ {
+  "id": "FA-7/a the deferral VERB arm",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        marker = _DEFERRAL_VERB_RE.search(text, pos)",
+  "new": "        marker = None",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow"
+ },
+ {
+  "id": "FA-7/b the deferral ADVERB arm",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    for adverb in _DEFERRAL_ADVERB_RE.finditer(text):",
+  "new": "    for adverb in []:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow"
+ },
+ {
+  "id": "FA-7/c the adverb scopes to its CLAUSE, not the whole line",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        end_match = _DEFERRAL_CLAUSE_BOUNDARY_RE.search(text, adverb.end())\n        end = end_match.start() if end_match else len(text)",
+  "new": "        end = len(text)",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_clause_after_the_deferred_one_survives"
+ },
+ {
+  "id": "FA-7/d the clause start is found, not assumed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        for boundary in _DEFERRAL_CLAUSE_BOUNDARY_RE.finditer(\n                text, 0, adverb.start()):\n            start = boundary.end()",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_a_coordinate_order_for_this_turn_survives"
+ },
+ {
+  "id": "FA-7/e FA-N23 — a bare end-turn synonym is not a deferral",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        outside = text[start:adverb.start()] + text[adverb.end():end]\n        if not _WORD_RE.search(outside):\n            continue",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestOnlyABareEndTurnEndsTheTurn::test_every_bare_form_still_ends_it"
+ },
+ {
+  "id": "FA-7/f the guard is BLANKING, not splicing",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return (\"\".join(chars) if applied else text), applied\n\n\n# ---------------------------------------------------------------------------\n# Conditions",
+  "new": "    return (\"\".join(c for c in chars if c != \" \") if applied else text), applied\n\n\n# ---------------------------------------------------------------------------\n# Conditions",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_the_deferral_guard_blanks_in_place"
+ },
+ {
+  "id": "FA-7/g the guard is WIRED into the parse battery",
+  "file": "backend/ai/llm_client.py",
+  "old": "            guarded, deferral_applied = strip_deferred_clauses(guarded)",
+  "new": "            deferral_applied = False",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow"
+ },
+ {
+  "id": "FA-7/h a deferral refuses when nothing survives",
+  "file": "backend/ai/llm_client.py",
+  "old": "            if negation_applied or deferral_applied:",
+  "new": "            if negation_applied:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow"
+ },
+ {
+  "id": "FA-7/i a deferral is not answered as a prohibition",
+  "file": "backend/ai/llm_client.py",
+  "old": "                    return self._refusal_result(\n                        original_text, \"deferral\",\n                        \"an order for a later turn\")",
+  "new": "                    return self._refusal_result(\n                        original_text, \"negation\", \"an order NOT to act\")",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_the_refusal_is_a_deferral_not_a_prohibition"
+ },
+ {
+  "id": "FA-7/j negation still wins the label when both fire",
+  "file": "backend/ai/llm_client.py",
+  "old": "                    if negation_applied:\n                        return self._refusal_result(\n                            original_text, \"negation\", \"an order NOT to act\")",
+  "new": "                    if False:\n                        return self._refusal_result(\n                            original_text, \"negation\", \"an order NOT to act\")",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_a_prohibition_still_answers_as_a_prohibition"
+ },
+ {
+  "id": "FA-7/k the deferral has its own Berthier line",
+  "file": "backend/main.py",
+  "old": "                elif parsed[\"refusal\"] == \"deferral\":",
+  "new": "                elif False:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_the_refusal_is_a_deferral_not_a_prohibition"
+ },
+ {
+  "id": "FA-7/l wait-then-attack splits",
+  "file": "backend/commands/parser.py",
+  "old": "    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and not (\n            _STAND_FAST_FIRST_CLAUSE_RE.search(first)\n            and not _ENGINE_CONDITION_RE.search(first)):",
+  "new": "    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail):",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestWaitForThenAttackDoesNotAttack"
+ },
+ {
+  "id": "FA-7/m `until` keeps the engine's own shape one parse",
+  "file": "backend/commands/parser.py",
+  "old": "            and not _ENGINE_CONDITION_RE.search(first)):",
+  "new": "            and True):",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestWaitForThenAttackDoesNotAttack::test_the_engines_own_until_shape_is_untouched"
+ },
+ {
+  "id": "FA-6/a the end_turn arm is the BARE form",
+  "file": "backend/ai/llm_client.py",
+  "old": "        elif is_bare_end_turn(command_lower):",
+  "new": "        elif any(p in command_lower for p in END_TURN_PHRASINGS):",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestOnlyABareEndTurnEndsTheTurn"
+ },
+ {
+  "id": "FA-6/b the bare test is whole-string",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return stripped.strip() in END_TURN_PHRASINGS",
+  "new": "    return any(p in stripped for p in END_TURN_PHRASINGS)",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestOnlyABareEndTurnEndsTheTurn"
+ },
+ {
+  "id": "FA-6/c trailing punctuation is allowed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    stripped = (text or \"\").strip().lower().rstrip(\".!? \\t\")",
+  "new": "    stripped = (text or \"\").strip().lower()",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestOnlyABareEndTurnEndsTheTurn::test_every_bare_form_still_ends_it"
+ },
+ {
+  "id": "FA-N22/a the client gate is whole-string too",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\treturn c == \"end turn\" or c == \"end_turn\" or c == \"next turn\"",
+  "new": "\treturn c.find(\"end turn\") != -1 or c.find(\"end_turn\") != -1 or c.find(\"next turn\") != -1",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheClientGateSpeaksTheSameVocabulary"
+ },
+ {
+  "id": "FA-N22/b the client strips trailing punctuation",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\twhile c.length() > 0 and \".!? \t\".find(c[c.length() - 1]) != -1:\n\t\tc = c.substr(0, c.length() - 1)\n",
+  "new": "\tpass\n",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_the_client_body_still_strips_trailing_punctuation"
+ },
+ {
+  "id": "FA-11/a the inversion is read",
+  "file": "backend/game_logic/naval.py",
+  "old": "    inverted = any(m.end() <= noun.start()\n                   for m in _POSTURE_INVERSION_RE.finditer(text))",
+  "new": "    inverted = False",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheBlockadeInversionIsObeyed"
+ },
+ {
+  "id": "FA-11/b the inversion must PRECEDE the posture noun",
+  "file": "backend/game_logic/naval.py",
+  "old": "    inverted = any(m.end() <= noun.start()\n                   for m in _POSTURE_INVERSION_RE.finditer(text))",
+  "new": "    inverted = True",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheBlockadeInversionIsObeyed::test_the_positive_controls_still_stand_out_to_sea"
+ },
+ {
+  "id": "FA-11/c the sibling naval errands yield",
+  "file": "backend/game_logic/naval.py",
+  "old": "    if _OTHER_NAVAL_ERRAND_RE.search(text):\n        return None",
+  "new": "    pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_the_posture_rule_yields_to_a_sibling_errand_on_its_own"
+ },
+ {
+  "id": "FA-11/d a report is not an order",
+  "file": "backend/game_logic/naval.py",
+  "old": "    if _NOT_AN_ORDER_RE.search(text):\n        return False",
+  "new": "    pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_report_carrying_a_posture_verb_is_still_not_an_order"
+ },
+ {
+  "id": "FA-11/e an order needs a posture VERB",
+  "file": "backend/game_logic/naval.py",
+  "old": "    return bool(_POSTURE_VERB_RE.search(text)\n                or _POSTURE_INVERSION_RE.search(text))",
+  "new": "    return True",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheAdmiraltyTakesItsOrdersFromTheEmperor::test_a_report_is_not_an_order"
+ },
+ {
+  "id": "FA-11/f the misaddressed gate",
+  "file": "backend/commands/naval_executor.py",
+  "old": "            if misaddressed:",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheAdmiraltyTakesItsOrdersFromTheEmperor::test_a_siege_phrasing_never_moves_the_fleet"
+ },
+ {
+  "id": "FA-11/g MEMBERSHIP, never truthiness",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                and (target in regions or target in marshals))",
+  "new": "                and True)",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheBlockadeInversionIsObeyed::test_the_positive_controls_still_stand_out_to_sea"
+ },
+ {
+  "id": "FA-11/h the idempotence gate",
+  "file": "backend/commands/naval_executor.py",
+  "old": "        if derived_from_english and posture == previous:",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheAdmiraltyTakesItsOrdersFromTheEmperor::test_a_redundant_posture_is_not_a_paid_no_op"
+ },
+ {
+  "id": "FA-11/i the idempotence gate is TYPED-only",
+  "file": "backend/commands/naval_executor.py",
+  "old": "        if derived_from_english and posture == previous:",
+  "new": "        if posture == previous:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheAdmiraltyTakesItsOrdersFromTheEmperor::test_the_structured_door_is_still_open"
+ },
+ {
+  "id": "FA-11/j the posture rule is the single source",
+  "file": "backend/commands/naval_executor.py",
+  "old": "            posture = naval.derive_posture(raw) or \"\"",
+  "new": "            posture = (\"blockade\" if \"blockade\" in raw.lower() else \"\")",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheBlockadeInversionIsObeyed"
+ },
+ {
+  "id": "FA-22/a the unbound-addressee refusal",
+  "file": "backend/commands/executor.py",
+  "old": "        _unbound = self._unbound_addressee(command, parsed_command, world)",
+  "new": "        _unbound = None",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestAnUnboundAddresseeRefuses"
+ },
+ {
+  "id": "FA-22/b the marshal-less FAMILY, not just attack",
+  "file": "backend/commands/executor.py",
+  "old": "    _MARSHAL_LESS_TYPES = (\n        \"general_attack\", \"auto_assign_attack\", \"general_retreat\",\n        \"auto_assign_scout\", \"auto_assign_bombardment\",\n    )",
+  "new": "    _MARSHAL_LESS_TYPES = (\"general_attack\", \"auto_assign_attack\")",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestAnUnboundAddresseeRefuses::test_the_army_wide_retreat_is_covered_too"
+ },
+ {
+  "id": "FA-22/c a BARE order is untouched",
+  "file": "backend/commands/executor.py",
+  "old": "        head, sep, _tail = raw.partition(\",\")\n        if not sep:\n            return None",
+  "new": "        head, sep, _tail = raw.partition(\",\")\n        if not sep:\n            head = raw",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_bare_command_is_not_an_addressee_at_all"
+ },
+ {
+  "id": "FA-22/d an ORDER is not an addressee",
+  "file": "backend/commands/executor.py",
+  "old": "        if self._ADDRESSEE_IS_AN_ORDER_RE.search(phrase):\n            return None",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestAnUnboundAddresseeRefuses::test_an_order_is_not_an_addressee"
+ },
+ {
+  "id": "FA-22/e a BOUND marshal is not unbound",
+  "file": "backend/commands/executor.py",
+  "old": "            if name.lower() in phrase.lower() or words & {\n                    w.lower() for w in re.findall(r\"[A-Za-z'-]+\", name)}:\n                return None",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_phrase_that_names_a_marshal_is_bound tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_an_enemy_marshal_is_not_one_of_ours"
+ },
+ {
+  "id": "FA-22/f no raw error string reaches the player",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            return {\"kind\": \"error\", \"error\": {\n                \"success\": False,\n                \"message\": (\n                    \"Berthier waits, pen raised. \\\"Whom shall I send, Sire, \"\n                    \"and against whom? Name the marshal and the foe — \"\n                    \"'Ney, attack Mack'.\\\"\")}}\n",
+  "new": "            return {\"kind\": \"error\", \"error\": {\n                \"success\": False,\n                \"message\": \"Error: No target or world state\"}}\n",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestAnUnboundAddresseeRefuses::test_no_raw_error_string_reaches_the_player"
+ },
+ {
+  "id": "FA-50/a the semicolon splits",
+  "file": "backend/commands/parser.py",
+  "old": "        match = _SEMICOLON_SPLIT_RE.search(command_text)",
+  "new": "        match = None",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheSecondClauseNeverSuppliesTheAction"
+ },
+ {
+  "id": "FA-50/b `and <Marshal>` splits",
+  "file": "backend/commands/parser.py",
+  "old": "            match = re.search(pattern, command_text, re.IGNORECASE)",
+  "new": "            match = None",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_the_and_marshal_shape_declares_its_tail"
+ },
+ {
+  "id": "FA-50/c the bare `and <verb>` arm",
+  "file": "backend/commands/parser.py",
+  "old": "                sequel_split = self._and_clause_is_a_second_order(\n                    command_text, game_state)",
+  "new": "                sequel_split = None",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheSecondClauseNeverSuppliesTheAction"
+ },
+ {
+  "id": "FA-50/d the hold IDIOMS are exempt",
+  "file": "backend/commands/parser.py",
+  "old": "        if _HOLD_IDIOM_RE.search(command_text):\n            return None",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheSecondClauseNeverSuppliesTheAction::test_the_hold_idioms_are_one_order"
+ },
+ {
+  "id": "FA-50/e clause 2 must carry its OWN object",
+  "file": "backend/commands/parser.py",
+  "old": "        if tail_parse.action == \"unknown\" or not tail_parse.target:\n            return None",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_bare_second_verb_is_not_a_second_order"
+ },
+ {
+  "id": "FA-50/f clause 1 must parse to a real action",
+  "file": "backend/commands/parser.py",
+  "old": "        head_parse = self.llm.fast_parse(first, game_state)\n        if head_parse.action == \"unknown\":\n            return None",
+  "new": "        head_parse = self.llm.fast_parse(first, game_state)",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_an_unparseable_first_clause_never_splits"
+ },
+ {
+  "id": "FA-54/a the strategic route discloses",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        _ground = destination_grounding_note(\n            parsed_command.get(\"raw_input\"), target)",
+  "new": "        _ground = \"\"",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestASubstitutedDestinationIsDisclosed"
+ },
+ {
+  "id": "FA-54/b the standing HOLD discloses",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                   + destination_grounding_note(\n                       parsed_command.get(\"raw_input\"), hold_loc))",
+  "new": "                   + \"\")",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestASubstitutedDestinationIsDisclosed::test_the_standing_hold_no_longer_contradicts_itself"
+ },
+ {
+  "id": "FA-54/c a REFUSAL discloses",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            if move_substitution_note and _refusal.get(\"message\"):",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestASubstitutedDestinationIsDisclosed::test_a_refusal_discloses_it_as_well"
+ },
+ {
+  "id": "FA-54/d the grounding test is EXACT-TOKEN",
+  "file": "backend/commands/movement_executor.py",
+  "old": "    if name.lower() in raw or typed & set(re.findall(r\"[a-z']+\", name.lower())):\n        return \"\"",
+  "new": "    if name.lower() in raw or any(\n            len(w) >= 4 and (w in name.lower() or name.lower() in w)\n            for w in typed):\n        return \"\"",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestASubstitutedDestinationIsDisclosed::test_a_prefix_exonym_is_disclosed_too"
+ },
+ {
+  "id": "FA-54/e a correct destination gets NO note",
+  "file": "backend/commands/movement_executor.py",
+  "old": "    typed = set(re.findall(r\"[a-z']+\", raw))",
+  "new": "    typed = set()",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_multiword_province_is_grounded_by_its_tokens"
+ },
+ {
+  "id": "FA-54/f AI/strategic callers with no raw text stay silent",
+  "file": "backend/commands/movement_executor.py",
+  "old": "    if not raw or not name:\n        return \"\"",
+  "new": "    if not name:\n        return \"\"",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestASubstitutedDestinationIsDisclosed::test_the_helper_grounds_on_exact_tokens"
+ },
+ {
+  "id": "CORPUS/a the deferral rows bind",
+  "file": "backend/ai/clause_guards.py",
+  "old": "def strip_deferred_clauses(text: str) -> Tuple[str, bool]:",
+  "new": "def strip_deferred_clauses(text: str) -> Tuple[str, bool]:\n    return text, False\n\n\ndef _unused_strip_deferred_clauses(text):",
+  "tests": "tests/test_command_robustness_cr1_eval_harness.py"
+ }
+]

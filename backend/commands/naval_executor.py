@@ -88,15 +88,53 @@ class NavalExecutor:
 
         # Structured field first (GR5 — the AI/wizard never synthesizes
         # English), then the raw text.
+        #
+        # ⚠ FA-11, measured: the structured branch is production-DEAD.
+        # `posture` is absent from `providers.PARSE_TOOL`, no mock, live, AI
+        # or chip producer writes it, and the only writers in the repo are
+        # tests — so the raw-text derivation below is not a fallback, it is
+        # the whole implementation, and it used to be two bare substring
+        # tests. The door stays open for the wizard and the AI; what changed
+        # is that the English behind it goes through ONE pure rule
+        # (`naval.derive_posture`) instead of `"blockade" in raw`.
         posture = (command.get("posture") or "").strip().lower()
-        if posture not in naval.POSTURES:
-            raw = (command.get("raw_input") or command.get("original_command")
-                   or command.get("raw_command") or "").lower()
-            if "blockade" in raw or "close the ports" in raw:
-                posture = "blockade"
-            elif ("guard" in raw or "home waters" in raw or "recall" in raw
-                  or "defend" in raw):
-                posture = "guard"
+        raw = (command.get("raw_input") or command.get("original_command")
+               or command.get("raw_command") or "")
+        derived_from_english = False
+        # An EMPTY command carries no English to judge — it is the bare
+        # `set_fleet_posture` the wizard and the Admiralty chips send when no
+        # posture was named, and its answer is the prompt at the bottom of
+        # this block, not a lecture about reports.
+        if posture not in naval.POSTURES and raw.strip():
+            derived_from_english = True
+            # (a) THE ORDER MUST BE ADDRESSED TO THE ADMIRALTY. An addressed
+            # marshal, or a target that names a province or a marshal, means
+            # the player is investing a city, not putting the fleet to sea —
+            # `Ney, blockade Vienna` and `Ney, blockade Mack` both stood the
+            # fleet out on blockade and charged for it. MEMBERSHIP, never
+            # truthiness: `blockade Britain` and `guard home waters` must
+            # survive, and neither is a region or a marshal.
+            target = command.get("target")
+            regions = getattr(world, "regions", {}) or {}
+            marshals = getattr(world, "marshals", {}) or {}
+            misaddressed = command.get("marshal") or (
+                isinstance(target, str)
+                and (target in regions or target in marshals))
+            # (b) A REPORT IS NOT AN ORDER. The only guard that catches the
+            # class carrying neither a marshal nor a province.
+            if misaddressed:
+                return {"success": False, "message": (
+                    "The Admiralty takes its orders from the Emperor, Sire, "
+                    "not from a marshal in the field — and a fleet cannot "
+                    "invest a city. Say 'blockade the enemy' or 'guard home "
+                    "waters'; to invest a place, march on it.")}
+            if not naval.sentence_is_an_order(raw):
+                return {"success": False, "message": (
+                    "I have noted it, Sire, but that is intelligence, not an "
+                    "order — nothing has gone to the Admiralty. To move the "
+                    "fleet, say 'blockade the enemy' or 'guard home "
+                    "waters'.")}
+            posture = naval.derive_posture(raw) or ""
         if posture not in naval.POSTURES:
             return {"success": False, "message": (
                 "Give the Admiralty a posture, Sire: 'blockade the enemy' "
@@ -104,6 +142,22 @@ class NavalExecutor:
                 "outmatch) or 'guard home waters'.")}
 
         previous = rec.get("posture", "guard")
+        # (c) IDEMPOTENCE, on the TYPED path. Without it the row's own
+        # behaviour test cannot pass: `lift the blockade` from a fleet
+        # already guarding used to prepend "The fleet already holds that
+        # station." and still charge 1 AP — a paid no-op, and the inversion
+        # fix would have created a second one.
+        #
+        # Scoped to English deliberately. The structured field is the
+        # AI/wizard door, where a redundant posture is the caller's own
+        # decision, made without a sentence to misread; refusing it there
+        # would change AI behaviour this row did not measure, and it reds a
+        # WO-slice-6 pin that drives guard->guard structurally to read the
+        # order's copy.
+        if derived_from_english and posture == previous:
+            return {"success": False, "message": (
+                f"The fleet already lies at {previous}, Sire — no signal is "
+                f"needed and none has been sent.")}
         # ── Who is ACTUALLY released, measured across the flip ──────────
         # Release is a MEMBERSHIP question, not an ownership one: a court a
         # second power also pins stays pinned when we stand down. The first

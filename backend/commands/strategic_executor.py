@@ -23,6 +23,10 @@ from backend.commands.objection_v2 import (
 )
 from backend.display_names import action_display_name as _action_display_name, get_strategic_display, humanize_entity_name
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+# FA-54: ONE grounding note, shared by the tactical and strategic routes,
+# so `move` and `march` can never again disagree about disclosing the
+# same substitution.
+from backend.commands.movement_executor import destination_grounding_note
 
 
 def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
@@ -1499,12 +1503,22 @@ class StrategicExecutor:
         remaining = len(order.path) if order.path else 0
         route_str = " -> ".join([marshal.location] + (order.path or []))
 
+        # FA-54: the strategic route was SILENT about an auto-corrected
+        # destination while the tactical route disclosed the identical
+        # substitution — the CA8-28 two-routes shape one level down, and
+        # `march` is the common verb. Same note, same words, built by the
+        # one shared helper so the two routes cannot drift again.
+        _ground = destination_grounding_note(
+            parsed_command.get("raw_input"), target)
+
         if strategic_type == "MOVE_TO":
             if remaining == 0:
                 # Adjacent move — skip redundant route description
-                msg = f"{marshal.name} begins march to {target}.{first_step_msg}"
+                msg = (f"{marshal.name} begins march to {target}."
+                       f"{first_step_msg}{_ground}")
             else:
-                msg = f"{marshal.name} begins march to {target}. Route: {route_str}.{first_step_msg}"
+                msg = (f"{marshal.name} begins march to {target}. "
+                       f"Route: {route_str}.{first_step_msg}{_ground}")
         elif strategic_type == "PURSUE":
             enemy_m = world.get_marshal(target)
             # NPC-5: the acceptance line must not tell the player where the
@@ -1517,7 +1531,15 @@ class StrategicExecutor:
                    f"(at {loc}).{first_step_msg}")
         elif strategic_type == "HOLD":
             hold_loc = target or marshal.location
-            msg = f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
+            # A HOLD is a STANDING order, and the CR-5 rider-(d)
+            # verbatim quote rides beside it — measured, `Soult, hold
+            # Mainz` printed `Soult will hold Maine. Marching to Maine.
+            # "Soult, hold Mainz."`, the player's own words and the
+            # substituted province contradicting each other in one
+            # sentence.
+            msg = (f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
+                   + destination_grounding_note(
+                       parsed_command.get("raw_input"), hold_loc))
         elif strategic_type == "SUPPORT":
             ally_m = world.get_marshal(target)
             loc = ally_m.location if ally_m else "unknown"

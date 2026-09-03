@@ -110,6 +110,36 @@ _NEGATION_MARKER_RE = re.compile(
 )
 
 
+# ---------------------------------------------------------------------------
+# The end-turn vocabulary (FA-6 / FA-N22)
+# ---------------------------------------------------------------------------
+# The mock chain read end_turn from a bare SUBSTRING test over these three
+# words, sitting ABOVE every order verb — so a sentence that merely mentioned
+# one became the end-turn command itself. Measured on the shipped 1805 boot:
+# `what happens next turn` advanced the turn and ran the enemy phase, and so
+# did `we will decide next turn` and `Ney, hold here and attack next turn`,
+# while `what should we do next turn?` held it. A non-command advanced the
+# turn irreversibly, and inconsistently — a question mark saved you and the
+# same sentence without one did not.
+#
+# The vocabulary is UNCHANGED and lives here so the backend and the client's
+# `_is_end_turn_phrasing` cannot drift; what changed is that it must be the
+# WHOLE command. `end the turn` is deliberately still not a phrasing — it
+# shrugs today, and adding it would be a widening rather than this fix.
+END_TURN_PHRASINGS = ("end turn", "end_turn", "next turn")
+
+
+def is_bare_end_turn(text: str) -> bool:
+    """True only when the command IS an end-turn phrasing and nothing else.
+
+    Trailing punctuation is allowed; anything else — an address, an order
+    verb, a question — is not an end-turn command and falls through to the
+    keyword chain, where the deferral guard and the ordinary verbs decide.
+    """
+    stripped = (text or "").strip().lower().rstrip(".!? \t")
+    return stripped.strip() in END_TURN_PHRASINGS
+
+
 def negation_marker_spans(text: str) -> List[Tuple[int, int]]:
     """Where the negation markers are, as ``(start, end)`` character spans.
 
@@ -156,6 +186,106 @@ def strip_negated_clauses(text: str) -> Tuple[str, bool]:
         applied = True
         pos = max(clause_end, marker.end())
     return ("".join(chars), applied) if applied else (text, False)
+
+
+# ---------------------------------------------------------------------------
+# Deferral (FA-7)
+# ---------------------------------------------------------------------------
+# The guards above knew every way to say "not that" and no way at all to say
+# "not YET" — so "Ney, delay the attack" scored `attack` at 0.95, above the
+# 0.7 escalation gate, and fought a real battle on the turn it was typed.
+# Measured on the shipped 1805 boot: Ney marched Rhineland -> Swabia and lost
+# 1,172 men to a battle the player had explicitly postponed. `postpone`,
+# `defer`, `put off`, `attack Mack later`, `attack Mack tomorrow` and
+# `attack Mack for now` all did the same; the row filed five phrasings and
+# nine reproduce.
+#
+# Two shapes, because English defers in two directions.
+_DEFERRAL_VERB_RE = re.compile(
+    r"\b(?:"
+    r"delay(?:s|ed|ing)?"
+    r"|postpone[sd]?|postponing"
+    r"|defer(?:s|red|ring)?"
+    r"|put\s+(?:it\s+|that\s+|them\s+)?off"
+    r"|hold\s+off(?:\s+on)?"
+    r"|hold\s+back\s+(?:on|from)"
+    r")\b",
+    re.IGNORECASE,
+)
+# An adverb of time defers the CLAUSE it sits in, from either end — "attack
+# Mack later" and "next turn Ney attacks Mack" are the same instruction.
+_DEFERRAL_ADVERB_RE = re.compile(
+    r"\b(?:later|for\s+now|next\s+turn|tomorrow|next\s+time"
+    r"|another\s+time|some\s+other\s+time|in\s+due\s+course|in\s+a\s+while)\b",
+    re.IGNORECASE,
+)
+# Clause boundaries for the deferral scope. `and` counts here even though
+# `_CLAUSE_END_RE` deliberately excludes it: "hold here and attack next turn"
+# defers only the attack, and the hold is a real order for THIS turn. That is
+# the same scoping rule negation already uses — "hold your position, do not
+# attack" keeps the hold.
+_DEFERRAL_CLAUSE_BOUNDARY_RE = re.compile(
+    r"[,;.!?]|\s+then\s+|\s+but\s+|\s+and\s+", re.IGNORECASE)
+_WORD_RE = re.compile(r"[A-Za-z']")
+
+
+def strip_deferred_clauses(text: str) -> Tuple[str, bool]:
+    """Blank a DEFERRED order, preserving character positions.
+
+    Returns ``(effective_text, deferred)``.
+
+    "Ney, delay the attack"            -> "Ney,                 "
+    "Ney, attack Mack later"           -> "Ney,                  "
+    "Ney, hold here and attack next turn" -> "Ney, hold here     …"
+
+    The third shape is the point: a deferral scopes to its own clause, so a
+    co-ordinate order for THIS turn survives. When nothing survives, the
+    caller refuses — which is the honest answer, because the engine holds no
+    order until a later turn and inventing one would hand out free actions.
+
+    **The bare end-turn synonyms are not deferrals** (FA-N23). `next turn`
+    typed alone IS the command; the adverb arm therefore fires only when the
+    clause carries a word BEFORE the adverb. Without that guard this guard
+    runs ~350 lines above the end_turn keyword and would refuse the most
+    common command in the game.
+    """
+    if not text:
+        return text, False
+    chars = list(text)
+    applied = False
+
+    pos = 0
+    while pos < len(text):
+        marker = _DEFERRAL_VERB_RE.search(text, pos)
+        if not marker:
+            break
+        end_match = _CLAUSE_END_RE.search(text, marker.end())
+        clause_end = end_match.start() if end_match else len(text)
+        for i in range(marker.start(), clause_end):
+            chars[i] = " "
+        applied = True
+        pos = max(clause_end, marker.end())
+
+    for adverb in _DEFERRAL_ADVERB_RE.finditer(text):
+        start = 0
+        for boundary in _DEFERRAL_CLAUSE_BOUNDARY_RE.finditer(
+                text, 0, adverb.start()):
+            start = boundary.end()
+        end_match = _DEFERRAL_CLAUSE_BOUNDARY_RE.search(text, adverb.end())
+        end = end_match.start() if end_match else len(text)
+        # FA-N23. A clause that is NOTHING but the adverb, and is the whole
+        # command, is not a deferral — it IS the order: bare `next turn` is
+        # an end-turn synonym, and this guard runs some 350 lines above the
+        # arm that reads it, so a refusal here would pre-empt the most
+        # common command in the game.
+        outside = text[start:adverb.start()] + text[adverb.end():end]
+        if not _WORD_RE.search(outside):
+            continue
+        for i in range(start, end):
+            chars[i] = " "
+        applied = True
+
+    return ("".join(chars) if applied else text), applied
 
 
 # ---------------------------------------------------------------------------

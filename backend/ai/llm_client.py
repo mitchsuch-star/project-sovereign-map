@@ -35,9 +35,11 @@ from .attack_vocabulary import mentions_attack
 from .recruit_arm import extract_requested_arm
 from .clause_guards import (
     has_executable_residue,
+    is_bare_end_turn,
     is_question,
     mentions_stand_down,
     strip_condition_clauses,
+    strip_deferred_clauses,
     strip_negated_clauses,
 )
 
@@ -1067,6 +1069,11 @@ class LLMClient:
             stand_down = mentions_stand_down(command_lower)
             guarded, negation_applied = strip_negated_clauses(command_text)
             guarded, condition_refuses = strip_condition_clauses(guarded)
+            # FA-7: "not YET" is not "not that". The guards above knew every
+            # way to forbid an order and none to postpone one, so "Ney, delay
+            # the attack" fought a real battle at 0.95 confidence — above the
+            # escalation gate, so no key in any mode could have corrected it.
+            guarded, deferral_applied = strip_deferred_clauses(guarded)
 
             # A condition the engine cannot hold open. Issuing the order NOW is
             # the defect: "if Mack advances fall back to Alsace" marched on the
@@ -1080,12 +1087,21 @@ class LLMClient:
             # Checked here because the diplomatic routes below return EARLY —
             # without it, "Talleyrand, do not propose peace with Austria" fell
             # through on the bare-address rule and opened the nation picker.
-            if negation_applied:
+            if negation_applied or deferral_applied:
                 address = ADDRESS_TOKEN_RE.match(original_text)
                 if not has_executable_residue(
                         guarded, address.group(1) if address else None):
+                    # FA-7: a deferral is not a prohibition and must not be
+                    # answered as one — the player did not forbid the order,
+                    # they named a time the engine cannot hold. Negation wins
+                    # the label when both fired ("never attack, delay it" is
+                    # a refusal first).
+                    if negation_applied:
+                        return self._refusal_result(
+                            original_text, "negation", "an order NOT to act")
                     return self._refusal_result(
-                        original_text, "negation", "an order NOT to act")
+                        original_text, "deferral",
+                        "an order for a later turn")
 
             command_text = guarded
             command_lower = guarded.lower()
@@ -1408,7 +1424,13 @@ class LLMClient:
         # V2-59: "commands" uses exact match to prevent false positives (e.g. "Ney commands his troops")
         if command_lower.strip() in ("help", "help me", "i need help", "commands", "what can i do") or command_lower.strip() == "?":
             action = "help"
-        elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
+        # FA-6: the BARE form only. This arm sits above every order verb,
+        # so a substring test made any sentence mentioning one of the three
+        # words the end-turn command itself — `what happens next turn`
+        # advanced the turn and ran the enemy phase. The vocabulary is
+        # unchanged and single-sourced in `clause_guards` so the client
+        # gate (`main.gd::_is_end_turn_phrasing`) cannot drift from it.
+        elif is_bare_end_turn(command_lower):
             action = "end_turn"
         # PT-2 FIX: "status" keyword — exact match to prevent false positives
         elif command_lower.strip() == "status":
@@ -1561,11 +1583,6 @@ class LLMClient:
               or re.search(r'\b(build|raise|construct|launch|expand)\b.{0,20}\b(ship|ships|fleet|navy|sail)\b', command_lower)
               or "build the fleet" in command_lower):
             action = "build_fleet"
-        elif (re.search(r'\bblockade\b', command_lower)
-              or "home waters" in command_lower
-              or (re.search(r'\bfleet\b', command_lower)
-                  and re.search(r'\b(guard|recall|port|station)\b', command_lower))):
-            action = "set_fleet_posture"
         elif (re.search(r'\bdiversion\b', command_lower)
               or "draw off the fleet" in command_lower
               or "draw them off" in command_lower):
@@ -1578,6 +1595,19 @@ class LLMClient:
             # two-word window keeps "hold the land between the rivers"
             # (and every "land to" VS-3 grant phrasing) on their own paths.
             action = "naval_expedition"
+        # FA-11 ORDERING RULE: the posture branch runs BELOW diversion and
+        # expedition. Above them it claimed every sentence containing the
+        # word — measured, `send an expedition to Ireland to break the
+        # blockade` and `a diversion against the blockade` both stood the
+        # fleet out on blockade and spent the AP, eating the Free Ireland
+        # and Grand Diversion arcs. The executor's own rule
+        # (`naval.derive_posture`) yields to those errands too, so the two
+        # halves agree by construction.
+        elif (re.search(r'\bblockade\b', command_lower)
+              or "home waters" in command_lower
+              or (re.search(r'\bfleet\b', command_lower)
+                  and re.search(r'\b(guard|recall|port|station)\b', command_lower))):
+            action = "set_fleet_posture"
         # Marshal Recruitment (Jealousy v3.2): "commission Grouchy" /
         # "recruit (a new) marshal Grouchy" / "appoint Grouchy to the
         # marshalate". ORDERING RULE: must run BEFORE the troop-recruit

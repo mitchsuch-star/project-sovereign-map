@@ -4094,7 +4094,7 @@
       "source": "WO slice 11 (WO-6) — WEIRD_OUTCOMES_SPEC.md §3 slice 11",
       "notes": "The leading-filler hijack: the bare 'wait' substring sat above retreat in the mock chain and this issued WAIT at 0.8. The filler is blanked before the keyword match (strip_leading_filler)."
     },
-{
+    {
       "id": "wo6-hold-on-ney-retreat",
       "utterance": "hold on, Ney, retreat",
       "world": "any",
@@ -4106,7 +4106,7 @@
       "source": "WO slice 11 (WO-6)",
       "notes": "Same class one word over: 'hold on' matched the hold branch's bare 'hold'."
     },
-{
+    {
       "id": "wo6-stand-by-ney-move-to-paris",
       "utterance": "stand by, Ney, move to Paris",
       "world": "any",
@@ -4119,7 +4119,7 @@
       "source": "WO slice 11 (WO-6)",
       "notes": "'stand by' is the other filler the wait branch reads."
     },
-{
+    {
       "id": "wo6-wait-for-reinforcements-is-still-wait",
       "utterance": "Ney, wait for reinforcements",
       "world": "any",
@@ -4131,7 +4131,7 @@
       "source": "WO slice 11 (WO-6) — the negative control",
       "notes": "Why the wait branch was NOT moved to the bottom of the chain: 'reinforce' would then win as a SUPPORT order. No punctuation after 'wait' means the filler IS the order."
     },
-{
+    {
       "id": "wo6-wait-then-hold-position",
       "utterance": "wait, hold position",
       "world": "any",
@@ -4142,7 +4142,7 @@
       "source": "WO slice 11 (WO-6)",
       "notes": "A comma after the filler hands the sentence to the verb that follows."
     },
-{
+    {
       "id": "wo11-end-the-war-on-any-terms-never-declares",
       "utterance": "end the war on any terms",
       "world": "any",
@@ -4159,7 +4159,7 @@
       "source": "WO slice 11 (§2 H-15) — WEIRD_OUTCOMES_SPEC.md §3 slice 11",
       "notes": "Contained the war keyword 'war on ' and parsed as a DECLARATION. A peace overture with no court named now reaches the honest FINAL-21 target ask. mock_only: pins the fast-parser chain the driver/HTTP path uses."
     },
-{
+    {
       "id": "wo11-stop-the-war-with-britain-bare",
       "utterance": "stop the war with Britain",
       "world": "any",
@@ -4177,7 +4177,7 @@
       "source": "WO slice 11 (§2 H-15)",
       "notes": "Was 'Unknown action' when not addressed to Talleyrand; the addressed form was already a corpus row. Peace intent routes to diplomacy before the war keywords."
     },
-{
+    {
       "id": "wo11-i-want-peace-asks-which-court",
       "utterance": "I want peace",
       "world": "any",
@@ -4194,7 +4194,7 @@
       "source": "WO slice 11 (§2 H-15)",
       "notes": "Nation-less peace overture -> the FINAL-21 ask, never a war."
     },
-{
+    {
       "id": "wo20-break-the-alliance-with-austria",
       "utterance": "break the alliance with Austria",
       "world": "any",
@@ -4211,7 +4211,7 @@
       "source": "WO slice 11 (WO-20)",
       "notes": "Was unparseable bare and PROPOSED an alliance when addressed to Talleyrand (the break keywords were treaty-phrasings only)."
     },
-{
+    {
       "id": "wo20-talleyrand-break-the-alliance-with-austria",
       "utterance": "Talleyrand, break the alliance with Austria",
       "world": "any",
@@ -4229,7 +4229,7 @@
       "source": "WO slice 11 (WO-20) — the measured addressed form",
       "notes": "The form that proposed the alliance it was asked to break."
     },
-{
+    {
       "id": "wo20-end-the-alliance-with-austria",
       "utterance": "end the alliance with Austria",
       "world": "any",
@@ -4245,7 +4245,7 @@
       "source": "WO slice 11 (WO-20)",
       "notes": "The contract's second phrasing."
     },
-{
+    {
       "id": "wo20-break-the-treaty-with-austria",
       "utterance": "break the treaty with Austria",
       "world": "any",
@@ -4260,6 +4260,300 @@
       },
       "source": "WO slice 11 (WO-20) — found while measuring",
       "notes": "The articled treaty form was as unparseable as the alliance one ('break treaty' is a substring test)."
+    },
+    {
+      "id": "fa7-delay-the-attack-refuses",
+      "utterance": "Ney, delay the attack",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Measured on the shipped 1805 boot: this fought a real battle on the turn it was typed, at confidence 0.95 — above the 0.7 escalation gate, so no key in any mode could have corrected it. The guards knew every way to say 'not that' and no way at all to say 'not YET'. Ney marched Rhineland -> Swabia and lost 1,172 men."
+    },
+    {
+      "id": "fa7-postpone-the-attack-refuses",
+      "utterance": "Ney, postpone the attack",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family"
+    },
+    {
+      "id": "fa7-defer-the-attack-refuses",
+      "utterance": "Ney, defer the attack",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Not in the row's filed list; found by re-running its own battery."
+    },
+    {
+      "id": "fa7-put-off-the-attack-refuses",
+      "utterance": "Ney, put off the attack",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Not in the row's filed list."
+    },
+    {
+      "id": "fa7-hold-off-on-attacking-refuses",
+      "utterance": "Ney, hold off on attacking Mack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Parsed as attack PLUS a strategic HOLD on the phantom province 'Off On Attacking Mack'."
+    },
+    {
+      "id": "fa7-attack-later-refuses",
+      "utterance": "Ney, attack Mack later",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Measured on the shipped 1805 boot: this fought a real battle on the turn it was typed, at confidence 0.95 — above the 0.7 escalation gate, so no key in any mode could have corrected it. The guards knew every way to say 'not that' and no way at all to say 'not YET'."
+    },
+    {
+      "id": "fa7-attack-tomorrow-refuses",
+      "utterance": "Ney, attack Mack tomorrow",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Not in the row's filed list."
+    },
+    {
+      "id": "fa7-attack-for-now-refuses",
+      "utterance": "Ney, attack Mack for now",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "Not in the row's filed list."
+    },
+    {
+      "id": "fa7-attack-next-turn-refuses",
+      "utterance": "Ney, attack Mack next turn",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "The overlap with FA-6: before the fix this ENDED THE TURN, so the marshal never attacked and the enemy phase ran."
+    },
+    {
+      "id": "fa7-recruit-later-refuses",
+      "utterance": "recruit later",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "recruit"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "The adverb arm is not marshal-scoped — an economy verb defers the same way."
+    },
+    {
+      "id": "fa7-hold-here-and-attack-next-turn-holds",
+      "utterance": "Ney, hold here and attack next turn",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "hold"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "The reason a blanket refusal would be wrong, and the mirror of PARSE-NEG's 'hold your position, do not attack'. A deferral scopes to its own clause; the hold is a real order for this turn. Before the fix the whole sentence ended the turn."
+    },
+    {
+      "id": "fa7-scout-and-next-turn-attack-scouts",
+      "utterance": "Ney, scout Swabia and next turn attack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "scout"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "The adverb LEADS its clause here rather than closing it. Same rule: the clause it sits in is deferred, and the scout stands."
+    },
+    {
+      "id": "fa7-wait-for-then-attack-does-not-fight",
+      "utterance": "Ney, wait for Davout then attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "not_action": "attack"
+      },
+      "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
+      "notes": "`_ATTACK_ON_ARRIVAL_TAIL_RE` refuses to split any tail starting with an attack verb, so the whole sentence stayed one parse and `attack` outranked `wait`. Attack-on-arrival is a MOVEMENT idiom — a first clause that orders the marshal to stand still carries no arrival. `until` is excluded, so the engine's own 'hold until Davout arrives then attack' is untouched."
+    },
+    {
+      "id": "fa6-what-happens-next-turn-is-not-a-command",
+      "utterance": "what happens next turn",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "end_turn"
+      },
+      "source": "FA-6 (Final Whole-Game Audit) — a non-command advanced the turn",
+      "notes": "Measured: turn 1 -> 2 with the enemy phase run, irreversibly, with no confirmation — and INCONSISTENTLY, since 'what should we do next turn?' hit the help arm and held it. The end_turn arm was a bare SUBSTRING test sitting above every order verb."
+    },
+    {
+      "id": "fa6-we-will-decide-next-turn-is-not-a-command",
+      "utterance": "we will decide next turn",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "end_turn"
+      },
+      "source": "FA-6 (Final Whole-Game Audit)"
+    },
+    {
+      "id": "fa6-leading-next-turn-is-not-a-command",
+      "utterance": "next turn Ney attacks Mack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "end_turn"
+      },
+      "source": "FA-6 (Final Whole-Game Audit)",
+      "notes": "The adverb LEADS. It must neither end the turn (before) nor attack now (the naive trailing-adverb fix)."
+    },
+    {
+      "id": "fa6-attack-and-end-turn-keeps-the-attack",
+      "utterance": "Ney attack Mack and end turn",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "not_action": "end_turn"
+      },
+      "source": "FA-6 (Final Whole-Game Audit)",
+      "notes": "The row's own behaviour_test asks for AP unchanged here, which would mean THROWING THE ATTACK AWAY — exactly what the defect did. Executing the order and not ending the turn is the half that loses nothing: the player can still type 'end turn'."
+    },
+    {
+      "id": "fa6-fortify-until-next-turn-fortifies",
+      "utterance": "Davout, fortify until next turn",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "fortify"
+      },
+      "source": "FA-6 / FA-N22 — the client gate mirrors this",
+      "notes": "`until` is the ONE condition the engine implements, so the condition guard blanks the clause and the order stands. The shipped CLIENT intercepted this and sent 'end turn' instead; both gates were narrowed together."
+    },
+    {
+      "id": "fa6-bare-next-turn-still-ends-the-turn",
+      "utterance": "next turn",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "end_turn"
+      },
+      "source": "FA-6 / FA-N23 — the collision guard",
+      "notes": "FA-N23: FA-7's own prescribed trailing-adverb refusal, applied as written, would have claimed this line — the guard battery runs ~350 lines ABOVE the end_turn arm, so a refusal pre-empts it. A clause that is NOTHING but the adverb, and is the whole command, is not a deferral: it IS the order."
+    },
+    {
+      "id": "fa6-bare-next-turn-punctuated-still-ends-the-turn",
+      "utterance": "next turn.",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "end_turn"
+      },
+      "source": "FA-6 / FA-N23 — trailing punctuation is allowed"
+    },
+    {
+      "id": "fa11-expedition-to-break-the-blockade-is-an-expedition",
+      "utterance": "send an expedition to Ireland to break the blockade",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "naval_expedition"
+      },
+      "source": "FA-11 (Final Whole-Game Audit) — the sibling-errand class",
+      "notes": "The posture branch sat ABOVE naval_diversion and naval_expedition in the same elif chain, so it claimed every sentence containing the word — measured, this stood the fleet out on blockade and spent 1 AP. Free Ireland, eaten by the arm above it. It now reaches the expedition branch, which refuses honestly because no marshal was named. (The corpus evaluates the PARSE; the executor's own honest refusal for the unnamed marshal is pinned in the slice test.)"
+    },
+    {
+      "id": "fa11-diversion-against-the-blockade-is-a-diversion",
+      "utterance": "a diversion against the blockade",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "naval_diversion"
+      },
+      "source": "FA-11 (Final Whole-Game Audit) — the sibling-errand class",
+      "notes": "The Grand Diversion, likewise. Distinct from FA-N24, which is the mirror direction (a bare `diversion` over-claiming a land sentence)."
+    },
+    {
+      "id": "fa11-blockade-the-enemy-still-sets-the-posture",
+      "utterance": "blockade the enemy",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "set_fleet_posture"
+      },
+      "source": "FA-11 — the positive control for the branch reorder"
+    },
+    {
+      "id": "fa50-attack-and-hold-keeps-the-attack",
+      "utterance": "Ney, attack Mack and hold Rhineland",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack"
+      },
+      "source": "FA-50 (Final Whole-Game Audit) — the arm its own fix misses",
+      "notes": "The title says the second clause is 'silently dropped'. Measured, in 9 of 14 compound shapes the second clause's action and target were EXECUTED BY THE FIRST MARSHAL in place of the order given, at 2 AP, reported as success: this made Ney HOLD. The row's own fix_shape is marshal-anchored and leaves it standing, because the damaging arm names no second marshal."
+    },
+    {
+      "id": "fa50-fortify-and-scout-keeps-the-fortify",
+      "utterance": "Ney, fortify and scout Swabia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "not_action": "scout"
+      },
+      "source": "FA-50 (Final Whole-Game Audit)",
+      "notes": "Clause 1 carries no target of its own, so the split is decided by clause 2 carrying one."
+    },
+    {
+      "id": "fa50-defend-and-hold-belgium-is-one-order",
+      "utterance": "defend and hold belgium",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "strategic_type": "HOLD"
+      },
+      "source": "FA-50 — the control that makes the `and` split undecidable in the row's own form",
+      "notes": "'defend and hold', 'fortify and hold' and 'secure and hold' are IDIOMS enumerated in llm_client's own hold branch. They name an object and are still ONE order, which is why the split cannot be widened to bare `and <verb>` without exempting them."
+    },
+    {
+      "id": "fa50-semicolon-splits-and-warns",
+      "utterance": "Ney, attack Mack; Davout, support Soult",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack"
+      },
+      "source": "FA-50 (Final Whole-Game Audit)",
+      "notes": "A `;` was consumed only as an optional PREFIX to 'then', so a bare semicolon never split. With a RESOLVABLE second marshal this succeeded silently and marched Ney away from the battle; the row's probe happened to name an unresolvable pronoun and saw a loud failure instead."
     }
   ]
 }

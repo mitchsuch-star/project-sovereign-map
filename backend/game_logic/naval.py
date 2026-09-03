@@ -31,6 +31,8 @@ under `world.fleets[META_KEY]` — the jealousy `__levels__` idiom: one
 serialized field, dunder-keyed meta, skipped by every fleet iterator.
 """
 
+import re
+
 from typing import Any, Dict, List, Optional, Tuple
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -137,6 +139,106 @@ AI_EXPEDITION_HOST_RELATION = 25  # a shore that will actually receive an army
 META_KEY = "__naval__"
 
 POSTURES = ("guard", "blockade")
+
+# ── FA-11: the posture RULE, extracted from the executor ────────────────────
+# `_execute_set_fleet_posture` derived the order from two bare substring
+# tests, and — measured — the structured `posture` field its comment calls
+# the first branch is production-dead: `posture` is absent from
+# `providers.PARSE_TOOL`, no mock, live, AI or chip producer writes it, and
+# the only writers in the repo are tests. So the two substrings were not a
+# fallback, they were the whole implementation.
+#
+# What that cost, measured on the 1805 boot: `lift the blockade`, `raise the
+# blockade` and `end the blockade` ALL put the fleet to sea on blockade — the
+# opposite of the order — for 1 AP, and so did `Ney, blockade Vienna`,
+# `Davout, blockade the city` and `Ney, blockade Mack`, none of which is a
+# naval order at all. The guard arm had the identical defect through
+# `home waters`.
+#
+# The inversion is a DIRECTION, not a verb list: an inverting marker before
+# the posture noun flips the sense. The row's four verbs miss four live
+# phrasings; this catches all eight and the ones nobody has typed yet.
+_POSTURE_INVERSION_RE = re.compile(
+    r"\b(?:lift|lifts|lifted|raise|raises|raised|end|ends|ended|ending"
+    r"|call\s+off|calls\s+off|called\s+off|abandon(?:s|ed)?"
+    r"|stop|stops|stopped|cease|ceases|ceased|break|breaks|broke"
+    r"|discontinue[sd]?|withdraw\s+from|lower|lowers|lowered"
+    r"|no\s+more|halt|halts|halted"
+    r")\b",
+    re.IGNORECASE,
+)
+_BLOCKADE_NOUN_RE = re.compile(r"\bblockades?\b|\bclose\s+the\s+ports\b",
+                               re.IGNORECASE)
+_GUARD_NOUN_RE = re.compile(
+    r"\bhome\s+waters\b|\brecall\b|\bguard\b|\bdefend\b|\bstation\b",
+    re.IGNORECASE)
+# A sentence that also names one of the fleet's OTHER errands is not a
+# posture order. Measured: `send an expedition to Ireland to break the
+# blockade` and `a diversion against the blockade` both set the posture and
+# spent the AP — the Free Ireland and Grand Diversion arcs, eaten by the arm
+# above them in the chain.
+_OTHER_NAVAL_ERRAND_RE = re.compile(
+    r"\bexpeditions?\b|\bembark\w*\b|\bdiversion\b|\bdraw\s+(?:them\s+)?off\b",
+    re.IGNORECASE)
+# A report is not an order. Two halves, because a report can carry the
+# posture NOUN without carrying a posture VERB, and vice versa.
+#
+# (i) an explicit report/question marker — "the enemy IS in home waters",
+#     "our trade IS hurting under the blockade", "report on the blockade";
+_NOT_AN_ORDER_RE = re.compile(
+    r"\b(?:is|are|was|were|has|have|had|will\s+be)\b"
+    r"|\breport\b|\bhow\s|\bwhat\s|\bwhy\s|\bwhen\s|\?",
+    re.IGNORECASE,
+)
+# (ii) and the sentence must contain a VERB the Admiralty can act on.
+#      "Britain threatens our home waters" carries the noun and no verb;
+#      it recalled the fleet from blockade, for 1 AP, on a sentence that
+#      ordered nothing. An inversion verb counts — "lift the blockade" is
+#      an order — which is why they share this test.
+_POSTURE_VERB_RE = re.compile(
+    r"\b(?:blockade[sd]?|blockading|close|closing|guard(?:s|ing)?"
+    r"|recall(?:s|ed|ing)?|station(?:s|ed|ing)?|defend(?:s|ing)?"
+    r"|patrol(?:s|led|ling)?|stand\s+out|put\s+to\s+sea)\b",
+    re.IGNORECASE,
+)
+
+
+def derive_posture(raw: str) -> Optional[str]:
+    """The posture an English order asks for, or None when it asks for none.
+
+    Pure, on the `recruit_arm.extract_requested_arm` precedent — the
+    identical pathology is documented eight lines above the blockade branch
+    in `llm_client`. Returns "blockade", "guard", or None; None means the
+    sentence is not a posture order and the caller must refuse rather than
+    guess.
+    """
+    text = raw or ""
+    if not text.strip():
+        return None
+    if _OTHER_NAVAL_ERRAND_RE.search(text):
+        return None
+    blockade = _BLOCKADE_NOUN_RE.search(text)
+    guard = _GUARD_NOUN_RE.search(text)
+    noun = blockade or guard
+    if not noun:
+        return None
+    inverted = any(m.end() <= noun.start()
+                   for m in _POSTURE_INVERSION_RE.finditer(text))
+    if blockade and (not guard or blockade.start() <= guard.start()):
+        return "guard" if inverted else "blockade"
+    # A guard-family word cannot be meaningfully inverted into a blockade —
+    # "stop guarding home waters" names no new station — so an inversion
+    # here means the sentence is not an order for a posture we can carry.
+    return None if inverted else "guard"
+
+
+def sentence_is_an_order(raw: str) -> bool:
+    """False for a REPORT or a QUESTION that merely mentions the fleet."""
+    text = raw or ""
+    if _NOT_AN_ORDER_RE.search(text):
+        return False
+    return bool(_POSTURE_VERB_RE.search(text)
+                or _POSTURE_INVERSION_RE.search(text))
 
 # Alliance-family states that pool fleets (H6) — vassal links pool too.
 _POOLING_STATES = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
