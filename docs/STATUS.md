@@ -4,7 +4,41 @@
 
 ## ▶ NEXT UP
 
-> # ✅ THE AUDIT BUILD HAS STARTED — SLICE 0, "THE FIVE NEW P1s", LANDED September 2, 2026
+> # ✅ THE AUDIT BUILD: SLICES 0, 8 AND 1 ARE LANDED — September 2, 2026
+>
+> **Landing records = the three boxed blocks in `docs/BUG_FIXES.md`
+> (§Verification-Pass Findings for slice 0; §Final Whole-Game Audit for
+> slices 8 and 1), authoritative.** Commits `6a64fcb0`, `62779e05`,
+> `a3561ad5`, `0bff0858`, `09245015`. Suite 19,387 → **19,702 / 4 skipped**;
+> golden corpus 345 → **372 entries, 589/589**; ruff clean; Godot parse
+> harness EXIT=0; boot 0 `SCRIPT ERROR`; M1–M7 and `BASELINE_SERIES`
+> byte-identical throughout, without re-record.
+>
+> **Slice 8 (the instrument) went FIRST**, per the verification pass's §7 —
+> it is what every later slice's reproduction is measured on. FA-10, FA-37,
+> FA-40, FA-74, FA-87 and FA-92 closed, and FA-86 with them. The sweep
+> harness now tells a KILL from a DETONATION (measured: a broken shared
+> fixture gives rc 1 with zero failures, byte-indistinguishable from a real
+> kill by exit code), no longer masks a same-length mutation behind stale
+> bytecode, and restores byte-exactly.
+>
+> **Slice 1 (the parser)** closed FA-7, FA-6, FA-11, FA-22, FA-50 and FA-54,
+> plus FA-N22 and FA-N23. `Ney, delay the attack` no longer fights;
+> `what happens next turn` no longer ends the turn; `lift the blockade` no
+> longer puts the fleet to sea; `the Iron Marshal, attack Mack` no longer
+> sends Soult into a battle.
+>
+> **Every one of the twelve rows was corrected by its own reproduction, and
+> the review round found a P1 slice 1 had itself shipped.** Read the boxed
+> blocks before building anything adjacent — the corrections are the useful
+> part, not the closures.
+>
+> **▶ NEXT = slice 2** (FA-1 re-scoped to the enemy phase not pausing), then
+> **FA-26 as a shared helper across all four trust-writing families**
+> (FA-N1), then position 10. ⚠ The pillar re-score is still owed and its
+> blocker — a harness that works — is now cleared.
+
+> # ✅ SLICE 0, "THE FIVE NEW P1s", LANDED September 2, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Verification-Pass Findings, the boxed
 > block above the table (authoritative).** The verification pass's §11 said to

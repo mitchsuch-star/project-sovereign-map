@@ -118,17 +118,38 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > re-record; boot 0 `SCRIPT ERROR`. **No existing test caught any of them**, and
 > the pin that should have caught the shipped regression went VACUOUS, not red.
 >
-> **▶ NEXT = the memo's §6 build order, RE-ORDERED per report §7.** Slice 8
-> (the harness) is scheduled last but is the instrument every other slice's
-> reproduction depends on — **do its reproduction-critical half first** (FA-10,
-> FA-37, FA-40, FA-74, FA-87, FA-92), then slice 1 (FA-7; and write the corpus
-> rows — **0 of 345 entries contain any deferral phrasing**), then slice 2 with
-> FA-1 re-scoped (the rail alert IS delivered and answering works; the harm is
-> that the enemy phase does not pause, so ~92% of the corps dies in one phase),
-> then FA-26 **as a shared helper across all four trust-writing families**
-> (FA-N1), not one call at one seam. Then position 10, the shippable build.
-> ⚠ **Still no pillar re-score** — it should run AFTER slice 8, on a harness
-> that works.
+> **▶ SLICE 8 AND SLICE 1 ARE LANDED — September 2, 2026** (commits
+> `a3561ad5`, `0bff0858`, `09245015`). Landing records = the two boxed blocks
+> in `BUG_FIXES.md` §Final Whole-Game Audit, authoritative.
+> **Slice 8, the instrument, went FIRST** per report §7 — FA-10, FA-37, FA-40,
+> FA-74, FA-87, FA-92 closed, and FA-86 with them (it and FA-87 are reciprocal
+> duplicates filed in the same commit). **Slice 1 closed FA-7, FA-6, FA-11,
+> FA-22, FA-50, FA-54, plus FA-N22 and FA-N23.** The corpus rows that did not
+> exist are written (345 → 372 entries, 589/589). Suite **19,702 / 4**.
+>
+> **Every one of the twelve rows was corrected by its own reproduction** —
+> FA-7 is nine phrasings not five; FA-11 is two whole classes wider and its
+> structured branch is production-dead; FA-22's seam is the executor, not the
+> addressee regex, and `Berthier, retreat` ran a whole-army retreat at ZERO
+> AP; FA-50's title mis-classifies its own defect (the second clause is
+> EXECUTED by the first marshal, not dropped); and **FA-54 is one of the six
+> `fix_shape`-vs-`summary` rows where BOTH are wrong.**
+>
+> **⛔ Read this before building the next slice.** The review round found a
+> **P1 that slice 1 had itself shipped**, of the exact class it was fixing —
+> a blanked clause left its address token standing over the surviving order,
+> so a marshal told to STAND STILL attacked and lost 1,164 men. That is the
+> third slice running in which attacking the FIX found what attacking the
+> FINDING did not. The rule that keeps earning its keep: *a guard that blanks
+> text must be checked against every consumer downstream of the blank, and
+> the parser has two producers in series almost everywhere.*
+>
+> **▶ NEXT = slice 2** with FA-1 re-scoped (the rail alert IS delivered and
+> answering works; the harm is that the enemy phase does not pause, so ~92% of
+> the corps dies in one phase), then FA-26 **as a shared helper across all four
+> trust-writing families** (FA-N1), not one call at one seam. Then position 10,
+> the shippable build. ⚠ **Still no pillar re-score** — the harness it was
+> waiting on now works, so it can run.
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);
