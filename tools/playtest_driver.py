@@ -781,18 +781,27 @@ def _verb(action_row):
                or action_row.get("action_type") or "").lower()
 
 
+def _interrupt_reports(response):
+    """EVERY strategic report awaiting player input, in row order.
+
+    FA slice 3 review round (R2-F6): FA-68 made the backend ask every
+    deferred marshal and the Godot client queues every row — but this
+    driver answered one question per response, so the second marshal
+    stood idle a turn and was asked a turn late in every sweep digest."""
+    if not isinstance(response, dict):
+        return []
+    return [report for report in response.get("strategic_reports") or []
+            if isinstance(report, dict) and report.get("requires_input")]
+
+
 def _interrupt_report(response):
     """The first strategic report awaiting player input (NPC-16).
 
     An end-turn interrupt never reaches response["pending_interrupt"];
     the client finds it here and so must the driver. Returns {} when
     there is none, so callers can treat it as a falsy payload."""
-    if not isinstance(response, dict):
-        return {}
-    for report in response.get("strategic_reports") or []:
-        if isinstance(report, dict) and report.get("requires_input"):
-            return report
-    return {}
+    reports = _interrupt_reports(response)
+    return reports[0] if reports else {}
 
 
 class Answerer:
@@ -903,27 +912,41 @@ class Answerer:
         # at 7, ONE interrupt answered across four campaign arms). Read
         # BOTH sources, exactly like the client does.
         elif response.get("pending_interrupt") or _interrupt_report(response):
-            payload = (_as_dict(response.get("pending_interrupt"))
-                       or _interrupt_report(response))
-            options = payload.get("options") or payload.get("choices") or []
-            choice = None
-            for opt in options:
-                if _enabled(opt):
-                    choice = _option_id(opt)
-                    break
-            choice = choice or "continue"
-            self.d.popup("strategic_interrupt",
-                         _summ(payload, "marshal", "interrupt_type", "message"),
-                         choice)
-            followups.append(self.t.post("/strategic_response", {
-                "marshal_name": payload.get("marshal", ""),
-                # handle_response dispatches on the STORED interrupt_type,
-                # so this field is advisory — send the real one anyway.
-                "response_type": (payload.get("interrupt_type")
-                                  or payload.get("response_type")
-                                  or payload.get("type", "")),
-                "choice": str(choice),
-            }))
+            # FA slice 3 review round (R2-F6): answer EVERY marshal awaiting
+            # input on this response, not only the promoted first one — the
+            # /strategic_response replies carry no strategic_reports, so a
+            # question not answered here waits a whole turn.
+            payloads = []
+            seen = set()
+            promoted = _as_dict(response.get("pending_interrupt"))
+            for payload in [promoted] + _interrupt_reports(response):
+                if not payload:
+                    continue
+                key = str(payload.get("marshal", ""))
+                if key in seen:
+                    continue
+                seen.add(key)
+                payloads.append(payload)
+            for payload in payloads:
+                options = payload.get("options") or payload.get("choices") or []
+                choice = None
+                for opt in options:
+                    if _enabled(opt):
+                        choice = _option_id(opt)
+                        break
+                choice = choice or "continue"
+                self.d.popup("strategic_interrupt",
+                             _summ(payload, "marshal", "interrupt_type", "message"),
+                             choice)
+                followups.append(self.t.post("/strategic_response", {
+                    "marshal_name": payload.get("marshal", ""),
+                    # handle_response dispatches on the STORED interrupt_type,
+                    # so this field is advisory — send the real one anyway.
+                    "response_type": (payload.get("interrupt_type")
+                                      or payload.get("response_type")
+                                      or payload.get("type", "")),
+                    "choice": str(choice),
+                }))
 
         # 3. Capture / estate choice ------------------------------------------
         if response.get("pending_capture_choice"):

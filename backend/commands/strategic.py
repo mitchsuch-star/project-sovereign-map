@@ -345,7 +345,15 @@ def _combat_carry(result) -> Dict:
             # `strategic_report_popup.gd::_format_report`). Neither reads
             # `battle_report` or `battle_details`, so a battle fought under a
             # standing order reached the player with no casualties at all.
-            "battle_message": cleaned.get("message", "")}
+            "battle_message": cleaned.get("message", ""),
+            # FA slice 3 review round (R2-F2/F7): the tableau and the
+            # war-purpose triad live at the ROW level too — the client's
+            # diorama stash and the deferred-dialogue raise read the row,
+            # not `battle_details` (which no renderer reads).
+            **{k: cleaned[k] for k in ("battle_diorama", "diplomatic_dialogue",
+                                        "awaiting_diplomatic_response",
+                                        "war_purpose_popup")
+               if cleaned.get(k) is not None}}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -364,6 +372,93 @@ def _combat_carry(result) -> Dict:
 # pursuit COMPLETED "— and I trust the next order has more fire in it". One
 # predicate, read at every one of them.
 # ═══════════════════════════════════════════════════════════════════════════
+
+# FA slice 3 REVIEW ROUND (Sept 4 2026) — flip levers, the HOST_RULE_ACTIVE
+# idiom. False reproduces the slice-3 behaviour byte-for-byte.
+#   CANNON_FIRE_READS_THE_ANSWER — the two cannon-fire arms act with the
+#     order STANDING and abandon it only for a battle fought or a march made
+#     (R1-F1/F2, R2-F3: a refused attack destroyed a live order for nothing,
+#     and a recklessness-3 cavalryman armed a charge popup nothing could
+#     answer);
+#   ANSWERED_CONTACT_READS_THE_BOARD — the answered contact is re-validated,
+#     keyed on a fought battle, and never minted into a pursuit (R1-F3/F4,
+#     R2-F4).
+CANNON_FIRE_READS_THE_ANSWER = True
+ANSWERED_CONTACT_READS_THE_BOARD = True
+
+
+def fought_battle_victor(result, marshal_name: str) -> Optional[str]:
+    """The victor a FOUGHT battle in `result` names: the winner's name, ""
+    for a battle with no victor (a stalemate), None when no battle was
+    fought at all — a refusal, a staged dialogue, a minted order.
+
+    Review round (R1-F3/F4): the answered contact read `success` alone and
+    called a war-purpose staging and a PURSUE it had just minted "Assault
+    failed — orders cancelled".
+    """
+    if not isinstance(result, dict):
+        return None
+    for event in result.get("events") or []:
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "battle":
+            return str(event.get("victor") or "")
+        if event.get("type") == "glorious_charge":
+            return marshal_name if event.get("attacker_won") else ""
+    br = result.get("battle_result")
+    if isinstance(br, dict):
+        return str(br.get("victor") or "")
+    return None
+
+
+def contact_is_live(marshal, world, pending: Dict) -> Tuple[bool, str]:
+    """Is an order-bound contact question still the question it was?
+
+    Review round (R1-F3/F4): the order-bound asks (`contact`,
+    `contact_bad_odds`, `destination_blocked`) had no liveness check and
+    `end turn` never required them answered, so the question survived the
+    enemy phase that moved the blocker away — and the answer `attack`
+    then fought a man two provinces off (through the executor's
+    attack-to-pursuit upgrade) or a court France had made peace with. The
+    named enemy must still stand, at war with us, on or beside the marshal.
+    """
+    from backend.display_names import humanize_entity_name as _hum
+
+    enemy_key = pending.get("enemy") or ""
+    enemy = world.get_marshal(enemy_key) if enemy_key else None
+    label = _hum(enemy_key) if enemy_key else "the enemy"
+    if (enemy is None or getattr(enemy, "strength", 0) <= 0
+            or getattr(enemy, "captured_by", "")):
+        return False, f"{label} no longer stands in the field"
+    if not world.is_at_war(marshal.nation, enemy.nation):
+        return False, f"we are no longer at war with {enemy.nation}"
+    region = world.get_region(marshal.location)
+    adjacent = set(getattr(region, "adjacent_regions", None) or []) if region else set()
+    if enemy.location != marshal.location and enemy.location not in adjacent:
+        if _province_seen(world, enemy.location):
+            return False, f"{label} has marched to {enemy.location}"
+        return False, f"{label} has slipped out of contact"
+    return True, ""
+
+
+def retract_order_log(world, marshal_name: str, order_type: str) -> bool:
+    """Review round (R1-F6): a first step refused at 0 AP leaves no order —
+    and no campaign-log row saying one was given. Pops the most recent
+    `strategic_order` event this turn for this marshal and order type."""
+    log = getattr(world, "event_log", None)
+    if not isinstance(log, list):
+        return False
+    turn = getattr(world, "current_turn", None)
+    for i in range(len(log) - 1, -1, -1):
+        ev = log[i]
+        if (isinstance(ev, dict) and ev.get("type") == "strategic_order"
+                and ev.get("marshal") == marshal_name
+                and ev.get("order_type") == order_type
+                and ev.get("turn") == turn):
+            del log[i]
+            return True
+    return False
+
 
 def attack_was_refused(result) -> bool:
     """True when the executor REFUSED a strategic attack — no battle happened.
@@ -925,6 +1020,15 @@ class StrategicOrderProcessor:
             return {"success": False,
                     "message": f"Unknown interrupt type: {interrupt_type}"}
 
+    @staticmethod
+    def _abandon_for_the_guns(marshal) -> None:
+        """The cannon-fire abandonment, taken only once the guns were
+        actually answered (review round R1-F1)."""
+        marshal.strategic_order = None
+        clear_order_bound_interrupt(marshal)  # NPC-2
+        marshal.holding_position = False
+        marshal.hold_region = ""
+
     def _respond_cannon_fire(self, marshal, order, choice, pending,
                              world, game_state) -> Dict:
         """Handle player response to cannon fire interrupt."""
@@ -934,10 +1038,13 @@ class StrategicOrderProcessor:
         if choice == "investigate":
             # Cancel current order, attack or move toward battle
             cmd_flavor = _strategic_command_flavor(order.command_type)
-            marshal.strategic_order = None
-            # [7A-2] Clear holding state
-            marshal.holding_position = False
-            marshal.hold_region = ""
+            # FA slice 3 review round (R1-F1): abandoned only for a battle
+            # fought or a march made — see `_abandon_for_the_guns`.
+            if not CANNON_FIRE_READS_THE_ANSWER:
+                marshal.strategic_order = None
+                # [7A-2] Clear holding state
+                marshal.holding_position = False
+                marshal.hold_region = ""
 
             # Distance-based: attack if adjacent with enemy, otherwise move
             is_cavalry = getattr(marshal, 'cavalry', False)
@@ -967,7 +1074,21 @@ class StrategicOrderProcessor:
                 )
                 action_msg = action_result.get("message", "")
                 print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location AFTER = {marshal.location}")
-                return {
+                if CANNON_FIRE_READS_THE_ANSWER and attack_was_refused(action_result):
+                    return {
+                        "success": True,
+                        "no_action_cost": True,
+                        "message": (f"{marshal.name} cannot reach the guns at "
+                                    f"{battle_location} — {refusal_reason(action_result)} "
+                                    f"{cmd_flavor.capitalize()} continues."),
+                        "order_cleared": False,
+                        "trust_change": trust_change,
+                        "action_taken": "attack_refused",
+                        **refusal_keys(action_result),
+                    }
+                if CANNON_FIRE_READS_THE_ANSWER:
+                    self._abandon_for_the_guns(marshal)
+                return _carry_combat_fields({
                     "success": True,
                     "message": f"{marshal.name} abandons {cmd_flavor} and "
                                f"charges into battle at {battle_location}! {action_msg}".strip(),
@@ -975,7 +1096,7 @@ class StrategicOrderProcessor:
                     "trust_change": trust_change,
                     "action_taken": "attack",
                     "action_events": action_result.get("events", []),
-                }
+                }, action_result)
             else:
                 # Too far to attack — move step-by-step toward battle
                 steps = min(attack_range, distance) if distance < 999 else 0
@@ -1004,9 +1125,22 @@ class StrategicOrderProcessor:
 
                 print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location AFTER = {marshal.location}")
                 if moved_to:
+                    if CANNON_FIRE_READS_THE_ANSWER:
+                        self._abandon_for_the_guns(marshal)
                     msg = (f"{marshal.name} abandons {cmd_flavor} and "
                            f"rushes toward the guns at {battle_location}! "
                            f"Moved to {moved_to}.")
+                elif CANNON_FIRE_READS_THE_ANSWER:
+                    # No step could be made: the order stands.
+                    return {
+                        "success": True,
+                        "no_action_cost": True,
+                        "message": (f"{marshal.name} turns toward {battle_location} but "
+                                    f"cannot advance — {cmd_flavor.capitalize()} continues."),
+                        "order_cleared": False,
+                        "trust_change": trust_change,
+                        "action_taken": "investigate_refused",
+                    }
                 else:
                     msg = (f"{marshal.name} abandons {cmd_flavor} and "
                            f"turns toward {battle_location}, but cannot advance yet.")
@@ -1070,6 +1204,24 @@ class StrategicOrderProcessor:
         trust_change = 0
 
         if choice in ("attack", "attack_anyway"):
+            # FA slice 3 review round (R1-F3/F4): the question may be STALE
+            # — the enemy phase moved the blocker, or a peace was signed —
+            # and the answer used to fight whoever the executor could find.
+            if ANSWERED_CONTACT_READS_THE_BOARD:
+                live, reason = contact_is_live(marshal, world, pending)
+                if not live:
+                    return {
+                        "success": True,
+                        "no_action_cost": True,
+                        "decision_retired": True,
+                        "message": (f"{marshal.name}'s contact is overtaken, Sire — "
+                                    f"{reason}. "
+                                    f"{_strategic_command_flavor(order.command_type).capitalize()} "
+                                    f"continues."),
+                        "order_cleared": False,
+                        "trust_change": 0,
+                        "action_taken": "contact_retired",
+                    }
             # Attack the blocking enemy
             result = self.executor.execute(
                 {"command": {
@@ -1104,14 +1256,47 @@ class StrategicOrderProcessor:
 
             combat_success = result.get("success", False)
             combat_msg = result.get("message", "")
+            cmd_flavor = _strategic_command_flavor(order.command_type)
 
-            # Check victory: victor is in events[0] or battle_result
-            battle_victor = ""
-            events = result.get("events", [])
-            if events and isinstance(events, list) and len(events) > 0:
-                battle_victor = events[0].get("victor", "")
-            if not battle_victor:
-                battle_victor = result.get("battle_result", {}).get("victor", "")
+            if ANSWERED_CONTACT_READS_THE_BOARD:
+                victor = fought_battle_victor(result, marshal.name)
+                if victor is None:
+                    # Not an assault at all — a staged dialogue, a minted
+                    # order. The executor's own sentence; the order stands;
+                    # no attempt is charged.
+                    return _carry_combat_fields({
+                        "success": True,
+                        "no_action_cost": True,
+                        "message": (f"{marshal.name} cannot bring {enemy_name} to "
+                                    f"battle — {combat_msg}").strip(),
+                        "order_cleared": False,
+                        "trust_change": 0,
+                        "action_taken": "attack_not_made",
+                    }, result)
+                if victor == "":
+                    # A stalemate: the FA-34 ruling — the order stands, one
+                    # attempt charged, the next contact asks again (R2-F4:
+                    # this arm used to cancel where `continue_order` kept).
+                    order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
+                    order.last_combat_enemy = enemy_name
+                    order.last_combat_turn = world.current_turn
+                    return _carry_combat_fields({
+                        "success": True,
+                        "message": (f"{marshal.name} attacks {enemy_name}. {combat_msg} "
+                                    f"The assault was inconclusive — {cmd_flavor} continues."),
+                        "order_cleared": False,
+                        "trust_change": 0,
+                        "action_taken": "attack",
+                    }, result)
+                battle_victor = victor
+            else:
+                # Check victory: victor is in events[0] or battle_result
+                battle_victor = ""
+                events = result.get("events", [])
+                if events and isinstance(events, list) and len(events) > 0:
+                    battle_victor = events[0].get("victor", "")
+                if not battle_victor:
+                    battle_victor = result.get("battle_result", {}).get("victor", "")
             if combat_success and battle_victor == marshal.name:
                 # Victory — reset attempts, continue order
                 order.combat_attempts = 0
@@ -1758,6 +1943,21 @@ class StrategicOrderProcessor:
                     game_state
                 )
 
+                if attack_was_refused(result):
+                    # FA slice 3 review round (R3-S1): the THIRTEENTH
+                    # order-driven attack seam, unread by slice 3 and filed by
+                    # its own census among the "answer arms". Fed a refusal it
+                    # narrated "arrives at X and attacks Y!" and consumed the
+                    # order — FA-14 exactly. `attack_on_arrival` is stamped by
+                    # the typed out-of-range `attack <marshal>` route, so this
+                    # is a player path. The refusal breaks the order with its
+                    # reason, like every other seam.
+                    broken = self._break_order(
+                        marshal, world,
+                        f"{marshal.name} arrives at {marshal.location} but cannot "
+                        f"attack {target.name} — {refusal_reason(result)}")
+                    broken.update({"action": "attack_refused", **refusal_keys(result)})
+                    return broken
                 msg = f"{marshal.name} arrives at {marshal.location} and attacks {target.name}!"
                 self._complete_order(marshal, world, msg)
                 # Strip new_state to avoid circular reference in JSON serialization
@@ -1769,7 +1969,9 @@ class StrategicOrderProcessor:
                     "target": target.name,
                     "combat_result": cleaned_result,
                     "order_status": "completed",
-                    "message": msg
+                    "message": msg,
+                    # R2-F7: the fought battle's tableau and report ride the row.
+                    **_combat_carry(result),
                 }
 
         # Check if this was a marshal target
@@ -2883,10 +3085,19 @@ class StrategicOrderProcessor:
                 # Aggressive auto-redirects — cancel current order, move/attack toward battle
                 battle_loc = interrupt["battle_location"]
                 cmd_type = order.command_type if order else "unknown"
-                marshal.strategic_order = None
-                # [7A-2] Clear holding state
-                marshal.holding_position = False
-                marshal.hold_region = ""
+                # FA slice 3 review round (R1-F1/F2, R2-F3): the order is
+                # no longer cleared HERE. Clearing it before the attack meant
+                # a REFUSED attack (an engaged corps, a shut crossing) destroyed
+                # a live order for nothing — and, with `in_strategic_mode`
+                # False, a recklessness-3 cavalryman armed a CHARGE popup the
+                # end-turn wire cannot carry (WO-25's shape). The order stands
+                # while the executor answers; it is abandoned below only for a
+                # battle actually fought or a march actually made.
+                if not CANNON_FIRE_READS_THE_ANSWER:
+                    marshal.strategic_order = None
+                    # [7A-2] Clear holding state
+                    marshal.holding_position = False
+                    marshal.hold_region = ""
 
                 # Distance-based response: attack if in range, otherwise move toward
                 is_cavalry = getattr(marshal, 'cavalry', False)
@@ -2945,6 +3156,58 @@ class StrategicOrderProcessor:
                 action_success = action_result.get("success", False)
                 action_events = action_result.get("events", [])
                 action_msg = action_result.get("message", "")
+
+                if CANNON_FIRE_READS_THE_ANSWER:
+                    flavor = _strategic_command_flavor(cmd_type) if order else "his orders"
+                    answered = ((action_taken == "attack"
+                                 and not attack_was_refused(action_result))
+                                or (action_taken == "move" and action_success))
+                    if not answered:
+                        # The guns go unanswered; the order STANDS.
+                        reason = (refusal_reason(action_result) if action_result
+                                  else "no road leads there.")
+                        return {
+                            "marshal": marshal.name,
+                            "command": cmd_type,
+                            "interrupt": "cannon_fire",
+                            "interrupt_type": "cannon_fire",
+                            "action_taken": ("attack_refused" if action_taken == "attack"
+                                             else "redirect_refused"),
+                            "action_success": False,
+                            "action_events": [],
+                            "battle_location": battle_loc,
+                            "to": battle_loc,
+                            "order_status": "continues",
+                            "message": (f"{marshal.name} hears cannon fire at {battle_loc} "
+                                        f"but cannot answer it — {reason} "
+                                        f"{flavor.capitalize()} continues."),
+                            **refusal_keys(action_result),
+                        }
+                    # The abandonment is real: a battle fought or a march made.
+                    marshal.strategic_order = None
+                    clear_order_bound_interrupt(marshal)  # NPC-2
+                    marshal.holding_position = False
+                    marshal.hold_region = ""
+                    row = {
+                        "marshal": marshal.name,
+                        "command": cmd_type,
+                        "interrupt": "cannon_fire",
+                        "interrupt_type": "cannon_fire",
+                        "action_taken": action_taken,
+                        "action_success": action_success,
+                        "action_events": action_events,
+                        "battle_location": battle_loc,
+                        "to": battle_loc,
+                        "order_status": "interrupted",
+                        "message": f"{marshal.name} hears cannon fire! "
+                                   f"Abandoning orders — rushing to {battle_loc}! "
+                                   f"{action_msg}".strip(),
+                    }
+                    if action_taken == "attack":
+                        # R2-F3: the fighting redirect carried only
+                        # `action_events` — no report, no tableau.
+                        row.update(_combat_carry(action_result))
+                    return row
 
                 return {
                     "marshal": marshal.name,
@@ -3326,6 +3589,13 @@ class StrategicOrderProcessor:
                         marshal.name, enemy.name,
                         self.executor._combat._bad_odds_muster_note(
                             marshal, enemy, world))
+                elif getattr(order, "combat_attempts", 0) > 0:
+                    # FA slice 3 review round (R1-F5): after `continue_order`
+                    # this arm said "Odds unfavorable" at 6:1 — only the
+                    # mid-path twin carried the inconclusive-assault copy.
+                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} still holds "
+                           f"{blocked_region}. Previous assault was inconclusive. "
+                           f"Orders?'")
                 elif is_fog_discovery:
                     msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
                            f"{blocked_region}! Destination held by {enemy.name}. "
@@ -3412,7 +3682,13 @@ class StrategicOrderProcessor:
 
             # Session 37: If enemy is AT the destination, no go_around option
             if blocked_region == destination:
-                if is_fog_discovery:
+                if getattr(order, "combat_attempts", 0) > 0:
+                    # FA slice 3 review round (R1-F5): the cautious twin of
+                    # the inconclusive-assault copy.
+                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} still holds "
+                           f"{blocked_region}. Previous assault was inconclusive. "
+                           f"How shall I proceed?'")
+                elif is_fog_discovery:
                     msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
                            f"{blocked_region}! Destination held. "
                            f"How shall I proceed?'")

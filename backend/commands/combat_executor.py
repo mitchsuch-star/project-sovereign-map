@@ -4831,6 +4831,21 @@ class CombatExecutor:
 
                 # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
                 is_player_nation = marshal.nation == world.player_nation
+                # FA slice 3 review round (R1-F3): NEVER under
+                # `_strategic_execution`. The answer to a stale contact
+                # reached this arm, minted a PURSUE, marched a province at
+                # 0 AP, logged the order and then deleted it as "Assault
+                # failed". An order-driven attack that finds its man out of
+                # reach is a refusal, in the refusal's own shape.
+                from backend.commands.strategic import ANSWERED_CONTACT_READS_THE_BOARD
+                if (enemy_by_name and ANSWERED_CONTACT_READS_THE_BOARD
+                        and (command or {}).get("_strategic_execution")):
+                    return {
+                        "success": False,
+                        "out_of_reach": True,
+                        "message": (f"{enemy_by_name.name} is no longer within "
+                                    f"reach of {marshal.name}."),
+                    }
                 if enemy_by_name and is_player_nation:
                     # Pre-check: strategic commands cost 2 AP (1 for the
                     # literal / the sovereign). NP-V: single source on the

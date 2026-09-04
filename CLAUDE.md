@@ -203,12 +203,29 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > the passive ambient France is now overrun by turn 32** — the next played
 > campaign and the AI-V sweep answer whether a PLAYED France holds.
 >
-> **▶ NEXT = the slice-3 review round** (R2's P1: two PURSUE first-step
-> arms drop the battle payload incl. the capture prompt; R1/R3 pending),
-> then the road law, the popup queue, the mock vocabulary (reports under
-> `docs/audits/fa_build_2026_09_04/`), then FA-26 **as a shared helper
-> across all four trust-writing families** (FA-N1), then position 10.
-> ⚠ **Still no pillar re-score.**
+> **▶ THE SLICE 3 REVIEW ROUND "THE REDIRECT READS THE ANSWER" IS LANDED —
+> September 4, 2026** (landing record = the boxed block in `BUG_FIXES.md`
+> §Final Whole-Game Audit; reports under `docs/audits/fa_build_2026_09_04/`).
+> Slice 3's predicate was not read everywhere: the cannon-fire redirect
+> cleared the order BEFORE its attack (a refusal destroyed a live order; a
+> reckless cavalryman armed an unanswerable charge popup), the answered
+> contact read `success` alone (a stale contact minted a PURSUE at 0 AP),
+> a thirteenth seam (attack-on-arrival) was unread and mis-filed by the
+> slice's own census, the PURSUE first-step arms dropped the battle and the
+> capture prompt, and the end-turn HARD STOP never reached the wire. Both
+> cannon-fire arms act with the order standing; liveness + a battle-event
+> fought branch + no pursuit under strategic execution; `deferred_dialogue`
+> stashed and raised at control return; the census is an AST walk over the
+> whole backend. ⛔ **The lesson: a census must count the THING, not a
+> string in two files — the text census had mis-filed the very seam it
+> existed to catch.**
+>
+> **▶ NEXT = the road law** (FA-13/46/N11/N12/N49/N41), the popup queue
+> (FA-5/30/N20/N67/N62/N99), the mock vocabulary (FA-80/D20/D25/N8/N24/N9/
+> N39/24/47/73) — all reproduced, reports under
+> `docs/audits/fa_build_2026_09_04/` — then FA-26 **as a shared helper across
+> all four trust-writing families** (FA-N1), then position 10. ⚠ **Still no
+> pillar re-score.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

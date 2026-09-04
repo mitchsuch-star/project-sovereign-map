@@ -728,22 +728,45 @@ class TestEveryDeferredMarshalGetsHisTurn:
 class TestTheCensus:
 
     def test_the_attack_sites_are_counted(self):
-        """Every `"action": "attack"` literal in the two strategic files:
-        SIXTEEN today — the eleven ORDER-DRIVEN seams slice 3 reads the
-        refusal predicate at (the contact answer, the four PURSUE arms, the
-        HOLD sally, the two `_handle_blocked_path` arms, the first-step
-        aggressive arm and the two first-step PURSUE arms) plus five
-        ANSWER/REDIRECT seams the player's own word drives (the muster
-        re-issue, the cannon-fire investigate and redirect, and two more
-        answer arms). A seventeenth must be added here AND pinned above."""
-        import re
+        """AST census over ALL of `backend/`: every dict literal that is an
+        attack command carrying `_strategic_execution: True` — SIXTEEN today.
+        Twelve in strategic.py (the four PURSUE arms, the HOLD sally, the
+        HOLD bombardment, the two `_handle_blocked_path` arms, the MOVE_TO
+        attack-on-arrival, the cannon-fire redirect, the cannon-fire
+        investigate answer and the contact answer), three in
+        strategic_executor.py (the first-step aggressive arm and the two
+        PURSUE first-step arms), and one in jealousy.py
+        (`process_autonomous_attacks`, with its own restore-on-refusal arm).
+        Thirteen are ORDER-DRIVEN and two are the player's own ANSWER; the
+        muster re-issue is NOT strategic execution and is not counted.
+
+        Slice-3 review round (R1-F7c / R3-S1): the first census was a TEXT
+        count over two files that could not see a producer in a third file,
+        one built through a helper, or one written with single quotes — and
+        its docstring filed the redirect, the bombardment and the arrival
+        arm among "answer arms". A seventeenth producer must be added here
+        AND pinned above."""
+        import ast
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        total = 0
-        for rel in ("backend/commands/strategic.py",
-                    "backend/commands/strategic_executor.py"):
-            with open(os.path.join(root, rel), encoding="utf-8") as fh:
-                total += len(re.findall(r'"action": "attack"', fh.read()))
-        assert total == 16, total
+        hits = []
+        for dirpath, _dirs, files in os.walk(os.path.join(root, "backend")):
+            for name in files:
+                if not name.endswith(".py"):
+                    continue
+                path = os.path.join(dirpath, name)
+                with open(path, encoding="utf-8") as fh:
+                    tree = ast.parse(fh.read())
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.Dict):
+                        continue
+                    keys = {k.value: v.value for k, v in zip(node.keys, node.values)
+                            if isinstance(k, ast.Constant) and isinstance(v, ast.Constant)}
+                    if keys.get("action") == "attack" and keys.get("_strategic_execution") is True:
+                        hits.append(os.path.relpath(path, root).replace(os.sep, "/"))
+        by_file = {f: hits.count(f) for f in set(hits)}
+        assert by_file == {"backend/commands/strategic.py": 12,
+                           "backend/commands/strategic_executor.py": 3,
+                           "backend/game_logic/jealousy.py": 1}, by_file
 
     def test_the_lever_free_seams_read_the_predicate(self):
         """Source pin: the refusal predicate is consulted where each family

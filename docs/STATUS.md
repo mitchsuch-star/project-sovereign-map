@@ -4,6 +4,40 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 3 REVIEW ROUND "THE REDIRECT READS THE ANSWER" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 3 REVIEW ROUND block (authoritative).** Three lenses at `16921a6b`
+> (reports committed under `docs/audits/fa_build_2026_09_04/`): the
+> cannon-fire REDIRECT cleared the order BEFORE its attack and narrated
+> whatever came back (a refused attack destroyed a live order; a
+> recklessness-3 cavalryman armed a charge popup the end-turn wire cannot
+> carry) — both cannon-fire arms act with the order standing now; the
+> answered contact read `success` alone (a stale contact minted a PURSUE at
+> 0 AP through the executor's upgrade and deleted it; a peace staged the
+> HARD STOP as a battle; a stalemate cancelled) — liveness, a
+> battle-event-keyed fought branch, and no pursuit ever minted under
+> strategic execution; a THIRTEENTH order-driven seam (attack-on-arrival)
+> unread and mis-filed by slice 3's own census; the two PURSUE first-step
+> arms dropped the battle incl. the capture prompt; the end-turn HARD STOP
+> never reached the wire (`deferred_dialogue` + a client stash-and-raise);
+> the queue drain hole, the one-answer driver, the unread row tableau, the
+> stalemate copy, the phantom log row. Tests
+> `tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py` (29);
+> sweep `tools/_sweep_fa_slice3r.json` **20 mutations, 20 killed, 0 INERT, 0 BROKEN on the first pass**; series +
+> M1–M7 byte-identical structurally; ONE `.gd`; the census is an AST census
+> over the whole backend now. R3's claims audit corrected fourteen record
+> lines (in the block) and found the gitignored font `.import` sidecars
+> that failed a test on every fresh clone — force-added.
+>
+> **▶ NEXT = the road law** (FA-13/46/N11/N12/N49/N41 — Agent D's
+> three-seam design), the popup queue (FA-5/30/N20/N67/N62/N99), the mock
+> vocabulary (FA-80/D20/D25/N8/N24/N9/N39/24/47/73), FA-26 as a shared
+> helper across all four trust-writing families (FA-N1), then position 10.
+> ⚠ Still no pillar re-score. ⚠ The slice-4 board warning stands: a
+> passive ambient France is overrun by turn 32 — the next PLAYED campaign
+> decides whether a defended France holds.
+
 > # ✅ THE AUDIT BUILD: SLICE 4 "THE AI READS THE BOARD" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

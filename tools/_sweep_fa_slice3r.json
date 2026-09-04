@@ -1,0 +1,142 @@
+[
+ {
+  "id": "redirect/a the order stands while the executor answers",
+  "file": "backend/commands/strategic.py",
+  "old": "                if not CANNON_FIRE_READS_THE_ANSWER:\n                    marshal.strategic_order = None\n                    # [7A-2] Clear holding state",
+  "new": "                if True:\n                    marshal.strategic_order = None\n                    # [7A-2] Clear holding state",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRedirectReadsTheAnswer::test_a_refused_attack_leaves_the_order_standing"
+ },
+ {
+  "id": "redirect/b an unanswered redirect keeps the order",
+  "file": "backend/commands/strategic.py",
+  "old": "                    if not answered:\n                        # The guns go unanswered; the order STANDS.",
+  "new": "                    if False:\n                        # The guns go unanswered; the order STANDS.",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRedirectReadsTheAnswer::test_a_refused_attack_leaves_the_order_standing"
+ },
+ {
+  "id": "redirect/c the fighting redirect carries the battle",
+  "file": "backend/commands/strategic.py",
+  "old": "                    if action_taken == \"attack\":\n                        # R2-F3: the fighting redirect carried only\n                        # `action_events` — no report, no tableau.\n                        row.update(_combat_carry(action_result))",
+  "new": "                    if False:\n                        # R2-F3: the fighting redirect carried only\n                        # `action_events` — no report, no tableau.\n                        row.update(_combat_carry(action_result))",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRedirectReadsTheAnswer::test_a_fought_redirect_abandons_the_order_and_carries_the_battle"
+ },
+ {
+  "id": "investigate/a a refused charge keeps the order",
+  "file": "backend/commands/strategic.py",
+  "old": "                if CANNON_FIRE_READS_THE_ANSWER and attack_was_refused(action_result):",
+  "new": "                if False:",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheInvestigateAnswerReadsTheAnswer::test_a_refused_charge_keeps_the_order"
+ },
+ {
+  "id": "investigate/b no step made keeps the order",
+  "file": "backend/commands/strategic.py",
+  "old": "                elif CANNON_FIRE_READS_THE_ANSWER:\n                    # No step could be made: the order stands.",
+  "new": "                elif False:\n                    # No step could be made: the order stands.",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheInvestigateAnswerReadsTheAnswer::test_no_step_possible_keeps_the_order"
+ },
+ {
+  "id": "contact/a the answered contact is re-validated",
+  "file": "backend/commands/strategic.py",
+  "old": "            if ANSWERED_CONTACT_READS_THE_BOARD:\n                live, reason = contact_is_live(marshal, world, pending)\n                if not live:",
+  "new": "            if False:\n                live, reason = contact_is_live(marshal, world, pending)\n                if not live:",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_contact_whose_man_marched_off_is_retired_not_fought tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_contact_after_a_peace_is_retired_not_staged"
+ },
+ {
+  "id": "contact/b a court at peace is not a live contact",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not world.is_at_war(marshal.nation, enemy.nation):\n        return False, f\"we are no longer at war with {enemy.nation}\"\n    region = world.get_region(marshal.location)\n    adjacent = set(getattr(region, \"adjacent_regions\", None) or []) if region else set()\n    if enemy.location != marshal.location and enemy.location not in adjacent:\n        if _province_seen(world, enemy.location):\n            return False, f\"{label} has marched to {enemy.location}\"",
+  "new": "    if False:\n        return False, f\"we are no longer at war with {enemy.nation}\"\n    region = world.get_region(marshal.location)\n    adjacent = set(getattr(region, \"adjacent_regions\", None) or []) if region else set()\n    if enemy.location != marshal.location and enemy.location not in adjacent:\n        if _province_seen(world, enemy.location):\n            return False, f\"{label} has marched to {enemy.location}\"",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_contact_after_a_peace_is_retired_not_staged"
+ },
+ {
+  "id": "contact/c a success with no battle is not an assault",
+  "file": "backend/commands/strategic.py",
+  "old": "                if victor is None:\n                    # Not an assault at all — a staged dialogue, a minted",
+  "new": "                if False:\n                    # Not an assault at all — a staged dialogue, a minted",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_success_with_no_battle_is_not_an_assault"
+ },
+ {
+  "id": "contact/d a stalemate keeps the order",
+  "file": "backend/commands/strategic.py",
+  "old": "                if victor == \"\":\n                    # A stalemate: the FA-34 ruling — the order stands, one",
+  "new": "                if False:\n                    # A stalemate: the FA-34 ruling — the order stands, one",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_stalemate_keeps_the_order_and_a_defeat_breaks_it"
+ },
+ {
+  "id": "executor/a no pursuit minted under strategic execution",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if (enemy_by_name and ANSWERED_CONTACT_READS_THE_BOARD\n                        and (command or {}).get(\"_strategic_execution\")):",
+  "new": "                if False:",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_the_executor_never_mints_a_pursuit_under_strategic_execution"
+ },
+ {
+  "id": "arrival/a the thirteenth seam reads the refusal",
+  "file": "backend/commands/strategic.py",
+  "old": "                if attack_was_refused(result):\n                    # FA slice 3 review round (R3-S1): the THIRTEENTH",
+  "new": "                if False:\n                    # FA slice 3 review round (R3-S1): the THIRTEENTH",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheArrivalArmReadsTheAnswer::test_a_refused_attack_on_arrival_breaks_the_order_honestly"
+ },
+ {
+  "id": "arrival/b the fought arrival carries the battle",
+  "file": "backend/commands/strategic.py",
+  "old": "                    # R2-F7: the fought battle's tableau and report ride the row.\n                    **_combat_carry(result),",
+  "new": "                    # R2-F7: the fought battle's tableau and report ride the row.\n                    **{},",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheArrivalArmReadsTheAnswer::test_a_fought_arrival_completes_and_carries_the_battle"
+ },
+ {
+  "id": "pursue/a the co-located first step carries the battle",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                    combat_msg = attack_result.get(\"message\", \"\")\n                    first_step_attack_result = attack_result\n                    first_step_msg = f\" They're right here! Engaging!",
+  "new": "                    combat_msg = attack_result.get(\"message\", \"\")\n                    first_step_msg = f\" They're right here! Engaging!",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestThePursueFirstStepCarriesTheBattle::test_a_co_located_pursue_replies_with_the_battle"
+ },
+ {
+  "id": "pursue/b the adjacent first step carries the battle",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                            combat_msg = attack_result.get(\"message\", \"\")\n                            first_step_attack_result = attack_result\n",
+  "new": "                            combat_msg = attack_result.get(\"message\", \"\")\n",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestThePursueFirstStepCarriesTheBattle::test_an_adjacent_pursue_replies_with_the_battle"
+ },
+ {
+  "id": "carry/a the row lifts the tableau and the triad",
+  "file": "backend/commands/strategic.py",
+  "old": "            **{k: cleaned[k] for k in (\"battle_diorama\", \"diplomatic_dialogue\",\n                                        \"awaiting_diplomatic_response\",\n                                        \"war_purpose_popup\")",
+  "new": "            **{k: cleaned[k] for k in ()",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRowCarriesWhatTheClientReads::test_combat_carry_lifts_the_tableau_and_the_triad"
+ },
+ {
+  "id": "main/a the deferred hard stop rides the end-turn response",
+  "file": "backend/main.py",
+  "old": "        if _dm.is_hard_stop() and world.pending_diplomatic_dialogue:\n            response[\"deferred_dialogue\"] = world.pending_diplomatic_dialogue",
+  "new": "        if False:\n            response[\"deferred_dialogue\"] = world.pending_diplomatic_dialogue",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRowCarriesWhatTheClientReads::test_the_end_turn_response_carries_the_deferred_hard_stop"
+ },
+ {
+  "id": "log/a the refused first step retracts its row",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        if world is not None and _order is not None:\n            # Review round (R1-F6): \"ordered to move to London\" was logged",
+  "new": "        if False:\n            # Review round (R1-F6): \"ordered to move to London\" was logged",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRefusedFirstStepLeavesNoLogRow::test_the_march_is_not_logged"
+ },
+ {
+  "id": "copy/a the cautious destination arm says the assault was inconclusive",
+  "file": "backend/commands/strategic.py",
+  "old": "                if getattr(order, \"combat_attempts\", 0) > 0:\n                    # FA slice 3 review round (R1-F5): the cautious twin of",
+  "new": "                if False:\n                    # FA slice 3 review round (R1-F5): the cautious twin of",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheDestinationCopy::test_after_a_stalemate_the_destination_arm_says_so"
+ },
+ {
+  "id": "driver/a every awaiting marshal is answered",
+  "file": "tools/playtest_driver.py",
+  "old": "    return [report for report in response.get(\"strategic_reports\") or []\n            if isinstance(report, dict) and report.get(\"requires_input\")]",
+  "new": "    return [report for report in response.get(\"strategic_reports\") or []\n            if isinstance(report, dict) and report.get(\"requires_input\")][:1]",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheDriverAnswersEveryMarshal::test_every_awaiting_row_is_answered"
+ },
+ {
+  "id": "gd/a the client stashes the deferred hard stop",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline\n",
+  "new": "",
+  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRowCarriesWhatTheClientReads::test_the_client_stashes_raises_and_drains"
+ }
+]

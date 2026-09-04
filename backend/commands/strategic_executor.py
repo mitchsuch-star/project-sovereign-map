@@ -1239,6 +1239,12 @@ class StrategicExecutor:
 
         # ── PURSUE: target in same region → personality-aware immediate response ──
         pursue_handled = False
+        # FA slice 3 review round (R2-F1): both PURSUE first-step arms folded
+        # only the message into the order's reply — the battle's events,
+        # report, tableau and CAPTURE PROMPT were dropped (measured: a first
+        # step that captured Bohemia replied with `events: []`, and the
+        # plunder/secure modal arrived one swallowed command late).
+        first_step_attack_result = None
         if strategic_type == "PURSUE":
             enemy_m = world.get_marshal(target)
             if enemy_m and enemy_m.strength > 0 and marshal.location == enemy_m.location:
@@ -1261,8 +1267,9 @@ class StrategicExecutor:
                     if attack_was_refused(attack_result):
                         # FA-20 family (slice 3): no "Engaging!" over a refusal,
                         # and no PURSUE left standing on one.
-                        return self._first_step_refusal(marshal, attack_result, target)
+                        return self._first_step_refusal(marshal, attack_result, target, world)
                     combat_msg = attack_result.get("message", "")
+                    first_step_attack_result = attack_result
                     first_step_msg = f" They're right here! Engaging!\n\n{combat_msg}"
                 else:
                     first_step_msg = (f" {target} is right here in {marshal.location}!"
@@ -1438,8 +1445,9 @@ class StrategicExecutor:
                                 # Engaging!" was printed over the crossing
                                 # refusal with the PURSUE left standing.
                                 return self._first_step_refusal(
-                                    marshal, attack_result, target)
+                                    marshal, attack_result, target, world)
                             combat_msg = attack_result.get("message", "")
+                            first_step_attack_result = attack_result
                             first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}! Engaging!\n\n{combat_msg}"
                         else:
                             first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}. Preparing to engage."
@@ -1665,7 +1673,7 @@ class StrategicExecutor:
                         "ground turn after turn. For a single-turn tactical "
                         "hold, order 'defend' at 1 AP.)")
 
-        return {
+        _reply = {
             "success": True,
             "message": msg + cond_str,
             "strategic_order": True,
@@ -1675,6 +1683,10 @@ class StrategicExecutor:
             "remaining_regions": remaining,
             "variable_action_cost": strategic_cost,
         }
+        if first_step_attack_result is not None:
+            from backend.commands.strategic import _carry_combat_fields
+            _carry_combat_fields(_reply, first_step_attack_result)
+        return _reply
 
     def _handle_strategic_objection_response(
         self,
@@ -2064,7 +2076,8 @@ class StrategicExecutor:
             "variable_action_cost": 1,
         }
 
-    def _first_step_refusal(self, marshal, refusal: Dict, enemy_name: str) -> Dict:
+    def _first_step_refusal(self, marshal, refusal: Dict, enemy_name: str,
+                            world=None) -> Dict:
         """FA-20 (slice 3, Sept 4 2026): a strategic attack the executor
         REFUSED at the order's FIRST step ends the order it just created.
 
@@ -2078,8 +2091,14 @@ class StrategicExecutor:
         from backend.commands.strategic import (
             attack_was_refused, refusal_keys, refusal_reason)
         assert attack_was_refused(refusal) or refusal.get("success") is False
+        _order = marshal.strategic_order
         marshal.strategic_order = None
         clear_order_bound_interrupt(marshal)  # NPC-2
+        if world is not None and _order is not None:
+            # Review round (R1-F6): "ordered to move to London" was logged
+            # BEFORE the first step and survived the refusal.
+            from backend.commands.strategic import retract_order_log
+            retract_order_log(world, marshal.name, _order.command_type)
         marshal.holding_position = False
         marshal.hold_region = ""
         return {
@@ -2121,7 +2140,7 @@ class StrategicExecutor:
         _verdict = strike_crossing_verdict(world, marshal, blocked_region)
         if _verdict is not None:
             return self._first_step_refusal(
-                marshal, verdict_as_refusal(_verdict), enemy.name)
+                marshal, verdict_as_refusal(_verdict), enemy.name, world)
 
         if personality == "literal":
             # Silently reroute around ALL enemy regions.
@@ -2223,7 +2242,7 @@ class StrategicExecutor:
                     _carry_combat_fields, attack_was_refused)
                 if attack_was_refused(result):
                     # FA-20: a refused first step ends the order it created.
-                    return self._first_step_refusal(marshal, result, enemy.name)
+                    return self._first_step_refusal(marshal, result, enemy.name, world)
                 combat_msg = result.get("message", "")
                 if result.get("success"):
                     # FA-N42 / FA-N48: the fought battle reaches the client

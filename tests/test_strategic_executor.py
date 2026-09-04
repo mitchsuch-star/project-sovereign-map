@@ -1254,10 +1254,19 @@ class TestInterruptResponse:
             )
 
         assert result["success"] is True
-        assert result["order_cleared"] is True
         assert result["trust_change"] == 0
-        assert ney.strategic_order is None
         assert ney.pending_interrupt is None
+        # FA slice 3 review round (Sept 4, 2026, R1-F1): on this fixture no
+        # step toward Bavaria can be made, and the old arm cleared the order
+        # ANYWAY ("turns toward Bavaria, but cannot advance yet") — an
+        # abandonment with nothing abandoned for. The order now stands
+        # until a march is actually made or a battle actually fought.
+        if result.get("action_taken") == "investigate_refused":
+            assert result["order_cleared"] is False
+            assert ney.strategic_order is not None
+        else:
+            assert result["order_cleared"] is True
+            assert ney.strategic_order is None
 
     def test_cannon_fire_continue(self, world, game_state, strategic_executor):
         """Continue order ignoring cannon fire costs -2 trust and executes movement."""

@@ -393,7 +393,7 @@
 | **FA-N87** | P3 | **Harness: the digest's LEDGER line has never once printed a threat figure — the driver reads `threat_level` off GET /ledger, which emits no such key, so the coalition alarm is absent from all 1,246 archived LEDGER rows** Verified by opening: tools/playtest_driver.py:1389 `dig(ledger, "threat_level", "threat")`; :525-532 `ledger_line` renders the bit only `if threat is not None`; backend/game_logic/ledger.py:53-69 `build_strategic_ledger` returns forces/territories/economy/intel/manpower/orders/admiralty/calendar_label/authority/authority_label/actions_remaining/campaign_seed — `grep -c threat backend/game_logic/ledger.py` = 0; backend/main.py:4318-4327 GET /ledger wraps it as {success, ledger} plus identity overrides, no popup passthroughs. Verified by running (probe on the shipped 1805 boot, TestClient with M.parser/M.world/M.game_state swapped to a mock parser): world.threat_level = 70, `dig(ledger,'treasury','gold')` = 800, `dig(ledger,'net_gold','net')` = 1842, **`dig(ledger,'threat_level','threat')` = None**, and a recursive walk for any threat-ish key in the whole /ledger payload returns []. The fi… *Repro:* cd C:/Users/User/PycharmProjects/project-sovereign-map. (1) grep -c threat backend/game_logic/ledger.py -> 0. (2) grep -h "LEDGER" docs/audits/playtest_digests/*/digest.md / grep -c threat -> 0 (of 1246 LEDGER lines). (3) Save as probe_threat.py in the repo root and run `.venv/Scripts/python.exe probe_threat.py` (mock parser, no LLM spend): import contextlib, io, sys, os sys.stdout.reconfigure(encoding="utf-8") os.environ["LLM_MODE"]="mock" sys.path.insert(0, "tools") from fastapi.testclient imp… *Fix:* ONE seam: the third argument at tools/playtest_driver.py:1389. The driver already fetches GET /dispatch at :1392 — hoist that call above the ledger_line call and pass `dig(dispatch_payload, "threat_level")` (or read GET /test, which carries the same `threat_level` at main.py:2051) instead of digging /ledger for a key it does not have. No signature change, no backend change, both existing ledger_line tests keep passing. If the ledger screen should own the number too, the alternative one-seam fix … *Test:* tests/ for tools/playtest_driver.py, two arms. (1) The regression pin, so the fix is provably the thing that changes: boot the 1805 scenario in-process and assert `dig(client.get('/ledger').json(), 'threat_level', 'threat') is None` while `world.threat_level > 0` — this test is RED-by-intent today only in the sense that it documents the hole; convert it after the fix to assert the driver's extract… | `tools/playtest_driver.py:1389` | **OPEN** — verification pass; found by the FA-37 sweep |
 | **FA-N89** | P4 | **meta.json records the run's dice but not its world: --scenario, --cheats and --strict are unrecorded, so FA-39's proposed `script` field still would not say which world an archived digest ran in** Verified by opening: tools/playtest_driver.py:1271-1277 — the meta dict is exactly {name, seed, llm, transport, policy, turns_requested, started, from_save, rng}; argparse at :1436-1471 defines 15 flags including `--scenario` (:1440, 'allowlist name for /new_game'), `--cheats` (:1457, arms DEBUG_MODE) and `--strict` (:1459, whether unknown blockers would have failed the run), none of which reach the meta. Verified in the archive: `json.load(docs/audits/playtest_digests/audit-tutorial/meta.json).keys()` = [counters, from_save, llm, name, policy, rng, seed, started, status, transport, turns_requested, unknown_blockers] — no 'scenario', no 'cheats', no 'script'; its digest.md header line prints seed/llm/transport/policy only, and its boot line (digest.md:4) is the sole disclosure. tools/playtest_scripts/tutorial_lesson.json has no scenario key. Doc claim: docs/PLAYTESTING.md:312 ('meta.json… *Repro:* From the repo root: `python -c "import json;print(sorted(json.load(open('docs/audits/playtest_digests/audit-tutorial/meta.json',encoding='utf-8'))))"` -> no 'scenario'/'cheats'/'script'; `grep -n 'scenario' tools/playtest_driver.py` -> only :1291 (the POST) and :1440 (the flag) — it is never written to meta; `sed -n '4p' docs/audits/playtest_digests/audit-tutorial/digest.md` -> the boot message is the only tell. Then `.venv/Scripts/python.exe tools/playtest_driver.py --turns 1 --name scencheck -… *Fix:* ONE seam, and it should be FOLDED INTO FA-39's meta fix rather than built separately: the meta dict at tools/playtest_driver.py:1271-1277 gains `"scenario": args.scenario`, `"cheats": bool(args.cheats)`, `"strict": bool(args.strict)` alongside FA-39's `"script"`/`"llm_source"`, and the digest header line at :356-359 names the scenario when it is non-empty. Correct docs/PLAYTESTING.md:312 to say which args are recorded. *Test:* tests/test_playtest_driver_instrument.py — (a) a 1-turn run with `--scenario tutorial --cheats --strict` writes meta.json with scenario=='tutorial', cheats is True, strict is True, and digest.md's header names the scenario; a default run writes scenario==''. (b) A drift pin in the project's census idiom, so this cannot regress when the next flag is added: parse `main()`'s argparse `dest` set by AS… | `tools/playtest_driver.py:1271` | **OPEN** — verification pass; found by the FA-39 sweep |
 
-## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round and slice 4 landed — see the boxed blocks)
+## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4 and the slice-3 review round landed — see the boxed blocks)
 
 > **Review-round findings (September 4, 2026) — filed by the slice-2 review fleet, NOT fixed in the round; owned by slice 4 (the AI reads the board):**
 >
@@ -432,6 +432,116 @@
 >
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).
+
+> ### ✅ SLICE 3 REVIEW ROUND — "THE REDIRECT READS THE ANSWER" — FIXED September 4, 2026
+>
+> **Landing record: this block (an addendum to the SLICE 3 block below).
+> Three review lenses attacked `19fba926` at master `16921a6b` — R1 the
+> refusal predicate and the crossing pre-gate, R2 the interrupt/report
+> lifecycle through the real endpoints, R3 every claim of slice 3 AND of the
+> slice-2 review round re-derived — and their reports are committed at
+> `docs/audits/fa_build_2026_09_04/REVIEW_slice3_R{1,2,3}_*.md`. Tests
+> `tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py` (29);
+> sweep `tools/_sweep_fa_slice3r.json` — **20 mutations, 20 killed, 0 INERT, 0 BROKEN on the first pass**; ruff
+> clean; ONE `.gd` (`main.gd` — parse harness EXIT=0 / 47 scripts, boot 0
+> SCRIPT ERROR); the headless driver amended; `BASELINE_SERIES` and M1–M7
+> byte-identical WITHOUT re-record, structurally (every seam is
+> player-only: the processor's roster is the player's, and the executor's
+> new guard keys on `_strategic_execution`, which the AI never carries).**
+>
+> **The headline, found by two lenses independently: the predicate slice 3
+> built was not read everywhere an order-driven attack is made, and the
+> seam it missed was the worst-shaped one.** The cannon-fire REDIRECT
+> cleared the order BEFORE its attack and narrated whatever came back —
+> a refused attack (an engaged corps, a shut crossing) destroyed a live
+> order for nothing, and with `in_strategic_mode` False during the attack a
+> recklessness-3 cavalryman armed a CHARGE popup the end-turn wire cannot
+> carry (WO-25's shape one seam over: a 2× charge from the next bare
+> `charge`). The `investigate` answer had the same shape. Both arms now
+> act with the order STANDING and abandon it only for a battle actually
+> fought or a march actually made (`CANNON_FIRE_READS_THE_ANSWER`); the
+> fighting redirect finally carries its report and tableau. **A thirteenth
+> order-driven seam** (R3-S1) — the MOVE_TO attack-on-arrival, reached by
+> the typed out-of-range `attack <marshal>` — was unread and mis-filed by
+> slice 3's own census as an "answer arm"; it reads the refusal now.
+>
+> **The answered contact read `success` alone** (R1-F3/F4, R2-F4). A
+> STALE contact answered `attack` — the enemy phase had moved the blocker
+> two provinces off — reached the executor's attack-to-pursue upgrade:
+> a PURSUE minted, a province marched at 0 AP, the order logged and then
+> deleted as "Assault failed"; a contact answered after a PEACE staged the
+> war-purpose HARD STOP wearing a battle sentence; and the answered
+> stalemate CANCELLED where `continue_order` keeps. Three parts
+> (`ANSWERED_CONTACT_READS_THE_BOARD`): `contact_is_live` retires a dead
+> question with its reason (the named man stands, at war, on or beside the
+> marshal — fog-honest); `fought_battle_victor` keys the fought branch on a
+> battle EVENT (a staged dialogue or a minted order is not an assault; a
+> stalemate keeps the order, a defeat breaks it); and `_execute_attack`
+> never mints a pursuit under `_strategic_execution` — an order-driven
+> attack that finds its man out of reach is a refusal in the refusal's own
+> shape. The typed out-of-range attack keeps its upgrade (pinned).
+>
+> **What the battle carries** (R2-F1/F2/F7). The two PURSUE first-step arms
+> replied with the generic order dict — events, report, tableau and the
+> CAPTURE PROMPT dropped (measured: a first step that captured Bohemia
+> replied `events: []`, and the plunder modal arrived one swallowed command
+> late) — they carry the attack result through `_carry_combat_fields` now.
+> A HARD STOP staged by an END-TURN battle reached the wire only inside a
+> row's `battle_details`, which no renderer reads: `_combat_carry` lifts the
+> tableau and the war-purpose triad onto the ROW, and `main.py` attaches the
+> current hard stop to the end-turn response as **`deferred_dialogue`** — a
+> key of its own, because choice popups are deferred beside `enemy_phase` by
+> design (the route table would swallow the turn report) — which the client
+> STASHES on arrival and raises from the shared control-return tail behind
+> the report (the NA-6b discipline the Proclamation and the letter-book use).
+> `_stash_diorama` scans the rows too, so an end-turn battle's tableau is no
+> longer built and discarded.
+>
+> **The small ones.** The client's capture tail returned control without
+> draining the interrupt queue, so a second marshal's question waited a
+> whole turn once a first answer resolved into a follow-on popup (R2-F5) —
+> the tail goes through `_return_control_to_player`, which drains. The
+> headless driver answered ONE question per response (R2-F6) — every
+> awaiting row is answered now, one `/strategic_response` per marshal. The
+> destination arm after `continue_order` said "Odds unfavorable" at 6:1
+> (R1-F5) — both destination twins carry the inconclusive-assault copy. A
+> first step refused at 0 AP still wrote "ordered to move to London" into
+> the campaign log (R1-F6) — `retract_order_log` pops the row.
+>
+> **Record corrections (R3).** Sixteen `"action": "attack"` literals, not
+> eleven seams: thirteen order-driven (the four PURSUE arms, the sally, the
+> bombardment, the two `_handle_blocked_path` arms, the attack-on-arrival,
+> the cannon-fire redirect, the three first-step arms) plus three answer arms
+> — and the census is an AST census over the whole backend now (sixteen
+> `_strategic_execution` attack producers incl. jealousy.py's own; a text
+> count over two files could not see a producer in a third file). "Exactly
+> one read the executor's answer" → exactly one ACTED on it honestly. "Reds
+> six green FA-N3 pins" → four, and the slice's own file had no seam-level
+> pin against the filed form (added). "Reproduced on master" → on
+> `915c6a32`, holding at `aa6faa01`. From the slice-2 review round's record:
+> "FOUR engaged-elsewhere refusals" → TWO (the other four were FA-R1's
+> coalition-ally refusals); "`Ney, march to Paris` overwrote the ask" → it
+> marched him out with the ask PARKED, `advance to Rhineland` overwrites;
+> "seven call sites" → eight after the round's own `_retire_dead_decision`
+> (docstring corrected); E's inertness reason described the D board (on E's
+> own board the subset never differs while non-empty); "a 20,700 field read
+> as 8,000" → the raw 28,000 field (3.5×), 20,700 is the committed figure
+> (2.6×); the WO-9 "A alone / B alone rebel at 30" → both flip VASSAL→PEACE
+> at 30. FA-R1's routing note named the wrong seam and FA-R2's the wrong
+> question — slice 4 found both true seams (the ally-support join arm;
+> `fortified`) before this audit landed, and the rows now say so.
+> **Repo hygiene fixed in passing (R3's aside):** the map-label fonts'
+> `.import` sidecars (MarcellusSC, Spectral) were gitignored under the
+> assets rule while their `.ttf` files were tracked, so
+> `test_map_label_font_assets_present` failed on every fresh clone and only
+> passed in a working tree that had run the import — both sidecars are
+> force-added.
+>
+> **Method note.** Three lenses, three reproductions of the same seam from
+> different sides — and R3's claims audit found the census that was meant
+> to catch a missed seam had itself mis-filed the missed seam. A census must
+> count the THING (an AST walk over every producer), not a string in two
+> files.
 
 > ### ✅ SLICE 4 — "THE AI READS THE BOARD" — FIXED September 4, 2026
 >

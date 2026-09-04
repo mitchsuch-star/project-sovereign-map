@@ -302,6 +302,10 @@ var _current_lapsing_count: int = 0
 # unanswered (backend `pending_marshal_decisions`) — the end-turn soft-stop
 # names them, because the enemy phase decides the question for him (FA-1).
 var _current_decision_names: Array = []
+# FA slice 3 review round (Sept 4 2026, R2-F2): a HARD STOP staged by an
+# end-turn battle rides the backend's `deferred_dialogue` key. Stashed on
+# arrival, raised at control return behind the report (the NA-6b discipline).
+var pending_deferred_dialogue = null
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
@@ -2131,6 +2135,17 @@ func _stash_diorama(response: Dictionary) -> void:
 		if bool(payload.get("significant", false)):
 			pending_diorama_data = payload
 
+	# FA slice 3 review round (R2-F7): a battle fought under a STANDING
+	# order carries its tableau on the report ROW (`_combat_carry` lifts
+	# it); it was built and discarded one level down. Same predicate.
+	for report in response.get("strategic_reports", []):
+		if report is Dictionary:
+			var row_payload = report.get("battle_diorama")
+			if row_payload is Dictionary and not row_payload.is_empty():
+				last_battle_diorama = row_payload
+				if bool(row_payload.get("significant", false)):
+					pending_diorama_data = row_payload
+
 	# NV-7: a fleet action. There are exactly two ways to cause one and
 	# both stake a campaign on it, so it always auto-plays — the backend
 	# builder says so with significant=true rather than the client deciding.
@@ -2301,6 +2316,14 @@ func _return_control_to_player() -> void:
 		return  # _on_mailbox_panel_closed re-enables input
 	if _show_pending_redemption():
 		return  # PT-B1: the redemption dialog's handler re-enables input
+	if _show_pending_deferred_dialogue():
+		return  # FA slice 3 review round: the popup's own handler re-enables input
+	if not interrupt_queue.is_empty():
+		# FA slice 3 review round (R2-F5): a follow-on popup (capture, charge,
+		# proposal confirm) used to return control without draining the
+		# queue, so the second marshal's question waited a whole turn.
+		_process_next_interrupt()
+		return
 	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
@@ -2316,6 +2339,30 @@ func _return_control_to_player() -> void:
 #
 # So it is STASHED on arrival and raised only where the player would
 # otherwise regain control, behind the Proclamation.
+func _stash_deferred_dialogue(response: Dictionary) -> void:
+	"""FA slice 3 review round (R2-F2): the war-purpose HARD STOP (or any hard
+	stop) staged by an END-TURN battle. The backend defers choice popups beside
+	`enemy_phase` on purpose — routed raw, the route table would swallow the
+	turn report — so it rides `deferred_dialogue` and is raised from the shared
+	control-return tail once the report has been read."""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var dialogue = response.get("deferred_dialogue")
+	if dialogue is Dictionary and not dialogue.is_empty():
+		pending_deferred_dialogue = dialogue
+
+
+func _show_pending_deferred_dialogue() -> bool:
+	"""Raise a stashed hard stop through the ordinary dialogue route. True when
+	a route took it — the popup's own handler then re-enables input."""
+	if pending_deferred_dialogue == null:
+		return false
+	var dialogue = pending_deferred_dialogue
+	pending_deferred_dialogue = null
+	var synthetic = {"success": true, "diplomatic_dialogue": dialogue}
+	return _route_response_ui(synthetic, _post_hud_response_routes)
+
+
 func _stash_envoy_digest(response: Dictionary) -> void:
 	if typeof(response) != TYPE_DICTIONARY or not response.has("envoy_digest"):
 		return
@@ -2486,6 +2533,7 @@ func _on_command_result(response):
 		_stash_envoy_digest(response)
 		_stash_diorama(response)  # BD: same discipline — stash before routing
 		_stash_redemption(response)  # PT-B1: same discipline, same reason
+		_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry
@@ -4535,10 +4583,10 @@ func _on_capture_choice_response(response):
 	_update_war_panel_visibility()
 	add_output("")
 	# BD: the capture choice arrives ON a battle's response — the tableau
-	# waits behind the plunder/secure decision and raises here.
-	if _show_pending_diorama():
-		return  # _on_battle_diorama_dismissed re-enables input
-	command_input.grab_focus()
+	# waits behind the plunder/secure decision and raises here. FA slice 3
+	# review round (R2-F5): through the SHARED tail now, so a queued second
+	# marshal's question is drained rather than orphaned for the turn.
+	_return_control_to_player()
 
 
 # ════════════════════════════════════════════════════════════════════════════

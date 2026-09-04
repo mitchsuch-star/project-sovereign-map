@@ -1419,6 +1419,23 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
         if getattr(world, "nation_proclamation_popups", None):
             world.nation_proclamation_popup = world.nation_proclamation_popups.pop(0)
 
+    # FA slice 3 review round (R2-F2): a HARD STOP staged by an END-TURN
+    # battle (a standing order's first contact with a neutral court — the
+    # war-purpose question) reached the wire only inside a report row's
+    # `battle_details`, which no renderer reads; the player's next command
+    # was then refused with "nothing was relayed" and the question arrived
+    # without its battle. Choice popups stay deferred beside `enemy_phase`
+    # by design (the route table would swallow the report), so the current
+    # hard stop rides a key of its own that the client STASHES on arrival
+    # and raises at control return, behind the report — the NA-6b
+    # discipline, the same one the Proclamation and the letter-book use.
+    try:
+        _dm = world.dialogue_manager
+        if _dm.is_hard_stop() and world.pending_diplomatic_dialogue:
+            response["deferred_dialogue"] = world.pending_diplomatic_dialogue
+    except Exception:
+        pass
+
 
 def _finalize_command_notifications(response: dict, world) -> None:
     """Drain informational notices into the persistent notification rail."""
