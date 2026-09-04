@@ -298,6 +298,10 @@ var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gat
 # warning claimed a loss that could not happen, and when a persistent offer
 # was the only item it produced a stop nothing could clear.
 var _current_lapsing_count: int = 0
+# FA-16 review round (Sept 4 2026): the cornered marshals whose last stand is
+# unanswered (backend `pending_marshal_decisions`) — the end-turn soft-stop
+# names them, because the enemy phase decides the question for him (FA-1).
+var _current_decision_names: Array = []
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
@@ -1318,8 +1322,9 @@ func _execute_end_turn():
 		_send_end_turn()
 		return
 
-	# Client-side confirmation gate — spec §5
-	if _current_lapsing_count > 0:
+	# Client-side confirmation gate — spec §5 (+ the cornered marshal's
+	# unanswered question, FA-16 review round)
+	if _current_lapsing_count > 0 or not _current_decision_names.is_empty():
 		_show_lapse_confirmation()
 		return
 
@@ -1345,13 +1350,25 @@ func _send_end_turn():
 	api_client.send_command("end turn", _on_command_result)
 
 func _show_lapse_confirmation():
-	"""Show confirmation before ending turn with pending envoys."""
-	var msg = "You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_lapsing_count
+	"""Show confirmation before ending turn with pending envoys, or with a
+	cornered marshal's last stand unanswered (FA-16 review round, Sept 4 2026:
+	an unanswered question is decided FOR him when the enemy phase begins —
+	FA-1 — so the player is told before the turn goes, as he is for envoys)."""
+	var parts := PackedStringArray()
+	if _current_lapsing_count > 0:
+		parts.append("You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_lapsing_count)
+	if not _current_decision_names.is_empty():
+		var names := ", ".join(PackedStringArray(_current_decision_names))
+		parts.append("%s await(s) your word — an unanswered last stand is decided for him when the enemy phase begins. Type 'fight to the last' or 'attempt a breakout'." % names)
+	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
-	add_output("[color=#d9c08c]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
+	if _current_lapsing_count > 0:
+		add_output("[color=#d9c08c]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
+	else:
+		add_output("[color=#d9c08c]  Answer him now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to let the field decide.[/color]")
 	_awaiting_end_turn_confirmation = true
-	_set_open_envoys_prompt_visible(true)
+	_set_open_envoys_prompt_visible(_current_lapsing_count > 0)
 	end_turn_button.grab_focus()
 
 func _execute_command():
@@ -3807,9 +3824,13 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		# field and the client's READ, and neither could see the gap between.
 		diplo_data["pending_lapsing_count"] = response.get(
 			"pending_lapsing_count", 0)
+		# FA-16 review round: the same join, for the marshal's question.
+		diplo_data["pending_marshal_decisions"] = response.get(
+			"pending_marshal_decisions", [])
 	if not diplo_data.is_empty():
 		_set_pending_envoy_count(int(diplo_data.get("pending_envoy_count", 0)))
 		_current_lapsing_count = int(diplo_data.get("pending_lapsing_count", 0))
+		_set_pending_decisions(diplo_data.get("pending_marshal_decisions", []))
 		top_bar.update_diplomatic_fields(diplo_data)
 
 
@@ -3820,6 +3841,18 @@ func _set_pending_envoy_count(count: int):
 		_awaiting_end_turn_confirmation = false
 		_set_open_envoys_prompt_visible(false)
 	_current_envoy_count = new_count
+
+
+func _set_pending_decisions(names) -> void:
+	"""Cache the cornered marshals whose last stand is unanswered, clearing a
+	stale end-turn confirmation when the set changes (the envoy count's twin)."""
+	var new_names: Array = []
+	if names is Array:
+		new_names = names.duplicate()
+	if new_names != _current_decision_names:
+		_awaiting_end_turn_confirmation = false
+		_set_open_envoys_prompt_visible(false)
+	_current_decision_names = new_names
 
 
 func _set_open_envoys_prompt_visible(is_visible: bool):

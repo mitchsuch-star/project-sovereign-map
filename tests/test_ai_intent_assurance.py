@@ -356,13 +356,16 @@ class TestArmAAmbientDoD:
         """§7: '≥1 formation, or a written explanation of the specific
         predicate that blocked it' — the watch payload IS the
         machine-readable explanation (e.g. Holland's deck latent while
-        vassalized)."""
+        vassalized, or — on the FA slice-2 review-round board, where
+        France lost every satellite — the dreamer ELIMINATED outright:
+        KingdomOfItaly at turn 25, Holland at turn 39)."""
         final = hist1["final"]
         if not final["formations"]:
             watches = final["formation_watch"]
             assert watches, "no formation AND no watch to explain why"
             assert any(
                 watch.get("blocked_by_vassalage") or watch.get("progress")
+                or watch.get("eliminated")
                 for watch in watches.values())
 
     def test_pin21_no_crisis_vanishes_silently(self, hist1, scripted):

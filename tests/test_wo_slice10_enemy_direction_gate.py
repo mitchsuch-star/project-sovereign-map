@@ -933,9 +933,16 @@ class TestTheAmbientBoard:
 
     Re-measured again by FA slice 2 (September 4, 2026, "No Word Came"):
     a cornered French corps is no longer ground to dust across a phase, so
-    Ney stands one turn longer in the south and the ungated board collapses
-    EIGHTEEN times — the same six `Leon -> Napoleon` and twelve, not eleven,
-    `Gascony -> Ney`. The gated board still collapses never, which is the
+    Ney stood one turn longer — at Bohemia then Franconia, NORTH of Vienna,
+    not "in the south" as the first note said (corrected by the slice-2
+    review audit) — and the ungated board collapsed EIGHTEEN times, the
+    twelfth `Gascony -> Ney` falling at turn 28.
+
+    Re-measured a third time by the slice-2 REVIEW ROUND (September 4,
+    2026, "The Word Is Owed"): the braked-corps HOLD forks the board at
+    turn 22 and the eighteenth collapse is gone again — SEVENTEEN, the
+    original six `Leon -> Napoleon` and eleven `Gascony -> Ney`, all at
+    turns 6-27. The gated board still collapses never, which is the
     contract; the counts here are the defect's measurement on today's board
     and move with it, as their docstrings say they must."""
 
@@ -954,7 +961,7 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 18}, seams  # 17 before FA slice 2
+        assert seams == {"_fuzzy_match_enemy": 17}, seams  # 18 under FA slice 2; 17 again after its review round
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -967,7 +974,7 @@ class TestTheAmbientBoard:
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
         assert dict(pairs) == {("Leon", "Napoleon"): 6,
-                               ("Gascony", "Ney"): 12}, pairs  # 11 before FA slice 2
+                               ("Gascony", "Ney"): 11}, pairs  # 12 under FA slice 2; 11 again after its review round
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -987,13 +994,17 @@ class TestTheAmbientBoard:
         levers changed the board from index [29] on (its attribution is in
         `test_ai_intent_threat_migration.py`), so "the series before THIS
         slice" is now the pre-WO-10 series AS IT RUNS ON THE SLICE-2 BOARD
-        — indices [0]-[28] are byte-identical to the original record, which
+        — indices [0]-[28] were byte-identical to the original record.
+
+        Re-recorded again by the slice-2 REVIEW ROUND (September 4, 2026):
+        the braked-corps hold forks this arm at index [28] (68, was 69);
+        indices [0]-[27] are byte-identical to the original record, which
         is what this pin exists to prove (every WO-10 collapse falls at
-        turns 6-27)."""
+        turns 6-27, before the fork)."""
         assert ungated["series"] == [
             70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70,
-            68, 66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 69, 67, 54, 51,
-            48, 45, 42, 39, 36, 33, 30, 27, 24]
+            68, 66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 68, 68, 65, 52,
+            49, 46, 43, 40, 37, 34, 31, 28, 25]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1585,14 +1596,24 @@ class TestTheAiIsNotFrozenInstead:
         the AI shows up here: 31 -> 11 on the shipped board.
 
         Re-measured by FA slice 2 (September 4, 2026): 34 -> 16 on that
-        slice's board. The P0 engagement brakes it built make an emptied
-        engagement list fall THROUGH to the other rungs, and a few of those
-        orders are refused on the moved board; the gate still more than
-        halves the writes, which is the contract.
+        slice's board — and the slice-2 review audit corrected the
+        attribution: only TWO of the +6 ungated writes were the brakes'
+        engaged fall-throughs; the rest was board divergence, including
+        four "Cannot attack X — a coalition ally" refusals (a pre-existing
+        AI targeting defect, filed FA-R1).
+
+        Re-measured by the slice-2 REVIEW ROUND (September 4, 2026): 25 vs
+        23. The engaged fall-through is gone (a braked corps HOLDS, writing
+        nothing), and what remains on the GATED board is almost entirely
+        DRILL refusals — fourteen of its twenty-three — a separate
+        board-reading defect the round filed as FA-R2. The contract that
+        survives is the first pin (the gate never increases the writes);
+        "more than halves" was a fact about the slice-2 board, not a
+        contract, and is retired here.
 
         Killed by: deleting the enemy-seam gate."""
-        assert cooldowns["ungated"] == 34, cooldowns  # 31 before FA slice 2
-        assert cooldowns["gated"] == 16, cooldowns    # 11 before FA slice 2
+        assert cooldowns["ungated"] == 25, cooldowns  # 31 -> 34 -> 25 across slices
+        assert cooldowns["gated"] == 23, cooldowns    # 11 -> 16 -> 23 across slices
 
 
 _COOLDOWN_PROBE = r'''

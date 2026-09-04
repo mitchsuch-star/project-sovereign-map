@@ -707,10 +707,57 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # M1-M7 were run before and after and are byte-identical WITHOUT
 # re-record — structurally: M1-M6 drive `resolve_battle` directly and M7
 # never reaches the enemy AI or the forced-retreat seam's second call.
+#
+# FA slice 2 REVIEW ROUND re-record (September 4, 2026, "The Word Is
+# Owed") — indices [0]-[21] are byte-identical and everything from [22]
+# on moves. The series ends at 29, not 47.
+#
+# Cause, found by the review fleet on aa6faa01 and measured before a line
+# was written (review R1, F1). Slice 2's P0 brakes let an ENGAGED corps
+# whose blow was spent fall THROUGH the engagement rung, on the theory
+# that P4.5 / P7 would give it a useful order. They cannot: the executor's
+# engaged rule refuses every attack-elsewhere and every advance while ANY
+# at-war corps shares the province, remnant included, and the refusal
+# wrote a two-turn `attack` cooldown keyed on the ACTION — so the next
+# turn he could not attack the man he was standing on either. Measured
+# on this board: FOUR "Cannot attack elsewhere while engaged" refusals
+# in 40 turns (Charles at Milan on Ney, t26-t29: attack, refused, no
+# action, attack, refused, no action). The braked corps now HOLDS
+# (`P0_BRAKED_CORPS_HOLDS`), and the phase's next choice differs from
+# the first refused fall-through on.
+#
+# Attribution, EIGHT arms, each a subprocess with the three review-round
+# levers set in the child (slice 2's own three levers held True):
+#   0.   all three False ............... slice-2 series, BYTE-FOR-BYTE
+#   D.   P0_BRAKED_CORPS_HOLDS ......... diverges at [22] — the series below
+#   E.   P0_PRICES_THE_WHOLE_FIELD ..... slice-2 series, BYTE-FOR-BYTE —
+#        measured inert with a reason: the braked subset differed from
+#        the field on TWO evaluations in 40 turns and the decision was
+#        the same both times (`probe_arms_mechanism.py`, e_relevant=2);
+#        the defect is real on a co-located two-corps field and is
+#        pinned by construction (test_fa_slice2r).
+#   F.   P0_READS_FUTILITY ............. slice-2 series, BYTE-FOR-BYTE —
+#        measured inert with a reason: no co-located pair reached
+#        ATTACK_FUTILITY_LIMIT in 40 turns (f_relevant=0) — P0's own
+#        ratio check retreats, or the target dies, first.
+#   DE. == D     DF. == D     EF. == 0     DEF. == D
+# So: D is the sole mover; E and F are inert on this board and pinned by
+# construction. Ending state: France 8 / Austria 19 (was 25 / 12),
+# fallen {Murat}, captured {ArchdukeJohn, Hiller, Lannes, Liechtenstein,
+# Mack, Massena, NAPOLEON, Ney, Paget}. That swing is ONE seed's path
+# after a turn-22 fork on a board where France issues no orders — the
+# pre-slice-2 board also ended with the Emperor captured (turn 37) — and
+# is NOT a measured effectiveness shift: the AI's executed actions fell
+# 1,101 -> 1,077 and the consecutive-skip early exit fired 0 times in
+# BOTH arms (the mechanism hypothesis "the fall-through burned the
+# nation's budget" was tested and is FALSE; the fork is the four refused
+# engaged attacks and the cooldowns they wrote).
+#
+# M1-M7 byte-identical WITHOUT re-record, structurally, as above.
 BASELINE_SERIES = [
     70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 73, 91, 89, 87,
-    85, 83, 81, 79, 77, 78, 79, 80, 83, 84, 82, 80, 78, 76, 77, 80, 78,
-    65, 62, 59, 56, 53, 50, 47,
+    85, 83, 81, 79, 77, 80, 81, 79, 76, 73, 70, 72, 59, 56, 53, 50, 47,
+    44, 44, 41, 38, 35, 32, 29,
 ]
 
 

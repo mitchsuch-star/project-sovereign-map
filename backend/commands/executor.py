@@ -921,6 +921,25 @@ class CommandExecutor:
         re.IGNORECASE,
     )
 
+    def _standing_decision_refusal(self, command: Dict, action: str, world,
+                                   *, exempt: bool):
+        """FA-16 (review round): the free refusal for any order to a player
+        marshal whose last stand is unanswered — one function
+        (`strategic.standing_last_stand_refusal`), read above the objection
+        predicate so the verb cannot matter. `exempt` is the AI / strategic-
+        execution / autonomous context, none of which is the player giving
+        a fresh order."""
+        if exempt:
+            return None
+        name = command.get("marshal")
+        if not name:
+            return None
+        marshal = world.get_marshal(name)
+        if marshal is None or marshal.nation != world.player_nation:
+            return None
+        from backend.commands.strategic import standing_last_stand_refusal
+        return standing_last_stand_refusal(marshal, action)
+
     def _unbound_addressee(self, command: Dict, parsed_command: Dict,
                            world) -> Optional[str]:
         """The phrase the player addressed, when the roster cannot bind it.
@@ -1407,6 +1426,32 @@ class CommandExecutor:
             # "passthrough": leave the command untouched — the existing general/
             # auto-assign executor handles move-toward / no-enemies / errors.
 
+        # ════════════════════════════════════════════════════════════
+        # FA-16 (slice 2 review round, Sept 4 2026): A CORNERED MARSHAL'S
+        # QUESTION IS ANSWERED, NOT MARCHED PAST — BY ANY VERB.
+        #
+        # Slice 2 put this refusal under `should_check_objection`, whose
+        # predicate excludes STRATEGIC commands and whose action list
+        # omits charge/bombard/garrison/unfortify. Reproduced three times
+        # over: "Ney, march to Paris" issued a MOVE_TO and OVERWROTE the
+        # parked last stand with a contact question (the third destroyer
+        # the record claimed closed — still live), orphaning the CRITICAL
+        # rail row; "Ney, pursue Mack" co-located ran the attack at once,
+        # and FA-1's "no word came" resolution fired in the PLAYER phase on
+        # the player's own order. The gate sits here now — after the bare
+        # attack is resolved to a name, before anything reads the verb —
+        # and exempts only the answer route (which never reaches the
+        # executor), `cancel`, and the non-orders (status/help/unknown).
+        # `_strategic_execution` and the AI's own commands are exempt: a
+        # standing order already parks behind the question at step 0a.
+        # ════════════════════════════════════════════════════════════
+        _decision_refusal = self._standing_decision_refusal(
+            command, action, world,
+            exempt=(is_ai_command or is_strategic_execution
+                    or bool(command.get("_autonomous_execution"))))
+        if _decision_refusal is not None:
+            return _decision_refusal
+
         # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection
         # ============================================================
@@ -1492,42 +1537,12 @@ class CommandExecutor:
                         }
                     }
 
-                # ═══════════════════════════════════════════════════════════
-                # FA-16 (slice 2, Sept 4 2026): A CORNERED MARSHAL'S QUESTION
-                # IS ANSWERED, NOT MARCHED PAST.
-                #
-                # `clear_order_bound_interrupt` promises that a last stand is
-                # "never dropped" — and it kept that promise, while every
-                # other order simply EXECUTED over the standing question:
-                # measured, "Ney, move to Lorraine" marched a cornered Ney
-                # away with his ask still parked, and "Ney, march to Vienna"
-                # hit first-step contact and OVERWROTE the ask with a
-                # `contact_bad_odds` question (the third destroyer, beside
-                # cancel and destroy). The player owes him one of two words;
-                # until it is given, no other order reaches him. `cancel` is
-                # exempt (FA-N13's graceful arm names the question instead).
-                # ═══════════════════════════════════════════════════════════
-                # (No `cancel` or `_strategic_execution` exemption is needed
-                # here: this block sits under `should_check_objection`, which
-                # already excludes strategic execution and strategic commands
-                # — the sweep measured both clauses INERT, and the two pins
-                # in test_fa_slice2 hold the path structurally instead.)
-                _standing_ask = getattr(marshal, 'pending_interrupt', None)
-                if (isinstance(_standing_ask, dict)
-                        and _standing_ask.get("interrupt_type") == "last_stand"):
-                    from backend.commands.strategic import (
-                        STANDALONE_DECISION_LIVENESS_ACTIVE)
-                    if STANDALONE_DECISION_LIVENESS_ACTIVE:
-                        return {
-                            "success": False,
-                            "no_action_cost": True,
-                            "last_stand_pending": True,
-                            "message": (
-                                f"{marshal.name} is cornered at {marshal.location} "
-                                f"and awaits your word, Sire — 'fight to the last' "
-                                f"or 'attempt a breakout'. No other order can reach "
-                                f"him until you decide."),
-                        }
+                # FA-16's gate used to sit HERE, under `should_check_objection`
+                # — which excludes strategic commands and lists only the
+                # objection verbs, so `Ney, march to Paris` and `Ney, charge`
+                # walked straight past it (slice 2 review round, Sept 4
+                # 2026). It now runs ABOVE this predicate, for every
+                # marshal-bearing verb: `_standing_decision_refusal`.
 
                 # ═══════════════════════════════════════════════════════════
                 # STRATEGIC OVERRIDE CHECK (Phase 5.2-C)

@@ -1004,9 +1004,14 @@ class MovementExecutor:
 
         player_marshals = world.get_player_marshals()
         candidates = []  # (marshal, distance)
+        from backend.commands.strategic import standing_last_stand_refusal
 
         for m in player_marshals:
             if m.strength <= 0:
+                continue
+            # FA-16 review round: the auto-scout roster is one more
+            # un-addressed route to a marshal who owes an answer.
+            if standing_last_stand_refusal(m) is not None:
                 continue
             # Check retreat/broken blocking
             if getattr(m, 'retreating', False) and getattr(m, 'retreat_recovery', 0) < 3:

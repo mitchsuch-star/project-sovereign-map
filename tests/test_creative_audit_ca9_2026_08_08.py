@@ -2942,8 +2942,10 @@ class TestN7TheFutilityBrakeCanFire:
 
         from backend.ai import enemy_ai as ea
         src = inspect.getsource(ea.EnemyAI._find_attack_opportunity)
-        assert "futility.get(key, 0) >= 3" in src
-        assert ("futility.get(key, 0) >= 3 and getattr(e, 'fortified', "
+        # FA slice 2 review round (Sept 4, 2026): the literal 3 became the
+        # single source `ATTACK_FUTILITY_LIMIT`, read by P4 AND P0.
+        assert "futility.get(key, 0) >= ATTACK_FUTILITY_LIMIT" in src
+        assert ("futility.get(key, 0) >= ATTACK_FUTILITY_LIMIT and getattr(e, 'fortified', "
                 "False)" not in src), (
             "the brake still requires the target to be dug in")
 
@@ -2952,8 +2954,10 @@ class TestN7TheFutilityBrakeCanFire:
         import inspect
 
         from backend.ai import enemy_ai as ea
+        from backend.commands.strategic import ATTACK_FUTILITY_LIMIT
         src = inspect.getsource(ea.EnemyAI._find_attack_opportunity)
-        assert ">= 3" in src
+        assert ">= ATTACK_FUTILITY_LIMIT" in src
+        assert ATTACK_FUTILITY_LIMIT == 3, "the bar moved"
         assert ">= 1" not in src.split("futility")[1][:200]
 
 

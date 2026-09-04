@@ -1,0 +1,219 @@
+[
+ {
+  "id": "gate/a the executor's hoisted gate is live",
+  "file": "backend/commands/executor.py",
+  "old": "        if _decision_refusal is not None:\n            return _decision_refusal",
+  "new": "        if False:\n            return _decision_refusal",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGateCoversEveryVerb::test_every_verb_is_refused_free_with_the_question_standing"
+ },
+ {
+  "id": "gate/b the refusal helper's exempt-verb arm is exactly the exempt set",
+  "file": "backend/commands/strategic.py",
+  "old": "    if action in STANDING_DECISION_EXEMPT_ACTIONS:\n        return None\n    pending = standalone_decision(marshal)\n    if not pending or pending.get(\"interrupt_type\") != \"last_stand\":\n        return None\n    return {",
+  "new": "    if action is None or action in STANDING_DECISION_EXEMPT_ACTIONS:\n        return None\n    pending = standalone_decision(marshal)\n    if not pending or pending.get(\"interrupt_type\") != \"last_stand\":\n        return None\n    return {",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGeneralRetreatLeavesHimStanding tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheBareAttackAndScoutRostersSkipHim"
+ },
+ {
+  "id": "gate/c the exempt set is closed",
+  "file": "backend/commands/strategic.py",
+  "old": "STANDING_DECISION_EXEMPT_ACTIONS = frozenset(\n    {\"cancel\", \"status\", \"help\", \"unknown\", \"debug\", \"cheat\"})",
+  "new": "STANDING_DECISION_EXEMPT_ACTIONS = frozenset(\n    {\"cancel\", \"status\", \"help\", \"unknown\", \"debug\", \"cheat\", \"move\", \"attack\", \"hold\", \"charge\"})",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGateCoversEveryVerb::test_every_verb_is_refused_free_with_the_question_standing tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGateCoversEveryVerb::test_the_exempt_verbs_are_not_orders"
+ },
+ {
+  "id": "gate/d strategic execution stays exempt",
+  "file": "backend/commands/executor.py",
+  "old": "            exempt=(is_ai_command or is_strategic_execution\n                    or bool(command.get(\"_autonomous_execution\"))))",
+  "new": "            exempt=(is_ai_command\n                    or bool(command.get(\"_autonomous_execution\"))))",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGateCoversEveryVerb::test_the_ai_and_the_processor_are_exempt"
+ },
+ {
+  "id": "gate/e the hoisted gate refuses only the player's own marshal",
+  "file": "backend/commands/executor.py",
+  "old": "        if exempt:\n            return None\n        name = command.get(\"marshal\")",
+  "new": "        if True:\n            return None\n        name = command.get(\"marshal\")",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheTypedRouteThroughTheEndpoint::test_a_strategic_order_is_refused_and_nothing_moves"
+ },
+ {
+  "id": "wire/a last_stand_pending rides the /command main path",
+  "file": "backend/main.py",
+  "old": "    \"recovery_route\",\n    # FA-16 review round: the free refusal's marker, so a headless driver\n    # can tell \"cornered — answer him\" from any other refusal.\n    \"last_stand_pending\",\n)",
+  "new": "    \"recovery_route\",\n)",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheTypedRouteThroughTheEndpoint::test_a_strategic_order_is_refused_and_nothing_moves"
+ },
+ {
+  "id": "berthier/a the parse-recovery line names the two answers",
+  "file": "backend/main.py",
+  "old": "                if _held_refusal is not None:\n                    berthier_msg = _held_refusal[\"message\"]",
+  "new": "                if False:\n                    berthier_msg = _held_refusal[\"message\"]",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheTypedRouteThroughTheEndpoint::test_berthier_names_the_two_words_instead_of_scout_or_defend"
+ },
+ {
+  "id": "retreat/a the general retreat holds the cornered marshal back",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        held = [m for m in marshals_in_danger\n                if standing_last_stand_refusal(m) is not None]",
+  "new": "        held = []",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGeneralRetreatLeavesHimStanding"
+ },
+ {
+  "id": "retreat/b the all-held arm names him",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if not marshals_in_danger:\n            if held:\n                return {",
+  "new": "        if not marshals_in_danger:\n            if False:\n                return {",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGeneralRetreatLeavesHimStanding::test_alone_he_is_named_and_nothing_moves"
+ },
+ {
+  "id": "retreat/c the mixed arm still names him",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if held_note:\n            message += f\" {held_note}\"",
+  "new": "        if False:\n            message += f\" {held_note}\"",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheGeneralRetreatLeavesHimStanding::test_the_others_retreat_and_he_stays"
+ },
+ {
+  "id": "scan/a the bare-attack roster skips him",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if standing_last_stand_refusal(marshal) is not None:\n                filtered_out.append(f\"{marshal.name} (cornered — awaits your word)\")\n                continue",
+  "new": "            if False:\n                filtered_out.append(f\"{marshal.name} (cornered — awaits your word)\")\n                continue",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheBareAttackAndScoutRostersSkipHim::test_a_bare_attack_never_picks_the_cornered_man"
+ },
+ {
+  "id": "scout/a the auto-scout roster skips him",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            if standing_last_stand_refusal(m) is not None:\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheBareAttackAndScoutRostersSkipHim::test_the_auto_scout_roster_skips_him"
+ },
+ {
+  "id": "decisions/a only a last stand is a decision the enemy takes for him",
+  "file": "backend/commands/strategic.py",
+  "old": "        if (pending and pending.get(\"interrupt_type\") == \"last_stand\"\n                and marshal.strength > 0",
+  "new": "        if (pending\n                and marshal.strength > 0",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheEndTurnSoftStop::test_a_muster_is_not_a_decision_the_enemy_takes_for_him"
+ },
+ {
+  "id": "decisions/b the names ride the base response",
+  "file": "backend/main.py",
+  "old": "        \"pending_marshal_decisions\": _pending_marshal_decisions(world),\n        # IGR-F: the letter-book.",
+  "new": "        \"pending_marshal_decisions\": [],\n        # IGR-F: the letter-book.",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheEndTurnSoftStop::test_the_names_ride_beside_the_lapsing_count"
+ },
+ {
+  "id": "liveness/a the re-key to the current besieger",
+  "file": "backend/commands/strategic.py",
+  "old": "    besieger = current_besieger(marshal, world, exclude=enemy_key)\n    if besieger is not None:",
+  "new": "    besieger = None\n    if besieger is not None:",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestLivenessReKeysToTheCurrentBesieger"
+ },
+ {
+  "id": "liveness/b the co-located corps outranks the adjacent one",
+  "file": "backend/commands/strategic.py",
+  "old": "        key = (enemy.location == marshal.location, int(enemy.strength), enemy.name)",
+  "new": "        key = (int(enemy.strength), enemy.name)",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestLivenessReKeysToTheCurrentBesieger::test_an_adjacent_replacement_counts_too_and_the_nearer_wins"
+ },
+ {
+  "id": "liveness/c the drawn-off reason is fog-honest",
+  "file": "backend/commands/strategic.py",
+  "old": "        reason = (f\"{enemy_label} has drawn off to {enemy.location}\"\n                  if _province_seen(world, enemy.location)\n                  else f\"{enemy_label} has drawn off out of sight\")",
+  "new": "        reason = f\"{enemy_label} has drawn off to {enemy.location}\"",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestLivenessReKeysToTheCurrentBesieger::test_the_retirement_reason_never_names_an_unscouted_province"
+ },
+ {
+  "id": "muster/a the marched-to reason is fog-honest",
+  "file": "backend/commands/strategic.py",
+  "old": "        if _province_seen(world, target.location):\n            return False, f\"{label} has marched to {target.location}\"",
+  "new": "        if True:\n            return False, f\"{label} has marched to {target.location}\"",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheMusterIsReValidated::test_a_vanished_target_retires_with_its_reason"
+ },
+ {
+  "id": "muster/b a region target is left to the re-issue",
+  "file": "backend/commands/strategic.py",
+  "old": "    if target is None and target_key and world.get_region(target_key) is not None:\n        return True, \"\"",
+  "new": "    if target is None and target_key and world.get_region(target_key) is not None:\n        return False, \"x\"",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheMusterIsReValidated::test_a_region_target_is_left_to_the_re_issue"
+ },
+ {
+  "id": "muster/c the answer arm re-validates",
+  "file": "backend/commands/strategic.py",
+  "old": "            if STANDALONE_DECISION_LIVENESS_ACTIVE:\n                live, reason = muster_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    return {\"success\": True, \"no_action_cost\": True,\n                            \"decision_retired\": True,\n                            \"message\": (f\"{marshal.name}'s muster is overtaken, \"",
+  "new": "            if False:\n                live, reason = muster_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    return {\"success\": True, \"no_action_cost\": True,\n                            \"decision_retired\": True,\n                            \"message\": (f\"{marshal.name}'s muster is overtaken, \"",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheMusterIsReValidated::test_the_answer_arm_retires_a_dead_muster_instead_of_objecting_about_a_ghost"
+ },
+ {
+  "id": "muster/d pass 3 re-validates the muster",
+  "file": "backend/commands/strategic.py",
+  "old": "            elif kind == \"muster_confirm\":\n                live, reason = muster_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    print(f\"[STRATEGIC] {marshal.name}: muster retired — {reason}\")",
+  "new": "            elif kind == \"muster_confirm\":\n                live, reason = muster_is_live(marshal, world, pending)\n                if False:\n                    marshal.pending_interrupt = None\n                    print(f\"[STRATEGIC] {marshal.name}: muster retired — {reason}\")",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheMusterIsReValidated::test_pass_three_retires_a_dead_muster_with_a_row"
+ },
+ {
+  "id": "step0a/a the ordered marshal's decision is re-validated",
+  "file": "backend/commands/strategic.py",
+  "old": "            retired = self._retire_dead_decision(marshal, world, order)\n            if retired is not None:\n                return retired",
+  "new": "            retired = None\n            if retired is not None:\n                return retired",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestStepZeroARunsLiveness::test_a_dead_question_on_an_ordered_marshal_is_retired"
+ },
+ {
+  "id": "step0a/b the rail row goes with the retired question",
+  "file": "backend/commands/strategic.py",
+  "old": "        marshal.pending_interrupt = None\n        if kind == \"last_stand\":\n            dismiss_marshal_ask(world, marshal.name)\n        print(f\"[STRATEGIC] {marshal.name}: {kind} retired under a standing order — {reason}\")",
+  "new": "        marshal.pending_interrupt = None\n        if False:\n            dismiss_marshal_ask(world, marshal.name)\n        print(f\"[STRATEGIC] {marshal.name}: {kind} retired under a standing order — {reason}\")",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestStepZeroARunsLiveness::test_a_dead_question_on_an_ordered_marshal_is_retired"
+ },
+ {
+  "id": "step0a/c an order-bound interrupt is not a decision (the first sweep's mutation hit an arm `standalone_decision` makes unreachable — deleted; this one reads the raw interrupt instead)",
+  "file": "backend/commands/strategic.py",
+  "old": "        pending = standalone_decision(marshal)\n        if not pending:\n            return None\n        # `standalone_decision` guarantees one of the two standalone types",
+  "new": "        pending = getattr(marshal, \"pending_interrupt\", None)\n        if not pending:\n            return None\n        # `standalone_decision` guarantees one of the two standalone types",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestStepZeroARunsLiveness::test_an_order_bound_interrupt_is_not_touched"
+ },
+ {
+  "id": "p0/a the braked corps holds",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if field_in_region and not enemies_in_region and P0_BRAKED_CORPS_HOLDS:",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheBrakedCorpsHolds"
+ },
+ {
+  "id": "p0/b the held corps is done for the turn",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            self._marshals_done_this_turn.add(marshal.name)\n            return None, 999",
+  "new": "            return None, 999",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheBrakedCorpsHolds::test_an_emptied_list_holds_instead_of_falling_through"
+ },
+ {
+  "id": "p0/c the field is priced whole",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                field_in_region if P0_PRICES_THE_WHOLE_FIELD else enemies_in_region)",
+  "new": "                enemies_in_region)",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheFieldIsPricedWhole"
+ },
+ {
+  "id": "p0/d the futility brake reaches P0",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if futility.get(f\"{marshal.name}:{enemy.name}\", 0) >= ATTACK_FUTILITY_LIMIT:\n                ai_debug(f\"    brakes: {marshal.name} has failed {ATTACK_FUTILITY_LIMIT}+ times against {enemy.name}\")\n                continue",
+  "new": "            if False:\n                ai_debug(f\"    brakes: {marshal.name} has failed {ATTACK_FUTILITY_LIMIT}+ times against {enemy.name}\")\n                continue",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheFutilityBrakeReachesP0::test_a_futile_target_is_dropped"
+ },
+ {
+  "id": "p0/e futility is read even with no pair stamped",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if not attacked and not futility:\n            return enemies",
+  "new": "        if not attacked:\n            return enemies",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheFutilityBrakeReachesP0::test_a_futile_target_is_dropped"
+ },
+ {
+  "id": "p4/a P4 and P0 share the limit",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if futility.get(key, 0) >= ATTACK_FUTILITY_LIMIT:\n                futile_targets.append(e.name)",
+  "new": "            if futility.get(key, 0) >= 99:\n                futile_targets.append(e.name)",
+  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheFutilityBrakeReachesP0::test_p4_reads_the_same_limit"
+ },
+ {
+  "id": "aiv/a an eliminated dreamer carries its own predicate",
+  "file": "tools/ai_v_sweep.py",
+  "old": "        scanned = active | set((getattr(world, \"agendas\", {}) or {}).keys())",
+  "new": "        scanned = set(active)",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmAAmbientDoD::test_formation_absence_carries_its_predicate"
+ }
+]

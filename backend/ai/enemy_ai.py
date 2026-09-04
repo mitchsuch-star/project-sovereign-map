@@ -105,6 +105,22 @@ SPOILS_DEFERENCE_ACTIVE = True
 # carries, so a co-located corps attacked the same defender twice in one
 # turn, and every corps of the nation queued on a sub-1,000 stub.
 P0_ENGAGEMENT_BRAKES_ACTIVE = True
+# Slice 2 review round (Sept 4 2026, review R1 F1/F2 + FA-N72's non-stub
+# half) — three more levers on the same rung, each False reproducing the
+# slice-2 series byte-for-byte:
+#   P0_BRAKED_CORPS_HOLDS — an engaged corps whose blow is spent HOLDS
+#     instead of falling through to an order the executor refuses (the
+#     engaged rule bars every attack-elsewhere and advance while ANY
+#     at-war corps shares the province, remnant included), which wrote a
+#     two-turn `attack` cooldown and froze him the following turn;
+#   P0_PRICES_THE_WHOLE_FIELD — the ratio is priced over every corps that
+#     will actually reinforce, not the braked subset (CA9-N6 re-created:
+#     a pair-braked 20,000 left the pool while still standing there);
+#   P0_READS_FUTILITY — P0 drops a defender this corps has failed against
+#     ATTACK_FUTILITY_LIMIT times, the brake P4 has carried since CA9-N7.
+P0_BRAKED_CORPS_HOLDS = True
+P0_PRICES_THE_WHOLE_FIELD = True
+P0_READS_FUTILITY = True
 
 # Below this, a hostile corps is a remnant one corps finishes while the rest
 # of the nation's actions go somewhere useful (P4.5 / P7). The same 1,000-man
@@ -1616,15 +1632,31 @@ class EnemyAI:
         # When engaged with enemy in same region, MUST fight or flee.
         # Cannot fortify, drill, change stance, or do anything else!
         # ════════════════════════════════════════════════════════════
-        enemies_in_region = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
-        # FA-N72 + FA-35: the brakes P4 carries. An emptied list falls
-        # THROUGH P0 — measured, P-1 / P3.7 / P4.5 catch the corps with a
-        # useful order (the road to the capital), and the P4/P8 engaged arms
-        # below read the same predicate, so nothing prices the remnant twice.
+        field_in_region = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
+        # FA-N72 + FA-35: the brakes P4 carries (pair / stub latch / futility).
         enemies_in_region = self._engageable_enemies(
-            marshal, enemies_in_region, nation, world)
+            marshal, field_in_region, nation, world)
 
         print(f"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}")
+
+        if field_in_region and not enemies_in_region and P0_BRAKED_CORPS_HOLDS:
+            # Review round (R1-F1). Slice 2 let an emptied list fall THROUGH
+            # P0 on the theory that P4.5 / P7 would give the corps a useful
+            # order. They cannot: the executor's engaged rule refuses every
+            # attack-elsewhere and every advance while ANY at-war corps
+            # shares the province — remnant included — and the refusal
+            # wrote a two-turn `attack` cooldown keyed on the ACTION, so the
+            # next turn he could not attack the man he was standing on
+            # either. Measured on the ambient board: Charles at Milan
+            # attacked Ney, fell through to `attack -> Piedmont`, was
+            # refused, and took NO action for two of the next three turns.
+            # He is engaged and his blow is spent: he holds, and the
+            # nation's remaining actions go to corps that can use them.
+            print(f"  [P0 ENGAGEMENT] {marshal.name} is engaged and his blow is spent — HOLDS")
+            if not hasattr(self, '_marshals_done_this_turn'):
+                self._marshals_done_this_turn = set()
+            self._marshals_done_this_turn.add(marshal.name)
+            return None, 999
 
         if enemies_in_region:
             ai_debug(f"  P0: ENGAGED with {[e.name for e in enemies_in_region]}!")
@@ -1647,8 +1679,13 @@ class EnemyAI:
             # committed field. Target choice is unchanged — the weakest
             # is still the sensible man to hit; what changes is what the
             # decision COSTS.
+            # Review round (R1-F2): TARGET from the braked list, PRICE over
+            # the whole field — a pair-braked corps is still standing there
+            # and still reinforces the man being attacked. Filtering it out
+            # of the pool priced a 20,700 field as 8,000 (3.5x wrong) and
+            # charged it.
             defenders = self._defending_strength_in_region(
-                enemies_in_region)
+                field_in_region if P0_PRICES_THE_WHOLE_FIELD else enemies_in_region)
             ratio = combined_strength / defenders if defenders > 0 else 999
             threshold = self._get_mood_adjusted_threshold(marshal, world)
 
@@ -2595,18 +2632,23 @@ class EnemyAI:
           French province stood adjacent; the remaining corps now fall to
           P4.5 / P7 and go somewhere useful.
 
-        The futility counter is deliberately NOT read here: it is inert
-        against a stub by construction (reset on every victory and whenever
-        the target falls below half strength), so a read would be a pin that
-        proves nothing. Nation-scoped so an autonomous PLAYER marshal
+        The futility counter (the third brake, review round Sept 4 2026 —
+        FA-N72's "forever across turns" half): a defender this corps has
+        failed against ATTACK_FUTILITY_LIMIT times is dropped here as P4
+        drops him. It is inert against a STUB by construction (reset on
+        every victory and whenever the target falls below half strength),
+        which is why slice 2 left it out; it is the non-stub grind it
+        exists for. Nation-scoped so an autonomous PLAYER marshal
         (`decide_single_action` reuses the tree) never reads another court's
         pairs.
         """
+        from backend.commands.strategic import ATTACK_FUTILITY_LIMIT
         enemies = list(enemies)
         if not P0_ENGAGEMENT_BRAKES_ACTIVE:
             return enemies
         attacked = getattr(self, '_attacked_targets_this_turn', None) or set()
-        if not attacked:
+        futility = (getattr(world, "ai_attack_futility", None) or {}) if P0_READS_FUTILITY else {}
+        if not attacked and not futility:
             return enemies
         out: List[Marshal] = []
         for enemy in enemies:
@@ -2618,6 +2660,9 @@ class EnemyAI:
                     and getattr(world.marshals.get(attacker), "nation", None) == nation
                     for attacker, target in attacked):
                 ai_debug(f"    brakes: {enemy.name} is a remnant already engaged by {nation} this turn")
+                continue
+            if futility.get(f"{marshal.name}:{enemy.name}", 0) >= ATTACK_FUTILITY_LIMIT:
+                ai_debug(f"    brakes: {marshal.name} has failed {ATTACK_FUTILITY_LIMIT}+ times against {enemy.name}")
                 continue
             out.append(enemy)
         return out
@@ -2904,6 +2949,7 @@ class EnemyAI:
 
         # Filter out fortified targets that have been attacked 3+ times without success
         # Prevents endlessly throwing troops at an impregnable position
+        from backend.commands.strategic import ATTACK_FUTILITY_LIMIT
         futility = world.ai_attack_futility
         futile_targets = []
         non_futile = []
@@ -2915,7 +2961,7 @@ class EnemyAI:
             # outnumbers the attacker — so the brake could not fire on the
             # twelve assaults it exists to stop. Three failures against the
             # same man is the evidence, whatever he is standing behind.
-            if futility.get(key, 0) >= 3:
+            if futility.get(key, 0) >= ATTACK_FUTILITY_LIMIT:
                 futile_targets.append(e.name)
             else:
                 non_futile.append(entry)

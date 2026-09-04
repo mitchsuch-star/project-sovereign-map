@@ -8544,6 +8544,7 @@ class CombatExecutor:
         """
         if player_marshals is None:
             player_marshals = world.get_player_marshals()
+        from backend.commands.strategic import standing_last_stand_refusal
 
         combat_ready = []   # [(marshal, enemy, distance)]
         out_of_range = []   # [(marshal, enemy, distance)] - for fallback move
@@ -8564,6 +8565,12 @@ class CombatExecutor:
                 continue
             if getattr(marshal, 'drilling_locked', False):
                 filtered_out.append(f"{marshal.name} (locked in drill)")
+                continue
+            # FA-16 review round: a marshal whose last stand is unanswered
+            # is nobody's instant pick — not for the strike, and not for the
+            # move-toward fallback either.
+            if standing_last_stand_refusal(marshal) is not None:
+                filtered_out.append(f"{marshal.name} (cornered — awaits your word)")
                 continue
 
             # NOTE: Phase 5.2 strategic commands are complete, but personality-aware
@@ -9083,7 +9090,32 @@ class CombatExecutor:
             if world.is_in_danger(marshal.name):
                 marshals_in_danger.append(marshal)
 
+        # FA-16 review round (Sept 4 2026, R2-F2): the un-addressed
+        # `retreat` carried no marshal, so the executor's gate never saw it,
+        # and it walked a cornered marshal out for free — 0 lost, 0 AP, the
+        # ask and its CRITICAL rail row left standing — where the breakout
+        # roll in the identical state had captured him. The aggressive ask
+        # is raised precisely when a retreat destination exists, so this
+        # dominated the W6-7 choice every time. He stays where he stands,
+        # and the report names the word he is owed.
+        from backend.commands.strategic import (
+            last_stand_question_line, standing_last_stand_refusal)
+        held = [m for m in marshals_in_danger
+                if standing_last_stand_refusal(m) is not None]
+        if held:
+            marshals_in_danger = [m for m in marshals_in_danger if m not in held]
+        held_note = " ".join(last_stand_question_line(m) for m in held)
+
         if not marshals_in_danger:
+            if held:
+                return {
+                    "success": False,
+                    "no_action_cost": True,
+                    "last_stand_pending": True,
+                    "message": (f"{held_note} The general retreat leaves "
+                                f"{'him' if len(held) == 1 else 'them'} where "
+                                f"{'he stands' if len(held) == 1 else 'they stand'}."),
+                }
             return {
                 "success": False,
                 "message": "No marshals are in danger. None need to retreat.",
@@ -9112,6 +9144,8 @@ class CombatExecutor:
         message = f"General retreat ordered! {' '.join(retreated)}"
         if failed:
             message += f" (Failed: {', '.join([f.split(':')[0] for f in failed])})"
+        if held_note:
+            message += f" {held_note}"
 
         return {
             "success": True,

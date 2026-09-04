@@ -422,6 +422,7 @@ def build_base_response(world, success: bool = True, message: str = "",
         # including it made the warning claim a loss that could not happen
         # — and, when it was the only item, a warning nothing could clear.
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+        "pending_marshal_decisions": _pending_marshal_decisions(world),
         # IGR-F: the letter-book. Derived fresh from the dialogue manager on
         # every response so it can never go stale against the queue it
         # describes; None when no small court is waiting. It rides the base
@@ -574,7 +575,22 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "error",
     "error_display",
     "recovery_route",
+    # FA-16 review round: the free refusal's marker, so a headless driver
+    # can tell "cornered — answer him" from any other refusal.
+    "last_stand_pending",
 )
+
+
+def _pending_marshal_decisions(world) -> list:
+    """FA-16 review round (R1-F5): the cornered marshals whose last stand
+    is unanswered, beside `pending_lapsing_count` on every response — the
+    client's end-turn soft-stop reads it (FA-1 decides the question for
+    him when the enemy phase begins)."""
+    from backend.commands.strategic import pending_marshal_decisions
+    try:
+        return list(pending_marshal_decisions(world))
+    except Exception:
+        return []
 
 
 def _copy_truthy_result_fields(
@@ -2202,6 +2218,7 @@ def test_connection():
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+        "pending_marshal_decisions": _pending_marshal_decisions(world),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
@@ -3026,20 +3043,35 @@ def execute_command(request: CommandRequest):
             # pass through unchanged.
             # ════════════════════════════════════════════════════════════
             if not parsed.get("success") and (parsed.get("error") or "").startswith("Unknown action"):
-                berthier_msg = parser.llm.generate_berthier_recovery(
-                    raw_command=command_text,
-                    game_state=llm_game_state,
-                    partial_parse={
-                        "recognized_marshal": parsed.get("partial_marshal"),
-                        "recognized_target": parsed.get("partial_target"),
-                        "raw_input": parsed.get("raw_input", command_text),
-                    },
-                    # CR-3(c): the parse-stage LLM call already failed —
-                    # don't stack a second blocking call on this request
-                    skip_llm=bool(parsed.get("llm_error")),
-                )
+                # FA-16 review round (R2-F7): "Massena, cut your way out" is
+                # not an order Berthier can suggest alternatives FOR — the
+                # addressed marshal owes an answer, and the recovery line
+                # offered "scout" and "defend", both of which the gate then
+                # refuses. Name the two words instead.
+                from backend.commands.strategic import standing_last_stand_refusal
+                _held = world.get_marshal(parsed.get("partial_marshal") or "")
+                _held_refusal = (
+                    standing_last_stand_refusal(_held)
+                    if _held is not None and _held.nation == world.player_nation
+                    else None)
+                if _held_refusal is not None:
+                    berthier_msg = _held_refusal["message"]
+                else:
+                    berthier_msg = parser.llm.generate_berthier_recovery(
+                        raw_command=command_text,
+                        game_state=llm_game_state,
+                        partial_parse={
+                            "recognized_marshal": parsed.get("partial_marshal"),
+                            "recognized_target": parsed.get("partial_target"),
+                            "raw_input": parsed.get("raw_input", command_text),
+                        },
+                        # CR-3(c): the parse-stage LLM call already failed —
+                        # don't stack a second blocking call on this request
+                        skip_llm=bool(parsed.get("llm_error")),
+                    )
                 return build_base_response(
                     world, success=False, message=berthier_msg,
+                    last_stand_pending=bool(_held_refusal),
                     action_info={
                         "cost": 0,
                         "remaining": int(world.actions_remaining),
@@ -4618,6 +4650,7 @@ def get_pending_envoy():
         "has_pending": False,
         "pending_envoy_count": int(dm.get_mailbox_count()),
         "pending_lapsing_count": int(dm.get_lapsing_count()),
+        "pending_marshal_decisions": _pending_marshal_decisions(world),
     }
 
     current = dm.peek()
@@ -4984,6 +5017,7 @@ def get_diplomatic_preview_endpoint(
                 "dialogue_pending": dialogue_pending,
                 "pending_envoy_count": int(dm.get_mailbox_count()),
                 "pending_lapsing_count": int(dm.get_lapsing_count()),
+                "pending_marshal_decisions": _pending_marshal_decisions(world),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
             }
@@ -5011,6 +5045,7 @@ def get_diplomatic_preview_endpoint(
             ),
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
             "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+            "pending_marshal_decisions": _pending_marshal_decisions(world),
             **preview,
         }
     except Exception as e:

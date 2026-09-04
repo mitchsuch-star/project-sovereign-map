@@ -937,17 +937,22 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         by any change that lets the satellite hold indefinitely."""
         uncapped = _rebellion_turn(False)
         capped = _rebellion_turn(True)
-        assert uncapped == 29, uncapped
         # Re-measured by FA slice 2 (September 4, 2026): the capped
-        # satellite now rebels at 35 (was 33) — a French corps that is
-        # captured rather than ground to dust changes the courts' spare
-        # actions from turn 29 on, and Switzerland's courting arrives two
-        # turns later. The uncapped arm is unchanged (29): every uncapped
-        # court spends its first turn on the satellite before the slice-2
-        # divergence. The contract — the cap DELAYS, it does not save —
-        # holds with a wider gap.
-        assert capped == 35, capped
-        assert capped - uncapped == 6, (
+        # satellite rebelled at 35 (was 33). The first note attributed
+        # the +2 to "a French corps captured rather than ground to dust";
+        # the slice-2 review audit measured the lever arms and found that
+        # WRONG — A alone and B alone each rebel at 30, AB at 35: the +2
+        # was an A x B interaction, and Switzerland's loyalty already
+        # differed by turn 25 (B's index-19 divergence), not "from turn
+        # 29 on".
+        # Re-measured by the slice-2 REVIEW ROUND (September 4, 2026): the
+        # braked-corps hold forks the board at turn 22, before every
+        # court's first courting turn now, so BOTH arms move: uncapped 27
+        # (was 29), capped 30 (was 35). The contract — the cap DELAYS, it
+        # does not save — holds with a three-turn gap.
+        assert uncapped == 27, uncapped
+        assert capped == 30, capped
+        assert capped - uncapped == 3, (
             "the cap must buy the lord turns to react, not save him")
 
     def test_the_delay_is_where_the_series_falls_furthest(self):

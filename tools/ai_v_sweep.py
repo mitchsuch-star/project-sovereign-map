@@ -331,12 +331,21 @@ class RunCapture:
         world = self.world
         from backend.game_logic.formations import get_formation_watch
         watches = {}
-        for nation in world.get_active_nations():
+        active = set(world.get_active_nations())
+        # FA slice 2 review round (Sept 4, 2026): a dreamer that was
+        # ELIMINATED is its own explanation — "no formation AND no watch"
+        # was the digest forgetting the nation rather than the board
+        # blocking the dream. Every deck-holding nation is scanned; an
+        # inactive one carries `eliminated: True` beside its progress.
+        scanned = active | set((getattr(world, "agendas", {}) or {}).keys())
+        for nation in sorted(scanned):
             try:
                 watch = get_formation_watch(world, nation)
             except Exception as exc:  # observability must not kill the run
                 watch = {"error": str(exc)}
             if watch:
+                if nation not in active:
+                    watch = dict(watch, eliminated=True)
                 watches[nation] = _project(watch)
         decks = {}
         for nation, deck in (getattr(world, "agendas", {}) or {}).items():

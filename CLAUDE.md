@@ -172,11 +172,32 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > arrives whole; every stored question carries its own line; every deferred
 > marshal is asked. Zero `.gd`; series + M1–M7 byte-identical structurally.
 >
+> **▶ THE SLICE 2 REVIEW ROUND "THE WORD IS OWED" IS LANDED — September 4,
+> 2026** (landing record = the boxed block in `BUG_FIXES.md` §Final
+> Whole-Game Audit; the three review reports + the six reproduction reports
+> are committed under `docs/audits/fa_build_2026_09_04/`). Three lenses at
+> `aa6faa01` found that **the FA-16 gate never saw a strategic order** —
+> `Ney, march to Paris` overwrote the parked last stand, the bare `retreat`
+> walked him out for free, a co-located `pursue` fired FA-1 in the PLAYER
+> phase — and that the AI brakes froze an engaged corps behind a refused
+> attack-elsewhere and priced the field 3.5× wrong. One refusal function
+> above the objection predicate for every verb and every roster; a braked
+> corps holds; the field is priced whole; FA-N72's futility half built;
+> liveness re-keys to the current besieger; step 0a and the muster
+> re-validate; an end-turn soft-stop for the marshal. Series re-recorded
+> ONCE (D the sole mover; the France 25→8 swing tested as one seed's path,
+> not an effectiveness shift). ⛔ **The lesson, a third time: the reviewers'
+> first move was to change ONE fixture parameter the builder had held
+> constant** (co-located → adjacent). Build the next slice's pins on the
+> geometry where the unrelated guard does NOT mask the hole.
+>
 > **▶ NEXT = the AI board-reading slice** (FA-8 P1 + FA-27/N38/N6/N7/N54/
-> N80/N59 — reproduced; four move the series, land together), the road law,
-> the popup queue, the mock vocabulary (all reproduced, reports in STATUS),
-> then FA-26 **as a shared helper across all four trust-writing families**
-> (FA-N1), then position 10. ⚠ **Still no pillar re-score.**
+> N80/N59 — reproduced; four move the series, land together — plus the
+> round's FA-R1 coalition-ally targeting and FA-R2 refused drills), the
+> road law, the popup queue, the mock vocabulary (all reproduced; reports
+> under `docs/audits/fa_build_2026_09_04/`), then FA-26 **as a shared
+> helper across all four trust-writing families** (FA-N1), then position
+> 10. ⚠ **Still no pillar re-score.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

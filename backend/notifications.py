@@ -500,7 +500,8 @@ def dismiss_marshal_ask(world, marshal_name: str) -> int:
     NEITHER of the other two roads a question can end on: `destroy_marshal`
     (the corps annihilated with the ask standing — measured, the CRITICAL
     row sat at the top of the rail forever, and CRITICAL is never evicted)
-    and the unanswered-ask resolution FA-1 adds. One helper, five callers.
+    and the unanswered-ask resolution FA-1 adds. One helper, seven call
+    sites in five roles (the slice-2 claims audit counted them).
 
     Returns the number of rows retired (0 when the world carries no rail).
     """

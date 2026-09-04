@@ -57,6 +57,156 @@ STANDALONE_DECISION_TYPES = frozenset({"last_stand", "muster_confirm"})
 # and a fresh order to the cornered marshal simply executes over it.
 STANDALONE_DECISION_LIVENESS_ACTIVE = True
 
+# FA-16 review round (Sept 4 2026, reviews R1-F3 / R2-F1 / R3): the verbs
+# that may reach a marshal whose last stand is unanswered. `cancel` names
+# the question (FA-N13's graceful arm); the rest are not orders at all.
+STANDING_DECISION_EXEMPT_ACTIONS = frozenset(
+    {"cancel", "status", "help", "unknown", "debug", "cheat"})
+
+# The P4 rung's futility brake has always been the literal 3; P0 reads it
+# too now (FA-N72's non-stub half), so the number lives in one place.
+ATTACK_FUTILITY_LIMIT = 3
+
+
+def last_stand_question_line(marshal) -> str:
+    """The ONE sentence every surface uses to name the two answers."""
+    return (f"{marshal.name} is cornered at {marshal.location} and awaits "
+            f"your word, Sire — 'fight to the last' or 'attempt a breakout'.")
+
+
+def standing_last_stand_refusal(marshal, action: Optional[str] = None) -> Optional[Dict]:
+    """FA-16: the free refusal for ANY order to a marshal whose last stand
+    is unanswered, or None when nothing is parked / the verb is exempt /
+    the lever is down.
+
+    Review round (Sept 4 2026). Slice 2 sited this refusal under the
+    executor's `should_check_objection`, whose predicate excludes strategic
+    commands — the very `march`/`hold`/`pursue` the landing record named as
+    its measured defect — and whose action list omits `charge`/`bombard`/
+    `garrison`/`unfortify`. Three reviewers reproduced the bypass
+    independently: a march overwrote the ask with a `contact_bad_odds`
+    question and orphaned the rail row; a co-located pursue ran the attack
+    at once and FA-1's "no word came" resolution fired in the PLAYER phase
+    on the player's own typed order. The refusal is now one function, read
+    by the executor ABOVE the objection predicate for every marshal-bearing
+    verb, by the un-addressed general retreat / bare attack / auto-scout
+    rosters, and by Berthier's parse-recovery line.
+    """
+    if not STANDALONE_DECISION_LIVENESS_ACTIVE or marshal is None:
+        return None
+    if action in STANDING_DECISION_EXEMPT_ACTIONS:
+        return None
+    pending = standalone_decision(marshal)
+    if not pending or pending.get("interrupt_type") != "last_stand":
+        return None
+    return {
+        "success": False,
+        "no_action_cost": True,
+        "last_stand_pending": True,
+        "message": (last_stand_question_line(marshal)
+                    + " No other order can reach him until you decide."),
+    }
+
+
+def pending_marshal_decisions(world) -> List[str]:
+    """Names of the player's marshals whose last stand is unanswered — the
+    question the enemy phase decides FOR him if the turn ends (FA-1).
+
+    Review round (R1-F5): UX23 built the end-turn soft-stop for envoys;
+    the marshal had none. Rides beside `pending_lapsing_count` on every
+    response so the client can warn before sending `end turn`.
+    """
+    if not STANDALONE_DECISION_LIVENESS_ACTIVE:
+        return []
+    names: List[str] = []
+    for marshal in world.get_player_marshals():
+        pending = standalone_decision(marshal)
+        if (pending and pending.get("interrupt_type") == "last_stand"
+                and marshal.strength > 0
+                and not getattr(marshal, "captured_by", "")):
+            names.append(marshal.name)
+    return sorted(names)
+
+
+def _province_seen(world, location: str) -> bool:
+    """PARTIAL-or-better in the player's intel store (the `get_visible_enemies`
+    rule), so a retirement reason never names an unscouted province."""
+    try:
+        from backend.models.intel import PARTIAL
+        return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
+    except Exception:
+        return False
+
+
+def current_besieger(marshal, world, exclude: str = ""):
+    """The at-war corps ON or NEXT to `marshal` that the player can see —
+    co-located first, then the strongest — or None.
+
+    Review round (R1-F4): a last stand is "fight or break out", not "fight
+    MACK". When the man who asked it has drawn off and another stands on
+    the marshal, the question is still exactly as live; keying liveness to
+    the named enemy retired it, discarded the player's word, and the next
+    defeat re-asked — or decided — the identical question.
+    """
+    region = world.get_region(marshal.location)
+    adjacent = set(getattr(region, "adjacent_regions", None) or []) if region else set()
+    best = None
+    for enemy in world.get_visible_enemies(marshal.nation):
+        if enemy.name == exclude:
+            continue
+        # (`get_visible_enemies` already restricts to courts AT WAR with
+        # the marshal's nation and to living corps; only the ground is
+        # checked here.)
+        if getattr(enemy, "captured_by", ""):
+            continue
+        if enemy.location != marshal.location and enemy.location not in adjacent:
+            continue
+        key = (enemy.location == marshal.location, int(enemy.strength), enemy.name)
+        if best is None or key > best[0]:
+            best = (key, enemy)
+    return best[1] if best else None
+
+
+def muster_is_live(marshal, world, pending: Optional[Dict] = None) -> Tuple[bool, str]:
+    """Is a parked muster still the question it was when it was asked?
+
+    Review round (R2-F5): the record said the muster "re-validates itself"
+    through the re-issued attack. Half true — a target who marched away
+    answered `attack_anyway` with a pursuit refusal ("No intelligence on
+    Mack's position"), and a DESTROYED target answered it with an objection
+    about a man who no longer exists (objection runs before target
+    validation on the re-issue). Same shape as `last_stand_is_live`, same
+    retirement copy. A REGION target (a garrison assault) is left to the
+    re-issue's own validation.
+    """
+    from backend.display_names import humanize_entity_name as _hum
+
+    pending = pending or standalone_decision(marshal)
+    if not pending or pending.get("interrupt_type") != "muster_confirm":
+        return False, "no muster is pending"
+    if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
+        return False, f"{marshal.name} no longer stands in the field"
+    target_key = pending.get("target") or ""
+    target = world.get_marshal(target_key) if target_key else None
+    if target is None and target_key and world.get_region(target_key) is not None:
+        return True, ""
+    label = _hum(target_key) if target_key else "the enemy"
+    if (target is None or getattr(target, "strength", 0) <= 0
+            or getattr(target, "captured_by", "")):
+        return False, f"{label} no longer stands in the field"
+    if not world.is_at_war(marshal.nation, target.nation):
+        return False, f"we are no longer at war with {target.nation}"
+    region = world.get_region(marshal.location)
+    adjacent = set(getattr(region, "adjacent_regions", None) or []) if region else set()
+    if target.location != marshal.location and target.location not in adjacent:
+        # Fog-honest: name the province only if the player can see it.
+        if _province_seen(world, target.location):
+            return False, f"{label} has marched to {target.location}"
+        return False, f"{label} has slipped out of contact"
+    if target.name not in {m.name for m in world.get_visible_enemies(marshal.nation)}:
+        return False, f"{label} has slipped out of contact"
+    return True, ""
+
 
 def standalone_decision(marshal) -> Optional[Dict]:
     """The parked player decision on `marshal`, or None.
@@ -105,16 +255,31 @@ def last_stand_is_live(marshal, world, pending: Optional[Dict] = None) -> Tuple[
     enemy_key = pending.get("enemy") or ""
     enemy = world.get_marshal(enemy_key) if enemy_key else None
     enemy_label = _hum(enemy_key) if enemy_key else "the enemy"
-    if (enemy is None or getattr(enemy, "strength", 0) <= 0
-            or getattr(enemy, "captured_by", "")):
-        return False, f"{enemy_label} no longer stands in the field"
-    if not world.is_at_war(marshal.nation, enemy.nation):
-        return False, f"we are no longer at war with {enemy.nation}"
     region = world.get_region(marshal.location)
     adjacent = set(getattr(region, "adjacent_regions", None) or []) if region else set()
-    if enemy.location != marshal.location and enemy.location not in adjacent:
-        return False, f"{enemy_label} has drawn off to {enemy.location}"
-    return True, ""
+    reason = ""
+    if (enemy is None or getattr(enemy, "strength", 0) <= 0
+            or getattr(enemy, "captured_by", "")):
+        reason = f"{enemy_label} no longer stands in the field"
+    elif not world.is_at_war(marshal.nation, enemy.nation):
+        reason = f"we are no longer at war with {enemy.nation}"
+    elif enemy.location != marshal.location and enemy.location not in adjacent:
+        # Fog-honest (review round): `get_marshal` is omniscient, and the
+        # reason used to name a province the player had never scouted.
+        reason = (f"{enemy_label} has drawn off to {enemy.location}"
+                  if _province_seen(world, enemy.location)
+                  else f"{enemy_label} has drawn off out of sight")
+    if not reason:
+        return True, ""
+    # Review round (R1-F4): the man who asked it is gone, but the question
+    # is about the marshal's OWN fate — if another at-war corps stands on
+    # or beside him, it is exactly as live, keyed to that corps now.
+    besieger = current_besieger(marshal, world, exclude=enemy_key)
+    if besieger is not None:
+        pending["enemy"] = besieger.name
+        pending["enemy_nation"] = besieger.nation
+        return True, ""
+    return False, reason
 
 
 def pursue_known_location(world, marshal, enemy):
@@ -523,9 +688,9 @@ class StrategicOrderProcessor:
         emits — the client's report flow queues it, `main.py` promotes it
         for headless clients, the driver answers it — so no `.gd` changes.
         A dead one is retired here with its reason, and the rail row goes
-        with it (FA-N68's helper). `muster_confirm` is surfaced but not
-        re-validated: its answer re-issues the attack, which re-validates
-        itself.
+        with it (FA-N68's helper). `muster_confirm` is re-validated the
+        same way (review round R2-F5 — the first cut said its answer
+        "re-validates itself", and it did not: see `muster_is_live`).
         """
         rows: List[Dict] = []
         if not STANDALONE_DECISION_LIVENESS_ACTIVE:
@@ -557,6 +722,20 @@ class StrategicOrderProcessor:
                         "decision_retired": True,
                         "message": (f"{marshal.name}'s question is overtaken, "
                                     f"Sire — {reason}. He awaits new orders."),
+                    })
+                    continue
+            elif kind == "muster_confirm":
+                live, reason = muster_is_live(marshal, world, pending)
+                if not live:
+                    marshal.pending_interrupt = None
+                    print(f"[STRATEGIC] {marshal.name}: muster retired — {reason}")
+                    rows.append({
+                        "marshal": marshal.name,
+                        "command": "Muster",
+                        "order_status": "retired",
+                        "decision_retired": True,
+                        "message": (f"{marshal.name}'s muster is overtaken, "
+                                    f"Sire — {reason}. He stands down."),
                     })
                     continue
             rows.append({
@@ -612,6 +791,18 @@ class StrategicOrderProcessor:
             if choice not in valid:
                 return {"success": False,
                         "message": f"Invalid choice '{choice}'. Valid: {', '.join(valid)}"}
+            # Review round (R2-F5): the target may have marched, died or
+            # slipped out of sight since the muster was read — retire the
+            # question with the reason rather than re-issue an attack that
+            # objects about a ghost.
+            if STANDALONE_DECISION_LIVENESS_ACTIVE:
+                live, reason = muster_is_live(marshal, world, pending)
+                if not live:
+                    marshal.pending_interrupt = None
+                    return {"success": True, "no_action_cost": True,
+                            "decision_retired": True,
+                            "message": (f"{marshal.name}'s muster is overtaken, "
+                                        f"Sire — {reason}. He stands down.")}
             marshal.pending_interrupt = None
             attack_target = pending.get("target", "")
             if choice == "cancel_order":
@@ -1158,6 +1349,42 @@ class StrategicOrderProcessor:
     # CORE EXECUTION FLOW
     # ══════════════════════════════════════════════════════════════════════════
 
+    def _retire_dead_decision(self, marshal, world, order) -> Optional[Dict]:
+        """Step 0a's liveness arm for a standalone decision parked on an
+        ORDERED marshal: retire a dead one with its reason (the order
+        stands and resumes next turn), or None when it is live / absent /
+        the lever is down."""
+        if not STANDALONE_DECISION_LIVENESS_ACTIVE:
+            return None
+        pending = standalone_decision(marshal)
+        if not pending:
+            return None
+        # `standalone_decision` guarantees one of the two standalone types
+        # (an order-bound interrupt returns None above) — the sweep found
+        # a third arm here unreachable, so there is none.
+        kind = pending.get("interrupt_type")
+        if kind == "last_stand":
+            live, reason = last_stand_is_live(marshal, world, pending)
+            noun = "question"
+        else:
+            live, reason = muster_is_live(marshal, world, pending)
+            noun = "muster"
+        if live:
+            return None
+        from backend.notifications import dismiss_marshal_ask
+        marshal.pending_interrupt = None
+        if kind == "last_stand":
+            dismiss_marshal_ask(world, marshal.name)
+        print(f"[STRATEGIC] {marshal.name}: {kind} retired under a standing order — {reason}")
+        return {
+            "marshal": marshal.name,
+            "command": order.command_type,
+            "order_status": "retired",
+            "decision_retired": True,
+            "message": (f"{marshal.name}'s {noun} is overtaken, Sire — {reason}. "
+                        f"His standing order resumes next turn."),
+        }
+
     def _execute_strategic_turn(self, marshal, world, game_state) -> Optional[Dict]:
         """Execute one turn of a marshal's strategic order."""
         order = marshal.strategic_order
@@ -1166,6 +1393,14 @@ class StrategicOrderProcessor:
 
         # 0a. If marshal has a pending interrupt awaiting player response, skip execution
         if getattr(marshal, 'pending_interrupt', None):
+            # Review round (R1-F3 / R2-F4): an ORDERED marshal's parked
+            # decision was re-surfaced here every turn and never
+            # re-validated — pass 3 skips him (`in_strategic_mode`), so a
+            # dead question froze a live order behind a stale popup. The
+            # standalone types take the same liveness pass 3 runs.
+            retired = self._retire_dead_decision(marshal, world, order)
+            if retired is not None:
+                return retired
             return {
                 "marshal": marshal.name,
                 "command": order.command_type,

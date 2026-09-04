@@ -4,6 +4,42 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 2 REVIEW ROUND "THE WORD IS OWED" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 2 REVIEW ROUND block (authoritative).** Three lenses at `aa6faa01`
+> (reports committed under `docs/audits/fa_build_2026_09_04/`) found the
+> same hole from three sides: **the FA-16 gate never saw a strategic
+> order** (sited under `should_check_objection`, which excludes them), so
+> `Ney, march to Paris` overwrote the parked last stand, the un-addressed
+> `retreat` walked him out for free, and a co-located `pursue` made FA-1's
+> "no word came" fire in the PLAYER phase. The gate is ONE function above
+> the predicate now, read by every roster and by Berthier's recovery line.
+> The AI brakes had traded the grind for a FREEZE (a braked corps fell
+> through to a refused attack-elsewhere and a two-turn cooldown) and priced
+> the field over the braked subset (3.5× wrong) — a braked corps HOLDS, the
+> field is priced whole, and FA-N72's futility half is finally built.
+> Liveness re-keys to the current besieger (fog-honest reasons), step 0a
+> re-validates an ordered marshal's decision, the muster is re-validated,
+> and the marshal has an end-turn soft-stop like the envoy's
+> (`pending_marshal_decisions`, ONE `.gd`). Tests
+> `tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py` (68); sweep
+> `tools/_sweep_fa_slice2r.json` **31 mutations, 31 killed, 0 INERT, 0 BROKEN — two inert on the first sweep: one mutated an arm `standalone_decision` makes unreachable (the dead arm is deleted, the mutation re-aimed at the raw interrupt), one was a fixture whose 20,000-man defender the cautious Wellington retreats from with or without the brake (re-sited at 5,000, where only the brake stops the blow)**; series
+> re-recorded ONCE (D the sole mover of three new levers, E/F inert with
+> measured reasons; the France 25→8 endgame swing tested as ONE seed's path
+> — the early-exit hypothesis is FALSE); M1–M7 byte-identical; WO-9/WO-10/
+> AI-V board pins re-measured with dated notes (the AI-V digest now records
+> an ELIMINATED dreamer as its own predicate). Record corrections: slice 2's
+> tests are 61 not 63; the WO-9 "+2" was an A×B interaction; "south" was
+> north; seven call sites not five; the reports pointer was dead. **Routed
+> to slice 4: FA-R1 (the AI targets a coalition ally) and FA-R2 (fourteen
+> refused AI drills per 40 turns).**
+>
+> **▶ NEXT = the AI board-reading slice** (FA-8 P1 + FA-27/N38/N6/N7/N54/
+> N80/N59 + FA-R1/R2), then the road law, the popup queue, the mock
+> vocabulary, FA-26 as a shared helper, then position 10. ⚠ Still no
+> pillar re-score.
+
 > # ✅ THE AUDIT BUILD: SLICE 3 "THE ORDER TELLS THE TRUTH" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
@@ -47,7 +83,7 @@
 > SLICE 2 block (authoritative).** FA-1 (P1), FA-16, FA-N13, FA-N68, FA-N25,
 > FA-N72 closed; FA-35 closed at its real seam (the P0 rung + a stub latch;
 > its filed P4 target-worth floor deliberately NOT built). Tests
-> `tests/test_fa_slice2_no_word_came_2026_09_04.py` (63); sweep
+> `tests/test_fa_slice2_no_word_came_2026_09_04.py` (61); sweep
 > `tools/_sweep_fa_slice2.json` **32/32 killed, 0 inert**; ruff clean; no
 > `.gd`; M1–M7 byte-identical without re-record; **`BASELINE_SERIES`
 > re-recorded ONCE, eight-arm lever attribution** (arm 0 reproduces the prior
