@@ -1,0 +1,184 @@
+[
+ {
+  "id": "predicate/a a refusal is `success is False` — never `not success`",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not isinstance(result, dict) or result.get(\"success\") is not False:\n        return False",
+  "new": "    if not isinstance(result, dict) or result.get(\"success\"):\n        return False",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestThePredicate::test_a_dict_with_no_verdict_at_all_is_not_a_refusal"
+ },
+ {
+  "id": "predicate/b a battle event is never a refusal",
+  "file": "backend/commands/strategic.py",
+  "old": "        if (isinstance(event, dict)\n                and event.get(\"type\") in (\"battle\", \"glorious_charge\")):\n            return False",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestThePredicate::test_a_fought_battle_or_a_foreign_shape_is_never_a_refusal"
+ },
+ {
+  "id": "predicate/c the crossing verdict is only a verdict when NOT allowed",
+  "file": "backend/commands/strategic.py",
+  "old": "    if verdict.get(\"allowed\", True):\n        return None\n    return verdict",
+  "new": "    return verdict",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestThePredicate::test_the_crossing_verdict_is_the_executors_own"
+ },
+ {
+  "id": "FA-14/a _handle_combat_result reads the refusal",
+  "file": "backend/commands/strategic.py",
+  "old": "        order = marshal.strategic_order\n        if attack_was_refused(result):\n            # FA-14 / FA-19",
+  "new": "        order = marshal.strategic_order\n        if False:\n            # FA-14 / FA-19",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestARefusedMarchIsNotABattle"
+ },
+ {
+  "id": "FA-14/b a naval refusal names the water's edge",
+  "file": "backend/commands/strategic.py",
+  "old": "            if result.get(\"blocked_naval\"):\n                text = f\"{marshal.name}'s {flavor} halts at the water's edge — {reason}\"\n            else:\n                text = f\"{marshal.name} cannot attack {enemy.name} — {reason}\"\n            broken = self._break_order(marshal, world, text)",
+  "new": "            text = f\"{marshal.name} cannot attack {enemy.name} — {reason}\"\n            broken = self._break_order(marshal, world, text)",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestARefusedMarchIsNotABattle::test_the_helper_breaks_the_order_with_the_reason"
+ },
+ {
+  "id": "FA-15/a the per-turn contact producer asks the crossing first",
+  "file": "backend/commands/strategic.py",
+  "old": "        _verdict = strike_crossing_verdict(world, marshal, blocked_region)\n        if _verdict is not None:\n            _refusal = verdict_as_refusal(_verdict)\n            broken = self._break_order(",
+  "new": "        _verdict = None\n        if _verdict is not None:\n            _refusal = verdict_as_refusal(_verdict)\n            broken = self._break_order(",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestNoQuestionIsAskedAboutABarredShore::test_the_per_turn_cautious_march_breaks_instead_of_asking"
+ },
+ {
+  "id": "FA-15/b the first-step contact producer asks the crossing first",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        _verdict = strike_crossing_verdict(world, marshal, blocked_region)\n        if _verdict is not None:\n            return self._first_step_refusal(",
+  "new": "        _verdict = None\n        if _verdict is not None:\n            return self._first_step_refusal(",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestNoQuestionIsAskedAboutABarredShore::test_the_first_step_cautious_march_is_refused_free"
+ },
+ {
+  "id": "FA-20/a a refused first step ends the order it created",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        marshal.strategic_order = None\n        clear_order_bound_interrupt(marshal)  # NPC-2\n        marshal.holding_position = False\n        marshal.hold_region = \"\"\n        return {\n            \"success\": False,\n            \"message\": (f\"{marshal.name} cannot engage {enemy_name} — \"",
+  "new": "        return {\n            \"success\": False,\n            \"message\": (f\"{marshal.name} cannot engage {enemy_name} — \"",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestNoQuestionIsAskedAboutABarredShore::test_the_first_step_aggressive_march_is_refused_free"
+ },
+ {
+  "id": "FA-20/b the aggressive first-step arm reads the refusal",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                if attack_was_refused(result):\n                    # FA-20: a refused first step ends the order it created.\n                    return self._first_step_refusal(marshal, result, enemy.name)",
+  "new": "                pass",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestANonNavalRefusalReachesTheArmsThemselves::test_the_aggressive_first_step_arm"
+ },
+ {
+  "id": "FA-20/c the co-located PURSUE arm reads the refusal",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                    if attack_was_refused(attack_result):\n                        # FA-20 family (slice 3): no \"Engaging!\" over a refusal,\n                        # and no PURSUE left standing on one.\n                        return self._first_step_refusal(marshal, attack_result, target)",
+  "new": "                    pass",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestANonNavalRefusalReachesTheArmsThemselves::test_the_co_located_pursue_arm"
+ },
+ {
+  "id": "PURSUE/a a refused per-turn engagement breaks, never completes",
+  "file": "backend/commands/strategic.py",
+  "old": "        if attack_was_refused(result):\n            reason = refusal_reason(result)\n            if result.get(\"blocked_naval\"):\n                text = (f\"{marshal.name}'s pursuit halts at the water's edge — \"",
+  "new": "        if False:\n            reason = refusal_reason(result)\n            if result.get(\"blocked_naval\"):\n                text = (f\"{marshal.name}'s pursuit halts at the water's edge — \"",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestARefusedPursuitNeverCompletes::test_the_per_turn_pursuit_halts_rather_than_completes"
+ },
+ {
+  "id": "PURSUE/b a fought engagement still completes",
+  "file": "backend/commands/strategic.py",
+  "old": "        combat_msg = result.get(\"message\", f\"Engaged {target.name}\")\n        return self._complete_order(marshal, world, combat_msg)\n\n    def _execute_pursue(",
+  "new": "        combat_msg = result.get(\"message\", f\"Engaged {target.name}\")\n        return self._break_order(marshal, world, combat_msg)\n\n    def _execute_pursue(",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestARefusedPursuitNeverCompletes::test_the_helper_completes_a_fought_pursuit"
+ },
+ {
+  "id": "FA-15/c the answered attack reads the refusal",
+  "file": "backend/commands/strategic.py",
+  "old": "            if attack_was_refused(result):\n                # FA-15 (slice 3): the answered 'attack' the executor REFUSED",
+  "new": "            if False:\n                # FA-15 (slice 3): the answered 'attack' the executor REFUSED",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestTheAnsweredAttackReportsARefusalAsARefusal::test_a_refused_answer_ends_the_order_and_says_why"
+ },
+ {
+  "id": "FA-34/a continue_order keeps the order",
+  "file": "backend/commands/strategic.py",
+  "old": "            return {\n                \"success\": True,\n                \"message\": (f\"{marshal.name} presses on — \"\n                            f\"{_strategic_command_flavor(order.command_type)} \"\n                            f\"continues.\"),\n                \"order_cleared\": False,",
+  "new": "            marshal.strategic_order = None\n            return {\n                \"success\": True,\n                \"message\": (f\"{marshal.name} presses on — \"\n                            f\"{_strategic_command_flavor(order.command_type)} \"\n                            f\"continues.\"),\n                \"order_cleared\": False,",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestContinueAsOrderedContinues::test_continue_order_keeps_the_order"
+ },
+ {
+  "id": "FA-34/b the stalemate copy names the march",
+  "file": "backend/commands/strategic.py",
+  "old": "                f\"battle was inconclusive. Continue \"\n                f\"{_strategic_command_flavor(order.command_type)}?\")",
+  "new": "                f\"battle was inconclusive. Continue \"\n                f\"{order.command_type.replace('_', ' ').lower()}?\")",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestContinueAsOrderedContinues::test_the_stalemate_copy_names_the_march_not_the_enum"
+ },
+ {
+  "id": "FA-N60/a the stalemate ask stores its line",
+  "file": "backend/commands/strategic.py",
+  "old": "                # FA-N60: the popup renders THIS dict's message on the\n                # synchronous route and after /load.\n                \"message\": stalemate_msg,\n            }",
+  "new": "            }",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestContinueAsOrderedContinues::test_the_stalemate_copy_names_the_march_not_the_enum"
+ },
+ {
+  "id": "FA-N40/a a barred shore is not a sally target",
+  "file": "backend/commands/strategic.py",
+  "old": "                                and strike_crossing_verdict(world, marshal, adj_name) is None):",
+  "new": "                                ):",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestARefusedSallyIsNotASally::test_a_barred_shore_is_never_a_sally_target"
+ },
+ {
+  "id": "FA-N40/b a refused sortie is narrated as a hold",
+  "file": "backend/commands/strategic.py",
+  "old": "                if attack_was_refused(combat_result):\n                    # FA-N40 / FA-N26 (slice 3): a REFUSED sortie was narrated",
+  "new": "                if False:\n                    # FA-N40 / FA-N26 (slice 3): a REFUSED sortie was narrated",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestARefusedSallyIsNotASally::test_the_refusal_arm_holds_and_says_why"
+ },
+ {
+  "id": "FA-N10/a the carry has battle_message",
+  "file": "backend/commands/strategic.py",
+  "old": "            \"battle_message\": cleaned.get(\"message\", \"\")}",
+  "new": "            }",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestABattleReachesTheClientWhole::test_the_carry_has_the_key_the_renderers_read"
+ },
+ {
+  "id": "FA-N42/a the first-step success branch carries the battle",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                    return _carry_combat_fields({\n                        \"success\": True,\n                        \"message\": f\"{interrupt_speaker(marshal)}: '{enemy.name} bars the way!' \"",
+  "new": "                    return ({\n                        \"success\": True,\n                        \"message\": f\"{interrupt_speaker(marshal)}: '{enemy.name} bars the way!' \"",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestABattleReachesTheClientWhole::test_the_first_step_auto_attack_arrives_whole"
+ },
+ {
+  "id": "FA-N48/a the allowlist carries events and the triad",
+  "file": "backend/commands/strategic.py",
+  "old": "    \"events\",\n    \"diplomatic_dialogue\",\n    \"awaiting_diplomatic_response\",\n    \"war_purpose_popup\",\n)",
+  "new": ")",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestABattleReachesTheClientWhole"
+ },
+ {
+  "id": "FA-N60/b the first-step bad-odds ask stores its line",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "            marshal.pending_interrupt[\"message\"] = bad_odds_msg\n",
+  "new": "",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestTheStoredQuestionCarriesItsLine::test_the_first_step_bad_odds_ask"
+ },
+ {
+  "id": "FA-N60/c step 0a repeats the stored line",
+  "file": "backend/commands/strategic.py",
+  "old": "                \"message\": (marshal.pending_interrupt.get(\"message\")\n                            or f\"{marshal.name} awaits your orders.\"),",
+  "new": "                \"message\": f\"{marshal.name} awaits your orders.\",",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestTheStoredQuestionCarriesItsLine::test_step_0a_repeats_the_stored_line"
+ },
+ {
+  "id": "FA-N60/d the per-turn inferred gate stores its line",
+  "file": "backend/commands/strategic.py",
+  "old": "            # thrown away.\n            \"message\": gate_msg,\n        }",
+  "new": "        }",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestTheStoredQuestionCarriesItsLine::test_the_inferred_gate_stores_its_line"
+ },
+ {
+  "id": "FA-N60/e the cautious first-step contact stores its line",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                # FA-N60: the stored ask carries its own line.\n                \"message\": contact_msg,\n            }",
+  "new": "            }",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestABattleReachesTheClientWhole::test_the_interrupt_route_carries_the_triad"
+ },
+ {
+  "id": "FA-68/a every deferred marshal gets his turn",
+  "file": "backend/commands/strategic.py",
+  "old": "        for marshal in deferred_marshals:\n            report = self._execute_strategic_turn(marshal, world, game_state)\n            if report:\n                reports.append(report)\n",
+  "new": "        for marshal in deferred_marshals:\n            report = self._execute_strategic_turn(marshal, world, game_state)\n            if report:\n                reports.append(report)\n                if report.get(\"requires_input\"):\n                    break\n",
+  "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestEveryDeferredMarshalGetsHisTurn"
+ }
+]

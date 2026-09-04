@@ -160,14 +160,23 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > written, one per family; four of seven rows were corrected by them.**
 > Recommended, not built (gate): `DESIGN_REFINEMENT.md` FA-S2-D1.
 >
-> **▶ NEXT = the standing-order truth slice** (FA-14/15/19/20/34/68 +
-> FA-N10/N26/N40/N42/N48/N60 — reproduced: eleven attack seams, one reads
-> `success`; FA-14's own fix_shape reds six green pins), then the AI
-> board-reading slice (FA-8 P1 + FA-27/N38/N6/N7/N54/N80/N59 — four move the
-> series, land together), the road law, the popup queue, the mock vocabulary
-> (all reproduced, reports in STATUS), then FA-26 **as a shared helper across
-> all four trust-writing families** (FA-N1), then position 10. ⚠ **Still no
-> pillar re-score.**
+> **▶ SLICE 3 "THE ORDER TELLS THE TRUTH" IS LANDED — September 4, 2026.**
+> Landing record = the boxed SLICE 3 block in `BUG_FIXES.md` §Final
+> Whole-Game Audit. FA-14/15/19/20/34/68 + FA-N10/N26/N40/N42/N48/N60 closed:
+> eleven attack seams for a standing order, one read the executor's answer —
+> one predicate (`attack_was_refused`, `success is False` and no battle) at
+> all eleven, one crossing pre-gate (the executor's own
+> `crossing_check_reach`, asked first) at both contact producers and the
+> sally scan; a refused first step ends the order it created; "Continue as
+> Ordered" continues; the carry gains `battle_message`; the first-step battle
+> arrives whole; every stored question carries its own line; every deferred
+> marshal is asked. Zero `.gd`; series + M1–M7 byte-identical structurally.
+>
+> **▶ NEXT = the AI board-reading slice** (FA-8 P1 + FA-27/N38/N6/N7/N54/
+> N80/N59 — reproduced; four move the series, land together), the road law,
+> the popup queue, the mock vocabulary (all reproduced, reports in STATUS),
+> then FA-26 **as a shared helper across all four trust-writing families**
+> (FA-N1), then position 10. ⚠ **Still no pillar re-score.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

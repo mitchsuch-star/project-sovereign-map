@@ -958,7 +958,16 @@ class TestHolisticFlows:
         assert grouchy.trust.value == initial_trust - 3
 
     def test_multiple_interrupts_sequential(self, world, strategic_executor, game_state):
-        """Two marshals with interrupts processed one at a time."""
+        """Two marshals with interrupts: BOTH are reported, in one pass.
+
+        Flipped consciously by FA slice 3 (September 4, 2026 — FA-68). This
+        pin used to assert exactly ONE report: pass 2 of the processor broke
+        after the first `requires_input` row, so the second marshal was never
+        executed — no movement, no row, no stored question — and the cannon
+        fire he heard was gone by the next turn. Every deferred marshal now
+        gets his turn; the client queues every awaiting row and the driver
+        answers the first. Order is still alphabetical (Davout before
+        Grouchy), and answering Davout leaves Grouchy's question standing."""
         davout = world.get_marshal("Davout")
         davout.strategic_order = _make_order("MOVE_TO", "Berlin")
         davout.pending_interrupt = {
@@ -975,10 +984,12 @@ class TestHolisticFlows:
             "options": ["investigate", "continue_order", "hold_position"],
         }
 
-        # First process — should return Davout (alphabetically first), stop
+        # First process — BOTH are reported, Davout (alphabetically first) first
         reports = strategic_executor.process_strategic_orders(world, game_state)
-        assert len(reports) == 1
+        assert len(reports) == 2
         assert reports[0]["marshal"] == "Davout"
+        assert reports[1]["marshal"] == "Grouchy"
+        assert all(r.get("requires_input") for r in reports)
 
         # Resolve Davout
         strategic_executor.handle_response(

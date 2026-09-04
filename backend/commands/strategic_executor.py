@@ -1257,6 +1257,11 @@ class StrategicExecutor:
                         {"command": {"marshal": marshal.name, "action": "attack",
                                      "target": target, "_strategic_execution": True}},
                         game_state)
+                    from backend.commands.strategic import attack_was_refused
+                    if attack_was_refused(attack_result):
+                        # FA-20 family (slice 3): no "Engaging!" over a refusal,
+                        # and no PURSUE left standing on one.
+                        return self._first_step_refusal(marshal, attack_result, target)
                     combat_msg = attack_result.get("message", "")
                     first_step_msg = f" They're right here! Engaging!\n\n{combat_msg}"
                 else:
@@ -1427,6 +1432,13 @@ class StrategicExecutor:
                                 {"command": {"marshal": marshal.name, "action": "attack",
                                              "target": target, "_strategic_execution": True}},
                                 game_state)
+                            from backend.commands.strategic import attack_was_refused
+                            if attack_was_refused(attack_result):
+                                # FA-20 family (slice 3): "spotted at London!
+                                # Engaging!" was printed over the crossing
+                                # refusal with the PURSUE left standing.
+                                return self._first_step_refusal(
+                                    marshal, attack_result, target)
                             combat_msg = attack_result.get("message", "")
                             first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}! Engaging!\n\n{combat_msg}"
                         else:
@@ -2032,21 +2044,53 @@ class StrategicExecutor:
             "is_first_step": True,
             "options": ["attack_anyway", "hold_position", "cancel_order"],
         }
+        # PC-8: the marshal's read stays solo; Berthier names the muster.
+        gate_msg = describe_inferred_bad_odds(
+            marshal.name, enemy.name,
+            self._executor._combat._bad_odds_muster_note(
+                marshal, enemy, world))
+        # FA-N60: the stored ask carries its own line.
+        marshal.pending_interrupt["message"] = gate_msg
         return {
             "success": True,
             "requires_input": True,
             "pending_interrupt": marshal.pending_interrupt,
-            # PC-8: the marshal's read stays solo; Berthier names the muster.
-            "message": describe_inferred_bad_odds(
-                marshal.name, enemy.name,
-                self._executor._combat._bad_odds_muster_note(
-                    marshal, enemy, world)),
+            "message": gate_msg,
             "strategic_order": True,
             "strategic_type": order.command_type,
             "first_step_interrupt": True,
             # Match the sibling first-step interrupts (order issued, 1 AP charged
             # explicitly — never rely on the reissued base action's cost mapping).
             "variable_action_cost": 1,
+        }
+
+    def _first_step_refusal(self, marshal, refusal: Dict, enemy_name: str) -> Dict:
+        """FA-20 (slice 3, Sept 4 2026): a strategic attack the executor
+        REFUSED at the order's FIRST step ends the order it just created.
+
+        The order was assigned before the first step executed, and the
+        aggressive arm returned the raw refusal dict without clearing it —
+        so the player read an honest refusal, 0 AP, while a MOVE_TO stood on
+        the marshal (listed in the Orders ledger) and fired at the next end
+        turn into the FA-14 phantom battle. The literal arm always cleared;
+        this is that discipline for every arm.
+        """
+        from backend.commands.strategic import (
+            attack_was_refused, refusal_keys, refusal_reason)
+        assert attack_was_refused(refusal) or refusal.get("success") is False
+        marshal.strategic_order = None
+        clear_order_bound_interrupt(marshal)  # NPC-2
+        marshal.holding_position = False
+        marshal.hold_region = ""
+        return {
+            "success": False,
+            "message": (f"{marshal.name} cannot engage {enemy_name} — "
+                        f"{refusal_reason(refusal)} No order stands."),
+            "order_cleared": True,
+            "first_step_blocked": True,
+            "attack_refused": True,
+            "variable_action_cost": 0,
+            **refusal_keys(refusal),
         }
 
     def _handle_first_step_blocked(self, marshal, enemies, blocked_region,
@@ -2065,6 +2109,19 @@ class StrategicExecutor:
         personality = getattr(marshal, 'personality', 'balanced')
         enemy = enemies[0]
         order = marshal.strategic_order
+
+        # FA-15 / FA-20 (slice 3, Sept 4 2026): the executor's own crossing
+        # predicate, asked BEFORE any personality arm. The cautious arm used
+        # to ASK "Enemy at London. How shall I proceed?" and offer an
+        # 'attack' the executor would refuse; the aggressive arm attacked,
+        # was refused, and left the order standing. A shore the executor
+        # refuses ends the order here, at 0 AP, with the reason.
+        from backend.commands.strategic import (
+            strike_crossing_verdict, verdict_as_refusal)
+        _verdict = strike_crossing_verdict(world, marshal, blocked_region)
+        if _verdict is not None:
+            return self._first_step_refusal(
+                marshal, verdict_as_refusal(_verdict), enemy.name)
 
         if personality == "literal":
             # Silently reroute around ALL enemy regions.
@@ -2162,16 +2219,25 @@ class StrategicExecutor:
                     game_state
                 )
                 # Return attack result — order continues or breaks based on combat
+                from backend.commands.strategic import (
+                    _carry_combat_fields, attack_was_refused)
+                if attack_was_refused(result):
+                    # FA-20: a refused first step ends the order it created.
+                    return self._first_step_refusal(marshal, result, enemy.name)
                 combat_msg = result.get("message", "")
                 if result.get("success"):
-                    return {
+                    # FA-N42 / FA-N48: the fought battle reaches the client
+                    # WHOLE — report, diorama, events, capture prompt and the
+                    # war-purpose triad — through the same allowlist the
+                    # interrupt route has carried since F1b / CA8-25.
+                    return _carry_combat_fields({
                         "success": True,
                         "message": f"{interrupt_speaker(marshal)}: '{enemy.name} bars the way!' "
                                    f"Engaging!\n\n{combat_msg}",
                         "strategic_order": True,
                         "strategic_type": order.command_type,
                         "first_step_combat": True,
-                    }
+                    }, result)
                 return result
 
             # Bad odds — ask player (one modal). An INFERRED order names the
@@ -2197,6 +2263,9 @@ class StrategicExecutor:
             else:
                 bad_odds_msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path at "
                                 f"{blocked_region}. Odds unfavorable. Your orders?'")
+            # FA-N60: the stored ask carries its own line (the synchronous
+            # popup and the /load restore read THIS dict).
+            marshal.pending_interrupt["message"] = bad_odds_msg
             return {
                 "success": True,
                 "requires_input": True,
@@ -2209,6 +2278,22 @@ class StrategicExecutor:
             }
 
         else:  # cautious, balanced, loyal — always ask
+            # FA-15 side finding (slice 3): the per-turn twin omits
+            # `go_around` when the blocked region IS the destination
+            # (rerouting "around" the objective is nonsensical and re-asked
+            # immediately); this first-step copy offered it anyway.
+            from backend.commands.strategic import resolve_order_destination
+            _destination = resolve_order_destination(world, marshal, order)
+            if blocked_region == _destination:
+                contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy holds "
+                               f"{blocked_region} — destination blocked. How shall "
+                               f"I proceed, Sire?'")
+                contact_options = ["attack", "hold_position", "cancel_order"]
+            else:
+                contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy at "
+                               f"{blocked_region}. How shall I proceed, Sire?'")
+                contact_options = ["attack", "go_around", "hold_position",
+                                   "cancel_order"]
             marshal.pending_interrupt = {
                 # Marshal name for the /strategic_response answer path (see the
                 # co-located builder above). CR-5 audit fix.
@@ -2217,14 +2302,15 @@ class StrategicExecutor:
                 "enemy": enemy.name,
                 "location": blocked_region,
                 "is_first_step": True,
-                "options": ["attack", "go_around", "hold_position", "cancel_order"]
+                "options": contact_options,
+                # FA-N60: the stored ask carries its own line.
+                "message": contact_msg,
             }
             return {
                 "success": True,
                 "requires_input": True,
                 "pending_interrupt": marshal.pending_interrupt,
-                "message": f"{interrupt_speaker(marshal)}: 'Enemy at {blocked_region}. "
-                           f"How shall I proceed, Sire?'",
+                "message": contact_msg,
                 "strategic_order": True,
                 "strategic_type": order.command_type,
                 "first_step_interrupt": True,

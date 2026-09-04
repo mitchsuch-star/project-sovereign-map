@@ -4,6 +4,43 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 3 "THE ORDER TELLS THE TRUTH" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 3 block (authoritative).** FA-14, FA-15, FA-19, FA-20, FA-34, FA-68,
+> FA-N10, FA-N26, FA-N40, FA-N42, FA-N48, FA-N60 closed. Tests
+> `tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py` (43); sweep
+> `tools/_sweep_fa_slice3.json` **26/26 killed, 0 inert**; ruff clean; no
+> `.gd`; M1–M7 AND `BASELINE_SERIES` byte-identical WITHOUT re-record
+> (structurally — every seam is player-only and the ambient board issues no
+> orders).
+>
+> **The family was wider than any row filed it:** eleven sites execute an
+> attack for a standing order and exactly ONE read the executor's answer
+> before narrating it. One predicate (`attack_was_refused`: `success is
+> False` and no battle of any shape — the filed FA-14 fix_shape's `not
+> success` reds six green FA-N3 pins) at all eleven; one crossing pre-gate
+> (`strike_crossing_verdict`, the executor's own `crossing_check_reach`
+> asked FIRST) at both contact producers and the sally scan, so a shore the
+> executor will refuse is never attacked, asked about, or sallied against.
+> A refused first step ends the order it created (FA-20 — and two unfiled
+> PURSUE arms printed "Engaging!" over the refusal); a refused per-turn
+> pursuit breaks instead of "completing"; "Continue as Ordered" continues;
+> the carry gains `battle_message` (the one key the renderers print) and
+> the first-step battle arrives whole (events, diorama, the war-purpose HARD
+> STOP); every stored question carries its own line; every deferred marshal
+> is asked. **One pin flipped consciously** (`test_multiple_interrupts_
+> sequential` — both marshals are reported). Five inert pins on the first
+> sweep were the pre-gate masking the arms behind it, each isolated with a
+> non-naval refusal.
+>
+> **▶ NEXT = the AI board-reading slice** (FA-8 P1 + FA-27/N38/N6/N7/N54/
+> N80/N59 — reproduced; four of them move `BASELINE_SERIES`, land together
+> with one attribution), then the road law, the popup queue, the mock
+> vocabulary, then FA-26 as a shared helper, then position 10. ⚠ Still no
+> pillar re-score. ⚠ The slice-2 review fleet (three lenses at `aa6faa01`)
+> is pending; its findings land as a review round.
+
 > # ✅ THE AUDIT BUILD: SLICE 2 "NO WORD CAME" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

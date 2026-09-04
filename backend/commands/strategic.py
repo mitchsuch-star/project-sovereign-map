@@ -174,7 +174,105 @@ def _combat_carry(result) -> Dict:
         return {"battle_report": None, "battle_details": None}
     cleaned = {k: v for k, v in result.items() if k != "new_state"}
     return {"battle_report": cleaned.get("battle_report"),
-            "battle_details": cleaned}
+            "battle_details": cleaned,
+            # FA-N10 (slice 3, Sept 4 2026): the ONE key both strategic-report
+            # renderers actually print (`main.gd::_show_strategic_reports`,
+            # `strategic_report_popup.gd::_format_report`). Neither reads
+            # `battle_report` or `battle_details`, so a battle fought under a
+            # standing order reached the player with no casualties at all.
+            "battle_message": cleaned.get("message", "")}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FA slice 3 (September 4, 2026) — "THE ORDER TELLS THE TRUTH"
+#
+# Eleven sites in this file and strategic_executor.py execute an attack for
+# a standing order, and exactly ONE of them (`_execute_hold_bombardment`)
+# read the executor's answer before narrating it. The other ten narrated
+# whatever came back — so an attack the executor REFUSED (the NV-4 crossing
+# gate is the reachable one: an enemy on the far shore of the Channel) was
+# reported as "the battle was inconclusive" with a stalemate interrupt
+# (FA-14/15/19), as "sallies forth to attack Moore" every turn with the
+# refusal printed underneath (FA-N40/N26), as "attacks Moore … Assault
+# failed — orders cancelled" (the answered contact), as "Moore spotted at
+# London! Engaging!" over a PURSUE left standing (the FA-20 family), and as a
+# pursuit COMPLETED "— and I trust the next order has more fire in it". One
+# predicate, read at every one of them.
+# ═══════════════════════════════════════════════════════════════════════════
+
+def attack_was_refused(result) -> bool:
+    """True when the executor REFUSED a strategic attack — no battle happened.
+
+    A refusal is `success: False` with no battle of any shape: no `battle` or
+    `glorious_charge` event and no `battle_result`. A FOUGHT battle that was
+    lost is `success: True` with events, and the FA-N3 fixtures that call
+    `_handle_combat_result` with event-only dicts carry no `success` key at
+    all — so the test is `is False`, never `not success` (the filed FA-14
+    fix_shape, which reds six green pins).
+    """
+    if not isinstance(result, dict) or result.get("success") is not False:
+        return False
+    events = result.get("events") or []
+    if isinstance(events, dict):
+        events = [events]
+    for event in events:
+        if (isinstance(event, dict)
+                and event.get("type") in ("battle", "glorious_charge")):
+            return False
+    if result.get("battle_result"):
+        return False
+    return True
+
+
+def refusal_reason(result) -> str:
+    """The executor's own sentence for a refusal, never a battle word."""
+    message = ""
+    if isinstance(result, dict):
+        message = str(result.get("message") or "").strip()
+    return message or "the attack could not be made"
+
+
+def refusal_keys(result) -> Dict:
+    """The structured refusal keys a report row carries so the client and the
+    digest can tell a barred crossing from a closed border."""
+    keys: Dict = {}
+    if isinstance(result, dict):
+        for key in ("blocked_naval", "naval_ratio", "blocked_diplomatic"):
+            if result.get(key) is not None:
+                keys[key] = result[key]
+    return keys
+
+
+def strike_crossing_verdict(world, marshal, region: str):
+    """The executor's OWN crossing predicate, asked BEFORE an order commits
+    to a fight across water: `crossing_check_reach`, exactly as
+    `_execute_attack` asks it. Returns the blocking verdict dict when the
+    strike would be refused, None when it may proceed (or there is no naval
+    layer). Both contact producers and the HOLD sally read this, so an
+    enemy standing on the far shore of a SHUT crossing is never offered as
+    something to attack, ask about, or sally against.
+    """
+    if not getattr(world, "fleets", None) or not region:
+        return None
+    if region == getattr(marshal, "location", None):
+        return None
+    from backend.game_logic.naval import crossing_check_reach
+    verdict = crossing_check_reach(
+        world, marshal.nation, marshal.location, region,
+        int(getattr(marshal, "strength", 0) or 0))
+    if verdict.get("allowed", True):
+        return None
+    return verdict
+
+
+def verdict_as_refusal(verdict) -> Dict:
+    """Shape a crossing verdict like the executor's own refusal dict."""
+    return {
+        "success": False,
+        "message": verdict.get("message", "the crossing is barred"),
+        "blocked_naval": verdict.get("coverer"),
+        "naval_ratio": verdict.get("ratio"),
+    }
 
 
 def clear_order_bound_interrupt(marshal) -> bool:
@@ -238,6 +336,20 @@ _COMBAT_PASSTHROUGH_FIELDS = (
     # fight stops being the one battle they cannot look at.
     # ────────────────────────────────────────────────────────────────────
     "battle_diorama",
+    # ────────────────────────────────────────────────────────────────────
+    # FA-N42 + FA-N48 (slice 3, Sept 4 2026): the first-step auto-attack's
+    # success branch rebuilt a FRESH dict and dropped every one of these.
+    # `events` is what `_build_result_response` pops to the top level (no
+    # battle event → no diorama stash, no campaign-log row); the war-purpose
+    # triad is the HARD STOP `_attach_staged_war_purpose` stamps — dropped
+    # here, the client never rendered the question and the next `end turn`
+    # was refused with "nothing was relayed". The copy-only-non-None rule
+    # keeps every battle that stages no dialogue byte-identical.
+    # ────────────────────────────────────────────────────────────────────
+    "events",
+    "diplomatic_dialogue",
+    "awaiting_diplomatic_response",
+    "war_purpose_popup",
 )
 
 
@@ -375,14 +487,19 @@ class StrategicOrderProcessor:
             if report:
                 reports.append(report)
 
-        # Pass 2: Process deferred marshals with interrupts
+        # Pass 2: Process deferred marshals with interrupts.
+        # FA-68 (slice 3, Sept 4 2026): this used to `break` after the first
+        # report that required input, so a SECOND marshal raising a question
+        # in the same end turn was never executed — no movement, no row, no
+        # `pending_interrupt` stored — and the cannon fire he heard was gone
+        # by next turn (`clear_turn_battles`). `_check_interrupts` is pure
+        # and idempotent (probed), each marshal's step 2 latches his OWN
+        # question, and the client queues every `requires_input` row, so the
+        # break protected nothing.
         for marshal in deferred_marshals:
             report = self._execute_strategic_turn(marshal, world, game_state)
             if report:
                 reports.append(report)
-                # Still break on first interrupt requiring input
-                if report.get("requires_input"):
-                    break
 
         # Pass 3 (FA-16): the decisions no order raised.
         reports.extend(self._standalone_decision_rows(world))
@@ -772,6 +889,28 @@ class StrategicOrderProcessor:
                 }},
                 game_state
             )
+            if attack_was_refused(result):
+                # FA-15 (slice 3): the answered 'attack' the executor REFUSED
+                # read "Davout attacks Moore. <barred>. Assault failed —
+                # orders cancelled" — a battle that never happened, charged a
+                # failed attempt. The refusal ends the order, says why, and
+                # touches no combat record.
+                marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
+                marshal.holding_position = False
+                marshal.hold_region = ""
+                return {
+                    "success": True,
+                    "message": (f"{marshal.name} cannot attack {enemy_name} — "
+                                f"{refusal_reason(result)} "
+                                f"{_strategic_command_flavor(order.command_type).capitalize()} "
+                                f"ends; he awaits new orders."),
+                    "order_cleared": True,
+                    "trust_change": 0,
+                    "action_taken": "attack_refused",
+                    **refusal_keys(result),
+                }
+
             combat_success = result.get("success", False)
             combat_msg = result.get("message", "")
 
@@ -962,17 +1101,21 @@ class StrategicOrderProcessor:
         enemy_name = pending.get("enemy", pending.get("target", order.target))
 
         if choice in ("continue_order", "attack_again"):
-            # After failed combat, order breaks — marshal reverts to tactical
-            # This prevents infinite free attacks from a single strategic order
-            marshal.strategic_order = None
-            # [7A-2] Clear holding state
-            marshal.holding_position = False
-            marshal.hold_region = ""
+            # FA-34 (slice 3, Sept 4 2026): the client labels this button
+            # "Continue as Ordered" and it CANCELLED the order — the one
+            # free-looking answer was the one that threw the march away
+            # (measured: the same "march to London" re-issued three turns
+            # later created a fresh order). The order now STANDS; the loop
+            # guard it was pretending to be already exists —
+            # `order.combat_attempts` + `_should_auto_attack` stop a free
+            # re-attack on the same man, and the next contact asks with the
+            # "Previous assault was inconclusive" copy.
             return {
                 "success": True,
-                "message": f"{marshal.name} cannot break through. "
-                           f"Orders cancelled — awaiting new instructions.",
-                "order_cleared": True,
+                "message": (f"{marshal.name} presses on — "
+                            f"{_strategic_command_flavor(order.command_type)} "
+                            f"continues."),
+                "order_cleared": False,
                 "trust_change": 0,
                 "action_taken": choice
             }
@@ -1029,8 +1172,13 @@ class StrategicOrderProcessor:
                 "order_status": "awaiting_response",
                 "requires_input": True,
                 "interrupt_type": marshal.pending_interrupt.get("interrupt_type"),
-                "message": f"{marshal.name} awaits your orders.",
-                "options": marshal.pending_interrupt.get("options", [])
+                # FA-N60 (slice 3): the question's OWN line when the stored
+                # ask carries one — the popup body is what the marshal said,
+                # not a placeholder.
+                "message": (marshal.pending_interrupt.get("message")
+                            or f"{marshal.name} awaits your orders."),
+                "options": marshal.pending_interrupt.get("options", []),
+                "pending_interrupt": marshal.pending_interrupt,
             }
 
         # 0b. Block execution during retreat recovery (MOVE_TO always allowed — movement isn't blocked)
@@ -1314,6 +1462,11 @@ class StrategicOrderProcessor:
                        "cancel_order"]
         else:
             options = ["attack_anyway", "hold_position", "cancel_order"]
+        # PC-8: the marshal's read stays solo; Berthier names the muster.
+        gate_msg = describe_inferred_bad_odds(
+            marshal.name, target.name,
+            self.executor._combat._bad_odds_muster_note(
+                marshal, target, world))
         marshal.pending_interrupt = {
             # The frontend interrupt popup answers via /strategic_response, which
             # needs the marshal name; the SYNCHRONOUS response.pending_interrupt
@@ -1327,6 +1480,11 @@ class StrategicOrderProcessor:
             "location": marshal.location,
             "is_first_step": False,
             "options": options,
+            # FA-N60 (slice 3): the popup reads THIS dict on the synchronous
+            # route and after /load — without the line it rendered "Awaiting
+            # your orders, Sire." while the marshal's real sentence was
+            # thrown away.
+            "message": gate_msg,
         }
         return {
             "marshal": marshal.name,
@@ -1336,11 +1494,7 @@ class StrategicOrderProcessor:
             "interrupt_type": "contact_bad_odds",
             "enemy": target.name,
             "location": marshal.location,
-            # PC-8: the marshal's read stays solo; Berthier names the muster.
-            "message": describe_inferred_bad_odds(
-                marshal.name, target.name,
-                self.executor._combat._bad_odds_muster_note(
-                    marshal, target, world)),
+            "message": gate_msg,
             "options": options,
         }
 
@@ -1401,6 +1555,27 @@ class StrategicOrderProcessor:
     # ══════════════════════════════════════════════════════════════════════════
     # PURSUE HANDLER
     # ══════════════════════════════════════════════════════════════════════════
+
+    def _pursuit_engagement(self, marshal, world, target, result) -> Dict:
+        """FA slice 3: the four PURSUE attack seams completed the pursuit with
+        whatever the executor said — a REFUSED attack (the crossing gate)
+        "completed" it with the refusal as the reason and the aggressive
+        completion line appended: "…barred… 'Done — and I trust the next order
+        has more fire in it.'" A refusal ends the pursuit with its reason
+        instead; a fought battle completes it as it always did."""
+        if attack_was_refused(result):
+            reason = refusal_reason(result)
+            if result.get("blocked_naval"):
+                text = (f"{marshal.name}'s pursuit halts at the water's edge — "
+                        f"{reason}")
+            else:
+                text = f"{marshal.name} cannot engage {target.name} — {reason}"
+            broken = self._break_order(marshal, world, text)
+            broken.update({"action": "attack_refused", "target": target.name,
+                           **refusal_keys(result)})
+            return broken
+        combat_msg = result.get("message", f"Engaged {target.name}")
+        return self._complete_order(marshal, world, combat_msg)
 
     def _execute_pursue(self, marshal, world, game_state) -> Dict:
         """
@@ -1513,8 +1688,8 @@ class StrategicOrderProcessor:
             )
 
             # Combat happened — pursuit is complete regardless of outcome
-            combat_msg = result.get("message", f"Engaged {target.name}")
-            return self._complete_order(marshal, world, combat_msg)
+            # (a REFUSED attack is not combat — see the helper).
+            return self._pursuit_engagement(marshal, world, target, result)
 
         # Check if engaged with a different enemy in current region
         enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
@@ -1601,8 +1776,7 @@ class StrategicOrderProcessor:
                         }},
                         game_state
                     )
-                    combat_msg = attack_result.get("message", f"Engaged {target.name}")
-                    return self._complete_order(marshal, world, combat_msg)
+                    return self._pursuit_engagement(marshal, world, target, attack_result)
                 else:
                     # Cautious/literal: found the enemy, pursuit complete
                     return self._complete_order(marshal, world,
@@ -1638,8 +1812,7 @@ class StrategicOrderProcessor:
                             }},
                             game_state
                         )
-                        combat_msg = attack_result.get("message", f"Engaged {target.name}")
-                        return self._complete_order(marshal, world, combat_msg)
+                        return self._pursuit_engagement(marshal, world, target, attack_result)
                     # Already fought recently — pursuit still complete
                     return self._complete_order(marshal, world,
                         f"{marshal.name} has engaged {target.name} — pursuit complete")
@@ -1663,8 +1836,7 @@ class StrategicOrderProcessor:
                                 }},
                                 game_state
                             )
-                            combat_msg = attack_result.get("message", f"Engaged {target.name}")
-                            return self._complete_order(marshal, world, combat_msg)
+                            return self._pursuit_engagement(marshal, world, target, attack_result)
                     # Found target — pursuit complete
                     return self._complete_order(marshal, world,
                         f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
@@ -1958,7 +2130,14 @@ class StrategicOrderProcessor:
                 for adj_name in region.adjacent_regions:
                     for enemy in world.get_enemies_in_region(adj_name, marshal.nation):
                         ratio = marshal.strength / max(1, enemy.strength)
-                        if ratio >= 1.0 and self._should_auto_attack(marshal, enemy, world):
+                        if (ratio >= 1.0
+                                and self._should_auto_attack(marshal, enemy, world)
+                                # FA-N40 (slice 3): a shore the executor will
+                                # refuse is not a sally target — the same
+                                # predicate `_execute_attack` applies, asked
+                                # first, so the sortie is never re-attempted
+                                # every turn against the Royal Navy.
+                                and strike_crossing_verdict(world, marshal, adj_name) is None):
                             sally_candidates.append((enemy, adj_name, ratio))
 
             if sally_candidates:
@@ -1985,6 +2164,24 @@ class StrategicOrderProcessor:
                     }},
                     game_state
                 )
+
+                if attack_was_refused(combat_result):
+                    # FA-N40 / FA-N26 (slice 3): a REFUSED sortie was narrated
+                    # "sallies forth to attack Moore, then returns to
+                    # Normandy!" every turn, with the refusal printed under
+                    # it as the battle line. The artillery twin
+                    # (`_execute_hold_bombardment`) had the honest arm;
+                    # this is that arm.
+                    return {
+                        "marshal": marshal.name,
+                        "command": "HOLD",
+                        "action": "hold_active",
+                        "location": marshal.location,
+                        "order_status": "continues",
+                        "message": (f"{marshal.name} holds {marshal.location} — "
+                                    f"{refusal_reason(combat_result)}"),
+                        **refusal_keys(combat_result),
+                    }
 
                 # Step 3: Return to hold position
                 if marshal.location != hold_position:
@@ -2768,6 +2965,24 @@ class StrategicOrderProcessor:
                            f"still blocks the path at {blocked_region}."
             }
 
+        # FA-15 (slice 3, Sept 4 2026): an enemy on the FAR SHORE of a shut
+        # crossing used to reach the personality arms below — the aggressive
+        # arm attacked across the water (refused, then narrated as a battle),
+        # the cautious arm ASKED and offered a dead 'attack'. The honest
+        # `blocked_naval` break in `_execute_move_to` was unreachable
+        # whenever an enemy held the far shore, which for London is always.
+        # The executor's own predicate, asked first: a shore it will refuse
+        # is never attacked, asked about, or rerouted around.
+        _verdict = strike_crossing_verdict(world, marshal, blocked_region)
+        if _verdict is not None:
+            _refusal = verdict_as_refusal(_verdict)
+            broken = self._break_order(
+                marshal, world,
+                f"{marshal.name}'s {_strategic_command_flavor(order.command_type)} "
+                f"halts at the water's edge — {refusal_reason(_refusal)}")
+            broken.update({"action": "attack_refused", **refusal_keys(_refusal)})
+            return broken
+
         if personality == "literal":
             # NPC-5 (review round): ONE source, shared with the
             # executor's first-step copy — see `resolve_order_destination`.
@@ -3017,6 +3232,37 @@ class StrategicOrderProcessor:
         with no report at any depth (the CA8-25 class, one seam over).
         """
         order = marshal.strategic_order
+        if attack_was_refused(result):
+            # FA-14 / FA-19 (slice 3, Sept 4 2026): the executor REFUSED the
+            # attack — no battle, nobody lost a man — and this function used
+            # to fall into its stalemate arm: "attacked Moore during march
+            # but the battle was inconclusive", a `combat_stalemate`
+            # interrupt, `combat_attempts` charged, `in_combat_this_turn`
+            # and `last_combat_result` overwritten. None of that now: the
+            # refusal ends the order with the executor's own reason (the
+            # PF-8 / DEF-5 water's-edge idiom — the pathfinder is edge-blind,
+            # a reroute would plan the same crossing), and touches no combat
+            # record.
+            reason = refusal_reason(result)
+            if not order:
+                return {
+                    "marshal": marshal.name,
+                    "command": "unknown",
+                    "action": "attack_refused",
+                    "order_status": "breaks",
+                    "message": f"{marshal.name} cannot attack {enemy.name} — {reason}",
+                    **refusal_keys(result),
+                }
+            flavor = _strategic_command_flavor(order.command_type)
+            if result.get("blocked_naval"):
+                text = f"{marshal.name}'s {flavor} halts at the water's edge — {reason}"
+            else:
+                text = f"{marshal.name} cannot attack {enemy.name} — {reason}"
+            broken = self._break_order(marshal, world, text)
+            broken.update({"action": "attack_refused", "target": enemy.name,
+                           **refusal_keys(result)})
+            return broken
+
         carry = _combat_carry(result)
         if not order:
             # Order was cleared (e.g., by break during combat)
@@ -3161,6 +3407,13 @@ class StrategicOrderProcessor:
 
         else:  # stalemate / unknown
             marshal.last_combat_result = "stalemate"
+            # FA-34 (slice 3): "Continue move to?" was the raw enum; the
+            # flavor helper the answer arms already use says "his march".
+            stalemate_msg = (
+                f"{marshal.name} attacked {enemy.name} during "
+                f"{_strategic_command_flavor(order.command_type)} but the "
+                f"battle was inconclusive. Continue "
+                f"{_strategic_command_flavor(order.command_type)}?")
             marshal.pending_interrupt = {
                 # See the contact_bad_odds builder above — the popup needs the
                 # marshal name to answer via /strategic_response.
@@ -3169,7 +3422,10 @@ class StrategicOrderProcessor:
                 "enemy": enemy.name,
                 "location": marshal.location,
                 "is_first_step": False,
-                "options": ["continue_order", "hold_position", "cancel_order"]
+                "options": ["continue_order", "hold_position", "cancel_order"],
+                # FA-N60: the popup renders THIS dict's message on the
+                # synchronous route and after /load.
+                "message": stalemate_msg,
             }
             return {
                 "marshal": marshal.name,
@@ -3180,7 +3436,7 @@ class StrategicOrderProcessor:
                 "requires_input": True,
                 "pending_interrupt": marshal.pending_interrupt,
                 "interrupt_type": "combat_stalemate",
-                "message": f"{marshal.name} attacked {enemy.name} during march but the battle was inconclusive. Continue {order.command_type.replace('_', ' ').lower()}?",
+                "message": stalemate_msg,
                 "options": ["continue_order", "hold_position", "cancel_order"],
                 **carry,
             }
