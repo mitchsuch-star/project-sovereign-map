@@ -133,7 +133,7 @@
   "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheDriverAnswersEveryMarshal::test_every_awaiting_row_is_answered"
  },
  {
-  "id": "gd/a the client stashes the deferred hard stop",
+  "id": "gd/a the client stashes the deferred hard stop (a source-text pin kill by construction: the .gd seam cannot run here, so 19 of the 20 are behavioural kills and this one is structural)",
   "file": "godot-client/project-sovereign/scripts/main.gd",
   "old": "\t\t_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline\n",
   "new": "",

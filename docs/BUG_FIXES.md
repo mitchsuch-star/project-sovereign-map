@@ -393,14 +393,14 @@
 | **FA-N87** | P3 | **Harness: the digest's LEDGER line has never once printed a threat figure — the driver reads `threat_level` off GET /ledger, which emits no such key, so the coalition alarm is absent from all 1,246 archived LEDGER rows** Verified by opening: tools/playtest_driver.py:1389 `dig(ledger, "threat_level", "threat")`; :525-532 `ledger_line` renders the bit only `if threat is not None`; backend/game_logic/ledger.py:53-69 `build_strategic_ledger` returns forces/territories/economy/intel/manpower/orders/admiralty/calendar_label/authority/authority_label/actions_remaining/campaign_seed — `grep -c threat backend/game_logic/ledger.py` = 0; backend/main.py:4318-4327 GET /ledger wraps it as {success, ledger} plus identity overrides, no popup passthroughs. Verified by running (probe on the shipped 1805 boot, TestClient with M.parser/M.world/M.game_state swapped to a mock parser): world.threat_level = 70, `dig(ledger,'treasury','gold')` = 800, `dig(ledger,'net_gold','net')` = 1842, **`dig(ledger,'threat_level','threat')` = None**, and a recursive walk for any threat-ish key in the whole /ledger payload returns []. The fi… *Repro:* cd C:/Users/User/PycharmProjects/project-sovereign-map. (1) grep -c threat backend/game_logic/ledger.py -> 0. (2) grep -h "LEDGER" docs/audits/playtest_digests/*/digest.md / grep -c threat -> 0 (of 1246 LEDGER lines). (3) Save as probe_threat.py in the repo root and run `.venv/Scripts/python.exe probe_threat.py` (mock parser, no LLM spend): import contextlib, io, sys, os sys.stdout.reconfigure(encoding="utf-8") os.environ["LLM_MODE"]="mock" sys.path.insert(0, "tools") from fastapi.testclient imp… *Fix:* ONE seam: the third argument at tools/playtest_driver.py:1389. The driver already fetches GET /dispatch at :1392 — hoist that call above the ledger_line call and pass `dig(dispatch_payload, "threat_level")` (or read GET /test, which carries the same `threat_level` at main.py:2051) instead of digging /ledger for a key it does not have. No signature change, no backend change, both existing ledger_line tests keep passing. If the ledger screen should own the number too, the alternative one-seam fix … *Test:* tests/ for tools/playtest_driver.py, two arms. (1) The regression pin, so the fix is provably the thing that changes: boot the 1805 scenario in-process and assert `dig(client.get('/ledger').json(), 'threat_level', 'threat') is None` while `world.threat_level > 0` — this test is RED-by-intent today only in the sense that it documents the hole; convert it after the fix to assert the driver's extract… | `tools/playtest_driver.py:1389` | **OPEN** — verification pass; found by the FA-37 sweep |
 | **FA-N89** | P4 | **meta.json records the run's dice but not its world: --scenario, --cheats and --strict are unrecorded, so FA-39's proposed `script` field still would not say which world an archived digest ran in** Verified by opening: tools/playtest_driver.py:1271-1277 — the meta dict is exactly {name, seed, llm, transport, policy, turns_requested, started, from_save, rng}; argparse at :1436-1471 defines 15 flags including `--scenario` (:1440, 'allowlist name for /new_game'), `--cheats` (:1457, arms DEBUG_MODE) and `--strict` (:1459, whether unknown blockers would have failed the run), none of which reach the meta. Verified in the archive: `json.load(docs/audits/playtest_digests/audit-tutorial/meta.json).keys()` = [counters, from_save, llm, name, policy, rng, seed, started, status, transport, turns_requested, unknown_blockers] — no 'scenario', no 'cheats', no 'script'; its digest.md header line prints seed/llm/transport/policy only, and its boot line (digest.md:4) is the sole disclosure. tools/playtest_scripts/tutorial_lesson.json has no scenario key. Doc claim: docs/PLAYTESTING.md:312 ('meta.json… *Repro:* From the repo root: `python -c "import json;print(sorted(json.load(open('docs/audits/playtest_digests/audit-tutorial/meta.json',encoding='utf-8'))))"` -> no 'scenario'/'cheats'/'script'; `grep -n 'scenario' tools/playtest_driver.py` -> only :1291 (the POST) and :1440 (the flag) — it is never written to meta; `sed -n '4p' docs/audits/playtest_digests/audit-tutorial/digest.md` -> the boot message is the only tell. Then `.venv/Scripts/python.exe tools/playtest_driver.py --turns 1 --name scencheck -… *Fix:* ONE seam, and it should be FOLDED INTO FA-39's meta fix rather than built separately: the meta dict at tools/playtest_driver.py:1271-1277 gains `"scenario": args.scenario`, `"cheats": bool(args.cheats)`, `"strict": bool(args.strict)` alongside FA-39's `"script"`/`"llm_source"`, and the digest header line at :356-359 names the scenario when it is non-empty. Correct docs/PLAYTESTING.md:312 to say which args are recorded. *Test:* tests/test_playtest_driver_instrument.py — (a) a 1-turn run with `--scenario tutorial --cheats --strict` writes meta.json with scenario=='tutorial', cheats is True, strict is True, and digest.md's header names the scenario; a default run writes scenario==''. (b) A drift pin in the project's census idiom, so this cannot regress when the next flag is added: parse `main()`'s argparse `dest` set by AS… | `tools/playtest_driver.py:1271` | **OPEN** — verification pass; found by the FA-39 sweep |
 
-## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4, the slice-3 review round and slice 5 landed — see the boxed blocks)
+## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4, the slice-3 review round, slice 5 and the slice-4 review round landed — see the boxed blocks)
 
 > **Review-round findings (September 4, 2026) — filed by the slice-2 review fleet, NOT fixed in the round; owned by slice 4 (the AI reads the board):**
 >
 > | ID | P | Finding | Seam | Status |
 > |---|---|---|---|---|
-> | **FA-R1** | P2 | **The enemy AI's target filter admits a coalition PARTNER as an at-war target.** Measured on the slice-2 ambient board (`aa6faa01`, brakes on): FOUR `Cannot attack X — <court> is a coalition ally` refusals at t30–35 — Shrapnel→Bagration, Bagration→Wellesley, Wellesley→Hiller, Shrapnel→Liechtenstein — each writing a 2-turn `attack` cooldown on the ordering marshal. *Verify the mechanism first:* a coalition partner should never be a WAR pair; if the pair state IS war, the executor's ally guard and the diplomatic state disagree, and the fix is at whichever of the two is lying. | the AI candidate list (`get_enemies_of_nation` → `_find_attack_opportunity`) vs `combat_executor`'s coalition-ally refusal | ✅ **FIXED September 4, 2026 — FA slice 4 "The AI Reads the Board" (landing record in §Final Whole-Game Audit)** |
-> | **FA-R2** | P3 | **Fourteen of the gated ambient board's twenty-three failed-action cooldown writes in 40 turns are refused DRILL orders** (mechanism probe, `refused_by_action`): the AI orders a drill the executor refuses, paying an action attempt and a 2-turn `drill` cooldown each time. | the rung that emits `drill` (P5/P6) vs `tactical_executor._execute_drill`'s refusals — find which precondition the rung does not read | ✅ **FIXED September 4, 2026 — FA slice 4 "The AI Reads the Board" (landing record in §Final Whole-Game Audit)** |
+> | **FA-R1** | P2 | **The enemy AI's target filter admits a coalition PARTNER as an at-war target.** Measured on the slice-2 ambient board (`aa6faa01`, brakes on): FOUR `Cannot attack X — <court> is a coalition ally` refusals at t30–35 — Shrapnel→Bagration, Bagration→Wellesley, Wellesley→Hiller, Shrapnel→Liechtenstein — each writing a 2-turn `attack` cooldown on the ordering marshal. *Verify the mechanism first:* a coalition partner should never be a WAR pair; if the pair state IS war, the executor's ally guard and the diplomatic state disagree, and the fix is at whichever of the two is lying. | `enemy_ai._find_ally_support_opportunity` — the "attacking X to join" arm read `present_non_friendlies` (every foreign corps on the ally's province) and struck the weakest, a coalition PARTNER standing with the ally; the at-war list two lines up was the one that meant "blocking" (slice 4, `ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES`; seam cell rewritten by the slice-4 review round — the claims audit found it still teaching P4's candidate list) | ✅ **FIXED September 4, 2026 — FA slice 4 "The AI Reads the Board" (landing record in §Final Whole-Game Audit)** |
+> | **FA-R2** | P3 | **Fourteen of the gated ambient board's twenty-three failed-action cooldown writes in 40 turns are refused DRILL orders** (mechanism probe, `refused_by_action`): the AI orders a drill the executor refuses, paying an action attempt and a 2-turn `drill` cooldown each time. | `enemy_ai._consider_drill` never read `fortified` — all fourteen refusals were "is fortified and cannot drill. Abandon fortification first." (slice 4, `DRILL_RUNG_READS_FORTIFIED`; seam cell rewritten by the slice-4 review round) | ✅ **FIXED September 4, 2026 — FA slice 4 "The AI Reads the Board" (landing record in §Final Whole-Game Audit)** |
 
 > **Memo of record = `docs/audits/FINAL_AUDIT_2026_09_01.md` (authoritative);
 > untruncated machine record = `docs/audits/final_audit_2026_09_01_findings.json`.**
@@ -432,6 +432,152 @@
 >
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).
+
+> ### ✅ SLICE 4 REVIEW ROUND — "THE BOARD READS BACK" — FIXED September 4, 2026
+>
+> **Landing record: this block (an addendum to the SLICE 4 block below).
+> Three review lenses attacked `d2ca0228` at master `85130a6f` — R1 the AI's
+> decisions rung by rung, R2 the balance warning the slice recorded but could
+> not measure, R3 every claim of slice 4 AND of the slice-3 review round
+> re-derived — and their reports are committed at
+> `docs/audits/fa_build_2026_09_04/REVIEW_slice4_R{1,2,3}_*.md`.** Tests
+> `tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py` (42), the
+> fixtures the reviewer's own reproductions; sweep `tools/_sweep_fa_slice4r.json`
+> — **24 mutations, 24 killed, 0 INERT, 0 BROKEN** (two were INERT on the
+> first pass: the P8 cavalry guard was never reached because the
+> garrison-placement rung answered first on an empty field, and the ally
+> strike's crossing read had no pin that crossed water — both isolated with
+> their own pins, one on the shipped Channel); ruff clean; zero `.gd`;
+> `BASELINE_SERIES` **re-recorded ONCE with a TEN-arm attribution** (arm 0
+> reproduces the slice-4 series byte-for-byte; the recipe corrected per R3:
+> eight module globals set in the CHILD with `PYTHONHASHSEED=0` in its
+> ENVIRONMENT); M1–M7 byte-identical WITHOUT re-record, structurally.
+>
+> **R1 — the board read back wrong at eight more seams, several inside the
+> slice's own fixes; all eight FIXED behind levers:** (R1-1) the counter-punch
+> and the P7.5 range arm priced a `retreated_this_turn` target at his
+> NEIGHBOURS' strength — the field helper excludes retreated corps and the two
+> new sites lacked P4's `max(field, enemy)` guard: a 20k Wellington struck a
+> 30k Ney at "4.0" (`FIELD_PRICES_THE_TARGET_TOO`; the blow now lands, if at
+> all, on the 5k Davout who would actually fight); (R1-2) the ally-support
+> "must attack to join" arm was the ONLY unpriced attack in the tree and by
+> rung order fired only after P4 had DECLINED the same target — a cautious 30k
+> Wellington struck a 40k Davout, −2,358 — priced as P4 prices, with the
+> futility brake and the crossing gate (`ALLY_SUPPORT_PRICES_THE_FIELD`);
+> (R1-3) the AI's own admin recruit broke the square the phase had just paid
+> for and `_auto_break_square` then forbade re-forming it for two turns (Mack,
+> twice on the shipped board) — the admin pick skips a squared corps and an
+> administrative break stamps no cooldown (`ADMIN_RECRUIT_SPARES_THE_SQUARE`);
+> (R1-4) the stagnation tracker did not count `form_square` as meaningful and
+> read LAST phase's counter within the phase, marching squared corps out from
+> under the cavalry and cancelling a drill paid a moment earlier — a square is
+> meaningful, and a corps that drills or has acted this phase is not forced
+> (`STAGNATION_READS_THE_PHASE`, the new in-phase `_acted_this_phase` set);
+> (R1-5) FA-R2's mirror — a DRILLING corps was ordered stance / fortify /
+> supply-move and refused, six of the shipped board's seven surviving
+> refusals (`DRILLING_CORPS_IS_LEFT_TO_DRILL`); (R1-6, GR5) the AI's banked
+> counter-punch was destroyed by an undefended capture with no free-action
+> credit — the player's exit stamps it — now both capture exits credit it
+> (`COUNTER_PUNCH_CREDITS_THE_CAPTURE`); (R1-7) FA-N54's oscillation: forced
+> AGGRESSIVE at turn start, the cautious rungs bought DEFENSIVE back for 2 AP
+> (−10% defence on the flip), forced again — Paget twice in seven turns. **Three
+> producers**, not the two the review named (the frontier-fortify rung P5 was
+> the third), and the rule was **measured three ways before shipping**: an
+> outright never-park ban moved the passive board from France 2 to France 19
+> provinces (F alone, fork [9]) and the round to 13 — a balance swing, NOT
+> taken; the shipped rule is the TELL — a cautious corps is never AGGRESSIVE by
+> its own choice, so AGGRESSIVE horse under the limit means the limit spoke and
+> is not bought back, while a horse that has never parked may still park once,
+> as the player's may — plus the limit's forced unfortify now writes the AI's
+> own refortify memory, since the trust hit it writes is inert for a planner
+> that reads no trust (`CAVALRY_AI_READS_THE_LIMIT`); (R1-8, GR5, pre-existing)
+> a fortified AI or autonomous corps could MARCH and keep its +12% works — the
+> refusal lived in the executor's player branch and the strategic-step branch
+> only — ONE refusal at the movement seam for every mover, P6.5 reads
+> `fortified`, and the road-home walker (P1.2) unfortifies before it walks so
+> the treaty's clock is not lost to the works (`FORTIFIED_CORPS_NEVER_MARCHES`
+> in `movement_executor.py`, read lazily by the rungs). **R1-9 routed, not
+> built** (DESIGN_REFINEMENT FA-D29: a 500-man stub in a garrisoned province is
+> a P4 sink and the garrison is never assaulted while it stands — P4 prices the
+> visible field, never the CO-1 reinforcement that arrives; larger than a
+> round). **R1-10/11 recorded**: the "15 → 4" was arm A alone; "three suicidal
+> blows declined" were eight Shrapnel evaluations, none fired; the PT-F6 latch
+> is dead code under the shipped lever and load-bearing only with it down (the
+> lever-off control arm), pinned by construction — a formed square marks the
+> corps done for the phase.
+>
+> **The series (ten arms, `series_arm4.py`):** arm 0 byte-identical; A
+> (R1-1), B (R1-2), G (R1-6) BYTE-IDENTICAL with measured reasons (no retreated
+> target, no ally strike under the floor, no counter-punch capture on this
+> board — each pinned on the reviewer's geometry); C forks at [23] (France 1 /
+> Austria 21 / Britain 33), D at [15] (France 5 / Austria 23 / Britain 19;
+> moves 167 → 115, drills 18 → 7), E at [18], F at [15] (France 0 / Austria
+> 26 / Britain 29 ALONE), H at [10] (France 3 / Austria 24 / Britain 20). **The
+> round forks at [10] and ends France 5 / Austria 26 / Britain 21 / Russia 10;
+> refused actions 7 → 4, squares 12 → 10, attacks 82 → 68, moves 167 → 150;
+> captured NONE (slice 4 left eight, the Emperor among them), fallen
+> {Deroy}.** The AI's own defects — not France's play — had been worth three
+> provinces and the whole French roster on the passive board. Board pins
+> re-measured with dated notes: WO-10 ungated collisions 29 → 25 (three
+> `Leon → Napoleon`, ten `Champagne → Ney`, eight `Gascony → Ney`, four
+> `Maine → Ney` — two provinces the ungated board never named before), cooldown
+> writes 37 vs 4 (the gated board's seven were six drilling refusals and one
+> cavalry re-park, both fixed), the ungated series re-recorded; WO-9 uncapped
+> 24 / capped 25 (the cap buys ONE turn on this board — the contract is delay,
+> not size); the AI-V mirror pin derives from the series.
+>
+> **R2 — the balance warning MEASURED, and put to the user as a gate
+> (DESIGN_REFINEMENT FA-D27).** Before the round: an unattended France is
+> overrun on 8/8 seeds (≤ 5 provinces by turn 23–27; threat zero by 28–33; seed
+> means Fr@30 16.2 → 3.9, Fr@40 9.5 → 2.2) and a scripted, fighting France on
+> 5/5 arms (turn-40 provinces {27, 29, 27, 16, 27} → {14, 8, 11, 6, 10}), the
+> collapse starting between turns 20 and 32 once the scripts' initiative is
+> spent; the slice-4 levers act JOINTLY, not additively (B alone ends
+> `historical` at 6, the other eight together at 27, all nine at 2), and the
+> dominant lever is a property of the board. The reviewer's own reading —
+> nothing says the AI is "too strong" rather than "finally not wasting a third
+> of its actions" — stands; this round's fixes move the passive board back to
+> France 5 without touching a single number. **Whether to retune is the user's
+> call; nothing here does.** The same lens found **a pre-existing garrison
+> pathology lever A now steers the AI into (FA-D28): a detachment garrison
+> costs ⌈log₂ N⌉+1 assaults and a fifth to a half of the ATTACKER however
+> large he is** (`_resolve_garrison_combat`: `garrison_damage_ratio ≤ 0.50` per
+> assault, attacker losses floored at 2% of his OWN strength) — measured, a
+> 40,000-man Kutuzov needs 13 assaults to clear a 3,000-man detachment and
+> loses 10,156 men doing it, more than the garrison had; a combat-balance
+> change, gated, fix shape on the row. The road-home internment of a corps on a
+> province its own army took that phase is design of record, noted.
+>
+> **R3 — the record corrected in eleven places** (every item applied in this
+> round): the slice-4 block's end state and counts (France 3 / Austria 21,
+> "23 → 6", "[32]" → 2 / 23 / 28, 23 → 7, [30]); "garrison orders 15 → 27" =
+> rung EVALUATIONS (executed garrison assaults fell 7 → 4); "Four PT-F6 pins"
+> = two pins rewritten (three assertions); FA-N54's "24 marshal-turns" = 21 at
+> the stance limit (22 with the fortified limit); FA-N6's `attack Lyon` = the
+> province he stands on; the attribution recipe (a class attribute among the
+> globals, an uncommitted counting runner, `PYTHONHASHSEED=0` in the child's
+> ENVIRONMENT — set in-process it silently does nothing and yields a different
+> series, measured); the slice-3 round's "reached by the typed out-of-range
+> `attack <marshal>`" is FALSE — that route mints a PURSUE and never reaches the
+> arrival arm, which is carried only by the parser's "and attack" hint and is
+> practically unreachable (the test's docstring now says so); **FA-N38 was
+> closed nowhere a reader looks** (its only row, DESIGN_REFINEMENT, now carries
+> the status); **FA-R1 / FA-R2's seam cells still taught the wrong seam** —
+> rewritten; the slice-3r sweep's `gd/a` is a source-text pin kill by
+> construction (19 of 20 behavioural), annotated; two different "sixteens"
+> (text 13 + 3 with the muster re-issue; AST 13 + 2 + jealousy) are both stated
+> in the R3 report; the font-sidecar fix covered the two fonts the test names
+> and **21 tracked `.ttf` still lack a committed `.import`** (Godot regenerates;
+> nothing breaks). ⚠ The slice-4 record's "overrun by turn 32" reads, measured:
+> down to five provinces by turn 23, two by turn 33, the Emperor taken by
+> Britain — and is superseded by this round's board.
+>
+> **The method note, for the next round:** three of the eight R1 findings were
+> defects INSIDE slice 4's fixes (the field helper's exclusion the new sites did
+> not guard; the square cooldown stamped on an administrative act; the phase
+> reading last phase's counter), and the cavalry rule's first cut here was
+> itself measured to be a balance swing before it shipped — the arms are the
+> review that runs before the reviewers do.
 
 > ### ✅ SLICE 5 — "THE ROAD LAW" — FIXED September 4, 2026
 >
@@ -568,9 +714,13 @@
 > act with the order STANDING and abandon it only for a battle actually
 > fought or a march actually made (`CANNON_FIRE_READS_THE_ANSWER`); the
 > fighting redirect finally carries its report and tableau. **A thirteenth
-> order-driven seam** (R3-S1) — the MOVE_TO attack-on-arrival, reached by
-> the typed out-of-range `attack <marshal>` — was unread and mis-filed by
-> slice 3's own census as an "answer arm"; it reads the refusal now.
+> order-driven seam** (R3-S1) — the MOVE_TO attack-on-arrival, carried
+> only by a MOVE_TO with the parser's "and attack" hint (the typed
+> out-of-range `attack <marshal>` mints a PURSUE and never reaches it —
+> practically unreachable, R1-F7b; pinned by a hand-built order; this
+> sentence first claimed the typed route and was corrected by the slice-4
+> claims audit) — was unread and mis-filed by slice 3's own census as an
+> "answer arm"; it reads the refusal now.
 >
 > **The answered contact read `success` alone** (R1-F3/F4, R2-F4). A
 > STALE contact answered `attack` — the enemy phase had moved the blocker
@@ -636,7 +786,9 @@
 > (2.6×); the WO-9 "A alone / B alone rebel at 30" → both flip VASSAL→PEACE
 > at 30. FA-R1's routing note named the wrong seam and FA-R2's the wrong
 > question — slice 4 found both true seams (the ally-support join arm;
-> `fortified`) before this audit landed, and the rows now say so.
+> `fortified`) before this audit landed; the rows' seam cells were
+> rewritten by the slice-4 review round (the claims audit found them still
+> teaching the wrong seam — "the rows now say so" was false when written).
 > **Repo hygiene fixed in passing (R3's aside):** the map-label fonts'
 > `.import` sidecars (MarcellusSC, Spectral) were gitignored under the
 > assets rule while their `.ttf` files were tracked, so
@@ -707,13 +859,14 @@
 > outright); a fortified or drilling corps keeps its works; a formed square
 > ENDS the corps' phase at the execution seam; and `_auto_break_square` —
 > the seam the thrash actually ran through — finally sets the two-turn
-> cooldown P2.5's own break arm always set. Four PT-F6 pins flipped
-> consciously to the new contract; the control arm now reaches back past
+> cooldown P2.5's own break arm always set. Two `test_ai_square_thrash.py`
+> pins rewritten (three assertions) to the new contract; the control arm now reaches back past
 > BOTH halves (latch + ordering) to provoke the thrash it exists to prove.
 >
 > **FA-N6 (P2) — a broken corps takes the limiter.** `_evaluate_marshal`
 > never read the acting corps' own `broken`: a broken 1,000-man corps went
-> P-1 `attack Lyon` and took the province; a broken 20,000-man Mack drilled.
+> P-1 `attack <the province he stands on>` (Lyon on the memo's placement)
+> and took the province; a broken 20,000-man Mack drilled.
 > **Row correction:** the title over-claims — stagnation / liberation /
 > consolidation already refuse a broken corps; the attack and capture rungs
 > did not, and the stored-intent block precedes the limiter and jumped it.
@@ -740,7 +893,8 @@
 > turns); pinned on the Channel.
 >
 > **FA-N54 (P3) — the horse obeys both sides.** `_check_cavalry_limits` was
-> player-only: Paget sat at or over the limit 24 marshal-turns in 40 while
+> player-only: Paget sat at the stance limit on 21 turns of 40 (22 with the
+> fortified limit) while
 > the counters accrued. Guard deleted (GR5); the redemption check keeps its
 > own player scope; the dispatch drops non-player events, so his "restless
 > horses" line never reaches the player. **Row correction:**
@@ -776,8 +930,10 @@
 > byte-for-byte; A (FA-8) forks at [5], B (FA-27) at [4], D (FA-N7) at [14],
 > F (FA-N54) at [13], H (FA-R1) at [24], I (FA-R2) at [29]; C, E, G inert
 > with their reasons. The full tree forks at [4] and the threat series
-> **decays to ZERO from [32]** — France 3 / Austria 21 / Britain 28, the
-> Emperor among the captured, the AI's refused actions 23 → 6. ⚠ **This is
+> **decays to ZERO from [30]** — France 2 / Austria 23 / Britain 28, the
+> Emperor among the captured, the AI's refused actions 23 → 7 (this block
+> first said 3 / 21 / 28, 23 → 6 and [32]; corrected by the slice-4 claims
+> audit against the attribution comment it points at). ⚠ **This is
 > the warning for the next in-game review, stated as a delta and not a
 > balance claim:** on a board where France issues no orders, an AI that
 > reads the board now overruns it by turn 32. Whether a PLAYED France can

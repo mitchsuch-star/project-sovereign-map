@@ -69,6 +69,15 @@ def destination_grounding_note(raw_text, resolved_name: str) -> str:
             f"Sire.)")
 
 
+# FA slice 4 REVIEW ROUND (R1-8, Sept 4 2026, GR5): a fortified corps cannot
+# march. The player's typed move and every strategic step were refused in the
+# executor's two branches, but an AI or autonomous move reached this seam
+# unrefused and walked off with its fortification bonus intact (measured:
+# Paris -> Lyon, `fortified=True`, +12% defence, at Lyon). ONE refusal here,
+# for every mover; P6.5 reads `fortified`, the road-home walker unfortifies.
+FORTIFIED_CORPS_NEVER_MARCHES = True
+
+
 class MovementExecutor:
     """Handles movement and reconnaissance actions: move, scout, retreat."""
 
@@ -350,6 +359,14 @@ class MovementExecutor:
                 marshal.drill_complete_turn = -1
                 drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
+        if FORTIFIED_CORPS_NEVER_MARCHES and getattr(marshal, 'fortified', False):
+            return {
+                "success": False,
+                "message": (f"{marshal.name} is fortified at {marshal.location} and "
+                            f"cannot move. Order 'unfortify' first to make the army mobile."),
+                "fortified": True,
+                "suggestion": f"Try: '{marshal.name}, unfortify' to abandon fortified position",
+            }
         if not target:
             # July 19, 2026 — same shape as the "give them hell" defect, one
             # action over. The prompt instructs the model to answer a vague

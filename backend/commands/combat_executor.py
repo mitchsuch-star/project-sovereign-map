@@ -340,6 +340,13 @@ def _attack_is_unordered(command) -> bool:
     return bool(cmd.get("_jealousy_autonomous") or cmd.get("_defiance"))
 
 
+# FA slice 4 REVIEW ROUND (R1-6, Sept 4 2026, GR5): the banked counter-punch
+# is consumed at the head of `_execute_attack`; the undefended-capture exits
+# returned without `free_action`, so the AI paid an AP for its free blow and
+# lost it (the player's route stamps the credit on that very exit).
+COUNTER_PUNCH_CREDITS_THE_CAPTURE = True
+
+
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
 
@@ -5210,7 +5217,7 @@ class CombatExecutor:
                         capture_message += f" {capture_result['message']}"
                         if drill_cancelled_message:
                             capture_message = drill_cancelled_message + capture_message
-                        return {
+                        _occ = {
                             "success": True,
                             "message": capture_message,
                             "occupation_started": True,
@@ -5222,6 +5229,10 @@ class CombatExecutor:
                             }],
                             "new_state": game_state
                         }
+                        if is_counter_punch and COUNTER_PUNCH_CREDITS_THE_CAPTURE:
+                            _occ["free_action"] = True   # R1-6
+                            _occ["counter_punch_used"] = True
+                        return _occ
 
                     # Instant capture
                     capture_message += f" Captured: {old_controller} → {marshal.nation}"
@@ -5246,6 +5257,11 @@ class CombatExecutor:
                         "events": [conquest_event],
                         "new_state": game_state
                     }
+                    if is_counter_punch and COUNTER_PUNCH_CREDITS_THE_CAPTURE:
+                        # R1-6: the blow was consumed at the head of this method;
+                        # the credit rides the exit the blow actually took.
+                        result["free_action"] = True
+                        result["counter_punch_used"] = True
 
                     if marshal.nation == world.player_nation and world.pending_capture_choice:
                         from backend.models.world_state import capture_choice_prompt

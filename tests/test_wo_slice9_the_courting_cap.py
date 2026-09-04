@@ -953,9 +953,16 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # Re-measured by FA slice 4 (September 4, 2026): the AI board-
         # reading fixes fork the board at turn 4 and France is overrun —
         # uncapped 23, capped 29; the cap buys six turns again.
-        assert uncapped == 23, uncapped
-        assert capped == 29, capped
-        assert capped - uncapped == 6, (
+        # Re-measured by the slice-4 REVIEW ROUND (September 4, 2026): eight
+        # more AI board-reading fixes fork the board at turn 10 — uncapped
+        # 24, capped 25. The cap buys ONE turn on this board: the France
+        # that now keeps its corps loses Switzerland to courting a turn
+        # later either way, and the two arms converge on the same
+        # rebellion. The contract stands (delay, never save); the SIZE of
+        # the delay is a fact about the board and moves with it.
+        assert uncapped == 24, uncapped
+        assert capped == 25, capped
+        assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
     def test_the_delay_is_where_the_series_falls_furthest(self):

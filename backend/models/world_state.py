@@ -12179,6 +12179,15 @@ class WorldState:
                 marshal.defense_bonus = 0
                 marshal.turns_fortified = 0
                 marshal.trust.modify(-3)
+                if marshal.nation != self.player_nation:
+                    # FA slice-4 review round (R1-7): the AI reads no trust,
+                    # so the deterrent above is inert for it and the cautious
+                    # default dug the horse in again next turn. Its own
+                    # refortify memory carries the forced unfortify instead.
+                    from backend.ai import enemy_ai as _ea
+                    if getattr(_ea, "CAVALRY_AI_READS_THE_LIMIT", False):
+                        self.ai_refortify_cooldown[marshal.name] = max(
+                            int(self.ai_refortify_cooldown.get(marshal.name, 0) or 0), 3)
 
                 events.append({
                     "type": "cavalry_fortify_forced",

@@ -950,7 +950,15 @@ class TestTheAmbientBoard:
     them — hits the collision TWENTY-NINE times: five `Leon -> Napoleon`
     and twenty-four `Gascony -> Ney`. The gated board still collapses never,
     which is the contract; the counts here are the defect's measurement on
-    today's board and move with it, as their docstrings say they must."""
+    today's board and move with it, as their docstrings say they must.
+
+    Re-measured a fifth time by the slice-4 REVIEW ROUND (September 4,
+    2026, "The Board Reads Back"): eight more AI board-reading fixes fork
+    the board at turn 10 and the UNGATED AI hits the collision TWENTY-FIVE
+    times — three `Leon -> Napoleon`, ten `Champagne -> Ney`, eight
+    `Gascony -> Ney`, four `Maine -> Ney`: the ungated board now names TWO
+    new provinces (Champagne, Maine) because a no-longer-parked British
+    horse and an un-frozen Austrian corps press different fronts."""
 
     @pytest.fixture(scope="class")
     def ungated(self):
@@ -967,7 +975,7 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 29}, seams  # 17 -> 18 -> 17 -> 29 across FA slices 2, 2r, 4
+        assert seams == {"_fuzzy_match_enemy": 25}, seams  # 17 -> 18 -> 17 -> 29 -> 25 across FA slices 2, 2r, 4, 4r
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -979,8 +987,10 @@ class TestTheAmbientBoard:
         warning the next slice needs."""
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
-        assert dict(pairs) == {("Leon", "Napoleon"): 5,
-                               ("Gascony", "Ney"): 24}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 across FA slices 2, 2r, 4
+        assert dict(pairs) == {("Leon", "Napoleon"): 3,
+                               ("Champagne", "Ney"): 10,
+                               ("Gascony", "Ney"): 8,
+                               ("Maine", "Ney"): 4}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 across FA slices 2, 2r, 4, 4r
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1013,10 +1023,7 @@ class TestTheAmbientBoard:
         against the original record is indices [0]-[3]. What it proves
         beyond that is the levers' honesty in the other direction: the
         gated arm (below) equals the standing BASELINE_SERIES exactly."""
-        assert ungated["series"] == [
-            70, 68, 66, 64, 62, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48,
-            46, 44, 42, 40, 38, 36, 34, 32, 30, 28, 26, 13, 10, 7, 10, 8,
-            6, 4, 22, 20, 28, 26, 24, 22, 20]
+        assert ungated["series"] == [70, 68, 66, 64, 62, 68, 66, 64, 62, 60, 58, 55, 52, 49, 46, 43, 40, 37, 34, 31, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1629,8 +1636,12 @@ class TestTheAiIsNotFrozenInstead:
         collapses each write one — the gap the gate buys is wide again.
 
         Killed by: deleting the enemy-seam gate."""
-        assert cooldowns["ungated"] == 29, cooldowns  # 31 -> 34 -> 25 -> 29 across slices
-        assert cooldowns["gated"] == 7, cooldowns     # 11 -> 16 -> 23 -> 7 across slices
+        # Re-measured by the slice-4 REVIEW ROUND (September 4, 2026): 37 vs 4.
+        # The gated board's seven survivors were six drilling-corps refusals
+        # and one cavalry re-park (R1-5 / R1-7, both fixed); the ungated
+        # board's twenty-five collisions plus the AI's other refusals write 37.
+        assert cooldowns["ungated"] == 37, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 across slices
+        assert cooldowns["gated"] == 4, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 across slices
 
 
 _COOLDOWN_PROBE = r'''

@@ -4,6 +4,40 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 4 REVIEW ROUND "THE BOARD READS BACK" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 4 REVIEW ROUND block (authoritative).** Three lenses at `85130a6f`
+> (reports committed under `docs/audits/fa_build_2026_09_04/`). R1 found the
+> board reading back wrong at eight more seams, three of them inside slice 4's
+> own fixes — the counter-punch pricing a retreated target at his neighbours'
+> strength, the unpriced ally-support strike, the AI recruit breaking its own
+> square, the stagnation tracker cancelling a paid drill, the drilling corps
+> ordered what the executor refuses, the AI's counter-punch eaten by a capture
+> (GR5), the cavalry re-parked after the limit forced it out (measured three
+> ways — the ban was a balance swing and the TELL rule ships), the fortified
+> corps that marched with its works (GR5) — all eight fixed behind levers;
+> R1-9 routed (FA-D29). R2 MEASURED the balance warning: an unattended France
+> overrun on 8/8 seeds, a scripted one on 5/5 arms, the slice-4 levers acting
+> JOINTLY; the round's own fixes move the passive board back to France 5 with
+> no corps captured, and the question is put to the user as a GATE (FA-D27),
+> with the pre-existing garrison-assault pathology beside it (FA-D28: a 13:1
+> corps loses more men than the garrison had). R3 corrected the record in
+> eleven places (FA-N38 was closed nowhere a reader looks; FA-R1/R2 taught the
+> wrong seam; the "typed out-of-range attack reaches the arrival arm" claim
+> was false). Tests (42), sweep **24/24 killed, 0 inert at close**,
+> `BASELINE_SERIES` re-recorded ONCE with a ten-arm attribution (arm 0
+> byte-identical; the recipe corrected), M1–M7 byte-identical structurally,
+> zero `.gd`; board pins re-measured (WO-10 collisions 29 → 25 naming two new
+> provinces, cooldowns 37 vs 4; WO-9 24 / 25).
+>
+> **▶ NEXT = the popup queue** (FA-5/30/N20/N67/N62/N99), the mock vocabulary
+> (FA-80/D20/D25/N8/N24/N9/N39/24/47/73) — both reproduced, reports under
+> `docs/audits/fa_build_2026_09_04/` — then FA-26 as a shared helper across
+> four trust-writing families (FA-N1), then position 10. ⚠ Still no pillar
+> re-score. ⚠ **FA-D27 (balance) and FA-D28 (the garrison formula) await the
+> user's ruling** — nothing was retuned.
+
 > # ✅ THE AUDIT BUILD: SLICE 5 "THE ROAD LAW" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
@@ -66,9 +100,9 @@
 > three-seam design), the popup queue (FA-5/30/N20/N67/N62/N99), the mock
 > vocabulary (FA-80/D20/D25/N8/N24/N9/N39/24/47/73), FA-26 as a shared
 > helper across all four trust-writing families (FA-N1), then position 10.
-> ⚠ Still no pillar re-score. ⚠ The slice-4 board warning stands: a
-> passive ambient France is overrun by turn 32 — the next PLAYED campaign
-> decides whether a defended France holds.
+> ⚠ Still no pillar re-score. ⚠ The slice-4 board warning was MEASURED by
+> the slice-4 review round (an unattended France down to five provinces by
+> turn 23, two by turn 33 — on 8/8 seeds) and is now the gate FA-D27.
 
 > # ✅ THE AUDIT BUILD: SLICE 4 "THE AI READS THE BOARD" IS LANDED — September 4, 2026
 >
@@ -91,8 +125,10 @@
 > with an eleven-arm attribution (six levers move the board alone, three
 > inert with measured reasons); M1–M7 byte-identical structurally; no
 > `.gd`. ⚠ **The warning, not a claim: the all-on ambient board — a France
-> that issues no orders — is now overrun by turn 32 and the threat series
-> decays to zero.** Whether a played France holds is for the next played
+> that issues no orders — is down to five provinces by turn 23 and two by
+> turn 33, the Emperor taken by Britain (measured by the slice-4 review
+> round; "overrun by turn 32" was the first reading), and the threat
+> series decays to zero.** Whether a played France holds is for the next played
 > campaign and the AI-V ten-seed sweep. Board pins re-measured with dated notes: WO-10 ungated collapses 17 → 29 (five Leon→Napoleon, twenty-four Gascony→Ney — the ungated AI now presses its attacks), cooldown writes 29 vs 7 (FA-R2's fourteen refused drills gone from the gated board), the ungated arm re-recorded (every arm forks at index 4, so its byte-identity to the original record narrows to [0]–[3]); WO-9 uncapped 23 / capped 29 (the cap buys six turns again); the AI-V mirror pin re-anchored on the per-turn series (the boot reading is not a mirror reading — on a board that only falls from boot, the boot is the maximum).
 >
 > **▶ NEXT = the slice-3 review round** (three lenses at `16921a6b` —

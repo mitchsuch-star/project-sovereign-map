@@ -727,7 +727,11 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # the first refused fall-through on.
 #
 # Attribution, EIGHT arms, each a subprocess with the three review-round
-# levers set in the child (slice 2's own three levers held True):
+# levers set in the child — eight module globals plus the
+# `CombatExecutor.GARRISON_ASSAULT_COUNTS` CLASS attribute, with
+# PYTHONHASHSEED=0 in the child's ENVIRONMENT (set in-process it silently does
+# nothing and yields a different series — the slice-4 claims audit measured
+# it); slice 2's own three levers held True:
 #   0.   all three False ............... slice-2 series, BYTE-FOR-BYTE
 #   D.   P0_BRAKED_CORPS_HOLDS ......... diverges at [22] — the series below
 #   E.   P0_PRICES_THE_WHOLE_FIELD ..... slice-2 series, BYTE-FOR-BYTE —
@@ -765,11 +769,14 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #
 # Nine rows, nine levers, ELEVEN arms (each a subprocess with the levers
 # set in the child, every earlier slice's lever held at its shipped value;
-# the runner also counts the AI's refused actions and garrison orders).
+# an uncommitted instrumented copy of the runner counted the AI's refused
+# actions and garrison-rung evaluations — the committed `_emit_series`
+# counts nothing but the series).
 # Divergence is measured against the slice-2 review-round series:
 #   0.  all nine False ................ review-round series, BYTE-FOR-BYTE
 #   A.  P425_SKIPS_A_HELD_FIELD ....... diverges at [5]: garrison orders
-#       15 -> 4, refusals 23 -> 7 — the rung stopped ordering assaults
+#       15 -> 4 (garrison-RUNG evaluations, arm A alone), refusals 23 -> 7
+#       — the rung stopped ordering assaults
 #       into provinces held by a field army (FA-8: measured, Charles read
 #       Munich's 10,000 garrison as a 2.32 walkover under 101,000 Frenchmen
 #       and the executor fought the field battle the order actually is)
@@ -791,14 +798,16 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #       reason: no corps assaults a garrison twice in one phase here, so
 #       the counter the assault now writes is never read (FA-N59)
 #   H.  ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES  diverges at [24]: the two
-#       "attacking ArchdukeCharles to support ..." orders against an ALLY
-#       are gone (FA-R1)
+#       ally-support strikes on coalition partners (Buxhowden ->
+#       ArchdukeCharles, turn 23; Kutuzov -> Liechtenstein, turn 28) are
+#       gone (FA-R1)
 #   I.  DRILL_RUNG_READS_FORTIFIED .... diverges at [29]: refused drills
 #       14 -> 0 (FA-R2)
 #   ALL the series below, diverging at [4] with B: France 2 / Austria 23 /
-#       Britain 28; refused actions 23 -> 7 (drill 14 -> 0); garrison
-#       orders 15 -> 27 (the rung now fires on garrisons that stand ALONE,
-#       which it used to spend on held provinces); captured {Bernadotte,
+#       Britain 28; refused actions 23 -> 7 (drill 14 -> 0); garrison-rung
+#       EVALUATIONS 15 -> 27 (executed garrison assaults 7 -> 4 — the rung
+#       now fires on garrisons that stand ALONE, which it used to spend on
+#       held provinces); captured {Bernadotte,
 #       Davout, Lannes, Massena, Murat, NAPOLEON, Ney, Soult}, fallen
 #       {Deroy}.
 # So: six levers each move the board alone, three are inert with measured
@@ -814,9 +823,60 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # M1-M7 byte-identical WITHOUT re-record — structurally: the harness
 # calls `resolve_battle` directly and never reaches EnemyAI, advance_turn
 # (the cavalry limits) or the garrison resolver.
+#
+# ── FA slice 4 REVIEW ROUND "The Board Reads Back" (September 4, 2026) ──
+# Re-recorded ONCE more, TEN arms (`series_arm4.py`: eight module globals
+# set in the CHILD — six in enemy_ai, COUNTER_PUNCH_CREDITS_THE_CAPTURE in
+# combat_executor, FORTIFIED_CORPS_NEVER_MARCHES in movement_executor —
+# with PYTHONHASHSEED=0 in the child's ENVIRONMENT; the reviewer's own
+# recipe correction). Every earlier lever at its shipped value.
+#   0.  all eight False ............... the slice-4 series, BYTE-FOR-BYTE
+#   A.  FIELD_PRICES_THE_TARGET_TOO ... BYTE-FOR-BYTE — inert with a
+#       reason: no counter-punch or range-arm target is a retreated corps
+#       standing beside a friend in 40 turns; pinned on the reviewer's
+#       geometry (R1-1)
+#   B.  ALLY_SUPPORT_PRICES_THE_FIELD . BYTE-FOR-BYTE — inert with a
+#       reason: the ally-support strikes this board makes all clear the
+#       floor; pinned on the reviewer's geometry (R1-2)
+#   C.  ADMIN_RECRUIT_SPARES_THE_SQUARE  diverges at [23]: France 1 /
+#       Austria 21 / Britain 33 — Mack's square survives its own admin
+#       phase (R1-3)
+#   D.  STAGNATION_READS_THE_PHASE ..... diverges at [15]: France 5 /
+#       Austria 23 / Britain 19; moves 167 -> 115, drills 18 -> 7,
+#       refused 7 -> 3 — no corps is marched out of its own drill or
+#       square within the phase (R1-4)
+#   E.  DRILLING_CORPS_IS_LEFT_TO_DRILL  diverges at [18]: refused 7 -> 3
+#       (six of the seven survivors were this class) (R1-5)
+#   F.  CAVALRY_AI_READS_THE_LIMIT ..... diverges at [15]: France 0 /
+#       Austria 26 / Britain 29 ALONE — the horse the limit forced
+#       AGGRESSIVE is not bought back into DEFENSIVE (R1-7). Measured
+#       three ways before shipping: an outright never-park ban with the
+#       frontier-fortify guard moved the board to France 19 / Austria 10
+#       (F alone, fork [9]) and the round to France 13 — a balance swing,
+#       NOT taken; the shipped TELL rule (AGGRESSIVE horse = the limit
+#       spoke; a fresh horse may park once) lands as recorded here.
+#   G.  COUNTER_PUNCH_CREDITS_THE_CAPTURE  BYTE-FOR-BYTE — inert with a
+#       reason: no banked blow is spent on an undefended capture in 40
+#       turns; pinned on the reviewer's geometry (R1-6, GR5)
+#   H.  FORTIFIED_CORPS_NEVER_MARCHES .. diverges at [10]: France 3 /
+#       Austria 24 / Britain 20 — a fortified AI corps no longer walks
+#       off with its works (R1-8, GR5)
+#   ALL the series below, diverging at [10] with H: France 5 / Austria 26
+#       / Britain 21 / Russia 10; refused actions 7 -> 4; squares 12 -> 10,
+#       attacks 82 -> 68, moves 167 -> 150; captured {} (was eight, the
+#       Emperor among them), fallen {Deroy}.
+# So: five levers each move the board alone, three are inert with measured
+# reasons, and the round forks at [10]. The passive board ends France 5
+# where slice 4 left it at 2 with the whole roster captured — the AI's own
+# defects, not France's play, had been worth three provinces and eight
+# corps. The balance question the slice-4 record raised was MEASURED by
+# the review's balance lens (docs/audits/fa_build_2026_09_04/
+# REVIEW_slice4_R2_balance_measurement.md — an unattended France overrun on
+# 8/8 seeds, a scripted one on 5/5 arms) and is put to the user as a gate
+# in the round's landing record; nothing here retunes it.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 68, 66, 63, 60, 58, 56, 54, 52, 50, 48, 45, 42,
-    39, 41, 38, 35, 32, 29, 26, 23, 20, 17, 19, 6, 3, 0, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 68, 66, 63, 60, 58, 55, 52, 49, 46, 43, 40, 37,
+    34, 31, 28, 25, 22, 19, 16, 3, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
 ]
 

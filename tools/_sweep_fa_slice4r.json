@@ -1,0 +1,170 @@
+[
+ {
+  "id": "r1_1/a the counter-punch never prices below the target",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                if FIELD_PRICES_THE_TARGET_TOO:\n                    # R1-1: the helper excludes broken and retreated corps",
+  "new": "                if False:\n                    # R1-1: the helper excludes broken and retreated corps",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheFieldPricesTheTargetToo::test_a_retreated_target_is_priced_at_his_own_strength"
+ },
+ {
+  "id": "r1_1/b the range arm never prices below the target",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                            if FIELD_PRICES_THE_TARGET_TOO:\n                                # R1-1: never below the target himself.",
+  "new": "                            if False:\n                                # R1-1: never below the target himself.",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheFieldPricesTheTargetToo::test_the_range_arm_prices_the_target_too"
+ },
+ {
+  "id": "r1_2/a the ally strike is priced",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                    if ALLY_SUPPORT_PRICES_THE_FIELD and not self._ally_strike_is_worth_it(",
+  "new": "                    if False and not self._ally_strike_is_worth_it(",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheAllySupportStrikeIsPriced::test_a_cautious_corps_does_not_strike_to_join_at_bad_odds"
+ },
+ {
+  "id": "r1_2/b the ally strike reads futility",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if futility.get(f\"{marshal.name}:{weakest.name}\", 0) >= ATTACK_FUTILITY_LIMIT:\n            return False\n        combined = self._get_combined_strength_in_region(marshal, nation, world)",
+  "new": "        if False:\n            return False\n        combined = self._get_combined_strength_in_region(marshal, nation, world)",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheAllySupportStrikeIsPriced::test_futility_brakes_the_strike"
+ },
+ {
+  "id": "r1_2/c the ally strike prices the field, not one man",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        field = max(self._defending_strength_in_region(list(enemies_at_dest)),\n                    int(weakest.strength))",
+  "new": "        field = int(weakest.strength)",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheAllySupportStrikeIsPriced::test_the_field_is_priced_not_one_man"
+ },
+ {
+  "id": "r1_2/d the ally strike reads the crossing",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if not self._stagnation_can_strike(world, nation, marshal.location, ally.location):\n            return False\n        from backend.commands.strategic import ATTACK_FUTILITY_LIMIT",
+  "new": "        from backend.commands.strategic import ATTACK_FUTILITY_LIMIT",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheAllySupportStrikeIsPriced::test_the_crossing_gate_brakes_the_strike"
+ },
+ {
+  "id": "r1_3/a the admin pick skips a squared corps",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if ADMIN_RECRUIT_SPARES_THE_SQUARE and getattr(marshal, 'square_formation', False):",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheAdminRecruitSparesTheSquare::test_the_admin_pick_skips_a_squared_corps"
+ },
+ {
+  "id": "r1_3/b an administrative break stamps no cooldown",
+  "file": "backend/commands/tactical_executor.py",
+  "old": "        if SQUARE_FORMS_AFTER_THE_STRIKES and not (\n                ADMIN_RECRUIT_SPARES_THE_SQUARE\n                and action_name in (\"recruit\", \"garrison\")):",
+  "new": "        if SQUARE_FORMS_AFTER_THE_STRIKES:",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheAdminRecruitSparesTheSquare::test_a_recruit_into_a_square_stamps_no_cooldown"
+ },
+ {
+  "id": "r1_4/a a square is meaningful at phase end",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            elif action in (\"move\", \"drill\", \"recruit\", \"unfortify\", \"retreat\") or (\n                    STAGNATION_READS_THE_PHASE and action == \"form_square\"):",
+  "new": "            elif action in (\"move\", \"drill\", \"recruit\", \"unfortify\", \"retreat\") or (\n                    False):",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestStagnationReadsThePhase::test_a_square_is_meaningful_at_phase_end"
+ },
+ {
+  "id": "r1_4/b the phase remembers who acted",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                self._acted_this_phase.add(selected_action[\"marshal\"])",
+  "new": "                pass",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestStagnationReadsThePhase::test_the_drill_survives_the_phase"
+ },
+ {
+  "id": "r1_4/c the stagnation rung reads the phase",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if STAGNATION_READS_THE_PHASE and (\n                _corps_is_drilling(marshal)",
+  "new": "        if False and (\n                _corps_is_drilling(marshal)",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestStagnationReadsThePhase::test_a_drilling_corps_is_not_forced tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestStagnationReadsThePhase::test_a_corps_that_acted_this_phase_is_not_forced"
+ },
+ {
+  "id": "r1_5/a the threat rung leaves a drilling corps alone",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal):\n            # R1-5: the executor refuses a drilling corps every stance",
+  "new": "        if False:\n            # R1-5: the executor refuses a drilling corps every stance",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestADrillingCorpsIsLeftToDrill::test_check_threats_returns_none_for_a_drilling_corps"
+ },
+ {
+  "id": "r1_5/b the cautious default leaves a drilling corps alone",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal):\n                # R1-5: a drilling corps is refused both arms below.",
+  "new": "            if False:\n                # R1-5: a drilling corps is refused both arms below.",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestADrillingCorpsIsLeftToDrill::test_the_tree_never_orders_a_drilling_corps_a_stance_or_a_fort"
+ },
+ {
+  "id": "r1_5/c the supply rung leaves a drilling corps alone",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                (DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal))\n                or (_fortified_corps_never_marches()",
+  "new": "                (False)\n                or (_fortified_corps_never_marches()",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestAFortifiedCorpsNeverMarches::test_the_supply_rung_does_not_march_a_drilling_corps"
+ },
+ {
+  "id": "r1_6/a the instant capture carries the credit",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if is_counter_punch and COUNTER_PUNCH_CREDITS_THE_CAPTURE:\n                        # R1-6: the blow was consumed at the head of this method;",
+  "new": "                    if False:\n                        # R1-6: the blow was consumed at the head of this method;",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheCounterPunchCreditsTheCapture::test_an_undefended_capture_carries_the_free_action_credit"
+ },
+ {
+  "id": "r1_6/b the occupation exit carries the credit",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        if is_counter_punch and COUNTER_PUNCH_CREDITS_THE_CAPTURE:\n                            _occ[\"free_action\"] = True   # R1-6",
+  "new": "                        if False:\n                            _occ[\"free_action\"] = True   # R1-6",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestTheCounterPunchCreditsTheCapture::test_the_occupation_exit_carries_the_credit_too"
+ },
+ {
+  "id": "r1_7/a the threat rung never parks cavalry",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                if CAVALRY_AI_READS_THE_LIMIT and _cavalry_under_the_limit(marshal):\n                    # R1-7: the limit forced this horse OUT of DEFENSIVE at",
+  "new": "                if False:\n                    # R1-7: the limit forced this horse OUT of DEFENSIVE at",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestCavalryIsNotParkedAgain::test_the_threat_rung_does_not_buy_the_stance_back"
+ },
+ {
+  "id": "r1_7/b the cautious default does not park the horse again",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if CAVALRY_AI_READS_THE_LIMIT and _cavalry_under_the_limit(marshal):\n                # R1-7: cavalry is never parked in DEFENSIVE or a fort by the",
+  "new": "            if False:\n                # R1-7: cavalry is never parked in DEFENSIVE or a fort by the",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestCavalryIsNotParkedAgain::test_the_cautious_default_does_not_park_it_again"
+ },
+ {
+  "id": "r1_7/c the frontier-fortify rung does not park the horse again",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if CAVALRY_AI_READS_THE_LIMIT and _cavalry_under_the_limit(marshal):\n            # R1-7 (slice-4 review round): the third producer of the parked",
+  "new": "        if False:\n            # R1-7 (slice-4 review round): the third producer of the parked",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestCavalryIsNotParkedAgain::test_the_cautious_default_does_not_park_it_again"
+ },
+ {
+  "id": "r1_7/d the tell is the forced stance, a fresh horse may park once",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                and getattr(marshal, \"stance\", None) == Stance.AGGRESSIVE)",
+  "new": "                and True)",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestCavalryIsNotParkedAgain::test_a_never_parked_horse_may_still_park_once"
+ },
+ {
+  "id": "r1_7/e the forced unfortify leaves the AI a refortify memory",
+  "file": "backend/models/world_state.py",
+  "old": "                    if getattr(_ea, \"CAVALRY_AI_READS_THE_LIMIT\", False):\n                        self.ai_refortify_cooldown[marshal.name] = max(",
+  "new": "                    if False:\n                        self.ai_refortify_cooldown[marshal.name] = max(",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestCavalryIsNotParkedAgain::test_a_forced_unfortify_leaves_the_ai_a_refortify_memory"
+ },
+ {
+  "id": "r1_8/a a fortified corps is refused the march",
+  "file": "backend/commands/movement_executor.py",
+  "old": "        if FORTIFIED_CORPS_NEVER_MARCHES and getattr(marshal, 'fortified', False):",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestAFortifiedCorpsNeverMarches::test_an_autonomous_move_of_a_fortified_corps_is_refused"
+ },
+ {
+  "id": "r1_8/b the supply rung reads fortified",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                or (_fortified_corps_never_marches()\n                    and getattr(marshal, 'fortified', False)))",
+  "new": "                or False)",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestAFortifiedCorpsNeverMarches::test_the_supply_rung_does_not_march_a_fortified_corps"
+ },
+ {
+  "id": "r1_8/c the road-home walker leaves his works first",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                if _fortified_corps_never_marches() and getattr(marshal, 'fortified', False):\n                    # R1-8: a fortified corps is refused the march now; the",
+  "new": "                if False:\n                    # R1-8: a fortified corps is refused the march now; the",
+  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestAFortifiedCorpsNeverMarches::test_the_road_home_walker_leaves_his_works_first"
+ }
+]

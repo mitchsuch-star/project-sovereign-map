@@ -398,6 +398,13 @@ class TestTheAnsweredContactReadsTheBoard:
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestTheArrivalArmReadsTheAnswer:
+    """The MOVE_TO attack-on-arrival arm. It is carried ONLY by a MOVE_TO
+    whose `attack_on_arrival` flag the parser's "march to X and attack" hint
+    set — the typed out-of-range `attack <marshal>` mints a PURSUE and never
+    reaches it (the slice-4 claims audit killed the round's first claim), and
+    the contact / blocked-destination arms pre-empt the branch in every
+    geometry tried: practically unreachable (R1-F7b). The fixture sets the
+    flag by hand, which is the only honest way to drive the seam."""
 
     def _arrival(self, world, wel):
         wel.strategic_order = _order("MOVE_TO", "Belgium", path=[], attack_on_arrival=True)

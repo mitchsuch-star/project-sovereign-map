@@ -475,8 +475,15 @@ class TacticalExecutor:
         # this cooldown, and this seam (the one the thrash actually ran
         # through) never did. The field decrements for every marshal in
         # `_process_tactical_states`.
-        from backend.ai.enemy_ai import SQUARE_FORMS_AFTER_THE_STRIKES
-        if SQUARE_FORMS_AFTER_THE_STRIKES:
+        from backend.ai.enemy_ai import (SQUARE_FORMS_AFTER_THE_STRIKES,
+                                         ADMIN_RECRUIT_SPARES_THE_SQUARE)
+        if SQUARE_FORMS_AFTER_THE_STRIKES and not (
+                ADMIN_RECRUIT_SPARES_THE_SQUARE
+                and action_name in ("recruit", "garrison")):
+            # R1-3 (slice-4 review round): an administrative act — a recruit
+            # into the corps, a garrison detached from it — is not a tactical
+            # choice to leave the square; the two-turn cooldown is for the
+            # corps' own strike or march.
             marshal.ai_square_cooldown = max(
                 int(getattr(marshal, 'ai_square_cooldown', 0) or 0), 2)
         # Cancel any strategic order (breaking formation to act)

@@ -201,7 +201,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > counts; the ally-support strike picks an enemy; no drill to a fortified
 > corps. Series re-recorded ONCE, eleven arms. ⚠ **Warning, not a claim:
 > the passive ambient France is now overrun by turn 32** — the next played
-> campaign and the AI-V sweep answer whether a PLAYED France holds.
+> campaign and the AI-V sweep answer whether a PLAYED France holds
+> *(measured by the slice-4 review round: down to five provinces by turn 23,
+> two by turn 33, on 8/8 seeds — now the gate FA-D27)*.
 >
 > **▶ THE SLICE 3 REVIEW ROUND "THE REDIRECT READS THE ANSWER" IS LANDED —
 > September 4, 2026** (landing record = the boxed block in `BUG_FIXES.md`
@@ -237,15 +239,32 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > closes, and a substituted closed destination was refused without saying
 > which province was read (FA-54's class, one seam over; fixed in-slice).
 >
-> **▶ NEXT = the slice-4 review round** (three lenses at `85130a6f`: eight
-> AI-decision defects, the balance warning MEASURED — an unattended France
-> overrun on 8/8 seeds, a scripted one on 5/5 arms, the levers acting JOINTLY
-> — a pre-existing garrison-assault pathology, a dozen record corrections),
-> then the popup queue (FA-5/30/N20/N67/N62/N99), the mock vocabulary
-> (FA-80/D20/D25/N8/N24/N9/N39/24/47/73) — all reproduced, reports under
+> **▶ THE SLICE 4 REVIEW ROUND "THE BOARD READS BACK" IS LANDED — September
+> 4, 2026.** Landing record = the boxed block in `BUG_FIXES.md` §Final
+> Whole-Game Audit (authoritative). Three lenses at `85130a6f`: the board read
+> back wrong at EIGHT more seams, three inside slice 4's own fixes (a
+> retreated target priced at his neighbours' strength; the only unpriced
+> attack in the tree; the AI recruit breaking its own square; a paid drill
+> cancelled by last phase's counter; a drilling corps ordered what the
+> executor refuses; the AI's counter-punch eaten by a capture; cavalry
+> re-parked after the limit forced it out; a fortified corps marching with
+> its works) — all fixed behind levers, the cavalry rule measured three ways
+> first (the ban was a balance swing; the TELL ships). **The balance warning
+> is MEASURED and is now the user's gate, FA-D27** (an unattended France
+> overrun on 8/8 seeds, a scripted one on 5/5 arms; the round's own fixes
+> move the passive board back to France 5 with no corps captured, touching no
+> number), beside **FA-D28** (the garrison formula: a 13:1 corps loses more
+> men than the garrison had). Series re-recorded ONCE, ten arms, arm 0
+> byte-identical; 42 tests, 24/24 mutations. ⛔ **The lesson, a fourth time:
+> the arms are the review that runs before the reviewers do** — the first cut
+> of the cavalry rule moved France 2 → 19 and the measurement, not a reviewer,
+> caught it before it shipped.
+>
+> **▶ NEXT = the popup queue** (FA-5/30/N20/N67/N62/N99), the mock vocabulary
+> (FA-80/D20/D25/N8/N24/N9/N39/24/47/73) — both reproduced, reports under
 > `docs/audits/fa_build_2026_09_04/` — then FA-26 **as a shared helper across
 > all four trust-writing families** (FA-N1), then position 10. ⚠ **Still no
-> pillar re-score.**
+> pillar re-score. ⚠ FA-D27 / FA-D28 await the user's ruling.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);
