@@ -299,8 +299,13 @@ class TestArmAAmbientDoD:
         # also why the "softening" below is smaller than it reads: neither
         # form can red without `TestArmAControl::test_threat_series_is_the_
         # standing_baseline` redding first.
-        assert peak_weight == max(BASELINE_SERIES), (peak_weight,
-                                                     max(BASELINE_SERIES))
+        # FA slice 4 (Sept 4, 2026): the mirror reads the PER-TURN series
+        # (BASELINE_SERIES[1:]); index 0 is the boot reading it never sees.
+        # On every earlier board the peak was mid-campaign so both agreed;
+        # on the slice-4 board the series only ever falls from boot, so the
+        # boot reading is the maximum and the anchor must exclude it.
+        assert peak_weight == max(BASELINE_SERIES[1:]), (peak_weight,
+                                                         max(BASELINE_SERIES[1:]))
         assert last_weight < first_weight
         # BOTH anchors. Peak-relative is the arm the board change made
         # correct; first-relative is kept, loosened, so the clause still

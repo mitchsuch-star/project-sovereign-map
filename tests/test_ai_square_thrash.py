@@ -154,9 +154,18 @@ def _forms_by(actions, name):
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestSquareFormedAtMostOncePerPhase:
-    def test_control_arm_the_shape_still_provokes_the_thrash(self, world):
+    def test_control_arm_the_shape_still_provokes_the_thrash(self, world, monkeypatch):
         """With the latch structurally disabled, the counter-punch shape
-        must still produce ≥2 formations — else the real test is vacuous."""
+        must still produce ≥2 formations — else the real test is vacuous.
+
+        FA slice 4 (Sept 4, 2026, FA-27): the pre-fix planner is now BOTH
+        halves off — the latch neutered AND the square evaluated at P2.5
+        ahead of the strikes (`SQUARE_FORMS_AFTER_THE_STRIKES` down).
+        With the ordering fix alone the shape produces no square at all
+        (measured: four captures, no formation), so the control arm has
+        to reach back past it to provoke the thrash it exists to prove."""
+        import backend.ai.enemy_ai as ea
+        monkeypatch.setattr(ea, "SQUARE_FORMS_AFTER_THE_STRIKES", False)
         _counter_punch_shape(world)
         actions = _run_phase(_ThrashAI, world)
         assert len(_forms_by(actions, "Moore")) >= 2, (
@@ -164,18 +173,25 @@ class TestSquareFormedAtMostOncePerPhase:
             "board drifted; re-derive the shape before trusting the pins")
 
     def test_production_ai_forms_square_at_most_once(self, world):
+        """FA slice 4 (Sept 4, 2026, FA-27): the contract is no longer
+        "formed once, then broken by his own strike" — it is "the square is
+        the LAST word of a phase": every strike rung is evaluated first, a
+        square is formed only when none of them fires, and a corps that
+        formed one takes no further action that phase. On this shape the
+        strikes never run out (measured: attack Berry, Gascony, Guyenne,
+        Anjou), so no square is formed at all — and none is broken."""
         _counter_punch_shape(world)
         actions = _run_phase(EnemyAI, world)
         forms = _forms_by(actions, "Moore")
         assert len(forms) <= 1, (
             f"square-thrash: Moore formed square {len(forms)} times in one "
             f"enemy phase — {[a.get('action') for a in actions]}")
-        # The latch must have been EXERCISED, not idle: he formed once and
-        # his own later action broke the square (the counter-punch).
-        assert len(forms) == 1
         seq = [a.get("action") for a in actions if a.get("marshal") == "Moore"]
-        assert "attack" in seq[seq.index("form_square"):], (
-            "the breaker never fired — this run no longer covers the latch")
+        if "form_square" in seq:
+            assert seq.index("form_square") == len(seq) - 1, (
+                f"a formed square was followed by his own action: {seq}")
+        else:
+            assert "attack" in seq, "no square and no strike — the shape drifted"
 
 
 # ═══════════════════════════════════════════════════════════════════════

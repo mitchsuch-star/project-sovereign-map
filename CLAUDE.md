@@ -191,13 +191,24 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > constant** (co-located → adjacent). Build the next slice's pins on the
 > geometry where the unrelated guard does NOT mask the hole.
 >
-> **▶ NEXT = the AI board-reading slice** (FA-8 P1 + FA-27/N38/N6/N7/N54/
-> N80/N59 — reproduced; four move the series, land together — plus the
-> round's FA-R1 coalition-ally targeting and FA-R2 refused drills), the
-> road law, the popup queue, the mock vocabulary (all reproduced; reports
-> under `docs/audits/fa_build_2026_09_04/`), then FA-26 **as a shared
-> helper across all four trust-writing families** (FA-N1), then position
-> 10. ⚠ **Still no pillar re-score.**
+> **▶ SLICE 4 "THE AI READS THE BOARD" IS LANDED — September 4, 2026.**
+> Landing record = the boxed SLICE 4 block in `BUG_FIXES.md` §Final
+> Whole-Game Audit. FA-8 (P1) + FA-27/N38/N6/N7/N54/N80/N59 + FA-R1/R2
+> closed behind nine levers: the garrison rung sees the field army; the
+> square is the LAST word of a phase; a broken corps takes the limiter;
+> the counter-punch is priced under a floor; the stagnation breaker reads
+> the crossing; the cavalry limits bind both sides; a garrison assault
+> counts; the ally-support strike picks an enemy; no drill to a fortified
+> corps. Series re-recorded ONCE, eleven arms. ⚠ **Warning, not a claim:
+> the passive ambient France is now overrun by turn 32** — the next played
+> campaign and the AI-V sweep answer whether a PLAYED France holds.
+>
+> **▶ NEXT = the slice-3 review round** (R2's P1: two PURSUE first-step
+> arms drop the battle payload incl. the capture prompt; R1/R3 pending),
+> then the road law, the popup queue, the mock vocabulary (reports under
+> `docs/audits/fa_build_2026_09_04/`), then FA-26 **as a shared helper
+> across all four trust-writing families** (FA-N1), then position 10.
+> ⚠ **Still no pillar re-score.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

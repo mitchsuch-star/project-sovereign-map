@@ -1,0 +1,142 @@
+[
+ {
+  "id": "fa8/a the garrison rung skips a held field",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if (P425_SKIPS_A_HELD_FIELD\n                    and world.get_live_visible_enemies_in_region(adj_name, marshal.nation)):",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheGarrisonRungSeesTheFieldArmy::test_a_garrison_with_a_field_army_is_p4s_business"
+ },
+ {
+  "id": "fa8/b the range arm prices the field",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                        if P425_SKIPS_A_HELD_FIELD:\n                            field = self._defending_strength_in_region(",
+  "new": "                        if False:\n                            field = self._defending_strength_in_region(",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheGarrisonRungSeesTheFieldArmy::test_the_range_arm_prices_the_field"
+ },
+ {
+  "id": "fa27/a the want is remembered",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                    square_wanted = True",
+  "new": "                    square_wanted = False",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheSquareIsTheLastWord::test_p3s_posture_yields_and_the_square_forms"
+ },
+ {
+  "id": "fa27/b the deferred square is returned",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if (square_wanted\n                and not getattr(marshal, 'fortified', False)",
+  "new": "        if (False\n                and not getattr(marshal, 'fortified', False)",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheSquareIsTheLastWord::test_p3s_posture_yields_and_the_square_forms"
+ },
+ {
+  "id": "fa27/c a fortified corps keeps its works",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if (square_wanted\n                and not getattr(marshal, 'fortified', False)\n                and not (getattr(marshal, 'drilling', False)",
+  "new": "        if (square_wanted\n                and True\n                and not (getattr(marshal, 'drilling', False)",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheSquareIsTheLastWord::test_a_fortified_corps_keeps_its_works"
+ },
+ {
+  "id": "fa27/d P3's posture yields to the wanted square",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if (threat_action and square_wanted\n                and threat_action.get(\"action\") in (\"fortify\", \"stance_change\")):",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheSquareIsTheLastWord::test_p3s_posture_yields_and_the_square_forms"
+ },
+ {
+  "id": "fa27/e a formed square ends the corps' phase",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                if SQUARE_FORMS_AFTER_THE_STRIKES:\n                    self._marshals_done_this_turn.add(selected_action[\"marshal\"])",
+  "new": "                if False:\n                    self._marshals_done_this_turn.add(selected_action[\"marshal\"])",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheSquareIsTheLastWord::test_a_formed_square_ends_the_corps_phase"
+ },
+ {
+  "id": "fa27/f a square broken by his own action takes the cooldown",
+  "file": "backend/commands/tactical_executor.py",
+  "old": "        if SQUARE_FORMS_AFTER_THE_STRIKES:\n            marshal.ai_square_cooldown = max(",
+  "new": "        if False:\n            marshal.ai_square_cooldown = max(",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheSquareIsTheLastWord::test_a_square_broken_by_his_own_action_takes_the_cooldown"
+ },
+ {
+  "id": "n6/a the limiter reads `broken`",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        return BROKEN_AI_CORPS_IS_LIMITED and bool(getattr(marshal, \"broken\", False))",
+  "new": "        return False",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestABrokenCorpsTakesTheLimiter::test_no_capture_from_a_broken_corps"
+ },
+ {
+  "id": "n6/b the P-1 capture reads the limiter",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                and not self._corps_is_limited(marshal)\n                and world.is_at_war(nation, current_region.controller)):",
+  "new": "                and world.is_at_war(nation, current_region.controller)):",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestABrokenCorpsTakesTheLimiter::test_no_capture_from_a_broken_corps"
+ },
+ {
+  "id": "n6/c the stored intent reads the limiter",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if (marshal.name in self._pending_intents\n                and not self._corps_is_limited(marshal)):",
+  "new": "        if marshal.name in self._pending_intents:",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestABrokenCorpsTakesTheLimiter::test_no_stored_intent_from_a_broken_corps"
+ },
+ {
+  "id": "n7/a the floor",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if best_target is not None and best_effective_ratio < floor:",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheCounterPunchIsPriced::test_a_suicidal_free_blow_is_declined"
+ },
+ {
+  "id": "n7/b the field, not the man",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if COUNTER_PUNCH_PRICES_THE_FIELD:\n                field = self._defending_strength_in_region(",
+  "new": "            if False:\n                field = self._defending_strength_in_region(",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheCounterPunchIsPriced::test_the_field_is_priced_not_the_man"
+ },
+ {
+  "id": "n7/c the floor is the mood threshold",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        floor = (self._get_mood_adjusted_threshold(marshal, world)\n                 if COUNTER_PUNCH_PRICES_THE_FIELD else 0.0)",
+  "new": "        floor = 0.0",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheCounterPunchIsPriced::test_a_suicidal_free_blow_is_declined"
+ },
+ {
+  "id": "n80/a the crossing predicate",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if not STAGNATION_READS_THE_CROSSING or not getattr(world, \"fleets\", None):\n            return True",
+  "new": "        if True:\n            return True",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheStagnationBreakerReadsTheCrossing::test_the_surrounded_arm_never_orders_an_attack_across_barred_water"
+ },
+ {
+  "id": "n80/b the surrounded arm reads it",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                            if not self._stagnation_can_strike(world, nation, marshal.location, adj_name):\n                                continue",
+  "new": "                            if False:\n                                continue",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheStagnationBreakerReadsTheCrossing::test_the_surrounded_arm_never_orders_an_attack_across_barred_water"
+ },
+ {
+  "id": "n54/a the horse obeys both sides",
+  "file": "backend/models/world_state.py",
+  "old": "            if (marshal.nation != self.player_nation\n                    and not CAVALRY_LIMITS_ALL_NATIONS):\n                continue",
+  "new": "            if marshal.nation != self.player_nation:\n                continue",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheHorseObeysBothSides::test_an_ai_cavalry_corps_is_forced_out_of_its_defensive_stance"
+ },
+ {
+  "id": "n59/a the assault writes the counters",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if self.GARRISON_ASSAULT_COUNTS:\n            marshal.increment_attacks_this_turn()\n            marshal.in_combat_this_turn = True",
+  "new": "        if False:\n            marshal.increment_attacks_this_turn()\n            marshal.in_combat_this_turn = True",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestTheGarrisonAssaultCounts::test_the_assault_writes_the_counters"
+ },
+ {
+  "id": "r1/a the support strike picks an enemy",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                enemies_at_dest = (enemies_at_ally if ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES\n                                   else present_non_friendlies)",
+  "new": "                enemies_at_dest = present_non_friendlies",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestAllySupportNeverStrikesAnAlly::test_the_support_move_never_attacks_the_ally"
+ },
+ {
+  "id": "r2/a no drill order to a fortified corps",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if DRILL_RUNG_READS_FORTIFIED and getattr(marshal, 'fortified', False):\n            ai_debug(f\"    P6: Can't drill - {marshal.name} is fortified\")\n            return None",
+  "new": "        if False:\n            ai_debug(f\"    P6: Can't drill - {marshal.name} is fortified\")\n            return None",
+  "tests": "tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py::TestNoDrillOrderToAFortifiedCorps::test_a_fortified_corps_is_not_ordered_to_drill"
+ }
+]

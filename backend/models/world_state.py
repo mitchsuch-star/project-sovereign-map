@@ -689,6 +689,10 @@ def _reconcile_saved_adjacency(regions: Dict[str, "Region"]) -> int:
     return pruned
 
 
+# FA slice 4 (Sept 4 2026) flip lever — FA-N54: the cavalry defensive limits
+# apply to every nation's horse, not only the player's (GR5).
+CAVALRY_LIMITS_ALL_NATIONS = True
+
 class WorldState:
     """
     The complete game state.
@@ -12124,7 +12128,13 @@ class WorldState:
         events = []
 
         for marshal in self.marshals.values():
-            if marshal.nation != self.player_nation:
+            # FA-N54 (slice 4, Sept 4 2026): the guard was player-only, so
+            # an AI cavalry corps held a fortified defensive line forever
+            # while the counters accrued (Paget: 24 marshal-turns at or
+            # over the limit in 40). GR5 — the rule is the horse's, not the
+            # player's; the redemption check keeps its own player scope.
+            if (marshal.nation != self.player_nation
+                    and not CAVALRY_LIMITS_ALL_NATIONS):
                 continue
 
             is_cavalry = getattr(marshal, 'cavalry', False)

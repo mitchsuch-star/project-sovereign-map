@@ -754,10 +754,70 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # engaged attacks and the cooldowns they wrote).
 #
 # M1-M7 byte-identical WITHOUT re-record, structurally, as above.
+#
+# FA slice 4 re-record (September 4, 2026, "The AI Reads the Board" —
+# FA-8 / FA-27+N38 / FA-N6 / FA-N7 / FA-N80 / FA-N54 / FA-N59 / FA-R1 /
+# FA-R2) — indices [0]-[3] are byte-identical and everything from [4] on
+# moves. The series no longer holds in the 70s; it falls from turn 5,
+# never recovers, and DECAYS TO ZERO from [30] — on this board, a France
+# that issues no orders is now overrun (2 provinces at turn 40, the
+# Emperor among the captured) by an AI that reads the board.
+#
+# Nine rows, nine levers, ELEVEN arms (each a subprocess with the levers
+# set in the child, every earlier slice's lever held at its shipped value;
+# the runner also counts the AI's refused actions and garrison orders).
+# Divergence is measured against the slice-2 review-round series:
+#   0.  all nine False ................ review-round series, BYTE-FOR-BYTE
+#   A.  P425_SKIPS_A_HELD_FIELD ....... diverges at [5]: garrison orders
+#       15 -> 4, refusals 23 -> 7 — the rung stopped ordering assaults
+#       into provinces held by a field army (FA-8: measured, Charles read
+#       Munich's 10,000 garrison as a 2.32 walkover under 101,000 Frenchmen
+#       and the executor fought the field battle the order actually is)
+#   B.  SQUARE_FORMS_AFTER_THE_STRIKES  diverges at [4]: France 6 /
+#       Austria 16, refusals 23 -> 3 — the square is the LAST word of a
+#       phase, so the strike that used to break it fires first, and P3's
+#       postures yield to a wanted square (FA-27 / FA-N38)
+#   C.  BROKEN_AI_CORPS_IS_LIMITED ..... BYTE-FOR-BYTE — inert with a
+#       reason: no AI corps is broken on this board in 40 turns (the
+#       guard never binds); pinned by construction (FA-N6)
+#   D.  COUNTER_PUNCH_PRICES_THE_FIELD  diverges at [14]: France 20 /
+#       Austria 7 — three suicidal free blows declined (FA-N7)
+#   E.  STAGNATION_READS_THE_CROSSING . BYTE-FOR-BYTE — inert with a
+#       reason: no stagnation candidate lies across barred water on this
+#       board; pinned by construction on the Channel (FA-N80)
+#   F.  CAVALRY_LIMITS_ALL_NATIONS .... diverges at [13]: Paget's horse is
+#       forced out of its defensive line (FA-N54)
+#   G.  GARRISON_ASSAULT_COUNTS ....... BYTE-FOR-BYTE — inert with a
+#       reason: no corps assaults a garrison twice in one phase here, so
+#       the counter the assault now writes is never read (FA-N59)
+#   H.  ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES  diverges at [24]: the two
+#       "attacking ArchdukeCharles to support ..." orders against an ALLY
+#       are gone (FA-R1)
+#   I.  DRILL_RUNG_READS_FORTIFIED .... diverges at [29]: refused drills
+#       14 -> 0 (FA-R2)
+#   ALL the series below, diverging at [4] with B: France 2 / Austria 23 /
+#       Britain 28; refused actions 23 -> 7 (drill 14 -> 0); garrison
+#       orders 15 -> 27 (the rung now fires on garrisons that stand ALONE,
+#       which it used to spend on held provinces); captured {Bernadotte,
+#       Davout, Lannes, Massena, Murat, NAPOLEON, Ney, Soult}, fallen
+#       {Deroy}.
+# So: six levers each move the board alone, three are inert with measured
+# reasons, and the full tree forks at [4] with B. The endgame is one
+# seed's path on a board where France issues no orders — the AI-V
+# ten-seed sweep and the next PLAYED campaign, not this pin, are where
+# "does the AI now beat a defended France" is measured; it is recorded
+# here as a delta and a WARNING for the next in-game review, not as a
+# balance claim. (A first re-record of this block was taken BEFORE the
+# P3-yield arm of lever B landed and was wrong from [18]; the arms were
+# re-run on the final code — arm 0 still byte-identical.)
+#
+# M1-M7 byte-identical WITHOUT re-record — structurally: the harness
+# calls `resolve_battle` directly and never reaches EnemyAI, advance_turn
+# (the cavalry limits) or the garrison resolver.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 73, 91, 89, 87,
-    85, 83, 81, 79, 77, 80, 81, 79, 76, 73, 70, 72, 59, 56, 53, 50, 47,
-    44, 44, 41, 38, 35, 32, 29,
+    70, 68, 66, 64, 62, 68, 66, 63, 60, 58, 56, 54, 52, 50, 48, 45, 42,
+    39, 41, 38, 35, 32, 29, 26, 23, 20, 17, 19, 6, 3, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
 ]
 
 

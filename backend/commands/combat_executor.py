@@ -2960,6 +2960,15 @@ class CombatExecutor:
 
         # Apply losses
         marshal.strength = max(0, marshal.strength - attacker_losses)
+        # FA-N59 (slice 4): both pipeline contexts pass `skip_exhaustion`,
+        # so the attacker's exhaustion counter was never written by an
+        # assault — three assaults on Vienna all fought at the full modifier,
+        # and the jealousy `_engaged` read saw no combat. Counted here, after
+        # the blow lands and before the collapse split, as the bombardment
+        # path counts at its own seam.
+        if self.GARRISON_ASSAULT_COUNTS:
+            marshal.increment_attacks_this_turn()
+            marshal.in_combat_this_turn = True
         old_garrison = target_region.garrison_strength
         target_region.garrison_strength = max(0, target_region.garrison_strength - garrison_losses)
 
@@ -3196,6 +3205,9 @@ class CombatExecutor:
     # with a last-stand question standing RE-ASKS it and suppresses the
     # retreat again, so the cornered marshal is shot until nothing is left.
     LAST_STAND_UNANSWERED_RESOLVES = True
+    # FA-N59 (slice 4, Sept 4 2026) flip lever: a garrison assault counts as
+    # the attack it is (exhaustion schedule, in_combat_this_turn).
+    GARRISON_ASSAULT_COUNTS = True
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,

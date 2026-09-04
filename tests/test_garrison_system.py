@@ -390,6 +390,15 @@ class TestGarrisonAI:
         self.executor = CommandExecutor()
         self.ai = EnemyAI(self.executor)
         self.game_state = {"world": self.world, "debug_mode": True}
+        # FA-8 (slice 4, Sept 4 2026): a garrisoned province with a FIELD
+        # ARMY in it is P4's business, and on this fixture Davout and Drouot
+        # boot IN Paris — so, as the sibling TestGarrisonCombat already does,
+        # the French are moved away and this class tests the garrison ALONE.
+        # The held-field case is pinned in test_fa_slice4_the_ai_reads_the_board.
+        for m in self.world.marshals.values():
+            if m.nation == "France":
+                m.location = "Bordeaux"
+        self.world._build_marshal_index()
 
     def test_ai_p425_finds_garrison_attack(self):
         """AI should find garrison attack when adjacent and strong enough."""

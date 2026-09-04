@@ -4,6 +4,42 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 4 "THE AI READS THE BOARD" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 4 block (authoritative).** FA-8 (P1), FA-27 + FA-N38, FA-N6, FA-N7,
+> FA-N54, FA-N80, FA-N59, FA-R1, FA-R2 closed — nine rows, nine levers, one
+> through-line: a rung decided from a board it had not read. The garrison
+> rung sees the field army standing over the garrison; the square is the
+> LAST word of a phase (formed only after every strike rung declines, P3's
+> postures yield to it, a formed square ends the corps' phase, a broken one
+> takes the cooldown); a broken corps takes the limiter; the counter-punch
+> is priced against the field under a floor drawn only when a target
+> exists; the stagnation breaker reads the crossing gate; the cavalry
+> limits bind every nation's horse; a garrison assault counts as an attack;
+> the ally-support strike picks an ENEMY (the row's "coalition partner at
+> war" was an ALLY, and the seam one rung over); no drill order to a
+> fortified corps. Tests
+> `tests/test_fa_slice4_the_ai_reads_the_board_2026_09_04.py` (35); sweep
+> `tools/_sweep_fa_slice4.json` **20/20, 0 inert**; series re-recorded ONCE
+> with an eleven-arm attribution (six levers move the board alone, three
+> inert with measured reasons); M1–M7 byte-identical structurally; no
+> `.gd`. ⚠ **The warning, not a claim: the all-on ambient board — a France
+> that issues no orders — is now overrun by turn 32 and the threat series
+> decays to zero.** Whether a played France holds is for the next played
+> campaign and the AI-V ten-seed sweep. Board pins re-measured with dated notes: WO-10 ungated collapses 17 → 29 (five Leon→Napoleon, twenty-four Gascony→Ney — the ungated AI now presses its attacks), cooldown writes 29 vs 7 (FA-R2's fourteen refused drills gone from the gated board), the ungated arm re-recorded (every arm forks at index 4, so its byte-identity to the original record narrows to [0]–[3]); WO-9 uncapped 23 / capped 29 (the cap buys six turns again); the AI-V mirror pin re-anchored on the per-turn series (the boot reading is not a mirror reading — on a board that only falls from boot, the boot is the maximum).
+>
+> **▶ NEXT = the slice-3 review round** (three lenses at `16921a6b` —
+> R2's findings are in: P1 the two PURSUE first-step arms still drop the
+> battle payload incl. the capture prompt; P2 the end-turn war-purpose
+> HARD STOP reaches the wire only inside `battle_details`; P2 the
+> cannon-fire redirect throws the order away on a refused attack; plus the
+> `_respond_blocked_path` stalemate cancel, the client's interrupt-queue
+> drain hole, the headless driver answering one question per response,
+> and the unread row diorama — R1/R3 pending), then the road law, the
+> popup queue, the mock vocabulary, FA-26 as a shared helper, then position
+> 10. ⚠ Still no pillar re-score.
+
 > # ✅ THE AUDIT BUILD: THE SLICE 2 REVIEW ROUND "THE WORD IS OWED" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

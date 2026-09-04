@@ -131,9 +131,9 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P0 | Combat Engagement | 50 | Enemy in SAME region — MUST fight/retreat/wait |
 | P1 | Retreat Recovery | 60 | `retreat_recovery > 0` |
 | P2 | Critical Survival | 70 | `strength < 25% of starting` |
-| P2.5 | Square Formation | — | Cavalry threat + no artillery → form square; threat gone → break square |
+| P2.5 | Square Formation | — | Threat gone → break square (cooldown 2). Cavalry threat + no artillery → the square is WANTED here and formed only after every strike rung (P3.25 … P4.5) declines; P3's fortify / defensive stance yield to it; a formed square ends the corps' phase; a square broken by the corps' own action takes the cooldown (FA slice 4, Sept 4 2026) |
 | P3 | Threat Response / Attack | 75 | Meets personality threshold |
-| P3.25 | Counter-punch | — | Cautious: free attack after defense |
+| P3.25 | Counter-punch | — | Cautious: free attack after defense — priced against the FIELD at the target's province, the mood threshold as a floor, drawn only when a target exists (FA slice 4) |
 | P3.5 | Fortification Check | 77 | Unfortify if opportunity exists |
 | P3.7 | Homeland Defense | 77 | Nation has lost originally-controlled regions — redirect nearest available marshal to recapture (capital=priority 2, range 6/unlimited, deathball split, enemy pathfinding for capitals) |
 | P3.8 | Liberation Priority | 75 | Coalition member with a liberation objective — attacks vassal capitals held by the target nation (WPS-D §13.5) |
@@ -141,18 +141,18 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P4 | Attack (standard) | 75 | Valid target + meets threshold; NA-3 agenda bias — equal-ratio ties break toward, and nearest-picks credit 2 hops to, the nation's active design targets (agendas.get_agenda_military_targets — the acquire-only,
 never-self-conquest narrowing; NOT get_agenda_covets, which is the wider
 diplomacy-facing set and is non-empty for deny/contain courts) |
-| P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
+| P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold; SKIPPED when a visible field army stands in the province (P4's business — FA slice 4) |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
 | P4.6 | Coordinated Attack Setup | 78 | Combined > 1.5x but solo < 1.5x, relationship >= Rival |
 | P4.75 | Ally Support | 78 | Move toward outnumbered/engaged ally (relationship >= Rival, Devoted priority) |
 | P4.8 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
 | P5 | Fortification | 85 | Cautious + no attack target |
-| P6 | Drilling | 90 | Aggressive + position secure |
+| P6 | Drilling | 90 | Aggressive + position secure; never while fortified — the executor refuses it (FA slice 4) |
 | P6.5 | Supply Awareness | 91 | Supply excess > 50% — mildly relocate to better-supplied region |
 | P6.75 | Garrison Placement | 91 | Place capital garrison (max 1 per nation per turn) |
 | P7 | Strategic Movement | 92 | Can advance toward enemy (P4.76 co-location guard, P4.77 cross-nation scoring); NA-3 agenda bias — target choice credits design regions 2 hops (gates unchanged) |
 | P7.4 | Defensive Reinforcement | 92 | Move adjacent to threatened Rival+ ally for reinforcement readiness |
-| P7.5 | Stagnation Breaker | 93 | Graduated escalation: Turn 2 unfortify, Turn 3+ lowered attack threshold |
+| P7.5 | Stagnation Breaker | 93 | Graduated escalation: Turn 2 unfortify, Turn 3+ lowered attack threshold — both attack arms read the crossing gate; the range arm prices the field (FA slice 4) |
 | P8 | Default | 95 | Stance adjustment or wait |
 
 ### Priority 6.5: Supply Awareness

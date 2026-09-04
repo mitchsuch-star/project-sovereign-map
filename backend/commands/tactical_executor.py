@@ -470,6 +470,15 @@ class TacticalExecutor:
         if not getattr(marshal, 'square_formation', False):
             return ""
         marshal.square_formation = False
+        # FA-27 (slice 4, Sept 4 2026): a square broken by the corps' own
+        # action is not re-formed next phase — P2.5's break arm always set
+        # this cooldown, and this seam (the one the thrash actually ran
+        # through) never did. The field decrements for every marshal in
+        # `_process_tactical_states`.
+        from backend.ai.enemy_ai import SQUARE_FORMS_AFTER_THE_STRIKES
+        if SQUARE_FORMS_AFTER_THE_STRIKES:
+            marshal.ai_square_cooldown = max(
+                int(getattr(marshal, 'ai_square_cooldown', 0) or 0), 2)
         # Cancel any strategic order (breaking formation to act)
         if getattr(marshal, 'strategic_order', None):
             marshal.strategic_order = None

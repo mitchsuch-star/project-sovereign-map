@@ -942,9 +942,15 @@ class TestTheAmbientBoard:
     2026, "The Word Is Owed"): the braked-corps HOLD forks the board at
     turn 22 and the eighteenth collapse is gone again — SEVENTEEN, the
     original six `Leon -> Napoleon` and eleven `Gascony -> Ney`, all at
-    turns 6-27. The gated board still collapses never, which is the
-    contract; the counts here are the defect's measurement on today's board
-    and move with it, as their docstrings say they must."""
+    turns 6-27.
+
+    Re-measured a fourth time by FA slice 4 (September 4, 2026, "The AI
+    Reads the Board"): nine AI board-reading fixes fork the board at turn 4,
+    and the UNGATED AI — which now presses its attacks instead of wasting
+    them — hits the collision TWENTY-NINE times: five `Leon -> Napoleon`
+    and twenty-four `Gascony -> Ney`. The gated board still collapses never,
+    which is the contract; the counts here are the defect's measurement on
+    today's board and move with it, as their docstrings say they must."""
 
     @pytest.fixture(scope="class")
     def ungated(self):
@@ -961,7 +967,7 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 17}, seams  # 18 under FA slice 2; 17 again after its review round
+        assert seams == {"_fuzzy_match_enemy": 29}, seams  # 17 -> 18 -> 17 -> 29 across FA slices 2, 2r, 4
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -973,8 +979,8 @@ class TestTheAmbientBoard:
         warning the next slice needs."""
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
-        assert dict(pairs) == {("Leon", "Napoleon"): 6,
-                               ("Gascony", "Ney"): 11}, pairs  # 12 under FA slice 2; 11 again after its review round
+        assert dict(pairs) == {("Leon", "Napoleon"): 5,
+                               ("Gascony", "Ney"): 24}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 across FA slices 2, 2r, 4
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -998,13 +1004,19 @@ class TestTheAmbientBoard:
 
         Re-recorded again by the slice-2 REVIEW ROUND (September 4, 2026):
         the braked-corps hold forks this arm at index [28] (68, was 69);
-        indices [0]-[27] are byte-identical to the original record, which
-        is what this pin exists to prove (every WO-10 collapse falls at
-        turns 6-27, before the fork)."""
+        indices [0]-[27] were byte-identical to the original record.
+
+        Re-recorded again by FA slice 4 (September 4, 2026): the AI
+        board-reading fixes fork EVERY arm at index [4], so "the series
+        before THIS slice" is now the pre-WO-10 configuration AS IT RUNS ON
+        THE SLICE-4 BOARD, and the byte-identity this pin can still prove
+        against the original record is indices [0]-[3]. What it proves
+        beyond that is the levers' honesty in the other direction: the
+        gated arm (below) equals the standing BASELINE_SERIES exactly."""
         assert ungated["series"] == [
-            70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70,
-            68, 66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 68, 68, 65, 52,
-            49, 46, 43, 40, 37, 34, 31, 28, 25]
+            70, 68, 66, 64, 62, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48,
+            46, 44, 42, 40, 38, 36, 34, 32, 30, 28, 26, 13, 10, 7, 10, 8,
+            6, 4, 22, 20, 28, 26, 24, 22, 20]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1611,9 +1623,14 @@ class TestTheAiIsNotFrozenInstead:
         "more than halves" was a fact about the slice-2 board, not a
         contract, and is retired here.
 
+        Re-measured by FA slice 4 (September 4, 2026): 29 vs 7. FA-R2's
+        fourteen refused drills are gone from the gated board (the rung
+        reads `fortified` now), and the ungated board's twenty-nine
+        collapses each write one — the gap the gate buys is wide again.
+
         Killed by: deleting the enemy-seam gate."""
-        assert cooldowns["ungated"] == 25, cooldowns  # 31 -> 34 -> 25 across slices
-        assert cooldowns["gated"] == 23, cooldowns    # 11 -> 16 -> 23 across slices
+        assert cooldowns["ungated"] == 29, cooldowns  # 31 -> 34 -> 25 -> 29 across slices
+        assert cooldowns["gated"] == 7, cooldowns     # 11 -> 16 -> 23 -> 7 across slices
 
 
 _COOLDOWN_PROBE = r'''

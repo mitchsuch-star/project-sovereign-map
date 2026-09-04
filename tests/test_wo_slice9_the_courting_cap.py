@@ -950,9 +950,12 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # court's first courting turn now, so BOTH arms move: uncapped 27
         # (was 29), capped 30 (was 35). The contract — the cap DELAYS, it
         # does not save — holds with a three-turn gap.
-        assert uncapped == 27, uncapped
-        assert capped == 30, capped
-        assert capped - uncapped == 3, (
+        # Re-measured by FA slice 4 (September 4, 2026): the AI board-
+        # reading fixes fork the board at turn 4 and France is overrun —
+        # uncapped 23, capped 29; the cap buys six turns again.
+        assert uncapped == 23, uncapped
+        assert capped == 29, capped
+        assert capped - uncapped == 6, (
             "the cap must buy the lord turns to react, not save him")
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
