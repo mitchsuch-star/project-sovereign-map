@@ -83,7 +83,6 @@ class TestADeferredOrderIsNotFoughtNow:
         "Ney, hold off on attacking Mack",
         "Ney, attack Mack later",
         "Ney, attack Mack tomorrow",      # not in the row's list
-        "Ney, attack Mack for now",       # not in the row's list
         "Ney, attack Mack next turn",     # the FA-6 overlap
     ]
 
@@ -805,3 +804,205 @@ class TestTheGuardsAreIsolated:
         # …and the control: a genuinely different province still discloses.
         assert destination_grounding_note(
             "Ney, move to Mainz", "Ile-de-France") != ""
+
+
+    # ── The strategic layer reads the raw utterance too ───────────────────
+    def test_a_deferred_clause_never_reaches_the_strategic_layer(self, shipped):
+        """Found by probing this slice's OWN fix for the regression class the
+        preceding slice shipped. `Ney, attack Mack, and hold Rhineland later`
+        created a 2 AP STANDING HOLD on the phantom province "Rhineland
+        Later" while the action chain had correctly read `attack` — because
+        `detect_strategic_command` runs on text the guard never touched.
+
+        Measured BYTE-IDENTICAL at the pre-slice commit 62779e05, so it is a
+        residue this slice should have closed, not a regression it caused.
+        PARSE-NEG had already had to re-apply its own guard at this exact
+        line, for this exact reason."""
+        reply = run(shipped, "Ney, attack Mack, and hold Rhineland later")
+        assert reply.get("battle_report"), reply.get("message")
+        assert "Rhineland Later" not in (reply.get("message") or "")
+        order = M.world.get_marshal("Ney").strategic_order
+        assert order is None or getattr(order, "target", None) != "Rhineland Later"
+
+    def test_the_engines_own_until_condition_survives_the_strategic_guard(
+            self, shipped):
+        """`strip_deferred_clauses` never touches `until`, which is why it is
+        safe at a seam where `strip_condition_clauses` is not — blanking a
+        condition clause here would destroy the one thing StrategicCondition
+        exists to parse."""
+        reply = run(shipped, "Ney, hold until Davout arrives then attack")
+        assert reply.get("success") is True
+        assert "will hold" in (reply.get("message") or "")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ROUND 2 — what the adversarial review of the FIXES found
+#
+# A nine-lens fleet was run against the SHIPPED slice rather than against
+# the findings, on the standing rule that a fix must be attacked as hard as
+# a defect. It found a P1 THIS SLICE HAD ITSELF INTRODUCED, of the exact
+# class the preceding slice shipped, plus three companions. All four are
+# reproduced here, and every one was separated from the pre-slice commit
+# 62779e05 by measurement before it was called a regression.
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheDeferralGuardDoesNotReAddressTheSurvivingOrder:
+    """⛔ THE P1 THIS SLICE SHIPPED.
+
+        "Ney, hold your position for now, Davout attack Mack"
+            -> "Ney,                           , Davout attack Mack"
+
+    `has_executable_residue` sees `attack`, so no refusal fires — and the
+    leading address token is still `Ney,`, so the surviving verb, which
+    names its OWN marshal, was re-addressed to HIM. Measured on the shipped
+    1805 boot: NEY marched into Swabia and lost 1,164 men on a sentence that
+    ordered him to STAND STILL. One command, no confirm modal, irreversible.
+
+    That is FA-7's own headline defect — an order the player postponed being
+    fought on the turn they typed it — re-created by FA-7's own fix, and the
+    same shape as the P1 the preceding slice shipped: blanked text handed to
+    a consumer that reads what is left as the player's intent.
+
+    Reachable with `later`, `tomorrow` and `delay` too, so it was never an
+    artefact of one adverb. Blanking the address is NOT enough:
+    `CommandParser.parse` runs its own word scan over the raw utterance and
+    re-binds the addressee anyway — measured, the two-producers-in-series
+    pattern this slice met three times. The answer is FA-50's own rule: one
+    order at a time.
+    """
+
+    TWO_MARSHALS = [
+        "Ney, hold your position for now, Davout attack Mack",
+        "Ney, hold your position later, Davout attack Mack",
+        "Ney, hold your position tomorrow, Davout attack Mack",
+        "Ney, delay the attack, Davout attack Mack",
+        "Ney, hold the line for now and Davout, attack Mack",
+    ]
+
+    @pytest.mark.parametrize("command", TWO_MARSHALS)
+    def test_the_addressee_never_fights_the_other_marshals_battle(
+            self, shipped, command):
+        _client, world = shipped
+        before = {n: (m.location, m.strength)
+                  for n, m in world.marshals.items()
+                  if m.nation == world.player_nation}
+        reply = run(shipped, command)
+        after = {n: (m.location, m.strength)
+                 for n, m in M.world.marshals.items()
+                 if m.nation == M.world.player_nation}
+        assert not reply.get("battle_report"), reply.get("message")
+        assert after == before, command
+
+    def test_a_residue_naming_no_other_marshal_is_still_the_addressees(
+            self, shipped):
+        """The discriminator, and why this is a refusal rather than a blanket
+        one. `Ney, delay the attack and move to Swabia` names nobody else, so
+        the surviving order is still Ney's and it stands — he MOVES, which is
+        what he was told to do. (It is then refused by the enemy standing in
+        Swabia, which is a different and correct answer; at the pre-slice
+        commit this ATTACKED and lost 2,746 men.)"""
+        _client, world = shipped
+        parsed = M.parser.parse("Ney, delay the attack and move to Swabia",
+                                {"world": world}, world)
+        assert parsed.get("refusal") is None, parsed
+        assert (parsed.get("command") or {}).get("action") == "move"
+        assert (parsed.get("command") or {}).get("target") == "Swabia"
+
+    @pytest.mark.parametrize("command", [
+        "Ney, delay the attack and support Davout",
+        "Ney, postpone the attack and reinforce Davout",
+    ])
+    def test_another_marshal_as_the_OBJECT_is_not_a_second_order(
+            self, shipped, command):
+        """The isolation pin the sweep asked for, and it found a false
+        refusal in the first cut of this very rule: testing for another
+        marshal ANYWHERE in the residue refuses `Ney, delay the attack and
+        support Davout`, where Davout is the OBJECT of Ney's own order.
+
+        A SECOND ORDER NAMES ITS MARSHAL FIRST. Subject position is the
+        discriminator, and it is the only one that separates these two."""
+        reply = run(shipped, command)
+        assert reply.get("success") is True, reply.get("message")
+        assert "no drawer for tomorrow" not in (reply.get("message") or "")
+
+    def test_the_predicate_is_pure_and_states_its_own_rule(self):
+        from backend.ai.clause_guards import (
+            address_governs_only_deferred_text,
+        )
+
+        original = "Ney, hold your position later, Davout attack Mack"
+        guarded, applied = strip_deferred_clauses(original)
+        assert applied is True
+        assert address_governs_only_deferred_text(original, guarded, 4) is True
+        # A deferral that leaves the addressee's OWN clause standing is not
+        # this case.
+        other = "Ney, hold here and attack next turn"
+        assert address_governs_only_deferred_text(
+            other, strip_deferred_clauses(other)[0], 4) is False
+
+
+class TestForNowIsNotADeferral:
+    """`for now` means AT PRESENT — do it, provisionally, this turn. FA-7's
+    own fix_shape lists it as a deferral adverb, and it is the opposite.
+
+    Measured with it in the list: these were refused and answered with copy
+    insisting Berthier keeps "no drawer for tomorrow's orders" — telling the
+    player their order was about tomorrow when it was about today."""
+
+    @pytest.mark.parametrize("command", [
+        "Ney, hold your position for now",
+        "Ney, fortify for now",
+        "Soult, defend Alsace for now",
+        "Murat, scout Swabia for now",
+        "Ney, attack Mack for now",
+    ])
+    def test_it_is_an_order_for_this_turn(self, shipped, command):
+        reply = run(shipped, command)
+        assert reply.get("success") is True, reply.get("message")
+        assert "no drawer for tomorrow" not in (reply.get("message") or "")
+
+    def test_the_guard_does_not_claim_it(self):
+        for command in ("Ney, hold your position for now",
+                        "Ney, attack Mack for now"):
+            assert strip_deferred_clauses(command)[1] is False, command
+
+
+class TestHoldOffTakesItsPreposition:
+    """`hold off ON <doing something>` postpones it. Bare `hold off <foe>`
+    is the OPPOSITE — an order to repel him, now — and `hold back from
+    <place>` orders him to stay clear of it THIS turn."""
+
+    @pytest.mark.parametrize("command", [
+        "Davout, hold off the Austrians",
+        "Davout, hold off Mack",
+        "Ney, hold back from Swabia",
+    ])
+    def test_a_bare_hold_off_is_an_order_for_this_turn(self, shipped, command):
+        reply = run(shipped, command)
+        assert reply.get("success") is True, reply.get("message")
+        assert "no drawer for tomorrow" not in (reply.get("message") or "")
+
+    def test_the_on_form_is_still_a_deferral(self, shipped):
+        message = run(shipped, "Ney, hold off on attacking Mack").get("message")
+        assert "no drawer for tomorrow" in (message or ""), message
+
+
+class TestBothArmsScopeTheSameWay:
+    """The verb arm used the NEGATION clause boundary, which excludes `and`
+    on purpose, while the adverb arm has scoped on `and` since it was
+    written — two arms of one function disagreeing about their own
+    documented rule. Measured: `Ney, delay the attack and move to Swabia`
+    blanked the MOVE as well."""
+
+    def test_the_verb_arm_stops_at_a_coordinate_clause(self):
+        effective, applied = strip_deferred_clauses(
+            "Ney, delay the attack and move to Swabia")
+        assert applied is True
+        assert "move to Swabia" in effective
+        assert "delay" not in effective
+
+    def test_the_adverb_arm_still_does_too(self):
+        effective, _applied = strip_deferred_clauses(
+            "Ney, hold here and attack next turn")
+        assert "hold here" in effective
+        assert "attack" not in effective

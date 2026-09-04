@@ -614,6 +614,78 @@
 > executor-side halves — those live in the slice test, driven through the
 > real `POST /command`.
 >
+> ### Round 2 — the review round found a P1 THIS SLICE HAD SHIPPED
+>
+> A nine-lens fleet was run against the FIXES rather than the findings, on
+> the standing rule that a fix must be attacked as hard as a defect. It was
+> right, and the first thing it found is the whole reason to run it.
+> (⚠ The fleet then died on a weekly usage limit with 34 of 44 agents
+> unrun — six lenses got no refuter and the claims-audit lens never ran at
+> all. What follows is what ONE completed lens found, verified by hand.)
+>
+> **⛔ A P1 OF THE EXACT CLASS THIS SLICE WAS FIXING.**
+>
+> ```
+> "Ney, hold your position for now, Davout attack Mack"
+>     ->  "Ney,                           , Davout attack Mack"
+> ```
+>
+> `has_executable_residue` sees `attack`, so no refusal fires — and the
+> leading address token is still `Ney,`, so the surviving verb, **which
+> names its own marshal**, was re-addressed to HIM. Measured on the shipped
+> 1805 boot: **NEY marched into Swabia and lost 1,164 men on a sentence that
+> ordered him to STAND STILL.** One command, no confirm modal, irreversible.
+> That is FA-7's own headline defect — an order the player postponed being
+> fought on the turn they typed it — re-created by FA-7's own fix, and the
+> same shape as the P1 the PRECEDING slice shipped: blanked text handed to a
+> consumer that reads what is left as the player's intent.
+>
+> Reachable with `later`, `tomorrow` and `delay` too, so it was never an
+> artefact of one adverb. **Blanking the address is not enough** —
+> `CommandParser.parse` runs its own word scan over the raw utterance and
+> re-binds the addressee anyway (the two-producers-in-series pattern this
+> slice met three times). The rule shipped is FA-50's own: *one order at a
+> time*. And the first cut of THAT rule was itself wrong — testing for
+> another marshal anywhere in the residue refuses
+> `Ney, delay the attack and support Davout`, where Davout is the OBJECT of
+> Ney's order. **A second order names its marshal FIRST**; subject position
+> is the only discriminator that separates the two, and the sweep is what
+> forced it out (the loose test came back INERT).
+>
+> **Three companions, all measured against the pre-slice commit before being
+> called regressions:**
+>
+> - **`for now` is not a deferral, and FA-7's own fix_shape says it is.** It
+>   means AT PRESENT — do it, provisionally, this turn. Shipped with it in
+>   the adverb list, `Ney, hold your position for now`, `Ney, fortify for
+>   now`, `Soult, defend Alsace for now` and `Murat, scout Swabia for now`
+>   were all refused, and answered with copy insisting Berthier keeps "no
+>   drawer for tomorrow's orders" — telling the player their order was about
+>   tomorrow when it was about today. Removed; the corpus row is corrected
+>   from a refusal to an attack.
+> - **`hold off <foe>` is an order to REPEL him, not to postpone.** Only
+>   `hold off ON <doing something>` defers, so the preposition is now
+>   required. `Davout, hold off the Austrians`, `Davout, hold off Mack` and
+>   `Ney, hold back from Swabia` were all refused as deferrals.
+> - **The two arms of one function disagreed about their own documented
+>   rule.** The verb arm used the NEGATION clause boundary, which excludes
+>   `and` on purpose, while the adverb arm has scoped on `and` since it was
+>   written — so `Ney, delay the attack and move to Swabia` blanked the MOVE
+>   as well. (At the pre-slice commit that sentence ATTACKED and lost 2,746
+>   men; it now moves, and is refused only by Mack standing in Swabia.)
+>
+> **Found in passing and NOT fixed, because it is not this slice's:**
+> `Ney, hold the line for now` and `Ney, fall back for now` answer "Region
+> 'Now' not found" — the phantom-province family, measured **byte-identical
+> at 62779e05**. `for now` no longer being a deferral is what lets them
+> reach their ordinary, already-broken parse.
+>
+> Round-2 sweep: **57 mutations, 57 killed, 0 INERT, 0 BROKEN.** Suite
+> 19,702 / 4 skipped; corpus 589/589; parse harness EXIT=0; boot 0
+> `SCRIPT ERROR`. The staleness pin on the Godot report earned its keep —
+> the sweep's own restore bumps `main.gd`'s mtime, so the report has to be
+> regenerated AFTER a sweep that touches a `.gd`.
+>
 > **Method note.** The first sweep of this slice returned **ten INERT pins
 > and one BROKEN mutation, all in my own work**. Every inert one was the same
 > pattern — two guards in series, each masking the other, so reverting either

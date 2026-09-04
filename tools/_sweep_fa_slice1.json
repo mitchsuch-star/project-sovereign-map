@@ -23,8 +23,8 @@
  {
   "id": "FA-7/d the clause start is found, not assumed",
   "file": "backend/ai/clause_guards.py",
-  "old": "        for boundary in _DEFERRAL_CLAUSE_BOUNDARY_RE.finditer(\n                text, 0, adverb.start()):\n            start = boundary.end()",
-  "new": "        pass",
+  "old": "        for boundary in _DEFERRAL_CLAUSE_BOUNDARY_RE.finditer(\n                text, 0, adverb.start()):\n            # A WORD connector belongs to the clause it introduces and must be\n            # blanked with it; a punctuation separator does not and must be\n            # kept. Measured: blanking after the connector left a dangling\n            # \"and\", and the strategic target extractor read \"Ney, hold here\n            # and\" as the province HERE AND — the phantom-province shape this\n            # guard exists to prevent, re-created by the guard itself.\n            start = (boundary.start()\n                     if _WORD_RE.search(boundary.group(0))\n                     else boundary.end())\n",
+  "new": "        pass\n",
   "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_a_coordinate_order_for_this_turn_survives"
  },
  {
@@ -37,8 +37,8 @@
  {
   "id": "FA-7/f the guard is BLANKING, not splicing",
   "file": "backend/ai/clause_guards.py",
-  "old": "    return (\"\".join(chars) if applied else text), applied\n\n\n# ---------------------------------------------------------------------------\n# Conditions",
-  "new": "    return (\"\".join(c for c in chars if c != \" \") if applied else text), applied\n\n\n# ---------------------------------------------------------------------------\n# Conditions",
+  "old": "    return (\"\".join(chars) if applied else text), applied\n",
+  "new": "    return (\"\".join(c for c in chars if c != \" \") if applied else text), applied\n",
   "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_the_deferral_guard_blanks_in_place"
  },
  {
@@ -327,5 +327,75 @@
   "old": "def strip_deferred_clauses(text: str) -> Tuple[str, bool]:",
   "new": "def strip_deferred_clauses(text: str) -> Tuple[str, bool]:\n    return text, False\n\n\ndef _unused_strip_deferred_clauses(text):",
   "tests": "tests/test_command_robustness_cr1_eval_harness.py"
+ },
+ {
+  "id": "FA-7/n the strategic layer gets the guard too",
+  "file": "backend/commands/parser.py",
+  "old": "                    strategic_text, _ = strip_deferred_clauses(strategic_text)",
+  "new": "                    pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheGuardsAreIsolated::test_a_deferred_clause_never_reaches_the_strategic_layer"
+ },
+ {
+  "id": "FA-7/o a WORD connector is blanked with its clause",
+  "file": "backend/ai/clause_guards.py",
+  "old": "            start = (boundary.start()\n                     if _WORD_RE.search(boundary.group(0))\n                     else boundary.end())",
+  "new": "            start = boundary.end()",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow::test_a_coordinate_order_for_this_turn_survives"
+ },
+ {
+  "id": "FA-7/p a PUNCTUATION separator is kept",
+  "file": "backend/ai/clause_guards.py",
+  "old": "            start = (boundary.start()\n                     if _WORD_RE.search(boundary.group(0))\n                     else boundary.end())",
+  "new": "            start = boundary.start()",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestADeferredOrderIsNotFoughtNow"
+ },
+ {
+  "id": "R2/a the two-marshal deferral refuses (THE P1)",
+  "file": "backend/ai/llm_client.py",
+  "old": "                        return self._refusal_result(\n                            original_text, \"deferral\",\n                            \"two orders, one of them for a later turn\")",
+  "new": "                        pass",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheDeferralGuardDoesNotReAddressTheSurvivingOrder::test_the_addressee_never_fights_the_other_marshals_battle"
+ },
+ {
+  "id": "R2/b a second order names its marshal FIRST",
+  "file": "backend/ai/llm_client.py",
+  "old": "                    if any(re.match(re.escape(name.lower()) + r\"\\b\",\n                                    _residue.lower())\n",
+  "new": "                    if any(re.search(r\"\\b\" + re.escape(name.lower()) + r\"\\b\",\n                                    _residue.lower())\n",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheDeferralGuardDoesNotReAddressTheSurvivingOrder::test_another_marshal_as_the_OBJECT_is_not_a_second_order"
+ },
+ {
+  "id": "R2/c the predicate detects the governed clause",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return (not guarded[address_end:clause_end].strip()\n            and bool(original[address_end:clause_end].strip())\n            and bool(guarded[clause_end:].strip()))",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheDeferralGuardDoesNotReAddressTheSurvivingOrder"
+ },
+ {
+  "id": "R2/d the predicate needs a SURVIVING clause",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return (not guarded[address_end:clause_end].strip()\n            and bool(original[address_end:clause_end].strip())\n            and bool(guarded[clause_end:].strip()))",
+  "new": "    return True",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheDeferralGuardDoesNotReAddressTheSurvivingOrder::test_the_predicate_is_pure_and_states_its_own_rule"
+ },
+ {
+  "id": "R2/e `for now` is not a deferral adverb",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    r\"\\b(?:later|next\\s+turn|tomorrow|next\\s+time\"\n",
+  "new": "    r\"\\b(?:later|for\\s+now|next\\s+turn|tomorrow|next\\s+time\"\n",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestForNowIsNotADeferral"
+ },
+ {
+  "id": "R2/f `hold off` requires its preposition",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    r\"|hold\\s+off\\s+on\"",
+  "new": "    r\"|hold\\s+off(?:\\s+on)?|hold\\s+back\\s+(?:on|from)\"",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestHoldOffTakesItsPreposition"
+ },
+ {
+  "id": "R2/g the verb arm scopes on the DEFERRAL boundary",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        end_match = _DEFERRAL_CLAUSE_BOUNDARY_RE.search(text, marker.end())\n        clause_end = end_match.start() if end_match else len(text)",
+  "new": "        end_match = _CLAUSE_END_RE.search(text, marker.end())\n        clause_end = end_match.start() if end_match else len(text)",
+  "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestBothArmsScopeTheSameWay"
  }
 ]

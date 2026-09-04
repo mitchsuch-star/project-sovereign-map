@@ -13,7 +13,11 @@ from backend.ai.llm_client import (
     CONDITION_CLAUSE_RE,
 )
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
-from backend.ai.clause_guards import is_question, strip_negated_clauses
+from backend.ai.clause_guards import (
+    is_question,
+    strip_deferred_clauses,
+    strip_negated_clauses,
+)
 from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.nation_names import resolve_typed_nation
@@ -1852,7 +1856,20 @@ class CommandParser:
                     # swinging. Only the NEGATION half is applied: blanking
                     # condition clauses here would destroy the `until …` that
                     # StrategicCondition exists to parse.
+                    #
+                    # FA-7, the same rule for the same reason: a DEFERRED
+                    # clause must not reach the strategic layer either.
+                    # Measured before this line existed — and identical at the
+                    # pre-slice commit, so it is not a regression but a
+                    # residue the deferral guard should have closed:
+                    # `Ney, attack Mack, and hold Rhineland later` created a
+                    # 2 AP STANDING HOLD on the phantom province "Rhineland
+                    # Later" while the action chain had correctly read
+                    # `attack`. `strip_deferred_clauses` never touches
+                    # `until`, so StrategicCondition's one supported condition
+                    # is safe here in a way `strip_condition_clauses` is not.
                     strategic_text, _ = strip_negated_clauses(effective_text)
+                    strategic_text, _ = strip_deferred_clauses(strategic_text)
                     strategic = detect_strategic_command(strategic_text, marshal_name, world)
                     if strategic:
                         result["is_strategic"] = True

@@ -4338,15 +4338,15 @@
       "notes": "Not in the row's filed list."
     },
     {
-      "id": "fa7-attack-for-now-refuses",
+      "id": "fa7-for-now-is-not-a-deferral",
       "utterance": "Ney, attack Mack for now",
       "world": "1805",
       "expected": {
-        "success": false,
-        "not_action": "attack"
+        "success": true,
+        "action": "attack"
       },
       "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
-      "notes": "Not in the row's filed list."
+      "notes": "FA-7's own fix_shape lists `for now` as a deferral adverb. It is the OPPOSITE: 'for now' means AT PRESENT — do it, provisionally, this turn. Shipped with it in the list, `Ney, hold your position for now`, `Ney, fortify for now` and `Soult, defend Alsace for now` were all refused, and told the player their order was about tomorrow when it was about today. Corrected on the record."
     },
     {
       "id": "fa7-attack-next-turn-refuses",

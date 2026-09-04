@@ -34,6 +34,7 @@ from .validation import validate_parse_result
 from .attack_vocabulary import mentions_attack
 from .recruit_arm import extract_requested_arm
 from .clause_guards import (
+    address_governs_only_deferred_text,
     has_executable_residue,
     is_bare_end_turn,
     is_question,
@@ -1074,6 +1075,42 @@ class LLMClient:
             # the attack" fought a real battle at 0.95 confidence — above the
             # escalation gate, so no key in any mode could have corrected it.
             guarded, deferral_applied = strip_deferred_clauses(guarded)
+            # ⛔ TWO MARSHALS, ONE DEFERRED — REFUSE, never re-address.
+            #
+            # "Ney, hold your position for now, Davout attack Mack" blanked
+            # the clause `Ney,` governed and left `Davout attack Mack`
+            # standing under his address, so NEY marched into Swabia and
+            # lost 1,164 men on a sentence that ordered him to STAND STILL.
+            # FA-7's own headline defect, re-created by FA-7's own fix, and
+            # the same shape as the P1 the preceding slice shipped.
+            #
+            # Blanking the address is NOT enough: `CommandParser.parse` runs
+            # its own word scan over the raw utterance, so it re-binds Ney
+            # anyway (measured — the two-producers-in-series pattern this
+            # slice met three times). The honest answer is FA-50's own rule:
+            # one order at a time. A residue that names NO other marshal is
+            # still the addressee's, and stands — "Ney, delay the attack and
+            # move to Swabia" moves Ney, which is what he was told to do.
+            if deferral_applied:
+                _addr = ADDRESS_TOKEN_RE.match(original_text)
+                if _addr and address_governs_only_deferred_text(
+                        original_text, guarded, _addr.end()):
+                    # A SECOND ORDER NAMES ITS MARSHAL FIRST. Testing merely
+                    # for another marshal ANYWHERE in the residue was found
+                    # inert by the sweep, and chasing that showed it was also
+                    # wrong: "Ney, delay the attack and support Davout" names
+                    # Davout as the OBJECT of Ney's own order, and would have
+                    # been refused. Subject position is the discriminator.
+                    _addressee = _addr.group(1).strip().lower()
+                    _residue = re.sub(r"^[\s,;.!?]*(?:and|then|but)?\s*", "",
+                                      guarded[_addr.end():], flags=re.I)
+                    if any(re.match(re.escape(name.lower()) + r"\b",
+                                    _residue.lower())
+                           for name in _player_roster
+                           if name.lower() != _addressee):
+                        return self._refusal_result(
+                            original_text, "deferral",
+                            "two orders, one of them for a later turn")
 
             # A condition the engine cannot hold open. Issuing the order NOW is
             # the defect: "if Mack advances fall back to Alsace" marched on the

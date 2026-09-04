@@ -207,15 +207,27 @@ _DEFERRAL_VERB_RE = re.compile(
     r"|postpone[sd]?|postponing"
     r"|defer(?:s|red|ring)?"
     r"|put\s+(?:it\s+|that\s+|them\s+)?off"
-    r"|hold\s+off(?:\s+on)?"
-    r"|hold\s+back\s+(?:on|from)"
+    # `hold off ON <doing something>` postpones it. Bare `hold off <foe>`
+    # is the opposite — an order to REPEL him, now. Measured: without the
+    # `on`, `Davout, hold off the Austrians` and `Davout, hold off Mack`
+    # were refused as deferrals, and so was `Ney, hold back from Swabia`,
+    # which orders him to stay clear of it THIS turn. The `on` is what
+    # makes it a deferral, so the `on` is required.
+    r"|hold\s+off\s+on"
     r")\b",
     re.IGNORECASE,
 )
 # An adverb of time defers the CLAUSE it sits in, from either end — "attack
 # Mack later" and "next turn Ney attacks Mack" are the same instruction.
+# NOT `for now`. FA-7's own fix_shape lists it, and it is the opposite of a
+# deferral: "for now" means AT PRESENT — do it, provisionally, this turn.
+# Measured with it in the list: `Ney, hold your position for now`,
+# `Ney, fortify for now`, `Soult, defend Alsace for now` and
+# `Murat, scout Swabia for now` were all refused, and answered with copy
+# insisting Berthier keeps "no drawer for tomorrow's orders" — telling the
+# player their order was about tomorrow when it was about today.
 _DEFERRAL_ADVERB_RE = re.compile(
-    r"\b(?:later|for\s+now|next\s+turn|tomorrow|next\s+time"
+    r"\b(?:later|next\s+turn|tomorrow|next\s+time"
     r"|another\s+time|some\s+other\s+time|in\s+due\s+course|in\s+a\s+while)\b",
     re.IGNORECASE,
 )
@@ -259,7 +271,15 @@ def strip_deferred_clauses(text: str) -> Tuple[str, bool]:
         marker = _DEFERRAL_VERB_RE.search(text, pos)
         if not marker:
             break
-        end_match = _CLAUSE_END_RE.search(text, marker.end())
+        # The DEFERRAL boundary, not the negation one: `and` ends a deferred
+        # clause here. Negation excludes it on purpose ("don't attack and
+        # hold" reads as two negated verbs at least as often as one), but a
+        # deferral is not ambiguous that way, and the adverb arm below has
+        # scoped on `and` since it was written. Measured with the negation
+        # boundary: `Ney, delay the attack and move to Swabia` blanked the
+        # MOVE as well and refused the whole sentence — the two arms of one
+        # function disagreeing about their own documented rule.
+        end_match = _DEFERRAL_CLAUSE_BOUNDARY_RE.search(text, marker.end())
         clause_end = end_match.start() if end_match else len(text)
         for i in range(marker.start(), clause_end):
             chars[i] = " "
@@ -270,7 +290,15 @@ def strip_deferred_clauses(text: str) -> Tuple[str, bool]:
         start = 0
         for boundary in _DEFERRAL_CLAUSE_BOUNDARY_RE.finditer(
                 text, 0, adverb.start()):
-            start = boundary.end()
+            # A WORD connector belongs to the clause it introduces and must be
+            # blanked with it; a punctuation separator does not and must be
+            # kept. Measured: blanking after the connector left a dangling
+            # "and", and the strategic target extractor read "Ney, hold here
+            # and" as the province HERE AND — the phantom-province shape this
+            # guard exists to prevent, re-created by the guard itself.
+            start = (boundary.start()
+                     if _WORD_RE.search(boundary.group(0))
+                     else boundary.end())
         end_match = _DEFERRAL_CLAUSE_BOUNDARY_RE.search(text, adverb.end())
         end = end_match.start() if end_match else len(text)
         # FA-N23. A clause that is NOTHING but the adverb, and is the whole
@@ -286,6 +314,43 @@ def strip_deferred_clauses(text: str) -> Tuple[str, bool]:
         applied = True
 
     return ("".join(chars) if applied else text), applied
+
+
+def address_governs_only_deferred_text(original: str, guarded: str,
+                                       address_end: int) -> bool:
+    """True when the leading addressee's OWN clause was the deferred one.
+
+    ⛔ THE REGRESSION THIS EXISTS TO CLOSE, and it is FA-7's own headline
+    defect re-created by FA-7's own fix. Measured on the shipped 1805 boot:
+
+        "Ney, hold your position for now, Davout attack Mack"
+            -> "Ney,                           , Davout attack Mack"
+
+    `has_executable_residue` sees `attack`, so no refusal fires — and the
+    leading address token is still `Ney,`, so the surviving verb, which
+    names its OWN marshal, is re-addressed to HIM. NEY marched into Swabia
+    and lost 1,164 men on a sentence that ordered him to STAND STILL. One
+    command, no confirm modal, irreversible. Reachable with `later`,
+    `tomorrow` and `delay` too, so it is not an artefact of one adverb.
+
+    That is the same shape as the P1 the PRECEDING slice shipped — blanked
+    text handed to a consumer that reads what is left as the player's
+    intent — one word further along the sentence.
+
+    The answer is not to refuse: the player gave two orders and only one is
+    deferred, so Davout's attack is real and should stand. The address is
+    what must go, because it governed the clause that was blanked.
+    """
+    if not original or address_end <= 0 or address_end > len(guarded):
+        return False
+    end_match = _DEFERRAL_CLAUSE_BOUNDARY_RE.search(original, address_end)
+    clause_end = end_match.start() if end_match else len(original)
+    if clause_end <= address_end:
+        return False
+    # The addressee's own clause is gone, and something else survived.
+    return (not guarded[address_end:clause_end].strip()
+            and bool(original[address_end:clause_end].strip())
+            and bool(guarded[clause_end:].strip()))
 
 
 # ---------------------------------------------------------------------------
