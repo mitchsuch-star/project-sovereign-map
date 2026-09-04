@@ -566,7 +566,15 @@ class TestTheDestinationCopy:
 
 class TestTheRefusedFirstStepLeavesNoLogRow:
 
-    def test_the_march_is_not_logged(self):
+    def test_the_march_is_not_logged(self, monkeypatch):
+        # FA slice 5 (Sept 4, 2026): with the road law at issuance this
+        # march is refused BEFORE an order exists (the crossing gate, at
+        # 0 AP — pinned in test_fa_slice5_the_road_law_2026_09_04.py), so
+        # the retraction seam this pin guards is reached through the
+        # lever-off arm: it still serves every first-step refusal that is
+        # not a road-law refusal (engaged elsewhere, drilling-locked, guns
+        # limbered).
+        monkeypatch.setattr(strategic_mod, "ROAD_LAW_AT_ISSUANCE", False)
         world, ney, moore = _channel()
         before = [e for e in world.event_log if e.get("type") == "strategic_order"
                   and e.get("marshal") == "Ney"]

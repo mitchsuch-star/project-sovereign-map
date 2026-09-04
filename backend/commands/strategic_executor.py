@@ -823,7 +823,24 @@ class StrategicExecutor:
                 use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
                 pathfinder = world.find_weighted_path if use_weighted else world.find_path
                 personality = getattr(marshal, 'personality', 'balanced')
-                if personality == "cautious":
+                import backend.commands.strategic as _road
+                _road_verdict = None
+                if _road.ROAD_LAW_AT_ISSUANCE:
+                    # FA slice 5 (FA-13/FA-46): issuance plots by the ONE
+                    # lawful-first ladder the per-turn march already walks —
+                    # it used to plot terrain-only, announce a route through
+                    # a neutral's closed frontier, charge 2 AP and refuse the
+                    # first hop in silence. The verdict is read after the
+                    # strip, before an AP is charged.
+                    _avoid = None
+                    if personality == "cautious":
+                        _avoid = _road.enemy_occupied_regions(
+                            world, marshal.nation, marshal=marshal)
+                    path, _road_verdict = _road.plot_route(
+                        world, marshal, dest, use_weighted=use_weighted,
+                        avoid_regions=_avoid,
+                        want_verdict=(marshal.nation == world.player_nation))
+                elif personality == "cautious":
                     # [7A-4] Fog-aware pathfinding: only avoid visible enemies
                     from backend.models.intel import FULL, PARTIAL
                     enemy_regions = []
@@ -846,6 +863,23 @@ class StrategicExecutor:
                     }
                 # Strip start location
                 path = [r for r in path if r != marshal.location]
+
+                if _road_verdict is not None:
+                    # FA slice 5: a closed destination, no lawful corridor
+                    # (S5-D2's own words) or a sea leg the crossing gate
+                    # refuses — said NOW, at 0 AP.
+                    _road_refusal = _road.issuance_road_refusal(
+                        world, marshal, dest, strategic_type, _road_verdict)
+                    if _road_refusal is not None:
+                        # FA-54's rule holds on the refusal too: a destination
+                        # the player did not name is disclosed in the same
+                        # words the accepted route uses ("Lisboa" → Lisbon,
+                        # Portugal's — refused, and SAID which Lisbon).
+                        _road_refusal["message"] = (
+                            str(_road_refusal.get("message") or "")
+                            + destination_grounding_note(
+                                parsed_command.get("raw_input"), dest))
+                        return _road_refusal
 
                 # ── S5-D2: issuance-time passability honesty ──────────────
                 # The route above ignores diplomacy. PF-8's per-turn march
@@ -1879,10 +1913,20 @@ class StrategicExecutor:
 
                 dest = path[-1] if path else target
                 use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
-                safe_pathfinder = world.find_weighted_path if use_weighted else world.find_path
-                safe_path = safe_pathfinder(marshal.location, dest, avoid_regions=enemy_occupied)
+                import backend.commands.strategic as _road
+                if _road.ROAD_LAW_ON_REPLOT:
+                    # FA slice 5: the compromise route prefers a lawful
+                    # corridor and must avoid what the marshal objected to.
+                    safe_path, _ = _road.plot_route(
+                        world, marshal, dest, use_weighted=use_weighted,
+                        avoid_regions=list(enemy_occupied), avoid_is_law=True)
+                else:
+                    safe_pathfinder = world.find_weighted_path if use_weighted else world.find_path
+                    safe_path = safe_pathfinder(marshal.location, dest, avoid_regions=enemy_occupied)
+                    safe_path = ([r for r in safe_path if r != marshal.location]
+                                 if safe_path else None)
                 if safe_path:
-                    path = [r for r in safe_path if r != marshal.location]
+                    path = list(safe_path)
                 else:
                     return {
                         "success": False,
@@ -2183,13 +2227,23 @@ class StrategicExecutor:
             ]
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
-            first_step_pathfinder = world.find_weighted_path if use_weighted else world.find_path
-            new_path = first_step_pathfinder(
-                marshal.location, destination,
-                avoid_regions=enemy_regions
-            )
+            import backend.commands.strategic as _road
+            if _road.ROAD_LAW_ON_REPLOT:
+                # FA slice 5: a reroute prefers a lawful corridor and must
+                # still AVOID what it fled (it used to be terrain-only).
+                new_path, _ = _road.plot_route(
+                    world, marshal, destination, use_weighted=use_weighted,
+                    avoid_regions=enemy_regions, avoid_is_law=True)
+            else:
+                first_step_pathfinder = world.find_weighted_path if use_weighted else world.find_path
+                new_path = first_step_pathfinder(
+                    marshal.location, destination,
+                    avoid_regions=enemy_regions
+                )
+                new_path = ([r for r in new_path if r != marshal.location]
+                            if new_path else None)
             if new_path:
-                order.path = [r for r in new_path if r != marshal.location]
+                order.path = list(new_path)
                 # Return None — handled automatically, continue with normal flow
                 return None  # Caller will set first_step_msg for reroute
             else:

@@ -1,0 +1,177 @@
+[
+ {
+  "id": "issuance/a issuance plots by the lawful ladder",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                if _road.ROAD_LAW_AT_ISSUANCE:\n                    # FA slice 5 (FA-13/FA-46): issuance plots by the ONE",
+  "new": "                if False:\n                    # FA slice 5 (FA-13/FA-46): issuance plots by the ONE",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestIssuancePlotsTheLawfulRoad::test_fa13_the_first_hop_marches_on_the_lawful_road"
+ },
+ {
+  "id": "issuance/b the cautious avoid set is read",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                        _avoid = _road.enemy_occupied_regions(\n                            world, marshal.nation, marshal=marshal)",
+  "new": "                        _avoid = None",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestIssuancePlotsTheLawfulRoad::test_the_cautious_avoid_set_is_the_one_source"
+ },
+ {
+  "id": "issuance/c the verdict is read before an AP is charged",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                if _road_verdict is not None:\n                    # FA slice 5: a closed destination, no lawful corridor",
+  "new": "                if False:\n                    # FA slice 5: a closed destination, no lawful corridor",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAClosedDestinationIsRefusedAtIssuance::test_a_march_onto_peaceful_soil_is_refused_at_zero_ap tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAShutCrossingIsRefusedAtIssuance::test_a_route_whose_last_leg_is_shut_is_refused_at_zero_ap"
+ },
+ {
+  "id": "verdict/a a closed destination refuses",
+  "file": "backend/commands/strategic.py",
+  "old": "    if strategic_type in (\"MOVE_TO\", \"HOLD\") and verdict.get(\"closed_destination\"):",
+  "new": "    if False:",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAClosedDestinationIsRefusedAtIssuance::test_a_march_onto_peaceful_soil_is_refused_at_zero_ap"
+ },
+ {
+  "id": "verdict/b a visible enemy keeps the road open",
+  "file": "backend/commands/strategic.py",
+  "old": "        and not world.get_visible_enemies_in_region(destination, nation))",
+  "new": "        and True)",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAClosedDestinationIsRefusedAtIssuance::test_a_visible_enemy_on_closed_soil_keeps_the_road_open"
+ },
+ {
+  "id": "verdict/c no lawful corridor refuses in S5-D2's words",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not verdict.get(\"legal\", True):\n        blocker = verdict.get(\"blocker_region\")",
+  "new": "    if False:\n        blocker = verdict.get(\"blocker_region\")",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestNoLawfulCorridorSpeaksInItsOwnWords::test_the_s5d2_refusal_is_preserved"
+ },
+ {
+  "id": "verdict/d a shut sea leg refuses",
+  "file": "backend/commands/strategic.py",
+  "old": "    check = verdict.get(\"naval_check\")\n    if check is not None:\n        leg = verdict.get(\"naval_leg\") or (\"\", \"\")",
+  "new": "    check = verdict.get(\"naval_check\")\n    if False:\n        leg = verdict.get(\"naval_leg\") or (\"\", \"\")",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAShutCrossingIsRefusedAtIssuance::test_a_route_whose_last_leg_is_shut_is_refused_at_zero_ap"
+ },
+ {
+  "id": "verdict/e the sea legs are scanned",
+  "file": "backend/commands/strategic.py",
+  "old": "            if is_sea_link(world, prev, step):",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAShutCrossingIsRefusedAtIssuance::test_the_verdict_names_the_shut_leg"
+ },
+ {
+  "id": "verdict/f an AI corps gets no verdict",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not want_verdict or not player:\n        return road, None",
+  "new": "    if not want_verdict:\n        return road, None",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestOneSeam::test_an_ai_corps_plots_omnisciently_and_gets_no_verdict"
+ },
+ {
+  "id": "ladder/a the lawful road is preferred",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not path and not avoid_is_law:\n        path = pathfinder(marshal.location, destination, passable_for=_pf)",
+  "new": "    if not path and not avoid_is_law:\n        path = pathfinder(marshal.location, destination)",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestIssuancePlotsTheLawfulRoad::test_fa13_the_first_hop_marches_on_the_lawful_road tests/test_fa_slice5_the_road_law_2026_09_04.py::TestOneSeam::test_the_per_turn_helper_is_byte_identical_to_its_inline_copy"
+ },
+ {
+  "id": "ladder/b the avoiding arm is lawful too",
+  "file": "backend/commands/strategic.py",
+  "old": "        path = pathfinder(marshal.location, destination,\n                          avoid_regions=avoid, passable_for=_pf)",
+  "new": "        path = pathfinder(marshal.location, destination,\n                          avoid_regions=avoid)",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_the_literal_reroute_prefers_a_lawful_road"
+ },
+ {
+  "id": "fogscan/a the one fog scan is fog-honest",
+  "file": "backend/commands/strategic.py",
+  "old": "        if fog_aware:\n            intel = world.get_region_intel(region_name)\n            if intel.visibility not in (FULL, PARTIAL):\n                continue\n        if world.get_enemies_in_region(region_name, nation):\n            found.append(region_name)",
+  "new": "        if False:\n            intel = world.get_region_intel(region_name)\n            if intel.visibility not in (FULL, PARTIAL):\n                continue\n        if world.get_enemies_in_region(region_name, nation):\n            found.append(region_name)",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestOneSeam::test_the_fog_scan_is_one_source"
+ },
+ {
+  "id": "hold/a HOLD keeps its road",
+  "file": "backend/commands/strategic.py",
+  "old": "            if HOLD_KEEPS_ITS_ROAD:\n                # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road",
+  "new": "            if False:\n                # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestHoldKeepsItsRoad::test_a_literal_reroute_survives_the_next_tick"
+ },
+ {
+  "id": "hold/b a sound road is kept",
+  "file": "backend/commands/strategic.py",
+  "old": "                if not path or not region_is_adjacent(world, marshal.location, path[0]):\n                    path = self._get_personality_aware_path(\n                        marshal, hold_position, world, use_weighted=True) or []",
+  "new": "                if True:\n                    path = self._get_personality_aware_path(\n                        marshal, hold_position, world, use_weighted=True) or []",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestHoldKeepsItsRoad::test_a_sound_road_is_kept_not_replotted"
+ },
+ {
+  "id": "hold/c the refusal is kept for the verdict",
+  "file": "backend/commands/strategic.py",
+  "old": "                            last_fail = result  # FA slice 5: keep the reason",
+  "new": "                            pass  # mutated: the reason is dropped",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheHoldStallSpeaks::test_a_closed_hold_position_breaks_with_its_reason"
+ },
+ {
+  "id": "hold/d the HOLD stall speaks",
+  "file": "backend/commands/strategic.py",
+  "old": "            if HOLD_KEEPS_ITS_ROAD:\n                # FA-N12/N49: a stall at a closed border reroutes once or",
+  "new": "            if False:\n                # FA-N12/N49: a stall at a closed border reroutes once or",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheHoldStallSpeaks::test_a_stored_road_through_closed_land_reroutes_with_the_reason"
+ },
+ {
+  "id": "support/a the SUPPORT stall speaks",
+  "file": "backend/commands/strategic.py",
+  "old": "        if SUPPORT_STALL_SPEAKS:\n            # FA-N41: PF-8's stall idiom never reached SUPPORT",
+  "new": "        if False:\n            # FA-N41: PF-8's stall idiom never reached SUPPORT",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheSupportStallSpeaks::test_a_covered_strait_breaks_the_support_at_the_waters_edge"
+ },
+ {
+  "id": "support/b the refusal is kept for the verdict",
+  "file": "backend/commands/strategic.py",
+  "old": "                last_fail = result  # FA slice 5 (FA-N41): keep the reason",
+  "new": "                pass  # mutated: the reason is dropped",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheSupportStallSpeaks::test_a_closed_border_breaks_the_support_naming_the_lapse"
+ },
+ {
+  "id": "stale/a a stale road is re-plotted",
+  "file": "backend/commands/strategic.py",
+  "old": "        if (STALE_ROAD_REPLOTS and order.path\n                and not region_is_adjacent(world, marshal.location, order.path[0])):",
+  "new": "        if (False and order.path\n                and not region_is_adjacent(world, marshal.location, order.path[0])):",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAStaleRoadNeverMintsAnOrder::test_move_to_with_a_stale_first_step_keeps_its_destination"
+ },
+ {
+  "id": "belt/a a strategic step never mints an order",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            if _road.STRATEGIC_STEP_NEVER_UPGRADES:",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAStaleRoadNeverMintsAnOrder::test_a_strategic_step_two_provinces_off_is_refused"
+ },
+ {
+  "id": "replot/a the literal reroute is lawful",
+  "file": "backend/commands/strategic.py",
+  "old": "                order.path = list(new_path)\n                # Session 36: Discovery vs standard reroute message",
+  "new": "                order.path = [r for r in (world.find_weighted_path(marshal.location, destination, avoid_regions=enemy_regions) or []) if r != marshal.location]\n                # Session 36: Discovery vs standard reroute message",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_the_literal_reroute_prefers_a_lawful_road"
+ },
+ {
+  "id": "replot/b go_around is lawful",
+  "file": "backend/commands/strategic.py",
+  "old": "                order.path = list(new_path)\n                # Execute one movement step along the new path",
+  "new": "                order.path = [r for r in (world.find_weighted_path(marshal.location, destination, avoid_regions=enemy_regions) or []) if r != marshal.location]\n                # Execute one movement step along the new path",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_go_around_prefers_a_lawful_road"
+ },
+ {
+  "id": "replot/c the first-step reroute is lawful",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "            if _road.ROAD_LAW_ON_REPLOT:\n                # FA slice 5: a reroute prefers a lawful corridor and must",
+  "new": "            if False:\n                # FA slice 5: a reroute prefers a lawful corridor and must",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_the_first_step_reroute_prefers_a_lawful_road"
+ },
+ {
+  "id": "replot/d the compromise road is lawful",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                if _road.ROAD_LAW_ON_REPLOT:\n                    # FA slice 5: the compromise route prefers a lawful",
+  "new": "                if False:\n                    # FA slice 5: the compromise route prefers a lawful",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_the_objection_compromise_prefers_a_lawful_road"
+ },
+ {
+  "id": "note/a the substitution note rides the refusal",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                        _road_refusal[\"message\"] = (\n                            str(_road_refusal.get(\"message\") or \"\")\n                            + destination_grounding_note(\n                                parsed_command.get(\"raw_input\"), dest))",
+  "new": "                        pass",
+  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheSubstitutionNoteRidesTheRefusal::test_a_substituted_closed_destination_is_disclosed"
+ }
+]

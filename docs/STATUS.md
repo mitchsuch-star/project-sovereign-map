@@ -4,6 +4,38 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 5 "THE ROAD LAW" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 5 block (authoritative).** FA-13, FA-46, FA-N11, FA-N12, FA-N49,
+> FA-N41 — one root, nine copies: only the per-turn path helper obeyed the
+> movement law, so issuance plotted through a neutral's closed frontier and
+> refused the first hop in silence, a closed destination was accepted at 2 AP
+> and died "Cannot reach", a route over a SHUT crossing was announced with no
+> naval word, HOLD threw every reroute away on the next tick, and SUPPORT
+> re-stalled for ever. Built as ONE ladder (`plot_route`, lawful-first, with a
+> verdict), ONE issuance reader (`issuance_road_refusal` — closed destination /
+> no lawful corridor / a refused sea leg, all at 0 AP, with the visible-enemy
+> exemption and no fog leak), ONE stall idiom (`_stall_verdict`), HOLD keeping
+> its road, a stale-road re-plot and the auto-upgrade belt (measured: the old
+> code turned "march to Normandy" into an order for Artois). Tests (44), sweep
+> **25/25 killed, 0 inert on the first pass**, corpus 589/589, zero `.gd`,
+> series + M1–M7 byte-identical structurally. Four pins flipped consciously;
+> found in passing, the substitution note now rides the refusal ("Lisboa").
+> Recommended, not built: the ONE step loop (`march_along`).
+>
+> **▶ NEXT = the slice-4 review round** (three lenses reported at `85130a6f`:
+> eight AI-decision defects incl. the counter-punch pricing a retreated target
+> at his neighbours' strength, the unpriced ally-support strike, the AI recruit
+> breaking its own square, the stagnation tracker cancelling a paid drill; the
+> balance warning MEASURED — an unattended France overrun on 8/8 seeds, a
+> scripted France on 5/5 arms, the levers acting jointly not additively; a
+> pre-existing garrison-assault pathology lever A now steers the AI into — and
+> a dozen record corrections), then the popup queue (REPRO_E), the mock
+> vocabulary (REPRO_F), then FA-26 as a shared helper across four
+> trust-writing families (FA-N1), then position 10. ⚠ Still no pillar
+> re-score.
+
 > # ✅ THE AUDIT BUILD: THE SLICE 3 REVIEW ROUND "THE REDIRECT READS THE ANSWER" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

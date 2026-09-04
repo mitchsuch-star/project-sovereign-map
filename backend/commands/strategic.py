@@ -310,6 +310,198 @@ def pursue_known_location(world, marshal, enemy):
     return known[0] if known else None
 
 
+# ── FA slice 5 "The Road Law" (September 4, 2026) ─────────────────────────
+# Four marching verbs × two seams (issuance in strategic_executor.py, the
+# per-turn tick here) each owned a private copy of route-plotting, and only
+# the per-turn `_get_personality_aware_path` obeyed the movement law (PF-8's
+# `passable_for`). Measured on the shipped board: issuance plotted the
+# terrain-cheapest road through a neutral's closed frontier, charged 2 AP and
+# refused the first hop silently (FA-13); a route whose last leg the Royal
+# Navy holds SHUT was accepted with a route and no warning (FA-46); HOLD
+# re-plotted raw every turn, discarding every reroute (FA-N11) and dying
+# "Cannot reach X" past a closed border with a legal all-French corridor on
+# the map (FA-N12/FA-N49); SUPPORT re-stalled "could not move toward" forever
+# (FA-N41). `plot_route` is the ONE ladder every seam plots by;
+# `issuance_road_refusal` reads its verdict before an AP is charged;
+# `_stall_verdict` is PF-8's stall idiom, one copy for MOVE_TO/HOLD/SUPPORT.
+# Each lever False reproduces the prior behaviour byte-for-byte.
+ROAD_LAW_AT_ISSUANCE = True      # issuance plots lawful-first, refuses at 0 AP
+ROAD_LAW_ON_REPLOT = True        # the three re-plots + the compromise obey it
+ROAD_LAW_ONE_SEAM = True         # `_get_personality_aware_path` delegates
+HOLD_KEEPS_ITS_ROAD = True       # HOLD keeps `order.path`; its stall speaks
+SUPPORT_STALL_SPEAKS = True      # SUPPORT reroutes-or-breaks with the reason
+STALE_ROAD_REPLOTS = True        # a road whose first step is not adjacent re-plots
+STRATEGIC_STEP_NEVER_UPGRADES = True  # a per-hop step never mints a NEW order
+
+
+def region_is_adjacent(world, here: str, there: str) -> bool:
+    """One road-step: `there` is walkable from `here` (sea links included —
+    the registry's `adjacent` IS walkability)."""
+    region = world.get_region(here) if here else None
+    return bool(region) and there in (getattr(region, "adjacent_regions", None) or [])
+
+
+def enemy_occupied_regions(world, nation: str, marshal=None,
+                           fog_aware: bool = False) -> List[str]:
+    """Provinces with an enemy of `nation` standing on them — fog-honest for
+    the player (PARTIAL+ only), omniscient for the AI (Session 34B). ONE
+    source: the processor's cautious avoid-set and the executor's issuance
+    scan (which used to duplicate this loop inline) both read it."""
+    from backend.models.intel import FULL, PARTIAL
+    if marshal is not None and not fog_aware:
+        fog_aware = (marshal.nation == world.player_nation)
+    found = []
+    for region_name in world.regions:
+        if fog_aware:
+            intel = world.get_region_intel(region_name)
+            if intel.visibility not in (FULL, PARTIAL):
+                continue
+        if world.get_enemies_in_region(region_name, nation):
+            found.append(region_name)
+    return found
+
+
+def plot_route(world, marshal, destination: str, *, use_weighted: bool,
+               avoid_regions=None, avoid_is_law: bool = False,
+               want_verdict: bool = False):
+    """THE road-plotting seam. Returns ``(path_without_start, verdict)``.
+
+    The ladder — a PLAYER corps prefers a corridor it may lawfully walk (own,
+    allied, open-border or at-war soil, `_region_passable_for`); the AI keeps
+    omniscient routing (`passable_for=None`, `_pf` is None):
+
+        avoid + lawful → lawful → terrain-only            (avoid_is_law False)
+        avoid + lawful → avoid + terrain-only             (avoid_is_law True:
+                                                           a REROUTE must still
+                                                           avoid what it fled)
+
+    The terrain-only fallback keeps PF-8's contract — the order still forms
+    and the stall seam says why — and is what `issuance_road_refusal` reads
+    to refuse BEFORE an AP is charged. `verdict` (player only, on request)
+    describes the road actually returned, so shown = applied:
+
+        legal · blocker_region / blocker_controller (the first closed
+        intermediate) · closed_destination · naval_leg / naval_check (the
+        first sea leg `crossing_check` refuses — SHUT, or NV-4's defended
+        shore; the pathfinders are edge-blind to sail).
+    """
+    pathfinder = world.find_weighted_path if use_weighted else world.find_path
+    player = marshal.nation == world.player_nation
+    _pf = marshal.nation if player else None
+    avoid = list(avoid_regions or [])
+    path = None
+    if avoid:
+        path = pathfinder(marshal.location, destination,
+                          avoid_regions=avoid, passable_for=_pf)
+    if not path and not avoid_is_law:
+        path = pathfinder(marshal.location, destination, passable_for=_pf)
+    if not path and _pf:
+        if avoid_is_law:
+            path = pathfinder(marshal.location, destination, avoid_regions=avoid)
+        else:
+            path = pathfinder(marshal.location, destination)
+    if not path:
+        return None, None
+    road = [r for r in path if r != marshal.location]
+    if not want_verdict or not player:
+        return road, None
+    nation, here = marshal.nation, marshal.location
+    blocker = next((r for r in road[:-1]
+                    if not world._region_passable_for(
+                        r, nation, mover_location=here)), None)
+    blocker_region = world.regions.get(blocker) if blocker else None
+    naval_leg = None
+    naval_check = None
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import crossing_check, is_sea_link
+        prev = here
+        for step in road:
+            if is_sea_link(world, prev, step):
+                check = crossing_check(
+                    world, nation, prev, step,
+                    mover_strength=int(getattr(marshal, "strength", 0) or 0))
+                if not check.get("allowed", True):
+                    naval_leg, naval_check = (prev, step), check
+                    break
+            prev = step
+    # A march to where a VISIBLE enemy stands is an attack in the making, not
+    # an entry — the first-step-blocked flow owns it (aggressive fights,
+    # cautious asks), whatever flag flies over the province. Fog decides
+    # visibility (`get_visible_enemies_in_region`, PARTIAL+): an unseen enemy
+    # on closed soil neither opens the road nor leaks by opening it.
+    closed_destination = (
+        not world._region_passable_for(destination, nation, mover_location=here)
+        and not world.get_visible_enemies_in_region(destination, nation))
+    verdict = {
+        "legal": blocker is None,
+        "blocker_region": blocker,
+        "blocker_controller": ((blocker_region.controller if blocker_region else None)
+                               or "neutral"),
+        "closed_destination": closed_destination,
+        "naval_leg": naval_leg,
+        "naval_check": naval_check,
+    }
+    return road, verdict
+
+
+def issuance_road_refusal(world, marshal, destination: str, strategic_type: str,
+                          verdict) -> Optional[Dict]:
+    """Read `plot_route`'s verdict at ISSUANCE and refuse, at 0 AP, what the
+    per-turn march would only have stalled on a turn later (player only):
+
+    * a MOVE_TO/HOLD whose DESTINATION is closed soil (the tactical `move`
+      already refused this — the strategic verb accepted it, marched a turn
+      and died "Cannot reach X");
+    * no lawful corridor at all (S5-D2's own refusal, in its own words);
+    * a sea leg the crossing gate refuses (FA-46 — a route "→ London" with
+      the Royal Navy at 1.9× used to be announced with no naval word in it).
+    """
+    if verdict is None or marshal.nation != world.player_nation:
+        return None
+    if strategic_type in ("MOVE_TO", "HOLD") and verdict.get("closed_destination"):
+        region = world.regions.get(destination)
+        controller = (getattr(region, "controller", None) or "neutral")
+        state = world.get_diplomatic_state(marshal.nation, controller)
+        return {
+            "success": False,
+            "message": (
+                f"Cannot enter {destination}, Sire — it is controlled by "
+                f"{controller} (diplomatic state: {state}). Secure open "
+                f"borders or declare war to pass."
+            ),
+            "blocked_diplomatic": controller,
+            "blocked_state": state,
+            "variable_action_cost": 0,
+        }
+    if not verdict.get("legal", True):
+        blocker = verdict.get("blocker_region")
+        blk_ctrl = verdict.get("blocker_controller") or "neutral"
+        return {
+            "success": False,
+            "message": (
+                f"There is no open road to {destination}, Sire — every "
+                f"route crosses {blk_ctrl}'s closed frontier at "
+                f"{blocker}. Secure passage (open borders, or "
+                f"war) or name a province we can reach."
+            ),
+            "variable_action_cost": 0,
+        }
+    check = verdict.get("naval_check")
+    if check is not None:
+        leg = verdict.get("naval_leg") or ("", "")
+        return {
+            "success": False,
+            "message": check.get("message") or (
+                f"The crossing from {leg[0]} to {leg[1]} is barred by "
+                f"hostile sail — the road to {destination} runs over water "
+                f"we do not command."),
+            "blocked_naval": check.get("coverer"),
+            "naval_ratio": check.get("ratio"),
+            "variable_action_cost": 0,
+        }
+    return None
+
+
 def resolve_order_destination(world, marshal, order):
     """The destination a standing order should aim at, fog included.
 
@@ -1335,13 +1527,22 @@ class StrategicOrderProcessor:
                 marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
-            pathfinder = world.find_weighted_path if use_weighted else world.find_path
-            new_path = pathfinder(
-                marshal.location, destination,
-                avoid_regions=enemy_regions
-            )
+            if ROAD_LAW_ON_REPLOT:
+                # FA slice 5: a reroute prefers a lawful corridor and must
+                # still AVOID what it fled (it used to be terrain-only).
+                new_path, _ = plot_route(
+                    world, marshal, destination, use_weighted=use_weighted,
+                    avoid_regions=enemy_regions, avoid_is_law=True)
+            else:
+                pathfinder = world.find_weighted_path if use_weighted else world.find_path
+                new_path = pathfinder(
+                    marshal.location, destination,
+                    avoid_regions=enemy_regions
+                )
+                new_path = ([r for r in new_path if r != marshal.location]
+                            if new_path else None)
             if new_path:
-                order.path = [r for r in new_path if r != marshal.location]
+                order.path = list(new_path)
                 # Execute one movement step along the new path
                 move_result = self._execute_movement_step(marshal, world, game_state)
                 move_msg = move_result.get("message", "") if move_result else ""
@@ -1705,6 +1906,20 @@ class StrategicOrderProcessor:
                     return self._break_order(marshal, world,
                                              f"No path to {destination}")
 
+        if (STALE_ROAD_REPLOTS and order.path
+                and not region_is_adjacent(world, marshal.location, order.path[0])):
+            # FA slice 5: a road whose first step is not one march away is
+            # STALE (a forced retreat, a stored reroute from another province)
+            # — handing it to `move` used to reach the auto-upgrade, which
+            # minted a NEW order to path[0] and silently lost the destination.
+            new_path = self._get_personality_aware_path(
+                marshal, destination, world, use_weighted=True)
+            if new_path:
+                order.path = new_path
+            else:
+                return self._break_order(marshal, world,
+                                         f"No path to {destination}")
+
         if not order.path:
             return self._break_order(marshal, world, f"No path to {destination}")
 
@@ -1801,43 +2016,14 @@ class StrategicOrderProcessor:
         # "could not advance" and re-stall silently every turn. Say why — and
         # stop the eternal re-stall. First try one passability-aware reroute; if
         # that still can't take a first step, break the order with the reason.
-        if last_fail is not None and last_fail.get("blocked_diplomatic"):
-            reroute = self._get_personality_aware_path(
-                marshal, destination, world, use_weighted=True)
-            if reroute and len(reroute) > 1:
-                first_step = reroute[1] if reroute[0] == marshal.location else reroute[0]
-                if not world.get_enemies_in_region(first_step, marshal.nation) \
-                        and world._region_passable_for(
-                            first_step, marshal.nation,
-                            mover_location=marshal.location):
-                    order.path = reroute[1:] if reroute[0] == marshal.location else reroute
-                    return {
-                        "marshal": marshal.name,
-                        "command": "MOVE_TO",
-                        "order_status": "continues",
-                        "destination": destination,
-                        "message": (f"{marshal.name} reroutes around "
-                                    f"{last_fail.get('blocked_diplomatic')} territory "
-                                    f"toward {destination}."),
-                    }
-            reason = last_fail.get("message") or (
-                f"the road to {destination} is blocked by "
-                f"{last_fail.get('blocked_diplomatic')} territory")
-            broken = self._break_order(
-                marshal, world,
-                f"{marshal.name}'s march halts — {reason} "
-                f"Secure open borders or declare war to pass.")
-            return broken
-
-        # DEF-5 naval §4.1 (the PF-8 idiom): a march stalled at a covered
-        # strait breaks with the honest naval reason — the pathfinder is
-        # edge-blind, so a reroute would plan the same crossing again.
-        if last_fail is not None and last_fail.get("blocked_naval"):
-            reason = last_fail.get("message") or (
-                f"hostile sail command the crossing toward {destination}")
-            return self._break_order(
-                marshal, world,
-                f"{marshal.name}'s march halts at the water's edge — {reason}")
+        # DEF-5 naval §4.1 (the same idiom): a march stalled at a covered
+        # strait breaks with the honest naval reason. FA slice 5: ONE copy,
+        # `_stall_verdict`, shared with HOLD and SUPPORT.
+        stalled = self._stall_verdict(
+            marshal, order, world, last_fail, destination,
+            verb="MOVE_TO", allow_reroute=True, use_weighted=True)
+        if stalled is not None:
+            return stalled
 
         return {
             "marshal": marshal.name,
@@ -1845,6 +2031,55 @@ class StrategicOrderProcessor:
             "order_status": "error",
             "message": f"{marshal.name} could not advance toward {destination}."
         }
+
+    def _stall_verdict(self, marshal, order, world, last_fail, destination,
+                       *, verb: str, allow_reroute: bool, use_weighted: bool,
+                       toward: str = None, lapse_note: str = "") -> Optional[Dict]:
+        """PF-8's stall idiom — ONE copy for MOVE_TO, HOLD and SUPPORT (FA
+        slice 5). A step refused on a DIPLOMATIC block tries one lawful
+        reroute, else BREAKS the order naming the reason; a step refused at a
+        covered strait breaks at the water's edge (the pathfinders are
+        edge-blind, so a reroute would plan the same crossing again). Returns
+        None when the stall was neither — the caller keeps its own fallback.
+        `lapse_note` lets SUPPORT say that its march-to-the-guns
+        authorization lapses with the order. MOVE_TO's output is byte-for-
+        byte what its inline copy produced."""
+        toward = toward or destination
+        if last_fail is not None and last_fail.get("blocked_diplomatic"):
+            if allow_reroute:
+                reroute = self._get_personality_aware_path(
+                    marshal, destination, world, use_weighted=use_weighted)
+                if reroute and len(reroute) > 1:
+                    first_step = reroute[1] if reroute[0] == marshal.location else reroute[0]
+                    if not world.get_enemies_in_region(first_step, marshal.nation) \
+                            and world._region_passable_for(
+                                first_step, marshal.nation,
+                                mover_location=marshal.location):
+                        order.path = reroute[1:] if reroute[0] == marshal.location else reroute
+                        return {
+                            "marshal": marshal.name,
+                            "command": verb,
+                            "order_status": "continues",
+                            "destination": destination,
+                            "message": (f"{marshal.name} reroutes around "
+                                        f"{last_fail.get('blocked_diplomatic')} territory "
+                                        f"toward {toward}."),
+                        }
+            reason = last_fail.get("message") or (
+                f"the road to {toward} is blocked by "
+                f"{last_fail.get('blocked_diplomatic')} territory")
+            return self._break_order(
+                marshal, world,
+                f"{marshal.name}'s march halts — {reason} "
+                f"Secure open borders or declare war to pass.{lapse_note}")
+
+        if last_fail is not None and last_fail.get("blocked_naval"):
+            reason = last_fail.get("message") or (
+                f"hostile sail command the crossing toward {toward}")
+            return self._break_order(
+                marshal, world,
+                f"{marshal.name}'s march halts at the water's edge — {reason}{lapse_note}")
+        return None
 
     def _inferred_attack_gate(self, marshal, target, game_state,
                               allow_reroute=False):
@@ -2420,9 +2655,24 @@ class StrategicOrderProcessor:
                     marshal, enemies_here, marshal.location, world, game_state)
 
             # Use weighted pathfinding — march to hold position avoids expensive terrain
-            path = world.find_weighted_path(marshal.location, hold_position)
+            last_fail = None  # FA slice 5: the step's refusal, for the stall verdict
+            if HOLD_KEEPS_ITS_ROAD:
+                # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road
+                # from scratch every turn, terrain-only — every reroute a
+                # literal marshal made was thrown away on the next tick and a
+                # lawful corridor was never chosen. Keep `order.path`; re-plot
+                # (lawful-first, cautious fog-aware — the MOVE_TO idiom) only
+                # when it is empty or its first step is not one march away.
+                path = list(order.path or [])
+                while path and path[0] == marshal.location:
+                    path.pop(0)
+                if not path or not region_is_adjacent(world, marshal.location, path[0]):
+                    path = self._get_personality_aware_path(
+                        marshal, hold_position, world, use_weighted=True) or []
+            else:
+                path = world.find_weighted_path(marshal.location, hold_position)
+                path = [r for r in path if r != marshal.location] if path else []
             if path:
-                path = [r for r in path if r != marshal.location]
                 order.path = path  # Persist path on order for UI/reroute
                 if path:
                     # Move up to movement_range (cavalry moves 2, infantry 1)
@@ -2457,6 +2707,7 @@ class StrategicOrderProcessor:
                             path.pop(0)
                             moves_made.append(next_region)
                         else:
+                            last_fail = result  # FA slice 5: keep the reason
                             break
 
                     if marshal.location == hold_position:
@@ -2480,6 +2731,14 @@ class StrategicOrderProcessor:
                                        f"{distance} region(s) away."
                         }
 
+            if HOLD_KEEPS_ITS_ROAD:
+                # FA-N12/N49: a stall at a closed border reroutes once or
+                # breaks WITH its reason — never the bare "Cannot reach".
+                stalled = self._stall_verdict(
+                    marshal, order, world, last_fail, hold_position,
+                    verb="HOLD", allow_reroute=True, use_weighted=True)
+                if stalled is not None:
+                    return stalled
             return self._break_order(marshal, world,
                                      f"Cannot reach {hold_position}")
 
@@ -2925,6 +3184,7 @@ class StrategicOrderProcessor:
         order.path = path  # Fix 1: Persist path on order for UI/reroute
         regions_to_move = getattr(marshal, 'movement_range', 1)
         moves_made = []
+        last_fail = None  # FA slice 5 (FA-N41): the step's refusal, kept
 
         for _ in range(regions_to_move):
             if not path:
@@ -2957,6 +3217,7 @@ class StrategicOrderProcessor:
                 if marshal.location == ally.location:
                     break
             else:
+                last_fail = result  # FA slice 5 (FA-N41): keep the reason
                 break
 
         # Transit intel: regions passed through but not ended at get PARTIAL
@@ -2981,6 +3242,19 @@ class StrategicOrderProcessor:
                            f"{distance} region(s) away."
             }
 
+        if SUPPORT_STALL_SPEAKS:
+            # FA-N41: PF-8's stall idiom never reached SUPPORT — a first step
+            # refused at a closed border or a covered strait re-stalled
+            # "could not move toward" every turn, for ever, the order (and
+            # the W6-4 march-to-the-guns authorization it carries) standing.
+            stalled = self._stall_verdict(
+                marshal, order, world, last_fail, ally.location,
+                verb="SUPPORT", allow_reroute=True, use_weighted=False,
+                toward=ally.name,
+                lapse_note=(f" The standing authorization to march to "
+                            f"{ally.name}'s guns lapses with it."))
+            if stalled is not None:
+                return stalled
         return {
             "marshal": marshal.name,
             "command": "SUPPORT",
@@ -3521,13 +3795,22 @@ class StrategicOrderProcessor:
                 enemy_regions.append(blocked_region)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
-            pathfinder = world.find_weighted_path if use_weighted else world.find_path
-            new_path = pathfinder(
-                marshal.location, destination,
-                avoid_regions=enemy_regions
-            )
+            if ROAD_LAW_ON_REPLOT:
+                # FA slice 5: a reroute prefers a lawful corridor and must
+                # still AVOID what it fled (it used to be terrain-only).
+                new_path, _ = plot_route(
+                    world, marshal, destination, use_weighted=use_weighted,
+                    avoid_regions=enemy_regions, avoid_is_law=True)
+            else:
+                pathfinder = world.find_weighted_path if use_weighted else world.find_path
+                new_path = pathfinder(
+                    marshal.location, destination,
+                    avoid_regions=enemy_regions
+                )
+                new_path = ([r for r in new_path if r != marshal.location]
+                            if new_path else None)
             if new_path:
-                order.path = [r for r in new_path if r != marshal.location]
+                order.path = list(new_path)
                 # Session 36: Discovery vs standard reroute message
                 if is_fog_discovery:
                     msg = (f"{marshal.name} discovers enemy forces and adjusts "
@@ -3984,6 +4267,9 @@ class StrategicOrderProcessor:
         fog_aware is derived automatically: True for player marshals, False for AI.
         This prevents callers from forgetting to pass fog_aware.
         """
+        if ROAD_LAW_ONE_SEAM:
+            return enemy_occupied_regions(world, nation, marshal=marshal,
+                                          fog_aware=fog_aware)
         from backend.models.intel import FULL, PARTIAL
 
         # Auto-derive fog_aware from marshal if provided and caller didn't override
@@ -4022,6 +4308,16 @@ class StrategicOrderProcessor:
         Returns path excluding start location, or None if no path exists.
         """
         personality = getattr(marshal, 'personality', 'balanced')
+        if ROAD_LAW_ONE_SEAM:
+            # FA slice 5: ONE ladder (`plot_route`) — the arm below is the
+            # prior inline copy it reproduces byte-for-byte (pinned).
+            avoid = None
+            if personality == "cautious":
+                avoid = self._get_enemy_occupied_regions(
+                    marshal.nation, world, marshal=marshal)
+            road, _ = plot_route(world, marshal, destination,
+                                 use_weighted=use_weighted, avoid_regions=avoid)
+            return road or None
         pathfinder = world.find_weighted_path if use_weighted else world.find_path
         # PF-8: a PLAYER march prefers a passable (own/allied/open-border/at-war)
         # corridor over impassable neutral land; the AI keeps omniscient routing.

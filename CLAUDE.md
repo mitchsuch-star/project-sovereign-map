@@ -220,9 +220,29 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > string in two files — the text census had mis-filed the very seam it
 > existed to catch.**
 >
-> **▶ NEXT = the road law** (FA-13/46/N11/N12/N49/N41), the popup queue
-> (FA-5/30/N20/N67/N62/N99), the mock vocabulary (FA-80/D20/D25/N8/N24/N9/
-> N39/24/47/73) — all reproduced, reports under
+> **▶ SLICE 5 "THE ROAD LAW" IS LANDED — September 4, 2026.** Landing
+> record = the boxed SLICE 5 block in `BUG_FIXES.md` §Final Whole-Game Audit
+> (authoritative). FA-13/46/N11/N12/N49/N41 closed at ONE root: four
+> marching verbs × two seams each plotted its own road and only the per-turn
+> helper obeyed the movement law. Now ONE ladder (`plot_route`, lawful-first,
+> with a verdict), ONE issuance reader (`issuance_road_refusal` — a closed
+> destination, no lawful corridor, or a refused sea leg is refused at 0 AP,
+> with the visible-enemy exemption and no fog leak), ONE stall idiom
+> (`_stall_verdict`) for MOVE_TO/HOLD/SUPPORT, HOLD keeping its road, a
+> stale-road re-plot and the auto-upgrade belt (the old code turned "march to
+> Normandy" into an order for Artois). Series + M1–M7 byte-identical
+> structurally; 44 tests, 25/25 mutations killed. ⛔ **The rule that held
+> again: build the pins on the row's OWN geometry and then attack the fix** —
+> a pre-existing pin was passing on the very auto-upgrade hazard the slice
+> closes, and a substituted closed destination was refused without saying
+> which province was read (FA-54's class, one seam over; fixed in-slice).
+>
+> **▶ NEXT = the slice-4 review round** (three lenses at `85130a6f`: eight
+> AI-decision defects, the balance warning MEASURED — an unattended France
+> overrun on 8/8 seeds, a scripted one on 5/5 arms, the levers acting JOINTLY
+> — a pre-existing garrison-assault pathology, a dozen record corrections),
+> then the popup queue (FA-5/30/N20/N67/N62/N99), the mock vocabulary
+> (FA-80/D20/D25/N8/N24/N9/N39/24/47/73) — all reproduced, reports under
 > `docs/audits/fa_build_2026_09_04/` — then FA-26 **as a shared helper across
 > all four trust-writing families** (FA-N1), then position 10. ⚠ **Still no
 > pillar re-score.**

@@ -426,6 +426,21 @@ class MovementExecutor:
         move_range = getattr(marshal, 'movement_range', 1)
 
         # Check if destination is within movement range
+        if strategic_execution and distance > 1:
+            import backend.commands.strategic as _road
+            if _road.STRATEGIC_STEP_NEVER_UPGRADES:
+                # FA slice 5: a per-hop step of a STANDING order is one
+                # march by construction; a target two provinces off means
+                # the stored road is stale. It used to fall into the
+                # auto-upgrade below and mint a NEW MOVE_TO to that step —
+                # replacing the order and silently losing its destination.
+                return {
+                    "success": False,
+                    "message": (f"{target_name} is not one march from "
+                                f"{marshal.location} — the road is stale and "
+                                f"must be re-plotted."),
+                    "stale_road": True,
+                }
         if distance > move_range:
             # (engaged / AP refusals already cleared by move_refusal_probe)
             # Auto-upgrade to strategic MOVE_TO for distant regions

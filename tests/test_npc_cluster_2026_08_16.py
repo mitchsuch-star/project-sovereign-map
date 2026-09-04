@@ -289,10 +289,14 @@ class TestNPC2TheStaleQuestion:
             started_turn=1, original_command="Ney, march to Swabia")
         _arm_interrupt(world)
 
-        client.post("/command", json={"command": "Ney, march to Frankfurt"})
+        # FA slice 5 (Sept 4, 2026): the replacement used to march on
+        # Frankfurt — Hesse's, at PEACE — which issuance now refuses at
+        # 0 AP; the pin is about the stale question, so the replacement
+        # marches on Paris (French, two marches from Rhineland).
+        client.post("/command", json={"command": "Ney, march to Paris"})
 
         assert ney.strategic_order is not None
-        assert ney.strategic_order.target == "Frankfurt", (
+        assert ney.strategic_order.target == "Paris", (
             "precondition: the order really was replaced")
         assert ney.pending_interrupt is None, (
             "the old order's question must die with the old order")

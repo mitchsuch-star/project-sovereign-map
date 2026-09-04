@@ -120,7 +120,11 @@ class TestAQuestionIsNotAnOrder:
     # ── the controls: the imperative must still work, and still cost ──
 
     IMPERATIVES = [
-        ("Lannes, march to Frankfurt", "Lannes", "MOVE_TO"),
+        # FA slice 5 (Sept 4, 2026): the control used to march on
+        # Frankfurt — Hesse's, at PEACE — which issuance now refuses at
+        # 0 AP (the tactical `move` always did), so "still costs" could
+        # no longer be shown on it. Paris is French and two marches off.
+        ("Lannes, march to Paris", "Lannes", "MOVE_TO"),
         ("Davout, support Ney", "Davout", "SUPPORT"),
         ("Ney, hold your position", "Ney", "HOLD"),
     ]
@@ -131,10 +135,11 @@ class TestAQuestionIsNotAnOrder:
         before = board.actions_remaining
         parsed, _ = _issue(board, parser, executor, text)
         assert parsed.get("strategic_type") == kind
-        # NOT `== before - 2`: "Lannes, march to Frankfurt" is blocked by Mack
-        # at Swabia on the boot board and charges a variable 1 AP for the
-        # interrupted first step. That is pre-existing behaviour and measuring
-        # it here would pin an unrelated rule. What this control has to prove
+        # NOT `== before - 2`: a first step can be interrupted on the boot
+        # board and charge a variable 1 AP (the row's original Frankfurt
+        # fixture was blocked by Mack at Swabia). That is pre-existing
+        # behaviour and measuring it here would pin an unrelated rule.
+        # What this control has to prove
         # is that the gate did not disable the feature: the imperative is
         # still strategic and still PAYS, while the question is free.
         assert board.actions_remaining < before, (

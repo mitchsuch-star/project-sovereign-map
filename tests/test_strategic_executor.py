@@ -1605,7 +1605,13 @@ class TestCannonFireLoopPrevention:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Lyon", "Belgium", "Rhineland"])
+        # FA slice 5 (Sept 4, 2026): the path used to read
+        # ["Lyon", "Belgium", "Rhineland"] — Lyon and Belgium are NOT
+        # adjacent, so turn 2 handed a distance-2 target to `move` and the
+        # auto-upgrade silently minted a NEW order (the very hazard the
+        # slice closes); the pin passed on that. A real road, to a province
+        # with no enemy on it, keeps it about cannon fire and nothing else.
+        _set_strategic_order(davout, "MOVE_TO", "Marseille", path=["Lyon", "Marseille"])
 
         # Turn 1: Cannon fire interrupt
         davout.pending_interrupt = {
@@ -2367,8 +2373,13 @@ class TestBugFixes:
     def test_strategic_first_step_executes_immediately(self, world, game_state, executor):
         """Bug 1: First step should execute immediately when strategic order is issued.
 
-        When player says "Grouchy, march to Vienna", Grouchy should move 1 region
+        When player says "Grouchy, march to Marseille", Grouchy should move 1 region
         immediately (infantry movement_range=1).
+
+        FA slice 5 (Sept 4, 2026): the fixture used to march on VIENNA — a
+        capital of Austria, at PEACE — which issuance now refuses at 0 AP
+        (the tactical `move` always did). Marseille is French and two
+        marches off, which is all this pin needs.
         """
         grouchy = world.get_marshal("Grouchy")
         grouchy.location = "Paris"
@@ -2381,8 +2392,8 @@ class TestBugFixes:
                     "command": {
                         "marshal": "Grouchy",
                         "action": "move",
-                        "target": "Vienna",
-                        "raw_command": "Grouchy, march to Vienna",
+                        "target": "Marseille",
+                        "raw_command": "Grouchy, march to Marseille",
                     },
                     "is_strategic": True,
                     "strategic_type": "MOVE_TO",
