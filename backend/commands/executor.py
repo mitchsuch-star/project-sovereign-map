@@ -1493,6 +1493,43 @@ class CommandExecutor:
                     }
 
                 # ═══════════════════════════════════════════════════════════
+                # FA-16 (slice 2, Sept 4 2026): A CORNERED MARSHAL'S QUESTION
+                # IS ANSWERED, NOT MARCHED PAST.
+                #
+                # `clear_order_bound_interrupt` promises that a last stand is
+                # "never dropped" — and it kept that promise, while every
+                # other order simply EXECUTED over the standing question:
+                # measured, "Ney, move to Lorraine" marched a cornered Ney
+                # away with his ask still parked, and "Ney, march to Vienna"
+                # hit first-step contact and OVERWROTE the ask with a
+                # `contact_bad_odds` question (the third destroyer, beside
+                # cancel and destroy). The player owes him one of two words;
+                # until it is given, no other order reaches him. `cancel` is
+                # exempt (FA-N13's graceful arm names the question instead).
+                # ═══════════════════════════════════════════════════════════
+                # (No `cancel` or `_strategic_execution` exemption is needed
+                # here: this block sits under `should_check_objection`, which
+                # already excludes strategic execution and strategic commands
+                # — the sweep measured both clauses INERT, and the two pins
+                # in test_fa_slice2 hold the path structurally instead.)
+                _standing_ask = getattr(marshal, 'pending_interrupt', None)
+                if (isinstance(_standing_ask, dict)
+                        and _standing_ask.get("interrupt_type") == "last_stand"):
+                    from backend.commands.strategic import (
+                        STANDALONE_DECISION_LIVENESS_ACTIVE)
+                    if STANDALONE_DECISION_LIVENESS_ACTIVE:
+                        return {
+                            "success": False,
+                            "no_action_cost": True,
+                            "last_stand_pending": True,
+                            "message": (
+                                f"{marshal.name} is cornered at {marshal.location} "
+                                f"and awaits your word, Sire — 'fight to the last' "
+                                f"or 'attempt a breakout'. No other order can reach "
+                                f"him until you decide."),
+                        }
+
+                # ═══════════════════════════════════════════════════════════
                 # STRATEGIC OVERRIDE CHECK (Phase 5.2-C)
                 # Override commands silently cancel active strategic orders
                 # Non-override commands execute alongside strategic orders

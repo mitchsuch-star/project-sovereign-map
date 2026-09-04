@@ -3191,6 +3191,11 @@ class CombatExecutor:
     # his corps' remaining strength (the squares die so the berline gets
     # out). Only true encirclement can take him.
     GUARD_ESCAPE_TOLL = 0.30
+    # FA-1 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE idiom.
+    # False reproduces the pre-slice behaviour byte-for-byte: a second defeat
+    # with a last-stand question standing RE-ASKS it and suppresses the
+    # retreat again, so the cornered marshal is shot until nothing is left.
+    LAST_STAND_UNANSWERED_RESOLVES = True
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,
@@ -3237,8 +3242,48 @@ class CombatExecutor:
             )
         low_strength = marshal.strength < self.MARSHAL_FATE_STRENGTH_FLOOR
 
+        standing_ask = self._standing_last_stand(marshal, world)
+
         if not (low_strength or encircled or desperation_only):
+            if standing_ask is not None and self.LAST_STAND_UNANSWERED_RESOLVES:
+                # The road opened by itself since he was asked (an ally
+                # arrived, the enemy drew off): the normal retreat below
+                # IS his answer, and the question is retired with it.
+                self._retire_standing_ask(marshal, world)
+                marshal._fate_note = (
+                    f"The question of {marshal.name}'s last stand is "
+                    f"overtaken — the road has opened.")
             return None
+
+        # ══════════════════════════════════════════════════════════════
+        # FA-1 (slice 2, Sept 4 2026): NO WORD CAME.
+        #
+        # The ask parks `pending_interrupt` and suppresses the retreat so
+        # the player can choose — but the enemy phase does not wait for
+        # the player. Every FURTHER attack in the same phase re-entered
+        # this function, found no guard, re-asked the same question and
+        # shot him again. Measured on the shipped 1805 board: Austria's six
+        # actions were six `[P0 ENGAGEMENT] -> ATTACK Massena`, 8,000 ->
+        # 4,129 -> 2,349 -> 1,379 -> 694 -> 416 -> 259, still standing,
+        # still "asked". He got neither the last stand nor the capture the
+        # W6-7 promise names — and an enemy annihilated corps takes no
+        # prisoners, so 50% of his men never filtered home either.
+        #
+        # A second defeat with the question standing is answered the way
+        # the marshal's own character answers it — the deterministic rule
+        # the AI's aggressive marshals have always used, and the same two
+        # arms `handle_response` runs for the player's own word: fight to
+        # the last on home or capital-adjacent ground, else the breakout
+        # roll. The question is retired either way (rail row included), and
+        # the report says out loud that no word came.
+        # ══════════════════════════════════════════════════════════════
+        if standing_ask is not None and self.LAST_STAND_UNANSWERED_RESOLVES:
+            resolved = self._resolve_unanswered_last_stand(
+                marshal, enemy, world, encircled=encircled)
+            if resolved is not None:
+                return resolved
+            # A sovereign who is no longer encircled: the question is
+            # retired and the Guard's toll arm below buys the road.
 
         # ══════════════════════════════════════════════════════════════
         # NP-4 THE PERIL (NAPOLEON_SPEC §7.0/§7.1): the sovereign's fate
@@ -3266,6 +3311,9 @@ class CombatExecutor:
                     "marshal": marshal.name,
                     "enemy": getattr(enemy, "name", ""),
                     "enemy_nation": captor_nation,
+                    # FA-16: where he was asked — a question answered
+                    # somewhere else is a different question.
+                    "location": marshal.location,
                     "options": ["fight_to_the_last", "attempt_breakout"],
                     "sovereign": True,
                     "message": (
@@ -3317,6 +3365,9 @@ class CombatExecutor:
                 "marshal": marshal.name,
                 "enemy": getattr(enemy, "name", ""),
                 "enemy_nation": captor_nation,
+                # FA-16: where he was asked — a question answered somewhere
+                # else is a different question.
+                "location": marshal.location,
                 "options": ["fight_to_the_last", "attempt_breakout"],
                 "message": (
                     f"{marshal.name} is cornered at {marshal.location} with "
@@ -3377,6 +3428,65 @@ class CombatExecutor:
         return self._capture_marshal(marshal, captor_nation, world,
                                      context="overrun")
 
+    @staticmethod
+    def _standing_last_stand(marshal, world: 'WorldState'):
+        """The player's unanswered last-stand question on `marshal`, or None."""
+        pending = getattr(marshal, "pending_interrupt", None)
+        if (isinstance(pending, dict)
+                and pending.get("interrupt_type") == "last_stand"
+                and marshal.nation == world.player_nation):
+            return pending
+        return None
+
+    @staticmethod
+    def _retire_standing_ask(marshal, world: 'WorldState') -> None:
+        """Clear the question and its rail row together (FA-N68's helper)."""
+        from backend.notifications import dismiss_marshal_ask
+        marshal.pending_interrupt = None
+        dismiss_marshal_ask(world, marshal.name)
+
+    def _resolve_unanswered_last_stand(self, marshal, enemy,
+                                       world: 'WorldState', *,
+                                       encircled: bool):
+        """FA-1: a second defeat with the question standing.
+
+        Returns the fate message, or None for the one case that falls back
+        to the caller's own arm (a sovereign who is no longer encircled —
+        the Guard's toll buys the road as it always has).
+        """
+        import random
+
+        self._retire_standing_ask(marshal, world)
+        no_word = (f"[!] No word came for {marshal.name}, cornered at "
+                   f"{marshal.location} — the enemy did not wait. ")
+        if getattr(marshal, "is_sovereign", False):
+            if not encircled:
+                return None
+            # The Guard dies; it does not surrender (the AI sovereign rule).
+            return no_word + self._resolve_last_stand_fight(marshal, enemy, world)
+
+        # The aggressive rule, exactly as the AI's own marshals answer it:
+        # fight the last stand on home or capital-adjacent ground, else
+        # break out.
+        home = set(world.nation_starting_regions.get(marshal.nation, []) or [])
+        capital = world.get_nation_capital(marshal.nation)
+        capital_adjacent = False
+        if capital:
+            cap_region = world.get_region(capital)
+            capital_adjacent = bool(
+                cap_region and (marshal.location == capital
+                                or marshal.location in cap_region.adjacent_regions))
+        if marshal.location in home or capital_adjacent:
+            return no_word + self._resolve_last_stand_fight(marshal, enemy, world)
+        escape_chance = (self.MARSHAL_FATE_ESCAPE_CHANCE
+                         - self.LAST_STAND_BREAKOUT_PENALTY)
+        if random.random() < escape_chance:
+            return (no_word + f"{marshal.name} cuts his way out! "
+                    + self.apply_successful_breakout(marshal, enemy, world))
+        captor = getattr(enemy, "nation", "") or ""
+        return no_word + self._capture_marshal(
+            marshal, captor, world, context="overrun_unanswered")
+
     def _resolve_last_stand_fight(self, marshal, enemy, world: 'WorldState') -> str:
         """One final defense at +LAST_STAND_BONUS: the attacker is bled and
         halted for the turn; the survivors are captured after."""
@@ -3425,21 +3535,38 @@ class CombatExecutor:
     def apply_successful_breakout(self, marshal, enemy, world: 'WorldState') -> str:
         """A marshal who WINS the breakout roll gets out — he is not routed.
 
-        Aug 30, 2026 review. The last-stand interrupt is only ever raised when
-        `get_safe_retreat_destination` has already returned None, i.e. the
-        marshal is encircled. The success arm paid the escape price and then
-        called `_apply_forced_retreat_or_break`, which asked that same question
-        again, got the same None, and shattered the army to 3-10% — so a won
-        roll cost the toll AND the rout, and the sovereign's arm charged the
-        30% Guard toll on top of that. "He cuts his way out!" was printed over
-        a broken army fleeing to the capital.
+        Aug 30, 2026 review. The success arm paid the escape price and then
+        called `_apply_forced_retreat_or_break`, which shattered the army to
+        3-10% — so a won roll cost the toll AND the rout, and the sovereign's
+        arm charged the 30% Guard toll on top of that. "He cuts his way out!"
+        was printed over a broken army fleeing to the capital.
+
+        FA-N25 (slice 2, Sept 4 2026). That review wrote "the last-stand
+        interrupt is only ever raised when `get_safe_retreat_destination` has
+        already returned None, i.e. the marshal is encircled" — and it is
+        false for the arm that raises it most: `_check_marshal_fate` handles
+        encirclement FIRST (captured outright), so the aggressive player's
+        ask can only be raised when a retreat destination EXISTS (the
+        low-strength and desperation-only arms). Acting on the false premise
+        this relocated him to `find_safe_spawn` — measured, Massena at Milan
+        with Piedmont one hop away "fell back on Paris", four provinces, at
+        no cost — while the AI's identical decision is a one-province
+        withdrawal. Now the producer's own question is asked again: the
+        adjacent retreat first (with a retreat's march attrition, exactly as
+        the forced-retreat branch charges it), the spawn only for the truly
+        encircled.
 
         The escape is a fighting withdrawal: he loses his standing order and
         takes a retreat's disorder, but the army that got out is the army that
         got out.
         """
         old_loc = marshal.location
-        destination = world.find_safe_spawn(marshal, exclude=marshal.location)
+        attacker_location = getattr(enemy, "location", None) if enemy else None
+        destination = world.get_safe_retreat_destination(
+            marshal.name, attacker_location)
+        encircled = destination is None
+        if encircled:
+            destination = world.find_safe_spawn(marshal, exclude=marshal.location)
         marshal.occupation_region = None
         marshal.occupation_turns_held = 0
         marshal.occupation_turns_required = 0
@@ -3447,6 +3574,12 @@ class CombatExecutor:
             marshal.strategic_order = None
             clear_order_bound_interrupt(marshal)  # NPC-2
         marshal.move_to(destination)
+        attrition_note = ""
+        if not encircled:
+            attrition = self._executor._calculate_movement_attrition(
+                marshal, destination, world, is_retreat=True)
+            if attrition.get("total_losses", 0) > 0:
+                attrition_note = f" ({attrition['total_losses']:,} lost to the march)"
         marshal.retreating = True
         marshal.retreat_recovery = 0
         marshal.retreated_this_turn = True
@@ -3462,7 +3595,7 @@ class CombatExecutor:
             "forced": True,
         })
         return (f"{marshal.name} falls back on {destination}, his corps "
-                f"disordered but in the field.")
+                f"disordered but in the field.{attrition_note}")
 
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
                                        skip_fate: bool = False) -> str:
@@ -3491,6 +3624,11 @@ class CombatExecutor:
         _toll_note = getattr(marshal, "_sovereign_toll_note", "")
         if _toll_note:
             marshal._sovereign_toll_note = ""
+        # FA-1: a standing question retired because the road opened (read
+        # once, then cleared — golden rule 4).
+        _fate_note = getattr(marshal, "_fate_note", "")
+        if _fate_note:
+            marshal._fate_note = ""
 
         # Try to find safe retreat location using threat-aware pathfinding
         # Pass attacker location to prioritize retreating AWAY from the threat
@@ -3560,7 +3698,8 @@ class CombatExecutor:
             # note only ever rides THIS branch (the sovereign escape arm
             # fires only when a retreat destination exists).
             _toll_prefix = f"[!] {_toll_note} " if _toll_note else ""
-            return f"{_toll_prefix}[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
+            _fate_prefix = f"[!] {_fate_note} " if _fate_note else ""
+            return f"{_fate_prefix}{_toll_prefix}[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible

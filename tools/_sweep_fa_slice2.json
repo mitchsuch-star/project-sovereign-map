@@ -1,0 +1,226 @@
+[
+ {
+  "id": "FA-1/a the standing ask is resolved, not re-asked",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if standing_ask is not None and self.LAST_STAND_UNANSWERED_RESOLVES:\n            resolved = self._resolve_unanswered_last_stand(",
+  "new": "        if False:\n            resolved = self._resolve_unanswered_last_stand(",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame"
+ },
+ {
+  "id": "FA-1/b the home/capital-adjacent arm fights the last stand",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if marshal.location in home or capital_adjacent:\n            return no_word + self._resolve_last_stand_fight(marshal, enemy, world)\n        escape_chance = (self.MARSHAL_FATE_ESCAPE_CHANCE",
+  "new": "        if False:\n            return no_word + self._resolve_last_stand_fight(marshal, enemy, world)\n        escape_chance = (self.MARSHAL_FATE_ESCAPE_CHANCE",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_a_second_defeat_on_home_soil_is_the_last_stand"
+ },
+ {
+  "id": "FA-1/c a won roll LEAVES the field (breakout), never stands",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if random.random() < escape_chance:\n            return (no_word + f\"{marshal.name} cuts his way out! \"\n                    + self.apply_successful_breakout(marshal, enemy, world))",
+  "new": "        if random.random() < escape_chance:\n            return no_word + f\"{marshal.name} cuts his way out! \"",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_a_second_defeat_off_home_soil_rolls_the_breakout"
+ },
+ {
+  "id": "FA-1/d a lost roll is a capture, not a fresh ask",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        captor = getattr(enemy, \"nation\", \"\") or \"\"\n        return no_word + self._capture_marshal(\n            marshal, captor, world, context=\"overrun_unanswered\")",
+  "new": "        captor = getattr(enemy, \"nation\", \"\") or \"\"\n        return no_word + \"he holds on.\"",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_a_second_defeat_off_home_soil_rolls_the_breakout"
+ },
+ {
+  "id": "FA-1/e the resolution retires the question (and its rail row)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        self._retire_standing_ask(marshal, world)\n        no_word = (",
+  "new": "        no_word = (",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_a_second_defeat_off_home_soil_rolls_the_breakout"
+ },
+ {
+  "id": "FA-1/f the road-opened arm retires the ask and says so",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if standing_ask is not None and self.LAST_STAND_UNANSWERED_RESOLVES:\n                # The road opened by itself since he was asked (an ally",
+  "new": "            if False:\n                # The road opened by itself since he was asked (an ally",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_the_road_opening_retires_the_question_and_he_retreats"
+ },
+ {
+  "id": "FA-1/g the sovereign encircled fights the Guard's last stand",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if not encircled:\n                return None\n            # The Guard dies; it does not surrender (the AI sovereign rule).",
+  "new": "            if True:\n                return None\n            # The Guard dies; it does not surrender (the AI sovereign rule).",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_the_sovereign_encircled_fights_the_guards_last_stand"
+ },
+ {
+  "id": "FA-1/h the fate note is read once then cleared",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        _fate_note = getattr(marshal, \"_fate_note\", \"\")\n        if _fate_note:\n            marshal._fate_note = \"\"",
+  "new": "        _fate_note = getattr(marshal, \"_fate_note\", \"\")",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_the_road_opening_retires_the_question_and_he_retreats"
+ },
+ {
+  "id": "FA-16/a the ask records where he was asked",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                \"enemy_nation\": captor_nation,\n                # FA-16: where he was asked — a question answered somewhere\n                # else is a different question.\n                \"location\": marshal.location,",
+  "new": "                \"enemy_nation\": captor_nation,",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoWordCame::test_the_first_defeat_still_asks"
+ },
+ {
+  "id": "FA-N25/a the breakout asks the producer's own question first",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        destination = world.get_safe_retreat_destination(\n            marshal.name, attacker_location)\n        encircled = destination is None",
+  "new": "        destination = None\n        encircled = destination is None",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestABreakoutFallsBackOneProvince"
+ },
+ {
+  "id": "FA-N25/b the march is charged like a retreat",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if not encircled:\n            attrition = self._executor._calculate_movement_attrition(\n                marshal, destination, world, is_retreat=True)",
+  "new": "        if False:\n            attrition = self._executor._calculate_movement_attrition(\n                marshal, destination, world, is_retreat=True)",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestABreakoutFallsBackOneProvince::test_the_march_is_charged_like_a_retreat"
+ },
+ {
+  "id": "FA-N68/a destruction retires the rail row",
+  "file": "backend/models/world_state.py",
+  "old": "        from backend.notifications import dismiss_marshal_ask\n        dismiss_marshal_ask(self, marshal.name)\n        self.fallen_marshals[marshal.name] = {",
+  "new": "        self.fallen_marshals[marshal.name] = {",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestDestructionRetiresTheRow"
+ },
+ {
+  "id": "FA-N68/b capture retires it through the shared helper",
+  "file": "backend/models/world_state.py",
+  "old": "        # FA-N68: the one shared helper now.\n        from backend.notifications import dismiss_marshal_ask\n        dismiss_marshal_ask(self, marshal.name)\n        marshal.strategic_order = None",
+  "new": "        marshal.strategic_order = None",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestDestructionRetiresTheRow::test_capture_still_retires_it_through_the_same_helper"
+ },
+ {
+  "id": "FA-N68/c the helper filters by marshal",
+  "file": "backend/notifications.py",
+  "old": "            lambda n: (n.get(\"details\") or {}).get(\"marshal\") == marshal_name))",
+  "new": "            None))",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheRailHelper::test_it_retires_only_that_marshals_rows"
+ },
+ {
+  "id": "FA-16/b order-free decisions are surfaced",
+  "file": "backend/commands/strategic.py",
+  "old": "        reports.extend(self._standalone_decision_rows(world))",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAnOrderFreeQuestionReachesTheEndTurn"
+ },
+ {
+  "id": "FA-16/c the ordered marshal is left to step 0a",
+  "file": "backend/commands/strategic.py",
+  "old": "            if marshal.in_strategic_mode:\n                continue  # step 0a owns the order-bound roster",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAnOrderFreeQuestionReachesTheEndTurn::test_an_ordered_marshal_is_not_reported_twice"
+ },
+ {
+  "id": "FA-16/d a dead question is retired by the processor",
+  "file": "backend/commands/strategic.py",
+  "old": "                live, reason = last_stand_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    dismiss_marshal_ask(world, marshal.name)\n                    print(",
+  "new": "                live, reason = True, \"\"\n                if not live:\n                    marshal.pending_interrupt = None\n                    dismiss_marshal_ask(world, marshal.name)\n                    print(",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAStaleQuestionIsRetiredNotFought::test_the_processor_retires_it_with_the_reason"
+ },
+ {
+  "id": "FA-16/e the row carries the ask's own message",
+  "file": "backend/commands/strategic.py",
+  "old": "                \"message\": (pending.get(\"message\")\n                            or f\"{marshal.name} awaits your word, Sire.\"),",
+  "new": "                \"message\": f\"{marshal.name} awaits your word, Sire.\",",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAnOrderFreeQuestionReachesTheEndTurn::test_the_processor_emits_the_row"
+ },
+ {
+  "id": "FA-16/f the answer arm refuses to fight a ghost",
+  "file": "backend/commands/strategic.py",
+  "old": "            if STANDALONE_DECISION_LIVENESS_ACTIVE:\n                live, reason = last_stand_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    dismiss_marshal_ask(world, marshal.name)\n                    return {\"success\": True, \"no_action_cost\": True,",
+  "new": "            if False:\n                live, reason = last_stand_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    dismiss_marshal_ask(world, marshal.name)\n                    return {\"success\": True, \"no_action_cost\": True,",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAStaleQuestionIsRetiredNotFought::test_the_answer_arm_refuses_to_fight_a_ghost"
+ },
+ {
+  "id": "FA-16/g liveness: the enemy must be on him or next to him",
+  "file": "backend/commands/strategic.py",
+  "old": "    if enemy.location != marshal.location and enemy.location not in adjacent:\n        return False, f\"{enemy_label} has drawn off to {enemy.location}\"",
+  "new": "    if False:\n        return False, f\"{enemy_label} has drawn off to {enemy.location}\"",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheStandaloneDecisionPredicates::test_each_broken_premise_retires_with_its_reason"
+ },
+ {
+  "id": "FA-16/h liveness: he must still stand where he was asked",
+  "file": "backend/commands/strategic.py",
+  "old": "    if asked_at and asked_at != marshal.location:\n        return False, f\"{marshal.name} has marched clear of {asked_at}\"",
+  "new": "    if False:\n        return False, f\"{marshal.name} has marched clear of {asked_at}\"",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheStandaloneDecisionPredicates::test_each_broken_premise_retires_with_its_reason"
+ },
+ {
+  "id": "FA-16/i liveness: the war must still stand",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not world.is_at_war(marshal.nation, enemy.nation):\n        return False, f\"we are no longer at war with {enemy.nation}\"",
+  "new": "    if False:\n        return False, f\"we are no longer at war with {enemy.nation}\"",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheStandaloneDecisionPredicates::test_each_broken_premise_retires_with_its_reason"
+ },
+ {
+  "id": "FA-16/j the executor gate refuses other orders",
+  "file": "backend/commands/executor.py",
+  "old": "                if (isinstance(_standing_ask, dict)\n                        and _standing_ask.get(\"interrupt_type\") == \"last_stand\"):",
+  "new": "                if False:",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestNoOtherOrderReachesACorneredMarshal"
+ },
+ {
+  "id": "FA-N13/a cancel with no order is free and keeps the decision",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        old_order = marshal.strategic_order\n        if old_order is None:\n            # FA-N13",
+  "new": "        old_order = marshal.strategic_order\n        if False:\n            # FA-N13",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestCancelNeverDestroysAParkedDecision"
+ },
+ {
+  "id": "FA-N13/b the ordered cancel spares a standalone decision",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        marshal.strategic_order = None\n        clear_order_bound_interrupt(marshal)\n\n        # Clear HOLD state if applicable",
+  "new": "        marshal.strategic_order = None\n        marshal.pending_interrupt = None\n\n        # Clear HOLD state if applicable",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestCancelNeverDestroysAParkedDecision::test_an_ordered_cancel_keeps_a_standalone_decision"
+ },
+ {
+  "id": "FA-N72/a P0 reads the brakes",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        enemies_in_region = self._engageable_enemies(\n            marshal, enemies_in_region, nation, world)\n\n        print(f\"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}\")",
+  "new": "        print(f\"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}\")",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes::test_the_pair_brake_stops_a_second_attack_this_turn"
+ },
+ {
+  "id": "FA-N72/b the pair brake",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if (marshal.name, enemy.name) in attacked:\n                ai_debug(f\"    brakes: {marshal.name} already attacked {enemy.name} this turn\")\n                continue",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes::test_the_pair_brake_stops_a_second_attack_this_turn"
+ },
+ {
+  "id": "FA-35/a the stub latch",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if enemy.strength < STUB_STRENGTH_FLOOR and any(",
+  "new": "            if False and any(",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes::test_the_stub_latch_frees_the_rest_of_the_nation"
+ },
+ {
+  "id": "FA-35/b the latch is a REMNANT rule (floor)",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "STUB_STRENGTH_FLOOR = 1000",
+  "new": "STUB_STRENGTH_FLOOR = 10000",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes::test_a_real_army_is_not_a_stub"
+ },
+ {
+  "id": "FA-35/c the latch is nation-scoped",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "                    and getattr(world.marshals.get(attacker), \"nation\", None) == nation\n",
+  "new": "\n",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes::test_the_latch_is_nation_scoped"
+ },
+ {
+  "id": "FA-N72/c P8's universal arm reads the brakes",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        enemies_in_region = self._engageable_enemies(\n            marshal, self._get_hostile_marshals_in_same_region(marshal, world),\n            marshal.nation, world)  # FA-N72 + FA-35: same brakes as P0\n        print(f\"  [P8 UNIVERSAL]",
+  "new": "        enemies_in_region = self._get_hostile_marshals_in_same_region(marshal, world)\n        print(f\"  [P8 UNIVERSAL]",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes::test_the_p8_safety_net_reads_the_same_brake"
+ },
+ {
+  "id": "FA-N72/d the lever means what it says",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if not P0_ENGAGEMENT_BRAKES_ACTIVE:\n            return enemies",
+  "new": "        if P0_ENGAGEMENT_BRAKES_ACTIVE:\n            return enemies",
+  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestTheEngagementRungReadsTheBrakes"
+ }
+]

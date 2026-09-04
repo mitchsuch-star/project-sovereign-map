@@ -618,7 +618,7 @@ Reserved future `event_log` payloads:
 | Field | Type | Description |
 |-------|------|-------------|
 | `strategic_order` | dict\|null | StrategicOrder if active |
-| `pending_interrupt` | dict\|null | Interrupt awaiting response |
+| `pending_interrupt` | dict\|null | Interrupt awaiting response. A `last_stand` ask carries `location` since FA slice 2 (Sept 4, 2026) — the province he was cornered in; `last_stand_is_live` tolerates its absence in older saves. No new top-level field. |
 | `strategic_combat_bonus` | int | % bonus from inspiring commands |
 | `strategic_defense_bonus` | int | % bonus from clear orders |
 | `precision_execution_active` | bool | +1 to all skills active |

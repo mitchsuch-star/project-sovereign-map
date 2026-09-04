@@ -286,7 +286,11 @@ class RunCapture:
 
         dispatch_queue = [
             {"type": str(e.get("type", "")),
-             "vars": _project(e.get("template_vars", {}), 2)}
+             "vars": _project(e.get("template_vars", {}), 2),
+             # FA slice 2 (Sept 4, 2026): the turn the entry was queued on,
+             # so the narration-cap metric can count per PRODUCING turn —
+             # see `derive_metrics`.
+             "queued_turn": e.get("queued_turn")}
             for e in (getattr(world, "pending_dispatch_events", None) or [])]
 
         mirror_price, mirror_weight, mirror_target = (
@@ -417,10 +421,26 @@ def derive_metrics(digest: dict) -> dict:
     beats = {etype: max(beats_log.get(etype, 0), beats_dispatch.get(etype, 0))
              for etype in set(beats_log) | set(beats_dispatch)}
 
-    routine_per_turn = [
-        sum(1 for e in row["dispatch_queue"]
-            if e["type"] in ROUTINE_INTENT_TYPES)
-        for row in turns]
+    # FA slice 2 (Sept 4, 2026): count per PRODUCING turn, not per queue
+    # snapshot. This runner reads the queue WITHOUT draining (advance_turn
+    # owns the clear), and advance_turn's turn-stamp prune is one frame off
+    # by its own comment (`dispatch.py`, the consumption clear): an entry
+    # queued INSIDE advance_turn carries the NEW turn number and survives
+    # the next cycle's prune. The real client consumes the queue every turn
+    # when it builds the morning dispatch, so the player never sees the
+    # carry-over — but a snapshot that holds two producer calls' lines read
+    # as 4 against a cap of 2. Measured on the slice-2 board at turn 36:
+    # Prussia both "hardens" and "eases" in one snapshot, one line from each
+    # of two consecutive polls. The prior board never had two consecutive
+    # producing turns, which is the only reason this pin was green.
+    routine_per_turn = []
+    for row in turns:
+        by_stamp: dict = {}
+        for e in row["dispatch_queue"]:
+            if e["type"] in ROUTINE_INTENT_TYPES:
+                stamp = e.get("queued_turn")
+                by_stamp[stamp] = by_stamp.get(stamp, 0) + 1
+        routine_per_turn.append(max(by_stamp.values()) if by_stamp else 0)
 
     # Soap-opera measurement (§5 pin 13): share of the dispatch-queue
     # column-inches (the diplomatic stream the player reads) spent on

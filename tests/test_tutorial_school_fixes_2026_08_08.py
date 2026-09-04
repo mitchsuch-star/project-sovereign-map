@@ -97,7 +97,18 @@ class TestOrderBoundInterruptClearedOnOverride:
 
     def test_override_cancel_preserves_last_stand_decision(self):
         """A cornered marshal's last-stand question is NOT order-bound: it
-        must survive the override-cancel (dropping it strands him)."""
+        must survive the override (dropping it strands him).
+
+        Flipped consciously by FA slice 2 (Sept 4, 2026 — FA-16). This pin
+        used to assert that the override EXECUTED and cancelled the standing
+        order while the question survived. Measured, "executed" meant the
+        cornered marshal was marched away with his question still parked —
+        and a fresh strategic order's own contact question could OVERWRITE
+        it. The rule now is that no order reaches a cornered marshal until
+        his question is answered: the move is REFUSED at zero cost, the
+        refusal names the two answers, and both the decision and the
+        standing order (which cannot progress while the ask stands) are left
+        exactly as they were."""
         world, ney, _ = _french_pair()
         ney.strategic_order = _order()
         pending = {
@@ -105,12 +116,17 @@ class TestOrderBoundInterruptClearedOnOverride:
             "options": ["fight", "surrender"],
         }
         ney.pending_interrupt = pending
-        CommandExecutor().execute(
+        result = CommandExecutor().execute(
             {"command": {"marshal": "Ney", "action": "move",
                          "target": "Belgium"}},
             {"world": world})
-        assert ney.strategic_order is None
-        assert ney.pending_interrupt == pending
+        assert result.get("success") is False
+        assert result.get("last_stand_pending") is True
+        assert "fight to the last" in result.get("message", "")
+        assert "attempt a breakout" in result.get("message", "")
+        assert ney.strategic_order is not None, "the order is untouched"
+        assert ney.pending_interrupt == pending, "the decision survives"
+        assert ney.location == "Paris", "he did not march"
 
     def test_refused_move_still_clears_the_interrupt(self):
         """The probe's exact shape: the move is REFUSED (enemy in the target)

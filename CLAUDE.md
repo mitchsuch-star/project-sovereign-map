@@ -144,12 +144,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > text must be checked against every consumer downstream of the blank, and
 > the parser has two producers in series almost everywhere.*
 >
-> **▶ NEXT = slice 2** with FA-1 re-scoped (the rail alert IS delivered and
-> answering works; the harm is that the enemy phase does not pause, so ~92% of
-> the corps dies in one phase), then FA-26 **as a shared helper across all four
-> trust-writing families** (FA-N1), not one call at one seam. Then position 10,
-> the shippable build. ⚠ **Still no pillar re-score** — the harness it was
-> waiting on now works, so it can run.
+> **▶ SLICE 2 "NO WORD CAME" IS LANDED — September 4, 2026.** Landing record
+> = the boxed SLICE 2 block in `BUG_FIXES.md` §Final Whole-Game Audit
+> (authoritative); STATUS top entry = the summary. FA-1 (P1), FA-16, FA-N13,
+> FA-N68, FA-N25, FA-N72 closed; FA-35 closed at its real seam (P0 + a stub
+> latch; the P4 floor NOT built). A cornered marshal the enemy does not wait
+> for now answers for himself (*"No word came…"* — captured or broken out,
+> never shot six times standing); an order-free question reaches the end-turn
+> report or is retired with its reason; no order but the answer reaches him;
+> cancel is free and names the question; a breakout falls back one province;
+> the AI stops queuing a nation on a remnant. `BASELINE_SERIES` re-recorded
+> ONCE with an eight-arm lever attribution (arm 0 byte-identical to the prior
+> series; the P0 brakes are never shipped without the resolution — pinned).
+> **The session's method: six read-only reproduction agents BEFORE a line was
+> written, one per family; four of seven rows were corrected by them.**
+> Recommended, not built (gate): `DESIGN_REFINEMENT.md` FA-S2-D1.
+>
+> **▶ NEXT = the standing-order truth slice** (FA-14/15/19/20/34/68 +
+> FA-N10/N26/N40/N42/N48/N60 — reproduced: eleven attack seams, one reads
+> `success`; FA-14's own fix_shape reds six green pins), then the AI
+> board-reading slice (FA-8 P1 + FA-27/N38/N6/N7/N54/N80/N59 — four move the
+> series, land together), the road law, the popup queue, the mock vocabulary
+> (all reproduced, reports in STATUS), then FA-26 **as a shared helper across
+> all four trust-writing families** (FA-N1), then position 10. ⚠ **Still no
+> pillar re-score.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

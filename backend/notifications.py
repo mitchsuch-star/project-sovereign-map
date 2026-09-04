@@ -488,3 +488,28 @@ class NotificationCollector:
         for item in data:
             collector._pending.append(item.copy())
         return collector
+
+
+def dismiss_marshal_ask(world, marshal_name: str) -> int:
+    """Retire a marshal's standing "decide his fate" rail row(s).
+
+    FA-N68 (slice 2, Sept 4 2026): the W6-7 last-stand notice is an ASK, and
+    it must die with the question — whichever way the question dies. Before
+    this helper the rule lived in two inline copies (the answer arm in
+    `strategic.handle_response` and `WorldState.capture_marshal`) and in
+    NEITHER of the other two roads a question can end on: `destroy_marshal`
+    (the corps annihilated with the ask standing — measured, the CRITICAL
+    row sat at the top of the rail forever, and CRITICAL is never evicted)
+    and the unanswered-ask resolution FA-1 adds. One helper, five callers.
+
+    Returns the number of rows retired (0 when the world carries no rail).
+    """
+    try:
+        collector = getattr(world, "notifications", None)
+        if collector is None:
+            return 0
+        return int(collector.dismiss_by_type(
+            MARSHAL_LAST_STAND,
+            lambda n: (n.get("details") or {}).get("marshal") == marshal_name))
+    except Exception:
+        return 0

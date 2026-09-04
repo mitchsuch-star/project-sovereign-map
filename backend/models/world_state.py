@@ -2628,6 +2628,12 @@ class WorldState:
         # extraction of this helper out of the per-turn closure was for.
         from backend.game_logic.dotation import dismiss_reward_notices
         dismiss_reward_notices(self, marshal)
+        # FA-N68 (slice 2, Sept 4 2026): his QUESTION dies with him too. A
+        # marshal destroyed with a last-stand ask standing kept his CRITICAL
+        # "decide his fate" row at the top of the rail forever — CRITICAL is
+        # never evicted, capture retired it, destruction did not.
+        from backend.notifications import dismiss_marshal_ask
+        dismiss_marshal_ask(self, marshal.name)
         self.fallen_marshals[marshal.name] = {
             "nation": marshal.nation,
             "turn": int(self.current_turn),
@@ -4600,13 +4606,9 @@ class WorldState:
         # PC-9: the "is cornered — decide his fate" rail notice is an ASK.
         # Once he is taken there is nothing left to decide, and a notice that
         # outlives its decision is what left a turn-3 alert live at turn 42.
-        try:
-            from backend.notifications import MARSHAL_LAST_STAND
-            self.notifications.dismiss_by_type(
-                MARSHAL_LAST_STAND,
-                lambda n: n.get("details", {}).get("marshal") == marshal.name)
-        except Exception:
-            pass
+        # FA-N68: the one shared helper now.
+        from backend.notifications import dismiss_marshal_ask
+        dismiss_marshal_ask(self, marshal.name)
         marshal.strategic_order = None
         clear_order_bound_interrupt(marshal)  # NPC-2
         marshal.holding_position = False

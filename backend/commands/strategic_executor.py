@@ -2263,14 +2263,39 @@ class StrategicExecutor:
             return {"success": True, "no_action_cost": True,
                     "message": f"{marshal.name} awaits further orders."}
 
-        # Get order details for flavorful message
         old_order = marshal.strategic_order
-        old_command = old_order.command_type if old_order else None
-        old_target = old_order.target if old_order else None
+        if old_order is None:
+            # FA-N13 (slice 2, Sept 4 2026): no march to cancel. This arm used
+            # to fall into the cancel body because a PARKED DECISION is a
+            # `pending_interrupt` too — so "Ney, halt" on a cornered marshal
+            # destroyed his last-stand question, charged 1 AP and -3 trust,
+            # printed "Standing down", and left the rail telling the player
+            # to answer a question that no longer existed. A decision is not
+            # an order; cancelling nothing is free, and the standing question
+            # is NAMED so the player knows what he is still owed.
+            from backend.commands.strategic import standalone_decision
+            standing = standalone_decision(marshal)
+            clear_order_bound_interrupt(marshal)  # a stale bound ask dies free
+            if standing and standing.get("interrupt_type") == "last_stand":
+                msg = (f"{marshal.name} has no march to cancel, Sire — he is "
+                       f"cornered at {marshal.location} and awaits your word: "
+                       f"'fight to the last' or 'attempt a breakout'.")
+            elif standing:
+                msg = (f"{marshal.name} has no march to cancel, Sire — he "
+                       f"awaits your word on the attack: 'attack anyway' or "
+                       f"'cancel order'.")
+            else:
+                msg = f"{marshal.name} awaits further orders."
+            return {"success": True, "no_action_cost": True, "message": msg}
 
-        # Cancel the order
+        # Get order details for flavorful message
+        old_command = old_order.command_type
+        old_target = old_order.target
+
+        # Cancel the order — and the question it raised (NPC-2). A standalone
+        # decision survives the order's death, by the helper's own rule.
         marshal.strategic_order = None
-        marshal.pending_interrupt = None
+        clear_order_bound_interrupt(marshal)
 
         # Clear HOLD state if applicable
         if getattr(marshal, 'holding_position', False):

@@ -47,6 +47,75 @@ ORDER_BOUND_INTERRUPT_TYPES = frozenset({
     "destination_blocked", "combat_stalemate",
 })
 
+# The complement: a decision the player owes a marshal that no order raised
+# and no order can retire. `last_stand` (W6-7) and `muster_confirm` (W6-4).
+STANDALONE_DECISION_TYPES = frozenset({"last_stand", "muster_confirm"})
+
+# FA-16 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE idiom.
+# False reproduces the pre-slice behaviour byte-for-byte: an order-free
+# parked decision is invisible to the end-turn processor, never re-validated,
+# and a fresh order to the cornered marshal simply executes over it.
+STANDALONE_DECISION_LIVENESS_ACTIVE = True
+
+
+def standalone_decision(marshal) -> Optional[Dict]:
+    """The parked player decision on `marshal`, or None.
+
+    A decision is the interrupt dict itself when its type is standalone
+    (never order-bound). Order-bound interrupts return None here: they are
+    `clear_order_bound_interrupt`'s business, not this seam's.
+    """
+    pending = getattr(marshal, "pending_interrupt", None)
+    if (isinstance(pending, dict)
+            and pending.get("interrupt_type") in STANDALONE_DECISION_TYPES):
+        return pending
+    return None
+
+
+def last_stand_is_live(marshal, world, pending: Optional[Dict] = None) -> Tuple[bool, str]:
+    """Is a parked last stand still the question it was when it was asked?
+
+    FA-16 (slice 2, Sept 4 2026). The ask is raised at one moment — beaten,
+    cornered at a province, by a named enemy — and it used to be answered
+    whenever the player got round to it, against whatever that enemy was
+    doing by then. Measured: Ney's turn-16 question was answered on turn 22
+    with "fight to the last", and `_resolve_last_stand_fight` bled Archduke
+    Charles by 7,500 men from Milan — NOT adjacent to Ney — before taking
+    Ney prisoner in a province the enemy had long since left.
+
+    A question stays live only while every premise holds: the marshal still
+    stands, at the province he was cornered in; the enemy who cornered him
+    still stands, is still an enemy, and is still ON him or NEXT to him.
+    When any premise fails the caller retires the question with the reason,
+    and the marshal simply awaits orders — the road opened by itself.
+
+    Returns (live, reason) where `reason` is the player-facing clause
+    explaining why the question is overtaken (empty when live).
+    """
+    from backend.display_names import humanize_entity_name as _hum
+
+    pending = pending or standalone_decision(marshal)
+    if not pending or pending.get("interrupt_type") != "last_stand":
+        return False, "no last stand is pending"
+    if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
+        return False, f"{marshal.name} no longer stands in the field"
+    asked_at = pending.get("location")
+    if asked_at and asked_at != marshal.location:
+        return False, f"{marshal.name} has marched clear of {asked_at}"
+    enemy_key = pending.get("enemy") or ""
+    enemy = world.get_marshal(enemy_key) if enemy_key else None
+    enemy_label = _hum(enemy_key) if enemy_key else "the enemy"
+    if (enemy is None or getattr(enemy, "strength", 0) <= 0
+            or getattr(enemy, "captured_by", "")):
+        return False, f"{enemy_label} no longer stands in the field"
+    if not world.is_at_war(marshal.nation, enemy.nation):
+        return False, f"we are no longer at war with {enemy.nation}"
+    region = world.get_region(marshal.location)
+    adjacent = set(getattr(region, "adjacent_regions", None) or []) if region else set()
+    if enemy.location != marshal.location and enemy.location not in adjacent:
+        return False, f"{enemy_label} has drawn off to {enemy.location}"
+    return True, ""
+
 
 def pursue_known_location(world, marshal, enemy):
     """NPC-5: where the ORDER-GIVER believes the quarry is.
@@ -315,7 +384,76 @@ class StrategicOrderProcessor:
                 if report.get("requires_input"):
                     break
 
+        # Pass 3 (FA-16): the decisions no order raised.
+        reports.extend(self._standalone_decision_rows(world))
+
         return reports
+
+    def _standalone_decision_rows(self, world) -> List[Dict]:
+        """FA-16 (slice 2, Sept 4 2026): surface, or retire, the parked
+        decision of every ORDER-FREE player marshal.
+
+        The processor's roster is `in_strategic_mode` marshals only, so a
+        marshal whose last stand was parked by tactical combat with no
+        standing order never reached step 0a — the filed fix at `if not
+        order: return None` was unreachable by construction (measured: the
+        ask surfaced only on the SECOND end turn after the player happened
+        to give him a strategic order). And nothing ever asked whether the
+        question was still true: Ney's turn-16 question was answered on turn
+        22 against an enemy three provinces away.
+
+        A live question rides the same `requires_input` row shape step 0a
+        emits — the client's report flow queues it, `main.py` promotes it
+        for headless clients, the driver answers it — so no `.gd` changes.
+        A dead one is retired here with its reason, and the rail row goes
+        with it (FA-N68's helper). `muster_confirm` is surfaced but not
+        re-validated: its answer re-issues the attack, which re-validates
+        itself.
+        """
+        rows: List[Dict] = []
+        if not STANDALONE_DECISION_LIVENESS_ACTIVE:
+            return rows
+        from backend.notifications import dismiss_marshal_ask
+        for marshal in sorted(world.get_player_marshals(), key=lambda m: m.name):
+            if marshal.in_strategic_mode:
+                continue  # step 0a owns the order-bound roster
+            pending = standalone_decision(marshal)
+            if not pending:
+                continue
+            if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
+                # Hazard-4 idiom (PC15-4): nobody can act on a question
+                # about a man who no longer stands.
+                marshal.pending_interrupt = None
+                dismiss_marshal_ask(world, marshal.name)
+                continue
+            kind = pending.get("interrupt_type")
+            if kind == "last_stand":
+                live, reason = last_stand_is_live(marshal, world, pending)
+                if not live:
+                    marshal.pending_interrupt = None
+                    dismiss_marshal_ask(world, marshal.name)
+                    print(f"[STRATEGIC] {marshal.name}: last stand retired — {reason}")
+                    rows.append({
+                        "marshal": marshal.name,
+                        "command": "Last stand",
+                        "order_status": "retired",
+                        "decision_retired": True,
+                        "message": (f"{marshal.name}'s question is overtaken, "
+                                    f"Sire — {reason}. He awaits new orders."),
+                    })
+                    continue
+            rows.append({
+                "marshal": marshal.name,
+                "command": "Last stand" if kind == "last_stand" else "Muster",
+                "order_status": "awaiting_response",
+                "requires_input": True,
+                "interrupt_type": kind,
+                "message": (pending.get("message")
+                            or f"{marshal.name} awaits your word, Sire."),
+                "options": list(pending.get("options") or []),
+                "pending_interrupt": pending,
+            })
+        return rows
 
     # ══════════════════════════════════════════════════════════════════════════
     # INTERRUPT RESPONSE HANDLING (Phase D)
@@ -388,18 +526,27 @@ class StrategicOrderProcessor:
             if choice not in valid:
                 return {"success": False,
                         "message": f"Invalid choice '{choice}'. Valid: {', '.join(valid)}"}
+            from backend.notifications import dismiss_marshal_ask
+            # FA-16 (slice 2): the question is answered against the enemy
+            # who asked it, where he asked it — or not at all. A stale ask
+            # is retired here rather than fought through.
+            if STANDALONE_DECISION_LIVENESS_ACTIVE:
+                live, reason = last_stand_is_live(marshal, world, pending)
+                if not live:
+                    marshal.pending_interrupt = None
+                    dismiss_marshal_ask(world, marshal.name)
+                    return {"success": True, "no_action_cost": True,
+                            "decision_retired": True,
+                            "message": (f"{marshal.name}'s question is overtaken, "
+                                        f"Sire — {reason}. He awaits new orders.")}
             marshal.pending_interrupt = None
             # PC-9: the rail notice exists only to make an UNANSWERED last
             # stand visible. It was never retired when the player answered,
             # so a turn-3 alert was still sitting in the tray at turn 42 —
             # for a marshal whose fate had been decided 39 turns earlier.
-            try:
-                from backend.notifications import MARSHAL_LAST_STAND
-                world.notifications.dismiss_by_type(
-                    MARSHAL_LAST_STAND,
-                    lambda n: n.get("details", {}).get("marshal") == marshal.name)
-            except Exception:
-                pass
+            # FA-N68: one helper now, shared with every other road a
+            # question can end on.
+            dismiss_marshal_ask(world, marshal.name)
             enemy = world.get_marshal(pending.get("enemy", ""))
             combat = self.executor._combat
             if choice == "fight_to_the_last":

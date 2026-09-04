@@ -659,10 +659,58 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # re-record - structurally: none of the seven routes a target string
 # through `_fuzzy_match_enemy`; M1-M6 call `resolve_battle` directly and
 # M7 drives marshals by object, never by name.
+#
+# FA slice 2 re-record (September 4, 2026, "No Word Came" — FA-1 / FA-N72 /
+# FA-35) — indices [0]-[18] are byte-identical and everything from [19] on
+# moves. The series no longer climbs to 97; it holds in the 70s-80s and
+# ends at 47.
+#
+# Cause, measured before a line was written, on THIS board. A French
+# marshal cornered by an AI attack is asked the W6-7 question (fight to
+# the last / attempt a breakout) — and the enemy phase does not wait for
+# an answer. Every further attack in the same phase re-entered
+# `_check_marshal_fate`, found no guard for the standing ask, re-asked it
+# and shot him again: Austria's six actions were six attacks on Massena,
+# 8,000 -> 259, still standing. Over the prior run FOUR French marshals
+# (Lannes, Massena, Murat, Ney) were DESTROYED that way — a corps ground
+# to nothing takes no prisoners and sends no men home. The enemy AI's
+# engagement rung (P0) also read neither of the brakes P4 carries, so a
+# co-located corps attacked the same defender twice in one turn and every
+# corps of the nation queued on a sub-1,000 remnant.
+#
+# Attribution, EIGHT arms, each a subprocess with the module levers set in
+# the child (never a source edit):
+#   0.   all three False ............... prior series, BYTE-FOR-BYTE
+#   A.   LAST_STAND_UNANSWERED_RESOLVES  diverges at [29]: three of the
+#        four destroyed marshals end as PRISONERS instead (Lannes,
+#        Massena, Ney), Murat alone falls; France 22 / Austria 14
+#   B.   P0_ENGAGEMENT_BRAKES_ACTIVE ... diverges at [19]: France 29 /
+#        Austria 6 — the AI stops grinding, but WITHOUT A the re-asked
+#        remnant the stub latch now protects is immortal (Lannes, Massena
+#        and Ney all survive the run). B is never shipped without A; the
+#        contract pin in test_fa_slice2_no_word_came_2026_09_04.py says so.
+#   C.   STANDALONE_DECISION_LIVENESS_ACTIVE  prior series, BYTE-FOR-BYTE —
+#        measured inert here with a reason: France issues no orders on the
+#        ambient board (its gate never fires) and with A an ask is
+#        resolved by the next attack in the same phase, before any end
+#        turn could retire it. Its behaviour is player-facing (the row,
+#        the refusal, the retirement) and pinned by construction.
+#   AB.  the series below (== ABC)
+#   AC.  == A     BC. == B     ABC. == AB
+# So: A and B are each necessary, C is inert on this board, and the full
+# tree is AB. Ending state: France 25 / Austria 12 (was 26 / 10), fallen
+# {Murat}, captured {Lannes, Massena, Ney, Bennigsen, Buxhowden, Davout,
+# Mack, ArchdukeJohn, Paget} — Russians taken by France for the first time
+# on this board, because a French corps that is not ground to dust is
+# still an army the next turn.
+#
+# M1-M7 were run before and after and are byte-identical WITHOUT
+# re-record — structurally: M1-M6 drive `resolve_battle` directly and M7
+# never reaches the enemy AI or the forced-retreat seam's second call.
 BASELINE_SERIES = [
     70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 73, 91, 89, 87,
-    85, 83, 86, 89, 92, 90, 97, 95, 96, 94, 92, 90, 88, 86, 84, 72, 70,
-    68, 66, 64, 62, 60, 58, 56,
+    85, 83, 81, 79, 77, 78, 79, 80, 83, 84, 82, 80, 78, 76, 77, 80, 78,
+    65, 62, 59, 56, 53, 50, 47,
 ]
 
 

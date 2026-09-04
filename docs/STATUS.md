@@ -4,6 +4,63 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 2 "NO WORD CAME" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 2 block (authoritative).** FA-1 (P1), FA-16, FA-N13, FA-N68, FA-N25,
+> FA-N72 closed; FA-35 closed at its real seam (the P0 rung + a stub latch;
+> its filed P4 target-worth floor deliberately NOT built). Tests
+> `tests/test_fa_slice2_no_word_came_2026_09_04.py` (63); sweep
+> `tools/_sweep_fa_slice2.json` **32/32 killed, 0 inert**; ruff clean; no
+> `.gd`; M1–M7 byte-identical without re-record; **`BASELINE_SERIES`
+> re-recorded ONCE, eight-arm lever attribution** (arm 0 reproduces the prior
+> series byte-for-byte).
+>
+> **The session opened with six read-only reproduction agents, one per
+> family, before a line was written** — their reports are the session's
+> instrument and they corrected four of the seven rows here: FA-1 is ONE phase
+> (six attacks, 8,000 → 259), not eleven battles over four; FA-16's prescribed
+> seam is unreachable (order-free marshals never enter the processor's
+> roster) and a fresh order was a third destroyer of the question; FA-35's
+> headline seam is P0 not P4 and its futility half is inert by construction;
+> FA-N25's docstring premise is false for the arm that raises the ask most.
+>
+> **What changed for the player:** a cornered marshal whose question the
+> enemy does not wait for now answers for himself — *"No word came for
+> Massena, cornered at Milan — the enemy did not wait"* — and is captured or
+> breaks out instead of being shot six times standing. On the ambient board
+> the four French marshals the prior run DESTROYED become three prisoners and
+> one loss. An order-free parked question reaches the end-turn report (and is
+> retired with its reason when its premise is gone); no order but the answer
+> reaches a cornered marshal; cancel names the question instead of destroying
+> it; a won breakout falls back one province; and the enemy AI stops queuing
+> a whole nation on a sub-1,000 remnant.
+>
+> **Five pins flipped consciously, each with a dated note in its file**
+> (`test_tutorial_school_fixes_2026_08_08.py` — the override is refused, not
+> executed over the question; WO-9's capped rebellion 33 → 35; WO-10's
+> ungated-arm 17 → 18 collapses, its pre-WO-10 series re-recorded on this
+> board, its cooldown writes 31/11 → 34/16), **and one harness defect fixed
+> in `tools/ai_v_sweep.py`**: the AI-V narration-cap pin read an un-drained
+> queue snapshot that can hold two consecutive polls' lines (4 against a cap
+> of 2 at turn 36) — the metric now counts per producing turn. **Recommended,
+> not built (gate):** `DESIGN_REFINEMENT.md` FA-S2-D1 "The Enemy Waits One
+> Turn" — the W6-7 CHOICE is still unreachable when cornered in the enemy
+> phase.
+>
+> **▶ NEXT** (the remaining families this session reproduced, reports in the
+> session scratch): the standing-order truth slice (FA-14/15/19/20/34/68 +
+> FA-N10/N26/N40/N42/N48/N60 — eleven attack seams, one reads `success`; the
+> pre-existing FA-14 fix_shape would red six green pins), the AI board-reading
+> slice (FA-8 P1 / FA-27+N38 / FA-N6 / FA-N7 / FA-N54 / FA-N80 / FA-N59 — four
+> of them move `BASELINE_SERIES`, land together), the road law
+> (FA-13/46/N11/N12/N49/N41 — nine private copies of route-plotting, two
+> obey the movement law), the popup queue (FA-5/30/N20/N67/N62/99 — 15
+> draining arms in 7 endpoints, one server-side rule), the mock vocabulary
+> (FA-80/D20/D25/N8/N24/N9/N39/24/47/73 — and `will Ney attack Mack?` fights
+> a real battle). Then FA-26 as a shared helper across four trust-writing
+> families, then position 10. ⚠ Still no pillar re-score.
+
 > # ✅ THE AUDIT BUILD: SLICES 0, 8 AND 1 ARE LANDED — September 2, 2026
 >
 > **Landing records = the three boxed blocks in `docs/BUG_FIXES.md`

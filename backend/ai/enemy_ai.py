@@ -99,6 +99,18 @@ AI_NAVAL_AP_PARITY = True
 # too, and an ally who is not adjacent never blocks anything.
 SPOILS_DEFERENCE_ACTIVE = True
 
+# FA-N72 + FA-35 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE
+# idiom. False reproduces the pre-slice behaviour byte-for-byte: the P0
+# engagement rung and P8's two engaged arms read neither of the brakes P4
+# carries, so a co-located corps attacked the same defender twice in one
+# turn, and every corps of the nation queued on a sub-1,000 stub.
+P0_ENGAGEMENT_BRAKES_ACTIVE = True
+
+# Below this, a hostile corps is a remnant one corps finishes while the rest
+# of the nation's actions go somewhere useful (P4.5 / P7). The same 1,000-man
+# floor the war ledger uses for an "army".
+STUB_STRENGTH_FLOOR = 1000
+
 
 def ai_debug(msg: str):
     """Print debug message if AI_DEBUG is enabled."""
@@ -1605,6 +1617,12 @@ class EnemyAI:
         # Cannot fortify, drill, change stance, or do anything else!
         # ════════════════════════════════════════════════════════════
         enemies_in_region = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
+        # FA-N72 + FA-35: the brakes P4 carries. An emptied list falls
+        # THROUGH P0 — measured, P-1 / P3.7 / P4.5 catch the corps with a
+        # useful order (the road to the capital), and the P4/P8 engaged arms
+        # below read the same predicate, so nothing prices the remnant twice.
+        enemies_in_region = self._engageable_enemies(
+            marshal, enemies_in_region, nation, world)
 
         print(f"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}")
 
@@ -2557,6 +2575,53 @@ class EnemyAI:
 
         return None
 
+    def _engageable_enemies(self, marshal: Marshal, enemies, nation: str,
+                            world: WorldState) -> List[Marshal]:
+        """FA-N72 + FA-35: the co-located enemies this corps may still
+        engage THIS turn.
+
+        Two brakes, the first of which P4 has carried since CA9-N7 and the
+        engagement rungs never read:
+
+        * the PAIR brake — this marshal has already attacked that enemy this
+          turn (the `_attacked_targets_this_turn` set P4 reads at its own
+          filter). Measured: with the pair stamped and futility at 9, P4
+          returned None while P0 still returned `attack`;
+        * the STUB latch — a hostile corps under `STUB_STRENGTH_FLOOR` that
+          ANY corps of this nation has already attacked this turn is one
+          corps' business. Measured on the 1805 board: three Austrian corps
+          co-located with a 500-man Massena spent FOUR of the nation's six
+          actions on him (500 -> 232 -> 134 -> 73 -> 0) while an empty
+          French province stood adjacent; the remaining corps now fall to
+          P4.5 / P7 and go somewhere useful.
+
+        The futility counter is deliberately NOT read here: it is inert
+        against a stub by construction (reset on every victory and whenever
+        the target falls below half strength), so a read would be a pin that
+        proves nothing. Nation-scoped so an autonomous PLAYER marshal
+        (`decide_single_action` reuses the tree) never reads another court's
+        pairs.
+        """
+        enemies = list(enemies)
+        if not P0_ENGAGEMENT_BRAKES_ACTIVE:
+            return enemies
+        attacked = getattr(self, '_attacked_targets_this_turn', None) or set()
+        if not attacked:
+            return enemies
+        out: List[Marshal] = []
+        for enemy in enemies:
+            if (marshal.name, enemy.name) in attacked:
+                ai_debug(f"    brakes: {marshal.name} already attacked {enemy.name} this turn")
+                continue
+            if enemy.strength < STUB_STRENGTH_FLOOR and any(
+                    target == enemy.name
+                    and getattr(world.marshals.get(attacker), "nation", None) == nation
+                    for attacker, target in attacked):
+                ai_debug(f"    brakes: {enemy.name} is a remnant already engaged by {nation} this turn")
+                continue
+            out.append(enemy)
+        return out
+
     def _get_counter_punch_action(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
         Get counter-punch attack action for cautious marshals.
@@ -2884,6 +2949,11 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # Separate targets in same region (engaged) from those at range
         engaged_targets = [(e, br, er, d) for e, br, er, d in valid_targets if d == 0]
+        # FA-N72 + FA-35: the pair brake already ran above; the stub latch
+        # is the same predicate the P0/P8 engaged arms read.
+        _engageable = {e.name for e in self._engageable_enemies(
+            marshal, [t[0] for t in engaged_targets], nation, world)}
+        engaged_targets = [t for t in engaged_targets if t[0].name in _engageable]
         ai_debug(f"    P4: {len(valid_targets)} valid targets, {len(engaged_targets)} engaged, threshold={threshold:.2f}")
         if engaged_targets:
             ai_debug("    ENGAGED: Must attack enemy in same region first!")
@@ -4506,7 +4576,9 @@ class EnemyAI:
         # NOTE: P0 now handles engagement at start of _evaluate_marshal
         # This is redundant but kept as a safety net in case P0 is bypassed
         # ════════════════════════════════════════════════════════════
-        enemies_in_region = self._get_hostile_marshals_in_same_region(marshal, world)
+        enemies_in_region = self._engageable_enemies(
+            marshal, self._get_hostile_marshals_in_same_region(marshal, world),
+            marshal.nation, world)  # FA-N72 + FA-35: same brakes as P0
         print(f"  [P8 UNIVERSAL] {marshal.name} at {marshal.location}: enemies_in_region = {[e.name for e in enemies_in_region]}")
 
         if enemies_in_region:
@@ -4606,7 +4678,9 @@ class EnemyAI:
 
         elif personality == "cautious":
             # Check if engaged with enemy - must deal with them, not fortify!
-            enemies_in_region = self._get_hostile_marshals_in_same_region(marshal, world)
+            enemies_in_region = self._engageable_enemies(
+                marshal, self._get_hostile_marshals_in_same_region(marshal, world),
+                marshal.nation, world)  # FA-N72 + FA-35: same brakes as P0
             ai_debug(f"  P8: {marshal.name} at {marshal.location}, enemies_in_region={[e.name for e in enemies_in_region]}")
             if enemies_in_region:
                 # Engaged! Attack the weakest enemy we can beat

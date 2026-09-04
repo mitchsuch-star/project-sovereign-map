@@ -938,8 +938,16 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         uncapped = _rebellion_turn(False)
         capped = _rebellion_turn(True)
         assert uncapped == 29, uncapped
-        assert capped == 33, capped
-        assert capped - uncapped == 4, (
+        # Re-measured by FA slice 2 (September 4, 2026): the capped
+        # satellite now rebels at 35 (was 33) — a French corps that is
+        # captured rather than ground to dust changes the courts' spare
+        # actions from turn 29 on, and Switzerland's courting arrives two
+        # turns later. The uncapped arm is unchanged (29): every uncapped
+        # court spends its first turn on the satellite before the slice-2
+        # divergence. The contract — the cap DELAYS, it does not save —
+        # holds with a wider gap.
+        assert capped == 35, capped
+        assert capped - uncapped == 6, (
             "the cap must buy the lord turns to react, not save him")
 
     def test_the_delay_is_where_the_series_falls_furthest(self):

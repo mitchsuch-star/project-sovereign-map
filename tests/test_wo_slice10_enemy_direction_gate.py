@@ -929,7 +929,15 @@ class TestTheAmbientBoard:
     """The re-measured count the done-when hangs on. Slice 9 moved the
     board (Switzerland now rebels at 32, not 28), so the contract's "17x in
     40 turns" had to be re-taken; it reproduces exactly, because every one
-    of the seventeen falls at turns 6-27, before slice 9's divergence."""
+    of the seventeen falls at turns 6-27, before slice 9's divergence.
+
+    Re-measured again by FA slice 2 (September 4, 2026, "No Word Came"):
+    a cornered French corps is no longer ground to dust across a phase, so
+    Ney stands one turn longer in the south and the ungated board collapses
+    EIGHTEEN times — the same six `Leon -> Napoleon` and twelve, not eleven,
+    `Gascony -> Ney`. The gated board still collapses never, which is the
+    contract; the counts here are the defect's measurement on today's board
+    and move with it, as their docstrings say they must."""
 
     @pytest.fixture(scope="class")
     def ungated(self):
@@ -946,7 +954,7 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 17}, seams
+        assert seams == {"_fuzzy_match_enemy": 18}, seams  # 17 before FA slice 2
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -959,7 +967,7 @@ class TestTheAmbientBoard:
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
         assert dict(pairs) == {("Leon", "Napoleon"): 6,
-                               ("Gascony", "Ney"): 11}, pairs
+                               ("Gascony", "Ney"): 12}, pairs  # 11 before FA slice 2
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -973,11 +981,19 @@ class TestTheAmbientBoard:
         byte-for-byte.
 
         Killed by: a change to the gates that is not actually behind the
-        levers - the exact shape of slice 9's shipped P2."""
+        levers - the exact shape of slice 9's shipped P2.
+
+        Re-recorded by FA slice 2 (September 4, 2026): that slice's own
+        levers changed the board from index [29] on (its attribution is in
+        `test_ai_intent_threat_migration.py`), so "the series before THIS
+        slice" is now the pre-WO-10 series AS IT RUNS ON THE SLICE-2 BOARD
+        — indices [0]-[28] are byte-identical to the original record, which
+        is what this pin exists to prove (every WO-10 collapse falls at
+        turns 6-27)."""
         assert ungated["series"] == [
             70, 68, 66, 64, 72, 73, 74, 80, 78, 76, 74, 72, 70, 71, 72, 70,
-            68, 66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 69, 66, 63, 50,
-            47, 44, 41, 38, 35, 32, 29, 26, 23]
+            68, 66, 69, 67, 65, 83, 81, 79, 77, 75, 73, 71, 69, 67, 54, 51,
+            48, 45, 42, 39, 36, 33, 30, 27, 24]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1568,9 +1584,15 @@ class TestTheAiIsNotFrozenInstead:
         """Recorded as a number so a future change that quietly re-freezes
         the AI shows up here: 31 -> 11 on the shipped board.
 
+        Re-measured by FA slice 2 (September 4, 2026): 34 -> 16 on that
+        slice's board. The P0 engagement brakes it built make an emptied
+        engagement list fall THROUGH to the other rungs, and a few of those
+        orders are refused on the moved board; the gate still more than
+        halves the writes, which is the contract.
+
         Killed by: deleting the enemy-seam gate."""
-        assert cooldowns["ungated"] == 31, cooldowns
-        assert cooldowns["gated"] == 11, cooldowns
+        assert cooldowns["ungated"] == 34, cooldowns  # 31 before FA slice 2
+        assert cooldowns["gated"] == 16, cooldowns    # 11 before FA slice 2
 
 
 _COOLDOWN_PROBE = r'''
