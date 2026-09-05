@@ -770,6 +770,13 @@ _COMBAT_PASSTHROUGH_FIELDS = (
     "bombardment_advisory",
     "pending_capture_choice",
     "capture_data",
+    # Slice-9 review R1-3: a failed reinforcer's redemption question staged
+    # on the inner attack result (FA-N1) was dropped by this allowlist on
+    # the PURSUE first step and every interrupt-resolved battle — latched
+    # and invisible until the next turn's poll. The key rides; main.py
+    # stamps the state at the boundary (never `state` itself, which a
+    # capture prompt would misroute).
+    "redemption_event",
     # ────────────────────────────────────────────────────────────────────
     # CA8-25 (creative audit, Aug 4 2026): the diorama was BUILT AND THEN
     # DISCARDED on the interrupt-resolved routes.

@@ -403,7 +403,7 @@ class MetaExecutor:
         # WO-41: ONE hoist rule shared with the auto-advance path
         # (`executor.py`), which used to hoist battle_report only.
         from backend.commands.disobedience import hoist_tactical_redemption
-        tactical_redemption = hoist_tactical_redemption(tactical_events)
+        tactical_redemption = hoist_tactical_redemption(tactical_events, world)
 
         # Build result with all data for frontend
         result = {
@@ -1873,6 +1873,14 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     describe_reluctant_obedience_cost,
                 )
                 outcome_result = apply_defiance_outcome(marshal, "failed_roll", world)
+                # R3-1(a) (slice-9 review): this -3 is written AFTER
+                # handle_response's own checker ran — the one tactical trust
+                # write with no checker on its path (the ~95% insist path).
+                # Staged on the objection response /respond_to_objection
+                # forwards; a question the earlier checker already minted is
+                # never overwritten.
+                from backend.commands.disobedience import stage_redemption
+                stage_redemption(world, marshal, result=response_result)
 
                 response_result["trust_change"] = response_result.get("trust_change", 0) + outcome_result["trust_change"]
                 # PT-C1: say the number. The client renders `trust_change`

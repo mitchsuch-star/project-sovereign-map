@@ -684,6 +684,13 @@ def standing_redemption(world) -> Optional[Dict]:
             and bool(getattr(marshal, "redemption_pending", False)))
     if not live:
         world.pending_redemption = None
+        # R2-3: the question went stale because its man fell or was taken —
+        # release his latch so he asks again when he stands again at <= 20.
+        # A man whose trust RECOVERED had the latch cleared by modify_trust
+        # already, and the checker's trust guard keeps him refused.
+        if (REDEMPTION_ASKS_THE_LIVING and marshal is not None
+                and getattr(marshal, "redemption_pending", False)):
+            marshal.redemption_pending = False
         return None
     return event
 
@@ -706,6 +713,23 @@ def standing_redemption(world) -> Optional[Dict]:
 # the prior behaviour).
 REDEMPTION_AT_EVERY_TRUST_WRITE = True
 REDEMPTION_NET_ACTIVE = True
+# Slice-9 review round (September 5, 2026) — "the question is asked of the
+# LIVING". R1-1/R2-1: the checker had every guard but liveness, so the
+# per-turn net put the question to a PRISONER (strength 0, captured_by set)
+# and every answer misbehaved — grant_autonomy MARCHED a captive out of
+# Vienna, administrative_role bought +1 AP from a man in irons, dismiss could
+# not remove him (PC15-1) and paid +10 authority each time. R2-2: a
+# stale-at-birth question defeated the one-live rule and orphaned the live
+# man behind it. R2-3 (WO-41, pre-existing, widened): a latch whose question
+# went stale was never released, so the man never asked again on release.
+REDEMPTION_ASKS_THE_LIVING = True
+# R3-2: a question staged with a carrier that never reaches the wire (a
+# battle the AI began, a strategic first step) stood in the world field and
+# reached the player only through the client's once-per-turn poll — which
+# drops under an open modal, so on exactly the turns that ended with a
+# conquest the question slipped a whole turn. The end-turn hoist re-raises a
+# STANDING question when the tick minted no row.
+REDEMPTION_RERAISED_AT_END_TURN = True
 
 
 def stage_redemption(world, marshal, *, result=None, events=None) -> Optional[Dict]:
@@ -740,13 +764,15 @@ def stage_redemption(world, marshal, *, result=None, events=None) -> Optional[Di
         return None
     if isinstance(result, dict) and not result.get("redemption_event"):
         result["redemption_event"] = event
-        result["state"] = "awaiting_redemption_choice"
+        # R1-6 (slice-9 review): a state another question already set on
+        # this dict is kept — the client routes the redemption by its KEY.
+        result.setdefault("state", "awaiting_redemption_choice")
     if isinstance(events, list):
         events.append({"type": "redemption_event", "redemption_event": event})
     return event
 
 
-def hoist_tactical_redemption(tactical_events) -> Optional[Dict]:
+def hoist_tactical_redemption(tactical_events, world=None) -> Optional[Dict]:
     """The redemption a turn tick produced, for the response's top level.
 
     ONE rule for BOTH turn-advance paths — ``meta_executor._execute_end_turn``
@@ -759,6 +785,12 @@ def hoist_tactical_redemption(tactical_events) -> Optional[Dict]:
     for te in tactical_events or []:
         if isinstance(te, dict) and te.get("redemption_event"):
             return te["redemption_event"]
+    # R3-2 (slice-9 review): the tick minted no row, but a question may
+    # STAND from a seam whose carrier never reached the wire. The end-turn
+    # response re-raises it — the client's stash-and-raise shows it once,
+    # and `standing_redemption` clears a stale one instead of raising it.
+    if world is not None and REDEMPTION_RERAISED_AT_END_TURN:
+        return standing_redemption(world)
     return None
 
 
@@ -1654,6 +1686,15 @@ class DisobedienceSystem:
         if marshal.trust.value > 20:
             return None
         if getattr(marshal, 'redemption_pending', False):
+            return None
+        # R1-1/R2-1 (slice-9 review): only a man who STANDS is asked — a
+        # prisoner or a destroyed corps is refused here, one guard every
+        # seam inherits (the tick, the net, the petition loop, the attack,
+        # the cavalry and strategic seams). The predicate
+        # `standing_redemption` already uses for a stale question.
+        if REDEMPTION_ASKS_THE_LIVING and (
+                getattr(marshal, 'strength', 0) <= 0
+                or getattr(marshal, 'captured_by', '')):
             return None
         if getattr(marshal, 'autonomous', False):
             return None

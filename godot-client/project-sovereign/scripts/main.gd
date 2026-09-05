@@ -4486,11 +4486,17 @@ func _on_enemy_phase_dismissed():
 			return  # Don't re-enable input until reports dismissed
 
 		# Check for deferred redemption (cavalry trust penalty from end-turn)
+		# FA slice-9 review (R1-5): STASH it and let the shared tail raise it.
+		# `_show_pending_dispatch()` may itself raise a stashed CAPTURE modal,
+		# and drawing the redemption dialog straight over it stacked two
+		# modals; the capture handler ends in `_return_control_to_player()`,
+		# which raises the stash once the capture is answered.
 		if response.has("redemption_event"):
 			pending_enemy_phase_response = null
+			pending_redemption_data = response.redemption_event
 			_show_pending_dispatch()
-			_show_redemption_dialog(response.redemption_event)
-			return  # Don't re-enable input until redemption resolved
+			_return_control_to_player()
+			return
 
 		# N4i: Update war status HUD after enemy phase
 		_process_active_wars(response)
@@ -5060,12 +5066,15 @@ func _on_strategic_report_dismissed():
 				return
 
 		# Check for deferred redemption (cavalry trust penalty from end-turn)
+		# FA slice-9 review (R1-5): stash, dispatch, shared tail — see
+		# `_on_enemy_phase_dismissed`.
 		if response.has("redemption_event"):
 			pending_strategic_response = null
 			pending_enemy_phase_response = null
+			pending_redemption_data = response.redemption_event
 			_show_pending_dispatch()
-			_show_redemption_dialog(response.redemption_event)
-			return  # Don't re-enable input until redemption resolved
+			_return_control_to_player()
+			return
 
 	pending_strategic_response = null
 	pending_enemy_phase_response = null
@@ -5183,12 +5192,13 @@ func _process_next_interrupt():
 	else:
 		# Check for deferred redemption (cavalry trust penalty from end-turn)
 		if pending_strategic_response and pending_strategic_response.has("redemption_event"):
-			var event = pending_strategic_response.redemption_event
+			# FA slice-9 review (R1-5): stash, dispatch, shared tail.
+			pending_redemption_data = pending_strategic_response.redemption_event
 			pending_strategic_response = null
 			pending_enemy_phase_response = null
 			_show_pending_dispatch()
-			_show_redemption_dialog(event)
-			return  # Don't re-enable input until redemption resolved
+			_return_control_to_player()
+			return
 		# All interrupts processed
 		pending_strategic_response = null
 		pending_enemy_phase_response = null
@@ -5204,14 +5214,12 @@ func _process_next_interrupt():
 		# briefing. The redemption arm above already knew to call it; the
 		# ordinary exit did not.
 		_show_pending_dispatch()
-		# BD: a muster-confirmed "Attack Anyway" resolves a battle inside
-		# this flow — raise its stashed tableau now that control returns.
-		if _show_pending_diorama():
-			return  # _on_battle_diorama_dismissed re-enables input
-		if _show_pending_petition():
-			return  # FA slice 6 (FA-5): the petition dialog's own handlers re-enable input
-		set_input_enabled(true)
-		command_input.grab_focus()
+		# FA slice-9 review (R1-10): the shared tail, like the other four —
+		# it raises the diorama and the petition this tail used to raise by
+		# hand, and ALSO the stashed redemption and the once-per-turn poll
+		# this tail never called. The queue is empty here, so the tail's own
+		# interrupt arm cannot recurse.
+		_return_control_to_player()
 
 
 func _show_clarification_popup(response):

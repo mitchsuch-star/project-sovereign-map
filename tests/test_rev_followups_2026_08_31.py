@@ -611,6 +611,13 @@ class TestTheTwoOrderingFixesAreStillInMainGd:
         body = body[:body.index("func ", 40)]
         tail = _code_only_gd(body[body.index("# All interrupts processed"):])
         assert "_show_pending_dispatch()" in tail
-        assert "_show_pending_diorama()" in tail, (
-            "and it must come before the diorama raise, which returns")
-        assert tail.index("_show_pending_dispatch()") <             tail.index("_show_pending_diorama()")
+        # FA slice-9 review round (R1-10, Sept 5, 2026 — flipped consciously):
+        # the ordinary exit now delegates to the SHARED control-return tail,
+        # which raises the diorama (and the petition, the redemption, the
+        # poll); the dispatch must still come first.
+        assert "_return_control_to_player()" in tail, (
+            "the interrupt tail must end in the shared control-return tail")
+        assert tail.index("_show_pending_dispatch()") < tail.index("_return_control_to_player()")
+        shared = src[src.index("func _return_control_to_player("):]
+        shared = shared[:shared.index("func ", 40)]
+        assert "_show_pending_diorama()" in _code_only_gd(shared)

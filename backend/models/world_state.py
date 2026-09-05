@@ -41,6 +41,14 @@ from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
+# Slice-9 review round, R1-2 (September 5, 2026): the redemption answer
+# `administrative_role` zeroes the man's strength and location by design
+# (troops frozen, +1 AP) — and the next turn's attrition sweep read strength
+# 0 as a dead corps and DESTROYED him ("eliminated by supply attrition at
+# None"), the bought action persisting. Pre-existing; the question that
+# leads to it was unreachable in ordinary play before slice 9. Flip lever.
+ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
+
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     "mode": "direct_only",
     "qualifying_treaty_states": {
@@ -6558,7 +6566,9 @@ class WorldState:
         # was never in CAMPAIGN_LOG_TYPES, so the sweep's kills were
         # invisible in the campaign log; the type is retired).
         eliminated = [m_name for m_name, m in self.marshals.items()
-                      if m.strength <= 0 and not getattr(m, "captured_by", "")]
+                      if m.strength <= 0 and not getattr(m, "captured_by", "")
+                      and not (ADMINISTRATIVE_EXEMPT_FROM_ATTRITION
+                               and getattr(m, "administrative", False))]
         for m_name in eliminated:
             dead = self.marshals[m_name]
             dead_location = dead.location

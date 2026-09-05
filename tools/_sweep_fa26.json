@@ -9,8 +9,8 @@
  {
   "id": "helper/b the result carrier",
   "file": "backend/commands/disobedience.py",
-  "old": "    if isinstance(result, dict) and not result.get(\"redemption_event\"):\n        result[\"redemption_event\"] = event\n        result[\"state\"] = \"awaiting_redemption_choice\"",
-  "new": "    if False:\n        result[\"redemption_event\"] = event\n        result[\"state\"] = \"awaiting_redemption_choice\"",
+  "old": "        result[\"redemption_event\"] = event\n",
+  "new": "        pass\n",
   "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_result_and_events_both_carry_the_question tests/test_fa26_the_question_is_asked_2026_09_05.py::TestThePetitionEndpointAsks::test_a_rebuke_that_crosses_twenty_asks tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheFailedReinforcerAsks::test_a_no_show_that_crosses_twenty_is_asked_on_the_battle"
  },
  {
@@ -65,7 +65,7 @@
  {
   "id": "attack/a the failed reinforcer stages",
   "file": "backend/commands/combat_executor.py",
-  "old": "                        stage_redemption(world, failing, result=result)",
+  "old": "                        stage_redemption(\n                            world, failing,\n                            result=(result if marshal.nation == world.player_nation\n                                    else None))",
   "new": "                        pass",
   "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheFailedReinforcerAsks::test_a_no_show_that_crosses_twenty_is_asked_on_the_battle"
  },

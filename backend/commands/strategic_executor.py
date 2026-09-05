@@ -2508,12 +2508,18 @@ class StrategicExecutor:
         else:
             msg = f"{marshal.name} acknowledges. Standing down."
 
-        return {
+        _reply = {
             "success": True,
             "message": msg,
             "trust_change": trust_change,
             "order_cleared": True,
         }
+        # R3-1(b) (slice-9 review): the mid-march -3 had no checker on its
+        # path; the question rides the cancel's own reply.
+        if trust_change != 0:
+            from backend.commands.disobedience import stage_redemption
+            stage_redemption(world, marshal, result=_reply)
+        return _reply
 
     def _handle_strategic_objection_from_endpoint(self, choice: str, game_state: Dict) -> Dict:
         """

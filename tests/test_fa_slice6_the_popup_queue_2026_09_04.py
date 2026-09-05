@@ -462,6 +462,13 @@ class TestThePetitionRidesTheEndTurn:
         assert "_stash_petition(response)" in body("_on_command_result")
         for tail in ("_return_control_to_player", "_on_proclamation_dismissed",
                      "_on_battle_diorama_dismissed", "_process_next_interrupt"):
+            if tail == "_process_next_interrupt":
+                # FA slice-9 review round (R1-10, Sept 5, 2026 — flipped
+                # consciously): the interrupt tail delegates to the shared
+                # control-return tail, whose own petition raise is pinned
+                # by the first iteration of this loop.
+                assert "_return_control_to_player()" in body(tail), tail
+                continue
             assert "_show_pending_petition()" in body(tail), tail
         # the route table is untouched — the petition stays a post-HUD route
         assert '{"id": "marshal_petition"' in src

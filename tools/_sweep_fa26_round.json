@@ -1,0 +1,93 @@
+[
+ {
+  "id": "living/a the liveness guard",
+  "file": "backend/commands/disobedience.py",
+  "old": "        if REDEMPTION_ASKS_THE_LIVING and (\n                getattr(marshal, 'strength', 0) <= 0\n                or getattr(marshal, 'captured_by', '')):\n            return None",
+  "new": "        if False:\n            return None",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_prisoner_is_never_asked tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_prisoner_is_refused_at_every_seam tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_captive_beside_a_live_man_yields_one_question_for_the_live_man"
+ },
+ {
+  "id": "living/b a stale clear releases the latch",
+  "file": "backend/commands/disobedience.py",
+  "old": "        if (REDEMPTION_ASKS_THE_LIVING and marshal is not None\n                and getattr(marshal, \"redemption_pending\", False)):\n            marshal.redemption_pending = False",
+  "new": "        if False:\n            marshal.redemption_pending = False",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_stale_question_releases_the_latch_and_he_asks_on_release"
+ },
+ {
+  "id": "living/c the answer reads through the liveness predicate",
+  "file": "backend/main.py",
+  "old": "        redemption_event = standing_redemption(world)\n        if redemption_event is None:",
+  "new": "        redemption_event = world.pending_redemption\n        if redemption_event is None:",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_answering_a_stale_question_is_refused"
+ },
+ {
+  "id": "reraise/a the end-turn hoist falls back to the standing question",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if world is not None and REDEMPTION_RERAISED_AT_END_TURN:\n        return standing_redemption(world)",
+  "new": "    if False:\n        return standing_redemption(world)",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_the_end_turn_re_raises_a_question_whose_carrier_never_reached_the_wire tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_question_is_not_minted_twice_while_it_stands"
+ },
+ {
+  "id": "admin/a the reaper spares an administrative man",
+  "file": "backend/models/world_state.py",
+  "old": "                      and not (ADMINISTRATIVE_EXEMPT_FROM_ATTRITION\n                               and getattr(m, \"administrative\", False))]",
+  "new": "                      and not (False\n                               and getattr(m, \"administrative\", False))]",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_an_administrative_man_survives_the_attrition_sweep"
+ },
+ {
+  "id": "carrier/a the interrupt-resolved battle carries the question",
+  "file": "backend/commands/strategic.py",
+  "old": "    \"redemption_event\",\n",
+  "new": "",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_pursue_first_step_no_show_carries_the_question"
+ },
+ {
+  "id": "carrier/b the battle result carries only the player's own attack",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                            result=(result if marshal.nation == world.player_nation\n                                    else None))",
+  "new": "                            result=result)",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_an_ai_attack_stages_no_carrier_on_its_own_result"
+ },
+ {
+  "id": "seam/a the tactical failed roll stages",
+  "file": "backend/commands/meta_executor.py",
+  "old": "                stage_redemption(world, marshal, result=response_result)",
+  "new": "                pass",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_the_failed_roll_seam_asks_when_the_insisted_order_does_not"
+ },
+ {
+  "id": "seam/b the mid-march cancel stages",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "            stage_redemption(world, marshal, result=_reply)",
+  "new": "            pass",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_mid_march_cancel_asks_on_its_reply"
+ },
+ {
+  "id": "seam/c the attack reply stages the attacker",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        stage_redemption(world, marshal, result=result)\n\n        return self._attach_staged_war_purpose(\n            result, world, staged_war_purpose)",
+  "new": "        return self._attach_staged_war_purpose(\n            result, world, staged_war_purpose)",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_an_in_pipeline_write_asks_on_the_battle_reply"
+ },
+ {
+  "id": "defence/a the helper keeps a prior state",
+  "file": "backend/commands/disobedience.py",
+  "old": "        result.setdefault(\"state\", \"awaiting_redemption_choice\")",
+  "new": "        result[\"state\"] = \"awaiting_redemption_choice\"",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_the_helper_keeps_a_state_another_question_set"
+ },
+ {
+  "id": "defence/b the early-return response carries the state",
+  "file": "backend/main.py",
+  "old": "    if response.get(\"redemption_event\") and not response.get(\"state\"):\n        response[\"state\"] = \"awaiting_redemption_choice\"",
+  "new": "    if False:\n        response[\"state\"] = \"awaiting_redemption_choice\"",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_an_early_return_response_carries_the_state"
+ },
+ {
+  "id": "defence/c the figure is re-quoted at delivery",
+  "file": "backend/main.py",
+  "old": "        if _live is not None and hasattr(_live, \"trust\"):\n            redemption_event[\"trust\"] = int(_live.trust.value)",
+  "new": "        if False:\n            redemption_event[\"trust\"] = int(_live.trust.value)",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_the_figure_is_re_quoted_at_delivery"
+ }
+]

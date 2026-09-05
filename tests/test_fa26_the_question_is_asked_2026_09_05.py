@@ -1,4 +1,4 @@
-"""FA-26 / FA-N1 — "The Question Is Asked" (FA build slice 8, September 5, 2026).
+"""FA-26 / FA-N1 — "The Question Is Asked" (FA build slice 9, September 5, 2026).
 
 The audit's highest-leverage row: the ES-7 erosion tick lowered a neglected
 marshal's trust every turn and never consulted `check_redemption_threshold`,
@@ -34,6 +34,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.commands.disobedience as DO
+import backend.commands.meta_executor as ME
+import backend.models.world_state as WS
 import backend.game_logic.jealousy as J
 import backend.main as M
 from backend.commands.parser import CommandParser
@@ -44,7 +46,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 
-LEVERS = [(DO, "REDEMPTION_AT_EVERY_TRUST_WRITE"), (DO, "REDEMPTION_NET_ACTIVE")]
+LEVERS = [(DO, "REDEMPTION_AT_EVERY_TRUST_WRITE"), (DO, "REDEMPTION_NET_ACTIVE"),
+          (DO, "REDEMPTION_ASKS_THE_LIVING"), (DO, "REDEMPTION_RERAISED_AT_END_TURN"),
+          (WS, "ADMINISTRATIVE_EXEMPT_FROM_ATTRITION")]
 
 
 @pytest.fixture(autouse=True)
@@ -149,23 +153,39 @@ class TestTheErosionTickAsks:
         assert redemption_rows(r1) == [] and redemption_rows(r2) == []
 
     def test_the_tick_stages_at_its_own_write_with_the_net_off(self, board, client):
-        """Isolates seam 1: the net dark, the tick alone asks."""
+        """Isolates seam 1: the net dark AND the end-turn re-raise dark (the
+        review round's fallback would otherwise deliver the world's standing
+        question whatever the tick's rows did), the tick alone asks."""
         levers(True, False)
+        DO.REDEMPTION_RERAISED_AT_END_TURN = False
         lannes = stage_erosion(board)
         r = end_turn(client)
         assert lannes.trust.value == 20
         assert asked(r) and r["redemption_event"]["marshal"] == "Lannes"
 
-    def test_the_question_is_not_asked_twice_while_it_stands(self, board, client):
+    def test_the_question_is_not_minted_twice_while_it_stands(self, board, client):
+        """Flipped consciously by the review round (R3-2): the standing
+        question is not MINTED again (no new tactical row, one latch), but
+        the end-turn response RE-RAISES it, because the client's once-per-turn
+        poll drops a no-carrier question under an open modal."""
         lannes = stage_erosion(board)
         r1 = end_turn(client)
         assert asked(r1)
         r2 = end_turn(client)
         # erosion continues (the question is owed, not a pardon) …
         assert lannes.trust.value == 17
-        # … but the standing question is not minted again
+        # … the standing question is not minted again …
         assert redemption_rows(r2) == []
-        assert not asked(r2)
+        # … but it is re-raised on the response, the same question
+        assert asked(r2) and r2["redemption_event"]["marshal"] == "Lannes"
+        assert board.pending_redemption["marshal"] == "Lannes"
+
+    def test_re_raise_off_the_standing_question_rides_only_the_poll(self, board, client):
+        DO.REDEMPTION_RERAISED_AT_END_TURN = False
+        stage_erosion(board)
+        assert asked(end_turn(client))
+        r2 = end_turn(client)
+        assert not asked(r2) and redemption_rows(r2) == []
         assert board.pending_redemption["marshal"] == "Lannes"
 
     def test_the_tick_returns_its_events_as_a_list(self, board):
@@ -452,6 +472,299 @@ class TestTheTurnAfterAutonomySerializes:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# the review round — "the question is asked of the LIVING"
+# ═══════════════════════════════════════════════════════════════════════════
+
+def capture(world, name, captor="Austria", where="Vienna"):
+    m = world.marshals[name]
+    m.captured_by = captor
+    m.strength = 0
+    m.location = where
+    return m
+
+
+def release(world, name, where="Paris", strength=5000):
+    m = world.marshals[name]
+    m.captured_by = ""
+    m.strength = strength
+    m.location = where
+    return m
+
+
+def _french_no_show(name):
+    return lambda primary, defender, region, nation, world: (
+        [{"marshal": name, "arrived": False, "reason": "low_score", "score": 0,
+          "threshold": 50, "strength": 0, "message": f"{name} does not march."}]
+        if nation == world.player_nation else [])
+
+
+class TestTheReviewRound:
+
+    # ── R1-1 / R2-1: a prisoner is never asked ──────────────────────────
+    def test_a_prisoner_is_never_asked(self, board, client):
+        lannes = capture(board, "Lannes")
+        lannes.trust.set(15)
+        r = end_turn(client)
+        assert not asked(r) and redemption_rows(r) == []
+        assert lannes.redemption_pending is False
+        assert board.pending_redemption is None
+
+    def test_lever_off_reproduces_the_prisoner_ask(self, board, client):
+        DO.REDEMPTION_ASKS_THE_LIVING = False
+        lannes = capture(board, "Lannes")
+        lannes.trust.set(15)
+        r = end_turn(client)
+        assert asked(r) and r["redemption_event"]["marshal"] == "Lannes"   # the measured defect
+        assert lannes.redemption_pending is True
+
+    def test_a_prisoner_is_refused_at_every_seam(self, board):
+        """The guard lives in the checker, so the helper — and every seam
+        that calls it — inherits it; a destroyed corps (strength 0, free) too."""
+        lannes = capture(board, "Lannes")
+        lannes.trust.set(10)
+        result, events = {}, []
+        assert DO.stage_redemption(board, lannes, result=result, events=events) is None
+        assert result == {} and events == [] and lannes.redemption_pending is False
+        ney = board.marshals["Ney"]
+        ney.trust.set(10)
+        ney.strength = 0
+        assert DO.stage_redemption(board, ney) is None and ney.redemption_pending is False
+
+    # ── R2-2: a captive beside a live man → ONE question, for the live man
+    def test_a_captive_beside_a_live_man_yields_one_question_for_the_live_man(self, board, client):
+        lannes = capture(board, "Lannes")
+        lannes.trust.set(10)
+        murat = board.marshals["Murat"]
+        murat.trust.set(15)
+        r = end_turn(client)
+        assert [te["redemption_event"]["marshal"] for te in redemption_rows(r)] == ["Murat"]
+        assert asked(r) and r["redemption_event"]["marshal"] == "Murat"
+        assert board.pending_redemption["marshal"] == "Murat"
+        assert lannes.redemption_pending is False and murat.redemption_pending is True
+
+    # ── R2-3 / R1-1e: a stale question releases the latch ───────────────
+    def test_a_stale_question_releases_the_latch_and_he_asks_on_release(self, board, client):
+        murat = board.marshals["Murat"]
+        murat.trust.set(15)
+        assert asked(end_turn(client))
+        capture(board, "Murat")                 # taken while his question stands
+        r = end_turn(client)
+        assert not (asked(r) and r["redemption_event"]["marshal"] == "Murat")
+        assert board.pending_redemption is None  # stale, cleared on read …
+        assert murat.redemption_pending is False  # … and the latch released
+        release(board, "Murat")
+        r2 = end_turn(client)
+        assert asked(r2) and r2["redemption_event"]["marshal"] == "Murat"
+
+    def test_release_off_a_stale_latch_stands_forever(self, board, client):
+        DO.REDEMPTION_ASKS_THE_LIVING = False
+        murat = board.marshals["Murat"]
+        murat.trust.set(15)
+        assert asked(end_turn(client))
+        capture(board, "Murat")
+        end_turn(client)
+        release(board, "Murat")
+        r = end_turn(client)
+        assert murat.redemption_pending is True and not asked(r)   # the measured residue
+
+    def test_answering_a_stale_question_is_refused(self, board, client):
+        murat = board.marshals["Murat"]
+        murat.trust.set(15)
+        assert asked(end_turn(client))
+        capture(board, "Murat")
+        with _quiet():
+            ans = client.post("/respond_to_redemption", json={"choice": "grant_autonomy"}).json()
+        assert ans.get("success") is False
+        assert "No redemption event pending" in (ans.get("message") or "")
+        assert murat.autonomous is False and board.pending_redemption is None
+
+    # ── R1-2: the administrative man survives the turn ──────────────────
+    def test_an_administrative_man_survives_the_attrition_sweep(self, board, client):
+        lannes = board.marshals["Lannes"]
+        lannes.trust.set(15)
+        assert asked(end_turn(client))
+        with _quiet():
+            ans = client.post("/respond_to_redemption", json={"choice": "administrative_role"}).json()
+        assert ans.get("administrative") is True
+        frozen = int(lannes.administrative_strength)
+        assert frozen > 0 and lannes.strength == 0
+        r = end_turn(client)
+        assert r.get("success") is True
+        assert "Lannes" in board.marshals, "the sweep destroyed an administrative man"
+        assert lannes.administrative is True and int(lannes.administrative_strength) == frozen
+        assert "Lannes" not in (board.fallen_marshals or {})
+
+    def test_exemption_off_reproduces_the_destruction(self, board, client):
+        WS.ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = False
+        lannes = board.marshals["Lannes"]
+        lannes.trust.set(15)
+        assert asked(end_turn(client))
+        with _quiet():
+            client.post("/respond_to_redemption", json={"choice": "administrative_role"})
+        end_turn(client)
+        assert "Lannes" not in board.marshals                    # the measured P1
+
+    # ── R1-3: the PURSUE first step carries the question ────────────────
+    def test_a_pursue_first_step_no_show_carries_the_question(self, board, client, monkeypatch):
+        murat = board.marshals["Murat"]
+        murat.trust.set(22)
+        monkeypatch.setattr(M.executor._combat, "_calculate_reinforcements", _french_no_show("Murat"))
+        r = post(client, "Ney, pursue Mack")
+        assert murat.trust.value == 19, r.get("message")
+        assert asked(r) and r["redemption_event"]["marshal"] == "Murat"
+
+    # ── R1-4 / R2-5: an AI attack stages no carrier ─────────────────────
+    def test_an_ai_attack_stages_no_carrier_on_its_own_result(self, board, monkeypatch):
+        lannes = board.marshals["Lannes"]
+        lannes.trust.set(22)
+        mack = board.marshals["Mack"]
+        monkeypatch.setattr(M.executor._combat, "_calculate_reinforcements", _french_no_show("Lannes"))
+        with _quiet():
+            result = M.executor._combat._execute_attack(mack, "Ney", board, M.game_state)
+        assert lannes.trust.value == 19, result.get("message")
+        assert "redemption_event" not in result and result.get("state") is None
+        assert lannes.redemption_pending is True
+        assert board.pending_redemption["marshal"] == "Lannes"
+
+    # ── R3-2: the end turn re-raises a standing no-carrier question ──────
+    def test_the_end_turn_re_raises_a_question_whose_carrier_never_reached_the_wire(self, board, client):
+        lannes = board.marshals["Lannes"]
+        lannes.trust.set(10)
+        dead_carrier = {}
+        assert DO.stage_redemption(board, lannes, result=dead_carrier)
+        r = end_turn(client)
+        assert redemption_rows(r) == []                      # nothing minted …
+        assert asked(r) and r["redemption_event"]["marshal"] == "Lannes"   # … yet delivered
+
+    def test_re_raise_off_the_dead_carrier_question_is_not_delivered(self, board, client):
+        DO.REDEMPTION_RERAISED_AT_END_TURN = False
+        lannes = board.marshals["Lannes"]
+        lannes.trust.set(10)
+        assert DO.stage_redemption(board, lannes, result={})
+        r = end_turn(client)
+        assert not asked(r) and board.pending_redemption["marshal"] == "Lannes"
+
+    # ── R3-1(a): the tactical failed roll asks on the objection response ─
+    def test_the_tactical_failed_roll_asks_on_the_response(self, client, monkeypatch):
+        objected = None
+        for _ in range(8):                      # the objection is mood-scaled
+            with _quiet():
+                world = WorldState.from_scenario(SCENARIO)
+            parser = CommandParser(use_real_llm=False)
+            monkeypatch.setattr(M, "world", world)
+            monkeypatch.setattr(M, "parser", parser)
+            monkeypatch.setitem(M.game_state, "world", world)
+            r = post(client, "Davout, attack Mack")
+            if r.get("pending_objection") or r.get("objection"):
+                objected = world
+                break
+        assert objected is not None, "Davout never objected in eight fresh boards"
+        davout = objected.marshals["Davout"]
+        davout.trust.set(26)
+        monkeypatch.setattr(ME.random, "random", lambda: 0.999)   # the roll FAILS
+        r2 = post(client, "insist")
+        assert davout.trust.value <= 20, (davout.trust.value, r2.get("message"))
+        assert asked(r2) and r2["redemption_event"]["marshal"] == "Davout"
+
+    def test_the_failed_roll_seam_asks_when_the_insisted_order_does_not(self, client, monkeypatch):
+        """Isolation pin: the insisted ATTACK now stages at its own reply too
+        (R3-1(c)), so the failed-roll seam is proven with the post-objection
+        execution stubbed — only this seam can ask."""
+        objected = None
+        for _ in range(8):
+            with _quiet():
+                world = WorldState.from_scenario(SCENARIO)
+            parser = CommandParser(use_real_llm=False)
+            monkeypatch.setattr(M, "world", world)
+            monkeypatch.setattr(M, "parser", parser)
+            monkeypatch.setitem(M.game_state, "world", world)
+            r = post(client, "Davout, attack Mack")
+            if r.get("pending_objection") or r.get("objection"):
+                objected = world
+                break
+        assert objected is not None, "Davout never objected in eight fresh boards"
+        davout = objected.marshals["Davout"]
+        davout.trust.set(26)
+        monkeypatch.setattr(ME.random, "random", lambda: 0.999)
+        monkeypatch.setattr(M.executor._meta, "_execute_post_objection",
+                            lambda *a, **k: {"success": True, "message": "The order is carried out."})
+        r2 = post(client, "insist")
+        assert davout.trust.value <= 20, (davout.trust.value, r2.get("message"))
+        assert asked(r2) and r2["redemption_event"]["marshal"] == "Davout"
+
+    # ── R3-1(b): the mid-march cancel asks ──────────────────────────────
+    def test_a_mid_march_cancel_asks_on_its_reply(self, board, client):
+        ney = board.marshals["Ney"]
+        r = post(client, "Ney, march to Brittany")
+        assert r.get("success"), r.get("message")
+        end_turn(client)
+        ney.trust.set(22)
+        r2 = post(client, "Ney, cancel orders")
+        assert r2.get("order_cleared") or "halts" in (r2.get("message") or "")
+        assert ney.trust.value == 19
+        assert asked(r2) and r2["redemption_event"]["marshal"] == "Ney"
+
+    # ── R3-1(c): an in-pipeline write asks on the battle ────────────────
+    def test_an_in_pipeline_write_asks_on_the_battle_reply(self, board, client, monkeypatch):
+        ney = board.marshals["Ney"]
+        ney.trust.set(24)
+        tracker = board.vindication_tracker
+        monkeypatch.setattr(tracker, "has_pending", lambda name: name == "Ney")
+
+        def _dock(marshal_name, result, game_state):
+            game_state.marshals[marshal_name].modify_trust(-5)
+            return {"message": "Vindication: the insisted attack cost him."}
+        monkeypatch.setattr(tracker, "resolve_battle", _dock)
+        r = post(client, "Ney, attack Mack")
+        assert ney.trust.value <= 19, r.get("message")
+        assert asked(r) and r["redemption_event"]["marshal"] == "Ney"
+
+    # ── the four small defences ──────────────────────────────────────────
+    def test_the_helper_keeps_a_state_another_question_set(self, board):
+        murat = board.marshals["Murat"]
+        murat.trust.set(10)
+        result = {"state": "awaiting_player_choice"}
+        ev = DO.stage_redemption(board, murat, result=result)
+        assert ev and result["redemption_event"] is ev
+        assert result["state"] == "awaiting_player_choice"
+
+    def test_an_early_return_response_carries_the_state(self, board):
+        murat = board.marshals["Murat"]
+        murat.trust.set(10)
+        ev = DO.stage_redemption(board, murat)
+        with _quiet():
+            response = M._build_result_response(
+                {"success": True, "message": "m", "redemption_event": ev}, board)
+        assert response["redemption_event"] is ev
+        assert response["state"] == "awaiting_redemption_choice"
+
+    def test_the_figure_is_re_quoted_at_delivery(self, board):
+        murat = board.marshals["Murat"]
+        murat.trust.set(15)
+        ev = DO.stage_redemption(board, murat)
+        assert ev["trust"] == 15
+        murat.trust.modify(-3)                  # docked again after the mint
+        response = {}
+        with _quiet():
+            M._include_command_redemption_event(response, {"redemption_event": ev}, board)
+        assert response["redemption_event"]["trust"] == 12
+
+    # ── the client arms (text pins — no engine here; the harness boots it) ─
+    def test_the_client_arms_stash_and_use_the_shared_tail(self):
+        gd = (ROOT / "godot-client" / "project-sovereign" / "scripts" / "main.gd").read_text(encoding="utf-8")
+        # no arm draws the redemption dialog straight over whatever the dispatch raised
+        assert "_show_pending_dispatch()\n\t\t\t_show_redemption_dialog(" not in gd
+        # three writers: PT-B1's `_stash_redemption` and the two end-turn arms
+        assert gd.count("pending_redemption_data = response.redemption_event") == 3
+        assert "pending_redemption_data = pending_strategic_response.redemption_event" in gd
+        i = gd.index("func _process_next_interrupt():")
+        j = gd.index("\nfunc ", i + 1)
+        tail = gd[i:j]
+        assert tail.rstrip().endswith("_return_control_to_player()")
+        assert "set_input_enabled(true)" not in tail
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # the helper itself
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -541,8 +854,10 @@ class TestTheCensus:
     def test_the_failed_reinforcer_stages_beside_its_write(self):
         src = _src("backend/commands/combat_executor.py")
         i = src.index("failing.trust.modify(-3)")
-        window = src[i:i + 500]
-        assert "stage_redemption(world, failing, result=result)" in window
+        window = src[i:i + 1600]
+        assert "stage_redemption(" in window and "world, failing," in window
+        # R2-5: the battle result is a carrier only for the player's own attack
+        assert "result if marshal.nation == world.player_nation" in window
 
     def test_the_petition_endpoint_stages_and_surfaces(self):
         src = _src("backend/main.py")

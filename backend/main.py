@@ -572,6 +572,10 @@ def _build_result_response(result: dict, world, drain_popups: bool = True) -> di
     )
     if not drain_popups:
         _fill_popup_keys_without_draining(response)
+    # R1-8 (slice-9 review): a redemption riding an early-return result
+    # carries its state too, as the main /command path stamps it.
+    if response.get("redemption_event") and not response.get("state"):
+        response["state"] = "awaiting_redemption_choice"
     return response
 
 
@@ -702,6 +706,13 @@ def _include_command_redemption_event(response: dict, result: dict, world) -> No
     """Surface redemption choice state and persist it for the follow-up endpoint."""
     redemption_event = result.get("redemption_event")
     if redemption_event:
+        # R1-9 (slice-9 review): the question is minted before the rest of
+        # the tick runs (an autonomous battle can dock the same man again),
+        # so the figure is re-quoted from the live marshal at delivery.
+        _getter = getattr(world, "get_marshal", None)
+        _live = _getter(redemption_event.get("marshal", "")) if callable(_getter) else None
+        if _live is not None and hasattr(_live, "trust"):
+            redemption_event["trust"] = int(_live.trust.value)
         response["state"] = "awaiting_redemption_choice"
         response["redemption_event"] = redemption_event
         world.pending_redemption = redemption_event
@@ -3524,8 +3535,9 @@ def marshal_petition_response(request: MarshalPetitionResponse):
         # hand-forward kept only battle_report + marshal_petition and dropped
         # those, stranding the ally-entry decision. build_base_response runs
         # popup passthroughs; marshal_petition + battle_report ride `extra`.
-        # FA-N1: jealousy's petition docks (shadow / confrontation rebuke /
-        # rivalry / Fontainebleau / war-weary) lower trust on the marshal the
+        # FA-N1: jealousy's petition docks (the confrontation rebuke, the
+        # rivalry arms, the Fontainebleau refusal, the war-weary march —
+        # the shadow promise RAISES trust) lower trust on the marshal the
         # petition names AND on the men beside him, and this endpoint never
         # asked. Every player marshal is put to the checker (idempotent —
         # the latch, the cooldown and one-live-question rule are its own);
@@ -3915,12 +3927,14 @@ def respond_to_redemption(request: RedemptionResponse):
             return _refusal_response(
                 world, message="The war is over.",
                 game_over=True, victory=world.victory)
-        # Check for pending redemption
-        if not hasattr(world, 'pending_redemption') or world.pending_redemption is None:
+        # Check for pending redemption — through the ONE liveness predicate
+        # (slice-9 review R1-1): a question whose man has since fallen or
+        # been taken is stale, is cleared on read, and is not answerable.
+        from backend.commands.disobedience import standing_redemption
+        redemption_event = standing_redemption(world)
+        if redemption_event is None:
             return _refusal_response(
                 world, message="No redemption event pending.")
-
-        redemption_event = world.pending_redemption
 
         # Validate choice (Phase 3: administrative_role replaces demand_obedience)
         valid_choices = ['grant_autonomy', 'administrative_role', 'dismiss']

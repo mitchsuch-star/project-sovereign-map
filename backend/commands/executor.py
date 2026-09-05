@@ -2724,7 +2724,7 @@ class CommandExecutor:
                 # the marshal and dropped the audience with no save involved.
                 # Same shared rule; main.py stamps `state` at the boundary.
                 from backend.commands.disobedience import hoist_tactical_redemption
-                _auto_redemption = hoist_tactical_redemption(tactical_events)
+                _auto_redemption = hoist_tactical_redemption(tactical_events, world)
                 if _auto_redemption:
                     result["redemption_event"] = _auto_redemption
 

@@ -298,10 +298,13 @@
 > ✅ **BUILT September 5, 2026 (slice 9, with FA-26) — and its own census was
 > wrong by one:** the "typed strategic-objection route" is checked one frame up
 > (`_handle_strategic_objection_from_endpoint` zeroes the penalty it applied and
-> runs the checker at its return; the typed answer routes there too). THREE
-> unchecked families — the tick, the failed reinforcer, jealousy's docks — plus
-> two small writes the per-turn net covers. Record = the SLICE 9 block in
-> §Final Whole-Game Audit.
+> runs the checker at its return; the typed answer routes there too). ~~THREE~~
+> **SIX** unchecked lowering-write families — the tick, the failed reinforcer,
+> jealousy's docks, and (found by the slice-9 review round) the tactical
+> failed-roll −3, the mid-march cancel −3, vindication's −5/−1/−2 — plus two
+> small writes the per-turn net covers. All staged as of the review round.
+> Record = the SLICE 9 and SLICE 9 REVIEW ROUND blocks in §Final Whole-Game
+> Audit.
 >
 > **The five P1s:** a negated answer to any pending dialogue executes the
 > affirmative (**FA-N2** — typed `do not accept` SIGNS the treaty; hand-verified
@@ -440,6 +443,125 @@
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).
 
+> ### ✅ SLICE 9 REVIEW ROUND — "THE QUESTION IS ASKED OF THE LIVING" — FIXED September 5, 2026
+>
+> **Landing record: this block (an addendum to the SLICE 9 block below).
+> Three lenses at `57b08c39`, reports committed as
+> `docs/audits/fa_build_2026_09_04/REVIEW_slice9_R1_attack_the_fix.md`,
+> `REVIEW_slice9_R2_gr5_ai_serialization.md`, `REVIEW_slice9_R3_record_vs_code.md`.**
+> Every finding was measured on the real routes with the mock parser; the
+> round's fixes are behind three new levers (`REDEMPTION_ASKS_THE_LIVING`,
+> `REDEMPTION_RERAISED_AT_END_TURN`, `world_state.ADMINISTRATIVE_EXEMPT_FROM_ATTRITION`),
+> zero new serialized fields, ONE `.gd` file.
+>
+> **R1-2 — P1, PRE-EXISTING, made ordinary by slice 9.** The redemption answer
+> `administrative_role` zeroes the man's strength and location by design
+> (troops frozen, +1 AP) — and the next turn's attrition sweep read strength 0
+> as a dead corps and **DESTROYED him**: *"Lannes has been eliminated by supply
+> attrition at None"*, tombstone `{cause: attrition, location: None}`, the
+> bought action persisting on a five-action turn. Reproduced with BOTH slice-9
+> levers off through the debug trigger, so pre-existing — but the question that
+> leads to it was, in the slice's own words, "structurally unreachable outside
+> the cavalry-limit and strategic seams" before. The sweep now spares an
+> administrative man; the arm's promise ("their troops await future
+> assignment") still has no production restore verb — the debug cheat `admin`
+> is the only road back — **filed FA-S9-D1**.
+>
+> **R1-1 / R2-1 / R2-2 / R2-3 — P2.** `check_redemption_threshold` had every
+> guard but LIVENESS, and the per-turn net put the question to a **prisoner**
+> (strength 0, `captured_by` set — the erosion tick skips captives, the net did
+> not). Every answer misbehaved: `grant_autonomy` → an autonomous captive whose
+> next report read *"Lannes retreats from Vienna to Hungary"* with `captured_by`
+> still Austria; `administrative_role` → *"You now have 5 actions per turn"* for
+> a man in irons; `dismiss` → +10 authority and the marshal NOT removed
+> (`destroy_marshal` refuses a captive, PC15-1) → cooldown → asked again — R2
+> measured authority 50→80 over 14 turns on three dismissals of the same
+> prisoner. A stale-at-birth question also defeated the one-live rule: with a
+> captive and a live man both ≤20 in one tick, BOTH latched, the hoist took the
+> captive's row, and the live man stood orphaned (latched, no question on any
+> surface) until his trust recovered. And a latch whose question went stale
+> (taken after being asked) was never released, so the man never asked again
+> on release while ≤20 (WO-41, pre-existing, widened by the net). Fixed at ONE
+> seam: the checker refuses a man who does not stand (`strength > 0` and no
+> captor — the predicate `standing_redemption` already used), inherited by the
+> tick, the net, the petition loop, the attack, the cavalry and strategic
+> seams; the stale clear releases the latch; `/respond_to_redemption` reads
+> through the liveness predicate, so a stale question is refused, not answered.
+>
+> **R3-2 — P3, delivery.** A question staged with a carrier that never reaches
+> the wire (a battle the AI began; a strategic first step) stood in the world
+> field and reached the player only through the client's once-per-turn poll —
+> whose latch is set at SEND and whose answer is dropped under any open modal.
+> `_on_enemy_phase_dismissed` raises a stashed capture modal immediately before
+> the poll fires, so **on exactly the turns that ended with a conquest the
+> question slipped a whole turn**. The end-turn hoist now falls back to the
+> STANDING question when the tick minted no row; the pin that asserted "not
+> asked twice while it stands" is flipped consciously to "not MINTED twice —
+> re-raised, the same question".
+>
+> **R3-1 — P2, the census was wrong in the other direction.** The slice
+> corrected FA-N1's count downward (the strategic "proceed" is checked one frame
+> up) and missed three lowering writes with no checker on their path: the
+> tactical failed-roll −3 (`meta_executor.handle_objection_response` applies it
+> AFTER `handle_response`'s own checker — the ~95% insist path; measured 26 →
+> 18 with nothing asked on the response), the mid-march `cancel` −3 (measured
+> 22 → 19, nothing asked), and vindication's −5/−1/−2 at pipeline step 11. All
+> three stage now — the failed roll on the objection response, the cancel on
+> its own reply, and the attacker at the attack's own reply, which covers every
+> in-pipeline write for the player's man. **Six lowering-write families and two
+> small writes, not three and two.** The two small writes (confiscation −1,
+> diplomatic ±5) stay net-covered.
+>
+> **R1-3 — P3.** The PURSUE first step and every interrupt-resolved battle
+> dropped the reinforcer's question at `strategic._COMBAT_PASSTHROUGH_FIELDS`
+> (measured: `Ney, pursue Mack` with a no-show Murat at 22 → 19, latched,
+> nothing on the response). The key rides now — never `state`, which a capture
+> prompt on the same reply would misroute; main stamps the state at the
+> boundary. **R1-4 / R2-5 — P4.** The battle result is a carrier only for the
+> player's own attack; an AI action's dict no longer carries a stray `state`.
+> **R1-5 / R1-10 — P3/P4, the client.** The three end-turn redemption arms drew
+> the redemption dialog straight over whatever `_show_pending_dispatch()` had
+> raised — measured on the backend: one end-turn response carrying both a
+> redemption and an autonomous marshal's capture question, two stacked modals
+> by read of `main.gd`. The arms now STASH the question and run the shared
+> control-return tail, which raises it once the capture is answered; the
+> interrupt tail is the shared tail too (it never polled). **R1-6 / R1-8 / R1-9
+> — P4.** The helper keeps a state another question set; an early-return
+> response carries the state; the figure is re-quoted from the live marshal at
+> delivery (the net minted 15 while the same tick's autonomous battle docked
+> him to 12).
+>
+> **Record corrections, made in place below:** the attribution sentence was
+> FALSE — on the ambient run **Bernadotte crosses 20 at turn 16 and IS latched
+> by the new code**, `world.pending_redemption = Bernadotte` from t16 to t40,
+> Bernadotte 0 by t24, Massena 0 by t26, Lannes 0 by t35 (268 checker calls,
+> 1 event, 0 stale clears); byte-identity holds for the STRUCTURAL reason only
+> (nothing on an AI or combat path reads the latch or the field). "Reachable
+> only through the endpoint handler" over-stated: `jealousy._apply_command_choice`
+> also enters the proceed arm, at penalty 0 — the only LOWERING entry is the
+> handler's. "MODERATE quoting −5" is the DEVOTED-tier insist penalty at boot
+> trust 85 (at 26 the same objection quotes −15). "Past turn 5" is turn ≥
+> `GRACE_TURNS` (4). Two code comments corrected (the friendly-fire sibling is
+> in `_execute_bombardment`, above; the shadow promise RAISES trust). **Not
+> fixed, recorded as design:** a man with a standing question keeps taking
+> orders (**FA-S9-D2**). R1's first probe overwrote the gitignored
+> `saves/autosave.json` (no `INK_IRON_SAVE_DIR`); no tracked file, no live
+> backend, no backup — the menu's Continue arm loads a probe world until the
+> user's next real end turn.
+>
+> Tests `tests/test_fa26_the_question_is_asked_2026_09_05.py` **56** (+22 in
+> `TestTheReviewRound`); sweeps `tools/_sweep_fa26.json` **12/12** +
+> `tools/_sweep_fa26_round.json` **13/13 killed, 0 INERT at close** — two went
+> inert on the first pass because the round's own fallback and the attack-reply
+> stage deliver the question by a second road, and each got an isolation pin
+> that darkens the second road rather than a weaker assertion; corpus 675/675;
+> `BASELINE_SERIES` + M1–M7 byte-identical as measured; parse harness EXIT=0
+> (report regenerated); boot smoke 0 `SCRIPT ERROR`. Two pre-existing text pins
+> on the interrupt tail (`test_rev_followups_2026_08_31.py`,
+> `test_fa_slice6_the_popup_queue_2026_09_04.py`) flipped consciously: they
+> looked for the diorama and petition raises INSIDE the tail, which now
+> reaches them through the shared control-return tail.
+
 > ### ✅ SLICE 9 — "THE QUESTION IS ASKED" (FA-26 + FA-N1) — FIXED September 5, 2026
 >
 > **Landing record: this block.** Rows closed: **FA-26** (P2 — the audit's
@@ -459,8 +581,9 @@
 > trust 23 with three victories, no estate, grace elapsed — `end turn` → **20**,
 > `end turn` → **17**, `redemption_pending` False throughout,
 > `world.pending_redemption` None, no `redemption_event` on either response
-> (the row's exact shape; the geometry must sit past turn 5 — at boot,
-> `turn − GRACE_TURNS` is negative and the tick reads it as "no clock").
+> (the row's exact shape; the geometry must sit at or past turn `GRACE_TURNS`,
+> 4 — at boot, `turn − GRACE_TURNS` is negative and the tick reads it as "no
+> clock"; *review round R3-5 corrected "past turn 5"*).
 > Murat `trust.modify(-90)` direct → 0, nothing asked. A stubbed petition
 > rebuke 24 → 19, nothing asked. Two men at 15/12 → nothing asked at all: **no
 > end-turn path consulted the checker**, so the row's "no terminus" held for
@@ -479,15 +602,22 @@
 > and the diplomatic ±5 reactions (one turn late at most) and any write a
 > future slice forgets. **The census's fourth family was FALSE:** the typed
 > strategic "proceed" −10 in `_handle_strategic_objection_response` is
-> reachable only through `_handle_strategic_objection_from_endpoint` (the typed
-> answer and the button both route there via `handle_objection_response`),
+> reachable as a LOWERING write only through `_handle_strategic_objection_from_endpoint`
+> (the typed answer and the button both route there via
+> `handle_objection_response`; `jealousy._apply_command_choice` also enters
+> the arm, at penalty 0 — *review round R3-3*),
 > which applies the penalty ITSELF for every MODERATE+ objection — the only
 > tier that raises a popup — ZEROES the stored penalty before re-executing, and
 > runs `check_redemption_threshold` at its own return. Measured: `Davout,
-> pursue Mack` objected MODERATE quoting −5; `insist` charged −8 = the −5 plus
-> the failed-roll −3 Berthier discloses (PT-C1). No double charge, no unchecked
-> write. Three families, not four; FA-N1's text is amended here and in the
-> verification report.
+> pursue Mack` objected, quoting −5 — the DEVOTED-tier insist penalty at boot
+> trust 85, not a property of the concern tier (at trust 26 the same objection
+> quotes −15; *review round R3-4*); `insist` charged −8 = the −5 plus the
+> failed-roll −3 Berthier discloses (PT-C1). No double charge, no unchecked
+> write. ~~Three families, not four~~ — **the review round found the count
+> wrong in the OTHER direction: six lowering-write families (the tick, the
+> failed reinforcer, jealousy's docks, the tactical failed-roll −3, the
+> mid-march cancel −3, vindication's −5/−1/−2) and the two small writes; all
+> eight are staged or net-covered as of the round** (see the block above).
 >
 > **After:** Lannes is asked the turn he crosses (`awaiting_redemption_choice`
 > + `redemption_event` on the end-turn response, the tactical row, the world
@@ -515,17 +645,22 @@
 > found it because the question was structurally unreachable outside the
 > cavalry-limit and strategic seams, and no test ended a turn after granting it.
 >
-> **Delivery note:** a question staged with NO response carrier (an
-> AI-initiated battle whose French reinforcer failed; a standing question after
-> a later end turn) is still latched and written to `world.pending_redemption`;
-> the client's once-per-turn recovery poll (`GET /pending_redemption`, PT-B1)
-> and the world-swap re-attach deliver it. It is deliberately NOT re-raised on
-> every end-turn response — the popup is modal and the poll already exists.
+> **Delivery note** *(amended by the review round, R3-2)*: a question staged
+> with NO response carrier (any battle resolved before `advance_turn` — the
+> AI's, a strategic first step, a sally — whose French reinforcer failed) is
+> latched and written to `world.pending_redemption`; the client's once-per-turn
+> poll (`GET /pending_redemption`, PT-B1) is LEAKY (its latch is set at send,
+> its answer dropped under an open modal), so **the end-turn response now
+> re-raises a standing question when the tick minted no row**, and the
+> world-swap re-attach still covers a load.
 >
-> **Attribution:** `BASELINE_SERIES` + M1–M7 byte-identical **as MEASURED** —
-> the latch and the world field are player-side state no AI path reads, and on
-> the historical seed the passive France's marshals are not eroded to ≤ 20
-> within 40 turns (a fact about the harness). Corpus 675/675, untouched (no
+> **Attribution** *(corrected by the review round, R2-4)*: `BASELINE_SERIES`
+> + M1–M7 byte-identical **as MEASURED** — for the STRUCTURAL reason only:
+> nothing on an AI or combat path reads the latch or the world field. The
+> first record said the passive France's marshals never reach ≤ 20 in 40
+> turns; that was FALSE — Bernadotte crosses at t16 and IS latched, the world
+> field carries his question t16–t40, three French marshals sit at 0 by t35,
+> and the series is identical anyway. Corpus 675/675, untouched (no
 > parser change). **Tests** `tests/test_fa26_the_question_is_asked_2026_09_05.py`
 > **34**; sweep `tools/_sweep_fa26.json` **12 mutations, 12 killed, 0 INERT at
 > close** — three INERT on the first sweep, each a code smell resolved rather

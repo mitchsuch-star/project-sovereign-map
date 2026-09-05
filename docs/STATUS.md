@@ -4,6 +4,41 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 9 REVIEW ROUND "THE QUESTION IS ASKED OF THE LIVING" IS LANDED — September 5, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 9 REVIEW ROUND block (authoritative); reports under
+> `docs/audits/fa_build_2026_09_04/REVIEW_slice9_R{1,2,3}_*.md`.** Three
+> lenses at `57b08c39`. **A P1 the slice made ordinary:** answering the
+> question with `administrative_role` zeroes the man's strength by design and
+> the next turn's attrition sweep DESTROYED him ("eliminated by supply
+> attrition at None"), the bought action persisting — pre-existing (reproduced
+> with the levers off through the debug trigger), reachable in ordinary play
+> only now; the sweep spares an administrative man, and the arm's unkept
+> promise of a return to the field is the gate FA-S9-D1. **Two P2s inside the
+> fix's reach:** the checker had every guard but liveness, so the net asked a
+> PRISONER (every answer misbehaved — an autonomous captive marched, +1 AP was
+> bought from a man in irons, dismiss could not remove him and paid authority
+> each time), a stale-at-birth question orphaned the live man behind it, and a
+> stale latch was never released — ONE liveness guard in the checker, inherited
+> by every seam. **The census was wrong in the other direction:** three more
+> lowering writes had no checker (the tactical failed-roll −3, the mid-march
+> cancel −3, vindication's in-pipeline −5/−1/−2) — six families, not three;
+> all staged now. **Delivery:** the client's once-per-turn poll drops a
+> no-carrier question under an open modal, so the end-turn response re-raises
+> a standing question; the PURSUE first step carries the reinforcer's question;
+> the three client arms stash and use the shared tail instead of stacking a
+> modal on the capture dialog. **The attribution sentence was FALSE** —
+> Bernadotte crosses 20 at turn 16 on the ambient run and is latched; identity
+> is structural. Tests 56 (+22), sweeps 12/12 + 13/13 killed 0 inert, corpus
+> 675/675, series + M1–M7 byte-identical as measured, parse harness EXIT=0,
+> boot 0 `SCRIPT ERROR`. ⚠ R1's first probe overwrote the gitignored
+> `saves/autosave.json` — the menu's Continue arm loads a probe world until
+> the next real end turn; no backup existed.
+>
+> **▶ NEXT = position 10, the shippable build.** ⚠ Still no pillar re-score.
+> ⚠ FA-D27 / FA-D28 await the user's ruling; FA-S9-D1 / FA-S9-D2 are new gates.
+
 > # ✅ THE AUDIT BUILD: SLICE 9 "THE QUESTION IS ASKED" (FA-26 + FA-N1) IS LANDED — September 5, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
@@ -21,9 +56,10 @@
 > cooldown, one live question, player-only) make every call idempotent, so
 > the erosion stays GR5-symmetric while only OUR man is asked, and two men
 > crossing in one tick yield exactly one question with the second asked once
-> the first is answered. **FA-N1's census corrected: three unchecked families,
-> not four** — the strategic "proceed" write is checked one frame up by the
-> endpoint handler (measured −8 = quoted −5 + the disclosed failed-roll −3).
+> the first is answered. **FA-N1's census corrected** — the strategic "proceed"
+> write is checked one frame up by the endpoint handler (measured −8 = quoted
+> −5 + the disclosed failed-roll −3); *the review round then found three MORE
+> unchecked families — six in all, see the entry above*.
 > **Rider — a pre-existing P1 the slice made reachable:** the turn after a
 > `grant_autonomy` answer returned HTTP 500 with the world already advanced
 > (the independent-command report embedded the live `WorldState`); reproduced

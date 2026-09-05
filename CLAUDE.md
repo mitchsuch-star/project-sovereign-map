@@ -324,8 +324,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > — plus ONE per-turn net in `_check_trust_warnings`; two levers; zero new
 > serialized fields; the checker's guards keep it idempotent and GR5 (the
 > erosion stays symmetric, only the player's man is asked). **FA-N1's census
-> corrected: three unchecked families, not four** — the strategic "proceed"
-> write is checked one frame up by the endpoint handler. **Rider, a
+> corrected** — the strategic "proceed" write is checked one frame up by the
+> endpoint handler; *the review round then found three MORE unchecked
+> families (six in all), all staged*. **Rider, a
 > pre-existing P1 the question made reachable:** the turn after a
 > `grant_autonomy` answer 500'd with the world already advanced (the
 > independent-command report embedded the live WorldState) — reproduced on
@@ -337,9 +338,34 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > man down in any pin that ends a turn after `grant_autonomy`**, or the AI's
 > own action rolls a second question onto the response.
 >
-> **▶ NEXT = a three-lens review round at the slice-9 SHA if the pattern
-> holds, then position 10.** ⚠ **Still no pillar re-score. ⚠ FA-D27 / FA-D28
-> await the user's ruling.**
+> **▶ THE SLICE 9 REVIEW ROUND "THE QUESTION IS ASKED OF THE LIVING" IS
+> LANDED — September 5, 2026** (landing record = the boxed block in
+> `BUG_FIXES.md` §Final Whole-Game Audit; reports under
+> `docs/audits/fa_build_2026_09_04/`). Three lenses at `57b08c39`: **a P1 the
+> slice made ordinary** — the `administrative_role` answer zeroes the man's
+> strength by design and the attrition sweep DESTROYED him a turn later
+> (pre-existing; the sweep now spares him; the arm's unkept promise = gate
+> **FA-S9-D1**); **two P2s inside the fix's reach** — the checker had every
+> guard but liveness, so the net asked a PRISONER and every answer misbehaved,
+> a stale-at-birth question orphaned the live man, a stale latch never
+> released (ONE liveness guard in the checker, inherited by every seam); **the
+> census wrong in the other direction** (three more unchecked writes — the
+> tactical failed roll, the mid-march cancel, vindication — six families, all
+> staged); the client's once-per-turn poll drops a no-carrier question under
+> an open modal, so the end-turn response re-raises a standing question; the
+> PURSUE first step carries the reinforcer's question; the three client arms
+> stash and use the shared tail. The attribution sentence was FALSE
+> (Bernadotte crosses at t16 and is latched; identity is structural). Tests
+> 56, sweeps 12/12 + 13/13, one `.gd`, harness EXIT=0, boot clean. ⛔ **The
+> lesson, a sixth time: a guard that every seam inherits must be COMPLETE —
+> the checker asked about a man who could not answer, and the client's
+> recovery poll was a backstop mistaken for a road. And a fix's second
+> delivery road makes the first road's pin inert: darken the second road in
+> the isolation pin, never weaken the assertion.**
+>
+> **▶ NEXT = position 10, the shippable build.** ⚠ **Still no pillar
+> re-score. ⚠ FA-D27 / FA-D28 await the user's ruling; FA-S9-D1 / FA-S9-D2 are
+> new gates.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

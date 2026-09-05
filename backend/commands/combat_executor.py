@@ -7502,11 +7502,22 @@ class CombatExecutor:
                     rel = failing.get_relationship(primary_name)
                     if rel != -2:  # Hostile gets no penalty
                         failing.trust.modify(-3)
-                        # FA-N1: the friendly-fire sibling below asks; this
-                        # write never did. The checker refuses a non-player
+                        # FA-N1: the friendly-fire -5 in `_execute_bombardment`
+                        # asks; this write never did. The checker refuses a non-player
                         # man, so an AI-side battle stages nothing here.
+                        # Slice-9 review R1-4/R2-5: the result dict is a
+                        # carrier only when THIS attack is the player's own
+                        # command — an enemy-phase action's dict is rendered
+                        # by nothing that reads `state`/`redemption_event`,
+                        # and a stamped `state` on an AI action is a stray
+                        # key on the wire. Staged with no carrier, the
+                        # question is latched + written to the world field
+                        # and the end-turn hoist re-raises it (R3-2).
                         from backend.commands.disobedience import stage_redemption
-                        stage_redemption(world, failing, result=result)
+                        stage_redemption(
+                            world, failing,
+                            result=(result if marshal.nation == world.player_nation
+                                    else None))
 
         # Attach reinforcement data to result for display (N3)
         if attacker_reinforcements or defender_reinforcements:
@@ -7536,6 +7547,13 @@ class CombatExecutor:
                     f"Sire, the enemy fortifications at {target_location} are crumbling. "
                     f"An infantry assault would now have favorable odds."
                 )
+
+        # R3-1(c) (slice-9 review): the post-combat pipeline lowers the
+        # ATTACKER's trust too (vindication -5/-1/-2 at step 11) and nothing
+        # asked. One stage at the attack's own reply covers every in-pipeline
+        # write for the player's man; the checker refuses an AI attacker.
+        from backend.commands.disobedience import stage_redemption
+        stage_redemption(world, marshal, result=result)
 
         return self._attach_staged_war_purpose(
             result, world, staged_war_purpose)
