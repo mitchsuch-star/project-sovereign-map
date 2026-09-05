@@ -1073,6 +1073,26 @@ func _refresh_owner_fill_palette():
 	owner_fill_layer.material.set_shader_parameter("owner_colors", owners)
 
 
+func recenter_view() -> void:
+	"""FA-N56 (slice 13): the public door for Home / Alt+Home.
+
+	`_unhandled_input` returns the moment a LineEdit holds focus, and the
+	client re-grabs the command line at 35 sites — so the map keys the boot
+	help advertises are dead in the game's dominant state, and re-emitting
+	the key event cannot help because it lands on the same guard. The focused
+	path therefore CALLS, and these are the doors it calls through.
+	"""
+	_center_view_on_map()
+
+
+func zoom_step(zoom_in: bool) -> void:
+	"""FA-N56: the public door for +/- and Alt+/-. Zooms about the same
+	screen centre the unfocused arm uses, so both routes agree."""
+	var screen_center := global_position + size / 2.0
+	_zoom_at_point(screen_center,
+		1.0 + ZOOM_SPEED if zoom_in else 1.0 - ZOOM_SPEED)
+
+
 func cycle_map_fill_mode() -> String:
 	# Slice 7.5 (DEF-12 cheap tier): M key cycles blended -> political ->
 	# terrain. Returns the new mode key so callers can surface it.

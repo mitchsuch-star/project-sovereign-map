@@ -365,10 +365,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 12: **87 defect rows and 28 design rows /
-> gates still open**, of 231 filed; 100 closed, 16 disposed (duplicate,
-> refuted, or re-homed). The 87 are spoken for by slices 13 → 14 → 15
-> → 16; the 28 need rulings, not builds.
+> number in a heading. After slice 13: **82 defect rows and 28 design rows /
+> gates still open**, of 231 filed; 105 closed, 16 disposed (duplicate,
+> refuted, or re-homed). The 82 are spoken for by slices 14 → 15 → 16;
+> the 28 need rulings, not builds.
+>
+> **▶ SLICE 13 "SHIPPING" IS LANDED — September 5, 2026** (landing record =
+> the boxed SLICE 13 block in `BUG_FIXES.md`). The five ROADMAP position-10
+> blockers: FA-29, FA-43, FA-N84, FA-N56, FA-57. The build told a tester to
+> run a Python command that is not in the zip (project-wide census: ZERO
+> `has_feature` calls anywhere in the client, so no arm could exist — now
+> `Utils.launch_hint()`, verified on the engine at `editor=true /
+> template=false`); the zip shipped CC-BY icons, CC-BY audio and 13 OFL font
+> families with none of their notices while two surfaces in the product named
+> a file that was not there (mechanism: Godot types every `*-OFL.txt` as
+> `TextFile`, which `all_resources` SKIPS, while the `.ttf` are `FontFile`
+> and the `.json` are `JSON` — which is why those ride; FA-43 alone does not
+> discharge it, so both landed as one edit); and six advertised hotkeys were
+> dead while typing, with the boot help teaching three of them FOUR LINES
+> before `set_input_enabled(true)` kills them, and the README naming "Alt"
+> zero times. **Two of the five rows' own fix shapes were wrong** — FA-29's
+> reds the very pin it says it protects (a seventh
+> `fix_shape`-vs-`summary` member), and FA-57's replacement copy is a new lie
+> in the no-saves arm. ⛔ **Three of 23 sweep mutations came back INERT and
+> all three were my own pins reading my own PROSE** — the licence census
+> matched the comment block explaining why the notices must be copied, and
+> stayed green with both copy commands deleted. Scope a source census to the
+> COMMANDS, never the file.
 >
 > **▶ SLICE 12 "THE ROAD HOME IS WALKED" IS LANDED — September 5, 2026**
 > (landing record = the boxed SLICE 12 block in `BUG_FIXES.md`; the rules are

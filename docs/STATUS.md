@@ -10,25 +10,25 @@
 > (add `--open` for the ids). It derives the tally from the row tables
 > themselves, because a count written into a heading is stale the moment the
 > next slice lands — the exact class of defect this build has spent twelve
-> slices closing. As of slice 12:
+> slices closing. As of slice 13:
 >
 > | family | OPEN | closed | disposed | total |
 > |---|---:|---:|---:|---:|
-> | audit defect (FA-n) | 44 | 46 | 12 | 102 |
-> | verification pass (FA-N) | 38 | 49 | 1 | 88 |
+> | audit defect (FA-n) | 41 | 49 | 12 | 102 |
+> | verification pass (FA-N) | 36 | 51 | 1 | 88 |
 > | review-round finding (FA-R) | 3 | 2 | 0 | 5 |
 > | found while building (FA-S) | 2 | 1 | 0 | 3 |
 > | design tie-in (FA-D) | 24 | 2 | 3 | 29 |
 > | gate from a round (FA-S*-D*) | 4 | 0 | 0 | 4 |
-> | **TOTAL** | **115** | **100** | **16** | **231** |
+> | **TOTAL** | **110** | **105** | **16** | **231** |
 >
-> **87 defect rows and 28 design rows / gates remain** (slice 12 closed three
-> and filed two of its own). "Disposed" means
+> **82 defect rows and 28 design rows / gates remain** (slice 12 closed three
+> and filed two of its own; slice 13 closed the five position-10 blockers). "Disposed" means
 > duplicate, refuted, or re-homed to a later slice — closed without a fix and
 > with the reason on the row.
 >
-> The 87 defects are spoken for by the remaining build order: ~~slice 12~~ ✅
-> → **13** (5, the position-10 blockers) → **14** (9 rows + five
+> The 82 defects are spoken for by the remaining build order: ~~slice 12~~ ✅
+> → ~~**13**~~ ✅ → **14** (9 rows + five
 > rulings) → **15** (20 harness rows, which must land BEFORE the FA-D27
 > measurement so the driver measured with is the fixed one) → **16** (the
 > remaining P3/P4 copy sweep, ~44). The 28 design rows are gates: they need a
@@ -38,6 +38,68 @@
 > ⚠ The FA-D family reads as OPEN by construction — its last column carries
 > a verification VERDICT, not a status, because those rows are design
 > questions rather than defects. They are counted separately for that reason.
+
+> # ✅ THE AUDIT BUILD: SLICE 13 "SHIPPING" IS LANDED — September 5, 2026
+>
+> **Landing record = the boxed SLICE 13 block in `docs/BUG_FIXES.md`.** The
+> five ROADMAP position-10 blockers — FA-29, FA-43, FA-N84, FA-N56, FA-57 —
+> every one a claim about what a stranger who unzips the build actually gets.
+> Sweep **23/23 killed, 0 INERT, 0 BROKEN**; parse harness EXIT=0; boot smoke
+> 0 `SCRIPT ERROR`; no backend file changed, so the series and M1–M7 are
+> untouched by construction.
+>
+> **The build told a tester to run a Python command that is not in the zip.**
+> Three surfaces named `-m backend.main` or `development build`
+> unconditionally, and a project-wide census found **ZERO** `has_feature` /
+> `is_debug_build` / `is_editor_hint` calls anywhere in the client — no arm
+> could exist. `Utils.launch_hint()` now branches, verified by running the
+> engine (`editor=true / template=false`), and the template arm says *close
+> this window first* rather than "double-click launch.bat", because the batch
+> runs `start /wait InkAndIron.exe` and would queue behind the window it is
+> telling them about.
+>
+> **The zip shipped CC-BY icons, CC-BY audio and 13 OFL font families with
+> none of their notices**, while the in-game credits screen and the README
+> both named `THIRD_PARTY_LICENSES.md` as though it were there. Measured: 16
+> tracked licence files, 0 licence copies in `build.bat`, and — the mechanism
+> — Godot's own filesystem cache types every `*-OFL.txt` as `TextFile`, which
+> `export_filter="all_resources"` skips, while the `.ttf` are `FontFile` and
+> the `.json` are `JSON`, which is why THOSE ride. FA-43 alone does not
+> discharge it: the umbrella file satisfies the font obligation by pointing
+> at `assets/fonts/`, which is not in the zip either. Landed as one edit,
+> with `xcopy /s` deliberately avoided (it succeeds silently on an empty
+> match) and a pin against it.
+>
+> **Six advertised hotkeys were dead in the game's dominant state.** PC15-18
+> gave the six SCREEN keys a focus-safe Alt form and left E, Tab, M, +, − and
+> Home behind — and the boot help teaches M, +/− and Home **four lines before
+> `set_input_enabled(true)` kills them**, adjacent in the same function.
+> Wider than filed: **the README named "Alt" zero times**, so even the six
+> keys PC15-18 fixed were advertised in their dead form. Both halves fixed,
+> with the map keys CALLED through two new public doors rather than
+> re-emitted (a re-emitted event lands on the same guard), and Alt+E mirroring
+> BOTH gates its bare twin obeys — an arm that copied the screen-key gate
+> alone would end the turn with a full-screen ledger open, where bare E
+> refuses.
+>
+> **⚠ Two of the five rows' own fix shapes were wrong, and the reproduction
+> caught both.** FA-29's says *keep the dev string so the pin holds* AND
+> *the menu reads the helper* — mutually exclusive, and the pin went red the
+> moment the string moved (a seventh member of the
+> `fix_shape`-contradicts-`summary` family). FA-57's replacement copy,
+> *"Continue restores it"*, is a NEW false statement in the
+> `came_from_game and no saves` arm; the promise is conditional now.
+>
+> **⛔ The lesson, again from the sweep.** Three of 23 mutations came back
+> INERT and all three were **my own pins reading my own prose** — the licence
+> census matched `THIRD_PARTY_LICENSES.md` and `*-OFL.txt` inside the comment
+> block explaining why they must be copied, and stayed green with both copy
+> commands deleted; the Alt-route pin passed over a DISABLED arm. Scoped to
+> build.bat's COMMANDS and to the literal dispatch condition.
+>
+> **NEXT = the three-lens review round on slices 12 and 13**, then 14 → 15 →
+> 16, then position 10. ⚠ Still no pillar re-score. ⚠ FA-D27 / FA-D28 /
+> FA-S9-D1 / FA-S9-D2 await the user's ruling.
 
 > # ✅ THE AUDIT BUILD: SLICE 12 "THE ROAD HOME IS WALKED" IS LANDED — September 5, 2026
 >

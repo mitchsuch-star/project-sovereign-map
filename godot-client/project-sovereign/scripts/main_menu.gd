@@ -343,7 +343,7 @@ func _build_footer() -> void:
 	version.anchor_right = 0.6
 	version.anchor_top = 0.925
 	version.anchor_bottom = 0.925
-	version.text = "Ink & Iron — development build"
+	version.text = "Ink & Iron — " + Utils.build_label()
 	version.add_theme_font_size_override("font_size", 12)
 	version.add_theme_color_override("font_color", Color(0.65, 0.63, 0.58, 0.8))
 	version.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
@@ -441,7 +441,15 @@ func _on_tutorial_pressed() -> void:
 	# same confirm row guards it when there is anything to lose.
 	if _saves.size() > 0 or MenuBoot.came_from_game:
 		_confirm_action = "tutorial"
-		_confirm_label.text = "Enter the School of War? The autosave of your running campaign is replaced."
+		# FA-57: it is NOT replaced — `save_manager.autosave` has
+		# no-opped for `scenario_name == "tutorial"` since TUT-F2, and
+		# `/new_game` says so in the terminal ("Your campaign autosave
+		# is untouched"). The promise is conditional on the sentence
+		# below because this row also shows in the `came_from_game`
+		# arm with NO saves on disk, where there is nothing to restore.
+		_confirm_label.text = "Enter the School of War? Your running campaign leaves the table."
+		if _saves.size() > 0:
+			_confirm_label.text += " Its autosave is kept — Continue restores it."
 		_confirm_yes.text = "Confirm — to school"
 		_confirm_box.visible = not _confirm_box.visible
 	else:
@@ -524,7 +532,11 @@ func _apply_backend_state() -> void:
 		_status_label.text = "✓ The war office answers.  ·  " + Utils.backend_origin_label()
 		_status_label.add_theme_color_override("font_color", Color(0.55, 0.72, 0.55, 0.9))
 	else:
-		_status_label.text = "The war office does not answer — start the backend:  .venv\\Scripts\\python.exe -m backend.main"
+		# FA-29: the instruction depends on WHICH build is running. In a
+		# source checkout it is the backend command; in the zip a tester
+		# unpacks there is no Python, no venv and no `backend/` at all.
+		_status_label.text = ("The war office does not answer — "
+			+ Utils.launch_hint())
 		_status_label.add_theme_color_override("font_color", Color(0.85, 0.55, 0.45, 0.95))
 	var has_saves := _saves.size() > 0
 	for id in _buttons:

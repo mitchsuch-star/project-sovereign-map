@@ -1,0 +1,163 @@
+[
+  {
+    "id": "FA-29 the hint stops branching",
+    "file": "godot-client/project-sovereign/scripts/utils.gd",
+    "old": "\tif OS.has_feature(\"editor\"):\n\t\treturn \".venv\\\\Scripts\\\\python.exe -m backend.main\"",
+    "new": "\tif true:\n\t\treturn \".venv\\\\Scripts\\\\python.exe -m backend.main\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLaunchHintBranches::test_the_helper_has_both_arms"
+  },
+  {
+    "id": "FA-29 the template arm says double-click and nothing else",
+    "file": "godot-client/project-sovereign/scripts/utils.gd",
+    "old": "\treturn (\"close this window and start the game with launch.bat \"\n\t\t\t+ \"(it starts the war office first, and must stay open)\")",
+    "new": "\treturn \"double-click launch.bat\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLaunchHintBranches::test_the_template_arm_does_not_say_double_click_alone"
+  },
+  {
+    "id": "FA-29 the menu goes back to the hardcoded dev command",
+    "file": "godot-client/project-sovereign/scripts/main_menu.gd",
+    "old": "\t\t_status_label.text = (\"The war office does not answer — \"\n\t\t\t+ Utils.launch_hint())",
+    "new": "\t\t_status_label.text = \"The war office does not answer — start the backend:  .venv\\\\Scripts\\\\python.exe -m backend.main\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLaunchHintBranches"
+  },
+  {
+    "id": "FA-29 the version line hardcodes a build tag again",
+    "file": "godot-client/project-sovereign/scripts/main_menu.gd",
+    "old": "\tversion.text = \"Ink & Iron — \" + Utils.build_label()",
+    "new": "\tversion.text = \"Ink & Iron — development build\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLaunchHintBranches::test_the_version_line_reads_a_real_build_tag"
+  },
+  {
+    "id": "FA-29 project.godot authors no version",
+    "file": "godot-client/project-sovereign/project.godot",
+    "old": "config/version=\"0.1.0 early build\"\n",
+    "new": "",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLaunchHintBranches::test_the_version_line_reads_a_real_build_tag"
+  },
+  {
+    "id": "FA-43 the umbrella licence file stops shipping",
+    "file": "deploy/build.bat",
+    "old": "copy /y \"THIRD_PARTY_LICENSES.md\" \"deploy\\dist\\ink_iron_server\\THIRD_PARTY_LICENSES.md\" >nul",
+    "new": "rem the umbrella file stays in the source tree",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLicencesShip::test_the_umbrella_file_ships_too"
+  },
+  {
+    "id": "FA-N84 the OFL notices stop shipping",
+    "file": "deploy/build.bat",
+    "old": "copy /y \"%_ASSETS%\\fonts\\*-OFL.txt\" \"%_LIC%\\fonts\\\" >nul",
+    "new": "rem the OFL notices stay in the source tree",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLicencesShip::test_every_licence_file_is_carried_into_the_zip"
+  },
+  {
+    "id": "FA-N84 the CC-BY icon notice stops shipping",
+    "file": "deploy/build.bat",
+    "old": "copy /y \"%_ASSETS%\\ui\\icons\\game-icons\\LICENSE\" \"%_LIC%\\game-icons-LICENSE.txt\" >nul",
+    "new": "rem the game-icons notice stays in the source tree",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLicencesShip"
+  },
+  {
+    "id": "FA-N84 the copies stop warning when they fail",
+    "file": "deploy/build.bat",
+    "old": "if errorlevel 1 echo [WARN] OFL font licences not copied - 13 families ship without their notice.",
+    "new": "rem silence",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLicencesShip::test_the_copies_warn_when_they_fail"
+  },
+  {
+    "id": "FA-N84 an xcopy /s creeps back in",
+    "file": "deploy/build.bat",
+    "old": "copy /y \"%_ASSETS%\\ui\\bars\\kenney-license.txt\" \"%_LIC%\\kenney-license.txt\" >nul",
+    "new": "xcopy /y /i /s \"%_ASSETS%\\ui\\bars\\kenney-license.txt\" \"%_LIC%\\\" >nul",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLicencesShip::test_no_xcopy_s_on_a_flat_folder"
+  },
+  {
+    "id": "FA-43 the README points back at the source tree",
+    "file": "deploy/README_TESTER.txt",
+    "old": "licenses — see THIRD_PARTY_LICENSES.md in this folder, and the",
+    "new": "licenses — see THIRD_PARTY_LICENSES.md in the source tree, and the",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheLicencesShip::test_both_credit_surfaces_point_at_the_shipped_copy"
+  },
+  {
+    "id": "FA-N56 the game keys lose their focus-safe route",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\telif event.alt_pressed and _alt_game_key(event.keycode):",
+    "new": "\t\telif false and _alt_game_key(event.keycode):",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_alt_arm_consumes_the_event_either_way"
+  },
+  {
+    "id": "FA-N56 end turn copies the screen-key gate only",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tKEY_E:\n\t\t\tif (not _is_modal_dialog_open() and not _is_screen_open()\n\t\t\t\t\tand end_turn_button.visible",
+    "new": "\t\tKEY_E:\n\t\t\tif (not _is_modal_dialog_open()\n\t\t\t\t\tand end_turn_button.visible",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_end_turn_mirrors_both_gates_its_bare_twin_obeys"
+  },
+  {
+    "id": "FA-N56 the map cycle says nothing",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t\tvar mode: String = map_area.cycle_map_fill_mode()\n\t\t\t\tadd_output(\"[color=#\" + Utils.COLOR_INFO\n\t\t\t\t\t+ \"]Map view: \" + mode + \"[/color]\")",
+    "new": "\t\t\t\tmap_area.cycle_map_fill_mode()",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_cycling_the_map_says_which_view_you_landed_on"
+  },
+  {
+    "id": "FA-N56 the map wrappers go private again",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "func recenter_view() -> void:",
+    "new": "func _recenter_view_unused() -> void:",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_map_keys_are_called_not_re_emitted"
+  },
+  {
+    "id": "FA-N56 the README goes back to advertising dead bare keys",
+    "file": "deploy/README_TESTER.txt",
+    "old": "  T / Alt+T — Strategic Ledger (forces, economy, Admiralty, orders)",
+    "new": "  T         — Strategic Ledger (forces, economy, Admiralty, orders)",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_readme_advertises_the_focus_safe_form"
+  },
+  {
+    "id": "FA-N56 the README stops warning about the two-press Escape",
+    "file": "deploy/README_TESTER.txt",
+    "old": "  Esc       — Pause menu (save, load, settings). While typing, the\n              first Esc leaves the command line and the second\n              opens the menu.",
+    "new": "  Esc       — Pause menu (save, load, settings)",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_readme_is_honest_about_the_two_press_escape"
+  },
+  {
+    "id": "FA-N56 the boot help teaches the dead form again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters — the bare keys work whenever you are not typing[/color]\")",
+    "new": "\t\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters[/color]\")",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_boot_help_teaches_the_form_that_works"
+  },
+  {
+    "id": "FA-57 the menu claims the tutorial replaces the autosave",
+    "file": "godot-client/project-sovereign/scripts/main_menu.gd",
+    "old": "\t\t_confirm_label.text = \"Enter the School of War? Your running campaign leaves the table.\"",
+    "new": "\t\t_confirm_label.text = \"Enter the School of War? The autosave of your running campaign is replaced.\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheSchoolKeepsTheAutosave::test_no_client_surface_claims_the_tutorial_replaces_it"
+  },
+  {
+    "id": "FA-57 the restore promise stops being conditional",
+    "file": "godot-client/project-sovereign/scripts/main_menu.gd",
+    "old": "\t\tif _saves.size() > 0:\n\t\t\t_confirm_label.text += \" Its autosave is kept — Continue restores it.\"",
+    "new": "\t\t_confirm_label.text += \" Its autosave is kept — Continue restores it.\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheSchoolKeepsTheAutosave::test_the_promise_to_restore_is_conditional"
+  },
+  {
+    "id": "FA-57 the terminal claims replacement again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]Convening the School of War. Your campaign autosave is kept.[/color]\")",
+    "new": "\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]Convening the School of War. Current autosave will be replaced.[/color]\")",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheSchoolKeepsTheAutosave::test_no_client_surface_claims_the_tutorial_replaces_it"
+  },
+  {
+    "id": "FA-57 the menu_boot header lies again",
+    "file": "godot-client/project-sovereign/scripts/menu_boot.gd",
+    "old": "#                 but NOT the autosave — `save_manager.autosave` no-ops for",
+    "new": "#                 and the autosave — `save_manager.autosave` no-ops for",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheSchoolKeepsTheAutosave::test_no_client_surface_claims_the_tutorial_replaces_it"
+  },
+  {
+    "id": "FA-57 the Begin confirm is collateral damage",
+    "file": "godot-client/project-sovereign/scripts/main_menu.gd",
+    "old": "\t\t_confirm_label.text = \"Begin anew? The autosave of your running campaign is replaced.\"",
+    "new": "\t\t_confirm_label.text = \"Begin anew? Your running campaign leaves the table.\"",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheSchoolKeepsTheAutosave::test_the_begin_confirm_is_left_alone"
+  }
+]

@@ -738,7 +738,7 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters — the bare keys work whenever you are not typing[/color]")
 		add_output("")
 		_add_separator()
 
@@ -751,7 +751,10 @@ func _on_connection_test(response):
 		_consume_menu_boot_action()
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]Start the Python server: python -m backend.main[/color]")
+		# FA-29: this named a Python command that is not in the zip a
+		# tester unpacks. One source, two arms.
+		add_output("[color=#" + Utils.COLOR_INFO + "]To reach it: "
+			+ Utils.launch_hint() + "[/color]")
 		add_output("")
 
 
@@ -908,6 +911,14 @@ func _on_command_input_gui_input(event):
 			if not _is_modal_dialog_open() and top_bar:
 				top_bar.toggle_screen(_SCREEN_HOTKEYS[event.keycode])
 			command_input.accept_event()
+		elif event.alt_pressed and _alt_game_key(event.keycode):
+			# FA-N56 (slice 13): PC15-18 gave the six SCREEN keys a
+			# focus-safe form and left the six GAME keys behind — E, Tab and
+			# the four map keys were all dead while typing, which is the
+			# state the client puts itself in after nearly every action.
+			# The boot help advertises M, +/- and Home four lines before
+			# `set_input_enabled(true)` kills them.
+			command_input.accept_event()
 		elif event.keycode == KEY_UP:
 			_history_previous()
 			command_input.accept_event()  # Consume event, prevent camera movement
@@ -917,6 +928,63 @@ func _on_command_input_gui_input(event):
 		elif event.keycode == KEY_ESCAPE:
 			command_input.release_focus()  # Unfocus to allow camera controls
 			command_input.accept_event()
+
+func _alt_game_key(keycode: int) -> bool:
+	"""FA-N56: the six GAME keys, reachable while typing. Returns whether the
+	key was ours (so the caller consumes the event either way — Alt+E must
+	never type an "e").
+
+	Each arm mirrors the gate its UNFOCUSED twin obeys, and that is
+	load-bearing: bare E and Tab sit BELOW `_unhandled_input`'s
+	`if _is_screen_open(): return`, while the Alt screen-keys above check
+	only `_is_modal_dialog_open()`. An Alt arm that copied the screen-key
+	gate alone would let Alt+E end the turn with a full-screen ledger open,
+	where bare E refuses — and toggling a screen does not move focus off the
+	command line, so that state is ordinary rather than exotic.
+	"""
+	match keycode:
+		KEY_E:
+			if (not _is_modal_dialog_open() and not _is_screen_open()
+					and end_turn_button.visible
+					and not end_turn_button.disabled):
+				_execute_end_turn()
+			return true
+		KEY_TAB:
+			if not _is_modal_dialog_open() and not _is_screen_open():
+				_toggle_terminal()
+			return true
+		KEY_M:
+			if _map_keys_live():
+				# The mode is what the player wanted to know, and
+				# `cycle_map_fill_mode()`'s String return was discarded by
+				# its only other caller — so this route says which of
+				# blended / political / terrain he landed on.
+				var mode: String = map_area.cycle_map_fill_mode()
+				add_output("[color=#" + Utils.COLOR_INFO
+					+ "]Map view: " + mode + "[/color]")
+			return true
+		KEY_HOME:
+			if _map_keys_live():
+				map_area.recenter_view()
+			return true
+		KEY_EQUAL, KEY_KP_ADD:
+			if _map_keys_live():
+				map_area.zoom_step(true)
+			return true
+		KEY_MINUS, KEY_KP_SUBTRACT:
+			if _map_keys_live():
+				map_area.zoom_step(false)
+			return true
+	return false
+
+
+func _map_keys_live() -> bool:
+	"""The map keys' own gate — the same one their unfocused twin obeys
+	(`_unhandled_input` returns above them when a screen is open), plus the
+	map actually existing."""
+	return (map_area != null and not _is_modal_dialog_open()
+			and not _is_screen_open())
+
 
 func _history_previous():
 	"""Navigate to previous command in history (up arrow)."""
@@ -6394,7 +6462,11 @@ func _on_tutorial_boot_requested():
 	"""POSITION 7: boot the School of War scenario (replaces the running
 	world and the autosave, exactly like a new campaign — the menu's shared
 	confirm row already guarded it)."""
-	add_output("[color=#" + Utils.COLOR_INFO + "]Convening the School of War. Current autosave will be replaced.[/color]")
+	# FA-57: it is not replaced and has not been since TUT-F2 —
+	# `save_manager.autosave` no-ops for `scenario_name == "tutorial"`,
+	# and the backend says so in this same terminal one line later
+	# ("Your campaign autosave is untouched").
+	add_output("[color=#" + Utils.COLOR_INFO + "]Convening the School of War. Your campaign autosave is kept.[/color]")
 	set_input_enabled(false)
 	api_client.new_game(_on_new_game_result, "tutorial")
 

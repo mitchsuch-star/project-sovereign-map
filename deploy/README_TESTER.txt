@@ -76,22 +76,31 @@ SPEAK COMMANDS (optional):
   Settings if the panel refuses to listen.)
 
 HOTKEYS:
-  F1  — Diplomacy wizard (treaties, settlements, formables)
-  T   — Strategic Ledger (forces, economy, Admiralty, orders)
-  G   — Generals (marshal cards, glory, rewards, commissions)
-  D   — Diplomatic Ledger (nations, treaties, Talleyrand)
-  R   — Morning Dispatch (re-read the turn briefing)
-  L   — Campaign Log (history of events)
-  N   — Le Moniteur (the gazette — the press writes your war)
-  E   — End Turn
-  Tab — Collapse/restore the terminal
-  Esc — Pause menu (save, load, settings)
+  The command line keeps the keyboard for most of a turn, and a
+  letter you type there is a letter, not a shortcut — so every
+  hotkey below has an Alt form that works WHILE you are typing.
+  The bare key works whenever the command line is not focused.
+
+  F1        — Diplomacy wizard (treaties, settlements, formables)
+  T / Alt+T — Strategic Ledger (forces, economy, Admiralty, orders)
+  G / Alt+G — Generals (marshal cards, glory, rewards, commissions)
+  D / Alt+D — Diplomatic Ledger (nations, treaties, Talleyrand)
+  R / Alt+R — Morning Dispatch (re-read the turn briefing)
+  L / Alt+L — Campaign Log (history of events)
+  N / Alt+N — Le Moniteur (the gazette — the press writes your war)
+  E / Alt+E — End Turn
+  Tab       — Collapse/restore the terminal (Alt+Tab while typing)
+  Esc       — Pause menu (save, load, settings). While typing, the
+              first Esc leaves the command line and the second
+              opens the menu.
 
 THE MAP:
-  Mouse wheel or +/- to zoom, drag to pan, Home to recenter,
-  M to cycle map coloring. Click any province for a panel of
-  actions there — recruit, build, negotiate, and orders for
-  marshals present. Click a marshal's piece for their orders.
+  Mouse wheel or +/- (Alt +/-) to zoom, drag to pan, Home
+  (Alt+Home) to recenter, M (Alt+M) to cycle map coloring — the
+  terminal prints which view you landed on. Click any province
+  for a panel of actions there — recruit, build, negotiate, and
+  orders for marshals present. Click a marshal's piece for their
+  orders.
 
 ================================================================
   YOUR MARSHALS
@@ -244,6 +253,7 @@ Designed and developed by Mitch.
 AI-assisted development with Claude.
 Built with Godot 4 and Python/FastAPI.
 Fonts, icons, portraits and textures under their respective
-licenses — see THIRD_PARTY_LICENSES.md in the source tree.
+licenses — see THIRD_PARTY_LICENSES.md in this folder, and the
+per-family notices in licenses\.
 
 ================================================================

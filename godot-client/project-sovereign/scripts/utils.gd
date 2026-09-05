@@ -28,6 +28,34 @@ static func backend_origin_label() -> String:
 	return backend_url().trim_prefix("http://")
 
 
+# FA-29 (slice 13): what to tell somebody whose war office does not answer.
+# Two surfaces said `.venv\Scripts\python.exe -m backend.main` and
+# `python -m backend.main` unconditionally, and NEITHER exists in the zip a
+# tester unpacks — no Python, no `backend/`, no venv. The whole project had
+# ZERO `has_feature` / `is_debug_build` / `is_editor_hint` calls (census over
+# every tracked file), so no arm could exist.
+#
+# The template arm deliberately does NOT say "double-click launch.bat" alone:
+# `launch.bat` reuses an already-answering server and then runs
+# `start /wait InkAndIron.exe`, so a player who launched the exe directly must
+# CLOSE it first or the batch waits behind the window it is telling them about.
+static func launch_hint() -> String:
+	if OS.has_feature("editor"):
+		return ".venv\\Scripts\\python.exe -m backend.main"
+	return ("close this window and start the game with launch.bat "
+			+ "(it starts the war office first, and must stay open)")
+
+
+static func build_label() -> String:
+	"""The version line. `application/config/version` is authored in
+	project.godot; the fallback is what a source checkout without one reads."""
+	var v := str(ProjectSettings.get_setting(
+		"application/config/version", ""))
+	if v.strip_edges() == "":
+		return "development build"
+	return v
+
+
 # === Shared Color Palette (hex strings for BBCode) ===
 const COLOR_GOLD = "d9c08c"
 const COLOR_COMMAND = "7eb8da"

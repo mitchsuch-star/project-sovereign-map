@@ -309,7 +309,7 @@ func _build_credits_section() -> void:
 	credit.text = ("Unit icons by Lorc, Delapouite & contributors (game-icons.net, "
 		+ "CC BY 3.0) · Interface icons: Phosphor (MIT) · Musket volley: aaronsiler "
 		+ "& Benboncan (CC BY 4.0) · Menu paintings, marshal portraits & music: "
-		+ "public domain (Wikimedia Commons / IMSLP) · Full terms: THIRD_PARTY_LICENSES.md.")
+		+ "public domain (Wikimedia Commons / IMSLP) · Full terms: THIRD_PARTY_LICENSES.md, beside the game, with the per-family notices in licenses\\.")
 	credit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	credit.add_theme_font_size_override("font_size", 10)
 	credit.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)

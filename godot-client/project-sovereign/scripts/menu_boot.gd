@@ -17,8 +17,12 @@ class_name MenuBoot
 #   "continue"  — load the NEWEST save file (autosave included)
 #   "load"      — open the Load Campaign dialog over the fresh session
 #   "tutorial"  — POST /new_game {"scenario": "tutorial"} (POSITION 7: the
-#                 School of War / Danube Lesson; replaces the running world
-#                 and the autosave exactly like new_game)
+#                 School of War / Danube Lesson; replaces the running world,
+#                 but NOT the autosave — `save_manager.autosave` no-ops for
+#                 `scenario_name == "tutorial"` (TUT-F2), so the campaign's
+#                 slot survives the lesson. FA-57: this comment used to say
+#                 "and the autosave exactly like new_game", which was the
+#                 third of three client surfaces contradicting the backend.)
 # =============================================================================
 
 static var pending_action := ""

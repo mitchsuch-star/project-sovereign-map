@@ -250,7 +250,13 @@ class TestPC1518HotkeysReachableWhileTyping:
     def test_alt_route_exists_and_keeps_the_modal_gate(self):
         src = (CLIENT / "scripts" / "main.gd").read_text(encoding="utf-8")
         at = src.index("func _on_command_input_gui_input")
-        handler = src[at:at + 2500]
+        # FA-N56 (slice 13): this was a fixed 2,500-char scrape over a
+        # 972-char function, so it read 1,528 chars past the body,
+        # through _history_previous/_history_next and into
+        # _unhandled_input's docstring. It was not vacuous, but it was
+        # one refactor from being satisfied by a neighbouring function
+        # — the NA-6 dead-name trap. Bound it to the body.
+        handler = src[at:src.index("\nfunc ", at + 10)]
         assert "alt_pressed" in handler, (
             "the focus-safe screen-hotkey route is gone — the advertised "
             "letter hotkeys are dead again whenever the terminal has focus")

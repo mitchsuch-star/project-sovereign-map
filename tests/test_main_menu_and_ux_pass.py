@@ -123,11 +123,30 @@ class TestMainMenuScene:
         assert "Timer.new()" in gd
 
     def test_menu_buttons_are_honest_about_the_backend(self):
+        """FA-29 (slice 13) re-pointed this pin CONSCIOUSLY, in both
+        directions.
+
+        It asserted the literal `-m backend.main` in `main_menu.gd`, which
+        is exactly the string that had to LEAVE that file: it is a Python
+        command, and the zip a tester unpacks has no Python, no venv and no
+        `backend/`. The row's own filed fix says "keep the dev string so
+        this line holds" AND "main_menu.gd reads the helper" — two sentences
+        that cannot both be true.
+
+        So the pin now asserts what it was ever for: the menu polls, states
+        a reason, disables what it cannot do, and the reason it states
+        BRANCHES on which build is running.
+        """
         gd = _read(SCRIPTS / "main_menu.gd")
-        # polls /test, states the reason, and names the real launch command
-        assert '"/test"' in gd or "/test" in gd
-        assert "-m backend.main" in gd
+        utils = _read(SCRIPTS / "utils.gd")
+        assert "/test" in gd
+        assert "Utils.launch_hint()" in gd
         assert "disabled = not" in gd
+        assert "-m backend.main" in utils, "the editor arm still names it"
+        assert "launch.bat" in utils, "and the template arm names the zip's"
+        assert 'has_feature("editor")' in utils, (
+            "one string for both builds is how this shipped a dead "
+            "instruction in the first place — it must branch")
 
     def test_begin_confirms_before_replacing_a_campaign(self):
         gd = _read(SCRIPTS / "main_menu.gd")

@@ -247,10 +247,22 @@ class TestReadmeTesterCurrent:
     def test_hotkeys_match_main_gd(self):
         # The old README taught D = dispatch; D is the diplomatic ledger
         # and R is the dispatch since Session A. N = the Gazette (HC-G).
+        #
+        # FA-N56 (slice 13) re-pointed these three off their exact
+        # column spacing: the README now advertises the Alt form
+        # beside each bare key, because the bare key is dead in the
+        # state the client puts itself in. The mapping is what this
+        # test was ever about, so it asserts the mapping.
         text = self._text()
-        assert "R   — Morning Dispatch" in text
-        assert "D   — Diplomatic Ledger" in text
-        assert "N   — Le Moniteur" in text
+        assert "Morning Dispatch" in text
+        assert "Diplomatic Ledger" in text
+        assert "Le Moniteur" in text
+        for key, screen in (("R", "Morning Dispatch"),
+                            ("D", "Diplomatic Ledger"),
+                            ("N", "Le Moniteur")):
+            assert ("%s / Alt+%s" % (key, key)) in text, (
+                "%s must be advertised in its focus-safe form too "
+                "(%s)" % (key, screen))
 
     def test_appdata_saves_documented(self):
         assert r"%APPDATA%\InkAndIron\saves" in self._text()

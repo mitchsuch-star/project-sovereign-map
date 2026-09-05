@@ -4317,3 +4317,73 @@ CRITICAL — that is the war register — and the copy may not contain
 "War declared", "rebelled against" or "ceased to exist", all three of which
 are pinned bans. The four MECHANICAL effects live in `complete_vassal_break`
 (slice-11 review round) and must not be duplicated here.
+
+---
+
+## 35. What the zip actually contains (FA slice 13, landed September 5, 2026)
+
+Five rules about the SHIPPED build, not the source checkout. Landing record
+in `BUG_FIXES.md` §Final Whole-Game Audit; pins in
+`tests/test_fa_slice13_shipping_2026_09_05.py`.
+
+**1. An instruction to the player must know which build is running.**
+`Utils.launch_hint()` is the single source, and it branches on
+`OS.has_feature("editor")` — verified on the engine: the editor binary
+reports `editor=true / template=false`, an exported build the reverse. The
+editor arm names `.venv\Scripts\python.exe -m backend.main`; the template arm
+says to CLOSE the window and use `launch.bat`, deliberately not "double-click
+launch.bat", because the batch runs `start /wait InkAndIron.exe` and would
+queue behind the window it is telling them about. **No `.gd` file outside
+`utils.gd` may name a Python command** — pinned as a census, because before
+this the whole client had ZERO `has_feature` / `is_debug_build` /
+`is_editor_hint` calls and three surfaces stated a dev command
+unconditionally. `Utils.build_label()` reads `application/config/version`,
+which project.godot must author or the version line renders empty.
+
+**2. A licence notice ships WITH the game, and the copy route is not
+optional.** Godot's `export_filter="all_resources"` walks the
+EditorFileSystem and skips entries it types `TextFile` — which is what every
+`*-OFL.txt` and `kenney-license.txt` is in the project's own filesystem
+cache, while the `.ttf` are `FontFile` and the `.json` are `JSON`, which is
+why those ride the `.pck`. So the notices are COPIED into `deploy\dist\...\
+licenses\` by `build.bat`, and the two extension-less `LICENSE` files are
+renamed on copy (Godot does not scan extension-less files at all). **Do not
+widen `include_filter` to `*.txt`** — it sweeps the whole project. **Do not
+use `xcopy /s`** — combined with `/i` it succeeds silently on an empty match,
+so a future rename would leave the folder empty at errorlevel 0; there is a
+pin against it. Every copy carries build.bat's own `if errorlevel 1 echo
+[WARN]` arm. The pin is a DISTRIBUTION census derived from `git ls-files` at
+test time; `test_ui_visual_foundation.py::test_ui1_font_ttf_and_ofl_present`
+is a REPO-presence check and says nothing about the zip.
+
+**3. A hotkey the game advertises must work in the state the game puts
+itself in.** The command line holds focus after nearly every action (it is
+re-grabbed at 35 sites) and a focused `LineEdit` eats printable keys before
+`_unhandled_input` sees them. So every advertised key has an Alt form:
+`_SCREEN_HOTKEYS` (PC15-18) for the six screens, and `main.gd::_alt_game_key`
+for E, Tab, M, Home and +/−. **Each arm mirrors the gate its unfocused twin
+obeys** — bare E and Tab sit BELOW `_unhandled_input`'s `if _is_screen_open():
+return`, so their Alt arms check `_is_screen_open()` too, or Alt+E ends the
+turn with a full-screen ledger open where bare E refuses. **The map keys are
+CALLED, never re-emitted**: a re-emitted event lands on the same
+`text_focused` guard in `map_renderer_base._unhandled_input`, so the focused
+route goes through the public `recenter_view()` / `zoom_step()` /
+`cycle_map_fill_mode()`. The Alt arm consumes the event whether or not the
+gate allows the action, so Alt+E never types an "e". The README and the boot
+help advertise the Alt form beside the bare one — before this the README
+named "Alt" zero times.
+
+**4. The School of War does not touch the campaign autosave.**
+`save_manager.autosave` no-ops for `scenario_name == "tutorial"` (TUT-F2) and
+`/new_game` says so in the same terminal. Three client surfaces claimed
+otherwise. The restore promise ("Continue restores it") is CONDITIONAL on
+`_saves.size() > 0`: the confirm row also shows in the `came_from_game and no
+saves` arm, where nothing is on disk at all. The `Begin anew` confirm is
+untouched — it is true.
+
+**5. A source-text pin over a file you also wrote prose in is not a pin.**
+Three of this slice's own mutations came back INERT because the licence
+census matched `THIRD_PARTY_LICENSES.md` and `*-OFL.txt` inside the `::`
+comment block explaining why they must be copied. Scope such a census to the
+COMMANDS (`_build_commands()` strips `::` lines), and assert a dispatch
+condition literally rather than the presence of the function it calls.
