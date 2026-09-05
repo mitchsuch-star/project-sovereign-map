@@ -183,6 +183,89 @@ def _is_offer_active_dialogue(world: Any, dialogue: Mapping[str, Any]) -> bool:
     return str(current.get("war_id") or "") == str(dialogue.get("war_id") or "")
 
 
+def _consume_offer_dialogue(world: Any, dialogue: Mapping[str, Any]) -> None:
+    """Remove THIS incoming offer from the mailbox, wherever it now sits.
+
+    FA-4 (slice 10). The accept and request-revision arms used to ``pop()``
+    the offer BEFORE staging, and that is precisely what destroyed the
+    letter the player clicked: ``pop()`` PROMOTES the next queued item, and
+    ``stage_settlement_confirm``'s SC-26 arm then read that promotion as a
+    rival draft and refused the whole action.
+
+    The arms stage FIRST now. By the time the offer is consumed the staged
+    review is current and the offer has been re-queued behind it by the
+    staging tail's ``preempt``, so the removal must reach into the QUEUE —
+    which is what ``remove_matching`` does, without disturbing the head
+    unless the head is the offer itself.
+    """
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None or not hasattr(dm, "remove_matching"):
+        return
+    did = dialogue.get("dialogue_id")
+    offer_id = str(dialogue.get("offer_id") or "")
+
+    def _is_this_offer(entry: Any) -> bool:
+        if not isinstance(entry, Mapping):
+            return False
+        if str(entry.get("type") or "") != "incoming_settlement_offer":
+            return False
+        if did is not None and entry.get("dialogue_id") == did:
+            return True
+        return bool(offer_id) and str(entry.get("offer_id") or "") == offer_id
+
+    dm.remove_matching(_is_this_offer)
+
+
+def _live_covered_for_offer(
+    world: Any,
+    *,
+    war_id: str,
+    dialogue: Mapping[str, Any],
+) -> Tuple[List[str], List[str]]:
+    """Split an offer's covered courts into (still at war, already settled).
+
+    FA-3. A settlement offer is PERSISTENT — it can stand in the mailbox for
+    twenty turns while the war moves under it. Measured on the committed t20
+    fixture: Britain's turn-3 offer still covered Russia seventeen turns
+    after Russia had made her own peace, so the staged review carried an
+    unscoreable per-court row ("no terms can move them") and a BLANK blocked
+    reason. A court that has already left the war cannot be a party to this
+    peace. It is dropped from the coverage, and the player is told which.
+    """
+    covered = [
+        str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n
+    ]
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping):
+        return covered, []
+    accepting_side = str(dialogue.get("accepting_side") or "")
+    if accepting_side not in VALID_SIDES:
+        return covered, []
+    coverable = set(get_coverable_enemy_participants(war, accepting_side))
+    live = [nation for nation in covered if nation in coverable]
+    departed = [nation for nation in covered if nation not in coverable]
+    return live, departed
+
+
+def _departed_courts_note(departed: Iterable[str]) -> str:
+    """One sentence naming the courts an offer no longer binds (FA-3)."""
+    from backend.display_names import humanize_entity_name
+
+    names = [humanize_entity_name(str(n)) for n in departed if n]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return (
+            f"{names[0]} has already made her own peace; these terms now "
+            f"bind the courts that remain."
+        )
+    listed = ", ".join(names[:-1]) + f" and {names[-1]}"
+    return (
+        f"{listed} have already made their own peace; these terms now bind "
+        f"the courts that remain."
+    )
+
+
 def _is_offer_known_to_dialogue_manager(
     world: Any, *, offer_id: str
 ) -> bool:
@@ -2094,39 +2177,68 @@ def build_incoming_settlement_offer_popup(
     else:
         war_label = war_id or "settlement"
 
-    amount = 0
+    # FA-N16 (slice 10): DIRECTION. The old read took the first
+    # `gold_indemnity` clause's amount and never looked at `from` / `to`,
+    # while all six arrival families are demand-shaped ("They ask {amount}
+    # gold"). Measured on the shipped board: the boot white peace read "They
+    # ask 0 gold" / "London asks 0 gold", and an AUD-c concession offer in
+    # which Britain PAYS France 1,109 read "London asks 1109 gold" on the
+    # popup and "Asking 1109 gold." on the notification — a court buying its
+    # way out of the war, announced as dunning us for it.
+    player_nation = str(getattr(world, "player_nation", "France") or "France")
+    amount = 0            # what FRANCE is asked to pay
+    amount_offered = 0    # what is offered TO France
     for term in settlement_terms:
-        if term.get("type") == "gold_indemnity":
-            try:
-                amount = int(term.get("amount") or 0)
-            except (TypeError, ValueError):
-                amount = 0
-            break
+        if term.get("type") != "gold_indemnity":
+            continue
+        try:
+            _clause_amount = int(term.get("amount") or 0)
+        except (TypeError, ValueError):
+            _clause_amount = 0
+        if str(term.get("to") or "") == player_nation:
+            amount_offered = _clause_amount
+        else:
+            # France pays — or, defensively, a clause between two other
+            # courts, which the producer never emits (`_settlement_offer_
+            # build_terms` always makes the accepter one of the parties).
+            amount = _clause_amount
+        break
+
+    # Three registers, because there are three things an offer can say about
+    # gold: they ask it of us, they offer it to us, or nobody pays.
+    if amount_offered > 0:
+        _arrival_suffix = "_concession"
+        _voice_amount = amount_offered
+    elif amount > 0:
+        _arrival_suffix = ""
+        _voice_amount = amount
+    else:
+        _arrival_suffix = "_none"
+        _voice_amount = 0
 
     # Voice routing per Voice Bible §16.1 incoming-offer families. Named
     # diplomats use their own register; non-cast courts fall back to the
     # chancery variant.
-    diplomat_family = {
-        "Britain": "settlement_incoming_offer_arrival_castlereagh",
-        "Prussia": "settlement_incoming_offer_arrival_hardenberg",
-        "Austria": "settlement_incoming_offer_arrival_metternich",
-        "Saxony": "settlement_incoming_offer_arrival_einsiedel",
-    }
-    proposer_family = diplomat_family.get(
-        proposer_nation,
-        "settlement_incoming_offer_arrival_chancery",
+    diplomat_token = {
+        "Britain": "castlereagh",
+        "Prussia": "hardenberg",
+        "Austria": "metternich",
+        "Saxony": "einsiedel",
+    }.get(proposer_nation, "chancery")
+    proposer_family = (
+        f"settlement_incoming_offer_arrival{_arrival_suffix}_{diplomat_token}"
     )
     proposer_voice = resolve_settlement_voice_line(
         proposer_family,
         war_label=war_label,
         proposer_leader=proposer_nation or "their leader",
-        amount=str(amount or 0),
+        amount=str(_voice_amount or 0),
     )
     talleyrand_voice = resolve_settlement_voice_line(
-        "settlement_incoming_offer_arrival_talleyrand",
+        f"settlement_incoming_offer_arrival{_arrival_suffix}_talleyrand",
         war_label=war_label,
         proposer_leader=proposer_nation or "their leader",
-        amount=str(amount or 0),
+        amount=str(_voice_amount or 0),
     )
 
     # AI-5c (§12.5): a MEDIATED offer names the arbiter and its interest —
@@ -2169,10 +2281,14 @@ def build_incoming_settlement_offer_popup(
             )
             continue
         if ttype == "gold_per_turn":
-            amount = int(term.get("amount", 0) or 0)
+            # FA-N16, found in passing: this loop-local reassigned the
+            # HEADLINE `amount` the payload publishes below, so a recurring
+            # -gold offer overwrote the indemnity figure the popup and the
+            # notification quote. Its own name now.
+            stream_amount = int(term.get("amount", 0) or 0)
             turns = int(term.get("turns", 0) or 0)
             terms_summary.append(
-                f"{amount} gold/turn for {turns} turns "
+                f"{stream_amount} gold/turn for {turns} turns "
                 f"({term.get('from', '')} → {term.get('to', '')})"
             )
             continue
@@ -2265,7 +2381,11 @@ def build_incoming_settlement_offer_popup(
         "covered_enemy_participants": list(covered),
         "settlement_terms": settlement_terms,
         "terms_summary": terms_summary,
+        # FA-N16: `amount` is what FRANCE is asked to pay — 0 when the offer
+        # pays her — and `amount_offered` is what is put on the table for
+        # her. Every consumer reads the direction off these two.
         "amount": int(amount),
+        "amount_offered": int(amount_offered),
         "talleyrand_text": talleyrand_voice or "",
         "proposer_voice": proposer_voice or "",
         "options": options,
@@ -2540,13 +2660,41 @@ def handle_incoming_settlement_offer_action(
                 }
             return result
 
-        # Remove the offer first so the mailbox no longer renders it and
-        # the one-active-offer-per-war producer guard re-opens for the
-        # next AI tick. Draft state lives in the scoped
-        # `pending_settlement_drafts_by_key` store from `stage_settlement_confirm`.
-        _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
-        if _is_offer_active_dialogue(world, dialogue):
-            world.dialogue_manager.pop()
+        # FA-N4 (staging half) / FA-4: STAGE FIRST, NEVER POP. This arm used
+        # to remove the pending entry and pop the dialogue here, before
+        # staging — and the pop promoted whatever was queued behind it, which
+        # `stage_settlement_confirm` then read as a rival draft and refused.
+        # Measured: `cross_war_settlement_collision`, the offer destroyed,
+        # and a `must_reopen` that fired a fresh `propose_common_peace` which
+        # collided again. The counter surface opens first now; the offer is
+        # consumed only once it exists, and a refusal leaves the letter
+        # standing and answerable.
+        live_covered, departed_courts = _live_covered_for_offer(
+            world, war_id=war_id, dialogue=dialogue,
+        )
+        if covered_enemies and not live_covered:
+            return {
+                "success": False,
+                "dialogue_type": "incoming_settlement_offer",
+                "action": "request_settlement_revision",
+                "war_id": war_id,
+                "offer_id": offer_id,
+                "error": "offer_courts_all_settled",
+                "error_display": _error_display("offer_courts_all_settled"),
+                "must_reopen": False,
+                "mutated": False,
+                "diplomatic_dialogue": dict(dialogue),
+                "awaiting_diplomatic_response": True,
+                "suppress_proposal_result_popup": True,
+            }
+        if live_covered:
+            covered_enemies = live_covered
+            if selected_target not in covered_enemies:
+                selected_target = (
+                    offer_proposer_nation
+                    if offer_proposer_nation in covered_enemies
+                    else covered_enemies[0]
+                )
 
         stage_kwargs: Dict[str, Any] = {
             "war_id": war_id,
@@ -2610,13 +2758,11 @@ def handle_incoming_settlement_offer_action(
             # nothing had opened. The player was told a counter draft was
             # being written; it was not.
             #
-            # The staging half of FA-N4 (the pop that CAUSES that collision)
-            # is a settlement-slice change of its own — the reorder alone
-            # opens a counter surface that can be neither submitted nor
-            # backed out of, so it must land with its siblings (FA-4,
-            # FA-N17, FA-N18) rather than here. This guard is independent of
-            # that ordering, and the row asks for it either way: whatever
-            # refuses, the refusal must not wear the success voice.
+            # The staging half of FA-N4 (the pop that CAUSED that collision)
+            # landed with its siblings FA-4 / FA-N17 / FA-N18 in slice 10;
+            # this guard is independent of that ordering and the row asked
+            # for it either way: whatever refuses, the refusal must not wear
+            # the success voice.
             if result.get("success"):
                 result["message"] = revision_voice
         if not result.get("success"):
@@ -2627,7 +2773,21 @@ def handle_incoming_settlement_offer_action(
             # words, rather than leaving whatever `stage_settlement_confirm`
             # put there to be read as an outcome.
             result["message"] = result.get("error_display")
-            result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+            # FA-4: the offer STANDS. Nothing was staged, so nothing displaced
+            # it — hand the letter back instead of reopening a review that
+            # does not exist (which burned an SC-14b reopen attempt and
+            # printed an empty red line on the /command route).
+            result["must_reopen"] = False
+            result.setdefault("diplomatic_dialogue", dict(dialogue))
+            result["awaiting_diplomatic_response"] = True
+        else:
+            _consume_offer_dialogue(world, dialogue)
+            _remove_pending_settlement_offer(
+                world, offer_id=offer_id, war_id=war_id)
+            if departed_courts:
+                result["departed_courts"] = list(departed_courts)
+                result["departed_courts_note"] = _departed_courts_note(
+                    departed_courts)
         return result
 
     if action != "accept_settlement_offer":
@@ -2731,9 +2891,53 @@ def handle_incoming_settlement_offer_action(
         )
     )
 
-    _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
-    if _is_offer_active_dialogue(world, dialogue):
-        world.dialogue_manager.pop()
+    # FA-4 / FA-3 (slice 10). Two rules meet here.
+    #
+    # ONE — STAGE FIRST, NEVER POP. The old order removed the pending entry
+    # and popped the dialogue before staging; the pop PROMOTES the next
+    # queued item and the SC-26 arm read that promotion as a rival draft.
+    # Measured on the committed t20 fixture with a second war's offer queued
+    # behind Britain's: the accept returned `cross_war_settlement_collision`
+    # naming a war the player had never seen, and Britain's offer — the one
+    # they clicked — was gone.
+    #
+    # TWO — THE OFFERING COURTS CONSENT BY CONSTRUCTION. The staged review
+    # scores the covered courts as the ACCEPTING side of a package France is
+    # deemed to have proposed, so the scorer priced the AI's own terms as the
+    # AI's reluctance to sign them. Measured: Britain's boot white peace
+    # staged `can_ratify` False, blocker "Settlement legitimacy", no ratify
+    # option (Austria 5 / Britain -2 / Russia -2 against a threshold of 50);
+    # the same on the t20 fixture at 18/10/10. These are terms THEY wrote.
+    # `consenting_courts` rides the staged dialogue and is honoured at both
+    # scoring seams — the preview here and the re-score at ratification —
+    # while `consent_terms` pins the consent to the exact package offered,
+    # so a draft that is later edited is scored normally again.
+    live_covered, departed_courts = _live_covered_for_offer(
+        world, war_id=war_id, dialogue=dialogue,
+    )
+    if covered_enemies and not live_covered:
+        return {
+            "success": False,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "accept_settlement_offer",
+            "war_id": war_id,
+            "offer_id": offer_id,
+            "error": "offer_courts_all_settled",
+            "error_display": _error_display("offer_courts_all_settled"),
+            "must_reopen": False,
+            "mutated": False,
+            "diplomatic_dialogue": dict(dialogue),
+            "awaiting_diplomatic_response": True,
+            "suppress_proposal_result_popup": True,
+        }
+    if live_covered:
+        covered_enemies = live_covered
+        if selected_target not in covered_enemies:
+            selected_target = (
+                offer_proposer_nation
+                if offer_proposer_nation in covered_enemies
+                else covered_enemies[0]
+            )
 
     stage_kwargs: Dict[str, Any] = {
         "war_id": war_id,
@@ -2743,6 +2947,11 @@ def handle_incoming_settlement_offer_action(
         # draft. Keep the staged review ratifiable, but do not advertise
         # the outgoing `Revise Terms` editor route from SC-5R.
         "caller_kind": "ai_system",
+        "consenting_courts": list(covered_enemies),
+        "consent_terms": [
+            dict(term) for term in offered_terms if isinstance(term, Mapping)
+        ],
+        "consent_offer_id": offer_id,
     }
     if offered_terms:
         stage_kwargs["settlement_terms"] = offered_terms
@@ -2760,12 +2969,23 @@ def handle_incoming_settlement_offer_action(
     result["offer_id"] = offer_id
     result["accepted_offer_terms"] = offered_terms
     if not result.get("success"):
-        # Build a SC-13-safe reopen payload using the staged dialogue's
-        # selected target / covered participants if present (degrades to
-        # choose-from-war-detail when both are missing).
+        # FA-4: the offer STANDS. A refused accept used to leave the player
+        # with no letter at all and a `must_reopen` that fired a fresh
+        # `propose_common_peace` — which collided again and printed an empty
+        # red line — while burning one of the SC-14b reopen attempts. Nothing
+        # was staged, so nothing displaced the letter: hand it back.
         result["error_display"] = result.get("error_display") or _error_display(str(result.get("error") or "invalid_war_id"))
-        result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
-    elif str(dialogue.get("mediator") or ""):
+        result["message"] = result.get("message") or result["error_display"]
+        result["must_reopen"] = False
+        result.setdefault("diplomatic_dialogue", dict(dialogue))
+        result["awaiting_diplomatic_response"] = True
+        return result
+    _consume_offer_dialogue(world, dialogue)
+    _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
+    if departed_courts:
+        result["departed_courts"] = list(departed_courts)
+        result["departed_courts_note"] = _departed_courts_note(departed_courts)
+    if str(dialogue.get("mediator") or ""):
         # AI-5c (§12.5): the good offices ACCEPTED — the mediator is
         # credited at the moment the review opens (relations), and the
         # design satisfaction the peace itself serves is derived. One

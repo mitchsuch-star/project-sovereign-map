@@ -3994,3 +3994,97 @@ Landing record: `docs/NAVAL_SPEC.md` §14 (the spec's §1–§13 are the design 
 - **Surfaces (§9):** THE ADMIRALTY ledger block (fleet, Blockade board both directions, CS %, Crossings verdict lines, honest gate terms), map sea-link verdict tints + port anchor glyphs (`naval_overlay` on the game-state summary), region-panel "Lay down ships (400g)" chip on owned yards, war-room `naval_line`, 10 dispatch beats (state-change only). AI (§6): island fleets blockade at war (guard on a staged enemy camp/live window); everyone else guards; the P1.8 admin build rung lays keels through the same verb.
 
 Verbs: `build_fleet` (1 admin AP + 400g, national rate 2/turn — 1 blockaded; conquest grants YARDS, never ships) · `set_fleet_posture` · `naval_expedition` · `naval_diversion`. Constants in `naval.py` = the spec's N-table, in-band tunable. Tests: `test_naval_substrate/blockade_cs/channel_gate/free_ireland/descent.py` (140).
+
+## 32. The settlement offer on the desk (FA slice 10, landed September 5, 2026)
+
+Landing record: the boxed SLICE 10 block in `docs/BUG_FIXES.md` §Final
+Whole-Game Audit. Two rules and one repair, all in the settlement package.
+
+**An incoming offer is MAIL, never a DRAFT.** `settlement_routes` publishes two
+sets, and they are not the same question:
+
+- `SETTLEMENT_FAMILY_DIALOGUE_TYPES` — everything in the settlement family,
+  offer included. Used by the defensive guards that want to recognise any
+  settlement surface.
+- `settlement_draft_dialogue_types()` — the family MINUS
+  `incoming_settlement_offer`. This is what SC-26 means by "a settlement is
+  already on the table", and it is read at exactly three places, which must
+  always agree: the collision arm in `_settlement_dialogue_active`, the
+  mounted-draft reader `_mounted_settlement_dialogue` (the one
+  `stage_settlement_confirm` consults to raise
+  `cross_war_settlement_collision`), and the staging tail's same-war replace
+  arm in `settlement_staging`. Flip lever `OFFER_IS_MAIL_NEVER_A_DRAFT`.
+
+A letter is a persistent soft-stop mailbox item the player may hold for turns.
+It never blocks opening a settlement, on its own war or another. It follows
+that **the two arms that answer an offer stage FIRST and consume the offer only
+on success** — `pop()` PROMOTES the next queued item, and the promotion was
+then read as a rival draft. Because the staging tail has re-queued the offer
+behind the new review by the time it is consumed, removal goes through
+`dialogue_manager.remove_matching` (`_consume_offer_dialogue`), not `pop`. A
+refused accept leaves the letter standing and answerable, with `must_reopen`
+False and no SC-14b reopen attempt spent.
+
+**The offering courts consent by construction.** Accepting an AI offer stages a
+review of terms THEY wrote, so their willingness is not re-litigated. The accept
+stamps three display-and-scoring keys on the staged dialogue —
+`consenting_courts`, `consent_terms`, `consent_offer_id` — and they are
+honoured at BOTH scoring seams:
+
+- `settlement_baseline.compute_per_court_acceptance` — a consenting court
+  passes without meeting the threshold, keeps its real score (honest about what
+  the peace is worth to them), and takes the `consented` band;
+- `settlement_ratify.consenting_courts_for_ratification` — the fresh re-score
+  at ratification reads the same consent, without which a Ratify button that was
+  true when drawn is false when pressed.
+
+Consent is granted to a SPECIFIC package: if `settlement_terms` no longer equals
+`consent_terms` (an edit, a restage, a save-loaded dialogue that outlived its
+offer) it lapses and every court is scored normally again. **Hard stops always
+block** — consent says a court is willing, never that a clause is legal or a
+pair is still at war. A covered court that has since made its own peace is
+dropped from the coverage (`_live_covered_for_offer`) and named to the player;
+an offer whose courts have ALL departed is refused as `offer_courts_all_settled`.
+
+**Elimination resolves its pairs.** `mark_participant_eliminated_in_all_wars`
+moves the eliminated nation's `active_diplo_keys` entries to
+`resolved_diplo_keys` with `pair_status: "resolved"`, `resolved_turn` and
+`resolve_reason: "participant_eliminated"` (lever
+`ELIMINATION_RESOLVES_ITS_PAIRS`). It does NOT stamp `ended_turn` /
+`end_reason`: the war continues for everybody else, and an empty
+`active_diplo_keys` already reads as "no unresolved hostile pairs" downstream.
+Without this, a pair naming a nation that is on no side can never be returned by
+`_active_cross_side_pairs` and can never be resolved by any peace, so
+`revalidate_staged_settlement` refuses every ratification of that war forever.
+
+**A dialogue that exists to interrupt takes the slot from mail.**
+`DialogueManager.mount_over_mail(dialogue)` preempts when the current slot is
+empty or holds a `SOFT_STOP_MAILBOX_TYPES` item (the letter re-queues, exactly
+as `open_flow` already does) and otherwise falls back to `push`. It never
+displaces a hard stop or a decision in progress. Used by the counter-offer
+answer to France's own overture and by the commitment paradox. Two riders:
+`clear_stale` spares a queued `PARADOX_DIALOGUE_TYPES` entry (a crisis whose
+deletion is itself a decision), and `main._attach_modal_for_the_carried_question`
+delivers the popup whose `dialogue_id` equals the carried dialogue's — slice
+6's rule (a response that asks a question never carries a POPPED popup) still
+holds for every other popup, because a bound popup is not a second question but
+how that question is drawn.
+
+**One treaty, two harshness questions.**
+`diplomatic_templates.calculate_treaty_harshness` has two dialects — a
+direction-blind `clauses` loop and a `demands` loop — and they must price the
+same types (pinned as a census). For the bilateral ratification path use
+`burden_on_nation(clauses, nation)`, which selects the clauses that nation PAYS
+and prices them through the demands dialect: the treaty RECORD stores what the
+peace cost the party it was asked of (DD8-4's escalating-harshness memory), and
+the BPH-C separate-peace penalty reads the burden on the COMMON ENEMY. Summing
+both sides books our own concessions as harshness against us.
+
+**Direction in the offer copy.** The incoming-offer popup publishes `amount`
+(what France is asked to pay) and `amount_offered` (what is offered TO France)
+separately, and picks one of three arrival registers — demand, `_concession`,
+`_none`. AUD-c lets a losing court PAY to close a war, so a demand-shaped
+default announces a concession as dunning. The incoming envoy popup's
+"Assessment" label is likewise recomputed on the UN-oriented `demands` (the
+burden on France) while its fallout warnings, which are about our allies'
+reading of what we let the enemy off with, stay as they were.

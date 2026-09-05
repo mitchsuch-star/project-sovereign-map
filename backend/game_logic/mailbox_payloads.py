@@ -135,10 +135,41 @@ def build_pending_envoy_popup_from_terms(
             payload["annotated_terms"] = snapshot.get("annotated_terms", [])
             payload["fallout_warnings"] = snapshot.get("fallout_warnings", [])
             payload["commitment_conflicts"] = snapshot.get("commitment_conflicts", [])
+            # FA-N43 (slice 10): the popup's "Assessment" line.
+            #
+            # `build_war_context_snapshot`'s `harshness` is, by its OUTGOING
+            # definition, the burden on the ENEMY — what the other side is
+            # asked to bear. The mirror terms above preserve that definition,
+            # which is why the fallout warnings that consume the same number
+            # are right today and must not move. But the popup prints it as
+            # "Assessment", which a player reads as the burden on FRANCE —
+            # so an AI demand for 405 gold rendered GENEROUS and an AI gift
+            # of 300 gold a turn rendered HARSH.
+            #
+            # Two different questions, two numbers. The label is recomputed
+            # here, on the UN-oriented demands, and nothing else moves.
+            if INCOMING_ASSESSMENT_READS_OUR_BURDEN:
+                from backend.game_logic.diplomacy import get_harshness_label
+                from backend.game_logic.diplomatic_templates import (
+                    calculate_treaty_harshness,
+                )
+                _our_burden = calculate_treaty_harshness({
+                    "clauses": [],
+                    "demands": list(terms.get("demands") or []),
+                })
+                snapshot["harshness"] = round(_our_burden, 2)
+                snapshot["harshness_label"] = get_harshness_label(_our_burden)
+                payload["harshness"] = snapshot["harshness"]
+                payload["harshness_label"] = snapshot["harshness_label"]
         except Exception:
             payload["annotated_terms"] = []
 
     return payload
+
+
+# FA-N43 (slice 10) flip lever: False restores the pre-slice-10 reading, in
+# which the incoming popup's Assessment quoted the burden on the SENDER.
+INCOMING_ASSESSMENT_READS_OUR_BURDEN = True
 
 
 def _orient_incoming_terms_for_player(terms: Dict, player_nation: str, source_nation: str) -> Dict:

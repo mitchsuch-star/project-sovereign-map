@@ -34,6 +34,16 @@ def _nation_display(source: str) -> str:
     return display_nation(str(source or ""))
 
 
+# FA slice 10 flip levers.
+# FA-17 / FA-N44: a counter-offer and a commitment paradox displace MAIL to
+# reach the player. False restores the plain `push` (queue behind anything).
+MOUNT_OVER_MAIL_ACTIVE = True
+# FA-N44: the commitment paradox survives the stale sweep. False restores the
+# pre-slice-10 behaviour (a crisis the player never saw is deleted silently).
+PARADOX_SURVIVES_THE_STALE_SWEEP = True
+PARADOX_DIALOGUE_TYPES = frozenset({"commitment_paradox", "alliance_paradox"})
+
+
 class DialogueManager:
     """Manages the active dialogue slot and priority queue.
 
@@ -318,6 +328,39 @@ class DialogueManager:
             self.preempt(dialogue)
         else:
             self.replace(dialogue)
+
+    def mount_over_mail(self, dialogue: dict) -> bool:
+        """Make ``dialogue`` current when only MAIL (or nothing) holds the slot.
+
+        FA-17 / FA-N44 (slice 10). ``push`` sets the current slot only when it
+        is EMPTY, and the slot is refilled by routine mail on most turns — the
+        IGR-F drip runs about two letters a turn. So two dialogues that exist
+        to interrupt the player never did:
+
+        * the COUNTER to France's own 3-DP overture (``counter_offer_response``,
+          priority 3) was pushed behind whatever letter had arrived that same
+          turn — ``_process_ai_diplomatic_phase`` delivers the mail BEFORE
+          ``advance_turn`` resolves the proposal in transit, so the answer to
+          the player's own question was always last in the queue;
+        * the COMMITMENT PARADOX (priority 0, a HARD stop) was pushed behind a
+          persistent settlement offer that never vacates, sat invisible for
+          two turns, and was then destroyed by ``clear_stale`` with no event —
+          France stayed allied to both belligerents having chosen nothing.
+
+        Mail is not a decision in progress: a letter yields the slot and
+        returns to the queue, exactly as it already does when a wizard step
+        preempts it (``open_flow``). A HARD stop, a staged planning surface,
+        or anything else the player is mid-answer on KEEPS the slot and the
+        new dialogue queues behind it as before.
+
+        Returns True when the dialogue became current.
+        """
+        current = self._current
+        if current is None or current.get("type", "") in self.SOFT_STOP_MAILBOX_TYPES:
+            self.preempt(dialogue)
+            return True
+        self.push(dialogue)
+        return False
 
     def preempt(self, dialogue: dict) -> None:
         """Make a dialogue current while preserving the displaced one.
@@ -710,6 +753,29 @@ class DialogueManager:
             for queued in self._queue:
                 q_type = queued.get("type", "")
                 if q_type in self.SOFT_STOP_MAILBOX_TYPES:
+                    kept.append(queued)
+                    continue
+                # FA-N44 (slice 10): the COMMITMENT PARADOX is never swept
+                # from the queue.
+                #
+                # PC15-3 added this sweep for a good reason — a stale
+                # `settlement_pair_substitute_confirm` displaced into the
+                # queue was immortal, and its confirm vocabulary ate every
+                # later "confirm" when it was finally promoted. That cure
+                # stays for every type it was written for.
+                #
+                # The paradox is the opposite shape. It has no vocabulary to
+                # eat (it is answered by option index), and deleting it is
+                # not a cleanup but a DECISION: France keeps both alliances,
+                # having chosen nothing, and no event records that the crisis
+                # ever existed. Measured: queued behind a persistent
+                # settlement offer, the paradox was gone two turns later with
+                # France still allied to both belligerents. With
+                # `mount_over_mail` it now reaches the slot on arrival, so
+                # this is defence in depth — the only way to queue is behind
+                # ANOTHER hard stop, which blocks play until answered.
+                if (PARADOX_SURVIVES_THE_STALE_SWEEP
+                        and q_type in PARADOX_DIALOGUE_TYPES):
                     kept.append(queued)
                     continue
                 q_created = queued.get("turn_created", 0)

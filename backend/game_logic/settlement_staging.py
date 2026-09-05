@@ -73,6 +73,7 @@ from backend.game_logic.settlement_routes import (
     SETTLEMENT_FAMILY_DIALOGUE_TYPES,
     _error_display,
     _mounted_settlement_dialogue,
+    settlement_draft_dialogue_types,
     _normalize_nation_list,
     _terminal_recovery_copy,
     _war_label,
@@ -155,12 +156,28 @@ def _scope_changed(
     return current_selected != incoming_selected or current_covered != incoming_scope
 
 
+def _collision_war_label(world: Any, war_id: str, fallback: str) -> str:
+    """Humanize a war id for the collision sentence (R7).
+
+    FA-4: the sentence the player reads is "the settlement of war_2 is
+    already on the table" — the raw internal id, because this builder never
+    had a world to resolve it against. Every caller has one.
+    """
+    if world is None or not war_id:
+        return fallback
+    instance = (getattr(world, "war_instances", {}) or {}).get(str(war_id))
+    if not isinstance(instance, Mapping):
+        return fallback
+    return _war_label(str(war_id), instance) or fallback
+
+
 def _settlement_collision_payload(
     *,
     error: str,
     active_war_id: str,
     incoming_war_id: str,
     extra: Optional[Mapping[str, Any]] = None,
+    world: Any = None,
 ) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
         "success": False,
@@ -172,8 +189,10 @@ def _settlement_collision_payload(
         "collision": True,
         "talleyrand_text": resolve_settlement_voice_line(
             "settlement_collision_active_review_talleyrand",
-            active_war_label=active_war_id or "the active war",
-            blocked_war_label=incoming_war_id or "this war",
+            active_war_label=_collision_war_label(
+                world, active_war_id, active_war_id or "the active war"),
+            blocked_war_label=_collision_war_label(
+                world, incoming_war_id, incoming_war_id or "this war"),
         ),
     }
     if extra:
@@ -1887,6 +1906,7 @@ def build_settlement_preview(
     ignore_active_dialogue: bool = False,
     generate_baseline_when_empty: bool = False,
     previous_bands: Optional[Mapping[str, str]] = None,
+    consenting_courts: Optional[Iterable[str]] = None,
 ) -> Dict[str, Any]:
     """Build the non-mutating settlement preview response.
 
@@ -1973,6 +1993,7 @@ def build_settlement_preview(
         covered_enemy_participants=covered,
         settlement_terms=terms,
         previous_bands=previous_bands,
+        consenting_courts=consenting_courts,
     )
 
     preview = {
@@ -1989,6 +2010,12 @@ def build_settlement_preview(
         "acceptance_components": dict(acceptance.get("components") or {}),
         "per_court_acceptance": per_court_block["per_court_acceptance"],
         "overall_acceptance": per_court_block["overall_acceptance"],
+        # FA-3: the courts whose own terms these are, narrowed to the covered
+        # set. Read by `build_settlement_confirm_dialogue`'s ratify gate and
+        # stamped onto the staged dialogue for the ratification re-score.
+        "consenting_courts": sorted(
+            {str(n) for n in (consenting_courts or []) if n} & set(covered)
+        ),
         "baseline_generated": baseline_generated,
         "baseline_per_court": (
             baseline_payload.get("per_court_baseline") if baseline_payload else {}
@@ -2415,10 +2442,32 @@ def build_settlement_confirm_dialogue(
         and not staged_terms_for_gate
         and not white_peace
     )
+    # FA-3 (slice 10): the courts whose OWN terms these are, narrowed to the
+    # covered set by the preview. The leader-level gate below asks whether the
+    # ACCEPTING leader would sign; when that leader is one of them, the offer
+    # itself is the answer. The per-court gate is consent-aware in the same
+    # way and still requires every OTHER covered court to carry, and a hard
+    # stop still blocks on either path — consent is about willingness, never
+    # about whether a clause is legal or a pair is still at war.
+    consenting_courts_set = {
+        str(n) for n in (preview.get("consenting_courts") or []) if n
+    }
+    accepting_leader_name = str(leaders.get(accepting_side) or "")
+    leader_consents = bool(
+        consenting_courts_set and accepting_leader_name in consenting_courts_set
+    )
     can_ratify = (
         not hard_stops
-        and verdict not in ("reject", "blocked")
-        and (acceptance_score is not None and acceptance_score >= acceptance_threshold)
+        and (
+            leader_consents
+            or (
+                verdict not in ("reject", "blocked")
+                and (
+                    acceptance_score is not None
+                    and acceptance_score >= acceptance_threshold
+                )
+            )
+        )
         and not empty_editor_block
         # Re-front §11.4: the per-covered-court gate. A multi-court settlement
         # ratifies only when EVERY covered court carries; a single holdout
@@ -2433,6 +2482,11 @@ def build_settlement_confirm_dialogue(
     # the player sees acceptance band display + top-blocker phrasing,
     # never raw `near_acceptable` / `reject` / `blocked` enums.
     band_code = str(preview["acceptance"].get("band") or verdict or "near_acceptable").lower()
+    if leader_consents and not hard_stops:
+        # FA-3: the review-level band is what the popup prints beside the
+        # Ratify button. "Holding out" over a live Ratify, for a court that
+        # sent the terms, is the contradiction the audit's through-line names.
+        band_code = "consented"
     band_display = acceptance_band_display(band_code) or "Under review"
     top_blocker_display = ""
     top_blocker_component = ""
@@ -2495,6 +2549,14 @@ def build_settlement_confirm_dialogue(
             )
             or f"A white peace for {war_label} cannot be ratified now."
         )
+    elif can_ratify and leader_consents:
+        # FA-3: the accepted-offer review. Their consent is the answer to the
+        # question the ordinary heading asks.
+        text = resolve_settlement_voice_line(
+            "settlement_review_heading_consent_talleyrand",
+            war_label=war_label,
+            accepting_leader=accepting_leader_name or "the offering court",
+        ) or f"Review the settlement of {war_label}."
     elif can_ratify:
         text = resolve_settlement_voice_line(
             "settlement_review_heading_talleyrand",
@@ -3165,6 +3227,11 @@ def build_settlement_confirm_dialogue(
         # (named diplomat / chancery fallback); Talleyrand narrates the table.
         "per_court_acceptance": per_court_acceptance,
         "overall_acceptance": overall_acceptance,
+        # FA-3: the courts whose own terms these are. Carried on the dialogue
+        # so the ratification re-score reads the same fact the review did —
+        # a consent honoured only at staging is killed by the fresh re-score
+        # and leaves a Ratify button that lies.
+        "consenting_courts": sorted(consenting_courts_set),
         "multi_court_table_narration": multi_court_table_narration,
         # Re-front Slice 2 / OQ#1: a VOICE-ONLY targeted-posture recommendation
         # on the conversational PROPOSE surface ("I'd press Prussia and ease
@@ -3365,6 +3432,9 @@ def stage_settlement_confirm(
     white_peace: bool = False,
     surrender_preset: bool = False,
     dialogue_mode: str = "REVIEW",
+    consenting_courts: Optional[Iterable[str]] = None,
+    consent_terms: Optional[Iterable[Mapping[str, Any]]] = None,
+    consent_offer_id: str = "",
 ) -> Dict[str, Any]:
     war_id_str = str(war_id or "")
     dialogue_mode = str(dialogue_mode or "REVIEW").upper()
@@ -3396,6 +3466,7 @@ def stage_settlement_confirm(
                 error="cross_war_settlement_collision",
                 active_war_id=active_war_id,
                 incoming_war_id=war_id_str,
+                world=world,
                 extra={
                     "dialogue_type": "settlement_confirm",
                     "war_id": war_id_str,
@@ -3455,6 +3526,12 @@ def stage_settlement_confirm(
             ):
                 incoming_request = {
                     "war_id": war_id_str,
+                    # FA slice 10 (found while reproducing FA-N18): the
+                    # chooser dropped the caller's `dialogue_mode`, so
+                    # answering "Replace" on a PROPOSE-opened flow landed a
+                    # BLOCKING REVIEW hard stop with empty terms and no
+                    # Return-to-terms option. Carry it.
+                    "dialogue_mode": dialogue_mode,
                     "proposer_side": proposer_side,
                     "settlement_terms": [
                         dict(t)
@@ -3537,6 +3614,7 @@ def stage_settlement_confirm(
         density=density,
         ignore_active_dialogue=is_same_war_refresh,
         generate_baseline_when_empty=(dialogue_mode == "PROPOSE"),
+        consenting_courts=consenting_courts,
     )
     if not preview.get("success"):
         return preview
@@ -3567,18 +3645,34 @@ def stage_settlement_confirm(
         )
     except ValueError as exc:
         return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
+    if consenting_courts:
+        # FA-3: consent is granted to a SPECIFIC package — the one the court
+        # put on the table. `consent_terms` pins it, so a draft that is later
+        # edited (or a save-loaded dialogue whose terms no longer match) is
+        # scored normally again at ratification.
+        dialogue["consent_terms"] = [
+            dict(term) for term in (consent_terms or []) if isinstance(term, Mapping)
+        ]
+        if consent_offer_id:
+            dialogue["consent_offer_id"] = str(consent_offer_id)
     _current = getattr(world.dialogue_manager, "peek", lambda: None)()
     if _current is None:
         world.dialogue_manager.replace(dialogue)
     elif (
         str(_current.get("type") or _current.get("dialogue_type") or "")
-        in SETTLEMENT_FAMILY_DIALOGUE_TYPES
+        in settlement_draft_dialogue_types()
         and str(_current.get("war_id") or "") == war_id_str
     ):
         # LEGB-F2 (Gate-4 1805 smoke): a same-war restage REPLACES the
-        # mounted settlement dialogue. Preempting re-queued the displaced
+        # mounted settlement DRAFT. Preempting re-queued the displaced
         # twin, so Back Out popped only the top copy — the stale twin then
         # resurrected the discarded draft on the next mount.
+        #
+        # FA slice 10: `replace()` drops what it overwrites unless BOTH the
+        # old and the new dialogue are mailbox types, so this arm silently
+        # destroyed a same-war incoming offer. An offer is mail: it falls to
+        # the `preempt` arm below and is re-queued, exactly as it already
+        # was when it sat behind an advisory.
         world.dialogue_manager.replace(dialogue)
     elif hasattr(world.dialogue_manager, "preempt"):
         world.dialogue_manager.preempt(dialogue)

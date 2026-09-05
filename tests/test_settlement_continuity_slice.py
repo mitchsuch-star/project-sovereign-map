@@ -333,17 +333,30 @@ def test_settlement_family_dialogue_types_match_canonical_set():
     )
 
 
-def test_collision_protection_treats_incoming_offer_as_settlement_family():
-    """SC-26 family scope: an active incoming_settlement_offer dialogue
-    blocks a cross-war settlement_confirm staging the same way an active
-    settlement_confirm would."""
+def test_collision_protection_does_not_treat_an_offer_as_a_mounted_draft():
+    """FA slice 10 — CONSCIOUSLY FLIPPED (was
+    `test_collision_protection_treats_incoming_offer_as_settlement_family`).
+
+    SC-26's "family scope" decision counted an `incoming_settlement_offer`
+    as a mounted settlement, so a letter from an enemy blocked the player
+    from opening a settlement on a DIFFERENT war. That reading also made the
+    accept and request-revision arms destroy the letter they were answering
+    (FA-4 / FA-N4), made Submit-for-Review collide with the mail behind the
+    draft (FA-N15), and made opening Settlement over a standing offer read
+    the ENEMY's terms as our draft (FA-N18).
+
+    An offer is MAIL — a soft-stop persistent mailbox item the player may
+    hold for turns. It is not a settlement in progress, and it no longer
+    blocks one. The collision guard itself is unchanged and still fires
+    between two real DRAFTS (see the test below).
+    """
     world = WorldState()
     _install_war(world, "war_1")
     _install_war(
         world,
         "war_2",
-        attackers=["France"],
-        defenders=["Britain"],
+        attackers=["France", "Spain"],
+        defenders=["Britain", "Prussia"],
         attacker_leader="France",
         defender_leader="Britain",
     )
@@ -355,9 +368,38 @@ def test_collision_protection_treats_incoming_offer_as_settlement_family():
         "settlement_terms": [],
     })
     result = stage_settlement_confirm(world, war_id="war_2")
+    assert result.get("error") != "cross_war_settlement_collision"
+    # And the letter is not consumed by the staging that ran over it.
+    remaining = [d.get("type") for d in
+                 ([world.dialogue_manager.peek()]
+                  if world.dialogue_manager.peek() else [])
+                 + world.dialogue_manager.iter_queue()]
+    assert "incoming_settlement_offer" in remaining
+
+
+def test_collision_protection_still_fires_between_two_drafts():
+    """The other direction of the same flip: SC-26 is intact for the case it
+    was written for — a real staged draft for one war blocks staging a
+    second war's."""
+    world = WorldState()
+    _install_war(world, "war_1")
+    _install_war(
+        world,
+        "war_2",
+        attackers=["France", "Spain"],
+        defenders=["Britain", "Prussia"],
+        attacker_leader="France",
+        defender_leader="Britain",
+    )
+    world.dialogue_manager.replace({
+        "type": "settlement_confirm",
+        "war_id": "war_1",
+        "settlement_terms": [],
+    })
+    result = stage_settlement_confirm(world, war_id="war_2")
     assert result["success"] is False
     assert result["error"] == "cross_war_settlement_collision"
-    assert result["active_dialogue_type"] == "incoming_settlement_offer"
+    assert result["active_dialogue_type"] == "settlement_confirm"
 
 
 # ---------------------------------------------------------------------------

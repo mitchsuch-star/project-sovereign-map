@@ -1753,6 +1753,11 @@ def merge_war_instances(
     }
 
 
+# FA-S10-1 flip lever: False leaves an eliminated court's pairs listed as
+# active war pairs (the pre-slice-10 behaviour).
+ELIMINATION_RESOLVES_ITS_PAIRS = True
+
+
 def mark_participant_eliminated_in_all_wars(
     world: Any,
     nation: str,
@@ -1789,6 +1794,46 @@ def mark_participant_eliminated_in_all_wars(
 
         side_by_nation = instance.setdefault("side_by_nation", {})
         side_by_nation.pop(nation, None)
+
+        # FA-S10-1 (found building slice 10, September 5, 2026): a dead
+        # court's PAIRS were left standing.
+        #
+        # This function takes the nation off `attackers` / `defenders` /
+        # `active_participants` / `side_by_nation`, and `_eliminate_nation`
+        # then transits every one of its diplomatic states to PEACE — but by
+        # then the pair can no longer be found on a war instance (neither
+        # nation is on a side), so nothing ever moved it out of
+        # `active_diplo_keys`. The key stayed listed with
+        # `pair_status: "war"` and `resolved_turn: None` FOREVER.
+        #
+        # `_active_cross_side_pairs` excludes such a pair (its nation is on
+        # no side) while `revalidate_staged_settlement` requires every pair
+        # in the staged snapshot to still be in that set — so ONE eliminated
+        # ally permanently blocked the ratification of every settlement of
+        # the war it died in, with "The war changed while the settlement was
+        # open." Measured on the shipped 1805 boot: Bavaria is eliminated by
+        # turn 6 on half the boards, and from that moment the coalition
+        # peace of `war_1` could not be signed by anyone.
+        #
+        # A dead court's war is over. Resolve its pairs the way a peace
+        # does — `ended_turn` / `end_reason` are deliberately NOT stamped
+        # here: whether the WAR ends is the existing paths' business, and an
+        # empty `active_diplo_keys` already reads as "no unresolved hostile
+        # pairs" to every consumer.
+        if ELIMINATION_RESOLVES_ITS_PAIRS:
+            active_pairs = instance.setdefault("active_diplo_keys", [])
+            resolved_pairs = instance.setdefault("resolved_diplo_keys", [])
+            key_meta = instance.setdefault("diplo_key_meta", {})
+            for pair in list(active_pairs):
+                if nation not in _pair_nations(pair):
+                    continue
+                active_pairs.remove(pair)
+                if pair not in resolved_pairs:
+                    resolved_pairs.append(pair)
+                pair_meta = key_meta.setdefault(pair, {})
+                pair_meta["pair_status"] = "resolved"
+                pair_meta["resolved_turn"] = turn
+                pair_meta["resolve_reason"] = "participant_eliminated"
 
         for leader_key, side in (("attacker_leader", "attackers"),
                                  ("defender_leader", "defenders")):

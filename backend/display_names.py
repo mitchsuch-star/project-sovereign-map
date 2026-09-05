@@ -917,6 +917,9 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "incoming_offer_deferred": "Incoming settlement offers are not available in this build.",
     # SC-26 collision codes
     "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
+    # FA-3 (slice 10): every court an offer covered has since made its own
+    # peace, so there is no longer anyone for these terms to bind.
+    "offer_courts_all_settled": "Every court in this offer has already made its peace; there is no one left for these terms to bind.",
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
     # SC-14e aged-out dispatch link
     "settlement_no_longer_in_recent_window": "That settlement is no longer in the recent window.",
@@ -1043,6 +1046,10 @@ ACCEPTANCE_BAND_DISPLAY = {
     "reject": "Holding out",
     "unlikely": "Holding out",
     "blocked": "Blocked",
+    # FA-3 (slice 10): a court that WROTE these terms is not holding out
+    # against them. The score still shows what the peace is worth to them;
+    # the band says why it carries anyway.
+    "consented": "Their own terms",
 }
 
 ACCEPTANCE_BAND_PHRASE = {
@@ -1052,6 +1059,7 @@ ACCEPTANCE_BAND_PHRASE = {
     "reject": "Likely to reject",
     "unlikely": "Likely to reject",
     "blocked": "Blocked by a hard condition",
+    "consented": "These are the terms they offered",
 }
 
 ACCEPTANCE_COMPONENT_DISPLAY = {

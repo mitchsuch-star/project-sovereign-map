@@ -419,6 +419,56 @@ def _result_carries_question(result) -> bool:
     return any(result.get(key) for key in _QUESTION_KEYS)
 
 
+# FA-N44 (slice 10) flip lever: False restores the pre-slice-10 delivery, in
+# which a modal-backed HARD STOP could not reach the client while it held the
+# slot (every command was refused, and a refusal never drains).
+QUESTION_CARRIES_ITS_OWN_MODAL = True
+
+
+def _attach_modal_for_the_carried_question(response: dict, world) -> None:
+    """Deliver the popup that BELONGS to the question this response carries.
+
+    FA-N44. Slice 6's rule — a response that asks the player something never
+    carries a POPPED popup — exists because the client renders the first
+    matching route and returns, so a second, unrelated popup riding the same
+    response died unread. A popup bound to the SAME dialogue is not a second
+    question: it is how that question is meant to be drawn.
+
+    Without this, mounting the commitment paradox over the mail (so it can no
+    longer be mis-answered) would have made its dedicated modal
+    undeliverable: the paradox is a hard stop, every command while it stands
+    is refused, and a refusal does not drain. The player would meet a crisis
+    that has a purpose-built surface as a line of terminal text.
+
+    Narrow by construction — only a queued popup whose `dialogue_id` equals
+    the carried dialogue's is delivered, and only that entry is cleared.
+    """
+    if not QUESTION_CARRIES_ITS_OWN_MODAL:
+        return
+    dialogue = response.get("diplomatic_dialogue")
+    if not isinstance(dialogue, dict):
+        return
+    dialogue_id = dialogue.get("dialogue_id")
+    if dialogue_id is None:
+        return
+    queue = getattr(world, "_popup_queue", None)
+    if queue is None:
+        return
+    from backend.models.cooldown_manager import PopupQueue
+    for attr, response_key in PopupQueue.RESPONSE_KEYS.items():
+        if response.get(response_key):
+            continue
+        payload = queue.get(attr)
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("dialogue_id") != dialogue_id:
+            continue
+        response[response_key] = payload
+        queue.clear_type(attr)
+        setattr(world, attr, None)
+        return
+
+
 def _refusal_response(world, message: str = "", **extra) -> dict:
     """FA slice 6 (FA-N67): a refusal on an endpoint whose client callback
     reads no popup key. Built WITHOUT draining — keys present, queue
@@ -572,6 +622,10 @@ def _build_result_response(result: dict, world, drain_popups: bool = True) -> di
     )
     if not drain_popups:
         _fill_popup_keys_without_draining(response)
+        # FA-N44: the drain was suppressed because this response asks the
+        # player something — but a popup bound to THAT SAME dialogue is how
+        # the question is drawn, not a rival for the slot.
+        _attach_modal_for_the_carried_question(response, world)
     # R1-8 (slice-9 review): a redemption riding an early-return result
     # carries its state too, as the main /command path stamps it.
     if response.get("redemption_event") and not response.get("state"):
@@ -1723,6 +1777,22 @@ def _typed_capture_answer(world, text: str):
     return None
 
 
+# FA-17 (slice 10): the popup safety valve re-derives an incoming-proposal
+# popup from the CURRENT dialogue when the queue produced none — the path a
+# letter takes when it is promoted turns after it arrived. `counter_offer`
+# and `counter_offer_response` render through the very same popup (see
+# `/pending_envoy`, which builds all four with
+# `_build_pending_envoy_popup_from_dialogue`) and were the only members of
+# that family left out, so the answer to France's own overture reached the
+# player through the envoy button alone once it had been promoted.
+SAFETY_VALVE_DIALOGUE_TYPES = (
+    "incoming_proposal",
+    "incoming_ultimatum",
+    "counter_offer",
+    "counter_offer_response",
+)
+
+
 def _digest_owns(dialogue, world) -> bool:
     """IGR-F: is this dialogue a routine small-court letter?
 
@@ -1960,7 +2030,7 @@ def _include_popup_passthroughs(response: dict, world) -> None:
             if (response_key == "incoming_proposal"
                     and world.pending_diplomatic_dialogue
                     and world.pending_diplomatic_dialogue.get("type")
-                    in ("incoming_proposal", "incoming_ultimatum")
+                    in SAFETY_VALVE_DIALOGUE_TYPES
                     and winner_attr is not None):
                 # A higher-priority popup won — don't derive incoming_proposal from dialogue
                 response[response_key] = None
@@ -1968,7 +2038,7 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     and winner_attr is None
                     and world.pending_diplomatic_dialogue
                     and world.pending_diplomatic_dialogue.get("type")
-                    in ("incoming_proposal", "incoming_ultimatum")
+                    in SAFETY_VALVE_DIALOGUE_TYPES
                     and not _digest_owns(world.pending_diplomatic_dialogue,
                                          world)):
                 # BUGFIX: Safety valve — derive clauses from dialogue context

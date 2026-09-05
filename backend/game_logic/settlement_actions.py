@@ -320,6 +320,7 @@ def _apply_scope_replace_confirm(
     new_dialogue = build_settlement_confirm_dialogue(
         world,
         preview,
+        dialogue_mode=str(incoming_request.get("dialogue_mode") or "REVIEW"),
         selected_target_nation=resolved_target,
         caller_kind=str(incoming_request.get("caller_kind") or "player_editor"),
         white_peace=bool(incoming_request.get("white_peace", False)),
@@ -1682,8 +1683,18 @@ def _action_submit_settlement_for_review(
             "message": talleyrand_line or blocker,
             "suppress_proposal_result_popup": True,
         }
-    # Drop the non-blocking PROPOSE surface, then stage REVIEW fresh.
-    world.dialogue_manager.pop()
+    # FA-N15 (slice 10): stage REVIEW over the PROPOSE — never pop first.
+    # The pop PROMOTED whatever mail sat behind the draft, and the SC-26 arm
+    # then read that promotion as a rival settlement and refused: measured
+    # with Britain's offer queued behind a war_2 draft, Submit returned
+    # `cross_war_settlement_collision`, the response re-attached the dead
+    # PROPOSE (id 24) while the manager's head was the offer (id 8), and
+    # every button on the re-mounted popup was then refused as stale.
+    #
+    # No pop is needed: this is a same-war restage, so the staging tail's
+    # LEGB-F2 arm REPLACES the mounted draft. On a refusal the draft is
+    # still mounted and the re-attached dialogue is the same object the
+    # manager holds.
     return stage_settlement_confirm(
         world,
         war_id=war_id,
@@ -1715,7 +1726,9 @@ def _action_return_to_settlement_terms(
     ]
     covered = list(dialogue.get("covered_enemy_participants") or [])
     selected_target = str(dialogue.get("selected_target_nation") or "")
-    world.dialogue_manager.pop()
+    # FA-N15's twin. Same shape, same reason: the same-war restage replaces
+    # the mounted draft, so popping first only promoted mail into the
+    # collision check.
     return stage_settlement_confirm(
         world,
         war_id=war_id,

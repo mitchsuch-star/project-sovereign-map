@@ -81,6 +81,11 @@ def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
     }
 
 
+# FA-17 (slice 10) flip lever: False restores the free re-ask after a
+# counter-offer lapses unanswered.
+LAPSED_COUNTER_COSTS_A_COOLDOWN = True
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -166,6 +171,21 @@ class TurnManager:
                 if nation:
                     apply_lapse_type_cooldown(
                         nation, lapse.get("proposal_type", ""), self.world)
+                # FA-17 (slice 10): an unanswered COUNTER to France's own
+                # overture costs the player a re-ask cooldown, exactly as
+                # answering it "reject" would (`reject_counter_offer` sets
+                # 3 / 5). Without it the overture was a treadmill: 3 DP a
+                # turn, every turn, to a court that had already answered and
+                # whose answer had lapsed unanswered. The AI-side cooldowns
+                # above are the court's patience; this is ours.
+                if (LAPSED_COUNTER_COSTS_A_COOLDOWN
+                        and nation
+                        and lapse["offer_type"] == "counter_offer_response"):
+                    self.world.player_proposal_cooldowns[nation] = 3
+                    _lapsed_ptype = str(lapse.get("proposal_type") or "")
+                    if _lapsed_ptype:
+                        self.world.player_proposal_cooldowns[
+                            f"{nation}_{_lapsed_ptype}"] = 5
                 self.world.log_event({
                     "type": "offer_lapsed",
                     "nation": nation,
@@ -593,9 +613,19 @@ class TurnManager:
                 or "settlement"
             )
             amount = int(popup_payload.get("amount") or 0)
+            # FA-N16 (slice 10): the rail said "Asking N gold" of an offer
+            # that was PAYING France N gold. `amount` is now what France is
+            # asked to pay; a concession has its own clause.
+            offered = int(popup_payload.get("amount_offered") or 0)
+            if amount:
+                _gold_clause = f" Asking {amount} gold."
+            elif offered:
+                _gold_clause = f" Offering {offered} gold."
+            else:
+                _gold_clause = ""
             message = (
                 f"{proposer} has offered terms to settle {war_label}."
-                + (f" Asking {amount} gold." if amount else "")
+                + _gold_clause
             )
             world.notifications.add(
                 create_notification(

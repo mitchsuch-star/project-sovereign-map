@@ -8490,7 +8490,16 @@ def declare_war(
                 "turn_created": int(world.current_turn),
                 "blocking": True,
             }
-            world.dialogue_manager.push(paradox_dialogue)
+            # FA-N44 (slice 10): a crisis that asks France to choose between
+            # two allies is a HARD stop, and it must reach the slot. `push`
+            # left it queued behind whatever mail was current — and behind a
+            # PERSISTENT settlement offer it stayed queued until `clear_stale`
+            # deleted it, so the choice was never offered and never recorded.
+            from backend.models.dialogue_manager import MOUNT_OVER_MAIL_ACTIVE
+            if MOUNT_OVER_MAIL_ACTIVE:
+                world.dialogue_manager.mount_over_mail(paradox_dialogue)
+            else:
+                world.dialogue_manager.push(paradox_dialogue)
             # FA-N5: identity travels with the popup from here on.
             paradox_popup["dialogue_id"] = paradox_dialogue.get("dialogue_id")
             world.commitment_paradox_popup = paradox_popup

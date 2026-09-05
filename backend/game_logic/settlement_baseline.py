@@ -1878,6 +1878,7 @@ def compute_per_court_acceptance(
     raw_total_harshness: Optional[float] = None,
     balance_projection: Optional[Mapping[str, Any]] = None,
     previous_bands: Optional[Mapping[str, str]] = None,
+    consenting_courts: Optional[Iterable[str]] = None,
 ) -> Dict[str, Any]:
     """Re-front Slice 1 / spec §11.2 — the per-court acceptance aggregator.
 
@@ -1907,6 +1908,13 @@ def compute_per_court_acceptance(
     """
     covered = sorted({str(n) for n in (covered_enemy_participants or []) if n})
     terms = [dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    # FA-3 (slice 10): a court that AUTHORED these terms is not scored on
+    # whether it would accept them. It still gets a full score pass — the
+    # table shows the player what the package is worth to each court — but
+    # its consent is a fact, not a verdict, so it cannot be a holdout. Hard
+    # stops still bind: consent is about willingness, never about whether a
+    # clause is legal or a pair is still at war.
+    consenting = {str(n) for n in (consenting_courts or []) if n} & set(covered)
     if direct_scores is None:
         direct_scores = compute_direct_scores_by_enemy(
             world,
@@ -2013,8 +2021,13 @@ def compute_per_court_acceptance(
         total = result.get("score")
         band = str(enriched.get("band") or result.get("verdict") or "reject")
         hard_stops = list(result.get("hard_stops") or [])
+        court_consents = court in consenting
         court_passes = (
-            total is not None and int(total) >= int(accept_threshold) and not hard_stops
+            not hard_stops
+            and (
+                court_consents
+                or (total is not None and int(total) >= int(accept_threshold))
+            )
         )
         below_threshold = total is None or int(total) < int(accept_threshold)
         top_blocker = enriched.get("top_blocker_display") if below_threshold else None
@@ -2025,6 +2038,12 @@ def compute_per_court_acceptance(
                 f"{court} {acceptance_band_display(previous_band)} "
                 f"→ {acceptance_band_display(band)}"
             )
+        if court_consents and not hard_stops:
+            # FA-3: the band is what the TABLE says about this court. A court
+            # scored 2/50 on terms it wrote itself is not "Holding out" — the
+            # number stays (it is honest about what the peace is worth to
+            # them) and the band says why it carries.
+            band = "consented"
         per_court.append({
             "nation": court,
             "band": band,
@@ -2045,6 +2064,12 @@ def compute_per_court_acceptance(
             ),
             "previous_band": previous_band,
             "delta_display": delta_display,
+            # FA-3: display-only provenance. The row keeps its real score so
+            # the player can read what the peace is worth to them.
+            "consents": bool(court_consents),
+            "consent_display": (
+                "consents — these are their own terms" if court_consents else ""
+            ),
             # REFRONT-9 (Guided Terms OQ-5 / GT-A4): the full component
             # table for the expanded per-court row — derived from the score
             # pass already in hand, so the focus trigger stays
@@ -2082,7 +2107,21 @@ def compute_per_court_acceptance(
             return f"{nation} (no terms can move them)"
         return f"{nation} {int(total)}/{int(row.get('threshold') or accept_threshold)}"
 
-    if carries:
+    if carries and consenting and consenting >= set(covered):
+        # FA-3: every covered court wrote these terms. Saying "every court at
+        # or above 50" of courts scored at 2 and -3 would be the exact class
+        # of lie this audit exists to close.
+        carry_verdict_display = (
+            "Will carry — these are the terms they offered."
+        )
+    elif carries and consenting:
+        _consent_names = ", ".join(sorted(consenting))
+        carry_verdict_display = (
+            f"Will carry as drafted — {_consent_names} consent to their own "
+            f"terms, and every other court is at or above "
+            f"{int(accept_threshold)}."
+        )
+    elif carries:
         carry_verdict_display = (
             "Will carry as drafted — every court at or above "
             f"{int(accept_threshold)}."

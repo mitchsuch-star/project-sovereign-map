@@ -9,7 +9,7 @@ Architecture:
   Each template has text (with {slots}), options, and recommendation index.
 """
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from backend.nation_config import get_player_nation
 
@@ -1721,6 +1721,15 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Acceptance reads as {acceptance_band}; what weighs heaviest: "
         "{top_blocker}."
     ),
+    # FA-3 (slice 10): the accepted-offer review. The ordinary heading asks
+    # how the other side reads OUR terms; here the terms are theirs, and the
+    # only question left is whether France signs. Quoting an acceptance band
+    # beside a live Ratify button was the contradiction this replaces.
+    "settlement_review_heading_consent_talleyrand": (
+        "Sire, the settlement of {war_label} lies ready on the terms "
+        "{accepting_leader} themselves put on the table. Their consent is "
+        "given; the signature is ours to give or withhold."
+    ),
     # Foreign-court / observer settlement voice for fog-visible
     # foreign-only settlements where France is neither proposer nor
     # accepting member. SC-19 amendment: chancery voice, not Talleyrand
@@ -1919,6 +1928,69 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "The chancery of {proposer_leader} has forwarded a settlement "
         "of {war_label}. The terms ask {amount} gold; the court awaits "
         "France's answer."
+    ),
+    # FA-N16 (slice 10) — the CONCESSION register. AUD-c lets a losing court
+    # pay France to close a war; the demand families above turned that offer
+    # into a demand. Same six voices, the other direction.
+    "settlement_incoming_offer_arrival_concession_talleyrand": (
+        "Sire, {proposer_leader} has dispatched a settlement of {war_label} "
+        "— and lays {amount} gold beside it. A court that pays to stop "
+        "fighting has already decided; what remains is our price."
+    ),
+    "settlement_incoming_offer_arrival_concession_castlereagh": (
+        "His Majesty's Government offers terms for {war_label}, and {amount} "
+        "gold with them. London would sooner pay for a peace than borrow for "
+        "another season of war."
+    ),
+    "settlement_incoming_offer_arrival_concession_hardenberg": (
+        "Prussia proposes a settlement of {war_label} and sets {amount} gold "
+        "beside the paper. Hardenberg calls it the price of an orderly "
+        "frontier, and thinks it cheap."
+    ),
+    "settlement_incoming_offer_arrival_concession_metternich": (
+        "Vienna submits terms for {war_label} with {amount} gold to close "
+        "them. Metternich pays where another campaign would cost Austria "
+        "more than coin."
+    ),
+    "settlement_incoming_offer_arrival_concession_einsiedel": (
+        "Saxony forwards a settlement of {war_label} and offers {amount} "
+        "gold with it — small courts buy their peace while they still can."
+    ),
+    "settlement_incoming_offer_arrival_concession_chancery": (
+        "The chancery of {proposer_leader} has forwarded a settlement of "
+        "{war_label}, with {amount} gold offered to close the war. The court "
+        "awaits France's answer."
+    ),
+    # FA-N16 — the WHITE-PEACE register. "They ask 0 gold" is what the boot
+    # offer said on turn five of every campaign.
+    "settlement_incoming_offer_arrival_none_talleyrand": (
+        "Sire, {proposer_leader} has dispatched a settlement of {war_label}. "
+        "No indemnity either way — the war simply stops, and nothing changes "
+        "hands but the quiet."
+    ),
+    "settlement_incoming_offer_arrival_none_castlereagh": (
+        "His Majesty's Government offers terms for {war_label}. No indemnity "
+        "is asked and none is offered; London proposes only that the guns "
+        "fall silent."
+    ),
+    "settlement_incoming_offer_arrival_none_hardenberg": (
+        "Prussia proposes a settlement of {war_label} with no indemnity "
+        "named. What Prussia gives by signing is quiet, and Hardenberg "
+        "counts quiet worth having."
+    ),
+    "settlement_incoming_offer_arrival_none_metternich": (
+        "Vienna submits terms for {war_label} with no gold either way. "
+        "Metternich prefers a settlement that leaves no ledger to argue "
+        "over afterwards."
+    ),
+    "settlement_incoming_offer_arrival_none_einsiedel": (
+        "Saxony forwards a settlement of {war_label}. No indemnity is named; "
+        "Saxony asks only that the armies march somewhere else."
+    ),
+    "settlement_incoming_offer_arrival_none_chancery": (
+        "The chancery of {proposer_leader} has forwarded a settlement of "
+        "{war_label}. No indemnity is asked; the court awaits France's "
+        "answer."
     ),
     "settlement_ally_petition_request_open_settlement_castlereagh": (
         "London asks to be heard before {war_label} closes. "
@@ -2210,6 +2282,11 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "{speaker} holds {court} back from the table — {top_blocker} is the "
         "sticking point before they will sign."
     ),
+    # FA-3 (slice 10): the court whose own dispatch these terms are.
+    "settlement_multi_court_court_consents": (
+        "{speaker} for {court}: these are the terms {court} laid before "
+        "France; {court} does not haggle with its own dispatch."
+    ),
     "settlement_multi_court_court_hard_stop": (
         "{speaker} has no standing to settle {court} here — there is no live "
         "quarrel between us to close."
@@ -2439,6 +2516,10 @@ _MULTI_COURT_BAND_TEMPLATE = {
     "accept": "settlement_multi_court_court_will_sign",
     "near_acceptable": "settlement_multi_court_court_leaning",
     "reject": "settlement_multi_court_court_holds_out",
+    # FA-3 (slice 10): the court that sent these terms. Without this arm the
+    # table's own voice said Britain "holds out" against the package Britain
+    # had just put on the table.
+    "consented": "settlement_multi_court_court_consents",
 }
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -4230,6 +4311,21 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # sovereignty to vassalage (0.5) — and scales honestly for a
             # multi-province template.
             harshness += (0.3 * _create_client_province_count(clause)) + 0.15
+        elif ctype == "gold_lump":
+            # FA-N45 (slice 10): the four types below were priced in the
+            # DEMANDS dialect and fell through unmatched in the CLAUSES one —
+            # the exact G4F-1 shape this function's own comment names below.
+            # Measured: a ratified bilateral peace that moved 405 gold stored
+            # harshness 0.0, so DD8-4's "harsh history breeds resentment"
+            # could never fire on a gold peace. Same rates as the demand
+            # branches, so the two dialects now price identically.
+            harshness += 0.08 * ((clause.get("amount", 0) or 0) / 100)
+        elif ctype in ("manpower_infantry", "manpower_cavalry",
+                       "manpower_artillery", "manpower"):
+            harshness += 0.15
+        elif ctype == "ap_per_turn":
+            harshness += 0.3 * max(1, abs(int(clause.get("value", 0)
+                                              or clause.get("amount", 0) or 0)))
     # PL-12-B: Include demands in harshness calculation
     for demand in treaty.get("demands", []):
         if not isinstance(demand, dict):
@@ -4275,6 +4371,33 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # falls through unmatched and prices the demand at zero.
             harshness += (0.3 * _create_client_province_count(demand)) + 0.15
     return harshness
+
+
+def burden_on_nation(clauses: Iterable[Mapping[str, Any]], nation: str) -> float:
+    """How harsh these clauses are ON ``nation`` — the clamped 0.0-1.0 score.
+
+    FA-N45 (slice 10). `_accumulate_raw_treaty_harshness`'s clause dialect is
+    direction-BLIND by long-standing convention: it sums everybody's burden.
+    That is the wrong number for the two questions the bilateral ratification
+    path asks — "was this treaty harsh on the party who signed it away"
+    (DD8-4's escalating-harshness memory) and "how angry should our allies be
+    that we let the enemy off lightly" (the BPH-C separate-peace penalty,
+    which doubles below 0.2). Both want one side's burden.
+
+    A treaty clause carries `from` (who gives) and `to` (who receives), so
+    the burden on a nation is the clause set it pays, priced through the
+    DEMANDS dialect — the one that knows every type (the clauses dialect
+    gained the missing four above, but the demand loop remains the complete
+    reference).
+    """
+    if not nation:
+        return 0.0
+    owed = [
+        dict(clause) for clause in (clauses or [])
+        if isinstance(clause, Mapping)
+        and str(clause.get("from") or "") == str(nation)
+    ]
+    return calculate_treaty_harshness({"clauses": [], "demands": owed})
 
 
 def calculate_treaty_harshness(treaty: Dict) -> float:

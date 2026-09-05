@@ -46,6 +46,52 @@ SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
     }
 )
 
+# FA slice 10 (FA-4 / FA-N15 / FA-N17 / FA-N18 / FA-N4): AN INCOMING OFFER IS
+# MAIL, NEVER A DRAFT.
+#
+# SC-26's collision protection asks "is a settlement already on the table?".
+# The FAMILY set answers that question with a letter the enemy sent us, so
+# three readers that must agree read an `incoming_settlement_offer` as OUR
+# mounted draft:
+#
+#   * `_mounted_settlement_dialogue` — the cross-war collision AND the
+#     same-war refresh/scope-replace arm in `stage_settlement_confirm`;
+#   * `_settlement_dialogue_active` — the second gate, inside
+#     `evaluate_open_settlement_eligibility` (current AND queue);
+#   * the staging tail's replace-vs-preempt choice.
+#
+# Measured on the committed t20 fixture: accepting Britain's offer popped it,
+# the pop PROMOTED a queued offer for another war, and the collision arm
+# refused the accept — destroying the letter the player had just clicked and
+# naming a war they had never seen. Opening Settlement over a standing offer
+# read the ENEMY's terms as our draft and raised a chooser whose two scope
+# strings were the identical string.
+#
+# A DRAFT is a surface WE authored or staged. The family set keeps its name
+# (the defensive cross-war guards still want it); the three readers above
+# take the narrower set.
+SETTLEMENT_DRAFT_DIALOGUE_TYPES = frozenset(
+    SETTLEMENT_FAMILY_DIALOGUE_TYPES - {"incoming_settlement_offer"}
+)
+
+# Flip lever: False restores the pre-slice-10 reading (an offer counts as a
+# mounted draft) at all three readers at once.
+OFFER_IS_MAIL_NEVER_A_DRAFT = True
+
+
+def settlement_draft_dialogue_types() -> frozenset:
+    """The dialogue types SC-26 counts as a mounted DRAFT.
+
+    Read through a function, not a module constant, so the flip lever is
+    honoured by every reader at call time (an importer that bound the set at
+    import time would not see the flip).
+    """
+    return (
+        SETTLEMENT_DRAFT_DIALOGUE_TYPES
+        if OFFER_IS_MAIL_NEVER_A_DRAFT
+        else SETTLEMENT_FAMILY_DIALOGUE_TYPES
+    )
+
 
 SETTLEMENT_ERROR_DISPLAY = SETTLEMENT_DISABLED_REASON_DISPLAY
 
@@ -93,10 +139,15 @@ def _settlement_dialogue_active(world: Any, war_id: str) -> bool:
     current = getattr(world, "pending_diplomatic_dialogue", None)
     dm = getattr(world, "dialogue_manager", None)
     queued = list(dm.iter_queue()) if dm is not None and hasattr(dm, "iter_queue") else []
+    # FA slice 10: the SECOND gate. It refused an open on a war whose only
+    # settlement surface was the enemy's own letter — "Resolve the current
+    # settlement review first." about a review that did not exist. A letter
+    # standing in the mailbox is not a review in progress.
+    _draft_types = settlement_draft_dialogue_types()
     for dialogue in ([current] if current else []) + queued:
         if not isinstance(dialogue, Mapping):
             continue
-        if dialogue.get("type") not in ("settlement_confirm", "incoming_settlement_offer"):
+        if dialogue.get("type") not in _draft_types:
             continue
         if str(dialogue.get("war_id") or "") == str(war_id):
             return True
@@ -357,16 +408,21 @@ def evaluate_request_terms_affordance(world: Any, war_id: str) -> Dict[str, Any]
 
 
 def _mounted_settlement_dialogue(world: Any) -> Optional[Mapping[str, Any]]:
-    """Return the *current* settlement-family dialogue, or None.
+    """Return the *current* mounted settlement DRAFT, or None.
 
     SC-14 / SC-26 mounted means the current hard-stop dialogue. Queued or
     dismissed settlement-family items don't count for live-route precedence
     or collision protection.
+
+    FA slice 10: nor does an `incoming_settlement_offer`, which is mail — a
+    soft-stop persistent mailbox item the player may hold for turns. The
+    docstring above said "the current HARD-STOP dialogue" and the code
+    admitted the whole family; the two now agree.
     """
     current = getattr(world, "pending_diplomatic_dialogue", None)
     if not isinstance(current, Mapping):
         return None
-    if current.get("type") not in SETTLEMENT_FAMILY_DIALOGUE_TYPES:
+    if current.get("type") not in settlement_draft_dialogue_types():
         return None
     return current
 

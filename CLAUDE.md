@@ -363,9 +363,34 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > delivery road makes the first road's pin inert: darken the second road in
 > the isolation pin, never weaken the assertion.**
 >
-> **▶ NEXT = position 10, the shippable build.** ⚠ **Still no pillar
-> re-score. ⚠ FA-D27 / FA-D28 await the user's ruling; FA-S9-D1 / FA-S9-D2 are
-> new gates.**
+> **▶ SLICE 10 "THE OFFER ON THE DESK" IS LANDED — September 5, 2026.**
+> Landing record = the boxed SLICE 10 block in `BUG_FIXES.md` §Final
+> Whole-Game Audit. FA-4 (P1), FA-3 (P1), FA-N4's staging half, FA-N15,
+> FA-N17, FA-N18, FA-17, FA-N44, FA-N16, FA-N43 and FA-N45 closed, plus
+> **FA-S10-1**, a pre-existing P2 found while building (an eliminated court's
+> war pairs were never resolved, so `revalidate_staged_settlement` refused
+> every ratification of that war forever — Bavaria was eliminated on two of the four unseeded boot
+> boards probed, and at turn 9 of the seeded ambient run). **FA-21 MOVED to slice 14**: it changes AI behaviour and needs
+> a series flip-arm, and its filed fix ships a SMALLER demand than the row
+> wants. ONE rule closes five — *an incoming offer is MAIL, never a DRAFT*,
+> at the three readers that must agree, with both answering arms staging FIRST
+> and consuming the offer only on success. ONE more closes FA-3 — the
+> offering courts consent by construction, honoured at the preview AND the
+> re-score at ratification, so the coalition peace signs end to end instead of
+> being scored as the AI's reluctance to sign its own terms. New
+> `mount_over_mail` lets a dialogue that exists to INTERRUPT take the slot from
+> a letter. Suite **20,352/4**; sweep **41/41, 0 inert**; series + M1–M7
+> byte-identical WITHOUT re-record, and here that is evidence (an instrumented
+> re-run counts FA-S10-1's producer firing twice inside the series' own loop —
+> Bavaria turn 9, KingdomOfItaly turn 10). ⛔ **Three of the filed fix shapes would
+> have shipped a regression** — FA-4's exemption, FA-N45's direction-blind
+> mirror, and FA-N44's mount, which alone makes its own modal undeliverable.
+> Each is recorded on its row.
+>
+> **▶ NEXT = the slice-10 three-lens review round, then slice 11 "The
+> Briefing Tells the Truth", then 12 → 13 → 14 → 15 → 16, then position
+> 10, the shippable build.** ⚠ **Still no pillar re-score. ⚠ FA-D27 /
+> FA-D28 await the user's ruling; FA-S9-D1 / FA-S9-D2 are new gates.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

@@ -51,9 +51,38 @@ from backend.game_logic.settlement_validation import (
     _normalize_staged_terms_for_validation,
     _pair_nations,
     _side_leader,
+    _term_lists_equal,
     _territory_term_regions,
     validate_settlement_terms,
 )
+
+
+def consenting_courts_for_ratification(dialogue: Mapping[str, Any]) -> List[str]:
+    """The courts whose consent still binds this staged package (FA-3).
+
+    A settlement offer's covered courts wrote the terms they offered, so the
+    accept-staged review does not score their willingness — see
+    `settlement_offers.handle_incoming_settlement_offer_action`. That fact has
+    to survive to ratification: a consent honoured only at STAGING is killed
+    by the fresh re-score here, and the player is left with a Ratify button
+    that was true when it was drawn and false when it is pressed.
+
+    Consent is granted to a SPECIFIC package. If the staged terms are no
+    longer the offered ones — an edit, a restage, a save-loaded dialogue that
+    outlived its offer — the consent lapses and every court is scored
+    normally again.
+    """
+    consenting = [
+        str(n) for n in (dialogue.get("consenting_courts") or []) if n
+    ]
+    if not consenting:
+        return []
+    if not _term_lists_equal(
+        dialogue.get("consent_terms") or [],
+        dialogue.get("settlement_terms") or [],
+    ):
+        return []
+    return consenting
 
 
 def _failed_ratification_reaction_summary(
@@ -1161,6 +1190,17 @@ def ratify_settlement_confirm(
     fresh_threshold = fresh_acceptance.get("accept_threshold") or 50
     fresh_verdict = fresh_acceptance.get("verdict") or "reject"
 
+    # FA-3: the same consent the review was staged with, re-read from the
+    # dialogue and re-validated against the staged terms. A hard stop still
+    # blocks — consent says a court is willing, never that the package is
+    # legal or that the pair is still at war.
+    consenting_courts = consenting_courts_for_ratification(dialogue)
+    accepting_leader_consents = bool(
+        consenting_courts
+        and str(_side_leader(war_instance, accepting_side) or "")
+        in set(consenting_courts)
+    )
+
     # SC-4: unknown hard-stop codes fail closed.
     has_unknown_hard_stop = any(
         (hs.get("reason") or "") not in SETTLEMENT_HARD_STOP_CODES
@@ -1168,9 +1208,14 @@ def ratify_settlement_confirm(
     )
     ratification_blocked = (
         fresh_hard_stops
-        or fresh_verdict in ("reject", "blocked")
-        or (fresh_score is not None and fresh_score < fresh_threshold)
         or has_unknown_hard_stop
+        or (
+            not accepting_leader_consents
+            and (
+                fresh_verdict in ("reject", "blocked")
+                or (fresh_score is not None and fresh_score < fresh_threshold)
+            )
+        )
     )
     if ratification_blocked:
         error = "acceptance_blocked" if fresh_hard_stops or has_unknown_hard_stop else "acceptance_rejected"
@@ -1240,6 +1285,9 @@ def ratify_settlement_confirm(
             proposer_side_leader=_side_leader(war_instance, proposer_side),
             covered_enemy_participants=covered,
             settlement_terms=settlement_terms,
+            # FA-3: the offering courts' own terms carry their consent here
+            # too, or the §11.4 gate rejects the package its authors wrote.
+            consenting_courts=consenting_courts,
         )
         overall = per_court_block["overall_acceptance"]
         if not overall.get("carries"):

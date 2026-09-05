@@ -1,0 +1,289 @@
+[
+ {
+  "id": "rule/a the draft set excludes the offer",
+  "file": "backend/game_logic/settlement_routes.py",
+  "old": "SETTLEMENT_DRAFT_DIALOGUE_TYPES = frozenset(\n    SETTLEMENT_FAMILY_DIALOGUE_TYPES - {\"incoming_settlement_offer\"}\n)",
+  "new": "SETTLEMENT_DRAFT_DIALOGUE_TYPES = frozenset(\n    SETTLEMENT_FAMILY_DIALOGUE_TYPES\n)",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_the_three_readers_agree_on_what_a_draft_is tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_accept_with_another_wars_offer_queued_stages_the_review tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_opening_settlement_over_a_standing_offer_mounts_the_draft"
+ },
+ {
+  "id": "rule/b reader 1 - the collision arm",
+  "file": "backend/game_logic/settlement_routes.py",
+  "old": "    _draft_types = settlement_draft_dialogue_types()",
+  "new": "    _draft_types = SETTLEMENT_FAMILY_DIALOGUE_TYPES",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_a_standing_offer_no_longer_blocks_another_wars_settlement tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_accept_with_another_wars_offer_queued_stages_the_review"
+ },
+ {
+  "id": "rule/c reader 2 - the mounted-draft reader",
+  "file": "backend/game_logic/settlement_routes.py",
+  "old": "    if current.get(\"type\") not in settlement_draft_dialogue_types():\n        return None",
+  "new": "    if current.get(\"type\") not in SETTLEMENT_FAMILY_DIALOGUE_TYPES:\n        return None",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_opening_settlement_over_a_standing_offer_mounts_the_draft"
+ },
+ {
+  "id": "rule/d reader 3 - the staging tail replace arm",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "        in settlement_draft_dialogue_types()\n        and str(_current.get(\"war_id\") or \"\") == war_id_str",
+  "new": "        in SETTLEMENT_FAMILY_DIALOGUE_TYPES\n        and str(_current.get(\"war_id\") or \"\") == war_id_str",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_opening_settlement_over_a_standing_offer_mounts_the_draft"
+ },
+ {
+  "id": "rule/e the second gate sees a queued draft",
+  "file": "backend/game_logic/settlement_routes.py",
+  "old": "        if dialogue.get(\"type\") not in _draft_types:\n            continue",
+  "new": "        if True:\n            continue",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_the_second_gate_still_sees_a_queued_draft"
+ },
+ {
+  "id": "rule/f the collision sentence names the war",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    instance = (getattr(world, \"war_instances\", {}) or {}).get(str(war_id))\n    if not isinstance(instance, Mapping):\n        return fallback\n    return _war_label(str(war_id), instance) or fallback",
+  "new": "    instance = (getattr(world, \"war_instances\", {}) or {}).get(str(war_id))\n    if not isinstance(instance, Mapping):\n        return fallback\n    return fallback",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_the_collision_sentence_names_the_war_not_its_id"
+ },
+ {
+  "id": "rule/g the chooser carries the caller mode",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "                    \"dialogue_mode\": dialogue_mode,",
+  "new": "                    \"dialogue_mode\": \"REVIEW\",",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_the_scope_chooser_carries_the_callers_dialogue_mode"
+ },
+ {
+  "id": "rule/h the offer is consumed only after staging",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    dm = getattr(world, \"dialogue_manager\", None)\n    if dm is None or not hasattr(dm, \"remove_matching\"):\n        return\n    did = dialogue.get(\"dialogue_id\")",
+  "new": "    dm = getattr(world, \"dialogue_manager\", None)\n    if dm is None or True:\n        return\n    did = dialogue.get(\"dialogue_id\")",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_accept_with_another_wars_offer_queued_stages_the_review tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_request_revision_with_mail_queued_opens_the_counter_surface"
+ },
+ {
+  "id": "rule/i a refused accept leaves the letter standing",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        result[\"must_reopen\"] = False\n        result.setdefault(\"diplomatic_dialogue\", dict(dialogue))\n        result[\"awaiting_diplomatic_response\"] = True\n        return result",
+  "new": "        result[\"must_reopen\"] = True\n        result.setdefault(\"diplomatic_dialogue\", dict(dialogue))\n        result[\"awaiting_diplomatic_response\"] = True\n        return result",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_a_refused_accept_leaves_the_letter_standing"
+ },
+ {
+  "id": "consent/a the accept stamps the consenting courts",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        \"consenting_courts\": list(covered_enemies),",
+  "new": "        \"consenting_courts\": [],",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_accepted_offer_can_be_ratified tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_ratification_actually_signs_the_peace"
+ },
+ {
+  "id": "consent/b the scorer honours it",
+  "file": "backend/game_logic/settlement_baseline.py",
+  "old": "        court_consents = court in consenting",
+  "new": "        court_consents = False",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_accepted_offer_can_be_ratified tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_courts_own_voice_does_not_say_they_hold_out"
+ },
+ {
+  "id": "consent/c the band says why it carries",
+  "file": "backend/game_logic/settlement_baseline.py",
+  "old": "        if court_consents and not hard_stops:",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_courts_own_voice_does_not_say_they_hold_out tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_table_does_not_claim_a_score_the_courts_do_not_have"
+ },
+ {
+  "id": "consent/d consent survives to ratification",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    consenting_courts = consenting_courts_for_ratification(dialogue)",
+  "new": "    consenting_courts = []",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_the_ratification_actually_signs_the_peace tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheDeadCourtsWarIsOver::test_a_settlement_can_still_be_ratified_after_an_ally_dies"
+ },
+ {
+  "id": "consent/e consent lapses on an edit",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    if not _term_lists_equal(\n        dialogue.get(\"consent_terms\") or [],\n        dialogue.get(\"settlement_terms\") or [],\n    ):\n        return []",
+  "new": "    if False:\n        return []",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_consent_lapses_when_the_draft_is_edited"
+ },
+ {
+  "id": "consent/f a hard stop still blocks",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    ratification_blocked = (\n        fresh_hard_stops\n        or has_unknown_hard_stop\n        or (",
+  "new": "    ratification_blocked = (\n        False\n        or (",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_a_hard_stop_still_blocks_a_consented_package"
+ },
+ {
+  "id": "consent/g a departed court is dropped",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    live = [nation for nation in covered if nation in coverable]\n    departed = [nation for nation in covered if nation not in coverable]",
+  "new": "    live = list(covered)\n    departed = []",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_a_court_that_has_made_its_own_peace_is_dropped_and_named tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_an_offer_whose_courts_have_all_settled_is_refused_honestly"
+ },
+ {
+  "id": "consent/h the departed court is NAMED",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        result[\"departed_courts_note\"] = _departed_courts_note(departed_courts)\n    if str(dialogue.get(\"mediator\") or \"\"):",
+  "new": "        result[\"departed_courts_note\"] = \"\"\n    if str(dialogue.get(\"mediator\") or \"\"):",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_a_court_that_has_made_its_own_peace_is_dropped_and_named"
+ },
+ {
+  "id": "elim/a an eliminated court pairs resolve",
+  "file": "backend/game_logic/settlement_helpers.py",
+  "old": "        if ELIMINATION_RESOLVES_ITS_PAIRS:\n            active_pairs = instance.setdefault(\"active_diplo_keys\", [])",
+  "new": "        if False:\n            active_pairs = instance.setdefault(\"active_diplo_keys\", [])",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheDeadCourtsWarIsOver::test_an_eliminated_courts_pairs_are_resolved tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheDeadCourtsWarIsOver::test_a_settlement_can_still_be_ratified_after_an_ally_dies"
+ },
+ {
+  "id": "elim/b the pair is stamped resolved",
+  "file": "backend/game_logic/settlement_helpers.py",
+  "old": "                pair_meta[\"pair_status\"] = \"resolved\"\n                pair_meta[\"resolved_turn\"] = turn",
+  "new": "                pair_meta[\"pair_status\"] = \"war\"\n                pair_meta[\"resolved_turn\"] = turn",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheDeadCourtsWarIsOver::test_an_eliminated_courts_pairs_are_resolved"
+ },
+ {
+  "id": "deliver/a mount_over_mail takes the slot",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "        current = self._current\n        if current is None or current.get(\"type\", \"\") in self.SOFT_STOP_MAILBOX_TYPES:\n            self.preempt(dialogue)\n            return True",
+  "new": "        current = self._current\n        if current is None:\n            self.preempt(dialogue)\n            return True",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_a_counter_displaces_mail_to_reach_the_slot tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_the_paradox_takes_the_slot_from_a_letter"
+ },
+ {
+  "id": "deliver/b it never displaces a decision in progress",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "        if current is None or current.get(\"type\", \"\") in self.SOFT_STOP_MAILBOX_TYPES:\n            self.preempt(dialogue)\n            return True\n        self.push(dialogue)",
+  "new": "        if True:\n            self.preempt(dialogue)\n            return True\n        self.push(dialogue)",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_it_never_displaces_a_decision_in_progress"
+ },
+ {
+  "id": "deliver/c the safety valve knows the counter family",
+  "file": "backend/main.py",
+  "old": "SAFETY_VALVE_DIALOGUE_TYPES = (\n    \"incoming_proposal\",\n    \"incoming_ultimatum\",\n    \"counter_offer\",\n    \"counter_offer_response\",\n)",
+  "new": "SAFETY_VALVE_DIALOGUE_TYPES = (\n    \"incoming_proposal\",\n    \"incoming_ultimatum\",\n)",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_the_safety_valve_knows_the_counter_family"
+ },
+ {
+  "id": "deliver/d a lapsed counter costs a cooldown",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                if (LAPSED_COUNTER_COSTS_A_COOLDOWN\n                        and nation\n                        and lapse[\"offer_type\"] == \"counter_offer_response\"):",
+  "new": "                if (False\n                        and nation\n                        and lapse[\"offer_type\"] == \"counter_offer_response\"):",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_the_lapse_cooldown_is_wired_at_the_turn_seam"
+ },
+ {
+  "id": "deliver/e the paradox survives the sweep",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "                if (PARADOX_SURVIVES_THE_STALE_SWEEP\n                        and q_type in PARADOX_DIALOGUE_TYPES):",
+  "new": "                if (False\n                        and q_type in PARADOX_DIALOGUE_TYPES):",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_a_queued_paradox_survives_the_stale_sweep"
+ },
+ {
+  "id": "deliver/f the sweep still clears a timed-out blocking wedge",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "                if (q_blocking\n                        and q_created + self.BLOCKING_TIMEOUT_TURNS\n                        < current_turn):\n                    continue",
+  "new": "                if False:\n                    continue",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_the_sweep_still_clears_the_wedge_it_was_written_for"
+ },
+ {
+  "id": "deliver/g the question carries its own modal",
+  "file": "backend/main.py",
+  "old": "    if not QUESTION_CARRIES_ITS_OWN_MODAL:\n        return",
+  "new": "    if True:\n        return",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_the_crisis_carries_its_own_modal"
+ },
+ {
+  "id": "deliver/h only the BOUND modal rides",
+  "file": "backend/main.py",
+  "old": "        if payload.get(\"dialogue_id\") != dialogue_id:\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_an_unrelated_popup_never_rides_a_question"
+ },
+ {
+  "id": "dir/a the payload splits the two directions",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        if str(term.get(\"to\") or \"\") == player_nation:\n            amount_offered = _clause_amount\n        else:",
+  "new": "        if False:\n            amount_offered = _clause_amount\n        else:",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferSpeaksTheDirection::test_a_concession_is_not_announced_as_a_demand"
+ },
+ {
+  "id": "dir/b the concession register",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    if amount_offered > 0:\n        _arrival_suffix = \"_concession\"\n        _voice_amount = amount_offered",
+  "new": "    if amount_offered > 0:\n        _arrival_suffix = \"\"\n        _voice_amount = amount_offered",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferSpeaksTheDirection::test_a_concession_is_not_announced_as_a_demand"
+ },
+ {
+  "id": "dir/c the no-gold register",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    else:\n        _arrival_suffix = \"_none\"\n        _voice_amount = 0",
+  "new": "    else:\n        _arrival_suffix = \"\"\n        _voice_amount = 0",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferSpeaksTheDirection::test_a_white_peace_does_not_ask_for_zero_gold"
+ },
+ {
+  "id": "dir/d the stream no longer clobbers the headline",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "            stream_amount = int(term.get(\"amount\", 0) or 0)",
+  "new": "            stream_amount = amount = int(term.get(\"amount\", 0) or 0)",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferSpeaksTheDirection::test_a_recurring_clause_no_longer_clobbers_the_headline"
+ },
+ {
+  "id": "dir/e the rail says Offering",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                _gold_clause = f\" Offering {offered} gold.\"",
+  "new": "                _gold_clause = f\" Asking {offered} gold.\"",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferSpeaksTheDirection::test_the_rail_says_offering_when_the_court_pays"
+ },
+ {
+  "id": "assess/a the label reads OUR burden",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "                snapshot[\"harshness\"] = round(_our_burden, 2)\n                snapshot[\"harshness_label\"] = get_harshness_label(_our_burden)",
+  "new": "                snapshot[\"harshness\"] = snapshot.get(\"harshness\")\n                snapshot[\"harshness_label\"] = snapshot.get(\"harshness_label\")",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAssessmentReadsOurBurden::test_a_demand_on_france_is_not_generous"
+ },
+ {
+  "id": "assess/b the payload agrees with the snapshot",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "                payload[\"harshness\"] = snapshot[\"harshness\"]\n                payload[\"harshness_label\"] = snapshot[\"harshness_label\"]",
+  "new": "                payload[\"harshness\"] = payload.get(\"harshness\")\n                payload[\"harshness_label\"] = payload.get(\"harshness_label\")",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAssessmentReadsOurBurden::test_a_demand_on_france_is_not_generous"
+ },
+ {
+  "id": "record/a the clause dialect prices gold",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "        elif ctype == \"gold_lump\":\n            # FA-N45 (slice 10): the four types below were priced in the",
+  "new": "        elif ctype == \"gold_lump_DISABLED\":\n            # FA-N45 (slice 10): the four types below were priced in the",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheRecordStoresOneSidesBurden::test_the_clause_dialect_prices_every_type_the_demand_dialect_does"
+ },
+ {
+  "id": "record/b the clause dialect prices manpower",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "                       \"manpower_artillery\", \"manpower\"):\n            harshness += 0.15",
+  "new": "                       \"manpower_artillery\", \"manpower\"):\n            harshness += 0.0",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheRecordStoresOneSidesBurden::test_the_clause_dialect_prices_every_type_the_demand_dialect_does"
+ },
+ {
+  "id": "record/c burden reads the direction",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "        and str(clause.get(\"from\") or \"\") == str(nation)\n    ]",
+  "new": "    ]",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheRecordStoresOneSidesBurden::test_burden_reads_the_direction tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheRecordStoresOneSidesBurden::test_a_concession_is_never_booked_as_harshness"
+ },
+ {
+  "id": "record/d the treaty record stores it",
+  "file": "backend/models/world_state.py",
+  "old": "            \"harshness\": burden_on_nation(treaty_clauses, target_nation),",
+  "new": "            \"harshness\": 0.0,",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheRecordStoresOneSidesBurden::test_a_gold_peace_no_longer_stores_zero"
+ },
+ {
+  "id": "record/e the ally penalty reads the enemy burden",
+  "file": "backend/models/world_state.py",
+  "old": "                harshness = burden_on_nation(treaty_clauses, penalty_target)",
+  "new": "                harshness = 0.0",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheRecordStoresOneSidesBurden::test_the_ally_penalty_reads_the_enemys_burden"
+ },
+ {
+  "id": "rule/e2 the collision producer refuses a rival draft",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "        if active_war_id and active_war_id != war_id_str:",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_the_collision_still_fires_between_two_real_drafts tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferIsMailNeverADraft::test_a_refused_accept_leaves_the_letter_standing"
+ },
+ {
+  "id": "deliver/f2 the sweep still drops a stale non-blocking wedge",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "                if not q_blocking and q_created < current_turn:\n                    continue",
+  "new": "                if False:\n                    continue",
+  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_the_sweep_still_clears_the_wedge_it_was_written_for"
+ }
+]

@@ -10145,7 +10145,21 @@ class WorldState:
                     "blocking": True,
                     "popup_payload": popup_payload,
                 }
-                self.dialogue_manager.push(counter_dialogue)
+                # FA-17 (slice 10): the answer to the player's OWN 3-DP
+                # overture displaces routine mail to reach him. Measured on
+                # the shipped boot: the counter was pushed last every time —
+                # `_process_ai_diplomatic_phase` delivers the turn's letters
+                # before `advance_turn` resolves the proposal in transit — so
+                # it never claimed the slot, never got a popup, and lapsed at
+                # the next end turn with no player-side cooldown: 3 DP a turn,
+                # spent on a question whose answer never arrived as a modal.
+                from backend.models.dialogue_manager import (
+                    MOUNT_OVER_MAIL_ACTIVE,
+                )
+                if MOUNT_OVER_MAIL_ACTIVE:
+                    self.dialogue_manager.mount_over_mail(counter_dialogue)
+                else:
+                    self.dialogue_manager.push(counter_dialogue)
                 # Aug 30, 2026 review: the un-rewritten sibling of the IGR-F
                 # conditional write. `push` makes a dialogue current only when
                 # NOTHING is current, so on a turn that already carries a
@@ -10252,7 +10266,10 @@ class WorldState:
         R107/R108: Unified path for both player and AI-AI treaties.
         Extracts nations from proposal fields (proposer_nation/target_nation).
         """
-        from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+        from backend.game_logic.diplomatic_templates import (
+            burden_on_nation,
+            calculate_treaty_harshness,
+        )
         from backend.game_logic.diplomacy import _UPGRADE_ORDER
 
         # Extract nations from proposal
@@ -10506,7 +10523,14 @@ class WorldState:
             "state_transition": f"{current_state}_TO_{target_state}",
             "clauses": treaty_clauses,
             "turn_signed": int(self.current_turn),
-            "harshness": calculate_treaty_harshness({"clauses": treaty_clauses}),
+            # FA-N45 (slice 10): what this treaty cost the party it was
+            # asked of. The old read summed BOTH sides' clauses through the
+            # direction-blind clause dialect — which, before the four missing
+            # branches landed, meant a gold peace stored 0.0 and DD8-4 never
+            # fired; and which, with them, would have booked the AI's own
+            # CONCESSION to France as harshness against the pair. One side's
+            # burden is the number both consumers want.
+            "harshness": burden_on_nation(treaty_clauses, target_nation),
         }
 
         # Store treaty
@@ -11081,10 +11105,15 @@ class WorldState:
             applied_penalties: List[Dict] = []
             if current_state in ("WAR", "ARMISTICE") and target_state == "PEACE":
                 from backend.game_logic.diplomacy import apply_separate_peace_penalties
-                from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
-                harshness = calculate_treaty_harshness(treaty)
+                from backend.game_logic.diplomatic_templates import burden_on_nation
                 penalty_actor = self.player_nation
                 penalty_target = target_nation if proposer == self.player_nation else proposer
+                # FA-N45: the allies' anger is about how lightly the COMMON
+                # ENEMY got off, so the harshness that doubles their penalty
+                # below 0.2 must be the burden on that enemy — not the sum of
+                # both sides' clauses, which counted France's own concessions
+                # as if they had been extracted from him.
+                harshness = burden_on_nation(treaty_clauses, penalty_target)
                 applied_penalties = apply_separate_peace_penalties(self, penalty_actor, penalty_target, harshness)
 
             # Coalition: generous peace threat reduction (COALITION_SPEC §2b)

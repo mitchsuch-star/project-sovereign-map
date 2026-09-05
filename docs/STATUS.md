@@ -4,6 +4,86 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 10 "THE OFFER ON THE DESK" IS LANDED — September 5, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 10 block (authoritative).** Twelve rows in one neighbourhood — the
+> settlement offer a court puts on the player's desk, and everything that went
+> wrong between the click and the signature: FA-4 (P1), FA-3 (P1), FA-N4's
+> staging half, FA-N15, FA-N17, FA-N18, FA-17, FA-N44, FA-N16, FA-N43, FA-N45,
+> plus **FA-S10-1**, a pre-existing P2 found while building. **FA-21 MOVED to
+> slice 14**: it changes AI behaviour and needs a series flip-arm, and a
+> reproduction found its filed fix ships a SMALLER demand than the row wants
+> (`_reduce_p8_demands` already prices the purse — the measured 6,994 becomes
+> 200).
+>
+> **ONE RULE closes five: an incoming settlement offer is MAIL, never a DRAFT.**
+> SC-26's collision guard asks "is a settlement already on the table?" and the
+> family set answered it with a letter the enemy had sent us. Measured on the
+> committed t20 fixture with a second war's offer queued behind Britain's: the
+> accept popped the letter, the pop PROMOTED the other war's offer, the
+> collision arm refused — and the letter the player had just clicked was gone,
+> with the refusal naming a war they had never seen. Three readers now agree on
+> what a draft is (the collision arm, the "resolve the current review first"
+> gate, and the staging tail's replace arm); both answering arms stage FIRST and
+> consume the offer only on success, so a refusal leaves it standing, answerable,
+> with no SC-14b reopen attempt burnt.
+>
+> **ONE MORE closes FA-3: the offering courts consent by construction.** The
+> accept-staged review scored the covered courts as the ACCEPTING side of a
+> package France was deemed to have proposed — so the scorer priced the AI's
+> own terms as the AI's reluctance to sign them: `can_ratify` False, blocker
+> "Settlement legitimacy", no confirm option, on the boot board and the fixture
+> alike. The coalition peace the whole diplomacy layer exists to close was a
+> dead affordance. Consent rides the staged dialogue and is honoured at BOTH
+> scoring seams — the preview and the fresh re-score at ratification, without
+> which a Ratify button true when drawn is false when pressed — pinned to the
+> exact package offered, so an edited draft is scored normally again and hard
+> stops still block. Two riders the row did not name: a court that has since
+> made its own peace is dropped and named, and the table stops claiming a score
+> the courts do not have.
+>
+> **FA-S10-1, found by chasing FA-3's outcome across four boot boards** (two
+> ratified, two did not, and consent was not the difference): an ELIMINATED
+> court is taken off a war's sides but its pairs stay in `active_diplo_keys`
+> with `pair_status: "war"` forever, so `revalidate_staged_settlement` refuses
+> every ratification of that war from then on. Bavaria was eliminated on two of the four unseeded
+> boot boards probed, and at turn 9 of the seeded ambient run. Fixed at the producer.
+>
+> **Delivery and direction.** Two dialogues that exist to INTERRUPT were pushed
+> behind whatever letter had arrived that turn, because `push` fills the slot
+> only when empty and the IGR-F drip refills it about twice a turn — the
+> answer to France's own 3-DP overture, and the commitment paradox, which then
+> sat invisible and was deleted by `clear_stale` with France still allied to
+> both belligerents. New `mount_over_mail`: mail yields and re-queues, a hard
+> stop keeps the slot. An offer PAYING France read as a demand for tribute; the
+> incoming "Assessment" quoted the burden on the sender; a ratified peace that
+> moved 405 gold stored harshness 0.0.
+>
+> **Three of the filed fix shapes would have shipped a regression**, and the
+> record says so on each row: FA-4's per-offer exemption is narrower than the
+> predicate it replaces (FA-N17 said so, and was right); FA-N45's mirror books
+> the AI's own concession as harshness, because the clause dialect is
+> direction-blind; and mounting the paradox — FA-N44's whole point — makes
+> its own modal undeliverable, since a hard stop refuses every command and a
+> refusal never drains the popup queue.
+>
+> **Gates:** suite **20,352 / 4 skipped**, ruff clean, parser eval 675/675,
+> sweep `tools/_sweep_fa_slice10.json` **41/41 killed, 0 INERT, 0 BROKEN** (four
+> inert on the first sweep — all four repaired, none loosened). M1–M7 and
+> `BASELINE_SERIES` byte-identical WITHOUT re-record, and here that is evidence
+> rather than a fact about the harness: an instrumented re-run of the series'
+> own loop counts FA-S10-1's producer firing twice (Bavaria turn 9,
+> KingdomOfItaly turn 10, one `war_1` pair each), so the new path is executed
+> by the series and does not move it. Zero
+> `.gd` (no parse harness or boot smoke owed); zero new serialized fields.
+> `tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py` (52); ONE pin
+> flipped consciously in `test_settlement_continuity_slice.py`.
+>
+> **▶ NEXT = the slice-10 three-lens review round, then slice 11 "The
+> Briefing Tells the Truth".** ⚠ Still no pillar re-score. ⚠ FA-D27 /
+> FA-D28 / FA-S9-D1 / FA-S9-D2 await the user's ruling.
+
 > # ✅ THE AUDIT BUILD: THE SLICE 9 REVIEW ROUND "THE QUESTION IS ASKED OF THE LIVING" IS LANDED — September 5, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
