@@ -3466,7 +3466,8 @@
         "error_contains": "Unknown action"
       },
       "source": "tests/test_playtest_command_and_ui_2026_07_18.py",
-      "notes": "NEGATIVE pin. Was silently WRONG at confidence 0.9 (above the LLM-fallback gate, so live mode could never correct it): the player asked Ney to screen the army and Ney retreated, spending the AP. Screening is not a modelled action, so falling through to Berthier is correct."
+      "notes": "NEGATIVE pin. Was silently WRONG at confidence 0.9 (above the LLM-fallback gate, so live mode could never correct it): the player asked Ney to screen the army and Ney retreated, spending the AP. Screening is not a modelled action, so falling through to Berthier is correct. FA-73 (FA slice 7): a MOCK contract — the live prompt never promised to refuse a deed no action models; the live twin pins the real harm instead (not_action).",
+      "mock_only": true
     },
     {
       "id": "ney-fix-bayonets",
@@ -3477,7 +3478,8 @@
         "error_contains": "Unknown action"
       },
       "source": "tests/test_playtest_command_and_ui_2026_07_18.py",
-      "notes": "NEGATIVE pin. The repair branch's bare 'fix ' substring executed a masonry repair at confidence 0.9."
+      "notes": "NEGATIVE pin. The repair branch's bare 'fix ' substring executed a masonry repair at confidence 0.9. FA-73 (FA slice 7): a MOCK contract — the live prompt never promised to refuse a deed no action models; the live twin pins the real harm instead (not_action).",
+      "mock_only": true
     },
     {
       "id": "ney-restore-order-in-vienna",
@@ -4554,6 +4556,511 @@
       },
       "source": "FA-50 (Final Whole-Game Audit)",
       "notes": "A `;` was consumed only as an optional PREFIX to 'then', so a bare semicolon never split. With a RESOLVABLE second marshal this succeeded silently and marched Ney away from the battle; the row's probe happened to name an unresolvable pronoun and saw a loud failure instead."
+    },
+    {
+      "id": "fa73-live-cover-the-retreat-is-not-a-retreat",
+      "utterance": "Ney, cover the retreat",
+      "world": "any",
+      "live_only": true,
+      "expected": {
+        "not_action": "retreat"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-73: the real PS18-5 harm is Ney RETREATING when told to screen the army; the live layer may interpret the deed but must never read it as his own withdrawal."
+    },
+    {
+      "id": "fa73-live-fix-bayonets-is-not-a-repair",
+      "utterance": "Ney, fix bayonets",
+      "world": "any",
+      "live_only": true,
+      "expected": {
+        "not_action": "repair"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-73: 'fix' must never become masonry repair on the live layer."
+    },
+    {
+      "id": "fa-n8-pontoon-bridge-is-not-a-keel",
+      "utterance": "Ney, lay down a pontoon bridge across the Danube",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N8: a bare 'lay down' spent 400g and an admin AP on a keel. The verb needs its naval object now."
+    },
+    {
+      "id": "fa-n9-lay-down-a-ship-is-marshal-free",
+      "utterance": "lay down a ship of the line",
+      "world": "1805",
+      "expected": {
+        "action": "build_fleet",
+        "marshal": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N9: the help text's own example asked 'Did you mean Davout?' — the naval verbs were in neither hand-copied meta list. ONE derived list now."
+    },
+    {
+      "id": "fa-n9-draw-off-the-fleet",
+      "utterance": "draw off the fleet",
+      "world": "1805",
+      "expected": {
+        "action": "naval_diversion",
+        "marshal": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N9: the authored diversion phrasing."
+    },
+    {
+      "id": "fa-n24-a-land-diversion-is-not-the-grand-diversion",
+      "utterance": "Murat, mount a diversion on the left",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N24: a bare 'diversion' opened the once-per-war Admiralty quote and discarded Murat. The word needs the fleet beside it, or the game's own name for the errand."
+    },
+    {
+      "id": "fa-n24-the-grand-diversion-by-name",
+      "utterance": "the grand diversion",
+      "world": "1805",
+      "expected": {
+        "action": "naval_diversion"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N24: the errand's own name still reaches the Admiralty."
+    },
+    {
+      "id": "fa-n24-villeneuve-may-order-the-diversion",
+      "utterance": "Villeneuve, order the diversion",
+      "world": "1805",
+      "expected": {
+        "action": "naval_diversion",
+        "marshal": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA slice 7: the fleet's named admiral is a legitimate addressee of a naval verb, never a marshal typo to clarify."
+    },
+    {
+      "id": "fa-n39-general-ney-is-ney",
+      "utterance": "General Ney, attack Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N39: ONE honorific (marshal|general|gen.|maréchal) composed into every address regex."
+    },
+    {
+      "id": "fa-n39-gen-dot-ney-holds",
+      "utterance": "Gen. Ney, hold",
+      "world": "any",
+      "expected": {
+        "action": "hold",
+        "marshal": "Ney"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N39: the abbreviated honorific."
+    },
+    {
+      "id": "fa-n39-marechal-ney-attacks",
+      "utterance": "Maréchal Ney, attack Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N39: the French honorific."
+    },
+    {
+      "id": "fa-n39-general-alone-is-an-interjection",
+      "utterance": "General, charge",
+      "world": "any",
+      "expected": {
+        "action": "charge",
+        "marshal": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-N39: 'general' stays in ADDRESS_NON_NAME_WORDS — a bare rank is not a name."
+    },
+    {
+      "id": "fa80-stay-put-is-wait",
+      "utterance": "Ney, stay put",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "wait",
+        "marshal": "Ney"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: the plainest WAIT."
+    },
+    {
+      "id": "fa80-remain-in-rhineland-is-wait",
+      "utterance": "Ney, remain in Rhineland",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "wait",
+        "marshal": "Ney"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-rest-your-men-is-wait",
+      "utterance": "Ney, rest your men",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "wait",
+        "marshal": "Ney"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-stand-your-ground-is-hold",
+      "utterance": "Ney, stand your ground",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "hold",
+        "marshal": "Ney",
+        "strategic_type": "HOLD"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: beside 'stand fast'."
+    },
+    {
+      "id": "fa80-advance-on-swabia-is-a-march",
+      "utterance": "Ney, advance on Swabia",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Swabia",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: 'advance to' marched, 'advance on' shrugged."
+    },
+    {
+      "id": "fa80-push-on-to-swabia-is-a-march",
+      "utterance": "Ney, push on to Swabia",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Swabia",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-onward-to-swabia-is-a-march",
+      "utterance": "Ney, onward to Swabia",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Swabia",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-pull-back-is-a-retreat",
+      "utterance": "Ney, pull back",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "retreat",
+        "marshal": "Ney",
+        "strategic_type": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: no destination — the retreat verb, never a march toward the guns."
+    },
+    {
+      "id": "fa80-pull-back-to-lorraine-is-a-march",
+      "utterance": "Ney, pull back to Lorraine",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Lorraine",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-retire-is-a-retreat",
+      "utterance": "Ney, retire",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "retreat",
+        "marshal": "Ney",
+        "strategic_type": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-attak-reads-as-attack",
+      "utterance": "Ney, attak Mack",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: one edit-distance-1 verb repair, re-entering the chain once; the note rides the warning seam."
+    },
+    {
+      "id": "fa80-mvoe-reads-as-move",
+      "utterance": "Ney, mvoe to Lorraine",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Lorraine"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: a transposition counts ONE (OSA distance)."
+    },
+    {
+      "id": "fa80-scuot-reads-as-scout",
+      "utterance": "Ney, scuot Swabia",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "scout",
+        "marshal": "Ney",
+        "target": "Swabia"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80."
+    },
+    {
+      "id": "fa80-a-hole-is-not-a-hold",
+      "utterance": "Ney, dig a hole",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: a real word one slip from a verb is never repaired (the stoplist)."
+    },
+    {
+      "id": "fa80-a-negated-typo-is-still-a-refusal",
+      "utterance": "Ney, do not attak Mack",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": false
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-80: the typo pass reads the BLANKED text — a forbidden clause is gone before the repair runs, so nothing is repaired into an issued order; 'attak Mack, do not pursue him' is repaired to the attack that survives."
+    },
+    {
+      "id": "fa-slice7-bare-fall-back-is-a-retreat",
+      "utterance": "Ney, fall back",
+      "world": "any",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Ney",
+        "strategic_type": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "Measured: the strategic table's bare 'fall back' upgraded a RETREAT into a MOVE_TO with a generic target, which the resolver reads as the nearest ENEMY's province — 'Mack blocks the path at Swabia'. 'fall back to X' keeps its march."
+    },
+    {
+      "id": "fa-slice7-bare-withdraw-is-a-retreat",
+      "utterance": "Ney, withdraw",
+      "world": "any",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Ney",
+        "strategic_type": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "The same defect on the other bare verb."
+    },
+    {
+      "id": "fa-slice7-withdraw-a-rente-is-not-a-march",
+      "utterance": "withdraw Ney's rente",
+      "world": "any",
+      "expected": {
+        "action": "revoke_pension",
+        "strategic_type": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "Measured: revoke_pension was upgraded into a 2-AP MOVE_TO toward the phantom province \"Ney'S Rente\" — administrative verbs never march now (NEVER_STRATEGIC_ACTIONS)."
+    },
+    {
+      "id": "fa-d20-join-davout-is-support",
+      "utterance": "Ney, join Davout",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D20: the strategic parser knew the verb; the mock chain did not."
+    },
+    {
+      "id": "fa-d20-aid-davout-is-support",
+      "utterance": "Ney, aid Davout",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D20."
+    },
+    {
+      "id": "fa-d20-help-davout-is-support",
+      "utterance": "Ney, help Davout",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D20: object REQUIRED — a bare 'help' keeps the command reference."
+    },
+    {
+      "id": "fa-d20-protect-davout-is-support-not-hold",
+      "utterance": "Ney, protect Davout",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D20: was a 2-AP HOLD 'at' a man."
+    },
+    {
+      "id": "fa-d20-protect-rhineland-stays-hold",
+      "utterance": "Ney, protect Rhineland",
+      "world": "1805",
+      "expected": {
+        "action": "hold",
+        "marshal": "Ney",
+        "target": "Rhineland",
+        "strategic_type": "HOLD"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D20: a province keeps HOLD."
+    },
+    {
+      "id": "fa-d20-cover-the-retreat-under-an-attack-is-still-an-attack",
+      "utterance": "Ney, attack Mack and cover the retreat",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack",
+        "strategic_type": null
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D20: the SUPPORT keywords that are plain English (help/cover/screen/shield) claim a sentence only when a friendly marshal follows them."
+    },
+    {
+      "id": "fa-d25-where-is-mack-is-status",
+      "utterance": "where is Mack?",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D25: a fact question the intel report already answers routes to status with the classified question; the desk answers fog-honestly."
+    },
+    {
+      "id": "fa-d25-who-holds-swabia-is-status",
+      "utterance": "who holds Swabia?",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D25."
+    },
+    {
+      "id": "fa-d25-how-many-men-is-status",
+      "utterance": "how many men does Ney have?",
+      "world": "any",
+      "expected": {
+        "action": "status"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D25."
+    },
+    {
+      "id": "fa-d25-how-do-i-attack-stays-help",
+      "utterance": "how do I attack Mack?",
+      "world": "1805",
+      "expected": {
+        "action": "help"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D25: an entity-bearing HOW-DO-I is guidance, not a fact question — the command reference stays (CR-8 owns advice)."
+    },
+    {
+      "id": "fa-d25-will-ney-attack-mack-is-a-question",
+      "utterance": "will Ney attack Mack?",
+      "world": "1805",
+      "expected": {
+        "not_action": "attack"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "FA-D25's executing half: measured, this sentence FOUGHT A BATTLE (gold -128). will/would/shall join the interrogative leads; the unpunctuated polite order 'would you have Ney attack Mack' stays an order."
+    },
+    {
+      "id": "fa-slice7-berthier-is-the-desk",
+      "utterance": "Berthier, status",
+      "world": "any",
+      "expected": {
+        "action": "status"
+      },
+      "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
+      "notes": "The chief of staff addressed is the desk itself, not a marshal to find."
     }
   ]
 }

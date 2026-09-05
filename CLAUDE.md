@@ -277,11 +277,26 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > except arms keep the builder literal; the cancel pin staged a SOFT stop and
 > is flipped consciously (and had been leaking `game_state` across files).
 >
-> **▶ NEXT = the mock vocabulary** (FA-80/D20/D25/N8/N24/N9/N39/24/47/73 —
-> reproduced, `docs/audits/fa_build_2026_09_04/REPRO_F_the_mock_vocabulary.md`),
-> then FA-26 **as a shared helper across all four trust-writing families**
-> (FA-N1), then position 10. ⚠ **Still no pillar re-score. ⚠ FA-D27 / FA-D28
-> await the user's ruling.**
+> **▶ SLICE 7 "THE MOCK SPEAKS PLAINLY" IS LANDED — September 4, 2026.**
+> Landing record = the boxed SLICE 7 block in `BUG_FIXES.md` §Final
+> Whole-Game Audit (authoritative). FA-80/N8/N24/N9/N39/24/48/47/73 + NPC-7/19
+> + the design rows FA-D20/D25 closed by ONE design: the naval verbs anchor
+> to the fleet and refuse an addressed marshal (`naval_executor`); ONE derived
+> meta list (`validation.PARSER_ONLY_META` / `NON_ORDER_ACTIONS` /
+> `NEVER_STRATEGIC_ACTIONS`); ONE honorific (`clause_guards.HONORIFIC`)
+> composed into all nine address regexes; plain speech + one
+> transposition-aware verb repair (`fuzzy_matcher.osa_distance_at_most`); the
+> FACT desk (`backend/ai/question_desk.py`, behind `status`, fog-honest —
+> advice stays CR-8's); a prisoner named at every enemy lookup
+> (`backend/commands/prisoners.py`). Beside the rows: a typed honorific
+> MARCHED a prisoner out of Vienna, `withdraw Ney's rente` marched to a
+> phantom province, a bare "fall back" marched toward the enemy, and "will
+> Ney attack Mack?" fought — all fixed. 82 tests, corpus 647/647, zero `.gd`.
+>
+> **▶ NEXT = FA-26 as a shared helper across all four trust-writing
+> families** (FA-N1), then position 10 — a three-lens review round at the
+> slice-7 SHA first if the pattern holds. ⚠ **Still no pillar re-score. ⚠
+> FA-D27 / FA-D28 await the user's ruling.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

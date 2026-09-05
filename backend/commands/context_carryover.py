@@ -45,6 +45,7 @@ from typing import Dict, List, Optional
 import re
 
 from backend.ai.attack_vocabulary import targeting_anchor_words
+from backend.ai.clause_guards import HONORIFIC
 
 # Actions that are not a repeatable field "order" — "again"/"not you" skip
 # past them to the last real command (checking status then typing "again"
@@ -95,7 +96,7 @@ _REPEAT_RE = re.compile(
 # marshal prefix blocks the whole-input _REPEAT_RE and the vague tail dropped to
 # the LLM, which parsed it as a default attack (playtest finding).
 _ADDRESSED_REPEAT_RE = re.compile(
-    r'^\s*(?:marshal\s+)?(?P<marshal>[A-Za-z]+)\s*[,:]\s*(?:'
+    r'^\s*(?:' + HONORIFIC + r')?(?P<marshal>[A-Za-z]+)\s*[,:]\s*(?:'
     + _REPEAT_PHRASE + r')\s*[.!]*\s*$',
     re.IGNORECASE)
 
@@ -318,7 +319,7 @@ def _readdress_command(marshal_name: str, entry: Dict) -> str:
     raw = (entry.get("raw_input") or "").strip()
     old = entry.get("marshal")
     if old and raw:
-        raw = re.sub(r'^(?:marshal\s+)?' + re.escape(old) + r'\b\s*[,:]?\s*',
+        raw = re.sub(r'^(?:' + HONORIFIC + r')?' + re.escape(old) + r'\b\s*[,:]?\s*',
                      '', raw, flags=re.IGNORECASE).strip()
     if raw:
         return f"{marshal_name}, {raw}"
@@ -338,7 +339,7 @@ def _match_roster_name(world, candidate: str) -> Optional[str]:
     if not candidate:
         return None
     from backend.commands.parser import _closest_by_edit_distance
-    cleaned = re.sub(r'^(?:marshal\s+)', '', candidate, flags=re.IGNORECASE).strip()
+    cleaned = re.sub('^' + HONORIFIC, '', candidate, flags=re.IGNORECASE).strip()
     if not cleaned:
         return None
     roster = _field_marshal_names(world)

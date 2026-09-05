@@ -236,7 +236,13 @@ class TestParserBehaviour:
     def test_a_question_is_answered_not_executed(self, board, text):
         result = run(board, text)
         assert result.get("success"), text
-        assert result["command"]["action"] == "help", text
+        # FA slice 7 (Sept 4, 2026), flipped consciously: a FACT question the
+        # intelligence report already answers ("where is Mack?") now routes to
+        # `status` carrying the classified question — still a free READ, never
+        # an order, no target. Advice and "how do I" keep the command reference.
+        assert result["command"]["action"] in ("help", "status"), text
+        if result["command"]["action"] == "status":
+            assert result["command"].get("question"), text
         assert result["command"].get("target") is None, text
 
     def test_conditional_orders_are_refused_not_executed_now(self, board):

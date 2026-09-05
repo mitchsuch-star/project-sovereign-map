@@ -30,9 +30,11 @@ from dotenv import load_dotenv
 
 from .schemas import ParseResult
 from .providers import get_provider, PROVIDERS
-from .validation import validate_parse_result
+from .validation import validate_parse_result, NON_ORDER_ACTIONS
 from .attack_vocabulary import mentions_attack
 from .recruit_arm import extract_requested_arm
+from .clause_guards import HONORIFIC  # FA slice 7: ONE honorific
+from backend.utils.fuzzy_matcher import osa_distance_at_most
 from .clause_guards import (
     address_governs_only_deferred_text,
     has_executable_residue,
@@ -72,7 +74,7 @@ _CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
 # CR-2: leading comma-addressed token ("Murat, charge" / "Marshal Soult,
 # hold") — shared with parser.py's addressed-token guard.
 ADDRESS_TOKEN_RE = re.compile(
-    r"^\s*(?:marshal\s+)?([a-zA-Z][a-zA-Z'’-]*)\s*,", re.IGNORECASE)
+    r"^\s*(?:" + HONORIFIC + r")?([a-zA-Z][a-zA-Z'’-]*)\s*,", re.IGNORECASE)
 
 # CR-2: leading comma-separated words that are NOT name attempts —
 # interjections ("No, charge!"), collective addressees ("Cavalry,
@@ -91,6 +93,10 @@ ADDRESS_NON_NAME_WORDS = frozenset({
     "cavalry", "infantry", "artillery", "horsemen", "riders", "foot",
     "guns", "guard", "guards", "marshal", "marshals", "general",
     "generals", "commander", "commanders",
+    # FA slice 7: the chief of staff is the desk itself — "Berthier, status"
+    # / "Berthier, where is Mack?" address nobody on the roster (measured:
+    # "Marshal 'Berthier' not found").
+    "berthier",
     # bare verbs that read as their own clause
     "attack", "move", "hold", "defend", "retreat", "scout", "charge",
     "halt", "stop", "cancel", "wait", "fire", "advance", "march",
@@ -110,6 +116,195 @@ SUPPORT_OBJECT_PREFIX_RE = re.compile(
 # CR-2: start of a strategic condition clause — a name inside it is the
 # condition marshal ("hold until Ney arrives"), never the executor.
 CONDITION_CLAUSE_RE = re.compile(r'\buntil\b', re.IGNORECASE)
+
+# ═══════════════════════════════════════════════════════════════════════
+# FA slice 7 (Sept 4, 2026) — "the mock speaks plainly". Flip levers: each
+# False reproduces the pre-slice chain byte-for-byte for its own arm.
+# ═══════════════════════════════════════════════════════════════════════
+NAVAL_VERBS_NEED_THEIR_OBJECT = True   # FA-N8 / FA-N24: lay down / diversion anchor to the fleet
+PLAIN_SPEECH_ACTIVE = True             # FA-80: stay put / stand your ground / advance on / pull back / retire
+SUPPORT_SPEAKS_PLAINLY = True          # FA-D20: join / aid / help / protect <marshal> -> SUPPORT
+VERB_TYPO_PASS_ACTIVE = True           # FA-80: one edit-distance-1 verb repair, re-entering once
+QUESTION_DESK_ACTIVE = True            # FA-D25: fact questions -> status, not the command reference
+BERTHIER_NAMES_AN_ENEMY = True         # FA-80 (c): the shrug's example enemy is at war with us
+
+_NAVAL_OBJECT_RE = re.compile(
+    r"\blay down\b.{0,24}\b(?:ship|ships|keel|keels|hull|hulls|vessel|vessels"
+    r"|frigate|frigates|sail|fleet)\b")
+_DIVERSION_INSTRUMENT_RE = re.compile(
+    r"\b(?:fleet|squadron|squadrons|navy|naval|admiralty|sail|sea|strait"
+    r"|channel|blockade)\b")
+
+
+def _lays_down_a_keel(command_lower: str) -> bool:
+    """FA-N8: a bare `lay down` claimed ANY sentence for build_fleet — "lay
+    down a pontoon bridge" spent 400g and an admin AP with no confirm. The
+    verb now needs its object within 24 characters, exactly as its sibling
+    alternative ("build … ships") always did."""
+    if not NAVAL_VERBS_NEED_THEIR_OBJECT:
+        return bool(re.search(r'\blay down\b', command_lower))
+    return bool(_NAVAL_OBJECT_RE.search(command_lower))
+
+
+def _orders_the_diversion(command_lower: str) -> bool:
+    """FA-N24: a bare `diversion` claimed any sentence for the once-per-war
+    Grand Diversion — "Murat, mount a diversion on the left" opened the
+    Admiralty quote and discarded Murat. The word now needs the instrument
+    beside it, or one of the game's own two names for the errand."""
+    if not NAVAL_VERBS_NEED_THEIR_OBJECT:
+        return bool(re.search(r'\bdiversion\b', command_lower))
+    if not re.search(r'\bdiversion\b', command_lower):
+        return False
+    return bool(_DIVERSION_INSTRUMENT_RE.search(command_lower)
+                or "order the diversion" in command_lower
+                or "grand diversion" in command_lower)
+
+
+# FA slice 7: the chief of staff (or the sovereign's own title) addressed
+# before a desk verb — "Berthier, status", "Sire, help".
+_DESK_ADDRESS_RE = re.compile(r"^\s*(?:berthier|sire)\s*[,:]\s*", re.IGNORECASE)
+
+_STAY_PUT_RE = re.compile(
+    r"\bstay\s+put\b|\bstay\s+where\s+you\s+are\b|\bstay\s+here\b"
+    r"|\bstay\s+(?:in|at)\s+\w|\bremain\b"
+    r"|\brest\s+(?:your|the|his|our)\s+(?:men|troops|corps|army|horses)\b"
+    r"|\bstay\s*[.!]*\s*$")
+
+
+def _mentions_stay_put(command_lower: str) -> bool:
+    """FA-80: "stay put" / "stay where you are" / "remain in Rhineland" /
+    "rest your men" — the plainest way to say WAIT, refused as Unknown."""
+    return bool(_STAY_PUT_RE.search(command_lower))
+
+
+def _mentions_plain_retreat(command_lower: str) -> bool:
+    """FA-80: `pull back` / `retire` with no destination are the retreat
+    verb; with " to " they are marches (the move list carries those)."""
+    if " to " in command_lower:
+        return False
+    if "pull back" in command_lower:
+        return True
+    return bool(re.search(r'\bretire\b', command_lower)
+                and not _mentions_pension(command_lower))
+
+
+_PLAIN_MOVE_FORMS = [
+    "advance on", "advance upon", "push on to", "push on toward",
+    "push on towards", "onward to", "onwards to", "forward to",
+    "pull back to", "retire to",
+]
+
+_SUPPORT_VERBS_RE_SRC = (
+    r"(?:join|link\s+up\s+with|aid|assist|bolster|come\s+to\s+the\s+aid\s+of"
+    r"|go\s+help|help|back\s+up|rally\s+to|shore\s+up|combine\s+with)")
+_GUARD_VERBS_RE_SRC = r"(?:guard|protect|cover|screen|shield)"
+
+
+def _roster_alternation(player_marshals) -> str:
+    patterns = sorted({p for p, _name in (player_marshals or [])},
+                      key=len, reverse=True)
+    return "|".join(re.escape(p) for p in patterns if p)
+
+
+def _names_a_friendly_after(verbs_src: str, command_lower: str,
+                            player_marshals) -> bool:
+    alternation = _roster_alternation(player_marshals)
+    if not alternation:
+        return False
+    return bool(re.search(
+        r"\b" + verbs_src + r"\s+(?:" + HONORIFIC + r")?(?:" + alternation + r")\b",
+        command_lower))
+
+
+def _guards_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
+    """FA-D20: "protect Davout" / "guard Davout" name a MAN of our own army —
+    that is SUPPORT (the strategic parser upgrades), not a 2-AP HOLD "at"
+    him. "protect Rhineland" keeps HOLD; "cover the retreat" stays Unknown."""
+    return _names_a_friendly_after(_GUARD_VERBS_RE_SRC, command_lower, player_marshals)
+
+
+def _supports_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
+    """FA-D20: the strategic parser has known join / link up with / aid /
+    assist / bolster / come to the aid of as SUPPORT since Phase 5; the mock
+    chain only ever fired on reinforce/support, so every one of them was
+    "Unknown action". Object REQUIRED — a friendly marshal must follow — so
+    "join forces with Saxony" and a bare "help" keep their own routes."""
+    return _names_a_friendly_after(_SUPPORT_VERBS_RE_SRC, command_lower, player_marshals)
+
+
+_TYPO_VERBS = ("attack", "move", "march", "scout", "defend", "hold", "retreat",
+               "fortify", "recruit", "bombard")
+# Real words one slip away from a verb — never "repaired" into one.
+_TYPO_STOPLIST = frozenset({
+    "hole", "holy", "hood", "hook", "host", "home", "hold", "mole", "mode",
+    "more", "mote", "move", "scot", "scour", "scoot", "stout", "shout",
+    "attach", "attic", "hoard", "board", "march", "marsh", "harsh",
+    "recruits", "recruited", "defends", "defended", "moves", "moved", "holds",
+    "attacks", "attacked", "scouts", "scouted", "marches", "marched",
+})
+
+
+def _repair_verb_typo(command_text: str, game_state: Optional[Dict]):
+    """FA-80: ONE edit-distance-1 (transposition-aware) repair of ONE verb
+    token, only when the chain found nothing and the token is no roster,
+    province or nation form. Returns (repaired_text, note) or (None, None)."""
+    known = set()
+    for key in ("marshals", "enemies", "map_data"):
+        for name in _game_state_dict(game_state, key):
+            for pattern in _name_match_patterns(name):
+                known.update(pattern.split())
+    for nation in _extract_known_nations(game_state):
+        known.update(str(nation).lower().split())
+    for token in re.findall(r"[A-Za-z][A-Za-z'’-]*", command_text or ""):
+        low = token.lower()
+        if (len(low) < 4 or low in ADDRESS_NON_NAME_WORDS or low in known
+                or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
+            continue
+        hits = [v for v in _TYPO_VERBS
+                if v[0] == low[0] and osa_distance_at_most(low, v, 1)]
+        if len(hits) == 1:
+            verb = hits[0]
+            repaired = re.sub(r"\b" + re.escape(token) + r"\b", verb,
+                              command_text, count=1)
+            return repaired, f"(Berthier read '{token}' as '{verb}'.)"
+    return None, None
+
+
+def _askable_enemy_names(game_state: Optional[Dict]):
+    """Every enemy commander the player can NAME. A court's roster is
+    public (the ledger prints it); only his POSITION is fogged, and the desk
+    answers that half honestly ("no word of Kutuzov's whereabouts"). The
+    fallen are askable too (the tombstone answers). Cold parses without a
+    world keep the fog-filtered dict."""
+    world = (game_state or {}).get("world")
+    if world is None:
+        return list(_game_state_dict(game_state, "enemies"))
+    try:
+        player = world.player_nation
+        names = [m.name for m in world.marshals.values() if m.nation != player]
+        names.extend(
+            name for name, tomb in (getattr(world, "fallen_marshals", None) or {}).items()
+            if (tomb or {}).get("nation") != player)
+        return names
+    except Exception:
+        return list(_game_state_dict(game_state, "enemies"))
+
+
+def _hostile_first(game_state: Optional[Dict], enemy_names):
+    """FA-80 (c): the shrug proposed attacking enemies[0] — Deroy of Bavaria
+    on the 1805 boot, a court France is NOT at war with (measured: 2 of 12
+    shrugs). Narrowed to the AT-WAR, fog-visible roster when the world rides
+    game_state; cold-parse fixtures (no world) keep the first name."""
+    world = (game_state or {}).get("world")
+    if world is None or not enemy_names:
+        return enemy_names
+    try:
+        hostile = {m.name for m in world.get_hostile_marshals(world.player_nation)}
+    except Exception:
+        return enemy_names
+    from backend.display_names import humanize_entity_name
+    at_war = [humanize_entity_name(n) for n in enemy_names if n in hostile]
+    return at_war or ["the enemy"]
 
 # Aug 30, 2026 review: a PURPOSE infinitive is a "to" that no destination
 # follows — "move to Venetia TO CUT THEM OFF". The Sweep-5 destination
@@ -436,7 +631,7 @@ def _mentions_treaty_break(command_lower: str) -> bool:
 # shrug). Talleyrand-addressed commands never reach here (the diplomat
 # route fires first), so a legitimate `Talleyrand, end the war` is
 # untouched.
-_LEADING_ADDRESS_RE = re.compile(r"^\s*(?:marshal\s+)?([^,]{1,40}?)\s*,")
+_LEADING_ADDRESS_RE = re.compile(r"^\s*(?:" + HONORIFIC + r")?([^,]{1,40}?)\s*,")
 
 
 def _leads_with_marshal(command_lower: str, marshal_names) -> bool:
@@ -645,8 +840,9 @@ class LLMClient:
         # Known meta commands: fast parser handles these perfectly
         # (help, debug, end_turn, status don't need LLM interpretation)
         # NOTE: "unknown" is NOT included here - unknown SHOULD try LLM!
-        meta_commands = {"help", "debug", "end_turn", "status"}
-        if fast_result.action in meta_commands:
+        # FA slice 7 (FA-N9): ONE list — validation.NON_ORDER_ACTIONS, the
+        # same set the parser's strategic gate reads.
+        if fast_result.action in NON_ORDER_ACTIONS:
             return False
 
         # All checks passed: try LLM
@@ -898,6 +1094,10 @@ class LLMClient:
         # Extract real names for templates
         marshal_names = list(game_state.get("marshals", {}).keys())
         enemy_names = list(game_state.get("enemies", {}).keys())
+        # FA slice 7 (FA-80 c): never propose attacking a court we are at
+        # peace with — see _hostile_first.
+        if BERTHIER_NAMES_AN_ENEMY:
+            enemy_names = _hostile_first(game_state, enemy_names)
         first_marshal = marshal_names[0] if marshal_names else "Ney"
         first_enemy = enemy_names[0] if enemy_names else "Wellington"
 
@@ -1309,6 +1509,37 @@ class LLMClient:
         # Read the ORIGINAL: the clause guards above may have blanked the very
         # question mark or subject the test keys on ("why can't I move?").
         if is_question(original_text):
+            # FA slice 7 (FA-D25's cheap join): a FACT question the intel
+            # report already answers ("where is Mack?", "who holds Swabia?",
+            # "what is Davout doing?", "how many men does Ney have?") routes
+            # to `status` carrying the classified question; the executor's
+            # desk answers fog-honestly. Everything else — feasibility,
+            # advice, "how do I…" — keeps the COMMAND REFERENCE, which stays
+            # CR-8's advisory desk to replace on its own gate.
+            if QUESTION_DESK_ACTIVE:
+                from .question_desk import classify_question
+                _question = classify_question(
+                    original_text,
+                    marshals=list(_game_state_dict(game_state, "marshals")),
+                    enemies=_askable_enemy_names(game_state),
+                    regions=list(_game_state_dict(game_state, "map_data")))
+                if _question:
+                    return ParseResult(
+                        matched=True,
+                        command_type="tactical",
+                        marshals=[],
+                        action="status",
+                        target=None,
+                        ambiguity=5,
+                        strategic_score=0,
+                        interpretation=(f"Question — {_question['kind']} "
+                                        f"{_question['subject']}"),
+                        confidence=0.9,
+                        mode="mock",
+                        key_source=self.key_source,
+                        raw_command=original_text,
+                        question=_question,
+                    )
             return ParseResult(
                 matched=True,
                 command_type="tactical",
@@ -1459,7 +1690,11 @@ class LLMClient:
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         # P8-2 FIX: Use exact match whitelist — "help" in command_lower matched "help Davout"
         # V2-59: "commands" uses exact match to prevent false positives (e.g. "Ney commands his troops")
-        if command_lower.strip() in ("help", "help me", "i need help", "commands", "what can i do") or command_lower.strip() == "?":
+        # FA slice 7: "Berthier, status" / "Berthier, help" address the desk
+        # itself — the exact-match routes read past a non-name address.
+        _desk_text = (_DESK_ADDRESS_RE.sub("", command_lower).strip()
+                      if PLAIN_SPEECH_ACTIVE else command_lower.strip())
+        if _desk_text in ("help", "help me", "i need help", "commands", "what can i do") or _desk_text == "?":
             action = "help"
         # FA-6: the BARE form only. This arm sits above every order verb,
         # so a substring test made any sentence mentioning one of the three
@@ -1470,7 +1705,7 @@ class LLMClient:
         elif is_bare_end_turn(command_lower):
             action = "end_turn"
         # PT-2 FIX: "status" keyword — exact match to prevent false positives
-        elif command_lower.strip() == "status":
+        elif _desk_text == "status":
             action = "status"
         # Cancel strategic order keywords (Phase E) — must be before attack/stance
         # Fix 9: Removed "stand down" — semantically a stance change, not cancel
@@ -1530,19 +1765,30 @@ class LLMClient:
         # lookbehinds keep the bare verb working.
         elif "wait" in command_lower or "stand by" in command_lower or (
                 re.search(r'\bpass(?:es)?\b', command_lower)
-                and not PASS_AS_NOUN_RE.search(command_lower)):
+                and not PASS_AS_NOUN_RE.search(command_lower)) or (
+                # FA slice 7 (FA-80): "stay put" / "remain in Rhineland" /
+                # "rest your men" are the plain WAIT.
+                PLAIN_SPEECH_ACTIVE and _mentions_stay_put(command_lower)):
             action = "wait"  # Free action - marshal passes turn
         # DEF-5 naval ordering guard: "guard home waters" is the fleet
         # posture phrase, not a land HOLD — it must claim the words before
         # the hold family's bare "guard" keyword eats them.
         elif "home waters" in command_lower:
             action = "set_fleet_posture"
+        # FA slice 7 (FA-D20): "protect Davout" / "guard Davout" name a MAN
+        # of our own army — SUPPORT (the strategic parser upgrades), not a
+        # 2-AP HOLD "at" him. Sited ABOVE the hold family so its bare
+        # "guard"/"protect" keywords cannot claim the sentence first.
+        elif (SUPPORT_SPEAKS_PLAINLY
+              and _guards_a_friendly_marshal(command_lower, player_marshals)):
+            action = "move"  # Strategic parser upgrades to SUPPORT
         elif any(kw in command_lower for kw in [
             "hold at all costs", "hold your ground", "hold position",
             "hold the line", "stand fast", "stand firm",
             "defend and hold", "fortify and hold", "secure and hold",
             "anchor at", "guard", "protect",
-        ]):
+        ] + (["stand your ground", "stand ground"]
+             if PLAIN_SPEECH_ACTIVE else [])):
             action = "hold"
         elif "hold" in command_lower:
             action = "hold"  # Alias for defend - will be converted in executor
@@ -1555,7 +1801,10 @@ class LLMClient:
               or ("fall back" in command_lower and " to " not in command_lower)
               or ("withdraw" in command_lower and " to " not in command_lower
                   and not _mentions_pension(command_lower)
-                  and not _mentions_screening_idiom(command_lower))):
+                  and not _mentions_screening_idiom(command_lower))
+              # FA slice 7 (FA-80): "pull back" / "retire" without a
+              # destination are the retreat verb.
+              or (PLAIN_SPEECH_ACTIVE and _mentions_plain_retreat(command_lower))):
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
@@ -1573,7 +1822,7 @@ class LLMClient:
             # while "head TO Vienna" marched).
             "head for", "ride for", "ride to", "set off for", "set out for",
             "set off to", "set out to", "make haste to", "make haste for",
-        ]) or (
+        ] + (_PLAIN_MOVE_FORMS if PLAIN_SPEECH_ACTIVE else [])) or (
             # PARSE-NEG evaluation: "Ney, go to Alsace" — about as plain as an
             # order gets — was UNPARSEABLE. The list carried "head to",
             # "proceed to", "travel to" and "ride to" but never the commonest
@@ -1616,11 +1865,13 @@ class LLMClient:
         # ships" contains "build"); the expedition's \bland\b never matches
         # "landing"/"Holland" (word boundaries) and excludes "land to"
         # (the VS-3 grant phrasing).
-        elif (re.search(r'\blay down\b', command_lower)
+        # FA slice 7 (FA-N8 / FA-N24): both verbs anchor to the fleet — see
+        # _lays_down_a_keel / _orders_the_diversion.
+        elif (_lays_down_a_keel(command_lower)
               or re.search(r'\b(build|raise|construct|launch|expand)\b.{0,20}\b(ship|ships|fleet|navy|sail)\b', command_lower)
               or "build the fleet" in command_lower):
             action = "build_fleet"
-        elif (re.search(r'\bdiversion\b', command_lower)
+        elif (_orders_the_diversion(command_lower)
               or "draw off the fleet" in command_lower
               or "draw them off" in command_lower):
             action = "naval_diversion"
@@ -1662,7 +1913,11 @@ class LLMClient:
             # since July 18, 2026 so the LIVE path can derive it too — it has
             # no PARSE_TOOL field and was structurally unreachable there.
             requested_type = extract_requested_arm(command_lower)
-        elif "reinforce" in command_lower or re.search(r'\bsupport\b', command_lower):
+        elif ("reinforce" in command_lower or re.search(r'\bsupport\b', command_lower)
+              # FA slice 7 (FA-D20): join / link up with / aid / assist /
+              # bolster / come to the aid of / help <friendly marshal>.
+              or (SUPPORT_SPEAKS_PLAINLY
+                  and _supports_a_friendly_marshal(command_lower, player_marshals))):
             action = "move"  # Strategic parser upgrades to SUPPORT
         # Tactical state actions (Phase 2.6)
         elif "unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower:
@@ -2063,6 +2318,25 @@ class LLMClient:
         # order and the keyword chain found nothing in what was left. Answer
         # with the refusal rather than a generic shrug — the parser knows
         # exactly what the player said and that they forbade it.
+        # FA slice 7 (FA-80): ONE verb-typo repair, re-entering the chain
+        # once, on the BLANKED text — a forbidden clause is already gone, so
+        # "do not attak Mack" has nothing left to repair and falls to the
+        # negation refusal below, while "attak Mack, not Davout" is repaired
+        # to the attack the player meant. The note rides the parser's
+        # `warning` seam so the player reads what was assumed.
+        if (VERB_TYPO_PASS_ACTIVE and not matched
+                and not getattr(self, "_typo_reentry", False)):
+            _repaired, _note = _repair_verb_typo(command_text, game_state)
+            if _repaired and _repaired != command_text:
+                self._typo_reentry = True
+                try:
+                    _again = self._parse_with_mock(_repaired, game_state)
+                finally:
+                    self._typo_reentry = False
+                if _again.action != "unknown" and not _again.refusal:
+                    _again.typo_note = _note
+                    return _again
+
         if negation_applied and not matched:
             return self._refusal_result(
                 original_text, "negation", "an order NOT to act")

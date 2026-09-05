@@ -493,18 +493,41 @@ def mentions_stand_down(command_lower: str) -> bool:
 # ---------------------------------------------------------------------------
 # Questions
 # ---------------------------------------------------------------------------
-# `would` / `will` / `shall` are excluded on purpose: "would you have Ney
-# attack Mack" is a polite ORDER and parses as one today.
-_INTERROGATIVE_LEAD_RE = re.compile(
+# FA slice 7 (FA-N39): ONE honorific for every ADDRESS regex in the parse
+# pipeline. ADDRESS_TOKEN_RE admitted `marshal` alone while parser.py's WO-1
+# copy admitted `general` too — so "General Ney, attack Mack" made every
+# address guard blind: measured Sept 4, 2026, a CAPTURED Ney marched out of
+# Vienna on that spelling (the prisoner refusal never saw a token) and a
+# FALLEN Ney's order was refused in the wrong register. Composed into each
+# regex, never copied: the census in tests/test_fa_slice7_* fails on any
+# surviving `(?:marshal\s+)?` literal in address position. An import-time
+# constant rather than a flip lever on purpose — the nine regexes that read
+# it are compiled at import, and the parser has no series exposure (the
+# ambient harness types nothing). The two CAPTURE regexes ("Marshal X" as a
+# name pull) stay marshal-only by design.
+HONORIFIC = r"(?:marshal|general|gen\.|mar[eé]chal)\s+"
+
+# FA slice 7 (FA-D25's executing half): `will Ney attack Mack?` FOUGHT A
+# BATTLE on the boot board (measured: gold -128, four corps to Swabia).
+# `will` / `would` / `shall` join the modal leads. The "?"-or-first-person
+# requirement in is_question() still keeps the polite, unpunctuated ORDER
+# "would you have Ney attack Mack" an order — which was the only reason the
+# three were excluded. Flip lever: False restores the shorter lead set.
+MODAL_LEADS_ARE_QUESTIONS = True
+
+_INTERROGATIVE_LEAD_SRC = (
     r"^\s*(?:so\s+|and\s+|but\s+|ok(?:ay)?\s*,?\s*|well\s*,?\s*)?"
     # A question may be addressed — "Talleyrand, what about Prussia?",
     # "Ney, can I attack?". The address is consumed so the interrogative word
     # still counts as the LEAD.
-    r"(?:(?:marshal\s+)?[A-Za-z][\w'’-]*\s*,\s*)?"
+    r"(?:(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*,\s*)?"
     r"(how|what|why|who|whom|whose|where|when|which|"
-    r"can|could|should|is|are|was|were|do|does|did|am|may|might)\b",
-    re.IGNORECASE,
+    r"can|could|should|is|are|was|were|do|does|did|am|may|might%s)\b"
 )
+_INTERROGATIVE_LEAD_RE = re.compile(
+    _INTERROGATIVE_LEAD_SRC % "|will|would|shall", re.IGNORECASE)
+_INTERROGATIVE_LEAD_RE_LEGACY = re.compile(
+    _INTERROGATIVE_LEAD_SRC % "", re.IGNORECASE)
 _FIRST_PERSON_RE = re.compile(r"\b(?:i|we|me|us|my|our|ours)\b", re.IGNORECASE)
 # A WH-word cannot begin an imperative, so "how does recruiting work" needs no
 # punctuation to be a question. The modal leads (can/should/is/do…) DO begin
@@ -527,7 +550,9 @@ def is_question(command_text: str) -> bool:
     typed without punctuation, still marches.
     """
     text = (command_text or "").strip()
-    lead = _INTERROGATIVE_LEAD_RE.match(text)
+    _lead_re = (_INTERROGATIVE_LEAD_RE if MODAL_LEADS_ARE_QUESTIONS
+                else _INTERROGATIVE_LEAD_RE_LEGACY)
+    lead = _lead_re.match(text)
     if not text or not lead:
         return False
     if text.endswith("?") or _FIRST_PERSON_RE.search(text):

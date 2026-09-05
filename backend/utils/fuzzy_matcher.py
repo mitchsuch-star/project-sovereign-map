@@ -247,6 +247,39 @@ class FuzzyMatcher:
 #   - Animate suggestions appearing/disappearing
 
 
+def osa_distance_at_most(a: str, b: str, limit: int) -> bool:
+    """True if the optimal-string-alignment (Damerau) distance between `a`
+    and `b` is <= `limit` — an adjacent TRANSPOSITION counts as ONE edit.
+
+    FA slice 7 (FA-80): the verb-typo pass in llm_client must read "mvoe",
+    "scuot", "hodl" and "retreta" as one slip each; plain Levenshtein
+    charges two for every one of them. Homed here rather than beside
+    parser.py's `_edit_distance_at_most` because llm_client cannot import
+    parser (parser imports llm_client) — this module is a leaf.
+    """
+    a = a or ""
+    b = b or ""
+    if abs(len(a) - len(b)) > limit:
+        return False
+    rows = len(a) + 1
+    cols = len(b) + 1
+    d = [[0] * cols for _ in range(rows)]
+    for i in range(rows):
+        d[i][0] = i
+    for j in range(cols):
+        d[0][j] = j
+    for i in range(1, rows):
+        for j in range(1, cols):
+            cost = 0 if a[i - 1] == b[j - 1] else 1
+            d[i][j] = min(d[i - 1][j] + 1,
+                          d[i][j - 1] + 1,
+                          d[i - 1][j - 1] + cost)
+            if (i > 1 and j > 1 and a[i - 1] == b[j - 2]
+                    and a[i - 2] == b[j - 1]):
+                d[i][j] = min(d[i][j], d[i - 2][j - 2] + 1)
+    return d[-1][-1] <= limit
+
+
 if __name__ == "__main__":
     """Quick test of fuzzy matcher."""
     print("=" * 60)

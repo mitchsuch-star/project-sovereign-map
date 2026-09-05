@@ -524,6 +524,20 @@ class MetaExecutor:
         if not world:
             return {"success": False, "message": "No world state"}
 
+        # FA slice 7 (FA-D25): a classified FACT question is answered in one
+        # line by the question desk, fog-honestly; anything it cannot answer
+        # falls through to the full report.
+        question = command.get("question")
+        if question:
+            from backend.ai.question_desk import answer_question
+            answer = answer_question(world, question)
+            if answer:
+                return {
+                    "success": True,
+                    "free_action": True,
+                    "message": answer,
+                    "question_answered": True,
+                }
         report = generate_intel_report(world)
         return {
             "success": True,

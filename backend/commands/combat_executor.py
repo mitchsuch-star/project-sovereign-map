@@ -4726,6 +4726,12 @@ class CombatExecutor:
             # return it immediately instead of falling through to "Unknown target"
             if enemy_error and enemy_error.get("diplomatic_block"):
                 return enemy_error
+            # FA slice 7 (NPC-7's worst case): a PRISONER whose name is also a
+            # province — `attack Brunswick` with Brunswick in Austrian hands —
+            # must not fall through to a march on the province. WO-13's
+            # documented order stands: target -> marshal first.
+            if enemy_error and enemy_error.get("prisoner"):
+                return enemy_error
 
             # 4D-4: Check if target is a friendly marshal name
             friendly_match = None
@@ -8866,6 +8872,16 @@ class CombatExecutor:
         if enemy is None:
             enemy, _auto_enemy_error = self._executor._fuzzy_match_enemy(
                 target, world, world.player_nation)
+        # FA slice 7 (NPC-19): the bare `attack Mack` said "already been
+        # destroyed" of a living prisoner — the exact lookup has no strength
+        # gate and the destroyed arm below reads strength alone.
+        from backend.commands import prisoners as _prisoners
+        if (enemy is not None and getattr(enemy, "captured_by", "")
+                and _prisoners.PRISONERS_ARE_NAMED):
+            return {"kind": "error", "error": _prisoners.prisoner_refusal(
+                world, enemy, world.player_nation)}
+        if (_auto_enemy_error or {}).get("prisoner"):
+            return {"kind": "error", "error": _auto_enemy_error}
         if not enemy:
             # PC15-4 (enemy side): a DESTROYED enemy is popped from the
             # roster entirely, so "attack Mack" after his annihilation fell

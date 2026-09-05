@@ -24,6 +24,7 @@ Design contract:
 import re
 from typing import Dict, List, Optional
 
+from backend.ai.clause_guards import HONORIFIC
 from backend.display_names import humanize_entity_name
 
 CLARIFICATION_DIALOGUE_TYPE = "command_clarification"
@@ -519,7 +520,7 @@ def interpret_clarification_answer(dialogue: Dict, typed: str) -> Dict:
     # Name answer — exact, honorific-stripped, or edit-distance-1 typo
     from backend.commands.parser import _closest_by_edit_distance
 
-    stripped = re.sub(r"^(?:marshal\s+)", "", text).strip()
+    stripped = re.sub("^" + HONORIFIC, "", text, flags=re.IGNORECASE).strip()
     by_target = {str(o.get("target") or "").lower(): o for o in actionable
                  if o.get("target")}
     by_label = {str(o.get("label") or "").lower(): o for o in actionable

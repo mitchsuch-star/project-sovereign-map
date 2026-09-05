@@ -33,6 +33,7 @@ except ImportError:
 # Derived from region.py grid_position (single source of truth)
 from backend.models.region import REGIONS_DATA as _REGIONS_DATA
 from backend.ai.nation_names import resolve_typed_nation
+from backend.ai.clause_guards import HONORIFIC
 
 REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
     name: data["grid_position"]
@@ -277,6 +278,11 @@ STRATEGIC_KEYWORDS = {
         "make for", "travel to", "withdraw to", "fall back to",
         "campaign to", "push to", "move toward",
         "journey to", "relocate to", "deploy to",
+        # FA slice 7 (FA-80): the plain destination forms the mock chain
+        # now accepts, so they become standing marches like their siblings.
+        "advance on", "advance upon", "push on to", "push on toward",
+        "push on towards", "onward to", "onwards to", "forward to",
+        "pull back to", "retire to",
         # Bare verbs for cardinal directions ("march north", "fall back north")
         # V2-57: Removed "advance", "push", "head" — mock parser requires directional
         # suffixes ("advance to", "push to", "head to") so bare forms are unreachable
@@ -295,6 +301,7 @@ STRATEGIC_KEYWORDS = {
         "hold position", "hold the line", "fortify and hold",
         "defend and hold", "secure and hold",
         "stand fast", "stand firm", "maintain position", "anchor at",
+        "stand your ground", "stand ground",  # FA slice 7 (FA-80)
         "hold",
         "guard", "protect",
         # NOTE: "dig in" deliberately excluded — maps to tactical fortify, not strategic HOLD (V2-56)
@@ -305,6 +312,9 @@ STRATEGIC_KEYWORDS = {
         "rally to", "back up", "shore up", "combine with",
         "support", "reinforce", "assist", "aid",
         "bolster", "join",
+        # FA slice 7 (FA-D20): object REQUIRED — a friendly marshal must
+        # follow, see _OBJECT_MUST_BE_A_MARSHAL in _detect_strategic_type.
+        "go help", "help", "cover", "screen", "shield",
     ],
 }
 
@@ -351,7 +361,8 @@ def detect_strategic_command(
     cleaned = _strip_marshal_prefix(command_lower, marshal_name)
 
     # Step 1: Detect strategic type
-    strategic_type = _detect_strategic_type(cleaned)
+    friendly_forms = _friendly_forms(marshal_name, world)
+    strategic_type = _detect_strategic_type(cleaned, friendly_forms)
     if strategic_type is None:
         return None
 
@@ -392,6 +403,14 @@ def detect_strategic_command(
         # Windows consoles (caught by the safety net as "Parser error:
         # 'charmap' codec...", killing 'march to <enemy>' commands)
         print("[PARSER] Converted MOVE_TO -> PURSUE (enemy marshal target)")
+    # FA slice 7 (FA-D20): "protect Davout" / "guard Davout" name a MAN of
+    # our own army — SUPPORT, not a HOLD "at" him. A province, an enemy or
+    # a bare "guard" keep HOLD.
+    if (GUARDING_A_MARSHAL_IS_SUPPORT and strategic_type == "HOLD"
+            and target_info.get("target_type") == "marshal"
+            and not target_info.get("convert_to_pursue")
+            and _GUARD_VERB_RE.search(cleaned)):
+        strategic_type = "SUPPORT"
 
     # Step 5: Parse conditions
     condition = _parse_condition(cleaned, target_info["target"])
@@ -425,11 +444,39 @@ def _strip_marshal_prefix(command_lower: str, marshal_name: Optional[str]) -> st
         return command_lower
     name_lower = marshal_name.lower()
     # "grouchy, march to belgium" → "march to belgium"
-    cleaned = re.sub(rf'^(marshal\s+)?{re.escape(name_lower)}[,\s]+', '', command_lower).strip()
+    cleaned = re.sub(rf'^(?:{HONORIFIC})?{re.escape(name_lower)}[,\s]+', '', command_lower).strip()
     return cleaned
 
 
-def _detect_strategic_type(command_lower: str) -> Optional[str]:
+# FA slice 7 (FA-D20): SUPPORT keywords that are plain English words claim a
+# sentence only when a FRIENDLY MARSHAL follows them — "cover the retreat"
+# and "I need help" stay non-strategic. GUARDING_A_MARSHAL_IS_SUPPORT is the
+# flip lever for the HOLD→SUPPORT reclassification in detect_strategic_command.
+GUARDING_A_MARSHAL_IS_SUPPORT = True
+_OBJECT_MUST_BE_A_MARSHAL = frozenset({"help", "go help", "cover", "screen", "shield"})
+_GUARD_VERB_RE = re.compile(r'(?:^|[\s,;!])(?:guard|protect|cover|screen|shield)\s+')
+
+
+def _friendly_forms(marshal_name, world):
+    """Match forms of every OTHER marshal of the ordering marshal's nation
+    (both registers, ONE source: llm_client's name_match_patterns)."""
+    if world is None:
+        return ()
+    try:
+        from backend.ai.llm_client import name_match_patterns
+        me = world.get_marshal(marshal_name) if marshal_name else None
+        nation = me.nation if me else getattr(world, "player_nation", None)
+        forms = []
+        for m in (getattr(world, "marshals", {}) or {}).values():
+            if m.nation != nation or (me is not None and m.name == me.name):
+                continue
+            forms.extend(name_match_patterns(m.name))
+        return tuple(sorted(set(forms), key=len, reverse=True))
+    except Exception:
+        return ()
+
+
+def _detect_strategic_type(command_lower: str, friendly_forms=()) -> Optional[str]:
     """Detect which strategic command type, if any.
 
     Uses word-boundary-aware matching to prevent substring false positives
@@ -441,6 +488,15 @@ def _detect_strategic_type(command_lower: str) -> Optional[str]:
             # Use word boundary regex to avoid substring matches
             pattern = r'(?:^|[\s,;!])' + re.escape(keyword) + r'(?:[\s,;!.]|$)'
             if re.search(pattern, command_lower):
+                if keyword in _OBJECT_MUST_BE_A_MARSHAL:
+                    if not friendly_forms:
+                        continue
+                    alternation = "|".join(re.escape(f) for f in friendly_forms)
+                    if not re.search(
+                            r'(?:^|[\s,;!])' + re.escape(keyword)
+                            + r'\s+(?:' + HONORIFIC + r')?(?:' + alternation + r')\b',
+                            command_lower):
+                        continue
                 return cmd_type
     return None
 
@@ -505,6 +561,8 @@ def _clean_target_text(text: str) -> Optional[str]:
     text = text.strip()
     # Remove leading articles
     text = re.sub(r'^(the|a|an)\s+', '', text)
+    # FA slice 7: "protect Marshal Davout" names Davout, not "marshal davout".
+    text = re.sub('^' + HONORIFIC, '', text, flags=re.IGNORECASE)
     # Strip a leading directional lead-in so the region resolves:
     # "north to Tyrol" → "Tyrol", "south toward Vienna" → "Vienna". A BARE
     # direction ("north") has no connector+region after it and is preserved

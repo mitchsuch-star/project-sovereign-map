@@ -13,6 +13,31 @@ from typing import Dict, Optional
 from backend.game_logic import naval
 
 
+# FA slice 7 (FA-N9 / FA-N24 — FA-11's optional half): the marshal-free
+# naval verbs REFUSE an order addressed to a marshal in the field rather
+# than discarding him — "Ney, lay down a ship" used to lay the keel and
+# forget Ney. The posture verb already carried this arm; now all three do.
+ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL = True
+
+
+def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
+    if not ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL:
+        return None
+    if actor != getattr(world, "player_nation", "France"):
+        return None  # the AI's rungs never carry a marshal
+    name = command.get("marshal")
+    if not name:
+        return None
+    marshal = (getattr(world, "marshals", {}) or {}).get(name)
+    if marshal is None or marshal.nation != actor:
+        return None
+    from backend.display_names import humanize_entity_name
+    return {"success": False, "variable_action_cost": 0, "message": (
+        f"The Admiralty takes its orders from the Emperor, Sire, not from "
+        f"Marshal {humanize_entity_name(marshal.name)} in the field. "
+        f"Say '{example}'.")}
+
+
 class NavalExecutor:
     """Handles the four naval commands."""
 
@@ -35,6 +60,10 @@ class NavalExecutor:
             return {"success": False, "message": (
                 "This campaign has no naval theatre — the fleets of Europe "
                 "are not in play on this map.")}
+        misaddressed = _admiralty_misaddressed(
+            command, world, actor, "lay down a ship of the line")
+        if misaddressed:
+            return misaddressed
         refusal = naval.check_build_fleet(world, actor)
         if refusal:
             return {"success": False, "message": refusal}
@@ -521,6 +550,10 @@ class NavalExecutor:
         if not naval.has_naval_layer(world):
             return {"success": False, "message": (
                 "This campaign has no naval theatre, Sire.")}
+        misaddressed = _admiralty_misaddressed(
+            command, world, actor, "order the diversion")
+        if misaddressed:
+            return misaddressed
         # ── PC15-7: quote-then-confirm, the expedition's own idiom ──
         # The typed Grand Diversion resolved IRREVERSIBLY on one line
         # ("order the diversion" at readiness 53 → "caught coming home …

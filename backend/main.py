@@ -395,6 +395,7 @@ REFUSAL_ARMS_NEVER_DRAIN = True          # FA-N67: a refusal whose client callba
 CANCEL_BUTTON_READS_THE_HARD_STOP = True  # FA-N62: the Orders-tab cancel blocks on the hard stop the typed cancel blocks on
 LOAD_KEEPS_THE_DRAFT_NOTICES = True      # FA-99: /load never drains the draft notices the world swap never renders
 PETITION_RIDES_THE_END_TURN = True       # FA-5: the standing petition rides the end-turn response under its own key
+DISMISSAL_IS_NOT_A_DEATH = True          # FA-47: a marshal the player DISMISSED is not mourned as destroyed
 
 _QUESTION_STATES = frozenset({
     "awaiting_player_choice", "awaiting_clarification", "awaiting_redemption_choice",
@@ -1016,9 +1017,17 @@ def _addressed_lost_marshal_refusal(command_text: str, world):
             continue
         if _marshal_mentioned(token, name):
             location = (tomb or {}).get("location") or "the field"
-            line = (f"Marshal {name} is lost to us, Sire — his corps was "
-                    f"destroyed at {location}. His name cannot lead the "
-                    f"army again.")
+            if (DISMISSAL_IS_NOT_A_DEATH
+                    and (tomb or {}).get("cause") == "dismissed"):
+                # FA-47: the tombstone carries the cause; a marshal the
+                # player DISMISSED was being mourned as destroyed.
+                line = (f"Marshal {name} was relieved of command by your own "
+                        f"order on turn {int((tomb or {}).get('turn') or 0)}; "
+                        f"his name cannot lead the army again.")
+            else:
+                line = (f"Marshal {name} is lost to us, Sire — his corps was "
+                        f"destroyed at {location}. His name cannot lead the "
+                        f"army again.")
             # PT-J4 discipline: the recovery path is named only when the
             # executor's own commission gate would grant it RIGHT NOW.
             try:

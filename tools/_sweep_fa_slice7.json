@@ -1,0 +1,282 @@
+[
+ {
+  "id": "naval/a lay down needs its object",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return bool(_NAVAL_OBJECT_RE.search(command_lower))",
+  "new": "    return bool(re.search(r'\\blay down\\b', command_lower))",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_a_pontoon_bridge_is_not_a_keel"
+ },
+ {
+  "id": "naval/b diversion needs the fleet",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return bool(_DIVERSION_INSTRUMENT_RE.search(command_lower)\n                or \"order the diversion\" in command_lower\n                or \"grand diversion\" in command_lower)",
+  "new": "    return True",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_a_land_diversion_is_not_the_grand_diversion"
+ },
+ {
+  "id": "naval/c the admiralty refuses an addressed marshal",
+  "file": "backend/commands/naval_executor.py",
+  "old": "    if not ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL:\n        return None",
+  "new": "    if True:\n        return None",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_an_addressed_marshal_is_refused_not_discarded"
+ },
+ {
+  "id": "naval/d the admiral is an addressee",
+  "file": "backend/commands/parser.py",
+  "old": "    return bool(admiral) and token.strip().lower() == admiral.lower()",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_villeneuve_may_order_the_diversion"
+ },
+ {
+  "id": "naval/e the meta list is derived",
+  "file": "backend/commands/parser.py",
+  "old": "            meta_actions = META_ACTIONS | PARSER_ONLY_META",
+  "new": "            meta_actions = PARSER_ONLY_META | {\"help\", \"end_turn\", \"status\", \"unknown\", \"debug\", \"economy\"}",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_lay_down_a_ship_lays_a_keel tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_the_meta_list_is_derived"
+ },
+ {
+  "id": "hon/a ONE honorific",
+  "file": "backend/ai/clause_guards.py",
+  "old": "HONORIFIC = r\"(?:marshal|general|gen\\.|mar[eé]chal)\\s+\"",
+  "new": "HONORIFIC = r\"(?:marshal)\\s+\"",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_a_captured_marshal_is_refused_under_every_honorific tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_the_census_no_address_regex_spells_marshal_alone"
+ },
+ {
+  "id": "hon/b delegation reads it",
+  "file": "backend/commands/delegation.py",
+  "old": "_ADDRESS_RE = re.compile(r\"^\\s*(?:\" + HONORIFIC + r\")?([A-Za-z][A-Za-z'\\-]+)\\s*,?\",",
+  "new": "_ADDRESS_RE = re.compile(r\"^\\s*(?:marshal\\s+)?([A-Za-z][A-Za-z'\\-]+)\\s*,?\",",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_a_delegation_reads_the_honorific tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_the_census_no_address_regex_spells_marshal_alone"
+ },
+ {
+  "id": "hon/c the addressed repeat reads it",
+  "file": "backend/commands/context_carryover.py",
+  "old": "    r'^\\s*(?:' + HONORIFIC + r')?(?P<marshal>[A-Za-z]+)\\s*[,:]\\s*(?:'",
+  "new": "    r'^\\s*(?:marshal\\s+)?(?P<marshal>[A-Za-z]+)\\s*[,:]\\s*(?:'",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_an_addressed_repeat_reads_the_honorific tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_the_census_no_address_regex_spells_marshal_alone"
+ },
+ {
+  "id": "hon/d a dismissal is not a death",
+  "file": "backend/main.py",
+  "old": "                    and (tomb or {}).get(\"cause\") == \"dismissed\"):",
+  "new": "                    and (tomb or {}).get(\"cause\") == \"never\"):",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestOneHonorific::test_a_dismissed_marshal_is_not_mourned_as_destroyed"
+ },
+ {
+  "id": "pris/a the fuzzy seam names him",
+  "file": "backend/commands/executor.py",
+  "old": "        if _captive is not None:\n            return (None, _prisoners.prisoner_refusal(world, _captive, _viewer))",
+  "new": "        if False:\n            return (None, _prisoners.prisoner_refusal(world, _captive, _viewer))",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_attacking_our_prisoner_names_him tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_the_ai_path_names_him_too"
+ },
+ {
+  "id": "pris/b the bare attack names him",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if (enemy is not None and getattr(enemy, \"captured_by\", \"\")\n                and _prisoners.PRISONERS_ARE_NAMED):\n            return {\"kind\": \"error\", \"error\": _prisoners.prisoner_refusal(",
+  "new": "        if False:\n            return {\"kind\": \"error\", \"error\": _prisoners.prisoner_refusal(",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_the_bare_attack_does_not_call_him_destroyed"
+ },
+ {
+  "id": "pris/c the pursue arm names him",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "            if (enemy is not None and getattr(enemy, \"captured_by\", \"\")\n                    and _prisoners.PRISONERS_ARE_NAMED):\n                return _prisoners.prisoner_refusal(world, enemy, marshal.nation)",
+  "new": "            if False:\n                return _prisoners.prisoner_refusal(world, enemy, marshal.nation)",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_pursuing_a_prisoner_is_refused_at_no_cost"
+ },
+ {
+  "id": "pris/d the refusal stands ahead of the province fallback",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if enemy_error and enemy_error.get(\"prisoner\"):\n                return enemy_error",
+  "new": "            if False:\n                return enemy_error",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_attacking_our_prisoner_names_him tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_a_prisoner_of_another_court"
+ },
+ {
+  "id": "plain/a stay put",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return bool(_STAY_PUT_RE.search(command_lower))",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
+ },
+ {
+  "id": "plain/b pull back",
+  "file": "backend/ai/llm_client.py",
+  "old": "    if \"pull back\" in command_lower:\n        return True",
+  "new": "    if \"pull back\" in command_lower:\n        return False",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
+ },
+ {
+  "id": "plain/c the move forms",
+  "file": "backend/ai/llm_client.py",
+  "old": "        ] + (_PLAIN_MOVE_FORMS if PLAIN_SPEECH_ACTIVE else [])) or (",
+  "new": "        ] + ([] if PLAIN_SPEECH_ACTIVE else [])) or (",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
+ },
+ {
+  "id": "plain/d the strategic move forms",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "        \"advance on\", \"advance upon\", \"push on to\", \"push on toward\",\n        \"push on towards\", \"onward to\", \"onwards to\", \"forward to\",\n        \"pull back to\", \"retire to\",",
+  "new": "",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
+ },
+ {
+  "id": "plain/e stand your ground is a standing hold",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "        \"stand your ground\", \"stand ground\",  # FA slice 7 (FA-80)\n",
+  "new": "",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
+ },
+ {
+  "id": "plain/f a bare retreat is a retreat",
+  "file": "backend/commands/parser.py",
+  "old": "                        strategic = None\n                    if strategic:",
+  "new": "                        pass\n                    if strategic:",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_a_bare_retreat_is_a_retreat"
+ },
+ {
+  "id": "plain/g admin verbs never march",
+  "file": "backend/commands/parser.py",
+  "old": "                _never_strategic = (NEVER_STRATEGIC_ACTIONS\n                                    if ADMIN_VERBS_NEVER_MARCH\n                                    else _NON_ORDER_ACTIONS)",
+  "new": "                _never_strategic = _NON_ORDER_ACTIONS",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_an_administrative_verb_never_marches"
+ },
+ {
+  "id": "typo/a the repair",
+  "file": "backend/ai/llm_client.py",
+  "old": "        hits = [v for v in _TYPO_VERBS\n                if v[0] == low[0] and osa_distance_at_most(low, v, 1)]",
+  "new": "        hits = []",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_a_verb_typo_is_repaired_once"
+ },
+ {
+  "id": "typo/b the note",
+  "file": "backend/ai/llm_client.py",
+  "old": "                    _again.typo_note = _note\n                    return _again",
+  "new": "                    return _again",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_a_verb_typo_is_repaired_once tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_the_note_reaches_the_player"
+ },
+ {
+  "id": "typo/c the note reaches the warning seam",
+  "file": "backend/commands/parser.py",
+  "old": "                if llm_result.get(\"typo_note\"):\n                    result[\"warning\"] = (",
+  "new": "                if False:\n                    result[\"warning\"] = (",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_the_note_reaches_the_player"
+ },
+ {
+  "id": "typo/d the stoplist",
+  "file": "backend/ai/llm_client.py",
+  "old": "                or low in _TYPO_VERBS or low in _TYPO_STOPLIST):",
+  "new": "                or low in _TYPO_VERBS):",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_a_real_word_is_never_repaired"
+ },
+ {
+  "id": "typo/e the repair reads the blanked text, not the negation flag",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if (VERB_TYPO_PASS_ACTIVE and not matched\n                and not getattr(self, \"_typo_reentry\", False)):",
+  "new": "        if (VERB_TYPO_PASS_ACTIVE and not matched and not negation_applied\n                and not getattr(self, \"_typo_reentry\", False)):",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_a_negated_typo_stays_a_refusal"
+ },
+ {
+  "id": "berthier/a an enemy at war",
+  "file": "backend/ai/llm_client.py",
+  "old": "    at_war = [humanize_entity_name(n) for n in enemy_names if n in hostile]\n    return at_war or [\"the enemy\"]",
+  "new": "    return enemy_names",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_berthier_names_an_enemy_at_war"
+ },
+ {
+  "id": "support/a guard a marshal (mock arm)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return _names_a_friendly_after(_GUARD_VERBS_RE_SRC, command_lower, player_marshals)",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestSupportSpeaksPlainly::test_support_synonyms"
+ },
+ {
+  "id": "support/b the plain verbs (mock arm)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return _names_a_friendly_after(_SUPPORT_VERBS_RE_SRC, command_lower, player_marshals)",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestSupportSpeaksPlainly::test_support_synonyms"
+ },
+ {
+  "id": "support/c object required",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "_OBJECT_MUST_BE_A_MARSHAL = frozenset({\"help\", \"go help\", \"cover\", \"screen\", \"shield\"})",
+  "new": "_OBJECT_MUST_BE_A_MARSHAL = frozenset()",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestSupportSpeaksPlainly::test_an_attack_is_not_hijacked_by_a_plain_word"
+ },
+ {
+  "id": "support/d guard -> SUPPORT (strategic arm)",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "            and _GUARD_VERB_RE.search(cleaned)):\n        strategic_type = \"SUPPORT\"",
+  "new": "            and _GUARD_VERB_RE.search(cleaned)):\n        pass",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestSupportSpeaksPlainly::test_support_synonyms"
+ },
+ {
+  "id": "desk/a the route",
+  "file": "backend/ai/llm_client.py",
+  "old": "                if _question:\n                    return ParseResult(",
+  "new": "                if False:\n                    return ParseResult(",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_where_is_an_enemy_reads_the_intel"
+ },
+ {
+  "id": "desk/b the question rides into the executor",
+  "file": "backend/commands/parser.py",
+  "old": "                if llm_result.get(\"question\"):\n                    command_dict[\"question\"] = llm_result[\"question\"]",
+  "new": "                if False:\n                    command_dict[\"question\"] = llm_result[\"question\"]",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_where_is_an_enemy_reads_the_intel"
+ },
+ {
+  "id": "desk/c the executor answers",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        question = command.get(\"question\")\n        if question:",
+  "new": "        question = command.get(\"question\")\n        if False:",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_where_is_an_enemy_reads_the_intel"
+ },
+ {
+  "id": "desk/d who holds",
+  "file": "backend/ai/question_desk.py",
+  "old": "    if kind == \"who_holds\":\n        return (f\"{region_name} is ours, Sire.\" if own_soil",
+  "new": "    if False:\n        return (f\"{region_name} is ours, Sire.\" if own_soil",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_who_holds_a_province"
+ },
+ {
+  "id": "desk/e fog on an enemy's position",
+  "file": "backend/ai/question_desk.py",
+  "old": "    visible = any(m.name == marshal.name for m in world.get_visible_enemies(player))",
+  "new": "    visible = True",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_an_unseen_enemy_gets_no_word"
+ },
+ {
+  "id": "desk/f the band not the count at PARTIAL",
+  "file": "backend/ai/question_desk.py",
+  "old": "        if intel.visibility == FULL:\n            states = _state_words(marshal)",
+  "new": "        if True:\n            states = _state_words(marshal)",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_where_is_an_enemy_reads_the_intel tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_how_many_men"
+ },
+ {
+  "id": "desk/g every enemy is askable",
+  "file": "backend/ai/llm_client.py",
+  "old": "                    enemies=_askable_enemy_names(game_state),",
+  "new": "                    enemies=list(_game_state_dict(game_state, \"enemies\")),",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_an_unseen_enemy_gets_no_word"
+ },
+ {
+  "id": "desk/h will/would/shall lead a question",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    _INTERROGATIVE_LEAD_SRC % \"|will|would|shall\", re.IGNORECASE)",
+  "new": "    _INTERROGATIVE_LEAD_SRC % \"\", re.IGNORECASE)",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_will_ney_attack_mack_is_a_question"
+ },
+ {
+  "id": "desk/i berthier is the desk",
+  "file": "backend/ai/llm_client.py",
+  "old": "    \"berthier\",\n",
+  "new": "",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_berthier_is_the_desk"
+ },
+ {
+  "id": "desk/j the desk does not guess",
+  "file": "backend/ai/question_desk.py",
+  "old": "    return contained[0] if len(contained) == 1 else None",
+  "new": "    return contained[0] if contained else None",
+  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_classify_is_pure_and_does_not_guess"
+ }
+]

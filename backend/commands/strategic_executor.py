@@ -655,6 +655,12 @@ class StrategicExecutor:
                         target = _m.name
                         enemy = _m
                         break
+            # FA slice 7 (NPC-19): `Ney, pursue Mack` accepted a 2-AP chase of
+            # a man in our own cells — the named arm read no captivity.
+            from backend.commands import prisoners as _prisoners
+            if (enemy is not None and getattr(enemy, "captured_by", "")
+                    and _prisoners.PRISONERS_ARE_NAMED):
+                return _prisoners.prisoner_refusal(world, enemy, marshal.nation)
             if not enemy:
                 # Check if it's a region
                 region = world.get_region(target) if target else None

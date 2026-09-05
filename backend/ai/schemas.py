@@ -97,6 +97,11 @@ class ParseResult:
     raw_command: str = ""
     type: Optional[str] = None  # Special type marker (e.g., "debug")
     requested_type: Optional[str] = None  # Phase 6: player-requested recruit type (for soft correction)
+    # FA slice 7: the question desk's classified fact question (rides action
+    # "status") and the verb-typo note ("(Berthier read 'attak' as 'attack'.)")
+    # that surfaces through the parser's existing `warning` seam.
+    question: Optional[Dict[str, Any]] = None
+    typo_note: Optional[str] = None
     diplomatic_data: Optional[Dict[str, Any]] = None  # Phase 8 Session 3: Talleyrand command data
     cheat_type: Optional[str] = None  # Phase 8 Session 8A: Cheat command type
     cheat_args: List[str] = field(default_factory=list)  # Phase 8 Session 8A: Cheat command args
@@ -163,6 +168,13 @@ class ParseResult:
         # Phase 6: Requested recruit type (for soft correction)
         if self.requested_type:
             result["requested_type"] = self.requested_type
+
+        # FA slice 7: only emitted when set, so the dict shape is unchanged
+        # for every ordinary parse.
+        if self.question:
+            result["question"] = self.question
+        if self.typo_note:
+            result["typo_note"] = self.typo_note
 
         # Phase 8 Session 3: Diplomatic command data
         if self.diplomatic_data:

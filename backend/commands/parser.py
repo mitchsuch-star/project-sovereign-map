@@ -14,9 +14,16 @@ from backend.ai.llm_client import (
 )
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
 from backend.ai.clause_guards import (
+    HONORIFIC,
     is_question,
     strip_deferred_clauses,
     strip_negated_clauses,
+)
+from backend.ai.validation import (
+    META_ACTIONS,
+    NEVER_STRATEGIC_ACTIONS,
+    NON_ORDER_ACTIONS,
+    PARSER_ONLY_META,
 )
 from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
@@ -38,10 +45,16 @@ _CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
 # orders (charge, restrain, build, repair, recruit); and deliberately NOT the
 # executor's `free_actions`, which holds order-shaped verbs (retreat, wait)
 # whose long-standing strategic upgrade is out of scope here.
-_NON_ORDER_ACTIONS = frozenset({
-    "help", "status", "debug", "cheat", "economy", "treasury", "finances",
-    "end_turn", "meta_command",
-})
+# FA slice 7 (FA-N9): the set now lives in validation.NON_ORDER_ACTIONS —
+# ONE list, read by llm_client's LLM-fallback gate too. This name is kept
+# for the Aug-30 pin and every reader below.
+_NON_ORDER_ACTIONS = NON_ORDER_ACTIONS
+
+# FA slice 7 flip levers (each False reproduces the pre-slice behaviour).
+ADMIN_VERBS_NEVER_MARCH = True      # the strategic gate reads NEVER_STRATEGIC_ACTIONS
+A_BARE_RETREAT_IS_A_RETREAT = True  # "Ney, fall back" is not a MOVE_TO toward the enemy
+ADMIRAL_IS_AN_ADDRESSEE = True      # "Villeneuve, order the diversion" accepts the admiral
+_NAVAL_META_VERBS = frozenset({"build_fleet", "set_fleet_posture", "naval_diversion"})
 
 # CR-2: sequential compound orders — "attack Bern, then hold your positions".
 # The second clause used to leak into target extraction and strategic
@@ -347,6 +360,21 @@ def _leading_addressed_token(command_text: str) -> Optional[str]:
     return token
 
 
+def _names_the_admiral(token: str, world) -> bool:
+    """FA slice 7: the player's fleet has a named admiral (Villeneuve on the
+    1805 boot); an address to him on a naval verb is decoration, not a
+    marshal typo to clarify."""
+    if not token or world is None:
+        return False
+    try:
+        fleets = getattr(world, "fleets", None) or {}
+        record = fleets.get(getattr(world, "player_nation", None)) or {}
+        admiral = str(record.get("admiral") or "")
+    except Exception:
+        return False
+    return bool(admiral) and token.strip().lower() == admiral.lower()
+
+
 # WO-1 boundary (review round, Aug 21 2026): a lead followed by one of
 # these is NARRATION, not an address — third-person inflections and
 # auxiliaries cannot be imperatives, so "Mack is at Swabia, Ney attack him"
@@ -404,7 +432,7 @@ def _resolve_enemy_addressee(command_text: str, known_enemies: List[str],
       enemy refusal).
     """
     text = command_text.strip()
-    honorific = re.match(r"^(?:marshal|general)\s+", text, flags=re.IGNORECASE)
+    honorific = re.match("^" + HONORIFIC, text, flags=re.IGNORECASE)
     if honorific:
         text = text[honorific.end():]
     words = text.split()
@@ -1077,7 +1105,10 @@ class CommandParser:
 
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
             # Actions that don't require a marshal (meta commands + pending charge responses)
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command", "cheat", "recruit"]
+            # FA slice 7 (FA-N9): ONE list, DERIVED — validation.META_ACTIONS
+            # (the declared source of truth) plus the seven parser-only
+            # entries; the three naval verbs join by construction.
+            meta_actions = META_ACTIONS | PARSER_ONLY_META
             if llm_result.get("action") in meta_actions:
                 # CR-2 (silent-marshal-drop fix): an EXPLICITLY-addressed name
                 # must bind or clarify, never drop — "Murat, charge" used to
@@ -1086,6 +1117,13 @@ class CommandParser:
                 # bare meta commands ("charge", "recruit infantry") keep
                 # their marshal-less fast path.
                 addressed = _leading_addressed_token(command_text)
+                # FA slice 7: the fleet's own admiral is a legitimate
+                # addressee of a naval verb ("Villeneuve, order the
+                # diversion"), not a marshal typo — accepted as decoration.
+                if (ADMIRAL_IS_AN_ADDRESSEE and addressed
+                        and llm_result.get("action") in _NAVAL_META_VERBS
+                        and _names_the_admiral(addressed, world)):
+                    addressed = None
                 if (addressed
                         and addressed.lower() not in known_target_words
                         and addressed.lower() != existing_target
@@ -1774,6 +1812,10 @@ class CommandParser:
                     command_dict["target_stance"] = llm_result["target_stance"]
 
                 # M2 FIX: Propagate requested recruit type for soft correction message
+                # FA slice 7: the question desk's classified question rides
+                # `status` into the executor.
+                if llm_result.get("question"):
+                    command_dict["question"] = llm_result["question"]
                 if llm_result.get("requested_type"):
                     command_dict["requested_type"] = llm_result["requested_type"]
                 elif llm_result.get("action") == "recruit":
@@ -1817,6 +1859,12 @@ class CommandParser:
                 # Add warning if present
                 if validation_result.get("warning"):
                     result["warning"] = validation_result["warning"]
+                # FA slice 7 (FA-80): the verb-typo note rides the same seam
+                # main.py already appends to the player's message.
+                if llm_result.get("typo_note"):
+                    result["warning"] = (f"{result['warning']} {llm_result['typo_note']}"
+                                         if result.get("warning")
+                                         else llm_result["typo_note"])
 
                 # ════════════════════════════════════════════════════════════
                 # STRATEGIC COMMAND DETECTION (Phase 5.2)
@@ -1845,7 +1893,15 @@ class CommandParser:
                 # a pure-read/meta action is not an order, and a QUESTION is not
                 # an order — the same doctrine the action chain already applies.
                 _resolved_action = (command_dict.get("action") or "").lower()
-                _is_order = (_resolved_action not in _NON_ORDER_ACTIONS
+                # FA slice 7: an ADMINISTRATIVE verb is not an order either.
+                # Measured: `withdraw Ney's rente` parsed as revoke_pension
+                # and the strategic table's bare "withdraw" then upgraded it
+                # into a 2-AP MOVE_TO toward the phantom province
+                # "Ney'S Rente".
+                _never_strategic = (NEVER_STRATEGIC_ACTIONS
+                                    if ADMIN_VERBS_NEVER_MARCH
+                                    else _NON_ORDER_ACTIONS)
+                _is_order = (_resolved_action not in _never_strategic
                              and not is_question(command_text))
                 if world is not None and _is_order:
                     marshal_name = command_dict.get("marshal")
@@ -1871,6 +1927,19 @@ class CommandParser:
                     strategic_text, _ = strip_negated_clauses(effective_text)
                     strategic_text, _ = strip_deferred_clauses(strategic_text)
                     strategic = detect_strategic_command(strategic_text, marshal_name, world)
+                    # FA slice 7: a BARE retreat verb is a retreat. "Ney, fall
+                    # back" / "Ney, withdraw" parsed as `retreat` and were then
+                    # upgraded by the strategic table's bare "fall back" /
+                    # "withdraw" into a MOVE_TO with a GENERIC target — which
+                    # the resolver reads as the nearest ENEMY's province
+                    # (measured: "Mack blocks the path at Swabia", a retreat
+                    # plotted toward the guns). "fall back to X" keeps its
+                    # march; "Ney, retreat" was never upgraded.
+                    if (strategic and A_BARE_RETREAT_IS_A_RETREAT
+                            and _resolved_action == "retreat"
+                            and strategic.get("strategic_type") == "MOVE_TO"
+                            and (strategic.get("target") or "generic") == "generic"):
+                        strategic = None
                     if strategic:
                         result["is_strategic"] = True
                         result["strategic_type"] = strategic["strategic_type"]

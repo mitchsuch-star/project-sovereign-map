@@ -165,6 +165,41 @@ META_ACTIONS: Set[str] = {
     "request_terms",
 }
 
+# FA slice 7 (FA-N9): ONE list. parser.py kept a THIRD hand-copied "needs no
+# marshal" list beside META_ACTIONS, and the three naval verbs were in
+# neither copy — so `lay down a ship` (the help text's own example) fell
+# into the marshal word-scan and asked "Did you mean Davout?". The parser's
+# list is now META_ACTIONS | PARSER_ONLY_META; the two are disjoint by pin,
+# and the seven parser-only entries are genuine orders (charge, restrain,
+# build, repair, recruit) plus the two routed-by-hand verbs.
+PARSER_ONLY_META = frozenset({
+    "charge", "restrain", "build", "repair", "meta_command", "cheat", "recruit",
+})
+
+# The Aug 30, 2026 review's rule, moved here from parser.py so the parser's
+# strategic gate and llm_client's LLM-fallback gate read ONE set: a READ or a
+# housekeeping verb, never an order to a marshal. Deliberately NOT META_ACTIONS
+# and NOT the executor's `free_actions` (which holds retreat/wait).
+NON_ORDER_ACTIONS = frozenset({
+    "help", "status", "debug", "cheat", "economy", "treasury", "finances",
+    "end_turn", "meta_command",
+})
+
+# FA slice 7: verbs the STRATEGIC layer may never upgrade. Measured before
+# this set existed: `withdraw Ney's rente` parsed as revoke_pension and then
+# the strategic table's bare "withdraw" upgraded it into a 2-AP MOVE_TO toward
+# a phantom province "Ney'S Rente" — the same road stood open to every
+# administrative verb whose sentence carried a march word. META_ACTIONS is in
+# the set because a marshal-less verb has nobody to carry a standing order;
+# "unknown" rides along harmlessly (validation refuses it before the
+# strategic layer ever runs — measured, no unknown parse is rescued today).
+ADMINISTRATIVE_ACTIONS = frozenset({
+    "grant_pension", "revoke_pension", "grant_dotation", "recruit_marshal",
+    "recruit", "build", "repair", "garrison",
+})
+NEVER_STRATEGIC_ACTIONS = frozenset(
+    META_ACTIONS | NON_ORDER_ACTIONS | ADMINISTRATIVE_ACTIONS)
+
 # Valid stances for stance_change action
 VALID_STANCES: Set[str] = {
     "aggressive",

@@ -36,6 +36,7 @@ from typing import Dict, List, Optional
 
 from backend.ai.llm_client import unique_name_tokens
 from backend.ai.validation import VALID_ACTIONS
+from backend.ai.clause_guards import HONORIFIC
 from backend.commands.clarification import _clarification_response
 from backend.display_names import humanize_entity_name
 
@@ -68,7 +69,7 @@ _DELEGATION_RE = re.compile(
 # word is always validated against the live roster via ``get_marshal`` below, so a
 # non-marshal first word (e.g. the verb in a bare "handle Mack") is rejected — the
 # relaxed comma cannot manufacture a false delegation.
-_ADDRESS_RE = re.compile(r"^\s*(?:marshal\s+)?([A-Za-z][A-Za-z'\-]+)\s*,?",
+_ADDRESS_RE = re.compile(r"^\s*(?:" + HONORIFIC + r")?([A-Za-z][A-Za-z'\-]+)\s*,?",
                          re.IGNORECASE)
 
 _NEUTRAL_PERSONALITIES = frozenset({"balanced", "loyal"})

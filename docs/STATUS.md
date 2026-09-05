@@ -4,6 +4,38 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 7 "THE MOCK SPEAKS PLAINLY" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 7 block (authoritative).** FA-80, FA-N8, FA-N24, FA-N9, FA-N39, FA-24 /
+> FA-48 with NPC-7 / NPC-19, FA-47, FA-73 and the design rows FA-D20 / FA-D25 —
+> every row reproduced through the real `/command` with a MOCK parser before a
+> line changed (Agent F's 110 probes + the build's own 102). ONE design: the
+> naval verbs anchor to the fleet and REFUSE an addressed marshal; ONE derived
+> meta list; ONE honorific composed into all nine address regexes; plain
+> speech (stay put / stand your ground / advance on / pull back / retire) plus
+> one transposition-aware verb repair whose note reaches the player; a
+> deterministic FACT desk behind `status` (where is X / who holds X / who is
+> at X / what is X doing / how many men — fog-honest, every enemy askable by
+> name, advice stays CR-8's); a PRISONER named at every enemy lookup; a
+> dismissed marshal not mourned as destroyed. **Found beside the rows:** a
+> typed honorific MARCHED a captured Ney out of Vienna; `withdraw Ney's rente`
+> became a 2-AP march to the phantom province "Ney'S Rente"; a bare "fall
+> back" was a march toward the nearest enemy; "will Ney attack Mack?" fought a
+> battle — all four fixed. Tests (82), sweep **40 mutations, 40 killed, 0 INERT, 0 BROKEN at close — three INERT on the first sweep, each resolved at its cause: two later combat filters were dead code shadowed by the short-circuit ahead of the province fallback (deleted, the mutation re-pointed at the live seam); the typo pass's negation clause was structurally dead (the guard blanks the whole negated clause), so the pass now runs on the BLANKED text ABOVE the refusal and the ordering is the mutation; the desk's no-guess pin needed a two-names case**, corpus
+> 647/647 (+42 rows; the two FA-73 live twins evaluated once, both pass — and
+> the live layer reads both as `charge`), series + M1–M7 byte-identical
+> without re-record, zero `.gd`. Three defects in the fix caught by the first
+> test run (the prisoner-province collision, the address-defeated desk routes,
+> "protect Marshal Davout"), all fixed before the sweep.
+>
+> **▶ NEXT = FA-26 as a shared helper across all four trust-writing families**
+> (FA-N1: the erosion tick, `_execute_attack`, the typed strategic-objection
+> route, jealousy's eight docks), then position 10 — with a three-lens review
+> round at the slice-7 SHA first if the session's pattern holds (every round so
+> far found a P1 in the fix). ⚠ Still no pillar re-score. ⚠ **FA-D27
+> (balance) and FA-D28 (the garrison formula) await the user's ruling.**
+
 > # ✅ THE AUDIT BUILD: SLICE 6 "THE POPUP QUEUE" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

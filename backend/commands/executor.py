@@ -718,6 +718,14 @@ class CommandExecutor:
             - If exact match or auto-correct: (marshal, None)
             - If suggestion or error: (None, error_dict)
         """
+        # FA slice 7 (FA-24 / FA-48 / NPC-7 / NPC-19): a PRISONER is named
+        # before any strength>0 roster is consulted — see prisoners.py. The
+        # viewer's own captured marshal is main.py's guard, not this arm's.
+        from backend.commands import prisoners as _prisoners
+        _viewer = attacker_nation or world.player_nation
+        _captive = _prisoners.prisoner_of(world, enemy_name, viewer_nation=_viewer)
+        if _captive is not None:
+            return (None, _prisoners.prisoner_refusal(world, _captive, _viewer))
         # Try exact match first
         if attacker_nation:
             # Nation-aware lookup (for enemy AI)
