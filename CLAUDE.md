@@ -363,6 +363,13 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > delivery road makes the first road's pin inert: darken the second road in
 > the isolation pin, never weaken the assertion.**
 >
+> **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
+> the ids) — it derives the count from the row tables rather than trusting a
+> number in a heading. At `48e6cc59`: **88 defect rows and 28 design rows /
+> gates still open**, of 229 filed; 97 closed, 16 disposed (duplicate,
+> refuted, or re-homed). The 88 are spoken for by slices 12 → 13 → 14 → 15
+> → 16; the 28 need rulings, not builds.
+>
 > **▶ THE SLICE 11 REVIEW ROUND IS LANDED — September 5, 2026** (landing
 > record = the boxed SLICE 11 REVIEW ROUND block in `BUG_FIXES.md`). ⚠ 17 of
 > 23 agents died on a usage limit, so most refuter verdicts are missing and
