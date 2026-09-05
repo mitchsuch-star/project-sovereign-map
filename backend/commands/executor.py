@@ -724,7 +724,8 @@ class CommandExecutor:
         from backend.commands import prisoners as _prisoners
         _viewer = attacker_nation or world.player_nation
         _captive = _prisoners.prisoner_of(world, enemy_name, viewer_nation=_viewer)
-        if _captive is not None:
+        if (_captive is not None
+                and not _prisoners.prisoner_is_a_province(world, _captive)):
             return (None, _prisoners.prisoner_refusal(world, _captive, _viewer))
         # Try exact match first
         if attacker_nation:
@@ -1865,6 +1866,17 @@ class CommandExecutor:
                 if action == 'attack' and self._attack_target_beyond_range(
                         marshal, command.get('target'), world):
                     should_check_objection = False
+                # FA slice 7 review round (R2-3, the PF-4 idiom): a marshal
+                # never objects to an attack on a PRISONER — the executor is
+                # about to refuse it at zero cost, and "insist" was charging
+                # eight trust for the objection first.
+                if action == 'attack' and should_check_objection and command.get('target'):
+                    from backend.commands import prisoners as _prisoners
+                    _captive = _prisoners.prisoner_of(
+                        world, command.get('target'), viewer_nation=marshal.nation)
+                    if (_captive is not None
+                            and not _prisoners.prisoner_is_a_province(world, _captive)):
+                        should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # TUT-F6: MOVE REFUSAL PRE-CHECK — Validation BEFORE objection

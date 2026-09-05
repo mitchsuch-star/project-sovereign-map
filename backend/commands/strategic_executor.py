@@ -271,8 +271,17 @@ class StrategicExecutor:
                     return f"{prefix} 'I would rather attack than sit idle.'"
             elif action == 'retreat':
                 return f"{prefix} 'Retreat? We can still fight!'"
+            elif action == 'support':
+                # FA slice 7 review round (R3-14): the SUPPORT objection fell
+                # to the generic line for every one of the twelve verbs the
+                # slice routed into it.
+                return (f"{prefix} 'March to another man's guns, Sire? "
+                        f"Give me a battle of my own.'")
 
         elif personality == 'cautious':
+            if action == 'support':
+                return (f"{prefix} 'That road runs through enemy country, "
+                        f"Sire — I would sooner hold what we have.'")
             if action == 'attack':
                 if concern == ConcernLevel.EXTREME:
                     return f"{prefix} 'This is suicide! The odds are hopeless!'"
@@ -622,6 +631,20 @@ class StrategicExecutor:
                     "success": False,
                     "message": f"{target} is an enemy! Use PURSUE instead.",
                     "suggestion": f"Try: '{marshal.name}, pursue {target}'"
+                }
+            # FA slice 7 review round (R2-5): "Davout, support Ney" with Ney
+            # in Austrian hands created a SUPPORT order marching toward the
+            # captor's capital, 2 AP.
+            if getattr(ally, "captured_by", "") or ally.strength <= 0:
+                from backend.game_logic.formations import formed_display_name
+                _captor = getattr(ally, "captured_by", "")
+                _why = (f"is a prisoner of {formed_display_name(world, _captor)}"
+                        if _captor else "has no corps in the field")
+                return {
+                    "success": False,
+                    "message": (f"Marshal {ally.name} {_why}, Sire — there is no "
+                                f"one to support until his release."),
+                    "variable_action_cost": 0,
                 }
             target_type = "marshal"
 

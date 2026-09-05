@@ -101,7 +101,6 @@ class ParseResult:
     # "status") and the verb-typo note ("(Berthier read 'attak' as 'attack'.)")
     # that surfaces through the parser's existing `warning` seam.
     question: Optional[Dict[str, Any]] = None
-    typo_note: Optional[str] = None
     diplomatic_data: Optional[Dict[str, Any]] = None  # Phase 8 Session 3: Talleyrand command data
     cheat_type: Optional[str] = None  # Phase 8 Session 8A: Cheat command type
     cheat_args: List[str] = field(default_factory=list)  # Phase 8 Session 8A: Cheat command args
@@ -173,8 +172,6 @@ class ParseResult:
         # for every ordinary parse.
         if self.question:
             result["question"] = self.question
-        if self.typo_note:
-            result["typo_note"] = self.typo_note
 
         # Phase 8 Session 3: Diplomatic command data
         if self.diplomatic_data:

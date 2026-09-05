@@ -531,13 +531,17 @@ class MetaExecutor:
         if question:
             from backend.ai.question_desk import answer_question
             answer = answer_question(world, question)
-            if answer:
-                return {
-                    "success": True,
-                    "free_action": True,
-                    "message": answer,
-                    "question_answered": True,
-                }
+            if not answer:
+                # Review round (R2-14): the report is not the answer to a
+                # question the desk classified and could not resolve.
+                answer = (f"I cannot say, Sire — our maps hold no entry for "
+                          f"{question.get('subject') or 'that name'}.")
+            return {
+                "success": True,
+                "free_action": True,
+                "message": answer,
+                "question_answered": True,
+            }
         report = generate_intel_report(world)
         return {
             "success": True,

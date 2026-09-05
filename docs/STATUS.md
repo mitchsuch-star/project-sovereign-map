@@ -4,6 +4,43 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 7 REVIEW ROUND "THE MOCK IS READ BY EVERY READER" IS LANDED — September 5, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 7 REVIEW ROUND block (authoritative); reports under
+> `docs/audits/fa_build_2026_09_04/REVIEW_slice7_R{1,2,3}_*.md`.** Three
+> lenses at `764d0ffc` found TWO P1s inside the slice's own fix — the typo
+> repair rewrote only the mock chain's text while the sequential split and
+> the strategic layer read the unrepaired sentence (`hodl Lorraine` became a
+> stance change at Rhineland; `hodl Lorraine, then attack Mack` FOUGHT), and
+> the split gate never learned the new wait vocabulary (`stay here, then
+> attack Mack` FOUGHT) — plus nine P2s: the Brunswick short-circuit made the
+> PROVINCE unattackable by name for every court incl. the AI (GR5), the
+> prisoner arms leaked a fogged third-court capture, the objection battery
+> charged eight trust for an order the executor refused free, the desk said
+> "no word" of an ally in full view, SUPPORT of a captive marched, stay-put
+> outranked scout/fortify, `retire Ney` retreated Ney, `help Davout attack
+> Mack` was refused for "Davout Attack Mack", `help Davout` made Davout the
+> executor, and the modal leads sent polite orders to the manual. All fixed
+> behind the same levers: the repair is a PRE-PARSE rewrite every reader
+> sees, ONE stand-still vocabulary, `prisoners.prisoner_is_a_province` +
+> `cell_in_view`, the PF-4 skip, the subject rule for will/would/shall.
+> Tests 203 (+27), sweep **71/71 killed, 0 inert at close**, corpus 675/675
+> (+28), series + M1–M7 byte-identical as MEASURED. Five record corrections
+> (nine→ten regexes, ten→21 mock_only, "refused"→"executed", the probe's
+> noise, the sibling window) and five omissions stated. Recorded not fixed:
+> FA-R3 (a free base verb creates a standing order at 0 AP — pre-existing),
+> FA-R4 (`Berthier, end turn` — client gate parity), FA-S7-D1 (the live
+> layer reads "fix bayonets" as a cavalry charge → CR-6/CR-8 gate).
+>
+> **▶ NEXT = FA-26 as a shared helper across the trust-writing families**
+> (FA-N1 — the design note in the session's scratch counts SIX: the erosion
+> tick, the failed-reinforcer penalty, the typed strategic "proceed", the
+> jealousy docks, the confiscation disapproval, the diplomatic reactions —
+> plus a per-turn safety net in `_check_trust_warnings`), then position 10.
+> ⚠ Still no pillar re-score. ⚠ **FA-D27 (balance) and FA-D28 (the garrison
+> formula) await the user's ruling.**
+
 > # ✅ THE AUDIT BUILD: SLICE 7 "THE MOCK SPEAKS PLAINLY" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

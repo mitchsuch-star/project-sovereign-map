@@ -6,6 +6,8 @@ Converts natural language commands into validated, executable orders
 import re
 from typing import Dict, List, Optional
 from backend.ai.llm_client import (
+    STAND_STILL_ALTERNATION,
+    repair_leading_verb_typo,
     LLMClient,
     ADDRESS_TOKEN_RE,
     ADDRESS_NON_NAME_WORDS,
@@ -79,8 +81,12 @@ _ATTACK_ON_ARRIVAL_TAIL_RE = re.compile(
 # `until` is excluded because it is the one condition the engine actually
 # implements: "Ney, hold until Davout arrives then attack" is a supported
 # standing HOLD and a pinned corpus row, and must stay one parse.
+# FA slice 7 review round (R1-2): ONE stand-still vocabulary, shared with
+# the mock chain's wait arm — the slice taught "stay here" / "rest your men"
+# / "stand your ground" to the chain alone, and "Ney, stay here, then attack
+# Mack" FOUGHT because this gate never saw the first clause as a halt.
 _STAND_FAST_FIRST_CLAUSE_RE = re.compile(
-    r'\b(?:wait|hold|halt|stand\s+fast|stay\s+put|remain)\b', re.IGNORECASE)
+    r'\b(?:' + STAND_STILL_ALTERNATION + r')\b', re.IGNORECASE)
 _ENGINE_CONDITION_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 
 
@@ -1573,6 +1579,37 @@ class CommandParser:
         return (first, tail)
 
     def parse(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:
+        """FA slice 7 review round (R1-1): the verb-typo repair is applied
+        HERE, before any reader sees the sentence — the first cut rewrote
+        only the mock chain's own text, so "Davout, hodl Lorraine" parsed as
+        `hold` while the strategic layer read "hodl" and produced a stance
+        change at Rhineland, and "hodl Lorraine, then attack Mack" FOUGHT
+        (the split gate never saw a halt). The typed text stays the record
+        (`raw_input` / `raw_command`, R1-11); the note rides the `warning`
+        seam on success and `typo_note` on a refusal.
+        """
+        import backend.ai.llm_client as _lc
+        typed_text = command_text
+        typo_note = None
+        if getattr(_lc, "VERB_TYPO_PASS_ACTIVE", False):
+            repaired, typo_note = repair_leading_verb_typo(command_text, game_state)
+            if repaired and repaired != command_text:
+                command_text = repaired
+            else:
+                typo_note = None
+        result = self._parse_text(command_text, game_state, world)
+        if typo_note and isinstance(result, dict):
+            result["raw_input"] = typed_text
+            command = result.get("command")
+            if isinstance(command, dict):
+                command["raw_command"] = typed_text
+            result["typo_note"] = typo_note
+            if result.get("success"):
+                result["warning"] = (f"{result['warning']} {typo_note}"
+                                     if result.get("warning") else typo_note)
+        return result
+
+    def _parse_text(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:
         """
         Parse a command from the player.
 
@@ -1859,12 +1896,6 @@ class CommandParser:
                 # Add warning if present
                 if validation_result.get("warning"):
                     result["warning"] = validation_result["warning"]
-                # FA slice 7 (FA-80): the verb-typo note rides the same seam
-                # main.py already appends to the player's message.
-                if llm_result.get("typo_note"):
-                    result["warning"] = (f"{result['warning']} {llm_result['typo_note']}"
-                                         if result.get("warning")
-                                         else llm_result["typo_note"])
 
                 # ════════════════════════════════════════════════════════════
                 # STRATEGIC COMMAND DETECTION (Phase 5.2)

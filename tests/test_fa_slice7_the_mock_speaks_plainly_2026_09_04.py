@@ -368,9 +368,12 @@ class TestAPrisonerIsNamed:
         assert error.get("variable_action_cost") == 0
 
     def test_a_prisoner_of_another_court(self, board, client):
-        capture(board, "Brunswick", "Austria", "Vienna")
-        r = post(client, "Ney, attack Brunswick")
-        assert r["success"] is False and "prisoner of Austria" in r["message"]
+        """Re-targeted by the review round: Brunswick is ALSO a province (the
+        WO-13 collision) and a captive's province namesake now means the
+        province (R2-1); a captive held in a cell we can SEE is named (R2-2)."""
+        capture(board, "ArchdukeJohn", "Prussia", "Swabia")  # Swabia is PARTIAL at boot
+        r = post(client, "Ney, attack Archduke John")
+        assert r["success"] is False and "prisoner of Prussia" in r["message"]
         assert not r.get("battle_report")
 
 
@@ -469,7 +472,7 @@ class TestTheMockSpeaksPlainly:
         assert "read 'mvoe' as 'move'" in r["message"]
 
     def test_a_real_word_is_never_repaired(self, board):
-        for text in ("Ney, dig a hole", "Ney, the hole is deep"):
+        for text in ("Ney, dig a hole", "Ney, the hole is deep", "Ney, hole up here"):
             r, _ = parse(board, text)
             assert not r["success"], text
 
@@ -676,3 +679,320 @@ class TestTheQuestionDesk:
         assert QD.classify_question("where is Archduke Charles?", ["Ney"],
                                     ["ArchdukeCharles", "ArchdukeJohn"], []) == {
             "kind": "where", "subject": "ArchdukeCharles", "subject_type": "enemy"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE REVIEW ROUND (three lenses at 764d0ffc) — every finding pinned on its
+# own sentence, each measured on the patched tree before the pin was written
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _unknown_region(world):
+    from backend.models.intel import UNKNOWN
+    return next(r for r in world.regions
+                if world.get_region_intel(r).visibility == UNKNOWN)
+
+
+class TestTheReviewRound:
+
+    # ── R1-1 (P1): the repair is a PRE-PARSE rewrite every reader sees ────
+    def test_a_repaired_verb_is_read_by_every_reader(self, board, client):
+        r, c = parse(board, "Davout, hodl Lorraine")
+        assert c.get("action") == "hold" and c.get("target") == "Lorraine"
+        assert r.get("is_strategic") and r.get("strategic_type") == "HOLD"
+        assert "read 'hodl' as 'hold'" in str(r.get("warning"))
+        assert c.get("raw_command") == "Davout, hodl Lorraine"
+        ap = board.get_action_summary()
+        out = post(client, "Davout, hodl Lorraine")
+        assert out["success"], out.get("message")
+        order = board.marshals["Davout"].strategic_order
+        assert order is not None and order.command_type == "HOLD"
+        assert order.target == "Lorraine"
+        assert board.get_action_summary() != ap, "a standing order is charged"
+        # the sequential split reads the repaired first clause too
+        r, c = parse(board, "Ney, hodl Lorraine, then attack Mack")
+        assert c.get("action") == "hold" and r.get("strategic_type") == "HOLD"
+        assert "One order at a time" in str(r.get("warning"))
+        gold = int(board.gold)
+        out = post(client, "Ney, hodl Lorraine, then attack Mack")
+        assert not out.get("battle_report") and int(board.gold) == gold
+        # and the `and <verb>` split
+        r, c = parse(board, "Ney, attak Mack and hold Rhineland")
+        assert c.get("action") == "attack" and c.get("target") == "Mack"
+        assert "One order at a time" in str(r.get("warning"))
+
+    # ── R1-2 (P1): the split gate knows the wait vocabulary ────────────────
+    def test_the_split_gate_knows_the_wait_vocabulary(self, board, client):
+        for text, action in (("Ney, stay here, then attack Mack", "wait"),
+                             ("Ney, rest your men, then attack Mack", "wait"),
+                             ("Ney, stay where you are, then attack Mack", "wait"),
+                             ("Ney, stand your ground, then attack Mack", "hold")):
+            r, c = parse(board, text)
+            assert c.get("action") == action, (text, c.get("action"))
+            assert "One order at a time" in str(r.get("warning")), text
+        gold = int(board.gold)
+        out = post(client, "Ney, stay here, then attack Mack")
+        assert not out.get("battle_report") and int(board.gold) == gold
+        assert board.marshals["Ney"].location == "Rhineland"
+
+    # ── R1-3 (P2): a real word is never repaired; only verb position counts
+    def test_a_real_word_in_verb_position_is_not_repaired(self, board):
+        for text in ("Davout, the line held", "Davout, we depend on you",
+                     "Ney, spout off", "Ney, held the bridge",
+                     "Davout, the line is hodl", "Ney, our scuot returned",
+                     "Ney, snout"):
+            r, _ = parse(board, text)
+            assert not r["success"], text
+
+    # ── R1-4 / R3-1 (P2): stay-put yields to every order verb ─────────────
+    def test_stay_put_yields_to_the_order_verbs(self, board):
+        for text, action, target in (("Davout, remain at Rhineland and fortify", "fortify", None),
+                                     ("Ney, remain neutral", "stance_change", None),
+                                     ("Davout, scout Swabia and remain there", "scout", "Swabia"),
+                                     ("Ney, move to Lorraine and remain there", "move", "Lorraine"),
+                                     ("Ney, stay put", "wait", None)):
+            r, c = parse(board, text)
+            assert r["success"] and c.get("action") == action, (text, c.get("action"), r.get("error"))
+            if target:
+                assert c.get("target") == target, text
+
+    # ── R1-5 / R1-14 / R3-8: retire is terminal; towards is a destination ─
+    def test_retire_is_terminal_and_towards_is_a_destination(self, board):
+        for text in ("retire Ney", "Ney, retire the guns", "retire Ney from service"):
+            r, _ = parse(board, text)
+            assert not r["success"], text
+        r, c = parse(board, "Ney, retire")
+        assert c.get("action") == "retreat"
+        for text, target in (("Ney, retire towards Alsace", "Alsace"),
+                             ("Ney, pull back towards Lorraine", "Lorraine"),
+                             ("Ney, fall back towards Lorraine", "Lorraine"),
+                             ("Ney, withdraw towards Lorraine", "Lorraine")):
+            r, c = parse(board, text)
+            assert c.get("action") == "move" and c.get("target") == target, (text, c)
+            assert r.get("strategic_type") == "MOVE_TO", text
+
+    # ── R1-6 / R1-15 / R3-7 (P2): a marshal at the head of the object ─────
+    def test_a_marshal_at_the_head_of_the_object_is_the_object(self, board):
+        for text, marshal, ally in (("Ney, help Davout attack Mack", "Ney", "Davout"),
+                                    ("Ney, join Davout at Lorraine", "Ney", "Davout"),
+                                    ("Ney, protect Davout's flank", "Ney", "Davout"),
+                                    ("Ney, guard Davout's flank", "Ney", "Davout"),
+                                    ("Davout, cover Ney's retreat", "Davout", "Ney"),
+                                    ("Ney, protect Marshal Davout's corps", "Ney", "Davout")):
+            r, c = parse(board, text)
+            assert r["success"], (text, r.get("error"))
+            assert c.get("marshal") == marshal and c.get("target") == ally, (text, c)
+            assert r.get("strategic_type") == "SUPPORT", (text, r.get("strategic_type"))
+
+    # ── R1-7 (P2): the helped man is the supportee, never the executor ────
+    def test_the_helped_man_is_the_supportee(self, board):
+        for text in ("help Davout", "go help Davout", "cover Davout", "screen Davout",
+                     "shield Davout"):
+            r, c = parse(board, text)
+            assert c.get("marshal") is None and c.get("target") == "Davout", (text, c)
+            assert r.get("strategic_type") == "SUPPORT", text
+
+    # ── R1-8 / R2-9 (P2): a modal lead reads its SUBJECT, not its punctuation
+    def test_a_modal_lead_reads_the_subject(self, board):
+        for text, action in (("Davout, would you march to Lorraine for me", "move"),
+                             ("Ney, would you scout Swabia?", "scout"),
+                             ("Ney, will you hold the line for me", "hold"),
+                             ("Ney, would you attack Mack, I want Swabia", "attack")):
+            r, c = parse(board, text)
+            assert r["success"] and c.get("action") == action, (text, c.get("action"))
+        for text in ("would Ney attack Mack", "Will Ney attack Mack", "shall we attack Mack",
+                     "would Davout hold?", "will Ney attack Mack?"):
+            r, c = parse(board, text)
+            assert c.get("action") != "attack", text
+            assert CG.is_question(text), text
+        for text in ("would you have Ney attack Mack", "will you hold the line for me",
+                     "Ney, would you scout Swabia?"):
+            assert not CG.is_question(text), text
+
+    # ── R1-9 (P3): longest first in the march table ────────────────────────
+    def test_longest_first_in_the_march_table(self, board):
+        for text, target in (("Ney, push on towards Paris", "Paris"),
+                             ("Ney, push on toward Lorraine", "Lorraine"),
+                             ("Ney, push on to Lorraine", "Lorraine")):
+            r, c = parse(board, text)
+            assert c.get("target") == target and r.get("strategic_type") == "MOVE_TO", (text, c)
+
+    # ── R3-8: "forward to" only where an order stands ──────────────────────
+    def test_forward_to_only_where_an_order_stands(self, board):
+        r, _ = parse(board, "send the wounded forward to Paris")
+        assert not r["success"]
+        r, c = parse(board, "Ney, forward to Lorraine")
+        assert c.get("action") == "move" and c.get("target") == "Lorraine"
+
+    # ── R1-10 / R3-6 (P3): the note reaches a refusal ──────────────────────
+    def test_the_note_reaches_a_refusal(self, board, client):
+        out = post(client, "Ney, atack Lorraine")
+        assert out["success"] is False
+        assert "read 'atack' as 'attack'" in out["message"]
+
+    # ── R1-11 (P3): the record keeps the typed text ────────────────────────
+    def test_the_record_keeps_the_typed_text(self, board, client):
+        r, c = parse(board, "Ney, mrach to Paris")
+        assert c.get("action") == "move" and c.get("raw_command") == "Ney, mrach to Paris"
+        assert r.get("raw_input") == "Ney, mrach to Paris"
+        out = post(client, "Ney, mrach to Paris")
+        assert out["success"], out.get("message")
+        order = board.marshals["Ney"].strategic_order
+        assert order is not None
+        assert getattr(order, "original_command", "") == "Ney, mrach to Paris"
+
+    # ── R1-16 (P4): the admiral is known to the confidence demotion ────────
+    def test_the_admiral_is_known_to_the_confidence_gate(self, board):
+        r, c = parse(board, "Villeneuve, order the diversion")
+        assert c.get("action") == "naval_diversion"
+        assert float(c.get("confidence") or 0) >= 0.7, c.get("confidence")
+
+    # ── R2-1 (P2): a captive whose name is a province means the province ──
+    def test_a_captive_namesake_is_the_province(self, board, client):
+        capture(board, "Brunswick", "France", "Paris")
+        assert "Brunswick" in board.regions
+        out = post(client, "Ney, attack Brunswick")
+        assert "prisoner" not in out["message"].lower(), out["message"]
+        assert "destroyed" not in out["message"].lower()
+        out = post(client, "attack Brunswick")
+        assert "prisoner" not in out["message"].lower() and "destroyed" not in out["message"].lower()
+        # the AI path (GR5): the fuzzy seam lets the province through too
+        found, error = M.executor._fuzzy_match_enemy("Brunswick", board, "Austria")
+        assert not (error or {}).get("prisoner")
+        PR.PRISONERS_ARE_NAMED = False
+        out = post(client, "Ney, attack Brunswick")
+        assert "prisoner" not in out["message"].lower(), "the lever changes nothing for a province"
+
+    # ── R2-2 (P2): a far court's captive is fogged; a seen one is named ────
+    def test_a_far_courts_captive_is_fogged(self, board, client):
+        cell = _unknown_region(board)
+        capture(board, "Kutuzov", "Prussia", cell)
+        for text in ("Ney, attack Kutuzov", "Ney, pursue Kutuzov", "attack Kutuzov"):
+            out = post(client, text)
+            assert out["success"] is False, text
+            assert "Prussia" not in out["message"] and cell not in out["message"], (text, out["message"])
+            assert "No intelligence" in out["message"], (text, out["message"])
+        out = post(client, "where is Kutuzov?")
+        assert "Prussia" not in out["message"] and cell not in out["message"]
+        assert "no word" in out["message"].lower()
+        # a captive held in a cell we can see IS named
+        capture(board, "ArchdukeJohn", "Prussia", "Swabia")
+        out = post(client, "Ney, attack Archduke John")
+        assert "prisoner of Prussia" in out["message"]
+        PR.PRISONERS_ARE_NAMED = False
+        out = post(client, "Ney, attack Kutuzov")
+        assert "Prussia" not in out["message"], "the lever restores the pre-slice shrug, not a leak"
+
+    def test_a_fogged_tombstone_is_not_read_out(self, board, client):
+        cell = _unknown_region(board)
+        board.marshals["Kutuzov"].location = cell
+        with _quiet():
+            board.destroy_marshal(board.marshals["Kutuzov"], cause="test", victor="Prussia")
+        out = post(client, "where is Kutuzov?")
+        assert cell not in out["message"] and "destroyed" not in out["message"].lower()
+        out = post(client, "attack Kutuzov")
+        assert cell not in out["message"]
+
+    # ── R2-3 (P2): no objection about an order the seam refuses ───────────
+    def test_no_objection_about_a_prisoner(self, board, client):
+        capture(board, "Mack", "France", "Paris")
+        trust = board.marshals["Davout"].trust.value
+        out = post(client, "Davout, attack Mack")
+        assert out.get("state") != "awaiting_player_choice"
+        assert "our prisoner" in out["message"]
+        assert board.marshals["Davout"].trust.value == trust
+        assert board.pending_objection is None
+
+    # ── R2-4 (P2): an ally in full view is answered ────────────────────────
+    def test_an_ally_in_view_is_answered(self, board, client):
+        assert not board.is_at_war("France", "Bavaria")
+        out = post(client, "where is Deroy?")
+        assert "Franconia" in out["message"] and "22,000" in out["message"]
+        assert "no word" not in out["message"].lower()
+
+    # ── R2-5 (P2): SUPPORT of a captive is refused ─────────────────────────
+    def test_support_of_a_captive_is_refused(self, board, client):
+        capture(board, "Ney", "Austria", "Vienna")
+        ap = board.get_action_summary()
+        out = post(client, "Davout, support Ney")
+        assert out["success"] is False and "prisoner of Austria" in out["message"]
+        assert board.marshals["Davout"].strategic_order is None
+        assert board.get_action_summary() == ap
+
+    # ── R2-6 / R2-7 (P3): the man's own band; no tactical states abroad ────
+    def test_the_desk_reports_the_mans_own_band_and_no_states(self, board, client):
+        board.marshals["ArchdukeJohn"].location = "Swabia"  # beside Mack, PARTIAL
+        out = post(client, "how many men does Archduke John have?")
+        assert "substantial force" in out["message"], out["message"]
+        assert "massive" not in out["message"] and "large force" not in out["message"]
+        board.marshals["Deroy"].fortified = True
+        out = post(client, "where is Deroy?")
+        assert "fortified" not in out["message"].lower()
+        out = post(client, "what is Deroy doing?")
+        assert "fortified" not in out["message"].lower() and "Franconia" in out["message"]
+
+    # ── R2-8 (P3): the charge, the scout and the move name a prisoner ─────
+    def test_the_charge_scout_and_move_name_a_prisoner(self, board, client):
+        capture(board, "Mack", "France", "Paris")
+        murat = board.marshals["Murat"]
+        murat.recklessness = 5
+        out = post(client, "Murat, charge Mack")
+        assert "our prisoner" in out["message"], out["message"]
+        for text in ("Ney, scout Mack", "Ney, move to Mack"):
+            out = post(client, text)
+            assert "our prisoner" in out["message"], (text, out["message"])
+            assert "La Mancha" not in out["message"]
+        out = post(client, "Ney, scout Kutuzov")
+        assert "is a commander" in out["message"]
+        assert board.marshals["Kutuzov"].location not in out["message"]
+
+    # ── R1-12 / R3-3 (P3): who holds prefers the province ─────────────────
+    def test_who_holds_prefers_the_province(self, board, client):
+        out = post(client, "who holds Brunswick?")
+        assert "is held by" in out["message"] and "whereabouts" not in out["message"]
+        out = post(client, "who is at Brunswick?")
+        assert "Brunswick" in out["message"] and "whereabouts" not in out["message"]
+        out = post(client, "who holds Hanover?")
+        assert "its own crown" in out["message"]
+
+    # ── R2-11 (P4): no band at LAST_KNOWN ─────────────────────────────────
+    def test_no_band_at_last_known(self, board, client):
+        from backend.models.intel import LAST_KNOWN
+        intel = board.get_region_intel("Swabia")
+        intel.visibility = LAST_KNOWN
+        intel.known_marshals = ["Mack"]
+        intel.strength_band = "large force"
+        intel.last_updated_turn = board.current_turn - 6
+        out = post(client, "who is at Swabia?")
+        assert "Mack" in out["message"] and "large force" not in out["message"]
+
+    # ── R2-13 (P4): one Admiralty predicate ───────────────────────────────
+    def test_one_admiralty_predicate(self, board):
+        refusal = NE._admiralty_misaddressed({"marshal": "Mack"}, board, "France",
+                                             "lay down a ship")
+        assert refusal is not None and "Admiralty" in refusal["message"]
+
+    # ── R2-14 (P4): a classified question never dumps the reference ───────
+    def test_a_classified_question_never_dumps_the_reference(self, board):
+        result = M.executor._meta._execute_status(
+            {"action": "status",
+             "question": {"kind": "where", "subject": "Atlantis", "subject_type": "region"}},
+            M.game_state)
+        assert result["success"] and "I cannot say" in result["message"]
+        assert "INTELLIGENCE REPORT" not in result["message"]
+
+    # ── R3-14: the SUPPORT objection speaks ───────────────────────────────
+    def test_the_support_objection_speaks(self, board):
+        from backend.commands.objection_v2 import ConcernLevel
+        line = M.executor._strategic._generate_objection_message(
+            board.marshals["Ney"], "support", {}, ConcernLevel.MODERATE, "firm")
+        assert "another man's guns" in line
+        assert "I have concerns about this order" not in line
+        line = M.executor._strategic._generate_objection_message(
+            board.marshals["Davout"], "support", {}, ConcernLevel.MODERATE, "firm")
+        assert "enemy country" in line
+
+    # ── R2-12 (P4): the viewer's own captive is not a prisoner "target" ────
+    def test_the_viewers_own_captive_is_not_a_target(self, board):
+        capture(board, "Ney", "Austria", "Vienna")
+        assert PR.prisoner_of(board, "Ney", viewer_nation="France") is None
+        assert PR.prisoner_of(board, "Ney", viewer_nation="Prussia") is not None

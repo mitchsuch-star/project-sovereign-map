@@ -76,21 +76,29 @@ def _forms(name: str) -> List[str]:
     return sorted({_norm(p) for p in name_match_patterns(name)} | {_norm(name)})
 
 
+_REGION_FIRST_KINDS = frozenset({"who_holds", "who_at"})
+
+
 def _resolve(phrase: str, marshals: Iterable[str], enemies: Iterable[str],
-             regions: Iterable[str]) -> Optional[Tuple[str, str]]:
+             regions: Iterable[str], kind: str = "") -> Optional[Tuple[str, str]]:
     """(canonical name, subject type) for the phrase, or None. Exact whole-
-    phrase matches win in roster order own -> enemy -> region; failing that,
-    the ONE name across all three rosters that appears as whole words inside
-    the phrase; two candidates or none -> None (the desk does not guess)."""
+    phrase matches win in roster order — regions FIRST for "who holds" /
+    "who is at" (the review round, R1-12 / R3-3: "who holds Brunswick?" was
+    answered about the Prussian marshal), marshals first otherwise; failing
+    that, the ONE name across all three rosters that appears as whole words
+    inside the phrase; two candidates or none -> None (the desk does not
+    guess)."""
     want = _norm(phrase)
     if not want:
         return None
-    rosters = (("marshal", list(marshals)), ("enemy", list(enemies)),
-               ("region", list(regions)))
-    for kind, names in rosters:
+    rosters = [("marshal", list(marshals)), ("enemy", list(enemies)),
+               ("region", list(regions))]
+    if kind in _REGION_FIRST_KINDS:
+        rosters = [rosters[2], rosters[0], rosters[1]]
+    for subject_type, names in rosters:
         for name in names:
             if want in _forms(name):
-                return (name, kind)
+                return (name, subject_type)
     contained = []
     for kind, names in rosters:
         for name in names:
@@ -114,7 +122,7 @@ def classify_question(text: str, marshals: Iterable[str] = (),
         groups = match.groupdict()
         phrase = next((g for g in (groups.get("name"), groups.get("name2"),
                                    groups.get("name3")) if g), "")
-        resolved = _resolve(phrase, marshals, enemies, regions)
+        resolved = _resolve(phrase, marshals, enemies, regions, kind)
         if resolved is None:
             return None
         subject, subject_type = resolved
@@ -167,11 +175,13 @@ def _last_report_of(world, name: str) -> Optional[Tuple[str, int]]:
     """(region, turns ago) of the freshest STALE/LAST_KNOWN intel snapshot
     naming this marshal — a one-off scan for a typed question, not a hot
     path (the intelligence report makes the same pass)."""
-    from backend.models.intel import LAST_KNOWN, STALE
+    from backend.models.intel import UNKNOWN
     best = None
     for region_name in world.regions.keys():
         intel = world.get_region_intel(region_name)
-        if intel.visibility not in (STALE, LAST_KNOWN):
+        # Review round (R2-6): every tier's snapshot counts — a corps that
+        # walked out of a still-PARTIAL province is "last reported" there.
+        if intel.visibility == UNKNOWN:
             continue
         known = getattr(intel, "known_marshals", None) or []
         names = [k.get("name") if isinstance(k, dict) else k for k in known]
@@ -191,8 +201,11 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
     holder = _court(world, region.controller)
     own_soil = region.controller == player
     if kind == "who_holds":
-        return (f"{region_name} is ours, Sire." if own_soil
-                else f"{region_name} is held by {holder}.")
+        if own_soil:
+            return f"{region_name} is ours, Sire."
+        if _norm(holder) == _norm(region_name):
+            return f"{region_name} is held by its own crown, Sire."
+        return f"{region_name} is held by {holder}."
     if kind == "where":
         adjacent = ", ".join(getattr(region, "adjacent_regions", []) or [])
         whose = "our own soil" if own_soil else f"held by {holder}"
@@ -219,8 +232,11 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
         if names:
             ago = int(world.current_turn - intel.last_updated_turn)
             when = "this turn" if ago <= 0 else f"{ago} turn{'s' if ago != 1 else ''} ago"
+            # Review round (R2-11): the intelligence report prints no band at
+            # LAST_KNOWN, so neither does the desk.
+            band = f"{intel.strength_band}, " if vis != LAST_KNOWN else ""
             lines.append(f"Reported: {', '.join(_display(n) for n in names)} — "
-                         f"{intel.strength_band}, {when}.")
+                         f"{band}{when}.")
     elif vis == UNKNOWN and not own:
         return f"No word from {region_name}, Sire — it has not been scouted."
     if not lines:
@@ -251,39 +267,56 @@ def _answer_own_marshal(world, kind: str, marshal) -> str:
 
 
 def _answer_enemy(world, kind: str, name: str) -> str:
-    from backend.models.intel import FULL
+    from backend.models.intel import PARTIAL
     player = world.player_nation
     shown = _display(name)
     marshal = world.get_marshal(name)
     if marshal is None:
         tomb = (getattr(world, "fallen_marshals", None) or {}).get(name)
-        if tomb:
+        # Review round (R2-2): a tombstone in a province never seen is not
+        # ours to read out — the campaign log filters that battle too.
+        if tomb and world.get_region_intel(
+                tomb.get("location") or "").visibility_at_least(PARTIAL):
             return (f"{shown}'s corps no longer exists, Sire — it was destroyed at "
                     f"{tomb.get('location') or 'the field'} on turn "
                     f"{int(tomb.get('turn') or 0)}.")
+        if tomb:
+            return f"We have no word of {shown}'s whereabouts, Sire."
         return f"We have no record of {shown}, Sire."
+    from backend.models.intel import FULL, PARTIAL
     captor = getattr(marshal, "captured_by", "")
     if captor == player:
         return f"{shown} is our prisoner at {marshal.location}, Sire — he leads no army."
+    # Fog on his position, not his name: the ALLY at Franconia is answered
+    # (R3-4 — `get_visible_enemies` lists enemies only), and a third court's
+    # captive is reported only where the cell that holds him is in view
+    # (R3-5 — no other player surface prints a far court's prisoners).
+    visible = bool(world.get_region_intel(marshal.location).visibility_at_least(PARTIAL))
     if captor:
-        return f"{shown} is a prisoner of {_court(world, captor)}, Sire — he leads no army."
+        if visible:
+            return f"{shown} is a prisoner of {_court(world, captor)}, Sire — he leads no army."
+        return f"We have no word of {shown}'s whereabouts, Sire."
     court = _court(world, marshal.nation)
-    visible = any(m.name == marshal.name for m in world.get_visible_enemies(player))
     if visible:
         intel = world.get_region_intel(marshal.location)
         if intel.visibility == FULL:
-            states = _state_words(marshal)
+            # Review round (R2-7): a foreign corps' works, square and rout are
+            # in no player surface at FULL (the report prints strength,
+            # morale, stance, ability) — the desk prints no more.
             if kind == "how_many":
                 return (f"{shown} of {court} has {int(marshal.strength):,} men at "
-                        f"{marshal.location} — confirmed this turn.")
+                        f"{marshal.location} — confirmed.")
             if kind == "doing":
                 stance = getattr(getattr(marshal, "stance", None), "value", None) or "neutral"
                 return (f"{shown} of {court} stands at {marshal.location} in a {stance} "
-                        f"stance" + (f", {', '.join(states)}" if states else "") + ".")
+                        f"stance.")
             return (f"{shown} of {court} is at {marshal.location} — "
-                    f"{int(marshal.strength):,} men, confirmed this turn"
-                    + (f", {', '.join(states)}" if states else "") + ".")
-        band = getattr(intel, "strength_band", None) or "strength unknown"
+                    f"{int(marshal.strength):,} men, confirmed.")
+        # PARTIAL: the map's own rule — the live position with the MAN's
+        # band, never the province's aggregate (R2-6: a 20,000 corps beside
+        # Mack read "massive force").
+        from backend.models.intel import get_strength_band
+        band = get_strength_band(int(marshal.strength))
         return f"{shown} of {court} was reported at {marshal.location} — {band}."
     last = _last_report_of(world, marshal.name)
     if last:

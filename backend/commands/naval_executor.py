@@ -28,14 +28,14 @@ def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
     name = command.get("marshal")
     if not name:
         return None
+    # Review round (R2-13): the posture verb refuses on ANY bound marshal;
+    # so do these two now — one predicate, not two.
     marshal = (getattr(world, "marshals", {}) or {}).get(name)
-    if marshal is None or marshal.nation != actor:
-        return None
     from backend.display_names import humanize_entity_name
+    shown = humanize_entity_name(marshal.name if marshal is not None else str(name))
     return {"success": False, "variable_action_cost": 0, "message": (
         f"The Admiralty takes its orders from the Emperor, Sire, not from "
-        f"Marshal {humanize_entity_name(marshal.name)} in the field. "
-        f"Say '{example}'.")}
+        f"Marshal {shown} in the field. Say '{example}'.")}
 
 
 class NavalExecutor:

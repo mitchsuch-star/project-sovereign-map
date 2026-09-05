@@ -78,6 +78,32 @@ def destination_grounding_note(raw_text, resolved_name: str) -> str:
 FORTIFIED_CORPS_NEVER_MARCHES = True
 
 
+def _marshal_not_a_province(world, marshal, target, region_error):
+    """FA slice 7 review round (R2-8): `Ney, move to Mack` / `Ney, scout
+    Mack` with Mack a prisoner printed FA-24's own sentence — "Region 'Mack'
+    not found. Did you mean 'La Mancha'?" — from two more verbs. A name that
+    is a MARSHAL's is answered as a marshal: a captive by his cell, a living
+    foreigner without his position (fog)."""
+    from backend.commands import prisoners as _prisoners
+    if not _prisoners.PRISONERS_ARE_NAMED:
+        return region_error
+    named = world.get_marshal(str(target or "").strip())
+    if named is None or _prisoners.prisoner_is_a_province(world, named):
+        return region_error
+    if getattr(named, "captured_by", ""):
+        return _prisoners.prisoner_refusal(world, named, marshal.nation)
+    if named.nation != marshal.nation:
+        from backend.display_names import humanize_entity_name
+        return {
+            "success": False,
+            "message": (f"{humanize_entity_name(named.name)} is a commander, Sire, "
+                        f"not a province. Name the province to scout, or "
+                        f"'{marshal.name}, pursue {humanize_entity_name(named.name)}'."),
+            "variable_action_cost": 0,
+        }
+    return region_error
+
+
 class MovementExecutor:
     """Handles movement and reconnaissance actions: move, scout, retreat."""
 
@@ -403,7 +429,7 @@ class MovementExecutor:
         target_region, error = self._executor._fuzzy_match_region(
             target, world, near=marshal.location)
         if error:
-            return error
+            return _marshal_not_a_province(world, marshal, target, error)
 
         # Get the corrected target name from fuzzy match
         target_name = target_region.name if hasattr(target_region, 'name') else target
@@ -883,7 +909,7 @@ class MovementExecutor:
             # Scout specific region - use fuzzy matching
             target_region, error = self._executor._fuzzy_match_region(target, world)
             if error:
-                return error
+                return _marshal_not_a_province(world, marshal, target, error)
 
             # Get the corrected target name from fuzzy match
             target_name = target_region.name if hasattr(target_region, 'name') else target

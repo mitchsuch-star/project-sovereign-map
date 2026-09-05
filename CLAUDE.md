@@ -293,10 +293,31 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > phantom province, a bare "fall back" marched toward the enemy, and "will
 > Ney attack Mack?" fought — all fixed. 82 tests, corpus 647/647, zero `.gd`.
 >
-> **▶ NEXT = FA-26 as a shared helper across all four trust-writing
-> families** (FA-N1), then position 10 — a three-lens review round at the
-> slice-7 SHA first if the pattern holds. ⚠ **Still no pillar re-score. ⚠
-> FA-D27 / FA-D28 await the user's ruling.**
+> **▶ THE SLICE 7 REVIEW ROUND IS LANDED — September 5, 2026** (landing
+> record = the boxed block in `BUG_FIXES.md` §Final Whole-Game Audit;
+> reports `docs/audits/fa_build_2026_09_04/REVIEW_slice7_R{1,2,3}_*.md`).
+> Two P1s inside slice 7's own fix — the typo repair touched ONE reader of
+> a three-reader pipeline (`hodl Lorraine` → a stance change at Rhineland;
+> `hodl Lorraine, then attack Mack` FOUGHT) and the split gate never learned
+> the new wait vocabulary (`stay here, then attack Mack` FOUGHT) — and nine
+> P2s (the Brunswick province unattackable for every court incl. the AI; a
+> fogged third-court capture leaked; eight trust charged for an order the
+> executor refused free; the desk blind to an ally at FULL; SUPPORT of a
+> captive marched; stay-put above scout/fortify; `retire Ney`; `help Davout
+> attack Mack`; `help Davout` as executor; polite modal orders sent to the
+> manual). All fixed: the repair is a PRE-PARSE rewrite
+> (`llm_client.repair_leading_verb_typo`, order-verb position only), ONE
+> stand-still vocabulary (`STAND_STILL_ALTERNATION`), `prisoners.
+> prisoner_is_a_province` + `cell_in_view`, the PF-4 skip, the subject rule
+> for will/would/shall. 203 tests, sweep 71/71, corpus 675/675. Filed:
+> FA-R3 (free base verb → 0-AP standing order, pre-existing), FA-R4, FA-S7-D1.
+> ⛔ **The lesson, a fifth time: a fix that touches one reader of a pipeline
+> must be probed with the COMPOUND sentence — the reviewers' first move was
+> to add the clause the builder had not.**
+>
+> **▶ NEXT = FA-26 as a shared helper across the trust-writing families**
+> (FA-N1 — six families counted, plus a per-turn net), then position 10.
+> ⚠ **Still no pillar re-score. ⚠ FA-D27 / FA-D28 await the user's ruling.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

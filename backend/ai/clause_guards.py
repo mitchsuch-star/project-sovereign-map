@@ -501,8 +501,8 @@ def mentions_stand_down(command_lower: str) -> bool:
 # FALLEN Ney's order was refused in the wrong register. Composed into each
 # regex, never copied: the census in tests/test_fa_slice7_* fails on any
 # surviving `(?:marshal\s+)?` literal in address position. An import-time
-# constant rather than a flip lever on purpose — the nine regexes that read
-# it are compiled at import, and the parser has no series exposure (the
+# constant rather than a flip lever on purpose — the ten address regexes that
+# read it are compiled at import, and the parser has no series exposure (the
 # ambient harness types nothing). The two CAPTURE regexes ("Marshal X" as a
 # name pull) stay marshal-only by design.
 HONORIFIC = r"(?:marshal|general|gen\.|mar[eé]chal)\s+"
@@ -520,10 +520,12 @@ _INTERROGATIVE_LEAD_SRC = (
     # A question may be addressed — "Talleyrand, what about Prussia?",
     # "Ney, can I attack?". The address is consumed so the interrogative word
     # still counts as the LEAD.
-    r"(?:(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*,\s*)?"
-    r"(how|what|why|who|whom|whose|where|when|which|"
+    r"(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*,\s*)?"
+    r"(?P<lead>how|what|why|who|whom|whose|where|when|which|"
     r"can|could|should|is|are|was|were|do|does|did|am|may|might%s)\b"
 )
+_MODAL_LEADS = frozenset({"will", "would", "shall"})
+_SECOND_PERSON_AFTER_LEAD_RE = re.compile(r"\s*you\b", re.IGNORECASE)
 _INTERROGATIVE_LEAD_RE = re.compile(
     _INTERROGATIVE_LEAD_SRC % "|will|would|shall", re.IGNORECASE)
 _INTERROGATIVE_LEAD_RE_LEGACY = re.compile(
@@ -555,10 +557,22 @@ def is_question(command_text: str) -> bool:
     lead = _lead_re.match(text)
     if not text or not lead:
         return False
+    lead_word = lead.group("lead").lower()
+    if lead_word in _MODAL_LEADS:
+        # FA slice 7 review round (R1-8 / R2-9): an English sentence that
+        # OPENS with will/would/shall is a question — "will Ney attack
+        # Mack", "shall we march", "would Davout hold?" — with ONE
+        # exception, the polite imperative to the person addressed: "would
+        # you march to Lorraine for me", "will you hold the line", "would
+        # you have Ney attack Mack". The subject decides, not the
+        # punctuation: measured, the "?"-or-first-person rule sent "Ney,
+        # would you scout Swabia?" to the COMMAND REFERENCE and let "would
+        # Ney attack Mack" (no "?") fight.
+        return not _SECOND_PERSON_AFTER_LEAD_RE.match(text[lead.end("lead"):])
     if text.endswith("?") or _FIRST_PERSON_RE.search(text):
         return True
-    return (lead.group(1).lower() in _WH_WORDS
-            and bool(_AUXILIARY_RE.search(text[lead.end(1):])))
+    return (lead_word in _WH_WORDS
+            and bool(_AUXILIARY_RE.search(text[lead.end("lead"):])))
 
 
 # ---------------------------------------------------------------------------

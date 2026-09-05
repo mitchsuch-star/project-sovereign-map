@@ -3214,6 +3214,16 @@ def execute_command(request: CommandRequest):
                 f"{result.get('message') or ''}\n\n"
                 f"Berthier: \"{parsed['warning']}\""
             ).strip()
+        # FA slice 7 review round (R1-10 / R3-6): a REFUSED repaired order
+        # still says what was assumed — "Ney, atack Lorraine" was refused
+        # about a word the player never typed. Question-bearing results
+        # (objections, clarifications) keep their own voice.
+        elif (not result.get("success") and parsed.get("typo_note")
+                and not _result_carries_question(result)):
+            result["message"] = (
+                f"{result.get('message') or ''}\n\n"
+                f"Berthier: \"{parsed['typo_note']}\""
+            ).strip()
 
         # CR-5: a cautious delegation executed as an observe-first order —
         # append the character-naming soft note (§6.3c legibility) so the

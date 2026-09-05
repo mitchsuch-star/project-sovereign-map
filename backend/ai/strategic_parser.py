@@ -267,6 +267,11 @@ def resolve_direction(from_region: str, direction: str, world, marshal_name: Opt
 STRATEGIC_KEYWORDS = {
     "MOVE_TO": [
         # Multi-word phrases first (longer = checked first)
+        # FA slice 7 review round: the "towards" forms of the two verbs whose
+        # "to" form is already in this table must come BEFORE it — measured,
+        # "fall back towards Lorraine" marched to the phantom "Wards Lorraine".
+        "fall back towards", "fall back toward",
+        "withdraw towards", "withdraw toward",
         # "towards" variants BEFORE "toward" (longer match first)
         "make your way to", "advance towards", "march towards", "push towards",
         "campaign towards", "sweep towards", "press towards", "drive towards",
@@ -280,9 +285,12 @@ STRATEGIC_KEYWORDS = {
         "journey to", "relocate to", "deploy to",
         # FA slice 7 (FA-80): the plain destination forms the mock chain
         # now accepts, so they become standing marches like their siblings.
-        "advance on", "advance upon", "push on to", "push on toward",
-        "push on towards", "onward to", "onwards to", "forward to",
-        "pull back to", "retire to",
+        # (longest first — the review round measured "push on towards Paris"
+        # marching to the phantom "Wards Paris" when "push on to" came first)
+        "push on towards", "push on toward", "push on to",
+        "pull back towards", "pull back toward", "pull back to",
+        "retire towards", "retire toward", "retire to",
+        "advance upon", "advance on", "onwards to", "onward to", "forward to",
         # Bare verbs for cardinal directions ("march north", "fall back north")
         # V2-57: Removed "advance", "push", "head" — mock parser requires directional
         # suffixes ("advance to", "push to", "head to") so bare forms are unreachable
@@ -367,7 +375,7 @@ def detect_strategic_command(
         return None
 
     # Step 2: Extract target text from command
-    target_text = _extract_target_text(cleaned, strategic_type)
+    target_text = _extract_target_text(cleaned, strategic_type, friendly_forms)
     if not target_text:
         # No target found — could be "hold" (use current location) or generic
         if strategic_type == "HOLD" and marshal_name and world:
@@ -501,7 +509,24 @@ def _detect_strategic_type(command_lower: str, friendly_forms=()) -> Optional[st
     return None
 
 
-def _extract_target_text(command_lower: str, strategic_type: str) -> Optional[str]:
+def _friendly_head(after: str, friendly_forms) -> Optional[str]:
+    """FA slice 7 review round (R1-6 / R1-15 / R3-7): when the words after a
+    SUPPORT or HOLD keyword BEGIN with a friendly marshal, the marshal is the
+    object and the tail is dropped — "help Davout attack Mack" refused with
+    "Cannot find marshal 'Davout Attack Mack'", "join Davout at Lorraine"
+    likewise, and "protect Ney's flank" stood a 2-AP HOLD on the phantom
+    province "Ney'S Flank"."""
+    if not after or not friendly_forms:
+        return None
+    text = re.sub("^" + HONORIFIC, "", after.strip(), flags=re.IGNORECASE)
+    for form in friendly_forms:
+        if re.match(r"(?i)" + re.escape(form) + r"(?:['’]s)?(?:\b|$)", text):
+            return form
+    return None
+
+
+def _extract_target_text(command_lower: str, strategic_type: str,
+                         friendly_forms=()) -> Optional[str]:
     """
     Extract the target portion from the command text.
 
@@ -533,6 +558,9 @@ def _extract_target_text(command_lower: str, strategic_type: str) -> Optional[st
         for keyword in STRATEGIC_KEYWORDS["HOLD"]:
             if keyword in cleaned:
                 after = cleaned.split(keyword, 1)[1].strip()
+                head = _friendly_head(after, friendly_forms)
+                if head:
+                    return head
                 return _clean_target_text(after) if after else None
 
     # For SUPPORT: target is after the keyword
@@ -540,6 +568,9 @@ def _extract_target_text(command_lower: str, strategic_type: str) -> Optional[st
         for keyword in STRATEGIC_KEYWORDS["SUPPORT"]:
             if keyword in cleaned:
                 after = cleaned.split(keyword, 1)[1].strip()
+                head = _friendly_head(after, friendly_forms)
+                if head:
+                    return head
                 return _clean_target_text(after) if after else None
 
     return None

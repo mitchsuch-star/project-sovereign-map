@@ -5061,6 +5061,280 @@
       },
       "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
       "notes": "The chief of staff addressed is the desk itself, not a marshal to find."
+    },
+    {
+      "id": "r7-hodl-lorraine-is-a-standing-hold",
+      "utterance": "Davout, hodl Lorraine",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "hold",
+        "marshal": "Davout",
+        "target": "Lorraine",
+        "strategic_type": "HOLD"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-1 (P1): the repair is a PRE-PARSE rewrite — the first cut repaired only the mock chain's text, so the strategic layer read 'hodl' and produced a stance change at Rhineland."
+    },
+    {
+      "id": "r7-hodl-then-attack-holds",
+      "utterance": "Ney, hodl Lorraine, then attack Mack",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "hold",
+        "marshal": "Ney",
+        "target": "Lorraine",
+        "strategic_type": "HOLD"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-1: the sequential split reads the repaired first clause; measured FIGHTING before."
+    },
+    {
+      "id": "r7-stay-here-then-attack-waits",
+      "utterance": "Ney, stay here, then attack Mack",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "wait",
+        "marshal": "Ney",
+        "not_action": "attack"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-2 (P1): the split gate's stand-fast list learned the wait vocabulary; measured FIGHTING before (gold -132)."
+    },
+    {
+      "id": "r7-rest-your-men-then-attack-waits",
+      "utterance": "Ney, rest your men, then attack Mack",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "wait",
+        "marshal": "Ney",
+        "not_action": "attack"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-2."
+    },
+    {
+      "id": "r7-the-line-held-is-not-an-order",
+      "utterance": "Davout, the line held",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": false
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-3: only a token in ORDER-VERB position may be repaired, and 'held' is a real word."
+    },
+    {
+      "id": "r7-remain-and-fortify-fortifies",
+      "utterance": "Davout, remain at Rhineland and fortify",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "fortify",
+        "marshal": "Davout"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-4: stay-put yields to every order verb (it sat above fortify/stance/square)."
+    },
+    {
+      "id": "r7-remain-neutral-is-a-stance",
+      "utterance": "Ney, remain neutral",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "stance_change",
+        "marshal": "Ney"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-4."
+    },
+    {
+      "id": "r7-scout-and-remain-scouts",
+      "utterance": "Davout, scout Swabia and remain there",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "scout",
+        "marshal": "Davout",
+        "target": "Swabia"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R3-1: measured WAITING before — the scout dropped, the reply reporting success."
+    },
+    {
+      "id": "r7-retire-ney-is-not-a-retreat",
+      "utterance": "retire Ney",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": false
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-5: 'retire' is a retreat only in its terminal form; 'retire Ney' had Ney retreating at -45% for three turns."
+    },
+    {
+      "id": "r7-retire-towards-alsace-marches",
+      "utterance": "Ney, retire towards Alsace",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Alsace",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-14: 'towards' is a destination too."
+    },
+    {
+      "id": "r7-fall-back-towards-lorraine-marches",
+      "utterance": "Ney, fall back towards Lorraine",
+      "world": "1805",
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Lorraine",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-14 + the table order: 'fall back to' preceded 'fall back towards' and the order targeted the phantom 'Wards Lorraine'."
+    },
+    {
+      "id": "r7-help-davout-attack-mack-supports-davout",
+      "utterance": "Ney, help Davout attack Mack",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-6: a friendly marshal at the HEAD of the object is the object; measured refused with \"Cannot find marshal 'Davout Attack Mack'\"."
+    },
+    {
+      "id": "r7-join-davout-at-lorraine-supports-davout",
+      "utterance": "Ney, join Davout at Lorraine",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-6."
+    },
+    {
+      "id": "r7-bare-help-davout-makes-davout-the-supportee",
+      "utterance": "help Davout",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": null,
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-7: the five plain verbs joined SUPPORT_OBJECT_PREFIX_RE — without them Davout was bound as the EXECUTOR and asked where HE should march."
+    },
+    {
+      "id": "r7-protect-davouts-flank-supports-davout",
+      "utterance": "Ney, protect Davout's flank",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-15 / R3-7: a possessive after a friendly marshal names the marshal; measured a 2-AP HOLD on the phantom province \"Davout'S Flank\"."
+    },
+    {
+      "id": "r7-would-you-march-for-me-is-an-order",
+      "utterance": "Davout, would you march to Lorraine for me",
+      "world": "1805",
+      "expected": {
+        "action": "move",
+        "marshal": "Davout",
+        "not_action": "help"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-8: a modal lead followed by YOU is the polite imperative, whatever the punctuation or the first person."
+    },
+    {
+      "id": "r7-would-you-scout-question-mark-is-an-order",
+      "utterance": "Ney, would you scout Swabia?",
+      "world": "1805",
+      "expected": {
+        "action": "scout",
+        "marshal": "Ney",
+        "target": "Swabia"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R2-9: the same rule with the question mark."
+    },
+    {
+      "id": "r7-would-ney-attack-mack-is-a-question",
+      "utterance": "would Ney attack Mack",
+      "world": "1805",
+      "expected": {
+        "not_action": "attack"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R2-9: a modal lead followed by a third-person subject is a question — measured FIGHTING (gold -124) under the '?'-or-first-person rule."
+    },
+    {
+      "id": "r7-shall-we-attack-mack-is-a-question",
+      "utterance": "shall we attack Mack",
+      "world": "1805",
+      "expected": {
+        "not_action": "attack"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R2-9 / R3: measured fighting on the parent tree."
+    },
+    {
+      "id": "r7-push-on-towards-paris-targets-paris",
+      "utterance": "Ney, push on towards Paris",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Paris",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-9: longest first in the MOVE_TO table — 'push on to' before 'push on towards' produced the phantom 'Wards Paris'."
+    },
+    {
+      "id": "r7-send-the-wounded-forward-is-not-a-march",
+      "utterance": "send the wounded forward to Paris",
+      "world": "any",
+      "mock_only": true,
+      "expected": {
+        "success": false
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R3-8: 'forward to' / 'onward to' count only where an order stands."
+    },
+    {
+      "id": "r7-who-holds-brunswick-is-status",
+      "utterance": "who holds Brunswick?",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "source": "FA slice 7 review round (Sept 5, 2026)",
+      "notes": "R1-12 / R3-3: the desk resolves 'who holds' to the PROVINCE first (Brunswick is also a Prussian marshal)."
     }
   ]
 }

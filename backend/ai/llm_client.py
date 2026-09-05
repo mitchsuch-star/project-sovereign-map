@@ -110,7 +110,10 @@ ADDRESS_NON_NAME_WORDS = frozenset({
 SUPPORT_OBJECT_PREFIX_RE = re.compile(
     r'\b(?:support|reinforce|assist|aid|bolster|join'
     r'|back\s+up|shore\s+up|rally\s+to|link\s+up\s+with|combine\s+with'
-    r'|come\s+to\s+the\s+aid\s+of)\s+(?:the\s+)?(?:marshals?\s+)?$',
+    r'|come\s+to\s+the\s+aid\s+of'
+    # FA slice 7 review round (R1-7): the five plain verbs the SUPPORT arm
+    # learned — without them "help Davout" bound DAVOUT as the executor.
+    r'|help|go\s+help|cover|screen|shield)\s+(?:the\s+)?(?:marshals?\s+)?$',
     re.IGNORECASE)
 
 # CR-2: start of a strategic condition clause — a name inside it is the
@@ -139,8 +142,8 @@ _DIVERSION_INSTRUMENT_RE = re.compile(
 def _lays_down_a_keel(command_lower: str) -> bool:
     """FA-N8: a bare `lay down` claimed ANY sentence for build_fleet — "lay
     down a pontoon bridge" spent 400g and an admin AP with no confirm. The
-    verb now needs its object within 24 characters, exactly as its sibling
-    alternative ("build … ships") always did."""
+    verb now needs its object within 24 characters, as its sibling
+    alternative ("build … ships", 20 characters) always did."""
     if not NAVAL_VERBS_NEED_THEIR_OBJECT:
         return bool(re.search(r'\blay down\b', command_lower))
     return bool(_NAVAL_OBJECT_RE.search(command_lower))
@@ -164,6 +167,15 @@ def _orders_the_diversion(command_lower: str) -> bool:
 # before a desk verb — "Berthier, status", "Sire, help".
 _DESK_ADDRESS_RE = re.compile(r"^\s*(?:berthier|sire)\s*[,:]\s*", re.IGNORECASE)
 
+# The STAND-STILL vocabulary, ONE source for the mock chain's wait arm AND
+# the parser's sequential-split gate (`_STAND_FAST_FIRST_CLAUSE_RE`). R1-2:
+# the slice taught "stay here" to the chain and not to the gate, so "Ney,
+# stay here, then attack Mack" FOUGHT — the attack-on-arrival exemption kept
+# the sentence whole and `attack` outranked the wait.
+STAND_STILL_ALTERNATION = (
+    r"wait|hold|halt|stand\s+fast|stand\s+(?:your\s+)?ground|stay\s+put"
+    r"|stay\s+here|stay\s+where\s+you\s+are|remain"
+    r"|rest\s+(?:your|the|his|our)\s+(?:men|troops|corps|army|horses)")
 _STAY_PUT_RE = re.compile(
     r"\bstay\s+put\b|\bstay\s+where\s+you\s+are\b|\bstay\s+here\b"
     r"|\bstay\s+(?:in|at)\s+\w|\bremain\b"
@@ -177,22 +189,49 @@ def _mentions_stay_put(command_lower: str) -> bool:
     return bool(_STAY_PUT_RE.search(command_lower))
 
 
+_DESTINATION_PREPOSITION_RE = re.compile(r"\s+to(?:wards?)?\s+")
+_TERMINAL_RETIRE_RE = re.compile(
+    r"\bretire\b(?:\s+(?:now|at\s+once|immediately|in\s+good\s+order))?\s*[.!]*\s*$")
+
+
+def _names_a_destination(command_lower: str) -> bool:
+    """`to` / `toward` / `towards` — the review round (R1-14): "pull back
+    towards Lorraine" was a −45% tactical retreat while "pull back to
+    Lorraine" marched clean."""
+    return bool(_DESTINATION_PREPOSITION_RE.search(command_lower))
+
+
 def _mentions_plain_retreat(command_lower: str) -> bool:
     """FA-80: `pull back` / `retire` with no destination are the retreat
-    verb; with " to " they are marches (the move list carries those)."""
-    if " to " in command_lower:
+    verb; with a destination they are marches (the move list carries
+    those). `retire` counts only in its TERMINAL form — the review round
+    (R1-5) measured "retire Ney" retreating Ney at −45% for three turns,
+    and "retire the guns" the same (R3-8)."""
+    if _names_a_destination(command_lower):
         return False
     if "pull back" in command_lower:
         return True
-    return bool(re.search(r'\bretire\b', command_lower)
+    return bool(_TERMINAL_RETIRE_RE.search(command_lower)
                 and not _mentions_pension(command_lower))
 
 
 _PLAIN_MOVE_FORMS = [
     "advance on", "advance upon", "push on to", "push on toward",
-    "push on towards", "onward to", "onwards to", "forward to",
-    "pull back to", "retire to",
+    "push on towards", "pull back to", "pull back toward", "pull back towards",
+    "retire to", "retire toward", "retire towards",
+    "fall back toward", "fall back towards", "withdraw toward", "withdraw towards",
 ]
+# "forward to" / "onward to" only where an ORDER stands — at the start, after
+# the address, or after a connector (R3-8: "send the wounded forward to
+# Paris" marched the corps).
+_PLAIN_MOVE_LEAD_RE = re.compile(
+    r"(?:^|[,;]\s*|\bthen\s+|\band\s+)"
+    r"(?:(?:" + HONORIFIC + r")?[a-z][a-z'’-]*\s*,\s*)?"
+    r"(?:onwards?|forward)\s+to\b")
+
+
+def _plain_move_lead(command_lower: str) -> bool:
+    return bool(_PLAIN_MOVE_LEAD_RE.search(command_lower))
 
 _SUPPORT_VERBS_RE_SRC = (
     r"(?:join|link\s+up\s+with|aid|assist|bolster|come\s+to\s+the\s+aid\s+of"
@@ -234,20 +273,38 @@ def _supports_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
 
 _TYPO_VERBS = ("attack", "move", "march", "scout", "defend", "hold", "retreat",
                "fortify", "recruit", "bombard")
-# Real words one slip away from a verb — never "repaired" into one.
+# Real words one slip away from a verb — never "repaired" into one. The
+# review round (R1-3) measured ten more that the first list missed.
 _TYPO_STOPLIST = frozenset({
     "hole", "holy", "hood", "hook", "host", "home", "hold", "mole", "mode",
     "more", "mote", "move", "scot", "scour", "scoot", "stout", "shout",
     "attach", "attic", "hoard", "board", "march", "marsh", "harsh",
     "recruits", "recruited", "defends", "defended", "moves", "moved", "holds",
     "attacks", "attacked", "scouts", "scouted", "marches", "marched",
+    "held", "depend", "match", "movie", "mover", "mope", "spout", "snout",
+    "hoed", "holt", "moved", "retreats", "retreated", "forty", "fortune",
+    "bombast", "recount", "hound", "mount", "mould", "molt", "hilt", "halt",
+    "hood", "hoot", "boot", "sold", "told", "cold", "fold", "gold",
 })
+# Where an ORDER VERB stands: the first word of the sentence, the first word
+# after a leading address ("Ney, …"), and the first word after a clause
+# connector. A slip anywhere else is a noun, not a verb (R1-3: "the line
+# held", "we depend on you" were being read as orders).
+_VERB_POSITION_RE = re.compile(
+    r"(?:^|,\s*then\s+|\bthen\s+|;\s*|\band\s+|\bplease\s+)"
+    r"(?:(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*\s*,\s*)?"
+    r"(?P<verb>[A-Za-z][A-Za-z'’-]*)", re.IGNORECASE)
 
 
-def _repair_verb_typo(command_text: str, game_state: Optional[Dict]):
-    """FA-80: ONE edit-distance-1 (transposition-aware) repair of ONE verb
-    token, only when the chain found nothing and the token is no roster,
-    province or nation form. Returns (repaired_text, note) or (None, None)."""
+def repair_leading_verb_typo(command_text: str, game_state: Optional[Dict]):
+    """FA-80 (as rebuilt by the review round, R1-1): ONE edit-distance-1,
+    transposition-aware repair of ONE token in ORDER-VERB position, applied
+    BEFORE the parser reads the sentence — so the sequential split, the
+    keyword chain, the strategic layer and the carryover all read the same
+    repaired text. The token must be no roster, province or nation form, no
+    verb already, and not a real word in the stoplist. Returns
+    (repaired_text, note) or (None, None)."""
+    text = command_text or ""
     known = set()
     for key in ("marshals", "enemies", "map_data"):
         for name in _game_state_dict(game_state, key):
@@ -255,7 +312,8 @@ def _repair_verb_typo(command_text: str, game_state: Optional[Dict]):
                 known.update(pattern.split())
     for nation in _extract_known_nations(game_state):
         known.update(str(nation).lower().split())
-    for token in re.findall(r"[A-Za-z][A-Za-z'’-]*", command_text or ""):
+    for match in _VERB_POSITION_RE.finditer(text):
+        token = match.group("verb")
         low = token.lower()
         if (len(low) < 4 or low in ADDRESS_NON_NAME_WORDS or low in known
                 or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
@@ -264,18 +322,22 @@ def _repair_verb_typo(command_text: str, game_state: Optional[Dict]):
                 if v[0] == low[0] and osa_distance_at_most(low, v, 1)]
         if len(hits) == 1:
             verb = hits[0]
-            repaired = re.sub(r"\b" + re.escape(token) + r"\b", verb,
-                              command_text, count=1)
+            start, end = match.span("verb")
+            repaired = text[:start] + verb + text[end:]
             return repaired, f"(Berthier read '{token}' as '{verb}'.)"
     return None, None
 
 
 def _askable_enemy_names(game_state: Optional[Dict]):
-    """Every enemy commander the player can NAME. A court's roster is
-    public (the ledger prints it); only his POSITION is fogged, and the desk
-    answers that half honestly ("no word of Kutuzov's whereabouts"). The
-    fallen are askable too (the tombstone answers). Cold parses without a
-    world keep the fog-filtered dict."""
+    """Every enemy commander the player can NAME. Naming him is not a fog
+    secret the game keeps — the pre-slice `pursue <unseen>` already answered
+    "No intelligence on X's position" (existence inferred); his POSITION is
+    the fogged half, and the desk answers it honestly ("no word of Kutuzov's
+    whereabouts"). The review round (R2-10) corrected the first docstring's
+    claim that the ledger prints a court's roster — it does not; the
+    ledger's intel tab is fog-filtered. The fallen are askable too (a seen
+    tombstone answers). Cold parses without a world keep the fog-filtered
+    dict."""
     world = (game_state or {}).get("world")
     if world is None:
         return list(_game_state_dict(game_state, "enemies"))
@@ -507,6 +569,17 @@ def _unresolved_address_token(command_text: str,
     if not _game_state_dict(game_state, "marshals"):
         # Cold parses keep the legacy seed roster resolvable
         known_forms.update(("ney", "davout", "grouchy", "drouot"))
+    # FA slice 7 review round (R1-16): the fleet's admiral is a known
+    # addressee ("Villeneuve, order the diversion" was demoted to 0.55 and
+    # sent to the paid LLM in live mode).
+    _world = (game_state or {}).get("world")
+    try:
+        _fleet = (getattr(_world, "fleets", None) or {}).get(
+            getattr(_world, "player_nation", None)) or {}
+        if _fleet.get("admiral"):
+            known_forms.add(str(_fleet["admiral"]).lower())
+    except Exception:
+        pass
     if token_lower in known_forms:
         return None
     # A single addressed token matching the FIRST word of a multi-word
@@ -1765,10 +1838,7 @@ class LLMClient:
         # lookbehinds keep the bare verb working.
         elif "wait" in command_lower or "stand by" in command_lower or (
                 re.search(r'\bpass(?:es)?\b', command_lower)
-                and not PASS_AS_NOUN_RE.search(command_lower)) or (
-                # FA slice 7 (FA-80): "stay put" / "remain in Rhineland" /
-                # "rest your men" are the plain WAIT.
-                PLAIN_SPEECH_ACTIVE and _mentions_stay_put(command_lower)):
+                and not PASS_AS_NOUN_RE.search(command_lower)):
             action = "wait"  # Free action - marshal passes turn
         # DEF-5 naval ordering guard: "guard home waters" is the fleet
         # posture phrase, not a land HOLD — it must claim the words before
@@ -1798,8 +1868,8 @@ class LLMClient:
         # pension verb, not an army order — the rente family yields to the
         # pension branches further down the chain (mock keyword order rule).
         elif (("retreat" in command_lower and not _mentions_screening_idiom(command_lower))
-              or ("fall back" in command_lower and " to " not in command_lower)
-              or ("withdraw" in command_lower and " to " not in command_lower
+              or ("fall back" in command_lower and not _names_a_destination(command_lower))
+              or ("withdraw" in command_lower and not _names_a_destination(command_lower)
                   and not _mentions_pension(command_lower)
                   and not _mentions_screening_idiom(command_lower))
               # FA slice 7 (FA-80): "pull back" / "retire" without a
@@ -1823,6 +1893,8 @@ class LLMClient:
             "head for", "ride for", "ride to", "set off for", "set out for",
             "set off to", "set out to", "make haste to", "make haste for",
         ] + (_PLAIN_MOVE_FORMS if PLAIN_SPEECH_ACTIVE else [])) or (
+            PLAIN_SPEECH_ACTIVE and _plain_move_lead(command_lower)
+        ) or (
             # PARSE-NEG evaluation: "Ney, go to Alsace" — about as plain as an
             # order gets — was UNPARSEABLE. The list carried "head to",
             # "proceed to", "travel to" and "ride to" but never the commonest
@@ -2083,6 +2155,13 @@ class LLMClient:
         elif (re.search(r'\bguarantee\b', command_lower)
               and any(n in command_lower for n in known_nations_lower)):
             action = "guarantee_nation"
+        # FA slice 7 (FA-80), sited LAST by the review round (R1-4 / R3-1):
+        # "stay put" / "remain in Rhineland" / "rest your men" are the plain
+        # WAIT only when no order verb above claimed the sentence — above the
+        # order verbs, "scout Swabia and remain there" WAITED and "remain at
+        # Rhineland and fortify" dropped the fortify.
+        elif PLAIN_SPEECH_ACTIVE and _mentions_stay_put(command_lower):
+            action = "wait"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,
@@ -2318,25 +2397,10 @@ class LLMClient:
         # order and the keyword chain found nothing in what was left. Answer
         # with the refusal rather than a generic shrug — the parser knows
         # exactly what the player said and that they forbade it.
-        # FA slice 7 (FA-80): ONE verb-typo repair, re-entering the chain
-        # once, on the BLANKED text — a forbidden clause is already gone, so
-        # "do not attak Mack" has nothing left to repair and falls to the
-        # negation refusal below, while "attak Mack, not Davout" is repaired
-        # to the attack the player meant. The note rides the parser's
-        # `warning` seam so the player reads what was assumed.
-        if (VERB_TYPO_PASS_ACTIVE and not matched
-                and not getattr(self, "_typo_reentry", False)):
-            _repaired, _note = _repair_verb_typo(command_text, game_state)
-            if _repaired and _repaired != command_text:
-                self._typo_reentry = True
-                try:
-                    _again = self._parse_with_mock(_repaired, game_state)
-                finally:
-                    self._typo_reentry = False
-                if _again.action != "unknown" and not _again.refusal:
-                    _again.typo_note = _note
-                    return _again
-
+        # FA slice 7 (FA-80) — as rebuilt by the review round (R1-1): the
+        # verb-typo repair is a PRE-PARSE rewrite in `CommandParser.parse`,
+        # so every reader of the sentence sees the same repaired text; the
+        # chain itself no longer re-enters.
         if negation_applied and not matched:
             return self._refusal_result(
                 original_text, "negation", "an order NOT to act")

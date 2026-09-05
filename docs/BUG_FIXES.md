@@ -393,7 +393,7 @@
 | **FA-N87** | P3 | **Harness: the digest's LEDGER line has never once printed a threat figure — the driver reads `threat_level` off GET /ledger, which emits no such key, so the coalition alarm is absent from all 1,246 archived LEDGER rows** Verified by opening: tools/playtest_driver.py:1389 `dig(ledger, "threat_level", "threat")`; :525-532 `ledger_line` renders the bit only `if threat is not None`; backend/game_logic/ledger.py:53-69 `build_strategic_ledger` returns forces/territories/economy/intel/manpower/orders/admiralty/calendar_label/authority/authority_label/actions_remaining/campaign_seed — `grep -c threat backend/game_logic/ledger.py` = 0; backend/main.py:4318-4327 GET /ledger wraps it as {success, ledger} plus identity overrides, no popup passthroughs. Verified by running (probe on the shipped 1805 boot, TestClient with M.parser/M.world/M.game_state swapped to a mock parser): world.threat_level = 70, `dig(ledger,'treasury','gold')` = 800, `dig(ledger,'net_gold','net')` = 1842, **`dig(ledger,'threat_level','threat')` = None**, and a recursive walk for any threat-ish key in the whole /ledger payload returns []. The fi… *Repro:* cd C:/Users/User/PycharmProjects/project-sovereign-map. (1) grep -c threat backend/game_logic/ledger.py -> 0. (2) grep -h "LEDGER" docs/audits/playtest_digests/*/digest.md / grep -c threat -> 0 (of 1246 LEDGER lines). (3) Save as probe_threat.py in the repo root and run `.venv/Scripts/python.exe probe_threat.py` (mock parser, no LLM spend): import contextlib, io, sys, os sys.stdout.reconfigure(encoding="utf-8") os.environ["LLM_MODE"]="mock" sys.path.insert(0, "tools") from fastapi.testclient imp… *Fix:* ONE seam: the third argument at tools/playtest_driver.py:1389. The driver already fetches GET /dispatch at :1392 — hoist that call above the ledger_line call and pass `dig(dispatch_payload, "threat_level")` (or read GET /test, which carries the same `threat_level` at main.py:2051) instead of digging /ledger for a key it does not have. No signature change, no backend change, both existing ledger_line tests keep passing. If the ledger screen should own the number too, the alternative one-seam fix … *Test:* tests/ for tools/playtest_driver.py, two arms. (1) The regression pin, so the fix is provably the thing that changes: boot the 1805 scenario in-process and assert `dig(client.get('/ledger').json(), 'threat_level', 'threat') is None` while `world.threat_level > 0` — this test is RED-by-intent today only in the sense that it documents the hole; convert it after the fix to assert the driver's extract… | `tools/playtest_driver.py:1389` | **OPEN** — verification pass; found by the FA-37 sweep |
 | **FA-N89** | P4 | **meta.json records the run's dice but not its world: --scenario, --cheats and --strict are unrecorded, so FA-39's proposed `script` field still would not say which world an archived digest ran in** Verified by opening: tools/playtest_driver.py:1271-1277 — the meta dict is exactly {name, seed, llm, transport, policy, turns_requested, started, from_save, rng}; argparse at :1436-1471 defines 15 flags including `--scenario` (:1440, 'allowlist name for /new_game'), `--cheats` (:1457, arms DEBUG_MODE) and `--strict` (:1459, whether unknown blockers would have failed the run), none of which reach the meta. Verified in the archive: `json.load(docs/audits/playtest_digests/audit-tutorial/meta.json).keys()` = [counters, from_save, llm, name, policy, rng, seed, started, status, transport, turns_requested, unknown_blockers] — no 'scenario', no 'cheats', no 'script'; its digest.md header line prints seed/llm/transport/policy only, and its boot line (digest.md:4) is the sole disclosure. tools/playtest_scripts/tutorial_lesson.json has no scenario key. Doc claim: docs/PLAYTESTING.md:312 ('meta.json… *Repro:* From the repo root: `python -c "import json;print(sorted(json.load(open('docs/audits/playtest_digests/audit-tutorial/meta.json',encoding='utf-8'))))"` -> no 'scenario'/'cheats'/'script'; `grep -n 'scenario' tools/playtest_driver.py` -> only :1291 (the POST) and :1440 (the flag) — it is never written to meta; `sed -n '4p' docs/audits/playtest_digests/audit-tutorial/digest.md` -> the boot message is the only tell. Then `.venv/Scripts/python.exe tools/playtest_driver.py --turns 1 --name scencheck -… *Fix:* ONE seam, and it should be FOLDED INTO FA-39's meta fix rather than built separately: the meta dict at tools/playtest_driver.py:1271-1277 gains `"scenario": args.scenario`, `"cheats": bool(args.cheats)`, `"strict": bool(args.strict)` alongside FA-39's `"script"`/`"llm_source"`, and the digest header line at :356-359 names the scenario when it is non-empty. Correct docs/PLAYTESTING.md:312 to say which args are recorded. *Test:* tests/test_playtest_driver_instrument.py — (a) a 1-turn run with `--scenario tutorial --cheats --strict` writes meta.json with scenario=='tutorial', cheats is True, strict is True, and digest.md's header names the scenario; a default run writes scenario==''. (b) A drift pin in the project's census idiom, so this cannot regress when the next flag is added: parse `main()`'s argparse `dest` set by AS… | `tools/playtest_driver.py:1271` | **OPEN** — verification pass; found by the FA-39 sweep |
 
-## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4, the slice-3 review round, slice 5, the slice-4 review round, slice 6 and slice 7 landed — see the boxed blocks)
+## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4, the slice-3 review round, slice 5, the slice-4 review round, slice 6, slice 7 and the slice-7 review round landed — see the boxed blocks)
 
 > **Review-round findings (September 4, 2026) — filed by the slice-2 review fleet, NOT fixed in the round; owned by slice 4 (the AI reads the board):**
 >
@@ -433,6 +433,118 @@
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).
 
+> ### ✅ SLICE 7 REVIEW ROUND — "THE MOCK IS READ BY EVERY READER" — FIXED September 5, 2026
+>
+> **Landing record: this block (an addendum to the SLICE 7 block below).
+> Three lenses at `764d0ffc`, reports committed as
+> `docs/audits/fa_build_2026_09_04/REVIEW_slice7_R1_attack_the_fix.md`,
+> `REVIEW_slice7_R2_gr5_fog_seams.md`, `REVIEW_slice7_R3_record_vs_code.md`.**
+> R1 drove ~230 sentences, R2 ~80 board states, R3 re-ran the build's own
+> 102-row probe on the PARENT archive and the commit. **Two P1s, both inside
+> the slice's own fix; nine P2s; the rest P3/P4 and record corrections.**
+> Tests `tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py`
+> **203** (+27 in `TestTheReviewRound`); sweep `tools/_sweep_fa_slice7.json`
+> **71 mutations, 71 killed, 0 INERT, 0 BROKEN at close** (61 killed on the
+> full run; ten whose anchors the round's own edits had moved were rewritten
+> and re-run with the one inert stoplist pin, all eleven killed; one
+> obsolete mutation retired with the code it targeted); corpus 647 →
+> **675/675** (+28 rows); ruff clean; zero `.gd`; `BASELINE_SERIES` and
+> M1–M7 byte-identical — stated now as MEASURED, not structural, because
+> the prisoner arm is on the AI path (see R2-1).
+>
+> **The two P1s.** (R1-1) The typo repair rewrote only the mock chain's own
+> text; the sequential split and the strategic layer kept reading the
+> UNREPAIRED sentence — measured, `Davout, hodl Lorraine` parsed `hold` and
+> became a STANCE CHANGE at Rhineland (the strategic layer read "hodl"), and
+> `Ney, hodl Lorraine, then attack Mack` FOUGHT (the split gate saw no halt,
+> kept the sentence whole, and `attack` won). Rebuilt as a PRE-PARSE rewrite
+> in `CommandParser.parse` (`llm_client.repair_leading_verb_typo`, ONE token
+> in ORDER-VERB position — the first word of the sentence, of the address,
+> or of a clause — so "the line held" and "we depend on you" are nouns
+> again, R1-3), the chain's own re-entry deleted; the typed text stays the
+> record (`raw_input` / `raw_command`, R1-11) and the note reaches a
+> REFUSAL too (R1-10 / R3-6: `Ney, atack Lorraine` now says what was
+> assumed). (R1-2) The split gate's stand-fast list never learned the wait
+> vocabulary — `Ney, stay here, then attack Mack` FOUGHT (gold −132), FA-7's
+> own headline shape one seam over; ONE vocabulary now
+> (`llm_client.STAND_STILL_ALTERNATION`) read by the chain AND the gate.
+>
+> **The P2s.** (R2-1, GR5) The Brunswick short-circuit made the PROVINCE
+> unattackable by name for EVERY court while its namesake marshal sat in a
+> cell — the AI's homeland-defence rungs emit `attack <region>`, so its
+> orders failed in silence; `prisoners.prisoner_is_a_province` lets the
+> region path run at every seam. (R2-2, fog) The prisoner and tombstone arms
+> named a far court's captive ("Kutuzov is a prisoner of Prussia at Berlin")
+> whose capture the campaign log itself filters; `prisoners.cell_in_view`
+> names a third court's captive only where the cell is PARTIAL+ (our own
+> captive always; the AI has no fog). (R2-3) The objection battery objected
+> BEFORE the prisoner refusal — "insist" cost Davout eight trust for an order
+> the executor then refused free; the PF-4 skip covers a captive. (R2-4) The
+> desk said "no word" of an ALLIED corps standing at FULL — its visibility
+> was the at-war roster's; it is the region's intel now, for any non-player
+> marshal. (R2-5, pre-existing) `Davout, support Ney` with Ney a captive
+> created a SUPPORT order marching toward the captor's capital — refused.
+> (R1-4 / R3-1) The stay-put predicate sat above scout, fortify, stance and
+> square, so `scout Swabia and remain there` WAITED with a success message —
+> it is the LAST arm now. (R1-5 / R3-8) `retire Ney` retreated Ney at −45%
+> for three turns; `retire` counts only in its terminal form, and
+> `towards` is a destination (R1-14 — `pull back towards Lorraine` was a
+> retreat). (R1-6 / R1-15 / R3-7) A friendly marshal at the HEAD of a
+> SUPPORT or HOLD object IS the object — `help Davout attack Mack` was
+> refused for "Davout Attack Mack", `protect Ney's flank` stood a 2-AP HOLD
+> on the phantom province "Ney'S Flank". (R1-7) `help Davout` bound Davout
+> as the EXECUTOR ("Where shall Davout march?") — the five plain verbs join
+> `SUPPORT_OBJECT_PREFIX_RE`. (R1-8 / R2-9) The modal leads read their
+> SUBJECT now, not their punctuation: a will/would/shall sentence is a
+> question unless the next word is "you" — so `Davout, would you march to
+> Lorraine for me` and `Ney, would you scout Swabia?` are orders, and `would
+> Ney attack Mack` (no question mark, FOUGHT at gold −124) is a question.
+>
+> **The rest.** R1-9 longest-first in the MOVE_TO table (`push on towards
+> Paris` marched to "Wards Paris"; the round's own `fall back towards` had to
+> precede the pre-existing `fall back to`); R2-6 the desk reports the MAN's
+> band, not the province aggregate, and its freshest snapshot in any tier;
+> R2-7 no tactical states for a foreign corps (fortified/square/rout are in
+> no FULL surface); R2-8 the charge, the scout and the move name a prisoner
+> (two verbs were still printing FA-24's own "Did you mean 'La Mancha'?");
+> R2-11 no band at LAST_KNOWN; R2-12 the own-captive exclusion pinned; R2-13
+> one Admiralty predicate; R2-14 a classified question the desk cannot
+> answer says so instead of dumping the reference; R1-16 the admiral is
+> known to the confidence demotion; R3-14 the SUPPORT objection speaks in
+> character ("March to another man's guns, Sire?"); R1-12 / R3-3 `who holds`
+> prefers the province (and "Hanover is held by its own crown").
+>
+> **Recorded, not fixed.** R1-13 `Berthier, end turn` stays a shrug — the
+> client's lapse-confirm gate (`main.gd::_is_end_turn_phrasing`) mirrors the
+> backend's bare end-turn vocabulary word for word, and widening the backend
+> alone would advance the turn behind the client's gate (`DESIGN_REFINEMENT`
+> FA-R4). R3-2, pre-existing and WIDENED-then-narrowed by this round: a
+> standing order created at 0 AP when the base action is a free verb —
+> `hold Rhineland and wait` / `march to Lorraine and wait there` on the
+> parent tree; the round's relocation of stay-put removes the slice's own
+> widening, the root is FA-R3. The live layer's `charge` reading of "fix
+> bayonets" / "cover the retreat" is homed on the CR-6/CR-8 gate (FA-S7-D1).
+>
+> **The record, corrected (R3).** "nine address regexes" was TEN (fourteen
+> composition sites counting the target-side cleaners and the desk); "ten
+> `mock_only`" was **21 of 42** — half the new vocabulary is pinned on the
+> mock parser only; "`can Ney attack Mack` … still refused by design" was
+> false as worded — it is EXECUTED (the polite-order rule); "every change
+> the designed one" over-claimed — at least ten of the 77 changed probe rows
+> are battle rolls and template draws; `_lays_down_a_keel`'s sibling window
+> is 20, not 24. Omitted from the first record and stated now: the
+> `test_parse_negation.py` pin flipped (a fact question is `status`, still a
+> free read); `_DESK_ADDRESS_RE` and `"berthier"` in `ADDRESS_NON_NAME_WORDS`
+> (so "Berthier, status" reaches the desk); the two pre-existing FA-73 rows
+> re-marked `mock_only`; the LLM-fallback gate widened from four names to
+> `NON_ORDER_ACTIONS` (a live-mode change: `economy`/`treasury`/`finances`/
+> `cheat`/`meta_command` fast parses no longer escalate — none ever crossed
+> the confidence gate anyway); `shall we attack Mack` (parent: FOUGHT −111)
+> is a question. ⛔ **The lesson, a fifth time:** the repair touched ONE
+> reader in a pipeline with three, and the reproduction probe re-run on the
+> patched tree did not include a compound sentence — the reviewers' first
+> move was to add the clause the builder had not.
+
 > ### ✅ SLICE 7 — "THE MOCK SPEAKS PLAINLY" — FIXED September 4, 2026
 >
 > **Landing record: this block. Rows FA-80 (P3), FA-N8 (P2), FA-N24 (P3),
@@ -444,7 +556,7 @@
 > build's own 102-row probe before a line changed.** Tests
 > `tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py` (82); sweep
 > `tools/_sweep_fa_slice7.json` — **40 mutations, 40 killed, 0 INERT, 0 BROKEN at close — three INERT on the first sweep, each resolved at its cause: two later combat filters were dead code shadowed by the short-circuit ahead of the province fallback (deleted, the mutation re-pointed at the live seam); the typo pass's negation clause was structurally dead (the guard blanks the whole negated clause), so the pass now runs on the BLANKED text ABOVE the refusal and the ordering is the mutation; the desk's no-guess pin needed a two-names case**; ruff clean;
-> corpus 589 → **647/647** (42 new rows, ten `mock_only`, two `live_only`
+> corpus 589 → **647/647** (42 new rows, 21 `mock_only`, two `live_only`
 > twins evaluated ONCE on the live parser deliberately — both pass);
 > `BASELINE_SERIES` and M1–M7 byte-identical WITHOUT re-record; zero `.gd`.
 >
@@ -479,7 +591,7 @@
 > (`META_ACTIONS | PARSER_ONLY_META`, disjoint by pin, an AST census forbids
 > the literal), llm_client's fallback gate reads the same set. (iii) ONE
 > honorific: `clause_guards.HONORIFIC = (?:marshal|general|gen\.|mar[eé]chal)\s+`
-> composed into all nine address regexes (llm_client ×2, clause_guards,
+> composed into all ten address regexes (llm_client ×2, clause_guards,
 > parser, clarification, context_carryover ×3, delegation, strategic_parser)
 > and the strategic target cleaner; the two CAPTURE regexes stay marshal-only
 > by design; a source census fails on any surviving hand-spelled form, and
@@ -536,14 +648,16 @@
 > reported at Swabia — large force", which is the honest register. The two
 > FA-73 live twins pass — and record that the live layer reads BOTH "fix
 > bayonets" and "cover the retreat" as a cavalry CHARGE (an observation for
-> the CR-6/CR-8 gate, not fixed here). Still refused by design, recorded:
-> `take Swabia` (attack_vocabulary excludes "take" on purpose), a bare
-> `forward!` (no destination), `can Ney attack Mack` without a question mark
-> (the polite-order rule), and the advisory questions.
+> the CR-6/CR-8 gate, not fixed here). Unchanged by design, recorded:
+> `take Swabia` (attack_vocabulary excludes "take" on purpose) and a bare
+> `forward!` (no destination) are refused; `can Ney attack Mack` without a
+> question mark stays an ORDER — it fights (the polite-order rule); the
+> advisory questions keep the command reference.
 >
 > **Method.** The reproduction probe was re-run on the patched tree as the
-> live check of the whole family (77 of 102 rows changed, 25 unchanged, every
-> change the designed one); the first test run found three defects in the fix
+> live check of the whole family (77 of 102 rows changed, 25 unchanged — at
+> least ten of the 77 are battle rolls and template draws, the rest the
+> designed change); the first test run found three defects in the fix
 > (the prisoner-province collision, the exact-match desk routes defeated by
 > an address, "protect Marshal Davout" targeting "marshal davout") — all
 > three fixed before the sweep. The honorific and the derived list carry no

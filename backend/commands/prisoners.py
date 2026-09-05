@@ -40,29 +40,61 @@ def prisoner_of(world, name: str, viewer_nation: Optional[str] = None):
     return marshal
 
 
+def prisoner_is_a_province(world, marshal) -> bool:
+    """FA slice 7 review round (R2-1): when a captive's NAME is also a
+    province (Brunswick — the WO-13 collision), the province is the only
+    live referent an order can mean, so the seams let the region path run
+    instead of refusing — the first cut made the province unattackable by
+    name for every court while the man sat in a cell (the AI's attack rungs
+    emit region names, so its homeland-defence orders failed in silence)."""
+    try:
+        return marshal.name in (getattr(world, "regions", {}) or {})
+    except Exception:
+        return False
+
+
+def cell_in_view(world, location: str, viewer_nation: Optional[str]) -> bool:
+    """Whether the viewer may know a captive is held at `location`: the AI
+    has no fog; the player knows a cell only at PARTIAL or better."""
+    player = getattr(world, "player_nation", None)
+    if viewer_nation and viewer_nation != player:
+        return True
+    try:
+        from backend.models.intel import PARTIAL
+        return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
+    except Exception:
+        return False
+
+
 def prisoner_refusal(world, marshal, viewer_nation: Optional[str]) -> Dict:
     """The refusal dict every seam returns for an order aimed at a prisoner.
     `prisoner: True` is what lets the combat seam return it verbatim instead
-    of falling through to the region fuzzy pass; the cost is zero."""
+    of falling through to the region fuzzy pass; the cost is zero.
+
+    FA slice 7 review round (R2-2): a THIRD court's captive is named only
+    where the cell that holds him is in view — the first cut told the player
+    "Kutuzov is a prisoner of Prussia at Berlin" about a capture the campaign
+    log itself filters out of sight. Our own captive is always ours to name.
+    """
     from backend.display_names import humanize_entity_name
     shown = humanize_entity_name(marshal.name)
     captor = getattr(marshal, "captured_by", "") or ""
     location = getattr(marshal, "location", "") or "the rear"
+    base = {"success": False, "prisoner": True, "prisoner_name": marshal.name,
+            "variable_action_cost": 0}
     if viewer_nation and captor == viewer_nation:
-        message = (f"{shown} is our prisoner at {location}, Sire — he leads no "
-                   f"army. Hold him for the peace table.")
-    else:
-        try:
-            from backend.game_logic.formations import formed_display_name
-            court = formed_display_name(world, captor)
-        except Exception:
-            court = captor or "the enemy"
-        message = (f"{shown} is a prisoner of {court} at {location}, Sire — "
-                   f"he leads no army.")
-    return {
-        "success": False,
-        "message": message,
-        "prisoner": True,
-        "prisoner_name": marshal.name,
-        "variable_action_cost": 0,
-    }
+        return {**base, "message": (
+            f"{shown} is our prisoner at {location}, Sire — he leads no "
+            f"army. Hold him for the peace table.")}
+    if not cell_in_view(world, location, viewer_nation):
+        return {**base, "fogged": True, "message": (
+            f"No intelligence on {shown}'s position, Sire — scout for him "
+            f"before naming him.")}
+    try:
+        from backend.game_logic.formations import formed_display_name
+        court = formed_display_name(world, captor)
+    except Exception:
+        court = captor or "the enemy"
+    return {**base, "message": (
+        f"{shown} is a prisoner of {court} at {location}, Sire — "
+        f"he leads no army.")}

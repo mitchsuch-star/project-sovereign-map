@@ -7816,6 +7816,13 @@ class CombatExecutor:
                 "message": f"Cannot find target '{target}' for Glorious Charge."
             }
 
+        # FA slice 7 review round (R2-8): a captive is named, not "has no
+        # troops to fight" (NPC-19's class on the charge road).
+        from backend.commands import prisoners as _prisoners
+        if (getattr(target_marshal, "captured_by", "")
+                and _prisoners.PRISONERS_ARE_NAMED
+                and not _prisoners.prisoner_is_a_province(world, target_marshal)):
+            return _prisoners.prisoner_refusal(world, target_marshal, marshal.nation)
         if target_marshal.strength <= 0:
             return {
                 "success": False,
@@ -8878,8 +8885,12 @@ class CombatExecutor:
         from backend.commands import prisoners as _prisoners
         if (enemy is not None and getattr(enemy, "captured_by", "")
                 and _prisoners.PRISONERS_ARE_NAMED):
-            return {"kind": "error", "error": _prisoners.prisoner_refusal(
-                world, enemy, world.player_nation)}
+            if _prisoners.prisoner_is_a_province(world, enemy):
+                # R2-1: the captive's name is a PROVINCE — that is the order.
+                enemy = None
+            else:
+                return {"kind": "error", "error": _prisoners.prisoner_refusal(
+                    world, enemy, world.player_nation)}
         if (_auto_enemy_error or {}).get("prisoner"):
             return {"kind": "error", "error": _auto_enemy_error}
         if not enemy:
@@ -8890,6 +8901,11 @@ class CombatExecutor:
             fallen = getattr(world, "fallen_marshals", None) or {}
             for f_name, f_tomb in fallen.items():
                 if (f_tomb or {}).get("nation") == world.player_nation:
+                    continue
+                # FA slice 7 review round (R2-2): a tombstone in a province
+                # we have never seen is not ours to read out.
+                if not _prisoners.cell_in_view(
+                        world, (f_tomb or {}).get("location") or "", world.player_nation):
                     continue
                 if f_name.lower() == str(target).strip().lower():
                     return {"kind": "error", "error": {
