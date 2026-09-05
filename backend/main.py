@@ -376,11 +376,75 @@ def _attach_nation_identity_overrides(response: dict, world) -> None:
     response["nation_flag_overrides"] = build_nation_flag_overrides(world)
 
 
+# ── FA slice 6 "The Popup Queue" (September 4, 2026) ─────────────────────
+# `build_base_response` drains the PopupQueue by default and `pop_highest`
+# REMOVES the entry — so every response whose client callback renders no
+# popup key, or renders only ONE route of what it carries, destroyed
+# whatever was queued (the one-shot Talleyrand sabotage card, a petition, a
+# proposal). Measured on the shipped board by a read-only reproduction
+# (docs/audits/fa_build_2026_09_04/REPRO_E_the_popup_queue.md): ten of the
+# twelve /command question-bearing early returns, fifteen refusal arms in
+# seven endpoints, the end-turn response that could never carry the petition
+# (FA-5, P1), /load draining draft notices the world swap never renders, and
+# a cancel button blocking on a SOFT stop the typed cancel walks through.
+# ONE rule: a response may carry a popped popup only when the callback that
+# consumes it runs the route table AND the response carries no question of
+# its own. Each lever's False arm reproduces the prior behaviour.
+POPUP_DRAIN_READS_THE_QUESTION = True    # FA-30 / FA-N20: a response that carries a question never carries a popped popup
+REFUSAL_ARMS_NEVER_DRAIN = True          # FA-N67: a refusal whose client callback reads no popup key never pops one
+CANCEL_BUTTON_READS_THE_HARD_STOP = True  # FA-N62: the Orders-tab cancel blocks on the hard stop the typed cancel blocks on
+LOAD_KEEPS_THE_DRAFT_NOTICES = True      # FA-99: /load never drains the draft notices the world swap never renders
+PETITION_RIDES_THE_END_TURN = True       # FA-5: the standing petition rides the end-turn response under its own key
+
+_QUESTION_STATES = frozenset({
+    "awaiting_player_choice", "awaiting_clarification", "awaiting_redemption_choice",
+})
+_QUESTION_KEYS = (
+    "pending_objection", "pending_strategic_objection", "pending_glorious_charge",
+    "pending_interrupt", "pending_capture_choice", "diplomatic_dialogue",
+    "awaiting_diplomatic_response", "marshal_petition", "redemption_event",
+)
+
+
+def _result_carries_question(result) -> bool:
+    """FA slice 6: does this executor result itself ask the player something?
+    The client renders the FIRST matching route and returns — a second popup
+    riding the same response is never rendered, and `pop_highest` has already
+    destroyed it. Read by `_build_result_response` to decide the drain."""
+    if not isinstance(result, dict):
+        return False
+    if result.get("state") in _QUESTION_STATES:
+        return True
+    return any(result.get(key) for key in _QUESTION_KEYS)
+
+
+def _refusal_response(world, message: str = "", **extra) -> dict:
+    """FA slice 6 (FA-N67): a refusal on an endpoint whose client callback
+    reads no popup key. Built WITHOUT draining — keys present, queue
+    untouched — so the popup rides the player's next ordinary /command."""
+    response = build_base_response(
+        world, success=False, message=message,
+        include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN, **extra)
+    if REFUSAL_ARMS_NEVER_DRAIN:
+        _fill_popup_keys_without_draining(response)
+    return response
+
+
+def _cancel_blocked_message(world) -> str:
+    """FA-N62: name the stop that blocks the cancel, in the dialogue's own
+    words rather than a Talleyrand line that misdescribed a settlement."""
+    dialogue = getattr(world, "pending_diplomatic_dialogue", None) or {}
+    kind = str(dialogue.get("type") or "a diplomatic matter").replace("_", " ")
+    return (f"A decision is before you, Sire — {kind} awaits your answer. "
+            f"Settle it before recalling orders.")
+
+
 def build_base_response(world, success: bool = True, message: str = "",
                         events: list = None,
                         include_popup_passthroughs: bool = True,
                         queue_informational_notices: bool = True,
                         include_notifications: bool = True,
+                        drain_draft_notices: bool = True,
                         **extra) -> dict:
     """Standard response builder. ALL POST endpoints must use this.
 
@@ -444,8 +508,10 @@ def build_base_response(world, success: bool = True, message: str = "",
         _include_popup_passthroughs(response, world)
     if queue_informational_notices:
         _queue_informational_diplomacy_notices(response, world)
+    # FA slice 6 (FA-99): `/load` builds through here and the world-swap
+    # handler never renders the notices — kept queued for the first command.
     notice_drain = getattr(world, "drain_settlement_draft_notices", None)
-    if callable(notice_drain):
+    if drain_draft_notices and callable(notice_drain):
         draft_notices = notice_drain()
         if draft_notices:
             response["settlement_draft_notices"] = draft_notices
@@ -484,6 +550,12 @@ def _build_result_response(result: dict, world, drain_popups: bool = True) -> di
         cleaned_phase = _build_visible_enemy_phase(extra.pop("enemy_phase"), world)
         if cleaned_phase is not None:
             extra["enemy_phase"] = cleaned_phase
+    # FA slice 6 (FA-30 / FA-N20): a result that asks the player something
+    # is rendered by ONE route and the rest of the response is discarded —
+    # a popped popup riding beside the question died unread (the one-shot
+    # sabotage card, a petition, a proposal). The drain reads the question.
+    if drain_popups and POPUP_DRAIN_READS_THE_QUESTION and _result_carries_question(extra):
+        drain_popups = False
     # PT-H1: the early-return paths reach the wire with `suggestion`
     # intact and no client reads it. Same seam, same treatment. Computed
     # BEFORE the pops, because it reads both keys.
@@ -1435,6 +1507,26 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
             response["deferred_dialogue"] = world.pending_diplomatic_dialogue
     except Exception:
         pass
+    # FA slice 6 (FA-5, P1): the end-turn response never carried the
+    # marshal petition — the deferral above skipped `_include_popup_
+    # passthroughs`, so an end-turn-only stretch never delivered the card,
+    # and the undelivered card starved Fontainebleau and every later
+    # petition (measured: a Lannes|Murat card standing from turn 4 with zero
+    # delivery across thirteen end-turn-only turns). It rides a key of its
+    # own that the client STASHES and raises at control return, behind the
+    # report — the NA-6b discipline. The delivery entry is popped here as
+    # the ordinary drain would pop it; the standing petition stays on the
+    # world until ANSWERED and is re-pushed each turn (loss-safe).
+    if PETITION_RIDES_THE_END_TURN:
+        try:
+            _petition = world._popup_queue.get("pending_marshal_petition")
+            if _petition is not None and _popup_dialogue_is_current(world, _petition):
+                from backend.game_logic.jealousy import refresh_petition_affordability
+                response["deferred_marshal_petition"] = refresh_petition_affordability(
+                    dict(_petition), world)
+                world._popup_queue.clear_type("pending_marshal_petition")
+        except Exception:
+            pass
 
 
 def _finalize_command_notifications(response: dict, world) -> None:
@@ -3438,16 +3530,18 @@ def respond_to_objection(request: ObjectionResponse):
     """
     try:
         if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
+            return _refusal_response(
+                world, message="The war is over.",
                 game_over=True, victory=world.victory)
         return _respond_to_objection_sync(request.choice)
     except Exception as e:
         print(f"[ERROR] handling objection response: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 def _respond_to_objection_sync(choice: str):
@@ -3522,8 +3616,10 @@ def _respond_to_objection_sync(choice: str):
         print(f"[ERROR] handling objection response: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.post("/respond_to_diplomatic_dialogue")
@@ -3729,8 +3825,8 @@ def capture_choice(request: CaptureChoiceResponse):
     """
     try:
         if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
+            return _refusal_response(
+                world, message="The war is over.",
                 game_over=True, victory=world.victory)
         result = executor.handle_capture_choice(
             request.choice, game_state, dialogue_id=request.dialogue_id)
@@ -3762,8 +3858,10 @@ def capture_choice(request: CaptureChoiceResponse):
         print(f"ERROR handling capture choice: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.post("/respond_to_redemption")
@@ -3781,22 +3879,21 @@ def respond_to_redemption(request: RedemptionResponse):
     """
     try:
         if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
+            return _refusal_response(
+                world, message="The war is over.",
                 game_over=True, victory=world.victory)
         # Check for pending redemption
         if not hasattr(world, 'pending_redemption') or world.pending_redemption is None:
-            return build_base_response(
-                world, success=False, message="No redemption event pending.")
+            return _refusal_response(
+                world, message="No redemption event pending.")
 
         redemption_event = world.pending_redemption
 
         # Validate choice (Phase 3: administrative_role replaces demand_obedience)
         valid_choices = ['grant_autonomy', 'administrative_role', 'dismiss']
         if request.choice not in valid_choices:
-            return build_base_response(
-                world, success=False,
-                message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
+            return _refusal_response(
+                world, message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
 
         # Process the redemption response
         result = world.disobedience_system.handle_redemption_response(
@@ -3831,8 +3928,10 @@ def respond_to_redemption(request: RedemptionResponse):
         print(f"[ERROR] handling redemption response: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.get("/pending_redemption")
@@ -3878,15 +3977,14 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
     """
     try:
         if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
+            return _refusal_response(
+                world, message="The war is over.",
                 game_over=True, victory=world.victory)
         # Validate choice
         valid_choices = ['charge', 'restrain']
         if request.choice not in valid_choices:
-            return build_base_response(
-                world, success=False,
-                message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
+            return _refusal_response(
+                world, message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
 
         # Process the response through executor
         result = executor.respond_to_glorious_charge(request.choice, world)
@@ -3917,8 +4015,10 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         print(f"[ERROR] handling Glorious Charge response: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.post("/strategic_response")
@@ -3936,8 +4036,8 @@ def handle_strategic_response(request: StrategicInterruptResponse):
     """
     try:
         if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
+            return _refusal_response(
+                world, message="The war is over.",
                 game_over=True, victory=world.victory)
         from backend.commands.strategic import StrategicOrderProcessor
         strategic_exec = StrategicOrderProcessor(executor)
@@ -3975,8 +4075,10 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         print(f"[ERROR] handling strategic response: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.get("/authority_status")
@@ -4204,7 +4306,7 @@ async def save_endpoint(request: SaveRequest):
     global world
     # 3D-2: Validate save filename before passing to save_game
     if request.save_name and not _validate_save_filename(request.save_name):
-        return build_base_response(world, success=False, message="Invalid save name")
+        return _refusal_response(world, message="Invalid save name")
     try:
         result = save_game(world, save_name=request.save_name)
         # Non-draining (Aug 2026 health-check audit): the pause-menu save
@@ -4221,7 +4323,9 @@ async def save_endpoint(request: SaveRequest):
         print(f"[ERROR] handling save: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(world, success=False, message=f"Save failed: {str(e)}")
+        _resp = build_base_response(world, success=False, message=f"Save failed: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.post("/new_game")
@@ -4293,11 +4397,13 @@ async def load_endpoint(request: LoadRequest):
     if result["success"]:
         _set_active_world(result["world"])
         response = build_base_response(world, message=result["message"],
-                                       include_popup_passthroughs=False)
+                                       include_popup_passthroughs=False,
+                                       drain_draft_notices=not LOAD_KEEPS_THE_DRAFT_NOTICES)
     else:
         response = build_base_response(world, success=False,
                                        message=result["message"],
-                                       include_popup_passthroughs=False)
+                                       include_popup_passthroughs=False,
+                                       drain_draft_notices=not LOAD_KEEPS_THE_DRAFT_NOTICES)
     _fill_popup_keys_without_draining(response)
     # WO-30: `pending_capture_choice` is a plain world attribute, not a
     # PopupQueue member, so the fill above cannot deliver it — it only
@@ -4865,8 +4971,8 @@ def respond_to_mailbox_item(request: MailboxRespondRequest):
 
     world = game_state["world"]
     if world.game_over:
-        return build_base_response(
-            world, success=False, message="The war is over.",
+        return _refusal_response(
+            world, message="The war is over.",
             game_over=True, victory=world.victory)
 
     promote_pending_settlement_offers(world)
@@ -5155,30 +5261,35 @@ async def cancel_order(request: Request):
     """Cancel a marshal's strategic order from the Orders tab."""
     try:
         if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
+            return _refusal_response(
+                world, message="The war is over.",
                 game_over=True, victory=world.victory)
         data = await request.json()
         marshal_name = data.get("marshal")
         if not marshal_name:
-            return build_base_response(
-                world, success=False, message="No marshal specified.")
+            return _refusal_response(
+                world, message="No marshal specified.")
 
         if not game_state.get("world"):
-            return build_base_response(
-                world, success=False, message="No active game")
+            return _refusal_response(
+                world, message="No active game")
 
         # AP pre-check (matches typed cancel command flow)
         if world.actions_remaining <= 0:
-            return build_base_response(
-                world, success=False,
-                message="No actions remaining this turn.")
+            return _refusal_response(
+                world, message="No actions remaining this turn.")
 
-        # 2A-4: Dialogue guard — block cancel during active diplomatic dialogue
-        if world.pending_diplomatic_dialogue is not None:
-            return build_base_response(
-                world, success=False,
-                message="Talleyrand awaits your response to a diplomatic matter.")
+        # 2A-4: Dialogue guard — block cancel during active diplomatic dialogue.
+        # FA slice 6 (FA-N62): the typed `cancel` blocks only on a HARD stop
+        # (executor.py's gate); this button blocked on ANY pending dialogue —
+        # refused on 12 of 12 ambient turns behind a letter that lapses on its
+        # own — and named Talleyrand for a settlement offer. Same predicate,
+        # and the stop is named.
+        _blocking = (world.dialogue_manager.is_hard_stop()
+                     if CANCEL_BUTTON_READS_THE_HARD_STOP
+                     else world.pending_diplomatic_dialogue is not None)
+        if _blocking:
+            return _refusal_response(world, message=_cancel_blocked_message(world))
 
         command = {"action": "cancel", "marshal": marshal_name}
         result = executor._execute_cancel(command, game_state)
@@ -5195,8 +5306,10 @@ async def cancel_order(request: Request):
         print(f"[ERROR] handling cancel_order: {e}")
         import traceback
         traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+        _resp = build_base_response(
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)
+        _fill_popup_keys_without_draining(_resp)
+        return _resp
 
 
 @app.get("/marshal_overview")

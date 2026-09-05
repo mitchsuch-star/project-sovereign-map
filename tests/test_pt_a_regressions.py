@@ -579,7 +579,14 @@ class TestTheHardStopRefusalThroughTheEndpoint:
         from fastapi.testclient import TestClient
 
         import backend.main as M
+        from backend.commands.parser import CommandParser
 
+        # FA slice 6 (Sept 4, 2026), found in passing: the env var is read at
+        # parser CONSTRUCTION, and the module's parser already exists — under
+        # a `.env` with a real key this class was making a PAID Anthropic call
+        # per test ("let the province stand" → the fast-parser result anyway).
+        monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
+        assert M.parser.llm.use_real_api is False
         return TestClient(M.app), M
 
     def test_an_unrelated_order_is_refused_honestly(self, monkeypatch):

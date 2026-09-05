@@ -7,6 +7,8 @@ PL-33 duplicate verification (status with soft-stop dialogue).
 
 from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
+import pytest
+
 from backend.models.dialogue_manager import DialogueManager
 from backend.campaign_log import CAMPAIGN_LOG_TYPES, format_event_oneliner
 
@@ -423,6 +425,21 @@ class TestDialogueManagerSoftStopCount:
 
 
 class TestPendingEnvoyRecovery:
+
+    @pytest.fixture(autouse=True)
+    def _restore_module_game_state(self):
+        """FA slice 6 (Sept 4, 2026), found in passing: these two tests set
+        `main_module.game_state` to a fresh world — one carrying a HARD stop —
+        and never restored it, so every later `/command` in the suite ran its
+        executor against that world while reading popups off the other. The
+        ledger-debug pass-through pins had been passing on that leak: a
+        hard-stop refusal for `help` drained the module world's popups by
+        accident (the exact defect slice 6 closes)."""
+        import backend.main as main_module
+
+        saved = main_module.game_state
+        yield
+        main_module.game_state = saved
 
     def test_active_soft_stop_returns_popup_contract(self):
         import backend.main as main_module

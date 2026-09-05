@@ -260,11 +260,28 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > of the cavalry rule moved France 2 → 19 and the measurement, not a reviewer,
 > caught it before it shipped.
 >
-> **▶ NEXT = the popup queue** (FA-5/30/N20/N67/N62/N99), the mock vocabulary
-> (FA-80/D20/D25/N8/N24/N9/N39/24/47/73) — both reproduced, reports under
-> `docs/audits/fa_build_2026_09_04/` — then FA-26 **as a shared helper across
-> all four trust-writing families** (FA-N1), then position 10. ⚠ **Still no
-> pillar re-score. ⚠ FA-D27 / FA-D28 await the user's ruling.**
+> **▶ SLICE 6 "THE POPUP QUEUE" IS LANDED — September 4, 2026.** Landing
+> record = the boxed SLICE 6 block in `BUG_FIXES.md` §Final Whole-Game Audit
+> (authoritative). FA-5/30/N20/N67/N62/N99 closed at ONE root: the response
+> builder drains the popup queue and the pop DESTROYS the entry, so a response
+> the client renders one route of — or no popup key of — ate whatever was
+> queued, and the end-turn response could never carry the petition at all.
+> Now ONE rule (`_result_carries_question`: a response that carries a question
+> never carries a popped popup), `_refusal_response` for the seven
+> no-popup-key endpoints, the cancel guard on the hard stop, `/load` keeping
+> the draft notices, and the petition riding the end-turn response under
+> `deferred_marshal_petition` (re-priced at delivery; stashed and raised by
+> the client from every control-return tail). 30 tests, 13/13 mutations, one
+> `.gd`. ⛔ **Three of the six filed fix shapes would have shipped a regression
+> or redded a pin** — the drain reads the QUESTION, not a flipped default; the
+> except arms keep the builder literal; the cancel pin staged a SOFT stop and
+> is flipped consciously (and had been leaking `game_state` across files).
+>
+> **▶ NEXT = the mock vocabulary** (FA-80/D20/D25/N8/N24/N9/N39/24/47/73 —
+> reproduced, `docs/audits/fa_build_2026_09_04/REPRO_F_the_mock_vocabulary.md`),
+> then FA-26 **as a shared helper across all four trust-writing families**
+> (FA-N1), then position 10. ⚠ **Still no pillar re-score. ⚠ FA-D27 / FA-D28
+> await the user's ruling.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

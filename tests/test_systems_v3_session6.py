@@ -440,10 +440,15 @@ class TestCancelOrderDialogueGuard:
             original_command="Hold Belgium",
         )
 
-        # Set dialogue state
+        # Set dialogue state.
+        # FA slice 6 (Sept 4, 2026, FA-N62): the guard reads the HARD stop the
+        # typed `cancel` reads — an `incoming_proposal` is a SOFT stop (a
+        # letter that lapses on its own) and no longer blocks the button, so
+        # the fixture stages the war-purpose question, which does.
         w.dialogue_manager.replace({
-            "type": "incoming_proposal",
-            "from_nation": "Prussia",
+            "type": "war_purpose_selection",
+            "nation": "Prussia",
+            "options": [{"action": "select_war_objective", "label": "Conquest"}],
         })
 
         # Inject world into main module
@@ -457,9 +462,14 @@ class TestCancelOrderDialogueGuard:
             resp = client.post("/cancel_order", json={"marshal": "Ney"})
             data = resp.json()
             assert data["success"] is False
-            assert "Talleyrand" in data["message"] or "diplomatic" in data["message"].lower()
+            assert "awaits your answer" in data["message"]
+            assert "war purpose" in data["message"]
         finally:
             main_mod.world = old_world
+            # (was never restored — the next file's TestClient then ran its
+            # commands against THIS world's executor while pushing dialogues
+            # onto the other; a run-order-dependent failure two files away)
+            main_mod.game_state = old_gs
             main_mod.game_state = old_gs
 
 

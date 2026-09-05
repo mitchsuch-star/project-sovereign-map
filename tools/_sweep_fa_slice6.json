@@ -1,0 +1,93 @@
+[
+ {
+  "id": "drain/a the drain reads the question",
+  "file": "backend/main.py",
+  "old": "    if drain_popups and POPUP_DRAIN_READS_THE_QUESTION and _result_carries_question(extra):\n        drain_popups = False",
+  "new": "    if False:\n        drain_popups = False",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestAQuestionNeverCarriesAPoppedPopup::test_a_clarification_leaves_the_queue_intact tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestAQuestionNeverCarriesAPoppedPopup::test_a_proposal_confirm_leaves_the_petition_queued"
+ },
+ {
+  "id": "drain/b a question STATE is a question",
+  "file": "backend/main.py",
+  "old": "    if result.get(\"state\") in _QUESTION_STATES:\n        return True\n    return any(result.get(key) for key in _QUESTION_KEYS)",
+  "new": "    if False:\n        return True\n    return any(result.get(key) for key in _QUESTION_KEYS)",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestAQuestionNeverCarriesAPoppedPopup::test_a_clarification_leaves_the_queue_intact"
+ },
+ {
+  "id": "drain/c a question KEY is a question",
+  "file": "backend/main.py",
+  "old": "    return any(result.get(key) for key in _QUESTION_KEYS)",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestAQuestionNeverCarriesAPoppedPopup::test_an_objection_leaves_the_queue_intact tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestAQuestionNeverCarriesAPoppedPopup::test_a_proposal_confirm_leaves_the_petition_queued"
+ },
+ {
+  "id": "refusal/a the refusal helper never drains",
+  "file": "backend/main.py",
+  "old": "        include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN, **extra)",
+  "new": "        include_popup_passthroughs=True, **extra)",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestARefusalNeverDrains::test_cancel_order_no_marshal tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestARefusalNeverDrains::test_redemption_none_pending"
+ },
+ {
+  "id": "refusal/b the cancel except arm never drains",
+  "file": "backend/main.py",
+  "old": "        print(f\"[ERROR] handling cancel_order: {e}\")\n        import traceback\n        traceback.print_exc()\n        _resp = build_base_response(\n            world, success=False, message=f\"Error: {str(e)}\", include_popup_passthroughs=not REFUSAL_ARMS_NEVER_DRAIN)",
+  "new": "        print(f\"[ERROR] handling cancel_order: {e}\")\n        import traceback\n        traceback.print_exc()\n        _resp = build_base_response(\n            world, success=False, message=f\"Error: {str(e)}\", include_popup_passthroughs=True)",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestARefusalNeverDrains::test_cancel_order_except_arm"
+ },
+ {
+  "id": "cancel/a the button reads the hard stop",
+  "file": "backend/main.py",
+  "old": "        _blocking = (world.dialogue_manager.is_hard_stop()\n                     if CANCEL_BUTTON_READS_THE_HARD_STOP",
+  "new": "        _blocking = (world.dialogue_manager.is_hard_stop()\n                     if False",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestTheCancelButtonReadsTheHardStop::test_a_soft_stop_no_longer_blocks_the_button"
+ },
+ {
+  "id": "cancel/b the stop is named",
+  "file": "backend/main.py",
+  "old": "    return (f\"A decision is before you, Sire — {kind} awaits your answer. \"\n            f\"Settle it before recalling orders.\")",
+  "new": "    return \"Talleyrand awaits your response to a diplomatic matter.\"",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestTheCancelButtonReadsTheHardStop::test_a_hard_stop_still_blocks_and_is_named"
+ },
+ {
+  "id": "load/a the load keeps the notices",
+  "file": "backend/main.py",
+  "old": "        response = build_base_response(world, message=result[\"message\"],\n                                       include_popup_passthroughs=False,\n                                       drain_draft_notices=not LOAD_KEEPS_THE_DRAFT_NOTICES)",
+  "new": "        response = build_base_response(world, message=result[\"message\"],\n                                       include_popup_passthroughs=False,\n                                       drain_draft_notices=True)",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestLoadKeepsTheDraftNotices::test_the_notice_survives_the_load_and_reaches_the_first_command"
+ },
+ {
+  "id": "load/b the builder honours the kwarg",
+  "file": "backend/main.py",
+  "old": "    if drain_draft_notices and callable(notice_drain):",
+  "new": "    if callable(notice_drain):",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestLoadKeepsTheDraftNotices::test_the_builder_kwarg_is_honoured"
+ },
+ {
+  "id": "petition/a the card rides the end turn",
+  "file": "backend/main.py",
+  "old": "    if PETITION_RIDES_THE_END_TURN:\n        try:\n            _petition = world._popup_queue.get(\"pending_marshal_petition\")",
+  "new": "    if False:\n        try:\n            _petition = world._popup_queue.get(\"pending_marshal_petition\")",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestThePetitionRidesTheEndTurn::test_the_end_turn_response_carries_the_card_under_its_own_key"
+ },
+ {
+  "id": "petition/b the slot is popped",
+  "file": "backend/main.py",
+  "old": "                world._popup_queue.clear_type(\"pending_marshal_petition\")",
+  "new": "                pass",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestThePetitionRidesTheEndTurn::test_the_end_turn_response_carries_the_card_under_its_own_key"
+ },
+ {
+  "id": "petition/c the card is priced at delivery",
+  "file": "backend/main.py",
+  "old": "                response[\"deferred_marshal_petition\"] = refresh_petition_affordability(\n                    dict(_petition), world)",
+  "new": "                response[\"deferred_marshal_petition\"] = dict(_petition)",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestThePetitionRidesTheEndTurn::test_the_card_is_priced_at_delivery"
+ },
+ {
+  "id": "gd/a the client stashes the card (a source-text pin kill by construction: the .gd seam cannot run here; the parse harness + boot smoke cover the file)",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition\n",
+  "new": "",
+  "tests": "tests/test_fa_slice6_the_popup_queue_2026_09_04.py::TestThePetitionRidesTheEndTurn::test_the_client_stashes_and_raises_the_card"
+ }
+]

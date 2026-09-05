@@ -306,6 +306,7 @@ var _current_decision_names: Array = []
 # end-turn battle rides the backend's `deferred_dialogue` key. Stashed on
 # arrival, raised at control return behind the report (the NA-6b discipline).
 var pending_deferred_dialogue = null
+var pending_petition_data = null  # FA slice 6 (FA-5): the end-turn petition, stashed
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
@@ -2226,6 +2227,8 @@ func _on_battle_diorama_dismissed():
 		return
 	if _show_pending_redemption():
 		return  # PT-B1
+	if _show_pending_petition():
+		return  # FA slice 6 (FA-5)
 	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
@@ -2293,6 +2296,8 @@ func _on_proclamation_dismissed():
 		return  # _on_mailbox_panel_closed re-enables input
 	if _show_pending_redemption():
 		return  # PT-B1: the redemption dialog's handler re-enables input
+	if _show_pending_petition():
+		return  # FA slice 6 (FA-5)
 	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
@@ -2318,6 +2323,8 @@ func _return_control_to_player() -> void:
 		return  # PT-B1: the redemption dialog's handler re-enables input
 	if _show_pending_deferred_dialogue():
 		return  # FA slice 3 review round: the popup's own handler re-enables input
+	if _show_pending_petition():
+		return  # FA slice 6 (FA-5): the petition dialog's own handlers re-enable input
 	if not interrupt_queue.is_empty():
 		# FA slice 3 review round (R2-F5): a follow-on popup (capture, charge,
 		# proposal confirm) used to return control without draining the
@@ -2339,6 +2346,30 @@ func _return_control_to_player() -> void:
 #
 # So it is STASHED on arrival and raised only where the player would
 # otherwise regain control, behind the Proclamation.
+func _stash_petition(response: Dictionary) -> void:
+	"""FA slice 6 (FA-5): the marshal petition riding an END-TURN response.
+	The backend defers every choice popup beside `enemy_phase` on purpose
+	(the route table would swallow the turn report), so the petition rides
+	`deferred_marshal_petition` and is raised from the shared control-return
+	tail once the report has been read — the NA-6b discipline."""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var petition = response.get("deferred_marshal_petition")
+	if petition is Dictionary and not petition.is_empty():
+		pending_petition_data = petition
+
+func _show_pending_petition() -> bool:
+	"""Raise a stashed petition on its own dialog. True when raised — the
+	dialog's answer / Later handlers then re-enable input."""
+	if pending_petition_data == null or marshal_petition_dialog == null:
+		return false
+	if _is_modal_dialog_open():
+		return false
+	var petition = pending_petition_data
+	pending_petition_data = null
+	marshal_petition_dialog.show_petition(petition)
+	return true
+
 func _stash_deferred_dialogue(response: Dictionary) -> void:
 	"""FA slice 3 review round (R2-F2): the war-purpose HARD STOP (or any hard
 	stop) staged by an END-TURN battle. The backend defers choice popups beside
@@ -2534,6 +2565,7 @@ func _on_command_result(response):
 		_stash_diorama(response)  # BD: same discipline — stash before routing
 		_stash_redemption(response)  # PT-B1: same discipline, same reason
 		_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline
+		_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry
@@ -5176,6 +5208,8 @@ func _process_next_interrupt():
 		# this flow — raise its stashed tableau now that control returns.
 		if _show_pending_diorama():
 			return  # _on_battle_diorama_dismissed re-enables input
+		if _show_pending_petition():
+			return  # FA slice 6 (FA-5): the petition dialog's own handlers re-enable input
 		set_input_enabled(true)
 		command_input.grab_focus()
 

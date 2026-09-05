@@ -4,6 +4,35 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 6 "THE POPUP QUEUE" IS LANDED — September 4, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 6 block (authoritative).** FA-5 (P1), FA-30, FA-N20, FA-N67, FA-N62,
+> FA-99 — one shape six times: the response builder drains the popup queue and
+> the pop DESTROYS the entry, so every response the client renders one route
+> of, or no popup key of, ate whatever was queued — the one-shot sabotage card
+> beside a clarification, a petition beside a proposal, fifteen refusal arms,
+> and the end-turn response that could never carry the petition (an
+> end-turn-only stretch starved every later petition and Fontainebleau).
+> Built as ONE rule — a response may carry a popped popup only when its
+> callback runs the route table AND it carries no question of its own
+> (`_result_carries_question` in `_build_result_response`), `_refusal_response`
+> for the no-popup-key endpoints (22 sites), the cancel guard on the hard stop
+> the typed cancel reads, `/load` keeping the draft notices, and the petition
+> riding the end-turn response under `deferred_marshal_petition`, re-priced at
+> delivery and stashed-and-raised by the client from every control-return
+> tail. Tests (30), sweep **13/13 killed, 0 inert on the first pass**, corpus
+> 589/589, ONE `.gd` (parse harness EXIT=0, boot 0 SCRIPT ERROR), series +
+> M1–M7 byte-identical structurally. Three filed fix shapes NOT taken (each
+> would have shipped a regression or redded a pin); two pins flipped or
+> repaired consciously — one of them was making a PAID Anthropic call per test.
+>
+> **▶ NEXT = the mock vocabulary** (FA-80/D20/D25/N8/N24/N9/N39/24/47/73 —
+> reproduced, `docs/audits/fa_build_2026_09_04/REPRO_F_the_mock_vocabulary.md`),
+> then FA-26 as a shared helper across four trust-writing families (FA-N1),
+> then position 10. ⚠ Still no pillar re-score. ⚠ **FA-D27 (balance) and
+> FA-D28 (the garrison formula) await the user's ruling.**
+
 > # ✅ THE AUDIT BUILD: THE SLICE 4 REVIEW ROUND "THE BOARD READS BACK" IS LANDED — September 4, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
