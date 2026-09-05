@@ -738,7 +738,7 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters — the bare keys work whenever you are not typing[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
 		add_output("")
 		_add_separator()
 
@@ -949,7 +949,12 @@ func _alt_game_key(keycode: int) -> bool:
 					and not end_turn_button.disabled):
 				_execute_end_turn()
 			return true
-		KEY_TAB:
+		KEY_TAB, KEY_QUOTELEFT:
+			# Alt+Tab is the OS window switcher on Windows and never reaches
+			# the game, so the terminal's real focus-safe form is Alt+` —
+			# which is what the README and the boot help advertise. Alt+Tab
+			# is kept because it costs nothing and works on a platform where
+			# the window manager lets it through.
 			if not _is_modal_dialog_open() and not _is_screen_open():
 				_toggle_terminal()
 			return true
@@ -979,9 +984,16 @@ func _alt_game_key(keycode: int) -> bool:
 
 
 func _map_keys_live() -> bool:
-	"""The map keys' own gate — the same one their unfocused twin obeys
-	(`_unhandled_input` returns above them when a screen is open), plus the
-	map actually existing."""
+	"""The map keys' own gate.
+
+	NOT "the same one their unfocused twin obeys" — the slice-12 review
+	round caught that claim. Their unfocused twin is not in this file at
+	all; it lives in `map_renderer_base.gd::_unhandled_input`, whose only
+	gates are `text_focused` and `panning_enabled`. So the bare keys work
+	under an open modal and these deliberately do not: a key pressed into
+	a command line the player is typing in, while a dialog awaits an
+	answer, is not a map command. Stated as a divergence rather than
+	mis-described as a mirror."""
 	return (map_area != null and not _is_modal_dialog_open()
 			and not _is_screen_open())
 

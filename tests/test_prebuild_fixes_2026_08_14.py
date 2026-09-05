@@ -253,16 +253,25 @@ class TestReadmeTesterCurrent:
         # beside each bare key, because the bare key is dead in the
         # state the client puts itself in. The mapping is what this
         # test was ever about, so it asserts the mapping.
+        # The slice-12 review round measured the first amendment to be
+        # WEAKER than the exact-column pin it replaced: it asserted the
+        # keys and the screens existed SOMEWHERE, so a README that
+        # swapped two mappings stayed green. It pins the MAPPING now —
+        # the key, its Alt form, and the screen on the same line.
         text = self._text()
-        assert "Morning Dispatch" in text
-        assert "Diplomatic Ledger" in text
-        assert "Le Moniteur" in text
         for key, screen in (("R", "Morning Dispatch"),
                             ("D", "Diplomatic Ledger"),
-                            ("N", "Le Moniteur")):
-            assert ("%s / Alt+%s" % (key, key)) in text, (
-                "%s must be advertised in its focus-safe form too "
-                "(%s)" % (key, screen))
+                            ("N", "Le Moniteur"),
+                            ("T", "Strategic Ledger"),
+                            ("G", "Generals"),
+                            ("L", "Campaign Log")):
+            row = "%s / Alt+%s" % (key, key)
+            line = next((ln for ln in text.splitlines()
+                         if ln.strip().startswith(row)), None)
+            assert line is not None, (
+                "%s must be advertised in its focus-safe form" % key)
+            assert screen in line, (
+                "%s must still name %s, not %r" % (key, screen, line))
 
     def test_appdata_saves_documented(self):
         assert r"%APPDATA%\InkAndIron\saves" in self._text()

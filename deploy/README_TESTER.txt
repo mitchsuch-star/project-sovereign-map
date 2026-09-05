@@ -89,7 +89,9 @@ HOTKEYS:
   L / Alt+L — Campaign Log (history of events)
   N / Alt+N — Le Moniteur (the gazette — the press writes your war)
   E / Alt+E — End Turn
-  Tab       — Collapse/restore the terminal (Alt+Tab while typing)
+  Tab / Alt+` — Collapse/restore the terminal (Alt+Tab is the
+              Windows window switcher and never reaches the game,
+              so the backtick is the form that works while typing)
   Esc       — Pause menu (save, load, settings). While typing, the
               first Esc leaves the command line and the second
               opens the menu.

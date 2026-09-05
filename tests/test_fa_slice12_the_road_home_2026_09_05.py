@@ -179,6 +179,20 @@ class TestTheTreatyClaimsNoFirstStep:
         assert mack.location == "Lorraine", (
             "measured identical before and after the fix")
 
+    def test_the_ai_mirror_is_unchanged_with_the_lever_down_too(
+            self, live, no_interrupts, monkeypatch):
+        """The second arm of the identity, added by the slice-12 review
+        round: an identity claim guarded by a ONE-arm pin proves the AI
+        walks, not that the fix left it alone. Both arms must agree."""
+        monkeypatch.setattr(W, "THE_TREATY_CLAIMS_NO_FIRST_STEP", False)
+        mack = live.world.marshals["Mack"]
+        mack.location = "Orleanais"
+        _peace_with_austria(live.world)
+        assert mack.strategic_order.issued_turn == live.world.current_turn
+        live.end_turn()
+        assert mack.location == "Lorraine", (
+            "the AI's rung never read the stamp; both arms must agree")
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # FA-33 rider — a corps frozen on the game's own question is not loitering
@@ -202,37 +216,86 @@ class TestAStandingQuestionIsNotLoitering:
             "the clock must not run on the game's own silence")
         assert davout.pending_interrupt is not None
 
-    def test_the_grant_window_does_not_widen_under_grace(self, live):
-        """Bounded in the only sense that matters: expiry and current_turn
-        gain one together, so the surplus a marching corps carries is
-        preserved rather than spent, and the window never grows."""
-        _peace_with_austria(live.world)
-        offsets = []
-        for _ in range(6):
-            live.end_turn()
-            grants = dict(getattr(live.world, "evacuation_grants", {}) or {})
+    def test_the_mercy_is_marshal_scoped_and_the_corridor_still_closes(
+            self, world):
+        """The slice-12 review round's headline, and the pin that replaces a
+        wrong one.
+
+        The first cut routed this through `_is_immobile`, which adds the
+        marshal's NATION to `grace_nations` and refreshes the whole corridor.
+        Measured: two corps stranded, ONE frozen on a question and the other
+        simply refusing to march — the refuser was never interned, his
+        warning read the identical "2 turn(s) left" fourteen turns running,
+        and the corridor's expiry walked 10 -> 23 and never closed. Since
+        `has_evacuation_grant` gates the transit arm on
+        `can_enter_territory`, that is a permanent right of passage bought
+        with one unanswered modal.
+
+        The pin it replaced asserted `expiry - current_turn` was constant,
+        which measured the offset and not the calendar — it was green about
+        the defect.
+        """
+        davout = _peace_with_austria(world)
+        ney = world.marshals["Ney"]
+        ney.location = davout.location
+        for m in (davout, ney):
+            m.strategic_order = None
+            m.road_home_offered = True        # both decline the road
+        davout.pending_interrupt = {"interrupt_type": "cannon_fire",
+                                    "marshal": "Davout"}
+        offsets, interned = [], []
+        for _ in range(14):
+            world.current_turn += 1
+            with contextlib.redirect_stdout(io.StringIO()):
+                for ev in W.process_evacuation_grants(world):
+                    if ev.get("type") == "marshal_interned":
+                        interned.append(ev.get("marshal"))
+            grants = dict(getattr(world, "evacuation_grants", {}) or {})
             if "Austria|France" in grants:
-                offsets.append(grants["Austria|France"]
-                               - live.world.current_turn)
-        assert len(set(offsets)) == 1, f"the window widened: {offsets}"
+                offsets.append(grants["Austria|France"] - world.current_turn)
+        assert "Ney" in interned, (
+            "a corps that CAN march and does not must still run out of road")
+        assert "Davout" not in interned, (
+            "and the one the game is waiting on must not")
+        assert offsets == sorted(offsets, reverse=True), (
+            f"the deadline must keep counting down: {offsets}")
+        assert not W.has_evacuation_grant(world, "France", "Austria"), (
+            "the corridor closes; one unanswered modal cannot buy permanent "
+            "transit")
 
     def test_a_standalone_decision_counts_too(self, world):
         """`last_stand` and `muster_confirm` stop the march exactly as an
         order-bound ask does — the predicate is the whole set, not just
-        `ORDER_BOUND_INTERRUPT_TYPES`."""
+        `ORDER_BOUND_INTERRUPT_TYPES`. It is deliberately NOT `_is_immobile`:
+        that one refreshes the whole nation's corridor."""
         davout = world.marshals["Davout"]
         davout.pending_interrupt = {"interrupt_type": "last_stand"}
-        assert W._is_immobile(davout) is True
+        assert W._awaiting_the_players_word(davout) is True
+        assert W._is_immobile(davout) is False, (
+            "a question is marshal-scoped mercy, not a corridor refresh")
         davout.pending_interrupt = {"interrupt_type": "cannon_fire"}
-        assert W._is_immobile(davout) is True
+        assert W._awaiting_the_players_word(davout) is True
         davout.pending_interrupt = {"interrupt_type": "not_a_real_type"}
-        assert W._is_immobile(davout) is False
+        assert W._awaiting_the_players_word(davout) is False
 
     def test_the_lever_down_removes_the_grace(self, world, monkeypatch):
+        """With the lever down the frozen corps is judged like anybody else
+        — which is the pre-slice behaviour, and interns him for the game's
+        own silence."""
         monkeypatch.setattr(W, "A_STANDING_QUESTION_IS_NOT_LOITERING", False)
-        davout = world.marshals["Davout"]
-        davout.pending_interrupt = {"interrupt_type": "cannon_fire"}
-        assert W._is_immobile(davout) is False
+        davout = _peace_with_austria(world)
+        davout.strategic_order = None
+        davout.road_home_offered = True
+        davout.pending_interrupt = {"interrupt_type": "cannon_fire",
+                                    "marshal": "Davout"}
+        interned = []
+        for _ in range(9):
+            world.current_turn += 1
+            with contextlib.redirect_stdout(io.StringIO()):
+                for ev in W.process_evacuation_grants(world):
+                    if ev.get("type") == "marshal_interned":
+                        interned.append(ev.get("marshal"))
+        assert "Davout" in interned
 
     def test_a_routed_corps_keeps_its_own_grace(self, world):
         """The pre-slice arm is untouched."""
@@ -338,6 +401,71 @@ class TestTheOfferStandsWhileHeIsStranded:
                 return
         pytest.fail("the fixture must produce an offer and a warning in one "
                     "tick, or this pin is vacuous")
+
+    def test_the_beat_is_told_from_the_players_side_of_the_table(self, world):
+        """Slice-12 review round. The fog arm for `evacuation_granted` admits
+        any SIGNATORY — right for the treaty's own beat, which both courts
+        signed, and wrong for a per-corps bulletin published every turn.
+
+        Measured before the fix: France read *"Berthier has put ArchdukeJohn
+        on the road home to Bohemia"* about an Austrian corps it could not
+        see, naming his province AND his destination, in France's own chief
+        of staff's voice, with the campaign log rendering it "under the peace
+        with France".
+        """
+        davout = _peace_with_austria(world)
+        assert davout is not None
+        before = len([e for e in world.event_log
+                      if e.get("type") == "evacuation_granted"])
+        offer = {"marshal": "ArchdukeJohn", "nation": "Austria",
+                 "from": "Tyrol", "to": "Bohemia"}
+        assert W._offer_event(world, offer, "France", 7) is None, (
+            "a counterparty top-up is not France's news")
+        assert len([e for e in world.event_log
+                    if e.get("type") == "evacuation_granted"]) == before, (
+            "and it is not written to the log either")
+        mine = {"marshal": "Davout", "nation": "France",
+                "from": "Vienna", "to": "Franche-Comte"}
+        assert W._offer_event(world, mine, "Austria", 7) is not None
+
+    def test_a_rout_is_not_a_refusal(self, world):
+        """Slice-12 review round, and it is my own argument turned against
+        me. The latch is keyed on ISSUANCE precisely so it covers every way
+        the order can be let go — but three engine sites null a
+        `strategic_order` with no player anywhere near it (the encircled
+        retreat, the forced retreat, the shattered army). Measured before the
+        fix: a corps whose road home was cancelled by a forced retreat was
+        never re-offered one, and was interned having refused nothing.
+        """
+        davout = _peace_with_austria(world)
+        davout.strategic_order = None
+        assert davout.road_home_offered is True
+        davout.retreating = True                 # the enemy did this, not the
+        with contextlib.redirect_stdout(io.StringIO()):   # Emperor
+            W.offer_road_home(world, "France")
+        assert W.is_road_home_order(davout.strategic_order), (
+            "a latch that cannot tell a refusal from a rout punishes the "
+            "wrong thing")
+
+        # ...and the shattered arm, which clears `retreating` and sets
+        # `broken` instead.
+        davout.retreating = False
+        davout.broken = True
+        davout.strategic_order = None
+        davout.road_home_offered = True
+        with contextlib.redirect_stdout(io.StringIO()):
+            W.offer_road_home(world, "France")
+        assert W.is_road_home_order(davout.strategic_order)
+
+    def test_a_refusal_by_a_standing_corps_is_still_honoured(self, world):
+        """The negative control for the arm above: an unhurt corps who let
+        the road go is still not chased."""
+        davout = _peace_with_austria(world)
+        davout.strategic_order = None
+        assert not davout.retreating and not davout.broken
+        with contextlib.redirect_stdout(io.StringIO()):
+            W.offer_road_home(world, "France")
+        assert davout.strategic_order is None
 
     def test_the_beat_reads_honestly_in_the_campaign_log(self, live,
                                                          no_interrupts):
@@ -446,6 +574,52 @@ class TestTheRefusalIsRemembered:
         assert W.is_road_home_order(davout.strategic_order), (
             "whatever he did with the last road, this one is not it")
 
+    def test_a_second_concurrent_treaty_does_not_defeat_the_refusal(
+            self, world):
+        """Found by attacking this slice's own fix, before a reviewer did.
+
+        The first cut cleared the flag for EVERY marshal of both signatories
+        whenever any corridor opened. Measured: Davout declines the Austrian
+        road, the tick correctly leaves him alone, then France makes peace
+        with Russia — an unrelated treaty, on the other side of Europe — and
+        the Russian opener wipes the record for every French marshal, so the
+        next tick hands Davout back the road he refused. His situation had
+        not changed; only somebody else's treaty had.
+
+        The rule now: the record lapses with the treaty that made the offer,
+        so it clears when a nation goes from NO passage to some, never when
+        it merely gains a second.
+        """
+        davout = _peace_with_austria(world)
+        assert davout.road_home_offered is True
+        davout.strategic_order = None            # the refusal
+        with contextlib.redirect_stdout(io.StringIO()):
+            W.process_evacuation_grants(world)
+        assert davout.strategic_order is None
+
+        world.marshals["Ney"].location = "Podolia"
+        with contextlib.redirect_stdout(io.StringIO()):
+            set_diplomatic_state(world, "France", "Russia", "PEACE", "test")
+        assert len(world.evacuation_grants) == 2, world.evacuation_grants
+        assert davout.road_home_offered is True, (
+            "a second treaty is not a second offer to a corps who declined "
+            "the first")
+        assert davout.strategic_order is None
+        with contextlib.redirect_stdout(io.StringIO()):
+            W.process_evacuation_grants(world)
+        assert davout.strategic_order is None
+
+    def test_a_corps_holding_the_road_is_recorded_as_offered(self, world):
+        """The other half of the same defect: the `already marching there`
+        guard returns without touching the marshal, so a corps who reached
+        that guard with a cleared flag would have his NEXT cancel silently
+        overruled."""
+        davout = _peace_with_austria(world)
+        davout.road_home_offered = False         # simulate the cleared state
+        with contextlib.redirect_stdout(io.StringIO()):
+            W.offer_road_home(world, "France")
+        assert davout.road_home_offered is True
+
     def test_arriving_home_clears_the_memory(self, live, no_interrupts):
         davout = _peace_with_austria(live.world)
         for _ in range(6):
@@ -513,8 +687,9 @@ class TestTheGuardsAreShared:
         assert ney.strategic_order is None
 
     def test_a_cut_off_corps_is_still_refused_honestly(self, world):
-        """No road is invented for a corps with none — §5, gate Q4."""
-        """The corridor's own file stages this with the Ionian Islands: an
+        """No road is invented for a corps with none — §5, gate Q4.
+
+        The corridor's own file stages this with the Ionian Islands: an
         island of soil with no land route home at all. Volhynia will NOT do —
         `distance_home` routes WITH the corridor by design, so the grant
         itself opens a road out of it.

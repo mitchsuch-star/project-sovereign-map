@@ -953,12 +953,18 @@ def record_vassal_break(
         NotificationPriority as _NP,
         VASSAL_REBELLION as _VR_CONST,
     )
+    # PC-9: the collector dedupes on (type, headline, SUBJECT), and
+    # `_SUBJECT_KEYS` reads `details`. Without it the subject is empty,
+    # so two satellites breaking free in one turn collapse into one row
+    # and no consumer can read which court it is about. Slice-12 review.
     world.notifications.add(_cr_notif(
         _VR_CONST,
         _NP.HIGH,
         f"{vassal} breaks free",
         _SOFT_BREAK_BODY[exit_path].format(vassal=vassal, lord=lord),
         int(getattr(world, "current_turn", 0)),
+        details={"vassal": vassal, "lord": lord,
+                 "exit": exit_path},
     ))
 
 

@@ -39,6 +39,68 @@
 > a verification VERDICT, not a status, because those rows are design
 > questions rather than defects. They are counted separately for that reason.
 
+> # ✅ THE AUDIT BUILD: THE SLICES 12 + 13 REVIEW ROUND IS LANDED — September 5, 2026
+>
+> **Landing record = the boxed SLICES 12 + 13 REVIEW ROUND block in
+> `docs/BUG_FIXES.md`; the three lens reports are committed verbatim under
+> `docs/audits/fa_build_2026_09_04/`.** Three lenses × two refuters per
+> finding at `43691f14` — **53 agents, 0 errors**, 20 findings, and of 50
+> refuter verdicts only **four** killed anything. Nine fixes, six record
+> corrections. Sweeps re-run and extended: **33/33** and **24/24**, 0 INERT,
+> 0 BROKEN.
+>
+> **A P1 inside my own fix, and my own comment is what hid it.** Slice 12's
+> grace rider — "a corps frozen on the game's own question is not loitering" —
+> was routed through `_is_immobile`, which refreshes the whole NATION's
+> corridor. Measured: two corps stranded, one frozen and one simply refusing
+> to march; **the refuser was never interned**, his warning repeated the
+> identical *"2 turn(s) left"* **fourteen turns running**, and the corridor's
+> expiry walked 10 → 23 and never closed — which, because
+> `has_evacuation_grant` gates `can_enter_territory`, is a permanent right of
+> transit bought with one unanswered modal. Reachable without trying: an
+> unattended run had Bernadotte pick up an organic `cannon_fire` ask at t4 and
+> hold the corridor open alone for nine turns. The mercy is marshal-scoped now.
+>
+> My comment said the grace was *"bounded in the only sense that matters:
+> `expiry − current_turn` is CONSTANT"*. That measures the offset and not the
+> calendar. **The pin beside it asserted exactly that constant, so it was
+> green about the defect** — replaced by one that asserts the corridor closes.
+>
+> **Two more P2s inside the slices.** The mid-treaty beat had no side filter,
+> so France read *"Berthier has put ArchdukeJohn on the road home to Bohemia"*
+> about an Austrian corps it could not see — his province, his destination,
+> France's own chief of staff's voice, and a log line reading "under the peace
+> with France". And the refusal latch could not tell a refusal from a rout:
+> three combat sites null a `strategic_order` with no player near it, and a
+> corps whose road home was cancelled by a forced retreat was never re-offered
+> one and was **interned having refused nothing** — my own "keyed on issuance
+> so it covers every way the order can be let go" turned against me.
+>
+> **I found the Alt+Tab defect myself before the lenses reported**: Windows
+> takes Alt+Tab before any application sees it, so slice 13's own README
+> rewrite had shipped a fresh dead instruction in the slice whose thesis is
+> that advertised keys must work. Rebound to Alt+`. (A third lens filed
+> **AltGr = Ctrl+Alt** as a P2; a refuter killed it — "right about Windows and
+> wrong about Godot, and it never checked Godot".)
+>
+> **Also corrected:** an amended pin was measurably WEAKER than the one it
+> replaced while its own comment claimed the opposite; there are THREE credit
+> surfaces and the third is the one FA-N84's mechanism names; `SYSTEMS_REFERENCE`
+> §34 stated the defective scope as the design rule; the `.get("marshals",
+> [""])[0]` footgun; the tray alert's empty dedupe subject; a one-arm GR5 pin;
+> and a dead expression statement standing in for a docstring.
+>
+> **⛔ And the sweep rewrites real source files, so a crashed sweep leaves the
+> tree mutated.** One run died on an OSError mid-restore and left `if False:`
+> in `withdrawal.py`; a test going red minutes later was the only thing that
+> caught it. Check `git diff` after every sweep. The tool's baseline guard did
+> its job twice in this round, once refusing to run on a wrong class name in
+> my own sweep spec.
+>
+> **NEXT = slice 14 "The Rulings and the Singles"**, then 15 → 16, then
+> position 10. ⚠ Still no pillar re-score. ⚠ FA-D27 / FA-D28 / FA-S9-D1 /
+> FA-S9-D2 await the user's ruling.
+
 > # ✅ THE AUDIT BUILD: SLICE 13 "SHIPPING" IS LANDED — September 5, 2026
 >
 > **Landing record = the boxed SLICE 13 block in `docs/BUG_FIXES.md`.** The

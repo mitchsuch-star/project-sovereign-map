@@ -4261,18 +4261,28 @@ corps the peace turn, which spent one of the three slack turns §6 promises,
 and — because a marching corps' surplus is constant by design — put him at
 the warning margin for every turn of an optimal march.
 
-**2. A corps frozen on the game's own question is not loitering**
-(`A_STANDING_QUESTION_IS_NOT_LOITERING`). The skip above `continue`d before
-`_check_interrupts`, so removing it un-shields the issuance turn from the
-cannon-fire ask. `_is_immobile` therefore grants a marshal awaiting the
-player's word the same grace it grants one recovering from a rout — for the
-WHOLE interrupt set, order-bound and standalone alike, since a cornered
-marshal awaiting "fight or break out" cannot march home either. The grant is
-bumped by one per grace turn, so `expiry − current_turn` is CONSTANT: the
-window never widens and the surplus is preserved rather than spent on the
-game's own silence. **Do not clamp the bump to `EVACUATION_MAX_TURNS`** —
-`duration` may legitimately exceed 12 for a trans-continental march, and the
-clamp shortens that corridor. (Written, measured, removed.)
+**2. A corps frozen on the game's own question is not loitering — and
+that mercy is MARSHAL-scoped** (`A_STANDING_QUESTION_IS_NOT_LOITERING`). The
+skip above `continue`d before `_check_interrupts`, so removing it un-shields
+the issuance turn from the cannon-fire ask. A marshal awaiting the player's
+word is therefore not judged — not warned, not interned — for the WHOLE
+interrupt set, order-bound and standalone alike, since a cornered marshal
+awaiting "fight or break out" cannot march home either.
+
+**The scope is the rule, and the first cut got it wrong.** Routing this
+through `_is_immobile` adds the marshal's NATION to `grace_nations` and
+refreshes the whole corridor. Measured by the slice-12 review round: two
+corps stranded, one frozen on a question and the other simply refusing to
+march — the refuser was never interned, his warning read the identical
+"2 turn(s) left" fourteen turns running, the corridor's expiry walked 10 → 23
+and never closed, and since `has_evacuation_grant` gates the transit arm on
+`can_enter_territory`, one unanswered modal bought permanent right of passage.
+It was not exotic: an unattended 12-turn run picked up an organic
+`cannon_fire` ask at t4 and held the corridor open for nine turns. A ROUT
+still refreshes the whole corridor — that is pre-slice and bounded at 0–3
+stages. **Do not clamp the rout bump to `EVACUATION_MAX_TURNS`** — `duration`
+may legitimately exceed 12 for a trans-continental march, and the clamp
+shortens that corridor. (Written, measured, removed.)
 
 **3. The offer stands while he is stranded**
 (`THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED`). Issuance ran once, at the
@@ -4291,9 +4301,19 @@ at many seams a player answer reaches — the typed cancel and
 alone clears an order at five places, and the stalemate and cannon-fire
 answers at more. A guard keyed on CANCELLATION would have been fixed only at
 the seams somebody enumerated; keyed on ISSUANCE it covers every way the
-order can be let go. Cleared when a new corridor opens for his nation (a new
-treaty is a new offer) and when he reaches home. The refusal keeps its
-consequence: a corps who declines the road is still warned 2/1/0 and interned.
+order can be let go. The refusal keeps its consequence: a corps who declines
+the road is still warned 2/1/0 and interned.
+
+**It is cleared in three places, and each answers a different question.**
+(a) When he reaches home — the offer is spent. (b) When a corridor opens for
+a nation that had NO passage standing: a genuinely new treaty is a new offer,
+but a SECOND concurrent one is not (the first cut cleared the whole nation
+unconditionally, and an unrelated peace on the other side of Europe handed a
+corps back the road he had refused). (c) When the ENEMY took the order rather
+than the Emperor — `_the_enemy_took_his_order`, reading `retreating` or
+`broken`, because three `combat_executor` sites null a `strategic_order` with
+no player anywhere near it and a latch that cannot tell a refusal from a rout
+interns a corps that refused nothing.
 
 **Rejected, with the measurement:** converting a cancelled road-home order
 into a HOLD (so the existing "the player's own order stands" guard would skip
@@ -4301,9 +4321,19 @@ him) makes a *cautious* marshal auto-fortify on the soil of the power we have
 just made peace with, every turn, and puts an *aggressive* one on the sally
 arm — an order the player did not give.
 
-**The mid-treaty beat.** A road handed out mid-treaty rides the existing
-`evacuation_granted` event type with one extra key, `mid_treaty`, which three
-renderers branch on: `campaign_log.format_event_oneliner` (or it re-announces
+**The mid-treaty beat is told from the PLAYER's side of the table.**
+`_offer_event` returns None for a counterparty corps, and that gate is not
+optional: the fog arm for `evacuation_granted` admits any SIGNATORY, which is
+right for the treaty's own beat (both courts signed it) and wrong for a
+per-corps bulletin published every turn. Measured without it, France read
+*"Berthier has put ArchdukeJohn on the road home to Bohemia"* about an
+Austrian corps it could not see — his province, his destination, France's own
+chief of staff's voice, and a campaign-log line reading "under the peace with
+France". `_grant_message`, the producer beside it, carries a docstring
+paragraph about exactly this, written after an early draft counted both sides.
+
+It rides the existing `evacuation_granted` event type with one extra key,
+`mid_treaty`, which three renderers branch on: `campaign_log.format_event_oneliner` (or it re-announces
 a peace signed turns ago), the `dispatch.py` road-home identity (per-corps,
 so two stranded corps are two pieces of news), and the headline class
 `road_home_mid_treaty` (or it opens "the war with Austria is over" three
@@ -4361,17 +4391,32 @@ itself in.** The command line holds focus after nearly every action (it is
 re-grabbed at 35 sites) and a focused `LineEdit` eats printable keys before
 `_unhandled_input` sees them. So every advertised key has an Alt form:
 `_SCREEN_HOTKEYS` (PC15-18) for the six screens, and `main.gd::_alt_game_key`
-for E, Tab, M, Home and +/−. **Each arm mirrors the gate its unfocused twin
-obeys** — bare E and Tab sit BELOW `_unhandled_input`'s `if _is_screen_open():
-return`, so their Alt arms check `_is_screen_open()` too, or Alt+E ends the
-turn with a full-screen ledger open where bare E refuses. **The map keys are
-CALLED, never re-emitted**: a re-emitted event lands on the same
-`text_focused` guard in `map_renderer_base._unhandled_input`, so the focused
-route goes through the public `recenter_view()` / `zoom_step()` /
-`cycle_map_fill_mode()`. The Alt arm consumes the event whether or not the
-gate allows the action, so Alt+E never types an "e". The README and the boot
-help advertise the Alt form beside the bare one — before this the README
-named "Alt" zero times.
+for E, Tab, M, Home and +/−.
+
+**Alt+Tab is the exception, and it is why the terminal's real focus-safe key
+is Alt+`.** The Windows shell takes Alt+Tab before any application sees it,
+and Windows is the only shipped target — so advertising it would have been a
+fresh dead instruction in the slice whose whole thesis is that the keys the
+game advertises must work. `KEY_TAB` is kept in the arm because it costs
+nothing on a platform whose window manager lets it through; `KEY_QUOTELEFT`
+is the one the README and the boot help teach.
+
+**The E and Tab arms mirror the gate their unfocused twin obeys** — bare E
+and Tab sit BELOW `_unhandled_input`'s `if _is_screen_open(): return`, so
+their Alt arms check `_is_screen_open()` too, or Alt+E ends the turn with a
+full-screen ledger open where bare E refuses. **The four MAP arms deliberately
+DIVERGE from theirs**, and `_map_keys_live()` says so: the bare map keys live
+in `map_renderer_base.gd::_unhandled_input`, whose only gates are
+`text_focused` and `panning_enabled`, so they work under an open modal and
+the Alt arms do not — a key pressed into a command line the player is typing
+in, while a dialog awaits an answer, is not a map command.
+
+**The map keys are CALLED, never re-emitted**: a re-emitted event lands on
+the same `text_focused` guard, so the focused route goes through the public
+`recenter_view()` / `zoom_step()` / `cycle_map_fill_mode()`. The Alt arm
+consumes the event whether or not the gate allows the action, so Alt+E never
+types an "e". The README and the boot help advertise the Alt form beside the
+bare one — before this the README named "Alt" zero times.
 
 **4. The School of War does not touch the campaign autosave.**
 `save_manager.autosave` no-ops for `scenario_name == "tutorial"` (TUT-F2) and

@@ -370,6 +370,31 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > refuted, or re-homed). The 82 are spoken for by slices 14 → 15 → 16;
 > the 28 need rulings, not builds.
 >
+> **▶ THE SLICES 12 + 13 REVIEW ROUND IS LANDED — September 5, 2026**
+> (landing record = the boxed block in `BUG_FIXES.md`; the three lens reports
+> are committed under `docs/audits/fa_build_2026_09_04/`). 53 agents, 0
+> errors; of 50 refuter verdicts only FOUR killed anything. **A P1 inside my
+> own fix, hidden by my own comment**: slice 12's grace rider was routed
+> through `_is_immobile`, which refreshes the whole NATION's corridor — so
+> one unanswered modal froze the deadline for every stranded corps of both
+> signatories, the refuser who COULD march was never interned, his warning
+> repeated "2 turn(s) left" fourteen turns running, and since
+> `has_evacuation_grant` gates `can_enter_territory` it bought permanent
+> transit. My comment ("bounded in the only sense that matters:
+> `expiry − current_turn` is CONSTANT") measured the offset and not the
+> calendar, and the pin written from it was GREEN ABOUT THE DEFECT. Two more
+> P2s inside the slices: the mid-treaty beat had no side filter (France read
+> where an unseen Austrian corps stood and was going, in Berthier's voice),
+> and the refusal latch could not tell a refusal from a ROUT — three combat
+> sites null an order with no player near it, so a corps forced to retreat was
+> interned having refused nothing, my own "keyed on issuance covers every way
+> the order can be let go" turned against me. I found the Alt+Tab defect
+> myself first (Windows eats it; slice 13's README had shipped a fresh dead
+> instruction). ⛔ **A crashed mutation sweep leaves the tree MUTATED** — one
+> run died mid-restore and left `if False:` in `withdrawal.py`; a red test
+> minutes later was the only thing that caught it. `git diff` after every
+> sweep.
+>
 > **▶ SLICE 13 "SHIPPING" IS LANDED — September 5, 2026** (landing record =
 > the boxed SLICE 13 block in `BUG_FIXES.md`). The five ROADMAP position-10
 > blockers: FA-29, FA-43, FA-N84, FA-N56, FA-57. The build told a tester to

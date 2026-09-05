@@ -574,11 +574,22 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
         else:
             grants.pop(key, None)
 
-    # FA-N61: a NEW treaty is a NEW offer.  Whatever a corps did with the
-    # last one, the road it is handed here is not the road it declined.
-    for marshal in world.marshals.values():
-        if marshal.nation in (nation_a, nation_b):
-            marshal.road_home_offered = False
+    # FA-N61: a NEW treaty is a NEW offer — but only for a nation that had
+    # NO passage standing at all.
+    #
+    # The first cut cleared every marshal of both signatories unconditionally,
+    # and that was wrong in a way I found by attacking my own fix: a SECOND,
+    # unrelated peace defeated the first one's refusal.  Measured — Davout
+    # declines the Austrian road, the tick correctly leaves him alone, then
+    # France makes peace with Russia and he is handed the Austrian road again,
+    # because the Russian corridor's opener wiped the record for every French
+    # marshal.  His situation had not changed; only somebody else's treaty had.
+    for nation in (nation_a, nation_b):
+        if _nation_has_standing_grant(world, nation, exclude=key):
+            continue
+        for marshal in world.marshals.values():
+            if marshal.nation == nation:
+                marshal.road_home_offered = False
 
     issued = _issue_road_home_orders(world, nation_a, nation_b)
 
@@ -671,6 +682,47 @@ def is_road_home_order(order) -> bool:
         ROAD_HOME_COMMAND
 
 
+def _the_enemy_took_his_order(marshal) -> bool:
+    """Was this corps' order destroyed by a BATTLE rather than by the Emperor?
+
+    Slice-12 review round, and it is the answer to my own argument turned
+    against me.  `road_home_offered` is keyed on ISSUANCE precisely so it
+    covers every way the order can be let go — but three engine sites null a
+    `strategic_order` with no player anywhere near it: the encircled retreat,
+    the forced retreat, and the shattered army (`combat_executor`, each one
+    followed by `clear_order_bound_interrupt`).  Measured: a corps whose road
+    home was cancelled by a forced retreat was never re-offered one and was
+    interned, having refused nothing.  A latch that cannot tell a refusal
+    from a rout is a latch that punishes the wrong thing.
+
+    The two retreat sites leave `retreating` True; the shattered site clears
+    it and sets `broken`.  Both are cleared by the ordinary recovery tick, so
+    the release is self-limiting and needs no new field and no edit at the
+    three seams — which matters, because "fix it at the seams somebody
+    thought to name" is the failure this whole latch exists to avoid.
+    """
+    return (bool(getattr(marshal, "retreating", False))
+            or bool(getattr(marshal, "broken", False)))
+
+
+def _nation_has_standing_grant(world, nation: str,
+                               exclude: Optional[str] = None) -> bool:
+    """Is any corridor already open for this nation (other than `exclude`)?
+
+    FA-N61: the difference between "a new peace" and "a second concurrent
+    peace". The refusal record lapses with the treaty that made the offer,
+    so it is cleared when a nation goes from no passage to some — never when
+    it simply gains a second.
+    """
+    grants = getattr(world, "evacuation_grants", None) or {}
+    for key, expiry in grants.items():
+        if key == exclude:
+            continue
+        if nation in key.split("|") and int(world.current_turn) <= int(expiry):
+            return True
+    return False
+
+
 def next_step_home(world, marshal) -> Optional[str]:
     """The next province on this marshal's road home, or None.
 
@@ -756,9 +808,19 @@ def offer_road_home(world, nation: str) -> List[Dict]:
     if not home:
         return issued
     for marshal in _evacuating_marshals(world, nation, home):
+        if _the_enemy_took_his_order(marshal):
+            # The latch records a REFUSAL, and a battle is not one.
+            marshal.road_home_offered = False
         existing = getattr(marshal, "strategic_order", None)
         if existing is not None and not is_road_home_order(existing):
             continue  # the player's own order stands
+        if existing is not None and is_road_home_order(existing):
+            # He is HOLDING the treaty's road. Record it here as well as at
+            # issuance, because the "already marching there" guard below
+            # returns without touching him — and a marshal who reached this
+            # loop with the road in hand and a cleared flag would have his
+            # next cancel silently overruled.
+            marshal.road_home_offered = True
         if (existing is None and THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED
                 and bool(getattr(marshal, "road_home_offered", False))):
             continue  # he was handed the road and let it go — §4.1 cancellable
@@ -810,20 +872,11 @@ def _is_immobile(marshal) -> bool:
     choice (spec §5's last row — he is not teleported out of his own state
     machine).
 
-    FA-33 rider (slice 12): an unanswered order-bound question belongs in the
-    same class, and it did not before this slice only because the removed
-    `issued_turn` stamp had been shielding the issuance turn by accident.
-    `process_strategic_orders` skips a marshal whose order raised a question
-    until the player answers it — so the corps physically cannot march, and
-    the clock was running on the game's own silence, not on his.  Measured
-    with the stamp gone and the ask left unanswered: interned at Vienna on
-    turn 5 having marched nothing, one turn EARLIER than the shipped tree.
+    A standing QUESTION is deliberately NOT here — see
+    `_awaiting_the_players_word`.  It is the same mercy, but it must not have
+    the same SCOPE, and the slice-12 review round measured why.
     """
-    if int(getattr(marshal, "retreat_recovery", 0) or 0) > 0:
-        return True
-    if A_STANDING_QUESTION_IS_NOT_LOITERING and _awaiting_the_players_word(marshal):
-        return True
-    return False
+    return int(getattr(marshal, "retreat_recovery", 0) or 0) > 0
 
 
 def _awaiting_the_players_word(marshal) -> bool:
@@ -836,6 +889,24 @@ def _awaiting_the_players_word(marshal) -> bool:
     (`last_stand`, `muster_confirm`).  The predicate is deliberately the
     whole set rather than `ORDER_BOUND_INTERRUPT_TYPES` alone — a cornered
     marshal awaiting "fight or break out" cannot walk home either.
+
+    ⚠ THE SCOPE IS THE POINT, and the slice-12 review round measured why.
+    The first cut routed this through `_is_immobile`, which adds the
+    marshal's NATION to `grace_nations` and refreshes the whole corridor.
+    Measured: two French corps stranded, ONE of them frozen on a question,
+    the other simply refusing to march — the refuser was never interned,
+    his warning read the identical "2 turn(s) of safe passage left"
+    fourteen turns running, and the corridor's expiry walked 10 → 23 and
+    never closed.  Since `has_evacuation_grant` gates the transit arm on
+    `can_enter_territory`, that is a permanent right of passage bought with
+    one unanswered modal — and it is not exotic: in an unattended 12-turn
+    run Bernadotte picked up an organic `cannon_fire` ask at t4 and held
+    the corridor open by himself for the remaining nine turns.
+
+    So this mercy is MARSHAL-scoped: the frozen corps is not judged, and
+    the clock keeps running for everybody else, including him.  The comment
+    that said the grace was "bounded in the only sense that matters"
+    measured the offset and not the calendar, and it was wrong.
     """
     from backend.commands.strategic import (
         ORDER_BOUND_INTERRUPT_TYPES, STANDALONE_DECISION_TYPES,
@@ -939,10 +1010,12 @@ def process_evacuation_grants(world) -> List[Dict]:
         # sweep caught the claim, not the code.
         if THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED:
             for offer in offer_road_home(world, nation):
-                events.append(_offer_event(
+                event = _offer_event(
                     world, offer,
                     best_counterpart.get(nation, ""),
-                    max(0, expiry - current)))
+                    max(0, expiry - current))
+                if event is not None:
+                    events.append(event)
 
         for marshal in list(_evacuating_marshals(world, nation, home)):
             stranded_by_nation[nation] = stranded_by_nation.get(nation, 0) + 1
@@ -953,7 +1026,14 @@ def process_evacuation_grants(world) -> List[Dict]:
                 # a road that does not exist.
                 continue
             if _is_immobile(marshal):
+                # A rout is bounded (0-3 stages) and pre-slice, so it still
+                # buys the whole corridor a turn.
                 grace_nations.add(nation)
+                continue
+            if (A_STANDING_QUESTION_IS_NOT_LOITERING
+                    and _awaiting_the_players_word(marshal)):
+                # MARSHAL-scoped, deliberately: he is not judged, and
+                # nobody else's clock stops. See the predicate's docstring.
                 continue
             surplus = (expiry - current) - int(dist)
             if surplus < 0:
@@ -1016,7 +1096,8 @@ def _encircling_power(world, marshal) -> Optional[str]:
     return max(sorted(tally), key=lambda n: tally[n])
 
 
-def _offer_event(world, offer: Dict, counterpart: str, turns_left: int) -> Dict:
+def _offer_event(world, offer: Dict, counterpart: str,
+                 turns_left: int) -> Optional[Dict]:
     """FA-N61: the top-up says so.
 
     The measured organic case lost two marshals with no player-visible cause
@@ -1029,11 +1110,23 @@ def _offer_event(world, offer: Dict, counterpart: str, turns_left: int) -> Dict:
     It rides the EXISTING `evacuation_granted` type, with the pair and the
     turns filled in honestly, plus one new key (`mid_treaty`) the renderers
     branch on — the `jealousy.py` idiom.  A new type would have cost nine
-    `len(CAMPAIGN_LOG_TYPES) == 160` pins for a sentence.  The pair is the
-    treaty actually affording him the passage, so the campaign-log fog arm
-    (`player_nation in (nation_a, nation_b)`) and the dispatch arm both keep
-    working unchanged.
+    `len(CAMPAIGN_LOG_TYPES) == 160` pins for a sentence.
+
+    ⚠ IT IS TOLD FROM THE PLAYER'S SIDE OF THE TABLE, and the slice-12
+    review round measured the cost of forgetting that.  The fog arm for
+    `evacuation_granted` admits any SIGNATORY, which is right for the
+    treaty's own beat (both courts signed it) and wrong for a per-corps
+    bulletin published every turn: with no side filter, France read
+    *"Berthier has put ArchdukeJohn on the road home to Bohemia"* about an
+    Austrian corps it could not see, naming his province and his
+    destination, in France's own chief of staff's voice, with the campaign
+    log rendering it "under the peace with France".  `_grant_message` — the
+    producer this one sits beside — carries a docstring paragraph about
+    exactly this, written after an early draft counted both sides.
     """
+    if str(offer.get("nation") or "") != str(
+            getattr(world, "player_nation", "") or ""):
+        return None
     event = {
         "type": "evacuation_granted",
         "nation_a": offer["nation"],

@@ -25,8 +25,16 @@ assets that require a visible/bundled credit are **Game-icons.net**, the
 
 ## Fonts — SIL Open Font License 1.1
 
-Free to embed and ship. Obligation: bundle each family's `OFL.txt` (already saved beside
-the `.ttf` in `assets/fonts/`). No in-game credit. Do not reuse a Reserved Font Name if modified.
+Free to embed and ship. Obligation: bundle each family's `OFL.txt` (saved beside
+the `.ttf` in `assets/fonts/` in the source tree).
+
+**In the shipped build these travel to `licenses/fonts/`, and the other two
+families' notices to `licenses/`** — `deploy/build.bat` copies them and
+`tests/test_fa_slice13_shipping_2026_09_05.py` derives the census from
+`git ls-files`, so a new notice that is not carried reds the suite. This
+paragraph is the THIRD credit surface (with the in-game Settings screen and
+`README_TESTER.txt`); before FA-43/FA-N84 all three pointed at a directory
+that was not in the zip. No in-game credit. Do not reuse a Reserved Font Name if modified.
 
 | Family | Source |
 |--------|--------|

@@ -277,6 +277,21 @@ class TestTheAdvertisedKeysAreReachableWhileTyping:
         assert "Alt+M" in readme
         assert "Alt+Home" in readme
 
+    def test_the_terminal_toggle_does_not_advertise_alt_tab_alone(self):
+        """Found while reviewing this slice's own fix, before a reviewer did:
+        Alt+Tab is the Windows window switcher and never reaches the game, so
+        advertising it as the focus-safe form for the terminal would have been
+        a NEW dead instruction — the exact class of defect FA-N56 exists to
+        remove. Alt+` is the form that works, and it is what the README and
+        the boot help name."""
+        focus_safe = _focus_safe_source()
+        assert "KEY_QUOTELEFT" in focus_safe, (
+            "the terminal needs a focus-safe key the OS does not eat")
+        readme = _read(DEPLOY / "README_TESTER.txt")
+        assert "Alt+`" in readme
+        assert "window switcher" in readme, (
+            "and the README must say WHY, or the next reader restores Alt+Tab")
+
     def test_the_readme_is_honest_about_the_two_press_escape(self):
         """`Esc` while typing releases focus; the pause menu opens on the
         SECOND press, through `_unhandled_input`."""
@@ -303,7 +318,7 @@ class TestTheAdvertisedKeysAreReachableWhileTyping:
         state is ordinary."""
         table = _focus_safe_source()
         at = table.index("KEY_E:")
-        arm = table[at:table.index("KEY_TAB:")]
+        arm = table[at:table.index("KEY_TAB,")]
         assert "_is_modal_dialog_open()" in arm, arm
         assert "_is_screen_open()" in arm, arm
 

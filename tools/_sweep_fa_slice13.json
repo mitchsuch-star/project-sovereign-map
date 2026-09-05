@@ -121,8 +121,8 @@
   {
     "id": "FA-N56 the boot help teaches the dead form again",
     "file": "godot-client/project-sovereign/scripts/main.gd",
-    "old": "\t\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters — the bare keys work whenever you are not typing[/color]\")",
-    "new": "\t\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters[/color]\")",
+    "old": "• Map: Alt+M cycles view",
+    "new": "• Map: M cycles view",
     "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_boot_help_teaches_the_form_that_works"
   },
   {
@@ -159,5 +159,12 @@
     "old": "\t\t_confirm_label.text = \"Begin anew? The autosave of your running campaign is replaced.\"",
     "new": "\t\t_confirm_label.text = \"Begin anew? Your running campaign leaves the table.\"",
     "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheSchoolKeepsTheAutosave::test_the_begin_confirm_is_left_alone"
+  },
+  {
+    "id": "FA-N56 the terminal loses its focus-safe key",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tKEY_TAB, KEY_QUOTELEFT:",
+    "new": "\t\tKEY_TAB:",
+    "tests": "tests/test_fa_slice13_shipping_2026_09_05.py::TestTheAdvertisedKeysAreReachableWhileTyping::test_the_terminal_toggle_does_not_advertise_alt_tab_alone"
   }
 ]

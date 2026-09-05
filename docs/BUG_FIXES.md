@@ -445,6 +445,147 @@
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).
 
+> ### ✅ THE SLICES 12 + 13 REVIEW ROUND — "THE MERCY HAS A SCOPE" — FIXED September 5, 2026
+>
+> **Landing record: this block.** Three lenses × two refuters per finding at
+> `43691f14`, against a `git archive` snapshot — **53 agents, 0 errors**, 20
+> findings, **50 refuter verdicts of which only 4 killed anything.** Reports
+> transcribed verbatim to `docs/audits/fa_build_2026_09_04/
+> REVIEW_slices12_13_R{1,2,3}_*.md`. Nine fixes and six record corrections.
+> Sweeps re-run and extended: slice 12 **33/33**, slice 13 **24/24**, 0 INERT,
+> 0 BROKEN. Series and M1–M7 re-verified byte-identical WITH the census
+> re-run (zero top-ups, zero graces, one WAR-exit break at turn 25).
+>
+> ---
+>
+> **THE HEADLINE, AND IT IS A P1 I SHIPPED: the mercy had no scope.** Slice
+> 12's FA-33 rider routed "a corps frozen on the game's own question is not
+> loitering" through `_is_immobile`, which adds the marshal's NATION to
+> `grace_nations` and refreshes the whole corridor. Measured by the lens: two
+> French corps stranded, ONE frozen on a question and the other simply
+> refusing to march — **the refuser was never interned**, his warning read the
+> identical *"2 turn(s) of safe passage left"* **fourteen turns running**, and
+> the corridor's expiry walked 10 → 23 and never closed. Since
+> `has_evacuation_grant` gates the transit arm on `can_enter_territory`, one
+> unanswered modal bought a **permanent right of passage** and made internment
+> — the whole of WIN-D3 §6 — unreachable for the nation.
+>
+> It is not exotic and needs no devious player: in an unattended 12-turn run
+> **Bernadotte picked up an organic `cannon_fire` ask at t4 and held the
+> corridor open by himself for the remaining nine turns**, after Davout had
+> been captured. The mercy is MARSHAL-scoped now: the frozen corps is not
+> judged, and nobody else's clock stops, including his own nation's.
+>
+> **And my own comment was the thing that hid it.** *"Bounded in the only
+> sense that matters: `expiry − current_turn` is CONSTANT under grace"* —
+> that measures the offset and not the calendar, and it is false for everyone
+> but the frozen corps. The pin beside it,
+> `test_the_grant_window_does_not_widen_under_grace`, asserted exactly that
+> constant offset, so **it was green about the defect**. It is replaced by one
+> that asserts the corridor CLOSES and that the corps who can march and does
+> not is still interned. The record's other consolation — "a clamp was written
+> and removed after measurement" — is also corrected: disposing of one
+> candidate fix is not evidence that no bound was needed.
+>
+> ---
+>
+> **[P2] The mid-treaty beat had no side filter — France was told where an
+> unseen Austrian corps stood and where it was going.** The fog arm for
+> `evacuation_granted` admits any SIGNATORY, which is right for the treaty's
+> own beat (both courts signed it) and wrong for a per-corps bulletin
+> published every turn. Measured, unforced, on the shipped board:
+>
+> > *"Sire — under the peace with Austria. ArchdukeJohn is on the wrong side
+> > of the frontier at Tyrol, Sire — the ground changed hands under him.
+> > Berthier has put him on the road home to Bohemia."*
+>
+> Four defects in one sentence: an unseen enemy corps' province AND
+> destination handed to France; France's own chief of staff ordering an
+> Austrian marshal; the campaign log rendering it *"under the peace with
+> France"*; and `ArchdukeJohn` reaching the player un-humanised. `_offer_event`
+> returns None for a counterparty now. **The producer it sits beside carries a
+> docstring paragraph about exactly this**, written after an early draft
+> counted both sides — I re-created the defect one layer over, per-marshal and
+> with the province named.
+>
+> **[P2] The latch could not tell a refusal from a rout — and it is my own
+> argument turned against me.** `road_home_offered` is keyed on ISSUANCE
+> *precisely* so it covers every way the order can be let go. But three
+> `combat_executor` sites null a `strategic_order` with no player anywhere
+> near it (the encircled retreat, the forced retreat, the shattered army), and
+> measured, **a corps whose road home was cancelled by a forced retreat was
+> never re-offered one and was interned, having refused nothing.** New
+> predicate `_the_enemy_took_his_order` reads `retreating` or `broken` — both
+> cleared by the ordinary recovery tick, so the release is self-limiting and
+> needs no edit at the three seams, which is the point of keying on issuance
+> in the first place.
+>
+> **[P2, found by me before the lenses reported] Alt+Tab is the Windows window
+> switcher** and never reaches the game — my own README rewrite had shipped a
+> fresh dead instruction in the slice whose thesis is that advertised keys
+> must work. Rebound to Alt+`, with the reason in the README so the next
+> reader does not restore it. (Two lenses filed it independently; a third
+> filed **AltGr = Ctrl+Alt**, which a refuter KILLED — "right about Windows
+> and wrong about Godot, and it never checked Godot".)
+>
+> ---
+>
+> **[P3] An amended pin was WEAKER than what it replaced, and its own comment
+> said the opposite.** Slice 13 re-pointed `test_hotkeys_match_main_gd` off
+> its exact column spacing and wrote *"the mapping is what this test was ever
+> about, so it asserts the mapping."* Measured false by a lens applying the
+> swap-two-screens killer: the amended assertions were green on a README that
+> maps R to the wrong screen. It pins the key, its Alt form and the screen **on
+> the same line** now, for all six.
+>
+> **[P3] There are THREE credit surfaces, not two**, and the third is the one
+> FA-N84's own mechanism names: `THIRD_PARTY_LICENSES.md` discharges the font
+> obligation by pointing at `assets/fonts/`, and slice 13 shipped that file
+> into the zip without touching that sentence. It now names `licenses/` and
+> the census that guards it.
+>
+> **[P3] `SYSTEMS_REFERENCE.md` §34 stated the defective scope as the design
+> rule**, so a future builder would have re-created it. Rewritten, along with
+> the clearing rule (which is three places, not two) and the beat's side
+> filter. §35 gained the Alt+Tab exception and the honest statement that the
+> four map arms **diverge** from their unfocused twins rather than mirroring
+> them — `_map_keys_live`'s docstring had claimed a mirror, and the twin it
+> named is not in that file at all.
+>
+> **[P4s fixed]** the `.get("marshals", [""])[0]` footgun (the default fires
+> only for a MISSING key, so a producer writing `marshals: []` is an
+> IndexError in the morning briefing); the soft-break tray alert carried no
+> `details`, so its PC-9 dedupe subject was empty and two satellites breaking
+> free in one turn would collapse into one row; the GR5 identity claim was
+> guarded by a ONE-arm pin, which proves the AI walks rather than that the fix
+> left it alone; and the cut-off pin's anti-vacuity explanation was a dead
+> expression statement rather than part of the docstring.
+>
+> **Not built, with reasons:** the bare map keys match `physical_keycode`
+> while the Alt arm matches `keycode` — a refuter measured that the SLICE's
+> half is the one matching convention and the five-month-old half is the odd
+> one, so it is pre-existing and out of scope. `road_home` and
+> `road_home_mid_treaty` sharing weight 69 inside the two-turn window was
+> KILLED by a refuter as "a cosmetic ordering preference". The
+> `[STRATEGIC] … (issued turn None)` debug line is dev-facing only.
+>
+> ---
+>
+> **⛔ Two method lessons, both from this round.**
+>
+> *A comment that measures the wrong quantity will hide the defect it is
+> standing next to, and a pin written from that comment inherits the blindness.*
+> "The window never widens" was TRUE and irrelevant; what mattered was whether
+> the corridor ever closes, and nothing asked.
+>
+> *And the sweep rewrites real source files, so a crashed sweep leaves the
+> tree mutated.* One run died on an OSError mid-restore and left `if False:`
+> in `withdrawal.py`; the only thing that caught it was a test going red
+> minutes later. Check `git diff` after every sweep, and note that the tool's
+> own baseline guard did its job twice here — it refused to run on a wrong
+> class name in my sweep spec, which would otherwise have reported every
+> mutation KILLED.
+
 > ### ✅ SLICE 13 — "SHIPPING" — FIXED September 5, 2026
 >
 > **Landing record: this block.** Rows closed: **FA-29**, **FA-43**,

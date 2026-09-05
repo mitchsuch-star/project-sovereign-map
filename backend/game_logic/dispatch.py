@@ -903,7 +903,13 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 # CORPS, not the pair. The peace's own beat already holds
                 # `road_home:<pair>`, and two corps stranded on the same
                 # treaty are two pieces of news, not one.
-                _identity = (f"road_home:{e.get('marshals', [''])[0]}"
+                # `.get(k, default)` returns the default only for a
+                # MISSING key, never for a present-but-empty one, so
+                # `e.get("marshals", [""])[0]` is the documented
+                # footgun: one producer writing `marshals: []` is an
+                # IndexError in the morning briefing. Slice-12 review.
+                _named = (e.get("marshals") or [""])[0]
+                _identity = (f"road_home:{_named}"
                              if e.get("mid_treaty")
                              else f"road_home:{'|'.join(sorted(_pair))}")
                 _add("road_home_mid_treaty" if e.get("mid_treaty")
