@@ -516,8 +516,22 @@
 > **Gates.** Suite green; ruff clean; parser eval **675/675**; the round's
 > sweep `tools/_sweep_fa_slice11_review.json` **20 mutations, 20 killed, 0
 > INERT, 0 BROKEN**; the slice's own sweep unchanged. M1–M7 and
-> `BASELINE_SERIES` byte-identical without re-record. ONE `.gd` — parse
-> harness EXIT=0, boot smoke 0 `SCRIPT ERROR`. Zero new serialized fields.
+> `BASELINE_SERIES` byte-identical without re-record — and the reason is
+> MEASURED, not assumed, because this round changes what happens when a
+> satellite breaks and the series records the very quantity
+> `complete_vassal_break` moves. Instrumented over the seeded 40-turn run,
+> the helper fires exactly ONCE: Switzerland, turn 25, France's threat
+> 16 → 6. That is the WAR exit, where the tail has always run, so the
+> extraction is byte-neutral there; **no armistice or graceful break occurs
+> in the ambient run at all**, so those two arms are untouched by the series
+> and their byte-identity is a fact about the harness, not evidence about
+> them. (REPRO I1's "KingdomOfItaly leaves France gracefully at t11" is
+> from an unseeded board and does not reproduce here.) Found while doing
+> that measurement: an event-log scan of the form `event_log[before:]` goes
+> VACUOUS once the rolling `MAX_EVENT_LOG_SIZE` cap is reached — the IGR-B
+> trap — so the spy, not the log, is the reliable witness. ONE `.gd` —
+> parse harness EXIT=0, boot smoke 0 `SCRIPT ERROR`. Zero new serialized
+> fields.
 > `tests/test_fa_slice11_review_round_2026_09_05.py` (23), and one corrected
 > pin in the slice's own file.
 >
