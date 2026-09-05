@@ -365,9 +365,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 13: **82 defect rows and 28 design rows /
-> gates still open**, of 231 filed; 105 closed, 16 disposed (duplicate,
-> refuted, or re-homed). The 82 are spoken for by slices 14 → 15 → 16;
+> number in a heading. After the slices 12+13 review round: **83 defect rows
+> and 28 design rows / gates still open**, of 232 filed; 105 closed, 16
+> disposed (duplicate, refuted, or re-homed). The 83 are spoken for by
+> slices 14 → 15 → 16;
 > the 28 need rulings, not builds.
 >
 > **▶ THE SLICES 12 + 13 REVIEW ROUND IS LANDED — September 5, 2026**

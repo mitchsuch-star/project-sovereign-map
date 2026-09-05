@@ -17,17 +17,18 @@
 > | audit defect (FA-n) | 41 | 49 | 12 | 102 |
 > | verification pass (FA-N) | 36 | 51 | 1 | 88 |
 > | review-round finding (FA-R) | 3 | 2 | 0 | 5 |
-> | found while building (FA-S) | 2 | 1 | 0 | 3 |
+> | found while building (FA-S) | 3 | 1 | 0 | 4 |
 > | design tie-in (FA-D) | 24 | 2 | 3 | 29 |
 > | gate from a round (FA-S*-D*) | 4 | 0 | 0 | 4 |
-> | **TOTAL** | **110** | **105** | **16** | **231** |
+> | **TOTAL** | **111** | **105** | **16** | **232** |
 >
-> **82 defect rows and 28 design rows / gates remain** (slice 12 closed three
-> and filed two of its own; slice 13 closed the five position-10 blockers). "Disposed" means
+> **83 defect rows and 28 design rows / gates remain** (slice 12 closed three
+> and filed two of its own; slice 13 closed the five position-10 blockers; the
+> review round filed one residue row, FA-S13-1). "Disposed" means
 > duplicate, refuted, or re-homed to a later slice — closed without a fix and
 > with the reason on the row.
 >
-> The 82 defects are spoken for by the remaining build order: ~~slice 12~~ ✅
+> The 83 defects are spoken for by the remaining build order: ~~slice 12~~ ✅
 > → ~~**13**~~ ✅ → **14** (9 rows + five
 > rulings) → **15** (20 harness rows, which must land BEFORE the FA-D27
 > measurement so the driver measured with is the fixed one) → **16** (the
