@@ -3524,6 +3524,20 @@ def marshal_petition_response(request: MarshalPetitionResponse):
         # hand-forward kept only battle_report + marshal_petition and dropped
         # those, stranding the ally-entry decision. build_base_response runs
         # popup passthroughs; marshal_petition + battle_report ride `extra`.
+        # FA-N1: jealousy's petition docks (shadow / confrontation rebuke /
+        # rivalry / Fontainebleau / war-weary) lower trust on the marshal the
+        # petition names AND on the men beside him, and this endpoint never
+        # asked. Every player marshal is put to the checker (idempotent —
+        # the latch, the cooldown and one-live-question rule are its own);
+        # the question rides the response the way /command's does.
+        from backend.commands.disobedience import stage_redemption
+        if isinstance(result, dict):
+            for _petitioned in world.get_player_marshals():
+                stage_redemption(world, _petitioned, result=result)
+        # `_build_result_response` forwards `redemption_event` + `state` and
+        # the checker wrote `world.pending_redemption` at generation, so no
+        # separate include step is needed here (measured: a second call was
+        # inert under mutation and is not made).
         response = _build_result_response(result, world)
         return response
     except Exception as e:

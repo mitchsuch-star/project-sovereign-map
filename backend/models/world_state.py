@@ -6025,8 +6025,13 @@ class WorldState:
         # AI nations: bonus applied in enemy_ai.execute_admin_phase()
         return 0
 
-    def _process_dotation_state(self) -> None:
+    def _process_dotation_state(self) -> list:
         """ES-7 per-turn marshal reconciliation (Economy Revisit S7).
+
+        FA-26 (September 5, 2026): returns the tactical events the tick
+        produced — today the redemption question an eroding marshal owes
+        at trust <= 20, staged by `disobedience.stage_redemption` at the
+        write itself so the end-turn hoist delivers it the turn he crosses.
 
         The ONE place expectation meets satisfaction (spec §0.6.2): prune
         estates that left the nation's hands, then erode the loyalty of any
@@ -6046,13 +6051,14 @@ class WorldState:
         # MECHANICS in the School of War: no grace clock, no erosion.
         from backend.game_logic.dotation import is_dotation_world
         if not is_dotation_world(self):
-            return
+            return []
         # Idempotency pin (§0.6.2): a duplicate same-turn call must not
         # double-erode. Transient guard — deliberately not serialized (a
         # loaded save simply reconciles once on its next turn).
         if getattr(self, "_dotation_processed_turn", None) == self.current_turn:
-            return
+            return []
         self._dotation_processed_turn = self.current_turn
+        events: list = []
 
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, PENSION_CHURN_GUARD_ACTIVE,
@@ -6211,6 +6217,11 @@ class WorldState:
             points = min(EROSION_MAX,
                          -(-shortfall // SHORTFALL_PER_POINT))  # ceil div
             marshal.modify_trust(-points)
+            # FA-26: the write that never asked. The checker refuses a
+            # non-player marshal, so the GR5 erosion above stays symmetric
+            # while only OUR man is put the question.
+            from backend.commands.disobedience import stage_redemption
+            stage_redemption(self, marshal, events=events)
 
             # First eroding turn: legibility notification (player only).
             #
@@ -6301,6 +6312,7 @@ class WorldState:
                         turn_created=int(self.current_turn),
                         details={"marshal": defaulter.name, "face": int(face)},
                     ))
+        return events
 
     # ========================================
     # STABILITY GROWTH & WAR DAMAGE RECOVERY (Phase 6.2.C)
@@ -9657,7 +9669,11 @@ class WorldState:
         # the bankruptcy check, per spec §0.6.1 #6. Prunes lost estates,
         # erodes unmet marshals (player AND AI — GR5).
         # ════════════════════════════════════════════════════════════
-        self._process_dotation_state()
+        # FA-26: the tick's own question rides the same list the end-turn
+        # hoist reads (`hoist_tactical_redemption`).
+        _erosion_events = self._process_dotation_state()
+        if _erosion_events:
+            tactical_events.extend(_erosion_events)
 
         # ════════════════════════════════════════════════════════════
         # BANKRUPTCY CHECK — AFTER all income sources
@@ -12110,6 +12126,24 @@ class WorldState:
             elif trust_val >= 40 and warning_shown:
                 marshal.trust_warning_shown = False
                 debug_print(f"  [TRUST] {marshal.name}'s trust recovered above 40, warning reset")
+
+        # FA-26 / FA-N1 — THE NET (September 5, 2026). Any trust-lowering
+        # write that bypassed `stage_redemption` (the confiscation -1, the
+        # diplomatic reactions, a future seam) is caught here, at most one
+        # turn late: every player marshal at trust <= 20 is put the question
+        # the checker owes him, onto the same list the end-turn hoist reads.
+        # The checker's guards make this idempotent — latched men, a live
+        # standing question, the cooldown and non-player nations all return
+        # None — so the pass is a census, not a second channel.
+        from backend.commands.disobedience import (
+            REDEMPTION_NET_ACTIVE, stage_redemption)
+        if REDEMPTION_NET_ACTIVE:
+            for marshal in self.marshals.values():
+                if marshal.nation != self.player_nation:
+                    continue
+                if not hasattr(marshal, "trust") or marshal.trust.value > 20:
+                    continue
+                stage_redemption(self, marshal, events=warnings)
 
         return warnings
 

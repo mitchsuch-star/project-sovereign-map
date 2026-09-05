@@ -226,6 +226,8 @@ right answer exists, and something downstream reports a different one.
 
 ### FA-N1 — §7's uniqueness claim is false, and its recommended first build is wider than "one seam"
 
+> **Built September 5, 2026 (FA slice 9) — and this row's own census is corrected by one:** the "typed strategic-objection route" family below is FALSE. That `-10` is reachable only through `_handle_strategic_objection_from_endpoint`, which applies the insist penalty itself for every MODERATE+ objection (the only tier that raises a popup), zeroes the stored penalty before re-executing, and runs `check_redemption_threshold` at its own return; the typed answer routes there via `handle_objection_response`. Measured: MODERATE objection quoting −5, `insist` charged −8 = −5 + the failed-roll −3 Berthier discloses. **Three** unchecked families, not four. Landing record = `BUG_FIXES.md` §Final Whole-Game Audit, the SLICE 9 block.
+
 **P2 · confidence HIGH · amended in place at memo §7 and in the three files that copied it.**
 
 Memo §7 read: *"`world_state.py:6207` … is **the only** trust-writing seam in the backend

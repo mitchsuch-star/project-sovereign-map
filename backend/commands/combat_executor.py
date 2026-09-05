@@ -7502,6 +7502,11 @@ class CombatExecutor:
                     rel = failing.get_relationship(primary_name)
                     if rel != -2:  # Hostile gets no penalty
                         failing.trust.modify(-3)
+                        # FA-N1: the friendly-fire sibling below asks; this
+                        # write never did. The checker refuses a non-player
+                        # man, so an AI-side battle stages nothing here.
+                        from backend.commands.disobedience import stage_redemption
+                        stage_redemption(world, failing, result=result)
 
         # Attach reinforcement data to result for display (N3)
         if attacker_reinforcements or defender_reinforcements:

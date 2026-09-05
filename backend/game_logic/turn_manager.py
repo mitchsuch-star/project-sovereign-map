@@ -724,12 +724,28 @@ class TurnManager:
                 # Decrement autonomy turns
                 marshal.autonomy_turns -= 1
 
+                # FA-26 rider (September 5, 2026): this report rides the
+                # end-turn RESPONSE, and the executor result it embeds carries
+                # `new_state` — the live WorldState, circular, tuple-keyed
+                # maps inside. `jsonable_encoder` walked it and the turn AFTER
+                # a grant of autonomy answered with a 500, the world already
+                # advanced (measured on the pre-slice tree with the debug
+                # trigger: grant_autonomy 200, next `end turn` 500). The
+                # question FA-26 now asks made the crash reachable in ordinary
+                # play; the strip lives here, the one place the whole result
+                # is embedded (the R4 serialization warning, CLAUDE.md).
+                _report_result = (
+                    dict(action_result["result"])
+                    if action_result and isinstance(action_result.get("result"), dict)
+                    else {"message": "No action taken"})
+                _report_result.pop("new_state", None)
+
                 # Build report entry
                 report_entry = {
                     "marshal": marshal.name,
                     "action": action_result.get("action") if action_result else "wait",
                     "target": action_result.get("target") if action_result else None,
-                    "result": action_result.get("result") if action_result else {"message": "No action taken"},
+                    "result": _report_result,
                     "turns_remaining": marshal.autonomy_turns,
                     "performance": {
                         "battles_won": marshal.autonomous_battles_won,

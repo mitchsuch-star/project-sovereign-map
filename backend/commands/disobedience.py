@@ -688,6 +688,64 @@ def standing_redemption(world) -> Optional[Dict]:
     return event
 
 
+# ── FA-26 / FA-N1 (September 5, 2026): the question is asked ──────────────
+# The audit's highest-leverage row: the ES-7 erosion tick lowered trust every
+# turn and never consulted `check_redemption_threshold`, so a neglected
+# marshal bled 85 -> 0 over thirty turns with one terminal warning at <40 and
+# no question ever. FA-N1's census found the tick was not alone — three
+# families of trust-LOWERING writes had no checker on their path (the tick,
+# the attack's failed-reinforcer -3, and jealousy's petition docks reached
+# through /marshal_petition_response), plus two small ones (the confiscation
+# -1, the diplomatic reactions clamped to +-5). The census's FOURTH family —
+# the strategic "proceed" -10 — was a false entry: that arm is reachable only
+# through `_handle_strategic_objection_from_endpoint`, which zeroes the
+# penalty it has already applied and runs its own final checker. ONE helper
+# now stands after every such write, and ONE per-turn net catches any write
+# that bypasses it.
+# Flip levers for attribution runs (set False in a CHILD process to reproduce
+# the prior behaviour).
+REDEMPTION_AT_EVERY_TRUST_WRITE = True
+REDEMPTION_NET_ACTIVE = True
+
+
+def stage_redemption(world, marshal, *, result=None, events=None) -> Optional[Dict]:
+    """ONE seam after a trust-LOWERING write: ask the checker and put the
+    question where THIS caller's carrier delivers it.
+
+    ``result`` — a command/battle result dict: gains ``redemption_event`` +
+    ``state`` (the ``/command`` idiom `_include_command_redemption_event`
+    reads, and `_attach_redemption_if_needed`'s shape). Never overwrites a
+    question already riding the dict.
+    ``events`` — a tactical-events list: gains the
+    ``{"type": "redemption_event", ...}`` row `hoist_tactical_redemption`
+    lifts onto the end-turn response.
+    Either, both, or neither: with no carrier the checker has still latched
+    the marshal and written ``world.pending_redemption`` (WO-41), which the
+    client's once-per-turn recovery poll (`GET /pending_redemption`, PT-B1)
+    and the world-swap re-attach deliver.
+
+    The checker owns every guard — trust > 20, the latch, autonomous /
+    administrative men, a non-player nation (GR5: the AI's trust is read by
+    nothing), the cooldown, and one live question at a time — so calling
+    this after EVERY lowering write is idempotent and cheap. Returns the
+    event, or None.
+    """
+    if not REDEMPTION_AT_EVERY_TRUST_WRITE or world is None or marshal is None:
+        return None
+    system = getattr(world, "disobedience_system", None)
+    if system is None:
+        return None
+    event = system.check_redemption_threshold(marshal, world)
+    if not event:
+        return None
+    if isinstance(result, dict) and not result.get("redemption_event"):
+        result["redemption_event"] = event
+        result["state"] = "awaiting_redemption_choice"
+    if isinstance(events, list):
+        events.append({"type": "redemption_event", "redemption_event": event})
+    return event
+
+
 def hoist_tactical_redemption(tactical_events) -> Optional[Dict]:
     """The redemption a turn tick produced, for the response's top level.
 

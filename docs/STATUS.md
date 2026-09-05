@@ -4,6 +4,41 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 9 "THE QUESTION IS ASKED" (FA-26 + FA-N1) IS LANDED — September 5, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
+> SLICE 9 block (authoritative).** The audit's highest-leverage row: the ES-7
+> erosion tick lowered a neglected marshal's trust every turn and never
+> consulted the redemption checker — measured before the fix, Lannes 23 → 20
+> → 17 with no question anywhere, and NO end-turn path put anyone to the
+> checker, so a direct write, a petition rebuke and two men crossing at once
+> were all equally silent. Now ONE helper (`disobedience.stage_redemption`)
+> stands after every trust-lowering write — the tick (which returns its
+> events), the attack's failed reinforcer, jealousy's docks at the petition
+> endpoint — and ONE per-turn NET in `_check_trust_warnings` catches whatever
+> bypasses it (the confiscation −1, the diplomatic ±5, a future seam). Two
+> levers, zero new serialized fields; the checker's own guards (latch,
+> cooldown, one live question, player-only) make every call idempotent, so
+> the erosion stays GR5-symmetric while only OUR man is asked, and two men
+> crossing in one tick yield exactly one question with the second asked once
+> the first is answered. **FA-N1's census corrected: three unchecked families,
+> not four** — the strategic "proceed" write is checked one frame up by the
+> endpoint handler (measured −8 = quoted −5 + the disclosed failed-roll −3).
+> **Rider — a pre-existing P1 the slice made reachable:** the turn after a
+> `grant_autonomy` answer returned HTTP 500 with the world already advanced
+> (the independent-command report embedded the live `WorldState`); reproduced
+> on the committed tree in a detached worktree, fixed at the producer with a
+> stripped copy — the channel's first answer had crashed the next turn for as
+> long as autonomy has existed. Tests 34, sweep **12/12 killed, 0 inert at
+> close** (three inert on the first pass, each resolved as dead code or an
+> isolation pin, never weakened), corpus 675/675 untouched, series + M1–M7
+> byte-identical as MEASURED, ruff clean, zero `.gd`.
+>
+> **▶ NEXT = a three-lens review round at the slice-9 SHA if the pattern
+> holds (it has found a P1 inside the fix on four of four rounds), then
+> position 10.** ⚠ Still no pillar re-score. ⚠ FA-D27 / FA-D28 await the
+> user's ruling.
+
 > # ✅ THE AUDIT BUILD: THE SLICE 7 REVIEW ROUND "THE MOCK IS READ BY EVERY READER" IS LANDED — September 5, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed

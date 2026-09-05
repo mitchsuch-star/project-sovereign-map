@@ -1,0 +1,86 @@
+[
+ {
+  "id": "helper/a the write lever gates the helper",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if not REDEMPTION_AT_EVERY_TRUST_WRITE or world is None or marshal is None:\n        return None",
+  "new": "    if True:\n        return None",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_result_and_events_both_carry_the_question tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_lannes_is_asked_the_turn_he_crosses"
+ },
+ {
+  "id": "helper/b the result carrier",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if isinstance(result, dict) and not result.get(\"redemption_event\"):\n        result[\"redemption_event\"] = event\n        result[\"state\"] = \"awaiting_redemption_choice\"",
+  "new": "    if False:\n        result[\"redemption_event\"] = event\n        result[\"state\"] = \"awaiting_redemption_choice\"",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_result_and_events_both_carry_the_question tests/test_fa26_the_question_is_asked_2026_09_05.py::TestThePetitionEndpointAsks::test_a_rebuke_that_crosses_twenty_asks tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheFailedReinforcerAsks::test_a_no_show_that_crosses_twenty_is_asked_on_the_battle"
+ },
+ {
+  "id": "helper/c a riding question is never overwritten",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if isinstance(result, dict) and not result.get(\"redemption_event\"):",
+  "new": "    if isinstance(result, dict):",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_a_question_already_riding_the_result_is_kept tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_a_foreign_question_on_the_result_is_kept"
+ },
+ {
+  "id": "helper/d the events carrier",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if isinstance(events, list):\n        events.append({\"type\": \"redemption_event\", \"redemption_event\": event})",
+  "new": "    if False:\n        events.append({\"type\": \"redemption_event\", \"redemption_event\": event})",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_result_and_events_both_carry_the_question tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_returns_its_events_as_a_list tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_a_direct_write_is_asked_at_the_turn_boundary"
+ },
+ {
+  "id": "tick/a the write stages",
+  "file": "backend/models/world_state.py",
+  "old": "            stage_redemption(self, marshal, events=events)",
+  "new": "            pass",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_stages_at_its_own_write_with_the_net_off tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_returns_its_events_as_a_list"
+ },
+ {
+  "id": "tick/b the tick returns its events",
+  "file": "backend/models/world_state.py",
+  "old": "                    ))\n        return events\n",
+  "new": "                    ))\n        return []\n",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_returns_its_events_as_a_list tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_stages_at_its_own_write_with_the_net_off"
+ },
+ {
+  "id": "tick/c advance_turn carries the tick's events",
+  "file": "backend/models/world_state.py",
+  "old": "        if _erosion_events:\n            tactical_events.extend(_erosion_events)",
+  "new": "        if False:\n            tactical_events.extend(_erosion_events)",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_stages_at_its_own_write_with_the_net_off"
+ },
+ {
+  "id": "net/a the net lever",
+  "file": "backend/models/world_state.py",
+  "old": "        if REDEMPTION_NET_ACTIVE:\n            for marshal in self.marshals.values():",
+  "new": "        if False:\n            for marshal in self.marshals.values():",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_a_direct_write_is_asked_at_the_turn_boundary tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_two_men_cross_in_one_tick_exactly_one_question"
+ },
+ {
+  "id": "net/b the net stages onto the warnings list",
+  "file": "backend/models/world_state.py",
+  "old": "                stage_redemption(self, marshal, events=warnings)",
+  "new": "                pass",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_a_direct_write_is_asked_at_the_turn_boundary tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_the_second_man_asks_once_the_first_is_answered"
+ },
+ {
+  "id": "attack/a the failed reinforcer stages",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        stage_redemption(world, failing, result=result)",
+  "new": "                        pass",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheFailedReinforcerAsks::test_a_no_show_that_crosses_twenty_is_asked_on_the_battle"
+ },
+ {
+  "id": "petition/a the endpoint stages every player marshal",
+  "file": "backend/main.py",
+  "old": "        if isinstance(result, dict):\n            for _petitioned in world.get_player_marshals():",
+  "new": "        if False:\n            for _petitioned in world.get_player_marshals():",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestThePetitionEndpointAsks::test_a_rebuke_that_crosses_twenty_asks tests/test_fa26_the_question_is_asked_2026_09_05.py::TestThePetitionEndpointAsks::test_the_bystander_the_dock_touched_is_asked_too"
+ },
+ {
+  "id": "rider/a the report strips the world",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                _report_result.pop(\"new_state\", None)",
+  "new": "                pass",
+  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheTurnAfterAutonomySerializes::test_the_next_end_turn_answers_200_while_the_man_acts tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheTurnAfterAutonomySerializes::test_the_report_builder_strips_the_world"
+ }
+]

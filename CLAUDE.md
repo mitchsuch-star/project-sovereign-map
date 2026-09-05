@@ -315,9 +315,31 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > must be probed with the COMPOUND sentence — the reviewers' first move was
 > to add the clause the builder had not.**
 >
-> **▶ NEXT = FA-26 as a shared helper across the trust-writing families**
-> (FA-N1 — six families counted, plus a per-turn net), then position 10.
-> ⚠ **Still no pillar re-score. ⚠ FA-D27 / FA-D28 await the user's ruling.**
+> **▶ SLICE 9 "THE QUESTION IS ASKED" (FA-26 + FA-N1) IS LANDED — September
+> 5, 2026.** Landing record = the boxed SLICE 9 block in `BUG_FIXES.md`
+> §Final Whole-Game Audit (authoritative). ONE helper
+> `disobedience.stage_redemption` after every trust-LOWERING write — the
+> erosion tick (which now RETURNS its events onto the end-turn list), the
+> attack's failed reinforcer, jealousy's docks at `/marshal_petition_response`
+> — plus ONE per-turn net in `_check_trust_warnings`; two levers; zero new
+> serialized fields; the checker's guards keep it idempotent and GR5 (the
+> erosion stays symmetric, only the player's man is asked). **FA-N1's census
+> corrected: three unchecked families, not four** — the strategic "proceed"
+> write is checked one frame up by the endpoint handler. **Rider, a
+> pre-existing P1 the question made reachable:** the turn after a
+> `grant_autonomy` answer 500'd with the world already advanced (the
+> independent-command report embedded the live WorldState) — reproduced on
+> the committed tree, fixed at the producer. 34 tests, sweep 12/12, series +
+> M1–M7 byte-identical as measured. ⛔ **The lesson, a fifth time: reproduce
+> the row's OWN geometry on the shipped board before pinning it** — at boot
+> `turn − GRACE_TURNS` is negative and the tick reads it as "no clock", so the
+> first probe "proved" the tick never eroded; and **stand the newly-autonomous
+> man down in any pin that ends a turn after `grant_autonomy`**, or the AI's
+> own action rolls a second question onto the response.
+>
+> **▶ NEXT = a three-lens review round at the slice-9 SHA if the pattern
+> holds, then position 10.** ⚠ **Still no pillar re-score. ⚠ FA-D27 / FA-D28
+> await the user's ruling.**
 >
 > **▶ THE FINAL WHOLE-GAME AUDIT — ✅ HELD September 1, 2026** (⚠ verified Sept 2 — read the pass above first). Memo of
 > record = **`docs/audits/FINAL_AUDIT_2026_09_01.md`** (authoritative);

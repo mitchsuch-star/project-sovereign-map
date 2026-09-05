@@ -295,6 +295,13 @@
 >
 > **FA-N1 is not in this table** — it is a defect in the audit's §7 prose rather
 > than in the game, and is recorded in the report's §5 and amended in place.
+> ✅ **BUILT September 5, 2026 (slice 9, with FA-26) — and its own census was
+> wrong by one:** the "typed strategic-objection route" is checked one frame up
+> (`_handle_strategic_objection_from_endpoint` zeroes the penalty it applied and
+> runs the checker at its return; the typed answer routes there too). THREE
+> unchecked families — the tick, the failed reinforcer, jealousy's docks — plus
+> two small writes the per-turn net covers. Record = the SLICE 9 block in
+> §Final Whole-Game Audit.
 >
 > **The five P1s:** a negated answer to any pending dialogue executes the
 > affirmative (**FA-N2** — typed `do not accept` SIGNS the treaty; hand-verified
@@ -393,7 +400,7 @@
 | **FA-N87** | P3 | **Harness: the digest's LEDGER line has never once printed a threat figure — the driver reads `threat_level` off GET /ledger, which emits no such key, so the coalition alarm is absent from all 1,246 archived LEDGER rows** Verified by opening: tools/playtest_driver.py:1389 `dig(ledger, "threat_level", "threat")`; :525-532 `ledger_line` renders the bit only `if threat is not None`; backend/game_logic/ledger.py:53-69 `build_strategic_ledger` returns forces/territories/economy/intel/manpower/orders/admiralty/calendar_label/authority/authority_label/actions_remaining/campaign_seed — `grep -c threat backend/game_logic/ledger.py` = 0; backend/main.py:4318-4327 GET /ledger wraps it as {success, ledger} plus identity overrides, no popup passthroughs. Verified by running (probe on the shipped 1805 boot, TestClient with M.parser/M.world/M.game_state swapped to a mock parser): world.threat_level = 70, `dig(ledger,'treasury','gold')` = 800, `dig(ledger,'net_gold','net')` = 1842, **`dig(ledger,'threat_level','threat')` = None**, and a recursive walk for any threat-ish key in the whole /ledger payload returns []. The fi… *Repro:* cd C:/Users/User/PycharmProjects/project-sovereign-map. (1) grep -c threat backend/game_logic/ledger.py -> 0. (2) grep -h "LEDGER" docs/audits/playtest_digests/*/digest.md / grep -c threat -> 0 (of 1246 LEDGER lines). (3) Save as probe_threat.py in the repo root and run `.venv/Scripts/python.exe probe_threat.py` (mock parser, no LLM spend): import contextlib, io, sys, os sys.stdout.reconfigure(encoding="utf-8") os.environ["LLM_MODE"]="mock" sys.path.insert(0, "tools") from fastapi.testclient imp… *Fix:* ONE seam: the third argument at tools/playtest_driver.py:1389. The driver already fetches GET /dispatch at :1392 — hoist that call above the ledger_line call and pass `dig(dispatch_payload, "threat_level")` (or read GET /test, which carries the same `threat_level` at main.py:2051) instead of digging /ledger for a key it does not have. No signature change, no backend change, both existing ledger_line tests keep passing. If the ledger screen should own the number too, the alternative one-seam fix … *Test:* tests/ for tools/playtest_driver.py, two arms. (1) The regression pin, so the fix is provably the thing that changes: boot the 1805 scenario in-process and assert `dig(client.get('/ledger').json(), 'threat_level', 'threat') is None` while `world.threat_level > 0` — this test is RED-by-intent today only in the sense that it documents the hole; convert it after the fix to assert the driver's extract… | `tools/playtest_driver.py:1389` | **OPEN** — verification pass; found by the FA-37 sweep |
 | **FA-N89** | P4 | **meta.json records the run's dice but not its world: --scenario, --cheats and --strict are unrecorded, so FA-39's proposed `script` field still would not say which world an archived digest ran in** Verified by opening: tools/playtest_driver.py:1271-1277 — the meta dict is exactly {name, seed, llm, transport, policy, turns_requested, started, from_save, rng}; argparse at :1436-1471 defines 15 flags including `--scenario` (:1440, 'allowlist name for /new_game'), `--cheats` (:1457, arms DEBUG_MODE) and `--strict` (:1459, whether unknown blockers would have failed the run), none of which reach the meta. Verified in the archive: `json.load(docs/audits/playtest_digests/audit-tutorial/meta.json).keys()` = [counters, from_save, llm, name, policy, rng, seed, started, status, transport, turns_requested, unknown_blockers] — no 'scenario', no 'cheats', no 'script'; its digest.md header line prints seed/llm/transport/policy only, and its boot line (digest.md:4) is the sole disclosure. tools/playtest_scripts/tutorial_lesson.json has no scenario key. Doc claim: docs/PLAYTESTING.md:312 ('meta.json… *Repro:* From the repo root: `python -c "import json;print(sorted(json.load(open('docs/audits/playtest_digests/audit-tutorial/meta.json',encoding='utf-8'))))"` -> no 'scenario'/'cheats'/'script'; `grep -n 'scenario' tools/playtest_driver.py` -> only :1291 (the POST) and :1440 (the flag) — it is never written to meta; `sed -n '4p' docs/audits/playtest_digests/audit-tutorial/digest.md` -> the boot message is the only tell. Then `.venv/Scripts/python.exe tools/playtest_driver.py --turns 1 --name scencheck -… *Fix:* ONE seam, and it should be FOLDED INTO FA-39's meta fix rather than built separately: the meta dict at tools/playtest_driver.py:1271-1277 gains `"scenario": args.scenario`, `"cheats": bool(args.cheats)`, `"strict": bool(args.strict)` alongside FA-39's `"script"`/`"llm_source"`, and the digest header line at :356-359 names the scenario when it is non-empty. Correct docs/PLAYTESTING.md:312 to say which args are recorded. *Test:* tests/test_playtest_driver_instrument.py — (a) a 1-turn run with `--scenario tutorial --cheats --strict` writes meta.json with scenario=='tutorial', cheats is True, strict is True, and digest.md's header names the scenario; a default run writes scenario==''. (b) A drift pin in the project's census idiom, so this cannot regress when the next flag is added: parse `main()`'s argparse `dest` set by AS… | `tools/playtest_driver.py:1271` | **OPEN** — verification pass; found by the FA-39 sweep |
 
-## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4, the slice-3 review round, slice 5, the slice-4 review round, slice 6, slice 7 and the slice-7 review round landed — see the boxed blocks)
+## Final Whole-Game Audit (FA) — filed September 1, 2026 (slices 8, 1, 2, 3, the slice-2 review round, slice 4, the slice-3 review round, slice 5, the slice-4 review round, slice 6, slice 7, the slice-7 review round and slice 9 — FA-26 — landed — see the boxed blocks)
 
 > **Review-round findings (September 4, 2026) — filed by the slice-2 review fleet, NOT fixed in the round; owned by slice 4 (the AI reads the board):**
 >
@@ -432,6 +439,108 @@
 >
 > **Build order for these rows = memo §6** (eight slices; slice 4 is the
 > position-10 blockers and should land before the export).
+
+> ### ✅ SLICE 9 — "THE QUESTION IS ASKED" (FA-26 + FA-N1) — FIXED September 5, 2026
+>
+> **Landing record: this block.** Rows closed: **FA-26** (P2 — the audit's
+> highest-leverage row) and **FA-N1** (the memo-prose defect with a census
+> behind it). ONE helper, `disobedience.stage_redemption(world, marshal, *,
+> result=None, events=None)`, after every trust-LOWERING write — it asks
+> `check_redemption_threshold` and puts the question where THIS caller's
+> carrier delivers it (a result dict → `redemption_event` + `state`, the
+> `/command` idiom; a tactical-events list → the row `hoist_tactical_redemption`
+> lifts) — and ONE per-turn NET in `_check_trust_warnings` that puts every
+> player marshal at trust ≤ 20 to the checker. Levers
+> `REDEMPTION_AT_EVERY_TRUST_WRITE` / `REDEMPTION_NET_ACTIVE`; **zero new
+> serialized fields** (the latch, the cooldown and `world.pending_redemption`
+> already existed; the checker owns every guard, so the helper is idempotent).
+>
+> **Reproduced first** (1805 boot, mock parser, the real `/command`): Lannes at
+> trust 23 with three victories, no estate, grace elapsed — `end turn` → **20**,
+> `end turn` → **17**, `redemption_pending` False throughout,
+> `world.pending_redemption` None, no `redemption_event` on either response
+> (the row's exact shape; the geometry must sit past turn 5 — at boot,
+> `turn − GRACE_TURNS` is negative and the tick reads it as "no clock").
+> Murat `trust.modify(-90)` direct → 0, nothing asked. A stubbed petition
+> rebuke 24 → 19, nothing asked. Two men at 15/12 → nothing asked at all: **no
+> end-turn path consulted the checker**, so the row's "no terminus" held for
+> every write, not only the tick's.
+>
+> **The seams — the FA-N1 census, corrected by reading:** (1) the erosion tick
+> `_process_dotation_state`, which now RETURNS its events; `advance_turn`
+> extends `tactical_events` with them (the list the end-turn hoist reads);
+> (2) the attack's failed-reinforcer `-3` in `_execute_attack`, staged on the
+> battle result so the question rides the same response as the battle (a
+> monkeypatched no-show at 22 → 19, asked; the friendly-fire sibling had always
+> asked); (3) jealousy's petition docks — `/marshal_petition_response` puts
+> every player marshal to the checker before the response is built, because
+> the docks lower BYSTANDERS too (rivalry, the Fontainebleau refusal);
+> (4) THE NET at the turn boundary, which is what covers the confiscation −1
+> and the diplomatic ±5 reactions (one turn late at most) and any write a
+> future slice forgets. **The census's fourth family was FALSE:** the typed
+> strategic "proceed" −10 in `_handle_strategic_objection_response` is
+> reachable only through `_handle_strategic_objection_from_endpoint` (the typed
+> answer and the button both route there via `handle_objection_response`),
+> which applies the penalty ITSELF for every MODERATE+ objection — the only
+> tier that raises a popup — ZEROES the stored penalty before re-executing, and
+> runs `check_redemption_threshold` at its own return. Measured: `Davout,
+> pursue Mack` objected MODERATE quoting −5; `insist` charged −8 = the −5 plus
+> the failed-roll −3 Berthier discloses (PT-C1). No double charge, no unchecked
+> write. Three families, not four; FA-N1's text is amended here and in the
+> verification report.
+>
+> **After:** Lannes is asked the turn he crosses (`awaiting_redemption_choice`
+> + `redemption_event` on the end-turn response, the tactical row, the world
+> field, the latch); the question is not minted again while it stands, and the
+> erosion CONTINUES under it (owed, not pardoned — 20 → 17). Murat's direct
+> write is asked at the boundary. The petition rebuke asks, and so does a
+> bystander the dock touched. Two men crossing in one tick → exactly ONE
+> question (the checker's one-live rule), the second asked once the first is
+> answered, the cooldown honoured after. Mack at 10 is never asked — the
+> erosion stays GR5-symmetric, the question is the player's.
+>
+> **The rider — a pre-existing P1 this slice made reachable in ordinary play:**
+> answering with `grant_autonomy` and ending the NEXT turn returned **HTTP 500
+> with the world already advanced** — the independent-command report embedded
+> the autonomous man's whole executor result, `new_state` (the live
+> `WorldState`) included, and `jsonable_encoder` died on a tuple-keyed map
+> inside it. **Reproduced on the committed pre-slice tree** (`2c451162`, a
+> detached worktree, the question staged by hand as the debug trigger does):
+> `grant_autonomy` 200, next `end turn` **500**, `current_turn` 2. The client
+> reads no field of that report (`independent_command_report` occurs in no
+> `.gd`). Fixed at the producer, `turn_manager._process_autonomous_marshals`:
+> the entry embeds a COPY with `new_state` stripped (the R4 warning in
+> CLAUDE.md). No lever — a serialization repair. The channel's first answer
+> had crashed the following turn for as long as autonomy has existed; nothing
+> found it because the question was structurally unreachable outside the
+> cavalry-limit and strategic seams, and no test ended a turn after granting it.
+>
+> **Delivery note:** a question staged with NO response carrier (an
+> AI-initiated battle whose French reinforcer failed; a standing question after
+> a later end turn) is still latched and written to `world.pending_redemption`;
+> the client's once-per-turn recovery poll (`GET /pending_redemption`, PT-B1)
+> and the world-swap re-attach deliver it. It is deliberately NOT re-raised on
+> every end-turn response — the popup is modal and the poll already exists.
+>
+> **Attribution:** `BASELINE_SERIES` + M1–M7 byte-identical **as MEASURED** —
+> the latch and the world field are player-side state no AI path reads, and on
+> the historical seed the passive France's marshals are not eroded to ≤ 20
+> within 40 turns (a fact about the harness). Corpus 675/675, untouched (no
+> parser change). **Tests** `tests/test_fa26_the_question_is_asked_2026_09_05.py`
+> **34**; sweep `tools/_sweep_fa26.json` **12 mutations, 12 killed, 0 INERT at
+> close** — three INERT on the first sweep, each a code smell resolved rather
+> than weakened: the helper's never-overwrite guard is unreachable through the
+> routes (the checker's one-live rule) → an isolation pin by construction, the
+> guard kept as defence in depth; the petition endpoint's extra
+> `_include_command_redemption_event` call was DEAD (`_build_result_response`
+> already forwards the key and `state`) → deleted; the endpoint's own nation
+> filter duplicated the checker's → the loop reads `get_player_marshals()` and
+> the mutation is retired. Two pins were made deterministic by standing the
+> newly-autonomous man down before the next turn (his AI action rolled a
+> capture question onto the same response — a legitimate two-question turn,
+> slice 6's business). **Not done:** the confiscation and diplomatic-reaction
+> writes stage nothing at their seams (the net covers them); the
+> AI-initiated-battle case rides the poll, not the response; zero `.gd`.
 
 > ### ✅ SLICE 7 REVIEW ROUND — "THE MOCK IS READ BY EVERY READER" — FIXED September 5, 2026
 >
@@ -2177,7 +2286,7 @@
 | **FA-23** | P2 | **An enemy garrison assault on French soil is invisible on every surface unless the assaulter's own province is FULL.** `_resolve_garrison_combat` (backend/commands/combat_executor.py:2857-3157) calls `world.log_event` zero times (verified by awk over the whole function) and returns only a private `events: [{"type": "garrison_assault", ...}]` row (:3148) or `garrison_destroyed`/`occupation_started` (:3051-3061). The enemy-phase fog filter `_filter_enemy_phase_by_visibility` (backend/main.py) treats a row as involving the player only for `battle`/`bombardment` events (:1749), an `ai_action.target` that is a player MARSHAL, or an event stamped `captured_from == player` (:1798) — a `garrison_assault` on a player-controlled region satisfies none, so the row falls to the region check and is suppressed when the ass… *Fix:* ONE producer seam: `_resolve_garrison_combat` should `world.log_event` its `garrison_assault`/`garrison_destroyed` event stamped with `nation` = the assaulted region's controller and `captured_from`-style ownership keys, so the three existing consumers can read it with one-line arms each — main.py's PT-E5 own-soil arm (:1798) extended to `evt.get("… | `backend/commands/combat_executor.py:3148` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **VERIFIED (Sept 2 verification)** |
 | **FA-24** | P2 | **Attacking a marshal France holds prisoner answers 'Unknown target' one turn after the dispatch called him 'our prisoner' — and the parser comment claiming PC15-4 covers it is false.** Archived digest: T2 'Marshal Kienmayer of Austria is taken at Swabia — he is our prisoner' (audit-tutorial/digest.md:23), T3 `Ney, attack Kienmayer` -> 'Unknown target: Kienmayer' (:26). Mechanism verified by opening: `_fuzzy_match_enemy` (executor.py:719-748) looks the name up through `get_enemy_by_name_for_nation` which requires strength > 0 (world_state.py:3750-3755), so a prisoner (strength 0 at the captor's capital) is 'not found'; the honest 'Enemy X not found. Available: …' error is then DISCARDED by combat_executor.py:4596-4601 (returned only when it carries 'Did you mean' or `refused_marshal_correction`), the region fuzzy finds nothing, and the bare fall-through at combat_executor.p… *Fix:* ONE seam: at the top of `_fuzzy_match_enemy` (executor.py:719), before the strength>0 lookup, resolve `world.marshals.get(enemy_name)`; if `captured_by` is set return a prisoner refusal that names the captor and location ('Kienmayer is our prisoner at Paris, Sire — he leads no army'), with a `prisoner` key so combat_executor.py:4596 returns it verb… | `backend/commands/executor.py:719` | **✅ FIXED September 4, 2026 (slice 7 — the mock speaks plainly)** — was OPEN — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **DUPLICATE (Sept 2 verification)** |
 | **FA-25** | P2 | **Bombardment casualties never reach the morning dispatch or Le Moniteur — seven turns of daily shelling narrate as a 29-turn-old grievance.** `_build_headline` derives `own_mauled` only under `elif etype == "battle"` (backend/game_logic/dispatch.py:742-770); the executor logs bombardments as `{"type": "bombardment", ...}` (backend/commands/combat_executor.py:3965-3981), a type absent from `_DISPATCH_EVENT_TYPES` (dispatch.py:2718-2790) and from the gazette's `_WAR_TYPES` (gazette.py:32-36). Reproduced: Ney loses 28,800 of 72,000 men (40%) to Wellington's guns in one shot → `_build_headline` returns None and the whole dispatch payload contains neither 'bombard' nor the casualty figure; the campaign log alone prints 'Wellington (Britain) bombarded Belgium — 28,800 casualties'. In the ambient40 campaign the enemy phase of turns 34, 3… *Fix:* ONE seam — the battle arm of `_build_headline` (dispatch.py:742): also accept `etype == "bombardment"`, summing the turn's `defender_casualties` per player marshal (two shots a turn is the AI's pattern) into the existing `own_mauled` identity `own_mauled:{name}` with a 'shelled' phrasing ('Ney stood under Moore's guns at Flanders: 2,269 men lost to… | `backend/game_logic/dispatch.py:742` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **NARROWED (Sept 2 verification)** |
-| **FA-26** | P2 | **Dotation erosion bleeds trust to 0 with no terminus, no petition and no redemption — the seam never reaches the trust<=20 channel.** `_process_dotation_state` applies `marshal.modify_trust(-points)` every eroding turn (world_state.py:6203-6206) and never calls `check_redemption_threshold`; the only per-turn sweep is `_check_trust_warnings` (world_state.py:12051-12107), which fires ONE terminal line at <40 and nothing else. The collective Fontainebleau petition needs >=3 eroding marshals (jealousy.py:114 `FONTAINEBLEAU_MIN_ERODING = 3`), so a single unpaid marshal has no voice at all. Verified by running: 1805 boot, Lannes battles_won=3 (expectation 120, satisfaction 0, `list_eligible_estates` = []): trust 85 -> 82 (turn 6, grace elapsed) -> 52 (t16) -> 37 (t21, the single warning) -> 22 (t26) -> 7 (t31) -> 0 (t36) and sta… *Fix:* ONE seam: in `_process_dotation_state`, immediately after `marshal.modify_trust(-points)` (world_state.py:6206), when `marshal.nation == self.player_nation and marshal.trust.value <= 20`, call `self.disobedience_system.check_redemption_threshold(marshal, self)` and append `{'type':'redemption_event','redemption_event':ev}` to the same `tactical_eve… | `backend/models/world_state.py:6206` | **OPEN** — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **VERIFIED (Sept 2 verification)** |
+| **FA-26** | P2 | **Dotation erosion bleeds trust to 0 with no terminus, no petition and no redemption — the seam never reaches the trust<=20 channel.** `_process_dotation_state` applies `marshal.modify_trust(-points)` every eroding turn (world_state.py:6203-6206) and never calls `check_redemption_threshold`; the only per-turn sweep is `_check_trust_warnings` (world_state.py:12051-12107), which fires ONE terminal line at <40 and nothing else. The collective Fontainebleau petition needs >=3 eroding marshals (jealousy.py:114 `FONTAINEBLEAU_MIN_ERODING = 3`), so a single unpaid marshal has no voice at all. Verified by running: 1805 boot, Lannes battles_won=3 (expectation 120, satisfaction 0, `list_eligible_estates` = []): trust 85 -> 82 (turn 6, grace elapsed) -> 52 (t16) -> 37 (t21, the single warning) -> 22 (t26) -> 7 (t31) -> 0 (t36) and sta… *Fix:* ONE seam: in `_process_dotation_state`, immediately after `marshal.modify_trust(-points)` (world_state.py:6206), when `marshal.nation == self.player_nation and marshal.trust.value <= 20`, call `self.disobedience_system.check_redemption_threshold(marshal, self)` and append `{'type':'redemption_event','redemption_event':ev}` to the same `tactical_eve… | `backend/models/world_state.py:6206` | ~~OPEN~~ — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **VERIFIED (Sept 2 verification)** · ✅ **FIXED September 5, 2026 — FA slice 9 "The Question Is Asked" (landing record in §Final Whole-Game Audit; the fix column's "append to the same tactical_events" is what landed, via the tick RETURNING its events and a shared helper — plus the per-turn net the row did not ask for)** |
 | **FA-27** | P2 | **Infantry forms square (1 AP) and then attacks — breaking the square — in the same enemy phase, every phase.** P2.5 (enemy_ai.py:1795-1840) forms square whenever enemy cavalry is adjacent, no artillery is adjacent and the cooldown/latch permit (condition at :1835), and it is evaluated BEFORE P4; the same marshal is then re-selected, P4 finds his attack, and the attack breaks the square via `_auto_break_square` (tactical_executor.py:461-485), which sets no `ai_square_cooldown`, so the square is formed again next phase. `form_square` costs 1 AP (world_state.py:942). PT-F6's latch stops the form/break/RE-form thrash within a phase and deliberately leaves 'attack breaks legal', which is exactly the surviving waste: one paid action per infantry marshal per phase on a formation he discards seconds later. *Fix:* ONE seam: gate the form condition at enemy_ai.py:1835 on the marshal having no strike this phase — `and self._find_attack_opportunity(marshal, nation, world) is None` (a corps that will attack does not first pay for a square it will break) — or, equivalently, evaluate P4 before P2.5 for infantry with an attackable target. Keep the PT-F6 latch and s… | `backend/ai/enemy_ai.py:1835` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **VERIFIED (Sept 2 verification)** · ✅ **FIXED September 4, 2026 — FA slice 4 "The AI Reads the Board" (landing record in §Final Whole-Game Audit)** |
 | **FA-28** | P2 | **Popup queue and dialogue stack disagree after any re-promotion: the envoy popup the game shows is refused as stale when clicked.** PopupQueue.PRIORITY_ORDER delivers `incoming_proposal_popup` ABOVE `incoming_settlement_offer_popup` (backend/models/cooldown_manager.py:158-159, verified by opening) while DialogueManager.DIALOGUE_PRIORITY ranks a settlement offer (2) ABOVE a proposal (3) (backend/models/dialogue_manager.py:185,191) and `_promote()` re-sorts the queue by that priority on every pop (dialogue_manager.py:779-793). A proposal arrives first (current, its popup payload written at ai_diplomacy.py:2058-2064 because `peek() is dialogue`), a settlement offer arrives second (queued, its popup pushed at turn_manager.py:621-623). Any preempt-then-pop in between — a Talleyrand `advisory` (assess), a CR-2 clarification, a… *Fix:* ONE seam, `_include_popup_passthroughs` (backend/main.py:1620-1640): after `pop_highest`, if `winner_key in ('incoming_proposal','incoming_settlement_offer')` and `winner_value.get('dialogue_id')` differs from `world.dialogue_manager.peek().get('dialogue_id')`, push the winner back (`world._popup_queue.push(winner_attr, winner_value)`) and instead… | `backend/main.py:1620` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **DUPLICATE (Sept 2 verification)** |
 | **FA-29** | P2 | **Shipped build: when the server is down the menu and the in-game connection failure tell the stranger to run a Python command that does not exist in the zip.** main_menu.gd:527 status line: 'The war office does not answer — start the backend: .venv\Scripts\python.exe -m backend.main'; main.gd:745: 'Start the Python server: python -m backend.main'; main_menu.gd:346 version line 'Ink & Iron — development build'. No script anywhere branches on OS.has_feature('editor'/'template') (grep across main_menu.gd/main.gd/utils.gd/settings_panel.gd/api_client.gd: zero hits), so the exported client shows the developer command verbatim. README_TESTER.txt:207-209 promises the opposite: 'The main menu names the launch command when the server is down; use launch.bat rather than starting the exe alone'. The dev string is pinned by tests/test_main_menu_and_ux_pass.py:… *Fix:* ONE seam: a Utils.launch_hint() static that returns the dev command under OS.has_feature('editor') and 'Close this window and double-click launch.bat (the server window must stay open)' on export templates; both main_menu.gd:527 and main.gd:745 read it; the version line reads a build tag. Keep the dev string so test_main_menu_and_ux_pass.py:129 hol… | `godot-client/project-sovereign/scripts/main_menu.gd:527` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **NARROWED (Sept 2 verification)** |
