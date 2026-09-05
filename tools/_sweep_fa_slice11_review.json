@@ -1,0 +1,142 @@
+[
+ {
+  "id": "tail/a the helper runs at all",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not EVERY_BREAK_COMPLETES_ITSELF:\n        return\n    # The freed nation's own corps come home.",
+  "new": "    if True:\n        return\n    # The freed nation's own corps come home.",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_sends_the_corps_home tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_graceful_exit_completes_too"
+ },
+ {
+  "id": "tail/b the corps come home",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    # The freed nation's own corps come home.\n    for marshal in list(world.marshals.values()):\n        if (getattr(marshal, 'original_nation', None) == vassal_name\n                and getattr(marshal, 'nation', '') == lord):",
+  "new": "    # The freed nation's own corps come home.\n    for marshal in list(world.marshals.values()):\n        if False:",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_sends_the_corps_home tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_war_exit_is_unchanged"
+ },
+ {
+  "id": "tail/c the siblings notice",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            other_state[\"loyalty\"] = max(\n                LOYALTY_MIN, other_state[\"loyalty\"] - 10)\n\n    # AI-4a step 5",
+  "new": "            other_state[\"loyalty\"] = max(\n                LOYALTY_MIN, other_state[\"loyalty\"])\n\n    # AI-4a step 5",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_still_moves_the_world tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_graceful_exit_completes_too"
+ },
+ {
+  "id": "tail/d the threat falls",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        reduce_threat(world, 10, \"vassal_rebellion\", target=lord)\n\n    world.modify_nation_relation(lord, vassal_name, -50)",
+  "new": "        reduce_threat(world, 0, \"vassal_rebellion\", target=lord)\n\n    world.modify_nation_relation(lord, vassal_name, -50)",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_still_moves_the_world"
+ },
+ {
+  "id": "tail/e the relation falls",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        reduce_threat(world, 10, \"vassal_rebellion\", target=lord)\n\n    world.modify_nation_relation(lord, vassal_name, -50)",
+  "new": "        reduce_threat(world, 10, \"vassal_rebellion\", target=lord)\n\n    world.modify_nation_relation(lord, vassal_name, 0)",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_still_moves_the_world tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_graceful_exit_completes_too"
+ },
+ {
+  "id": "tail/f the armistice exit calls it",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                complete_vassal_break(world, vassal_name, lord)\n                continue\n        else:",
+  "new": "                continue\n        else:",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_sends_the_corps_home"
+ },
+ {
+  "id": "tail/g the graceful exit calls it",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                complete_vassal_break(world, vassal_name, lord)\n                continue\n\n        # The four mechanical effects",
+  "new": "                continue\n\n        # The four mechanical effects",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_graceful_exit_completes_too"
+ },
+ {
+  "id": "tail/h the war exit calls it",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        # The four mechanical effects, shared with the other two exits.\n        complete_vassal_break(world, vassal_name, lord)",
+  "new": "        # The four mechanical effects, shared with the other two exits.\n        pass",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_war_exit_is_unchanged"
+ },
+ {
+  "id": "tail/i the armistice exit still ends there",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                complete_vassal_break(world, vassal_name, lord)\n                continue\n        else:",
+  "new": "                complete_vassal_break(world, vassal_name, lord)\n        else:",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_raises_no_war_alarm tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_no_exit_applies_the_tail_twice"
+ },
+ {
+  "id": "banner/a the rail banner is lord-gated",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if (not THE_BREAK_IS_BRIEFED_TRUTHFULLY\n                or lord == str(getattr(world, \"player_nation\", \"\") or \"\")):",
+  "new": "        if True:",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheRailBannerKnowsTheLord::test_a_foreign_lords_rebellion_raises_no_crisis_banner"
+ },
+ {
+  "id": "banner/b our own still raises it",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if (not THE_BREAK_IS_BRIEFED_TRUTHFULLY\n                or lord == str(getattr(world, \"player_nation\", \"\") or \"\")):",
+  "new": "        if False:",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheRailBannerKnowsTheLord::test_our_own_satellite_still_raises_it"
+ },
+ {
+  "id": "banner/c the break still happens",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        record_vassal_break(\n            world, vassal=vassal_name, lord=lord,\n            exit_path=\"vassal_rebellion\")",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheRailBannerKnowsTheLord::test_the_break_still_happened"
+ },
+ {
+  "id": "fog/a the arm reads both courts",
+  "file": "backend/campaign_log.py",
+  "old": "                   for nation in (event.get(\"vassal\"), event.get(\"lord\"))):",
+  "new": "                   for nation in (event.get(\"vassal\"),)):",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheFogArmReadsBothCourts::test_a_break_from_a_lord_we_watch_is_news"
+ },
+ {
+  "id": "fog/b it is still a gate",
+  "file": "backend/campaign_log.py",
+  "old": "            if any(_get_nation_visibility(str(nation or \"\"), world_state)\n                   in (FULL, PARTIAL)",
+  "new": "            if any(True\n                   for _ in [0]) or any(\n                   _get_nation_visibility(str(nation or \"\"), world_state)\n                   in (FULL, PARTIAL)",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheFogArmReadsBothCourts::test_a_break_between_two_courts_we_cannot_see_is_hidden"
+ },
+ {
+  "id": "rows/a only the keys the card reads",
+  "file": "backend/game_logic/war_status.py",
+  "old": "                {key: row.get(key) for key in COALITION_MEMBER_ROW_KEYS}\n                for row in _leader_first_rows(rows, enemy_leader)",
+  "new": "                dict(row)\n                for row in _leader_first_rows(rows, enemy_leader)",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheCoalitionRowsAreNotWholeRows::test_a_member_row_carries_only_what_the_card_reads tests/test_fa_slice11_review_round_2026_09_05.py::TestTheCoalitionRowsAreNotWholeRows::test_the_payload_cost_is_small"
+ },
+ {
+  "id": "rows/b each member keeps its own fogging",
+  "file": "backend/game_logic/war_status.py",
+  "old": "    \"war_exhaustion\",\n    \"army_strength\",",
+  "new": "    \"army_strength\",",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheCoalitionRowsAreNotWholeRows::test_each_member_keeps_its_own_fogging tests/test_fa_slice11_review_round_2026_09_05.py::TestTheCoalitionRowsAreNotWholeRows::test_a_member_row_carries_only_what_the_card_reads"
+ },
+ {
+  "id": "rows/c the card still gets its members",
+  "file": "backend/game_logic/war_status.py",
+  "old": "    \"opponent\",\n    \"opponent_display\",",
+  "new": "    \"opponent_display\",",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheCoalitionRowsAreNotWholeRows::test_the_card_still_gets_its_members tests/test_fa_slice11_review_round_2026_09_05.py::TestTheCoalitionRowsAreNotWholeRows::test_a_member_row_carries_only_what_the_card_reads"
+ },
+ {
+  "id": "client/a the arm reads the event",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\t\ttaken_from = str(mv.get(\"captured_from\", \"\"))",
+  "new": "\t\t\t\ttaken_from = str(action.get(\"captured_from\", \"\"))",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheClientReadsWhatTheBackendWrites::test_the_client_arm_reads_the_event_and_not_the_action"
+ },
+ {
+  "id": "client/b it only reads a move event",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\t\tif str(mv.get(\"type\", \"\")) != \"move\":",
+  "new": "\t\t\t\tif false:",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheClientReadsWhatTheBackendWrites::test_it_only_reads_a_move_event"
+ },
+ {
+  "id": "client/c the backend still stamps the fate",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            _fate = (capture_result or {}).get(\"capture_choice\")\n            if _fate:\n                events[0][\"capture_choice\"] = str(_fate)",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheClientReadsWhatTheBackendWrites::test_the_capture_is_not_at_the_top_level_of_the_action"
+ }
+]

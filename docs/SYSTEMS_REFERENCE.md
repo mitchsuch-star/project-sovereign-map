@@ -4124,8 +4124,13 @@ Whole-Game Audit. Five rules about the surfaces the player reads each turn.
 **A satellite breaking free briefs itself, at the exit it took.**
 `vassal.record_vassal_break(world, vassal=, lord=, exit_path=)` is called at
 all THREE exits of `check_vassal_rebellion` — war, armistice, graceful
-independence — and by the VS-6 free-defection arm's caller. It does two
-things:
+independence — and NOWHERE ELSE (an AST census pins the three call sites).
+The review round corrected this paragraph: it had claimed the VS-6
+free-defection arm's caller uses it too, which is false. A defection is
+briefed by `attempt_vassal_bribe`'s own `diplomatic_vassal_defected`
+dispatch line and `vassal_defected` log row; it never writes a
+`vassal_broke_free` row, and the `vassal_lost` headline class reads BOTH
+sources for exactly that reason. `record_vassal_break` does two things:
 
 - queues the per-exit dispatch template
   (`diplomatic_vassal_rebellion` / `..._broke_free_armistice` /
@@ -4136,13 +4141,41 @@ things:
   deleted, so a rule evaluated then can never see the satellite that just
   left;
 - writes ONE log row `vassal_broke_free` carrying `exit`, so the campaign log,
-  `_build_headline`'s window and Le Moniteur can see a rebellion at all.
+  `_build_headline`'s window and Le Moniteur can see a rebellion at all. Its
+  campaign-log fog arm reads BOTH courts (`vassal` and `lord`), like every
+  sibling vassal arm in `filter_campaign_log` — the first cut read the vassal
+  alone, so a satellite breaking from a lord we watch closely was hidden when
+  the satellite itself was dark.
 
 The graceful-independence exit is the one to watch: it `continue`s early, and
 on the 1805 board it is the exit both big satellites take (they cascade-join
 France's war and hit the war-instance side conflict). Any future work here
 must reach that branch, not only the war branch. The armistice exit ENDS at
 its own arm and no longer falls through to the war tail.
+
+**Every break completes itself.** `vassal.complete_vassal_break` holds the
+four things that are true of a satellite leaving however it left — the freed
+nation's assimilated corps come home, every sibling satellite loses 10
+loyalty, the lord's coalition threat falls 10, and the pair's relation falls
+50 — and all three exits call it. This is the review round's headline: the
+`continue` that stopped the armistice exit narrating a war it had not
+declared took those four with it, and the graceful exit had been dropping
+them since long before the slice. What the helper deliberately does NOT hold
+is the CRITICAL "War declared." banner and the `vassal_rebellion` event
+(both false outside the war exit) and the VS-3 granted-province reclaim
+(documented WAR-only — flipping provinces back during a respected armistice
+would itself be a violation). The helper call sits INSIDE the same lever
+gate as the armistice `continue`: with the briefing lever down that arm
+falls through to the war tail, which applies the four itself, and a call
+outside the gate doubles them.
+
+**The CRITICAL rail banner is lord-gated.** It fires only when the lord is
+the player. It was the last surface in this family left lord-blind, and once
+the dispatch line and the log row became lord-aware it contradicted them —
+measured, an Austria-lorded Bavaria rebelling raised *"Bavaria has rebelled
+against Austria! War declared."* on FRANCE's own rail, ungated by fog. A
+foreign lord's rebellion still reaches the player through the dispatch line,
+which is.
 
 `vassal_broke_free` REPLACED the inert `diplomatic_vassal_rebellion` entry in
 `CAMPAIGN_LOG_TYPES`, so the count is unchanged at 160 and the NINE pins on
@@ -4188,8 +4221,11 @@ server `message`.
 
 **The coalition card sees its members through the collapse.** CA8-D2 folds the
 bilateral fronts of one coalition war into a single HUD row. That row now
-carries `coalition_member_rows` (the folded pair rows, leader first), and ONE
-reader unfolds them — `war_status._coalition_rows` for the metadata block and
+carries `coalition_member_rows` — the folded pair rows, leader first, reduced
+to the seven keys in `COALITION_MEMBER_ROW_KEYS` (the six the card reads plus
+`opponent_display`, so a formed nation is never shown under its dead name).
+Carrying WHOLE rows costs 10KB of `active_wars` on every response; carrying
+these costs under 800 bytes. ONE reader unfolds them — `war_status._coalition_rows` for the metadata block and
 the weak-link loop, `war_detail_popup._coalition_member_rows` for the card's
 bar loop, member loop and Target loop. `_shared_coalition_war_id` deliberately
 does NOT use it: it wants the war, not the members. Without this the card drew

@@ -363,6 +363,22 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > delivery road makes the first road's pin inert: darken the second road in
 > the isolation pin, never weaken the assertion.**
 >
+> **▶ THE SLICE 11 REVIEW ROUND IS LANDED — September 5, 2026** (landing
+> record = the boxed SLICE 11 REVIEW ROUND block in `BUG_FIXES.md`). ⚠ 17 of
+> 23 agents died on a usage limit, so most refuter verdicts are missing and
+> `survives: false` on those rows is an ARTEFACT — everything was verified by
+> hand. **Two lenses found a fix I shipped production-dead** (FA-N33's client
+> arm read the action dict; the backend stamps the capture on `events[0]` —
+> and the pin was a source census for the wrong expression, the slice-10
+> round's own lesson repeated). **Three lenses found the armistice
+> `continue`** dropping FOUR mechanical effects — corps not returned,
+> siblings not told, relation and threat unmoved — with the
+> graceful-independence exit carrying the same gap since long before the
+> slice, on the exit BOTH big satellites take. Also fixed: the lord-blind
+> CRITICAL banner, the one-court fog arm, and a 10KB-per-response payload.
+> **Two of my own record claims corrected**, and FA-N21's unclosed halves
+> re-opened as **FA-R5**. Sweep 20/20, 0 inert.
+>
 > **▶ SLICE 11 "THE BRIEFING TELLS THE TRUTH" IS LANDED — September 5,
 > 2026** (landing record = the boxed SLICE 11 block in `BUG_FIXES.md`). Twelve
 > rows about the morning surfaces: FA-2 (P1), FA-N19, FA-N74, FA-38, FA-12,

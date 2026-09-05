@@ -4,6 +4,51 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 11 REVIEW ROUND "THE BREAK COMPLETES ITSELF" IS LANDED — September 5, 2026
+>
+> **Landing record = the boxed SLICE 11 REVIEW ROUND block in
+> `docs/BUG_FIXES.md`.** Three lenses at `63924903`. ⚠ **Seventeen of the
+> twenty-three agents died on a session usage limit**, so most refuter
+> verdicts are missing and the workflow's `survives: false` on those rows is
+> an ARTEFACT, not a judgement — every finding was verified by hand instead,
+> and treating them as refuted would have buried a P2.
+>
+> **Two lenses independently found a fix I shipped PRODUCTION-DEAD.**
+> FA-N33's client arm read `action.get("captured_from")`; the backend stamps
+> the capture on `events[0]`, and the action dict is the executor result
+> (measured: its top-level keys are `action_info, action_summary,
+> drill_cancelled, events, message, new_state, success`). The enemy-phase
+> dialog still said "Mack moves to Rhineland" and nothing else — and the pin
+> meant to prove the fix was a source-text census for the WRONG expression,
+> the exact trap the slice-10 round had just recorded.
+>
+> **Three lenses independently found the second.** FA-2's armistice `continue`
+> — added to stop that exit narrating a war it had not declared — took FOUR
+> MECHANICAL effects with it: the freed nation's corps stayed under its
+> ex-lord's flag, no sibling satellite noticed, the relation did not move, the
+> lord's threat did not fall. **The graceful-independence exit had the same
+> gap since long before the slice**, and it is the exit BOTH big satellites
+> take on the 1805 board. All three share `complete_vassal_break` now.
+>
+> **Three more, verified by hand:** the CRITICAL rail banner was the last
+> lord-blind surface in the family and CONTRADICTED its now-lord-aware
+> siblings (measured: *"Bavaria has rebelled against Austria! War declared."*
+> on FRANCE's rail); the new campaign-log fog arm read one court where every
+> sibling reads two; and `coalition_member_rows` carried whole 32-key rows,
+> measured at 3,578 → 13,630 bytes of `active_wars` per response, now 743.
+>
+> **Two record corrections, both mine.** FA-N21's cell claimed the build logs
+> a `garrison_assault` row — nothing does, so its campaign-log and
+> `battle_report` halves are NOT closed and are re-opened as **FA-R5**. And
+> §33 claimed `record_vassal_break` is used by the VS-6 defection arm; an AST
+> census finds three call sites, all in `check_vassal_rebellion`.
+>
+> **Gates:** suite green, ruff clean, parser eval 675/675, sweep **20/20
+> killed, 0 INERT**; M1–M7 and `BASELINE_SERIES` byte-identical; ONE `.gd`,
+> parse harness EXIT=0, boot 0 `SCRIPT ERROR`.
+>
+> **▶ NEXT = slice 12 "The Road Home and the Peace".**
+
 > # ✅ THE AUDIT BUILD: SLICE 11 "THE BRIEFING TELLS THE TRUTH" IS LANDED — September 5, 2026
 >
 > **Landing record = the boxed SLICE 11 block in `docs/BUG_FIXES.md` §Final

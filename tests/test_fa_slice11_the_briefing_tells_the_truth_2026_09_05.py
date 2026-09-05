@@ -554,11 +554,23 @@ class TestTheEnemyPhaseReadsTheField:
         assert moves[0]["capture_choice"] in ("secure", "plunder")
 
     def test_the_client_renders_the_fall_and_the_fate(self):
+        """CORRECTED by the slice-11 review round. The first cut of this
+        pin asserted `action.get("captured_from"` — the expression the
+        client actually shipped, and the WRONG one: the backend stamps the
+        capture on `events[0]`, so the arm was production-dead and this
+        census happily confirmed the dead literal. Two review lenses found
+        it independently. The full contract, including the measurement
+        that the action dict has no such key, is in
+        `test_fa_slice11_review_round_2026_09_05.py`; this keeps a drift
+        guard beside the row it belongs to."""
         src = (ROOT / "godot-client" / "project-sovereign" / "scripts"
-               / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
-        block = src.split('"move":')[1][:900]
-        assert 'action.get("captured_from"' in block
-        assert 'action.get("capture_choice"' in block
+               / "enemy_phase_dialog.gd").read_text(
+                   encoding="utf-8").replace("\r\n", "\n")
+        start = src.index('\n\t\t"move":\n')
+        arm = src[start:src.index('\n\t\t"forced_march":', start)]
+        assert 'action.get("events"' in arm
+        assert 'mv.get("captured_from"' in arm
+        assert 'action.get("captured_from"' not in arm
 
     def test_an_assault_on_our_own_garrison_survives_the_fog(self, world):
         """FA-23. No marshal defends a garrison, so the battle arm never

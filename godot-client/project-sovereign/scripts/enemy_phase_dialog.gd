@@ -164,11 +164,29 @@ func _format_action(action: Dictionary) -> String:
 			# into a French province rendered as routine movement — while
 			# the player's own mirror march says "Bohemia falls to France!"
 			# and asks what to do with it.
-			var taken_from = str(action.get("captured_from", ""))
+			#
+			# Review round: the first cut of this arm read `action.get(...)`.
+			# The backend stamps the capture on `events[0]`, and the action
+			# dict is the executor RESULT — measured, its top-level keys are
+			# exactly [action_info, action_summary, drill_cancelled, events,
+			# message, new_state, success]. So the arm was production-dead,
+			# and the pin that was meant to prove it was a source-text grep
+			# for the wrong expression. Read the event.
+			var taken_from = ""
+			var fate = ""
+			for mv in action.get("events", []):
+				if typeof(mv) != TYPE_DICTIONARY:
+					continue
+				if str(mv.get("type", "")) != "move":
+					continue
+				if str(mv.get("captured_from", "")) == "":
+					continue
+				taken_from = str(mv.get("captured_from", ""))
+				fate = str(mv.get("capture_choice", ""))
+				break
 			if taken_from != "":
 				action_str += " — " + target + " falls"
 				action_str += " (was " + Utils.display_nation_name(taken_from) + ")"
-				var fate = str(action.get("capture_choice", ""))
 				if fate == "plunder":
 					action_str += " and is sacked"
 				elif fate == "secure":

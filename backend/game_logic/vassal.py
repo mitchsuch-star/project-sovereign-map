@@ -911,6 +911,64 @@ def record_vassal_break(
     })
 
 
+# Slice-11 review round: False restores the round's pre-review behaviour
+# (the armistice exit's bare `continue`, and the graceful exit's
+# long-standing one, both dropping the mechanical tail).
+EVERY_BREAK_COMPLETES_ITSELF = True
+
+
+def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
+    """The four things that are TRUE of a satellite leaving, however it left.
+
+    Slice-11 review round. FA-2 gave the armistice exit an early `continue` so
+    it would stop falling through to the war tail's "War declared." copy — and
+    took four MECHANICAL effects with it, which the comment did not name and
+    the record did not disclose. Three review lenses found it independently.
+    Measured on the shipped board, armistice exit, lever on vs off:
+
+        marshal returned to the freed nation   False  /  True
+        a sibling satellite's loyalty          100    /  90
+        relation with the freed court            0    /  -50
+        the lord's coalition threat              70   /  60
+
+    The GRACEFUL-INDEPENDENCE exit has had the same gap since long before this
+    slice — its own `continue` predates it, and the lever does not touch that
+    branch — which matters, because that is the exit BOTH big satellites take
+    on the 1805 board. Measured there too: the marshal is not returned, the
+    siblings do not notice, the relation does not move. So all three exits
+    call this now.
+
+    What is NOT here, deliberately: the CRITICAL "War declared." notification
+    and the `vassal_rebellion` event (both false outside the war exit), and
+    the VS-3 granted-province reclaim (documented WAR-only — flipping
+    provinces back during a respected armistice would itself be a violation).
+    """
+    if not EVERY_BREAK_COMPLETES_ITSELF:
+        return
+    # The freed nation's own corps come home.
+    for marshal in list(world.marshals.values()):
+        if (getattr(marshal, 'original_nation', None) == vassal_name
+                and getattr(marshal, 'nation', '') == lord):
+            marshal.nation = vassal_name
+            marshal.original_nation = None
+            marshal.trust = Trust()
+            if hasattr(marshal, 'relationship_with_lord'):
+                delattr(marshal, 'relationship_with_lord')
+
+    # The other satellites are watching.
+    for other_vassal, other_state in world.vassals.items():
+        if other_state["lord"] == lord:
+            other_state["loyalty"] = max(
+                LOYALTY_MIN, other_state["loyalty"] - 10)
+
+    # AI-4a step 5: a shrinking empire scares Europe less.
+    if lord:
+        from backend.game_logic.coalition import reduce_threat
+        reduce_threat(world, 10, "vassal_rebellion", target=lord)
+
+    world.modify_nation_relation(lord, vassal_name, -50)
+
+
 def check_vassal_rebellion(world) -> List[dict]:
     """
     Check for vassal rebellions. Loyalty=0 triggers rebellion.
@@ -975,6 +1033,12 @@ def check_vassal_rebellion(world) -> List[dict]:
             # France! War declared." notification — while the state stayed
             # ARMISTICE. The armistice exit ends here, like its two siblings.
             if THE_BREAK_IS_BRIEFED_TRUTHFULLY:
+                # The four mechanical effects belong INSIDE this
+                # gate: with the lever down the arm falls through to
+                # the war tail, which applies them itself, and a call
+                # out here would double them (measured: sibling
+                # loyalty -20, relation -100).
+                complete_vassal_break(world, vassal_name, lord)
                 continue
         else:
             from backend.game_logic.diplomacy import (
@@ -1067,44 +1131,57 @@ def check_vassal_rebellion(world) -> List[dict]:
                 record_vassal_break(
                     world, vassal=vassal_name, lord=lord,
                     exit_path="vassal_rebellion_independent")
+                # PRE-EXISTING (this `continue` predates slice 11 and the
+                # lever does not reach it): this exit dropped the same four
+                # mechanical effects, and it is the exit BOTH big satellites
+                # take on the 1805 board.
+                complete_vassal_break(world, vassal_name, lord)
                 continue
 
-        # Transfer vassal marshals back and clean up stale state
-        for marshal in list(world.marshals.values()):
-            if (getattr(marshal, 'original_nation', None) == vassal_name
-                    and getattr(marshal, 'nation', '') == lord):
-                marshal.nation = vassal_name
-                marshal.original_nation = None  # Clear stale pre-vassalage marker
-                marshal.trust = Trust()  # Reset trust for transferred marshal
-                if hasattr(marshal, 'relationship_with_lord'):
-                    delattr(marshal, 'relationship_with_lord')
+        # The four mechanical effects, shared with the other two exits.
+        complete_vassal_break(world, vassal_name, lord)
+        if not EVERY_BREAK_COMPLETES_ITSELF:
+            for marshal in list(world.marshals.values()):
+                if (getattr(marshal, 'original_nation', None) == vassal_name
+                        and getattr(marshal, 'nation', '') == lord):
+                    marshal.nation = vassal_name
+                    marshal.original_nation = None
+                    marshal.trust = Trust()
+                    if hasattr(marshal, 'relationship_with_lord'):
+                        delattr(marshal, 'relationship_with_lord')
+            for other_vassal, other_state in world.vassals.items():
+                if other_state["lord"] == lord:
+                    other_state["loyalty"] = max(
+                        LOYALTY_MIN, other_state["loyalty"] - 10)
+            if lord:
+                from backend.game_logic.coalition import reduce_threat
+                reduce_threat(world, 10, "vassal_rebellion", target=lord)
+            world.modify_nation_relation(lord, vassal_name, -50)
 
-        # Cascade: all other vassals -10 loyalty
-        for other_vassal, other_state in world.vassals.items():
-            if other_state["lord"] == lord:
-                other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
-
-        # Coalition threat reduction from rebellion (AI-4a step 5: the
-        # LOSING lord's slot — a shrinking empire scares Europe less).
-        if lord:
-            from backend.game_logic.coalition import reduce_threat
-            reduce_threat(world, 10, "vassal_rebellion", target=lord)
-
-        # Relation -50
-        world.modify_nation_relation(lord, vassal_name, -50)
-
-        # Notification: vassal rebellion (Session 8C)
-        from backend.notifications import (
-            create_notification as _cr_notif, NotificationPriority as _NP,
-        )
-        from backend.notifications import VASSAL_REBELLION as _VR_CONST
-        world.notifications.add(_cr_notif(
-            _VR_CONST,
-            _NP.CRITICAL,
-            f"{vassal_name} REBELLED!",
-            f"{vassal_name} has rebelled against {lord}! War declared.",
-            int(world.current_turn),
-        ))
+        # Notification: vassal rebellion (Session 8C).
+        #
+        # Slice-11 review round: gated on the lord being the PLAYER. This was
+        # the one surface in the break family left lord-blind, and once the
+        # dispatch line and the campaign-log row became lord-aware it
+        # CONTRADICTED them: measured, an Austria-lorded Bavaria rebelling
+        # raised a CRITICAL alert on France's own rail reading "Bavaria has
+        # rebelled against Austria! War declared." — a crisis banner about
+        # somebody else's satellite, with no fog gate at all. A foreign
+        # lord's rebellion still reaches the player through the dispatch
+        # line, which IS fog-gated.
+        if (not THE_BREAK_IS_BRIEFED_TRUTHFULLY
+                or lord == str(getattr(world, "player_nation", "") or "")):
+            from backend.notifications import (
+                create_notification as _cr_notif, NotificationPriority as _NP,
+            )
+            from backend.notifications import VASSAL_REBELLION as _VR_CONST
+            world.notifications.add(_cr_notif(
+                _VR_CONST,
+                _NP.CRITICAL,
+                f"{vassal_name} REBELLED!",
+                f"{vassal_name} has rebelled against {lord}! War declared.",
+                int(world.current_turn),
+            ))
 
         events.append({
             "type": "vassal_rebellion",

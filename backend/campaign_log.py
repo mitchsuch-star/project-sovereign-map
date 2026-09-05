@@ -895,9 +895,15 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             if str(event.get("lord") or "") == player_nation:
                 filtered.append(event)
                 continue
+            # Review round: the first cut read the VASSAL's visibility alone,
+            # while every sibling vassal arm in this function reads BOTH
+            # courts (`for nation in (vassal, overlord)`). A satellite
+            # breaking from a lord we watch closely is news we would have,
+            # even if the satellite itself is dark.
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
-            if _get_nation_visibility(
-                    str(event.get("vassal") or ""), world_state) in (FULL, PARTIAL):
+            if any(_get_nation_visibility(str(nation or ""), world_state)
+                   in (FULL, PARTIAL)
+                   for nation in (event.get("vassal"), event.get("lord"))):
                 filtered.append(event)
             continue
 

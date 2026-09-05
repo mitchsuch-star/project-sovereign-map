@@ -490,6 +490,21 @@ def _build_foreign_wars(world) -> List[Dict[str, Any]]:
 # (one bar, one member line, no Targets, no coordination, no weak link).
 COALITION_CARD_KEEPS_ITS_MEMBERS = True
 
+# The keys the coalition card actually reads off a member row: the bar loop
+# (opponent, war_score), the member-line loop (opponent, war_exhaustion,
+# army_strength) and the Target loop (opponent, in_coalition,
+# is_coalition_leader). `opponent_display` rides along so a formed nation is
+# never shown under its dead name (NA-6 §11.8-3).
+COALITION_MEMBER_ROW_KEYS = (
+    "opponent",
+    "opponent_display",
+    "war_score",
+    "war_exhaustion",
+    "army_strength",
+    "in_coalition",
+    "is_coalition_leader",
+)
+
 
 def _coalition_rows(wars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The per-member rows behind the coalition card (FA-N75).
@@ -607,8 +622,15 @@ def _collapse_shared_war_instance_rows(
         # and the client read these instead of re-deriving from a row that
         # no longer represents anybody in particular.
         if COALITION_CARD_KEEPS_ITS_MEMBERS:
+            # Review round: the first cut carried WHOLE rows — 32 keys each,
+            # where the card reads six — and measured 3,578 -> 13,630 bytes
+            # of `active_wars` on every single HTTP response. Carry what the
+            # card reads. Each member keeps its OWN fogged `war_exhaustion`
+            # and `army_strength`, which is the point: the collapsed row's
+            # were the leader's.
             combined["coalition_member_rows"] = [
-                dict(row) for row in _leader_first_rows(rows, enemy_leader)
+                {key: row.get(key) for key in COALITION_MEMBER_ROW_KEYS}
+                for row in _leader_first_rows(rows, enemy_leader)
             ]
         combined["opponents"] = ordered_opponents
         combined["opponent"] = (
