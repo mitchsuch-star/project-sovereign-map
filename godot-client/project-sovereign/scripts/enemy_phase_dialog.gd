@@ -158,6 +158,21 @@ func _format_action(action: Dictionary) -> String:
 				action_str += "attacks " + target
 		"move":
 			action_str += "moves to " + target
+			# FA-N33 (slice 11): a province changing hands is not a march.
+			# The event has carried `captured_from` since PT-E5 and this arm
+			# read only the destination, so an enemy army walking unopposed
+			# into a French province rendered as routine movement — while
+			# the player's own mirror march says "Bohemia falls to France!"
+			# and asks what to do with it.
+			var taken_from = str(action.get("captured_from", ""))
+			if taken_from != "":
+				action_str += " — " + target + " falls"
+				action_str += " (was " + Utils.display_nation_name(taken_from) + ")"
+				var fate = str(action.get("capture_choice", ""))
+				if fate == "plunder":
+					action_str += " and is sacked"
+				elif fate == "secure":
+					action_str += " and is secured"
 		"forced_march":
 			# PT-D4: a 3+ hop chain collapsed server-side into one line —
 			# origin (when scouted) → each stage → terminus, losses summed.
@@ -258,6 +273,29 @@ func _format_action(action: Dictionary) -> String:
 		elif event.get("type") == "bombardment":
 			print("[ENEMY_PHASE_DEBUG] Calling _format_bombardment for bombardment event")
 			result += _format_bombardment(event)
+		elif event.get("type") == "garrison_assault":
+			# FA-23 / FA-N21 (slice 11): the assault on a garrison has no
+			# marshal on the defending side, so no arm here matched it and
+			# the dialog printed the action line alone — "Mack attacks
+			# Rhineland" — with no losses, no remaining strength, nothing.
+			# Built from the STRUCTURED event, never the server `message`
+			# (FA-N21's own requirement, and the reason both rows share
+			# this fix).
+			AudioManager.play("cannon_distant")
+			var ga_region = str(event.get("region", "the works"))
+			var ga_lost = int(event.get("garrison_losses", 0))
+			var ga_left = int(event.get("garrison_remaining", 0))
+			var ga_att = int(event.get("attacker_losses", 0))
+			result += "[color=#" + COLOR_ERROR + "]    Assault on the garrison of " + ga_region + "[/color]\n"
+			result += "[color=#" + COLOR_ERROR + "]      Garrison: " + _format_number(ga_lost)
+			result += " lost, " + _format_number(ga_left) + " still under arms[/color]\n"
+			if ga_att > 0:
+				result += "[color=#" + Utils.COLOR_INFO + "]      The assault cost them "
+				result += _format_number(ga_att) + ".[/color]\n"
+		elif event.get("type") == "garrison_destroyed":
+			AudioManager.play("cannon_distant")
+			var gd_region = str(event.get("region", "the works"))
+			result += "[color=#" + COLOR_ERROR + "]    The garrison of " + gd_region + " is destroyed.[/color]\n"
 		elif event.get("type") == "conquest":
 			var region = event.get("region", "territory")
 			var capture_choice = event.get("capture_choice", "")

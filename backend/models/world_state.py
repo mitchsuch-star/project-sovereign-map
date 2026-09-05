@@ -4029,7 +4029,16 @@ class WorldState:
             if nation in self.active_treaties[key].get("nations", []):
                 del self.active_treaties[key]
 
-        # Clean up vassal relationships
+        # Clean up vassal relationships.
+        #
+        # FA-38 (slice 11): read the lord BEFORE the row is torn down. The
+        # `nation_eliminated` event is logged ~60 lines below this point, and
+        # the dispatch's new `vassal_lost` arm has to know whether the court
+        # France just watched die was HERS. Reading `world.vassals` at
+        # briefing time cannot answer that — the row is gone by then. Golden
+        # Rule 4 in one line: get the value, use it, then clear.
+        _lord_of_the_fallen = str(
+            (self.vassals.get(nation) or {}).get("lord") or "")
         self.vassals.pop(nation, None)
         for vname in list(self.vassals.keys()):
             if self.vassals[vname].get("lord") == nation:
@@ -4094,6 +4103,11 @@ class WorldState:
         self.log_event({
             "type": "nation_eliminated",
             "nation": nation,
+            # FA-38: whose satellite it was, captured above before the row was
+            # deleted. Empty for an independent court, which is every court
+            # the existing `enemy_eliminated` arm cares about, so that arm is
+            # byte-unchanged.
+            "lord": _lord_of_the_fallen,
             "turn": int(self.current_turn),
         })
 

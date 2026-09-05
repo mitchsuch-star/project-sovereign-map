@@ -2061,6 +2061,11 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     # Explicit promote_if_empty() covers the case where current is already None.
     world.dialogue_manager.promote_if_empty()
 
+# FA-23 (slice 11) flip lever: False restores the suppression of an enemy
+# assault on the player's own garrison.
+THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED = True
+
+
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     """
     Fog of War (Session 34B): Filter enemy phase actions by player visibility.
@@ -2159,6 +2164,36 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                     if not isinstance(evt, dict):
                         continue
                     if evt.get("captured_from") == player_nation:
+                        involves_player = True
+                        break
+
+            # ── FA-23 (slice 11): an ASSAULT ON OUR OWN GARRISON ───────
+            # The same shape one step further in. A garrison assault has no
+            # marshal on the defending side, so the battle arm above never
+            # matched it, and the region gate below keys on the ASSAULTER's
+            # province — which for the ordinary P4.25 rung is enemy ground
+            # at PARTIAL. Measured: a French detachment at Rhineland cut
+            # from 8,000 to 4,000 by Mack, `total_actions` 1 before the
+            # filter and 0 after. The assault itself lights the ASSAULTED
+            # province FULL (`update_intel_from_battle`), so the province
+            # France is being attacked in was fully visible while the
+            # report of the attack was suppressed.
+            #
+            # It leaks nothing the payload does not already carry: the
+            # garrison figure the player owns has changed, and the region
+            # is his.
+            if (THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED
+                    and not involves_player and isinstance(events, list)):
+                for evt in events:
+                    if not isinstance(evt, dict):
+                        continue
+                    if evt.get("type") not in ("garrison_assault",
+                                               "garrison_destroyed"):
+                        continue
+                    _assaulted = str(evt.get("region")
+                                     or evt.get("defender_location") or "")
+                    _region = world_state.regions.get(_assaulted)
+                    if _region is not None and _region.controller == player_nation:
                         involves_player = True
                         break
 

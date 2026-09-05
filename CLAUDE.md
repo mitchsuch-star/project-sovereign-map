@@ -363,6 +363,24 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > delivery road makes the first road's pin inert: darken the second road in
 > the isolation pin, never weaken the assertion.**
 >
+> **▶ SLICE 11 "THE BRIEFING TELLS THE TRUTH" IS LANDED — September 5,
+> 2026** (landing record = the boxed SLICE 11 block in `BUG_FIXES.md`). Twelve
+> rows about the morning surfaces: FA-2 (P1), FA-N19, FA-N74, FA-38, FA-12,
+> FA-N14, FA-25, FA-32, FA-23, FA-N21, FA-N33, FA-N75 closed. A satellite
+> breaking free was briefed as *"has ceased to exist"* on all three exits
+> while it stood at war holding its province — and **the row's ordering-bug
+> framing is wrong**: the true line was dropped at RENDER time, so a reorder
+> alone was a no-op, and the filed fix would have missed the graceful-break
+> exit that BOTH big satellites take on the shipped board. Also: the soil
+> alarm's run restarted on every enemy move and fired for CONQUERED soil; a
+> bombardment reached neither briefing nor gazette; `dispatch["prisoners"]`
+> had no client reader on either surface while the ledger called a prisoner an
+> idle corps; an assault on our own garrison was fogged out; an unopposed
+> conquest rendered as a march; and the coalition card was blind to two of its
+> three members. **FA-53 is REFUTED by a landed design decision** (WO-D6 kept
+> the three-province page and pinned it five ways) — built, measured,
+> reverted, refutation recorded at the seam. Sweep 31/31, 0 inert.
+>
 > **▶ THE SLICE 10 REVIEW ROUND IS LANDED — September 5, 2026** (landing
 > record = the boxed SLICE 10 REVIEW ROUND block in `BUG_FIXES.md`). Three
 > lenses at `f1fe18ab` with two refuters per finding: nine survived and **none

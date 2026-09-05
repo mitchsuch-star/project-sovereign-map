@@ -257,7 +257,7 @@ func _render_forces():
 		# Status with color coding
 		var status_color = Utils.COLOR_INFO
 		match status:
-			"broken", "retreating":
+			"broken", "retreating", "captured":
 				status_color = Utils.COLOR_ERROR
 			"drilling":
 				status_color = Utils.COLOR_BLUE
@@ -265,7 +265,15 @@ func _render_forces():
 				status_color = Utils.COLOR_GREY
 
 		bbcode += "  Status: [color=#" + status_color + "]" + status.replace("_", " ").capitalize() + "[/color]"
-		bbcode += "  Location: " + loc + "\n"
+		# FA-32 (slice 11): this tab listed a PRISONER as an idle corps standing
+		# in the captor's own capital at strength 0 with "No active orders" —
+		# the persistent surface the player opens, saying the one thing that is
+		# not true. Where he is held is not where he is posted.
+		if bool(f.get("captured", false)):
+			var captor = Utils.display_nation_name(str(f.get("captured_by", "")))
+			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]Held by " + captor + " at " + loc + "[/color]\n"
+		else:
+			bbcode += "  Location: " + loc + "\n"
 		bbcode += "  Strength: " + _format_number(strength)
 		bbcode += "  Stance: " + stance + "\n"
 

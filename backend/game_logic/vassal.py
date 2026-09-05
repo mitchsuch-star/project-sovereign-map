@@ -844,6 +844,73 @@ def process_vassal_loyalty(world) -> List[dict]:
 # REBELLION CHECK (advance_turn Step 7)
 # ═══════════════════════════════════════════════════════
 
+# FA slice 11 flip lever: False restores the pre-slice briefing (the
+# "ceased to exist" line on every break, no log row, no per-exit copy).
+THE_BREAK_IS_BRIEFED_TRUTHFULLY = True
+
+# The three ways a satellite stops being one, and what the player is told.
+_VASSAL_BREAK_TEMPLATE = {
+    "vassal_rebellion": "diplomatic_vassal_rebellion",
+    "vassal_rebellion_armistice": "diplomatic_vassal_broke_free_armistice",
+    "vassal_rebellion_independent": "diplomatic_vassal_broke_free_peace",
+}
+
+
+def record_vassal_break(
+    world,
+    *,
+    vassal: str,
+    lord: str,
+    exit_path: str,
+) -> None:
+    """Brief and LOG a satellite breaking free (FA-2 / FA-N74 / FA-38).
+
+    Three defects met at these three exits.
+
+    FA-2: the dispatch's DIPLOMATIC EVENTS rail said *"Switzerland has ceased
+    to exist."* while Switzerland stood at Bern at war with France. The false
+    line was queued with fog rule `always`; the TRUE line was queued
+    `player_vassal`, and `_is_dispatch_event_visible` reads `world.vassals` at
+    RENDER time — by which point the row has been deleted. So the truth was
+    dropped whichever side of the `del` it sat on: the row's "queued after the
+    delete" framing is an ordering bug and it is not one. Visibility is decided
+    HERE, at queue time, and it is lord-aware (GR5): the player's own satellite
+    is `always`, a foreign lord's is `partial_on_nation`.
+
+    FA-N74: none of the three exits ever wrote to `world.event_log`, so the
+    campaign log, `_build_headline`'s window and Le Moniteur could not see a
+    rebellion at all. `vassal_broke_free` is one type carrying its `exit`.
+
+    FA-38: with the row logged, `_build_headline` can finally lead with it.
+
+    The graceful-independence exit (`vassal_rebellion_independent`) is the one
+    that matters most and the one the filed fix would have missed: it
+    `continue`s before the notification the fix named, and on the shipped 1805
+    board it is the exit BOTH big satellites take, because they cascade-joined
+    France's war and hit the war-instance side conflict.
+    """
+    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
+        return
+    from backend.game_logic.dispatch import queue_dispatch_event
+
+    player = str(getattr(world, "player_nation", "") or "")
+    template = _VASSAL_BREAK_TEMPLATE.get(exit_path)
+    if template:
+        queue_dispatch_event(
+            world,
+            template,
+            {"nation": vassal, "lord": lord},
+            "always" if lord == player else "partial_on_nation",
+        )
+    world.log_event({
+        "type": "vassal_broke_free",
+        "vassal": vassal,
+        "lord": lord,
+        "exit": exit_path,
+        "turn": int(getattr(world, "current_turn", 0)),
+    })
+
+
 def check_vassal_rebellion(world) -> List[dict]:
     """
     Check for vassal rebellions. Loyalty=0 triggers rebellion.
@@ -873,10 +940,16 @@ def check_vassal_rebellion(world) -> List[dict]:
         granted_regions = list(
             world.vassals[vassal_name].get("granted_regions") or [])
 
-        # Dispatch event: vassal dissolved (Session 8D)
-        from backend.game_logic.dispatch import queue_dispatch_event
-        queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
-                            {"carved_name": vassal_name}, "always")
+        # FA-2 (slice 11): the "{carved_name} has ceased to exist." line that
+        # stood here was FALSE on every exit — the satellite is breaking free,
+        # not being dissolved — and it was the only dispatch trace the player
+        # got, because the true line was dropped at render time. Each exit now
+        # briefs itself through `record_vassal_break`. Kept behind the lever
+        # so False reproduces the pre-slice briefing exactly.
+        if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
+                                {"carved_name": vassal_name}, "always")
 
         # Remove vassal state
         del world.vassals[vassal_name]
@@ -893,6 +966,16 @@ def check_vassal_rebellion(world) -> List[dict]:
                 "lord": lord,
                 "message": f"{vassal_name} breaks free but the armistice holds — no war declared."
             })
+            record_vassal_break(
+                world, vassal=vassal_name, lord=lord,
+                exit_path="vassal_rebellion_armistice")
+            # FA-2 rider (cross-row 2 of the reproduction): this exit used to
+            # fall THROUGH to the shared tail, which appended the WAR copy
+            # ("War declared.") and raised the CRITICAL "has rebelled against
+            # France! War declared." notification — while the state stayed
+            # ARMISTICE. The armistice exit ends here, like its two siblings.
+            if THE_BREAK_IS_BRIEFED_TRUTHFULLY:
+                continue
         else:
             from backend.game_logic.diplomacy import (
                 _process_war_cascade,
@@ -981,6 +1064,9 @@ def check_vassal_rebellion(world) -> List[dict]:
                         f"- an independent power, though no war is declared."
                     ),
                 })
+                record_vassal_break(
+                    world, vassal=vassal_name, lord=lord,
+                    exit_path="vassal_rebellion_independent")
                 continue
 
         # Transfer vassal marshals back and clean up stale state
@@ -1026,10 +1112,13 @@ def check_vassal_rebellion(world) -> List[dict]:
             "lord": lord,
             "message": f"{vassal_name} has REBELLED! All vassal marshals have returned to {vassal_name}. War declared.",
         })
-        # Dispatch event (Session 8D)
-        from backend.game_logic.dispatch import queue_dispatch_event
-        queue_dispatch_event(world, "diplomatic_vassal_rebellion",
-                            {"nation": vassal_name}, "player_vassal")
+        record_vassal_break(
+            world, vassal=vassal_name, lord=lord,
+            exit_path="vassal_rebellion")
+        if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_vassal_rebellion",
+                                {"nation": vassal_name}, "player_vassal")
 
     return events
 
@@ -2234,10 +2323,18 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     lord = state["lord"]
     granted_regions = list(state.get("granted_regions") or [])
 
-    from backend.game_logic.dispatch import queue_dispatch_event
-    queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
-                         {"carved_name": vassal_name, "protector": lord},
-                         "always")
+    # FA-N19 (slice 11): this arm queued "{carved_name} has ceased to
+    # exist." beside the caller's own "THE DEFECTION: Britain's gold turns
+    # Switzerland against France." — of a court that keeps Bern and takes
+    # the field. Measured on seeds 1/3/4/7/8. `attempt_vassal_bribe` briefs
+    # every landed outcome already, and the TRANSFER outcome never queued
+    # this line at all, so the two arms now agree. Behind FA-2's lever, so
+    # False reproduces the pre-slice briefing on this arm too.
+    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
+                             {"carved_name": vassal_name, "protector": lord},
+                             "always")
 
     del world.vassals[vassal_name]
     world.invalidate_active_nations_cache()

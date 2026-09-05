@@ -125,7 +125,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	_set_header_flag("")
 	_clear_score_bars()
 	# Add a tug-of-war bar per coalition member
-	for w in wars:
+	for w in _coalition_member_rows(wars):
 		if w.get("in_coalition", false):
 			var opp = str(w.get("opponent", "?"))
 			var score = int(float(w.get("war_score", 0)))
@@ -138,7 +138,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	else:
 		_add_coalition_settlement_explainer()
 	# Add Target buttons for non-leader coalition members
-	for w in wars:
+	for w in _coalition_member_rows(wars):
 		if w.get("in_coalition", false) and not w.get("is_coalition_leader", false):
 			_add_target_button(str(w.get("opponent", "")))
 	show()
@@ -462,7 +462,7 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 	bbcode += "Leader: [color=" + COLOR_GOLD + "]" + Utils.display_nation_name(leader) + "[/color]   Posture: " + posture + "\n\n"
 
 	# Members (text summary — bars are in score_bar_container above)
-	for w in wars:
+	for w in _coalition_member_rows(wars):
 		if not w.get("in_coalition", false):
 			continue
 		var opp_name = str(w.get("opponent", "?"))
@@ -604,6 +604,25 @@ func _add_diplomatic_options_button(nation: String):
 		negotiate_clicked.emit(nation)
 	)
 	button_row.add_child(btn)
+
+
+func _coalition_member_rows(wars: Array) -> Array:
+	# FA-N75 (slice 11): CA8-D2 folds the three bilateral fronts of one
+	# coalition war into a single HUD row, and every block on this card
+	# iterates that list — so the card showed ONE strength bar, ONE member
+	# line and ZERO Target buttons for a three-power coalition. The backend
+	# now carries the folded pair rows on the collapsed row; unfold them
+	# here. A row without them is its own member, so a bilateral war and the
+	# legacy world are unchanged.
+	var out: Array = []
+	for w in wars:
+		var folded = w.get("coalition_member_rows", null)
+		if folded != null and folded is Array and folded.size() > 0:
+			for row in folded:
+				out.append(row)
+		else:
+			out.append(w)
+	return out
 
 
 func _shared_coalition_war_id(wars: Array) -> String:

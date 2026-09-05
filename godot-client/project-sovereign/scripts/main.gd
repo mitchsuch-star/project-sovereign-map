@@ -3588,6 +3588,25 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
 		add_output("")
 
+	# ═══ PRISONERS OF WAR ═══
+	# FA-32 (slice 11), and the same shape PT-E2 found one block below: the
+	# backend builds `dispatch["prisoners"]` and no client script read it, on
+	# EITHER surface. The `marshal_captured` headline window is two turns
+	# wide, so a marshal taken at Ulm vanished from the morning briefing on
+	# turn three and stayed gone for the rest of the campaign.
+	var prisoners = data.get("prisoners", [])
+	if prisoners != null and prisoners.size() > 0:
+		add_output("")
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]PRISONERS OF WAR[/color]")
+		for p in prisoners:
+			var p_name = str(p.get("name", "?"))
+			var p_captor = Utils.display_nation_name(str(p.get("captor", "")))
+			var p_turn = int(p.get("captured_turn", 0))
+			var p_line = "  " + p_name + " — held by " + p_captor
+			if p_turn > 0:
+				p_line += " since turn " + str(p_turn)
+			add_output("[color=#" + Utils.COLOR_ERROR + "]" + p_line + ".[/color]")
+
 	# ═══ DIPLOMATIC EVENTS ═══
 	# PT-E2: this block existed only on the re-read screen
 	# (`dispatch_view.gd:321`) and `main.gd` had ZERO references to

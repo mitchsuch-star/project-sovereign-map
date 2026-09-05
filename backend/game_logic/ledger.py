@@ -73,8 +73,21 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
 # FORCES SECTION
 # ============================================================================
 
+# FA-32 (slice 11) flip lever: False restores the ledger's silence about a
+# prisoner (an `idle` corps standing in the captor's capital at strength 0).
+THE_LEDGER_KNOWS_ITS_PRISONERS = True
+
+
 def _derive_status(marshal) -> str:
     """Derive marshal status from priority chain (highest wins)."""
+    if THE_LEDGER_KNOWS_ITS_PRISONERS and getattr(marshal, "captured_by", ""):
+        # FA-32: the Strategic Ledger is the surface a player OPENS, and it
+        # was the surface that lied. A captured marshal was listed on the
+        # FORCES tab as an `idle` corps at `Vienna` with strength 0 and "No
+        # active orders" — no captivity marker anywhere, in the backend or in
+        # `strategic_ledger.gd`. Captivity outranks every other status: a man
+        # in irons is not idle, not holding, not fortified.
+        return "captured"
     if marshal.broken:
         return "broken"
     if marshal.retreating:
@@ -151,6 +164,9 @@ def _build_forces(world, player: str) -> list:
                 "reckless": int(marshal.recklessness) if getattr(marshal, 'cavalry', False) else 0,
                 "exhausted": marshal._get_exhaustion_penalty() > 0,
             },
+            # FA-32: so the FORCES tab can say where he is and whose guest.
+            "captured": bool(getattr(marshal, "captured_by", "")),
+            "captured_by": str(getattr(marshal, "captured_by", "") or ""),
         })
     return forces
 

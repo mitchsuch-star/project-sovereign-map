@@ -1,0 +1,219 @@
+[
+ {
+  "id": "break/a the truthful line is queued at all",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n        return\n    from backend.game_logic.dispatch import queue_dispatch_event",
+  "new": "    if True:\n        return\n    from backend.game_logic.dispatch import queue_dispatch_event",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_a_rebel_is_not_said_to_have_ceased_to_exist tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_graceful_exit_is_briefed_at_all"
+ },
+ {
+  "id": "break/b the false line is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n            from backend.game_logic.dispatch import queue_dispatch_event\n            queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                                {\"carved_name\": vassal_name}, \"always\")",
+  "new": "        if True:\n            from backend.game_logic.dispatch import queue_dispatch_event\n            queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                                {\"carved_name\": vassal_name}, \"always\")",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_a_rebel_is_not_said_to_have_ceased_to_exist"
+ },
+ {
+  "id": "break/c the defection's false line is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n        queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                             {\"carved_name\": vassal_name, \"protector\": lord},\n                             \"always\")",
+  "new": "    if True:\n        queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                             {\"carved_name\": vassal_name, \"protector\": lord},\n                             \"always\")",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_free_defection_drops_the_false_line_too"
+ },
+ {
+  "id": "break/d the graceful exit is recorded",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                record_vassal_break(\n                    world, vassal=vassal_name, lord=lord,\n                    exit_path=\"vassal_rebellion_independent\")",
+  "new": "                pass",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_graceful_exit_is_briefed_at_all tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_every_exit_writes_to_the_event_log"
+ },
+ {
+  "id": "break/e the armistice exit stops there",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            if THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_armistice_exit_no_longer_declares_a_war_it_did_not"
+ },
+ {
+  "id": "break/f the log row is written",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    world.log_event({\n        \"type\": \"vassal_broke_free\",\n        \"vassal\": vassal,",
+  "new": "    _unused = ({\n        \"type\": \"vassal_broke_free\",\n        \"vassal\": vassal,",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_every_exit_writes_to_the_event_log tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_campaign_log_prints_a_sentence_not_a_type"
+ },
+ {
+  "id": "break/g the fog rule knows the lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            \"always\" if lord == player else \"partial_on_nation\",",
+  "new": "            \"always\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_fog_rule_is_decided_at_queue_time_and_knows_the_lord"
+ },
+ {
+  "id": "break/h the log type is registered",
+  "file": "backend/campaign_log.py",
+  "old": "    \"vassal_broke_free\",",
+  "new": "    \"vassal_broke_free_DISABLED\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_log_type_count_is_unchanged tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_campaign_log_prints_a_sentence_not_a_type"
+ },
+ {
+  "id": "break/i the one-liner reads the exit",
+  "file": "backend/campaign_log.py",
+  "old": "        if exit_path == \"vassal_rebellion_independent\":\n            return (f\"Vassal rebellion: {nation} breaks free of {lord} \"\n                    f\"and stands alone.\")",
+  "new": "        if False:\n            return (f\"Vassal rebellion: {nation} breaks free of {lord} \"\n                    f\"and stands alone.\")",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_campaign_log_prints_a_sentence_not_a_type"
+ },
+ {
+  "id": "lost/a the rebellion arm",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        elif A_LOST_SATELLITE_CAN_LEAD and etype in (\n                \"vassal_broke_free\", \"vassal_defected\", \"vassal_transferred\"):",
+  "new": "        elif False and etype in (\n                \"vassal_broke_free\", \"vassal_defected\", \"vassal_transferred\"):",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_a_rebellion_leads tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_the_graceful_break_leads_and_says_which_break_it_was"
+ },
+ {
+  "id": "lost/b the exit is named in the line",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            elif str(e.get(\"exit\") or \"\") == \"vassal_rebellion_independent\":\n                _detail = \"They broke free and stand alone.\"",
+  "new": "            elif False:\n                _detail = \"They broke free and stand alone.\"",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_the_graceful_break_leads_and_says_which_break_it_was"
+ },
+ {
+  "id": "lost/c our own satellite's conquest",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            elif (A_LOST_SATELLITE_CAN_LEAD and fallen\n                  and str(e.get(\"lord\") or \"\") == player_nation):",
+  "new": "            elif False:",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_our_own_satellite_being_conquered_leads"
+ },
+ {
+  "id": "lost/d the lord is stamped before the row is torn down",
+  "file": "backend/models/world_state.py",
+  "old": "            \"lord\": _lord_of_the_fallen,",
+  "new": "            \"lord\": \"\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_our_own_satellite_being_conquered_leads"
+ },
+ {
+  "id": "lost/e an enemy court is still a triumph",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if fallen and _we_fought_them:\n                _add(\"enemy_eliminated\", f\"enemy_eliminated:{fallen}\",",
+  "new": "            if False:\n                _add(\"enemy_eliminated\", f\"enemy_eliminated:{fallen}\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_an_enemy_court_dying_is_still_a_triumph_not_a_loss"
+ },
+ {
+  "id": "soil/a the run is one run",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "             identity=(\"enemy_on_our_soil\"\n                       if SOIL_ALARM_IS_ONE_RUN\n                       else f\"enemy_on_our_soil:{region_name}\"),",
+  "new": "             identity=f\"enemy_on_our_soil:{region_name}\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSoilAlarm::test_the_run_survives_the_enemy_moving_between_provinces"
+ },
+ {
+  "id": "soil/b a conquest is not French soil",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if (SOIL_ALARM_IS_HOME_SOIL_ONLY\n                and home_regions\n                and region_name not in home_regions):\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSoilAlarm::test_a_conquered_province_is_not_french_soil"
+ },
+ {
+  "id": "soil/c home soil still raises it",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if (SOIL_ALARM_IS_HOME_SOIL_ONLY\n                and home_regions\n                and region_name not in home_regions):",
+  "new": "        if SOIL_ALARM_IS_HOME_SOIL_ONLY:",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSoilAlarm::test_real_home_soil_still_raises_the_alarm"
+ },
+ {
+  "id": "shell/a the arm matches a bombardment",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        elif etype == \"battle\" or (THE_SHELLING_IS_BRIEFED\n                                   and etype == \"bombardment\"):",
+  "new": "        elif etype == \"battle\":",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheShellingIsBriefed::test_a_shelling_that_mauls_a_corps_reaches_the_headline"
+ },
+ {
+  "id": "shell/b it names the province",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                         region=(e.get(\"location\")\n                                 or e.get(f\"{side}_location\")\n                                 or \"the field\"),",
+  "new": "                         region=e.get(\"location\", \"the field\"),",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheShellingIsBriefed::test_it_names_the_province_and_not_the_field"
+ },
+ {
+  "id": "shell/c Le Moniteur can print it",
+  "file": "backend/game_logic/gazette.py",
+  "old": "    \"battle\", \"bombardment\", \"region_captured\", \"expedition_landed\",",
+  "new": "    \"battle\", \"region_captured\", \"expedition_landed\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheShellingIsBriefed::test_le_moniteur_can_print_it"
+ },
+ {
+  "id": "prisoner/a the ledger knows him",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    if THE_LEDGER_KNOWS_ITS_PRISONERS and getattr(marshal, \"captured_by\", \"\"):",
+  "new": "    if False:",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestThePrisonerIsOnTheSurfaces::test_the_ledger_says_he_is_held_and_not_idle"
+ },
+ {
+  "id": "prisoner/b the row carries the captor",
+  "file": "backend/game_logic/ledger.py",
+  "old": "            \"captured\": bool(getattr(marshal, \"captured_by\", \"\")),\n            \"captured_by\": str(getattr(marshal, \"captured_by\", \"\") or \"\"),",
+  "new": "            \"captured\": False,\n            \"captured_by\": \"\",",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestThePrisonerIsOnTheSurfaces::test_the_ledger_says_he_is_held_and_not_idle"
+ },
+ {
+  "id": "phase/a the capture fate is stamped",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            _fate = (capture_result or {}).get(\"capture_choice\")\n            if _fate:\n                events[0][\"capture_choice\"] = str(_fate)",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_a_bloodless_conquest_says_the_province_fell"
+ },
+ {
+  "id": "phase/b the region rides the move event",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            events[0][\"region\"] = target_name",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_a_bloodless_conquest_says_the_province_fell"
+ },
+ {
+  "id": "phase/c the garrison assault survives the fog",
+  "file": "backend/main.py",
+  "old": "            if (THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED\n                    and not involves_player and isinstance(events, list)):",
+  "new": "            if False:",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_an_assault_on_our_own_garrison_survives_the_fog"
+ },
+ {
+  "id": "phase/d it is our OWN soil only",
+  "file": "backend/main.py",
+  "old": "                    if _region is not None and _region.controller == player_nation:",
+  "new": "                    if _region is not None:",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_it_does_not_leak_an_assault_on_somebody_else"
+ },
+ {
+  "id": "card/a the folded rows are carried",
+  "file": "backend/game_logic/war_status.py",
+  "old": "        if COALITION_CARD_KEEPS_ITS_MEMBERS:\n            combined[\"coalition_member_rows\"] = [",
+  "new": "        if False:\n            combined[\"coalition_member_rows\"] = [",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_every_member_is_visible_to_the_card tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_the_coordination_and_the_weak_link_come_back"
+ },
+ {
+  "id": "card/b the metadata reads them",
+  "file": "backend/game_logic/war_status.py",
+  "old": "        members = [w[\"opponent\"] for w in _coalition_rows(wars)\n                   if w[\"in_coalition\"]]",
+  "new": "        members = [w[\"opponent\"] for w in wars if w[\"in_coalition\"]]",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_the_coordination_and_the_weak_link_come_back"
+ },
+ {
+  "id": "card/c the weak link reads them",
+  "file": "backend/game_logic/war_status.py",
+  "old": "        for w in _coalition_rows(wars):\n            if w[\"in_coalition\"] and w[\"war_exhaustion\"] is not None:",
+  "new": "        for w in wars:\n            if w[\"in_coalition\"] and w[\"war_exhaustion\"] is not None:",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_the_coordination_and_the_weak_link_come_back"
+ },
+ {
+  "id": "card/d the leader is first",
+  "file": "backend/game_logic/war_status.py",
+  "old": "    lead = [row for row in rows if str(row.get(\"opponent\", \"\")) == str(leader)]\n    rest = [row for row in rows if str(row.get(\"opponent\", \"\")) != str(leader)]\n    return lead + rest",
+  "new": "    return list(reversed(rows))",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_the_leader_is_first"
+ },
+ {
+  "id": "card/e a plain row is its own member",
+  "file": "backend/game_logic/war_status.py",
+  "old": "        else:\n            out.append(row)\n    return out",
+  "new": "        else:\n            pass\n    return out",
+  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_a_row_without_folded_members_is_its_own_member"
+ }
+]

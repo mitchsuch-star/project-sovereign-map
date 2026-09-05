@@ -4,6 +4,58 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: SLICE 11 "THE BRIEFING TELLS THE TRUTH" IS LANDED — September 5, 2026
+>
+> **Landing record = the boxed SLICE 11 block in `docs/BUG_FIXES.md` §Final
+> Whole-Game Audit.** Twelve rows about the surfaces the player reads every
+> morning. FA-2 (P1), FA-N19, FA-N74, FA-38, FA-12, FA-N14, FA-25, FA-32,
+> FA-23, FA-N21, FA-N33 and FA-N75 closed; **FA-53 REFUTED by a landed design
+> decision** — built, measured, reverted.
+>
+> **The satellite's fate.** A satellite stops being one three ways and the
+> player was told the same thing about all three: *"Switzerland has ceased to
+> exist."* — while Switzerland stood at Bern, at war, holding its province.
+> **The row's framing is wrong and the record says so:** the true line was
+> queued `player_vassal`, a rule evaluated at RENDER time against
+> `world.vassals`, from which the row has by then been deleted — so a reorder
+> alone would have been a no-op. Visibility is decided at queue time now, and
+> lord-aware. None of the three exits ever wrote to `world.event_log`, so no
+> rebellion could reach the campaign log, the headline window or Le Moniteur;
+> and with nothing logged, losing a satellite could never LEAD the briefing.
+> **The filed fix would have missed the exit that matters** — the graceful
+> break, which `continue`s before the site the fix names, and which is the
+> exit BOTH big satellites take on the shipped board.
+>
+> **The rest.** The soil alarm's run restarted whenever the enemy moved
+> province, and fired for provinces France had CONQUERED. A bombardment — the
+> mechanic that takes thousands of men without a battle — reached neither the
+> briefing nor the gazette. `dispatch["prisoners"]` was built and read by no
+> client script on either surface, while the Strategic Ledger listed a
+> prisoner as an idle corps in the captor's capital. An assault on the
+> player's own garrison was suppressed by a fog gate keyed on the ASSAULTER's
+> province. A province taken by an unopposed march rendered as routine
+> movement. And CA8-D2's collapse left a three-power coalition card with one
+> bar, one member line and no Targets — which also killed Talleyrand's
+> "court the weak link" counsel.
+>
+> **FA-53 is refuted, not deferred.** It wants a day's province losses
+> collapsed into a tally; WO slice 4 (WO-D6) measured the same failure and
+> answered it the other way, keeping the three-province page and pinning it
+> five ways. The collapse was built, red five pins, and was reverted rather
+> than flipping a landed decision in silence.
+>
+> **Gates:** suite green, ruff clean, parser eval 675/675, sweep **31/31
+> killed, 0 INERT on the first sweep**; M1–M7 and `BASELINE_SERIES`
+> byte-identical without re-record; FIVE `.gd` files — parse harness EXIT=0,
+> boot smoke 0 `SCRIPT ERROR`; zero new serialized fields. Two pins extended
+> CONSCIOUSLY (the new headline class needed a Berthier note, and the
+> diverse-tail floor's admit list would otherwise have passed in silence for
+> it); `len(CAMPAIGN_LOG_TYPES)` unchanged at 160 because the new type
+> replaces an inert one.
+>
+> **▶ NEXT = the slice-11 three-lens review round, then slice 12 "The Road
+> Home and the Peace".**
+
 > # ✅ THE AUDIT BUILD: THE SLICE 10 REVIEW ROUND "THE LETTER IS READ BEFORE IT IS SIGNED" IS LANDED — September 5, 2026
 >
 > **Landing record = the boxed SLICE 10 REVIEW ROUND block in

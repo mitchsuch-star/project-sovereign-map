@@ -618,7 +618,16 @@ class TestTheTailHasAFloor:
                     "enemy_eliminated", "capital_stormed",
                     "marshal_reversal", "own_broken",
                     "enemy_marshal_destroyed", "enemy_marshal_captured",
-                    "own_mauled"):
+                    "own_mauled",
+                    # FA-38 (slice 11), added CONSCIOUSLY: `vassal_lost`
+                    # is 84 and the floor admits it by exactly one point.
+                    # That is the point of the class — the measured
+                    # failure was Holland defecting, Switzerland dying
+                    # and Berry falling in one tick, and the page showed
+                    # only Berry with EMPTY sub-beats. This list is the
+                    # pin that would otherwise pass in silence for a new
+                    # class in the band.
+                    "vassal_lost"):
             assert w["home_captured"] - w[cls] <= drop, cls
         # ...and everything the measured failures showed it must REJECT:
         for cls in ("enemy_on_our_soil", "region_lost", "victory_won",

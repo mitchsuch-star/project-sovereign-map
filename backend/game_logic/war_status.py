@@ -278,7 +278,17 @@ def build_active_wars(world) -> Dict[str, Any]:
     if coalition and any(w["in_coalition"] for w in wars):
         # Coordination quality between members (for detail popup)
         from backend.game_logic.coalition import get_coalition_friction
-        members = [w["opponent"] for w in wars if w["in_coalition"]]
+        # FA-N75: read the FOLDED pair rows where the CA8-D2 collapse left
+        # them, not the one row that survived it. Before this, `members` was
+        # `['Britain']` on the 1805 boot and the coordination loop had
+        # nothing to pair — so the card showed no coordination and no weak
+        # link, and `diplomatic_advisory._build_situation_recommendation`'s
+        # "court the weak link" counsel was dead on every multi-participant
+        # war. The block is left BELOW the leader-first sort deliberately:
+        # hoisting it above would re-order `members` by `diplomatic_states`
+        # insertion and flip `test_coordination_quality_labels`.
+        members = [w["opponent"] for w in _coalition_rows(wars)
+                   if w["in_coalition"]]
         coordination = []
         for i, m1 in enumerate(members):
             for m2 in members[i + 1:]:
@@ -298,7 +308,10 @@ def build_active_wars(world) -> Dict[str, Any]:
         # Weak link: highest WE among members with known WE
         weak_link = None
         max_we = -1
-        for w in wars:
+        # FA-N75: same reader as `members` above — the collapsed row's
+        # own `war_exhaustion` is the LEADER's, so this loop could only
+        # ever nominate the leader or nobody.
+        for w in _coalition_rows(wars):
             if w["in_coalition"] and w["war_exhaustion"] is not None:
                 if w["war_exhaustion"] > max_we:
                     max_we = w["war_exhaustion"]
@@ -473,6 +486,38 @@ def _build_foreign_wars(world) -> List[Dict[str, Any]]:
     return rows
 
 
+# FA-N75 (slice 11) flip lever: False restores the post-collapse blindness
+# (one bar, one member line, no Targets, no coordination, no weak link).
+COALITION_CARD_KEEPS_ITS_MEMBERS = True
+
+
+def _coalition_rows(wars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The per-member rows behind the coalition card (FA-N75).
+
+    A collapsed row carries the pair rows it folded; every other row IS its
+    own member. One reader, so the backend metadata and the client card can
+    never again disagree about who is in the coalition.
+    """
+    out: List[Dict[str, Any]] = []
+    for row in wars:
+        folded = row.get("coalition_member_rows")
+        if COALITION_CARD_KEEPS_ITS_MEMBERS and isinstance(folded, list) and folded:
+            out.extend(folded)
+        else:
+            out.append(row)
+    return out
+
+
+def _leader_first_rows(
+    rows: List[Dict[str, Any]],
+    leader: str,
+) -> List[Dict[str, Any]]:
+    """The folded pair rows, the coalition's leader first (FA-N75)."""
+    lead = [row for row in rows if str(row.get("opponent", "")) == str(leader)]
+    rest = [row for row in rows if str(row.get("opponent", "")) != str(leader)]
+    return lead + rest
+
+
 def _collapse_shared_war_instance_rows(
     world,
     france: str,
@@ -546,6 +591,25 @@ def _collapse_shared_war_instance_rows(
             rows[0],
         )
         combined = dict(representative)
+        # FA-N75 (slice 11): the CA8-D2 collapse folded three bilateral rows
+        # into one and the coalition CARD went blind. Every block on it
+        # iterates `wars` — the strength bars, the member lines, the Target
+        # buttons — and after the collapse there is one row where there were
+        # three. Measured on the 1805 boot: one bar, one member line, ZERO
+        # Target buttons, `coordination: []`, `weak_link: None`; with the
+        # collapse disabled, three bars, three coordination pairs, weak link
+        # Austria and Targets for Austria and Russia.
+        #
+        # The pair rows are not wrong, they are merely folded away. Carry
+        # them: every key the card reads (`opponent`, `war_score`,
+        # `war_exhaustion`, `army_strength`, `is_coalition_leader`,
+        # `in_coalition`) is already on a pair row. The metadata block below
+        # and the client read these instead of re-deriving from a row that
+        # no longer represents anybody in particular.
+        if COALITION_CARD_KEEPS_ITS_MEMBERS:
+            combined["coalition_member_rows"] = [
+                dict(row) for row in _leader_first_rows(rows, enemy_leader)
+            ]
         combined["opponents"] = ordered_opponents
         combined["opponent"] = (
             ordered_opponents[0] if ordered_opponents else representative.get("opponent", "")

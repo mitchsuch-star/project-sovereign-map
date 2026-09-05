@@ -30,7 +30,10 @@ MAX_ISSUES = 20         # blessed, in-band — the archive's depth
 # world state for its rows — only already-fog-filtered events — so a
 # fog-hidden battle can never appear in print.
 _WAR_TYPES = {
-    "battle", "region_captured", "expedition_landed",
+    # FA-25 (slice 11): `bombardment` was absent here, so a shelling that
+    # took 28,800 men never reached Le Moniteur — while
+    # `format_event_oneliner` had had a `bombardment` arm all along.
+    "battle", "bombardment", "region_captured", "expedition_landed",
     "expedition_intercepted", "expedition_turned_back", "fleet_action",
     "trafalgar", "blockade_begins", "blockade_broken", "cs_tier_shift",
 }
@@ -38,7 +41,14 @@ _COURT_TYPES = {
     "war_declaration", "diplomatic_war_declared", "peace_ratified",
     "third_party_peace", "diplomatic_treaty_signed", "nation_formed",
     "nation_eliminated", "incoming_ultimatum", "coalition_formed",
-    "coalition_dissolved", "vassal_created", "vassal_rebellion",
+    # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no
+    # producer either — the same inert shape as the campaign log's entry.
+    # `vassal_broke_free` is the type that is now written, and
+    # `format_event_oneliner` has an arm for it, so Le Moniteur prints a
+    # sentence rather than the raw `Event: vassal_broke_free` fallback.
+    # (`vassal_created` is ALSO producer-less; it is out of this slice's
+    # scope and is left alone rather than quietly retired.)
+    "coalition_dissolved", "vassal_created", "vassal_broke_free",
 }
 _ARMY_TYPES = {
     "glory_crowned", "glory_crown_lost", "dotation_granted",

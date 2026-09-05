@@ -54,6 +54,13 @@ BAND_MIDPOINTS: Dict[str, int] = {
 # Headline weights (blessed defaults — display only, tunable freely).
 # The dispatch opens with the top-scored fog-visible event of the turn
 # rendered as one prose sentence, plus up to 2 sub-beats.
+# ── FA slice 11 flip levers ────────────────────────────────────────────
+# False restores the pre-slice briefing at each seam independently.
+SOIL_ALARM_IS_ONE_RUN = True          # FA-12
+SOIL_ALARM_IS_HOME_SOIL_ONLY = True   # FA-N14
+THE_SHELLING_IS_BRIEFED = True        # FA-25
+A_LOST_SATELLITE_CAN_LEAD = True      # FA-38
+
 HEADLINE_WEIGHTS: Dict[str, int] = {
     # NP-4 (NAPOLEON_SPEC §7.2): the Eagle in Chains outranks even a
     # fallen homeland province — the Empire is a PERSON, and the person is
@@ -95,6 +102,15 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # the sub-beat never restates the headline.
     "marshal_reversal": 91,
     "own_broken": 90,           # own marshal broken / force-retreated
+    # FA-38 (slice 11): losing a SATELLITE could not lead the briefing at
+    # all. Measured: Holland bribed away, Switzerland eliminated and Berry
+    # lost in one tick led with "Berry has fallen" and EMPTY sub-beats; with
+    # only the satellites lost the headline was None and the whole page was
+    # a supply nag. A satellite is a province's worth of empire and a
+    # standing army, so it ranks above a bare province (`region_lost` 75)
+    # and below a broken corps of our own (90) — at equal scale the wound to
+    # our own body still leads.
+    "vassal_lost": 84,
     # ── CA9-F12: the mirror of the file's top-weight wound ──────────────
     # An enemy commander taken is PERMANENT, and it contains a decisive
     # field win (73) — it is that win plus the man. It sits BELOW
@@ -291,6 +307,9 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "own_mauled": "Sire — {marshal} was mauled at {region}: {proportion} of his corps — {casualties} men — lost in a single action.",
     "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
     "region_lost": "Sire — {region} has been taken by {captor}.",
+    # FA-38: one class, four ways to lose a satellite. Each says what
+    # actually happened, because the player's next move differs in each.
+    "vassal_lost": "Sire — {vassal} is no longer ours. {detail}",
     "region_lost_estate": ("Sire — {captor} has taken {region} — the estate "
                            "that funded Marshal {marshal}'s honour. He will "
                            "not forget it."),
@@ -392,6 +411,9 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "own_mauled": "The butcher's bill is heavy, Sire. The army feels it.",
     "enemy_on_our_soil": "They are on our soil, Sire. The marshals await only your word.",
     "region_lost": "Ground lost can be retaken, Sire — but the longer they hold it, the harder the taking.",
+    # FA-38: caught by `test_every_headline_class_has_a_template_and_a_note`,
+    # which is exactly the pin it exists to be.
+    "vassal_lost": "A satellite is an army we no longer command and a frontier we no longer hold, Sire. The courts that are still ours are reading this too.",
     "region_lost_estate": "He will expect it back, Sire — or its equal. An unpaid marshal is a slower loss than a province.",
     # CA8-22 drive-by: the two classes added by the Aug-4 econ slice had no
     # closing note, so the dispatch that led six of twelve briefings ended
@@ -519,6 +541,19 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                          region=region,
                          captor=formed_display_name(world, captor))
                 elif _ours_to_lose and region in home_regions:
+                    # FA-53 (slice 11) is REFUTED BY A LANDED DESIGN
+                    # DECISION and this line is deliberately unchanged.
+                    # The row asks for the several provinces of one bad day
+                    # to collapse into a tally so the page has slots left
+                    # for other news. WO slice 4 (WO-D6, "The Capital
+                    # Speaks") measured the SAME failure — four provinces
+                    # lost in a turn, the page reading "Limousin / Berry /
+                    # Normandy" with PARIS not on it — and answered it by
+                    # splitting `capital_lost` out so the capital always
+                    # leads, KEEPING the three-province page and pinning it
+                    # five ways (`test_three_provinces_and_nothing_else_
+                    # still_fill_both_slots` and four siblings). Collapsing
+                    # here reds all five. Two designs, one already chosen.
                     _add("home_captured", f"home_captured:{region}", region=region)
                 elif _ours_to_lose:
                     # CA8-22: if the province was a marshal's endowment, the
@@ -596,6 +631,42 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                      line=(f"{formed_display_name(world, fallen)} is knocked "
                            f"out of the war. No army remains beneath their "
                            f"colours."))
+            elif (A_LOST_SATELLITE_CAN_LEAD and fallen
+                  and str(e.get("lord") or "") == player_nation):
+                # FA-38: OUR OWN satellite, annihilated. `_we_fought_them` is
+                # correctly False (we never opposed it), so before this arm
+                # the tick produced no candidate at all and the page led with
+                # a supply nag. `_eliminate_nation` deletes the vassal row, so
+                # the lord is read off the EVENT and never off `world.vassals`.
+                _add("vassal_lost", f"vassal_lost:{fallen}",
+                     vassal=formed_display_name(world, fallen),
+                     detail="Conquered — the satellite is gone.")
+        elif A_LOST_SATELLITE_CAN_LEAD and etype in (
+                "vassal_broke_free", "vassal_defected", "vassal_transferred"):
+            # FA-38: the other three ways an empire loses a satellite.
+            # `vassal_broke_free` is FA-N74's new row; without it this class
+            # could see a defection and a transfer but never a rebellion.
+            _lord = str(e.get("lord") or e.get("from_lord") or "")
+            _vassal = str(e.get("vassal") or "")
+            if _lord != player_nation or not _vassal:
+                continue
+            if etype == "vassal_transferred":
+                _to = formed_display_name(
+                    world, str(e.get("to_lord") or "another crown"))
+                _detail = f"{_to} is their protector now."
+            elif etype == "vassal_defected":
+                _briber = formed_display_name(
+                    world, str(e.get("briber") or "a rival court"))
+                _detail = f"{_briber}'s gold bought them."
+            elif str(e.get("exit") or "") == "vassal_rebellion_armistice":
+                _detail = "They broke free; the armistice holds."
+            elif str(e.get("exit") or "") == "vassal_rebellion_independent":
+                _detail = "They broke free and stand alone."
+            else:
+                _detail = "They have rebelled, and it is war."
+            _add("vassal_lost", f"vassal_lost:{_vassal}",
+                 vassal=formed_display_name(world, _vassal),
+                 detail=_detail)
         elif etype == "marshal_captured":
             # ── CA9 F12 + N2: the capture has a DIRECTION ────────────────
             # `nation` is the CAPTIVE's own court (`combat_executor`'s
@@ -739,8 +810,17 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 # marshal, so an AI-vs-AI rout never reads as our triumph
                 # ([B-F2]: keyed by the man, not the region).
                 _enemy_routs[str(e.get("marshal", ""))] = marshal_disp
-        elif etype == "battle":
+        elif etype == "battle" or (THE_SHELLING_IS_BRIEFED
+                                   and etype == "bombardment"):
             # Own marshal mauled: >=25% of pre-battle strength lost.
+            #
+            # FA-25 (slice 11): this was the ONLY `own_mauled` producer and it
+            # matched `battle` alone, so a bombardment — the mechanic that
+            # takes thousands of men without a battle — reached neither the
+            # headline nor Le Moniteur. The trap in "also accept bombardment":
+            # a bombardment event has NO `location` key (its field is
+            # `defender_location`), so reusing the line verbatim renders
+            # "Ney was mauled at the field". Read both.
             for side, cas_key in (("attacker", "attacker_casualties"),
                                   ("defender", "defender_casualties")):
                 if e.get(f"{side}_nation") != player_nation:
@@ -761,7 +841,9 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                     # one story, not three headline slots.
                     _add("own_mauled", f"own_mauled:{name}",
                          marshal=humanize_entity_name(name),
-                         region=e.get("location", "the field"),
+                         region=(e.get("location")
+                                 or e.get(f"{side}_location")
+                                 or "the field"),
                          casualties=f"{casualties:,}",
                          proportion=_mauled_proportion(casualties, pre))
             # CA8-26: record a French battle WIN for the success composer
@@ -903,6 +985,17 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
         region = world.regions.get(region_name)
         if region is None or region.controller != player_nation:
             continue
+        # FA-N14: "enemy colours on French soil" of a province France had
+        # CONQUERED. Measured: France holding Swabia with Mack standing on it
+        # fired the class, and by T3 the ladder said the enemy had stood on
+        # French soil three turns. Boot-dormant by construction — at boot
+        # France's controlled set IS her home set, so the class is armed by
+        # the first conquest. Sibling `home_captured` already reads
+        # `home_regions`; this arm did not.
+        if (SOIL_ALARM_IS_HOME_SOIL_ONLY
+                and home_regions
+                and region_name not in home_regions):
+            continue
         enemy_entries = [km for km in intel.known_marshals
                          if _intel_marshal_is_enemy(world, player_nation, km)]
         if not enemy_entries:
@@ -916,7 +1009,19 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             defenders_line = f"{' and '.join(defenders)} {_verb} in his path."
         else:
             defenders_line = "No French corps stands in his path."
-        _add("enemy_on_our_soil", identity=f"enemy_on_our_soil:{region_name}",
+        # FA-12 (slice 11): the identity was keyed on the PROVINCE, so the
+        # standing-alarm run restarted every time the enemy moved. Measured on
+        # both worlds: T3 "3 turns now with enemy colours on French soil", T4
+        # the base template re-fires as fresh news for the next province, T6
+        # "3 turns now" AGAIN. The run is about the enemy standing on our
+        # ground, not about which acre — the class is the identity, and the
+        # province rides the fields where the templates already read it. Only
+        # a genuine gap (no enemy on any home province for a turn) restarts
+        # the ladder, which is the intended semantics.
+        _add("enemy_on_our_soil",
+             identity=("enemy_on_our_soil"
+                       if SOIL_ALARM_IS_ONE_RUN
+                       else f"enemy_on_our_soil:{region_name}"),
              enemy=enemy_name, region=region_name,
              defenders_line=defenders_line)
         break  # one such headline candidate is enough
@@ -3816,7 +3921,13 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_war_declared": "{nation} has declared war on {target}.",
     "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation}.",
     "diplomatic_vassal_rebellion_imminent": "{nation} is on the verge of rebellion!",
-    "diplomatic_vassal_rebellion": "{nation} has rebelled!",
+    "diplomatic_vassal_rebellion": "{nation} has rebelled against {lord}. It is war.",
+    # FA-2 (slice 11): a satellite stops being one three ways, and the player
+    # was told the same thing about all of them — that it had ceased to
+    # exist. These are the other two exits, and on the shipped 1805 board the
+    # PEACE one is the exit both big satellites actually take.
+    "diplomatic_vassal_broke_free_armistice": "{nation} breaks free of {lord}, but the armistice holds — no war is declared.",
+    "diplomatic_vassal_broke_free_peace": "{nation} breaks free of {lord} and stands alone — an independent power, and no war declared.",
     "diplomatic_vassal_refuses_call": "{vassal} refuses {lord}'s call to arms against {enemy} — loyalty {loyalty}.",
     "diplomatic_vassal_transferred": "{vassal} passes from {from_lord}'s suzerainty to {to_lord}'s.",
     "diplomatic_vassal_defected": "THE DEFECTION: {briber}'s gold turns {vassal} against {lord}.",
@@ -4107,6 +4218,8 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_vassal_unrest": "MEDIUM",
     "diplomatic_vassal_rebellion_imminent": "HIGH",
     "diplomatic_vassal_rebellion": "HIGH",
+    "diplomatic_vassal_broke_free_armistice": "HIGH",
+    "diplomatic_vassal_broke_free_peace": "HIGH",
     "diplomatic_vassal_refuses_call": "HIGH",
     "diplomatic_vassal_transferred": "HIGH",
     "diplomatic_vassal_defected": "HIGH",

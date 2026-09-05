@@ -779,6 +779,18 @@ class MovementExecutor:
         if captured_on_move:
             events[0]["captured_from"] = _old_controller
             events[0]["captured_by"] = marshal.nation
+            events[0]["region"] = target_name
+            # FA-N33 (slice 11): PT-E5 made the capture SURVIVE the fog
+            # filter; the enemy-phase dialog still printed "— Mack moves to
+            # Rhineland" and nothing else, because its `move` arm reads only
+            # the destination. What the AI DID with the province is already
+            # decided here (IGR-E made plunder live for the AI), and it was
+            # simply never stamped on the event the client reads. The
+            # player's own mirror march states the capture and asks the
+            # question; the enemy phase stated neither.
+            _fate = (capture_result or {}).get("capture_choice")
+            if _fate:
+                events[0]["capture_choice"] = str(_fate)
 
         # Transit intel: cavalry passing through intermediate region gets PARTIAL snapshot
         if distance == 2 and intermediate and marshal.nation == world.player_nation:

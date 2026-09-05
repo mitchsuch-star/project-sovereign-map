@@ -330,6 +330,26 @@ func _on_dispatch_received(response):
 				bbcode += "[color=#" + Utils.COLOR_INFO + "]    " + detail + "[/color]\n"
 		bbcode += "\n"
 
+	# PRISONERS OF WAR — FA-32 (slice 11).
+	# The backend has built `dispatch["prisoners"]` since W6-7 and NO client
+	# script ever read it (measured: a key census of both renderers). The
+	# `marshal_captured` event window is two turns wide, so after that the
+	# dispatch dropped a captured marshal entirely — he was on the Generals
+	# card and nowhere else the player looks each morning.
+	var prisoners = data.get("prisoners", [])
+	if prisoners != null and prisoners.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]PRISONERS OF WAR[/color]\n"
+		for p in prisoners:
+			var p_name = str(p.get("name", "?"))
+			var p_captor = Utils.display_nation_name(str(p.get("captor", "")))
+			var p_turn = int(p.get("captured_turn", 0))
+			bbcode += "[color=#" + Utils.COLOR_ERROR + "]  " + p_name
+			bbcode += " — held by " + p_captor
+			if p_turn > 0:
+				bbcode += " since turn " + str(p_turn)
+			bbcode += ".[/color]\n"
+		bbcode += "\n"
+
 	# DIPLOMATIC EVENTS
 	var diplo_events = data.get("diplomatic_events", [])
 	if diplo_events.size() > 0:

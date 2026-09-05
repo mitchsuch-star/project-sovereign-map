@@ -4115,3 +4115,91 @@ default announces a concession as dunning. The incoming envoy popup's
 "Assessment" label is likewise recomputed on the UN-oriented `demands` (the
 burden on France) while its fallout warnings, which are about our allies'
 reading of what we let the enemy off with, stay as they were.
+
+## 33. The morning briefing tells the truth (FA slice 11, landed September 5, 2026)
+
+Landing record: the boxed SLICE 11 block in `docs/BUG_FIXES.md` §Final
+Whole-Game Audit. Five rules about the surfaces the player reads each turn.
+
+**A satellite breaking free briefs itself, at the exit it took.**
+`vassal.record_vassal_break(world, vassal=, lord=, exit_path=)` is called at
+all THREE exits of `check_vassal_rebellion` — war, armistice, graceful
+independence — and by the VS-6 free-defection arm's caller. It does two
+things:
+
+- queues the per-exit dispatch template
+  (`diplomatic_vassal_rebellion` / `..._broke_free_armistice` /
+  `..._broke_free_peace`) with the fog rule decided AT QUEUE TIME:
+  `always` when the lord is the player, `partial_on_nation` otherwise. This is
+  not a style preference. `_is_dispatch_event_visible`'s `player_vassal` arm
+  reads `world.vassals` when the dispatch is BUILT, after the row has been
+  deleted, so a rule evaluated then can never see the satellite that just
+  left;
+- writes ONE log row `vassal_broke_free` carrying `exit`, so the campaign log,
+  `_build_headline`'s window and Le Moniteur can see a rebellion at all.
+
+The graceful-independence exit is the one to watch: it `continue`s early, and
+on the 1805 board it is the exit both big satellites take (they cascade-join
+France's war and hit the war-instance side conflict). Any future work here
+must reach that branch, not only the war branch. The armistice exit ENDS at
+its own arm and no longer falls through to the war tail.
+
+`vassal_broke_free` REPLACED the inert `diplomatic_vassal_rebellion` entry in
+`CAMPAIGN_LOG_TYPES`, so the count is unchanged at 160 and the NINE pins on
+that number hold. `diplomatic_vassal_rebellion` remains a DISPATCH key.
+
+**A lost satellite can lead the briefing.** `vassal_lost`, weight 84 — above
+a bare province, below a broken corps of our own. It reads four sources:
+`vassal_broke_free`, `vassal_defected`, `vassal_transferred`, and
+`nation_eliminated` carrying a `lord` equal to the player. That last needs the
+lord captured BEFORE `_eliminate_nation` tears the vassal row down (GR4), and
+stamped on the event; reading `world.vassals` at briefing time cannot answer
+it. Adding any class in the [84, 99] band means extending the diverse-tail
+floor's ADMIT list in `test_the_floor_is_named_and_admits_the_marshal_fate_band`
+— that pin passes in SILENCE for a class it does not enumerate.
+
+**The soil alarm is one run, on home soil.** `enemy_on_our_soil`'s identity is
+the CLASS, not `class:region`, so the standing-alarm ladder continues when the
+enemy moves between home provinces and restarts only on a genuine gap; and the
+arm skips a province that is not in `home_regions`, so ground France has
+CONQUERED is not narrated as French soil.
+
+**A shelling is a mauling.** `_build_headline`'s `own_mauled` arm accepts
+`bombardment` as well as `battle`, and Le Moniteur's `_WAR_TYPES` carries it.
+A bombardment event has no `location` key — its field is `defender_location`
+— so the arm reads both or renders "mauled at the field".
+
+**A prisoner is a prisoner on every surface.** `dispatch["prisoners"]` is
+rendered by BOTH `main.gd` and `dispatch_view.gd`; `ledger._derive_status`
+returns `captured` (captivity outranks every other status) and the FORCES row
+carries `captured`/`captured_by`, which `strategic_ledger.gd` renders as "Held
+by X at Y" in place of the location line. The model's truth is
+`marshal.captured_by`; there is no `captured` boolean on the marshal.
+
+**The enemy phase reports what happened to us.** Two carve-outs beside PT-E5's
+in `main._filter_enemy_phase_by_visibility`: a `garrison_assault` /
+`garrison_destroyed` event whose `region` the PLAYER controls survives the fog
+gate (the gate keys on the assaulter's province, which is enemy ground; the
+assault itself lights the assaulted province FULL). And a capturing `move`
+event carries `region` and `capture_choice` alongside `captured_from`, so the
+dialog can say the province fell, whose it was, and whether it was secured or
+sacked. Both client arms are built from the STRUCTURED event, never from the
+server `message`.
+
+**The coalition card sees its members through the collapse.** CA8-D2 folds the
+bilateral fronts of one coalition war into a single HUD row. That row now
+carries `coalition_member_rows` (the folded pair rows, leader first), and ONE
+reader unfolds them — `war_status._coalition_rows` for the metadata block and
+the weak-link loop, `war_detail_popup._coalition_member_rows` for the card's
+bar loop, member loop and Target loop. `_shared_coalition_war_id` deliberately
+does NOT use it: it wants the war, not the members. Without this the card drew
+one bar and no Targets for a three-power coalition, and
+`diplomatic_advisory._build_situation_recommendation`'s "court the weak link"
+counsel was dead on every multi-participant war.
+
+**A day of losses is NOT collapsed** (FA-53, refuted). Several homeland
+provinces falling in one turn produce one candidate each, and the page names
+three. WO slice 4 (WO-D6) chose this deliberately: it answered the same
+measured failure by splitting `capital_lost` out so the capital always leads,
+and pinned the three-province page five ways. Do not collapse them without
+re-opening that decision.

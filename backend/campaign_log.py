@@ -129,7 +129,12 @@ CAMPAIGN_LOG_TYPES = {
     # Diplomacy (Session 8D)
     "diplomatic_treaty_signed",
     "diplomatic_war_declared",
-    "diplomatic_vassal_rebellion",
+    # FA-N74 (slice 11): `diplomatic_vassal_rebellion` sat here with a fog
+    # arm and a one-liner and NO PRODUCER — nothing ever logged it, because
+    # none of `check_vassal_rebellion`'s three exits wrote to `event_log` at
+    # all. It is retired for the type that is now written, so the count is
+    # unchanged and the nine `len(CAMPAIGN_LOG_TYPES) == 160` pins hold.
+    "vassal_broke_free",
     "diplomatic_treaty_broken",
     "diplomatic_alliance_cascade",
     "diplomatic_ai_ai_treaty",
@@ -373,7 +378,7 @@ CATEGORY_MAP = {
     # Diplomacy (Session 8D)
     "diplomatic_treaty_signed": "diplomacy",
     "diplomatic_war_declared": "diplomacy",
-    "diplomatic_vassal_rebellion": "diplomacy",
+    "vassal_broke_free": "diplomacy",
     "diplomatic_treaty_broken": "diplomacy",
     "diplomatic_alliance_cascade": "diplomacy",
     "diplomatic_ai_ai_treaty": "diplomacy",
@@ -882,9 +887,18 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # Vassal rebellion: player vassal always shown
-        if event_type == "diplomatic_vassal_rebellion":
-            filtered.append(event)
+        # A satellite breaking free: shown when it was OUR satellite, and
+        # otherwise only where we can see the court (GR5 — the web has other
+        # lords since VS-5, so "player vassal always shown" cannot stand as a
+        # blanket rule).
+        if event_type == "vassal_broke_free":
+            if str(event.get("lord") or "") == player_nation:
+                filtered.append(event)
+                continue
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            if _get_nation_visibility(
+                    str(event.get("vassal") or ""), world_state) in (FULL, PARTIAL):
+                filtered.append(event)
             continue
 
         # Nation eliminated: public knowledge
@@ -1913,9 +1927,17 @@ def format_event_oneliner(event: dict) -> str:
         beneficiary = event.get("beneficiary", "Unknown")
         return f"Counter-bargain from {beneficiary} rejected."
 
-    if event_type == "diplomatic_vassal_rebellion":
-        nation = event.get("nation") or event.get("vassal", "Unknown")
-        return f"Vassal rebellion: {nation} has broken free!"
+    if event_type == "vassal_broke_free":
+        nation = event.get("vassal") or event.get("nation", "Unknown")
+        lord = event.get("lord") or "its lord"
+        exit_path = str(event.get("exit") or "")
+        if exit_path == "vassal_rebellion_armistice":
+            return (f"Vassal rebellion: {nation} breaks free of {lord} "
+                    f"— the armistice holds.")
+        if exit_path == "vassal_rebellion_independent":
+            return (f"Vassal rebellion: {nation} breaks free of {lord} "
+                    f"and stands alone.")
+        return f"Vassal rebellion: {nation} has broken free of {lord}. War."
 
 
     if event_type == "diplomatic_alliance_cascade":
