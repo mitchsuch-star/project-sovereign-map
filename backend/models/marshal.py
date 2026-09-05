@@ -398,6 +398,15 @@ class Marshal:
         self.strategic_order: Optional[StrategicOrder] = None
         self.pending_interrupt: Optional[Dict] = None  # Phase D: stored between raise and response
         self.cannon_fire_ignored_turn: Optional[int] = None  # Suppress re-trigger for 1 turn after "continue"
+        # FA-N61 (slice 12): has the standing peace already handed this corps
+        # its road home?  Written where the road is GIVEN
+        # (`withdrawal.offer_road_home`), read where it would be given again,
+        # cleared when a new treaty opens a corridor for his nation and when
+        # he reaches home.  It is sited at the GIVING rather than at the
+        # cancelling because `strategic_order = None` is written at many
+        # seams a player answer reaches, and a guard keyed on cancellation
+        # would have been fixed only at the ones somebody enumerated.
+        self.road_home_offered: bool = False
 
         # Battle tracking (for cannon fire detection and until_battle_won)
         self.in_combat_this_turn: bool = False
@@ -1677,6 +1686,7 @@ class Marshal:
             "strategic_order": self.strategic_order.to_dict() if self.strategic_order else None,
             "pending_interrupt": self.pending_interrupt,
             "cannon_fire_ignored_turn": self.cannon_fire_ignored_turn,
+            "road_home_offered": bool(self.road_home_offered),
 
             # ═══════ COMBAT TRACKING ═══════
             "in_combat_this_turn": self.in_combat_this_turn,
@@ -1875,6 +1885,7 @@ class Marshal:
             marshal.strategic_order = StrategicOrder.from_dict(data["strategic_order"])
         marshal.pending_interrupt = data.get("pending_interrupt")
         marshal.cannon_fire_ignored_turn = data.get("cannon_fire_ignored_turn")
+        marshal.road_home_offered = bool(data.get("road_home_offered", False))
 
         # ═══════ COMBAT TRACKING ═══════
         marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)

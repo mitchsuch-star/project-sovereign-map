@@ -153,6 +153,7 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # France, above a routine conquest — it is the answer to "what happens
     # to the men who won it", which the player asks the moment he signs.
     "road_home": 69,
+    "road_home_mid_treaty": 69,
     # CA8-26: a routine conquest is a success below every direct wound to
     # France's own body and above Europe's business and the household nags.
     "region_taken": 68,         # France conquers a province (non-capital)
@@ -324,6 +325,11 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # WIN-D3 §4.3 — the beat names names and the deadline, and when a corps
     # has no land route it says so plainly rather than pretending (§5).
     "road_home": "Sire — the war with {other} is over. {line}",
+    # FA-N61 (slice 12): the same class, a later moment. The peace was
+    # signed turns ago and this corps was stranded after it, so the
+    # sentence above would have told the player the war had just ended
+    # every time the treaty picked somebody up.
+    "road_home_mid_treaty": "Sire — under the peace with {other}. {line}",
     "passage_lapsing": ("Sire — {who} {is_are} no nearer home, and the safe "
                         "passage runs out in {turns_left} turn(s). After "
                         "that {his_their} corps will be interned where "
@@ -421,6 +427,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # this was silent rather than broken.
     "supply_strain": "Men lost to the roads are lost for nothing, Sire. Either the province feeds them or we spread them.",
     "road_home": "The treaty gives them the road, Sire, not the rations. They should be walking it.",
+    "road_home_mid_treaty": "The treaty gives them the road, Sire, not the rations. They should be walking it.",
     "passage_lapsing": "A treaty's patience is short, Sire. Order him home, or explain the loss to the Senate.",
     "levy_open": "The depots are full and the ordinance allows it, Sire. Conscripts do not improve with keeping.",
     "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
@@ -892,8 +899,16 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             _pair = (e.get("nation_a", ""), e.get("nation_b", ""))
             if player_nation in _pair:
                 _other = _pair[1] if _pair[0] == player_nation else _pair[0]
-                _add("road_home",
-                     identity=f"road_home:{'|'.join(sorted(_pair))}",
+                # FA-N61 (slice 12): a mid-treaty top-up is keyed on the
+                # CORPS, not the pair. The peace's own beat already holds
+                # `road_home:<pair>`, and two corps stranded on the same
+                # treaty are two pieces of news, not one.
+                _identity = (f"road_home:{e.get('marshals', [''])[0]}"
+                             if e.get("mid_treaty")
+                             else f"road_home:{'|'.join(sorted(_pair))}")
+                _add("road_home_mid_treaty" if e.get("mid_treaty")
+                     else "road_home",
+                     identity=_identity,
                      other=formed_display_name(world, _other),
                      line=str(e.get("message", "")))
         elif etype == "evacuation_lapsing":

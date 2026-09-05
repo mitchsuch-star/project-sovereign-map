@@ -855,6 +855,22 @@ _VASSAL_BREAK_TEMPLATE = {
     "vassal_rebellion_independent": "diplomatic_vassal_broke_free_peace",
 }
 
+# FA-N73 (slice 12) flip lever.  False restores the pre-slice tray exactly:
+# the war exit alone raises an alert and the two soft exits raise none.
+A_QUIET_BREAK_STILL_RINGS_THE_BELL = True
+
+# The two exits that are NOT a declaration of war, and the sentence each is
+# owed.  Neither may say "War declared." — the armistice exit's rail line one
+# row below says the opposite, and the graceful exit's state is PEACE.
+_SOFT_BREAK_BODY = {
+    "vassal_rebellion_independent": (
+        "{vassal} is no longer our satellite. She stands alone — an "
+        "independent power, and no war is declared."),
+    "vassal_rebellion_armistice": (
+        "{vassal} is no longer our satellite. The armistice holds — no war "
+        "is declared."),
+}
+
 
 def record_vassal_break(
     world,
@@ -909,6 +925,41 @@ def record_vassal_break(
         "exit": exit_path,
         "turn": int(getattr(world, "current_turn", 0)),
     })
+
+    # FA-N73 (slice 12): the last of the row's five.  The slice-11 review
+    # round gave all three exits the mechanical tail and the dispatch rail
+    # line; what the two SOFT exits still had was no persistent tray alert,
+    # while the war exit raised a CRITICAL one — so the exit BOTH big French
+    # satellites take on the 1805 board left an empire smaller by a nation
+    # with nothing standing on the rail afterwards.
+    #
+    # Deliberately not a bare fall-through to the war exit's notification,
+    # which the row asked for: its body is "…has rebelled against France!
+    # War declared.", and measured on both soft exits the state is
+    # VASSAL→PEACE or ARMISTICE→ARMISTICE.  That copy would re-open the
+    # contradiction slice 11 closed — a CRITICAL banner announcing a war one
+    # row above a rail line saying no war was declared.  HIGH, not CRITICAL:
+    # a satellite walking out is grave, and it is not a crisis.
+    if not A_QUIET_BREAK_STILL_RINGS_THE_BELL:
+        return
+    if exit_path not in _SOFT_BREAK_BODY or lord != player:
+        # Lord-gated exactly like the war exit's own notification — the
+        # slice-11 round closed a rail banner about somebody else's
+        # satellite, and a foreign lord's break still reaches the player
+        # through the dispatch line above, which IS fog-gated.
+        return
+    from backend.notifications import (
+        create_notification as _cr_notif,
+        NotificationPriority as _NP,
+        VASSAL_REBELLION as _VR_CONST,
+    )
+    world.notifications.add(_cr_notif(
+        _VR_CONST,
+        _NP.HIGH,
+        f"{vassal} breaks free",
+        _SOFT_BREAK_BODY[exit_path].format(vassal=vassal, lord=lord),
+        int(getattr(world, "current_turn", 0)),
+    ))
 
 
 # Slice-11 review round: False restores the round's pre-review behaviour

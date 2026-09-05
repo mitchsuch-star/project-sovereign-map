@@ -1,0 +1,184 @@
+[
+  {
+    "id": "FA-33 the stamp returns",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        order_kwargs = {}\n        if not THE_TREATY_CLAIMS_NO_FIRST_STEP:",
+    "new": "        order_kwargs = {}\n        if THE_TREATY_CLAIMS_NO_FIRST_STEP or True:",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheTreatyClaimsNoFirstStep"
+  },
+  {
+    "id": "FA-33 the lever is ignored (control arm never reproduces)",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        if not THE_TREATY_CLAIMS_NO_FIRST_STEP:\n            # FA-33's control arm",
+    "new": "        if False:\n            # FA-33's control arm",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheTreatyClaimsNoFirstStep::test_the_lever_down_reproduces_the_lost_turn"
+  },
+  {
+    "id": "FA-33 rider: the standing question stops buying grace",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    if A_STANDING_QUESTION_IS_NOT_LOITERING and _awaiting_the_players_word(marshal):\n        return True",
+    "new": "    if False and _awaiting_the_players_word(marshal):\n        return True",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAStandingQuestionIsNotLoitering"
+  },
+  {
+    "id": "FA-33 rider: the grace covers only order-bound asks",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    return pending.get(\"interrupt_type\") in (\n        ORDER_BOUND_INTERRUPT_TYPES | STANDALONE_DECISION_TYPES)",
+    "new": "    return pending.get(\"interrupt_type\") in ORDER_BOUND_INTERRUPT_TYPES",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAStandingQuestionIsNotLoitering::test_a_standalone_decision_counts_too"
+  },
+  {
+    "id": "FA-33 rider: the rout grace is dropped",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    if int(getattr(marshal, \"retreat_recovery\", 0) or 0) > 0:\n        return True\n    if A_STANDING_QUESTION_IS_NOT_LOITERING",
+    "new": "    if False:\n        return True\n    if A_STANDING_QUESTION_IS_NOT_LOITERING",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAStandingQuestionIsNotLoitering::test_a_routed_corps_keeps_its_own_grace"
+  },
+  {
+    "id": "FA-N61 the top-up never runs",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        if THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED:\n            for offer in offer_road_home(world, nation):",
+    "new": "        if False:\n            for offer in offer_road_home(world, nation):",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded"
+  },
+  {
+    "id": "FA-N61 the warning is read before the offer that answers it",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "                events.append(_warn(world, marshal, nation, dist, surplus))",
+    "new": "                events.insert(0, _warn(world, marshal, nation, dist, surplus))",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_offer_is_reported_before_the_warning_it_answers"
+  },
+  {
+    "id": "FA-N61 the refusal is forgotten",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        if (existing is None and THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED\n                and bool(getattr(marshal, \"road_home_offered\", False))):\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheRefusalIsRemembered"
+  },
+  {
+    "id": "FA-N61 the offer is never recorded",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        marshal.road_home_offered = True\n        # NPC-2: the treaty's order replaces whatever was standing",
+    "new": "        # NPC-2: the treaty's order replaces whatever was standing",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheRefusalIsRemembered"
+  },
+  {
+    "id": "FA-N61 a new treaty is not a new offer",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    for marshal in world.marshals.values():\n        if marshal.nation in (nation_a, nation_b):\n            marshal.road_home_offered = False",
+    "new": "    for marshal in world.marshals.values():\n        if marshal.nation in (nation_a, nation_b) and False:\n            marshal.road_home_offered = False",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheRefusalIsRemembered::test_a_new_treaty_is_a_new_offer"
+  },
+  {
+    "id": "FA-N61 arriving home does not clear the memory",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "                marshal.road_home_offered = False\n                if is_road_home_order(getattr(marshal, \"strategic_order\",",
+    "new": "                pass\n                if is_road_home_order(getattr(marshal, \"strategic_order\",",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheRefusalIsRemembered::test_arriving_home_clears_the_memory"
+  },
+  {
+    "id": "FA-N61 the flag does not serialize",
+    "file": "backend/models/marshal.py",
+    "old": "        marshal.road_home_offered = bool(data.get(\"road_home_offered\", False))",
+    "new": "        marshal.road_home_offered = False",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheRefusalIsRemembered::test_the_flag_survives_a_save_load"
+  },
+  {
+    "id": "FA-N61 the top-up is silent",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "                events.append(_offer_event(\n                    world, offer,\n                    best_counterpart.get(nation, \"\"),\n                    max(0, expiry - current)))",
+    "new": "                _offer_event(\n                    world, offer,\n                    best_counterpart.get(nation, \"\"),\n                    max(0, expiry - current))",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_top_up_says_so"
+  },
+  {
+    "id": "FA-N61 the beat forgets which treaty it rides on",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        \"nation_b\": counterpart,\n        \"region\": offer[\"from\"],",
+    "new": "        \"nation_b\": \"\",\n        \"region\": offer[\"from\"],",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_top_up_says_so"
+  },
+  {
+    "id": "FA-N61 the campaign log re-announces the peace",
+    "file": "backend/campaign_log.py",
+    "old": "        if event.get(\"mid_treaty\"):",
+    "new": "        if False:",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_beat_reads_honestly_in_the_campaign_log"
+  },
+  {
+    "id": "FA-N61 the dispatch announces a stale peace",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _add(\"road_home_mid_treaty\" if e.get(\"mid_treaty\")\n                     else \"road_home\",",
+    "new": "                _add(\"road_home\",",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_mid_treaty_beat_does_not_announce_a_stale_peace"
+  },
+  {
+    "id": "FA-N61 the dispatch identity collapses two corps into one",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _identity = (f\"road_home:{e.get('marshals', [''])[0]}\"\n                             if e.get(\"mid_treaty\")",
+    "new": "                _identity = (f\"road_home:{'|'.join(sorted(_pair))}\"\n                             if e.get(\"mid_treaty\")",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_dispatch_identity_is_the_corps_not_the_pair"
+  },
+  {
+    "id": "FA-N73 the quiet break rings nothing",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if not A_QUIET_BREAK_STILL_RINGS_THE_BELL:\n        return",
+    "new": "    if True:\n        return",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAQuietBreakStillRingsTheBell"
+  },
+  {
+    "id": "FA-N73 the alert is not lord-gated",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if exit_path not in _SOFT_BREAK_BODY or lord != player:",
+    "new": "    if exit_path not in _SOFT_BREAK_BODY:",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAQuietBreakStillRingsTheBell::test_a_foreign_lords_quiet_break_raises_nothing"
+  },
+  {
+    "id": "FA-N73 the alert is a crisis after all",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        _NP.HIGH,\n        f\"{vassal} breaks free\",",
+    "new": "        _NP.CRITICAL,\n        f\"{vassal} breaks free\",",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAQuietBreakStillRingsTheBell::test_it_is_not_a_crisis"
+  },
+  {
+    "id": "FA-N73 the war copy is used on the soft exits",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        _SOFT_BREAK_BODY[exit_path].format(vassal=vassal, lord=lord),",
+    "new": "        f\"{vassal} has rebelled against {lord}! War declared.\",",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAQuietBreakStillRingsTheBell::test_it_never_says_war_was_declared"
+  },
+  {
+    "id": "FA-N73 the armistice exit is not covered",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    \"vassal_rebellion_armistice\": (",
+    "new": "    \"vassal_rebellion_armistice_UNUSED\": (",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAQuietBreakStillRingsTheBell::test_the_armistice_exit_raises_one_alert"
+  },
+  {
+    "id": "The beat stops naming the corps it declined to move",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    ordered = [m[\"marshal\"] for m in marching\n               if m[\"marshal\"] not in {o[\"marshal\"] for o in orders}\n               and m[\"marshal\"] not in {c[\"marshal\"] for c in cut_off}]",
+    "new": "    ordered = []",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheBeatNamesEveryCorps::test_a_corps_under_the_emperors_own_order_is_named"
+  },
+  {
+    "id": "The beat names a corps the treaty DID move",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "               if m[\"marshal\"] not in {o[\"marshal\"] for o in orders}\n               and m[\"marshal\"] not in {c[\"marshal\"] for c in cut_off}]",
+    "new": "               if m[\"marshal\"] not in {c[\"marshal\"] for c in cut_off}]",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheBeatNamesEveryCorps::test_the_ordinary_beat_is_unchanged"
+  },
+  {
+    "id": "The shared guards: a player order is overruled by the tick",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        if existing is not None and not is_road_home_order(existing):\n            continue  # the player's own order stands",
+    "new": "        if False:\n            continue  # the player's own order stands",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheGuardsAreShared::test_a_standing_player_order_is_not_overruled_by_the_tick"
+  },
+  {
+    "id": "The shared guards: a road is invented for a cut-off corps",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "        destination = _nearest_home_region(world, marshal, home)\n        if not destination:\n            continue  # cut off",
+    "new": "        destination = _nearest_home_region(world, marshal, home) or \"Paris\"\n        if not destination:\n            continue  # cut off",
+    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheGuardsAreShared::test_a_cut_off_corps_is_still_refused_honestly"
+  }
+]

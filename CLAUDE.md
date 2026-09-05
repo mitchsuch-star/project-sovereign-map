@@ -365,10 +365,38 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. At `48e6cc59`: **88 defect rows and 28 design rows /
-> gates still open**, of 229 filed; 97 closed, 16 disposed (duplicate,
-> refuted, or re-homed). The 88 are spoken for by slices 12 → 13 → 14 → 15
+> number in a heading. After slice 12: **87 defect rows and 28 design rows /
+> gates still open**, of 231 filed; 100 closed, 16 disposed (duplicate,
+> refuted, or re-homed). The 87 are spoken for by slices 13 → 14 → 15
 > → 16; the 28 need rulings, not builds.
+>
+> **▶ SLICE 12 "THE ROAD HOME IS WALKED" IS LANDED — September 5, 2026**
+> (landing record = the boxed SLICE 12 block in `BUG_FIXES.md`; the rules are
+> `SYSTEMS_REFERENCE.md` §34). FA-33, FA-N61 and FA-N73 closed. The treaty's
+> free march order stamped `issued_turn`, which the strategic processor skips
+> as "first step already executed by executor.py" — true for every order the
+> executor issues, false for the only `StrategicOrder` built outside it — so
+> the corps spent the peace turn standing still (home turn 6→5, four warnings
+> → none) while the AI's own rung, which never read the field, always marched.
+> A corps stranded AFTER the peace was never handed a road at all: measured
+> organically, Bernadotte and Massena interned on turn 7, **two French
+> marshals destroyed in six turns by one treaty**. FA-N73 was 80% closed
+> before it was built — slice 11's `complete_vassal_break` had taken four of
+> its five, so building it as filed would have DOUBLED the tail — and its
+> own evidence is refuted (KoI is CONQUERED at t11, not gracefully released).
+> **Three of the filed/reproduced fix shapes would have shipped a
+> regression**: removing the stamp alone interns a corps a turn EARLIER in the
+> unanswered-ask arm (the stamp had been shielding the issuance turn from
+> `_check_interrupts`); the top-up alone makes the road un-refusable; and
+> converting the cancel into a HOLD makes a cautious marshal auto-fortify on
+> the ex-enemy's soil. Series + M1–M7 byte-identical **with the reason
+> measured** — an instrumented 40-turn replica counts zero top-ups, zero
+> graces and one vassal break, the war exit. ⛔ **The lesson is the mutation
+> sweep's:** two INERT and one BROKEN mutation exposed a FALSE CLAIM IN MY OWN
+> COMMENT (the top-up does not spare a corps that tick's warning — `_warn` is
+> keyed on distance and surplus, not on holding an order) and a pin that was
+> green about a line it never executed. New rows FA-S12-1 / FA-S12-2 filed,
+> owner slice 14.
 >
 > **▶ THE SLICE 11 REVIEW ROUND IS LANDED — September 5, 2026** (landing
 > record = the boxed SLICE 11 REVIEW ROUND block in `BUG_FIXES.md`). ⚠ 17 of

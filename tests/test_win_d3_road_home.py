@@ -408,14 +408,35 @@ class TestFreeMarchOrders:
             "it is not the player's order, it is the treaty's")
 
     def test_the_order_is_ordinary_and_overridable(self, world):
+        """FA-N61 (slice 12) amended this pin CONSCIOUSLY, and here is why.
+
+        It used to set `strategic_order = None` and assert only "must not
+        crash", under the docstring "nothing about the corridor resists him".
+        Slice 12 gives the corridor a per-turn top-up so a corps stranded
+        AFTER the treaty is handed a road too — and against a bare `None`
+        that top-up is indistinguishable from a newly-stranded corps, so the
+        old pin would have stayed GREEN while stating the opposite of the
+        shipped behaviour. That is the exact "vacuous pin" this build keeps
+        finding, so it is rewritten rather than left to pass for free.
+
+        The rule it now states: the treaty is refusable, and a refusal is
+        remembered. `Marshal.road_home_offered` is written where the road is
+        GIVEN, so however the order goes away — the typed cancel, the client
+        button, a blocked-path popup answered "Cancel Order" — the corps is
+        not chased.
+        """
         davout = _stage_measured_shape(world)
         _make_peace(world)
         assert W.is_road_home_order(davout.strategic_order)
+        assert davout.road_home_offered is True
 
         # The player says otherwise; nothing about the corridor resists him.
         davout.strategic_order = None
         assert davout.strategic_order is None
         W.process_evacuation_grants(world)  # must not crash or re-fight him
+        assert davout.strategic_order is None, (
+            "the treaty offered him the road once; letting it go is his "
+            "Emperor's business, not Berthier's")
 
     def test_a_standing_player_order_is_not_overruled(self, world):
         from backend.models.marshal import StrategicOrder

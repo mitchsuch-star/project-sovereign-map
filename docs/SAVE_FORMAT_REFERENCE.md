@@ -683,6 +683,7 @@ Reserved future `event_log` payloads:
 |-------|------|-------------|
 | `bombardments_this_turn` | int | Number of bombardments fired this turn (max 2, reset at turn start) |
 | `cannon_fire_ignored_turn` | int\|null | Turn when marshal ignored cannon fire (personality trigger, null if never) |
+| `road_home_offered` | bool | FA-N61 (slice 12): has the standing peace already handed this corps its road home? Written by `withdrawal.offer_road_home` where the road is GIVEN; read where it would be given again, so the treaty never chases a corps who let it go however the order went away. Cleared when a new corridor opens for his nation and when he reaches home. Pre-slice saves load `False`. |
 
 #### Idle Tracking (V2a)
 | Field | Type | Description |

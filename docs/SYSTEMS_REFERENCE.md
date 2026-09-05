@@ -4239,3 +4239,81 @@ three. WO slice 4 (WO-D6) chose this deliberately: it answered the same
 measured failure by splitting `capital_lost` out so the capital always leads,
 and pinned the three-province page five ways. Do not collapse them without
 re-opening that decision.
+
+---
+
+## 34. The road home is walked (FA slice 12, landed September 5, 2026)
+
+Three rules on the WIN-D3 evacuation corridor. Build contract:
+`docs/WAR_WITHDRAWAL_SPEC.md` §7a. Levers in
+`backend/game_logic/withdrawal.py`; landing record in `BUG_FIXES.md`
+§Final Whole-Game Audit.
+
+**1. The treaty claims no first step it never took**
+(`THE_TREATY_CLAIMS_NO_FIRST_STEP`). `StrategicOrder.issued_turn` means
+exactly one thing — *"first step already executed by executor.py"* — and
+`StrategicOrderProcessor.process_strategic_orders` skips any order carrying
+this turn's stamp on that basis. The treaty's free MOVE_TO is the only
+`StrategicOrder` in the codebase built outside `strategic_executor`, and it
+executes nothing, so it no longer stamps. `started_turn` still records when
+the order was made. Do not "restore" the stamp for symmetry: it cost the
+corps the peace turn, which spent one of the three slack turns §6 promises,
+and — because a marching corps' surplus is constant by design — put him at
+the warning margin for every turn of an optimal march.
+
+**2. A corps frozen on the game's own question is not loitering**
+(`A_STANDING_QUESTION_IS_NOT_LOITERING`). The skip above `continue`d before
+`_check_interrupts`, so removing it un-shields the issuance turn from the
+cannon-fire ask. `_is_immobile` therefore grants a marshal awaiting the
+player's word the same grace it grants one recovering from a rout — for the
+WHOLE interrupt set, order-bound and standalone alike, since a cornered
+marshal awaiting "fight or break out" cannot march home either. The grant is
+bumped by one per grace turn, so `expiry − current_turn` is CONSTANT: the
+window never widens and the surplus is preserved rather than spent on the
+game's own silence. **Do not clamp the bump to `EVACUATION_MAX_TURNS`** —
+`duration` may legitimately exceed 12 for a trans-continental march, and the
+clamp shortens that corridor. (Written, measured, removed.)
+
+**3. The offer stands while he is stranded**
+(`THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED`). Issuance ran once, at the
+transition; the judge re-derives who is stranded every turn. So a corps
+stranded AFTER the peace — the counterpart's other wars taking the ground
+under him — was warned three times and interned without ever being handed a
+road. `process_evacuation_grants` now calls the extracted
+`withdrawal.offer_road_home` per nation with a standing grant, which is the
+same body issuance uses, so all four guards are shared rather than re-earned.
+
+**The refusal is remembered, and its siting is the design.**
+`Marshal.road_home_offered` (serialized) is written where the road is GIVEN
+and read where it would be given again. `strategic_order = None` is written
+at many seams a player answer reaches — the typed cancel and
+`POST /cancel_order` converge on `_execute_cancel`, but `_respond_blocked_path`
+alone clears an order at five places, and the stalemate and cannon-fire
+answers at more. A guard keyed on CANCELLATION would have been fixed only at
+the seams somebody enumerated; keyed on ISSUANCE it covers every way the
+order can be let go. Cleared when a new corridor opens for his nation (a new
+treaty is a new offer) and when he reaches home. The refusal keeps its
+consequence: a corps who declines the road is still warned 2/1/0 and interned.
+
+**Rejected, with the measurement:** converting a cancelled road-home order
+into a HOLD (so the existing "the player's own order stands" guard would skip
+him) makes a *cautious* marshal auto-fortify on the soil of the power we have
+just made peace with, every turn, and puts an *aggressive* one on the sally
+arm — an order the player did not give.
+
+**The mid-treaty beat.** A road handed out mid-treaty rides the existing
+`evacuation_granted` event type with one extra key, `mid_treaty`, which three
+renderers branch on: `campaign_log.format_event_oneliner` (or it re-announces
+a peace signed turns ago), the `dispatch.py` road-home identity (per-corps,
+so two stranded corps are two pieces of news), and the headline class
+`road_home_mid_treaty` (or it opens "the war with Austria is over" three
+turns after it was). A new event type would have cost nine
+`len(CAMPAIGN_LOG_TYPES) == 160` pins for a sentence.
+
+**Two soft vassal exits ring the bell** (`vassal.A_QUIET_BREAK_STILL_RINGS_THE_BELL`).
+`record_vassal_break` raises one HIGH, lord-gated tray alert for
+`vassal_rebellion_independent` and `vassal_rebellion_armistice`. Never
+CRITICAL — that is the war register — and the copy may not contain
+"War declared", "rebelled against" or "ceased to exist", all three of which
+are pinned bans. The four MECHANICAL effects live in `complete_vassal_break`
+(slice-11 review round) and must not be duplicated here.

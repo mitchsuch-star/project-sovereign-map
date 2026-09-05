@@ -9,25 +9,26 @@
 > **Run `.venv/Scripts/python.exe tools/fa_row_tally.py` for the live number**
 > (add `--open` for the ids). It derives the tally from the row tables
 > themselves, because a count written into a heading is stale the moment the
-> next slice lands — the exact class of defect this build has spent eleven
-> slices closing. As of `48e6cc59`:
+> next slice lands — the exact class of defect this build has spent twelve
+> slices closing. As of slice 12:
 >
 > | family | OPEN | closed | disposed | total |
 > |---|---:|---:|---:|---:|
-> | audit defect (FA-n) | 45 | 45 | 12 | 102 |
-> | verification pass (FA-N) | 40 | 47 | 1 | 88 |
+> | audit defect (FA-n) | 44 | 46 | 12 | 102 |
+> | verification pass (FA-N) | 38 | 49 | 1 | 88 |
 > | review-round finding (FA-R) | 3 | 2 | 0 | 5 |
-> | found while building (FA-S) | 0 | 1 | 0 | 1 |
+> | found while building (FA-S) | 2 | 1 | 0 | 3 |
 > | design tie-in (FA-D) | 24 | 2 | 3 | 29 |
 > | gate from a round (FA-S*-D*) | 4 | 0 | 0 | 4 |
-> | **TOTAL** | **116** | **97** | **16** | **229** |
+> | **TOTAL** | **115** | **100** | **16** | **231** |
 >
-> **88 defect rows and 28 design rows / gates remain.** "Disposed" means
+> **87 defect rows and 28 design rows / gates remain** (slice 12 closed three
+> and filed two of its own). "Disposed" means
 > duplicate, refuted, or re-homed to a later slice — closed without a fix and
 > with the reason on the row.
 >
-> The 88 defects are spoken for by the remaining build order: **slice 12** (3
-> rows) → **13** (5, the position-10 blockers) → **14** (7 rows + five
+> The 87 defects are spoken for by the remaining build order: ~~slice 12~~ ✅
+> → **13** (5, the position-10 blockers) → **14** (9 rows + five
 > rulings) → **15** (20 harness rows, which must land BEFORE the FA-D27
 > measurement so the driver measured with is the fixed one) → **16** (the
 > remaining P3/P4 copy sweep, ~44). The 28 design rows are gates: they need a
@@ -37,6 +38,88 @@
 > ⚠ The FA-D family reads as OPEN by construction — its last column carries
 > a verification VERDICT, not a status, because those rows are design
 > questions rather than defects. They are counted separately for that reason.
+
+> # ✅ THE AUDIT BUILD: SLICE 12 "THE ROAD HOME IS WALKED" IS LANDED — September 5, 2026
+>
+> **Landing record = the boxed SLICE 12 block in `docs/BUG_FIXES.md`.**
+> FA-33, FA-N61 and FA-N73 closed, with three riders taken in the same commit
+> because each was a defect the slice's own fix would otherwise have created
+> or left standing. Suite **20,493 / 4 skipped**; sweep **26/26 killed, 0
+> INERT, 0 BROKEN**; one new serialized field; zero `.gd`.
+>
+> **The peace turn is the treaty's, and it was being spent standing still.**
+> The free march order stamped `issued_turn = current_turn`, and the strategic
+> processor skips this turn's stamp because *"first step already executed by
+> executor.py"* — true for every order the executor issues, false for the only
+> `StrategicOrder` built outside it. Measured, real end turns: home turn
+> **6 → 5**, warnings **four → none**, surplus 2 → the full slack of 3. And
+> **GR5 ran the player's way**: the AI's P1.2 rung never read the field at
+> all, so an enemy corps always marched on the peace turn (Mack:
+> Orleanais → Lorraine, identical in both arms).
+>
+> **Removing the stamp alone would have been a REGRESSION, and only a
+> measurement found it.** The skip `continue`s ABOVE `_check_interrupts`, so
+> it had been shielding the issuance turn from the cannon-fire ask by
+> accident: with the ask left unanswered, the fix alone interns Davout at
+> Vienna on turn 5 having marched nothing, against Bohemia on turn 6 having
+> marched one province. A corps that cannot march because the game is waiting
+> on the player is not loitering, so it now takes the same grace a routed
+> corps takes.
+>
+> **Two French marshals were being destroyed every six turns by one treaty.**
+> Reproduced organically from FA-N61's own one-line recipe: Austria's
+> still-running wars with Bavaria and KingdomOfItaly take the ground under
+> Bernadotte at t3 and Massena at t4, both are warned 2/1/0 with
+> `strategic_order = None` on every line between, and both are **interned on
+> turn 7**. Issuance ran once, at the transition; the judge re-derives who is
+> stranded every turn. The offer stands now while he is stranded — and the
+> filed fix, applied as filed, would have made the treaty's road
+> **un-refusable**, re-issuing it the turn after *"Davout halts his march."*
+> The reproduction's own proposed rider (convert the cancel into a HOLD) was
+> measured and rejected: it makes a cautious marshal **auto-fortify on the
+> soil of the power we just made peace with, every turn**, and puts an
+> aggressive one on the sally arm. So the refusal is remembered on ONE new
+> field, `Marshal.road_home_offered`, **written where the road is GIVEN** —
+> because `strategic_order = None` is written at many seams a player answer
+> reaches, and a guard keyed on cancellation would have been fixed only at the
+> ones somebody enumerated.
+>
+> **FA-N73 was 80% closed before it was built, and its evidence is refuted.**
+> The slice-11 review round's `complete_vassal_break` had already given all
+> three exits the four mechanical effects; building the row as filed would
+> have DOUBLED them and shipped *"War declared."* into an armistice. Only the
+> persistent tray alert was open, on the exit both big French satellites take.
+> And "KingdomOfItaly leaves France gracefully at t11" does not reproduce —
+> she is **conquered** at that turn.
+>
+> **The series is byte-identical and the reason is MEASURED, not asserted.**
+> An instrumented 40-turn replica counts, over the whole ambient run, **zero
+> mid-treaty top-ups, zero standing-question graces, and exactly one vassal
+> break — Switzerland at turn 25, the WAR exit.** All three behaviour changes
+> are structurally unreached there. (M1–M7's byte-identity is worth less: that
+> harness contains no `end_turn`, no `withdrawal` and no `advance_turn`.)
+>
+> **⛔ The lesson is the mutation sweep's, not a reviewer's.** Two mutations
+> came back INERT and one BROKEN, and repairing them found **a false claim in
+> my own comment** — I had written that the top-up runs before the judging
+> pass so a topped-up corps is not also warned that tick, and `_warn` is keyed
+> on distance and surplus, not on whether he holds an order (the organic case
+> warns Massena on the very tick he is topped up). The sweep caught the claim,
+> not the code. The third repair found a pin that was **green about a line it
+> never executed**, which is FA-S12-1 below — found by trying to test around
+> it.
+>
+> **Two new rows filed, not built (GR9):** **FA-S12-1** (a peace that stranded
+> nobody leaves no corridor, so a corps stranded during it is silently
+> abandoned — two candidate resolutions, owner slice 14) and **FA-S12-2** (a
+> satellite has a FOURTH exit, elimination, which applies none of the four
+> break effects and is the one that actually fires on the shipped board;
+> it moves the series, so it needs a flip-arm — owner slice 14).
+>
+> **NEXT = slice 13 "Shipping"** (FA-29, FA-43, FA-N84, FA-N56, FA-57 — the
+> position-10 blockers), **then a three-lens review round**, then 14 → 15 →
+> 16, then position 10. ⚠ Still no pillar re-score. ⚠ FA-D27 / FA-D28 /
+> FA-S9-D1 / FA-S9-D2 await the user's ruling.
 
 > # ✅ THE AUDIT BUILD: THE SLICE 11 REVIEW ROUND "THE BREAK COMPLETES ITSELF" IS LANDED — September 5, 2026
 >

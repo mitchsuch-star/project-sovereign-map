@@ -1685,6 +1685,18 @@ def format_event_oneliner(event: dict) -> str:
         names = event.get("marshals") or []
         turns = int(event.get("turns") or 0)
         cut = event.get("cut_off") or []
+        if event.get("mid_treaty"):
+            # FA-N61 (slice 12): the same type, a different moment. The peace
+            # was signed turns ago; this corps was stranded after it, and the
+            # standing treaty put him on the road. Rendering it with the
+            # sentence above would announce the peace a second time.
+            who = ", ".join(names) or "A corps"
+            dest = (event.get("destinations") or {}).get(
+                names[0] if names else "", "")
+            return (f"{who} put on the road home from "
+                    f"{event.get('region', 'the field')}"
+                    + (f" to {dest}" if dest else "")
+                    + f" under the peace with {b} — {turns} turns")
         if not names and cut:
             return (f"Peace between {a} and {b} — "
                     f"{', '.join(cut)} cut off, no road home")
