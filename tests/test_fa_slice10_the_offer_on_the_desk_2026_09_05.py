@@ -737,29 +737,52 @@ class TestTheAnswerReachesTheDesk:
             "counter_offer", "counter_offer_response",
         }
 
-    def test_a_lapsed_counter_costs_the_player_a_cooldown(self, boot_board):
+    def test_a_lapsed_counter_costs_the_player_a_cooldown(self, fixture_board):
         """The 3-DP treadmill: the counter arm was the only non-ACCEPT outcome
         that set no player cooldown, so an overture whose answer lapsed
-        unanswered could be re-sent, at 3 DP, every single turn."""
-        world = boot_board
+        unanswered could be re-sent, at 3 DP, every single turn.
+
+        Driven through the REAL `TurnManager.end_turn`. The first cut of this
+        pin re-implemented the production loop in its own body and asserted its
+        own writes — it executed none of the block it names, and the sweep
+        mutation that was supposed to kill it was beaten by a source-census
+        sibling instead."""
+        from backend.commands.executor import CommandExecutor
+        world = fixture_board
+        world.player_proposal_cooldowns.pop("Russia", None)
+        world.player_proposal_cooldowns.pop("Russia_peace", None)
         world.dialogue_manager.push({
             "type": "counter_offer_response", "target_nation": "Russia",
-            "turn_created": int(world.current_turn),
+            "turn_created": int(world.current_turn) - 5,
             "context": {"proposal_type": "peace"},
         })
-        lapsed = world.dialogue_manager.lapse_pending_offers()
-        assert any(row["offer_type"] == "counter_offer_response"
-                   for row in lapsed)
-        manager = TM.TurnManager(world)
-        for row in lapsed:
-            if (TM.LAPSED_COUNTER_COSTS_A_COOLDOWN
-                    and row["offer_type"] == "counter_offer_response"):
-                world.player_proposal_cooldowns[row["nation"]] = 3
-                world.player_proposal_cooldowns[
-                    f"{row['nation']}_{row['proposal_type']}"] = 5
-        del manager
-        assert world.player_proposal_cooldowns.get("Russia") == 3
-        assert world.player_proposal_cooldowns.get("Russia_peace") == 5
+        executor = CommandExecutor()
+        with _quiet():
+            TM.TurnManager(world, executor=executor).end_turn(
+                {"world": world, "executor": executor})
+        # Written 3 / 5, read back one turn decayed.
+        assert world.player_proposal_cooldowns.get("Russia") == 2
+        assert world.player_proposal_cooldowns.get("Russia_peace") == 4
+
+    def test_the_lever_down_leaves_the_re_ask_free(self, fixture_board):
+        """The isolation arm: with the lever down the same lapse writes
+        nothing, so the pin above is about this rule and not about some other
+        cooldown the turn happens to set."""
+        from backend.commands.executor import CommandExecutor
+        TM.LAPSED_COUNTER_COSTS_A_COOLDOWN = False
+        world = fixture_board
+        world.player_proposal_cooldowns.pop("Russia", None)
+        world.player_proposal_cooldowns.pop("Russia_peace", None)
+        world.dialogue_manager.push({
+            "type": "counter_offer_response", "target_nation": "Russia",
+            "turn_created": int(world.current_turn) - 5,
+            "context": {"proposal_type": "peace"},
+        })
+        executor = CommandExecutor()
+        with _quiet():
+            TM.TurnManager(world, executor=executor).end_turn(
+                {"world": world, "executor": executor})
+        assert "Russia_peace" not in world.player_proposal_cooldowns
 
     def test_the_lapse_cooldown_is_wired_at_the_turn_seam(self):
         """The pin above builds the rule; this one proves the production loop
@@ -947,7 +970,30 @@ class TestTheOfferSpeaksTheDirection:
                 assert line, key
                 assert "{" not in line, key
 
-    def test_the_rail_says_offering_when_the_court_pays(self):
+    def test_the_rail_says_offering_when_the_court_pays(self, fixture_board):
+        """Behavioural. The census below is a drift guard; this drives the
+        real promotion loop and reads the notification the player sees."""
+        from backend.commands.executor import CommandExecutor
+        world = fixture_board
+        offer = dict(_current_offer(world))
+        offer["offer_id"] = "concession_probe"
+        offer["settlement_terms"] = [
+            {"type": "peace"},
+            {"type": "gold_indemnity", "from": "Britain", "to": "France",
+             "amount": 1358}]
+        offer.pop("dialogue_id", None)
+        world.pending_settlement_dialogues = [offer]
+        executor = CommandExecutor()
+        with _quiet():
+            TM.TurnManager(world, executor=executor)._process_ai_diplomatic_phase()
+        rows = [n for n in world.notifications.to_list()
+                if (n.get("details") or {}).get("offer_id") == "concession_probe"]
+        assert rows, "the promotion produced no settlement-offer rail row"
+        message = str(rows[0]["message"])
+        assert "Offering 1358 gold." in message
+        assert "Asking" not in message
+
+    def test_the_rail_census_still_binds_the_literal(self):
         source = (ROOT / "backend" / "game_logic" / "turn_manager.py").read_text(
             encoding="utf-8")
         block = source.split("for offer in promoted_offers:")[1][:2000]
@@ -1052,10 +1098,44 @@ class TestTheRecordStoresOneSidesBurden:
             world._make_diplo_key("Britain", "France")) or []
         assert records and records[-1]["harshness"] == 0.0
 
-    def test_the_ally_penalty_reads_the_enemys_burden(self):
+    def test_the_ally_penalty_reads_the_enemys_burden(
+            self, fixture_board, monkeypatch):
         """The BPH-C doubling asks how lightly the COMMON ENEMY got off; the
         old input summed both sides' clauses, counting France's own
-        concessions as if they had been extracted from him."""
+        concessions as if they had been extracted from him.
+
+        Behavioural: spy on the figure `_ratify_treaty` actually hands to
+        `apply_separate_peace_penalties`. France concedes 600 and extracts
+        200, so the two readings differ by construction."""
+        import backend.game_logic.diplomacy as DIP
+        world = fixture_board
+        seen = []
+        monkeypatch.setattr(
+            DIP, "apply_separate_peace_penalties",
+            lambda w, actor, target, harshness: seen.append(
+                (actor, target, harshness)) or [])
+        with _quiet():
+            world._ratify_treaty({
+                "type": "peace",
+                "proposer_nation": world.player_nation,
+                "target_nation": "Britain",
+                "clauses": [],
+                "demands": [{"type": "gold_lump", "value": 200}],
+                "sweeteners": [{"type": "gold_lump", "value": 600}],
+            })
+        assert seen, "the separate-peace penalty arm never ran"
+        _actor, target, harshness = seen[-1]
+        assert target == "Britain"
+        # Britain's burden is the 200 France extracted, never the 800 total.
+        assert harshness == pytest.approx(
+            burden_on_nation(
+                [{"type": "gold_lump", "from": "Britain", "to": "France",
+                  "amount": 200}], "Britain"),
+            abs=0.001)
+        assert harshness < calculate_treaty_harshness(
+            {"demands": [{"type": "gold_lump", "value": 800}]})
+
+    def test_the_ally_penalty_census_still_binds_the_call(self):
         source = (ROOT / "backend" / "models" / "world_state.py").read_text(
             encoding="utf-8")
         block = source.split("apply_separate_peace_penalties")[1][:900]

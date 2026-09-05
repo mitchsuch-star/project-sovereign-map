@@ -1987,6 +1987,38 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Saxony forwards a settlement of {war_label}. No indemnity is named; "
         "Saxony asks only that the armies march somewhere else."
     ),
+    # Slice-10 review round: the FOURTH register. No gold moves, but the
+    # package is not nothing — a cession, a carve, a vassalage, a recurring
+    # stream. The `_none` family above asserts that nothing changes hands,
+    # which of a `create_client` offer is a lie; these say the opposite and
+    # send the reader to the terms.
+    "settlement_incoming_offer_arrival_terms_talleyrand": (
+        "Sire, {proposer_leader} has dispatched a settlement of {war_label}. "
+        "No indemnity either way — but do not mistake that for a small "
+        "bargain: read what they ask instead of gold."
+    ),
+    "settlement_incoming_offer_arrival_terms_castlereagh": (
+        "His Majesty's Government offers terms for {war_label}. No indemnity "
+        "is named; what London asks is set out in the articles themselves."
+    ),
+    "settlement_incoming_offer_arrival_terms_hardenberg": (
+        "Prussia proposes a settlement of {war_label} with no gold named. "
+        "Hardenberg has asked for something else instead, and put it in "
+        "writing."
+    ),
+    "settlement_incoming_offer_arrival_terms_metternich": (
+        "Vienna submits terms for {war_label} with no indemnity either way. "
+        "Metternich's price is written into the articles, not the ledger."
+    ),
+    "settlement_incoming_offer_arrival_terms_einsiedel": (
+        "Saxony forwards a settlement of {war_label}. No gold is asked; the "
+        "terms name what Saxony wants in its place."
+    ),
+    "settlement_incoming_offer_arrival_terms_chancery": (
+        "The chancery of {proposer_leader} has forwarded a settlement of "
+        "{war_label}. No indemnity is named — the court's price stands in "
+        "the articles below."
+    ),
     "settlement_incoming_offer_arrival_none_chancery": (
         "The chancery of {proposer_leader} has forwarded a settlement of "
         "{war_label}. No indemnity is asked; the court awaits France's "

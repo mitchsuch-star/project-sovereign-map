@@ -4,6 +4,48 @@
 
 ## ▶ NEXT UP
 
+> # ✅ THE AUDIT BUILD: THE SLICE 10 REVIEW ROUND "THE LETTER IS READ BEFORE IT IS SIGNED" IS LANDED — September 5, 2026
+>
+> **Landing record = the boxed SLICE 10 REVIEW ROUND block in
+> `docs/BUG_FIXES.md` §Final Whole-Game Audit.** Three lenses at `f1fe18ab`,
+> every finding put to two independent refuters (default REFUTED); 23 agents,
+> ten raw findings, nine survived, and **for the first time in six rounds none
+> was a P1 inside the fix**. The refuters killed one outright and narrowed six,
+> twice by catching a finder computing a "before" with the POST-slice code.
+>
+> **Three things the slice shipped, fixed behind levers.** The arrival register
+> was chosen from GOLD ALONE, so the settlement the producer builds for a
+> beaten, bankrupt France — a white peace plus a `create_client` carving the
+> Duchy of Normandy out of French soil — got the voice line that says *nothing
+> changes hands but the quiet*; a fourth register now fires on any substantive
+> clause. FA-3's departed-court drop narrowed the COVERAGE and not the TERMS,
+> so an eliminated Britain's 3,770g offer staged a ratifiable review that the
+> ratification then refused — the exact "true when drawn, false when pressed"
+> class the slice exists to close, shipped by the fix for it. And
+> `departed_courts_note` was produced and delivered nowhere (GR9), saying "has
+> already made her own peace" of a court France had destroyed.
+>
+> **Two findings about the pins.** Three of the 41 swept mutations were killed
+> only by a source census of the line they mutate, and the test that named
+> itself the FA-17 behaviour pin executed ZERO production lines — it
+> re-implemented the loop in its own body and asserted its own writes. All
+> three have behavioural arms now. `settlement_actions.py`'s three changes had
+> no test and no mutation; both routes are pinned, and the pop deletions are
+> **measured inert on four arms**, so their mutations were deleted rather than
+> left reporting INERT.
+>
+> **A figure retracted.** The boot triple "Austria 5 / Britain −2 / Russia
+> −2" cannot be reproduced by anyone: the board gives −13/−13/−13 at turn 1
+> and 1/−3/−3 by turn 5. And `_reduce_p8_demands` does not "price the purse"
+> — it prices ACCEPTANCE and reads no treasury; the correction matters because
+> slice 14 inherits that cell.
+>
+> **Gates:** sweep **17/17 killed, 0 INERT**; suite **20,382/4**; ruff clean; parser
+> eval 675/675; series + M1–M7 byte-identical; zero `.gd`; zero new serialized
+> fields. `tests/test_fa_slice10_review_round_2026_09_05.py` (27).
+>
+> **▶ NEXT = slice 11 "The Briefing Tells the Truth".**
+
 > # ✅ THE AUDIT BUILD: SLICE 10 "THE OFFER ON THE DESK" IS LANDED — September 5, 2026
 >
 > **Landing record = `docs/BUG_FIXES.md` §Final Whole-Game Audit, the boxed
@@ -13,9 +55,13 @@
 > staging half, FA-N15, FA-N17, FA-N18, FA-17, FA-N44, FA-N16, FA-N43, FA-N45,
 > plus **FA-S10-1**, a pre-existing P2 found while building. **FA-21 MOVED to
 > slice 14**: it changes AI behaviour and needs a series flip-arm, and a
-> reproduction found its filed fix ships a SMALLER demand than the row wants
-> (`_reduce_p8_demands` already prices the purse — the measured 6,994 becomes
-> 200).
+> reproduction found its filed fix ships a SMALLER demand than the row wants.
+> **Corrected by the review round:** `_reduce_p8_demands` prices ACCEPTANCE
+> and never reads a purse — 6,994 is the EC-W4 cap in
+> `_settlement_offer_build_terms` (0.40 × France's 17,487), and the reducer
+> floors ANY lump at or above ~1,000 to exactly 200 with `_force_send`,
+> identically at a 200g chest and a 900,000g one. The filed fix is inert
+> unless the REDUCER is taught the purse.
 >
 > **ONE RULE closes five: an incoming settlement offer is MAIL, never a DRAFT.**
 > SC-26's collision guard asks "is a settlement already on the table?" and the

@@ -919,6 +919,7 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "cross_war_settlement_collision": "Resolve the active settlement review before opening another war's settlement.",
     # FA-3 (slice 10): every court an offer covered has since made its own
     # peace, so there is no longer anyone for these terms to bind.
+    "offer_terms_name_a_departed_court": "These terms bind a court that has left this war; they cannot be ratified as written. Use Revise Terms to open a draft without it.",
     "offer_courts_all_settled": "Every court in this offer has already made its peace; there is no one left for these terms to bind.",
     "same_war_merge_conflict": "These terms conflict with the open settlement review; revise before merging.",
     # SC-14e aged-out dispatch link

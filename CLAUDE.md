@@ -363,6 +363,26 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > delivery road makes the first road's pin inert: darken the second road in
 > the isolation pin, never weaken the assertion.**
 >
+> **▶ THE SLICE 10 REVIEW ROUND IS LANDED — September 5, 2026** (landing
+> record = the boxed SLICE 10 REVIEW ROUND block in `BUG_FIXES.md`). Three
+> lenses at `f1fe18ab` with two refuters per finding: nine survived and **none
+> was a P1 inside the fix — the first round of six**. Three the slice shipped,
+> all fixed: the arrival register was chosen from GOLD ALONE (so the producer's
+> own package for a beaten, bankrupt France — a white peace plus a
+> `create_client` carve — said *nothing changes hands*), FA-3's departed-court
+> drop narrowed the coverage and not the TERMS (an eliminated leader's offer
+> staged a ratifiable review the ratification refused — the slice's own class
+> of defect), and `departed_courts_note` was delivered nowhere while saying a
+> destroyed court had "made her own peace". Two more about the pins: three of
+> the 41 kills were source-census kills, and the FA-17 behaviour pin executed
+> ZERO production lines. **A figure is RETRACTED** — the boot triple "Austria
+> 5 / Britain −2 / Russia −2" is unreproducible (the board gives
+> −13/−13/−13 at turn 1), and `_reduce_p8_demands` prices ACCEPTANCE, not the
+> purse. Sweep 17/17, 0 inert. ⛔ **The lesson: when you overrule a row's own
+> warning, say so on the row** — FA-N18 had explicitly warned against
+> narrowing `_mounted_settlement_dialogue`, which has three callers, and the
+> record did not say the warning was consciously overruled.
+>
 > **▶ SLICE 10 "THE OFFER ON THE DESK" IS LANDED — September 5, 2026.**
 > Landing record = the boxed SLICE 10 block in `BUG_FIXES.md` §Final
 > Whole-Game Audit. FA-4 (P1), FA-3 (P1), FA-N4's staging half, FA-N15,

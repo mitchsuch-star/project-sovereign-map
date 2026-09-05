@@ -68,9 +68,20 @@ def consenting_courts_for_ratification(dialogue: Mapping[str, Any]) -> List[str]
     that was true when it was drawn and false when it is pressed.
 
     Consent is granted to a SPECIFIC package. If the staged terms are no
-    longer the offered ones — an edit, a restage, a save-loaded dialogue that
-    outlived its offer — the consent lapses and every court is scored
-    normally again.
+    longer the offered ones — an edit or a restage — the consent lapses and
+    every court is scored normally again.
+
+    Review round: the first cut of this docstring listed a third case, "a
+    save-loaded dialogue that outlived its offer". That is wrong and was
+    never implemented. `DialogueManager.to_dict`/`from_dict` deep-copy the
+    whole dialogue, so `consent_terms` and `settlement_terms` travel
+    together and a round trip satisfies the equality trivially. The staged
+    review IS the consent record from the tick it is staged; outliving the
+    offer is its normal condition, not an anomaly. `consent_offer_id` rides
+    the dialogue as PROVENANCE only — nothing reads it, deliberately:
+    lapsing on "the offer is no longer live" would kill the consent on the
+    very tick the accept consumes the letter, re-opening the P1 this slice
+    closed.
     """
     consenting = [
         str(n) for n in (dialogue.get("consenting_courts") or []) if n

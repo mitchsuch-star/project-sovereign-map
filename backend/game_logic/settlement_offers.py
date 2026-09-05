@@ -247,23 +247,174 @@ def _live_covered_for_offer(
     return live, departed
 
 
-def _departed_courts_note(departed: Iterable[str]) -> str:
-    """One sentence naming the courts an offer no longer binds (FA-3)."""
+# Slice-10 review round: False restores the round's three pre-review
+# behaviours (the gold-only arrival register; a departed court's clauses
+# forwarded whole; the note produced and never delivered).
+REGISTER_READS_THE_PACKAGE = True
+DEPARTED_COURT_TAKES_ITS_CLAUSES = True
+DEPARTED_COURT_NOTE_IS_DELIVERED = True
+
+# The clause families an offer can carry that move something other than a
+# lump of gold. Mirrors `settlement_reactions._MATERIAL_LOSS_TYPES` plus the
+# recurring-gold stream, which the headline `amount` split does not see.
+SUBSTANTIVE_NON_INDEMNITY_TYPES: frozenset = frozenset(
+    {
+        "territory_cede",
+        "vassalage",
+        "subjugation",
+        "forced_alliance",
+        "liberation",
+        "continental_system_join",
+        "create_client",
+        "vassal_transfer",
+        "gold_per_turn",
+    }
+)
+
+
+def _exit_path_for(world: Any, nation: str, war_id: str) -> str:
+    """How a court left this war, off the durable `participant_meta` witness."""
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping):
+        return ""
+    meta = (war.get("participant_meta") or {}).get(str(nation)) or {}
+    if not isinstance(meta, Mapping):
+        return ""
+    return str(meta.get("exit_path") or "")
+
+
+def _departed_courts_note(
+    departed: Iterable[str],
+    *,
+    world: Any = None,
+    war_id: str = "",
+) -> str:
+    """One sentence naming the courts an offer no longer binds (FA-3).
+
+    Slice-10 review round. The first cut said one thing about every departure:
+    "X has already made her own peace." `_live_covered_for_offer` derives
+    departure from `get_coverable_enemy_participants`, which drops a nation the
+    moment it is off the war's side lists — and the commonest way that happens
+    is CONQUEST, which the same slice made ordinary by resolving an eliminated
+    court's pairs. So the sentence told the player a court France had destroyed
+    had settled with him. The exit is already stamped on the durable
+    `participant_meta` witness; read it.
+    """
     from backend.display_names import humanize_entity_name
 
-    names = [humanize_entity_name(str(n)) for n in departed if n]
-    if not names:
+    rows = [str(n) for n in (departed or []) if n]
+    if not rows:
         return ""
-    if len(names) == 1:
-        return (
-            f"{names[0]} has already made her own peace; these terms now "
-            f"bind the courts that remain."
+    destroyed = [
+        n for n in rows
+        if _exit_path_for(world, n, war_id) == "eliminated"
+    ] if world is not None else []
+    settled = [n for n in rows if n not in destroyed]
+
+    def _listed(names: List[str]) -> str:
+        shown = [humanize_entity_name(n) for n in names]
+        if len(shown) == 1:
+            return shown[0]
+        return ", ".join(shown[:-1]) + f" and {shown[-1]}"
+
+    clauses: List[str] = []
+    if destroyed:
+        clauses.append(
+            f"{_listed(destroyed)} "
+            + ("no longer exists" if len(destroyed) == 1
+               else "no longer exist")
         )
-    listed = ", ".join(names[:-1]) + f" and {names[-1]}"
+    if settled:
+        clauses.append(
+            f"{_listed(settled)} "
+            + ("has already made her own peace" if len(settled) == 1
+               else "have already made their own peace")
+        )
     return (
-        f"{listed} have already made their own peace; these terms now bind "
-        f"the courts that remain."
+        "; ".join(clauses)
+        + "; these terms now bind the courts that remain."
     )
+
+
+def _terms_naming_departed_courts(
+    terms: Iterable[Mapping[str, Any]],
+    departed: Iterable[str],
+) -> List[str]:
+    """The departed courts a package still names in a clause (review round).
+
+    FA-3's drop narrowed the COVERAGE and forwarded the TERMS whole, so an
+    offer whose indemnity or carve named the offering leader staged a review
+    that `settlement_ratify`'s revalidation then rejected with
+    `clause_target_uncovered` — after consent had made the Ratify button live
+    and after the letter had been consumed. A button true when drawn and false
+    when pressed is the exact class this slice exists to close.
+
+    The predicate is drift-locked to the validator's own rule: the same
+    `_clause_role_nations` the V2 coverage check reads.
+    """
+    from backend.game_logic.settlement_validation import _clause_role_nations
+
+    gone = {str(n) for n in (departed or []) if n}
+    if not DEPARTED_COURT_TAKES_ITS_CLAUSES or not gone:
+        return []
+    named: List[str] = []
+    for clause in terms or []:
+        if not isinstance(clause, Mapping):
+            continue
+        for role in _clause_role_nations(clause):
+            role_name = str(role)
+            if role_name in gone and role_name not in named:
+                named.append(role_name)
+    return named
+
+
+def _drop_terms_naming(
+    terms: Iterable[Mapping[str, Any]],
+    courts: Iterable[str],
+) -> List[Dict[str, Any]]:
+    """The package with every clause naming one of `courts` removed."""
+    from backend.game_logic.settlement_validation import _clause_role_nations
+
+    gone = {str(n) for n in (courts or []) if n}
+    kept: List[Dict[str, Any]] = []
+    for clause in terms or []:
+        if not isinstance(clause, Mapping):
+            continue
+        if any(str(role) in gone for role in _clause_role_nations(clause)):
+            continue
+        kept.append(dict(clause))
+    return kept
+
+
+def _deliver_departed_note(result: Dict[str, Any], world: Any) -> None:
+    """Put the departed-court sentence where the player actually reads it.
+
+    Review round (GR9). `_live_covered_for_offer`'s docstring promised "the
+    player is told which", the note was stamped on the result, and a whole-repo
+    census found no consumer — no backend arm folded it into `message`, no
+    `.gd` read the key, and the slice's own pin asserted only that the key
+    existed. An unkept player-facing promise with no owner row is exactly what
+    Golden Rule 9 forbids.
+
+    The two surfaces that carry a staged review are the terminal `message` and
+    the popup's `talleyrand_text`, so the sentence joins both.
+    """
+    if not DEPARTED_COURT_NOTE_IS_DELIVERED:
+        return
+    note = str(result.get("departed_courts_note") or "")
+    if not note:
+        return
+    for key in ("message", "talleyrand_text"):
+        existing = str(result.get(key) or "")
+        if note in existing:
+            continue
+        result[key] = f"{existing} {note}".strip() if existing else note
+    staged = result.get("diplomatic_dialogue")
+    if isinstance(staged, dict):
+        spoken = str(staged.get("talleyrand_text") or "")
+        if note not in spoken:
+            staged["talleyrand_text"] = (
+                f"{spoken} {note}".strip() if spoken else note)
 
 
 def _is_offer_known_to_dialogue_manager(
@@ -2204,14 +2355,30 @@ def build_incoming_settlement_offer_popup(
             amount = _clause_amount
         break
 
-    # Three registers, because there are three things an offer can say about
-    # gold: they ask it of us, they offer it to us, or nobody pays.
+    # FOUR registers. Three are about gold — they ask it of us, they offer it
+    # to us, or nobody pays — and the fourth exists because the first cut of
+    # this split chose the register from GOLD ALONE. `_settlement_offer_build_
+    # terms` deliberately drops the indemnity when the payer's chest is empty
+    # and falls through to the carve gate, so the settlement the producer
+    # builds for a beaten, bankrupt France — a white peace plus a
+    # `create_client` erecting the Duchy of Normandy out of French soil — got
+    # the no-gold voice: "nothing changes hands but the quiet." The clause
+    # list beside it said otherwise. A register may never assert what the
+    # package does not do.
+    _has_substance = REGISTER_READS_THE_PACKAGE and any(
+        isinstance(term, Mapping)
+        and str(term.get("type") or "") in SUBSTANTIVE_NON_INDEMNITY_TYPES
+        for term in settlement_terms
+    )
     if amount_offered > 0:
         _arrival_suffix = "_concession"
         _voice_amount = amount_offered
     elif amount > 0:
         _arrival_suffix = ""
         _voice_amount = amount
+    elif _has_substance:
+        _arrival_suffix = "_terms"
+        _voice_amount = 0
     else:
         _arrival_suffix = "_none"
         _voice_amount = 0
@@ -2695,6 +2862,14 @@ def handle_incoming_settlement_offer_action(
                     if offer_proposer_nation in covered_enemies
                     else covered_enemies[0]
                 )
+        # Review round: this arm opens an EDITABLE counter draft, so a clause
+        # naming a court that has left the war is dropped rather than refused
+        # — the player is rewriting the package anyway, and forwarding it whole
+        # seeds a draft that cannot pass Submit's own validation.
+        _stale_named = _terms_naming_departed_courts(
+            offered_terms, departed_courts)
+        if _stale_named:
+            offered_terms = _drop_terms_naming(offered_terms, _stale_named)
 
         stage_kwargs: Dict[str, Any] = {
             "war_id": war_id,
@@ -2787,7 +2962,8 @@ def handle_incoming_settlement_offer_action(
             if departed_courts:
                 result["departed_courts"] = list(departed_courts)
                 result["departed_courts_note"] = _departed_courts_note(
-                    departed_courts)
+                    departed_courts, world=world, war_id=war_id)
+                _deliver_departed_note(result, world)
         return result
 
     if action != "accept_settlement_offer":
@@ -2939,6 +3115,47 @@ def handle_incoming_settlement_offer_action(
                 else covered_enemies[0]
             )
 
+    # Review round. The drop above narrows the COVERAGE; on the first cut the
+    # TERMS went through whole, so an offer whose indemnity or carve named the
+    # offering leader (the producer's decisive-band arm always names
+    # `proposer_nation`) staged a review that consent made ratifiable and that
+    # `settlement_ratify`'s revalidation then rejected with
+    # `clause_target_uncovered` — the letter already consumed, and an
+    # `ai_system` review advertising no editor. Measured: an eliminated
+    # Britain's 3,770g offer staged `can_ratify: True` and answered "The
+    # submitted terms failed validation; review and correct them."
+    #
+    # An accept is a ratification request for terms as written, so a package
+    # the courts can no longer sign is refused here, not silently rewritten.
+    # The letter STANDS — Revise Terms opens the editable draft, which drops
+    # the dead clause instead.
+    _stale_named = _terms_naming_departed_courts(offered_terms, departed_courts)
+    if _stale_named:
+        return {
+            "success": False,
+            "dialogue_type": "incoming_settlement_offer",
+            "action": "accept_settlement_offer",
+            "war_id": war_id,
+            "offer_id": offer_id,
+            "error": "offer_terms_name_a_departed_court",
+            "error_display": _error_display(
+                "offer_terms_name_a_departed_court"),
+            "message": (
+                _departed_courts_note(
+                    _stale_named, world=world, war_id=war_id)
+                + " "
+                + _error_display("offer_terms_name_a_departed_court")
+            ).strip(),
+            "departed_courts": list(departed_courts),
+            "departed_courts_note": _departed_courts_note(
+                _stale_named, world=world, war_id=war_id),
+            "must_reopen": False,
+            "mutated": False,
+            "diplomatic_dialogue": dict(dialogue),
+            "awaiting_diplomatic_response": True,
+            "suppress_proposal_result_popup": True,
+        }
+
     stage_kwargs: Dict[str, Any] = {
         "war_id": war_id,
         "actor_nation": actor,
@@ -2984,7 +3201,9 @@ def handle_incoming_settlement_offer_action(
     _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
     if departed_courts:
         result["departed_courts"] = list(departed_courts)
-        result["departed_courts_note"] = _departed_courts_note(departed_courts)
+        result["departed_courts_note"] = _departed_courts_note(
+            departed_courts, world=world, war_id=war_id)
+        _deliver_departed_note(result, world)
     if str(dialogue.get("mediator") or ""):
         # AI-5c (§12.5): the good offices ACCEPTED — the mediator is
         # credited at the moment the review opens (relations), and the

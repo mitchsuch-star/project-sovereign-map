@@ -4010,10 +4010,21 @@ sets, and they are not the same question:
   `incoming_settlement_offer`. This is what SC-26 means by "a settlement is
   already on the table", and it is read at exactly three places, which must
   always agree: the collision arm in `_settlement_dialogue_active`, the
-  mounted-draft reader `_mounted_settlement_dialogue` (the one
-  `stage_settlement_confirm` consults to raise
-  `cross_war_settlement_collision`), and the staging tail's same-war replace
-  arm in `settlement_staging`. Flip lever `OFFER_IS_MAIL_NEVER_A_DRAFT`.
+  mounted-draft reader `_mounted_settlement_dialogue`, and the staging
+  tail's same-war replace arm in `settlement_staging`. Flip lever
+  `OFFER_IS_MAIL_NEVER_A_DRAFT`.
+
+  **`_mounted_settlement_dialogue` itself has THREE callers**, and narrowing
+  it changed the verdict at all three: `stage_settlement_confirm` (the
+  cross-war collision and the same-war refresh/scope-replace),
+  `settlement_routes.evaluate_war_detail_actionability` (the war-detail
+  recovery gate) and
+  `settlement_validation.evaluate_pair_peace_substitute_eligibility` (the
+  pair-substitute CTA). FA-N18's own filed fix shape warned against narrowing
+  this helper and named the other two sites; the warning was CONSCIOUSLY
+  OVERRULED, because a letter is not a mounted draft at those gates either.
+  An AST census pins the caller count, so a fourth reads as a failure rather
+  than a surprise.
 
 A letter is a persistent soft-stop mailbox item the player may hold for turns.
 It never blocks opening a settlement, on its own war or another. It follows
@@ -4039,12 +4050,22 @@ honoured at BOTH scoring seams:
   true when drawn is false when pressed.
 
 Consent is granted to a SPECIFIC package: if `settlement_terms` no longer equals
-`consent_terms` (an edit, a restage, a save-loaded dialogue that outlived its
-offer) it lapses and every court is scored normally again. **Hard stops always
+`consent_terms` (an edit or a restage) it lapses and every court is scored
+normally again. `consent_offer_id` is PROVENANCE and is deliberately unread —
+lapsing on "the offer is no longer live" would kill the consent on the very
+tick the accept consumes the letter. **Hard stops always
 block** — consent says a court is willing, never that a clause is legal or a
-pair is still at war. A covered court that has since made its own peace is
-dropped from the coverage (`_live_covered_for_offer`) and named to the player;
-an offer whose courts have ALL departed is refused as `offer_courts_all_settled`.
+pair is still at war. A covered court that has since left the war is dropped from the coverage
+(`_live_covered_for_offer`) and named to the player in a sentence derived from
+`participant_meta[...]['exit_path']`, so a court France destroyed is not
+described as having settled; an offer whose courts have ALL departed is refused
+as `offer_courts_all_settled`. The drop narrows the COVERAGE, so it must narrow
+the TERMS with it: an accept whose package still NAMES a departed court
+(`_terms_naming_departed_courts`, drift-locked to the validator's own
+`_clause_role_nations`) is refused as `offer_terms_name_a_departed_court` with
+the letter left standing, while Revise Terms — an editable draft — drops the
+dead clause instead. Without that the review staged ratifiable and the
+ratification rejected it: a button true when drawn and false when pressed.
 
 **Elimination resolves its pairs.** `mark_participant_eliminated_in_all_wars`
 moves the eliminated nation's `active_diplo_keys` entries to
@@ -4082,8 +4103,14 @@ both sides books our own concessions as harshness against us.
 
 **Direction in the offer copy.** The incoming-offer popup publishes `amount`
 (what France is asked to pay) and `amount_offered` (what is offered TO France)
-separately, and picks one of three arrival registers — demand, `_concession`,
-`_none`. AUD-c lets a losing court PAY to close a war, so a demand-shaped
+separately, and picks one of FOUR arrival registers — demand, `_concession`,
+`_terms`, `_none`. The fourth exists because the register may not be chosen from
+gold alone: `_settlement_offer_build_terms` drops the indemnity when the payer's
+chest is empty and falls through to the carve gate, so the package the producer
+builds for a beaten, bankrupt France — a white peace plus a `create_client` —
+took the no-gold voice and told the player nothing changed hands.
+`SUBSTANTIVE_NON_INDEMNITY_TYPES` is the set that forces `_terms`; a register
+may never assert what the package does not do. AUD-c lets a losing court PAY to close a war, so a demand-shaped
 default announces a concession as dunning. The incoming envoy popup's
 "Assessment" label is likewise recomputed on the UN-oriented `demands` (the
 burden on France) while its fallout warnings, which are about our allies'
