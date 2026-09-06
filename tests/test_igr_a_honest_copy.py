@@ -528,8 +528,17 @@ class TestA4VassalReleaseReport:
         assert "at peace" not in message
 
     def test_the_snapshot_survives_the_mutations(self):
-        """`original_nation` is delattr'd and `world.vassals[...]` is deleted
-        before the report is built — the numbers must be captured first."""
+        """`original_nation` is CLEARED and `world.vassals[...]` is deleted
+        before the report is built — the numbers must be captured first.
+
+        ⚠ The last clause was FLIPPED CONSCIOUSLY by FA-S15-1 (September 6,
+        2026). It read `not hasattr(marshal, "original_nation")`, which
+        pinned a P1 in place: the field is SERIALIZED and `Marshal.to_dict`
+        reads it bare, so deleting it broke every save and every autosave for
+        the rest of the campaign. What this test is really about — the report
+        is built from a snapshot taken before the mutations — is unchanged,
+        and the clause still proves the mutation happened.
+        """
         world = _world1805()
         marshal = next(iter(
             m for m in world.marshals.values() if m.nation == "France"))
@@ -538,7 +547,7 @@ class TestA4VassalReleaseReport:
         message = release_vassal(world, "Holland")["message"]
         assert marshal.name in message
         assert "marshals return to their own colours" in message
-        assert not hasattr(marshal, "original_nation")
+        assert marshal.original_nation is None
 
 
 # ══════════════════════════════════════════════════════════════════════════

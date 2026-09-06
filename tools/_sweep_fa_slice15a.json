@@ -1,0 +1,44 @@
+[
+ {
+  "id": "FA-S15-1/a the serialized field is deleted again",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            # safe; `test_serialization_enforcement.py` now forbids the shape.\n            marshal.original_nation = None",
+  "new": "            # safe; `test_serialization_enforcement.py` now forbids the shape.\n            delattr(marshal, 'original_nation')",
+  "tests": "tests/test_fa_slice15a_the_save_that_could_not_be_written_2026_09_06.py::TestReleasingAVassalDoesNotBreakEverySaveForever::test_the_save_actually_writes"
+ },
+ {
+  "id": "FA-91/a the census stops walking delattr",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "                        and node.func.id == \"delattr\"",
+  "new": "                        and node.func.id == \"__never__\"",
+  "tests": "tests/test_fa_slice15a_the_save_that_could_not_be_written_2026_09_06.py::TestTheGateCanNowSeeADeletedField::test_the_census_reads_real_deletions"
+ },
+ {
+  "id": "FA-91/b the census stops walking `del x.attr`",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "            if isinstance(node, ast.Delete):\n                for target in node.targets:\n                    if isinstance(target, ast.Attribute):\n                        names.setdefault(target.attr, []).append(\n                            f\"{label}:{node.lineno}\")",
+  "new": "            if False:\n                pass",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted::test_both_deletion_forms_are_walked"
+ },
+ {
+  "id": "FA-91/c the census exempts nothing, so getattr is punished",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "                    and isinstance(node.ctx, ast.Load)):\n                out.add(node.attr)\n        return out",
+  "new": "                    and True):\n                out.add(node.attr)\n        return out",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted::test_a_write_is_not_a_read"
+ },
+ {
+  "id": "FA-N34/a a vacuous client-gate pin is restored",
+  "file": "tests/test_review_2026_08_30.py",
+  "old": "class TestEveryEndTurnPhrasingMeetsTheGate:\n    # ⚠ FA-N34 (FA slice 15, September 6, 2026):",
+  "new": "class TestEveryEndTurnPhrasingMeetsTheGate:\n    def test_the_client_speaks_the_parsers_vocabulary(self):\n        assert True\n    # ⚠ FA-N34 (FA slice 15, September 6, 2026):",
+  "tests": "tests/test_fa_slice15a_the_save_that_could_not_be_written_2026_09_06.py::TestTheClientGatePinsCannotBeSatisfiedByProse::test_the_vacuous_pins_are_gone"
+ },
+ {
+  "id": "FA-N34/b the binding gate stops rejecting an ordinary order",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tc = _strip_desk_address(c)\n\treturn c == \"end turn\" or c == \"end_turn\" or c == \"next turn\"",
+  "new": "\tc = _strip_desk_address(c)\n\treturn c.find(\"turn\") != -1",
+  "tests": "tests/test_fa_slice15a_the_save_that_could_not_be_written_2026_09_06.py::TestTheClientGatePinsCannotBeSatisfiedByProse::test_the_binding_pin_is_the_one_that_survives"
+ }
+]

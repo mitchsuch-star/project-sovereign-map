@@ -4,6 +4,51 @@
 
 ## ▶ NEXT UP
 
+> ## ⛔ FA SLICE 15 (part a) — "THE SAVE THAT COULD NOT BE WRITTEN" — LANDED September 6, 2026
+>
+> **Landing record = the boxed SLICE 15 (part a) block in `docs/BUG_FIXES.md`
+> (authoritative).** A **P1 the slice-15 measurement fleet found while
+> measuring something else**, filed as **FA-S15-1**, plus **FA-91** and
+> **FA-N34**. Sweep 6/6, 0 INERT; suite **20,766 / 4**; parse harness EXIT=0;
+> boot 0 SCRIPT ERROR; series + M1–M7 byte-identical.
+>
+> **⛔ FA-S15-1: releasing a vassal with an assimilated contingent broke EVERY
+> save and EVERY autosave for the rest of the campaign.** `release_vassal`
+> `delattr`'d a SERIALIZED field that `Marshal.to_dict` reads bare, and
+> `save_game` swallowed the AttributeError into a `success: False` nobody
+> reads. IGR-X1's pattern exactly; the two sibling loops in the same file
+> already wrote `= None`. It does not reproduce on a bare boot probe, which is
+> why it survived. **Two standing pins asserted the defect and are flipped
+> consciously.**
+>
+> **FA-91** now forbids the shape by AST census (no `to_dict` reads `self.X`
+> bare for an `X` deleted anywhere in `backend/`). **FA-N34**'s behavioural
+> half is REFUTED (FA-6 closed it) and its vacuity half was wider than filed
+> — three pins, all green when the gate's whole body is replaced by
+> `return c.find("turn") != -1`, one of which **reds on a COMMENT and had
+> already deformed production source**. All three deleted; slice 1's
+> evaluator was already the right pin.
+>
+> **Two more slice-15 rows are STRUCK on measurement:** **FA-36** (already
+> fixed by slice 2; its `fix_shape` would ship a regression) and **FA-83**
+> (already fixed by slice 8; the accept ladder completes twice in ten turns,
+> one a six-pair multilateral ratification).
+>
+> **▶ NEXT = slice 15 part b, the driver itself.** The measurement fleet's
+> reports are the build contract and they correct the rows heavily:
+> **FA-N87 is NOT already fixed** (slice 8 reads `coalition_status`, which is
+> `None` below threat 30 — 17 of 40 LEDGER lines still blank);
+> **FA-N79 fires on 12 of 40 turns**, not rarely; **FA-84's own allowlist
+> names a campaign-log type that does not exist**; **FA-72(d) DECLARES WAR**
+> and deleting the "no" needle does not close it (the `options[0]` fallback
+> does the same); slice 8's rail **drops every CRITICAL event**; two POLICY
+> keys are read by nothing; and **FA-D27's "unattended France overrun on 8/8
+> seeds" was measured on an instrument that could not answer the coalition's
+> peace offer** — with `--diplomacy accept` the same seed goes 6 → 27
+> provinces. That last one is decisive for the FA-D27 gate and must be on the
+> record before it is taken.
+
+
 > ## ✅ FA SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED September 6, 2026
 >
 > **Landing record = the boxed SLICE 14 (part 2d) block in

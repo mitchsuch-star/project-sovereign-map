@@ -361,8 +361,20 @@ class TestFix9ReleaseCleanupRelationship:
         release_vassal(world, "Saxony")
 
         assert saxon_marshal.nation == "Saxony"
-        assert not hasattr(saxon_marshal, 'original_nation')
+        # ⚠ FLIPPED CONSCIOUSLY by FA-S15-1 (September 6, 2026), because this
+        # clause pinned a P1 in place. `original_nation` is a SERIALIZED field
+        # and `Marshal.to_dict` reads it bare, so `delattr`-ing it broke every
+        # save and every autosave for the rest of the campaign — the
+        # AttributeError swallowed into a `success: False` nobody reads. The
+        # field is cleared to None now, which is what the two sibling restore
+        # loops in `vassal.py` always did.
+        #
+        # The row's INTENT — a released marshal is nobody's client any more —
+        # is unchanged and is what the two assertions below say.
+        assert saxon_marshal.original_nation is None
         assert not hasattr(saxon_marshal, 'relationship_with_lord')
+        # And the reason it matters, driven rather than asserted:
+        assert saxon_marshal.to_dict()["original_nation"] is None
 
 
 # ════════════════════════════════════════════════════════════════

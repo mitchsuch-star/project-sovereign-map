@@ -781,6 +781,165 @@ class TestSerializationCoverage:
 
 
 # ============================================================================
+# FA-91 — THE CLASSES THIS FILE COULD NOT SEE
+# ============================================================================
+
+class TestASerializedFieldIsNeverDeleted:
+    """⛔ A `delattr` of a SERIALIZED field is never safe.
+
+    The rule above — "if it exists on the object, it must serialize" — reads
+    the object as it is CONSTRUCTED. It is blind to a field that is properly
+    declared, properly serialized, and then DELETED at runtime, after which
+    the bare `self.X` in `to_dict` raises and every save fails.
+
+    That is not hypothetical. It has now happened twice:
+
+    * **IGR-X1** — `del marshal._recovery_destination` in `enemy_ai.py`,
+      fixed by writing `None` instead, with a comment naming the mechanism.
+    * **FA-S15-1 (P1, September 6, 2026)** — `delattr(marshal,
+      'original_nation')` in `vassal.release_vassal`. Releasing a vassal that
+      had an assimilated contingent broke **every save and every autosave for
+      the rest of the campaign**, and `save_game` swallowed the AttributeError
+      into a `success: False` nobody reads. The two sibling restore loops in
+      the same file already wrote `= None`; one site was missed, and no pin in
+      this file could see it — which is FA-91's whole complaint.
+
+    This walks the AST rather than the object, so it catches the shape before
+    it can be executed.
+    """
+
+    @staticmethod
+    def _deletions_in(source, label="<probe>"):
+        """The attribute names one source string deletes.
+
+        Split out from the directory walk so BOTH arms can be exercised on a
+        synthetic module. The `del x.attr` arm has no instance under
+        `backend/` today, so a sweep over the real tree reports it INERT —
+        which is a fact about the tree, not about the guard: `del self.x` is
+        the same hazard and a future author may reach for it.
+        """
+        import ast
+        names = {}
+        tree = ast.parse(source, label)
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "delattr"
+                    and len(node.args) == 2
+                    and isinstance(node.args[1], ast.Constant)
+                    and isinstance(node.args[1].value, str)):
+                names.setdefault(node.args[1].value, []).append(
+                    f"{label}:{node.lineno}")
+            if isinstance(node, ast.Delete):
+                for target in node.targets:
+                    if isinstance(target, ast.Attribute):
+                        names.setdefault(target.attr, []).append(
+                            f"{label}:{node.lineno}")
+        return names
+
+    @staticmethod
+    def _deleted_attribute_names():
+        """Every attribute name any `delattr(x, "name")` or `del x.name`
+        removes anywhere under `backend/`."""
+        import ast
+        import pathlib
+        names = {}
+        root = pathlib.Path(__file__).resolve().parents[1] / "backend"
+        for path in root.rglob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Name)
+                        and node.func.id == "delattr"
+                        and len(node.args) == 2
+                        and isinstance(node.args[1], ast.Constant)
+                        and isinstance(node.args[1].value, str)):
+                    names.setdefault(node.args[1].value, []).append(
+                        f"{path.name}:{node.lineno}")
+                if isinstance(node, ast.Delete):
+                    for target in node.targets:
+                        if isinstance(target, ast.Attribute):
+                            names.setdefault(target.attr, []).append(
+                                f"{path.name}:{node.lineno}")
+        return names
+
+    @staticmethod
+    def _bare_self_reads_in_to_dict(cls):
+        """Attribute names a class's own `to_dict` reads as a bare `self.X`.
+
+        `getattr(self, "X", default)` is the SAFE idiom and is deliberately
+        not counted — a field that may be deleted must be read that way.
+        """
+        import ast
+        import inspect
+        import textwrap
+        tree = ast.parse(textwrap.dedent(inspect.getsource(cls.to_dict)))
+        out = set()
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Attribute)
+                    and isinstance(node.value, ast.Name)
+                    and node.value.id == "self"
+                    and isinstance(node.ctx, ast.Load)):
+                out.add(node.attr)
+        return out
+
+    def test_no_serialized_field_is_deleted_anywhere_in_the_backend(self):
+        deleted = self._deleted_attribute_names()
+        offenders = []
+        for cls in SERIALIZABLE_CLASSES:
+            if not hasattr(cls, "to_dict"):
+                continue
+            for name in self._bare_self_reads_in_to_dict(cls) & set(deleted):
+                offenders.append(
+                    f"{cls.__name__}.to_dict reads self.{name} bare, but it is "
+                    f"deleted at {', '.join(deleted[name])}")
+        assert not offenders, (
+            "a delattr of a serialized field breaks every save from that "
+            "moment on: " + " | ".join(offenders))
+
+    def test_the_census_finds_the_deletions_it_is_scanning_for(self):
+        """Sensitivity: the walk must actually see `delattr` in the tree, or
+        the pin above is green because it looked at nothing."""
+        deleted = self._deleted_attribute_names()
+        assert deleted, "the AST walk found no deletions at all"
+        assert "relationship_with_lord" in deleted, sorted(deleted)
+
+    def test_the_p1_shape_is_caught(self):
+        """The pin binds: re-introduce the exact FA-S15-1 shape and it fires."""
+        deleted = dict(self._deleted_attribute_names())
+        deleted["original_nation"] = ["vassal.py:0000"]
+        reads = self._bare_self_reads_in_to_dict(Marshal)
+        assert "original_nation" in reads, (
+            "Marshal.to_dict no longer reads original_nation bare — if it was "
+            "moved to getattr(), this pin needs a new exemplar")
+        assert set(deleted) & reads
+
+    def test_both_deletion_forms_are_walked(self):
+        """⚠ Exercised on SYNTHETIC source, because the `del x.attr` arm has
+        no instance under `backend/` today and a sweep over the real tree
+        therefore reports it inert. It is kept because `del self.x` is the
+        identical hazard — this is what stops it being dead code nobody can
+        see rot."""
+        found = self._deletions_in(
+            "def f(m):\n"
+            "    delattr(m, 'by_delattr')\n"
+            "    del m.by_del_statement\n"
+            "    del some_dict['not_an_attribute']\n")
+        assert set(found) == {"by_delattr", "by_del_statement"}
+
+    def test_a_write_is_not_a_read(self):
+        """The `ast.Load` guard. `to_dict` may ASSIGN a local `self.x` without
+        that being a bare read, and punishing it would make the census fire on
+        code that is safe."""
+        class _Writer:
+            def to_dict(self):
+                self.cached = 1
+                return {"a": getattr(self, "a", None)}
+
+        assert self._bare_self_reads_in_to_dict(_Writer) == set()
+
+
+# ============================================================================
 # RUN TESTS
 # ============================================================================
 

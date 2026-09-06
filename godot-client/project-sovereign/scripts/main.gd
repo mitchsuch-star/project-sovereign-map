@@ -1407,13 +1407,17 @@ func _is_end_turn_phrasing(command: String) -> bool:
 	# second name after the desk still owns the order, and `Berthier, Sire,
 	# end turn` is not an end turn.
 	#
-	# The helper is defined further down, deliberately: six Python-side pins
-	# read this function's body as the source between its own header and the
-	# header of the next function, so anything written in between is read as
-	# part of THIS body — one such pin forbids certain order verbs there, and
-	# another harvests the equality comparisons below. Do not quote either
-	# header verbatim in this comment for the same reason: an earlier draft
-	# did, and it truncated the harvested body to nothing.
+	# The helper is defined further down, deliberately: a Python-side pin
+	# re-derives this gate by reading the source between this function's own
+	# header and the header of the next one, and HARVESTS the equality
+	# comparisons below. Do not quote either header verbatim in this comment:
+	# an earlier draft did, and it truncated the harvested body to nothing.
+	#
+	# FA-N34 (slice 15) removed the other reason this warning used to carry.
+	# A pin here once asserted the body contained no order verbs, so a comment
+	# naming one turned it red — production prose bent around a test that
+	# could not fail for the right reason. It is deleted; the behaviour is
+	# pinned by evaluation instead, and this comment may now say `attack`.
 	c = _strip_desk_address(c)
 	return c == "end turn" or c == "end_turn" or c == "next turn"
 

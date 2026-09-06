@@ -365,11 +365,32 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 14 (complete): **69 defect rows
-> and 24 design rows / gates still open**, of 232 filed; 124 closed, 15
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 69 are spoken for by
-> slices 15 → 16;
+> number in a heading. After slice 15 part a: **65 defect rows
+> and 24 design rows / gates still open**, of 233 filed; 127 closed, 17
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 65 are spoken for by
+> slices 15 (part b) → 16;
 > the 24 need rulings, not builds.
+>
+> **⛔ SLICE 15 (PART a) "THE SAVE THAT COULD NOT BE WRITTEN" IS LANDED —
+> September 6, 2026.** Landing record = the boxed SLICE 15 (part a) block in
+> `BUG_FIXES.md`. **A P1 the slice-15 measurement fleet found while measuring
+> something else, filed as FA-S15-1: releasing a vassal with an assimilated
+> contingent broke EVERY save and EVERY autosave for the rest of the
+> campaign** — `release_vassal` `delattr`'d a SERIALIZED field that
+> `Marshal.to_dict` reads bare, and `save_game` swallowed the AttributeError
+> into a `success: False` nobody reads. IGR-X1's pattern; the two sibling
+> loops in the same file already wrote `= None`. It does NOT reproduce on a
+> bare boot probe. Two standing pins asserted the defect and are flipped
+> consciously. **FA-91** forbids the shape by AST census; **FA-N34**'s
+> behavioural half is REFUTED and its three vacuous pins are deleted (one red
+> on a COMMENT and had already deformed production source). **FA-36 and FA-83
+> STRUCK on measurement** — both already fixed, and FA-36's own `fix_shape`
+> would ship a regression. Sweep 6/6, 0 INERT. **NEXT = slice 15 part b, the
+> driver**, whose build contract is the fleet's reports — they correct most of
+> the rows, and one of their findings is decisive for the FA-D27 gate: that
+> balance measurement was taken on an instrument that **could not answer the
+> coalition's peace offer**, and with `--diplomacy accept` the same seed goes
+> 6 → 27 provinces.
 >
 > **▶ SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED
 > September 6, 2026.** Landing record = the boxed SLICE 14 (part 2d) block in

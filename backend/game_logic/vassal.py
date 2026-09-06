@@ -2150,8 +2150,19 @@ def release_vassal(
     for marshal in list(world.marshals.values()):
         if getattr(marshal, 'original_nation', None) == vassal_name:
             marshal.nation = vassal_name
-            if hasattr(marshal, 'original_nation'):
-                delattr(marshal, 'original_nation')
+            # ⛔ FA-S15-1 (P1, found while building slice 15). This was
+            # `delattr(marshal, 'original_nation')`, and `Marshal.to_dict`
+            # reads `self.original_nation` BARE — so releasing a vassal that
+            # had an assimilated contingent broke EVERY save and EVERY
+            # autosave for the rest of the campaign, with the AttributeError
+            # swallowed into a `success: False` nobody reads.
+            #
+            # It is IGR-X1's pattern exactly (`del marshal._recovery_destination`
+            # in `enemy_ai.py`, fixed the same way), and the two sibling
+            # restore loops in this very file already write `= None`. This one
+            # site was missed. A `delattr` of a SERIALIZED field is never
+            # safe; `test_serialization_enforcement.py` now forbids the shape.
+            marshal.original_nation = None
             if hasattr(marshal, 'relationship_with_lord'):
                 delattr(marshal, 'relationship_with_lord')
 

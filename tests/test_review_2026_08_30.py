@@ -683,15 +683,19 @@ class TestTheLapseWarningCountsOnlyWhatLapses:
 
 
 class TestEveryEndTurnPhrasingMeetsTheGate:
-    def test_the_client_speaks_the_parsers_vocabulary(self):
-        """The gate matched the literal "end turn" while `llm_client` reads
-        end_turn from a SUBSTRING test over three keywords, so "next turn" and
-        "end turn now" advanced the turn with no lapse warning at all."""
-        src = _read("godot-client/project-sovereign/scripts/main.gd")
-        body = src[src.index("func _is_end_turn_phrasing("):]
-        body = body[:body.index("func _execute_end_turn():")]
-        for phrase in ("end turn", "end_turn", "next turn"):
-            assert phrase in body
+    # ⚠ FA-N34 (FA slice 15, September 6, 2026):
+    # `test_the_client_speaks_the_parsers_vocabulary` was DELETED here, not
+    # re-blessed. It asserted that three keywords appear somewhere in the
+    # GDScript function body — which a COMMENT satisfies, and which no
+    # implementation change can falsify. Measured: replacing the gate's whole
+    # body with `return c.find("turn") != -1` left it green.
+    #
+    # Its job is done properly by
+    # `test_fa_slice1_the_two_words_2026_09_02.py::TestTheClientGateSpeaksTheSameVocabulary`,
+    # which re-derives the client predicate from `main.gd` and EVALUATES it
+    # against 21 fixtures alongside the backend's. Under the same mutation
+    # that arm reds 19 of 21. Duplicating a weaker version here bought
+    # nothing and cost a prose trap in production source.
 
     def test_the_backend_vocabulary_is_the_same_three(self):
         """Falsifiable join: if the parser grows a fourth phrasing this pin
@@ -1292,27 +1296,25 @@ class TestTheEndTurnSynonymsMeetTheGate:
     # end-turn phrasing on either side. The substring gate it documented
     # also intercepted "Davout, fortify until next turn" and sent "end turn"
     # instead of the order the player had typed.
-    @pytest.mark.parametrize("phrasing", [
-        "end turn", "next turn", "END TURN", "  end turn  ", "next turn.",
-    ])
-    def test_the_helper_claims_every_phrasing_the_parser_accepts(self, phrasing):
-        """Mirrors `llm_client`'s own arm. Asserted against the GDScript
-        source because the helper is client-side; the backend half is pinned
-        by `TestEveryEndTurnPhrasingMeetsTheGate` above."""
-        src = _read("godot-client/project-sovereign/scripts/main.gd")
-        body = src[src.index("func _is_end_turn_phrasing("):]
-        body = body[:body.index("func _execute_end_turn():")]
-        lowered = phrasing.lower().strip()
-        assert any(kw in lowered for kw in ("end turn", "end_turn", "next turn"))
-        for kw in ("end turn", "end_turn", "next turn"):
-            assert kw in body
-
-    def test_an_ordinary_command_is_not_swallowed(self):
-        """The negative control the helper needs: a command that merely
-        mentions a turn must not be eaten by the gate."""
-        src = _read("godot-client/project-sovereign/scripts/main.gd")
-        body = src[src.index("func _is_end_turn_phrasing("):]
-        body = body[:body.index("func _execute_end_turn():")]
-        # the helper matches only those three substrings — nothing broader
-        assert "find(" in body
-        assert "attack" not in body and "recruit" not in body
+    # ⚠ FA-N34 (FA slice 15, September 6, 2026): BOTH pins that lived here
+    # were DELETED rather than re-blessed, and the second was actively
+    # harmful.
+    #
+    # `test_the_helper_claims_every_phrasing_the_parser_accepts` asserted the
+    # three keywords appear in the function body — satisfied by a comment,
+    # unfalsifiable by an implementation.
+    #
+    # `test_an_ordinary_command_is_not_swallowed` asserted the body does NOT
+    # contain the words "attack" or "recruit". It cannot fail for the right
+    # reason and it CAN fail for the wrong one: adding a GDScript comment
+    # containing the word "attack" reds it. That is the prose-is-code trap,
+    # and it had already deformed production — `main.gd`'s gate carried a
+    # defensive comment warning future editors not to name order verbs in
+    # that body, written for this pin and for nothing else.
+    #
+    # The behaviour both claimed to protect is pinned BY EVALUATION in
+    # `test_fa_slice1_the_two_words_2026_09_02.py::TestTheClientGateSpeaksTheSameVocabulary`,
+    # whose fixtures include `Davout, fortify until next turn` and
+    # `Ney, attack Mack next turn` as NEGATIVE cases — which is the real form
+    # of the question "is an ordinary command swallowed".
+    pass
