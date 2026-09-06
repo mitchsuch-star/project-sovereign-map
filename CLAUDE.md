@@ -365,10 +365,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 15 part a: **65 defect rows
-> and 24 design rows / gates still open**, of 233 filed; 127 closed, 17
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 65 are spoken for by
-> slices 15 (part b) → 16;
+> number in a heading. After slice 15 part b: **58 defect rows
+> and 24 design rows / gates still open**, of 233 filed; 134 closed, 17
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 58 are spoken for by
+> the slice-15 review round → slice 16;
 > the 24 need rulings, not builds.
 >
 > **⛔ SLICE 15 (PART a) "THE SAVE THAT COULD NOT BE WRITTEN" IS LANDED —
@@ -391,6 +391,35 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > balance measurement was taken on an instrument that **could not answer the
 > coalition's peace offer**, and with `--diplomacy accept` the same seed goes
 > 6 → 27 provinces.
+>
+> **▶ SLICE 15 "THE HARNESS" IS LANDED — September 6, 2026.** Landing
+> records = the boxed SLICE 15 (part a) and SLICE 15 (part b) blocks in
+> `BUG_FIXES.md`; the rules are `SYSTEMS_REFERENCE.md` §40. **Part a** took a
+> **P1 the measurement fleet found while measuring something else** —
+> `release_vassal` `delattr`'d a SERIALIZED field that `Marshal.to_dict` reads
+> bare, so from that release **every save and autosave failed silently for the
+> rest of the campaign** (IGR-X1's pattern; the two sibling loops in the same
+> file already wrote `= None`) — plus FA-91's AST census forbidding the shape
+> and FA-N34's three pins that could not fail. FA-36 and FA-83 STRUCK on
+> measurement, already fixed by slices 2 and 8. **Part b** fixed the
+> instrument the whole audit was read off: turns with no enemy-phase line at
+> all **12 of 40 → 0**, `LEDGER` rows carrying a threat figure **0 of 1,246
+> → every row**, `ORDER` rows in the archive **0 → 8 in a 10-turn march**,
+> AI-vs-AI beats **1 → per turn**, runs recording their scenario **0 of 52
+> → every run**. **Four rows were wrong about their own subject** (FA-84's
+> allowlist names a type that does not exist; `PLAYTESTING.md` claimed the
+> FULL action list where it is the FOGGED view, 93 of 1,185; FA-N87's `threat`
+> parameter was dead, not mis-read; the log must be read per turn or a 40-turn
+> run loses a third of itself to the 500-row roll), and **two defects were
+> found inside the fix** — the HIGH rail dropped **CRITICAL** entirely, and
+> `ledger_line` reached for `self._private` in a borrowed-method idiom that
+> forbids it. ⚠ **For the FA-D27 gate:** "unattended France overrun on 8/8
+> seeds" was measured on an instrument that could not answer the coalition's
+> peace offer — with `--diplomacy accept` the same seed ends at **27
+> provinces instead of 6**. ⚠ Slice 15's remaining rows (FA-72/75/78/79/85/
+> 89/90/102, FA-N35) are **not built** and are re-homed to slice 16, the copy
+> sweep they belong to. **NEXT = the three-lens review round on slice 15, then
+> slice 16, then ruling 1 (FA-D27).**
 >
 > **▶ SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED
 > September 6, 2026.** Landing record = the boxed SLICE 14 (part 2d) block in

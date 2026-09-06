@@ -256,6 +256,86 @@ _HAS_WORD_RE = re.compile(r"[0-9A-Za-z]")
 _ANNOTATION_RE = re.compile(r"^\[[^\]]*\]")
 
 
+# FA-84: the third parties' own story. The rail is PLAYER-addressed and
+# capped at six rows, so an AI war opening, a coalition forming or a court
+# being eliminated by somebody else reached no digest surface at all.
+#
+# ⚠ Every name here must exist in `campaign_log.CAMPAIGN_LOG_TYPES`, and a
+# pin asserts it — the row's own filed allowlist named `coalition_formed`,
+# which is not a type (the real ones are `coalition_declared`,
+# `coalition_brewing_started`, `coalition_dissolved`, …).
+AI_AI_LOG_TYPES = frozenset({
+    "ai_ai_proposal_refused",
+    "ai_proposal_rejected",
+    "diplomatic_ai_ai_treaty",
+    "coalition_declared",
+    "coalition_brewing_started",
+    "coalition_brewing_cancelled",
+    "coalition_dissolved",
+    "coalition_dissolved_for_france",
+    "coalition_member_left",
+    "nation_eliminated",
+    "third_party_peace",
+    "design_promoted",
+    "volte_face",
+    "sponsorship_granted",
+    "sponsorship_expired",
+    "vassal_auto_join_war",
+    "vassal_broke_free",
+    "defensive_cascade",
+    "auto_downgrade",
+    "balance_of_europe_shifted",
+})
+
+
+# The rail's cap, and the fog's. MODULE-level, because a stub Digest that
+# BORROWS `dispatch` or `enemy_phase` has no class of ours — reaching for
+# `self.MAX_RAIL_ROWS` from a borrowed method is the same break as reaching
+# for a private helper, one step out. The class re-exports them so existing
+# `Digest.MAX_RAIL_ROWS` readers are unchanged.
+MAX_RAIL_ROWS = 6
+# FA-N79 / FA-N86: the nothing-visible arm carries ONE sentence per hidden
+# court and measured 9-10 on every fogged turn of the ambient board.
+MAX_FOG_ROWS = 4
+
+
+def fog_sentences(phase):
+    """The "there is something you cannot see" sentences the CLIENT renders
+    and the digest never did.
+
+    The two keys are MUTUALLY EXCLUSIVE by construction and the client
+    enforces the same precedence (`enemy_phase_dialog.gd` guards
+    `fog_hidden_nations` with `not has("fog_hidden_summary")`):
+    `fog_hidden_summary` rides the nothing-visible arm and is one sentence per
+    hidden court; `fog_hidden_nations` rides the partly-visible arm and names
+    them in one. Read summary first, fall back to nations, so the digest and
+    the screen agree.
+
+    ⚠ A MODULE function, not a method, and `_seen` below is the same lesson:
+    five stub Digests in the test files BORROW the real `Digest`'s methods and
+    re-implement only a subset by hand, so a new `self.` helper breaks them
+    from a distance. Measured: siting these on the class red three pins in
+    `test_fa_slice8`, and the drift pin that exists for exactly this hazard
+    did not fire, because it checks the REAL `Digest`.
+    """
+    if not isinstance(phase, dict):
+        return []
+    for key in ("fog_hidden_summary", "fog_hidden_nations"):
+        value = phase.get(key)
+        if isinstance(value, str) and value.strip():
+            return [value.strip()]
+        if isinstance(value, list):
+            out = [str(v).strip() for v in value if str(v).strip()]
+            if out:
+                return out
+    return []
+
+
+def _seen(digest, name):
+    """A dedupe set that exists on any object, stub or real."""
+    return digest.__dict__.setdefault(name, set())
+
+
 def first_line(text, limit=170):
     if not text:
         return ""
@@ -423,6 +503,10 @@ class Digest:
         self.unknown_blockers = []
         self.recent = []
         self._last_provinces = None
+        # FA-77 / FA-84: `Answerer.scan` re-runs on drain follow-ups and the
+        # strategic processor re-emits a parked decision every turn, so both
+        # new surfaces dedupe rather than filter. Created LAZILY by `_seen`
+        # so a stub Digest that borrows these methods still works.
         self.counters = {"commands": 0, "popups": 0, "battles": 0, "turns": 0}
         header = (f"# Playtest digest — {meta['name']}\n\n"
                   f"seed `{meta['seed']}` · llm `{meta['llm']}` · "
@@ -455,8 +539,25 @@ class Digest:
     def command(self, text, response):
         self.counters["commands"] += 1
         ok = "✓" if response.get("success", True) else "✗"
-        self._md(f"- CMD `{text}` → {ok} {first_line(response.get('message'))}")
+        # FA-39: WHICH PARSER answered. Nine archived runs used the live
+        # parser and issued 334 commands between them, and no digest can say
+        # how many the model actually parsed — `flagship-live` and
+        # `flagship-mock` are byte-identical for their whole shared length.
+        # The mode is only printed when it is NOT mock, so a mock run's
+        # digest is unchanged line for line.
+        mode = response.get("parse_mode")
+        confidence = response.get("parse_confidence")
+        mark = ""
+        if mode and mode != "mock":
+            self.counters["live_parses"] = self.counters.get("live_parses", 0) + 1
+            mark = f" [{mode}"
+            if isinstance(confidence, (int, float)):
+                mark += f" {confidence:.2f}"
+            mark += "]"
+        self._md(f"- CMD `{text}` → {ok}{mark} "
+                 f"{first_line(response.get('message'))}")
         self.record("command", text=text, success=response.get("success"),
+                    parse_mode=mode, parse_confidence=confidence,
                     message=first_line(response.get("message"), 400))
 
     def battle(self, report):
@@ -523,11 +624,35 @@ class Digest:
         self._md(f"  - {text}")
         self.record("note", text=text)
 
-    def enemy_phase(self, actions):
+    def enemy_phase(self, actions, phase=None):
+        """FA-N79 / FA-N86: what the enemy did, INCLUDING what we could not see.
+
+        `phase` is the raw `enemy_phase` payload. It is optional so the
+        existing call shape (and every stub Digest in the test files) keeps
+        working, but without it the digest is silent on exactly the turns the
+        fog is thickest.
+
+        Measured on a 40-turn ambient board before this: 1,185 raw enemy
+        actions, 93 of them visible (7.8%), a fog sentence available on 40 of
+        40 turns and printed on 0 — and on 12 of those turns `actions` is
+        EMPTY, so the whole block was skipped and the digest said nothing at
+        all about the enemy phase. Two of the archived propose arm's silent
+        turns are turns on which Britain took a province.
+        """
+        fog = fog_sentences(phase)
         if not actions:
+            # ⚠ The arm the old early return threw away. A turn where nothing
+            # was visible is not a turn where nothing happened.
+            if fog:
+                self._md(f"- enemy phase: nothing visible — {fog[0]}")
+                for extra in fog[1:MAX_FOG_ROWS]:
+                    self._md(f"  - fogged: {extra}")
+                self.record("enemy_phase", actions=0, attacks=0, fogged=len(fog))
             return
         # The verb lives at row["ai_action"]["action"] (turn_manager.py:964
-        # builds it, and _build_visible_enemy_phase only strips new_state).
+        # builds it, and _build_visible_enemy_phase FOG-FILTERS, collapses
+        # move chains and recomputes action_count — an older comment here
+        # said it "only strips new_state", which was never true).
         # PC15-H tried to fix the "0 attacks" under-read by reading
         # row["action"] — but that key does not exist, so the counter
         # stayed 0 on EVERY run, including the ones that concluded things
@@ -542,6 +667,8 @@ class Digest:
                               or a.get("action_type"), 120)
                  for a in attacks[:4]]
         summary = f"enemy phase: {len(actions)} actions, {len(attacks)} attacks"
+        if fog:
+            summary += f" — {fog[0]}"
         if lines:
             summary += " — " + " · ".join(lines)
         self._md(f"- {summary}")
@@ -647,7 +774,72 @@ class Digest:
         ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
         ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
     )
-    MAX_RAIL_ROWS = 6
+    MAX_RAIL_ROWS = MAX_RAIL_ROWS
+    MAX_FOG_ROWS = MAX_FOG_ROWS
+
+
+    def order_progress(self, reports):
+        """FA-77: what a STANDING ORDER did this turn.
+
+        `strategic_reports` rides the end-turn response and no digest surface
+        carried it, so a stall, a reroute, a silent lost turn and an "Order
+        cancelled" were all equally invisible. Measured on a 12-turn scripted
+        march: 8 report rows, 0 digested — and one of them was a marshal who
+        never left his province for eleven turns while the DISPATCH went on
+        listing him where he started.
+
+        ⚠ DEDUPE, do not filter. The statuses that actually occur are
+        `active`, `continues` and `completed`, and `continues` is 5 of 8 —
+        filtering to a "named interesting set" would delete the march
+        narrative this exists to recover. Slices 2/3 also emit a `retired`
+        row per parked decision per turn and `Answerer.scan` re-runs on
+        follow-ups, so the same row can arrive twice.
+        """
+        if not isinstance(reports, list):
+            return
+        for report in reports:
+            if not isinstance(report, dict):
+                continue
+            marshal = str(report.get("marshal") or "?")
+            status = str(report.get("order_status") or "")
+            message = first_line(report.get("message"), 150)
+            if not status and not message:
+                continue
+            key = (marshal, status, message)
+            if key in _seen(self, "_seen_order_rows"):
+                continue
+            _seen(self, "_seen_order_rows").add(key)
+            label = f"[{status}]" if status else ""
+            self._md(f"- ORDER {marshal} {label}: {message}".replace("  ", " "))
+            self.record("order_progress", marshal=marshal,
+                        order_status=status, message=message)
+
+    def campaign_log(self, events):
+        """FA-84: the AI-vs-AI beats no other surface carries.
+
+        "Did an AI war open, did a coalition form or dissolve" could not be
+        answered from any archived arm. The rail is player-addressed and
+        capped; these rows are the third parties' own story. Types the rail
+        already prints are skipped so the digest does not say it twice.
+        """
+        if not isinstance(events, list):
+            return
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            etype = str(event.get("type") or "")
+            if (etype not in AI_AI_LOG_TYPES
+                    or etype in _seen(self, "_seen_rail_types")):
+                continue
+            text = first_line(event.get("display") or event.get("text"), 150)
+            if not text:
+                continue
+            key = (etype, text)
+            if key in _seen(self, "_seen_log_rows"):
+                continue
+            _seen(self, "_seen_log_rows").add(key)
+            self._md(f"  - LOG {etype}: {text}")
+            self.record("campaign_log", dtype=etype, text=text)
 
     def ledger_line(self, treasury, net, threat, provinces=None,
                     economy=None):
@@ -664,8 +856,13 @@ class Digest:
         # that its own map did not grow (Aug-16: France held 29 provinces
         # on turn 1 and 29 on turn 11, having won every battle).
         if provinces is not None:
-            delta = ("" if self._last_provinces is None
-                     else f" ({provinces - self._last_provinces:+d})")
+            # Read defensively: a stub Digest that BORROWS this method has no
+            # `__init__` of ours and therefore no `_last_provinces`. Writing
+            # is always safe; it is the READ that breaks from a distance, and
+            # a census in `test_fa_slice8` now forbids the unguarded shape.
+            last = getattr(self, "_last_provinces", None)
+            delta = ("" if last is None
+                     else f" ({provinces - last:+d})")
             bits.append(f"provinces {provinces}{delta}")
             self._last_provinces = provinces
         if bits:
@@ -701,14 +898,29 @@ class Digest:
         # transferred / rebelled, nation eliminated, treaty broken, war
         # declared — is graded HIGH in `dispatch._DIPLOMATIC_EVENT_PRIORITY`,
         # which a drift pin holds there.
+        # FA-84 rider, found while building it: the filter was `== "HIGH"`,
+        # so it DROPPED every CRITICAL event. Six types can grade CRITICAL,
+        # and `RELIABILITY_COMMITMENTS_SPEC` §8.8.10 calls the DG-4
+        # call-to-arms refusals the severest diplomatic notice in the game.
+        # Measured on the ambient board: `balance_of_europe_shifted` graded
+        # CRITICAL twice and printed zero rail lines.
+        #
+        # ⚠ And CRITICAL sorts FIRST. `diplomatic_ai_proposal` supplies 53 of
+        # the 63 HIGH rows on that board, so widening the filter without
+        # sorting would let proposal spam evict the notices this exists to
+        # surface — the cap is six.
         rows = [e for e in (events or [])
-                if isinstance(e, dict) and str(e.get("priority")) == "HIGH"]
-        for event in rows[:self.MAX_RAIL_ROWS]:
+                if isinstance(e, dict)
+                and str(e.get("priority")) in ("HIGH", "CRITICAL")]
+        rows.sort(key=lambda e: str(e.get("priority")) != "CRITICAL")
+        for event in rows[:MAX_RAIL_ROWS]:
+            _seen(self, "_seen_rail_types").add(str(event.get("type") or ""))
             self._md(f"  - RAIL {event.get('type', '?')}: "
                      f"{first_line(event.get('text'), 150)}")
-            self.record("rail", dtype=event.get("type"), text=event.get("text"))
-        if len(rows) > self.MAX_RAIL_ROWS:
-            self._md(f"  - RAIL +{len(rows) - self.MAX_RAIL_ROWS} more")
+            self.record("rail", dtype=event.get("type"), text=event.get("text"),
+                        priority=event.get("priority"))
+        if len(rows) > MAX_RAIL_ROWS:
+            self._md(f"  - RAIL +{len(rows) - MAX_RAIL_ROWS} more")
         if turn_events:
             self._md(f"  - TURN EVENTS {len(turn_events)}")
             self.record("turn_events", count=len(turn_events))
@@ -1533,11 +1745,20 @@ def run(args):
                                     "run even with the module RNG pinned")
     rng_meta["pythonhashseed"] = os.environ.get("PYTHONHASHSEED", "(unset)")
 
+    # FA-N89: `meta.json` recorded the run's DICE but not its WORLD. Measured
+    # over the whole archive: 52 of 52 lack `scenario`, 52 of 52 lack
+    # `script`. Slice 8's FA-40 then gave scripts their own `scenario` key,
+    # so a run's board could be set by a file `meta.json` did not name AND by
+    # a flag it did not name.
     digest = Digest(out_dir, {
         "name": args.name, "seed": args.seed, "llm": args.llm,
         "transport": transport.label, "policy": policy,
         "turns_requested": args.turns, "started": time.strftime("%Y-%m-%d %H:%M"),
         "from_save": args.from_save or "",
+        "scenario": getattr(args, "scenario", None) or "",
+        "script": getattr(args, "script", None) or "",
+        "cheats": bool(getattr(args, "cheats", False)),
+        "strict": bool(getattr(args, "strict", False)),
         "rng": rng_meta,
     })
     answerer = Answerer(transport, digest, policy, args.strict)
@@ -1623,7 +1844,16 @@ def run(args):
 
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
-        digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")))
+        digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
+                           response.get("enemy_phase"))
+        # FA-77: sited in the LOOP, not in `Answerer.scan`. Measured over 52
+        # driven turns, EVERY `strategic_reports` row arrives on the end-turn
+        # `/command` response and none on a drain follow-up; both sitings
+        # produce byte-identical output, and the `scan` site costs 20 pin
+        # failures because five stub Digests in the test files would each
+        # need the new method. (`/respond_to_objection` can carry the key —
+        # structurally possible, measured zero. Stated limit.)
+        digest.order_progress(response.get("strategic_reports"))
         digest.autonomous_attacks(response.get("jealousy_attacks"))
         drain(transport, digest, answerer, response, args.strict)
 
@@ -1632,7 +1862,9 @@ def run(args):
             # what it could — retry ONCE, then stop rather than spin.
             response = transport.post("/command", {"command": "end turn"})
             digest.command("end turn (retry)", response)
-            digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")))
+            digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
+                               response.get("enemy_phase"))
+            digest.order_progress(response.get("strategic_reports"))
             digest.autonomous_attacks(response.get("jealousy_attacks"))
             drain(transport, digest, answerer, response, args.strict)
             if response.get("success") is False:
@@ -1654,15 +1886,28 @@ def run(args):
         except Exception:
             morning = {}
         # FA-37 / FA-39: `threat` sat in `ledger_line`'s signature and never
-        # printed. Measured against a live payload: `GET /ledger` carries no
-        # `threat_level` and no `threat` at any depth, so the recursive dig
-        # returned None on EVERY turn of every archived run — no digest has
-        # a coalition-threat trajectory. The figure lives on the morning
-        # dispatch, under `coalition_status`.
+        # printed. `GET /ledger` carries no `threat_level` at any depth, so
+        # the recursive dig returned None on EVERY turn of every archived
+        # run — 1,246 LEDGER rows across 52 digests, not one with a figure.
+        #
+        # FA-N87 (slice 15): slice 8 moved the read to the morning dispatch's
+        # `coalition_status`, and that is STILL blank on 17 of 40 turns —
+        # `_build_coalition_section` returns None below `THREAT_TENSION_MIN`
+        # (30), and the blank turns are the back half of the campaign, i.e.
+        # exactly the collapse the FA-D27 measurement is about. Worse,
+        # `GET /dispatch` serves the STORED `last_morning_dispatch`, so it is
+        # a cached artefact.
+        #
+        # `build_base_response` stamps a live `threat_level` on EVERY POST.
+        # Read that; keep the dispatch dig as the fallback so slice 8's own
+        # pin still binds.
+        threat = response.get("threat_level")
+        if threat is None:
+            threat = dig(morning.get("coalition_status"), "threat_level",
+                         "threat")
         digest.ledger_line(dig(ledger, "treasury", "gold"),
                            dig(ledger, "net_gold", "net"),
-                           dig(morning.get("coalition_status"), "threat_level",
-                               "threat"),
+                           threat,
                            len(own) if isinstance(own, list) else None,
                            economy=(body or {}).get("economy"))
         try:
@@ -1670,6 +1915,18 @@ def run(args):
                                 default=""),
                             events=morning.get("diplomatic_events"),
                             turn_events=morning.get("turn_events"))
+        except Exception:
+            pass
+        # FA-84, and it must be read PER TURN. `MAX_EVENT_LOG_SIZE` is 500
+        # and the log rolls inside a 40-turn ambient run — at turn 40 the
+        # earliest block still served is turn 14. A single read at the end
+        # would silently lose a third of the campaign, which is the IGR-B
+        # eviction trap exactly.
+        try:
+            log = transport.get("/campaign_log") or {}
+            turns = log.get("turns")
+            if isinstance(turns, list) and turns:
+                digest.campaign_log((turns[0] or {}).get("events"))
         except Exception:
             pass
 

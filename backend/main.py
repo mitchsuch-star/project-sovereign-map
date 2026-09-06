@@ -6,6 +6,7 @@ Connects Godot frontend to Python game logic
 import os
 import re  # soft-stop option token matching (playthrough fix, Aug 1 2026)
 import asyncio  # noqa: E402 - 3A-1: state_lock (async middleware)
+import contextvars  # noqa: E402 - FA-39: per-request parse provenance
 import weakref  # noqa: E402 - 3A-1: per-event-loop state locks
 from pathlib import Path
 from typing import Optional
@@ -549,6 +550,16 @@ def build_base_response(world, success: bool = True, message: str = "",
         "envoy_digest": build_envoy_digest(world),
     }
     response.update(extra)
+    # FA-39: the player's parse provenance, display-only (GR6). Sited HERE
+    # and not in `_build_result_response`, because `/command` has three
+    # response roads and the two early ones (`status`, and the refusal arms)
+    # build straight through this function — a stamp on the executor road
+    # alone left the digest unable to say who parsed a `status`. Outside a
+    # `/command` request the contextvar is unset and this is a no-op.
+    _provenance = _PARSE_PROVENANCE.get()
+    if _provenance:
+        response.setdefault("parse_mode", _provenance[0])
+        response.setdefault("parse_confidence", _provenance[1])
     # NA-6 §11.10-3: the identity override map rides EVERY response so the
     # Godot R7 chokepoints can resolve a formed nation's new name and flag
     # without N payload builders each adopting a helper. Set AFTER
@@ -575,6 +586,20 @@ def build_base_response(world, success: bool = True, message: str = "",
     if include_notifications:
         response["notifications"] = world.notifications.get_pending()
     return response
+
+
+# FA-39: display-only provenance for the PLAYER's own parse of this request.
+#
+# `ParseResult` has carried `mode` and `confidence` since CR-3 and `/command`
+# surfaced neither, so no digest and no transcript could say whether the model
+# was consulted. Nine archived runs used the live parser and issued 334
+# commands between them; not one records how many the model actually parsed.
+#
+# A contextvar because `/command` has a dozen exit points and the value must
+# reach all of them without threading a parameter through each. GR6: nothing
+# mechanical reads these keys, they enter no save, and they carry no world
+# state, so there is nothing for the fog filter to scope.
+_PARSE_PROVENANCE = contextvars.ContextVar("parse_provenance", default=None)
 
 
 def _build_result_response(result: dict, world, drain_popups: bool = True) -> dict:
@@ -2806,6 +2831,20 @@ def execute_command(request: CommandRequest):
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()
         parsed = parser.parse(command_text, llm_game_state, world=world)
+        # FA-39: record the PLAYER's own parse. Deliberately NOT the CR-5
+        # delegation re-issues further down — those re-parse a sentence the
+        # ENGINE composed and clobber `parsed`, so stamping them would
+        # attribute the engine's line to the player. Written down because it
+        # is a choice, not an oversight.
+        # ⚠ `confidence` lives on the nested `command`, not on the envelope —
+        # the envelope carries `mode`, `strategic_score` and `ambiguity`. A
+        # first cut read `parsed.get("confidence")` and stamped None on every
+        # response, which is a stamp that says nothing.
+        _parsed_command = parsed.get("command")
+        _PARSE_PROVENANCE.set((
+            str(parsed.get("mode") or "mock"),
+            (_parsed_command or {}).get("confidence")
+            if isinstance(_parsed_command, dict) else None))
         if parsed.get("success") and isinstance(parsed.get("command"), dict):
             if request.action:
                 parsed["command"]["action"] = request.action

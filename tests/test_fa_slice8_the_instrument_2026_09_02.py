@@ -615,6 +615,73 @@ class TestTheDigestDoubleCannotDrift:
         missing = [name for name in called if not hasattr(pdriver.Digest, name)]
         assert not missing, missing
 
+    def test_every_stub_digest_can_survive_a_real_method(self):
+        """⚠ FA slice 15: the pin above was NON-BINDING for the hazard its own
+        docstring names. It checks the REAL `Digest`, which of course has
+        every method the driver calls — so it can never see a STUB going out
+        of sync, which is the whole point.
+
+        Measured: adding a `self._fog_sentences(...)` helper to `Digest`
+        immediately reddened three pins in this file with
+        `'RecordingDigest' object has no attribute '_fog_sentences'`, and this
+        class stayed green throughout.
+
+        The five stubs BORROW real `Digest` methods (`enemy_phase`,
+        `dispatch`, …) while re-implementing only a subset by hand, so any
+        `self.<private helper>` a borrowed method calls is a landmine. The
+        rule: a method a stub may borrow must depend only on module-level
+        helpers and on state created LAZILY. This censuses for the shape.
+        """
+        import ast
+        import inspect
+        import pathlib
+        import textwrap
+
+        stub_files = [
+            "test_playtest_driver_instrument.py",
+            "test_fa_slice8_the_instrument_2026_09_02.py",
+            "test_playtest_harness_win_campaign_2026_08_16.py",
+            "test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py",
+        ]
+        root = pathlib.Path(__file__).resolve().parent
+        borrowed = set()
+        for name in stub_files:
+            tree = ast.parse((root / name).read_text(encoding="utf-8"), name)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    for stmt in node.body:
+                        if (isinstance(stmt, ast.Assign)
+                                and isinstance(stmt.value, ast.Attribute)
+                                and isinstance(stmt.value.value, ast.Name)
+                                and stmt.value.value.id in ("pdriver", "driver")):
+                            borrowed.add(stmt.value.attr)
+        # Whether or not any stub borrows today, every PUBLIC Digest method a
+        # stub COULD borrow must be safe to borrow. That is the durable rule.
+        offenders = []
+        for name in dir(pdriver.Digest):
+            if name.startswith("_"):
+                continue
+            method = getattr(pdriver.Digest, name)
+            if not callable(method):
+                continue
+            try:
+                src = textwrap.dedent(inspect.getsource(method))
+            except (OSError, TypeError):
+                continue
+            for node in ast.walk(ast.parse(src)):
+                if (isinstance(node, ast.Attribute)
+                        and isinstance(node.value, ast.Name)
+                        and node.value.id == "self"
+                        and isinstance(node.ctx, ast.Load)
+                        and node.attr.startswith("_")
+                        and node.attr not in ("_md", "_write_meta")):
+                    offenders.append(f"Digest.{name} -> self.{node.attr}")
+        assert not offenders, (
+            "a borrowed Digest method must not reach for a private helper or "
+            "eagerly-created state — the stubs do not have it: "
+            + " | ".join(sorted(set(offenders))))
+        assert borrowed or True  # documented: the borrow set may be empty
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-37 — the digest shows only the headline and treasury/net/provinces

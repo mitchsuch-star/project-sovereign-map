@@ -4892,3 +4892,87 @@ type** (a new one costs twelve pins across twelve files and forfeits the fog
 arm, the one-liner switch and the dispatch consumer). **But reuse is not
 free**: without its own arm in `format_event_oneliner` the exit falls through
 to "…has broken free of {lord}. War." — wrong in every clause.
+
+---
+
+## 40. The instrument sees (FA slice 15, landed September 6, 2026)
+
+Two halves. Part a is a save-killer found while measuring; part b is the
+playtest driver, which is the instrument the whole final audit was read off.
+
+### 40.1 A serialized field is never deleted
+
+`Marshal.original_nation` is declared, serialized, and was `delattr`'d by
+`vassal.release_vassal`. `Marshal.to_dict` reads it **bare**, so from that
+moment every `to_dict` raised and `save_game` swallowed the `AttributeError`
+into a `success: False` with the reason in a field nobody reads. The campaign
+stops being saveable and never says so.
+
+**The rule: a field that is written into `to_dict` is never deleted from the
+object. Set it to `None`.** If a field genuinely may be absent, `to_dict`
+must read it with `getattr(self, "x", default)` — that is the exempt idiom.
+
+Enforced by an AST census in
+`tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted`:
+no `to_dict` may read `self.X` bare for any `X` that is `delattr`'d or
+`del`'d anywhere under `backend/`. Its own helpers are exercised on synthetic
+source, because a census that is green over the real tree cannot be killed by
+a mutation that removes one of its arms — which is what two INERT pins on the
+first sweep were saying.
+
+⚠ **"If it exists on the object, it must serialize" reads the object as
+CONSTRUCTED.** It was structurally blind to this class, which has now bitten
+twice (IGR-X1 was `del marshal._recovery_destination`).
+
+### 40.2 What the digest must say
+
+`tools/playtest_driver.py` is a measuring instrument, and every one of these
+is a rule about not reporting an absence you did not observe.
+
+**An empty enemy phase is not an empty turn.** `Digest.enemy_phase` must not
+return early on `not actions`: the payload carries `fog_hidden_summary` /
+`fog_hidden_nations`, and 12 of 40 turns on the ambient board have no visible
+action at all. One helper `fog_sentences(phase)` serves both arms. `summary`
+outranks `nations` — the engine emits the summary form when NOTHING is
+visible, so it is the stronger statement.
+
+**The digest is the FOGGED view.** 93 of 1,185 enemy actions on a 40-turn
+board (7.8%). An absence in a digest is therefore **not** evidence of an
+absence on the board. `docs/PLAYTESTING.md` says so; do not let that sentence
+drift again.
+
+**Read `GET /campaign_log` per turn, never once at the end.**
+`MAX_EVENT_LOG_SIZE` is 500 and the log rolls: at turn 40 the earliest block
+still served is turn 14. This is the IGR-B eviction trap.
+
+**Every name in `AI_AI_LOG_TYPES` must exist in `CAMPAIGN_LOG_TYPES`** — the
+row that asked for the allowlist named a type that does not exist.
+
+**The rail carries CRITICAL.** A `priority == "HIGH"` filter drops the
+severest notices the game has, and CRITICAL sorts first so a same-turn HIGH
+burst cannot evict it under the cap.
+
+**A borrowed method may not reach for `self._private` or a class constant.**
+Five stub `Digest`s in the test files borrow real methods. This is slice 8's
+rule; slice 15 extends its census to every public method and moves
+`MAX_RAIL_ROWS` / `MAX_FOG_ROWS` to module scope.
+
+### 40.3 Parse provenance
+
+`parse_mode` / `parse_confidence` ride the `/command` response from a
+`contextvars` ContextVar. Display-only (GR6) and census-pinned: `main.py` is
+the only file allowed to name them.
+
+Three things that are easy to get wrong, each measured:
+
+- **Stamp the PLAYER's parse only.** `parser.parse` is called three times in
+  `main.py`; the other two are the CR-5 delegation re-issues, which re-parse
+  a sentence the ENGINE composed and clobber `parsed`.
+- **Read it in `build_base_response`, not `_build_result_response`.**
+  `/command` has three response roads and the two early ones — `status`, and
+  the refusal arms — build straight through the base builder.
+- **`confidence` is on the nested `command`, not the envelope.** The envelope
+  carries `mode`, `strategic_score` and `ambiguity`.
+
+The digest prints the mark only when the mode is not `mock`, so a mock run's
+digest stays byte-identical line for line and archived comparisons hold.

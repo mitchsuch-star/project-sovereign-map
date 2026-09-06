@@ -301,16 +301,31 @@ across the slice's driver edits.
 ### Reading a run
 
 - `digest.md` — the read. One block per turn: commands with one-line
-  results, battles (`Ney (lost 2,173) vs Mack (lost 7,747) — …`), popups
+  results (a live parse is marked `[anthropic 0.62]`; a mock parse is
+  unmarked), battles (`Ney (lost 2,173) vs Mack (lost 7,747) — …`), popups
   + the answers taken, the enemy phase (attack lines, a `verbs:` tally,
-  and `🏴` lines for any province that changed hands), `LEDGER` with
-  treasury/net/**`provinces N (+d)`**, and the dispatch headline.
+  `🏴` lines for any province that changed hands, **and the fog
+  sentence — including on a turn where nothing at all was visible**),
+  `ORDER` rows for standing-order progress, `LEDGER` with
+  treasury/net/**threat**/**`provinces N (+d)`**, the dispatch headline,
+  its `RAIL` notices and `LOG` rows for the AI-vs-AI beats no other
+  surface carries.
 - `digest.jsonl` — the query surface (one record per event; `kind` =
-  turn/command/battle/popup/enemy_phase/ledger/dispatch/note). The
-  `enemy_phase` record carries the FULL action list (nation, verb,
-  marshal, message) — the markdown is a summary, the jsonl is not.
+  turn/command/battle/popup/enemy_phase/order_progress/ledger/dispatch/
+  rail/campaign_log/note).
+
+  > ⚠ **The `enemy_phase` record is the FOGGED view, not the full action
+  > list.** An earlier version of this page said otherwise and it was wrong
+  > by a factor of twelve: measured on a 40-turn ambient board, 1,185 raw
+  > enemy actions produced 93 visible ones (7.8%), and on 12 of the 40 turns
+  > nothing was visible at all. What the driver sees is what the PLAYER sees
+  > — which is the point of the instrument, but it means an absence in the
+  > digest is not evidence of an absence on the board. The `fogged` count on
+  > the record says how many courts moved out of sight.
 - `meta.json` — args, policy, counters, `unknown_blockers`, finish
-  status (`completed` / `blocked` / `game-over`).
+  status (`completed` / `blocked` / `game-over`), and the run's WORLD:
+  `scenario`, `script`, `cheats`, `strict` (added by FA-N89 — 52 archived
+  runs record none of them, so their board cannot be reconstructed).
 
 > **`provinces` is the conquest scoreboard** and the first thing to read
 > in any campaign that is trying to gain ground. It is the player's own

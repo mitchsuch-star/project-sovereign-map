@@ -1,0 +1,156 @@
+[
+ {
+  "id": "FA-N79/a the nothing-visible arm returns early again",
+  "file": "tools/playtest_driver.py",
+  "old": "        fog = fog_sentences(phase)\n        if not actions:",
+  "new": "        fog = fog_sentences(phase)\n        if not actions:\n            return\n        if False:",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSaysWhatItCannotSee::test_a_turn_with_nothing_visible_is_no_longer_silent"
+ },
+ {
+  "id": "FA-N79/b a turn with no fog invents a line",
+  "file": "tools/playtest_driver.py",
+  "old": "            if fog:\n                self._md(f\"- enemy phase: nothing visible — {fog[0]}\")",
+  "new": "            if True:\n                self._md(f\"- enemy phase: nothing visible — {(fog or [''])[0]}\")",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSaysWhatItCannotSee::test_a_turn_with_nothing_visible_and_no_fog_stays_silent"
+ },
+ {
+  "id": "FA-N86/a the visible arm drops the fog sentence",
+  "file": "tools/playtest_driver.py",
+  "old": "        if fog:\n            summary += f\" — {fog[0]}\"",
+  "new": "        if False:\n            summary += f\" — {fog[0]}\"",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSaysWhatItCannotSee::test_the_visible_arm_carries_the_fog_sentence_too"
+ },
+ {
+  "id": "FA-N86/b the nations key wins over the summary key",
+  "file": "tools/playtest_driver.py",
+  "old": "    for key in (\"fog_hidden_summary\", \"fog_hidden_nations\"):",
+  "new": "    for key in (\"fog_hidden_nations\", \"fog_hidden_summary\"):",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSaysWhatItCannotSee::test_the_summary_key_wins_over_the_nations_key"
+ },
+ {
+  "id": "FA-N86/c the fog rows stop being capped",
+  "file": "tools/playtest_driver.py",
+  "old": "                for extra in fog[1:MAX_FOG_ROWS]:",
+  "new": "                for extra in fog[1:]:",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSaysWhatItCannotSee::test_the_fog_rows_are_capped"
+ },
+ {
+  "id": "FA-N87/a the driver reads the cached dispatch first again",
+  "file": "tools/playtest_driver.py",
+  "old": "        threat = response.get(\"threat_level\")\n        if threat is None:\n            threat = dig(morning.get(\"coalition_status\"), \"threat_level\",\n                         \"threat\")",
+  "new": "        threat = dig(morning.get(\"coalition_status\"), \"threat_level\",\n                     \"threat\")\n        if threat is None:\n            threat = response.get(\"threat_level\")",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheLedgerLineCarriesTheThreat::test_the_driver_reads_the_live_figure_first"
+ },
+ {
+  "id": "FA-77/a the order rows stop being emitted",
+  "file": "tools/playtest_driver.py",
+  "old": "        digest.order_progress(response.get(\"strategic_reports\"))\n        digest.autonomous_attacks(response.get(\"jealousy_attacks\"))\n        drain(transport, digest, answerer, response, args.strict)",
+  "new": "        digest.autonomous_attacks(response.get(\"jealousy_attacks\"))\n        drain(transport, digest, answerer, response, args.strict)",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestFollowsAStandingOrder::test_it_is_sited_in_the_loop_not_in_the_answerer"
+ },
+ {
+  "id": "FA-77/b `continues` is filtered out as uninteresting",
+  "file": "tools/playtest_driver.py",
+  "old": "            if not status and not message:\n                continue",
+  "new": "            if not status and not message:\n                continue\n            if status == \"continues\":\n                continue",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestFollowsAStandingOrder::test_every_status_is_printed_not_a_chosen_few"
+ },
+ {
+  "id": "FA-77/c the dedupe is dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "            if key in _seen(self, \"_seen_order_rows\"):\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestFollowsAStandingOrder::test_a_repeated_row_is_printed_once"
+ },
+ {
+  "id": "FA-84/a the allowlist grows a type that does not exist",
+  "file": "tools/playtest_driver.py",
+  "old": "AI_AI_LOG_TYPES = frozenset({\n    \"ai_ai_proposal_refused\",",
+  "new": "AI_AI_LOG_TYPES = frozenset({\n    \"coalition_formed\",\n    \"ai_ai_proposal_refused\",",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSeesTheOtherPowers::test_every_allowlisted_type_actually_exists"
+ },
+ {
+  "id": "FA-84/b the campaign log is never read",
+  "file": "tools/playtest_driver.py",
+  "old": "            log = transport.get(\"/campaign_log\") or {}",
+  "new": "            log = {}",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSeesTheOtherPowers"
+ },
+ {
+  "id": "FA-84/c a type the rail printed is said twice",
+  "file": "tools/playtest_driver.py",
+  "old": "            _seen(self, \"_seen_rail_types\").add(str(event.get(\"type\") or \"\"))",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSeesTheOtherPowers::test_a_type_the_rail_already_printed_is_not_said_twice"
+ },
+ {
+  "id": "FA-84/d the rail drops CRITICAL again",
+  "file": "tools/playtest_driver.py",
+  "old": "                and str(e.get(\"priority\")) in (\"HIGH\", \"CRITICAL\")]",
+  "new": "                and str(e.get(\"priority\")) == \"HIGH\"]",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRailNoLongerDropsTheSeverestNotices::test_a_critical_row_is_printed"
+ },
+ {
+  "id": "FA-84/e CRITICAL stops sorting first, so spam evicts it",
+  "file": "tools/playtest_driver.py",
+  "old": "        rows.sort(key=lambda e: str(e.get(\"priority\")) != \"CRITICAL\")",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRailNoLongerDropsTheSeverestNotices::test_critical_outranks_high_under_the_cap"
+ },
+ {
+  "id": "FA-84/f the rail widens to MEDIUM as well",
+  "file": "tools/playtest_driver.py",
+  "old": "                and str(e.get(\"priority\")) in (\"HIGH\", \"CRITICAL\")]",
+  "new": "                and str(e.get(\"priority\")) in (\"HIGH\", \"CRITICAL\", \"MEDIUM\", \"LOW\")]",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRailNoLongerDropsTheSeverestNotices::test_medium_and_low_are_still_dropped"
+ },
+ {
+  "id": "FA-39/a the backend stops stamping the parse",
+  "file": "backend/main.py",
+  "old": "    _provenance = _PARSE_PROVENANCE.get()\n    if _provenance:",
+  "new": "    _provenance = None\n    if _provenance:",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard"
+ },
+ {
+  "id": "FA-39/b a mock parse starts marking the line",
+  "file": "tools/playtest_driver.py",
+  "old": "        if mode and mode != \"mock\":",
+  "new": "        if mode:",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard::test_a_mock_parse_leaves_the_line_unchanged"
+ },
+ {
+  "id": "FA-39/c the per-command provenance stops being recorded",
+  "file": "tools/playtest_driver.py",
+  "old": "                    parse_mode=mode, parse_confidence=confidence,\n",
+  "new": "",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard::test_a_live_parse_is_marked"
+ },
+ {
+  "id": "FA-N89/a the meta forgets the run's world",
+  "file": "tools/playtest_driver.py",
+  "old": "        \"scenario\": getattr(args, \"scenario\", None) or \"\",\n        \"script\": getattr(args, \"script\", None) or \"\",",
+  "new": "",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard::test_the_meta_records_the_runs_world"
+ },
+ {
+  "id": "FA-N89/b the header subscripts a key the fixtures do not carry",
+  "file": "tools/playtest_driver.py",
+  "old": "                  f\"transport {meta['transport']} · policy \"",
+  "new": "                  f\"transport {meta['transport']} · scenario {meta['scenario']} · policy \"",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard::test_the_digest_header_reads_meta_defensively"
+ },
+ {
+  "id": "DOC/a the page claims the full action list again",
+  "file": "docs/PLAYTESTING.md",
+  "old": "  > ⚠ **The `enemy_phase` record is the FOGGED view, not the full action",
+  "new": "  > The `enemy_phase` record carries the FULL action list, not the full action",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDocumentationIsNoLongerFalse::test_the_page_no_longer_claims_the_full_action_list"
+ },
+ {
+  "id": "FA-39/d the confidence is read off the envelope again",
+  "file": "backend/main.py",
+  "old": "            (_parsed_command or {}).get(\"confidence\")",
+  "new": "            parsed.get(\"confidence\")",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard"
+ }
+]

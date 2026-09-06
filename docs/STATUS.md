@@ -4,6 +4,65 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ FA SLICE 15 (part b) — "THE INSTRUMENT SEES" — LANDED September 6, 2026
+>
+> **Landing record = the boxed SLICE 15 (part b) block in `docs/BUG_FIXES.md`
+> (authoritative).** The digest is what the whole final audit was read off,
+> and the instrument that wrote it was blind on 22% of its turns. **FA-N79,
+> FA-N86, FA-N87, FA-77, FA-84, FA-39, FA-N89 closed.** Sweep **22/22, 0
+> INERT, 0 BROKEN**; suite **20,788 / 4**; ruff clean; parser eval 681/681;
+> series + M1–M7 byte-identical; zero `.gd`.
+>
+> Measured before and after, on the 52 archived runs and a fresh 40-turn
+> board: turns with **no enemy-phase line at all 12 of 40 → 0** (two of the
+> archived silent turns are turns Britain took a province) · the fog sentence
+> printed **0 → every turn it exists** · `LEDGER` rows carrying a threat
+> figure **0 of 1,246 → every row** · `ORDER` rows in the whole archive
+> **0 → 8 in a 10-turn scripted march**, exposing Ney's silent lost turns ·
+> AI-vs-AI beats **1 in the whole archive → per turn** · runs recording their
+> scenario **0 of 52 → every run**.
+>
+> **Four things the rows themselves got wrong**, each measured: FA-84's filed
+> allowlist names `coalition_formed`, which is **not a campaign-log type** (a
+> pin now asserts every name exists); `PLAYTESTING.md` told the reader the
+> jsonl carries the FULL action list when it is the FOGGED view, 93 of 1,185;
+> FA-N87's `threat` parameter had been dead since it was written, not merely
+> mis-read; and the campaign log must be read **per turn**, because
+> `MAX_EVENT_LOG_SIZE` is 500 and a 40-turn run's earliest served block is
+> turn 14 — the IGR-B eviction trap.
+>
+> **Two defects found INSIDE the fix.** The HIGH rail dropped **CRITICAL**
+> entirely — slice 8's filter was `== "HIGH"`, so the severest notices the
+> game has were the only ones never printed. And `Digest.ledger_line` already
+> reached for `self._last_provinces`, which would raise on any of the five
+> stub Digests that borrow real methods; slice 8's census is extended to every
+> public method and both row caps moved to module scope.
+>
+> **FA-39's three corrections** are each a thing a first cut got wrong and a
+> pin measured: the stamp is on the PLAYER's parse only (the other two
+> `parser.parse` calls re-parse a sentence the ENGINE composed); the read is
+> sited in `build_base_response`, because `/command` has three response roads
+> and `status` bypasses the executor one; and `confidence` lives on the nested
+> `command`, so reading the envelope stamped `None` on every response. A mock
+> run's digest is unchanged line for line.
+>
+> ⚠ **For the FA-D27 gate, from this slice's own measurement:** "unattended
+> France overrun on 8/8 seeds" was measured on an instrument that **could not
+> answer the coalition's peace offer**. With `--diplomacy accept` the same
+> seed ends at **27 provinces instead of 6**. The figure is not wrong; what it
+> measures is narrower than the row says.
+>
+> **▶ NEXT = the three-lens review round on slice 15, then slice 16 "The Copy
+> Sweep" (remaining P3/P4 incl. FA-S13-1), then ruling 1 (FA-D27 — measure
+> first into `docs/audits/FA_D27_BALANCE_MEASURE_<date>.md`, touch no
+> constant), then position 10.** Open: **58 defect rows, 24 design rows /
+> gates**, of 233 filed (134 closed, 17 disposed) — `tools/fa_row_tally.py`.
+>
+> ⚠ **Slice 15's remaining rows are NOT built and are not forgotten**:
+> FA-72, FA-75, FA-78, FA-79, FA-85, FA-89, FA-90, FA-102, FA-N35 stay open
+> and are re-homed to slice 16, which is the copy sweep they belong to.
+
+
 > ## ⛔ FA SLICE 15 (part a) — "THE SAVE THAT COULD NOT BE WRITTEN" — LANDED September 6, 2026
 >
 > **Landing record = the boxed SLICE 15 (part a) block in `docs/BUG_FIXES.md`
