@@ -4,6 +4,73 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ FA SLICE 16 "THE COPY SWEEP" — PARTS a, b, c LANDED September 6, 2026
+>
+> **Landing records = the three boxed SLICE 16 blocks in `docs/BUG_FIXES.md`
+> (authoritative). Reproduction of record for the WHOLE slice =
+> `docs/audits/fa_build_2026_09_04/repro/REPRO_L_slice16_at_head.md`** —
+> eight read-only agents re-measured **all 57 slice-16 rows at HEAD**, because
+> J6 and J7 were written at `a1ed5c9d`, before fifteen slices and seven review
+> rounds. It supersedes them wherever it disagrees.
+>
+> **Sixteen rows closed, two struck, four filed as rulings.** Sweeps 21/21,
+> 25/25 and 29/29 — **0 INERT, 0 BROKEN** on all three. Suite **20,944 / 4**.
+> Series and M1–M7 byte-identical throughout, each time with the reason
+> measured rather than asserted.
+>
+> **part a, "The Naval Figure Names Whose It Is"** — FA-58, FA-59, FA-45,
+> FA-51, FA-64 as one slice under one rule, because they are one defect
+> wearing five coats: *the naval surface reported the smaller of two true
+> causes, or the larger of two true figures, and in both directions it
+> flattered the wrong actor.* The blockade **HEALED the fleet it had beaten**
+> (readiness 40 → 50 after one tick, reachable by a failed diversion or one
+> green keel on a small navy); three text sites printed the POOLED allied
+> total under one court's name (**"loses 49 sail" while France held 45**);
+> the keel receipt blamed green crews for a fall the keel had not caused at
+> all (measured folds −1, −1, **0**, **0**); a 30,000-man corps was sent to a
+> dockyard and refused AT the dockyard; and the typed Grand Diversion confirm
+> never carried the camp warning its own chip carried.
+>
+> **part b, "The Price on the Button"** — FA-56, FA-67, FA-61, FA-49 and
+> FA-52's copy half. ⛔ **Four of the five could not be built as filed**, the
+> highest proportion in any slice of this build, and each would have shipped
+> something worse than the defect. FA-67's HEADLINE is REFUTED (a won battle
+> DOES add +3, one call outside the combat files) and its fix deletes the only
+> true half; FA-61's fix prints a "ceiling" the resolver exceeds by 7%;
+> FA-49's static cost table would print −3 where the charge is 0; FA-52's copy
+> prescription is ungrammatical for its own case. The Rebuke's intel pause
+> (FA-56) **had never once fired** — the reader named a field nothing writes.
+>
+> **part c, "The Name and the Notice"** — FA-100 (half a), FA-95, FA-69,
+> FA-93 + FA-N50 + FA-N47 as one edit, FA-65. `load_game` cleared three
+> per-turn stores the block's own comment argued against (**threat sources 4 →
+> 4 → 0**, and the ledger's "why" rows with them); a cooldown counted
+> backwards; the estate holder's machine key reached SEVEN surfaces; and the
+> square-break notice was **silent by default** — dropped on every refusal AND
+> on every strategic first step that actually moved.
+>
+> **⚠ FOUR RULINGS ARE FILED AND OPEN**, each with an owner, a done-when and
+> the precedent it would contradict: **FA-S16-D1** (obeying a standing order
+> costs 2 trust while abandoning it costs 0 — and slice 3 already priced the
+> identical popup at 0), **FA-S16-D2** (the cannon-fire trigger is
+> nation-blind: a French marshal charged over Blücher vs Hohenlohe),
+> **FA-S16-D3** (FA-44 wants a SECOND absolute casualty floor against a landed
+> constant's written dissent) and **FA-S16-D4** (FA-98 would be the first
+> tutorial gate to suppress a beat while leaving its state alive; PC15-D3
+> ruled the other way).
+>
+> **Struck on measurement, not built:** FA-N31 (closed by the slice-11 review
+> round's lord gate) and FA-36/FA-83 (closed by slices 2 and 8, recorded in
+> the slice-15 part-a block).
+>
+> **▶ NEXT = slice 16 parts d–h** — the dispatch/ledger marshal-status cluster
+> (which must land as a UNIT, N28 → N29 → N36+N65), the square/parity families,
+> the misc-N grab bag, the client-and-docs group, and the eight harness rows
+> slice 15 re-homed. **41 defect rows and 28 design rows / gates open**, all
+> with reproduction already committed. **Then ruling 1 (FA-D27 — measure
+> first, memo `docs/audits/FA_D27_BALANCE_MEASURE_<date>.md`, touch no
+> constant), then position 10.**
+
 > ## ▶ THE SLICE 15 REVIEW ROUND — "THE INSTRUMENT IS CALIBRATED" — LANDED September 6, 2026
 >
 > **Landing record = the boxed SLICE 15 REVIEW ROUND block in

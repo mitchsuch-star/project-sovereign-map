@@ -365,12 +365,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After the slice-15 review round: **60 defect rows
-> and 24 design rows / gates still open**, of 234 filed; 133 closed, 17
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. It went UP by two
-> because the round re-opened FA-91 and filed FA-S15-2; the 60 are
-> spoken for by slice 16, whose reproduction is already committed;
-> the 24 need rulings, not builds.
+> number in a heading. After slice 16 part c: **41 defect rows
+> and 28 design rows / gates still open**, of 238 filed; 151 closed, 18
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty.
+> The 41 are spoken for by slice 16 parts d–h, whose reproduction is
+> already committed as `REPRO_L_slice16_at_head.md`;
+> the 28 need rulings, not builds.
 >
 > **⛔ SLICE 15 (PART a) "THE SAVE THAT COULD NOT BE WRITTEN" IS LANDED —
 > September 6, 2026.** Landing record = the boxed SLICE 15 (part a) block in
@@ -392,6 +392,32 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > balance measurement was taken on an instrument that **could not answer the
 > coalition's peace offer**, and with `--diplomacy accept` the same seed goes
 > 6 → 27 provinces.
+>
+> **▶ FA SLICE 16 "THE COPY SWEEP" — PARTS a, b, c LANDED September 6,
+> 2026.** Landing records = the three boxed SLICE 16 blocks in
+> `BUG_FIXES.md`; **reproduction of record for the whole slice =
+> `docs/audits/fa_build_2026_09_04/repro/REPRO_L_slice16_at_head.md`**, eight
+> agents re-measuring all 57 rows at HEAD (J6/J7 predate fifteen slices).
+> Sixteen rows closed, two struck, four filed as rulings; sweeps 21/21, 25/25,
+> 29/29 all 0-INERT. **part a**: the blockade HEALED the fleet it had beaten
+> (40 → 50 in one tick), three sites printed the pooled allied total under one
+> court's name ("loses 49 sail" while France held 45), the keel receipt blamed
+> green crews for a fall it had not caused (folds −1, −1, **0**, **0**), a
+> 30,000-man corps was refused AT the dockyard it had been sent to, and the
+> typed diversion confirm never carried its own chip's camp warning.
+> **part b**: ⛔ **four of five rows could not be built as filed** — FA-67's
+> headline is REFUTED and its fix deletes the only true half, FA-61's fix
+> prints a ceiling the resolver exceeds by 7%, FA-49's static table prints −3
+> where the charge is 0 — and FA-56, the Rebuke's intel pause, **had never
+> once fired**. **part c**: `load_game` cleared three stores its own comment
+> argued against (threat sources 4 → 4 → **0**), a cooldown counted backwards,
+> the estate holder's machine key reached seven surfaces, and the square-break
+> notice was **silent by default** — dropped on every refusal AND on every
+> strategic first step that moved. ⚠ **FOUR RULINGS OPEN**: FA-S16-D1 (the
+> cannon-fire tax, against slice 3's own precedent), D2 (the nation-blind
+> trigger), D3 (a second casualty floor against a written dissent), D4 (a
+> tutorial beat gate against PC15-D3). **NEXT = slice 16 parts d–h**, then
+> ruling 1 (FA-D27), then position 10.
 >
 > **▶ THE SLICE 15 REVIEW ROUND "THE INSTRUMENT IS CALIBRATED" IS LANDED —
 > September 6, 2026** (landing record = the boxed SLICE 15 REVIEW ROUND block
