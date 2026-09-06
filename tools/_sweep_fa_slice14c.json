@@ -1,0 +1,226 @@
+[
+ {
+  "id": "FA-21/a lever 1 down — the build stops reading the purse",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "PURSE_SCALED_BILATERAL_INDEMNITY = True",
+  "new": "PURSE_SCALED_BILATERAL_INDEMNITY = False",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_measured_defect_is_gone"
+ },
+ {
+  "id": "FA-21/b lever 2 down — the reducer stops reading the purse",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "P8_REDUCER_READS_THE_PURSE = True",
+  "new": "P8_REDUCER_READS_THE_PURSE = False",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_measured_defect_is_gone"
+ },
+ {
+  "id": "FA-21/c the purse REPLACES the ladder instead of flooring it",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            gold_demand = max(gold_demand, purse_scaled_indemnity(",
+  "new": "            gold_demand = min(gold_demand, purse_scaled_indemnity(",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_measured_defect_is_gone"
+ },
+ {
+  "id": "FA-21/d gold_mult multiplies the scaled term only (mode i)",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    return max(0, int(min(scaled, cap) * gold_mult))",
+  "new": "    return max(0, min(int(scaled * gold_mult), cap))",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheTwoChannelsPriceAlike::test_the_personality_ladder_survives_on_a_poor_payer"
+ },
+ {
+  "id": "FA-21/e the halve clamp is dropped — a reduction may raise",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            d[\"value\"] = max(200, min(int(d[\"value\"]), halved))",
+  "new": "            d[\"value\"] = max(200, halved)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_halve_step_never_raises_the_demand_either"
+ },
+ {
+  "id": "FA-21/f the fallback clamp is dropped",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "                     \"value\": max(200, min(purse_floor, original_lump)\n                                  if original_lump else 200)}],",
+  "new": "                     \"value\": max(200, purse_floor)}],",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_a_reduction_never_raises_the_demand"
+ },
+ {
+  "id": "FA-21/g the purse floor reads the player, not the payer named in the terms",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    payer = ((proposal.get(\"terms\") or {}).get(\"target_nation\")\n             or getattr(world, \"player_nation\", \"France\"))",
+  "new": "    payer = getattr(world, \"player_nation\", \"France\")",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_purse_floor_reads_the_term_not_the_player"
+ },
+ {
+  "id": "FA-21/h the purse floor loses its 200 minimum",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    return max(200, int(treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))",
+  "new": "    return int(treasury * SETTLEMENT_OFFER_TREASURY_FRACTION)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_a_broke_payer_still_sees_the_flat_two_hundred"
+ },
+ {
+  "id": "FA-21/i the war age is never found (the diplo-key defect restored)",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    instances = getattr(world, \"war_instances\", None) or {}\n    if not instances:\n        return 0",
+  "new": "    instances = getattr(world, \"war_instances\", None) or {}\n    if True:\n        return 0",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheWarAgeIsReadable::test_the_pair_war_age_is_not_zero"
+ },
+ {
+  "id": "FA-21/j the war age stops checking that the courts are on OPPOSITE sides",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        if not side_a or not side_b or side_a == side_b:",
+  "new": "        if not side_a or not side_b:",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheWarAgeIsReadable::test_same_side_courts_are_not_at_war_with_each_other"
+ },
+ {
+  "id": "FA-21/k the extraction re-prices the multilateral channel",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "              + abs(int(war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE",
+  "new": "              + abs(int(war_score)) * (SETTLEMENT_OFFER_PER_WAR_SCORE + 1)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheTwoChannelsPriceAlike::test_the_extraction_is_byte_identical_to_the_body_it_replaced"
+ },
+ {
+  "id": "FA-31/a the forecast lever is down",
+  "file": "backend/game_logic/naval.py",
+  "old": "DIVERSION_WINDOW_FORECAST = True",
+  "new": "DIVERSION_WINDOW_FORECAST = False",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheChipTellsTheTruth::test_the_boot_chip_says_what_a_success_buys"
+ },
+ {
+  "id": "FA-31/b the forecast's finally is dropped — the leak returns",
+  "file": "backend/game_logic/naval.py",
+  "old": "        out[\"turn_2\"] = link_verdicts_for(world, actor)\n    finally:\n        _restore_fleets(world, snapshot)",
+  "new": "        out[\"turn_2\"] = link_verdicts_for(world, actor)\n        _restore_fleets(world, snapshot)\n    finally:\n        pass",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheForecastIsPure::test_an_exception_mid_forecast_leaves_the_board_untouched"
+ },
+ {
+  "id": "FA-31/c the store is rebound instead of restored in place",
+  "file": "backend/game_logic/naval.py",
+  "old": "        current = fleets.get(key)\n        if isinstance(current, dict) and isinstance(value, dict):\n            current.clear()\n            current.update(value)\n        else:\n            fleets[key] = value",
+  "new": "        fleets[key] = value",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheForecastIsPure::test_the_store_is_restored_in_place_not_rebound"
+ },
+ {
+  "id": "FA-31/d turn 2 skips the readiness tick (the filed fix_shape)",
+  "file": "backend/game_logic/naval.py",
+  "old": "        derive_ai_postures(world)\n        _readiness_tick(world)\n        out[\"turn_2\"] = link_verdicts_for(world, actor)",
+  "new": "        derive_ai_postures(world)\n        out[\"turn_2\"] = link_verdicts_for(world, actor)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheWindowIsTwoTurns::test_the_two_turns_can_disagree_in_both_directions"
+ },
+ {
+  "id": "FA-31/e turn 2 skips the posture derivation",
+  "file": "backend/game_logic/naval.py",
+  "old": "        derive_ai_postures(world)\n        _readiness_tick(world)\n        out[\"turn_2\"] = link_verdicts_for(world, actor)",
+  "new": "        _readiness_tick(world)\n        out[\"turn_2\"] = link_verdicts_for(world, actor)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheWindowIsTwoTurns::test_turn_two_runs_derive_then_tick_in_that_order"
+ },
+ {
+  "id": "FA-31/f the ranking drops the camp province",
+  "file": "backend/game_logic/naval.py",
+  "old": "        return (1 if camp.intersection(ends) else 0,\n                sum(mass.get(e, 0) for e in ends))",
+  "new": "        return (0, sum(mass.get(e, 0) for e in ends))",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheSubjectIsTheCrossingTheArmyMeans::test_the_camp_province_outranks_the_alphabet"
+ },
+ {
+  "id": "FA-31/g the ranking drops the army mass",
+  "file": "backend/game_logic/naval.py",
+  "old": "        return (1 if camp.intersection(ends) else 0,\n                sum(mass.get(e, 0) for e in ends))",
+  "new": "        return (1 if camp.intersection(ends) else 0, 0)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheSubjectIsTheCrossingTheArmyMeans::test_army_mass_breaks_the_tie_when_no_camp_is_involved"
+ },
+ {
+  "id": "FA-31/h the shut clause rounds instead of ceiling",
+  "file": "backend/game_logic/naval.py",
+  "old": "        needed = math.ceil(float(coverage) * float(floor) - 1e-9)",
+  "new": "        needed = int(round(float(coverage) * float(floor)))",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheChipTellsTheTruth::test_the_shut_clause_quotes_the_number_that_opens_it"
+ },
+ {
+  "id": "FA-31/i the remedy stops reading the state it names",
+  "file": "backend/game_logic/naval.py",
+  "old": "    if blockaded and not staged:",
+  "new": "    if True:",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheChipTellsTheTruth::test_the_remedy_names_the_state_the_player_is_actually_in"
+ },
+ {
+  "id": "FA-31/j the outcome sentence ranks only the OPENED links",
+  "file": "backend/game_logic/naval.py",
+  "old": "    subject = _rank_links(world, nation, set(verdicts))",
+  "new": "    subject = _rank_links(world, nation, set(opened))",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheOutcomeIsReportedHonestly::test_the_report_and_the_forecast_name_the_same_crossing"
+ },
+ {
+  "id": "FA-31/k the outcome sentence asserts an open strait unconditionally",
+  "file": "backend/game_logic/naval.py",
+  "old": "    if not opened:\n        return (\"But the squadrons are too worn to use it — every crossing \"",
+  "new": "    if False:\n        return (\"But the squadrons are too worn to use it — every crossing \"",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheOutcomeIsReportedHonestly::test_a_won_window_that_opens_nothing_says_so"
+ },
+ {
+  "id": "FA-31/l the success line names the raw nation tag again",
+  "file": "backend/game_logic/naval.py",
+  "old": "                f\"{_fleet_label(hostile, get_fleet(world, hostile) or {})} \"",
+  "new": "                f\"the {hostile} fleet \"",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheOutcomeIsReportedHonestly::test_the_success_line_names_the_royal_navy"
+ },
+ {
+  "id": "FA-31/m the AI rung stops asking what the window buys",
+  "file": "backend/game_logic/naval.py",
+  "old": "        if not (forecast[\"opens_t1\"] or forecast[\"opens_t2\"]):\n            return None",
+  "new": "        if False:\n            return None",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheAiAsksTheSameQuestion::test_the_rung_refuses_a_window_that_would_open_nothing"
+ },
+ {
+  "id": "FA-31/n the forecast scans the player's shore for every actor",
+  "file": "backend/game_logic/naval.py",
+  "old": "    for pair in _tracked_links_for(world, actor):",
+  "new": "    for pair in _tracked_links(world):",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheMirrorAnswersForAnyCourt::test_the_forecast_reads_the_actors_own_shore"
+ },
+ {
+  "id": "FA-31/o the fourth clause arm is merged into the fall-through",
+  "file": "backend/game_logic/naval.py",
+  "old": "    if t2 and not t1:\n        return (f\"a success opens {pair} on the second turn only — the \"\n                f\"first is still barred\")",
+  "new": "    if False:\n        return \"\"",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheWindowIsTwoTurns::test_the_clause_has_an_arm_for_every_pair"
+ },
+ {
+  "id": "FA-31/p the chip stops carrying the clause",
+  "file": "backend/game_logic/naval.py",
+  "old": "        clause = window_forecast_clause(world, player)\n        if clause:\n            note += f\"; {clause}\"",
+  "new": "        clause = window_forecast_clause(world, player)\n        if False:\n            note += f\"; {clause}\"",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheChipTellsTheTruth::test_the_odds_and_the_once_per_war_warning_survive"
+ },
+ {
+  "id": "FA-31/q the confirm stops carrying the clause",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                forecast_line = (f\" And mark this, Sire: {forecast_clause}.\"\n                                 if forecast_clause else \"\")",
+  "new": "                forecast_line = \"\"",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheChipTellsTheTruth::test_the_confirm_carries_the_clause"
+ },
+ {
+  "id": "FA-N82/a the camp tick goes back to the ships>0 iterator",
+  "file": "backend/game_logic/naval.py",
+  "old": "    for nation, rec in iter_fleet_records(world):\n        if not rec.get(\"camp_provinces\"):\n            continue\n        enemies = _island_war_enemies(world, nation)",
+  "new": "    for nation, rec in iter_fleets(world):\n        if not rec.get(\"camp_provinces\"):\n            continue\n        enemies = _island_war_enemies(world, nation)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheCampSurvivesALostFleet::test_a_sunk_navy_still_stages_its_camp"
+ },
+ {
+  "id": "FA-N82/b the enemy scan re-implements camp_staged inline again",
+  "file": "backend/game_logic/naval.py",
+  "old": "            for enemy, enemy_rec in iter_fleet_records(world):\n                if enemy == nation or not world.is_at_war(nation, enemy):\n                    continue\n                if (camp_staged(world, enemy)",
+  "new": "            for enemy, enemy_rec in iter_fleets(world):\n                if enemy == nation or not world.is_at_war(nation, enemy):\n                    continue\n                if (camp_staged(world, enemy)",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheCampSurvivesALostFleet::test_the_enemy_scan_sees_it"
+ },
+ {
+  "id": "FA-N83/a the reset reads ANY war again",
+  "file": "backend/game_logic/naval.py",
+  "old": "        if rec.get(\"diversion_used\") and not has_naval_war(world, nation):",
+  "new": "        if rec.get(\"diversion_used\") and not world.get_nations_at_war_with(nation):",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestOncePerWarMeansTheNavalWar::test_a_land_war_does_not_withhold_the_card"
+ },
+ {
+  "id": "FA-N83/b the card is returned while its own naval war still stands",
+  "file": "backend/game_logic/naval.py",
+  "old": "    return any(n != nation and world.is_at_war(nation, n)\n               for n, _rec in iter_fleets(world))",
+  "new": "    return False",
+  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestOncePerWarMeansTheNavalWar::test_the_card_is_still_spent_inside_its_own_war"
+ }
+]

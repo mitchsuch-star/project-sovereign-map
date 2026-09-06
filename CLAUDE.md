@@ -365,11 +365,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 14 part 2a: **76 defect rows
-> and 24 design rows / gates still open**, of 232 filed; 116 closed, 16
-> disposed (duplicate, refuted, or re-homed). The FA-R family is now empty. The 77 are spoken for by
-> slices 14 (part 2) → 15 → 16;
-> the 26 need rulings, not builds.
+> number in a heading. After slice 14 part 2b: **73 defect rows
+> and 24 design rows / gates still open**, of 232 filed; 120 closed, 15
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 73 are spoken for by
+> slices 14 (part 2c) → 15 → 16;
+> the 24 need rulings, not builds.
+>
+> **▶ SLICE 14 (PART 2b) "THE PURSE AND THE WINDOW" IS LANDED — September 6,
+> 2026.** Landing record = the boxed SLICE 14 (part 2b) block in
+> `BUG_FIXES.md`; the rules are `SYSTEMS_REFERENCE.md` §37. Four rows —
+> **FA-21**, **FA-31**, and the two siblings the FA-31 sweep filed in the same
+> machinery, **FA-N82** and **FA-N83**. Backend only; the tutorial pair and
+> the FA-S12 rulings are **part 2c**. A twelve-agent fleet measured the
+> intended shapes first and **corrected the plan twice in ways that changed
+> what shipped** — both times because the intended fix was itself a
+> regression. FA-21: 405 gold of a 17,487-gold France becomes **2,623 = 15% of
+> the purse**; ⛔ the row's `fix_shape` and my improvement on it BOTH deliver
+> **200 on 5 of 5** ambient firings, worse than the defect, because the
+> reducer halves once then falls to a token — both levers or neither. Seam 3
+> (pinned by nothing: a 5× softening leaves 2,032/2,032 green) is DECIDED with
+> its cost named, not touched. FA-31: a **fourth surface nobody filed**
+> reported an open strait on the turn it was shut; the filed `fix_shape` ships
+> a NEW lie, so the forecast is **two calls and four arms**, and three more
+> defects were found inside my own fix by driving it. Sweep 32/32, 0 INERT;
+> series + M1–M7 byte-identical **with the reason measured** (FA-21's path
+> fires 5×, amounts moving 23.6×; FA-31's is dead by construction, 446
+> evaluations / 0 hits). **NEXT = part 2c**: FA-42, FA-N78, and the
+> FA-S12-1/2 decisions.
 >
 > **▶ SLICE 14 (PART 2a) "THE DESK IS NOT A ONE-WAY DOOR" IS LANDED —
 > September 5, 2026.** Rulings 3 and 4: `recall <marshal>` built (FA-S9-D1,

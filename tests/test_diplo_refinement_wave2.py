@@ -242,14 +242,26 @@ class TestAggressiveDominanceP8:
         assert result["proposal_type"] == "harsh_peace"
 
     def test_gold_scales_with_war_score(self):
-        """Harsh peace gold demand should scale with war_score."""
+        """Harsh peace gold demand should scale with war_score.
+
+        ⚠ RE-BLESSED by FA-21 (FA slice 14 part 2b). The demand is now
+        `max(legacy ladder, EC-W4 purse)`, and on `make_world()`'s 800-gold
+        France the purse term is a flat 320 (the 0.40 cap binds at every war
+        score), so the 250 becomes 320 while the 400 is untouched.
+
+        **The monotonicity clause is the load-bearing one and it SURVIVES.**
+        It is the reason the purse term is a floor under the ladder rather
+        than a replacement: a replacement gives 320 at BOTH 50 and 80, so
+        `gold_80 > gold_50` becomes false and the demand stops reading the
+        war at all on a poor payer. Measured both ways before shipping.
+        """
         world = make_world()
         terms_50 = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.0)
         terms_80 = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=1.0)
         gold_50 = terms_50["demands"][0]["value"]
         gold_80 = terms_80["demands"][0]["value"]
-        assert gold_50 == max(200, int(50 * 5))  # 250
-        assert gold_80 == max(200, int(80 * 5))  # 400
+        assert gold_50 == 320   # the purse (0.40 x 800) beats the ladder's 250
+        assert gold_80 == max(200, int(80 * 5))  # 400 — the ladder still wins
         assert gold_80 > gold_50
 
     def test_ap_reduction_removed_dead_code(self):

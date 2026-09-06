@@ -4,6 +4,53 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ FA SLICE 14 (part 2b) — "THE PURSE AND THE WINDOW" — LANDED September 6, 2026
+>
+> **Landing record = the boxed SLICE 14 (part 2b) block in `docs/BUG_FIXES.md`
+> §Final Whole-Game Audit (authoritative); the rules are
+> `SYSTEMS_REFERENCE.md` §37.** Rows closed: **FA-21**, **FA-31**, and the two
+> siblings the FA-31 sweep filed in the same machinery, **FA-N82** and
+> **FA-N83**. Suite **20,689 / 4**; sweep **32/32 killed, 0 INERT, 0 BROKEN**;
+> parser eval 681/681; ruff clean; zero `.gd`; zero new serialized fields.
+>
+> **Part 2b is the two BACKEND rows.** The tutorial pair (FA-42, FA-N78) and
+> the two FA-S12 rulings — which own the `.gd` work and both series movers —
+> are **part 2c, next**.
+>
+> A twelve-agent fleet (six measurements, one adversarial refuter each) ran
+> BEFORE a line was written and **corrected my plan twice in ways that changed
+> what shipped** — both times because the fix I intended was itself a
+> regression.
+>
+> * **FA-21**: 405 gold demanded of a 17,487-gold France becomes **2,623 =
+>   exactly 15% of the purse**. ⛔ The row's `fix_shape` AND my improvement on
+>   it are both regressions — the reducer halves once then falls to a token,
+>   so pricing the builder alone delivers **200 on 5 of 5** ambient firings,
+>   worse than the defect. Both levers or neither, with a pin that says so.
+>   Six pins re-blessed. Seam 3 (the acceptance formula's uncapped gold term,
+>   pinned by nothing — a 5× softening leaves 2,032/2,032 green) is **DECIDED,
+>   not touched**, with its cost named.
+> * **FA-31**: the Grand Diversion says what a won roll buys. A **fourth
+>   surface nobody filed** was the worst — `resolve_diversion` reported an open
+>   strait on the turn it was measurably shut. The filed `fix_shape` ships a
+>   NEW lie (one call is neither window turn; wrong in 8 of 24 states), so the
+>   forecast is **two calls and four arms**. Three more defects were found
+>   inside my own fix by driving it.
+> * **FA-N82 / FA-N83** folded: the camp is an army fact (at 0 sail it stopped
+>   ticking, so a power that lost its navy could never pull the RN home), and
+>   "once per war" means the NAVAL war.
+>
+> **`BASELINE_SERIES` + M1–M7 byte-identical WITHOUT a re-record — and here
+> that is evidence**: an instrumented replica reproduces the recorded series
+> exactly *and* counts FA-21's path firing five times with amounts moving up
+> to 23.6×, while FA-31's is dead by construction (446 evaluations, 0 hits;
+> `camp_provinces` is France-only and France is the player).
+>
+> ⛔ **A sweep crashed mid-run** (transient Windows write failure on
+> `naval.py`). Every anchor was re-verified present exactly once before
+> continuing — the standing rule earned its keep again.
+
+
 > ## 📏 HOW MUCH OF THE AUDIT IS LEFT — measured September 5, 2026
 >
 > **Run `.venv/Scripts/python.exe tools/fa_row_tally.py` for the live number**

@@ -95,55 +95,88 @@ def set_relation(world, nation_a, nation_b, value):
 # ═══════════════════════════════════════════════════════
 
 class TestA4GoldFormula:
+    """⚠ RE-BLESSED by FA-21 (FA slice 14 part 2b, September 6, 2026).
+
+    `make_world()` gives France a treasury of **800**, so the EC-W4 purse
+    term contributes `min(500 + ws×40 + 120, 0.40×800) = 320` — the cap
+    binds at every war score on this fixture. The demand is now
+    `max(legacy, purse)`, so the four values below that used to sit UNDER
+    320 are now 320, and the four that sat above it are byte-unchanged.
+
+    Six of this file's pins were re-blessed; three (`scaling_at_80`,
+    `scaling_at_100`, `dove_multiplier`) SURVIVE, and that is the point of
+    the `max()` shape rather than a replacement: a replacement flattens the
+    war-score ladder on a poor payer (80 and 50 both give 320) and reds
+    those three as well. The landing record measures both arms.
+    """
+
     def test_floor_200(self):
-        """Gold demand floor is 200, not 500."""
+        """The floor is the purse where the purse is bigger than the ladder.
+
+        Was 200 (`30 × 5 = 150`, floored). The payer holds 800 and EC-W4
+        will take 40% of it, so 320 is the honest number and the legacy
+        floor is the thing that stopped being read.
+        """
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 30, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        # 30 * 5 = 150 < 200, so floor applies
-        assert gold == 200
+        assert gold == 320
 
     def test_scaling_at_50(self):
-        """war_score=50 → 50*5=250 > 200 floor."""
+        """war_score=50 → the ladder says 250, the purse says 320."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 250
+        assert gold == 320
 
     def test_scaling_at_80(self):
-        """war_score=80 → 80*5=400."""
+        """war_score=80 → 80*5=400. UNCHANGED: the ladder beats the purse."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
         assert gold == 400
 
     def test_scaling_at_100(self):
-        """war_score=100 → 100*5=500."""
+        """war_score=100 → 100*5=500. UNCHANGED: the ladder beats the purse."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 100, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
         assert gold == 500
 
     def test_hawk_multiplier(self):
-        """Hawk gold_mult=1.5: 50*5*1.5=375."""
+        """Hawk gold_mult=1.5. Was 375 (`50 × 5 × 1.5`).
+
+        FA-21: the purse term carries the multiplier too — `0.40 × 800 ×
+        1.5 = 480` — which is what keeps hawk > neutral > dove alive on a
+        payer poor enough for the cap to bind. Multiplying only the scaled
+        term (and leaving the cap raw) collapses hawk onto neutral at 320
+        here and at every rich purse above war score ~60; that arm was
+        measured and rejected.
+        """
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.5)
         gold = terms["demands"][0]["value"]
-        assert gold == 375
+        assert gold == 480
 
     def test_dove_multiplier(self):
-        """Dove gold_mult=0.75: 80*5*0.75=300."""
+        """Dove gold_mult=0.75: 80*5*0.75=300. UNCHANGED — the dove's purse
+        term is `0.40 × 800 × 0.75 = 240`, under the ladder's 300."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=0.75)
         gold = terms["demands"][0]["value"]
         assert gold == 300
 
     def test_floor_with_low_war_score(self):
-        """war_score=10 → 10*5=50 < 200, floor applies."""
+        """war_score=10. Was 200 (`10 × 5 = 50`, floored); now the purse's 320.
+
+        A court barely winning still asks for what the loser can pay. P8
+        only fires above war score 40, so this state is reachable by a
+        direct call and not in play — it pins the FORMULA, not a moment.
+        """
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 10, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 200
+        assert gold == 320
 
     def test_old_formula_would_give_different_values(self):
         """Verify the new formula gives different results than the old one."""
@@ -1022,12 +1055,17 @@ class TestIntegration:
         assert result is not None
 
     def test_a1_with_a4_gold(self):
-        """A1 reduction respects A4's new gold formula values."""
+        """A1 reduction respects A4's gold formula values.
+
+        ⚠ RE-BLESSED by FA-21 (250 → 320). This pin lives in a DIFFERENT
+        class from `TestA4GoldFormula`, which is why a class-scoped scan of
+        the flip set missed it; the whole-suite run is what found it.
+        """
         world = make_world()
         set_war(world, "France", "Prussia")
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.0)
-        # A4: gold = max(200, 50*5) = 250
-        assert terms["demands"][0]["value"] == 250
+        # FA-21: max(ladder 250, purse 0.40 x 800) = 320
+        assert terms["demands"][0]["value"] == 320
 
     def test_full_p8_flow(self):
         """Full P8 flow: build terms → reduce → filter."""

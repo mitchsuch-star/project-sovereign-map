@@ -4629,3 +4629,109 @@ the region a pin slices, one quoting the pin's own slice anchor verbatim and
 truncating the harvested body to nothing. `main.gd`'s function ORDER is
 load-bearing for six such pins — the end-turn gate and `_execute_end_turn`
 must stay adjacent, and helpers go below the pair.
+
+---
+
+## 37. The purse and the window (FA slice 14 part 2b, landed September 6, 2026)
+
+Four rules the FA build turned into code. Landing record in `BUG_FIXES.md`
+§Final Whole-Game Audit; pins in
+`tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py`.
+
+**1. An indemnity is priced to the payer's purse on BOTH channels, and it
+takes two levers to say so** (`PURSE_SCALED_BILATERAL_INDEMNITY` +
+`P8_REDUCER_READS_THE_PURSE`). EC-W4's formula is one source,
+`ai_diplomacy.purse_scaled_indemnity`, read by the multilateral settlement
+offer and the bilateral P8 arm alike.
+
+**⛔ Never ship the builder lever alone.** `_reduce_p8_demands` halves exactly
+once and then falls to a token, so any built figure above twice the largest
+acceptable lump collapses to that token — pricing the BUILDER alone delivers
+*less* than the unfixed defect (measured 200 on 5 of 5 ambient firings against
+220/352/266/277/243). `max(legacy, purse)` does not rescue it either: `max`
+protects the built figure, and the built figure is not what ships.
+
+**What the `max()` IS for** is the war-score ladder on a poor payer. A
+replacement returns the `0.40 × treasury` cap at every war score the cap binds
+on, so the demand stops reading the war entirely; the floor form keeps
+`demand(80) > demand(50)`.
+
+**`gold_mult` multiplies the final `min(scaled, cap)`.** Multiplying `scaled`
+alone and leaving the cap raw collapses hawk onto neutral wherever the cap
+binds — every poor payer, and every rich one above war score ~60 — so R115's
+personality signal disappears exactly where it is loudest. Multiplying both
+terms is the same function (`min(int(a·g), int(b·g)) == int(min(a,b)·g)` for
+`g > 0`), so there were only ever two candidates. The effective ceiling
+therefore widens to `treasury × 0.40 × gold_mult` on the bilateral channel;
+that is conscious, and it never reaches the player because the reducer
+re-floors at 15%.
+
+**A reduction never raises the demand, and BOTH arms need the clamp.** The
+fallback's is obvious. The halve step's looks dead — its output is normally
+rejected and the fallback decides — but retry 2 drops a non-gold demand and
+returns the halved dict directly, and there an unclamped floor turned a built
+300 into a delivered 450.
+
+**Anything measured on `make_world()` is vacuous for the reducer.** France
+holds 800 there and the purse floor exceeds the flat 200 only above a treasury
+of 1,333.
+
+**The war age comes from `pair_war_age`, never from a diplo key.**
+`world.war_instances` is keyed by war id; a `_make_diplo_key` lookup returns
+nothing and silently prices every peace at age 0. One coalition instance
+covers France against Austria *and* Britain, so every court in it prices the
+same age — and the term is inert wherever the cap binds.
+
+**2. Seam 3 is decided, not built.** `DEMAND_VALUES["gold_lump"]` is linear
+and uncapped while every other harsh term saturates, which caps a
+*deliverable* bilateral lump at ~491 gold however rich the payer. Re-pricing
+it is the correct model and **nothing in the suite pins it** — a 5× softening
+of that rate leaves 2,032 of 2,032 gold-touching tests green. So a real
+indemnity is a demand the player may REFUSE, carried by `_force_send`, and the
+refusal is not free: a schemer court's peace rejection plants +2 coalition
+threat per turn for five turns (roughly five turns of decay suspended, not a
+one-off +2), and the same rejection feeds `record_diplomatic_refusal`, which
+the AI-3 crisis ladder counts with **no type filter** at a threshold of two.
+Re-open at the acceptance formula if that proves wrong; do not tune it twice.
+
+**3. A window forecast is TWO calls, and therefore four arms**
+(`naval.window_forecast`). Turn T is the live board with `window_turns` set
+and nothing else changed. Turn T+1 is that, then `derive_ai_postures`, then
+`_readiness_tick` — **in that order**, because the tick reads
+`blockaded_nations` which reads postures. Those are literally steps 1 and 3 of
+`process_naval_turn`, so both are exact by construction.
+
+The single-call hybrid (window + derive, no tick) is neither turn and is wrong
+in 8 of 24 states. The fourth clause arm — shut on T, OPEN on T+1 — is
+reachable at turn 3 of the natural play, so a three-arm clause renders a lie
+through its fall-through.
+
+**A forecast is pure or it is a cheat.** It deep-copies `world.fleets` and
+restores it **in place, all the way down**, inside a `try/finally`. In place
+because `_meta` hands out `fleets.setdefault(META_KEY, {})` and a tick binds
+each `rec`; a rebind restores the values and breaks the identity. The
+`finally` because without it one exception grants a free two-turn window, a
+lifted blockade and +5 readiness to every navy in Europe — on a press of L.
+**A two-clean-calls purity pin passes either way; the exception arm is the one
+that binds.**
+
+**A ranking is a pipeline: `_rank_links` is the only one.** Camp province,
+then army mass, then the sorted key. Every reader shares it — the chip, the
+confirm and the outcome sentence — and the outcome sentence ranks over EVERY
+tracked link, not only the opened ones, or the report of an act names a
+different crossing from the forecast of it.
+
+**Quote the number that opens it, not the rounded ratio.** `crossing_check`
+allows on `mover / coverage >= floor`, so the least sufficient mover is
+`ceil(coverage × floor)`; `round` is off by one on exactly the states the
+clause exists for. The epsilon is float hygiene (`50.0 × 0.9` evaluates to
+45.000000000000007).
+
+**A remedy must be gated on the state it names**, or it becomes the defect it
+is fixing one layer down.
+
+**4. "Once per war" means the naval war** (`naval.has_naval_war`), read by the
+reset and by the gate term so the two cannot drift; and **the Boulogne camp is
+an ARMY fact**, walked with `iter_fleet_records` rather than the ships > 0
+iterator, so a nation that has lost its navy can still pull the Royal Navy
+home — the one move it has left.

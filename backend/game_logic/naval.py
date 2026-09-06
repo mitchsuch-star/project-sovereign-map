@@ -31,6 +31,8 @@ under `world.fleets[META_KEY]` — the jealousy `__levels__` idiom: one
 serialized field, dunder-keyed meta, skipped by every fleet iterator.
 """
 
+import copy
+import math
 import re
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -267,6 +269,24 @@ def iter_fleets(world):
             continue
         if int(rec.get("ships", 0) or 0) > 0:
             yield nation, rec
+
+
+def iter_fleet_records(world):
+    """Yield (nation, record) for EVERY authored naval row — ships or not.
+
+    FA-N82: `iter_fleets` is the ships > 0 iterator and its docstring says
+    so, but three sibling loops in `process_naval_turn` read one rule
+    through it and one of them is not about ships at all. The Boulogne camp
+    is an ARMY fact: at 0 sail the camp stopped ticking, so the fleet that
+    has just been annihilated could never pull the Royal Navy home — the one
+    move left to a power that has lost its navy. The housekeeping loop 200
+    lines below was moved off `iter_fleets` in August 2026 with a comment
+    naming this exact trap; `_camp_tick` was not.
+    """
+    for nation, rec in get_fleets(world).items():
+        if nation == META_KEY or not isinstance(rec, dict):
+            continue
+        yield nation, rec
 
 
 def get_fleet(world, nation: str) -> Optional[dict]:
@@ -1543,6 +1563,19 @@ def camp_staged(world, nation: str) -> bool:
     return bool(rec) and int(rec.get("camp_turns", 0) or 0) >= DESCENT_CAMP_STAGED_TURNS
 
 
+def has_naval_war(world, nation: str) -> bool:
+    """Is a court WITH A FLEET at war with this nation?
+
+    FA-N83: the ONE reading of "this war" that the Grand Diversion means.
+    Both the once-per-war reset in `process_naval_turn` and the gate term in
+    `build_admiralty_report` read it here, so they cannot drift apart again
+    — which is exactly how a card spent against Britain came to be withheld
+    through a peace with Britain because Austria was still in the field.
+    """
+    return any(n != nation and world.is_at_war(nation, n)
+               for n, _rec in iter_fleets(world))
+
+
 def _island_war_enemies(world, nation: str) -> List[str]:
     """At-war enemies with an island fleet (the descent's only object)."""
     out = []
@@ -1550,6 +1583,45 @@ def _island_war_enemies(world, nation: str) -> List[str]:
         if rec.get("island") and world.is_at_war(nation, enemy):
             out.append(enemy)
     return out
+
+
+def _diversion_outcome_sentence(world, nation: str) -> str:
+    """What the won window actually DID, read off the board after the fact.
+
+    FA-31's fourth surface, and the worst of the four because it is not a
+    forecast: `resolve_diversion` said *"The Strait lies open: 2 turns"*
+    unconditionally, so at readiness 50 the game reported an open strait on
+    the turn it was measurably shut. This reads `link_verdicts_for` with
+    `window_turns` already set on the live record — shown IS applied, at the
+    moment of the act. (It also fixes the sibling wart in the same sentence:
+    the old copy said "the Britain fleet" where `_fleet_label` gives "the
+    Royal Navy", which is the exact thing that function was written for.)
+    """
+    verdicts = link_verdicts_for(world, nation)
+    opened = [k for k, v in verdicts.items()
+              if v.get("verdict") in _OPEN_VERDICTS]
+    if not opened:
+        return ("But the squadrons are too worn to use it — every crossing "
+                "of ours is still barred. The water is halved and it is not "
+                "enough.")
+    # ⚠ Rank over EVERY tracked link, not only the opened ones, so this
+    # sentence and the forecast clause name the SAME crossing. Ranking the
+    # opened set alone reproduced the ranking defect one layer down in a
+    # new costume: with the Channel shut and a Mediterranean link open, the
+    # chip said "even a success leaves London-Normandy shut" and the report
+    # of the same event announced Cagliari-Corsica — two surfaces, two
+    # subjects, one act. Measured on the delayed-staging walk at turn 7.
+    subject = _rank_links(world, nation, set(verdicts))
+    others = [k for k in opened if k != subject]
+    tail = (f" ({len(others)} other crossing"
+            f"{'s' if len(others) != 1 else ''} with it)"
+            if others else "")
+    if subject in opened:
+        return (f"The {_render_pair(subject)} crossing lies open: "
+                f"{WINDOW_TURNS} turns{tail}.")
+    named = ", ".join(_render_pair(k) for k in sorted(others))
+    return (f"But {_render_pair(subject)} is still barred — the halved water "
+            f"opens only {named}, which our army cannot use.")
 
 
 def diversion_failure_readiness(rec: Optional[dict]) -> int:
@@ -1609,8 +1681,10 @@ def resolve_diversion(world, nation: str) -> Dict:
             "success": True, "window": True, "against": hostile,
             "window_turns": int(WINDOW_TURNS),
             "message": (
-                f"The diversion succeeds — the {hostile} fleet is drawn off "
-                f"station. The Strait lies open: {WINDOW_TURNS} turns."),
+                f"The diversion succeeds — "
+                f"{_fleet_label(hostile, get_fleet(world, hostile) or {})} "
+                f"is drawn off station. "
+                f"{_diversion_outcome_sentence(world, nation)}"),
         }
     # Intercepted returning, at bad readiness.
     rec["readiness"] = diversion_failure_readiness(rec)
@@ -1649,10 +1723,15 @@ def derive_ai_postures(world) -> None:
         posture = "guard"
         if rec.get("island") and world.get_nations_at_war_with(nation):
             posture = "blockade"
-            for enemy, enemy_rec in iter_fleets(world):
+            # FA-N82: read the DECLARED predicate over the ships-agnostic
+            # record set. This scan re-implemented `camp_staged` inline over
+            # `iter_fleets`, so even once the camp ticked at 0 sail the enemy
+            # scan still could not see it — two readings of one rule, and
+            # neither was the one with the name on it.
+            for enemy, enemy_rec in iter_fleet_records(world):
                 if enemy == nation or not world.is_at_war(nation, enemy):
                     continue
-                if (int(enemy_rec.get("camp_turns", 0) or 0) >= DESCENT_CAMP_STAGED_TURNS
+                if (camp_staged(world, enemy)
                         or int(enemy_rec.get("window_turns", 0) or 0) > 0):
                     posture = "guard"
                     break
@@ -1696,7 +1775,11 @@ def _camp_tick(world) -> List[Dict]:
     `camp_turns`; at 2 the descent is STAGED and the `boulogne_camp` beat
     fires once (Britain has seen it coming since turn one)."""
     events: List[Dict] = []
-    for nation, rec in iter_fleets(world):
+    # FA-N82: the ships-agnostic walk. `camp_provinces` is the real filter —
+    # only five ports-only rows exist on the shipped board and none of them
+    # authors a camp, so this widening reaches exactly one extra state: a
+    # camp-owning nation whose fleet has been sunk.
+    for nation, rec in iter_fleet_records(world):
         if not rec.get("camp_provinces"):
             continue
         enemies = _island_war_enemies(world, nation)
@@ -1723,18 +1806,33 @@ def _camp_tick(world) -> List[Dict]:
     return events
 
 
+def _actor_shore(world, actor: str) -> set:
+    """Every province the actor holds OR has a standing corps on.
+
+    Extracted from `_tracked_links` at FA-31 so the same rule can answer for
+    a nation that is not the player (the GR5 mirror). Two readers of one
+    definition; `_player_travel_direction` open-coded the identical body and
+    now shares it.
+    """
+    shore = set(world.get_nation_regions(actor))
+    for marshal in world.get_marshals_by_nation(actor):
+        if marshal.strength > 0 and marshal.location:
+            shore.add(marshal.location)
+    return shore
+
+
+def _tracked_links_for(world, actor: str) -> List[frozenset]:
+    """Every sea link touching the ACTOR's provinces or armies."""
+    if not actor:
+        return []
+    shore = _actor_shore(world, actor)
+    return [pair for pair in get_sea_link_pairs(world) if pair & shore]
+
+
 def _tracked_links(world) -> List[frozenset]:
     """The Crossings list (§9): every sea link touching the player's
     provinces or armies."""
-    player = getattr(world, "player_nation", None)
-    if not player:
-        return []
-    player_regions = set(world.get_nation_regions(player))
-    for marshal in world.get_marshals_by_nation(player):
-        if marshal.strength > 0 and marshal.location:
-            player_regions.add(marshal.location)
-    return [pair for pair in get_sea_link_pairs(world)
-            if pair & player_regions]
+    return _tracked_links_for(world, getattr(world, "player_nation", None))
 
 
 def _link_key(pair: frozenset) -> str:
@@ -1747,14 +1845,34 @@ def _player_travel_direction(world, player: str, a: str, b: str):
     player would actually travel — outward from the end we hold or stand
     on. With both ends ours (or neither) the sorted order is kept, which is
     the pre-NV-4 behaviour byte-for-byte."""
-    ours = set(world.get_nation_regions(player))
-    for marshal in world.get_marshals_by_nation(player):
-        if marshal.strength > 0 and marshal.location:
-            ours.add(marshal.location)
+    ours = _actor_shore(world, player)
     a_ours, b_ours = a in ours, b in ours
     if b_ours and not a_ours:
         return b, a
     return a, b
+
+
+def link_verdicts_for(world, actor: str) -> Dict[str, Dict]:
+    """`link_verdicts`, for any actor. See that function's docstring.
+
+    FA-31: the Crossings board and the map overlay stay PLAYER-scoped (all
+    three production call sites, including the serialized `meta["verdicts"]`
+    flip-beat store, pass the player and must keep doing so). This variant
+    exists for `window_forecast`, whose GR5 mirror has to answer for Britain
+    as readily as for France — with the player-keyed original, a Britain
+    forecast would have scanned FRANCE's shore.
+    """
+    out: Dict[str, Dict] = {}
+    if not actor or not has_naval_layer(world):
+        return out
+    for pair in _tracked_links_for(world, actor):
+        a, b = sorted(pair)
+        origin, dest = _player_travel_direction(world, actor, a, b)
+        verdict = crossing_check(world, actor, origin, dest)
+        verdict["from_region"] = origin
+        verdict["to_region"] = dest
+        out[_link_key(pair)] = verdict
+    return out
 
 
 def link_verdicts(world) -> Dict[str, Dict]:
@@ -1763,18 +1881,213 @@ def link_verdicts(world) -> Dict[str, Dict]:
     stays the sorted pair (stable for the flip-beat store and the map
     payload); the VERDICT is computed for the player's own direction of
     travel (`from_region`/`to_region` ride the dict)."""
-    player = getattr(world, "player_nation", None)
-    out: Dict[str, Dict] = {}
-    if not player or not has_naval_layer(world):
+    return link_verdicts_for(world, getattr(world, "player_nation", None))
+
+
+# ── FA-31 — what a won Grand Diversion actually buys ────────────────────────
+#
+# The card costs a once-per-war gamble and three surfaces quoted the 45%
+# roll while NONE of them quoted the thing being bought. Measured at boot
+# the window opens the Channel (0.975 against a 0.9 floor); measured four
+# turns later, after the blockade has rotted the Combined Fleet to readiness
+# 50, a WON roll leaves it shut at 0.79 — and the chip's only warning
+# ("no army is staged") had gone quiet by then, because it is keyed on the
+# CAMP and the truth is keyed on READINESS. The two are orthogonal: over a
+# fifteen-turn walk the warning and the reality disagreed on 5 turns in BOTH
+# directions.
+DIVERSION_WINDOW_FORECAST = True
+
+_OPEN_VERDICTS = frozenset({"open", "open_ratio", "window"})
+
+
+def _forecast_snapshot(world) -> Dict[str, dict]:
+    return copy.deepcopy(get_fleets(world))
+
+
+def _restore_fleets(world, snapshot: Dict[str, dict]) -> None:
+    """Put the store back IN PLACE, all the way down.
+
+    Rebinding `world.fleets` to the snapshot restores the VALUES and breaks
+    IDENTITY, and identity is held in two places: `_meta` hands out
+    `fleets.setdefault(META_KEY, {})`, and `process_naval_turn` binds each
+    nation's `rec` for the length of a tick. Restoring the outer dict alone
+    is not enough either — the sub-dicts would still be fresh copies. Each
+    surviving record is emptied and refilled so every reference anybody
+    already holds keeps pointing at the live row.
+    """
+    fleets = getattr(world, "fleets", None)
+    if fleets is None:
+        return
+    for key in [k for k in fleets if k not in snapshot]:
+        del fleets[key]
+    for key, value in snapshot.items():
+        current = fleets.get(key)
+        if isinstance(current, dict) and isinstance(value, dict):
+            current.clear()
+            current.update(value)
+        else:
+            fleets[key] = value
+
+
+def window_forecast(world, actor: str) -> Dict[str, Any]:
+    """What a WON diversion would buy the actor — measured, not modelled.
+
+    PURE. The whole `world.fleets` store is deep-copied, the forecast
+    mutates the copy, and a `try/finally` puts the original back. That
+    `finally` is load-bearing and its absence is not a theoretical risk: an
+    exception raised mid-forecast leaves the actor holding a free two-turn
+    window, the blockade lifted, and **+5 readiness on every navy in
+    Europe including the enemy's allies** — ten records — granted by
+    pressing L to open the ledger. The purity pin's exception arm is the
+    only one that catches it; a two-clean-calls arm passes either way.
+
+    TWO calls, because the window is two turns and they are not the same
+    turn. `process_naval_turn` runs `derive_ai_postures` at step 1 and
+    `_readiness_tick` at step 3, so:
+
+      * **turn T** is the live board with `window_turns` set and nothing
+        else changed — shape (i);
+      * **turn T+1** is that, then derive, then tick, IN THAT ORDER (the
+        tick reads `blockaded_nations`, which reads postures) — shape (ii).
+
+    Both are exact by construction. The single-call hybrid the row's own
+    `fix_shape` prescribes — force the window, derive postures, skip the
+    tick — is neither, and it is wrong in 8 of 24 measured states: it says
+    "shut 0.85" where the truth is "window 0.92". Shipping it would have
+    told the player the Channel stays shut on a turn it opens.
+
+    Returns `{"turn_1": {key: verdict}, "turn_2": {...}, "subject": key,
+              "opens_t1": bool, "opens_t2": bool, "now": {key: verdict}}`.
+    """
+    out: Dict[str, Any] = {
+        "now": {}, "turn_1": {}, "turn_2": {},
+        "subject": "", "opens_t1": False, "opens_t2": False,
+    }
+    if not actor or not has_naval_layer(world):
         return out
-    for pair in _tracked_links(world):
-        a, b = sorted(pair)
-        origin, dest = _player_travel_direction(world, player, a, b)
-        verdict = crossing_check(world, player, origin, dest)
-        verdict["from_region"] = origin
-        verdict["to_region"] = dest
-        out[_link_key(pair)] = verdict
+    rec = get_fleet(world, actor)
+    if not rec:
+        return out
+    out["now"] = link_verdicts_for(world, actor)
+    snapshot = _forecast_snapshot(world)
+    try:
+        live = get_fleet(world, actor)
+        live["window_turns"] = int(WINDOW_TURNS)
+        out["turn_1"] = link_verdicts_for(world, actor)
+        derive_ai_postures(world)
+        _readiness_tick(world)
+        out["turn_2"] = link_verdicts_for(world, actor)
+    finally:
+        _restore_fleets(world, snapshot)
+    subject = _rank_links(world, actor,
+                          set(out["turn_1"]) | set(out["turn_2"]))
+    out["subject"] = subject
+    if subject:
+        out["opens_t1"] = (out["turn_1"].get(subject, {}).get("verdict")
+                           in _OPEN_VERDICTS)
+        out["opens_t2"] = (out["turn_2"].get(subject, {}).get("verdict")
+                           in _OPEN_VERDICTS)
     return out
+
+
+def _rank_links(world, actor: str, keys) -> str:
+    """Which crossing the player MEANS when they spend the card.
+
+    A ranking is a pipeline and every reader must share it. The prototype
+    for this row picked the alphabetically-first opened link twice, one
+    layer apart, and told a player standing at Normandy with two corps that
+    a success would open **Cagliari–Corsica** — true, useless, and it drops
+    the Channel. Camp province first, then army mass on either shore, then
+    the sorted key so the answer is deterministic.
+    """
+    if not keys:
+        return ""
+    rec = get_fleet(world, actor) or {}
+    camp = set(rec.get("camp_provinces") or [])
+    mass: Dict[str, int] = {}
+    for marshal in world.get_marshals_by_nation(actor):
+        if marshal.strength > 0 and marshal.location:
+            mass[marshal.location] = (mass.get(marshal.location, 0)
+                                      + int(marshal.strength))
+
+    def score(key: str):
+        ends = key.split("|")
+        return (1 if camp.intersection(ends) else 0,
+                sum(mass.get(e, 0) for e in ends))
+
+    return sorted(keys, key=lambda k: (-score(k)[0], -score(k)[1], k))[0]
+
+
+def _render_pair(key: str) -> str:
+    a, b = key.split("|")
+    return f"{a}-{b}"
+
+
+def _window_remedy(world, actor: str) -> str:
+    """What to actually DO about a window that would open nothing.
+
+    ⚠ The remedy must be gated on the state it names or it becomes FA-31
+    again one layer down. A first cut told an already-staged player to stage
+    the camp, and told a player whose blockade had already lifted that
+    staging would lift it — measured on the real board at t5 and t6.
+    """
+    blockaded = actor in blockaded_nations(world)
+    staged = camp_staged(world, actor)
+    if blockaded and not staged:
+        return ("staging the camp lifts the blockade and readiness recovers "
+                f"+{READINESS_TICK}/turn to {NAVY_DRILL_CEILING}")
+    if blockaded and staged:
+        return ("the blockade lifts as the enemy squadrons come home to the "
+                f"camp; readiness then recovers +{READINESS_TICK}/turn to "
+                f"{NAVY_DRILL_CEILING}")
+    return (f"readiness recovers +{READINESS_TICK}/turn to "
+            f"{NAVY_DRILL_CEILING} — wait for the crews")
+
+
+def window_forecast_clause(world, actor: str) -> str:
+    """One sentence for the chip note, the confirm and nothing else.
+
+    FOUR arms, not three: the shut/open pair is not symmetric in time. A
+    window whose FIRST turn is shut and whose SECOND is open is reachable
+    organically on the shipped board (readiness 60, blockaded, the enemy
+    coming home behind the player's own success), and a three-arm clause
+    renders a lie there through its fall-through.
+    """
+    if not DIVERSION_WINDOW_FORECAST:
+        return ""
+    forecast = window_forecast(world, actor)
+    subject = forecast.get("subject")
+    if not subject:
+        return ""
+    pair = _render_pair(subject)
+    t1, t2 = bool(forecast["opens_t1"]), bool(forecast["opens_t2"])
+    if t1 and t2:
+        return f"a success opens {pair} for both turns of the window"
+    if t1 and not t2:
+        return (f"a success opens {pair} for the first turn only — the "
+                f"second closes as the enemy squadrons come home")
+    if t2 and not t1:
+        return (f"a success opens {pair} on the second turn only — the "
+                f"first is still barred")
+    verdict = forecast["turn_1"].get(subject) or {}
+    mover = verdict.get("mover_effective")
+    coverage = verdict.get("coverage")
+    floor = verdict.get("floor")
+    detail = ""
+    if mover is not None and coverage is not None and floor:
+        # Quote the number that ACTUALLY opens it, not the rounded ratio.
+        # `crossing_check` allows on `mover / coverage >= floor`, so the
+        # least sufficient mover is `ceil(coverage x floor)` — `round` is
+        # off by one on exactly the states this clause exists for (coverage
+        # 56.0 x 0.9 = 50.4 rounds DOWN to 50, and a mover of 50 is still
+        # refused). The epsilon is float hygiene: 50.0 x 0.9 evaluates to
+        # 45.000000000000007, and a bare `ceil` would demand 46 for a
+        # crossing that opens at 45.
+        needed = math.ceil(float(coverage) * float(floor) - 1e-9)
+        detail = (f" — {int(mover)} effective against {int(coverage)}, and "
+                  f"{needed} is the least that opens it")
+    return (f"even a success leaves {pair} shut{detail}; "
+            f"{_window_remedy(world, actor)}")
 
 
 def _emit_verdict_flips(world, before: Dict[str, str],
@@ -1914,7 +2227,15 @@ def process_naval_turn(world) -> List[Dict]:
         if window > 0:
             rec["window_turns"] = int(window - 1)
         rec["built_this_turn"] = 0
-        if rec.get("diversion_used") and not world.get_nations_at_war_with(nation):
+        # FA-N83: "once per war" now means the NAVAL war it was spent in.
+        # This read `get_nations_at_war_with` — ANY war — while the gate term
+        # 200 lines below asks whether a court WITH A FLEET is at war with us.
+        # Two readings of one phrase, and the stricter one owned the reset:
+        # measured, a peace with Britain never returned the card while an
+        # Austrian land war stood, and a BRAND-NEW war with Britain inherited
+        # the previous war's spent card with the chip reading "the diversion
+        # is already spent this war" about a war that started this turn.
+        if rec.get("diversion_used") and not has_naval_war(world, nation):
             rec["diversion_used"] = False
 
     # 5. war-weariness couplings.
@@ -2183,7 +2504,6 @@ def build_admiralty_report(world) -> Dict:
 
     # Honest gate terms IN ORDER (the §11.6 idiom) for the two gambles.
     own_ships = int((own or {}).get("ships", 0) or 0)
-    at_war_any = bool(world.get_nations_at_war_with(player))
     # NV-6: each term carries its own NEGATIVE phrasing. The gate-terms
     # rows read as conditions ("+ the diversion not yet spent this war"),
     # which is right beside a tick — but a disabled chip renders
@@ -2193,9 +2513,8 @@ def build_admiralty_report(world) -> Dict:
     diversion_terms = [
         {"text": "a fleet in commission", "met": own_ships > 0,
          "unmet": "we keep no fleet in commission"},
-        {"text": "at war with a naval power", "met": bool(
-            at_war_any and any(world.is_at_war(player, n)
-                               for n, _r in iter_fleets(world))),
+        {"text": "at war with a naval power",
+         "met": has_naval_war(world, player),
          "unmet": "no naval power is at war with us"},
         {"text": "the diversion not yet spent this war",
          "met": not bool((own or {}).get("diversion_used")),
@@ -2393,6 +2712,13 @@ def build_admiralty_report(world) -> Dict:
         note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
         if not camp_staged(world, player):
             note += "; no army is staged to use the open water"
+        # FA-31: and what the 45% actually BUYS. The staging warning above
+        # is keyed on the camp; whether the window opens anything is keyed
+        # on readiness, and the two are orthogonal — measured over fifteen
+        # turns they disagreed on five, in both directions.
+        clause = window_forecast_clause(world, player)
+        if clause:
+            note += f"; {clause}"
         chips.append({
             "command": "order the diversion",
             "label": "The Grand Diversion",
@@ -2778,6 +3104,20 @@ def find_ai_diversion(world, nation: str) -> Optional[Dict]:
         return None  # no army on the beach — a window would open onto nothing
     if not _island_war_enemies(world, nation):
         return None
+    # FA-31 / GR5: the rung used to REQUIRE the trap state — a staged camp
+    # under a blockade is exactly when the rot has made a won window worth
+    # nothing — so it steered the AI into spending its once-per-war card on
+    # water that stays shut. It now asks the same question the player's chip
+    # asks. Sited LAST, after `camp_staged`, because the forecast deep-copies
+    # the fleet store and this rung is evaluated 446 times over 40 turns.
+    #
+    # The gate keys on the RANKED SUBJECT, not on "any link opens". Measured
+    # with the naive any-link form: in the trap state the rung still returned
+    # a candidate, because a Mediterranean link the army cannot use opens.
+    if DIVERSION_WINDOW_FORECAST:
+        forecast = window_forecast(world, nation)
+        if not (forecast["opens_t1"] or forecast["opens_t2"]):
+            return None
     return {"marshal": None, "action": "naval_diversion", "target": None,
             "_acting_nation": nation}
 

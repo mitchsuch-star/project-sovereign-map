@@ -894,6 +894,24 @@ def _build_proposal_terms(
         # R116: AI is winning badly — demand harsh terms
         terms["type"] = "peace"  # Map to peace for acceptance formula
         gold_demand = max(200, int(war_score * 5 * gold_mult))
+        # FA-21: the purse term is a FLOOR under the legacy formula, never a
+        # replacement. Replacing it destroys monotonicity in war score on a
+        # poor payer (the 0.40 cap eats the whole signal: measured, a demand
+        # at war score 80 stops exceeding one at 50) and it is what the
+        # row's own `fix_shape` prescribes. `max()` keeps the war-score
+        # ladder wherever the payer is too poor for the purse term to bind.
+        #
+        # ⚠ The LOW end stays purse-blind and that is a stated limit, not an
+        # oversight: at treasury 0 the legacy 200-floor still demands 270
+        # (405 for a hawk), so the row's proposed negative control — "empty
+        # chest, therefore no lump" — is unsatisfiable under this shape.
+        # EC-W4's bankrupt-payer rule lives on the multilateral channel; the
+        # bilateral one has always had a floor, and `_apply_demands` clamps
+        # the transfer to what the payer actually holds.
+        if PURSE_SCALED_BILATERAL_INDEMNITY:
+            gold_demand = max(gold_demand, purse_scaled_indemnity(
+                world, recipient, war_score,
+                pair_war_age(world, nation, recipient), gold_mult))
         terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
         diplo_key = world._make_diplo_key(nation, recipient)
         obj = getattr(world, 'war_objectives', {}).get(diplo_key, {}).get(nation, {})
@@ -910,6 +928,24 @@ def _build_proposal_terms(
     return terms
 
 
+def _p8_purse_floor(proposal: Dict, world) -> int:
+    """The smallest indemnity a P8 peace will settle for, in the payer's coin.
+
+    Reads `terms["target_nation"]` rather than `world.player_nation`. They are
+    the same nation today by construction — an AST census finds exactly one
+    call site that can pass `"harsh_peace"` (`:1552`), and it passes no
+    `recipient`, which `_build_proposal_terms` normalises to the player — but
+    reading the term keeps the seam nation-pair-general for free, which is the
+    direction every other producer in this file has already moved.
+    """
+    if not P8_REDUCER_READS_THE_PURSE:
+        return 200
+    payer = ((proposal.get("terms") or {}).get("target_nation")
+             or getattr(world, "player_nation", "France"))
+    treasury = int(getattr(world, "nation_gold", {}).get(payer, 0) or 0)
+    return max(200, int(treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
+
+
 def _reduce_p8_demands(proposal: Dict, nation: str, war_score: int, world) -> Dict:
     """A1: Iteratively reduce P8 harsh peace demands until proposal is viable.
 
@@ -917,7 +953,25 @@ def _reduce_p8_demands(proposal: Dict, nation: str, war_score: int, world) -> Di
     1. If acceptance score >= 20, return unchanged.
     2. Retry 1: Halve gold_lump demand, re-check.
     3. Retry 2: Drop weakest non-gold demand, re-check.
-    4. Fallback: Replace all terms with minimal peace + 200g, set _force_send.
+    4. Fallback: Replace all terms with minimal peace + the purse token,
+       set _force_send.
+
+    FA-21: steps 2 and 4 used to collapse to a FLAT 200 whatever the payer
+    held — identically at a 200-gold chest and a 900,000-gold one — so the
+    builder-side purse pricing could never reach the player. Both floors now
+    read the payer's treasury.
+
+    Two properties this must keep, and both are enforced by an explicit
+    clamp rather than by the arithmetic happening to work out:
+
+    * **A reduction never raises the demand.** An unclamped purse floor
+      turned a built 532 into a delivered 997 — measured on the ambient
+      board — which is a reduction function that increases the ask.
+    * **A broke payer still sees the flat 200.** `max(200, …)` at the top
+      and `min(…, built)` at the bottom mean the floor exceeds 200 only
+      above a treasury of 1,333, so every legacy fixture (`make_world()`
+      gives France 800) is byte-identical. ⚠ That is also why any test of
+      this lever written on `make_world()` is VACUOUS — use a rich world.
     """
     import copy
 
@@ -926,11 +980,17 @@ def _reduce_p8_demands(proposal: Dict, nation: str, war_score: int, world) -> Di
     if acceptance["score"] >= 20:
         return proposal
 
+    purse_floor = _p8_purse_floor(proposal, world)
+    original_lump = max(
+        (int(d.get("value", 0)) for d in terms.get("demands", [])
+         if d.get("type") == "gold_lump"), default=0)
+
     # Retry 1: Halve gold_lump demands
     modified = copy.deepcopy(proposal)
     for d in modified["terms"].get("demands", []):
         if d.get("type") == "gold_lump":
-            d["value"] = max(200, int(d["value"] // 2))
+            halved = max(purse_floor, int(d["value"]) // 2)
+            d["value"] = max(200, min(int(d["value"]), halved))
     acceptance = calculate_acceptance(modified["terms"], world)
     if acceptance["score"] >= 20:
         return modified
@@ -944,14 +1004,24 @@ def _reduce_p8_demands(proposal: Dict, nation: str, war_score: int, world) -> Di
         if acceptance["score"] >= 20:
             return modified
 
-    # Fallback: Minimal peace + 200g
+    # Fallback: minimal peace + the purse token.
+    #
+    # FA-21: this is where the row's defect actually lands, and it is worth
+    # naming what the token IS. Once the acceptance model has refused every
+    # reduction the demand has stopped being a negotiation — it is a
+    # statement of terms the payer may refuse — so its size is the payer's
+    # purse and nothing else. War score, war age, the EC-W4 cap and the
+    # diplomat's hawk/dove multiplier are all ERASED from the delivered
+    # figure by construction; that flatness is the design, not a leak.
     player = getattr(world, 'player_nation', 'France')
     fallback_terms = {
         "type": "peace",
         "proposer_nation": nation,
         "target_nation": player,
         "sweeteners": [],
-        "demands": [{"type": "gold_lump", "value": 200}],
+        "demands": [{"type": "gold_lump",
+                     "value": max(200, min(purse_floor, original_lump)
+                                  if original_lump else 200)}],
         "clauses": [],
     }
     modified["terms"] = fallback_terms
@@ -3254,6 +3324,102 @@ SETTLEMENT_OFFER_PER_WAR_SCORE = 40
 # number (escalates to the gate).
 SETTLEMENT_OFFER_DECISIVE_WAR_SCORE = 20
 
+# ── FA-21 (FA slice 14 part 2b) — the bilateral channel reads the purse ──
+#
+# EC-W4 "Peace with Teeth" re-priced the MULTILATERAL settlement offer only.
+# The bilateral P8 "Aggressive Dominance" arm kept `max(200, war_score * 5)`,
+# which reads no treasury at all: measured on `fixture_t20_ambient.json`,
+# Britain at +54 war score demanded 405 gold of a 17,487-gold France — 2.3%
+# of the purse, against EC-W4's 6,233 on the identical state.
+#
+# TWO levers, and they MUST ship together. Lever 1 alone is a REGRESSION by
+# construction, not by luck: `_reduce_p8_demands` halves exactly once and
+# then falls to a flat token, so any built figure above twice the largest
+# acceptable lump collapses to that token. Measured over the 40-turn ambient
+# board (P8 fires 5 times, t15/17/24/31/38), lever 1 alone delivers 200 on
+# 5 of 5 where HEAD delivered 220/352/266/277/243 — strictly worse than the
+# defect. Both levers together deliver exactly 15% of the payer's purse.
+PURSE_SCALED_BILATERAL_INDEMNITY = True
+P8_REDUCER_READS_THE_PURSE = True
+
+
+def purse_scaled_indemnity(world, payer: str, war_score: int,
+                           war_age_turns: int, gold_mult: float = 1.0) -> int:
+    """The EC-W4 amount, as ONE source both channels read.
+
+    Extracted verbatim from `_settlement_offer_build_terms` so the bilateral
+    P8 arm and the multilateral settlement offer cannot price the same peace
+    two different ways.  At `gold_mult == 1.0` it is byte-identical to the
+    body it replaces (verified over a 1,305-cell sweep of treasury × war
+    score × age × payer direction, 0 mismatches).
+
+    `gold_mult` (R115 hawk/dove) multiplies the FINAL `min(scaled, cap)`, and
+    that placement is measured rather than chosen.  Multiplying `scaled`
+    alone leaves the cap unmultiplied, so hawk and neutral collapse onto the
+    same number wherever the cap binds — which is every poor payer and every
+    rich one above war score ~60 — and the personality signal disappears in
+    exactly the states this row is about.  Multiplying both terms is the
+    SAME function as multiplying the result (`min(int(a·g), int(b·g)) ==
+    int(min(a,b)·g)` for `g > 0`, `int` monotone), so there are only two
+    candidates and one of them is wrong.
+
+    ⚠ Recorded consequence: the effective ceiling becomes
+    `treasury × MAX_TREASURY_FRACTION × gold_mult`, so a hawk may BUILD a
+    demand of 60% of the purse, above EC-W4's own 0.40 cap.  It is a
+    conscious widening of that cap on the bilateral channel only, and it
+    never reaches the player — `_reduce_p8_demands` re-floors the delivered
+    figure at `treasury × TREASURY_FRACTION` (15%) before the proposal is
+    sent.  The widening is visible only to a direct unit call.
+    """
+    duration_bonus = max(0, int(war_age_turns)) * SETTLEMENT_OFFER_PER_DURATION_BONUS
+    base_amount = SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus
+    if world is None:
+        return int(min(SETTLEMENT_OFFER_MAX_GOLD_AMOUNT, base_amount) * gold_mult)
+    payer_treasury = int(getattr(world, "nation_gold", {}).get(payer, 0) or 0)
+    scaled = (base_amount
+              + abs(int(war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE
+              + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
+    cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
+    return max(0, int(min(scaled, cap) * gold_mult))
+
+
+def pair_war_age(world, nation_a: str, nation_b: str) -> int:
+    """How long THIS pair's war has run, in turns.
+
+    `world.war_instances` is keyed by `war_id`, never by a diplo key — a
+    lookup by `_make_diplo_key` returns nothing and silently prices every
+    peace at age 0.  Resolution follows `diplomacy.get_side_war_score_for`:
+    find the live instances both courts participate in on OPPOSITE sides,
+    and take the OLDEST (a court in two live wars with the same enemy is
+    priced on the older grievance — stated, because it is a choice).
+
+    One coalition instance covers France against Austria AND Britain, so on
+    the shipped board every court in `war_1` prices the same age.  Measured
+    on the ambient board: 14 / 16 / 23 / 30 / 37 at the five P8 firings.
+    """
+    instances = getattr(world, "war_instances", None) or {}
+    if not instances:
+        return 0
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    getter = getattr(world, "get_war_instances_by_participant", None)
+    if callable(getter):
+        b_ids = set(getter(nation_b) or [])
+        candidates = [w for w in (getter(nation_a) or []) if w in b_ids]
+    else:
+        candidates = list(instances.keys())
+    best = 0
+    for wid in candidates:
+        inst = instances.get(wid)
+        if not isinstance(inst, dict) or inst.get("ended_turn") is not None:
+            continue
+        sides = inst.get("side_by_nation") or {}
+        side_a, side_b = sides.get(nation_a), sides.get(nation_b)
+        if not side_a or not side_b or side_a == side_b:
+            continue
+        best = max(best, turn - int(inst.get("created_turn") or turn))
+    return max(0, best)
+
+
 # SC-30 / Slice G1 — the Request Terms lifecycle. A player request is
 # answered on the next AI diplomatic phase: GRANTED (the answering leader
 # authors a real incoming offer through the normal producer path) unless
@@ -3373,9 +3539,6 @@ def _settlement_offer_build_terms(
     payer's treasury through the same math. Without `world` (legacy direct
     calls) the pre-EC-W4 flat sizing is preserved.
     """
-    duration_bonus = max(0, war_age_turns) * SETTLEMENT_OFFER_PER_DURATION_BONUS
-    base_amount = SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus
-
     if accepter_war_score >= SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
         payer, payee = proposer_nation, accepter
     elif accepter_war_score <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
@@ -3384,15 +3547,14 @@ def _settlement_offer_build_terms(
         # An even war settles as a clean white peace (no indemnity clause).
         return [{"type": "peace"}]
 
-    if world is not None:
-        payer_treasury = int(getattr(world, "nation_gold", {}).get(payer, 0))
-        scaled = (base_amount
-                  + abs(int(accepter_war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE
-                  + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
-        cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
-        amount = max(0, min(scaled, cap))
-    else:
-        amount = min(SETTLEMENT_OFFER_MAX_GOLD_AMOUNT, base_amount)
+    # FA-21: the body that used to live here is now `purse_scaled_indemnity`,
+    # so the bilateral P8 arm reads the SAME formula and the two channels
+    # cannot price the same peace two different ways again. Byte-identical
+    # to the extracted body at `gold_mult == 1.0`, which is what this caller
+    # passes (and the only value it may pass — the multilateral offer has no
+    # diplomat personality term).
+    amount = purse_scaled_indemnity(
+        world, payer, accepter_war_score, war_age_turns)
 
     terms: List[Dict] = [{"type": "peace"}]
     # A payer with an empty (or negative) chest cannot be squeezed, so the

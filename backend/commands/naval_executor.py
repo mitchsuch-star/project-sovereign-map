@@ -581,6 +581,18 @@ class NavalExecutor:
                 # readiness" was never the readiness she fought at. One
                 # source, read here and by `resolve_diversion`.
                 readiness = naval.diversion_failure_readiness(rec)
+                # FA-31: state the thing being bought, not only the price.
+                # ⚠ This arm is `awaiting_clarification` / `free_action` —
+                # LOCAL_PLANNING, not a hard stop — so the player may end a
+                # turn between the quote and the answer and the number goes
+                # stale, exactly as the UX23-A reward price did (measured:
+                # a quote of "readiness 60" resolving two turns later at
+                # 50). The GUARANTEE is therefore the outcome sentence in
+                # `resolve_diversion`, which is derived live after the
+                # window is set; this clause is the advice.
+                forecast_clause = naval.window_forecast_clause(world, actor)
+                forecast_line = (f" And mark this, Sire: {forecast_clause}."
+                                 if forecast_clause else "")
                 return {
                     "success": True,
                     "free_action": True,
@@ -610,7 +622,8 @@ class NavalExecutor:
                         f"{naval.DIVERSION_SUCCESS_PCT} times in 100 the "
                         f"strait opens for {naval.WINDOW_TURNS} turns; "
                         f"otherwise she is caught coming home and fights "
-                        f"at readiness {readiness}. "
+                        f"at readiness {readiness}."
+                        f"{forecast_line} "
                         f"Sail? (yes / no)"),
                     "options": [
                         {"label": "Order the diversion",
