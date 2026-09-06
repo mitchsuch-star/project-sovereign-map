@@ -365,12 +365,40 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 16 part c: **41 defect rows
-> and 28 design rows / gates still open**, of 238 filed; 151 closed, 18
+> number in a heading. After the six open items closed: **38 defect rows
+> and 25 design rows / gates still open**, of 239 filed; 159 closed, 17
 > disposed (duplicate, refuted, or re-homed). The FA-R family is empty.
-> The 41 are spoken for by slice 16 parts d–h, whose reproduction is
+> The 38 are spoken for by slice 16 parts d–h, whose reproduction is
 > already committed as `REPRO_L_slice16_at_head.md`;
-> the 28 need rulings, not builds.
+> the 25 need rulings, not builds.
+
+> **▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026** (four commits;
+> landing records = the boxed **FA-S16-D1 + FA-S16-D2**, **FA-S16-D3 +
+> FA-S16-D4**, **FA-91** and **FA-S15-2** blocks in `BUG_FIXES.md`). All four
+> rulings slice 16 filed rather than took are taken, and both re-opened rows
+> are closed. Suite **21,085 / 4**; sweeps 23/23, 30/30, 16/16, 19/19, **0
+> INERT at close**; parse harness EXIT=0; series + M1–M7 byte-identical.
+> **⛔ Not one shipped as filed.** D1's real indictment is RECURRENCE, not
+> inversion — it was the only recurring trust charge in the game, and
+> Bernadotte hits the redemption gate on his tenth act of obedience (and the
+> gate's rider was false: Napoleon was never charged, he was TOLD he had
+> paid). D2's own reproduction is not one of its cases. **D3 is none of its
+> three options**: there were never two casualty floors but FOUR answers, so
+> the war score's own bare `1000` moved to `battle_scale` and the count went
+> **3 → 2, not 3 → 4** — and the natural positional SHAPE reds a standing
+> cavalry pin and re-buries PT-D4's rout arm. D4 overrules PC15-D3's written
+> carve-out with the defence measured, and its leak was FIVE wide, with
+> accrual-gating alone SWAPPING a leak rather than closing it. **FA-91's own
+> `fix_shape` does not close its own title** (a round trip is structurally
+> blind to a `to_dict` omission; 3 turns is inert, 12 is the window) — and
+> its new census found `ai_square_cooldown`, the anti-oscillation guard,
+> serialized nowhere, so the guard could be walked through **by saving**.
+> FA-S15-2's harm is not a missing save but a **stale** one that Continue
+> reads, with a larger defect underneath it. Filed not absorbed: **FA-S16-D5**.
+> ⛔ **The lesson: a sweep proves a pin binds, not that it is about the right
+> thing** — 14 INERT mutations, 11 real weaknesses in my own pins, plus a
+> standing ordering pin that had been reading its own DOCSTRING since it was
+> written.
 >
 > **⛔ SLICE 15 (PART a) "THE SAVE THAT COULD NOT BE WRITTEN" IS LANDED —
 > September 6, 2026.** Landing record = the boxed SLICE 15 (part a) block in

@@ -4,6 +4,86 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
+>
+> **Landing records = four boxed blocks in `docs/BUG_FIXES.md`** —
+> **FA-S16-D1 + FA-S16-D2**, **FA-S16-D3 + FA-S16-D4**, **FA-91**, and
+> **FA-S15-2**. All four rulings slice 16 filed rather than took are taken;
+> both re-opened rows are closed. Suite **21,085 / 4**; sweeps **23/23,
+> 30/30, 16/16, 19/19 — 0 INERT, 0 BROKEN at close**; ruff clean; Godot parse
+> harness EXIT=0; series and M1–M7 byte-identical throughout, each time with
+> the reason stated rather than the green treated as evidence.
+>
+> **Row tally: 38 defect rows and 25 design rows / gates still open**, of 239
+> filed (159 closed, 17 disposed).
+>
+> **⛔ Not one of the six shipped as filed.** Every ruling's own recommended
+> option, and in three cases my own first instinct, was corrected by
+> measurement before a line of it survived:
+>
+> * **FA-S16-D1** — `continue_order` → 0. ⚠ The argument is **recurrence, not
+>   inversion**: the objection channel already charges −10 to insist, so a
+>   price for having your way is house idiom. What indicts *this* number is
+>   that it was **the only recurring trust charge in the game** — re-asked
+>   every second turn, and continuing is the only answer that keeps the order
+>   alive to be asked again. Bernadotte boots at 40 and hits the redemption
+>   gate on his **tenth act of obedience**. ⚠ The gate's rider was false in
+>   the useful direction: Napoleon was never *charged*, he was *told* he had
+>   paid — a shown-vs-applied inside the ruling's own rider.
+> * **FA-S16-D2** — the cannon-fire trigger reads the flags. ⚠ Its own
+>   reproduction is not fixed by its own fix (France boots at war with
+>   Russia); the third-party case on this board is Prussia vs Sweden.
+> * **FA-S16-D3** — **none of the three filed options.** There were never two
+>   casualty floors; there are **four answers** and a `MIN_CASUALTIES` grep
+>   finds one. The war score's own bare `1000` was extracted into
+>   `battle_scale` and the narrator reads it: floor count **3 → 2, not 3 → 4**.
+>   ⚠ The natural SHAPE was rejected on measurement too — a positional return
+>   reds a standing cavalry pin and re-buries PT-D4's rout arm.
+> * **FA-S16-D4** — glory sleeps in the School, and **PC15-D3's written
+>   carve-out is consciously overruled** with its defence measured (the crown
+>   is +1 shock/defense/administration and crowns an AUSTRIAN too; what the
+>   clause protected, `battles_won`, is byte-identical either way). ⚠ The leak
+>   was **five** wide, not four, and gating accrual alone **swaps** a leak
+>   rather than closing it.
+> * **FA-91** — ⚠ **the row's own `fix_shape` does not close its own title**:
+>   mutation-swept, the prescribed round trip survives the two mutations that
+>   matter, because a `to_dict` omission leaves both sides lacking the key.
+>   Its prescribed 3-turn depth is inert in both clauses; 12 is the measured
+>   window. Found by the new census on the shipped board: **`ai_square_cooldown`**,
+>   the anti-oscillation guard, was serialized nowhere — a save/load cleared
+>   it and the guard could be walked through **by saving**.
+> * **FA-S15-2** — ⚠ the harm is not "there is no save": the file **exists and
+>   goes stale** (world 4, slot 2) while Continue reads it. ⚠ A **larger**
+>   defect sat underneath (`ensure_save_dir` outside the try, destroying four
+>   keys of the end-turn response on both roads), so **two** levers. ⚠ And the
+>   announcement is sited in `autosave()`, the door that already exists — not
+>   the filed helper three callers must remember.
+>
+> **Filed, not absorbed: FA-S16-D5** — the stalemate popup charges −3 on hold
+> AND cancel and quotes neither, one function over from D1's own seam.
+>
+> ### ⛔ The method lesson, sharper than usual
+>
+> **A sweep proves a pin binds to production; it cannot prove the pin is about
+> the right thing.** Across the four commits, **fourteen** mutations came back
+> INERT and **eleven were real weaknesses in my own pins** — an enforcement
+> suite's own call sites never driven, a round trip that could not tell itself
+> from a no-op, a sensitivity arm that tested only the public case, a
+> turn-stamp comparison any constant offset satisfied, a tutorial pin that
+> asserted the skip and not the clear.
+>
+> **And a standing ordering pin was reading its own docstring.**
+> `test_record_battle_calls_settlement_accrual_before_1000_casualty_war_score_gate`
+> located the accrual with `src.find`, and `record_battle`'s docstring says
+> the arguments *"are forwarded into `accrue_battle_contribution()`"* at
+> character 1192 while the real call is at ~3,000 — so the guard would have
+> stayed green with the accrual moved anywhere below the gate.
+>
+> **Prose inside a file a pin reads is code**, and this session hit it four
+> more times: the world_state contract that could not quote the rule it was
+> retracting, and a census that went RED on its own comments and then on the
+> docstring explaining the fix — the same fault pointing the other way.
+
 > ## ▶ FA SLICE 16 "THE COPY SWEEP" — PARTS a, b, c LANDED September 6, 2026
 >
 > **Landing records = the three boxed SLICE 16 blocks in `docs/BUG_FIXES.md`
