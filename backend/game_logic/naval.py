@@ -1383,8 +1383,57 @@ def _log_fleet_action(world, result: Dict) -> None:
         "winner": result["winner"], "loser": result["loser"],
         "winner_admiral": winner_rec.get("admiral", "the flag officer"),
         "loser_admiral": loser_rec.get("admiral", "the flag officer"),
-        "loser_ships_lost": int(sum(result["losses"].get(result["loser"], {}).values())),
+        # FA-59: the LOSER's own sail, not the pooled side total.
+        "loser_ships_lost": own_ships_lost(result, result["loser"]),
+        "loser_losses_sentence": losses_sentence(result, result["loser"]),
     }, "always")
+
+
+def own_ships_lost(action: Dict, nation: str) -> int:
+    """How many sail THIS court lost in a fleet action.
+
+    FA-59: `_apply_side_losses` returns a per-MEMBER dict and
+    `resolve_fleet_action` files the whole dict under one SIDE key, so every
+    text site that did `sum(losses[side].values())` printed the pooled
+    allied total under one nation's name. Measured on the shipped boot: a
+    forced diversion produced `{'France': {'France': 25, 'Spain': 17,
+    'Holland': 7}}` and the player was told "loses 49 sail" — while France
+    held 45. Nation-parameterised, not loser-keyed, because two of the three
+    callers ask about the DIVERTING or the MARCHING court, which is not
+    necessarily the loser.
+    """
+    for side_losses in (action.get("losses") or {}).values():
+        if isinstance(side_losses, dict) and nation in side_losses:
+            return int(side_losses.get(nation, 0) or 0)
+    return 0
+
+
+def allied_ships_lost(action: Dict, nation: str) -> Dict[str, int]:
+    """The rest of `nation`'s own side, by court. The pooled figure is not
+    wrong — it is simply not `nation`'s, and a squadron that bled for us is
+    worth naming rather than absorbing."""
+    for side_losses in (action.get("losses") or {}).values():
+        if isinstance(side_losses, dict) and nation in side_losses:
+            return {n: int(v or 0) for n, v in side_losses.items()
+                    if n != nation and int(v or 0) > 0}
+    return {}
+
+
+def losses_sentence(action: Dict, nation: str) -> str:
+    """"France loses 25 sail; Spain 17 and Holland 7 beside her." ONE source
+    for every text site, so the pooled figure can never again be printed
+    under one court's name."""
+    from backend.display_names import display_nation
+    own = own_ships_lost(action, nation)
+    beside = allied_ships_lost(action, nation)
+    text = f"{display_nation(nation)} loses {own} sail"
+    if beside:
+        parts = [f"{display_nation(n)} {v}"
+                 for n, v in sorted(beside.items(), key=lambda kv: -kv[1])]
+        joined = (parts[0] if len(parts) == 1
+                  else ", ".join(parts[:-1]) + " and " + parts[-1])
+        text += f"; {joined} beside her"
+    return text
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1689,7 +1738,7 @@ def resolve_diversion(world, nation: str) -> Dict:
     # Intercepted returning, at bad readiness.
     rec["readiness"] = diversion_failure_readiness(rec)
     action = resolve_fleet_action(world, nation, hostile, context="diversion")
-    ships_lost = int(sum(action["losses"].get(nation, {}).values()))
+    ships_lost = own_ships_lost(action, nation)
     return {
         "success": True, "window": False, "against": hostile,
         "fleet_action": action,
@@ -1699,7 +1748,7 @@ def resolve_diversion(world, nation: str) -> Dict:
         "naval_diorama": action.get("naval_diorama"),
         "message": (
             f"The diversion is caught coming home — the fleet is brought to "
-            f"battle at bad readiness and loses {ships_lost} sail. "
+            f"battle at bad readiness. {losses_sentence(action, nation)}. "
             + ("A decisive defeat: the enemy's line held the weather gage."
                if action["loser"] == nation and action["decisive"] else
                "The squadrons limp back to port.")),
@@ -1751,9 +1800,18 @@ def _readiness_tick(world) -> None:
     for nation, rec in iter_fleets(world):
         readiness = int(rec.get("readiness", 0) or 0)
         if nation in blockaded:
-            readiness = max(READINESS_BLOCKADE_FLOOR,
-                            readiness - READINESS_TICK)
-            rec["readiness"] = int(min(readiness, READINESS_MAX))
+            # FA-58: the floor is a FLOOR ON THE ROT, not a floor on the
+            # fleet. `max(FLOOR, r - TICK)` LIFTED any blockaded fleet
+            # already below 50 — measured, France at readiness 40 became 50
+            # after one tick, so the enemy's blockade HEALED the fleet it had
+            # just beaten. Two ordinary roads reach it: a failed Grand
+            # Diversion (which sets readiness well below the floor), and a
+            # small blockaded navy laying one green keel (Holland at 12 sail
+            # folds 50 -> 49 and was lifted straight back).
+            rec["readiness"] = int(min(
+                readiness if readiness <= READINESS_BLOCKADE_FLOOR
+                else max(READINESS_BLOCKADE_FLOOR, readiness - READINESS_TICK),
+                READINESS_MAX))
             continue
         at_war = bool(world.get_nations_at_war_with(nation))
         if rec.get("posture") == "blockade" and at_war:
@@ -2359,13 +2417,19 @@ def lay_down_ship(world, nation: str) -> Dict:
         rec.setdefault("diversion_used", False)
         rec.setdefault("window_turns", 0)
         rec["built_this_turn"] = int(rec.get("built_this_turn", 0) or 0) + 1
-        return {"ships": 1, "readiness": int(rec["readiness"])}
+        # FA-45: BOTH arms carry `readiness_before`. This one is reachable —
+        # `check_build_fleet` returns None for a 0-ship nation, so a fleet
+        # annihilated at Trafalgar takes this path on its next keel, and a
+        # caller reading the key off the other arm alone would KeyError.
+        return {"ships": 1, "readiness": int(rec["readiness"]),
+                "readiness_before": int(ships and rec["readiness"])}
     readiness = int(rec.get("readiness", 0) or 0)
     folded = int(round((ships * readiness + NEW_SHIP_READINESS) / (ships + 1)))
     rec["ships"] = ships + 1
     rec["readiness"] = int(max(READINESS_MIN, min(READINESS_MAX, folded)))
     rec["built_this_turn"] = int(rec.get("built_this_turn", 0) or 0) + 1
-    return {"ships": int(rec["ships"]), "readiness": int(rec["readiness"])}
+    return {"ships": int(rec["ships"]), "readiness": int(rec["readiness"]),
+            "readiness_before": int(readiness)}
 
 
 def build_admiralty_report(world) -> Dict:

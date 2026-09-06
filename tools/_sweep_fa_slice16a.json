@@ -1,0 +1,149 @@
+[
+ {
+  "id": "FA-58/a the floor lifts a beaten fleet again",
+  "file": "backend/game_logic/naval.py",
+  "old": "            rec[\"readiness\"] = int(min(\n                readiness if readiness <= READINESS_BLOCKADE_FLOOR\n                else max(READINESS_BLOCKADE_FLOOR, readiness - READINESS_TICK),\n                READINESS_MAX))",
+  "new": "            rec[\"readiness\"] = int(min(\n                max(READINESS_BLOCKADE_FLOOR, readiness - READINESS_TICK),\n                READINESS_MAX))",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheBlockadeDoesNotHealTheFleetItBeat"
+ },
+ {
+  "id": "FA-58/b the rot stops biting above the floor",
+  "file": "backend/game_logic/naval.py",
+  "old": "                else max(READINESS_BLOCKADE_FLOOR, readiness - READINESS_TICK),",
+  "new": "                else readiness,",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheBlockadeDoesNotHealTheFleetItBeat::test_the_rot_still_bites_above_the_floor"
+ },
+ {
+  "id": "FA-59/a own_ships_lost sums the whole side again",
+  "file": "backend/game_logic/naval.py",
+  "old": "        if isinstance(side_losses, dict) and nation in side_losses:\n            return int(side_losses.get(nation, 0) or 0)",
+  "new": "        if isinstance(side_losses, dict) and nation in side_losses:\n            return int(sum(side_losses.values()))",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheLossFigureNamesWhoseItIs"
+ },
+ {
+  "id": "FA-59/b the allies are absorbed rather than named",
+  "file": "backend/game_logic/naval.py",
+  "old": "    if beside:\n        parts = [f\"{display_nation(n)} {v}\"",
+  "new": "    if False:\n        parts = [f\"{display_nation(n)} {v}\"",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheLossFigureNamesWhoseItIs::test_the_allies_are_named_not_absorbed"
+ },
+ {
+  "id": "FA-59/c the helper becomes loser-keyed",
+  "file": "backend/game_logic/naval.py",
+  "old": "    for side_losses in (action.get(\"losses\") or {}).values():\n        if isinstance(side_losses, dict) and nation in side_losses:\n            return int(side_losses.get(nation, 0) or 0)\n    return 0",
+  "new": "    loser = action.get(\"loser\")\n    return int(((action.get(\"losses\") or {}).get(loser) or {}).get(loser, 0) or 0)",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheLossFigureNamesWhoseItIs::test_the_helper_is_nation_parameterised_not_loser_keyed"
+ },
+ {
+  "id": "FA-59/d the dispatch beat goes back to the pooled figure",
+  "file": "backend/game_logic/naval.py",
+  "old": "        \"loser_ships_lost\": own_ships_lost(result, result[\"loser\"]),",
+  "new": "        \"loser_ships_lost\": int(sum(result[\"losses\"].get(result[\"loser\"], {}).values())),",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheLossFigureNamesWhoseItIs::test_the_dispatch_beat_carries_the_own_figure"
+ },
+ {
+  "id": "FA-59/e the diorama is dragged into the sweep",
+  "file": "backend/game_logic/naval_diorama.py",
+  "old": "def _side(",
+  "new": "def _side(  # own_ships_lost\n",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheLossFigureNamesWhoseItIs::test_the_diorama_is_deliberately_left_alone"
+ },
+ {
+  "id": "FA-45/a the 0-ship arm loses readiness_before",
+  "file": "backend/game_logic/naval.py",
+  "old": "        return {\"ships\": 1, \"readiness\": int(rec[\"readiness\"]),\n                \"readiness_before\": int(ships and rec[\"readiness\"])}",
+  "new": "        return {\"ships\": 1, \"readiness\": int(rec[\"readiness\"])}",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheKeelReceiptNamesTheRealCause::test_both_return_arms_carry_readiness_before"
+ },
+ {
+  "id": "FA-45/b the ordinary arm loses readiness_before",
+  "file": "backend/game_logic/naval.py",
+  "old": "    return {\"ships\": int(rec[\"ships\"]), \"readiness\": int(rec[\"readiness\"]),\n            \"readiness_before\": int(readiness)}",
+  "new": "    return {\"ships\": int(rec[\"ships\"]), \"readiness\": int(rec[\"readiness\"])}",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheKeelReceiptNamesTheRealCause"
+ },
+ {
+  "id": "FA-45/c a zero-cost keel still blames the crews",
+  "file": "backend/commands/naval_executor.py",
+  "old": "    if drop <= 0:\n        return (f\" (new crews come aboard green at \"",
+  "new": "    if False:\n        return (f\" (new crews come aboard green at \"",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheKeelReceiptNamesTheRealCause"
+ },
+ {
+  "id": "FA-45/d the blockade clause is dropped from the receipt",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                f\"{outcome['readiness']}{_green_crew_clause(outcome)}\"\n                f\"{_blockade_rot_clause(world, actor)}. \"",
+  "new": "                f\"{outcome['readiness']}{_green_crew_clause(outcome)}. \"",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheKeelReceiptNamesTheRealCause::test_the_receipt_itself_names_the_blockade"
+ },
+ {
+  "id": "FA-45/e the blockade clause fires for an unblockaded navy",
+  "file": "backend/commands/naval_executor.py",
+  "old": "    if not blockader:\n        return \"\"",
+  "new": "    if not blockader:\n        blockader = \"Britain\"",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheKeelReceiptNamesTheRealCause::test_an_unblockaded_navy_hears_nothing_about_a_blockade"
+ },
+ {
+  "id": "FA-45/f the receipt reuses the trade paragraph",
+  "file": "backend/commands/naval_executor.py",
+  "old": "    return (f\", and {display_nation(blockader)}'s blockade rots her \"\n            f\"{naval.READINESS_TICK} a turn at anchor — that is the number \"\n            f\"to fix\")",
+  "new": "    return \", and \" + naval.blockade_forecast_sentence(world, actor)",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheKeelReceiptNamesTheRealCause::test_the_receipt_does_not_dump_the_trade_paragraph"
+ },
+ {
+  "id": "FA-51/a the lift gate goes back below the yard gate",
+  "file": "backend/commands/naval_executor.py",
+  "old": "        _over_lift = int(marshal.strength) > naval.EXPEDITION_MAX_TROOPS\n        if _over_lift:",
+  "new": "        _over_lift = False\n        if _over_lift:",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheExpeditionStatesTheGateItWillHit::test_an_over_lift_corps_hears_about_the_lift_first"
+ },
+ {
+  "id": "FA-51/b the lift outranks the yard for everybody",
+  "file": "backend/commands/naval_executor.py",
+  "old": "        _over_lift = int(marshal.strength) > naval.EXPEDITION_MAX_TROOPS",
+  "new": "        _over_lift = int(marshal.strength) >= 0",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheExpeditionStatesTheGateItWillHit::test_a_corps_within_the_lift_still_hears_about_the_yard"
+ },
+ {
+  "id": "FA-51/c the typed figure is not echoed",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                    \"message\": naval.over_lift_refusal(world, marshal)\n                    + _detachment_echo(command)}",
+  "new": "                    \"message\": naval.over_lift_refusal(world, marshal)}",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheExpeditionStatesTheGateItWillHit::test_the_typed_figure_is_echoed"
+ },
+ {
+  "id": "FA-51/d the echo reads only one raw key",
+  "file": "backend/commands/naval_executor.py",
+  "old": "    raw = str((command or {}).get(\"raw_input\")\n              or (command or {}).get(\"original_command\") or \"\")",
+  "new": "    raw = str((command or {}).get(\"raw_input\") or \"\")",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheExpeditionStatesTheGateItWillHit::test_the_echo_reads_either_raw_key"
+ },
+ {
+  "id": "FA-51/e the echo moves into the shared refusal",
+  "file": "backend/game_logic/naval.py",
+  "old": "def over_lift_refusal(",
+  "new": "def over_lift_refusal(  # You asked for\n",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheExpeditionStatesTheGateItWillHit::test_the_echo_lives_in_the_executor_not_the_shared_refusal"
+ },
+ {
+  "id": "FA-64/a the confirm loses the camp clause",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                camp_line = (\"\" if naval.camp_staged(world, actor) else\n                             \" No army is staged to use the open water.\")",
+  "new": "                camp_line = \"\"",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheDiversionConfirmWarnsAboutTheEmptyCamp"
+ },
+ {
+  "id": "FA-64/b the camp clause fires when the camp IS staged",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                camp_line = (\"\" if naval.camp_staged(world, actor) else",
+  "new": "                camp_line = (\"\" if False else",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheDiversionConfirmWarnsAboutTheEmptyCamp::test_a_staged_camp_says_nothing"
+ },
+ {
+  "id": "FA-64/c the confirm appends the chip's whole note",
+  "file": "backend/commands/naval_executor.py",
+  "old": "                        f\"{camp_line}{forecast_line} \"",
+  "new": "                        f\"{camp_line}{forecast_line}{forecast_line} \"",
+  "tests": "tests/test_fa_slice16a_the_naval_figure_2026_09_06.py::TestTheDiversionConfirmWarnsAboutTheEmptyCamp::test_the_forecast_sentence_is_not_said_twice"
+ }
+]

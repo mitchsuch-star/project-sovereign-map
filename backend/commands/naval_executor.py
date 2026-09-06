@@ -38,6 +38,65 @@ def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
         f"Marshal {shown} in the field. Say '{example}'.")}
 
 
+def _green_crew_clause(outcome: Dict) -> str:
+    """FA-45: what the KEEL cost the crews, which is often nothing.
+
+    The receipt used to print the post-fold readiness under one fixed
+    causal clause — "new crews come aboard green at 40" — and measured on
+    four consecutive keels at the shipped boot the fold was −1, −1, **0**,
+    **0**. From the third keel on, the sentence was blaming green crews for
+    a number the keel had not moved at all.
+    """
+    before = outcome.get("readiness_before")
+    after = int(outcome.get("readiness", 0) or 0)
+    if not isinstance(before, int) or before <= 0:
+        return (f" — a fleet rebuilt from nothing comes aboard green at "
+                f"{naval.NEW_SHIP_READINESS}")
+    drop = before - after
+    if drop <= 0:
+        return (f" (new crews come aboard green at "
+                f"{naval.NEW_SHIP_READINESS}, but she is green enough "
+                f"already — this keel cost her nothing)")
+    return (f" (down {drop} — new crews come aboard green at "
+            f"{naval.NEW_SHIP_READINESS}; only sea-time makes a navy)")
+
+
+def _blockade_rot_clause(world, actor: str) -> str:
+    """FA-45: and the cause the receipt never named.
+
+    Deliberately NOT `naval.blockade_forecast_sentence` — that returns a
+    three-clause paragraph about Continental-System trade closure, and its
+    self-blockade clause never states the per-turn number. A shipbuilding
+    receipt needs one clause and the figure the player can act on.
+    """
+    blockader = (naval.blockade_forecast(world, actor) or {}).get(
+        "self_blockaded_by")
+    if not blockader:
+        return ""
+    from backend.display_names import display_nation
+    return (f", and {display_nation(blockader)}'s blockade rots her "
+            f"{naval.READINESS_TICK} a turn at anchor — that is the number "
+            f"to fix")
+
+
+def _detachment_echo(command: Dict) -> str:
+    """FA-51: the player typed a troop figure and nothing read it.
+
+    Sited in the EXECUTOR, not in `naval.over_lift_refusal`: that function
+    is pinned byte-for-byte by
+    `test_wo_slice6_the_admiralty_speaks_plainly.py` and has a second caller
+    (`naval.expedition_blocked_reasons`, the region panel) which has no raw
+    command text to read.
+    """
+    raw = str((command or {}).get("raw_input")
+              or (command or {}).get("original_command") or "")
+    match = re.search(r"with\s+([\d,]+)\s*(?:men|troops)", raw, re.I)
+    if not match:
+        return ""
+    return (f" You asked for {match.group(1)} — there is no verb to embark "
+            f"part of a corps; the transports take whole formations.")
+
+
 class NavalExecutor:
     """Handles the four naval commands."""
 
@@ -89,8 +148,8 @@ class NavalExecutor:
             "message": (
                 f"A keel is laid at {yards[0]} ({naval.SHIP_COST}g). The fleet "
                 f"stands at {outcome['ships']} sail — readiness "
-                f"{outcome['readiness']} (new crews come aboard green at "
-                f"{naval.NEW_SHIP_READINESS}; only sea-time makes a navy). "
+                f"{outcome['readiness']}{_green_crew_clause(outcome)}"
+                f"{_blockade_rot_clause(world, actor)}. "
                 f"{rate - laid} more keel{'s' if rate - laid != 1 else ''} "
                 f"possible this turn."),
             "ships": int(outcome["ships"]),
@@ -287,6 +346,20 @@ class NavalExecutor:
         loc_region = world.regions.get(location)
         loc_controller = getattr(loc_region, "controller", None)
         yards = naval.controlled_dockyards(world, marshal.nation)
+
+        # FA-51: the LIFT first. A 30,000-man corps was sent to a yard and
+        # then told at the yard that the transports carry 15,000 — the road
+        # offered led to a wall, and the "with 12,000 men" the player typed
+        # was read by nothing on either answer. The lift is a property of the
+        # CORPS and holds wherever he stands, so it is the honest first word.
+        # ⚠ It goes above the YARD arm only, NOT above the inland-abroad arm
+        # below: a corps standing inland on foreign soil must hear about the
+        # coast, or this becomes the same defect mirrored.
+        _over_lift = int(marshal.strength) > naval.EXPEDITION_MAX_TROOPS
+        if _over_lift:
+            return {"success": False,
+                    "message": naval.over_lift_refusal(world, marshal)
+                    + _detachment_echo(command)}
         if loc_controller == marshal.nation and location not in yards:
             if yards:
                 return {"success": False, "message": (
@@ -306,6 +379,11 @@ class NavalExecutor:
             return {"success": False,
                     "message": f"{marshal.name} commands no troops."}
         if troops > naval.EXPEDITION_MAX_TROOPS:
+            # FA-51 hoisted this predicate above the yard gate, so on the
+            # player's road it has already fired. Kept: `troops` is re-read
+            # from `marshal.strength` after the gates above, and a future
+            # caller that reaches this function another way must still be
+            # refused rather than embarking a corps the boats cannot hold.
             # WO slice 6: the refusal named a remedy the executor refuses
             # everywhere on the boot board. `naval.over_lift_refusal` owns
             # the honest sentence, and the region panel's sibling
@@ -450,7 +528,7 @@ class NavalExecutor:
                 sea_line = (
                     f" The escorting fleet is brought to action and "
                     f"{'beaten decisively' if action['loser'] == marshal.nation and action['decisive'] else 'engaged'}"
-                    f" — {int(sum(action['losses'].get(marshal.nation, {}).values()))} sail lost.")
+                    f" — {naval.losses_sentence(action, marshal.nation)}.")
             result = {
                 "success": True, "landed": False, "odds": int(outcome["odds"]),
                 "message": (
@@ -593,6 +671,16 @@ class NavalExecutor:
                 forecast_clause = naval.window_forecast_clause(world, actor)
                 forecast_line = (f" And mark this, Sire: {forecast_clause}."
                                  if forecast_clause else "")
+                # FA-64: the Admiralty chip warned "no army is staged to use
+                # the open water" and the TYPED confirm did not, so the
+                # player who typed the order was the one who never heard it
+                # — the once-per-war feint spent on a window nobody could
+                # march through. ⚠ NOT the chip's whole note builder: since
+                # FA-31 that note ENDS with the same forecast sentence
+                # `forecast_line` already carries, so appending it would say
+                # the 45% figure twice and the forecast twice. One clause.
+                camp_line = ("" if naval.camp_staged(world, actor) else
+                             " No army is staged to use the open water.")
                 return {
                     "success": True,
                     "free_action": True,
@@ -623,7 +711,7 @@ class NavalExecutor:
                         f"strait opens for {naval.WINDOW_TURNS} turns; "
                         f"otherwise she is caught coming home and fights "
                         f"at readiness {readiness}."
-                        f"{forecast_line} "
+                        f"{camp_line}{forecast_line} "
                         f"Sail? (yes / no)"),
                     "options": [
                         {"label": "Order the diversion",
