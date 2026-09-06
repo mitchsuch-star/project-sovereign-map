@@ -1,0 +1,177 @@
+[
+ {
+  "id": "FA-56/a the reader names the dead underscore field again",
+  "file": "backend/models/world_state.py",
+  "old": "            if getattr(marshal, \"literal_intel_paused_turn\", -1) == turn:",
+  "new": "            if getattr(marshal, \"_literal_intel_paused_turn\", None) == turn:",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheRebukePausesTheIntel"
+ },
+ {
+  "id": "FA-56/b the default goes back to None",
+  "file": "backend/models/world_state.py",
+  "old": "            if getattr(marshal, \"literal_intel_paused_turn\", -1) == turn:",
+  "new": "            if getattr(marshal, \"literal_intel_paused_turn\", None) == turn:",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheRebukePausesTheIntel::test_the_default_is_minus_one_not_none"
+ },
+ {
+  "id": "FA-67/a the advice deletes its dependency clause",
+  "file": "backend/models/world_state.py",
+  "old": "                        f\"objects, and then let him win the battle he asked \"\n                        f\"for — a vindicated objection is the only thing \"\n                        f\"that pays\"",
+  "new": "                        f\"objects\"",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheFalteringWarningTellsTheTruth::test_the_advice_states_the_dependency"
+ },
+ {
+  "id": "FA-67/b the at-20 clause is reworded away",
+  "file": "backend/models/world_state.py",
+  "old": "                        f\"{_faltering_trust_riders(self, marshal)} — at \"\n                        f\"20 he will ask to be released.\")",
+  "new": "                        f\"{_faltering_trust_riders(self, marshal)}.\")",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheFalteringWarningTellsTheTruth::test_the_at_20_clause_is_kept"
+ },
+ {
+  "id": "FA-67/c the riders are dropped from the message",
+  "file": "backend/models/world_state.py",
+  "old": "                        f\"{_faltering_trust_riders(self, marshal)} — at \"",
+  "new": "                        f\" — at \"",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheFalteringWarningTellsTheTruth"
+ },
+ {
+  "id": "FA-67/d the pushover rider stops firing",
+  "file": "backend/models/world_state.py",
+  "old": "    if modifier < 1.0:\n        riders.append(",
+  "new": "    if False:\n        riders.append(",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheFalteringWarningTellsTheTruth::test_a_pushover_is_told_his_record_blunts_the_advice"
+ },
+ {
+  "id": "FA-67/e a clean record earns a rider it should not",
+  "file": "backend/models/world_state.py",
+  "old": "    if modifier < 1.0:",
+  "new": "    if modifier <= 1.0:",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheFalteringWarningTellsTheTruth::test_a_clean_record_earns_no_rider"
+ },
+ {
+  "id": "FA-67/f a throwing tracker takes the warning with it",
+  "file": "backend/models/world_state.py",
+  "old": "        try:\n            modifier = float(tracker.get_trust_gain_modifier())\n        except Exception:\n            modifier = 1.0",
+  "new": "        modifier = float(tracker.get_trust_gain_modifier())",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheFalteringWarningTellsTheTruth::test_the_rider_never_raises"
+ },
+ {
+  "id": "FA-61/a the ceiling clause is dropped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if ceiling > committed:\n                attacker_display += f\", up to {ceiling:,} if every corps arrives\"",
+  "new": "            if False:\n                attacker_display += f\", up to {ceiling:,} if every corps arrives\"",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheMusterStatesItsCeiling::test_the_ceiling_is_appended_when_present"
+ },
+ {
+  "id": "FA-61/b the clause fires with no ceiling key, redding three standing pins",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            ceiling = int(preview['attacker'].get('ceiling_strength', 0))\n            if ceiling > committed:",
+  "new": "            ceiling = int(preview['attacker'].get('ceiling_strength', 0))\n            if ceiling >= 0:",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheMusterStatesItsCeiling::test_a_preview_without_the_key_is_byte_identical"
+ },
+ {
+  "id": "FA-61/c an equal ceiling is announced as if it were more",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if ceiling > committed:",
+  "new": "            if ceiling >= committed:",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheMusterStatesItsCeiling::test_a_ceiling_equal_to_the_expectation_says_nothing"
+ },
+ {
+  "id": "FA-61/d the ceiling is the arrival-weighted figure again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                ceiling_attacker = self._committed_reinforcement_strength(\n                    marshal, will_join_marshals, world)",
+  "new": "                ceiling_attacker = committed_attacker",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheMusterStatesItsCeiling"
+ },
+ {
+  "id": "FA-61/e the probe does not restore the aura it stamped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            finally:\n                for m in [marshal] + will_join_marshals:\n                    if m.name in _saved:\n                        m.sovereign_presence = _saved[m.name]",
+  "new": "            finally:\n                pass",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheMusterStatesItsCeiling::test_the_aura_is_restored_after_the_probe"
+ },
+ {
+  "id": "FA-61/f committed_strength is moved to the ceiling, taking the odds band with it",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                         \"committed_strength\": int(marshal.strength + committed_attacker),",
+  "new": "                         \"committed_strength\": int(marshal.strength + ceiling_attacker),",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheMusterStatesItsCeiling::test_the_committed_figure_is_not_moved"
+ },
+ {
+  "id": "FA-49/a the cannon-fire prices are dropped",
+  "file": "backend/commands/strategic.py",
+  "old": "        costs[\"continue_order\"] = CANNON_FIRE_CONTINUE_TRUST\n        costs[\"hold_position\"] = CANNON_FIRE_HOLD_TRUST",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice"
+ },
+ {
+  "id": "FA-49/b the quoted price stops matching the charge",
+  "file": "backend/commands/strategic.py",
+  "old": "CANNON_FIRE_CONTINUE_TRUST = -2   # non-literal acting literal",
+  "new": "CANNON_FIRE_CONTINUE_TRUST = -1   # non-literal acting literal",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_the_quoted_price_is_the_price_charged"
+ },
+ {
+  "id": "FA-49/c a first-step interrupt is priced as if it charged",
+  "file": "backend/commands/strategic.py",
+  "old": "        if not first_step:",
+  "new": "        if True:",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_a_first_step_interrupt_prices_nothing"
+ },
+ {
+  "id": "FA-49/d an option that is not offered is priced anyway",
+  "file": "backend/commands/strategic.py",
+  "old": "    return {k: v for k, v in costs.items() if k in options and v}",
+  "new": "    return {k: v for k, v in costs.items() if v}",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_an_option_not_offered_is_not_priced"
+ },
+ {
+  "id": "FA-49/e a free option is reported as zero",
+  "file": "backend/commands/strategic.py",
+  "old": "    return {k: v for k, v in costs.items() if k in options and v}",
+  "new": "    return {k: (costs.get(k) or 0) for k in options}",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_a_free_option_is_omitted_not_reported_as_zero"
+ },
+ {
+  "id": "FA-49/f garbage input throws instead of returning empty",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not isinstance(interrupt, dict):\n        return {}",
+  "new": "    if False:\n        return {}",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_garbage_in_is_an_empty_dict_not_a_throw"
+ },
+ {
+  "id": "FA-49/g the stamp mutates the stored, serialized dict",
+  "file": "backend/main.py",
+  "old": "            response[\"pending_interrupt\"] = dict(_interrupt,\n                                                 option_costs=_costs)",
+  "new": "            _interrupt[\"option_costs\"] = _costs",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_a_real_response_carries_the_costs"
+ },
+ {
+  "id": "FA-49/h the response stops carrying the costs",
+  "file": "backend/main.py",
+  "old": "        _costs = interrupt_option_costs(_interrupt)",
+  "new": "        _costs = {}",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_a_real_response_carries_the_costs"
+ },
+ {
+  "id": "FA-49/i the popup stops rendering the price",
+  "file": "godot-client/project-sovereign/scripts/interrupt_popup.gd",
+  "old": "\t\tvar _costs = interrupt_data.get(\"option_costs\", {})",
+  "new": "\t\tvar _costs = {}",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheInterruptStatesItsPrice::test_the_costs_ride_their_own_payload_key"
+ },
+ {
+  "id": "FA-52/a the continue arm hard-codes the march again",
+  "file": "backend/commands/strategic.py",
+  "old": "                \"message\": f\"{marshal.name} reluctantly \"\n                           f\"{_strategic_command_flavor(order.command_type)}, \"",
+  "new": "                \"message\": f\"{marshal.name} reluctantly continues the march, \"",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheContinuedOrderIsNamed"
+ },
+ {
+  "id": "GATE/a the FA-52 ruling loses its owner row",
+  "file": "docs/DESIGN_REFINEMENT.md",
+  "old": "### FA-S16-D1 — the cannon-fire tax: obedience costs 2, abandonment costs 0",
+  "new": "### FA-S16-Dx — struck",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged::test_the_ruling_is_filed_with_an_owner_and_a_done_when"
+ }
+]

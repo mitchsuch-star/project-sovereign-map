@@ -67,6 +67,19 @@ func show_interrupt(interrupt_data: Dictionary):
 		btn.custom_minimum_size = Vector2(0, 45)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.text = OPTION_LABELS.get(option_id, option_id.replace("_", " ").capitalize())
+		# FA-49: and what it costs. Two of the three cannon-fire buttons are
+		# charged in trust and the popup stated no price — measured, the ask
+		# fires every other turn per marshal and 19 times across the archived
+		# campaigns, so a player could pay 36 trust without ever seeing a
+		# figure. The costs ride their OWN payload key, not the label map:
+		# `OPTION_LABELS` is pinned as a flat dict of strings one file over,
+		# and `options` is a list of strings validated by the backend, so
+		# neither may become a dict. Plain text — the button has no BBCode.
+		var _costs = interrupt_data.get("option_costs", {})
+		if typeof(_costs) == TYPE_DICTIONARY and _costs.has(option_id):
+			var _cost = int(_costs[option_id])
+			if _cost != 0:
+				btn.text += "  (trust %d)" % _cost
 
 		# Style to match existing dialogs
 		btn.add_theme_color_override("font_color", Color(0.933, 0.933, 0.933, 1))

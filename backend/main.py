@@ -568,6 +568,19 @@ def build_base_response(world, success: bool = True, message: str = "",
         _PARSE_PROVENANCE.set(None)
         response.setdefault("parse_mode", _provenance[0])
         response.setdefault("parse_confidence", _provenance[1])
+    # FA-49: what each button on an interrupt popup COSTS. Stamped on a
+    # SHALLOW COPY, not on `marshal.pending_interrupt` itself — the stored
+    # dict is handed out by reference from a dozen sites and is serialized
+    # into the save, and a display figure has no business in either. This
+    # way there is no new save key, no migration, and a pre-fix save renders
+    # with the costs the moment it is loaded, because they are derived.
+    _interrupt = response.get("pending_interrupt")
+    if isinstance(_interrupt, dict):
+        from backend.commands.strategic import interrupt_option_costs
+        _costs = interrupt_option_costs(_interrupt)
+        if _costs:
+            response["pending_interrupt"] = dict(_interrupt,
+                                                 option_costs=_costs)
     # NA-6 §11.10-3: the identity override map rides EVERY response so the
     # Godot R7 chokepoints can resolve a formed nation's new name and flag
     # without N payload builders each adopting a helper. Set AFTER

@@ -1183,6 +1183,48 @@ class CombatExecutor:
         # make for him, not at certainty.
         committed_attacker = self._committed_reinforcement_strength(
             marshal, will_join_marshals, world, expected_at=battle_region)
+
+        # FA-61: the CEILING, on the resolver's own basis.
+        #
+        # `committed_attacker` is arrival-WEIGHTED — a probability-weighted
+        # mean, not a bound — and the label above it read "if all march".
+        # Measured on the shipped board: the panel printed "78,676 if all
+        # march" and the resolver reached 84,266 with one of the four
+        # candidates ABSENT.
+        #
+        # Two causes, and the row names only the first. The second is the
+        # sovereign aura: `sovereign_presence` is stamped on every
+        # participant at RESOLVE time only, so at preview time every joiner
+        # is under-priced by the Emperor's +10% — in the same panel that
+        # already prints "every corps on this field fights +10% harder, if
+        # he marches". The row's own prescribed fix (`expected_at=None`
+        # alone) prints 90,172 against a reachable 96,789, which is the same
+        # defect one layer up.
+        #
+        # ⚠ A NEW KEY. `committed_strength` is NOT display-only —
+        # `objection_v2.muster_gate_arms` reads the `odds_band` derived from
+        # it, which is the CA9-row-2 attack-confirm gate — so the figure
+        # must not move. The ceiling rides beside it.
+        ceiling_attacker = committed_attacker
+        if will_join_marshals:
+            _saved = {m.name: getattr(m, "sovereign_presence", 0.0)
+                      for m in [marshal] + will_join_marshals}
+            try:
+                _aura = 0.0
+                if SOVEREIGN_PRESENCE_ACTIVE:
+                    from backend.models.authority import sovereign_aura_strength
+                    for m in [marshal] + will_join_marshals:
+                        if getattr(m, "is_sovereign", False):
+                            _aura = sovereign_aura_strength(world, m.nation)
+                            break
+                for m in [marshal] + will_join_marshals:
+                    m.sovereign_presence = _aura
+                ceiling_attacker = self._committed_reinforcement_strength(
+                    marshal, will_join_marshals, world)
+            finally:
+                for m in [marshal] + will_join_marshals:
+                    if m.name in _saved:
+                        m.sovereign_presence = _saved[m.name]
         # CA9-F1: and the same term for the other side. The RATIO reads
         # ground truth, exactly as the fort/terrain terms already do and for
         # the reason given in `inferred_attack_favorable`'s docstring — this
@@ -1216,7 +1258,8 @@ class CombatExecutor:
         preview = {
             "attacker": {"name": marshal.name,
                          "strength": int(marshal.strength),
-                         "committed_strength": int(marshal.strength + committed_attacker)},
+                         "committed_strength": int(marshal.strength + committed_attacker),
+                         "ceiling_strength": int(marshal.strength + ceiling_attacker)},
             "target": {"name": enemy_marshal.name,
                        "location": battle_region,
                        "strength_display": target_strength_display,
@@ -1501,6 +1544,16 @@ class CombatExecutor:
             # fought Franconia at 18,101 under a preview of 54,408.
             attacker_display += (
                 f"; {committed:,} if all march")
+            # FA-61: and what it is NOT. The figure above is
+            # arrival-weighted and omits the sovereign aura, so the resolver
+            # can exceed it — measured, 84,266 resolved against 78,676
+            # printed, with a candidate absent. The ceiling is appended only
+            # when the key is present and higher: the three pins on this
+            # phrase hand-build a preview without it, and an additive clause
+            # is what keeps them green.
+            ceiling = int(preview['attacker'].get('ceiling_strength', 0))
+            if ceiling > committed:
+                attacker_display += f", up to {ceiling:,} if every corps arrives"
         lines = [
             f"MUSTER — {preview['attacker']['name']} "
             f"({attacker_display}) vs "

@@ -1472,6 +1472,87 @@ both live at the same acceptance seam (`strategic_executor.py:1400-1403`).
 
 ---
 
+## FA slice 16 — rulings the build could not take for itself
+
+| id | P | item | seam(s) | build shape | behaviour test |
+|---|---|---|---|---|---|
+| **FA-S16-D1** | P2 | **The cannon-fire tax: obeying a standing order costs 2 trust, abandoning it for the guns costs 0** — and slice 3 already priced the identical popup the other way. See the section below for the measured table, the reachability (19 organic asks in the archive, three French marshals, every other turn each) and the three options. | `strategic.StrategicOrderProcessor._respond_cannon_fire` · its sibling `_respond_combat_stalemate` | recommended default (a): `continue_order` → 0, matching the sibling; the resentment stays in the ASK | `test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged` records the state the ruling changes | **OPEN — needs a ruling.** Filed by FA slice 16 (part b), which built the copy half of FA-52 and could not choose this. |
+| **FA-S16-D2** | P3 | **The cannon-fire trigger is nation-blind** — measured, a French marshal was interrupted, and charged, over Blücher vs Hohenlohe, a Prussian pair neither of whose sides is France. | `strategic._check_interrupts` → `world.get_battles_within_range(marshal.location, 2)` | either a nation predicate, or a docstring saying why there is none | a marshal under orders is not charged for a battle his nation has no stake in | **OPEN — needs a ruling.** Filed with FA-S16-D1. |
+
+### FA-S16-D1 — the cannon-fire tax: obedience costs 2, abandonment costs 0
+
+**Filed September 6, 2026 by FA slice 16 (part b). The copy half of FA-52 is
+BUILT; this is its mechanical half, and it needs a ruling, not a patch.**
+
+A marshal under a standing order hears guns two provinces away and asks what
+to do. The three buttons are priced like this:
+
+| button | what happens to the order | trust |
+|---|---|---|
+| Investigate | the order is ABANDONED, he marches to the guns | **0** |
+| Continue as Ordered | the order STANDS, he obeys | **−2** |
+| Hold Position | the order is ABANDONED, he stands still | **−3** |
+
+**Obeying is the second-most expensive thing the player can do, and the only
+free option is the one that throws the order away.** The stated reason in the
+source is "Non-literal acting literal" — a cautious marshal resents being
+made to ignore a fight.
+
+**Why this is a ruling and not a bug.** Slice 3 already decided the identical
+question the other way, in the same file, for the same popup:
+`_respond_combat_stalemate` prices `continue_order` at **0** with
+`"order_cleared": False` and the same "Continue as Ordered" label. So the
+game currently charges 2 trust for pressing a button that costs nothing when
+a different interrupt raises it. One of the two is wrong and the build cannot
+choose which.
+
+**Measured reachability:** the ask fires for exactly three French marshals at
+boot (Davout and Bernadotte, cautious; Napoleon, sovereign), every other turn
+each, and the archived campaigns contain **19 organic asks** — so a player
+who obeys a dozen times pays up to 24 trust for obedience. ⚠ Every archived
+answer is `investigate`, because the playtest driver has no interrupt-policy
+flag; the corpus proves the ASK's frequency and has never recorded a payment.
+
+**Options.**
+
+**(a) Follow slice 3 — obedience is free.** `continue_order` → 0, matching
+its own sibling popup. The resentment then lives entirely in the ASK (he
+still interrupts you, every other turn), which is where the drama is. This is
+the recommended default: it makes the two popups agree, and it removes the
+only case in the game where doing what you said costs more than changing your
+mind.
+
+**(b) Keep the tax and make it legible.** The price is now ON the button
+(FA-49, landed in this slice), so a player who pays it has been told. Keep 2,
+and let the asymmetry stand as characterisation.
+
+**(c) Re-price the whole row.** Investigate is the one that abandons an order
+and it is free; charge it instead. ⚠ This is the largest change and would
+move a mechanic the AI never touches but the archived digests answer 19 times
+out of 19 — it would make every archived run's behaviour more expensive
+retroactively.
+
+**Whichever is chosen, one line rides with it and is not in scope until then:
+Napoleon is charged −2 trust, off 100, for continuing HIS OWN order.**
+
+**Owner:** the next FA design gate. **Done when** the price on the button and
+the price charged agree with the sibling popup, or the divergence is written
+down at both seams as deliberate.
+
+### FA-S16-D2 — the cannon-fire trigger is nation-blind
+
+**Filed with the above, same function, smaller.** `_check_interrupts` scans
+`world.get_battles_within_range(marshal.location, 2)` and skips only battles
+the marshal is himself IN — there is no nation filter anywhere. Measured: a
+French marshal was interrupted, and charged, over **Blucher vs Hohenlohe**, a
+Prussian pair neither of whose sides is France.
+
+It is arguably correct that a marshal reacts to guns he can hear regardless
+of whose they are. It is not arguably correct that he does so for a battle
+France has no stake in, at a price, while under orders. **Owner:** the same
+gate. **Done when** the trigger either states a nation predicate or the
+docstring says why it has none.
+
 ## Source Documents (Archived Reference)
 
 | Document | Items Moved Here |

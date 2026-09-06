@@ -315,6 +315,50 @@ MATERIEL_RATE = 0.05
 PLUNDER_INCOME_MULTIPLIER = 4.0
 
 
+def _faltering_trust_riders(world, marshal) -> str:
+    """FA-67: the two clauses the faltering-trust warning never said.
+
+    The advice names one lever — trust the objection, then let him win the
+    battle he asked for. Both riders are cases where following it, as
+    written, pays less than the player expects:
+
+    * **The player's own record blunts it.** `AuthorityTracker.
+      get_trust_gain_modifier` cuts every trust gain to x0.75 above a 60%
+      trust rate and x0.5 above 80%, so the advice's FIRST clause degrades
+      its own SECOND. A player who has taken this counsel four times running
+      is being paid half for taking it a fifth.
+    * **A victory can make things worse.** A won battle raises
+      `get_expectation`, measured 0 -> 40, so for an ES-7 eroding marshal
+      the same battle that pays +3 deepens the shortfall that is eating him.
+      `dotation.reward_remedy_phrase` already owns the honest advice for
+      that state, including the case where nothing is endowable.
+    """
+    riders = []
+    tracker = getattr(world, "authority_tracker", None)
+    modifier = 1.0
+    if tracker is not None and hasattr(tracker, "get_trust_gain_modifier"):
+        try:
+            modifier = float(tracker.get_trust_gain_modifier())
+        except Exception:
+            modifier = 1.0
+    if modifier < 1.0:
+        riders.append(
+            f"though your own record has taken his measure and pays "
+            f"x{modifier:g} on what he earns")
+    try:
+        from backend.game_logic import dotation
+        if dotation.is_eroding(marshal, world):
+            remedy = dotation.reward_remedy_phrase(
+                world, marshal.nation, marshal)
+            if remedy:
+                riders.append(remedy.rstrip(". "))
+    except Exception:
+        pass
+    if not riders:
+        return ""
+    return " (" + "; ".join(riders) + ")"
+
+
 def plunder_yield(region) -> int:
     """Gold a plundered province pays its captor — THE single source.
 
@@ -2956,7 +3000,18 @@ class WorldState:
                 or getattr(marshal, "jealousy_surge_turns", 0) > 0
             if not active:
                 continue
-            if getattr(marshal, "_literal_intel_paused_turn", None) == turn:
+            # FA-56: the reader named `_literal_intel_paused_turn` and the
+            # only writer in the repository (`jealousy.py`, the Rebuke) sets
+            # `literal_intel_paused_turn` — the PUBLIC, serialized field. So
+            # the Rebuke's promised one-turn intel pause has never fired
+            # once. Control-proven both ways: with the underscore name set
+            # the sector darkens, with the real one nothing happens.
+            # The default is -1, matching `Marshal.__init__`, so a fresh
+            # object cannot match by accident on turn 0. The writer's `+1`
+            # is CORRECT: `_advance_turn_internal` increments `current_turn`
+            # BEFORE calling `calculate_visibility`, so a stamp made on turn
+            # N is honoured inside the same advance.
+            if getattr(marshal, "literal_intel_paused_turn", -1) == turn:
                 continue
             home_region = self.regions.get(marshal.location)
             if home_region is None:
@@ -12314,14 +12369,32 @@ class WorldState:
                     # the player could not take.
                     #
                     # What DOES move a marshal's trust at this band: not
-                    # insisting past his objections, and letting him fight
-                    # (a won battle is the reliable earner). Both are
-                    # things the player does today.
+                    # insisting past his objections, and then letting him
+                    # WIN THE BATTLE HE ASKED FOR.
+                    #
+                    # ⚠ FA-67 filed this as "a won battle adds no trust" and
+                    # the headline is REFUTED — but the census that refuted
+                    # it looked in the combat files, and the write is one
+                    # call out, which is why the comment used to say
+                    # "reliable" and mean nothing by it. Naming the seam so
+                    # the next census does not repeat the mistake:
+                    # `combat_executor` step 11 calls
+                    # `VindicationTracker.resolve_battle`, whose
+                    # 'trust'/'victory' arm is +3 — and it fires ONLY when
+                    # `has_pending(name)` is true, i.e. the marshal objected
+                    # AND the player answered trust/compromise, ONLY for the
+                    # attacker, and NOT for a bombardment. The two clauses
+                    # of the advice are therefore not two levers; they are
+                    # the two STAGES of one, and deleting either leaves the
+                    # other naming something that by itself never pays.
                     # ══════════════════════════════════════════════════
                     "message": (
                         f"[!] {marshal.name}'s trust is faltering "
                         f"({int(trust_val)}). Trust his judgment when he "
-                        f"objects, and give him a battle he can win — at "
+                        f"objects, and then let him win the battle he asked "
+                        f"for — a vindicated objection is the only thing "
+                        f"that pays"
+                        f"{_faltering_trust_riders(self, marshal)} — at "
                         f"20 he will ask to be released.")
                 })
                 debug_print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")

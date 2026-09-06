@@ -68,6 +68,52 @@ STANDING_DECISION_EXEMPT_ACTIONS = frozenset(
 ATTACK_FUTILITY_LIMIT = 3
 
 
+# ── FA-49: what each button on an interrupt popup COSTS ────────────────────
+#
+# The cautious cannon-fire ask offers three buttons and states no price, and
+# two of them are charged: continuing the order costs 2 trust, abandoning it
+# to hold costs 3, and running for the guns is free. Measured over the
+# archived campaigns the ask fires 19 times, every other turn per marshal,
+# so a player who answers it a dozen times has paid up to 36 trust without a
+# figure ever appearing on screen.
+#
+# ⚠ DERIVED, never a static table. The blocked-path family charges
+# `0 if is_first_step else -3` (below), and the three builders that set
+# `is_first_step: True` live in `strategic_executor.py` — a hard-coded table
+# emitted from this file alone would have printed "−3" on an interrupt that
+# charges nothing, which is a NEW shown-vs-applied of exactly the class the
+# row exists to close.
+CANNON_FIRE_CONTINUE_TRUST = -2   # non-literal acting literal
+CANNON_FIRE_HOLD_TRUST = -3       # abandoning the order to stand still
+BLOCKED_PATH_ABANDON_TRUST = -3   # …and 0 when the order has not begun
+
+
+def interrupt_option_costs(interrupt: Optional[Dict]) -> Dict[str, int]:
+    """The trust price of each option on ONE interrupt, derived from the
+    interrupt's own fields.
+
+    Reads `interrupt_type` and `is_first_step` off the dict the builders
+    already produce, so it cannot drift from them the way a table beside
+    them would. Options that cost nothing are OMITTED rather than reported
+    as 0 — a free button should say nothing, not "(trust 0)".
+    """
+    if not isinstance(interrupt, dict):
+        return {}
+    kind = str(interrupt.get("interrupt_type") or "")
+    options = [str(o) for o in (interrupt.get("options") or [])
+               if isinstance(o, (str, bytes))]
+    first_step = bool(interrupt.get("is_first_step"))
+    costs: Dict[str, int] = {}
+    if kind == "cannon_fire":
+        costs["continue_order"] = CANNON_FIRE_CONTINUE_TRUST
+        costs["hold_position"] = CANNON_FIRE_HOLD_TRUST
+    elif kind in ("blocked_path", "enemy_contact", "attack_on_arrival"):
+        if not first_step:
+            for option in ("hold_position", "cancel_order"):
+                costs[option] = BLOCKED_PATH_ABANDON_TRUST
+    return {k: v for k, v in costs.items() if k in options and v}
+
+
 def last_stand_question_line(marshal) -> str:
     """The ONE sentence every surface uses to name the two answers."""
     return (f"{marshal.name} is cornered at {marshal.location} and awaits "
@@ -1366,8 +1412,16 @@ class StrategicOrderProcessor:
 
             return self._attach_redemption_if_needed({
                 "success": True,
-                "message": f"{marshal.name} reluctantly continues the march, "
-                           f"ignoring cannon fire at {battle_location}. {move_msg}".strip(),
+                # FA-52: "continues the march" regardless of the order.
+                # This was the ONLY arm in the function that did not call
+                # `_strategic_command_flavor` — measured, a marshal under a
+                # HOLD was told he "reluctantly continues the march" and
+                # then, in the same sentence, that he fortified where he
+                # stood.
+                "message": f"{marshal.name} reluctantly "
+                           f"{_strategic_command_flavor(order.command_type)}, "
+                           f"ignoring cannon fire at {battle_location}. "
+                           f"{move_msg}".strip(),
                 "order_cleared": False,
                 "trust_change": trust_change,
                 "action_taken": "continue_order",
