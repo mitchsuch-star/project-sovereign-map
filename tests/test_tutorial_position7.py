@@ -195,6 +195,10 @@ class TestClientStructuralPins:
         gd = _read("scripts/main.gd")
         assert 'tutorial_overlay = dialog_manager.register("tutorial_overlay", ' \
                '"res://scenes/tutorial_overlay.tscn", false)' in gd
+        # FA-N78: the raw count is kept only as a floor — it is satisfied by
+        # 2 and by 8 alike, and it was green for a month while two of the
+        # lesson's own beats were blind. The pin that BINDS is the call-only
+        # census in TestTheSchoolSeesEveryAnswer below.
         assert gd.count("tutorial_overlay.observe(") >= 2
         routes = _func_body(gd, "_configure_response_routes")
         assert "tutorial" not in routes

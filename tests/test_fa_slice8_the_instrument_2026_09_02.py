@@ -912,9 +912,25 @@ class TestTheTutorialScriptMirrorsTheShippedLesson:
                 f"step {ident} (gate {gate}) suggests {suggest!r}; the "
                 f"script issues {issued!r} on that loop")
 
+    # FA-N78 (slice 14 part 2c): the card used to counsel "I advise INSIST",
+    # naming the TYPED token — which the shipped client cannot accept at that
+    # beat, because the objection modal disables the command line. The card
+    # now names the BUTTON ("Proceed as Ordered"), while the headless driver
+    # still answers with the token. Both are correct and they must agree, so
+    # the pin binds the two through an explicit mapping rather than through a
+    # literal that only one surface uses.
+    OBJECTION_COUNSEL = {
+        "insist": "I advise PROCEED AS ORDERED",
+        "trust": "I advise TRUST",
+        "compromise": "I advise COMPROMISE",
+    }
+
     def test_the_policy_follows_the_cards_own_counsel(self):
-        assert "I advise INSIST" in OVERLAY.read_text(encoding="utf-8")
-        assert _script(TUTORIAL_SCRIPT)["policy"]["objection"] == "insist"
+        policy = _script(TUTORIAL_SCRIPT)["policy"]["objection"]
+        assert policy == "insist"
+        counsel = self.OBJECTION_COUNSEL[policy]
+        assert counsel in OVERLAY.read_text(encoding="utf-8"), (
+            f"the driver answers {policy!r} but the card does not counsel it")
 
     def test_the_trust_branch_has_its_own_script(self):
         trust = _script(TUTORIAL_TRUST)

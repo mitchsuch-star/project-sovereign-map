@@ -4,6 +4,41 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ FA SLICE 14 (part 2c) — "THE SCHOOL SEES THE ANSWER" — LANDED September 6, 2026
+>
+> **Landing record = the boxed SLICE 14 (part 2c) block in `docs/BUG_FIXES.md`
+> §Final Whole-Game Audit (authoritative).** Rows closed: **FA-N78** and
+> **FA-42**. Sweep **20/20 killed, 0 INERT**; suite **20,719 / 4**; parse
+> harness EXIT=0; boot smoke 0 SCRIPT ERROR. Client and docs only — no backend
+> module, so the series and M1–M7 cannot move and no green run of them is
+> reported as evidence.
+>
+> * **FA-N78**: six literal observe sites, not the row's helper — which reds
+>   two pins. The tutor was blind at the two beats the lesson answers with a
+>   MODAL, and **the typed route the card names is unreachable**, so the only
+>   road a player can take was the one road the School could not see. T-G2's
+>   raw count (green for a month, satisfied by 2 and 8 alike) is replaced by a
+>   call-only census with a sensitivity arm and a reasoned exemption list.
+>   Fixed in passing, already live on the typed route: the estate stage
+>   advanced the card while its own modal was still open.
+> * **FA-42**: four-valued honest availability. **Three prescribed shapes were
+>   measured and rejected**, including my own first instinct — an early
+>   release detonates the lesson, because `turn_gate` gates DISPLAY, not
+>   ADVANCE. ⛔ A `const` Dictionary is READ-ONLY at runtime in Godot 4 and the
+>   parse harness cannot see the violation; verified on the engine.
+>
+> ⛔ **FOUR of my own pins came back INERT and every one was a real weakness**
+> — including a doc pin reading the wrong line entirely, and a source census
+> matching **the comment that explains the guard it was checking for**. That
+> is the third time in this build.
+>
+> **▶ NEXT = slice 14 part 2d**: the **FA-S12-1** and **FA-S12-2** rulings.
+> Both move `BASELINE_SERIES` (S12-1 at index 24, S12-2's threat arm at index
+> 10), so 2d owns the one re-record with a multi-arm attribution — and because
+> 2c is client-only, any movement there is attributable to 2d's levers alone.
+> Then slice 15 → 16, then position 10.
+
+
 > ## ✅ FA SLICE 14 (part 2b) — "THE PURSE AND THE WINDOW" — LANDED September 6, 2026
 >
 > **Landing record = the boxed SLICE 14 (part 2b) block in `docs/BUG_FIXES.md`

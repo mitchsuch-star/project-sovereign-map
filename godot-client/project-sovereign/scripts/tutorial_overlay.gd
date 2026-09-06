@@ -90,7 +90,12 @@ const STEPS := [
 		"id": "objection_answer",
 		"turn_gate": 2,
 		"title": "V. Trust, Insist, Compromise",
-		"body": "He objects — as he should. Type [color=#e8d4a8]trust[/color] to let him have his way, [color=#e8d4a8]insist[/color] to be obeyed at a price in trust, or [color=#e8d4a8]compromise[/color] to meet him halfway. I advise INSIST, Sire — the lesson is that command costs something.",
+		# FA-N78: the card named three typed tokens for a modal that DISABLES
+		# the command line, so the player was told to type words they could
+		# not type. The buttons are built at runtime and carry the marshal's
+		# name and the trust figures, so only the stable leading words are
+		# named here.
+		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_objection_resolved",
@@ -116,6 +121,43 @@ const STEPS := [
 		"suggest": "Ney, attack Kienmayer",
 		"suggest_action": "attack",
 		"advance": "_pred_battle_happened",
+		# FA-42: the promised "trust branch pivot". Under `trust` Ney attacks
+		# on turn 2 and the screen is gone by the time this card is due —
+		# measured over 40 trials at a held seed: at large 21, a prisoner 18,
+		# absent from the roster 1 — yet the card said "still stands" 12/12
+		# and offered a chip the executor refuses.
+		#
+		# THREE RULES, each one measured:
+		#   * The arms live in a nested `alt` dict, AFTER this step's own
+		#     "suggest" and carrying no "id:" key. The `alt` re-uses the
+		#     "suggest"/"suggest_action" names so T-B1 pins the branch chips
+		#     for free; a new key name ships them unpinned, and an "id:"
+		#     inside would mint a phantom step for the census in
+		#     test_fa_slice8.
+		#   * The top-level chip STAYS. A pin asserts that literal string is
+		#     in this file, and it is the right pin: the branch is a
+		#     variation, not a replacement.
+		#   * A second gate-4 STEPS entry is NOT an option — STEPS.size() is
+		#     rendered in the badge and _derive_step_for_turn resumes at the
+		#     first step of the highest gate, so a mid-lesson reload would
+		#     land on the wrong branch.
+		"alt": {
+			"running": {
+				"body": "Now the sword — and Ney has already drawn it. Kienmayer's screen is broken and what is left of it is running; my scouts have not pinned it down. Order the pursuit if you please — if he is beyond our reach the refusal will say so, and it costs you nothing. Then read the battle report he sent up: terrain, casualties, and the temper of the men.",
+				"suggest": "Ney, attack Kienmayer",
+				"suggest_action": "attack",
+			},
+			"lost": {
+				"body": "Now the sword — and Ney has already drawn it. Kienmayer's screen is broken; where the remnant went my scouts cannot say, and I will not send Ney chasing a rumour. Read the battle report he sent up — terrain, casualties, and the temper of the men — and the school will move on.",
+				"suggest": "",
+				"suggest_action": "",
+			},
+			"taken": {
+				"body": "Now the sword — and you have already drawn it, Sire. Kienmayer is our prisoner; there is no screen left to break. Read the battle report your marshals sent up — terrain, casualties, and the temper of the men — and hold him for the peace table.",
+				"suggest": "",
+				"suggest_action": "",
+			},
+		},
 	},
 	{
 		"id": "strategic_order",
@@ -139,7 +181,10 @@ const STEPS := [
 		"id": "capture_answer",
 		"turn_gate": 6,
 		"title": "X. The Conqueror's Choice",
-		"body": "The province is yours, Sire — now choose its fate. Type [color=#e8d4a8]plunder[/color] for gold now and a hostile countryside after, or [color=#e8d4a8]secure[/color] for order and income that lasts. On an allied front, I counsel SECURE.",
+		# FA-N78: same lie as card V — the capture modal disables the command
+		# line. The button WORDS are right (they are built at runtime as
+		# "PLUNDER (…)" / "SECURE (…)"); only "Type" was false.
+		"body": "The province is yours, Sire — now choose its fate on the card before you: [color=#e8d4a8]PLUNDER[/color] for gold now and a hostile countryside after, or [color=#e8d4a8]SECURE[/color] for order and income that lasts. On an allied front, I counsel SECURE.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_capture_resolved",
@@ -198,6 +243,8 @@ var _minimized := false
 var _turn := 1
 var _saw_objection := false
 var _saw_capture := false
+# FA-42: which arm of card VII is true. "" until a roster is seen.
+var _kienmayer_state := ""
 # The infantry pool as of the PREVIOUS observed response. Pools regenerate
 # every turn, so recruit detection must be a drop BETWEEN responses, never a
 # comparison against a turn-1 baseline (regen would mask the recruit).
@@ -285,6 +332,12 @@ func on_world_swap(response) -> void:
 	_done = false
 	_saw_objection = false
 	_saw_capture = false
+	_kienmayer_state = ""
+	# FA-42: SEED it from the swap payload. /load carries `game_state.enemies`
+	# and _derive_step_for_turn can resume ON card VII, so without this the
+	# first frame after a mid-lesson reload renders the default arm — the
+	# "screen still stands" body — over a board where he is a prisoner.
+	_note_kienmayer(response)
 	_last_infantry_pool = _pool_from(response)
 	_step_index = _derive_step_for_turn(_turn)
 	_minimized = false
@@ -349,6 +402,46 @@ func _note_observations(response: Dictionary) -> void:
 		_saw_objection = true
 	if response.get("pending_capture_choice"):
 		_saw_capture = true
+	_note_kienmayer(response)
+
+
+func _note_kienmayer(response: Dictionary) -> void:
+	"""FA-42 — which of four things is true of the screen card VII names.
+
+	Read from `game_state.enemies`, which rides EVERY response, so the branch
+	does not depend on catching a transient battle event (the filed fix does,
+	and that event arrives only on `/respond_to_objection`).
+
+	⚠ FOG. This entry is fog-masked: `strength` reads 0 at PARTIAL against a
+	truth of 900-1,500, and `location` can name a province the executor will
+	refuse to pursue to. It is read here for a NEGATIVE test only — which arm
+	to render — and neither field is ever printed. A missing row means
+	LAST_KNOWN, UNKNOWN, or gone from the roster entirely, and those are
+	indistinguishable from the payload, so it is `lost` and never `taken`.
+	"""
+	var gs = response.get("game_state")
+	if typeof(gs) != TYPE_DICTIONARY:
+		return
+	var enemies = gs.get("enemies")
+	if typeof(enemies) != TYPE_DICTIONARY:
+		return
+	if not enemies.has("Kienmayer"):
+		# Only downgrade once we have seen him — a payload that carries no
+		# roster at all must not manufacture a fate.
+		if _kienmayer_state != "":
+			_kienmayer_state = "lost"
+		return
+	var rec = enemies.get("Kienmayer")
+	if typeof(rec) != TYPE_DICTIONARY:
+		return
+	if not rec.has("fog_level") and _as_int(rec.get("strength"), 0) <= 0:
+		# No fog entry means FULL visibility, which passes the true strength.
+		# Zero men in full view is a prisoner, not a screen.
+		_kienmayer_state = "taken"
+	elif str(rec.get("location", "")) == "Swabia":
+		_kienmayer_state = "stands"
+	else:
+		_kienmayer_state = "running"
 
 
 func _advance_one() -> void:
@@ -388,6 +481,17 @@ func _render() -> void:
 		return
 	_last_rendered_turn = _turn
 	var step: Dictionary = STEPS[_step_index]
+	# FA-42: swap in the branch arm when one is authored and true.
+	# ⛔ `STEPS` is a `const`, and in Godot 4 a const Dictionary is
+	# READ-ONLY AT RUNTIME — assigning into it raises "Invalid assignment
+	# on read-only value" the moment the card draws, and the parse harness
+	# CANNOT see it because it never calls _render(). Duplicate first.
+	var alt = step.get("alt")
+	if typeof(alt) == TYPE_DICTIONARY and alt.has(_kienmayer_state):
+		var arm = alt[_kienmayer_state]
+		step = step.duplicate()
+		for key in arm:
+			step[key] = arm[key]
 	_title_label.text = "THE SCHOOL OF WAR"
 	_step_badge.text = "%d of %d" % [_step_index + 1, STEPS.size()]
 	var lines := PackedStringArray()
@@ -538,8 +642,18 @@ func _pred_capture_pending(response: Dictionary) -> bool:
 func _pred_capture_resolved(response: Dictionary) -> bool:
 	# Null-guarded: /capture_choice answers carry `capture_choice: null` when
 	# the token was invalid, and str(null) is "<null>" — a false advance.
+	#
+	# FA-N78: and question-guarded. W6-8's `_maybe_mount_estate_choice`
+	# mutates the stage-1 response IN PLACE, so an answer that mounts the
+	# ESTATE stage carries `capture_choice` and `pending_capture_choice`
+	# together — the card would advance while a modal it has not been
+	# answered is still on screen. Latent in the lesson (the tutorial
+	# scenario authors no `dotation_regions`, so no estate holder is ever
+	# found) and already reachable on the typed route at HEAD, which is why
+	# it is fixed here rather than filed.
 	var choice = response.get("capture_choice")
-	if choice != null and str(choice) != "":
+	if choice != null and str(choice) != "" \
+			and not _truthy(response.get("pending_capture_choice")):
 		return true
 	return _saw_capture and not response.get("pending_capture_choice") \
 		and _truthy(response.get("success"))

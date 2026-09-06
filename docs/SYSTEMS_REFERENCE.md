@@ -4735,3 +4735,85 @@ reset and by the gate term so the two cannot drift; and **the Boulogne camp is
 an ARMY fact**, walked with `iter_fleet_records` rather than the ships > 0
 iterator, so a nation that has lost its navy can still pull the Royal Navy
 home — the one move it has left.
+
+---
+
+## 38. The School sees the answer (FA slice 14 part 2c, landed September 6, 2026)
+
+Rules for the tutorial overlay. Landing record in `BUG_FIXES.md` §Final
+Whole-Game Audit; pins in
+`tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py`.
+
+**1. Every handler that answers a BLOCKING question feeds the tutor.** Six did
+not. At the lesson's own two modal beats the card went on asking for an answer
+the player had already given — and the typed route the card named is
+UNREACHABLE, because `_execute_command` disables the command line,
+`_route_response_ui` returns before re-enabling it, and the objection dialog
+has three buttons, no close and no ESC. Six literal `tutorial_overlay.observe(`
+sites, never a shared helper: extracting one reds T-G2 (`count >= 2` sees 1)
+and makes T-G3 raise rather than fail.
+
+**Placement is at the TOP of each handler**, above the early returns —
+`_on_objection_response` has five, and `_on_capture_choice_response` returns
+into the W6-8 estate stage before anything else.
+
+**The census, not the count, is the pin.** T-G2's `count(...) >= 2` is
+satisfied by 2 and by 8 alike and was green for a month while two beats were
+blind; it survives only as a floor. The replacement is a call-only closure over
+comment-stripped function bodies, with a sensitivity arm and an exemption list
+that states a reason per row. Measured: the {call-syntax, comment-strip} matrix
+gives **10 / 10 / 44 / 85**, so call syntax is the only load-bearing guard —
+excluding `.connect(` / `.bind(` is measurably nothing and must not be written
+as though it were the fix.
+
+**2. A card names what the player can PRESS.** The modal's buttons are built at
+runtime and carry the marshal's name and the trust figures, so a card may name
+only the stable leading words (Trust / Proceed as Ordered / Compromise;
+PLUNDER / SECURE). The headless driver still answers with the typed token, so
+any pin binding the driver's policy to the card's counsel must map the two
+rather than share a literal.
+
+**3. The tutor branches on STATE, never on a transient event.**
+`game_state.enemies` rides every response; a battle event rides one route.
+⚠ **That entry is FOG-MASKED** — `strength` reads 0 at PARTIAL against a truth
+of 900–1,500, and `location` can name a province the executor refuses to
+pursue to. Read it for a NEGATIVE test only, test the fog clause BEFORE the
+location clause, and never render either field. A missing row means
+LAST_KNOWN, UNKNOWN or gone-from-the-roster, which are indistinguishable, so
+it is `lost` and never `taken`.
+
+**4. `turn_gate` gates DISPLAY, not ADVANCE.** `observe()` evaluates the
+current step's predicate unconditionally; the gate only decides whether
+`_render()` prints the chip or the "Berthier resumes" line. **Any predicate
+that can be true before its gate consumes its step invisibly** — measured, an
+early release on card VII walked the player past VII and VIII with no chip on
+either and parked them on IX from turn 4.
+
+**5. A branch arm lives in a nested `alt` dict**, after the step's own
+`"suggest"`, re-using the `"suggest"` / `"suggest_action"` key names (T-B1
+extracts those by regex, so a new key name ships the chips unpinned) and
+carrying no `"id":` (the slice-8 census splits STEPS on that key and would mint
+a phantom step). A second entry at the same `turn_gate` is not an alternative:
+`STEPS.size()` is in the badge and `_derive_step_for_turn` resumes at the first
+step of the highest gate.
+
+**⛔ 6. In Godot 4 a `const` Dictionary is READ-ONLY AT RUNTIME, and the parse
+harness cannot see the violation** — it loads scripts but never calls
+`_render()`. Writing `STEPS[i]["body"] = …` ships a hard script error that
+passes every pin and does not appear in the campaign boot smoke either, because
+that boots the campaign and not the lesson. `duplicate()` before merging, and
+verify branch rendering by EXECUTING it on the engine.
+
+**7. Seed derived state on `on_world_swap`.** `/load` carries the roster and
+`_derive_step_for_turn` can resume on a branching card, so a member reset to
+its empty value renders the default arm over a board that has moved on.
+
+**8. `_pred_capture_resolved` reads the pending question, not only the answer.**
+W6-8's estate stage mutates the stage-1 response in place, so an answer that
+mounts it carries `capture_choice` and `pending_capture_choice` together.
+
+**9. The objection predicate is deliberately loose and that is the self-heal.**
+`pending_objection` is ABSENT from every resolving response — typed, button and
+an ordinary command alike — so it cannot be hardened by a key-presence check,
+and any successful command heals a stale card. That is why observing the
+letter-book is safe: it changes WHEN the card heals, not whether.

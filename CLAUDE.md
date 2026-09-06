@@ -365,11 +365,29 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 14 part 2b: **73 defect rows
-> and 24 design rows / gates still open**, of 232 filed; 120 closed, 15
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 73 are spoken for by
-> slices 14 (part 2c) → 15 → 16;
+> number in a heading. After slice 14 part 2c: **71 defect rows
+> and 24 design rows / gates still open**, of 232 filed; 122 closed, 15
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 71 are spoken for by
+> slices 14 (part 2d) → 15 → 16;
 > the 24 need rulings, not builds.
+>
+> **▶ SLICE 14 (PART 2c) "THE SCHOOL SEES THE ANSWER" IS LANDED — September 6,
+> 2026.** Landing record = the boxed SLICE 14 (part 2c) block in
+> `BUG_FIXES.md`. **FA-N78** + **FA-42**, client and docs only. The tutor was
+> blind at the two beats the lesson answers with a MODAL — and **the typed
+> route the card named is unreachable**, so the only road a player can take
+> was the one the School could not see. Six literal observe sites, not the
+> row's helper (which reds two pins); T-G2's raw count replaced by a call-only
+> census with a sensitivity arm and a reasoned exemption list; cards V and X
+> name the BUTTONS. FA-42 ships four-valued honest availability after
+> **three** prescribed shapes were measured and rejected, my own first
+> instinct among them — an early release detonates the lesson, because
+> `turn_gate` gates DISPLAY, not ADVANCE. ⛔ A `const` Dictionary is READ-ONLY
+> at runtime in Godot 4 and the parse harness cannot see it. Sweep 20/20, 0
+> INERT — **after four of my own pins came back inert and every one was a real
+> weakness**, one of them a source census matching the comment that explains
+> the guard. **NEXT = part 2d**: the FA-S12-1 / FA-S12-2 rulings, which own
+> the one series re-record.
 >
 > **▶ SLICE 14 (PART 2b) "THE PURSE AND THE WINDOW" IS LANDED — September 6,
 > 2026.** Landing record = the boxed SLICE 14 (part 2b) block in

@@ -1,0 +1,142 @@
+[
+ {
+  "id": "FA-N78/a the objection route goes blind again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "func _on_objection_response(response):\n\t\"\"\"Handle backend response after player makes objection choice.\"\"\"\n\t# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the\n\t# modal it answers DISABLES the command line — so the typed route the\n\t# card names is unreachable and this is the only road a player can take.\n\t# Without this line the School of War never sees the answer it asked for.\n\t# Observe-only: it never routes, never sends, and returns immediately\n\t# outside the lesson.\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n",
+  "new": "func _on_objection_response(response):\n\t\"\"\"Handle backend response after player makes objection choice.\"\"\"\n",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheSchoolSeesEveryAnswer::test_every_blocking_answer_handler_reaches_the_school"
+ },
+ {
+  "id": "FA-N78/b the capture route goes blind again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "func _on_capture_choice_response(response):\n\t\"\"\"Handle backend response after player makes plunder/secure choice.\"\"\"\n\t# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the\n\t# modal it answers DISABLES the command line — so the typed route the\n\t# card names is unreachable and this is the only road a player can take.\n\t# Without this line the School of War never sees the answer it asked for.\n\t# Observe-only: it never routes, never sends, and returns immediately\n\t# outside the lesson.\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n",
+  "new": "func _on_capture_choice_response(response):\n\t\"\"\"Handle backend response after player makes plunder/secure choice.\"\"\"\n",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheSchoolSeesEveryAnswer::test_every_blocking_answer_handler_reaches_the_school"
+ },
+ {
+  "id": "FA-N78/c the glorious-charge route goes blind again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "func _on_glorious_charge_response(response):\n\t\"\"\"Handle backend response after player makes Glorious Charge choice.\"\"\"\n\t# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the\n\t# modal it answers DISABLES the command line — so the typed route the\n\t# card names is unreachable and this is the only road a player can take.\n\t# Without this line the School of War never sees the answer it asked for.\n\t# Observe-only: it never routes, never sends, and returns immediately\n\t# outside the lesson.\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n",
+  "new": "func _on_glorious_charge_response(response):\n\t\"\"\"Handle backend response after player makes Glorious Charge choice.\"\"\"\n",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheSchoolSeesEveryAnswer::test_every_blocking_answer_handler_reaches_the_school"
+ },
+ {
+  "id": "FA-N78/d the redemption route goes blind again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "func _on_redemption_response(response):\n\t\"\"\"Handle backend response after player makes redemption choice.\"\"\"\n\t# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the\n\t# modal it answers DISABLES the command line — so the typed route the\n\t# card names is unreachable and this is the only road a player can take.\n\t# Without this line the School of War never sees the answer it asked for.\n\t# Observe-only: it never routes, never sends, and returns immediately\n\t# outside the lesson.\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n",
+  "new": "func _on_redemption_response(response):\n\t\"\"\"Handle backend response after player makes redemption choice.\"\"\"\n",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheSchoolSeesEveryAnswer::test_every_blocking_answer_handler_reaches_the_school"
+ },
+ {
+  "id": "FA-N78/e the letter-book answer goes blind again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t# POSITION 7 (FA-N78): the letter-book is deliberately isolated from the\n\t# modal route table (see the docstring) — which is a statement about\n\t# ROUTING, not about the tutor. observe() routes nothing, so feeding it\n\t# here is safe and is the only way a letter-book answer reaches the\n\t# School at all.\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n\n\t_pending_envoy_request_active = false",
+  "new": "\t_pending_envoy_request_active = false",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheSchoolSeesEveryAnswer::test_every_blocking_answer_handler_reaches_the_school"
+ },
+ {
+  "id": "FA-N78/f the observe drops below the capture handler's own work",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "func _on_capture_choice_response(response):\n\t\"\"\"Handle backend response after player makes plunder/secure choice.\"\"\"\n\t# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the\n\t# modal it answers DISABLES the command line — so the typed route the\n\t# card names is unreachable and this is the only road a player can take.\n\t# Without this line the School of War never sees the answer it asked for.\n\t# Observe-only: it never routes, never sends, and returns immediately\n\t# outside the lesson.\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n\n\tset_input_enabled(true)",
+  "new": "func _on_capture_choice_response(response):\n\t\"\"\"Handle backend response after player makes plunder/secure choice.\"\"\"\n\tset_input_enabled(true)\n\tif typeof(response) == TYPE_DICTIONARY and tutorial_overlay:\n\t\ttutorial_overlay.observe(response)\n",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheObserveSitsAboveEveryEarlyReturn"
+ },
+ {
+  "id": "FA-N78/g the estate stage advances the card again",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\tif choice != null and str(choice) != \"\" \\\n\t\t\tand not _truthy(response.get(\"pending_capture_choice\")):",
+  "new": "\tif choice != null and str(choice) != \"\":",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheEstateStageDoesNotAdvanceTheCard"
+ },
+ {
+  "id": "FA-N78/h card V tells the player to type again",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t\t\"body\": \"He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color]",
+  "new": "\t\t\"body\": \"He objects — as he should. Type [color=#e8d4a8]trust[/color]",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheCardsNameWhatThePlayerCanActuallyPress::test_card_five_names_the_buttons_not_typed_tokens"
+ },
+ {
+  "id": "FA-N78/i card X tells the player to type again",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "now choose its fate on the card before you: [color=#e8d4a8]PLUNDER[/color]",
+  "new": "now choose its fate. Type [color=#e8d4a8]PLUNDER[/color]",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheCardsNameWhatThePlayerCanActuallyPress::test_card_ten_names_the_buttons_not_typed_tokens"
+ },
+ {
+  "id": "FA-N78/j the script doc calls them typed answers again",
+  "file": "docs/TUTORIAL_SCRIPT.md",
+  "old": "| 2 | Trust/Insist/Compromise | *(the modal's own buttons)* |",
+  "new": "| 2 | Trust/Insist/Compromise | *(typed answer)* |",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheCardsNameWhatThePlayerCanActuallyPress::test_the_script_doc_no_longer_calls_them_typed_answers"
+ },
+ {
+  "id": "FA-N78/k the census stops stripping prose",
+  "file": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py",
+  "old": "def _strip_comments(src: str) -> str:",
+  "new": "def _strip_comments(src: str) -> str:\n    return src\n\ndef _strip_comments_unused(src: str) -> str:",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheSchoolSeesEveryAnswer::test_the_census_ignores_prose"
+ },
+ {
+  "id": "FA-42/a the render writes into the read-only const",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t\tstep = step.duplicate()\n\t\tfor key in arm:",
+  "new": "\t\tfor key in arm:",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheBranchIsSafeAtRuntime::test_the_render_duplicates_before_merging"
+ },
+ {
+  "id": "FA-42/b the render stops reading the arm at all",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\tvar alt = step.get(\"alt\")\n\tif typeof(alt) == TYPE_DICTIONARY and alt.has(_kienmayer_state):",
+  "new": "\tvar alt = step.get(\"alt\")\n\tif false:",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheBranchIsSafeAtRuntime::test_the_render_duplicates_before_merging"
+ },
+ {
+  "id": "FA-42/c the fog clause is dropped — a runaway reads as a prisoner",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\tif not rec.has(\"fog_level\") and _as_int(rec.get(\"strength\"), 0) <= 0:",
+  "new": "\tif _as_int(rec.get(\"strength\"), 0) <= 0:",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheDiscriminatorReadsTheBoard::test_the_production_arms_match"
+ },
+ {
+  "id": "FA-42/d a missing roster row manufactures a fate",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t\tif _kienmayer_state != \"\":\n\t\t\t_kienmayer_state = \"lost\"",
+  "new": "\t\t_kienmayer_state = \"lost\"",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheDiscriminatorReadsTheBoard::test_the_production_arms_match"
+ },
+ {
+  "id": "FA-42/e the world swap stops seeding the arm",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t_note_kienmayer(response)\n\t_last_infantry_pool = _pool_from(response)",
+  "new": "\t_last_infantry_pool = _pool_from(response)",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheBranchIsSafeAtRuntime::test_the_state_is_seeded_on_a_world_swap"
+ },
+ {
+  "id": "FA-42/f the arms move under a new key name (unpinned by T-B1)",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t\t\t\t\"suggest\": \"Ney, attack Kienmayer\",\n\t\t\t\t\"suggest_action\": \"attack\",\n\t\t\t},\n\t\t\t\"lost\": {",
+  "new": "\t\t\t\t\"suggest_alt\": \"Ney, attack Kienmayer\",\n\t\t\t\t\"suggest_action_alt\": \"attack\",\n\t\t\t},\n\t\t\t\"lost\": {",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheBranchIsShaped::test_the_arms_reuse_the_pinned_key_names"
+ },
+ {
+  "id": "FA-42/g the release predicate gains the early-release latch",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "func _pred_battle_happened(response: Dictionary) -> bool:\n\tif typeof(response.get(\"battle_report\")) == TYPE_DICTIONARY:",
+  "new": "func _pred_battle_happened(response: Dictionary) -> bool:\n\tif _kienmayer_state == \"taken\":\n\t\treturn true\n\tif typeof(response.get(\"battle_report\")) == TYPE_DICTIONARY:",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheBranchIsSafeAtRuntime::test_the_release_predicate_is_untouched"
+ },
+ {
+  "id": "FA-42/h an id key leaks into the alt dict",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "\t\t\t\"lost\": {\n\t\t\t\t\"body\":",
+  "new": "\t\t\t\"lost\": {\n\t\t\t\t\"id\": \"first_battle_lost\",\n\t\t\t\t\"body\":",
+  "tests": "tests/test_fa_slice14c_the_school_sees_the_answer_2026_09_06.py::TestTheBranchIsShaped::test_the_alt_carries_no_id_key"
+ },
+ {
+  "id": "FA-N78/l the card counsels a button the driver does not press",
+  "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+  "old": "I advise PROCEED AS ORDERED, Sire",
+  "new": "I advise TRUST, Sire",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheTutorialScriptMirrorsTheShippedLesson::test_the_policy_follows_the_cards_own_counsel"
+ }
+]

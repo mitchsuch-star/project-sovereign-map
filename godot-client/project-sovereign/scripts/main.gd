@@ -4272,6 +4272,15 @@ func _on_objection_choice_made(choice: String):
 
 func _on_objection_response(response):
 	"""Handle backend response after player makes objection choice."""
+	# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the
+	# modal it answers DISABLES the command line — so the typed route the
+	# card names is unreachable and this is the only road a player can take.
+	# Without this line the School of War never sees the answer it asked for.
+	# Observe-only: it never routes, never sends, and returns immediately
+	# outside the lesson.
+	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
+		tutorial_overlay.observe(response)
+
 	if DEBUG_VERBOSE:
 		print("OBJECTION RESPONSE: success=%s disobeyed=%s defiance=%s" % [
 			response.get("success", false), response.get("disobeyed", false), response.get("defiance", false)])
@@ -4503,6 +4512,15 @@ func _on_redemption_choice_made(choice: String):
 
 func _on_redemption_response(response):
 	"""Handle backend response after player makes redemption choice."""
+	# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the
+	# modal it answers DISABLES the command line — so the typed route the
+	# card names is unreachable and this is the only road a player can take.
+	# Without this line the School of War never sees the answer it asked for.
+	# Observe-only: it never routes, never sends, and returns immediately
+	# outside the lesson.
+	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
+		tutorial_overlay.observe(response)
+
 	if DEBUG_VERBOSE:
 		print("REDEMPTION RESPONSE: success=%s choice=%s" % [
 			response.get("success", false), response.get("choice", "unknown")])
@@ -4727,6 +4745,15 @@ func _on_capture_choice_made(choice: String):
 
 func _on_capture_choice_response(response):
 	"""Handle backend response after player makes plunder/secure choice."""
+	# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the
+	# modal it answers DISABLES the command line — so the typed route the
+	# card names is unreachable and this is the only road a player can take.
+	# Without this line the School of War never sees the answer it asked for.
+	# Observe-only: it never routes, never sends, and returns immediately
+	# outside the lesson.
+	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
+		tutorial_overlay.observe(response)
+
 	set_input_enabled(true)
 
 	# W6-8: the answer may mount a SECOND question (the estate stage), or a
@@ -5049,6 +5076,15 @@ func _on_glorious_charge_choice_made(choice: String):
 
 func _on_glorious_charge_response(response):
 	"""Handle backend response after player makes Glorious Charge choice."""
+	# POSITION 7 (FA-N78): this route BYPASSES _on_command_result, and the
+	# modal it answers DISABLES the command line — so the typed route the
+	# card names is unreachable and this is the only road a player can take.
+	# Without this line the School of War never sees the answer it asked for.
+	# Observe-only: it never routes, never sends, and returns immediately
+	# outside the lesson.
+	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
+		tutorial_overlay.observe(response)
+
 	if DEBUG_VERBOSE:
 		print("GLORIOUS CHARGE RESPONSE: success=%s" % response.get("success", false))
 
@@ -5840,6 +5876,14 @@ func _on_mailbox_row_action_result(response: Dictionary):
 	modal route table and could raise a popup UNDER the open panel (layer 119
 	sits above every dialog slot). Anything the answer promoted surfaces on
 	the player's next command, through the normal path."""
+	# POSITION 7 (FA-N78): the letter-book is deliberately isolated from the
+	# modal route table (see the docstring) — which is a statement about
+	# ROUTING, not about the tutor. observe() routes nothing, so feeding it
+	# here is safe and is the only way a letter-book answer reaches the
+	# School at all.
+	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
+		tutorial_overlay.observe(response)
+
 	_pending_envoy_request_active = false
 	_update_diplomatic_top_bar(response)
 	var msg = str(response.get("message", "")).strip_edges()
@@ -5896,6 +5940,14 @@ func _on_mailbox_item_selected(mailbox_id: int, is_active: bool, item_type: Stri
 
 func _on_mailbox_activate_result(response: Dictionary):
 	"""Handle POST /mailbox/activate response — open the newly active item."""
+	# POSITION 7 (FA-N78): the letter-book is deliberately isolated from the
+	# modal route table (see the docstring) — which is a statement about
+	# ROUTING, not about the tutor. observe() routes nothing, so feeding it
+	# here is safe and is the only way a letter-book answer reaches the
+	# School at all.
+	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
+		tutorial_overlay.observe(response)
+
 	var act_ct = int(response.get("count", 0))
 	if top_bar and top_bar.has_method("update_mailbox_count"):
 		top_bar.update_mailbox_count(act_ct)
