@@ -47,6 +47,7 @@ ACTION_DISPLAY = {
     "grant_pension": "is granted a rente",            # ES-7 second pass (§0.6.8)
     "revoke_pension": "has his rente withdrawn",      # ES-7 second pass (§0.6.8)
     "recruit_marshal": "commissions",                 # Marshal Recruitment (v3.2)
+    "recall_marshal": "recalls",                      # FA-S9-D1 (slice 14)
     "grant_region_to_vassal": "cedes territory to",   # VS-3 (Vassal Depth)
     "sponsor_design": "sponsors",                     # AI-2b (D5-2)
     "buy_off_design": "buys off",                     # AI-2b (D5-1)
@@ -162,6 +163,7 @@ OBJECTION_DISPLAY = {
     "grant_pension": "receiving a rente",           # ES-7 second pass (no objections in v1)
     "revoke_pension": "losing his rente",           # ES-7 second pass (no objections in v1)
     "recruit_marshal": "commissioning a marshal",   # Marshal Recruitment (no objections in v1)
+    "recall_marshal": "recalling a marshal from the desk",  # FA-S9-D1
     "grant_region_to_vassal": "ceding territory",   # VS-3 (no objections in v1)
     "sponsor_design": "sponsoring a design",        # AI-2b (no objections in v1)
     "buy_off_design": "buying off a design",        # AI-2b (no objections in v1)
@@ -211,6 +213,7 @@ DEFIANCE_DISPLAY = {
     "grant_pension": "received a rente",           # ES-7 second pass (no defiance in v1)
     "revoke_pension": "lost his rente",            # ES-7 second pass (no defiance in v1)
     "recruit_marshal": "commissioned a marshal",   # Marshal Recruitment (no defiance in v1)
+    "recall_marshal": "recalled a marshal",        # FA-S9-D1
     "grant_region_to_vassal": "ceded territory",   # VS-3 (no defiance in v1)
     "sponsor_design": "sponsored a design",        # AI-2b (no defiance in v1)
     "buy_off_design": "bought off a design",       # AI-2b (no defiance in v1)

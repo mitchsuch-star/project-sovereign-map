@@ -5335,6 +5335,69 @@
       },
       "source": "FA slice 7 review round (Sept 5, 2026)",
       "notes": "R1-12 / R3-3: the desk resolves 'who holds' to the PROVINCE first (Brunswick is also a Prussian marshal)."
+    },
+    {
+      "id": "fa-s9d1-recall-bare",
+      "utterance": "recall Murat",
+      "world": "1805",
+      "expected": {
+        "action": "recall_marshal",
+        "target": "Murat"
+      },
+      "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
+      "notes": "FA-S9-D1: the man at the desk has strength 0 and location None, so the name rides `target` (the recruit_marshal precedent) and `marshal` is nulled — carried as `marshal` it dies in the live-roster validation and the whole command parses to None."
+    },
+    {
+      "id": "fa-s9d1-recall-honorific",
+      "utterance": "recall marshal Murat",
+      "world": "1805",
+      "expected": {
+        "action": "recall_marshal",
+        "target": "Murat"
+      },
+      "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
+      "notes": "The honorific form fills `marshals` via the generic ladder; measured shrugging to action None before the parser arm moved it into `target`."
+    },
+    {
+      "id": "fa-s9d1-recall-to-the-field",
+      "utterance": "recall Murat to the field",
+      "world": "1805",
+      "expected": {
+        "action": "recall_marshal",
+        "target": "Murat"
+      },
+      "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
+      "notes": "The trailing destination clause must not defeat the name grab."
+    },
+    {
+      "id": "fa-s9d1-recall-the-fleet-is-naval",
+      "utterance": "recall the fleet",
+      "world": "1805",
+      "expected": {
+        "action": "set_fleet_posture"
+      },
+      "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
+      "notes": "NEGATIVE GUARD. `recall` is the naval posture vocabulary too; the mock arm carries an explicit fleet/squadron/ships/navy/admiral guard rather than relying on chain position."
+    },
+    {
+      "id": "fa-s9d1-recall-the-squadron-is-naval",
+      "utterance": "recall the squadron to home waters",
+      "world": "1805",
+      "expected": {
+        "action": "set_fleet_posture"
+      },
+      "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
+      "notes": "NEGATIVE GUARD, the longer naval phrasing."
+    },
+    {
+      "id": "fa-s9d1-restore-to-command-is-not-a-recall",
+      "utterance": "restore Murat to command",
+      "world": "1805",
+      "expected": {
+        "action": "repair"
+      },
+      "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
+      "notes": "NEGATIVE GUARD recording a PRE-EXISTING collision this slice does NOT fix: `restore` belongs to the masonry-repair vocabulary. Pinned so the wart is visible and so a later widening of `recall` cannot silently claim it."
     }
   ]
 }

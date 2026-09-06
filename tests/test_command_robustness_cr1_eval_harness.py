@@ -63,6 +63,8 @@ MOCK_REACHABLE_ACTIONS = [
     # DEF-5 naval (NAVAL_SPEC §9): the Wooden Wall's four verbs.
     "build_fleet", "set_fleet_posture", "naval_expedition",
     "naval_diversion",
+    # FA-S9-D1 (slice 14): recalling a marshal from administrative duty.
+    "recall_marshal",
 ]
 
 

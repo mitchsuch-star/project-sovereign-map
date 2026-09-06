@@ -834,6 +834,7 @@ class CommandParser:
             "revoke_pension",   # "revoke Ney's rente"
             # Marshal Recruitment (Jealousy v3.2 final phase)
             "recruit_marshal",  # "commission Grouchy" — 1 admin AP + gold
+            "recall_marshal",   # FA-S9-D1: "recall Murat" — 1 admin AP
             # DEF-5 naval — "The Wooden Wall" (NAVAL_SPEC §9)
             "build_fleet",       # "build ships" — 1 admin AP + 400g
             "set_fleet_posture",  # "blockade the enemy" / "guard home waters"
@@ -1014,7 +1015,17 @@ class CommandParser:
         # Suchet" must not die in the roster validation below. Move the
         # name into target (the executor resolves it against the pool)
         # and skip marshal matching entirely.
-        if llm_result.get("action") == "recruit_marshal":
+        # FA-S9-D1 (slice 14): a `recall_marshal` name is a man AT THE DESK,
+        # and an administrative marshal has `strength = 0` and
+        # `location = None` — so he is absent from the live-derived roster
+        # the validation below uses, and from every marshal pre-gate in the
+        # executor. Measured before this arm: `recall Murat` parsed
+        # correctly at the mock chain (action + target + confidence 0.9) and
+        # then came out of `CommandParser.parse` as action None, because the
+        # generic ladder had ALSO filled `marshals` and the roster step
+        # dropped the whole command. Same treatment as the pool candidate
+        # above, and for the same reason.
+        if llm_result.get("action") in ("recruit_marshal", "recall_marshal"):
             if llm_result.get("marshal") and not llm_result.get("target"):
                 llm_result["target"] = llm_result["marshal"]
             llm_result["marshal"] = None

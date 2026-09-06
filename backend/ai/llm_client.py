@@ -171,6 +171,13 @@ def _orders_the_diversion(command_lower: str) -> bool:
 # desk routes below read the same as they always did.
 _DESK_ADDRESS_RE = _DESK_ADDRESS_RE_SOURCE
 
+# FA-S9-D1 (slice 14): "recall the fleet" / "recall the squadron to home
+# waters" is a NAVAL posture order, not a marshal coming back from the
+# desk. Measured before the guard: both parsed `recall_marshal`.
+_RECALL_IS_NAVAL_RE = re.compile(
+    r"\b(?:fleet|fleets|squadron|squadrons|ships?|navy|admiral)\b",
+    re.IGNORECASE)
+
 # The STAND-STILL vocabulary, ONE source for the mock chain's wait arm AND
 # the parser's sequential-split gate (`_STAND_FAST_FIRST_CLAUSE_RE`). R1-2:
 # the slice taught "stay here" to the chain and not to the gate, so "Ney,
@@ -1977,6 +1984,13 @@ class LLMClient:
         # marshalate". ORDERING RULE: must run BEFORE the troop-recruit
         # branch ("recruit marshal X" contains "recruit") and never fire
         # on pension verbs.
+        # FA-S9-D1 (slice 14): "recall Murat" / "bring Murat back".
+        # Sited ABOVE recruit_marshal AND above the naval arms would be
+        # wrong — "recall the fleet" is a posture order — so the guard
+        # is explicit rather than positional.
+        elif (re.search(r"\brecall\b", command_lower)
+              and not _RECALL_IS_NAVAL_RE.search(command_lower)):
+            action = "recall_marshal"
         elif (("commission" in command_lower and not _mentions_pension(command_lower))
               or re.search(r'\brecruit\b.{0,12}\bmarshal\b', command_lower)
               or re.search(r'\bappoint\b.*\bmarshal', command_lower)
@@ -2189,6 +2203,17 @@ class LLMClient:
         # pull the name token directly ("commission Grouchy", "recruit
         # marshal Grouchy", "appoint Mortier to the marshalate"). A miss
         # leaves target=None; the executor answers with the candidate list.
+        # FA-S9-D1 (slice 14): the man at the desk has `location = None`,
+        # so the generic marshal ladder below cannot place him — pull the
+        # name the same way `recruit_marshal` does.
+        if action == "recall_marshal":
+            _rc = re.search(
+                r"\brecall\s+(?:marshal\s+)?([a-z][a-z'-]+)",
+                command_lower)
+            if _rc and _rc.group(1) not in (
+                    "a", "an", "the", "him", "her", "them", "to", "from"):
+                target = _rc.group(1).capitalize()
+
         if action == "recruit_marshal":
             _rm = re.search(
                 r'\b(?:commission|appoint)\s+(?:marshal\s+)?([a-z][a-z\'-]+)',

@@ -2105,6 +2105,51 @@ Snapshot entries:
 
 When trust falls to <=20, a redemption event triggers via `check_redemption_threshold()` in `disobedience.py`. The centralized helper gates on: trust <= 20, not already pending, not autonomous, not administrative, not on cooldown, player nation only. Wired at: V1 objection resolution, tactical defiance success, strategic defiance success, strategic endpoint fallthrough, bombardment collateral, strategic interrupt trust penalties (7 sites), and cavalry forced-stance/unfortify penalties. **FA slice 9 (September 5, 2026):** every other trust-LOWERING write goes through ONE helper, `disobedience.stage_redemption(world, marshal, result=, events=)` — the ES-7 erosion tick (which returns its events onto the end-turn list), the attack's failed-reinforcer -3, and jealousy's petition docks at `/marshal_petition_response` — and a per-turn NET in `WorldState._check_trust_warnings` puts every player marshal at <= 20 to the checker at the turn boundary. The slice-9 review round added the tactical failed-roll −3, the mid-march `cancel` −3 and the attack's own reply (covering vindication's in-pipeline writes) to the staged seams; **only a man who STANDS is asked** (a prisoner or a destroyed corps is refused at the checker, and a stale question releases its latch — `REDEMPTION_ASKS_THE_LIVING`); the `administrative_role` answer's frozen man is exempt from the attrition sweep (`world_state.ADMINISTRATIVE_EXEMPT_FROM_ATTRITION`); and a question staged with no response carrier is **re-raised on the end-turn response** (`REDEMPTION_RERAISED_AT_END_TURN`) — the client's once-per-turn `GET /pending_redemption` poll (PT-B1) is a backstop, not the road, because it drops under an open modal. The checker's own guards make every call idempotent; levers `REDEMPTION_AT_EVERY_TRUST_WRITE` / `REDEMPTION_NET_ACTIVE`. Godot frontend handles redemption_event in `_on_command_result`, `_on_objection_response`, `_on_interrupt_response`, and deferred through the end-turn dialog chain (`_on_enemy_phase_dismissed`, `_on_strategic_report_dismissed`, `_process_next_interrupt`).
 
+**FA-S9-D2 (slice 14, ruling 4) — HE SERVES WHILE THE QUESTION STANDS.**
+A marshal with a live redemption question keeps taking orders, and that is
+the recorded design, not an oversight. Measured by the slice-9 review round:
+Murat asked at trust 15 still fought and still marched. Option (a) — gating
+his orders behind an honest refusal — was considered and DECLINED: the man is
+demanding an audience, not mutinying, and a corps frozen on a question the
+player has not yet seen is a worse failure than a fiction that reads loosely.
+The window is now ordinary (slice 9 widened the moments a question stands),
+so gating would idle a marshal for a whole turn on a modal the client
+intercepts before it is even sent. **Do not "fix" this**: it is a decision
+with a landing record, and the answer's consequences (autonomy, the desk, or
+dismissal) are what change his standing.
+
+**FA-S9-D1 / FA-71 (slice 14, ruling 3) — THE DESK IS NOT A ONE-WAY DOOR.**
+The `administrative_role` answer freezes the man's corps, buys +1 military
+action and says his troops await assignment. `recall <marshal>` is the verb
+that keeps that promise: 1 ADMIN action point, the corps restored at
+`recruitment.find_spawn_region` (the capital while held, else the richest
+still-held homeland province), the bonus action handed back, and
+`redemption_cooldown_until` gating how soon he may be asked again. The loop is
+AP-neutral across the two pools — the freeze buys a military action, the
+recall spends an administrative one — and he returns at the trust that broke
+him, so the question re-fires. **The name rides `command["target"]`, never
+`command["marshal"]`** (the `recruit_marshal` precedent): a man at the desk
+has `strength = 0` and `location = None`, so he is absent from the
+live-derived roster and from every marshal pre-gate, and carrying him as a
+marshal made the whole command parse to `None`.
+
+**The restore destination is the GATE's wording, not the row's.** FA-71's
+`fix_shape` says "at `administrative_location`/capital" and that is the
+measured hazard — the old province may be in enemy hands, and the debug arm's
+`or 'Paris'` fallback would put 22,000 men inside it with no battle. The debug
+cheat now DELEGATES to the verb, so the two cannot drift and the cheat
+inherits the held-soil rule it never had.
+
+**The three fields are serialized as of this slice, and that was a P2 of its
+own.** `administrative`, `administrative_strength` and `administrative_location`
+were ad-hoc attributes declared nowhere; one save deleted all three. Measured:
+the slice-9 attrition exemption stopped covering the frozen man and the sweep
+DESTROYED him; `get_admin_marshals()` returned 0 so the max-one-admin gate
+re-opened and save-freeze-load-repeat was an **unbounded +1-military-action
+farm**; and he counted as a field marshal again. A campaign saved before this
+has the flag but not the men, and the verb refuses honestly rather than
+restoring an empty corps and charging for it.
+
 ### Available Options
 
 | Option | Troops | Marshal | Bonus | Availability |

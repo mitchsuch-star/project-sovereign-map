@@ -784,6 +784,131 @@ class EconomyExecutor:
     # docs/MARSHAL_RECRUITMENT_SPEC.md — player and AI share this path (GR5).
     # ========================================
 
+    # ══════════════════════════════════════════════════════════════════
+    # FA-S9-D1 / FA-71 (slice 14, ruling 3) — "recall <marshal>"
+    # ══════════════════════════════════════════════════════════════════
+    RECALL_FROM_THE_DESK_ACTIVE = True
+
+    def _execute_recall_marshal(self, command: Dict, game_state) -> Dict:
+        """Bring a marshal back from administrative duty to field command.
+
+        The `administrative_role` redemption answer freezes a man's corps,
+        zeroes his strength and location, buys +1 action, and tells the
+        player *"their N troops await future assignment"* — a promise no
+        production verb could keep. The only restore was the debug cheat
+        `/debug admin <name>`, which is why FA-71 called it an unowned GR9
+        deferral inside player-facing copy.
+
+        Shape (gate ruling FA-S9-D1): 1 ADMIN action point, restores
+        `administrative_strength` at the capital or the richest still-held
+        homeland province, hands back the bonus action, and leaves the
+        redemption cooldown to gate how soon he may be asked again.
+
+        **The name rides `command["target"]`, not `command["marshal"]`** —
+        the `recruit_marshal` precedent. An administrative man has
+        `strength = 0` and `location = None`, which are degenerate for
+        every marshal pre-gate in `CommandExecutor.execute` and for the
+        objection battery; carrying him as a target keeps him out of all
+        of them.
+
+        **Location: the gate's wording, not FA-71's.** The row's own
+        `fix_shape` says "at `administrative_location`/capital", and that
+        is the measured hazard — his old province may be in enemy hands,
+        and restoring him there teleports 22,000 men into it with no
+        battle. `recruitment.find_spawn_region` is the only helper that
+        respects the controller, and the debug arm's `or 'Paris'` fallback
+        is deliberately NOT copied: a France that holds no soil refuses
+        honestly instead of mustering an army in a lost capital.
+        """
+        world = game_state["world"] if isinstance(game_state, dict) else game_state
+        name = (command.get("target") or command.get("marshal") or "").strip()
+
+        admin_marshals = world.get_admin_marshals()
+        if not name:
+            if not admin_marshals:
+                return {
+                    "success": False,
+                    "message": ("No marshal is at the desk, Sire. "
+                                "Everyone who can hold a command holds one."),
+                }
+            listed = ", ".join(m.name for m in admin_marshals)
+            return {
+                "success": False,
+                "message": f"Recall whom, Sire? At the desk: {listed}.",
+            }
+
+        marshal = world.get_marshal(name)
+        if marshal is None:
+            listed = (", ".join(m.name for m in admin_marshals)
+                      if admin_marshals else "nobody")
+            return {
+                "success": False,
+                "message": (f"There is no Marshal {name} on our rolls, Sire. "
+                            f"At the desk: {listed}."),
+            }
+
+        if marshal.nation != world.player_nation:
+            return {
+                "success": False,
+                "message": f"{marshal.name} is not a {world.player_nation} marshal.",
+            }
+
+        if getattr(marshal, "captured_by", ""):
+            return {
+                "success": False,
+                "message": (f"{marshal.name} is a prisoner of "
+                            f"{marshal.captured_by}, Sire. He must be "
+                            f"exchanged before he can be recalled."),
+            }
+
+        if not getattr(marshal, "administrative", False):
+            return {
+                "success": False,
+                "message": (f"{marshal.name} is already in field command, "
+                            f"Sire."),
+            }
+
+        frozen = int(getattr(marshal, "administrative_strength", 0) or 0)
+        if frozen <= 0:
+            # A campaign saved before FA-S9-D1 serialized these fields has
+            # the flag but not the men. Refuse rather than silently restore
+            # an empty corps and charge for it.
+            return {
+                "success": False,
+                "message": (f"{marshal.name}'s corps was dispersed, Sire — "
+                            f"there are no men left under his old colours to "
+                            f"call back. He must be given a fresh command."),
+            }
+
+        from backend.game_logic.recruitment import find_spawn_region
+        destination = find_spawn_region(world, marshal.nation)
+        if not destination:
+            return {
+                "success": False,
+                "message": (f"There is no soil left to muster {marshal.name} "
+                            f"on, Sire. Retake a province of our own first."),
+            }
+
+        marshal.administrative = False
+        marshal.strength = frozen
+        marshal.location = destination
+        marshal.administrative_strength = 0
+        marshal.administrative_location = None
+        marshal.clear_iron_resolve()   # MC-1c: back on the map, no coil
+        world.bonus_actions = max(0, int(getattr(world, "bonus_actions", 0)) - 1)
+        if hasattr(world, "refresh_marshal_indexes"):
+            world.refresh_marshal_indexes()
+
+        return {
+            "success": True,
+            "message": (
+                f"{marshal.name} returns to field command at {destination} "
+                f"with {frozen:,} men. Maximum actions: "
+                f"{world.calculate_max_actions()}."),
+            "should_end_turn": (world.actions_remaining <= 0
+                                and world.admin_actions_remaining <= 1),
+        }
+
     def _execute_recruit_marshal(self, command: Dict, game_state) -> Dict:
         """Commission a new marshal from the nation's authored candidate
         pool: authored gold price + an initial corps drawn from the

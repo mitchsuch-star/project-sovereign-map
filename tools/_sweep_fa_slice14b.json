@@ -1,0 +1,100 @@
+[
+  {
+    "id": "FA-S9-D1 the flag stops serializing",
+    "file": "backend/models/marshal.py",
+    "old": "            \"administrative\": bool(self.administrative),",
+    "new": "",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheFrozenMenSurviveTheSave tests/test_serialization_enforcement.py"
+  },
+  {
+    "id": "FA-S9-D1 the frozen corps stops serializing",
+    "file": "backend/models/marshal.py",
+    "old": "            \"administrative_strength\": int(self.administrative_strength),",
+    "new": "",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheFrozenMenSurviveTheSave tests/test_serialization_enforcement.py"
+  },
+  {
+    "id": "FA-S9-D1 from_dict forgets the flag",
+    "file": "backend/models/marshal.py",
+    "old": "        marshal.administrative = bool(data.get(\"administrative\", False))",
+    "new": "        marshal.administrative = False",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheFrozenMenSurviveTheSave"
+  },
+  {
+    "id": "FA-S9-D1 the recall restores at the old province instead of held soil",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        from backend.game_logic.recruitment import find_spawn_region\n        destination = find_spawn_region(world, marshal.nation)",
+    "new": "        from backend.game_logic.recruitment import find_spawn_region\n        destination = (getattr(marshal, \"administrative_location\", None)\n                       or find_spawn_region(world, marshal.nation))",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_he_is_restored_on_soil_we_actually_hold tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_debug_cheat_also_restores_on_held_soil"
+  },
+  {
+    "id": "FA-S9-D1 the bonus action is not handed back",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        world.bonus_actions = max(0, int(getattr(world, \"bonus_actions\", 0)) - 1)",
+    "new": "        pass",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_promise_is_keepable"
+  },
+  {
+    "id": "FA-S9-D1 the frozen corps is not cleared, so the men can be recalled twice",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        marshal.administrative_strength = 0\n        marshal.administrative_location = None",
+    "new": "        pass",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_promise_is_keepable"
+  },
+  {
+    "id": "FA-S9-D1 a pre-slice save silently restores nobody",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if frozen <= 0:",
+    "new": "        if False:",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_a_pre_slice_save_refuses_rather_than_restoring_nobody"
+  },
+  {
+    "id": "FA-S9-D1 a prisoner may be recalled",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if getattr(marshal, \"captured_by\", \"\"):\n            return {\n                \"success\": False,\n                \"message\": (f\"{marshal.name} is a prisoner of \"",
+    "new": "        if False:\n            return {\n                \"success\": False,\n                \"message\": (f\"{marshal.name} is a prisoner of \"",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_a_prisoner_is_not_recalled"
+  },
+  {
+    "id": "FA-S9-D1 a man already in the field is recalled again",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if not getattr(marshal, \"administrative\", False):",
+    "new": "        if False:",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_refusals_cost_nothing"
+  },
+  {
+    "id": "FA-S9-D1 the name is carried as a marshal again, so the roster drops it",
+    "file": "backend/commands/parser.py",
+    "old": "        if llm_result.get(\"action\") in (\"recruit_marshal\", \"recall_marshal\"):",
+    "new": "        if llm_result.get(\"action\") in (\"recruit_marshal\",):",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_name_rides_target_not_marshal tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_verb_parses_and_does_not_eat_the_fleet"
+  },
+  {
+    "id": "FA-S9-D1 the naval guard is dropped, so `recall the fleet` recalls a marshal",
+    "file": "backend/ai/llm_client.py",
+    "old": "        elif (re.search(r\"\\brecall\\b\", command_lower)\n              and not _RECALL_IS_NAVAL_RE.search(command_lower)):",
+    "new": "        elif re.search(r\"\\brecall\\b\", command_lower):",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_a_naval_recall_is_never_a_marshal_recall"
+  },
+  {
+    "id": "FA-S9-D1 the verb stops being an admin action",
+    "file": "backend/commands/meta_executor.py",
+    "old": "                 \"recall_marshal\",\n                 \"build_fleet\"}",
+    "new": "                 \"build_fleet\"}",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_verb_is_priced_as_an_administrative_act tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_promise_is_keepable"
+  },
+  {
+    "id": "FA-S9-D1 the debug cheat keeps its own copy of the restore",
+    "file": "backend/commands/meta_executor.py",
+    "old": "                result = self._executor._economy._execute_recall_marshal(\n                    {\"target\": marshal.name}, game_state)",
+    "new": "                marshal.administrative = False\n                marshal.strength = strength\n                marshal.location = (\n                    getattr(marshal, 'administrative_location', None)\n                    or world.get_nation_capital(marshal.nation))\n                world.bonus_actions = max(0, world.bonus_actions - 1)\n                result = {\"success\": True}",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_debug_cheat_delegates_to_the_verb tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_debug_cheat_also_restores_on_held_soil"
+  },
+  {
+    "id": "FA-71 the copy goes back to promising a restoration nobody can perform",
+    "file": "backend/commands/disobedience.py",
+    "old": "His {marshal.administrative_strength:,} troops are held in depot — `recall {marshal_name}` brings both back for 1 administrative action.",
+    "new": "Their {marshal.administrative_strength:,} troops await future assignment.",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRecallVerb::test_the_arm_names_the_verb_it_promises"
+  }
+]

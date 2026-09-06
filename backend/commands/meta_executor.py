@@ -29,6 +29,9 @@ from backend.display_names import proposal_display_name as _proposal_display_nam
 # administrative act (1 admin AP + 400g in-executor); the AI rung shares it.
 ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  "grant_pension", "revoke_pension", "recruit_marshal",
+                 # FA-S9-D1 (slice 14): recalling a man from the desk
+                 # is an administrative act, like commissioning one.
+                 "recall_marshal",
                  "build_fleet"}
 
 
@@ -1556,19 +1559,26 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 }
 
             if getattr(marshal, 'administrative', False):
-                marshal.administrative = False
+                # FA-S9-D1 (slice 14): the RESTORE direction delegates to the
+                # production verb so the cheat and `recall <marshal>` cannot
+                # drift. It also fixes the cheat's own hazard, which the row
+                # named as its fix shape and the reproduction measured: the
+                # old arm restored at `administrative_location` with a bare
+                # `or 'Paris'` fallback, so 22,000 men could reappear inside
+                # a province the enemy now holds, with no battle. The verb
+                # uses `recruitment.find_spawn_region`, the only helper that
+                # respects the controller, and refuses honestly when the
+                # nation holds no soil.
                 strength = getattr(marshal, 'administrative_strength', 0)
-                location = (getattr(marshal, 'administrative_location', None)
-                            or world.get_nation_capital(marshal.nation) or 'Paris')
-                marshal.strength = strength
-                marshal.location = location
-                marshal.clear_iron_resolve()  # MC-1c: back on the map, no coil
-                world.bonus_actions = max(0, getattr(world, 'bonus_actions', 0) - 1)
+                result = self._executor._economy._execute_recall_marshal(
+                    {"target": marshal.name}, game_state)
+                if not result.get("success"):
+                    return result
                 return {
                     "success": True,
-                    "message": f"🔧 DEBUG: {marshal.name} restored from admin. "
-                              f"{strength:,} troops at {location}. "
-                              f"Max actions now: {world.calculate_max_actions()}"
+                    "message": (f"🔧 DEBUG: {marshal.name} restored from admin. "
+                                f"{strength:,} troops at {marshal.location}. "
+                                f"Max actions now: {world.calculate_max_actions()}")
                 }
 
             field_marshals = world.get_field_marshals()

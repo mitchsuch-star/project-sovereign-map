@@ -451,6 +451,94 @@
 > |---|---|---|---|---|
 > | **FA-S13-1** | P4 | **Three residues from the slices 12+13 review round, each measured, each deliberately out of that round's scope.** (a) **The two map-key routes read different fields.** `map_renderer_base.gd::_unhandled_input` matches `event.physical_keycode` for M / Home / +/−; `main.gd::_alt_game_key`, added by slice 13, matches `event.keycode`. On a non-US layout the bare key and its Alt form therefore answer different physical keys. A refuter measured which half is the odd one and it is **not** the slice's: `keycode` is the layout-mapped value a player expects from a labelled key, and the `physical_keycode` half is five months old and untouched by slice 13 — so this is a pre-existing inconsistency the new call sits beside, not one it created. (b) **The "free win" reached only one route.** `cycle_map_fill_mode() -> String` returns the new mode; the Alt route prints it to the terminal, the bare route in `map_renderer_base` still discards it, so a player who clicks the map and presses M is told nothing. It cannot simply be copied — the map renderer has no terminal to write to and would need a signal or a call back into `main.gd`. (c) **The Settings credits line hard-codes the SHIPPED layout.** `settings_panel.gd` now says the notices are "beside the game, with the per-family notices in `licenses\`", which is true of the zip and false of a source checkout — in the same slice that created `Utils.launch_hint()` precisely because a location claim depends on which build is running. Also recorded, not filed: the strategic debug line prints `(issued turn None)` for the treaty's order, which is dev-facing stdout only. | `godot-client/project-sovereign/scenes/map_renderer_base.gd::_unhandled_input` vs `scripts/main.gd::_alt_game_key` · `map_renderer_base.gd::cycle_map_fill_mode` and its bare caller · `scripts/settings_panel.gd` (the credits line) | ⚠ **OPEN — filed September 5, 2026 by the slices 12+13 review round.** Owner: **slice 16** (the copy sweep), which already owns the P3/P4 remainder and touches these surfaces. Done when (a) both routes read the same field with the choice stated in a comment, (b) the bare map-key route either reports the mode or the Alt route's report is documented as the only one and why, and (c) the credits line branches on `OS.has_feature("editor")` like `Utils.launch_hint()` does — each with a pin. |
 
+> ### ✅ SLICE 14 (part 2a) — "THE DESK IS NOT A ONE-WAY DOOR" — FIXED September 5, 2026
+>
+> **Landing record: this block.** Rows closed: **FA-S9-D1** (ruling 3),
+> **FA-71** (absorbed by it), **FA-S9-D2** (ruling 4, recorded as design in
+> `SYSTEMS_REFERENCE.md` §7 rather than built). Sweep **14 mutations, 14
+> killed, 0 INERT, 0 BROKEN**; parser eval **681/681** (6 new corpus rows);
+> M1–M7 and `BASELINE_SERIES` untouched — no AI path reads any of this.
+> **THREE new serialized fields**, and their absence was a defect of its own.
+>
+> ---
+>
+> **The gate asked for a verb. The reproduction found the verb could not
+> work.** `administrative`, `administrative_strength` and
+> `administrative_location` were ad-hoc attributes assigned in two files and
+> declared NOWHERE — the string `administrative` did not appear in
+> `marshal.py` at all — so none of them survived a save. `recall` on a loaded
+> campaign would have restored **0 men at `None`**. Serialization landed
+> first, and it closes three measured consequences that were live before any
+> verb existed:
+>
+> * **The slice-9 attrition exemption was defeated by one load.**
+>   `ADMINISTRATIVE_EXEMPT_FROM_ATTRITION` reads the flag; with the flag gone
+>   the sweep **DESTROYED** the frozen marshal and logged it — the exact P1
+>   that review round had landed a fix for, resurrected by the save. Its own
+>   pin cannot see it, because that test never saves.
+> * **The max-one-admin rule was reset by a load, and the +1 action
+>   compounded.** Both copies of the gate read `get_admin_marshals()`, which
+>   read the lost flag. Save / freeze / load / repeat was an **unbounded
+>   military-AP farm**, one permanent action per marshal — measured to three.
+> * **The ghost counted as a FIELD marshal again**, which is FA-N77's family
+>   one layer over. (Part 1's `strength > 0` clause closes that one
+>   independently; both reasons are worth having and both are pinned.)
+>
+> ---
+>
+> **The verb.** `recall <marshal>` — 1 ADMIN action point, the corps restored
+> at `recruitment.find_spawn_region`, the bonus action handed back,
+> `redemption_cooldown_until` gating how soon he may be asked again. The loop
+> is AP-neutral across the two pools by design: the freeze buys a MILITARY
+> action, the recall spends an ADMINISTRATIVE one. He returns at the trust
+> that broke him, so the question re-fires — a fair loop rather than a reset.
+>
+> **The restore destination is the GATE's wording and not the ROW's, and the
+> difference is the whole safety of it.** FA-71's `fix_shape` says "at
+> `administrative_location`/capital"; the debug cheat implemented exactly
+> that with a bare `or 'Paris'` fallback, so 22,000 men could reappear inside
+> a province the enemy now holds, with no battle. `find_spawn_region` is the
+> only helper that respects the controller, and a nation with no soil is
+> refused honestly. **The debug cheat now DELEGATES to the verb**, so the two
+> cannot drift and the cheat inherits the held-soil rule it never had. This
+> is an eighth member of the `fix_shape`-contradicts-`summary` family.
+>
+> **The name rides `command["target"]`, never `command["marshal"]`** — the
+> `recruit_marshal` precedent, and not a stylistic choice. A man at the desk
+> has `strength = 0` and `location = None`, so he is absent from the
+> live-derived roster and degenerate for every marshal pre-gate. Measured:
+> `recall Murat` parsed correctly at the mock chain — action, target,
+> confidence 0.9 — and came out of `CommandParser.parse` as **action None**,
+> because the generic ladder had also filled `marshals` and the roster step
+> dropped the whole command.
+>
+> **A pre-slice save refuses rather than restoring nobody.** A campaign saved
+> before this has the flag but not the men; restoring an empty corps and
+> charging an action for it would be the worse answer.
+>
+> **`recall` is also the naval posture vocabulary.** `recall the fleet` and
+> `recall the squadron to home waters` are claimed by the fleet arms ABOVE
+> this one, so they never exercise the guard — a mutation deleting it left
+> both green. The case that proves the guard load-bearing is `recall the
+> ships` / `the navy` / `the admiral`, which the posture arm does not claim
+> and which would otherwise become marshal recalls. That they parse to
+> nothing today is a stated limit, not this row's business.
+>
+> ---
+>
+> **FA-S9-D2 (ruling 4) is RECORDED, not built.** A marshal with a standing
+> redemption question keeps taking orders, and `SYSTEMS_REFERENCE.md` §7 now
+> says so with the reason: he is demanding an audience, not mutinying, and
+> slice 9 made the window ordinary — gating his orders would idle a corps for
+> a whole turn on a modal the client intercepts before it is even sent.
+>
+> **⛔ The method note, for the third time in one slice.** A source census
+> read my own COMMENT: the pin asserting the debug arm's `or 'Paris'`
+> fallback was gone went red on the comment explaining why it was removed.
+> It is scoped to code lines now AND has a behavioural sibling that no prose
+> can satisfy — the cheat is driven, and the marshal must land on soil France
+> actually holds.
+
 > ### ✅ SLICE 14 (part 1) — "THE RULINGS" — FIXED September 5, 2026
 >
 > **Landing record: this block.** Rows closed: **FA-D28** (ruling 2), **FA-R5**,
@@ -3578,7 +3666,7 @@
 | **FA-68** | P3 | **Two marshals raising interrupts in one end turn: only the first is asked, the rest silently lose the turn and their question.** `process_strategic_orders` (backend/commands/strategic.py:284-320) defers every marshal with a pending or new interrupt (:299-302) and pass 2 `break`s after the first report with `requires_input` (:315). The remaining deferred marshals are never passed to `_execute_strategic_turn`: no movement, no report row, no `pending_interrupt` stored (`_check_interrupts` in pass 1 only computes it). Next turn `clear_turn_battles` (world_state.py:9495) has wiped the battle, so a cannon-fire question is gone for good. *Fix:* ONE seam: replace the `break` at :315 with 'continue processing but store' — for each further deferred marshal call `_execute_strategic_turn` and let `requires_input` results latch `marshal.pending_interrupt` (step 0a at :880-890 already renders any number of pending marshals as `awaiting_response` rows); the client queue and the driver's `_interru… | `backend/commands/strategic.py:315` | **OPEN** — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **VERIFIED (Sept 2 verification)** · ✅ **FIXED September 4, 2026 — FA slice 3 "The Order Tells the Truth" (landing record in §Final Whole-Game Audit)** |
 | **FA-69** | P3 | **W6-8 estate-stage modal and terminal print the raw marshal key ('Marshal ArchdukeCharles's household').** DUPLICATE of N27 (an unenumerated instance, not a new bug class): capture_executor.py:225 stamps `estate_holder: holder.name` (raw camelCase) into `capture_data`; the sentence at capture_executor.py:236 interpolates it raw ('Marshal ArchdukeCharles's household') while the SAME function already routes the nation through `formed_display_name` two lines later — an inconsistency within one function. capture_choice_dialog.gd:60 (region_label, not the static title at :59) renders `estate_holder` verbatim client-side too, and :57/62/63 separately never calls the client's own `Utils.display_nation_name()` for `estate_holder_nation` (a gap N27 does not track). Reachability is directly confirmed (not… *Fix:* ONE producer seam: `_maybe_mount_estate_choice` keeps `estate_holder` as the machine key (handle_capture_choice:256 re-reads it) and adds `estate_holder_display = humanize_entity_name(holder.name)` + `estate_holder_nation_display = formed_display_name(...)`, using the display forms in the :236 sentence; capture_choice_dialog.gd:56-57 reads the `_di… | `backend/commands/capture_executor.py:225` | **OPEN** — memo §3; NARROWED (refuter corrected it; the corrected reading is what follows) · **NARROWED (Sept 2 verification)** |
 | **FA-70** | P3 | **War Detail prints 'Enemy War Exhaustion' twice for fleetless enemies and never for fogged fleet-holders (NV-12 regression).** In war_detail_popup.gd, the `else: bbcode += \"Enemy War Exhaustion: ... Unknown\"` at line 439-440 is attached to `if naval_line != \"\":` (line 437) instead of to `if we != null:` (line 424, whose block ends unclosed at 431 with no else). NV-12 (commit cd1be00e) inserted the fleet-line block between the WE `if` and its original `else`. Fleetless courts (naval_line==\"\", e.g. Austria/Prussia/Hanover/KingdomOfItaly/PapalStates per europe_1805.json's `ships:0` rows) with known (unfogged) WE print BOTH 'Enemy War Exhaustion: N' and a contradictory 'Enemy War Exhaustion: Unknown'. Fogged fleet-holding opponents (naval_line!=\"\", we==null) print the fleet line and NO war-exhaustion line at all… *Fix:* ONE seam: war_detail_popup.gd `_render_war_detail` — move the `else: … Unknown` back under `if we != null:` (lines 423-431) and make the naval block (436-438) a standalone `if naval_line != ""` with no else. | `godot-client/project-sovereign/scripts/war_detail_popup.gd:439` | **OPEN** — memo §3; PLAUSIBLE (one refuter) · **VERIFIED (Sept 2 verification)** |
-| **FA-71** | P3 | **Administrative role is a one-way door: the promised 'future restoration' exists only as a debug cheat — an unowned GR9 deferral inside player-facing copy.** The redemption arm's description promises 'Troops frozen for future restoration' (disobedience.py:1512) and its handler comments 'Store data for future restoration (Phase 4)' (disobedience.py:1698); the marshal's strength goes to 0 and location to None (1701-1704). Verified by grepping: the ONLY write of `marshal.administrative = False` in backend/ is meta_executor.py:1541, inside `_execute_debug` (function head at meta_executor.py:742, the next `def` is `_execute_cheat` at 2256) — a debug-mode-only branch. No parser verb, executor action, corpus row, or DESIGN_REFINEMENT/ROADMAP/FUTURE_DESIGN row owns the restoration (grep 'future restoration\|administrative staff\|Transfer .* to Staff' acros… *Fix:* Either (a) ONE new admin action `recall_marshal` (1 admin AP, at the capital) mirroring the debug branch meta_executor.py:1536-1560 (restore `administrative_strength` at `administrative_location`/capital, decrement `bonus_actions`, recompute max actions) wired through the 12-step new-action checklist, or (b) delete the promise from the copy at diso… | `backend/commands/disobedience.py:1512` | **OPEN** — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **VERIFIED (Sept 2 verification)** |
+| **FA-71** | P3 | **Administrative role is a one-way door: the promised 'future restoration' exists only as a debug cheat — an unowned GR9 deferral inside player-facing copy.** The redemption arm's description promises 'Troops frozen for future restoration' (disobedience.py:1512) and its handler comments 'Store data for future restoration (Phase 4)' (disobedience.py:1698); the marshal's strength goes to 0 and location to None (1701-1704). Verified by grepping: the ONLY write of `marshal.administrative = False` in backend/ is meta_executor.py:1541, inside `_execute_debug` (function head at meta_executor.py:742, the next `def` is `_execute_cheat` at 2256) — a debug-mode-only branch. No parser verb, executor action, corpus row, or DESIGN_REFINEMENT/ROADMAP/FUTURE_DESIGN row owns the restoration (grep 'future restoration\|administrative staff\|Transfer .* to Staff' acros… *Fix:* Either (a) ONE new admin action `recall_marshal` (1 admin AP, at the capital) mirroring the debug branch meta_executor.py:1536-1560 (restore `administrative_strength` at `administrative_location`/capital, decrement `bonus_actions`, recompute max actions) wired through the 12-step new-action checklist, or (b) delete the promise from the copy at diso… | `backend/commands/disobedience.py:1512` | ✅ **FIXED September 5, 2026 — FA slice 14 (part 2a), absorbed by FA-S9-D1's `recall <marshal>`** (landing record = the boxed SLICE 14 (part 2a) block in §Final Whole-Game Audit). The row's option (a) is built, not its option (b): the promise is kept rather than deleted. **Its own `fix_shape` is the measured hazard and was NOT followed** — "at `administrative_location`/capital" is what the debug cheat did, with a bare `or 'Paris'` fallback, so 22,000 men could reappear inside a province the enemy now holds with no battle; the gate's wording (`recruitment.find_spawn_region`) is built instead and the cheat now delegates to the verb. **Found while building:** the three fields the arm writes were serialized NOWHERE, so one save deleted the flag, the men and the max-one-admin rule — the slice-9 attrition exemption stopped covering him and the sweep destroyed him, and save-freeze-load-repeat was an unbounded +1-military-action farm. |
 | **FA-72** | P3 | **Answer-policy artifacts the memo must not file as game behaviour — and one latent policy bug (the 'no' needle matches honor_defender, so a paradox declares war under decline).** Each default is a decision with a measured consequence in the archived arms, verified by opening the option producers: (a) `interrupt: first` picks options[0] — `fight_to_the_last` for a last stand (combat_executor.py:3320) and `attack_anyway` for contact_bad_odds (strategic.py:1166) — so Ney's captivity (flagship 22→23) and the bad-odds attacks are the driver's choices; (b) `petition: first_enabled` picks `concede` on Fontainebleau (jealousy.py:2223 — rentes granted to every eroding marshal; flagship turns 11, 19), `detach` on shadow_command (:2336; turns 16, 23) and `accept_breach` on rivalry (:2156) — the reward economy and roster are reshaped by policy, so the flagship's net falling +234… *Fix:* ONE seam: `_pick_dialogue_choice` — match needles against `_`-split tokens of the option id, not substrings, and add explicit policy keys for the standalone decisions (`paradox`, `last_stand`, `contact`, `petition` per kind) whose defaults are the least state-changing arm (attempt_breakout / hold_position / acknowledge); document in PLAYTESTING.md… | `tools/playtest_driver.py:1100` | **OPEN** — memo §3; HARNESS (author-checked, no refuter) · **VERIFIED (Sept 2 verification)** |
 | **FA-73** | P3 | **Corpus rows 'Ney, cover the retreat' / 'Ney, fix bayonets' pin a fast-parser refusal as a LIVE contract the prompt never made — the 527/531 live result is a corpus error, and the real PS18-5 harm has no live pin at all.** tests/data/parser_golden_corpus.json:3460-3481 assert `success:false` + 'Unknown action' on `world: any` with NO `mock_only` flag (verified by opening), while the eleven sibling rows that pin V2-55 fast-parser refusal shapes (e.g. :261-270 'break through enemy lines') carry `mock_only: true` with the note that the live LLM 'legitimately interprets the utterance'. The live layer cannot refuse these: PARSE_TOOL (providers.py:164-172) allows 'unknown' only 'when the prompt's rules forbid guessing', and the prompt's only such rule is the literal-delegation rule (prompt_builder.py:440-449); there is no guidance for a deed no action models (grep for cover/screen/bayonet in prompt_builder.py: none)… *Fix:* Mark both rows `mock_only: true` and add two `live_only` twins with `not_action: "retreat"` and `not_action: "repair"` respectively (the harness already supports both flags and `not_action`); optionally one prompt line under Valid Actions: 'an order naming a deed no listed action models (screening, drill, restoring order) → unknown'. | `tests/data/parser_golden_corpus.json:3462` | **✅ FIXED September 4, 2026 (slice 7 — the mock speaks plainly)** — was OPEN (both live twins pass; the live layer reads both as `charge`) — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **NARROWED (Sept 2 verification)** |
 | **FA-74** | P3 | **Harness: a REFUSED dialogue answer is recorded as answered, so the driver never retries an offer after its blocker clears — the digest under-reports the AI's offers and cannot tell a stale-order refusal from a real one.** tools/playtest_driver.py:906-909 adds `did` to `_answered_dialogue_ids` BEFORE the POST reply is read; :931-935 then adds the refused word to `_refused_choices` keyed by dialogue id; `_dialogue_choice` (:987-1005) returns None once the only known word is refused → '(left standing)' (:904). So after the finding-1 stale refusal the SAME offer, now legitimately active and re-derived by the safety valve on every response, is logged '(stale passthrough — #17 already answered this chain)' (audit-flagship-mock:132-133) and then '#17 → (left standing)' (:135), and lapses at end turn. Verified by opening. The driver also reads every popup key on one response as independent `if`s (scan(), :640-905) wh… *Fix:* In the dialogue arm (driver:906-935): only add `did` to `_answered_dialogue_ids` and `_refused_choices` when `reply.get('stale_dialogue')` is falsy; on a stale refusal, leave the id un-answered so the next passthrough of that id is answered again (one retry per chain). | `tools/playtest_driver.py:909` | ✅ **FIXED September 2, 2026 (slice 8)** — merge candidate with FA-10, CLOSED by the same edit. Not the same edit and not independent: this half is chain-scoped, FA-10's is run-scoped, and applying this one AS WRITTEN alongside it produces the ANSWER CYCLE regression (measured 4/4/2) |

@@ -974,6 +974,11 @@ class WorldState:
             # the authored gold price + the initial corps from the infantry
             # manpower pool, all charged in-executor.
             "recruit_marshal": 1,
+            # FA-S9-D1 (slice 14): an ADMIN action. Note the asymmetry
+            # deliberately: the freeze BUYS a military action and the
+            # recall SPENDS an administrative one, so the loop is
+            # AP-neutral across the two pools rather than free.
+            "recall_marshal": 1,
             # AI-2b D5 counter-instruments: 1 DP each, charged in the
             # executor (the request_terms idiom) — never AP.
             "sponsor_design": 0,

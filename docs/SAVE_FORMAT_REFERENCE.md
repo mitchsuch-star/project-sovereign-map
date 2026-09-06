@@ -435,6 +435,9 @@ Reserved future `event_log` payloads:
   "dotation_regions": ["Swabia"],
   "expectation_grace_turn": -1,
   "expectation_covered_at_freeze": -1,
+  "administrative": false,
+  "administrative_strength": 0,
+  "administrative_location": null,
   "pension": 0,
   "last_expectation_seen": 0,
 
@@ -578,6 +581,9 @@ Reserved future `event_log` payloads:
 | `dotation_regions` | list | Provinces endowed to this marshal — their full effective income redirects to his household; pruned when a province leaves the nation's hands. Default `[]`. |
 | `expectation_grace_turn` | int | Turn an unmet reward expectation was first observed (-1 = none). Erosion fires after the `dotation.GRACE_TURNS` grace window (4 since Aug 23, 2026; was 2). Save-compat: absent → -1, so old saves take no retroactive erosion. |
 | `expectation_covered_at_freeze` | int | FA-N46 (slice 14). The expectation a FROZEN grace clock is covering, or -1 when none is frozen. WO-18 freezes the clock on a met turn bought by a load-bearing rente; this records WHAT it covered, so the unmet branch can tell a shortfall that re-opened because the marshal WON AGAIN (a new window is owed) from one that re-opened because the payment STOPPED (WO-18's dodge — no new window). Save-compat: absent → -1, which is how pre-slice saves behaved. |
+| `administrative` | bool | FA-S9-D1 (slice 14). True while the marshal sits at the desk (the `administrative_role` redemption answer). **Declared and serialized only since slice 14** — before it, all three of these were ad-hoc attributes set by assignment in two files and absent from this model entirely, so one save deleted the flag, the men and the max-one-admin rule: the attrition sweep then DESTROYED him, and save-freeze-load-repeat was an unbounded +1-military-action farm. Save-compat: absent → false. |
+| `administrative_strength` | int | The corps held in depot while he is at the desk; `recall <marshal>` restores exactly this and zeroes it. Absent → 0, which is why a pre-slice save refuses the recall honestly rather than restoring an empty corps. |
+| `administrative_location` | str/null | Where he was standing when he was frozen. Kept for the record and NOT used as the restore destination — `recruitment.find_spawn_region` is, because the old province may be in enemy hands. Absent → null. |
 | `pension` | int | ES-7 second pass (§0.6.8): the rente FACE in g/turn. Counts fully toward satisfaction; the treasury pays `ceil(1.5 × face)`/turn through the income phase. Neither pays nor counts while captured (W6-7). Default `0`. |
 | `last_expectation_seen` | int | Last expectation value announced in the Morning Dispatch's expectation-rise lines; reconciled at dispatch build. Default `0`. |
 

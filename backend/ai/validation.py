@@ -97,6 +97,8 @@ VALID_ACTIONS: Set[str] = {
     # Marshal Recruitment (Jealousy v3.2 final phase) — "commission Grouchy";
     # target = candidate name from the nation's authored marshal_pool.
     "recruit_marshal",
+    # FA-S9-D1 (slice 14): bring a marshal back from the desk.
+    "recall_marshal",
     # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5) — nation-target
     # diplomacy verbs, 1 DP each charged in-executor:
     "sponsor_design",    # "sponsor Prussia against Austria, 200 gold" (0 = licence)
@@ -195,6 +197,7 @@ NON_ORDER_ACTIONS = frozenset({
 # strategic layer ever runs — measured, no unknown parse is rescued today).
 ADMINISTRATIVE_ACTIONS = frozenset({
     "grant_pension", "revoke_pension", "grant_dotation", "recruit_marshal",
+    "recall_marshal",
     "recruit", "build", "repair", "garrison",
 })
 NEVER_STRATEGIC_ACTIONS = frozenset(

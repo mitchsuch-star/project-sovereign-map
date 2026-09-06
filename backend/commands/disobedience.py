@@ -1608,7 +1608,7 @@ class DisobedienceSystem:
             options.append({
                 'id': 'administrative_role',
                 'text': f"Transfer {marshal.name} to Staff",
-                'description': f"{marshal.name} joins the administrative staff. Troops frozen for future restoration. You gain +1 action per turn.",
+                'description': f"{marshal.name} joins the administrative staff. His corps is frozen; `recall {marshal.name}` returns him to the field for 1 administrative action. You gain +1 action per turn.",
                 'effect': 'admin_role_plus_one_action',
             })
             print("  [REDEMPTION OPTIONS] Administrative role available (no existing admin)")
@@ -1832,7 +1832,10 @@ class DisobedienceSystem:
         # ADMINISTRATIVE ROLE - Marshal sidelined, troops frozen, +1 action/turn
         # ════════════════════════════════════════════════════════════════════════════
         elif choice == 'administrative_role':
-            # Store data for future restoration (Phase 4)
+            # Store the frozen corps so `recall <marshal>` can return it
+            # (FA-S9-D1, slice 14). All three fields are serialized as of
+            # that slice — before it they were ad-hoc attributes and one
+            # save deleted the men, the flag and the one-admin rule.
             marshal.administrative = True
             marshal.administrative_strength = marshal.strength
             marshal.administrative_location = marshal.location
@@ -1855,7 +1858,7 @@ class DisobedienceSystem:
                 'type': 'redemption_resolved',
                 'choice': 'administrative_role',
                 'marshal': marshal_name,
-                'message': f"{marshal_name} has been transferred to administrative duties. Their {marshal.administrative_strength:,} troops await future assignment. You now have {int(new_max_actions)} actions per turn.",
+                'message': f"{marshal_name} has been transferred to administrative duties. His {marshal.administrative_strength:,} troops are held in depot — `recall {marshal_name}` brings both back for 1 administrative action. You now have {int(new_max_actions)} actions per turn.",
                 'administrative': True,
                 'troops_frozen': int(marshal.administrative_strength),
                 'new_max_actions': int(new_max_actions),

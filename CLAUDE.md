@@ -365,11 +365,23 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 14 part 1: **77 defect rows
-> and 26 design rows / gates still open**, of 232 filed; 113 closed, 16
+> number in a heading. After slice 14 part 2a: **76 defect rows
+> and 24 design rows / gates still open**, of 232 filed; 116 closed, 16
 > disposed (duplicate, refuted, or re-homed). The FA-R family is now empty. The 77 are spoken for by
 > slices 14 (part 2) → 15 → 16;
 > the 26 need rulings, not builds.
+>
+> **▶ SLICE 14 (PART 2a) "THE DESK IS NOT A ONE-WAY DOOR" IS LANDED —
+> September 5, 2026.** Rulings 3 and 4: `recall <marshal>` built (FA-S9-D1,
+> absorbing FA-71), and FA-S9-D2 RECORDED as design in
+> `SYSTEMS_REFERENCE.md` §7 rather than built. **THREE new serialized
+> fields** — `administrative` / `administrative_strength` /
+> `administrative_location` were declared nowhere, so the verb could not have
+> worked, and the gap was already defeating the slice-9 attrition exemption
+> (the sweep DESTROYED the frozen marshal) and making save/freeze/load an
+> unbounded +1-action farm. FA-71's own `fix_shape` is the hazard and was NOT
+> followed. Sweep 14/14, parser eval 681/681. **NEXT = the rest of part 2**:
+> FA-21, FA-31, FA-42, FA-N78, the FA-S12-1/2 decisions.
 >
 > **▶ SLICE 14 (PART 1) "THE RULINGS" IS LANDED — September 5, 2026.**
 > Landing record = the boxed SLICE 14 (part 1) block in `BUG_FIXES.md`; the

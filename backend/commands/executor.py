@@ -2369,6 +2369,8 @@ class CommandExecutor:
             result = self._economy._execute_recruit(command, game_state)
         elif action == "recruit_marshal":
             result = self._economy._execute_recruit_marshal(command, game_state)
+        elif action == "recall_marshal":
+            result = self._economy._execute_recall_marshal(command, game_state)
         elif action == "build":
             result = self._economy._execute_build(command, game_state)
         elif action == "repair":

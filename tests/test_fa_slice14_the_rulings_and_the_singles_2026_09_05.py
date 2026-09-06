@@ -931,3 +931,293 @@ class TestADeedNoActionModelsIsAQuestion:
         for row in twins.values():
             assert row.get("live_only") is True
             assert row["expected"] == {"success": False}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# FA-S9-D1 / FA-71 — the man at the desk comes back
+# ══════════════════════════════════════════════════════════════════════
+
+def _freeze(world, name):
+    """Take the `administrative_role` arm of the redemption audience."""
+    from backend.commands.disobedience import DisobedienceSystem
+    system = DisobedienceSystem()
+    marshal = world.marshals[name]
+    marshal.trust.modify(-100)
+    with contextlib.redirect_stdout(io.StringIO()):
+        event = system.check_redemption_threshold(marshal, world)
+        assert event is not None, "no audience was raised"
+        return system.handle_redemption_response(
+            event, "administrative_role", {"world": world})
+
+
+class TestTheFrozenMenSurviveTheSave:
+    """Commit 1 of the ruling, and a standalone P2: the three attributes
+    the arm writes were declared NOWHERE and serialized NOWHERE."""
+
+    def test_the_three_fields_round_trip(self):
+        world = _europe()
+        _freeze(world, "Murat")
+        before = world.marshals["Murat"]
+        assert before.administrative is True
+        assert before.administrative_strength == 22000
+        with contextlib.redirect_stdout(io.StringIO()):
+            after = WorldState.from_dict(world.to_dict()).marshals["Murat"]
+        assert after.administrative is True
+        assert after.administrative_strength == before.administrative_strength
+        assert after.administrative_location == before.administrative_location
+
+    def test_the_attrition_sweep_spares_him_across_a_save(self):
+        """The measured P1 the slice-9 review round had already fixed once:
+        `ADMINISTRATIVE_EXEMPT_FROM_ATTRITION` reads the flag, so a load
+        that lost the flag handed him back to the sweep. Before this, the
+        sweep ELIMINATED him and logged it."""
+        world = _europe()
+        _freeze(world, "Murat")
+        with contextlib.redirect_stdout(io.StringIO()):
+            loaded = WorldState.from_dict(world.to_dict())
+            assert "Murat" in loaded.marshals
+            loaded.process_supply_attrition()
+        assert "Murat" in loaded.marshals
+
+    def test_the_one_admin_rule_survives_a_save(self):
+        """Save / freeze / load / repeat was an unbounded +1-military-action
+        farm — both copies of the gate read `get_admin_marshals()`, which
+        read the lost flag."""
+        world = _europe()
+        _freeze(world, "Murat")
+        bonus_before = world.bonus_actions
+        with contextlib.redirect_stdout(io.StringIO()):
+            loaded = WorldState.from_dict(world.to_dict())
+        assert len(loaded.get_admin_marshals()) == 1
+        second = _freeze(loaded, "Lannes")
+        assert second.get("success") is False
+        assert loaded.bonus_actions == bonus_before
+
+    def test_a_frozen_marshal_is_not_a_field_marshal_after_a_load(self):
+        """FA-N77's clause covers this independently — a frozen corps is at
+        strength 0 — and both reasons are worth having."""
+        world = _europe()
+        _freeze(world, "Murat")
+        with contextlib.redirect_stdout(io.StringIO()):
+            loaded = WorldState.from_dict(world.to_dict())
+        assert "Murat" not in [m.name for m in loaded.get_field_marshals()]
+
+    def test_an_old_save_reads_the_pre_slice_state(self):
+        from backend.models.marshal import Marshal
+        world = _europe()
+        data = world.marshals["Murat"].to_dict()
+        for key in ("administrative", "administrative_strength",
+                    "administrative_location"):
+            assert key in data
+            del data[key]
+        restored = Marshal.from_dict(data)
+        assert restored.administrative is False
+        assert restored.administrative_strength == 0
+        assert restored.administrative_location is None
+
+
+class TestTheRecallVerb:
+    """Ruling 3. The arm's own copy promised a return to the field that no
+    production verb could grant — the only restore was a debug cheat."""
+
+    def test_the_promise_is_keepable(self):
+        world = _europe()
+        _freeze(world, "Murat")
+        marshal = world.marshals["Murat"]
+        frozen = marshal.administrative_strength
+        bonus_before = world.bonus_actions
+        admin_ap_before = world.admin_actions_remaining
+
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+        from fastapi.testclient import TestClient
+        with contextlib.redirect_stdout(io.StringIO()):
+            M.world = world
+            M.game_state["world"] = world
+            M.parser = CommandParser(use_real_llm=False)
+            data = TestClient(M.app).post(
+                "/command", json={"command": "recall Murat"}).json()
+
+        assert data.get("success") is True
+        assert marshal.administrative is False
+        assert marshal.strength == frozen
+        assert marshal.location is not None
+        # The men are handed over, not duplicated.
+        assert marshal.administrative_strength == 0
+        assert marshal.administrative_location is None
+        # The bonus action goes back, and an ADMIN point paid for it.
+        assert world.bonus_actions == bonus_before - 1
+        assert world.admin_actions_remaining == admin_ap_before - 1
+
+    def test_he_is_restored_on_soil_we_actually_hold(self):
+        """FA-71's own `fix_shape` says "at `administrative_location`/capital"
+        and that is the measured hazard — his old province may be in enemy
+        hands, and the debug arm's `or 'Paris'` would put 22,000 men inside
+        it with no battle. The gate's wording is built instead."""
+        from backend.commands.economy_executor import EconomyExecutor
+        world = _europe()
+        _freeze(world, "Murat")
+        marshal = world.marshals["Murat"]
+        old = marshal.administrative_location
+        world.regions[old].controller = "Austria"
+        world.invalidate_active_nations_cache()
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = EconomyExecutor(None)._execute_recall_marshal(
+                {"target": "Murat"}, {"world": world})
+        assert result["success"] is True
+        assert marshal.location != old
+        assert world.regions[marshal.location].controller == "France"
+
+    @pytest.mark.parametrize("utterance,expected", [
+        ("recall Murat", "recall_marshal"),
+        ("recall marshal Murat", "recall_marshal"),
+        ("recall Murat to the field", "recall_marshal"),
+        # The naval collision: `recall` is the fleet-posture vocabulary too.
+        ("recall the fleet", "set_fleet_posture"),
+        ("recall the squadron to home waters", "set_fleet_posture"),
+    ])
+    def test_the_verb_parses_and_does_not_eat_the_fleet(self, utterance,
+                                                        expected):
+        import backend.main as M   # noqa: F401  (import parity with _drive)
+        from backend.commands.parser import CommandParser
+        world = _europe()
+        with contextlib.redirect_stdout(io.StringIO()):
+            parsed = CommandParser(use_real_llm=False).parse(
+                utterance, {"world": world})
+        assert (parsed.get("command") or {}).get("action") == expected
+
+    @pytest.mark.parametrize("utterance", [
+        "recall the ships",
+        "recall the navy",
+        "recall the admiral",
+    ])
+    def test_a_naval_recall_is_never_a_marshal_recall(self, utterance):
+        """The arm's explicit fleet/squadron/ships/navy/admiral guard, and
+        the case that proves it is load-bearing.
+
+        `recall the fleet` and `recall the squadron` are claimed by the
+        naval posture arms ABOVE this one, so they do not exercise the
+        guard at all — a mutation deleting it left them green. These three
+        are NOT in the posture arm's vocabulary and would become
+        `recall_marshal` without it. That they currently parse to nothing
+        is a stated limit, not this row's business: a shrug is the right
+        side of the line, and turning them into fleet orders would be a
+        widening of the naval vocabulary.
+        """
+        from backend.commands.parser import CommandParser
+        world = _europe()
+        with contextlib.redirect_stdout(io.StringIO()):
+            parsed = CommandParser(use_real_llm=False).parse(
+                utterance, {"world": world})
+        assert (parsed.get("command") or {}).get("action") != "recall_marshal"
+
+    def test_the_name_rides_target_not_marshal(self):
+        """A man at the desk has `strength = 0` and `location = None`, so he
+        is absent from the live-derived roster. Carried as `marshal` the
+        whole command parsed to action None — measured."""
+        from backend.commands.parser import CommandParser
+        world = _europe()
+        with contextlib.redirect_stdout(io.StringIO()):
+            parsed = CommandParser(use_real_llm=False).parse(
+                "recall marshal Murat", {"world": world})
+        command = parsed.get("command") or {}
+        assert command.get("target") == "Murat"
+        assert command.get("marshal") is None
+
+    @pytest.mark.parametrize("setup,name,fragment", [
+        (None, "Murat", "already in field command"),
+        ("Murat", "Nobody", "no Marshal Nobody"),
+        ("Murat", "Ney", "already in field command"),
+    ])
+    def test_the_refusals_cost_nothing(self, setup, name, fragment):
+        from backend.commands.economy_executor import EconomyExecutor
+        world = _europe()
+        if setup:
+            _freeze(world, setup)
+        before = world.admin_actions_remaining
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = EconomyExecutor(None)._execute_recall_marshal(
+                {"target": name}, {"world": world})
+        assert result["success"] is False
+        assert fragment in result["message"]
+        assert world.admin_actions_remaining == before
+
+    def test_a_pre_slice_save_refuses_rather_than_restoring_nobody(self):
+        """A campaign saved before the fields were serialized has the flag
+        but not the men. Restoring 0 men and charging for it would be the
+        worse answer."""
+        from backend.commands.economy_executor import EconomyExecutor
+        world = _europe()
+        _freeze(world, "Murat")
+        world.marshals["Murat"].administrative_strength = 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = EconomyExecutor(None)._execute_recall_marshal(
+                {"target": "Murat"}, {"world": world})
+        assert result["success"] is False
+        assert "dispersed" in result["message"]
+        assert world.marshals["Murat"].administrative is True
+
+    def test_a_prisoner_is_not_recalled(self):
+        from backend.commands.economy_executor import EconomyExecutor
+        world = _europe()
+        _freeze(world, "Murat")
+        world.marshals["Murat"].captured_by = "Austria"
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = EconomyExecutor(None)._execute_recall_marshal(
+                {"target": "Murat"}, {"world": world})
+        assert result["success"] is False
+        assert "prisoner" in result["message"]
+
+    def test_the_debug_cheat_delegates_to_the_verb(self):
+        """The two restores cannot drift, and the cheat inherits the
+        held-soil rule it never had.
+
+        The source half is scoped to CODE, not to the file: the first draft
+        asserted `"or 'Paris'" not in src` and went red on the COMMENT
+        explaining why that fallback was removed. Third instance of the same
+        trap in this build — prose inside a file a pin reads is code.
+        """
+        import inspect
+        from backend.commands import meta_executor
+        src = inspect.getsource(meta_executor)
+        code = "\n".join(ln for ln in src.splitlines()
+                         if not ln.lstrip().startswith("#"))
+        assert "_execute_recall_marshal" in code
+        assert "or 'Paris'" not in code, (
+            "the debug arm's unheld-capital fallback is back")
+
+    def test_the_debug_cheat_also_restores_on_held_soil(self):
+        """The behavioural half, which no comment can satisfy."""
+        from backend.commands.executor import CommandExecutor
+        world = _europe()
+        _freeze(world, "Murat")
+        marshal = world.marshals["Murat"]
+        old_home = marshal.administrative_location
+        world.regions[old_home].controller = "Austria"
+        world.invalidate_active_nations_cache()
+        with contextlib.redirect_stdout(io.StringIO()):
+            executor = CommandExecutor()
+            result = executor.execute(
+                {"command": {"action": "debug", "target": "admin Murat"}},
+                {"world": world, "debug_mode": True})
+        assert result["success"] is True
+        assert marshal.location != old_home
+        assert world.regions[marshal.location].controller == "France"
+
+    def test_the_arm_names_the_verb_it_promises(self):
+        """FA-71 called this an unowned GR9 deferral inside player-facing
+        copy. The copy must name a verb the player can type."""
+        import inspect
+        from backend.commands import disobedience
+        src = inspect.getsource(disobedience)
+        assert "future restoration" not in src
+        assert "await future assignment" not in src
+        assert "`recall {marshal.name}`" in src or "recall {marshal_name}" in src
+
+    def test_the_verb_is_priced_as_an_administrative_act(self):
+        from backend.commands.meta_executor import ADMIN_ACTIONS
+        from backend.models.world_state import WorldState as _W
+        assert "recall_marshal" in ADMIN_ACTIONS
+        with contextlib.redirect_stdout(io.StringIO()):
+            world = _W()
+        assert world.get_action_cost("recall_marshal") == 1

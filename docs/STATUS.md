@@ -22,7 +22,7 @@
 > | gate from a round (FA-S*-D*) | 4 | 0 | 0 | 4 |
 > | **TOTAL** | **111** | **105** | **16** | **232** |
 >
-> **77 defect rows and 26 design rows / gates remain** (slice 14 part 1 closed eight — and note the FA-R family is now EMPTY) (slice 12 closed three
+> **76 defect rows and 24 design rows / gates remain** (slice 14 part 1 closed eight — and note the FA-R family is now EMPTY) (slice 12 closed three
 > and filed two of its own; slice 13 closed the five position-10 blockers; the
 > review round filed one residue row, FA-S13-1). "Disposed" means
 > duplicate, refuted, or re-homed to a later slice — closed without a fix and
@@ -38,6 +38,42 @@
 > ⚠ The FA-D family reads as OPEN by construction — its last column carries
 > a verification VERDICT, not a status, because those rows are design
 > questions rather than defects. They are counted separately for that reason.
+
+> # ✅ THE AUDIT BUILD: SLICE 14 (PART 2a) — "THE DESK IS NOT A ONE-WAY DOOR" — LANDED September 5, 2026
+>
+> **Landing record = the boxed SLICE 14 (part 2a) block in
+> `docs/BUG_FIXES.md`; the rules are `SYSTEMS_REFERENCE.md` §7.** Rulings 3
+> and 4: **FA-S9-D1** built as `recall <marshal>` (absorbing **FA-71**), and
+> **FA-S9-D2** RECORDED as design rather than built. Sweep **14/14 killed, 0
+> INERT**; parser eval **681/681** (six new corpus rows); series and M1–M7
+> untouched — no AI path reads any of it. **THREE new serialized fields.**
+>
+> **The gate asked for a verb; the reproduction found the verb could not
+> work.** `administrative`, `administrative_strength` and
+> `administrative_location` were ad-hoc attributes declared nowhere — the
+> string did not appear in `marshal.py` at all — so `recall` on a loaded
+> campaign would have restored **0 men at `None`**. And the gap was already
+> costing three things before any verb existed: one load **defeated the
+> slice-9 attrition exemption and the sweep DESTROYED the frozen marshal**
+> (the exact P1 that round had fixed, resurrected by the save); it re-opened
+> the max-one-admin gate, so save / freeze / load / repeat was an **unbounded
+> +1-military-action farm**, measured to three; and the ghost counted as a
+> field marshal again.
+>
+> **FA-71's own `fix_shape` is the hazard and was not followed** — "at
+> `administrative_location`/capital" is what the debug cheat did, with a bare
+> `or 'Paris'` fallback, so 22,000 men could reappear inside enemy-held soil
+> with no battle. The gate's wording (`find_spawn_region`) is built and the
+> cheat now DELEGATES to the verb. Eighth member of the
+> `fix_shape`-contradicts-`summary` family.
+>
+> **⛔ The comment trap, a third time in one slice.** A source census read my
+> own comment: the pin asserting `or 'Paris'` was gone went red on the
+> comment explaining why it was removed. Scoped to code lines now, with a
+> behavioural sibling no prose can satisfy.
+>
+> **▶ NEXT = the rest of slice 14 part 2** — FA-21, FA-31, FA-42, FA-N78 and
+> the FA-S12-1 / FA-S12-2 decisions — then 15 → 16, then position 10.
 
 > # ✅ THE AUDIT BUILD: SLICE 14 (PART 1) — "THE RULINGS" — LANDED September 5, 2026
 >

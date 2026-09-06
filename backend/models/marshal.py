@@ -321,6 +321,27 @@ class Marshal:
         self.autonomy_reason: str = ""  # Why autonomous ("redemption", "communication_cut", etc.)
         self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
         self.redemption_cooldown_until: int = 0  # Turn when redemption can next fire (5-turn cooldown)
+        # ── FA-S9-D1 / FA-71 (slice 14): the man at the desk ──────────────
+        # The `administrative_role` redemption answer freezes a marshal's
+        # corps and buys +1 action. Until now these three were ad-hoc
+        # attributes set by assignment in two files and declared NOWHERE —
+        # `administrative` did not appear in this module at all — so they did
+        # not survive a save. Measured on the shipped board: after one
+        # save/load the flag is gone, 22,000 frozen men are deleted,
+        # `bonus_actions` (which IS serialized) stands at 1 forever, and
+        # three separate rules that read the flag silently invert:
+        #   * the slice-9 attrition exemption stops covering him, so the
+        #     sweep DESTROYS him — the exact P1 that round landed a fix for,
+        #     resurrected by the save;
+        #   * `get_admin_marshals()` returns 0, so the max-ONE-admin gate
+        #     re-opens and a second transfer is accepted — save, freeze,
+        #     load, repeat is an UNBOUNDED military-AP farm, one permanent
+        #     action per marshal;
+        #   * he is counted a FIELD marshal again (closed independently by
+        #     FA-N77's `strength > 0` clause, since a frozen corps is at 0).
+        self.administrative: bool = False
+        self.administrative_strength: int = 0
+        self.administrative_location: Optional[str] = None
 
         # Autonomy Performance Tracking (for evaluation when autonomy ends)
         self.autonomous_battles_won: int = 0
@@ -1650,6 +1671,10 @@ class Marshal:
             "autonomy_reason": self.autonomy_reason,
             "redemption_pending": self.redemption_pending,
             "redemption_cooldown_until": int(self.redemption_cooldown_until),
+            # FA-S9-D1 / FA-71 (slice 14): the man at the desk survives the save.
+            "administrative": bool(self.administrative),
+            "administrative_strength": int(self.administrative_strength),
+            "administrative_location": self.administrative_location,
             "autonomous_battles_won": int(self.autonomous_battles_won),
             "autonomous_battles_lost": int(self.autonomous_battles_lost),
             "autonomous_regions_captured": int(self.autonomous_regions_captured),
@@ -1840,6 +1865,12 @@ class Marshal:
         marshal.autonomy_reason = data.get("autonomy_reason", "")
         marshal.redemption_pending = data.get("redemption_pending", False)
         marshal.redemption_cooldown_until = data.get("redemption_cooldown_until", 0)
+        # FA-S9-D1 / FA-71 (slice 14). Save-compat: an old save has none of
+        # the three, and False / 0 / None is exactly the state it described.
+        marshal.administrative = bool(data.get("administrative", False))
+        marshal.administrative_strength = int(
+            data.get("administrative_strength", 0) or 0)
+        marshal.administrative_location = data.get("administrative_location")
         marshal.autonomous_battles_won = data.get("autonomous_battles_won", 0)
         marshal.autonomous_battles_lost = data.get("autonomous_battles_lost", 0)
         marshal.autonomous_regions_captured = data.get("autonomous_regions_captured", 0)
