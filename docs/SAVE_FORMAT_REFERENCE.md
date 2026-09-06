@@ -509,6 +509,7 @@ Reserved future `event_log` payloads:
   "last_battle_turn": -1,
 
   "square_formation": false,
+  "ai_square_cooldown": 0,
 
   "occupation_region": null,
   "occupation_turns_held": 0,
@@ -623,6 +624,7 @@ Reserved future `event_log` payloads:
 | `fortified` | bool | Currently fortified |
 | `defense_bonus` | float | 0.0-0.20, decimal (0.16 = 16%) |
 | `square_formation` | bool | In square formation (Session 67). +5% def, cavalry -40%, artillery +50% |
+| `ai_square_cooldown` | int | Turns before this corps may re-form square (anti-oscillation, 2 on break). ⚠ Added by FA-91, Sept 6 2026 — it had been created lazily and serialized nowhere, so a save/load cleared it and the guard could be walked through. Pre-FA-91 saves load as 0, the value a fresh marshal has. |
 
 #### Strategic Order System (Phase 5.2)
 | Field | Type | Description |

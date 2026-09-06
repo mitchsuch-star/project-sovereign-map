@@ -1,0 +1,114 @@
+[
+ {
+  "id": "A/a the blanket private filter comes back",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "    exempt = set(private_exempt)\n    ser = set(serialized or ())",
+  "new": "    return {k for k in names if not k.startswith('_')}\n    exempt = set(private_exempt)\n    ser = set(serialized or ())",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheGateSeesPrivates"
+ },
+ {
+  "id": "A/b R1 widens to exempt ANY private",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "        elif k.lstrip('_') in ser:\n            continue                       # R1: property-backed",
+  "new": "        elif k.startswith('_'):\n            continue                       # R1: property-backed",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheGateSeesPrivates::test_r1_exempts_only_a_property_backed_private"
+ },
+ {
+  "id": "A/c Marshal's exemption becomes a literal copy again",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "    PRIVATE_EXEMPT = Marshal.COORDINATION_TRANSIENT_FIELDS",
+  "new": "    PRIVATE_EXEMPT = frozenset(Marshal.COORDINATION_TRANSIENT_FIELDS)",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheGateSeesPrivates::test_the_exemption_is_not_a_copy"
+ },
+ {
+  "id": "A/d the Marshal sweep stops passing the exemption at all",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "        instance_attrs = get_instance_attributes(\n            marshal, private_exempt=self.PRIVATE_EXEMPT,\n            serialized=serialized_keys)",
+  "new": "        instance_attrs = get_instance_attributes(marshal)",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheGateSeesPrivates"
+ },
+ {
+  "id": "A/e the AuthorityTracker inline private re-filter comes back",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "        instance_attrs = get_instance_attributes(\n            tracker, private_exempt=self.PRIVATE_EXEMPT,\n            serialized=serialized_keys)\n        missing = instance_attrs - serialized_keys\n\n        assert not missing, (\n            f\"AuthorityTracker fields not in to_dict(): {sorted(missing)}\"",
+  "new": "        instance_attrs = get_instance_attributes(tracker)\n        missing = instance_attrs - serialized_keys\n\n        assert not missing, (\n            f\"AuthorityTracker fields not in to_dict(): {sorted(missing)}\"",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheGateSeesPrivates"
+ },
+ {
+  "id": "B/a the played round trip stops calling from_dict",
+  "file": "tests/test_serialization_played_world_census.py",
+  "old": "        with contextlib.redirect_stdout(io.StringIO()):\n            back = WorldState.from_dict(blob)",
+  "new": "        with contextlib.redirect_stdout(io.StringIO()):\n            back = played",
+  "tests": "tests/test_serialization_played_world_census.py::TestThePlayedRoundTrip::test_to_dict_survives_from_dict"
+ },
+ {
+  "id": "B/b the census depth drops to the row's prescribed 3",
+  "file": "tests/test_serialization_played_world_census.py",
+  "old": "CENSUS_TURNS = 12",
+  "new": "CENSUS_TURNS = 3",
+  "tests": "tests/test_serialization_played_world_census.py::TestThePlayedRoundTrip::test_it_reaches_a_depth_where_there_is_something_to_find"
+ },
+ {
+  "id": "B/c the played field census stops reporting misses",
+  "file": "tests/test_serialization_played_world_census.py",
+  "old": "        out.add(k)\n    return out",
+  "new": "        pass\n    return set()",
+  "tests": "tests/test_serialization_played_world_census.py::TestThePlayedFieldCensus"
+ },
+ {
+  "id": "B/d R1 leaks into the played census",
+  "file": "tests/test_serialization_played_world_census.py",
+  "old": "        if k.startswith(\"_\") and k.lstrip(\"_\") in ser:\n            continue                       # R1: property-backed",
+  "new": "        if k.startswith(\"_\"):\n            continue                       # R1: property-backed",
+  "tests": "tests/test_serialization_played_world_census.py::TestThePlayedFieldCensus"
+ },
+ {
+  "id": "C/a ai_square_cooldown is dropped from to_dict",
+  "file": "backend/models/marshal.py",
+  "old": "            \"ai_square_cooldown\": int(getattr(self, \"ai_square_cooldown\", 0) or 0),",
+  "new": "",
+  "tests": "tests/test_serialization_played_world_census.py"
+ },
+ {
+  "id": "C/b ai_square_cooldown is dropped from from_dict",
+  "file": "backend/models/marshal.py",
+  "old": "        marshal.ai_square_cooldown = int(data.get(\"ai_square_cooldown\", 0) or 0)",
+  "new": "        marshal.ai_square_cooldown = 0",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheAntiOscillationGuardSurvivesALoad"
+ },
+ {
+  "id": "C/c ai_square_cooldown goes back to being created lazily",
+  "file": "backend/models/marshal.py",
+  "old": "        self.ai_square_cooldown: int = 0",
+  "new": "        pass",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheAntiOscillationGuardSurvivesALoad::test_a_fresh_marshal_declares_it"
+ },
+ {
+  "id": "C/d the save-format reference forgets the new field",
+  "file": "docs/SAVE_FORMAT_REFERENCE.md",
+  "old": "| `ai_square_cooldown` | int | Turns before this corps may re-form",
+  "new": "| `ai_square_cooldown_gone` | int | removed",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheAntiOscillationGuardSurvivesALoad::test_it_is_named_in_the_save_format_reference"
+ },
+ {
+  "id": "D/a the read-once notes lose their production declaration",
+  "file": "backend/models/marshal.py",
+  "old": "    READ_ONCE_NOTE_FIELDS = (\n        '_sovereign_toll_note',   # NP-4: the Guard's toll, combat_executor\n        '_fate_note',             # FA-1: a question retired by the open road\n    )",
+  "new": "    READ_ONCE_NOTE_FIELDS = ()",
+  "tests": "tests/test_serialization_played_world_census.py"
+ },
+ {
+  "id": "D/b a read-once note claims the coordination clearing contract too",
+  "file": "backend/models/marshal.py",
+  "old": "        'sovereign_presence',       # NP-2: the Emperor stands with this corps\n    )",
+  "new": "        'sovereign_presence',       # NP-2: the Emperor stands with this corps\n        '_fate_note',\n    )",
+  "tests": "tests/test_serialization_played_world_census.py::TestThePlayedFieldCensus::test_the_read_once_notes_are_declared_in_production"
+ },
+ {
+  "id": "E/a the WorldState pin loses its round trip",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "            restored = WorldState.from_dict(world.to_dict())",
+  "new": "            restored = world",
+  "tests": "tests/test_serialization_played_world_census.py::TestTheWorldStatePinCallsFromDict::test_the_world_state_sweep_round_trips"
+ }
+]

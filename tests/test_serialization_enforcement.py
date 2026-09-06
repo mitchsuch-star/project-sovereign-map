@@ -28,16 +28,56 @@ from backend.models.diplomat import DiplomaticRepresentative  # noqa: F401 - use
 # HELPER FUNCTIONS
 # ============================================================================
 
-def get_instance_attributes(obj: Any) -> Set[str]:
-    """
-    Get all instance attributes, excluding private/dunder.
+def get_instance_attributes(obj: Any, *, private_exempt=None,
+                            serialized=None) -> Set[str]:
+    """Get all instance attributes that must appear in `to_dict()`.
 
-    For dataclasses, uses fields().
-    For regular classes, uses vars().
+    ⚠ FA-91. This helper used to drop EVERY name beginning with an
+    underscore, and that blanket filter is the reason two real save
+    defects shipped past a suite whose whole purpose is to catch them:
+    IGR-X1 (`Marshal._recovery_destination`, a serialized private that a
+    `delattr` then removed) and FA-S15-1 (`original_nation` deleted at
+    runtime, breaking every save for the rest of a campaign). Measured:
+    popping `_recovery_destination` out of `Marshal.to_dict` left BOTH
+    Marshal pins GREEN while a live value round-tripped to None.
+
+    Pass `private_exempt` to opt a class into seeing its privates. The
+    exemption must be a DECLARED set — for Marshal it points at the
+    production constant `COORDINATION_TRANSIENT_FIELDS` rather than
+    copying it, because the copy is what rots.
+
+    Two rules apply, in order:
+      R1  a private `_x` is exempt automatically when `x` is a serialized
+          key — the property-backed idiom (`Trust._value` behind `value`).
+      R2  anything the exemption set names, which is how production
+          declares a field transient on purpose.
+
+    ⚠ Measured cost of turning this on for the LEAF classes — Marshal,
+    Trust, Region, RegionIntel, StrategicOrder, StrategicCondition,
+    AuthorityTracker, VindicationTracker — is ZERO new failures. WorldState
+    is the expensive case (47 reasoned entries) and is deliberately NOT
+    opted in here; it needs its own arm and its own written reasons, and
+    holding the leaf classes hostage to it is how this stayed unfixed.
     """
     if is_dataclass(obj):
         return {f.name for f in fields(obj)}
-    return {k for k in vars(obj).keys() if not k.startswith('_')}
+    names = set(vars(obj).keys())
+    if private_exempt is None:
+        return {k for k in names if not k.startswith('_')}
+
+    exempt = set(private_exempt)
+    ser = set(serialized or ())
+    out = set()
+    for k in names:
+        if not k.startswith('_'):
+            out.add(k)
+        elif k in exempt:
+            continue                       # R2: declared transient
+        elif k.lstrip('_') in ser:
+            continue                       # R1: property-backed
+        else:
+            out.add(k)
+    return out
 
 
 def get_serialized_keys(obj: Any) -> Set[str]:
@@ -200,23 +240,30 @@ class TestMarshalSerializationEnforcement:
         'is_reckless_cavalry',     # Computed property
         'in_strategic_mode',       # Computed property
         'strategic_command_type',  # Computed property
-        # Aug 2026 health-check audit: these two are created LAZILY during
-        # combat (CA8-19(i) COORDINATION_TRANSIENT_FIELDS, marshal.py) and
-        # deliberately transient — cleared after every battle, read via
-        # getattr(..., 0.0) so a load correctly sees 0. They are invisible
-        # to the vars()-on-fresh-object sweep above; named here so the next
-        # lazily-created field has a documented precedent to follow (add it
-        # HERE with a reason, or serialize it).
-        'total_coordination_attack_bonus',   # deliberately transient
-        'total_coordination_defense_bonus',  # deliberately transient
+        # ⚠ FA-91 (Sept 6, 2026): the two hand-written
+        # `total_coordination_*` entries that used to sit here are DELETED,
+        # not tidied away. They were a COPY of two names in
+        # `Marshal.COORDINATION_TRANSIENT_FIELDS`, and PRIVATE_EXEMPT below
+        # now references that production tuple directly — so the eleven
+        # transients it declares are exempt because production says they
+        # are, and a twelfth added there is covered the day it lands.
+        # A lazily-created field that is NOT in that tuple belongs here,
+        # with a reason, or in `to_dict()`.
     }
+
+    # ⚠ FA-91. Points AT the production constant. Copying it is what rots:
+    # `test_the_exemption_is_not_a_copy` in the played-world census file
+    # fails if this ever becomes a literal set again.
+    PRIVATE_EXEMPT = Marshal.COORDINATION_TRANSIENT_FIELDS
 
     def test_all_marshal_fields_serialized(self):
         """Every Marshal instance attribute must be in to_dict()."""
         marshal = create_fully_populated_marshal()
 
-        instance_attrs = get_instance_attributes(marshal)
         serialized_keys = get_serialized_keys(marshal)
+        instance_attrs = get_instance_attributes(
+            marshal, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=serialized_keys)
 
         attrs_to_check = instance_attrs - self.KNOWN_EXCLUSIONS
         missing = attrs_to_check - serialized_keys
@@ -238,7 +285,9 @@ class TestMarshalSerializationEnforcement:
         data = original.to_dict()
         restored = Marshal.from_dict(data)
 
-        original_attrs = get_instance_attributes(original) - self.KNOWN_EXCLUSIONS
+        original_attrs = get_instance_attributes(
+            original, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=set(original.to_dict())) - self.KNOWN_EXCLUSIONS
 
         for attr in original_attrs:
             original_val = getattr(original, attr)
@@ -287,6 +336,12 @@ class TestMarshalSerializationEnforcement:
 class TestStrategicOrderSerializationEnforcement:
     """Ensure StrategicOrder serialization stays complete."""
 
+    # ⚠ FA-91: this class SEES its privates now. Empty because the
+    # measured residual is zero — R1 (a private behind a serialized
+    # public) covers what it has. A NEW private fails the sweep until it
+    # is serialized or named here with a reason.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_strategic_order_fields_serialized(self):
         """Every StrategicOrder field must be in to_dict()."""
         order = StrategicOrder(
@@ -310,7 +365,9 @@ class TestStrategicOrderSerializationEnforcement:
             last_combat_result="stalemate"
         )
 
-        instance_attrs = get_instance_attributes(order)
+        instance_attrs = get_instance_attributes(
+            order, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=set(order.to_dict()))
         serialized_keys = get_serialized_keys(order)
 
         missing = instance_attrs - serialized_keys
@@ -339,7 +396,9 @@ class TestStrategicOrderSerializationEnforcement:
         data = original.to_dict()
         restored = StrategicOrder.from_dict(data)
 
-        for attr in get_instance_attributes(original):
+        for attr in get_instance_attributes(
+                original, private_exempt=self.PRIVATE_EXEMPT,
+                serialized=set(original.to_dict())):
             original_val = getattr(original, attr)
             restored_val = getattr(restored, attr)
 
@@ -359,6 +418,12 @@ class TestStrategicOrderSerializationEnforcement:
 class TestStrategicConditionSerializationEnforcement:
     """Ensure StrategicCondition serialization stays complete."""
 
+    # ⚠ FA-91: this class SEES its privates now. Empty because the
+    # measured residual is zero — R1 (a private behind a serialized
+    # public) covers what it has. A NEW private fails the sweep until it
+    # is serialized or named here with a reason.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_strategic_condition_fields_serialized(self):
         """Every StrategicCondition field must be in to_dict()."""
         condition = StrategicCondition(
@@ -369,7 +434,9 @@ class TestStrategicConditionSerializationEnforcement:
             until_relieved=True
         )
 
-        instance_attrs = get_instance_attributes(condition)
+        instance_attrs = get_instance_attributes(
+            condition, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=set(condition.to_dict()))
         serialized_keys = get_serialized_keys(condition)
 
         missing = instance_attrs - serialized_keys
@@ -438,6 +505,24 @@ class TestWorldStateSerializationEnforcement:
             f"Fix: Add to WorldState.to_dict() and from_dict()\n"
             f"{'='*60}"
         )
+
+        # ⚠ FA-91 blind spot (ii): this pin has never called from_dict, so
+        # nothing here asserted that what to_dict WRITES comes back. The word
+        # "from_dict" appeared in this test only in a comment and an error
+        # string, which is why a substring check reported it covered.
+        # A round trip is a weak instrument alone — it is structurally blind
+        # to a to_dict OMISSION, since both sides then lack the key — but it
+        # is the half that catches from_dict damage, and it belongs BESIDE
+        # the census above, never instead of it.
+        import contextlib as _cl
+        import io as _io
+        with _cl.redirect_stdout(_io.StringIO()):
+            restored = WorldState.from_dict(world.to_dict())
+        before, after = world.to_dict(), restored.to_dict()
+        diverged = sorted(k for k in set(before) | set(after)
+                          if before.get(k) != after.get(k))
+        assert not diverged, (
+            f"WorldState fields not preserved by from_dict(): {diverged}")
 
     def test_world_state_roundtrip_preserves_economy_fields(self):
         """Serialize -> deserialize must preserve Phase 6.2 economy fields."""
@@ -529,6 +614,12 @@ class TestWorldStateSerializationEnforcement:
 class TestRegionSerializationEnforcement:
     """Ensure Region serialization stays complete."""
 
+    # ⚠ FA-91: this class SEES its privates now. Empty because the
+    # measured residual is zero — R1 (a private behind a serialized
+    # public) covers what it has. A NEW private fails the sweep until it
+    # is serialized or named here with a reason.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_region_fields_serialized(self):
         """Every Region field must be in to_dict()."""
         region = Region(
@@ -542,7 +633,9 @@ class TestRegionSerializationEnforcement:
         region.controller = "France"
         region.garrison_strength = 5000
 
-        instance_attrs = get_instance_attributes(region)
+        instance_attrs = get_instance_attributes(
+            region, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=set(region.to_dict()))
         serialized_keys = get_serialized_keys(region)
 
         missing = instance_attrs - serialized_keys
@@ -589,6 +682,11 @@ class TestRegionSerializationEnforcement:
 class TestTrustSerializationEnforcement:
     """Ensure Trust serialization stays complete."""
 
+    # ⚠ FA-91: empty, and R1 is doing the work — `_value` is exempt
+    # because `value` IS a serialized key. That is the property-backed idiom,
+    # not a blanket pass for underscores.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_trust_fields_serialized(self):
         """Every Trust field must be in to_dict()."""
         trust = Trust(75)
@@ -600,6 +698,14 @@ class TestTrustSerializationEnforcement:
         restored = Trust.from_dict(data)
         assert restored.value == trust.value, "Trust roundtrip failed"
 
+        # ⚠ FA-91: and now the SWEEP this class never had. The two
+        # assertions above name one key by hand; a second field added to
+        # Trust would have been invisible to them.
+        instance_attrs = get_instance_attributes(
+            trust, private_exempt=self.PRIVATE_EXEMPT, serialized=set(data))
+        missing = instance_attrs - set(data)
+        assert not missing, f"Trust fields not in to_dict(): {sorted(missing)}"
+
 
 # ============================================================================
 # AUTHORITY TRACKER ENFORCEMENT
@@ -608,18 +714,26 @@ class TestTrustSerializationEnforcement:
 class TestAuthorityTrackerSerializationEnforcement:
     """Ensure AuthorityTracker serialization stays complete."""
 
+    # ⚠ FA-91: this class SEES its privates now. Empty because the
+    # measured residual is zero — R1 (a private behind a serialized
+    # public) covers what it has. A NEW private fails the sweep until it
+    # is serialized or named here with a reason.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_authority_tracker_fields_serialized(self):
         """Every AuthorityTracker field must be in to_dict()."""
         tracker = AuthorityTracker()
         tracker.authority = 85
         tracker.recent_responses = ["trust", "insist", "compromise"]
 
-        instance_attrs = get_instance_attributes(tracker)
         serialized_keys = get_serialized_keys(tracker)
-
-        # Exclude private attributes
-        attrs_to_check = {a for a in instance_attrs if not a.startswith('_')}
-        missing = attrs_to_check - serialized_keys
+        # ⚠ FA-91: this used to re-filter privates INLINE, a second copy of
+        # the blanket rule the helper has now dropped. Removing only the
+        # helper's copy would have left this one doing the same damage.
+        instance_attrs = get_instance_attributes(
+            tracker, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=serialized_keys)
+        missing = instance_attrs - serialized_keys
 
         assert not missing, (
             f"AuthorityTracker fields not in to_dict(): {sorted(missing)}"
@@ -633,14 +747,22 @@ class TestAuthorityTrackerSerializationEnforcement:
 class TestVindicationTrackerSerializationEnforcement:
     """Ensure VindicationTracker serialization stays complete."""
 
+    # ⚠ FA-91: this class SEES its privates now. Empty because the
+    # measured residual is zero — R1 (a private behind a serialized
+    # public) covers what it has. A NEW private fails the sweep until it
+    # is serialized or named here with a reason.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_vindication_tracker_fields_serialized(self):
         """Every VindicationTracker field must be in to_dict()."""
         tracker = VindicationTracker()
         tracker.pending = {"Ney": {"choice": "trust", "original_order": {}}}
         tracker.history = [{"marshal": "Ney", "result": "vindicated"}]
 
-        instance_attrs = get_instance_attributes(tracker)
         serialized_keys = get_serialized_keys(tracker)
+        instance_attrs = get_instance_attributes(
+            tracker, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=serialized_keys)
 
         missing = instance_attrs - serialized_keys
 
@@ -656,6 +778,12 @@ class TestVindicationTrackerSerializationEnforcement:
 class TestRegionIntelSerializationEnforcement:
     """Ensure RegionIntel serialization stays complete."""
 
+    # ⚠ FA-91: this class SEES its privates now. Empty because the
+    # measured residual is zero — R1 (a private behind a serialized
+    # public) covers what it has. A NEW private fails the sweep until it
+    # is serialized or named here with a reason.
+    PRIVATE_EXEMPT = frozenset()
+
     def test_all_region_intel_fields_serialized(self):
         """Every RegionIntel field must be in to_dict()."""
         obj = RegionIntel("Waterloo")
@@ -670,8 +798,10 @@ class TestRegionIntelSerializationEnforcement:
         obj.last_updated_turn = 3
         obj.intel_source = "scout"
 
-        instance_attrs = get_instance_attributes(obj)
         serialized_keys = get_serialized_keys(obj)
+        instance_attrs = get_instance_attributes(
+            obj, private_exempt=self.PRIVATE_EXEMPT,
+            serialized=serialized_keys)
 
         missing = instance_attrs - serialized_keys
 
@@ -695,7 +825,9 @@ class TestRegionIntelSerializationEnforcement:
         data = obj.to_dict()
         restored = RegionIntel.from_dict(data)
 
-        for attr in get_instance_attributes(obj):
+        for attr in get_instance_attributes(
+                obj, private_exempt=self.PRIVATE_EXEMPT,
+                serialized=set(obj.to_dict())):
             original_val = getattr(obj, attr)
             restored_val = getattr(restored, attr)
             assert original_val == restored_val, (

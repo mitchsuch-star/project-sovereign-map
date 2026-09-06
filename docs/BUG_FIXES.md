@@ -573,6 +573,138 @@
 > completes twice in ten turns, one of them a six-pair multilateral
 > ratification, with zero refusals.
 
+> ### ✅ FA-91 — "THE GATE SEES WHAT BITES" — CLOSED September 6, 2026
+>
+> **Landing record: this block.** The row re-opened by the slice-15 review
+> round, which was right to: part a had built an AST census for a **fifth**
+> class the row never names (runtime deletion) and marked the row fixed while
+> **all three blind spots in its title survived verbatim**. All three are
+> closed now. Sweep **16 mutations, 16 killed, 0 INERT, 0 BROKEN** — after
+> **six** came back INERT and **four of the six were real weaknesses in my
+> own pins**.
+>
+> ---
+>
+> ## What the gate could not see, and what it cost
+>
+> `test_serialization_enforcement.py` exists to enforce *"if it exists on the
+> object, it must serialize."* Two real save defects walked past it —
+> **IGR-X1** (`Marshal._recovery_destination`, a serialized private later
+> `delattr`'d) and **FA-S15-1** (`original_nation` deleted at runtime,
+> breaking every save for the rest of a campaign) — and both are the same
+> shape as the blind spots the row names.
+>
+> **(1) private.** `get_instance_attributes` dropped every `_`-name.
+> Measured: popping `_recovery_destination` out of `Marshal.to_dict` left
+> BOTH Marshal pins green while a live value round-tripped to `None`. The
+> filter now takes a **declared** exemption, under two rules — R1, a private
+> `_x` is exempt when `x` is a serialized key (the property-backed idiom,
+> `Trust._value` behind `value`), and R2, whatever production declares
+> transient. Measured cost of turning it on for every leaf class — Marshal,
+> Trust, Region, RegionIntel, StrategicOrder, StrategicCondition,
+> AuthorityTracker, VindicationTracker — is **ZERO new failures**.
+>
+> ⚠ **WorldState is deliberately NOT opted in.** It has 47 reasoned entries
+> (31 name-obvious caches plus 16 that each need a written reason), and
+> holding the leaf classes hostage to that arm is how this stayed unfixed.
+> It is its own row when someone wants it.
+>
+> ⚠ **The AuthorityTracker carried a SECOND, inline copy of the blanket
+> rule** — `{a for a in instance_attrs if not a.startswith('_')}` in the test
+> body. Removing only the helper's copy would have left that one doing the
+> same damage, and it matters: `_crossed_thresholds` is serialized under its
+> **private** name, the second live instance of the exemplar.
+>
+> **(2) no round trip.** `test_all_world_state_fields_serialized` never
+> called `from_dict`. ⚠ And a substring check reported it covered —
+> `'from_dict' in source` is **True** because of a comment and an
+> error-message f-string, while an AST walk over the body finds only
+> `WorldState`, `get_instance_attributes`, `get_serialized_keys` and
+> `sorted`. The pin is an **AST call census** with a synthetic fixture that
+> must be rejected. Prose inside a file a pin reads is code.
+>
+> **(3) lazily created.** The sweeps ran on freshly constructed objects, so a
+> field that only exists after six turns of play was unreachable. There is a
+> played-world census now, driven through the real driver.
+>
+> ---
+>
+> ## ⛔ The row's own `fix_shape` does not close its own title
+>
+> Mutation-swept on a played world before a line was written: the prescribed
+> round trip kills **5 of 7** mutations and **survives the two that matter** —
+> dropping `_recovery_destination` from `to_dict`, and dropping the public
+> `fortified`. If `to_dict` never emits a key then **both sides lack it** and
+> `to_dict() == from_dict(to_dict()).to_dict()` is trivially true. The round
+> trip is **structurally blind to every `to_dict` omission**, which is the
+> class the row exists to close. It ships as the half that catches
+> `from_dict` damage, beside the census, never instead of it — and that
+> property is itself a pin.
+>
+> ⚠ **And its prescribed depth of 3 turns makes the whole thing inert.** At 3
+> turns the round trip has 0 divergences and the played sweep finds nothing a
+> synthetic fixture does not. **12 turns** is the measured window:
+> `ai_square_cooldown` first exists at turn 6; the only round-trip divergence
+> appears at turn 30 and is **PC15-17 behaving correctly** (a rebellion popup
+> retired at load for a court that is no longer a vassal), so a deeper drive
+> would force an allow-list for a legitimate case — an allow-list for a case
+> the test cannot reach is a lie of the FA-13 class. The depth is pinned with
+> its reason.
+>
+> ---
+>
+> ## The defects the new census found on the shipped board
+>
+> **`ai_square_cooldown`** — the 2-turn anti-oscillation guard on square.
+> Public, created lazily from turn 6, written by the AI *and* by the player's
+> own square break, decremented every turn, read before re-forming, and
+> **serialized nowhere**. A save/load cleared it, so the guard it exists to
+> enforce could be walked straight through by saving. Invisible for exactly
+> the reason the row states. Now declared in `__init__`, serialized both
+> ways, documented, and pinned **behaviourally** — the guard must still
+> refuse after a load, not merely carry a key.
+>
+> **`_sovereign_toll_note`** — found on Napoleon at turn 12 when the census
+> first ran. It is genuinely read-once (written by the Guard-escape arm,
+> blanked by its one consumer), but **nothing in the tree said so**. It is
+> declared now in production as `Marshal.READ_ONCE_NOTE_FIELDS`, beside the
+> seams that use it, deliberately **not** folded into
+> `COORDINATION_TRANSIENT_FIELDS` — that tuple carries a clearing contract
+> these notes do not share, and folding them in would exempt them for the
+> wrong reason. A pin asserts each name has a writer *and* a blanker.
+>
+> ⚠ An exemption invented in a test file is how the next one gets waved
+> through. Both exemption sets are **production constants**, referenced not
+> copied — the two hand-written `total_coordination_*` entries deleted from
+> `KNOWN_EXCLUSIONS` were exactly that, a copy of two of eleven names, and
+> they had already fallen behind.
+>
+> ---
+>
+> ## ⛔ Six INERT mutations, and four were my own pins
+>
+> * the enforcement suite's **own** Marshal and AuthorityTracker sweeps were
+>   never driven — my pins called the helper directly, so removing the
+>   exemption from the real call sites was invisible. Both are now driven by
+>   amputating `to_dict` and asserting the real test **raises**;
+> * the played round trip could not tell itself from a no-op (`back = played`
+>   passed) — it asserts a distinct reconstructed object now;
+> * the census's sensitivity arm added only a **public** field, so a mutation
+>   re-exempting every private stayed green — it adds both shapes;
+> * the save-format pin checked one substring, satisfied by the JSON example
+>   alone — it requires the **field table row** and that the row says what
+>   the field is for.
+>
+> Two were bad mutations and are recorded as such: one duplicated an
+> assignment (a no-op), and one renamed a row to a string that still
+> *contained* the name. And **one was deleted with its reason** — once the
+> production pin genuinely calls `from_dict`, no mutation of the CHECK can
+> distinguish the AST form from the substring form, so that distinction is
+> pinned synthetically instead, in the only place it is observable.
+>
+> **The lesson, again: a sweep proves a pin binds to production; it cannot
+> prove the pin is about the right thing.**
+
 > ### ✅ FA-S16-D3 + FA-S16-D4 — "THE SCALE OF A BATTLE" AND "THE SCHOOL HAS NO LAURELS" — TAKEN AND BUILT September 6, 2026
 >
 > **Landing record: this block.** The two rulings slice 16 (part c) filed
@@ -5555,7 +5687,7 @@
 | **FA-88** | P3 | **The playtest driver records which interrupt button it pressed but never what happened next, so refused attacks and cancelled orders read as if the march continued.** `Answerer.scan` digests a strategic interrupt as 'POPUP strategic_interrupt: … → <choice>' and posts `/strategic_response` (tools/playtest_driver.py:732-753), but the follow-up reply is only re-scanned for further popups and `battle_report`/`battle_details` (:681-716); unlike the diplomatic arm's '↳ refused:' line (:914-921) its `message`/`order_cleared` are never written. The `interrupt: first` policy (:158) always takes the first option, which for `combat_stalemate` is the cancelling `continue_order`. Verified by opening the driver; archived effect: audit-naval T14 'Ney: Moore blocks the path at London. Odds unfavorable… → attack_anyway' with no battle and no line saying the sea refused it… *Fix:* ONE seam: in `scan()` right after the `/strategic_response` post, write `↳ result: <first_line(reply['message'])>` and append ' (order cleared)' when `reply.get('order_cleared')`, mirroring the diplomatic '↳ refused:' arm; optionally add an `--interrupt` policy value so `combat_stalemate` is answered `cancel_order` explicitly rather than by positio… | `tools/playtest_driver.py:745` | **OPEN** — memo §3; HARNESS (author-checked, no refuter) · **DUPLICATE (Sept 2 verification)** |
 | **FA-89** | P3 | **The tutorial arm cannot see the School: beats and advancement live in tutorial_overlay.gd, so the audit-tutorial digest proves only that the scenario boots and its script still teaches the beat-IV refusal.** Verified by opening godot-client/project-sovereign/scripts/tutorial_overlay.gd: STEPS (:52), `_derive_step_for_turn` (:297), `observe` (:313), `_advance_one` (:354) — the tutor card's progression is computed client-side from response payloads; the backend exposes no tutorial state (backend/main.py:120-122 only allowlists the scenario). The driver therefore cannot assert that a beat fired, and the archived audit-tutorial digest is a plain scripted run. Its script (tools/playtest_scripts/tutorial_lesson.json turn 4) still sends `Senarmont, bombard Jellacic` → '✗ Target out of range' (digest turn 4) — PC15-9's fix addressed beat VI's gate, not beat IV's anchor, and no harness would notice eithe… *Fix:* ONE seam: a display-only `GET /tutorial_state` (or a `tutorial_step` field on /command responses when scenario_name == 'tutorial') derived from the SAME payload predicates `_derive_step_for_turn`/`observe` read, so the overlay and the driver consume one source; the driver logs `SCHOOL: step N (<beat name>)` per turn and `--strict` fails when a scri… | `godot-client/project-sovereign/scripts/tutorial_overlay.gd:297` | ⚠ **NOT BUILT by slice 15 — re-homed to SLICE 16 with an owner** (slice-15 review round, finding S15R-6). It is a HARNESS row, not a copy row: the landing record's "the copy sweep they belong to" is corrected. **Done when** the driver surface it names behaves as the row's own `fix_shape` describes AND a pin in `tests/test_fa_slice16_*.py` reds under the stated mutation. Reproduction: `docs/audits/fa_build_2026_09_04/repro/REPRO_J5_the_instrument.md`, that row's section. **OPEN** — memo §3; HARNESS (author-checked, no refuter) · **NARROWED (Sept 2 verification)** |
 | **FA-90** | P3 | **Three driver arms that do not exist and would answer the questions the archived arms cannot: the Negotiator, the Emperor Pays, and the Defended Homeland / LLM gauntlet.** Derived from what the eight archived arms structurally could not reach (each gap verified above): (1) THE NEGOTIATOR — `--diplomacy negotiate`: polls /pending_envoy and /mailbox items every turn, ACCEPTS counter-offers and settlement offers, walks `accept_settlement_offer` → settlement_confirm → confirm_settlement to ratification, and digests `peace_ratification_summary` (backend/main.py:588-600, a key the driver never reads) so a digest finally says WHAT was signed; today no unattended run has ever ratified a multilateral settlement or reached the Proclamation (NA-6 §17-§21 records say so), and the propose arm's only peace was a bare bilateral accept. (2) THE EMPEROR PAYS — a `--reward` pol… *Fix:* Add three policy/script arms to tools/playtest_driver.py: `--diplomacy negotiate` (the /pending_envoy + mailbox/activate loop of finding 1 plus the settlement_confirm→confirm_settlement ladder and a RATIFIED digest line from peace_ratification_summary), `--reward pay\|ignore` (rail-driven typed reward commands + rail-driven fate words), and two comm… | `tools/playtest_driver.py:129` | ⚠ **NOT BUILT by slice 15 — re-homed to SLICE 16 with an owner** (slice-15 review round, finding S15R-6). It is a HARNESS row, not a copy row: the landing record's "the copy sweep they belong to" is corrected. **Done when** the driver surface it names behaves as the row's own `fix_shape` describes AND a pin in `tests/test_fa_slice16_*.py` reds under the stated mutation. Reproduction: `docs/audits/fa_build_2026_09_04/repro/REPRO_J5_the_instrument.md`, that row's section. **OPEN** — memo §3; HARNESS (author-checked, no refuter) · **NARROWED (Sept 2 verification)** |
-| **FA-91** | P3 | **test_serialization_enforcement.py cannot see the field classes that have actually bitten (private, lazily-created, load-cleared) and never round-trips a played world.** The enforcement suite is the standing gate for "if it exists on the object, it must serialize", but (1) `get_instance_attributes` drops every `_`-prefixed name (tests/test_serialization_enforcement.py:31-38), so `_recovery_destination` — the IGR-X1 P1 save crash — and the six serialized `_capital_proximity_last_alert`-style privates were and are invisible to it; (2) the WorldState test asserts to_dict KEYS on a fresh legacy `WorldState(player_nation='France')` (:389-440) and never calls from_dict, and the only round-trip pins are hand-picked economy/betrayal subsets (:442-530); (3) lazily-created fields do not exist on a fresh object, so the sweep can neither flag nor classify them — `Marsha… *Fix:* Add ONE test file `tests/test_serialization_played_world_census.py` that boots the 1805 scenario, drives 3 turns through TestClient `/command` (orders + end turns), then asserts (a) `w.to_dict() == WorldState.from_dict(w.to_dict()).to_dict()` and `load_game(save_game(w)).to_dict()` equal modulo a named allow-set, and (b) for every marshal/region/wo… | `tests/test_serialization_enforcement.py:389` | ⚠ **NARROWED, not closed — corrected September 6, 2026 by the slice-15 review round (S15R-3 / S15R-5).** The part-a landing block marked this FIXED, and it is not: the slice built an AST census for a FIFTH class the row never names (runtime DELETION, which is the mechanism behind its own IGR-X1 exemplar and behind the P1 it found on the way, FA-S15-1). **All three blind spots the title names survive verbatim at HEAD**, measured by two independent refuters running the row's own `behaviour_test` mutations: `get_instance_attributes` still drops every `_`-prefixed name, so popping `_recovery_destination` from `Marshal.to_dict` leaves both pins GREEN while the value silently round-trips to None; `test_all_world_state_fields_serialized` still builds a bare `WorldState(player_nation="France")` and compares to_dict KEYS, never calling `from_dict`; and lazily-created fields (`_capital_proximity_last_alert`, `_prev_war_exhaustion`, `_relation_deltas_this_turn`) are emitted by `to_dict` and absent from a fresh object. The prescribed `fix_shape` — a played-world `to_dict == from_dict(to_dict).to_dict()` census — was not built. **OWNER: slice 16. Done when** a played 1805 world driven three turns round-trips identically AND the private/lazy filter is either removed or replaced by an explicit exemption list each of whose entries carries a reason. |
+| **FA-91** | P3 | **test_serialization_enforcement.py cannot see the field classes that have actually bitten (private, lazily-created, load-cleared) and never round-trips a played world.** The enforcement suite is the standing gate for "if it exists on the object, it must serialize", but (1) `get_instance_attributes` drops every `_`-prefixed name (tests/test_serialization_enforcement.py:31-38), so `_recovery_destination` — the IGR-X1 P1 save crash — and the six serialized `_capital_proximity_last_alert`-style privates were and are invisible to it; (2) the WorldState test asserts to_dict KEYS on a fresh legacy `WorldState(player_nation='France')` (:389-440) and never calls from_dict, and the only round-trip pins are hand-picked economy/betrayal subsets (:442-530); (3) lazily-created fields do not exist on a fresh object, so the sweep can neither flag nor classify them — `Marsha… *Fix:* Add ONE test file `tests/test_serialization_played_world_census.py` that boots the 1805 scenario, drives 3 turns through TestClient `/command` (orders + end turns), then asserts (a) `w.to_dict() == WorldState.from_dict(w.to_dict()).to_dict()` and `load_game(save_game(w)).to_dict()` equal modulo a named allow-set, and (b) for every marshal/region/wo… | `tests/test_serialization_enforcement.py:389` | ✅ **CLOSED September 6, 2026** (landing record = the boxed **FA-91** block). All three named blind spots built and pinned; the leaf classes see their privates at ZERO measured cost, the WorldState sweep round-trips, and a 12-turn played census runs beside them. ⚠ **The row’s own `fix_shape` does NOT close its own title** — mutation-swept, the prescribed round trip survives the two mutations that matter, because a `to_dict` OMISSION leaves both sides lacking the key; and its prescribed 3-turn depth is inert in both clauses (12 is the measured window). ⚠ Found by the new census on the shipped board: **`ai_square_cooldown`**, the anti-oscillation guard, was serialized nowhere — a save/load cleared it and the guard could be walked through by saving — and `_sovereign_toll_note` was transient in fact but declared nowhere. Below, the state the row described before it was built: **NARROWED, not closed — corrected September 6, 2026 by the slice-15 review round (S15R-3 / S15R-5).** The part-a landing block marked this FIXED, and it is not: the slice built an AST census for a FIFTH class the row never names (runtime DELETION, which is the mechanism behind its own IGR-X1 exemplar and behind the P1 it found on the way, FA-S15-1). **All three blind spots the title names survive verbatim at HEAD**, measured by two independent refuters running the row's own `behaviour_test` mutations: `get_instance_attributes` still drops every `_`-prefixed name, so popping `_recovery_destination` from `Marshal.to_dict` leaves both pins GREEN while the value silently round-trips to None; `test_all_world_state_fields_serialized` still builds a bare `WorldState(player_nation="France")` and compares to_dict KEYS, never calling `from_dict`; and lazily-created fields (`_capital_proximity_last_alert`, `_prev_war_exhaustion`, `_relation_deltas_this_turn`) are emitted by `to_dict` and absent from a fresh object. The prescribed `fix_shape` — a played-world `to_dict == from_dict(to_dict).to_dict()` census — was not built. ~~**OWNER: slice 16. Done when** a played 1805 world driven three turns round-trips identically AND the private/lazy filter is either removed or replaced by an explicit exemption list each of whose entries carries a reason.~~ — done, at twelve turns rather than three, with the reason measured. |
 | **FA-92** | P3 | **tools/mutation_sweep.py reports a mutation that CRASHES the module as KILLED — a broken `new` string makes every named test error and the sweep prints perfect health.** Verified by opening tools/mutation_sweep.py:73-87: after applying the mutation the harness runs pytest and classifies solely on `proc.returncode != 0` → KILLED. `_baseline_green` (:29-47, added Aug 23) only guards the PRE-mutation state; a `new` that introduces a SyntaxError/NameError at import, or that breaks the boot path every test in the file shares, makes all tests ERROR and is counted as a kill. The record already knows the failure mode by hand ('eight bad mutations' across slice 10's five sweeps, CLAUDE.md WO slice 10 entry) — the instrument cannot tell a pin that binds from a mutation that merely detonates. *Fix:* ONE seam: the classification at :84 — run pytest with `-rA`/`--junitxml` and require at least one test to have PASSED or FAILED (not ERROR) in the run; if every outcome is ERROR or collection failed, report BROKEN (a bad mutation) instead of KILLED and return non-zero. | `tools/mutation_sweep.py:84` | ✅ **FIXED September 2, 2026 (slice 8)** — classified on junit outcomes, with a STRICTER predicate than the row's (a FAILURE, not “passed-or-failed”). Two unfiled defects at the same six lines fixed with it: stale bytecode masking a same-length mutation (both directions), and a restore that did not restore |
 | **FA-93** | P4 | **'[Square broken — Ney breaks formation to attacks]' — the square-break prefix conjugates its verb wrong on the player's own terminal.** `_auto_break_square` builds `f"[Square broken — {marshal.name} breaks formation to {display}]"` with `display = action_display_name(action_name)` (backend/commands/tactical_executor.py:480-481), and `ACTION_DISPLAY` is the third-person-present map ('attack': 'attacks', 'move': 'moves to', 'fortify': 'fortifies', display_names.py:16-19). `executor.execute` prepends it to the result message (executor.py:2493-2494) and `main.gd::_display_result` (:2653) prints that message. Verified by running: '[Square broken — Ney breaks formation to attacks]', '…to moves to]', '…to fortifies]'. Reachable by any player marshal in square ordered to attack/move/fortify/drill/recruit/garrison (combat_executor.py… *Fix:* ONE seam — tactical_executor.py:480: a tiny infinitive map beside `ACTION_DISPLAY` in display_names.py ('attack'→'attack', 'move'→'march', 'fortify'→'fortify', …) used only here, or rephrase to '[Square broken — Ney breaks formation and {display}]'. | `backend/commands/tactical_executor.py:480` | ✅ **FIXED September 6, 2026 — FA slice 16 (part c)** (landing record = the boxed SLICE 16 (part c) block; reproduction = `REPRO_L_slice16_at_head.md`). Landed as ONE edit with FA-N50 and FA-N47. ⚠ **The two rows want OPPOSITE frames and exactly one can survive**: FA-93's second option ("breaks formation AND {display}") ships "breaks formation and March" the moment FA-N50 routes the enums through `STRATEGIC_ORDER_DISPLAY`. The "to" frame is kept and both sides get an infinitive, through a map **scoped to this seam** rather than a second same-shaped table in `display_names`. |
 | **FA-94** | P4 | **Browsable/informational modals (letter-book, Proclamation, sabotage discovery, vassal rebellion, capture choice) have no ESC — and main.gd's ESC ladder refuses to act while any modal is up.** DUPLICATE IN SPIRIT of UI-2d-1 (docs/BUG_FIXES.md:2870), narrowed and corrected: only mailbox_panel.gd (the letter-book, godot-client/project-sovereign/scripts/mailbox_panel.gd — CanvasLayer, already wires a background-overlay click to `_on_close` at :314-321) and proclamation_popup.gd (extends PopupBase but PopupBase itself has no input handler, popup_base.gd:1-80; single Acknowledge button at proclamation_popup.gd:22-105) are genuine read-and-dismiss surfaces missing an ESC binding to their EXISTING close/acknowledge handler — main.gd's `_unhandled_input` ESC ladder (main.gd:966-996) never reaches them because `dialog_manager.register()` defaults `modal=true` (dialog_manager.gd:44). sabota… *Fix:* ONE seam: popup_base.gd gains `func _unhandled_input(event)` mapping `ui_cancel` to an overridable `esc_control()` (default: the single/rightmost non-destructive button; decision modals override to null to keep UI-2d-1's intent); mailbox_panel.gd (not a PopupBase) wires `ui_cancel` → `_on_close`. | `godot-client/project-sovereign/scripts/popup_base.gd:40` | **OPEN** — memo §3; NARROWED (refuter corrected it; the corrected reading is what follows) · **NARROWED (Sept 2 verification)** |

@@ -633,6 +633,15 @@ class Marshal:
         # Cavalry -40% damage, artillery +50% damage, bombardment +50%/-15 morale.
         # +5% defense modifier. Auto-breaks on any active order except wait/end_turn.
         self.square_formation: bool = False
+        # FA-91: the 2-turn anti-oscillation cooldown after a square is
+        # broken. Written by the AI (enemy_ai) and by the player's own
+        # break (tactical_executor), decremented once per turn, read
+        # before re-forming. It was created LAZILY and serialized
+        # nowhere, so a save/load cleared it and the guard it exists to
+        # enforce could be walked straight through. Invisible to the
+        # enforcement suite for exactly the reason FA-91 names: it did
+        # not exist on a freshly constructed Marshal.
+        self.ai_square_cooldown: int = 0
 
         # ════════════════════════════════════════════════════════════
         # DEFIANCE SYSTEM (Phase 7b, V2b Session 1)
@@ -735,6 +744,19 @@ class Marshal:
         'overwatch_penalty',        # Session 68: enemy artillery suppression
         '_jealousy_solo_attack',    # Jealousy v3.2: +15% solo-attack stamp
         'sovereign_presence',       # NP-2: the Emperor stands with this corps
+    )
+
+    # ⚠ FA-91. Read-once staff notes: written at one seam, consumed and
+    # blanked at exactly one other, never durable state. They are stamped on
+    # the marshal only because that is the object both seams already hold.
+    # Deliberately NOT in COORDINATION_TRANSIENT_FIELDS — that tuple carries
+    # a clearing contract (`clear_coordination_transients`) these do not
+    # share, and folding them in would exempt them for the wrong reason.
+    # Anything here must be read-once; anything that survives a turn belongs
+    # in `to_dict`.
+    READ_ONCE_NOTE_FIELDS = (
+        '_sovereign_toll_note',   # NP-4: the Guard's toll, combat_executor
+        '_fate_note',             # FA-1: a question retired by the open road
     )
 
     def clear_coordination_transients(self) -> None:
@@ -1812,6 +1834,7 @@ class Marshal:
 
             # ═══════ SQUARE FORMATION (Phase 7b, S67) ═══════
             "square_formation": self.square_formation,
+            "ai_square_cooldown": int(getattr(self, "ai_square_cooldown", 0) or 0),
 
             # ═══════ DEFIANCE SYSTEM (V2b, S1) ═══════
             "last_objection_turn": int(self.last_objection_turn),
@@ -2023,6 +2046,7 @@ class Marshal:
 
         # ═══════ SQUARE FORMATION (Phase 7b, S67) ═══════
         marshal.square_formation = data.get("square_formation", False)
+        marshal.ai_square_cooldown = int(data.get("ai_square_cooldown", 0) or 0)
 
         # ═══════ DEFIANCE SYSTEM (V2b, S1) ═══════
         marshal.last_objection_turn = data.get("last_objection_turn", 0)
