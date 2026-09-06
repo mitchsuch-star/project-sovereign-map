@@ -373,8 +373,14 @@ class TestInterruptResponseHandling:
         result = strategic_executor.handle_response(
             "Davout", "cannon_fire", "continue_order", world, game_state)
 
-        assert result["trust_change"] == -2
-        assert davout.trust.value == initial_trust - 2
+        # FLIPPED CONSCIOUSLY by FA-S16-D1 (September 6, 2026): obedience is
+        # free. It was the only RECURRING trust charge in the game, re-asked
+        # every second turn and payable up to ceil(N/2) times on one standing
+        # order, while `investigate` — which ABANDONS the order — cost
+        # nothing. The pin's own name says "penalty"; the penalty is gone and
+        # the name is kept so the history reads straight.
+        assert result["trust_change"] == 0
+        assert davout.trust.value == initial_trust
 
     def test_hold_position_cancels_order(self, world, strategic_executor, game_state):
         """'hold_position' on cannon_fire clears order."""

@@ -577,7 +577,9 @@ def build_base_response(world, success: bool = True, message: str = "",
     _interrupt = response.get("pending_interrupt")
     if isinstance(_interrupt, dict):
         from backend.commands.strategic import interrupt_option_costs
-        _costs = interrupt_option_costs(_interrupt)
+        # FA-S16-D1: `world` so a sovereign, who cannot be charged, is never
+        # quoted a price.
+        _costs = interrupt_option_costs(_interrupt, world)
         if _costs:
             response["pending_interrupt"] = dict(_interrupt,
                                                  option_costs=_costs)

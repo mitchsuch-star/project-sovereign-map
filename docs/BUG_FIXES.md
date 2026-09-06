@@ -573,6 +573,171 @@
 > completes twice in ten turns, one of them a six-pair multilateral
 > ratification, with zero refusals.
 
+> ### ✅ FA-S16-D1 + FA-S16-D2 — "THE CANNON-FIRE RULING" — TAKEN AND BUILT September 6, 2026
+>
+> **Landing record: this block.** Two rulings slice 16 (part b) filed rather
+> than took — plus **a grammar regression slice 16b itself shipped** and two
+> shown-vs-applied defects the measurement pass found beside them. Sweep
+> **23 mutations, 23 killed, 0 INERT, 0 BROKEN**; suite **20,978 / 4**; ruff
+> clean; parser eval 681/681; series and M1–M7 byte-identical. Zero `.gd`,
+> zero serialized fields.
+>
+> **Measurement of record:** a twelve-agent pass — one agent measuring each
+> open item on the shipped board, a second trying to kill each
+> recommendation. It corrected the ruling's own write-up in five places, and
+> **found a defect I had shipped four commits earlier.**
+>
+> ---
+>
+> ## ⛔ First: a regression slice 16b shipped, and its own pin was green on it
+>
+> Slice 16b fixed FA-52's copy by routing the continue arm through
+> `_strategic_command_flavor`. **That function returns a NOUN phrase** — "his
+> march", "his position" — and it went into a verb slot. The sentence the
+> player actually read was:
+>
+> > *"Davout reluctantly his march, ignoring cannon fire at Swabia."*
+>
+> and under a HOLD, *"Davout reluctantly his position…"*. The slice's own pin
+> passed, because it asserted only that the OLD string was absent.
+>
+> There is a finite-verb map now, covering all four order types —
+> **every value in the flavor map is ungrammatical in a verb slot, not the
+> two the reproduction happened to drive** — and a behavioural pin asserts
+> the live sentence never contains "reluctantly his".
+>
+> ---
+>
+> ## FA-S16-D1 — RULED: obedience is free
+>
+> `continue_order` → **0**. The prices were `investigate` 0 (abandons the
+> order and marches to the guns), `continue_order` −2 (the order stands),
+> `hold_position` −3.
+>
+> ⚠ **The argument is RECURRENCE, not inversion, and the difference matters.**
+> "Obedience must not cost more than abandonment" does not survive contact
+> with the rest of the game: the objection channel charges −10 to insist and
+> pays +3 to defer, so a price for having your way is house idiom, and five
+> other arms charge −3 for abandoning an order. What indicts *this* number is
+> that it was **the only recurring trust charge in the game**. The re-ask
+> guard is `ignored_turn >= current_turn - 1`, so the same order is asked
+> again every second turn, and continuing is the only answer that keeps the
+> order alive to be asked again — up to ⌈N/2⌉ payments on ONE standing order.
+> Measured on the boot roster: Bernadotte starts at trust 40 and reaches
+> `check_redemption_threshold`'s gate **on his tenth act of obedience.** A
+> one-off overrule charge is idiom. A metronome is not.
+>
+> It also matches the sibling exactly: `_respond_combat_stalemate` prices the
+> same verb at 0, same popup family, same "Continue as Ordered" label.
+>
+> **Scoped.** `hold_position` still charges −3 — it abandons the order AND
+> does nothing — and `investigate` stays free, because the aggressive marshal
+> does the identical thing unasked and free, so charging it would mint a new
+> inconsistency of the shape being cured.
+>
+> **⚠ Dissent recorded at the constant.** If 0 ever feels wrong, do NOT
+> re-tune: re-open as *"charge once per ORDER, not once per ask"* — an
+> order-scoped latch, which keeps the resentment idiom and kills the bleed,
+> at the cost of one serialized field.
+>
+> ### The rider was factually wrong, in the useful direction
+>
+> The gate said Napoleon is *charged* −2 for continuing his own order. He is
+> not: `SovereignTrust.modify` returns 0 and moves nothing. He was **told**
+> he had paid — a shown-vs-applied, which is this build's own signature
+> defect class, sitting inside the ruling's own rider.
+>
+> Two fixes, and the second is one the gate had not considered:
+>
+> * **`Trust.modify` RETURNS the applied delta**, so `trust_change =
+>   marshal.trust.modify(cost)` at all seven responder arms makes shown ==
+>   applied for the sovereign, for a clamp at 0 or 100, and for any future
+>   `Trust` subclass. One token per arm.
+> * **The QUOTE runs before the answer**, so that cannot reach the button —
+>   `interrupt_option_costs` takes an optional `world` now and returns `{}`
+>   for a sovereign holder. Under the alternative ruling (keep the tax) this
+>   would have been unavoidable work; under (a) it is four lines.
+>
+> ### Found by the sweep: the same drift, one arm over
+>
+> A mutation on `CANNON_FIRE_HOLD_TRUST` came back **INERT** — because the
+> hold arm's *charge* was still a separate `-3` literal from its *quote*,
+> exactly the two-literal drift the continue arm had. Both read the constant
+> now.
+>
+> ---
+>
+> ## FA-S16-D2 — RULED: a marshal is not interrupted by a war he has no part in
+>
+> `_check_interrupts` scanned every battle within two provinces and skipped
+> only the ones the marshal was himself IN. Measured: a French marshal was
+> interrupted, and charged, over a battle between two courts France had no
+> stake in.
+>
+> One predicate, `_cannon_fire_concerns`, behind one lever. Verified in five
+> directions on the shipped board: a Prussia-vs-Sweden battle on Ottoman soil
+> is **silent**; the same battle on French soil **asks** (own soil); a
+> satellite's soil **asks**; a court we are at war with **asks**; the lever
+> False reproduces the nation-blind scan.
+>
+> ⚠ **Four corrections the adversarial pass made to the first recommendation:**
+>
+> * **Its own headline reproduction is not fixed by its own fix.** France
+>   boots at WAR with Russia, so the Prussia-vs-Russia battle it drove to
+>   prove the defect still ASKS under the new predicate. The genuinely
+>   third-party case needs two courts France is neither fighting nor allied
+>   with — on the shipped board, Prussia and Sweden.
+> * **A satellite's soil is our business.** A participants-only reading
+>   silences two neutrals fighting inside Holland, because neither of them is
+>   the vassal.
+> * **The fail-open clause buys nothing on the shipped board, and the
+>   docstring says so** rather than claiming it protects fortresses. Measured:
+>   a garrison row is always `f"{region}_garrison"` and always resolves its
+>   owner — 0 of 385 recorded battles carry an unresolvable name, 0 of 110
+>   organic asks reach the branch. A friendly fortress is covered by the
+>   own-soil arm and an enemy storming one by the WAR arm.
+> * **It reads `marshal.nation`, never `world.player_nation`.** GR5: the AI
+>   never reaches this seam today, but a predicate that hard-codes France is
+>   a trap for the day it does.
+>
+> ### Two more pins the sweep proved were measuring nothing
+>
+> The war-arm pin used `"defender": "nobody"` — unresolvable, so **fail-open
+> answered first and the WAR arm was never exercised**. And the garrison pin
+> asserted an ASK, which fail-open also returns, so a mutation that stopped
+> resolving the owner was invisible. Both now use resolvable participants,
+> and the garrison pin asserts the **silent** case, which only holds if the
+> owner really resolved.
+>
+> ---
+>
+> ## Ten pins flipped consciously, and one re-aimed
+>
+> Six recorded the state the ruling would change — slice 16b said so
+> explicitly — plus three more found by the full suite. Every one keeps its
+> intent and states the flip in place; `test_continue_order_trust_penalty`
+> keeps its name so the history reads straight.
+>
+> **The tenth was found by the pre-commit hook, not by me.** A doc census in
+> slice 16b asserted FA-52's row still read OPEN. Flipping it to the opposite
+> state *with the same strictness* — the row names the ruling AND its landing
+> record — turned up the thing worth having: the cell's own closing sentence
+> still said *"Napoleon pays −2 for continuing his OWN order"*, which was
+> wrong when it was written and wrong again after the fix. A second pin now
+> forbids that sentence by name.
+>
+> The drift pin
+> `test_the_quoted_price_is_the_price_charged` is **re-aimed at
+> `hold_position`**, because `continue_order` is no longer quoted at all and
+> the pin would otherwise have been asserting about a key that is not there.
+>
+> ## Filed, not absorbed
+>
+> **FA-S16-D5** — `_respond_combat_stalemate` charges −3 on hold AND cancel
+> and quotes **nothing**: the same scene, the same "Hold Position" label, a
+> live FA-49 gap sitting beside D1's own seam. It was correctly kept out of
+> this slice; it must not be silently forgotten.
+
 > ### ✅ SLICE 16 (part c) — "THE NAME AND THE NOTICE" — FIXED September 6, 2026
 >
 > **Landing record: this block.** **FA-100** (half a), **FA-95**, **FA-69**,
@@ -5140,10 +5305,10 @@
 | **FA-46** | P3 | **A MOVE_TO whose last leg is a SHUT sea link is accepted with a route and no warning.** CONFIRMED as filed, with one refinement to the fix_shape: order-issuance route-building in `_execute_strategic_command` (backend/commands/strategic_executor.py:1507, message built from `route_str = \" -> \".join([marshal.location] + order.path)`) never consults naval state — `world.find_weighted_path`/`find_path` (backend/models/world_state.py:4943-5070) walk `adjacent_regions` unconditionally and the only passability gate they call, `_region_passable_for` (world_state.py:4919), is diplomatic-only. The per-turn step correctly gates via `movement_executor._execute_move`'s crossing check (movement_executor.py:153-170), so the SHUT verdict only surfaces after the marshal physically halts at the… *Fix:* ONE seam: in `_execute_strategic_command` before the response is built (strategic_executor.py ~1495-1507), walk `order.path` pairwise, call `naval.crossing_check(world, marshal.nation, a, b, marshal.strength)` on each `naval.is_sea_link` leg, and append the leg's verdict to the message ("— the Normandy–London leg is SHUT today, the Royal Navy at 3.… | `backend/commands/strategic_executor.py:1507` | **FIXED September 4, 2026 — FA slice 5 "The Road Law" (landing record in §Final Whole-Game Audit)** · was VERIFIED (Sept 2 verification) |
 | **FA-47** | P3 | **A marshal DISMISSED by the player is later refused as 'his corps was destroyed at <location>' — the tombstone stores the cause, the refusal ignores it.** `destroy_marshal` writes `{'nation','turn','location','cause'}` into `fallen_marshals` (world_state.py:2631-2636) and the redemption `dismiss` arm calls it with `cause='dismissed'` (disobedience.py:1756); `_addressed_lost_marshal_refusal` (main.py:893, sentence at 929-933) formats every player tomb as 'Marshal {name} is lost to us, Sire — his corps was destroyed at {location}. His name cannot lead the army again.' with no branch on `cause`. The flagship-mock digest shows the dismiss path is live in ordinary play (line 208 'POPUP redemption: Bernadotte, 9 -> dismiss'; Bernadotte never appears again in lines 209-398). *Fix:* ONE seam: `_addressed_lost_marshal_refusal` reads `tomb.get('cause')` and renders a `dismissed` arm ('Marshal {name} was relieved of command by your own order on turn {turn}; his name cannot lead the army again.') — the Marshalate hand-off that follows (main.py:936-945) stays identical. | `backend/main.py:931` | **✅ FIXED September 4, 2026 (slice 7 — the mock speaks plainly)** — was OPEN — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **VERIFIED (Sept 2 verification)** |
 | **FA-48** | P3 | **Attacking a CAPTURED enemy marshal answers 'Unknown target: Kienmayer' — the prisoner arm exists for our own marshals and destroyed enemies, not for enemy prisoners.** Verified by opening backend/commands/executor.py:727 — `_fuzzy_match_enemy` builds its roster from `world.get_enemy_marshals()` with `m.strength > 0`, which excludes a captured enemy (held at strength 0 at the captor's capital), so the attack falls through every arm to combat_executor.py:5097 `Unknown target: {target}`. PC15-4 (docs/BUG_FIXES.md:1028-1030) covers 'a PRISONER refuses with his captor' (own side) and 'the enemy-side attack <destroyed name> answers from the tombstone' — not an enemy in OUR captivity. Verified by opening the archived tutorial digest: turn 2 dispatch 'Marshal Kienmayer of Austria is taken at Swabia — he is our prisoner', turn 3 `Ney, attack Kienmayer` → '✗ Unknown… *Fix:* ONE seam: the enemy-not-found branch in `_fuzzy_match_enemy` (executor.py:727 area) — before returning not-found, check `any(m.name matches and getattr(m,'captured_by','') for m in world.marshals.values())` and return the refusal 'X is our prisoner, held at <captor capital> — there is no army to attack' (the same idiom PC15-4 uses for own prisoners… | `backend/commands/executor.py:727` | **✅ FIXED September 4, 2026 (slice 7 — the mock speaks plainly)** — was OPEN — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **DUPLICATE (Sept 2 verification)** |
-| **FA-49** | P3 | **Cannon-fire interrupt options carry hidden trust costs (Continue −2, Hold −3) that the popup never shows; a HOLDING marshal pays them every other turn.** `_respond_cannon_fire` charges `trust_change = -2` for `continue_order` (backend/commands/strategic.py:568, 'Non-literal acting literal') and `-3` for `hold_position` (:596); the blocked-path handlers charge −3 on hold/cancel after the first step (:795-799, :834-838, :850-854). The popup renders bare labels only — interrupt_popup.gd:23-30 `OPTION_LABELS` ('Continue as Ordered', 'Hold Position', 'March to the Guns') — and the report builders (:2380-2390, :2600-2860) carry no per-option numbers, unlike the objection dialog (PT-C2). Because `_execute_strategic_turn` runs `_check_interrupts` for HOLD orders too (:871-909) and the suppression is one turn (:2264-2267), a cautious marshal holding b… *Fix:* ONE seam: the interrupt report builders in strategic.py (cannon-fire ask at :2380-2390; blocked-path builders) emit `option_costs: {option_id: trust_change}` (the PT-C2 idiom) and `interrupt_popup.gd:69` appends '(trust −2)' from it — numbers on the buttons, same source as the payment. (Whether 'continue as ordered' on a HOLD should cost trust at a… | `godot-client/project-sovereign/scripts/interrupt_popup.gd:23` | ✅ **FIXED September 6, 2026 — FA slice 16 (part b)** (landing record = the boxed SLICE 16 (part b) block; reproduction = `REPRO_L_slice16_at_head.md`). `interrupt_option_costs` — pure, and DERIVED from the interrupt's own `interrupt_type` and `is_first_step`. ⚠ A static table, as filed, would have printed "−3" on a first-step interrupt that charges **nothing** (three builders in another file set that flag), a NEW shown-vs-applied of the class the row exists to close. ⚠ Stamped on a **shallow COPY** in `build_base_response`, not into `pending_interrupt`: that dict is handed out by reference from a dozen sites AND serialized, so there is no new save key, no migration, and a pre-fix save renders its costs the moment it loads. Costs ride their own payload key (the label map and `options` are both pinned as flat lists of strings). **The drift pin is BEHAVIOURAL** — the literals are not renamed (`trust_change = -3` occurs four times across different arms), so a test drives the real responder and compares the quoted price to the payment. |
+| **FA-49** | P3 | **Cannon-fire interrupt options carry hidden trust costs (Continue −2, Hold −3) that the popup never shows; a HOLDING marshal pays them every other turn.** `_respond_cannon_fire` charges `trust_change = -2` for `continue_order` (backend/commands/strategic.py:568, 'Non-literal acting literal') and `-3` for `hold_position` (:596); the blocked-path handlers charge −3 on hold/cancel after the first step (:795-799, :834-838, :850-854). The popup renders bare labels only — interrupt_popup.gd:23-30 `OPTION_LABELS` ('Continue as Ordered', 'Hold Position', 'March to the Guns') — and the report builders (:2380-2390, :2600-2860) carry no per-option numbers, unlike the objection dialog (PT-C2). Because `_execute_strategic_turn` runs `_check_interrupts` for HOLD orders too (:871-909) and the suppression is one turn (:2264-2267), a cautious marshal holding b… *Fix:* ONE seam: the interrupt report builders in strategic.py (cannon-fire ask at :2380-2390; blocked-path builders) emit `option_costs: {option_id: trust_change}` (the PT-C2 idiom) and `interrupt_popup.gd:69` appends '(trust −2)' from it — numbers on the buttons, same source as the payment. (Whether 'continue as ordered' on a HOLD should cost trust at a… | `godot-client/project-sovereign/scripts/interrupt_popup.gd:23` | ✅ **FIXED September 6, 2026 — FA slice 16 (part b)** (landing record = the boxed SLICE 16 (part b) block; reproduction = `REPRO_L_slice16_at_head.md`). `interrupt_option_costs` — pure, and DERIVED from the interrupt's own `interrupt_type` and `is_first_step`. ⚠ A static table, as filed, would have printed "−3" on a first-step interrupt that charges **nothing** (three builders in another file set that flag), a NEW shown-vs-applied of the class the row exists to close. ⚠ Stamped on a **shallow COPY** in `build_base_response`, not into `pending_interrupt`: that dict is handed out by reference from a dozen sites AND serialized, so there is no new save key, no migration, and a pre-fix save renders its costs the moment it loads. Costs ride their own payload key (the label map and `options` are both pinned as flat lists of strings). **The drift pin is BEHAVIOURAL** — the literals are not renamed (`trust_change = -3` occurs four times across different arms), so a test drives the real responder and compares the quoted price to the payment. **Extended the same day by FA-S16-D1**: the quoter takes the world and returns `{}` for a sovereign holder (`SovereignTrust.modify` moves nothing, so any number on Napoleon's button is a lie), the drift pin is re-aimed at `hold_position` now that `continue_order` is not quoted at all, and the hold arm's charge and quote — still two separate literals, caught by an INERT mutation — read one constant. ⚠ The sibling popup `_respond_combat_stalemate` is still unpriced on BOTH its paying arms: filed as **FA-S16-D5**, not absorbed. |
 | **FA-50** | P3 | **Compound two-marshal orders silently drop the second clause — "Ney, attack Mack and Davout scout Swabia" scouts nothing and says nothing.** `_SEQUEL_SPLIT_RE` (parser.py:45) splits only on "then"; the split-and-warn at parser.py:1484-1492 is the only compound handling, and `parse_multiple` (the 'Ney and Davout' splitter) has no production caller — its sole call is the `__main__` demo at parser.py:2109 (verified by grep and by opening). CR-2 (g) reports a dropped tail ONLY for the 'then' shape, so an 'and <Marshal> <verb>' or ';'-joined second order vanishes without a word. *Fix:* Minimal, ONE seam: extend `_split_sequential_orders` to also split on `;` and on `\s+and\s+<PlayerMarshalName>,?\s+<verb>`, routing the tail through the EXISTING dropped-sequel Berthier warning so the second order is at least declared dropped; the full fix is CR-7's wiring of `parse_multiple` (or a loop over the split clauses at the main.py dispatc… | `backend/commands/parser.py:45` | ✅ **FIXED September 2, 2026 (slice 1)** — **the title mis-classifies it**: measured, in 9 of 14 shapes the second clause was EXECUTED BY THE FIRST MARSHAL in place of the order given, at 2 AP, reported as success. The row's marshal-anchored fix closes 3 of 6 arms and is incompletable in that form, because the three hold IDIOMS name an object and are still one order |
 | **FA-51** | P3 | **Expedition gate order sends a 30,000-man corps to a yard where it will then be told it cannot sail; 'with 12,000 men' is silently dropped.** `_execute_naval_expedition` (backend/commands/naval_executor.py) checks whether the marshal stands at a controlled dockyard (line 207) strictly before checking `troops > naval.EXPEDITION_MAX_TROOPS` (line 225), even though `naval.over_lift_refusal` (naval.py:567) depends only on `marshal.strength`, not location — so an over-sized corps not at a yard is told only 'must stand at one of our yards' and learns the real, location-independent problem (that no verb can ever lighten this corps enough to sail) only after the player has already marched it to a yard. Separately, no seam anywhere in the parser or executor reads a troop figure from the command text (confirmed: no troop-count field in VALI… *Fix:* Reorder in `_execute_naval_expedition`: evaluate the lift (the un-marchable-around gate) before the embark position, and when the raw text carries 'with N men' echo it in the refusal ('the transports take a whole corps; there is no verb to embark 12,000 of 30,000'). | `backend/commands/naval_executor.py:207` | ✅ **FIXED September 6, 2026 — FA slice 16 (part a)** (landing record = the boxed SLICE 16 (part a) block; reproduction = `REPRO_L_slice16_at_head.md`). The lift is checked FIRST — a property of the corps, true wherever he stands — so a 30,000-man corps is no longer sent to a yard and refused at the yard. ⚠ Above the YARD arm ONLY: the filed "evaluate the lift before the embark position" would put it above the inland-abroad arm too, so a big corps inland on foreign soil hears about the lift and never about the coast — the same defect mirrored, and a behavioural pin holds both directions. The typed "with 12,000 men" is echoed from the EXECUTOR, because `naval.over_lift_refusal` is pinned byte-for-byte and has a second caller (the region panel) with no raw command to read. |
-| **FA-52** | P3 | **Obeying a cannon-fire question is taxed: 'continue_order' costs −2 trust and 'hold_position' −3 while abandoning the order is free, and a HOLDing marshal 'reluctantly continues the march'.** `_respond_cannon_fire` charges `trust_change = -2 # Non-literal acting literal` on `continue_order` (strategic.py:568-570) and −3 on `hold_position` (:594-596); only `investigate` — which cancels the order — is free. The copy is a fixed 'reluctantly continues the march, ignoring cannon fire at X' (:581) regardless of order type. Verified by running (probe E3–E5): Davout under `hold Rhineland` (2 AP), a battle recorded two regions away → 'Davout: Cannon fire at Franconia, Sire. Investigate?'; answering continue_order → 'Davout reluctantly continues the march, ignoring cannon fire at Franconia. Davout fortifies Rhineland.' with trust −2 and the HOLD still standing. `cannon_fire_ignored_turn` s… *Fix:* ONE seam: `_respond_cannon_fire` — `continue_order` charges 0 for HOLD/SUPPORT and for battles with no enemy participant (or drop the tax entirely: the personality cost of ignoring guns already lives in the aggressive auto-redirect), and the sentence keys on `_strategic_command_flavor(order.command_type)` ('keeps his position'/'continues the march'… | `backend/commands/strategic.py:568` | ✅ **COPY HALF FIXED September 6, 2026 — FA slice 16 (part b)**; ⚠ **MECHANICAL HALF IS A RULING AND IS OPEN** — filed as `DESIGN_REFINEMENT.md` **FA-S16-D1** with an owner and a done-when. The continue arm was the ONLY arm in the function that did not call `_strategic_command_flavor`: measured, a marshal under a HOLD was told he "reluctantly continues the march" and, in the same sentence, that he fortified where he stood. The tax is not built because **slice 3 already decided the identical question the other way in the same file for the same popup** — `_respond_combat_stalemate` prices `continue_order` at 0 — so one of the two is wrong and the build cannot choose which. Three pins record the state the ruling will change. Filed with it: **FA-S16-D2**, the nation-blind trigger (a French marshal charged over Blücher vs Hohenlohe), and the unfiled side-effect that Napoleon pays −2 for continuing his OWN order. |
+| **FA-52** | P3 | **Obeying a cannon-fire question is taxed: 'continue_order' costs −2 trust and 'hold_position' −3 while abandoning the order is free, and a HOLDing marshal 'reluctantly continues the march'.** `_respond_cannon_fire` charges `trust_change = -2 # Non-literal acting literal` on `continue_order` (strategic.py:568-570) and −3 on `hold_position` (:594-596); only `investigate` — which cancels the order — is free. The copy is a fixed 'reluctantly continues the march, ignoring cannon fire at X' (:581) regardless of order type. Verified by running (probe E3–E5): Davout under `hold Rhineland` (2 AP), a battle recorded two regions away → 'Davout: Cannon fire at Franconia, Sire. Investigate?'; answering continue_order → 'Davout reluctantly continues the march, ignoring cannon fire at Franconia. Davout fortifies Rhineland.' with trust −2 and the HOLD still standing. `cannon_fire_ignored_turn` s… *Fix:* ONE seam: `_respond_cannon_fire` — `continue_order` charges 0 for HOLD/SUPPORT and for battles with no enemy participant (or drop the tax entirely: the personality cost of ignoring guns already lives in the aggressive auto-redirect), and the sentence keys on `_strategic_command_flavor(order.command_type)` ('keeps his position'/'continues the march'… | `backend/commands/strategic.py:568` | ✅ **FULLY FIXED — copy half September 6, 2026 (FA slice 16 part b); mechanical half the same day, as ruling FA-S16-D1** (landing record = the boxed **FA-S16-D1 + FA-S16-D2** block). `continue_order` → **0**. ⚠ **The copy fix shipped a REGRESSION and its own pin was green on it**: `_strategic_command_flavor` returns a NOUN phrase, so the sentence read *"Davout reluctantly his march, ignoring cannon fire at Swabia."* — the pin asserted only that the OLD string was absent. There is a finite-verb map now, and a behavioural pin on the live sentence. ⚠ The row's own fix_shape (“0 for HOLD/SUPPORT”) is NOT what shipped: the price is 0 for every order type, because the indictment is RECURRENCE — continuing is the only answer that keeps the order alive to be asked again, so it was the only recurring trust charge in the game. The continue arm was the ONLY arm in the function that did not call `_strategic_command_flavor`: measured, a marshal under a HOLD was told he "reluctantly continues the march" and, in the same sentence, that he fortified where he stood. The tax is not built because **slice 3 already decided the identical question the other way in the same file for the same popup** — `_respond_combat_stalemate` prices `continue_order` at 0 — so one of the two is wrong and the build cannot choose which. Three pins record the state the ruling will change. Filed with it and **also ruled and built the same day**: **FA-S16-D2**, the nation-blind trigger — though the row's own example is not one of its cases, France booting at WAR with Russia. ⚠ And the side-effect it filed beside them is FALSE as written: Napoleon was never *charged*, `SovereignTrust.modify` returns 0 and moves nothing — he was *told* he had paid, which is a shown-vs-applied, and it is fixed at both the report and the quote. |
 | **FA-53** | P3 | **On a multi-province day the dispatch drops provinces entirely and never names the captor.** The page holds a headline plus `SUB_BEAT_SLOTS = 2` (dispatch.py:209) and `region_captured` is not in `_DISPATCH_EVENT_TYPES` (:2718-2790), so any province beyond the third vanishes from the briefing. Reproduced: five homeland provinces lost in one turn on the legacy world → 'Paris HAS FALLEN' + Belgium + Lyon; Milan and Marseille appear nowhere in the dispatch payload (`turn_events` empty of them). In ambient40 turn 31 France lost EIGHT provinces (`provinces 15 (-8)`, digest.md:301) and the dispatch read 'Sire — Savoy has fallen. Enemy colours fly over French homeland soil.' (:302); turn 32 lost five (:313 → 'Picardy has fallen', :314). The `home_captured` template (:273) has one shape and… *Fix:* ONE seam — `_select_headline` (dispatch.py:1212): when ≥2 candidates share class `home_captured`/`region_lost`, collapse them into ONE candidate built from the events' structured fields via the existing `_join_place_names` (:2933) — 'Savoy, Burgundy, Champagne and 5 more have fallen — Shrapnel (Britain) and Mack (Austria) walk the homeland unoppose… | `backend/game_logic/dispatch.py:1212` | ❌ **REFUTED BY A LANDED DESIGN DECISION September 5, 2026 — FA slice 11 "The Briefing Tells the Truth" (landing record = the boxed SLICE 11 block in §Final Whole-Game Audit).** Built, measured, and REVERTED. The row asks for the several provinces of one bad day to collapse into a tally so the page has slots left for other news. **WO slice 4 (WO-D6, "The Capital Speaks") measured the SAME failure** — four homeland provinces lost in one turn, the page reading "Limousin / Berry / Normandy" with PARIS NOT ON IT — and answered it the other way: it split `capital_lost` out of `home_captured` so the capital always leads, and deliberately KEPT the three-province page. The collapse reds five of its pins, headed by `test_three_provinces_and_nothing_else_still_fill_both_slots`. Two designs, one already chosen; the refutation is recorded at the seam in `dispatch.py` and pinned in `TestFA53IsRefutedByWOD6`. The row was already narrowed twice by its own reproduction: its `_DISPATCH_EVENT_TYPES` mechanism is FALSE (`region_captured` never rides `tactical_events`) and its digest citation is a harness artefact (the digest's `DISPATCH:` line is the headline only, never the sub-beats). **Its other half — naming the captor — is NPC-15, which is open.** |
 | **FA-54** | P3 | **Real-world exonyms auto-correct into the wrong province and the strategic march never says so — "Ney, march to Mainz" marches six provinces WEST to Maine; "march to Bayern" heads for Bern.** CONFIRMED defect, WRONG SEAM in fix_shape. `backend/commands/parser.py:1761-1794` (the strategic-target fuzzy-match arm inside `CommandParser.parse()`'s MOVE_TO/HOLD/PURSUE/SUPPORT detection block, region case at :1768-1779) silently rewrites a strategic order's target (e.g. Mainz→Maine, Bayern→Bern) and stamps the corrected name into `result[\"command\"][\"target\"]` at :1794 — BEFORE `strategic_executor.py` ever runs. `strategic_executor.py:748-800`'s phrase-resolution branch (cited as the fix site in the original finding) only fires when the target does NOT resolve to any real region at all; it is dead for this repro since the target is already a valid region by the time that code runs. P… *Fix:* ONE seam: give the strategic MOVE_TO/HOLD reply the same raw-text grounding note the movement path builds (movement_executor.py:343-353) at the strategic_executor.py:779 resolve site — any auto-corrected destination is disclosed on every route. Secondary (in-band): in `_plausible_name_typo` allow 2 edits only when the CANDIDATE is also ≥6 letters (… | `backend/commands/parser.py:525` | ✅ **FIXED September 2, 2026 (slice 1)** — one of the six `fix_shape`-vs-`summary` rows and **BOTH are wrong**: the fix_shape's branch is dormant, and `_corrected`'s parser stamp would ship an order whose target names a province that does not exist while its path marches elsewhere. Built at the MESSAGE, one helper shared by both routes. Also fixed: the predicate was blind to prefix exonyms, and a refusal dropped the note. ⚠ residue stated — the blocked-first-step interrupt still does not disclose |
 | **FA-55** | P3 | **The AI's in-place capture rung charges march attrition for a march it never makes, every turn it stands on undefended soil.** XR-3 filed the player-typed case at P4 as cosmetic. The archive shows it is an AI rung: PRIORITY −1 (backend/ai/enemy_ai.py:1578-1582) returns `{'action': 'attack', 'target': marshal.location}` for any marshal standing on undefended enemy soil; the attack path then calls `_calculate_movement_attrition(marshal, resolved_target, world)` (combat_executor.py:5028) with `resolved_target == old_location` — `movement_executor.py:45-95` has no origin==destination guard — and narrates 'marches from {old_location} into {resolved_target} unopposed!' (:5034). Digest: 'ArchdukeCharles marches from Croatia into Croatia unopposed! (540 lost to march) Captured: Bavaria → Austria' (audit-flagship-mock digest… *Fix:* ONE seam — combat_executor.py:5028: when `old_location == resolved_target`, skip `_calculate_movement_attrition` and emit 'secures {region}' instead of the march clause; the AI rung and the typed route both inherit it (GR5). | `backend/commands/combat_executor.py:5028` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **DUPLICATE (Sept 2 verification)** |

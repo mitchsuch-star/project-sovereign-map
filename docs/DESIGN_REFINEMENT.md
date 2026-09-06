@@ -1476,9 +1476,10 @@ both live at the same acceptance seam (`strategic_executor.py:1400-1403`).
 
 | id | P | item | seam(s) | build shape | behaviour test |
 |---|---|---|---|---|---|
-| **FA-S16-D1** | P2 | **The cannon-fire tax: obeying a standing order costs 2 trust, abandoning it for the guns costs 0** — and slice 3 already priced the identical popup the other way. See the section below for the measured table, the reachability (19 organic asks in the archive, three French marshals, every other turn each) and the three options. | `strategic.StrategicOrderProcessor._respond_cannon_fire` · its sibling `_respond_combat_stalemate` | recommended default (a): `continue_order` → 0, matching the sibling; the resentment stays in the ASK | `test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged` records the state the ruling changes | **OPEN — needs a ruling.** Filed by FA slice 16 (part b), which built the copy half of FA-52 and could not choose this. |
-| **FA-S16-D2** | P3 | **The cannon-fire trigger is nation-blind** — measured, a French marshal was interrupted, and charged, over Blücher vs Hohenlohe, a Prussian pair neither of whose sides is France. | `strategic._check_interrupts` → `world.get_battles_within_range(marshal.location, 2)` | either a nation predicate, or a docstring saying why there is none | a marshal under orders is not charged for a battle his nation has no stake in | **OPEN — needs a ruling.** Filed with FA-S16-D1. |
+| **FA-S16-D1** | P2 | **The cannon-fire tax: obeying a standing order costs 2 trust, abandoning it for the guns costs 0** — and slice 3 already priced the identical popup the other way. See the section below for the measured table, the reachability (19 organic asks in the archive, three French marshals, every other turn each) and the three options. | `strategic.StrategicOrderProcessor._respond_cannon_fire` · its sibling `_respond_combat_stalemate` | recommended default (a): `continue_order` → 0, matching the sibling; the resentment stays in the ASK | `test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged` records the state the ruling changes | ✅ **RULED (a) AND BUILT September 6, 2026** — `continue_order` → 0. Landing record = the boxed **FA-S16-D1 + FA-S16-D2** block in `BUG_FIXES.md`. ⚠ The argument that carried it is **recurrence, not inversion** — see the amended section below. |
+| **FA-S16-D2** | P3 | **The cannon-fire trigger is nation-blind** — measured, a French marshal was interrupted, and charged, over Blücher vs Hohenlohe, a Prussian pair neither of whose sides is France. | `strategic._check_interrupts` → `world.get_battles_within_range(marshal.location, 2)` | either a nation predicate, or a docstring saying why there is none | a marshal under orders is not charged for a battle his nation has no stake in | ✅ **RULED AND BUILT September 6, 2026** — the predicate `_cannon_fire_concerns`, behind the lever `CANNON_FIRE_READS_THE_FLAGS`. Landing record = the same boxed block. ⚠ The row's own reproduction is not fixed by its own fix — see below. |
 
+| **FA-S16-D5** | P3 | **The stalemate popup charges −3 on hold AND on cancel and quotes neither** — the same scene as FA-S16-D1, the same "Hold Position" label, one function over. FA-49 put prices on the cannon-fire buttons; `_respond_combat_stalemate` was correctly out of that slice's scope and is still unpriced. | `strategic.StrategicOrderProcessor._respond_combat_stalemate` · `strategic.interrupt_option_costs` | extend the existing pure quoter to the stalemate interrupt type, or state at the seam why this popup carries no numbers | the price on the button is the price charged, for both of its paying arms | **OPEN.** Filed September 6, 2026 by the FA-S16-D1/D2 build, which found it beside its own seam and did not absorb it. |
 | **FA-S16-D3** | P3 | **A second absolute casualty floor, for a question a landed sibling already answered with a different number** — see the section below. | `battle_report._pick_observation` priority 4 · `dispatch.OWN_MAULED_MIN_CASUALTIES` | pick ONE of the two existing floors; do not mint a third | a 1-vs-58 exchange does not draw the "even the favorable ground could not save him" verdict | **OPEN — needs a ruling.** Filed by FA slice 16 (part c). |
 | **FA-S16-D4** | P3 | **The crown beat leaks into the School** — the tutorial has no gate on the glory beats, and the precedent points the other way. | `dispatch.py` · `campaign_log.py` (zero `scenario_name` references in either) | gate the BEAT, or gate the STATE, or neither | a tutorial dispatch does not report a crowning the lesson never taught | **OPEN — needs a ruling.** Filed with FA-S16-D3. |
 
@@ -1541,6 +1542,31 @@ may.
 
 ### FA-S16-D1 — the cannon-fire tax: obedience costs 2, abandonment costs 0
 
+> ✅ **RULED (a) AND BUILT September 6, 2026.** `continue_order` → 0.
+> `hold_position` keeps its −3, `investigate` keeps its 0. Landing record =
+> the boxed **FA-S16-D1 + FA-S16-D2** block in `BUG_FIXES.md`.
+>
+> ⚠ **The argument below is corrected by the measurement that took the
+> ruling.** "Obedience must not cost more than abandonment" is NOT what
+> carries it — the objection channel charges −10 to insist and pays +3 to
+> defer, so a price for having your way is house idiom, and five other arms
+> charge −3 for abandoning an order. What indicts *this* number is that it
+> was **the only recurring trust charge in the game**: the re-ask guard is
+> `ignored_turn >= current_turn - 1`, and continuing is the only answer that
+> keeps the order alive to be asked again. Bernadotte boots at trust 40 and
+> reaches `check_redemption_threshold`'s gate **on his tenth act of
+> obedience**. A one-off overrule charge is idiom; a metronome is not.
+>
+> ⚠ **The rider was factually wrong.** Napoleon was never *charged* —
+> `SovereignTrust.modify` returns 0 and moves nothing. He was *told* he had
+> paid: a shown-vs-applied, sitting inside the ruling's own rider. Fixed at
+> both ends (`trust_change = marshal.trust.modify(trust_change)` at all seven
+> responder arms; `interrupt_option_costs` returns `{}` for a sovereign
+> holder, so no price reaches his button).
+>
+> **The dissent is recorded at the constant.** If 0 ever feels wrong, do NOT
+> re-tune: re-open as *"charge once per ORDER, not once per ask"*.
+
 **Filed September 6, 2026 by FA slice 16 (part b). The copy half of FA-52 is
 BUILT; this is its mechanical half, and it needs a ruling, not a patch.**
 
@@ -1600,6 +1626,19 @@ the price charged agree with the sibling popup, or the divergence is written
 down at both seams as deliberate.
 
 ### FA-S16-D2 — the cannon-fire trigger is nation-blind
+
+> ✅ **RULED AND BUILT September 6, 2026** as `_cannon_fire_concerns` behind
+> `CANNON_FIRE_READS_THE_FLAGS`: he is asked about his own soil, a
+> satellite's soil, and any battle with a court he is fighting or allied
+> with — and nothing else. Landing record = the boxed block in
+> `BUG_FIXES.md`.
+>
+> ⚠ **This row's own reproduction is not fixed by this row's own fix.**
+> France boots at WAR with Russia, so the Blücher-vs-Hohenlohe case still
+> ASKS under the predicate — correctly, we are fighting one of them. The
+> genuinely third-party case on the shipped board is Prussia vs **Sweden**.
+> ⚠ A participants-only reading would have silenced two neutrals fighting
+> inside Holland, which is why a satellite's soil is its own arm.
 
 **Filed with the above, same function, smaller.** `_check_interrupts` scans
 `world.get_battles_within_range(marshal.location, 2)` and skips only battles

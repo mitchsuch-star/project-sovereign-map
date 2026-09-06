@@ -1290,10 +1290,20 @@ class TestInterruptResponse:
 
         assert result["success"] is True
         assert result["order_cleared"] is False
-        assert result["trust_change"] == -2
+        # ⚠ FLIPPED CONSCIOUSLY by FA-S16-D1 (September 6, 2026): obeying a
+        # standing order is FREE. It cost −2 while `investigate`, which
+        # ABANDONS the order and marches to the guns, cost nothing — and the
+        # re-ask guard is `ignored_turn >= current_turn - 1`, so continuing
+        # was the only answer that kept the order alive to be asked again.
+        # It was the only RECURRING trust charge in the game, up to ceil(N/2)
+        # payments on one order; Bernadotte reached the redemption gate on
+        # his tenth act of obedience. The INTENT of this pin — the order
+        # survives, the marshal moves, the re-ask is suppressed — is
+        # unchanged and is still asserted.
+        assert result["trust_change"] == 0
         assert davout.strategic_order is not None  # Order preserved
         if trust_before is not None:
-            assert davout.trust.value == trust_before - 2
+            assert davout.trust.value == trust_before
         # Movement should have executed (loop fix)
         assert davout.location != "Paris", "Marshal must move after continue_order"
         assert davout.cannon_fire_ignored_turn == world.current_turn

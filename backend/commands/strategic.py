@@ -83,12 +83,57 @@ ATTACK_FUTILITY_LIMIT = 3
 # emitted from this file alone would have printed "−3" on an interrupt that
 # charges nothing, which is a NEW shown-vs-applied of exactly the class the
 # row exists to close.
-CANNON_FIRE_CONTINUE_TRUST = -2   # non-literal acting literal
+# ── FA-S16-D1, RULED September 6, 2026: obeying a standing order is FREE ──
+#
+# The three prices were `investigate` 0 (ABANDONS the order and marches to
+# the guns), `continue_order` −2 (the order STANDS), `hold_position` −3
+# (abandons it and does nothing). So obeying was the second-most expensive
+# answer and the only free one threw the order away.
+#
+# ⚠ THE ARGUMENT IS RECURRENCE, NOT INVERSION. "Obedience must not cost more
+# than abandonment" does not survive contact with the rest of the game: the
+# objection channel charges −10 to insist and pays +3 to defer, so a price
+# for having your way is house idiom, and five other arms charge −3 for
+# abandoning an order. What indicts THIS number is that it is **the only
+# RECURRING trust charge in the game**. The re-ask guard is
+# `ignored_turn >= current_turn - 1`, so the same order is asked again every
+# second turn, and continuing is the only answer that keeps the order alive
+# to be asked again — up to ceil(N/2) payments on ONE standing order.
+# Measured on the boot roster: Bernadotte starts at trust 40 and reaches
+# `check_redemption_threshold`'s gate on his TENTH act of obedience. A
+# one-off overrule charge is idiom. A metronome is not.
+#
+# It also matches the sibling exactly: `_respond_combat_stalemate` prices
+# `continue_order` at 0 with `"order_cleared": False`, same popup family,
+# same "Continue as Ordered" label.
+#
+# ⚠ DISSENT, recorded at the constant. If 0 ever feels wrong, do NOT re-tune
+# it. Re-open as **"charge once per ORDER, not once per ask"** — an
+# order-scoped latch, which keeps the resentment idiom and kills the bleed,
+# at the cost of one serialized field on `StrategicOrder`.
+CANNON_FIRE_CONTINUE_TRUST = 0    # FA-S16-D1: obedience is free
 CANNON_FIRE_HOLD_TRUST = -3       # abandoning the order to stand still
 BLOCKED_PATH_ABANDON_TRUST = -3   # …and 0 when the order has not begun
 
 
-def interrupt_option_costs(interrupt: Optional[Dict]) -> Dict[str, int]:
+def _continue_order_verb(command_type) -> str:
+    """"…reluctantly ___, ignoring cannon fire at X."
+
+    `_strategic_command_flavor` returns a NOUN phrase and belongs in the
+    "abandoning {flavor}" frame; this is its finite-verb sibling for the
+    frame where the order CONTINUES. Every value in the flavor map is
+    ungrammatical in a verb slot, not merely two of them.
+    """
+    return {
+        "MOVE_TO": "continues his march",
+        "PURSUE": "presses the pursuit",
+        "HOLD": "holds his position",
+        "SUPPORT": "keeps to his reinforcement orders",
+    }.get(str(command_type or ""), "obeys his standing order")
+
+
+def interrupt_option_costs(interrupt: Optional[Dict],
+                           world=None) -> Dict[str, int]:
     """The trust price of each option on ONE interrupt, derived from the
     interrupt's own fields.
 
@@ -99,6 +144,17 @@ def interrupt_option_costs(interrupt: Optional[Dict]) -> Dict[str, int]:
     """
     if not isinstance(interrupt, dict):
         return {}
+    # FA-S16-D1: a sovereign pays nothing, so he is quoted nothing.
+    # `SovereignTrust.modify` returns 0 and moves nothing, and the QUOTE runs
+    # BEFORE the answer, so the applied-delta fix above cannot reach it — the
+    # button would still have read "(trust -3)" for an Emperor who cannot be
+    # charged. `world` is optional so every existing caller keeps working.
+    if world is not None:
+        holder = getattr(world, "marshals", {}).get(
+            str(interrupt.get("marshal") or ""))
+        trust = getattr(holder, "trust", None)
+        if trust is not None and type(trust).__name__ == "SovereignTrust":
+            return {}
     kind = str(interrupt.get("interrupt_type") or "")
     options = [str(o) for o in (interrupt.get("options") or [])
                if isinstance(o, (str, bytes))]
@@ -622,6 +678,65 @@ def _combat_carry(result) -> Dict:
 #     keyed on a fought battle, and never minted into a pursuit (R1-F3/F4,
 #     R2-F4).
 CANNON_FIRE_READS_THE_ANSWER = True
+
+# FA-S16-D2, RULED September 6, 2026 — the guns a marshal has a REASON to
+# march to. False reproduces the nation-blind scan exactly.
+CANNON_FIRE_READS_THE_FLAGS = True
+
+
+def _cannon_fire_concerns(world, marshal, battle) -> bool:
+    """Does this battle concern `marshal`'s nation at all?
+
+    `_check_interrupts` scanned every battle within two provinces and skipped
+    only the ones the marshal was himself IN — no nation term anywhere.
+    Measured: a French marshal was interrupted, and charged trust, over a
+    battle between two courts France had no stake in.
+
+    Sited HERE and not in `get_battles_within_range` — which has exactly one
+    caller in the backend, this one — because the question is about a
+    MARSHAL, not a location.
+
+    ⚠ It reads `marshal.nation`, never `world.player_nation`. GR5: the AI
+    never reaches this seam today, but a predicate that hard-codes France is
+    a trap for the day it does.
+
+    ⚠ FAIL OPEN on a participant whose nation cannot be resolved. To be exact
+    about what that buys: on the shipped board it buys nothing. A garrison
+    row is always `f"{region}_garrison"` and always resolves its owner —
+    measured, 0 of 385 recorded battles carry an unresolvable name and 0 of
+    110 organic asks reach the branch. A friendly fortress is already covered
+    by the own-soil arm and an enemy storming one by the WAR arm. This clause
+    is robustness against a producer nobody has enumerated, and nothing else.
+    """
+    if not CANNON_FIRE_READS_THE_FLAGS:
+        return True
+    nation = getattr(marshal, "nation", "")
+    region = world.regions.get(battle.get("location"))
+    controller = getattr(region, "controller", None) if region else None
+    if controller == nation:
+        return True                      # our own soil
+    # A satellite's soil is our business too: two neutrals fighting inside
+    # Holland is silenced by a participants-only reading, because neither of
+    # them is the vassal.
+    if controller and world.get_diplomatic_state(nation, controller) == "VASSAL":
+        return True
+    for side in (battle.get("attacker"), battle.get("defender")):
+        who = world.marshals.get(side)
+        if who is None:
+            name = str(side or "")
+            owner = (world.regions.get(name[:-len("_garrison")])
+                     if name.endswith("_garrison") else None)
+            other = getattr(owner, "controller", None) if owner else None
+            if other is None:
+                return True              # FAIL OPEN — see the docstring
+        else:
+            other = getattr(who, "nation", None)
+        if not other or other == nation:
+            return True
+        state = world.get_diplomatic_state(nation, other)
+        if state in ("WAR", "VASSAL") or world.are_allies(nation, other):
+            return True
+    return False
 ANSWERED_CONTACT_READS_THE_BOARD = True
 
 
@@ -1399,9 +1514,18 @@ class StrategicOrderProcessor:
 
         elif choice == "continue_order":
             # Resume strategic order — marshal ignores cannon fire
-            trust_change = -2  # Non-literal acting literal
+            # FA-S16-D1: the CHARGE reads the same constant the QUOTE does.
+            # They were two separate literals, so editing one would have made
+            # the button lie.
+            trust_change = CANNON_FIRE_CONTINUE_TRUST
             if hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                # …and `trust_change` is what was APPLIED, not what was asked
+                # for. `Trust.modify` returns the real delta, so a clamp at
+                # 0 or 100 — and `SovereignTrust.modify`, which always
+                # returns 0 — can no longer be reported as a payment the
+                # marshal never made. Measured: Napoleon's popup read
+                # "Continue as Ordered (trust -2)" and charged nothing.
+                trust_change = marshal.trust.modify(trust_change)
 
             # Suppress cannon fire re-trigger for 1 turn (prevents infinite loop)
             marshal.cannon_fire_ignored_turn = world.current_turn
@@ -1413,13 +1537,21 @@ class StrategicOrderProcessor:
             return self._attach_redemption_if_needed({
                 "success": True,
                 # FA-52: "continues the march" regardless of the order.
-                # This was the ONLY arm in the function that did not call
-                # `_strategic_command_flavor` — measured, a marshal under a
-                # HOLD was told he "reluctantly continues the march" and
-                # then, in the same sentence, that he fortified where he
-                # stood.
+                # This was the ONLY arm in the function that did not read the
+                # order's own type — measured, a marshal under a HOLD was
+                # told he "reluctantly continues the march" and then, in the
+                # same sentence, that he fortified where he stood.
+                #
+                # ⛔ AND THE FIRST FIX OF IT WAS WORSE. Slice 16b dropped
+                # `_strategic_command_flavor` straight into the verb slot,
+                # and that function returns a NOUN phrase ("his march", "his
+                # position"), so the sentence the player actually read was
+                # **"Davout reluctantly his march, ignoring cannon fire at
+                # Swabia."** The slice's own pin was GREEN on it, because it
+                # only asserted the OLD string was absent. A finite verb is
+                # needed, for all four order types.
                 "message": f"{marshal.name} reluctantly "
-                           f"{_strategic_command_flavor(order.command_type)}, "
+                           f"{_continue_order_verb(order.command_type)}, "
                            f"ignoring cannon fire at {battle_location}. "
                            f"{move_msg}".strip(),
                 "order_cleared": False,
@@ -1435,9 +1567,13 @@ class StrategicOrderProcessor:
             # [7A-2] Clear holding state
             marshal.holding_position = False
             marshal.hold_region = ""
-            trust_change = -3
+            # FA-S16-D1: the hold arm reads its constant too. It was the same
+            # two-literal drift the continue arm had — the button quoted `CANNON_FIRE_HOLD_TRUST` while a separate `-3` did the charging, so
+            # editing one would have made the other lie. Found by the sweep:
+            # a mutation on the constant alone was INERT.
+            trust_change = CANNON_FIRE_HOLD_TRUST
             if hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} halts and holds position, "
@@ -1639,7 +1775,7 @@ class StrategicOrderProcessor:
             is_first_step = pending.get("is_first_step", False)
             trust_change = 0 if is_first_step else -3
             if trust_change != 0 and hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} holds position, "
@@ -1658,7 +1794,7 @@ class StrategicOrderProcessor:
             is_first_step = pending.get("is_first_step", False)
             trust_change = 0 if is_first_step else -3
             if trust_change != 0 and hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} cancels {_strategic_command_flavor(order.command_type)}.",
@@ -1722,7 +1858,7 @@ class StrategicOrderProcessor:
             marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} abandons reinforcement orders for {ally_name}.",
@@ -1765,7 +1901,7 @@ class StrategicOrderProcessor:
             marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} holds position after the engagement with {enemy_name}.",
@@ -1781,7 +1917,7 @@ class StrategicOrderProcessor:
             marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
-                marshal.trust.modify(trust_change)
+                trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} abandons the order and awaits new instructions.",
@@ -3388,6 +3524,11 @@ class StrategicOrderProcessor:
             # Skip battles we're involved in
             if (battle.get("attacker") == marshal.name or
                     battle.get("defender") == marshal.name):
+                continue
+
+            # FA-S16-D2: …and battles his nation has no stake in. He can
+            # hear the guns; he has no reason to abandon an order for them.
+            if not _cannon_fire_concerns(world, marshal, battle):
                 continue
 
             if personality == "aggressive":

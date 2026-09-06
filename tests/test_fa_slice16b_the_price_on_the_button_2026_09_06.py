@@ -309,16 +309,23 @@ class TestTheMusterStatesItsCeiling:
 class TestTheInterruptStatesItsPrice:
 
     def test_the_cannon_fire_costs_are_named(self):
+        """⚠ `continue_order` left this dict when FA-S16-D1 made obedience
+        free. The one remaining charge is the answer that abandons the order
+        AND does nothing."""
         costs = strategic.interrupt_option_costs(
             {"interrupt_type": "cannon_fire",
              "options": ["investigate", "continue_order", "hold_position"]})
-        assert costs == {"continue_order": -2, "hold_position": -3}
+        assert costs == {"hold_position": -3}
 
     def test_a_free_option_is_omitted_not_reported_as_zero(self):
         costs = strategic.interrupt_option_costs(
             {"interrupt_type": "cannon_fire",
              "options": ["investigate", "continue_order", "hold_position"]})
         assert "investigate" not in costs
+        # …and so is `continue_order`, now that it is free. The truthiness
+        # filter is what makes the ruling reach the button with no further
+        # edit: a 0 simply stops being quoted.
+        assert "continue_order" not in costs
 
     def test_a_first_step_interrupt_prices_nothing(self):
         """⚠ THE HAZARD IN THE FILED FIX. Three builders in
@@ -364,12 +371,17 @@ class TestTheInterruptStatesItsPrice:
             "battle_location": "Franconia",
             "options": ["investigate", "continue_order", "hold_position"]}
         quoted = strategic.interrupt_option_costs(marshal.pending_interrupt)
+        # ⚠ RE-AIMED at `hold_position` by FA-S16-D1. It used to drive
+        # `continue_order`, which is now free and therefore no longer
+        # QUOTED — so the pin would have been asserting about a key that is
+        # not in the dict. `hold_position` is the arm that still charges, and
+        # it is the one that still needs a drift pin.
         before = marshal.trust.value
         result = _quiet(_processor().handle_response,
-                        marshal.name, "cannon_fire", "continue_order",
+                        marshal.name, "cannon_fire", "hold_position",
                         world, {"world": world})
-        assert result.get("trust_change") == quoted["continue_order"]
-        assert marshal.trust.value == before + quoted["continue_order"]
+        assert result.get("trust_change") == quoted["hold_position"]
+        assert marshal.trust.value == before + quoted["hold_position"]
 
     def test_the_costs_ride_their_own_payload_key(self):
         """⚠ Not the label map and not `options`. `OPTION_LABELS` is pinned
@@ -405,7 +417,7 @@ class TestTheInterruptStatesItsPrice:
         response = _quiet(M.build_base_response, world, True, "x",
                           pending_interrupt=marshal.pending_interrupt)
         assert response["pending_interrupt"]["option_costs"] == {
-            "continue_order": -2, "hold_position": -3}
+            "hold_position": -3}
         assert "option_costs" not in marshal.pending_interrupt, (
             "the stored dict was mutated — it is serialized")
 
@@ -428,7 +440,13 @@ class TestTheContinuedOrderIsNamed:
         # to explain what it replaced, and a raw census is satisfied by it.
         code = "\n".join(ln for ln in block.split("\n")
                          if not ln.lstrip().startswith("#"))
-        assert "_strategic_command_flavor(order.command_type)" in code
+        # ⚠ RE-AIMED. The first fix put `_strategic_command_flavor` — which
+        # returns a NOUN phrase — straight into the verb slot, and shipped
+        # **"Davout reluctantly his march, ignoring cannon fire at Swabia."**
+        # This pin was GREEN on that, because it only asserted the OLD string
+        # was absent. It reads the order's type through a finite-verb map
+        # now, and the behavioural pin below is what actually holds it.
+        assert "_continue_order_verb(order.command_type)" in code
         assert "continues the march" not in code
 
     def test_a_holding_marshal_is_not_told_he_marches(self, world):
@@ -454,17 +472,38 @@ class TestTheContinuedOrderIsNamed:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheTaxIsStillCharged:
-    """FA-52's mechanical half is a DESIGN question and is filed, not built:
-    obeying a standing order costs 2 trust while abandoning it for the guns
-    costs nothing, and slice 3 already priced the identical popup the other
-    way (`_respond_combat_stalemate` charges 0 for "Continue as Ordered").
-    These pins record the state the ruling will change, so the row cannot be
-    quietly forgotten."""
+    """⚠ THE RULING WAS TAKEN on September 6, 2026 — FA-S16-D1, option (a),
+    obedience is free — and this class is now the record of it rather than
+    the record of the state it was going to change. Its name is kept so the
+    history reads straight; every assertion is inverted.
 
-    def test_continuing_still_costs_two(self):
+    The argument is RECURRENCE, not inversion: `continue_order` was the only
+    recurring trust charge in the game, re-asked every second turn and
+    payable up to ceil(N/2) times on one standing order. The full case, the
+    rejected alternatives and the recorded dissent are at the constant."""
+
+    def test_continuing_is_free(self):
         assert strategic.interrupt_option_costs(
             {"interrupt_type": "cannon_fire",
-             "options": ["continue_order"]}) == {"continue_order": -2}
+             "options": ["continue_order"]}) == {}
+        assert strategic.CANNON_FIRE_CONTINUE_TRUST == 0
+
+    def test_abandoning_to_stand_still_still_costs(self):
+        """The ruling is scoped. The answer that abandons the order AND does
+        nothing is still charged — five other arms charge −3 for abandoning
+        an order, so this one is idiom, not an oversight."""
+        assert strategic.interrupt_option_costs(
+            {"interrupt_type": "cannon_fire",
+             "options": ["hold_position"]}) == {"hold_position": -3}
+
+    def test_the_dissent_is_recorded_at_the_constant(self):
+        """If 0 ever feels wrong the answer is an order-scoped latch, not a
+        re-tune — and that has to be written where the next editor will
+        look."""
+        src = inspect.getsource(strategic)
+        head = src[:src.index("CANNON_FIRE_CONTINUE_TRUST = 0")]
+        assert "once per ORDER, not once per ask" in head
+        assert "DISSENT" in head
 
     def test_the_sibling_popup_prices_the_same_verb_at_zero(self):
         src = inspect.getsource(
@@ -472,12 +511,31 @@ class TestTheTaxIsStillCharged:
         assert "presses on" in src
         assert "trust_change = -2" not in src
 
-    def test_the_row_is_open_with_an_owner(self):
+    def test_the_row_records_the_ruling_and_its_landing_record(self):
+        """⚠ FLIPPED CONSCIOUSLY September 6, 2026. This pin asserted FA-52's
+        row said OPEN or RULING — the state the ruling changed. It now
+        asserts the opposite state with the same strictness: the row is
+        closed, it names the ruling that closed it, and it points at a
+        landing record, so the row cannot quietly go back to reading like an
+        open question."""
         rows = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
         line = [ln for ln in rows.split("\n")
                 if re.match(r"^(> )?\| \*\*FA-52\*\* \|", ln)]
         assert line, "FA-52's row has gone missing"
-        assert "OPEN" in line[0] or "RULING" in line[0]
+        assert "OPEN" not in line[0]
+        assert "FA-S16-D1" in line[0]
+        assert "landing record" in line[0]
+
+    def test_the_row_does_not_still_say_the_sovereign_pays(self):
+        """The cell used to close on "the unfiled side-effect that Napoleon
+        pays −2 for continuing his OWN order." He never did —
+        `SovereignTrust.modify` returns 0 — and nobody does now. A sentence
+        that was wrong twice over must not survive the fix that made it
+        wrong the second time."""
+        rows = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        line = [ln for ln in rows.split("\n")
+                if re.match(r"^(> )?\| \*\*FA-52\*\* \|", ln)][0]
+        assert "Napoleon pays" not in line
 
     def test_the_ruling_is_filed_with_an_owner_and_a_done_when(self):
         """GR9. The mechanical half is deferred, so it needs a home, an

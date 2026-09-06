@@ -1,0 +1,163 @@
+[
+ {
+  "id": "D1/a obedience is charged again",
+  "file": "backend/commands/strategic.py",
+  "old": "CANNON_FIRE_CONTINUE_TRUST = 0    # FA-S16-D1: obedience is free",
+  "new": "CANNON_FIRE_CONTINUE_TRUST = -2   # FA-S16-D1: obedience is free",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestObedienceIsFree"
+ },
+ {
+  "id": "D1/b the charge goes back to its own literal",
+  "file": "backend/commands/strategic.py",
+  "old": "            trust_change = CANNON_FIRE_CONTINUE_TRUST",
+  "new": "            trust_change = -2",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestObedienceIsFree"
+ },
+ {
+  "id": "D1/c the hold charge and the hold quote drift apart again",
+  "file": "backend/commands/strategic.py",
+  "old": "CANNON_FIRE_HOLD_TRUST = -3       # abandoning the order to stand still",
+  "new": "CANNON_FIRE_HOLD_TRUST = 0        # abandoning the order to stand still",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestObedienceIsFree"
+ },
+ {
+  "id": "D1/d the recurrence argument is replaced by the inversion one",
+  "file": "backend/commands/strategic.py",
+  "old": "# ⚠ THE ARGUMENT IS RECURRENCE, NOT INVERSION.",
+  "new": "# The argument is that obedience must not cost more than abandonment.",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestObedienceIsFree::test_the_recurrence_argument_is_on_the_record"
+ },
+ {
+  "id": "D1/e the dissent loses its re-open shape",
+  "file": "backend/commands/strategic.py",
+  "old": "# it. Re-open as **\"charge once per ORDER, not once per ask\"** — an",
+  "new": "# it. Re-open as a latch of some kind — an",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestObedienceIsFree::test_the_dissent_names_the_re_open_shape"
+ },
+ {
+  "id": "D1/f the reported delta stops being the applied one",
+  "file": "backend/commands/strategic.py",
+  "old": "                trust_change = marshal.trust.modify(trust_change)\n\n            # Suppress cannon fire re-trigger",
+  "new": "                marshal.trust.modify(trust_change)\n\n            # Suppress cannon fire re-trigger",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheReportedDeltaIsTheAppliedDelta"
+ },
+ {
+  "id": "D1/g the sovereign is quoted a price he cannot pay",
+  "file": "backend/commands/strategic.py",
+  "old": "        if trust is not None and type(trust).__name__ == \"SovereignTrust\":\n            return {}",
+  "new": "        if False:\n            return {}",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheReportedDeltaIsTheAppliedDelta::test_the_sovereign_is_not_even_quoted_a_price"
+ },
+ {
+  "id": "D1/h the world argument stops being optional",
+  "file": "backend/commands/strategic.py",
+  "old": "def interrupt_option_costs(interrupt: Optional[Dict],\n                           world=None) -> Dict[str, int]:",
+  "new": "def interrupt_option_costs(interrupt: Optional[Dict],\n                           world) -> Dict[str, int]:",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheReportedDeltaIsTheAppliedDelta::test_the_world_argument_is_optional"
+ },
+ {
+  "id": "D1/i the response builder stops passing the world",
+  "file": "backend/main.py",
+  "old": "        _costs = interrupt_option_costs(_interrupt, world)",
+  "new": "        _costs = interrupt_option_costs(_interrupt)",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheReportedDeltaIsTheAppliedDelta::test_the_response_builder_passes_the_world"
+ },
+ {
+  "id": "GRAMMAR/a the noun phrase goes back into the verb slot",
+  "file": "backend/commands/strategic.py",
+  "old": "                           f\"{_continue_order_verb(order.command_type)}, \"",
+  "new": "                           f\"{_strategic_command_flavor(order.command_type)}, \"",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheSentenceIsGrammatical"
+ },
+ {
+  "id": "GRAMMAR/b one order type loses its verb",
+  "file": "backend/commands/strategic.py",
+  "old": "        \"HOLD\": \"holds his position\",",
+  "new": "        \"HOLD\": \"his position\",",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheSentenceIsGrammatical"
+ },
+ {
+  "id": "GRAMMAR/c the unknown-type default is lost",
+  "file": "backend/commands/strategic.py",
+  "old": "    }.get(str(command_type or \"\"), \"obeys his standing order\")",
+  "new": "    }[str(command_type or \"\")]",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheSentenceIsGrammatical::test_an_unknown_type_still_reads"
+ },
+ {
+  "id": "D2/a the scan goes back to nation-blind",
+  "file": "backend/commands/strategic.py",
+  "old": "            if not _cannon_fire_concerns(world, marshal, battle):\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim"
+ },
+ {
+  "id": "D2/b the predicate silences our own soil",
+  "file": "backend/commands/strategic.py",
+  "old": "    if controller == nation:\n        return True                      # our own soil",
+  "new": "    if False:\n        return True                      # our own soil",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_the_same_battle_on_our_own_soil_still_asks"
+ },
+ {
+  "id": "D2/c the predicate silences a satellite's soil",
+  "file": "backend/commands/strategic.py",
+  "old": "    if controller and world.get_diplomatic_state(nation, controller) == \"VASSAL\":\n        return True",
+  "new": "    if False:\n        return True",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_a_satellites_soil_is_our_business"
+ },
+ {
+  "id": "D2/d the predicate silences a war we ARE in",
+  "file": "backend/commands/strategic.py",
+  "old": "        if state in (\"WAR\", \"VASSAL\") or world.are_allies(nation, other):",
+  "new": "        if state in (\"VASSAL\",) or world.are_allies(nation, other):",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_a_court_we_are_fighting_still_asks"
+ },
+ {
+  "id": "D2/e an unresolvable participant fails CLOSED",
+  "file": "backend/commands/strategic.py",
+  "old": "            if other is None:\n                return True              # FAIL OPEN — see the docstring",
+  "new": "            if other is None:\n                return False",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_an_unresolvable_participant_fails_OPEN"
+ },
+ {
+  "id": "D2/f the garrison owner is not resolved",
+  "file": "backend/commands/strategic.py",
+  "old": "            owner = (world.regions.get(name[:-len(\"_garrison\")])\n                     if name.endswith(\"_garrison\") else None)",
+  "new": "            owner = None",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_a_garrison_row_resolves_its_owner"
+ },
+ {
+  "id": "D2/g the predicate reads the PLAYER's flag, not the marshal's",
+  "file": "backend/commands/strategic.py",
+  "old": "    nation = getattr(marshal, \"nation\", \"\")",
+  "new": "    nation = getattr(world, \"player_nation\", \"\")",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_it_reads_the_marshals_flag_not_the_players"
+ },
+ {
+  "id": "D2/h the lever stops reproducing prior behaviour",
+  "file": "backend/commands/strategic.py",
+  "old": "    if not CANNON_FIRE_READS_THE_FLAGS:\n        return True",
+  "new": "    if not CANNON_FIRE_READS_THE_FLAGS:\n        return False",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_the_lever_reproduces_the_nation_blind_scan"
+ },
+ {
+  "id": "D2/i the fail-open docstring stops stating what it buys",
+  "file": "backend/commands/strategic.py",
+  "old": "    ⚠ FAIL OPEN on a participant whose nation cannot be resolved. To be exact\n    about what that buys: on the shipped board it buys nothing.",
+  "new": "    ⚠ FAIL OPEN on a participant whose nation cannot be resolved, which\n    protects a friendly fortress.",
+  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_an_unresolvable_participant_fails_OPEN"
+ },
+ {
+  "id": "ROW/a the FA-52 cell drifts back to reading OPEN",
+  "file": "docs/BUG_FIXES.md",
+  "old": "✅ **FULLY FIXED — copy half September 6, 2026 (FA slice 16 part b); mechanical half the same day, as ruling FA-S16-D1**",
+  "new": "⚠ **MECHANICAL HALF IS OPEN** — filed as FA-S16-D1",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged::test_the_row_records_the_ruling_and_its_landing_record"
+ },
+ {
+  "id": "ROW/b the cell says the sovereign pays again",
+  "file": "docs/BUG_FIXES.md",
+  "old": "Napoleon was never *charged*, `SovereignTrust.modify` returns 0 and moves nothing",
+  "new": "Napoleon pays −2 for continuing his OWN order",
+  "tests": "tests/test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged::test_the_row_does_not_still_say_the_sovereign_pays"
+ }
+]
