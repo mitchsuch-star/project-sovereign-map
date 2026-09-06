@@ -28,6 +28,16 @@ from pathlib import Path
 from typing import Optional, List, Dict
 
 from backend.models.world_state import WorldState
+from backend import notifications
+
+# ⚠ TWO FLIP LEVERS, deliberately separate (FA-S15-2). They are two
+# INDEPENDENT behaviour changes and the attribution experiment needs to
+# take them apart: with L1 False the raise escapes exactly as at HEAD;
+# with L2 False the console print is the only trace, exactly as at HEAD.
+# One combined lever could not reproduce prior behaviour for the root
+# half — slice 14's "both levers or neither" discipline, applied.
+SAVE_DIR_FAILURE_IS_CAUGHT = True
+SAVE_FAILURE_IS_ANNOUNCED = True
 
 
 def _resolve_save_dir() -> Path:
@@ -89,9 +99,21 @@ def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optiona
     Returns:
         {"success": True/False, "message": str, "filepath": str}
     """
-    ensure_save_dir()
+    if not SAVE_DIR_FAILURE_IS_CAUGHT:
+        ensure_save_dir()
 
     try:
+        # ⚠ FA-S15-2 (L1). `ensure_save_dir()` used to sit OUTSIDE this try,
+        # so `save_game` could RAISE despite a docstring promising a
+        # success/failure dict — and the raise destroyed four keys of the
+        # end-turn response (`enemy_phase`, `morning_dispatch`,
+        # `tactical_events`, `turn_ended`) on both turn roads. Measured
+        # triggers: PermissionError on a locked directory, and
+        # FileExistsError when `mkdir(parents=True, exist_ok=True)` meets a
+        # FILE at that path. It also reaches the TYPED `save <name>` command,
+        # which returns this dict straight to the player.
+        if SAVE_DIR_FAILURE_IS_CAUGHT:
+            ensure_save_dir()
         save_data = {
             "metadata": {
                 "format_version": FORMAT_VERSION,
@@ -280,17 +302,46 @@ def autosave(world: WorldState) -> Dict:
     re-arms on load). Position-8 session fix, Aug 8 2026.
     """
     if str(getattr(world, "scenario_name", "")) == "tutorial":
+        if SAVE_FAILURE_IS_ANNOUNCED:
+            notifications.clear_save_failure(world)
         return {
             "success": True,
             "skipped": "tutorial",
             "message": "Tutorial — campaign autosave untouched",
             "filepath": "",
         }
-    return save_game(
-        world,
-        save_name=f"Autosave - Turn {world.current_turn}",
-        filepath=SAVE_DIR / AUTOSAVE_FILENAME
-    )
+
+    # ⚠ FA-S15-2 (L2). The announcement lives HERE, in the one door all
+    # three callers already use — not in a new `autosave_and_report` they
+    # would each have to remember. A second door beside this one is the
+    # defect class this build keeps shipping: a fourth caller reaches the
+    # un-announced one. Measured: notifying here covers BOTH turn roads
+    # (the typed `end turn` and the last-AP auto-advance) with zero
+    # call-site edits, and the two `print("Autosave warning: ...")` blocks
+    # at those call sites are DELETED rather than joined by a third.
+    if not SAVE_FAILURE_IS_ANNOUNCED:
+        return save_game(
+            world,
+            save_name=f"Autosave - Turn {world.current_turn}",
+            filepath=SAVE_DIR / AUTOSAVE_FILENAME
+        )
+    try:
+        result = save_game(
+            world,
+            save_name=f"Autosave - Turn {world.current_turn}",
+            filepath=SAVE_DIR / AUTOSAVE_FILENAME
+        )
+    except Exception as exc:            # never let a save break the turn
+        result = {"success": False,
+                  "message": f"Autosave failed: {exc}", "filepath": ""}
+    if result.get("success"):
+        notifications.clear_save_failure(world)
+    else:
+        print(f"Autosave warning: {result.get('message')}")
+        notifications.report_save_failure(
+            world, str(result.get("message") or ""),
+            getattr(world, "current_turn", 0))
+    return result
 
 
 def list_saves() -> List[Dict]:

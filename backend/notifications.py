@@ -34,6 +34,9 @@ BANKRUPTCY_ESCALATION = "bankruptcy_escalation"
 DRILL_CANCELLED = "drill_cancelled"
 MARSHAL_DEFIED_ORDER = "marshal_defied_order"  # V2b: HIGH priority
 # Vassal System notifications (Phase 8 Session 5)
+# ⚠ The constant name MUST be the upper-case of its value, or the
+# two-directional rail census mis-classifies it (REV-V3).
+SAVE_FAILED = "save_failed"                        # CRITICAL: not saving
 VASSAL_REBELLION = "vassal_rebellion"              # CRITICAL: vassal rebelled
 VASSAL_LOYALTY_CRITICAL = "vassal_loyalty_critical"  # HIGH: loyalty < 10
 # Coalition System notifications (Phase 8 Session 7)
@@ -513,5 +516,60 @@ def dismiss_marshal_ask(world, marshal_name: str) -> int:
         return int(collector.dismiss_by_type(
             MARSHAL_LAST_STAND,
             lambda n: (n.get("details") or {}).get("marshal") == marshal_name))
+    except Exception:
+        return 0
+
+
+def report_save_failure(world, detail: str, turn) -> bool:
+    """Put the failed autosave on the rail, once, until it saves again.
+
+    FA-S15-2. A failed autosave reached the SERVER CONSOLE and nobody else:
+    `print(f"Autosave warning: ...")` at two call sites, no notification, no
+    dispatch line, no client key. The player kept playing.
+
+    ⚠ And the harm is not "there is no save" — measured on the shipped
+    board, the file EXISTS and goes STALE: world turn 4, slot turn 2. It sits
+    in the Load menu looking plausible, and the menu's Continue reads the
+    NEWEST save, so a player who lost saving mid-campaign is silently resumed
+    several turns back. The copy says that, because it is what happens.
+
+    CRITICAL, so the cap can never evict it. `refresh` rather than `add`, so
+    a campaign that cannot save rings the desk bell ONCE instead of every
+    turn (UX23-R2's lesson) and `turn_created` stays pinned to the turn
+    saving broke. No new serialized field: the collector IS the latch, and
+    because it rides the save, a reload from an older good file correctly
+    re-warns.
+    """
+    try:
+        collector = getattr(world, "notifications", None)
+        if collector is None:
+            return False
+        collector.refresh(create_notification(
+            notification_type=SAVE_FAILED,
+            priority=NotificationPriority.CRITICAL,
+            title="The campaign is not being saved",
+            message=(
+                "The autosave could not be written. The slot in the Load "
+                "menu is now STALE — resuming from it would put you back at "
+                f"an earlier turn. {detail}"),
+            turn_created=int(turn or 0),
+            details={"detail": str(detail)},
+        ))
+        return True
+    except Exception:
+        return False
+
+
+def clear_save_failure(world) -> int:
+    """Retire the warning once a save succeeds.
+
+    Structurally inert when no row stands: `dismiss_by_type` rebuilds an
+    identical list, returns 0, and nothing aliases `_pending`.
+    """
+    try:
+        collector = getattr(world, "notifications", None)
+        if collector is None:
+            return 0
+        return int(collector.dismiss_by_type(SAVE_FAILED))
     except Exception:
         return 0

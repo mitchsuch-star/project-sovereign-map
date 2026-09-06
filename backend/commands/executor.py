@@ -3001,9 +3001,11 @@ class CommandExecutor:
 
             # Autosave at start of new turn (auto-advance path, mirrors _execute_end_turn)
             from backend.save_manager import autosave
-            autosave_result = autosave(world)
-            if not autosave_result["success"]:
-                print(f"Autosave warning: {autosave_result['message']}")
+            autosave(world)
+            # ⚠ FA-S15-2: the `print("Autosave warning: ...")` that stood here
+            # is DELETED, not moved beside a third copy. The failure is now
+            # announced inside `save_manager.autosave` itself, so this call site
+            # and every future one inherit the rail notice for free.
 
         return result
 

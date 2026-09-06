@@ -1,0 +1,135 @@
+[
+ {
+  "id": "L1/a ensure_save_dir goes back outside the try",
+  "file": "backend/save_manager.py",
+  "old": "        if SAVE_DIR_FAILURE_IS_CAUGHT:\n            ensure_save_dir()",
+  "new": "        pass",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestSaveGameHonoursItsOwnContract"
+ },
+ {
+  "id": "L1/b the lever stops restoring the raise",
+  "file": "backend/save_manager.py",
+  "old": "    if not SAVE_DIR_FAILURE_IS_CAUGHT:\n        ensure_save_dir()",
+  "new": "    if False:\n        ensure_save_dir()",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestSaveGameHonoursItsOwnContract::test_the_lever_restores_the_raise"
+ },
+ {
+  "id": "L1/c the lever defaults to the pre-fix position",
+  "file": "backend/save_manager.py",
+  "old": "SAVE_DIR_FAILURE_IS_CAUGHT = True",
+  "new": "SAVE_DIR_FAILURE_IS_CAUGHT = False",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestSaveGameHonoursItsOwnContract"
+ },
+ {
+  "id": "L2/a the announcement is removed",
+  "file": "backend/save_manager.py",
+  "old": "        notifications.report_save_failure(\n            world, str(result.get(\"message\") or \"\"),\n            getattr(world, \"current_turn\", 0))",
+  "new": "        pass",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheFailureReachesThePlayer"
+ },
+ {
+  "id": "L2/b the announcement lever defaults to the pre-fix position",
+  "file": "backend/save_manager.py",
+  "old": "SAVE_FAILURE_IS_ANNOUNCED = True",
+  "new": "SAVE_FAILURE_IS_ANNOUNCED = False",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheFailureReachesThePlayer"
+ },
+ {
+  "id": "L2/c the autosave call can raise again",
+  "file": "backend/save_manager.py",
+  "old": "    except Exception as exc:            # never let a save break the turn",
+  "new": "    except ZeroDivisionError as exc:    # never let a save break the turn",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py"
+ },
+ {
+  "id": "L2/d a success no longer retires the warning",
+  "file": "backend/save_manager.py",
+  "old": "    if result.get(\"success\"):\n        notifications.clear_save_failure(world)",
+  "new": "    if False:\n        notifications.clear_save_failure(world)",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheLatch::test_one_good_turn_retires_it"
+ },
+ {
+  "id": "L2/e the tutorial skip strands a standing warning",
+  "file": "backend/save_manager.py",
+  "old": "        if SAVE_FAILURE_IS_ANNOUNCED:\n            notifications.clear_save_failure(world)",
+  "new": "        pass",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestOneDoorCoversBothRoads::test_the_tutorial_still_never_touches_the_slot"
+ },
+ {
+  "id": "N/a the row stops being CRITICAL and becomes evictable",
+  "file": "backend/notifications.py",
+  "old": "            priority=NotificationPriority.CRITICAL,\n            title=\"The campaign is not being saved\",",
+  "new": "            priority=NotificationPriority.NORMAL,\n            title=\"The campaign is not being saved\",",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py"
+ },
+ {
+  "id": "N/b refresh becomes add and the title grows an (xN)",
+  "file": "backend/notifications.py",
+  "old": "        collector.refresh(create_notification(\n            notification_type=SAVE_FAILED,",
+  "new": "        collector.add(create_notification(\n            notification_type=SAVE_FAILED,",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheLatch"
+ },
+ {
+  "id": "N/c the copy stops saying the slot goes stale",
+  "file": "backend/notifications.py",
+  "old": "                \"The autosave could not be written. The slot in the Load \"\n                \"menu is now STALE — resuming from it would put you back at \"\n                f\"an earlier turn. {detail}\"),",
+  "new": "                f\"The autosave could not be written. {detail}\"),",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheFailureReachesThePlayer::test_the_copy_says_the_slot_goes_stale"
+ },
+ {
+  "id": "N/d the turn stamp follows the current turn instead of the break",
+  "file": "backend/notifications.py",
+  "old": "            turn_created=int(turn or 0),\n            details={\"detail\": str(detail)},",
+  "new": "            turn_created=int(turn or 0) + 1,\n            details={\"detail\": str(detail)},",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheLatch::test_the_turn_it_broke_is_the_turn_it_reports"
+ },
+ {
+  "id": "N/e clear_save_failure stops clearing",
+  "file": "backend/notifications.py",
+  "old": "        return int(collector.dismiss_by_type(SAVE_FAILED))",
+  "new": "        return 0",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheLatch::test_one_good_turn_retires_it"
+ },
+ {
+  "id": "N/f the constant's value stops matching its name",
+  "file": "backend/notifications.py",
+  "old": "SAVE_FAILED = \"save_failed\"                        # CRITICAL: not saving",
+  "new": "SAVE_FAILED = \"save_failure\"                       # CRITICAL: not saving",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheRailCanRenderIt"
+ },
+ {
+  "id": "C/a a call site grows its own local handling again",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        autosave(world)",
+  "new": "        _r = autosave(world)\n        if not _r[\"success\"]:\n            print(f\"Autosave warning: {_r['message']}\")",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestOneDoorCoversBothRoads"
+ },
+ {
+  "id": "C/b the auto-advance road loses its autosave entirely",
+  "file": "backend/commands/executor.py",
+  "old": "            autosave(world)",
+  "new": "            pass",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestOneDoorCoversBothRoads::test_the_auto_advance_road_carries_it_too"
+ },
+ {
+  "id": "G/a the rail loses the glyph map entry",
+  "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+  "old": "\t\"save_failed\": \"floppy-disk\",",
+  "new": "",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheRailCanRenderIt"
+ },
+ {
+  "id": "G/b the rail loses the three-letter map entry",
+  "file": "godot-client/project-sovereign/scripts/notification_bar.gd",
+  "old": "\t\"save_failed\": \"SAV\",",
+  "new": "",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheRailCanRenderIt"
+ },
+ {
+  "id": "D/a the save-format reference forgets the new type",
+  "file": "docs/SAVE_FORMAT_REFERENCE.md",
+  "old": "adds the CRITICAL type `save_failed`",
+  "new": "adds a CRITICAL type",
+  "tests": "tests/test_fa_s15_2_the_save_that_says_nothing_2026_09_06.py::TestTheRecordSaysWhatItCarries"
+ }
+]

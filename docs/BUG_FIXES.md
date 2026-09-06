@@ -450,7 +450,7 @@
 > | ID | P | Finding | Seam | Status |
 > |---|---|---|---|---|
 > | **FA-S15-1** | **P1** | **Releasing a vassal with an assimilated contingent broke EVERY save and EVERY autosave for the rest of the campaign.** `vassal.release_vassal` did `delattr(marshal, 'original_nation')`; that field is SERIALIZED and `Marshal.to_dict` reads `self.original_nation` BARE, so every subsequent `to_dict` raised and `save_game` swallowed the `AttributeError` into a `success: False` with the reason in a field nobody reads — the campaign simply stops being saveable and never says so. Measured end to end on the shipped 1805 board. It is **IGR-X1's pattern exactly** (`del marshal._recovery_destination` in `enemy_ai.py`, fixed the same way and carrying a comment naming the mechanism), and **the two sibling restore loops in the same file already wrote `= None`** — one site was missed. ⚠ It does NOT reproduce on a bare boot probe (no French vassal has an assimilated corps at turn 1), which is why it survived; it needs a corps carrying `original_nation`, the state `_assimilate_vassal_marshals` creates whenever a vassal is taken at non-autonomous autonomy with marshals of its own. **Found by the FA slice 15 pre-build fleet while measuring FA-91**, which is the row whose whole complaint is that the serialization gate cannot see this class of field. | `backend/game_logic/vassal.py::release_vassal` · `backend/models/marshal.py::to_dict` | ✅ **FIXED September 6, 2026 — FA slice 15 (part a)** (landing record = the boxed SLICE 15 (part a) block). `delattr` → `= None`, matching the two siblings. **TWO standing pins asserted the defect and are flipped consciously** (`test_deep_audit_session2.py::TestFix9ReleaseCleanupRelationship` and `test_igr_a_honest_copy.py::TestA4VassalReleaseReport::test_the_snapshot_survives_the_mutations`, both `not hasattr(...)`); their INTENT is unchanged and still asserted. FA-91's new AST census forbids the shape going forward. |
-> | **FA-S15-2** | P2 | **An autosave that FAILS is reported to the server console and to nobody else — the player is never told the campaign has stopped being saveable.** `save_manager.save_game` wraps its whole body in `except Exception as e: return {"success": False, "message": f"Save failed: {e}"}`, and both callers of `autosave` discard that: `meta_executor.py:486` `print`s it to stdout, and `main.py:4582` reads the flag into a local nothing renders. So the FA-S15-1 P1 was invisible for as long as it existed — the delattr was half the defect and the swallow was the other half, and slice 15 fixed only the delattr. The same swallow will hide the NEXT one. Found by the slice-15 review round (S15R-4), which is also where it was noticed that the part-a landing block names the silent failure as half the harm and then homes nothing. | `backend/save_manager.py::save_game` · `backend/commands/meta_executor.py:486` · `backend/main.py:4582` | **OPEN** — **OWNER: slice 16.** **Done when** a failed autosave reaches the player on a surface the client renders (the notification rail is the natural one — CRITICAL, latched, one per campaign), AND a pin drives a real end turn with `save_game` forced to raise and asserts the response carries it. ⚠ Do NOT make the autosave failure abort the turn: the comment at `meta_executor.py:483` is right that it must be non-blocking, and a turn the player cannot end is worse than a save they are told about. |
+> | **FA-S15-2** | P2 | **An autosave that FAILS is reported to the server console and to nobody else — the player is never told the campaign has stopped being saveable.** `save_manager.save_game` wraps its whole body in `except Exception as e: return {"success": False, "message": f"Save failed: {e}"}`, and both callers of `autosave` discard that: `meta_executor.py:486` `print`s it to stdout, and `main.py:4582` reads the flag into a local nothing renders. So the FA-S15-1 P1 was invisible for as long as it existed — the delattr was half the defect and the swallow was the other half, and slice 15 fixed only the delattr. The same swallow will hide the NEXT one. Found by the slice-15 review round (S15R-4), which is also where it was noticed that the part-a landing block names the silent failure as half the harm and then homes nothing. | `backend/save_manager.py::save_game` · `backend/commands/meta_executor.py:486` · `backend/main.py:4582` ✅ **FIXED September 6, 2026** (landing record = the boxed **FA-S15-2** block). CRITICAL, latched, one per campaign, on the rail — and the pin drives a real end turn with `save_game` forced to raise. ⚠ **The row’s framing of the harm is wrong in the common case**: measured, `autosave.json` EXISTS and goes **stale** (world 4, slot 2), so it sits in the Load menu looking plausible while Continue silently resumes the player turns back — the copy says that, and a pin measures the lag. ⚠ **A second, larger defect sat underneath**: `ensure_save_dir()` was OUTSIDE `save_game`’s try, so it could RAISE despite its docstring and destroy four keys of the end-turn response on both roads (two triggers, and the row names neither) — hence TWO levers, because one could not reproduce prior behaviour for that half. ⚠ The announcement is sited **inside `autosave()`**, the door that already exists, not in the filed `autosave_and_report` helper three callers must remember: both roads covered with zero call-site edits, and the two prints DELETED rather than joined by a third. Original text: **OWNER: slice 16.** **Done when** a failed autosave reaches the player on a surface the client renders (the notification rail is the natural one — CRITICAL, latched, one per campaign), AND a pin drives a real end turn with `save_game` forced to raise and asserts the response carries it. ⚠ Do NOT make the autosave failure abort the turn: the comment at `meta_executor.py:483` is right that it must be non-blocking, and a turn the player cannot end is worse than a save they are told about. |
 > | **FA-S13-1** | P4 | **Three residues from the slices 12+13 review round, each measured, each deliberately out of that round's scope.** (a) **The two map-key routes read different fields.** `map_renderer_base.gd::_unhandled_input` matches `event.physical_keycode` for M / Home / +/−; `main.gd::_alt_game_key`, added by slice 13, matches `event.keycode`. On a non-US layout the bare key and its Alt form therefore answer different physical keys. A refuter measured which half is the odd one and it is **not** the slice's: `keycode` is the layout-mapped value a player expects from a labelled key, and the `physical_keycode` half is five months old and untouched by slice 13 — so this is a pre-existing inconsistency the new call sits beside, not one it created. (b) **The "free win" reached only one route.** `cycle_map_fill_mode() -> String` returns the new mode; the Alt route prints it to the terminal, the bare route in `map_renderer_base` still discards it, so a player who clicks the map and presses M is told nothing. It cannot simply be copied — the map renderer has no terminal to write to and would need a signal or a call back into `main.gd`. (c) **The Settings credits line hard-codes the SHIPPED layout.** `settings_panel.gd` now says the notices are "beside the game, with the per-family notices in `licenses\`", which is true of the zip and false of a source checkout — in the same slice that created `Utils.launch_hint()` precisely because a location claim depends on which build is running. Also recorded, not filed: the strategic debug line prints `(issued turn None)` for the treaty's order, which is dev-facing stdout only. | `godot-client/project-sovereign/scenes/map_renderer_base.gd::_unhandled_input` vs `scripts/main.gd::_alt_game_key` · `map_renderer_base.gd::cycle_map_fill_mode` and its bare caller · `scripts/settings_panel.gd` (the credits line) | ⚠ **OPEN — filed September 5, 2026 by the slices 12+13 review round.** Owner: **slice 16** (the copy sweep), which already owns the P3/P4 remainder and touches these surfaces. Done when (a) both routes read the same field with the choice stated in a comment, (b) the bare map-key route either reports the mode or the Alt route's report is documented as the only one and why, and (c) the credits line branches on `OS.has_feature("editor")` like `Utils.launch_hint()` does — each with a pin. |
 
 > ### ✅ SLICE 15 (part a) — "THE SAVE THAT COULD NOT BE WRITTEN" — FIXED September 6, 2026
@@ -572,6 +572,120 @@
 > ALREADY FIXED by slice 8's FA-10/FA-74 — re-run at HEAD the accept ladder
 > completes twice in ten turns, one of them a six-pair multilateral
 > ratification, with zero refusals.
+
+> ### ✅ FA-S15-2 — "THE SAVE THAT SAYS NOTHING" — FIXED September 6, 2026
+>
+> **Landing record: this block.** Sweep **19 mutations, 19 killed, 0 INERT, 0
+> BROKEN** — after four came back INERT and **all four were real weaknesses in
+> my own pins**. Ruff clean, parse harness EXIT=0, one `.gd`.
+>
+> ---
+>
+> ## The defect, and a worse one under it
+>
+> A failed autosave reached the **server console** and nobody else:
+> `print(f"Autosave warning: ...")` at two call sites, no notification, no
+> dispatch line, no client key. The player kept playing.
+>
+> ⚠ **The row's own framing is wrong in the common case, and the truth is
+> worse.** "autosave.json: does not exist" — measured on the shipped board,
+> the file **exists and goes STALE**: world turn 4, slot turn 2. It sits in
+> the Load menu looking perfectly plausible, and the menu's Continue reads the
+> **newest save**, so a player who lost saving mid-campaign is silently
+> resumed several turns back. The copy says that, because that is what
+> happens, and there is a pin on the lag itself — the harm nobody had filed.
+>
+> **Underneath it, a second and larger defect.** `ensure_save_dir()` stood
+> OUTSIDE `save_game`'s `try`, so `save_game` could **RAISE** despite a
+> docstring promising a success/failure dict — and on both turn roads the
+> raise destroyed four keys of the end-turn response (`enemy_phase`,
+> `morning_dispatch`, `tactical_events`, `turn_ended`). Two reachable
+> triggers, and the row names neither: a `PermissionError` on a locked
+> directory, and a **`FileExistsError`** when `mkdir(parents=True,
+> exist_ok=True)` meets a FILE at that path. ⚠ It also reaches the **typed
+> `save <name>` command**, which hands `save_game`'s dict straight to the
+> player — a beneficiary nobody's fix shape mentioned.
+>
+> ---
+>
+> ## Two levers, because these are two changes
+>
+> The filed spec had ONE lever whose False arm was "today's print only". That
+> does not reproduce prior behaviour: prior behaviour on the escape arms is
+> *the exception gets out and four keys are destroyed*. `SAVE_DIR_FAILURE_IS_CAUGHT`
+> and `SAVE_FAILURE_IS_ANNOUNCED` are independent, each False arm reproduces
+> HEAD for its own half, and each is pinned separately. Slice 14's *both
+> levers or neither* discipline, applied.
+>
+> ## ⛔ And the announcement is sited in the door that already exists
+>
+> The filed shape was a new `autosave_and_report` helper that three call sites
+> must remember to call. **That is the defect class this build keeps
+> shipping** — one-of-several by construction, and a fourth caller reaches the
+> un-announced one. `save_manager.autosave()` already IS the single door.
+> Notifying there covers **both** turn roads — the typed `end turn` and the
+> last-AP auto-advance — with **zero** call-site edits, and the two prints are
+> **DELETED** rather than joined by a third. Two deletions instead of three
+> additions, which is also what makes the "no local handling" census TRUE
+> instead of contradicting its own build.
+>
+> The row uses `refresh`, not `add`: one row, one uuid, so a campaign that
+> cannot save rings the desk bell **once** instead of every turn (UX23-R2's
+> lesson), and `turn_created` stays pinned to the turn saving broke. CRITICAL,
+> so the 50-row cap can never evict it. No new serialized field — the
+> collector is the latch, and because it rides the save, a reload from an
+> older good file correctly re-warns.
+>
+> ---
+>
+> ## ⛔ Four INERT mutations, four real gaps
+>
+> * **the escape had no arm at all.** With L1 in place `save_game` no longer
+>   raises through the JSON shim, so nothing exercised the belt inside
+>   `autosave` — the report's own ARM B, specified and never built. It is
+>   built now, and it is a *different* defect from the shim: patching
+>   `save_game` to raise reproduces the escape, shimming `json.dump`
+>   reproduces the filed return-False case. Both are pinned, and the docstring
+>   says not to confuse them.
+> * **the tutorial pin asserted only the skip**, so deleting the skip arm's
+>   `clear_save_failure` was invisible — a warning raised on the campaign
+>   would have followed the player into the lesson.
+> * **the turn-stamp pin compared later stamps to the FIRST stamp**, which any
+>   constant offset satisfies, because `refresh` keeps whatever the first call
+>   wrote. Anchored to the board now. ⚠ And my first anchoring was *wrong
+>   about the code rather than finding a defect in it*: the autosave runs
+>   AFTER `advance_turn`, so the turn the player is now on is the turn the
+>   warning is about.
+> * **the constant-name mutation was a no-op** — aliasing the old name
+>   preserves the `v == k.lower()` derivation the rail census uses, so nothing
+>   could observe it. Replaced with a mutation that moves the VALUE, which is
+>   the thing that actually breaks the derivation.
+>
+> ## ⛔ And a census of mine failed on prose — twice, in both directions
+>
+> The "no local print survives" census first went red on its own **comments**,
+> then on the **docstring that explains the defect**. Prose making a census
+> RED is the same fault as prose making one green, pointing the other way. It
+> counts printable string literals now, with docstrings excluded, and the
+> exclusion carries its own sensitivity arm.
+>
+> ---
+>
+> ## The client, and one thing worth writing down
+>
+> Both `notification_bar.gd` maps in the **same commit** — `TYPE_ICONS` and
+> `TYPE_ICON_SVGS` — or REV-V3's two-directional census reds and the rail
+> draws a legacy three-letter code beside a real glyph.
+>
+> ⚠ **The failure `message` carries the raw OS error verbatim**, which on a
+> permissions or disk fault includes a user filesystem path — and because the
+> row rides the save, that path then persists into every later save file. It
+> is display-only like the rest of the tray, but it is the one row whose text
+> is not authored, and `SAVE_FORMAT_REFERENCE.md` now says so.
+>
+> `BASELINE_SERIES` and M1–M7 are byte-identical, **and that is not evidence**:
+> the harnesses never break a save, so they cannot see this change in either
+> lever position.
 
 > ### ✅ FA-91 — "THE GATE SEES WHAT BITES" — CLOSED September 6, 2026
 >

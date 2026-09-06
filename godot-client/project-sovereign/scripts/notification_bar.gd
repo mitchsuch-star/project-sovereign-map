@@ -34,6 +34,7 @@ const PRIORITY_BORDER_COLORS = {
 }
 
 const TYPE_ICONS = {
+	"save_failed": "SAV",
 	"coalition_declared": "WAR",
 	"balance_of_europe_shifted": "BOE",
 	"amends_offered": "AMD",
@@ -146,6 +147,7 @@ const TYPE_ICONS = {
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
 # colored pill). Types absent here fall back to the legacy 3-letter code.
 const TYPE_ICON_SVGS = {
+	"save_failed": "floppy-disk",
 	"coalition_declared": "sword",
 	"balance_of_europe_shifted": "scales",
 	"amends_offered": "handshake",
