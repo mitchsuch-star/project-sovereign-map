@@ -4011,6 +4011,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_treaty_signed": "{nation_a} and {nation_b} have signed the {treaty_type}.",
     "diplomatic_treaty_broken": "{nation} has broken the {treaty_type}.",
     "diplomatic_war_declared": "{nation} has declared war on {target}.",
+    # FA-65: and what to DO about it — rendered by the per-type arm in
+    # `_format_dispatch_event_text`, because the hint is optional and a
+    # `.format()` with an unsupplied key emits the raw template.
     "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation}.",
     "diplomatic_vassal_rebellion_imminent": "{nation} is on the verge of rebellion!",
     "diplomatic_vassal_rebellion": "{nation} has rebelled against {lord}. It is war.",
@@ -4481,6 +4484,18 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     # arms that sat below (diplomatic_treaty_broken, both
     # hard_reject_posture_* types) were removed; format_commitments_notice
     # owns their copy.
+
+    if event_type == "diplomatic_vassal_unrest":
+        # FA-65: the remedy rides this beat, and it is OPTIONAL — the event
+        # is queued from one producer that supplies it, but an event built
+        # anywhere else (or restored from a pre-fix save) must still render.
+        # A `.format()` on a template with an unsupplied key silently emits
+        # the RAW template, braces and all, which is how the first cut
+        # shipped "Talleyrand reports unrest in {nation}."
+        nation = template_vars.get("nation", "a satellite")
+        hint = str(template_vars.get("recovery_hint") or "").strip()
+        text = f"Talleyrand reports unrest in {nation}."
+        return f"{text} {hint}" if hint else text
 
     if event_type == "diplomatic_war_declared":
         nation = template_vars.get("nation", "Unknown")

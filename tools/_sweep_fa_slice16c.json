@@ -1,0 +1,205 @@
+[
+ {
+  "id": "FA-100/a the dedupe list is wiped on load again",
+  "file": "backend/save_manager.py",
+  "old": "        # Aug 2026 health-check audit — deliberate NON-clears:",
+  "new": "        world.mild_concerns_this_turn = []\n        # Aug 2026 health-check audit — deliberate NON-clears:",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestALoadedWorldKeepsWhatFromDictRestored"
+ },
+ {
+  "id": "FA-100/b the spend record is wiped on load again",
+  "file": "backend/save_manager.py",
+  "old": "        # Fog of War: recalculate visibility after load",
+  "new": "        world.gold_spent_this_turn = {}\n        # Fog of War: recalculate visibility after load",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestALoadedWorldKeepsWhatFromDictRestored"
+ },
+ {
+  "id": "FA-100/c the real boundary stops clearing them",
+  "file": "backend/models/world_state.py",
+  "old": "        self.threat_sources_this_turn = []",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestALoadedWorldKeepsWhatFromDictRestored::test_the_real_boundary_still_clears_them"
+ },
+ {
+  "id": "FA-95/a the countdown prints as elapsed time again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    f\"the court will not receive another envoy for \"\n                    f\"{remaining} more turn{'s' if remaining != 1 else ''}.\"),",
+  "new": "                    f\"only {remaining} turns ago.\"),",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheCooldownCountsForward"
+ },
+ {
+  "id": "FA-95/b the singular is lost",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    f\"{remaining} more turn{'s' if remaining != 1 else ''}.\"),",
+  "new": "                    f\"{remaining} more turns.\"),",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheCooldownCountsForward::test_one_turn_is_singular"
+ },
+ {
+  "id": "FA-95/c the per-type refusal keeps the old idiom",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                        f\"proposal; she will not hear it again for \"",
+  "new": "                        f\"proposal only 3 turns ago; wait \"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheCooldownCountsForward::test_the_per_type_refusal_counts_down_too"
+ },
+ {
+  "id": "FA-95/d the court is keyed again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    f\"{formed_display_name(world, target_nation)} refused us; \"",
+  "new": "                    f\"{target_nation} rejected us; \"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheCooldownCountsForward::test_the_court_is_named_not_keyed"
+ },
+ {
+  "id": "FA-95/e the Make Amends sibling is swept into the countdown idiom",
+  "file": "backend/display_names.py",
+  "old": "        \"We offered amends to {nation} only {turns_since} turns ago. \"",
+  "new": "        \"We may offer amends to {nation} in {turns_since} more turns. \"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheCooldownCountsForward::test_the_make_amends_sibling_is_NOT_swept"
+ },
+ {
+  "id": "FA-69/a the display key is dropped from the producer",
+  "file": "backend/commands/capture_executor.py",
+  "old": "            \"estate_holder_display\": humanize_entity_name(holder.name),",
+  "new": "            \"estate_holder_display\": holder.name,",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheEstateHolderIsNamed"
+ },
+ {
+  "id": "FA-69/b the machine key is humanised, breaking the answer lookup",
+  "file": "backend/commands/capture_executor.py",
+  "old": "            \"estate_holder\": holder.name,\n            \"estate_holder_display\":",
+  "new": "            \"estate_holder\": humanize_entity_name(holder.name),\n            \"estate_holder_display\":",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheEstateHolderIsNamed::test_the_machine_key_is_still_the_machine_key"
+ },
+ {
+  "id": "FA-69/c a pre-fix save falls through to the raw string",
+  "file": "backend/commands/capture_executor.py",
+  "old": "    return humanize_entity_name(str(raw)) if raw else \"?\"",
+  "new": "    return str(raw) if raw else \"?\"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheEstateHolderIsNamed::test_a_pre_fix_save_still_renders"
+ },
+ {
+  "id": "FA-69/d garbage throws instead of answering",
+  "file": "backend/commands/capture_executor.py",
+  "old": "    if not isinstance(pending, dict):\n        return \"?\"",
+  "new": "    if False:\n        return \"?\"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheEstateHolderIsNamed::test_garbage_is_a_question_mark_not_a_throw"
+ },
+ {
+  "id": "FA-69/e the client stops reading the display keys",
+  "file": "godot-client/project-sovereign/scripts/capture_choice_dialog.gd",
+  "old": "\t\tvar holder = str(data.get(\"estate_holder_display\", \"\"))",
+  "new": "\t\tvar holder = str(data.get(\"estate_holder\", \"\"))",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheEstateHolderIsNamed::test_the_client_reads_the_display_keys_with_a_fallback"
+ },
+ {
+  "id": "FA-93/a the action names go back to third person",
+  "file": "backend/commands/tactical_executor.py",
+  "old": "        \"move\": \"march\",",
+  "new": "        \"move\": \"moves to\",",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakReadsAsEnglish"
+ },
+ {
+  "id": "FA-N50/a the strategic enums are printed raw",
+  "file": "backend/commands/tactical_executor.py",
+  "old": "    if key in STRATEGIC_ORDER_DISPLAY:\n        return f\"to {get_strategic_display(key).lower()}\"",
+  "new": "    if False:\n        return f\"to {get_strategic_display(key).lower()}\"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakReadsAsEnglish::test_the_strategic_enums_go_through_the_shared_map"
+ },
+ {
+  "id": "FA-93/b the default is lost",
+  "file": "backend/commands/tactical_executor.py",
+  "old": "    }.get(key, \"act\")",
+  "new": "    }[key]",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakReadsAsEnglish::test_the_default_survives"
+ },
+ {
+  "id": "FA-N47/a a refusal swallows the notice again",
+  "file": "backend/commands/executor.py",
+  "old": "        message = result.get(\"message\")\n        if not message:",
+  "new": "        if not result.get(\"success\"):\n            return result\n        message = result.get(\"message\")\n        if not message:",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakIsDelivered::test_a_refusal_no_longer_swallows_it"
+ },
+ {
+  "id": "FA-N47/b an enemy marshal's notice reaches the player",
+  "file": "backend/commands/executor.py",
+  "old": "        if player and pending.get(\"nation\") and pending[\"nation\"] != player:\n            return result",
+  "new": "        if False:\n            return result",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakIsDelivered::test_an_enemy_marshals_notice_never_reaches_the_player"
+ },
+ {
+  "id": "FA-N47/c the notice is not consumed",
+  "file": "backend/commands/executor.py",
+  "old": "        pending = getattr(self, \"_pending_square_break\", None)\n        self._pending_square_break = None",
+  "new": "        pending = getattr(self, \"_pending_square_break\", None)",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakIsDelivered::test_the_notice_is_consumed_exactly_once"
+ },
+ {
+  "id": "FA-N47/d the emit goes back inside the body",
+  "file": "backend/commands/executor.py",
+  "old": "        if _depth == 0:\n            result = self._attach_square_break(result, game_state)",
+  "new": "        if False:\n            result = self._attach_square_break(result, game_state)",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakIsDelivered"
+ },
+ {
+  "id": "FA-N47/e the entry clear is removed, leaking into the next command",
+  "file": "backend/commands/executor.py",
+  "old": "            self._pending_square_break = None\n            self._pending_square_break_msg = \"\"\n        self._execute_depth = _depth + 1",
+  "new": "            pass\n        self._execute_depth = _depth + 1",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakIsDelivered::test_the_entry_clear_is_kept"
+ },
+ {
+  "id": "FA-N47/f the depth counter does not unwind on a throw",
+  "file": "backend/commands/executor.py",
+  "old": "        try:\n            result = self._execute_one(parsed_command, game_state)\n        finally:\n            self._execute_depth = _depth",
+  "new": "        result = self._execute_one(parsed_command, game_state)\n        self._execute_depth = _depth",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheSquareBreakIsDelivered::test_the_depth_counter_unwinds_on_a_throw"
+ },
+ {
+  "id": "FA-65/a the unrest beat loses the remedy",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        return f\"{text} {hint}\" if hint else text",
+  "new": "        return text",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheUnrestBeatNamesTheRemedy"
+ },
+ {
+  "id": "FA-65/b a beat without a hint emits the raw template",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        hint = str(template_vars.get(\"recovery_hint\") or \"\").strip()\n        text = f\"Talleyrand reports unrest in {nation}.\"",
+  "new": "        hint = str(template_vars[\"recovery_hint\"]).strip()\n        text = f\"Talleyrand reports unrest in {nation}.\"",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheUnrestBeatNamesTheRemedy::test_a_beat_without_a_hint_still_renders"
+ },
+ {
+  "id": "FA-65/c the producer stops supplying it",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                     \"recovery_hint\": recovery_hint_for_grip(",
+  "new": "                     \"_unused\": recovery_hint_for_grip(",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheUnrestBeatNamesTheRemedy::test_the_producer_supplies_it"
+ },
+ {
+  "id": "FA-65/d the healthy-band gate is widened after all",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if delta < 0 and new_loyalty >= 40:",
+  "new": "        if delta < 0:",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTheUnrestBeatNamesTheRemedy::test_the_healthy_band_gate_is_NOT_touched"
+ },
+ {
+  "id": "GATE/b the FA-44 ruling loses the sibling it must not contradict",
+  "file": "docs/DESIGN_REFINEMENT.md",
+  "old": "**that constant carries a written dissent**",
+  "new": "**that constant is landed**",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTwoRowsAreRulingsNotBuilds::test_fa44_is_filed_with_the_floor_question"
+ },
+ {
+  "id": "GATE/c the FA-98 ruling loses its precedent",
+  "file": "docs/DESIGN_REFINEMENT.md",
+  "old": "it was ruled \"gate the STATE, not the beats\"",
+  "new": "it was ruled the other way",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTwoRowsAreRulingsNotBuilds::test_fa98_is_filed_with_the_beat_question"
+ },
+ {
+  "id": "GATE/d a third casualty floor is minted after all",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "def _pick_observation(",
+  "new": "MIN_CASUALTIES = 1000\n\n\ndef _pick_observation(",
+  "tests": "tests/test_fa_slice16c_the_name_and_the_notice_2026_09_06.py::TestTwoRowsAreRulingsNotBuilds::test_no_third_casualty_floor_was_minted"
+ }
+]

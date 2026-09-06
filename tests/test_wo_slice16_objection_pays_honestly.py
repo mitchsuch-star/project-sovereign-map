@@ -389,7 +389,10 @@ class TestWO23TheBudgetSurvivesALoad:
         src = (REPO / "backend" / "save_manager.py").read_text(
             encoding="utf-8")
         block = src[src.index("Clear transient per-turn data"):]
-        block = block[:block.index("threat_sources_this_turn")]
+        # FA-100 deleted the `threat_sources_this_turn` wipe this used to
+        # slice on — and the name now appears in the comment ABOVE the
+        # exemption list, which would truncate the block to nothing.
+        block = block[:block.index("# Fog of War: recalculate visibility")]
         assert "objection_popups_this_turn = set()" not in block
         for name in ("diplomatic_trust_applied", "attacks_this_turn",
                      "objection_popups_this_turn"):

@@ -1479,6 +1479,66 @@ both live at the same acceptance seam (`strategic_executor.py:1400-1403`).
 | **FA-S16-D1** | P2 | **The cannon-fire tax: obeying a standing order costs 2 trust, abandoning it for the guns costs 0** — and slice 3 already priced the identical popup the other way. See the section below for the measured table, the reachability (19 organic asks in the archive, three French marshals, every other turn each) and the three options. | `strategic.StrategicOrderProcessor._respond_cannon_fire` · its sibling `_respond_combat_stalemate` | recommended default (a): `continue_order` → 0, matching the sibling; the resentment stays in the ASK | `test_fa_slice16b_the_price_on_the_button_2026_09_06.py::TestTheTaxIsStillCharged` records the state the ruling changes | **OPEN — needs a ruling.** Filed by FA slice 16 (part b), which built the copy half of FA-52 and could not choose this. |
 | **FA-S16-D2** | P3 | **The cannon-fire trigger is nation-blind** — measured, a French marshal was interrupted, and charged, over Blücher vs Hohenlohe, a Prussian pair neither of whose sides is France. | `strategic._check_interrupts` → `world.get_battles_within_range(marshal.location, 2)` | either a nation predicate, or a docstring saying why there is none | a marshal under orders is not charged for a battle his nation has no stake in | **OPEN — needs a ruling.** Filed with FA-S16-D1. |
 
+| **FA-S16-D3** | P3 | **A second absolute casualty floor, for a question a landed sibling already answered with a different number** — see the section below. | `battle_report._pick_observation` priority 4 · `dispatch.OWN_MAULED_MIN_CASUALTIES` | pick ONE of the two existing floors; do not mint a third | a 1-vs-58 exchange does not draw the "even the favorable ground could not save him" verdict | **OPEN — needs a ruling.** Filed by FA slice 16 (part c). |
+| **FA-S16-D4** | P3 | **The crown beat leaks into the School** — the tutorial has no gate on the glory beats, and the precedent points the other way. | `dispatch.py` · `campaign_log.py` (zero `scenario_name` references in either) | gate the BEAT, or gate the STATE, or neither | a tutorial dispatch does not report a crowning the lesson never taught | **OPEN — needs a ruling.** Filed with FA-S16-D3. |
+
+### FA-S16-D3 — a second casualty floor, against a landed dissent
+
+**Filed September 6, 2026 by FA slice 16 (part c).** FA-44 is real: a 1-vs-58
+exchange with a defender terrain bonus draws the verdict *"Even the favorable
+ground could not save Massena, Sire"* — `_pick_observation` has no scale gate
+anywhere in its ladder, and casualties are bound at the top of the function
+and never consulted again.
+
+**Why it is a ruling.** The row proposes a **second absolute floor at 1,000**
+for the same question a landed sibling already answered:
+`dispatch.OWN_MAULED_MIN_CASUALTIES = 500` (WO-16) suppresses the sub-500
+briefing headline, and **that constant carries a written dissent** — *"if 500
+is tuned TWICE, take the fraction-of-national-strength form."* Minting a
+third number for one question, in a different file, with a different value,
+is how a game ends up with three answers to "what is a small battle".
+
+**Options.** (a) Reuse `OWN_MAULED_MIN_CASUALTIES` at the report's verdict —
+one number, one place, and the existing dissent keeps governing it.
+(b) Take the dissent's own escape now and make BOTH a fraction of national
+strength. (c) Mint the second absolute floor as filed, and record why two are
+better than one.
+
+⚠ **Also correct the row's placement before building any of them.** Its
+`_corrected` says "before line 815, priority 2" and its `fix_shape` says
+"before :818" — one priority tier apart, and the earlier position is wrong:
+it would outrank the fort arms.
+
+**Owner:** the next FA design gate. **Done when** one floor governs the
+question, or the record says why two do.
+
+### FA-S16-D4 — the crown beat in the School
+
+**Filed with the above.** The archived tutorial digest reads *"Sire — Ney,
+crowned four turns ago, has been beaten in the field."* The lesson never
+teaches glory, never mentions a crown, and has no gate: `dispatch.py` and
+`campaign_log.py` contain **zero** `scenario_name` references between them.
+
+**Why it is a ruling and not a patch.** PC15-D3 is the precedent and it
+points the OTHER way — it was ruled "gate the STATE, not the beats", and the
+expectation dormancy it built folds into the one `is_dotation_world`
+chokepoint so the state is gated and the beats simply follow. FA-98 would be
+the first tutorial gate to suppress a BEAT while leaving its state
+deliberately alive, which is a different rule, and it should be taken
+deliberately rather than inherited.
+
+**Options.** (a) Follow PC15-D3: make glory dormant in the lesson world, and
+the beat stops on its own. (b) Gate the beat only, and write down that the
+tutorial now has two kinds of gate. (c) Leave it: a tutorial that mentions a
+crown is odd but harmless, and the lesson is nine turns long.
+
+⚠ The row's routing note is stale — it defers to PC15-D3 as though that gate
+were open. It was ruled and built on August 15, 2026.
+
+**Owner:** the next FA design gate. **Done when** the lesson's dispatch
+mentions no mechanic the lesson does not teach, or the record says why it
+may.
+
 ### FA-S16-D1 — the cannon-fire tax: obedience costs 2, abandonment costs 0
 
 **Filed September 6, 2026 by FA slice 16 (part b). The copy half of FA-52 is

@@ -596,7 +596,8 @@ class TestTheIdleClockSurvivesASave:
     def test_the_combat_flag_is_no_longer_wiped_on_load(self):
         src = _read("backend/save_manager.py")
         body = src[src.index("# Clear transient per-turn data"):]
-        body = body[:body.index("world.threat_sources_this_turn")]
+        # FA-100 deleted that line; the block ends at the fog recalculation.
+        body = body[:body.index("# Fog of War: recalculate visibility")]
         assert "marshal.in_combat_this_turn = False" not in body
 
 

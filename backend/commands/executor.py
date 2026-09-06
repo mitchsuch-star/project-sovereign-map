@@ -992,10 +992,73 @@ class CommandExecutor:
         return phrase
 
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
-        """Execute a command against the current game state."""
-        # Clear transient square-break notification (set by _auto_break_square)
-        self._pending_square_break_msg = ""
+        """Execute a command, and deliver the square-break notice exactly
+        once, from the OUTERMOST frame, whether or not the action succeeded.
 
+        FA-N47. The notice used to be a bare string cleared at the top of
+        EVERY `execute` — nested calls included — and emitted only when
+        `result["success"]` was true. Two losses followed, and the second is
+        wider than the row filed:
+
+        * **Every refusal dropped it.** Measured: a refused march
+          ("Region 'Moscow' not found"), a refused attack ("No intelligence
+          on Kutuzov's position") and an organic refused drill (Mack adjacent
+          at Swabia on the boot board) all broke the square and said nothing.
+        * **Every strategic first step that actually MOVED dropped it too**,
+          because the nested `execute()` wiped the field before the inner
+          action ran. Traced: a march to Rhineland and a march to
+          Franche-Comté are both silent; only a march BLOCKED before the
+          nested call showed the line. Silence was the default case.
+
+        ⚠ Making only the CLEAR depth-aware is not enough — the nested frame
+        would then reach its own emit and prepend the notice onto a message
+        `strategic_executor` DISCARDS when it rebuilds the first-step line.
+        The EMIT is outermost-only too, in the same edit.
+        """
+        _depth = int(getattr(self, "_execute_depth", 0) or 0)
+        if _depth == 0:
+            # Never remove this clear: without it the notice leaks into the
+            # NEXT command.
+            self._pending_square_break = None
+            self._pending_square_break_msg = ""
+        self._execute_depth = _depth + 1
+        try:
+            result = self._execute_one(parsed_command, game_state)
+        finally:
+            self._execute_depth = _depth
+        if _depth == 0:
+            result = self._attach_square_break(result, game_state)
+        return result
+
+    def _attach_square_break(self, result, game_state):
+        """Prepend the pending square-break notice, if it belongs to the
+        player and there is something to prepend it to.
+
+        ⚠ Keyed to the MARSHAL. The enemy AI runs NESTED inside the player's
+        end-turn frame — measured depth 2, with Mack's own square breaking
+        there — so an unkeyed notice delivered from the outermost frame
+        would prepend an ENEMY marshal's line to the PLAYER's end-turn
+        message: wrong-side copy the enemy-phase surface deliberately never
+        renders.
+        """
+        pending = getattr(self, "_pending_square_break", None)
+        self._pending_square_break = None
+        self._pending_square_break_msg = ""
+        if not isinstance(pending, dict) or not isinstance(result, dict):
+            return result
+        world = (game_state or {}).get("world")
+        player = getattr(world, "player_nation", None) if world else None
+        if player and pending.get("nation") and pending["nation"] != player:
+            return result
+        message = result.get("message")
+        if not message:
+            result["message"] = pending["message"].lstrip("\n")
+        else:
+            result["message"] = pending["message"] + "\n" + message
+        return result
+
+    def _execute_one(self, parsed_command: Dict, game_state: Dict) -> Dict:
+        """The command body. Call `execute`, not this."""
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -1100,7 +1163,8 @@ class CommandExecutor:
                 # W6-8: the estate stage blocks with its own question.
                 _block_msg = (
                     f"You must decide the fate of Marshal "
-                    f"{_pending.get('estate_holder', '?')}'s estate at "
+                    f"{_pending.get('estate_holder_display') or _pending.get('estate_holder', '?')}"
+                    f"'s estate at "
                     f"{_pending.get('region', '?')} first! "
                     f"Choose 'confiscate' or 'respect'.")
             else:
@@ -2713,10 +2777,9 @@ class CommandExecutor:
                     "awaiting_player_choice", "awaiting_clarification")):
             result["message"] = _disclosure + "\n\n" + result["message"]
 
-        # Prepend square-break notification if auto-break fired (Session 67 fix)
-        if self._pending_square_break_msg and result.get("success") and result.get("message"):
-            result["message"] = self._pending_square_break_msg + "\n" + result["message"]
-            self._pending_square_break_msg = ""  # Consume
+        # FA-N47: the square-break notice is delivered by `execute`, from the
+        # OUTERMOST frame and regardless of success. The emit used to sit
+        # here, inside the body, where a nested call reached it first.
 
         # ════════════════════════════════════════════════════════════
         # AUTO-END TURN: When actions exhausted, call end_turn properly

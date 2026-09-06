@@ -686,12 +686,31 @@ class DiplomaticExecutor:
                     }
 
         # Check proposal cooldown
+        # FA-95: the no-target arm above imports this inside its own branch,
+        # which does not reach here — and both refusals below printed the raw
+        # machine key, so a formed nation was addressed by a name it no
+        # longer has.
+        from backend.game_logic.formations import formed_display_name
         cooldowns = getattr(world, 'player_proposal_cooldowns', {})
         if target_nation in cooldowns and cooldowns[target_nation] > 0:
             remaining = cooldowns[target_nation]
+            # FA-95: `remaining` is turns UNTIL you may ask again — the slot
+            # is a `CooldownManager` entry, written at rejection and
+            # DECREMENTED to zero. Printing it as elapsed time inverted the
+            # advice: a fresh refusal read as an old one and a stale one as
+            # fresh. Every other reader in the codebase treats it as
+            # remaining, and the correct sibling idiom is forty lines up the
+            # same file ("we must wait N more turns").
+            # ⚠ Do NOT sweep the Make Amends sibling that shares the "only N
+            # turns ago" phrasing: it computes genuinely elapsed time and a
+            # standing pin asserts its wording.
             return {
                 "success": False,
-                "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our last proposal only {remaining} turns ago.",
+                "message": (
+                    f"Talleyrand advises patience, Sire. "
+                    f"{formed_display_name(world, target_nation)} refused us; "
+                    f"the court will not receive another envoy for "
+                    f"{remaining} more turn{'s' if remaining != 1 else ''}."),
             }
         proposal_type = diplomatic_data.get("proposal_type")
         if proposal_type:
@@ -700,7 +719,13 @@ class DiplomaticExecutor:
                 remaining = cooldowns[type_key]
                 return {
                     "success": False,
-                    "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our {_proposal_display_name(proposal_type)} proposal only {remaining} turns ago.",
+                    "message": (
+                        f"Talleyrand advises patience, Sire. "
+                        f"{formed_display_name(world, target_nation)} refused "
+                        f"our {_proposal_display_name(proposal_type)} "
+                        f"proposal; she will not hear it again for "
+                        f"{remaining} more turn"
+                        f"{'s' if remaining != 1 else ''}."),
                 }
 
         if proposal_type == "vassalage":

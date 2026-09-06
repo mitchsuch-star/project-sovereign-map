@@ -71,17 +71,28 @@ class TestTransientStateClearingOnLoad:
         loaded = _save_and_load(world, tmp_path)
         assert loaded.objection_popups_this_turn == {"Ney", "Davout"}
 
-    def test_mild_concerns_cleared_on_load(self, tmp_path):
+    def test_mild_concerns_survive_load(self, tmp_path):
+        """⚠ FLIPPED CONSCIOUSLY by FA-100 (slice 16 part c). This is a
+        per-marshal DEDUPE list: wiping it on load let a marshal who had
+        already raised a mild concern raise it again after a mid-turn
+        save — the WO-23 budget-refresh shape. It is serialized, restored
+        by `from_dict`, and cleared at the real boundary by
+        `_advance_turn_internal`, which is the contract the five
+        non-clears beside it already cite."""
         world = _make_world()
         world.mild_concerns_this_turn = [{"marshal": "Ney", "concern": "test"}]
         loaded = _save_and_load(world, tmp_path)
-        assert loaded.mild_concerns_this_turn == []
+        assert loaded.mild_concerns_this_turn == [
+            {"marshal": "Ney", "concern": "test"}]
 
-    def test_gold_spent_cleared_on_load(self, tmp_path):
+    def test_gold_spent_survives_load(self, tmp_path):
+        """⚠ FLIPPED CONSCIOUSLY by FA-100 (slice 16 part c). Read by the
+        recruit pricing and saved/restored around post-objection; cleared
+        at the real turn boundary."""
         world = _make_world()
         world.gold_spent_this_turn = {"Ney": 50}
         loaded = _save_and_load(world, tmp_path)
-        assert loaded.gold_spent_this_turn == {}
+        assert loaded.gold_spent_this_turn == {"Ney": 50}
 
     def test_attacks_this_turn_survives_load(self, tmp_path):
         """Aug 2026 health-check audit re-point: attacks_this_turn is

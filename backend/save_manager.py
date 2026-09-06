@@ -214,8 +214,25 @@ def load_game(filepath: Path) -> Dict:
         # The flag is serialized, restored by `from_dict`, and cleared at the
         # real turn boundary by `clear_turn_battles` — which is precisely the
         # contract the other three non-clears cite.
-        world.mild_concerns_this_turn = []
-        world.gold_spent_this_turn = {}
+        #
+        # FA-100 (half a), Sept 6, 2026 — THREE MORE, and the block's own
+        # comment was already the argument against them:
+        #
+        #   * `mild_concerns_this_turn` is a per-marshal DEDUPE list, so the
+        #     wipe was not cosmetic — a mid-turn save/load let a marshal who
+        #     had already raised a mild concern raise it again. That is the
+        #     WO-23 budget-refresh shape exactly.
+        #   * `gold_spent_this_turn` is read by the recruit pricing and is
+        #     saved/restored around post-objection.
+        #   * `threat_sources_this_turn` is the coalition's own record of WHY
+        #     the alarm rose. Measured: 4 sources live, 4 after `from_dict`,
+        #     **0 after `load_game`** — and the diplomatic ledger's "why" rows
+        #     went with them, 2 to 0.
+        #
+        # All three are serialized, all three are restored by `from_dict`,
+        # and all three are cleared at the real boundary by
+        # `_advance_turn_internal`. That is the same contract the five
+        # non-clears below cite, so they are not cleared here either.
         # Aug 2026 health-check audit — deliberate NON-clears:
         # `diplomatic_trust_applied` is the ±5/turn diplomatic trust cap
         # ("survives save/load" is its in-code contract; wiping it here let
@@ -237,7 +254,6 @@ def load_game(filepath: Path) -> Dict:
         #
         # All three are restored by from_dict and cleared at the real turn
         # boundary by _advance_turn_internal / reset_attack_tracking.
-        world.threat_sources_this_turn = []
 
         # Fog of War: recalculate visibility after load (Phase 6 Session 33)
         # Handles backward compat for old saves that have no intel data —

@@ -352,6 +352,9 @@ def check_estate_eligibility(world, nation: str, region_name: str
     # transfers hand you a province still sitting on an enemy's rolls.
     claimant = find_live_estate_claimant(world, region_name)
     if claimant is not None:
+        # FA-69: the enemy holder's machine key reached the endow
+        # surface too — 1805's single-word French names hide it on the
+        # sibling below, which reads the player's own marshal.
         return False, (f"{region_name} already sustains Marshal "
                        f"{claimant.name}'s household.")
     return True, ""

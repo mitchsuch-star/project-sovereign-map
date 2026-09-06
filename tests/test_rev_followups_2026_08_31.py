@@ -212,16 +212,32 @@ class TestTheNonClearIsDocumentedWhereItLives:
     def _block(self):
         src = _read("backend/save_manager.py")
         body = src[src.index("# Clear transient per-turn data"):]
-        return body[:body.index("world.threat_sources_this_turn")]
+        # FA-100 deleted `world.threat_sources_this_turn = []`, which this
+        # used to slice on. The block ends where the fog recalculation
+        # begins.
+        return body[:body.index("# Fog of War: recalculate visibility")]
 
     def test_load_game_no_longer_wipes_the_battle_record(self):
         assert "world.battles_this_turn=[]" not in _code_norm(self._block())
 
     def test_the_fields_that_should_still_be_cleared_still_are(self):
-        """The flip is scoped: two transient stores keep being wiped."""
+        """⚠ FLIPPED CONSCIOUSLY by FA-100 (slice 16 part c), and its old
+        name is now the opposite of what it asserts.
+
+        It read "the flip is scoped: two transient stores keep being
+        wiped" — and those two were `mild_concerns_this_turn` and
+        `gold_spent_this_turn`, which FA-100 measured as violating the
+        very contract the five non-clears beside them cite. The first is a
+        per-marshal DEDUPE list, so the wipe let a marshal raise the same
+        mild concern twice across a mid-turn save — the WO-23
+        budget-refresh shape exactly. The INTENT of this pin, that the
+        block's membership is deliberate and not accidental, is unchanged
+        and is still asserted: nothing is wiped here that `from_dict`
+        restored."""
         code = _code_norm(self._block())
-        assert "world.mild_concerns_this_turn=[]" in code
-        assert "world.gold_spent_this_turn={}" in code
+        assert "world.mild_concerns_this_turn=[]" not in code
+        assert "world.gold_spent_this_turn={}" not in code
+        assert "world.threat_sources_this_turn=[]" not in code
 
     def test_the_contract_the_non_clear_cites_is_real(self):
         """It is only safe to keep the record because the REAL turn boundary

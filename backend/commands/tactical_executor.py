@@ -8,7 +8,48 @@ _execute_stance_change, _execute_restrain.
 from typing import Dict
 from backend.models.marshal import Stance
 from backend.display_names import action_display_name as _action_display_name
+from backend.display_names import (STRATEGIC_ORDER_DISPLAY,
+                                   get_strategic_display,
+                                   humanize_entity_name)
+
+
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+
+
+def _square_break_infinitive(action_name) -> str:
+    """FA-93 + FA-N50: "breaks formation TO ___", in the infinitive.
+
+    Measured before this: `[Square broken — Ney breaks formation to
+    attacks]`, `to moves to`, `to fortifies`, `to recruits`, `to garrisons`,
+    `to drills`, `to charges` — and from the strategic path the raw enum,
+    `to MOVE TO` and `to PURSUE`.
+
+    ⚠ The two rows want OPPOSITE frames and exactly one can survive. FA-93's
+    second option ("breaks formation AND {display}") would ship "breaks
+    formation and March" the moment FA-N50 routes the strategic types
+    through `STRATEGIC_ORDER_DISPLAY`, whose values are infinitive/noun
+    forms. So the "to" frame is kept and BOTH sides are given an infinitive
+    here — the strategic enums through the shared display map, everything
+    else through a closed map scoped to this seam, deliberately NOT a second
+    same-shaped table in `display_names` where a future caller could reach
+    for the wrong one.
+    """
+    if not action_name:
+        return "to act"
+    key = str(action_name)
+    if key in STRATEGIC_ORDER_DISPLAY:
+        return f"to {get_strategic_display(key).lower()}"
+    return "to " + {
+        "attack": "attack",
+        "move": "march",
+        "fortify": "fortify",
+        "drill": "drill",
+        "recruit": "recruit",
+        "garrison": "garrison",
+        "stance_change": "change stance",
+        "charge": "charge",
+        "bombardment": "bombard",
+    }.get(key, "act")
 
 
 class TacticalExecutor:
@@ -493,9 +534,32 @@ class TacticalExecutor:
             # [7A-6] Clear holding state when square break cancels strategic order
             marshal.holding_position = False
             marshal.hold_region = ""
-        display = _action_display_name(action_name) if action_name else "act"
-        msg = f"\n[Square broken — {marshal.name} breaks formation to {display}]"
+        msg = (f"\n[Square broken — "
+               f"{humanize_entity_name(marshal.name)} breaks formation "
+               f"{_square_break_infinitive(action_name)}]")
         # Store for execute() to prepend to result message
+        # FA-N47: keyed to the MARSHAL, not parked as a bare string on
+        # the shared executor. The enemy AI runs NESTED inside the
+        # player's end-turn frame (measured depth 2, with Mack's own
+        # square breaking there), so an unkeyed notice emitted at the
+        # outermost frame would prepend an ENEMY marshal's line to the
+        # PLAYER's end-turn message — wrong-side copy the enemy-phase
+        # surface deliberately never renders.
+        self._executor._pending_square_break = {
+            "marshal": marshal.name,
+            "nation": getattr(marshal, "nation", ""),
+            "message": msg,
+        }
+        # FA-N47: keyed to the MARSHAL, not parked as a bare string on the
+        # shared executor — see `CommandExecutor._attach_square_break` for
+        # why an unkeyed notice put an enemy marshal's line on the player's
+        # end-turn message. The old field is kept in step for any reader
+        # that still looks at it.
+        self._executor._pending_square_break = {
+            "marshal": marshal.name,
+            "nation": getattr(marshal, "nation", ""),
+            "message": msg,
+        }
         self._executor._pending_square_break_msg = msg
         return msg
 

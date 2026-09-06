@@ -13,7 +13,28 @@ never resolve the wrong question.
 """
 from typing import Dict, Optional
 
+from backend.display_names import humanize_entity_name
 from backend.game_logic.formations import formed_display_name
+
+
+def _estate_holder_display(pending) -> str:
+    """FA-69: the holder's NAME as a reader should see it.
+
+    The stored `estate_holder` is the machine key and must stay one — the
+    answer handler looks the marshal up by it, and a humanised value fails
+    that lookup and returns "The estate question has lapsed." So the display
+    form rides beside it, and every sentence reads the display key with the
+    raw one as a fallback, which is also what makes a PRE-FIX save render:
+    a save taken before this slice carries no `_display` key and falls
+    through to the humaniser here rather than to the raw string.
+    """
+    if not isinstance(pending, dict):
+        return "?"
+    shown = pending.get("estate_holder_display")
+    if shown:
+        return str(shown)
+    raw = pending.get("estate_holder")
+    return humanize_entity_name(str(raw)) if raw else "?"
 
 
 class CaptureExecutor:
@@ -183,7 +204,8 @@ class CaptureExecutor:
         """The current question, restated (BUG-CA-10 discipline: always
         enumerate the answers the game will accept)."""
         if pending.get("stage") == "estate":
-            return (f"the fate of Marshal {pending.get('estate_holder', '?')}'s "
+            return (f"the fate of Marshal "
+                    f"{_estate_holder_display(pending)}'s "
                     f"estate at {pending.get('region', '?')} awaits your word: "
                     f"'confiscate' or 'respect'.")
         # IGR-E: the restatement quotes the price too — a player who typed a
@@ -222,8 +244,18 @@ class CaptureExecutor:
             "region": region.name,
             "capturer": capturer_name,
             "previous_controller": pending.get("previous_controller", ""),
+            # FA-69: `estate_holder` STAYS the machine key — the answer
+            # handler re-reads it (`world.marshals.get(...)`) and a
+            # humanised value fails that lookup and returns "The estate
+            # question has lapsed." The display forms ride BESIDE it.
+            # Measured before this: "Sire — Bohemia sustains Marshal
+            # ArchdukeCharles's household", and the raw key survived the
+            # ANSWER as well as the question, on both outcome sentences.
             "estate_holder": holder.name,
+            "estate_holder_display": humanize_entity_name(holder.name),
             "estate_holder_nation": holder.nation,
+            "estate_holder_nation_display": formed_display_name(
+                world, holder.nation),
             "windfall": confiscation_windfall(region),
             "title": title,
             "options": ["confiscate", "respect"],
@@ -233,7 +265,8 @@ class CaptureExecutor:
         response["pending_capture_choice"] = True
         response["capture_data"] = estate_pending
         response["message"] += (
-            f"\n\nSire — {region.name} sustains Marshal {holder.name}'s "
+            f"\n\nSire — {region.name} sustains Marshal "
+            f"{humanize_entity_name(holder.name)}'s "
             f"household ({derive_estate_noun(region.name)}). "
             f"Confiscate the estate (+{estate_pending['windfall']:,} gold; "
             # Aug 30, 2026 review: the confiscate branch below was routed
@@ -273,7 +306,8 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             message = (f"The estate at {region.name} is confiscated! "
                        f"{outcome['windfall']:,} gold seized for the treasury. "
-                       f"Marshal {holder.name}'s title is extinguished — "
+                       f"Marshal {humanize_entity_name(holder.name)}'s "
+                       f"title is extinguished — "
                        f"{formed_display_name(world, holder.nation)} "
                        f"will not forgive it.")
             if outcome["disapproving"]:
@@ -297,7 +331,8 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             return {
                 "success": True,
-                "message": (f"Marshal {holder.name}'s title stands — "
+                "message": (f"Marshal {humanize_entity_name(holder.name)}'s "
+                            f"title stands — "
                             f"{derive_estate_noun(region.name)} "
                             f"keeps its revenues under our occupation. "
                             f"{formed_display_name(world, holder.nation)} "

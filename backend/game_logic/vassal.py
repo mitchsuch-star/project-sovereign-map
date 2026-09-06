@@ -734,8 +734,33 @@ def process_vassal_loyalty(world) -> List[dict]:
         if lord == getattr(world, 'player_nation', 'France'):
             from backend.game_logic.dispatch import queue_dispatch_event
             if new_loyalty < 40 and new_loyalty > 10:
-                queue_dispatch_event(world, "diplomatic_vassal_unrest",
-                                    {"nation": vassal_name}, "player_vassal")
+                # FA-65: the remedy, on the beat that already fires in
+                # this band.
+                #
+                # The per-tick `recovery_hint` is gated `>= 40`, so both
+                # PASSIVE surfaces go silent between 11 and 39 —
+                # measured, "Switzerland loyalty 39 (-2): satellite
+                # drift" with no remedy, while the AI bribe window opens
+                # at 35. ⚠ The row says 35-39 is a full dead zone and
+                # that is REFUTED: a THIRD producer, the diplomatic
+                # ledger, carries the hint with the INVERSE gate
+                # (`< 40`). So the remedy exists — on a tab the player
+                # must open — and what is missing is any word of it on
+                # the surface that comes to him.
+                #
+                # ⚠ The gate is NOT touched. Dropping the `>= 40` clause,
+                # as filed, fires the hint at ANY loyalty — including 8,
+                # the same turn the CRITICAL rebellion notification
+                # fires — duplicates the ledger sentence verbatim, and
+                # reds a standing pin that asserts silence at 30. The two
+                # bands already partition cleanly; this fills the lower
+                # one on its own beat.
+                queue_dispatch_event(
+                    world, "diplomatic_vassal_unrest",
+                    {"nation": vassal_name,
+                     "recovery_hint": recovery_hint_for_grip(
+                         get_imperial_grip(world, lord))},
+                    "player_vassal")
 
         # Notification + popup: rebellion imminent (Session 8C)
         if new_loyalty <= 10 and lord == getattr(world, 'player_nation', 'France'):

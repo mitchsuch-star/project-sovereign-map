@@ -53,8 +53,18 @@ func show_capture_choice(data: Dictionary):
 	if current_stage == "estate":
 		# W6-8: the second question — the conquered province funds an
 		# enemy marshal's estate.
-		var holder = str(data.get("estate_holder", "the enemy marshal"))
-		var holder_nation = str(data.get("estate_holder_nation", "their nation"))
+		# FA-69: the DISPLAY forms, with the raw keys as a fallback so a save
+		# taken before the backend stamped them still renders. Measured
+		# before this: "Bohemia sustains Marshal ArchdukeCharles's household",
+		# and the nation was interpolated without the R7 chokepoint, so a
+		# formed nation was named by its dead tag.
+		var holder = str(data.get("estate_holder_display", ""))
+		if holder == "":
+			holder = str(data.get("estate_holder", "the enemy marshal"))
+		var holder_nation = str(data.get("estate_holder_nation_display", ""))
+		if holder_nation == "":
+			holder_nation = Utils.display_nation_name(
+				str(data.get("estate_holder_nation", "their nation")))
 		var windfall = int(data.get("windfall", 0))
 		title_label.text = "AN ESTATE IN YOUR HANDS"
 		region_label.text = "%s sustains Marshal %s's household" % [current_region, holder]
