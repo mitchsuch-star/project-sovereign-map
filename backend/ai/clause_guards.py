@@ -128,15 +128,49 @@ _NEGATION_MARKER_RE = re.compile(
 # shrugs today, and adding it would be a widening rather than this fix.
 END_TURN_PHRASINGS = ("end turn", "end_turn", "next turn")
 
+# FA slice 7: the chief of staff (or the sovereign's own title) addressed
+# before a desk verb — "Berthier, status", "Sire, help". FA-R4 (slice 14)
+# moved it DOWN here from `llm_client`, because the end-turn gate needs the
+# same vocabulary and `llm_client` imports this module rather than the other
+# way round. It is the whole desk-address vocabulary, in one place, for the
+# backend and — mirrored, with a parity pin — for the client.
+DESK_ADDRESS_RE = re.compile(r"^\s*(?:berthier|sire)\s*[,:]\s*",
+                             re.IGNORECASE)
+
+
+def strip_desk_address(text: str) -> str:
+    """`"Berthier, end turn"` -> `"end turn"`. Idempotent on an unaddressed
+    line, and it removes at most ONE address so `"Berthier, Ney, attack"`
+    still reads as an order to Ney rather than to the desk."""
+    return DESK_ADDRESS_RE.sub("", text or "", count=1)
+
 
 def is_bare_end_turn(text: str) -> bool:
     """True only when the command IS an end-turn phrasing and nothing else.
 
-    Trailing punctuation is allowed; anything else — an address, an order
-    verb, a question — is not an end-turn command and falls through to the
-    keyword chain, where the deferral guard and the ordinary verbs decide.
+    Trailing punctuation is allowed, and so is an address to the DESK —
+    anything else (an order verb, a question) is not an end-turn command and
+    falls through to the keyword chain, where the deferral guard and the
+    ordinary verbs decide.
+
+    FA-R4 (slice 14). Slice 7 taught the two exact-match desk routes to read
+    past "Berthier," and deliberately did NOT teach this one, because the
+    client's lapse-confirm gate mirrors this vocabulary word for word and
+    widening only the backend would advance the turn behind the confirm that
+    warns about unanswered envoys — the UX23 soft-lock class. Both gates are
+    widened together here, so measured on the shipped board:
+
+        "Berthier, status"      worked        "Berthier, end turn"   SHRUGGED
+        "Berthier, help"        worked        "Sire, end turn"       SHRUGGED
+                                              "Berthier, next turn"  SHRUGGED
+                                              "Berthier: end turn"   SHRUGGED
+
+    The last two are wider than the row filed, and fall out of the same rule.
+    The PHRASING vocabulary itself is untouched: `end the turn` still shrugs,
+    and adding it would be a widening rather than this fix.
     """
     stripped = (text or "").strip().lower().rstrip(".!? \t")
+    stripped = strip_desk_address(stripped).strip().rstrip(".!? \t")
     return stripped.strip() in END_TURN_PHRASINGS
 
 

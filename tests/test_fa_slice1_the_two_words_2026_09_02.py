@@ -244,11 +244,37 @@ class TestTheClientGateSpeaksTheSameVocabulary:
         ("Ney, attack Mack next turn", False),
         ("end turn now", False),
         ("Murat, wait until next turn", False),
+        # FA-R4 (slice 14): the desk may be ADDRESSED. These are the arms
+        # that make the parity pin bind to the new behaviour rather than
+        # merely agreeing about it.
+        ("Berthier, end turn", True),
+        ("Sire, end turn", True),
+        ("Berthier, next turn", True),
+        ("Berthier: end turn", True),
+        ("berthier , end turn", True),
+        # Still not an end turn: a second address is not stripped, and an
+        # addressed ORDER is an order.
+        ("Berthier, Sire, end turn", False),
+        ("Berthier, hold Rhineland", False),
+        ("Ney, end turn", False),
     ]
 
     @staticmethod
     def _client_gate(command):
-        """The client's predicate, re-derived from `main.gd` itself."""
+        """The client's predicate, re-derived from `main.gd` itself.
+
+        FA-R4 (slice 14) made this STRIP-AWARE, and it had to. The gate now
+        removes one leading address to the desk before comparing, and the
+        original derivation harvested EQUALITY NEEDLES ONLY — so it agreed
+        with the backend on every fixture whether or not the `.gd` carried
+        the strip, and deleting the strip again would have left this pin
+        green. It was about to go inert for the one behaviour the row adds.
+
+        Both halves are now derived from the source: the equality needles as
+        before, and the address vocabulary from the helper's own list. If the
+        helper is deleted, `_strip_desk_address(` disappears from the gate's
+        body, `stripping` goes False, and the addressed fixtures below fail.
+        """
         import re
 
         path = os.path.join(REPO_ROOT, "godot-client", "project-sovereign",
@@ -259,10 +285,31 @@ class TestTheClientGateSpeaksTheSameVocabulary:
         body = body[:body.index("func _execute_end_turn():")]
         needles = re.findall(r'c\s*==\s*"([^"]+)"', body)
         assert needles, "the client gate changed shape — re-derive this pin"
+
+        stripping = "_strip_desk_address(" in body
+        addresses = []
+        if stripping:
+            helper = src[src.index("func _strip_desk_address("):]
+            helper = helper[:helper.index("\n\n\nfunc ")]
+            listed = re.search(r'for\s+\w+\s+in\s+\[([^\]]*)\]', helper)
+            assert listed, ("the client's address vocabulary changed shape — "
+                            "re-derive this pin")
+            addresses = re.findall(r'"([^"]+)"', listed.group(1))
+            assert addresses, "the client strips no addresses at all"
+
         text = command.lower().strip()
         while text and text[-1] in ".!? \t":
             text = text[:-1]
-        return text.strip() in needles
+        text = text.strip()
+        if stripping:
+            for addr in addresses:
+                if not text.startswith(addr):
+                    continue
+                rest = text[len(addr):].lstrip(" \t")
+                if rest[:1] in (",", ":"):
+                    text = rest[1:].strip()
+                    break
+        return text in needles
 
     @pytest.mark.parametrize("command,expected", FIXTURES)
     def test_both_gates_agree(self, command, expected):

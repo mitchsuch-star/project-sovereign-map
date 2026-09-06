@@ -95,6 +95,22 @@ CAMPAIGN_LOG_TYPES = {
     # Combat
     "battle",
     "bombardment",
+    # FA-R5 (slice 14): an escalade against a static garrison. Two of the
+    # resolver's three exits — the works HOLDING, and the garrison being
+    # destroyed into an OCCUPATION — left no trace on any persistent
+    # surface; only the third (fall straight to capture) was covered, by
+    # the `region_captured` written downstream. 160 -> 161 flipped
+    # CONSCIOUSLY: unlike slice 11's `vassal_broke_free`, there was no
+    # inert type to retire in exchange. A producer census over the whole
+    # backend found exactly six types with no producer at all
+    # (`ally_entry_accepted`, `ally_entry_refused`, `bargain_repudiated`,
+    # `counter_bargain_rejected`, `proposal_dropped_overflow`,
+    # `proposal_expired_unseen`) — every one of them `diplomacy`, while
+    # all seventeen `combat` types have live producers. Retiring a
+    # diplomacy half-pair to make room for a combat type would deform a
+    # live family AND red a pin anyway, so the count moves instead. That
+    # is what the ten `len(CAMPAIGN_LOG_TYPES) == 161` pins are for.
+    "garrison_assault",
     "retreat",
     "marshal_broken",
     "marshal_recovered",
@@ -133,7 +149,9 @@ CAMPAIGN_LOG_TYPES = {
     # arm and a one-liner and NO PRODUCER — nothing ever logged it, because
     # none of `check_vassal_rebellion`'s three exits wrote to `event_log` at
     # all. It is retired for the type that is now written, so the count is
-    # unchanged and the nine `len(CAMPAIGN_LOG_TYPES) == 160` pins hold.
+    # unchanged and the ten `len(CAMPAIGN_LOG_TYPES)` pins hold.  (They read
+    # 161 since FA-R5; the count "nine" was already stale when this was
+    # written — slice 11 added the tenth in its own file.)
     "vassal_broke_free",
     "diplomatic_treaty_broken",
     "diplomatic_alliance_cascade",
@@ -332,6 +350,7 @@ CAMPAIGN_LOG_TYPES = {
 CATEGORY_MAP = {
     "battle": "combat",
     "bombardment": "combat",
+    "garrison_assault": "combat",   # FA-R5 (slice 14)
     "retreat": "combat",
     "marshal_broken": "combat",
     "marshal_recovered": "combat",
@@ -710,6 +729,23 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             if region:
                 intel = world_state.get_region_intel(region)
                 if intel.visibility == FULL:
+                    filtered.append(event)
+            continue
+
+        # FA-R5 (slice 14): a THIRD PARTY's escalade. Both of the player's
+        # own directions have already exited above — `_is_player_event`
+        # reads `attacker_nation` and `defender_nation`, and the producer
+        # stamps both — so this arm only ever sees somebody else's siege.
+        # Without it the function's DROP default swallowed them silently,
+        # and the ambient board produces one (Austria against the Kingdom
+        # of Italy at Milan, turn 10). PARTIAL is enough where `battle`
+        # demands FULL: a garrison figure is a coarser fact than a field
+        # battle's order of march — a besieged town is visible from the
+        # next province, and the row carries no corps dispositions.
+        if event_type == "garrison_assault":
+            if region:
+                intel = world_state.get_region_intel(region)
+                if intel.visibility in (FULL, PARTIAL):
                     filtered.append(event)
             continue
 
@@ -1384,6 +1420,25 @@ def format_event_oneliner(event: dict) -> str:
         defender_casualties = event.get("defender_casualties", 0)
         return (f"{_name_tag(attacker, atk_nation)} bombarded {location} — "
                 f"{defender_casualties:,} casualties")
+
+    # FA-R5 (slice 14): the escalade. Both outcomes render from the SAME
+    # structured fields the producer stamps and the client's slice-11 arm
+    # reads, so the log and the enemy-phase dialog cannot tell different
+    # stories about one assault.
+    if event_type == "garrison_assault":
+        marshal = event.get("marshal", "Unknown")
+        atk_nation = event.get("attacker_nation", "")
+        region = event.get("region", "unknown location")
+        gar_lost = int(event.get("garrison_losses", 0) or 0)
+        remaining = int(event.get("garrison_remaining", 0) or 0)
+        atk_lost = int(event.get("attacker_losses", 0) or 0)
+        tag = _name_tag(marshal, atk_nation)
+        if event.get("held"):
+            return (f"{tag} assaulted the {region} garrison — {gar_lost:,} "
+                    f"lost, {remaining:,} still under arms "
+                    f"({marshal} loses {atk_lost:,})")
+        return (f"{tag} stormed the {region} garrison — it is destroyed "
+                f"({marshal} loses {atk_lost:,})")
 
     if event_type == "retreat":
         marshal = event.get("marshal", "Unknown")

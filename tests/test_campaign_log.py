@@ -135,7 +135,7 @@ class TestTypeWhitelist:
         # Stage C review fixes (July 24, 2026): +1 instrument_lapsed — an
         # instrument ending WITHOUT a breaker (term served / ward
         # aggression / unattributable war) must still reach the record.
-        assert len(CAMPAIGN_LOG_TYPES) == 160  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").
+        assert len(CAMPAIGN_LOG_TYPES) == 161  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

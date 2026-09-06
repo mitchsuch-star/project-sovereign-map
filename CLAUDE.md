@@ -365,11 +365,34 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After the slices 12+13 review round: **83 defect rows
-> and 28 design rows / gates still open**, of 232 filed; 105 closed, 16
-> disposed (duplicate, refuted, or re-homed). The 83 are spoken for by
-> slices 14 → 15 → 16;
-> the 28 need rulings, not builds.
+> number in a heading. After slice 14 part 1: **77 defect rows
+> and 26 design rows / gates still open**, of 232 filed; 113 closed, 16
+> disposed (duplicate, refuted, or re-homed). The FA-R family is now empty. The 77 are spoken for by
+> slices 14 (part 2) → 15 → 16;
+> the 26 need rulings, not builds.
+>
+> **▶ SLICE 14 (PART 1) "THE RULINGS" IS LANDED — September 5, 2026.**
+> Landing record = the boxed SLICE 14 (part 1) block in `BUG_FIXES.md`; the
+> rules are `SYSTEMS_REFERENCE.md` §36. Eight rows: FA-D28 (ruling 2), FA-R5,
+> FA-N77, FA-N76, FA-N46, FA-R3 (ruling 5), FA-R4 (ruling 6), FA-S7-D1
+> (ruling 7). A twenty-agent reproduction fleet ran FIRST and corrected every
+> row — **including a regression this slice had already written**: `retreat`
+> is free by design and six phrasings carry a strategic type, so the naive
+> FA-R3 rule charged a general retreat and REFUSED it at 0 AP, invisible to
+> 4,869 tests run under both lever positions. **Three rulings were corrected
+> by their own measurement** — FA-D28's literal wording annihilates the corps
+> (`max(losses, garrison)` kills a 40,000-man army in three assaults);
+> FA-S7-D1's `action: "unknown"` is never the observable (the pipeline reports
+> an unknown as a refusal); FA-R5's build warning names a test that does not
+> exist. Series byte-identical **with the reason measured against a worktree
+> of pristine HEAD** (seven garrison assaults, identical on both trees; the
+> floor binds above 12.5x and the board's maximum is 3.79x — a property of
+> this seed, not of the fix). Sweep 32/32, 0 INERT. ⚠ **FA-35's P4 floor is
+> measured NOT BUILDABLE as filed** — the capture rungs refuse while any
+> hostile stands there, so it leaves a province permanently un-takeable, and
+> the flip arm makes the board worse. **NEXT = slice 14 part 2** (the recall
+> verb FA-S9-D1 + FA-71, FA-21, FA-31, FA-42, FA-N78, the FA-S12-1/2
+> decisions), then 15 → 16, then position 10.
 >
 > **▶ THE SLICES 12 + 13 REVIEW ROUND IS LANDED — September 5, 2026**
 > (landing record = the boxed block in `BUG_FIXES.md`; the three lens reports

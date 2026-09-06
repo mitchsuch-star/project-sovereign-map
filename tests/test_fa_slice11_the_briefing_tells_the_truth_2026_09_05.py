@@ -230,9 +230,12 @@ class TestTheSatellitesFateIsBriefedTruthfully:
     def test_the_log_type_count_is_unchanged(self):
         """`diplomatic_vassal_rebellion` was in the set with a fog arm, a
         one-liner and NO producer. Retiring it for the type that is now
-        written keeps the count, so the nine `== 160` pins hold rather than
-        being flipped for a bookkeeping change."""
-        assert len(CAMPAIGN_LOG_TYPES) == 160
+        written keeps the count, so the (ten) count pins hold rather than
+        being flipped for a bookkeeping change.  FA-R5 later moved them to
+        161 for a real new surface; this test's point is unchanged — the
+        RETIREMENT paid for the addition, and the slice's own claim of
+        "nine" was already stale by one."""
+        assert len(CAMPAIGN_LOG_TYPES) == 161  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).
         assert "vassal_broke_free" in CAMPAIGN_LOG_TYPES
         assert "diplomatic_vassal_rebellion" not in CAMPAIGN_LOG_TYPES
 

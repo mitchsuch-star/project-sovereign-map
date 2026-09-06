@@ -4563,10 +4563,10 @@
       "world": "any",
       "live_only": true,
       "expected": {
-        "not_action": "retreat"
+        "success": false
       },
       "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
-      "notes": "FA-73: the real PS18-5 harm is Ney RETREATING when told to screen the army; the live layer may interpret the deed but must never read it as his own withdrawal."
+      "notes": "FA-73: the real PS18-5 harm is Ney RETREATING when told to screen the army; the live layer may interpret the deed but must never read it as his own withdrawal. || FA-S7-D1 (slice 14): the twins now pin the POSITIVE answer, not merely the absence of one wrong one. Slice 7 measured that the live parser reads both of these as a cavalry CHARGE — a real order the executor can run, recklessness permitting — so `not_action: retreat` passed while the model launched an attack nobody ordered. The Valid Actions block now states the rule (an order naming a deed no listed action models -> unknown), and these two are its acceptance. Evaluated LIVE, deliberately, at two API calls. || MEASURED, and the ruling's literal shape was CORRECTED by the measurement: the live provider does now answer `action=unknown` (AnthropicProvider log: \"Parsed 'Ney, fix bayonets' -> action=unknown\"), but the pipeline treats an unknown as a non-parse and falls back to the fast parser, so what the harness — and the player — actually sees is a REFUSAL: success False, action None, Berthier asking what was meant. The pin is therefore `success: false`, which is falsifiable against the pre-slice behaviour slice 7 measured (the live parser returned `charge`, success True). `not_action` is deliberately NOT re-added: with action None it would assert nothing."
     },
     {
       "id": "fa73-live-fix-bayonets-is-not-a-repair",
@@ -4574,10 +4574,10 @@
       "world": "any",
       "live_only": true,
       "expected": {
-        "not_action": "repair"
+        "success": false
       },
       "source": "FA slice 7 (the mock speaks plainly, Sept 4, 2026)",
-      "notes": "FA-73: 'fix' must never become masonry repair on the live layer."
+      "notes": "FA-73: 'fix' must never become masonry repair on the live layer. || FA-S7-D1 (slice 14): see the sibling twin. 'fix' must become neither masonry repair nor a cavalry charge — it must become a question. || MEASURED, and the ruling's literal shape was CORRECTED by the measurement: the live provider does now answer `action=unknown` (AnthropicProvider log: \"Parsed 'Ney, fix bayonets' -> action=unknown\"), but the pipeline treats an unknown as a non-parse and falls back to the fast parser, so what the harness — and the player — actually sees is a REFUSAL: success False, action None, Berthier asking what was meant. The pin is therefore `success: false`, which is falsifiable against the pre-slice behaviour slice 7 measured (the live parser returned `charge`, success True). `not_action` is deliberately NOT re-added: with action None it would assert nothing."
     },
     {
       "id": "fa-n8-pontoon-bridge-is-not-a-keel",

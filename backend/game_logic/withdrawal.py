@@ -1109,8 +1109,10 @@ def _offer_event(world, offer: Dict, counterpart: str,
 
     It rides the EXISTING `evacuation_granted` type, with the pair and the
     turns filled in honestly, plus one new key (`mid_treaty`) the renderers
-    branch on — the `jealousy.py` idiom.  A new type would have cost nine
-    `len(CAMPAIGN_LOG_TYPES) == 160` pins for a sentence.
+    branch on — the `jealousy.py` idiom.  A new type would have cost ten
+    `len(CAMPAIGN_LOG_TYPES)` pins for a sentence.  ("nine" and "160" were
+    both stale on the day this was written; FA-R5 paid that price knowingly
+    for a whole surface, not for a sentence.)
 
     ⚠ IT IS TOLD FROM THE PLAYER'S SIDE OF THE TABLE, and the slice-12
     review round measured the cost of forgetting that.  The fog arm for

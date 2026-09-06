@@ -151,7 +151,7 @@ class TestA13Discriminator:
         """A key on an existing event, per the house pattern — the type count
         is pinned in five files."""
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
-        assert len(CAMPAIGN_LOG_TYPES) == 160  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").
+        assert len(CAMPAIGN_LOG_TYPES) == 161  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed`  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).
 
 
 # ════════════════════════════════════════════════════════════════════════

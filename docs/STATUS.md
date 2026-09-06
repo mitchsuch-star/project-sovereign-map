@@ -22,15 +22,14 @@
 > | gate from a round (FA-S*-D*) | 4 | 0 | 0 | 4 |
 > | **TOTAL** | **111** | **105** | **16** | **232** |
 >
-> **83 defect rows and 28 design rows / gates remain** (slice 12 closed three
+> **77 defect rows and 26 design rows / gates remain** (slice 14 part 1 closed eight — and note the FA-R family is now EMPTY) (slice 12 closed three
 > and filed two of its own; slice 13 closed the five position-10 blockers; the
 > review round filed one residue row, FA-S13-1). "Disposed" means
 > duplicate, refuted, or re-homed to a later slice — closed without a fix and
 > with the reason on the row.
 >
 > The 83 defects are spoken for by the remaining build order: ~~slice 12~~ ✅
-> → ~~**13**~~ ✅ → **14** (9 rows + five
-> rulings) → **15** (20 harness rows, which must land BEFORE the FA-D27
+> → ~~**13**~~ ✅ → **14** (part 1 ✅ — eight rows; part 2 = the recall verb, FA-21, FA-31, FA-42, FA-N78 and the two FA-S12 decisions) → **15** (20 harness rows, which must land BEFORE the FA-D27
 > measurement so the driver measured with is the fixed one) → **16** (the
 > remaining P3/P4 copy sweep, ~44). The 28 design rows are gates: they need a
 > ruling, not a build, and FA-D27 / FA-D28 / FA-S9-D1 / FA-S9-D2 are the four
@@ -39,6 +38,73 @@
 > ⚠ The FA-D family reads as OPEN by construction — its last column carries
 > a verification VERDICT, not a status, because those rows are design
 > questions rather than defects. They are counted separately for that reason.
+
+> # ✅ THE AUDIT BUILD: SLICE 14 (PART 1) — "THE RULINGS" — LANDED September 5, 2026
+>
+> **Landing record = the boxed SLICE 14 (part 1) block in `docs/BUG_FIXES.md`
+> §Final Whole-Game Audit; the rules are `SYSTEMS_REFERENCE.md` §36.** Eight
+> rows closed — **FA-D28** (ruling 2), **FA-R5**, **FA-N77**, **FA-N76**,
+> **FA-N46**, **FA-R3** (ruling 5), **FA-R4** (ruling 6), **FA-S7-D1** (ruling
+> 7). Sweep **32/32 killed, 0 INERT, 0 BROKEN**; parse harness EXIT=0; parser
+> eval 675/675 mock and **4/4 LIVE**; M1–M7 and `BASELINE_SERIES`
+> byte-identical **with the reason measured against a worktree of pristine
+> HEAD**. One new serialized field, one `.gd`.
+>
+> **A twenty-agent reproduction fleet ran first — ten reproductions, ten
+> refuters, against `9ef38da8`, before a line was written. Every row was
+> corrected by it, and it caught a regression this slice had already
+> written.** `retreat` is free by design and six phrasings parse `retreat`
+> WITH a strategic type, so the naive FA-R3 rule charged an AP for a general
+> retreat and **refused it outright at 0 AP** — retreat made unavailable
+> exactly when a retreat is for. No pin covered any of the six; 4,869 tests
+> across 91 files ran identically under both lever positions.
+>
+> **Three rulings were corrected by their own measurement.** FA-D28's literal
+> wording (*"floor the attacker's losses AT the garrison's strength"*) has a
+> reading that **annihilates the corps** — `max(losses, garrison)` kills a
+> 40,000-man army in three assaults; what shipped is the row's own words, the
+> same 2% rate on a different base (10,234 / 14,156 / 20,184 → 2,942 / 8,180 /
+> 15,962). FA-S7-D1's `action: "unknown"` was never the observable — the live
+> provider *does* now answer `unknown`, but the pipeline reports that as a
+> refusal, so the twins pin `success: false` (and it cost four live calls, not
+> two). And FA-R5's build warning was false: the test it says must be
+> re-stated **does not exist**.
+>
+> **FA-R3 is three categories wider than filed** — a total bypass of the AP
+> pre-gate (at 0 AP: five standing orders created and four marshals marched a
+> province each), seven typed shapes rather than two, and the literal's and
+> sovereign's 1-AP discount bypassed with them. **FA-N76's live prize is
+> bigger than its title**: sending an unoffered `administrative_role` produced
+> three admin marshals and +3 actions, an unbounded economy exploit — and the
+> endpoint cleared the standing question on a REFUSAL, which the new guard
+> made reachable and the same commit closes.
+>
+> **The series is evidence this time, not an assumption.** Seven garrison
+> assaults fire on the ambient board at identical turns, provinces, over-match
+> ratios and losses on pristine HEAD and on the fixed tree; the floor binds
+> only above 12.5× and the maximum there is 3.79×. Recorded as a property of
+> this seed's routing rather than of the fix — the AI creates 3,000-man
+> detachments, and a 40,000-man corps against one is 13.3×.
+>
+> ⚠ **RETRACTED:** an earlier in-session census of mine reported six assaults
+> at different turns. The pristine-HEAD comparison supersedes it and the
+> earlier figure did not reproduce.
+>
+> **⛔ Two method notes.** *A comment can red a pin that reads the file it is
+> in* — twice here, once by containing a forbidden word inside a sliced
+> region and once by quoting the pin's own anchor. *An INERT mutation is a
+> question, not a verdict*: of five, two were weak fixtures, one mutated a
+> default every test overrode, and **two could not do anything** (`re.sub`
+> without a count still replaces once against a `^`-anchored pattern; a
+> duplicated line moves no guard). One was deleted with its reason recorded.
+>
+> **▶ NEXT = slice 14 part 2** — the recall verb (FA-S9-D1 + FA-71), FA-21,
+> FA-31, FA-42, FA-N78, and the FA-S12-1 / FA-S12-2 decisions — then 15 → 16,
+> then position 10. ⚠ **FA-35's P4 target-worth floor is measured NOT
+> BUILDABLE as filed** and is re-stated on its row: the capture rungs refuse
+> while any hostile stands there at any strength, so routing a sub-floor enemy
+> to a capture leaves the province permanently un-takeable, and a measured
+> flip arm makes the board *worse* (26 corps-turns spent sub-1,000 against 1).
 
 > # ✅ THE AUDIT BUILD: THE SLICES 12 + 13 REVIEW ROUND IS LANDED — September 5, 2026
 >

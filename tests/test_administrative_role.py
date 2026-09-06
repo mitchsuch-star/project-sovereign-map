@@ -460,18 +460,34 @@ class TestDemandObedienceRemoved:
     """Test that demand_obedience is no longer a valid option."""
 
     def test_demand_obedience_returns_invalid(self):
-        """Choosing demand_obedience returns error."""
+        """Choosing demand_obedience returns error.
+
+        FA-N76 (slice 14) re-pointed this pin CONSCIOUSLY. The refusal
+        arrives one layer earlier now — from the guard that checks the
+        answer against the options the audience actually OFFERED — so the
+        message names what IS open instead of the bare "Invalid choice",
+        and, unlike the old arm, the refusal costs nothing: it sits ABOVE
+        the latch clear and the cooldown stamp, which the old invalid-choice
+        path had already paid by the time it refused. The assertion is
+        strengthened rather than relaxed: it pins the refusal AND that the
+        question still stands.
+        """
         world = WorldState()
         system = DisobedienceSystem()
 
         ney = world.get_marshal("Ney")
         ney.trust = Trust(15)
+        ney.redemption_pending = True
 
         redemption_event = system._create_redemption_event(ney, world)
         result = system.handle_redemption_response(redemption_event, 'demand_obedience', world)
 
         assert result['success'] is False
-        assert 'Invalid choice' in result['message']
+        assert 'demand_obedience' not in result['message']
+        assert 'grant_autonomy' in result['message']
+        # Nothing was spent: the audience is still waiting.
+        assert ney.redemption_pending is True
+        assert getattr(ney, 'redemption_cooldown_until', 0) == 0
 
     def test_demand_obedience_not_in_options(self):
         """demand_obedience is not in available options."""

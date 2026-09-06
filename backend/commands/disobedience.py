@@ -723,6 +723,13 @@ REDEMPTION_NET_ACTIVE = True
 # man behind it. R2-3 (WO-41, pre-existing, widened): a latch whose question
 # went stale was never released, so the man never asked again on release.
 REDEMPTION_ASKS_THE_LIVING = True
+# FA-N76 (slice 14) flip lever: the answer to a redemption audience must be
+# one of the courses the audience OFFERED. False restores the pre-slice
+# behaviour, in which the endpoint checked a hardcoded three-word list and
+# the handler re-derived nothing — so Last Marshal Protection and the
+# one-admin rule were presentation-only and the debug cheats were stricter
+# than the shipping surface.
+REDEMPTION_ANSWER_MUST_BE_OFFERED = True
 # R3-2: a question staged with a carrier that never reaches the wire (a
 # battle the AI began, a strategic first step) stood in the world field and
 # reached the player only through the client's once-per-turn poll — which
@@ -1760,6 +1767,35 @@ class DisobedienceSystem:
         marshal = world.get_marshal(marshal_name)
         if not marshal:
             return {'success': False, 'message': f'Marshal {marshal_name} not found'}
+
+        # ── FA-N76 (slice 14): the answer must be one the audience OFFERED ──
+        # `POST /respond_to_redemption` validated `choice` against a hardcoded
+        # three-word list and never consulted `redemption_event["options"]`,
+        # and neither did this handler — so Last Marshal Protection and the
+        # one-admin rule were presentation-only. Reproduced through the real
+        # endpoint: `dismiss` was accepted when the event offered
+        # `['grant_autonomy']` alone, and `administrative_role` when it was
+        # not offered at all, producing TWO admin marshals and
+        # `bonus_actions = 2`. Both debug cheat arms enforce both rules, so
+        # the cheat surface was stricter than the shipping one.
+        #
+        # It sits HERE, above the latch clear and the cooldown stamp, rather
+        # than at the endpoint, so the endpoint, the playtest driver and any
+        # future caller inherit it — and a refused answer leaves the question
+        # STANDING: no latch cleared, no cooldown paid, nothing spent.
+        if REDEMPTION_ANSWER_MUST_BE_OFFERED:
+            offered = [o.get('id') for o in
+                       (redemption_event.get('options') or [])
+                       if isinstance(o, dict) and o.get('id')]
+            if offered and choice not in offered:
+                return {
+                    'success': False,
+                    'message': (
+                        f"That is not among the courses open to you, Sire. "
+                        f"{marshal_name} awaits one of: "
+                        f"{', '.join(offered)}."),
+                    'offered_options': offered,
+                }
 
         # FIX: Clear redemption_pending flag now that we're resolving it
         marshal.redemption_pending = False

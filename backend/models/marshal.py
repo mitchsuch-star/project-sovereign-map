@@ -345,6 +345,28 @@ class Marshal:
         # (dotation.py) — also the save-compat grace: old saves default to -1,
         # so no instant retroactive erosion on load.
         self.expectation_grace_turn: int = -1
+        # FA-N46 (slice 14): the expectation a FROZEN grace clock was
+        # covering, or -1 when no clock is frozen.
+        #
+        # WO-18 froze the clock on a met turn that a load-bearing RENTE
+        # bought, so a grant/revoke toggle could not dodge erosion. Its own
+        # safety argument — "a marshal genuinely kept on a rente never erodes
+        # anyway; every such turn takes the met branch, so the frozen clock is
+        # never read" — stops being true the moment he WINS AGAIN: the
+        # expectation rises, the branch flips to unmet, and `elapsed` is
+        # measured against an anchor several turns stale. Measured on the
+        # shipped board at an identical payment: the rente arm reads
+        # `eroding: True` on the first turn of the new shortfall and bleeds
+        # trust immediately, while an estate-paid marshal gets a fresh full
+        # window.
+        #
+        # This is what lets the unmet branch tell the two re-openings apart:
+        # a shortfall bigger than what was covered means he EARNED more (a
+        # new window is owed); a shortfall at or below it means the payment
+        # STOPPED (the dodge — no new window). One int, `.get()`-defaulted
+        # like `expectation_grace_turn` above, so old saves read -1 and
+        # behave exactly as they did.
+        self.expectation_covered_at_freeze: int = -1
         # ES-7 second pass (§0.6.8): treasury rente. FACE value in g/turn —
         # counts fully toward satisfaction; the treasury pays
         # ceil(RENTE_PREMIUM × face) each turn (dotation.get_rente_cost).
@@ -1636,6 +1658,9 @@ class Marshal:
             # ═══════ ES-7 ESTATE ENDOWMENTS (Economy Revisit S7) ═══════
             "dotation_regions": list(self.dotation_regions),
             "expectation_grace_turn": int(self.expectation_grace_turn),
+            # FA-N46 (slice 14)
+            "expectation_covered_at_freeze": int(
+                self.expectation_covered_at_freeze),
             "pension": int(self.pension),
             "last_expectation_seen": int(self.last_expectation_seen),
 
@@ -1826,6 +1851,10 @@ class Marshal:
         # the grace clock, so no instant retroactive erosion on load.
         marshal.dotation_regions = list(data.get("dotation_regions") or [])
         marshal.expectation_grace_turn = data.get("expectation_grace_turn", -1)
+        # FA-N46 (slice 14): -1 on an old save = no frozen clock, which is
+        # exactly how those saves behaved before the field existed.
+        marshal.expectation_covered_at_freeze = int(
+            data.get("expectation_covered_at_freeze", -1) or -1)
         marshal.pension = int(data.get("pension", 0) or 0)
         marshal.last_expectation_seen = int(data.get("last_expectation_seen", 0) or 0)
 

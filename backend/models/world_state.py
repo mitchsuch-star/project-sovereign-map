@@ -3592,15 +3592,33 @@ class WorldState:
 
     def get_field_marshals(self) -> List[Marshal]:
         """
-        Get all player marshals currently in field command (not in administrative role).
+        Get all player marshals currently in field command.
 
-        Returns:
-            List of French marshals where administrative != True
+        "In field command" means three things, and until FA-N77 it meant
+        only the first: not in an administrative role, and STANDING — a
+        prisoner is not a field marshal.
+
+        `capture_marshal` leaves `marshal.nation` unchanged, sets
+        `strength = 0` and moves him to the captor's capital, so a prisoner
+        stayed in this list forever. The three maintained siblings all
+        filter him out — `get_marshals_by_nation`,
+        `find_nearest_marshal_within_range` and `clarification`'s roster all
+        test `strength > 0` — and this one did not, so Last Marshal
+        Protection counted the dead. Reproduced on the shipped board: with
+        every French marshal but Lannes captured, `get_marshals_by_nation`
+        returns 1, this returned 8, and the redemption audience offered
+        `dismiss` on the only man France still had standing. Dismissing him
+        left the roster EMPTY.
+
+        An administrative marshal is at strength 0 too, so the new clause is
+        additive rather than a replacement for the first — both are needed,
+        and each says something different.
         """
         return [
             marshal for marshal in self.marshals.values()
             if marshal.nation == self.player_nation
             and not getattr(marshal, 'administrative', False)
+            and marshal.strength > 0
         ]
 
     def get_admin_marshals(self) -> List[Marshal]:
@@ -6178,6 +6196,20 @@ class WorldState:
                 _estate_covers = get_estate_income(marshal, self) >= expectation
                 if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:
                     marshal.expectation_grace_turn = -1
+                    # FA-N46: no clock is frozen any more, so the stamp must
+                    # not survive to be read against a later shortfall.
+                    marshal.expectation_covered_at_freeze = -1
+                elif marshal.expectation_grace_turn >= 0:
+                    # FA-N46 (slice 14): the freeze REMEMBERS what it covered.
+                    # Without this the unmet branch below cannot tell a
+                    # shortfall that re-opened because he was UN-PAID (WO-18's
+                    # dodge) from one that re-opened because he WON AGAIN, and
+                    # it treated both as the former — so a marshal kept in full
+                    # on a rente was eroding on the very turn his victory
+                    # raised the bar. Stamped only while a clock is actually
+                    # frozen; a met-from-met turn (clock already -1) takes the
+                    # arm above and clears it.
+                    marshal.expectation_covered_at_freeze = int(expectation)
                 # S5-3: symmetric with the open/erosion branches — once the
                 # player rewards him, drop the stale "reward him" rail notice
                 # so it never contradicts the grant confirmation ("his
@@ -6193,6 +6225,26 @@ class WorldState:
                 # true"; erosion has stopped here by definition.
                 _dismiss_reward_notices(self, marshal)
                 continue
+
+            # FA-N46 (slice 14): a shortfall that re-opened because he EARNED
+            # more is a NEW shortfall, and it is owed the same window an
+            # estate-paid marshal gets. A shortfall that re-opened because the
+            # payment STOPPED is WO-18's dodge and keeps the frozen anchor.
+            #
+            # The comparison is against what the freeze was covering, not
+            # against the payment: `compute_rente_face` auto-sizes to the gap,
+            # so a rente that no longer covers him has been OUTGROWN, not
+            # withdrawn. One-shot by construction — the stamp is cleared as it
+            # is consumed, so the next unmet turn measures an ordinary running
+            # clock and a genuinely neglected marshal still erodes on time.
+            _frozen_cover = int(getattr(
+                marshal, "expectation_covered_at_freeze", -1) or -1)
+            if (PENSION_CHURN_GUARD_ACTIVE
+                    and marshal.expectation_grace_turn >= 0
+                    and _frozen_cover >= 0
+                    and expectation > _frozen_cover):
+                marshal.expectation_grace_turn = -1
+                marshal.expectation_covered_at_freeze = -1
 
             if marshal.expectation_grace_turn < 0:
                 # First unmet turn: start the grace clock, no erosion yet.

@@ -418,6 +418,12 @@ def build_parse_prompt(
 
 ## Valid Actions
 {actions_list}
+An order naming a DEED that no listed action models — screening or covering a
+retreat, fixing bayonets, drilling a specific manoeuvre, restoring order in the
+ranks — is action "unknown" with confidence 0.3 or lower. Do NOT reach for the
+nearest listed action because a word in the sentence resembles one: "cover the
+retreat" is not `retreat`, "fix bayonets" is not `repair`, and neither is a
+cavalry `charge`. The game asks the Emperor what he meant.
 
 ## Valid Regions
 {regions_list}

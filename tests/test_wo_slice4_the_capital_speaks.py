@@ -791,7 +791,7 @@ class TestWiringAndBlastRadius:
     def test_no_campaign_log_type_moves(self):
         """Spec §2 D-15: headline classes are DISPLAY vocabulary, not
         event types. This slice adds no event and moves no log-type pin."""
-        assert len(CAMPAIGN_LOG_TYPES) == 160
+        assert len(CAMPAIGN_LOG_TYPES) == 161  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).
         assert "capital_lost" not in CAMPAIGN_LOG_TYPES
         assert "home_captured" not in CAMPAIGN_LOG_TYPES
 

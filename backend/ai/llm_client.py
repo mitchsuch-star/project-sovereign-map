@@ -34,6 +34,7 @@ from .validation import validate_parse_result, NON_ORDER_ACTIONS
 from .attack_vocabulary import mentions_attack
 from .recruit_arm import extract_requested_arm
 from .clause_guards import HONORIFIC  # FA slice 7: ONE honorific
+from .clause_guards import DESK_ADDRESS_RE as _DESK_ADDRESS_RE_SOURCE
 from backend.utils.fuzzy_matcher import osa_distance_at_most
 from .clause_guards import (
     address_governs_only_deferred_text,
@@ -164,8 +165,11 @@ def _orders_the_diversion(command_lower: str) -> bool:
 
 
 # FA slice 7: the chief of staff (or the sovereign's own title) addressed
-# before a desk verb — "Berthier, status", "Sire, help".
-_DESK_ADDRESS_RE = re.compile(r"^\s*(?:berthier|sire)\s*[,:]\s*", re.IGNORECASE)
+# before a desk verb — "Berthier, status", "Sire, help". FA-R4 (slice 14)
+# moved the pattern down into `clause_guards`, which the end-turn gate also
+# needs and which this module already imports; the alias is kept so the
+# desk routes below read the same as they always did.
+_DESK_ADDRESS_RE = _DESK_ADDRESS_RE_SOURCE
 
 # The STAND-STILL vocabulary, ONE source for the mock chain's wait arm AND
 # the parser's sequential-split gate (`_STAND_FAST_FIRST_CLAUSE_RE`). R1-2:

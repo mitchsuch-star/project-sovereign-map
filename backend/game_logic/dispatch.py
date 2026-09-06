@@ -123,6 +123,24 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # mirror; still below own_broken 90 (at equal scale the wound leads).
     "enemy_marshal_destroyed": 89,
     "own_mauled": 85,           # own marshal lost >=25% strength
+    # ── FA-R5 (slice 14): the escalade against OUR OWN works ────────────
+    # Two classes because a headline carries exactly one weight and the two
+    # outcomes are not the same news. Both are WOUND classes, gated on the
+    # player being the DEFENDER: our own repulse abroad belongs to the
+    # `region_taken` / `victory_won` triumph ladder, and building it as a
+    # triumph here would re-open CA8-D6.
+    #
+    # `garrison_stormed` 87 — the defenders are dead and the enemy stands
+    # in the province with an occupation clock running. Above `own_mauled`
+    # (85): a garrison annihilated is a bigger wound than a corps bloodied.
+    # Below `enemy_marshal_captured` (88) by CA8-D6's rule — taking an
+    # enemy marshal is the larger event.
+    "garrison_stormed": 87,
+    # `garrison_held` 82 — the works held and we bled them. ABOVE
+    # `enemy_on_our_soil` (80) deliberately: without it the briefing led
+    # with the weaker, later and vaguer sentence ("{enemy} has crossed into
+    # {region}") about a province where a fight had actually been won.
+    "garrison_held": 82,
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
     # CA8-22 (creative audit, Aug 4 2026): the same province, when it was a
     # marshal's duchy. Ranked one above the bare map fact BECAUSE it is the
@@ -306,6 +324,13 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # WO-16 (slice 12): the proportion EARNED the word; the absolute figure
     # alone read "29 men lost" as trivial and withheld it.
     "own_mauled": "Sire — {marshal} was mauled at {region}: {proportion} of his corps — {casualties} men — lost in a single action.",
+    # FA-R5 (slice 14)
+    "garrison_stormed": ("Sire — the garrison of {region} is destroyed. "
+                         "{enemy} threw {enemy_lost} men at the works and "
+                         "carried them."),
+    "garrison_held": ("Sire — {region} holds. {enemy} left {enemy_lost} men "
+                      "before the works; {remaining} of ours are still under "
+                      "arms."),
     "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
     "region_lost": "Sire — {region} has been taken by {captor}.",
     # FA-38: one class, four ways to lose a satellite. Each says what
@@ -415,6 +440,9 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "marshal_reversal": "Men remember being raised, Sire, and they remember being left.",
     "own_broken": "I have ordered the remnants collected, Sire. Do not commit them until they reform.",
     "own_mauled": "The butcher's bill is heavy, Sire. The army feels it.",
+    # FA-R5 (slice 14)
+    "garrison_stormed": "The works are gone, Sire. Whoever relieves that province must do it in the open field.",
+    "garrison_held": "The walls held, Sire — but a garrison that is not relieved is a garrison that is counted.",
     "enemy_on_our_soil": "They are on our soil, Sire. The marshals await only your word.",
     "region_lost": "Ground lost can be retaken, Sire — but the longer they hold it, the harder the taking.",
     # FA-38: caught by `test_every_headline_class_has_a_template_and_a_note`,
@@ -892,6 +920,49 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                      aggressor=formed_display_name(world, aggressor),
                      target=formed_display_name(world, target),
                      reason=str(reason))
+        elif etype == "garrison_assault":
+            # FA-R5 (slice 14): an escalade against OUR OWN works. Gated on
+            # the player being the DEFENDER — a garrison we storm abroad is
+            # the triumph ladder's business (`region_taken` / `victory_won`),
+            # and CA8-D6 settled that a French success is not composed here
+            # as a wound.
+            #
+            # Measured before this arm existed: Austria batters the Paris
+            # garrison 25,000 -> 12,500, loses 6,250 doing it, and the next
+            # morning's `headline` is None with the note "Your armies stand
+            # ready, Sire. The initiative is ours." The word "Paris" did not
+            # appear in the dispatch at all. The fortified variant is worse —
+            # the garrison annihilated and an occupation clock started, still
+            # silent, and the only thing that ever recovered it was
+            # `enemy_on_our_soil` on the FOLLOWING intel refresh, saying
+            # "{enemy} has crossed into Paris. No French corps stands in his
+            # path" about a province he had stormed.
+            #
+            # Identity is the PROVINCE: several assaults on one town in one
+            # enemy phase are one siege, not three headline slots (CA8-5).
+            # Neither class is in STANDING_HEADLINE_CLASSES — this is current
+            # news, and a state-derived class in that set repeats and buries
+            # everything else (PC-7's `marshal_reversal` trap).
+            if e.get("defender_nation") == player_nation:
+                _garrison_region = str(e.get("region", "") or "")
+                _besieger = humanize_entity_name(str(e.get("marshal", "")
+                                                     or "the enemy"))
+                _their_loss = int(e.get("attacker_losses", 0) or 0)
+                _left = int(e.get("garrison_remaining", 0) or 0)
+                if _garrison_region:
+                    if e.get("held"):
+                        _add("garrison_held",
+                             f"garrison:{_garrison_region}",
+                             region=_garrison_region,
+                             enemy=_besieger,
+                             enemy_lost=f"{_their_loss:,}",
+                             remaining=f"{_left:,}")
+                    else:
+                        _add("garrison_stormed",
+                             f"garrison:{_garrison_region}",
+                             region=_garrison_region,
+                             enemy=_besieger,
+                             enemy_lost=f"{_their_loss:,}")
         elif etype == "evacuation_granted":
             # WIN-D3 §4.3. Only for a peace France itself signed — the
             # producer's own message names our corps and their destinations

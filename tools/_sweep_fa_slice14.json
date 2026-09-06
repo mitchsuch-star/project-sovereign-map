@@ -1,0 +1,226 @@
+[
+  {
+    "id": "FA-D28 the floor reads the attacker again",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        _floor_base = (target_region.garrison_strength\n                       if self.GARRISON_LOSS_FLOOR_READS_THE_GARRISON\n                       else marshal.strength)",
+    "new": "        _floor_base = marshal.strength",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheGarrisonFloorReadsTheGarrison"
+  },
+  {
+    "id": "FA-D28 the floor is deleted entirely",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        attacker_losses = max(\n            attacker_losses,\n            int(_floor_base * self.GARRISON_ASSAULT_LOSS_FLOOR))",
+    "new": "        attacker_losses = max(attacker_losses, 1)",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheGarrisonFloorReadsTheGarrison::test_the_floor_still_binds_for_a_weak_attacker"
+  },
+  {
+    "id": "FA-D28 the lever stops being read",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    GARRISON_LOSS_FLOOR_READS_THE_GARRISON = True",
+    "new": "    GARRISON_LOSS_FLOOR_READS_THE_GARRISON = False",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheGarrisonFloorReadsTheGarrison::test_the_levers_ship_up"
+  },
+  {
+    "id": "FA-R5 the assault is not recorded",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if self.THE_GARRISON_ASSAULT_IS_RECORDED:\n            world.log_event({",
+    "new": "        if False:\n            world.log_event({",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord"
+  },
+  {
+    "id": "FA-R5 the held flag is inverted",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                \"held\": not garrison_collapsed,",
+    "new": "                \"held\": bool(garrison_collapsed),",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord"
+  },
+  {
+    "id": "FA-R5 the defender is not named, so the fog cannot see it is ours",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                \"defender_nation\": target_region.controller,",
+    "new": "                \"defender_nation\": \"\",",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord"
+  },
+  {
+    "id": "FA-R5 the type leaves the whitelist",
+    "file": "backend/campaign_log.py",
+    "old": "    \"garrison_assault\",\n    \"retreat\",",
+    "new": "    \"retreat\",",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord"
+  },
+  {
+    "id": "FA-R5 the third-party fog arm is deleted",
+    "file": "backend/campaign_log.py",
+    "old": "        if event_type == \"garrison_assault\":\n            if region:\n                intel = world_state.get_region_intel(region)\n                if intel.visibility in (FULL, PARTIAL):\n                    filtered.append(event)\n            continue",
+    "new": "        if event_type == \"garrison_assault\":\n            continue",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_a_third_partys_siege_needs_eyes_on_the_province"
+  },
+  {
+    "id": "FA-R5 the third-party arm goes porous (any visibility)",
+    "file": "backend/campaign_log.py",
+    "old": "                if intel.visibility in (FULL, PARTIAL):\n                    filtered.append(event)\n            continue\n\n        # PC15-1: marshal_destroyed",
+    "new": "                filtered.append(event)\n            continue\n\n        # PC15-1: marshal_destroyed",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_a_third_partys_siege_needs_eyes_on_the_province"
+  },
+  {
+    "id": "FA-R5 the one-liner loses its numbers",
+    "file": "backend/campaign_log.py",
+    "old": "        if event.get(\"held\"):\n            return (f\"{tag} assaulted the {region} garrison — {gar_lost:,} \"\n                    f\"lost, {remaining:,} still under arms \"\n                    f\"({marshal} loses {atk_lost:,})\")",
+    "new": "        if event.get(\"held\"):\n            return f\"{tag} assaulted the {region} garrison\"",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_a_held_assault_on_our_own_capital_is_logged_and_briefed"
+  },
+  {
+    "id": "FA-R5 the briefing arm loses its defender gate",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            if e.get(\"defender_nation\") == player_nation:\n                _garrison_region = str(e.get(\"region\", \"\") or \"\")",
+    "new": "            if True:\n                _garrison_region = str(e.get(\"region\", \"\") or \"\")",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_our_own_assault_abroad_never_becomes_a_headline"
+  },
+  {
+    "id": "FA-R5 the two outcomes collapse into one class",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                    else:\n                        _add(\"garrison_stormed\",",
+    "new": "                    else:\n                        _add(\"garrison_held\",",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_the_occupation_exit_is_the_one_with_nothing_behind_it"
+  },
+  {
+    "id": "FA-R5 a stormed garrison outranks the capital falling",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"garrison_stormed\": 87,",
+    "new": "    \"garrison_stormed\": 101,",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_a_stormed_capital_still_leads_with_its_fall"
+  },
+  {
+    "id": "FA-R5 the held class sinks below the presence reading it replaces",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"garrison_held\": 82,",
+    "new": "    \"garrison_held\": 79,",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheAssaultGoesOnTheRecord::test_a_stormed_capital_still_leads_with_its_fall"
+  },
+  {
+    "id": "FA-N77 a prisoner is a field marshal again",
+    "file": "backend/models/world_state.py",
+    "old": "            and not getattr(marshal, 'administrative', False)\n            and marshal.strength > 0\n        ]",
+    "new": "            and not getattr(marshal, 'administrative', False)\n        ]",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestLastMarshalProtectionCountsOnlyTheStanding"
+  },
+  {
+    "id": "FA-N77 the administrative clause is dropped for the strength one",
+    "file": "backend/models/world_state.py",
+    "old": "            and not getattr(marshal, 'administrative', False)\n            and marshal.strength > 0\n        ]",
+    "new": "            and marshal.strength > 0\n        ]",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestLastMarshalProtectionCountsOnlyTheStanding::test_the_administrative_clause_is_still_needed_beside_it"
+  },
+  {
+    "id": "FA-N76 the offered-options guard is deleted",
+    "file": "backend/commands/disobedience.py",
+    "old": "            if offered and choice not in offered:",
+    "new": "            if False:",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRedemptionAnswerMustBeOffered"
+  },
+  {
+    "id": "FA-N76 the refusal spends the question it refuses",
+    "file": "backend/commands/disobedience.py",
+    "old": "            if offered and choice not in offered:\n                return {",
+    "new": "            if offered and choice not in offered:\n                marshal.redemption_pending = False\n                return {",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRedemptionAnswerMustBeOffered::test_an_unoffered_course_is_refused_and_costs_nothing"
+  },
+  {
+    "id": "FA-N46 the freeze forgets what it covered",
+    "file": "backend/models/world_state.py",
+    "old": "                    marshal.expectation_covered_at_freeze = int(expectation)",
+    "new": "                    marshal.expectation_covered_at_freeze = -1",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRentePayerKeepsHisGraceWindow"
+  },
+  {
+    "id": "FA-N46 the reset leaves a stale stamp behind",
+    "file": "backend/models/world_state.py",
+    "old": "                    marshal.expectation_grace_turn = -1\n                    # FA-N46: no clock is frozen any more, so the stamp must\n                    # not survive to be read against a later shortfall.\n                    marshal.expectation_covered_at_freeze = -1",
+    "new": "                    marshal.expectation_grace_turn = -1",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRentePayerKeepsHisGraceWindow::test_the_stamp_is_cleared_when_the_estate_covers_him"
+  },
+  {
+    "id": "FA-N46 the re-open fires on ANY re-opened shortfall, not only a bigger one",
+    "file": "backend/models/world_state.py",
+    "old": "                    and expectation > _frozen_cover):",
+    "new": "                    and expectation >= 0):",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRentePayerKeepsHisGraceWindow::test_the_churn_dodge_still_erodes"
+  },
+  {
+    "id": "FA-N46 the restart does not consume the stamp, so it restarts forever",
+    "file": "backend/models/world_state.py",
+    "old": "                marshal.expectation_grace_turn = -1\n                marshal.expectation_covered_at_freeze = -1\n\n            if marshal.expectation_grace_turn < 0:",
+    "new": "                marshal.expectation_grace_turn = -1\n\n            if marshal.expectation_grace_turn < 0:",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRentePayerKeepsHisGraceWindow::test_the_re_opened_window_is_one_shot"
+  },
+  {
+    "id": "FA-N46 the field stops serializing",
+    "file": "backend/models/marshal.py",
+    "old": "            \"expectation_covered_at_freeze\": int(\n                self.expectation_covered_at_freeze),",
+    "new": "",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRentePayerKeepsHisGraceWindow::test_an_old_save_reads_no_frozen_clock tests/test_serialization_enforcement.py"
+  },
+  {
+    "id": "FA-R3 the order is priced by the base verb again",
+    "file": "backend/commands/executor.py",
+    "old": "        if (STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER\n                and not is_strategic_execution\n                and action != \"retreat\"\n                and parsed_command.get(\"is_strategic\")\n                and parsed_command.get(\"strategic_type\")):\n            action_costs_point = True",
+    "new": "        if False:\n            action_costs_point = True",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestAStandingOrderIsPricedByTheOrder"
+  },
+  {
+    "id": "FA-R3 the retreat exemption is dropped (the shipped regression)",
+    "file": "backend/commands/executor.py",
+    "old": "                and action != \"retreat\"\n                and parsed_command.get(\"is_strategic\")",
+    "new": "                and parsed_command.get(\"is_strategic\")",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestAStandingOrderIsPricedByTheOrder::test_a_retreat_is_still_free tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestAStandingOrderIsPricedByTheOrder::test_a_retreat_still_works_at_zero_ap"
+  },
+  {
+    "id": "FA-R3 the rule sinks BELOW the strategic-execution override, so the per-turn step is charged",
+    "file": "backend/commands/executor.py",
+    "old": "        # Strategic execution is always free (cost paid upfront when order issued)\n        if is_strategic_execution:\n            action_costs_point = False",
+    "new": "        if False:\n            action_costs_point = False",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestAStandingOrderIsPricedByTheOrder"
+  },
+  {
+    "id": "FA-R4 the backend stops stripping the desk address",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    stripped = strip_desk_address(stripped).strip().rstrip(\".!? \\t\")",
+    "new": "    stripped = stripped.strip().rstrip(\".!? \\t\")",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheDeskMayBeAddressed"
+  },
+  {
+    "id": "FA-R4 the client strips EVERY address, not one",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tif rest.begins_with(\",\") or rest.begins_with(\":\"):\n\t\t\treturn rest.substr(1).strip_edges()\n\treturn c",
+    "new": "\t\tif rest.begins_with(\",\") or rest.begins_with(\":\"):\n\t\t\tc = _strip_desk_address(rest.substr(1))\n\treturn c",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheDeskMayBeAddressed::test_the_backend_and_the_client_share_one_desk_vocabulary"
+  },
+  {
+    "id": "FA-R4 the CLIENT stops stripping, so the confirm never arms",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tc = _strip_desk_address(c)\n\treturn c == \"end turn\" or c == \"end_turn\" or c == \"next turn\"",
+    "new": "\treturn c == \"end turn\" or c == \"end_turn\" or c == \"next turn\"",
+    "tests": "tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheClientGateSpeaksTheSameVocabulary"
+  },
+  {
+    "id": "FA-R4 the client's address vocabulary drifts from the backend's",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tfor addr in [\"berthier\", \"sire\"]:",
+    "new": "\tfor addr in [\"berthier\"]:",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheDeskMayBeAddressed::test_the_backend_and_the_client_share_one_desk_vocabulary tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheClientGateSpeaksTheSameVocabulary"
+  },
+  {
+    "id": "FA-S7-D1 the prompt rule is deleted",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "An order naming a DEED that no listed action models — screening or covering a\nretreat, fixing bayonets, drilling a specific manoeuvre, restoring order in the\nranks — is action \"unknown\" with confidence 0.3 or lower.",
+    "new": "",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestADeedNoActionModelsIsAQuestion::test_the_prompt_states_the_rule_under_valid_actions"
+  },
+  {
+    "id": "FA-S7-D1 the twins go back to a bare not_action",
+    "file": "tests/data/parser_golden_corpus.json",
+    "old": "      \"expected\": {\n        \"success\": false\n      },\n      \"source\": \"FA slice 7 (the mock speaks plainly, Sept 4, 2026)\",\n      \"notes\": \"FA-73: the real PS18-5 harm",
+    "new": "      \"expected\": {\n        \"not_action\": \"retreat\"\n      },\n      \"source\": \"FA slice 7 (the mock speaks plainly, Sept 4, 2026)\",\n      \"notes\": \"FA-73: the real PS18-5 harm",
+    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestADeedNoActionModelsIsAQuestion::test_the_two_live_twins_expect_a_refusal"
+  }
+]

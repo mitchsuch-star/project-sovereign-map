@@ -1397,6 +1397,24 @@ func _is_end_turn_phrasing(command: String) -> bool:
 	while c.length() > 0 and ".!? 	".find(c[c.length() - 1]) != -1:
 		c = c.substr(0, c.length() - 1)
 	c = c.strip_edges()
+	# FA-R4, Sept 5 2026. The desk may be ADDRESSED. `Berthier, status` and
+	# `Berthier, help` had worked since slice 7 while `Berthier, end turn`
+	# shrugged, and this gate is why the backend was not widened alone: it
+	# mirrors the backend vocabulary word for word, so a server that ended
+	# the turn on an addressed form while this gate said no would advance
+	# behind the unanswered-envoys confirm — the UX23 soft-lock class.
+	# Mirrors `clause_guards.strip_desk_address`: at most ONE address, so a
+	# second name after the desk still owns the order, and `Berthier, Sire,
+	# end turn` is not an end turn.
+	#
+	# The helper is defined further down, deliberately: six Python-side pins
+	# read this function's body as the source between its own header and the
+	# header of the next function, so anything written in between is read as
+	# part of THIS body — one such pin forbids certain order verbs there, and
+	# another harvests the equality comparisons below. Do not quote either
+	# header verbatim in this comment for the same reason: an earlier draft
+	# did, and it truncated the harvested body to nothing.
+	c = _strip_desk_address(c)
 	return c == "end turn" or c == "end_turn" or c == "next turn"
 
 
@@ -1416,6 +1434,30 @@ func _execute_end_turn():
 	_awaiting_end_turn_confirmation = false
 	_set_open_envoys_prompt_visible(false)
 	_send_end_turn()
+
+func _strip_desk_address(text: String) -> String:
+	"""Remove ONE leading address to the desk.
+
+	Mirrors the backend single source, clause_guards.DESK_ADDRESS_RE, which
+	matches an optional-whitespace "berthier" or "sire" followed by a comma
+	or a colon. Whitespace before the separator is allowed because the
+	backend allows it. NOTE: do not write the backend regex out here — a
+	backslash-s in a GDScript string is an invalid escape and fails the
+	parse harness with reload_error_43. (It did.)
+
+	Defined below the end-turn pair on purpose: six Python-side pins read
+	the gate's body as the source between its header and the next
+	function header, so a helper written between them is read as part of
+	it."""
+	var c := text.strip_edges()
+	for addr in ["berthier", "sire"]:
+		if not c.begins_with(addr):
+			continue
+		var rest := c.substr(addr.length()).strip_edges()
+		if rest.begins_with(",") or rest.begins_with(":"):
+			return rest.substr(1).strip_edges()
+	return c
+
 
 func _send_end_turn():
 	"""Actually send end turn command to backend."""

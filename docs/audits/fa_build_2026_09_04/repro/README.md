@@ -32,6 +32,17 @@ the report was measured and the row was not.
 | `REPRO_J5_the_instrument.md` | the harness rows | 15 |
 | `REPRO_J6_copy_sweep_N.md` | the FA-N P3/P4 remainder | 16 |
 | `REPRO_J7_copy_sweep_FA.md` | the FA-n P3/P4 remainder | 16 |
+| `REPRO_K1_the_garrison_leaves_no_trace.md` | FA-R5 | 14 ✅ |
+| `REPRO_K2_the_garrison_formula.md` (+ `_REFUTER`) | FA-D28 | 14 ✅ |
+| `REPRO_K3_the_free_verb_and_the_order.md` (+ `_REFUTER`) | FA-R3 | 14 ✅ |
+| `REPRO_K4_the_desk_may_be_addressed.md` (+ 2 `_REFUTER`) | FA-R4 | 14 ✅ |
+| `REPRO_K5_the_unknown_action_prompt.md` | FA-S7-D1 | 14 ✅ |
+| `REPRO_K6_the_recall_verb.md` (+ `_REFUTER`) | FA-S9-D1, FA-71 | 14 part 2 |
+| `REPRO_K7_the_redemption_and_the_rente.md` (+ 2 `_REFUTER`) | FA-N46, FA-N76, FA-N77 | 14 ✅ |
+| `REPRO_K8_the_grand_diversion.md` (+ `_REFUTER`) | FA-31 | 14 part 2 |
+| `REPRO_K9_the_ai_demands_and_the_stub.md` (+ `_REFUTER`) | FA-21, FA-35 | 14 part 2 |
+| `REPRO_K10_the_school_of_war.md` (+ `_REFUTER`) | FA-42, FA-N78 | 14 part 2 |
+| `REPRO_K11_the_corridor_and_the_fourth_exit.md` | FA-S12-1, FA-S12-2 | 14 part 2 |
 
 **⚠ The J-series has not been read in detail yet.** G1–G4, H1, H2 and I1 were
 read and used; J1–J7 were produced by the same sweep and are unverified
@@ -40,3 +51,12 @@ row: reproduce the specific claim you are about to build on.
 
 Line numbers in these reports were accurate on `a1ed5c9d` and are now stale by
 eleven slices. **Navigate by the symbol a report names, never by its line.**
+
+**The K series (September 5, 2026) was run by a twenty-agent fleet — ten
+reproductions, ten refuters, one refuter per report — against `9ef38da8`
+before slice 14 was written, and it corrected EVERY row it touched.** Two of
+those corrections changed what shipped and one caught a regression the slice
+had already written (FA-R3's retreat exemption). Where a `_REFUTER` file
+disagrees with its report, the refuter re-measured and the report did not:
+read both. ⚠ The refuters ran while the tree was no longer clean — the build
+was landing beside them — and each says which tree its figures came from.

@@ -57,6 +57,12 @@ OBJECTION_FREE_READS = frozenset({
     "status", "help", "economy", "treasury", "finances",
 })
 
+# FA-R3 (slice 14, ruling 5) flip lever: a standing order is priced by the
+# ORDER, not by whether the sentence's base verb happens to be free. False
+# restores the pre-slice rule, in which "Davout, hold Rhineland and wait"
+# attached a two-turn HOLD for nothing while the reply quoted 2 AP.
+STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER = True
+
 # Combat methods delegated to CombatExecutor (R10A+R10B backward compat)
 _COMBAT_DELEGATED = {
     # R10A: Combat execution
@@ -1204,6 +1210,55 @@ class CommandExecutor:
 
         # Check if action costs points
         action_costs_point = action not in free_actions
+
+        # ── FA-R3 (slice 14, ruling 5): a STANDING ORDER is priced by the
+        # ORDER, never by the base verb it happened to be phrased with.
+        #
+        # `free_actions` is a list of BASE actions, and the mock chain's WAIT
+        # arm sits above hold/move (it must, or "wait for reinforcements"
+        # becomes a SUPPORT order), so any sentence that also says "wait"
+        # parses to `action == "wait"` — a free verb. Both the AP pre-gate
+        # below AND the charge block at the bottom were therefore skipped,
+        # and the `variable_action_cost: 2` the strategic executor returns
+        # was silently discarded. Measured through the real POST /command
+        # route with a mock parser, on the shipped 1805 board:
+        #
+        #   "Davout, hold Rhineland and wait"       AP 4 -> 4, HOLD standing
+        #   "Ney, march to Lorraine and wait there" AP 4 -> 4, MOVE_TO standing
+        #                                           (and Ney actually marched)
+        #   "Davout, support Ney and wait"          AP 4 -> 4, SUPPORT standing
+        #
+        # — each with the reply saying "(2 AP — a standing strategic order)".
+        # The third shape is one the row does not name. Slice 7's relocation
+        # of `stay put` below the order verbs had already closed that phrasing
+        # (4 -> 2), which is why the root looked narrower than it is: the
+        # defect is the PRICING RULE, not any one word's position in the mock
+        # chain, and a fourth free verb would re-open it tomorrow.
+        #
+        # Sited ABOVE the strategic-EXECUTION override on purpose: the per-turn
+        # step of a standing order is free because the order was paid for at
+        # issuance, and that must keep winning.
+        #
+        # ⛔ EXCEPT A RETREAT, WHICH IS FREE BY DESIGN EVEN WHEN THE STRATEGIC
+        # LAYER READS A MARCH OUT OF IT. `retreat` is the one entry in
+        # `free_actions` with its own comment at the list — "retreat is FREE
+        # (costs 0 actions - strategic withdrawal)" — and six retreat
+        # phrasings parse `action == "retreat"` WITH a strategic type
+        # (`fall back south`, `withdraw south`, `Ney, fall back and observe
+        # Mack`, …). The first cut of this rule charged them, and measured,
+        # it refused `withdraw from the alliance` — a general retreat of all
+        # eight French marshals — at 0 AP with "Not enough actions! Need 2,
+        # have 0." Retreat exists for the moment you are out of options, and
+        # that cut made it unavailable exactly then. Caught by the slice's
+        # own reproduction fleet attacking the fix rather than the finding;
+        # no existing pin covers any of the six, which is why it would have
+        # shipped.
+        if (STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER
+                and not is_strategic_execution
+                and action != "retreat"
+                and parsed_command.get("is_strategic")
+                and parsed_command.get("strategic_type")):
+            action_costs_point = True
 
         # Strategic execution is always free (cost paid upfront when order issued)
         if is_strategic_execution:

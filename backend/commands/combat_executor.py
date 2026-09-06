@@ -2951,7 +2951,67 @@ class CombatExecutor:
         garrison_losses = int(target_region.garrison_strength * garrison_damage_ratio)
 
         # Ensure minimum losses on both sides (no zero-damage stalemates)
-        attacker_losses = max(attacker_losses, int(marshal.strength * 0.02))
+        #
+        # ── FA-D28 RULING (slice 14, Sept 5 2026) ─────────────────────────
+        # The floor reads the GARRISON's strength, not the attacker's own.
+        # Reading his own made it a pure OVER-MATCH TAX: it binds if and only
+        # if the attacker's effective strength exceeds ~12.5x the garrison's,
+        # so the bigger the corps the more it paid for the same works.
+        # Measured — and the FIXTURE is part of the figure, because two
+        # correct tables that name no fixture read as a contradiction.
+        # These are COMBAT-ONLY losses (they exclude the march attrition the
+        # capture path adds) for a 40,000-man CAUTIOUS marshal on the Europe
+        # board, assaulting Lorraine: PLAINS, no fort, detachment garrison
+        # fought to destruction.
+        #
+        #     garrison   assaults   attacker lost (before -> after)
+        #        3,000       13        9,233  ->  1,496
+        #       12,000       15       12,727  ->  5,996
+        #       25,000       16       17,803  -> 12,496
+        #
+        # (The slice's own pins quote a DIFFERENT fixture on purpose — the
+        # legacy world's Paris, which is URBAN (+0.20), and TOTAL strength
+        # deltas: 10,234 / 14,156 / 20,184 -> 2,942 / 8,180 / 15,962. Both
+        # reproduce to the digit on their own board.)
+        #
+        # The row's complaint was that a corps outnumbering the garrison 13:1
+        # "loses more men than the garrison had"; after the swap it never
+        # does. The ASSAULT COUNT is deliberately untouched — the ruling took
+        # the loss half of FA-D28's fix shape and not the odds-scaling half,
+        # which stays open on the row (see the landing record). One
+        # consequence of taking only that half, stated because it is not
+        # obviously good: late in a long grind the assaults now cost the
+        # attacker almost nothing (11 and 12 of 13 cost a 38,674-man corps
+        # ZERO men each). The grind is still 13 AP and 13 marshal-actions;
+        # what it no longer is, is a blood price.
+        #
+        # The anti-stalemate promise this line was written for is kept by the
+        # DEFENDER's floor below, not by this one: `garrison_losses` carries
+        # WO-3's `+1`, so every landed assault kills at least one defender and
+        # the fight always terminates. A 40,000-man corps taking literally no
+        # casualties from a one-man garrison is the correct answer, not a
+        # stalemate.
+        #
+        # GR5 is true of the ARITHMETIC and not of the reachability, and the
+        # difference matters here. This resolver is the single source for both
+        # boards — `combat_executor`'s attack path (player and enemy P4.25
+        # alike) and `naval_executor`'s landing against a defended capital are
+        # its only two callers — so neither side can be priced differently.
+        # But the AI reaches it only through `_find_garrison_attack`'s
+        # `strength / garrison_effective >= threshold` gate, whose thresholds
+        # bottom out near 0.6, while the player's typed attack and the naval
+        # landing have no ratio gate at all. So the regime in which the NEW
+        # floor binds — a weak attacker, `garrison / strength > 17.5`, where
+        # the proportional term is capped at 0.35 — is reachable only by the
+        # player and by a small landing force put ashore against a capital.
+        # It is the same rule for everyone; only one side can get into that
+        # corner.
+        _floor_base = (target_region.garrison_strength
+                       if self.GARRISON_LOSS_FLOOR_READS_THE_GARRISON
+                       else marshal.strength)
+        attacker_losses = max(
+            attacker_losses,
+            int(_floor_base * self.GARRISON_ASSAULT_LOSS_FLOOR))
         # WO-3: the 10% floor TRUNCATES to 0 below ten men while the
         # attacker keeps paying his 2% floor — a detachment garrison
         # stalled at ONE man forever (measured: 40 assaults, "Garrison:
@@ -2993,6 +3053,38 @@ class CombatExecutor:
             garrison_collapsed = target_region.garrison_strength <= 0
         else:
             garrison_collapsed = target_region.garrison_strength < 5000
+
+        # ── FA-R5 (slice 14): the assault goes ON THE RECORD ───────────────
+        # Until now this resolver contained ZERO `log_event` calls, so two of
+        # its three exits were invisible on every persistent surface: the HOLD
+        # path and the FALL-INTO-OCCUPATION path wrote nothing to the campaign
+        # log and produced no headline. Measured on the shipped board: Austria
+        # batters the Paris garrison 25,000 -> 12,500 and loses 6,250 doing it,
+        # and next morning the briefing's `headline` is None and its note reads
+        # "Your armies stand ready, Sire. The initiative is ours." The word
+        # "Paris" appears in the whole dispatch zero times. (The third exit,
+        # fall-to-CAPTURE, was already covered by the `region_captured` written
+        # downstream — so the row's "reaches neither" over-reaches by one path.)
+        #
+        # ONE emit site, ABOVE the branch, so log and dialog cannot drift and
+        # the three exits cannot disagree. `target_region.controller` is still
+        # the DEFENDER here — the capture below is what flips it — so the fog
+        # filter's `_is_player_event` sees the right side from either
+        # direction. The type is the one the client already renders
+        # (slice 11's structured `garrison_assault` arm).
+        if self.THE_GARRISON_ASSAULT_IS_RECORDED:
+            world.log_event({
+                "type": "garrison_assault",
+                "marshal": marshal.name,
+                "attacker_nation": marshal.nation,
+                "defender_nation": target_region.controller,
+                "region": target_region.name,
+                "garrison_before": int(old_garrison),
+                "garrison_losses": int(garrison_losses),
+                "garrison_remaining": int(target_region.garrison_strength),
+                "attacker_losses": int(attacker_losses),
+                "held": not garrison_collapsed,
+            })
 
         if garrison_collapsed:
             # Garrison collapses — capture proceeds
@@ -3215,6 +3307,20 @@ class CombatExecutor:
     # FA-N59 (slice 4, Sept 4 2026) flip lever: a garrison assault counts as
     # the attack it is (exhaustion schedule, in_combat_this_turn).
     GARRISON_ASSAULT_COUNTS = True
+    # FA-D28 (slice 14, Sept 5 2026) flip lever — the HOST_RULE_ACTIVE idiom.
+    # False restores the pre-slice floor, which read the ATTACKER's own
+    # strength and so taxed him for being large. See the ruling at the
+    # constant below and the arithmetic in `_resolve_garrison_combat`.
+    GARRISON_LOSS_FLOOR_READS_THE_GARRISON = True
+    # The minimum-loss floor, as a fraction of the DEFENDING garrison's
+    # remaining strength (was the same 0.02 against the attacker's own).
+    # Blessed at the FA-D28 ruling, in-band tunable; the SHAPE — whose
+    # strength it reads — is the ruling and is not tunable.
+    GARRISON_ASSAULT_LOSS_FLOOR = 0.02
+    # FA-R5 (slice 14, Sept 5 2026) flip lever: the assault reaches the
+    # campaign log and the morning briefing. False writes no `event_log` row
+    # on any of the three exits, which is the pre-slice behaviour.
+    THE_GARRISON_ASSAULT_IS_RECORDED = True
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,

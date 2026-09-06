@@ -4041,9 +4041,18 @@ def respond_to_redemption(request: RedemptionResponse):
             return _refusal_response(
                 world, message="No redemption event pending.")
 
-        # Validate choice (Phase 3: administrative_role replaces demand_obedience)
-        valid_choices = ['grant_autonomy', 'administrative_role', 'dismiss']
-        if request.choice not in valid_choices:
+        # FA-N76 (slice 14): validate against the courses THIS audience
+        # offered, not a hardcoded list. The list was static, so Last Marshal
+        # Protection and the one-admin rule — which live in the option
+        # BUILDER — were presentation-only here. The authoritative check is
+        # `handle_redemption_response`'s, so every caller inherits it; this
+        # outer arm is kept only so the endpoint can refuse a malformed id
+        # without entering the handler at all, and it now reads the same
+        # source rather than a second copy that can drift.
+        valid_choices = [o.get('id') for o in
+                         (redemption_event.get('options') or [])
+                         if isinstance(o, dict) and o.get('id')]
+        if valid_choices and request.choice not in valid_choices:
             return _refusal_response(
                 world, message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
 
@@ -4054,8 +4063,16 @@ def respond_to_redemption(request: RedemptionResponse):
             game_state=game_state
         )
 
-        # Clear pending redemption
-        world.pending_redemption = None
+        # Clear pending redemption — ONLY when it was actually resolved.
+        # FA-N76 (slice 14): this ran unconditionally, so a refusal destroyed
+        # the standing question while `marshal.redemption_pending` stayed
+        # True — the man could never be asked again and the player could
+        # never answer. That is the FA-N4 / slice-6 shape ("a response that
+        # carries a question never carries a popped popup") one endpoint
+        # over, and the new guard in `handle_redemption_response` is what
+        # made it reachable, so it is closed in the same commit.
+        if result.get("success", False):
+            world.pending_redemption = None
 
         # Non-draining (Aug 2026 health-check audit): main.gd's
         # _on_redemption_response never routes popup keys, so a draining

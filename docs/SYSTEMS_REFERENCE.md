@@ -4432,3 +4432,155 @@ census matched `THIRD_PARTY_LICENSES.md` and `*-OFL.txt` inside the `::`
 comment block explaining why they must be copied. Scope such a census to the
 COMMANDS (`_build_commands()` strips `::` lines), and assert a dispatch
 condition literally rather than the presence of the function it calls.
+
+---
+
+## 36. The rulings of slice 14 (FA slice 14 part 1, landed September 5, 2026)
+
+Six rules the FA build turned into code. Landing record in `BUG_FIXES.md`
+§Final Whole-Game Audit; pins in
+`tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py`.
+
+**1. A garrison assault's minimum-loss floor reads the DEFENDER**
+(`GARRISON_LOSS_FLOOR_READS_THE_GARRISON`). Reading the attacker's own
+strength made it a pure over-match tax — it binds if and only if effective
+attacker exceeds **12.5×** effective garrison, so the bigger the corps the
+more it paid for the same works, at a flat 25.4% however large it was. The
+base moved; the 2% rate did not.
+
+**The floor is not thereby dead, and a derivation that says so has dropped
+the `min(0.35, …)` cap.** There are two regimes: uncapped (the proportional
+term wins, and 0.02 never binds) and **capped** (`garrison / strength >
+17.5`), where the floor binds again and a 1,000-man remnant assaulting
+Vienna pays 500 rather than 175. That regime is reachable by the PLAYER and
+by a naval landing and not by the AI, whose rung gates on a ratio — so **GR5
+is true of the arithmetic and false of the reachability**, and the comment
+says so. Do not "simplify" the constant away.
+
+**The anti-stalemate promise is the DEFENDER's floor, not this one.**
+`garrison_losses` carries WO-3's `+1`, so every landed assault kills at
+least one defender and the fight always terminates; a 40,000-man corps
+taking no casualties from a one-man garrison is the correct answer.
+
+**Only the loss half of FA-D28 was ruled.** The assault COUNT is untouched
+(⌈log₂N⌉+1, so 13 for a 3,000-man detachment), which means the grind still
+costs 13 AP and 13 marshal-actions and now costs almost no blood. That half
+stays open on the row.
+
+**Quote the FIXTURE with any figure here.** Two correct tables that name no
+fixture read as a contradiction: the resolver comment is Europe / Lorraine /
+plains / cautious / combat-only, the pins are legacy / Paris / urban /
+totals. Both reproduce to the digit on their own board.
+
+**2. The garrison assault is on the record**
+(`THE_GARRISON_ASSAULT_IS_RECORDED`). The resolver had no `log_event` at
+all, so two of its three exits were invisible on every persistent surface:
+the works HOLDING, and the garrison destroyed into an OCCUPATION. (The
+third, fall-to-capture, was already covered by the `region_captured`
+written downstream.) ONE emit site above the collapse branch, so log and
+dialog cannot drift and the three exits cannot disagree;
+`target_region.controller` is still the DEFENDER there, which is what lets
+`_is_player_event` see the right side from either direction.
+
+Two headline classes, because a headline carries one weight and the two
+outcomes are not the same news: `garrison_stormed` 87 and `garrison_held`
+82, both gated on the player being the DEFENDER — a garrison we storm
+abroad belongs to the triumph ladder, and building it as a wound re-opens
+CA8-D6. Neither is in `STANDING_HEADLINE_CLASSES`: this is current news, and
+a state-derived class in that set repeats and buries everything else (PC-7's
+`marshal_reversal` trap).
+
+**`CAMPAIGN_LOG_TYPES` went 160 → 161 rather than swapping.** Slice 11's
+move — retire an inert type for the new one — was measured unavailable: a
+producer census finds exactly six types with no producer, every one of them
+`diplomacy`, while all seventeen `combat` types have producers. Retiring a
+diplomacy half-pair to make room for a combat type deforms a live family and
+reds a pin anyway.
+
+**A `battle_report` for garrison combat is REFUTED BY DESIGN, not deferred.**
+`snapshot_defender_modifiers` takes a **Marshal**, so CA8-19's "requires a
+defender object that does not exist" bites there: the defending half of
+`modifier_breakdown` is structurally empty forever. It would also
+double-render against slice 11's structured client arm and re-route the
+muster "Attack Anyway" gate, which keys on `battle_report` being present.
+
+**3. A field marshal is one who is not at a desk AND is standing.**
+`capture_marshal` leaves `nation` unchanged and zeroes `strength`, so a
+prisoner stayed in `get_field_marshals` forever while its three maintained
+siblings all filtered him out — and Last Marshal Protection counted the
+dead. The two clauses are additive and each is needed: an administrative
+marshal is at strength 0 too, and a man at the desk with men on the books
+is constructible.
+
+**4. An answer to a redemption audience must be one the audience OFFERED**
+(`REDEMPTION_ANSWER_MUST_BE_OFFERED`). The rules live in the option
+BUILDER, so validating against a static list made Last Marshal Protection
+and the one-admin rule presentation-only — measured, sending
+`administrative_role` when it was not offered produced three admin marshals
+and +3 actions. The guard sits in `handle_redemption_response`, **above the
+latch clear and the cooldown stamp**, so every caller inherits it and a
+refusal spends nothing. `world.pending_redemption` is cleared **only on
+success**: clearing it unconditionally orphans the question the refusal
+leaves standing.
+
+**5. A frozen grace clock remembers what it covered**
+(`Marshal.expectation_covered_at_freeze`, serialized, −1 = none). WO-18
+freezes the clock on a met turn bought by a load-bearing rente so a
+grant/revoke toggle cannot dodge erosion. Its safety argument — "a marshal
+genuinely kept on a rente never erodes anyway" — fails the moment he WINS
+AGAIN: the expectation rises, the branch flips to unmet, and `elapsed` reads
+a stale anchor. The unmet branch now tells the two re-openings apart: a
+shortfall **bigger** than what was covered means he earned more (a new
+window is owed); one at or below it means the payment stopped (no new
+window). One-shot — the stamp is consumed on the restart, so a neglected
+marshal still erodes on time.
+
+A zero-field version keyed on `pension > 0` was worked out and rejected: it
+cannot tell a frozen clock from a running one, so a marshal on an
+insufficient rente would restart his window every turn and never erode.
+
+**6. A standing order is priced by the ORDER, except a retreat**
+(`STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER`). `free_actions` holds BASE
+actions, and the mock chain's WAIT arm sits above hold/move — it must, or
+"wait for reinforcements" becomes a SUPPORT order — so any sentence that
+also says "wait" parsed to a free verb and skipped **both** the AP pre-gate
+and the charge, discarding the `variable_action_cost: 2` the strategic
+executor returns. It was a total bypass: at 0 AP a player set five standing
+orders and marched four marshals a province each.
+
+The rule sits ABOVE the `is_strategic_execution` override, which must keep
+winning — the per-turn step of a standing order is free because the order
+was paid for at issuance.
+
+**⛔ And `retreat` is exempt, by design and by measurement.** It is the one
+`free_actions` entry with its own comment at the list, and six phrasings
+parse `retreat` WITH a strategic type. Without the exemption
+`withdraw from the alliance` — a general retreat of the whole army — costs
+an AP and is REFUSED at 0 AP, which is the one state in which a retreat
+matters. Any future free verb that can carry a strategic type re-opens this;
+the census that finds them is `validation.NEVER_STRATEGIC_ACTIONS` (30 of
+the 33 are blocked at the parser; only `wait`, `retreat` and `break_square`
+can reach the executor with a strategic type).
+
+**7. The desk may be ADDRESSED, from one vocabulary**
+(`clause_guards.DESK_ADDRESS_RE` / `strip_desk_address`). `Berthier, status`
+and `Berthier, help` worked while `Berthier, end turn` shrugged. The
+vocabulary lives in `clause_guards` — the lowest layer, which `llm_client`
+imports — and the client mirrors it in `main.gd::_strip_desk_address` with a
+two-directional parity pin. **At most ONE address** is stripped, so
+`Berthier, Sire, end turn` is not an end turn and `Berthier, Ney, …` is
+still an order to Ney. The PHRASING vocabulary is untouched; this widens the
+address, not the word list.
+
+**Client-only would have been sufficient and backend-only is harmful.**
+`_send_end_turn` canonicalises — whatever the client gate accepts, the
+server receives the literal `"end turn"` — so widening the backend alone
+advances the turn behind the unanswered-envoys confirm. If this is ever
+split across commits, the `.gd` lands first or with it.
+
+**8. Prose inside a file is code, when a pin reads that file.** Two pins in
+this slice were redded by COMMENTS: one containing a forbidden word inside
+the region a pin slices, one quoting the pin's own slice anchor verbatim and
+truncating the harvested body to nothing. `main.gd`'s function ORDER is
+load-bearing for six such pins — the end-turn gate and `_execute_end_turn`
+must stay adjacent, and helpers go below the pair.
