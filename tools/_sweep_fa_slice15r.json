@@ -1,0 +1,212 @@
+[
+ {
+  "id": "S15R-1/a the order dedupe goes back to run-lifetime",
+  "file": "tools/playtest_driver.py",
+  "old": "        for _dedupe in (\"_seen_order_rows\", \"_seen_rail_types\"):\n            self.__dict__.pop(_dedupe, None)",
+  "new": "        for _dedupe in ():\n            self.__dict__.pop(_dedupe, None)",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDedupesAreScopedToTheTurn"
+ },
+ {
+  "id": "S15R-1/b the log dedupe is cleared per turn too",
+  "file": "tools/playtest_driver.py",
+  "old": "        for _dedupe in (\"_seen_order_rows\", \"_seen_rail_types\"):",
+  "new": "        for _dedupe in (\"_seen_order_rows\", \"_seen_rail_types\", \"_seen_log_rows\"):",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDedupesAreScopedToTheTurn::test_the_log_dedupe_survives_the_turn_boundary"
+ },
+ {
+  "id": "S15R-1/c the reset rebinds instead of popping, breaking a stub",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.__dict__.pop(_dedupe, None)",
+  "new": "            setattr(self, _dedupe, set())",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDedupesAreScopedToTheTurn::test_the_reset_is_by_name_so_a_stub_survives_it"
+ },
+ {
+  "id": "S15R-1/d the order key drops the message",
+  "file": "tools/playtest_driver.py",
+  "old": "            key = (marshal, status, message)",
+  "new": "            key = (marshal, status)",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestFollowsAStandingOrder::test_a_changed_message_is_a_new_row"
+ },
+ {
+  "id": "S15R-L2-1/a the loop reads only the newest block again",
+  "file": "tools/playtest_driver.py",
+  "old": "                for block in turns:\n                    digest.campaign_log((block or {}).get(\"events\"),\n                                        turn=(block or {}).get(\"turn\"))",
+  "new": "                for block in turns[:1]:\n                    digest.campaign_log((block or {}).get(\"events\"),\n                                        turn=(block or {}).get(\"turn\"))",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheLogIsReadWhole::test_every_block_is_offered"
+ },
+ {
+  "id": "S15R-L2-1/b the block's turn is not passed, so the key collapses",
+  "file": "tools/playtest_driver.py",
+  "old": "                                        turn=(block or {}).get(\"turn\"))",
+  "new": "                                        turn=None)",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheLogIsReadWhole::test_every_block_is_offered"
+ },
+ {
+  "id": "S15R-L2-1/c the log key drops the turn",
+  "file": "tools/playtest_driver.py",
+  "old": "            key = (turn, etype, text)",
+  "new": "            key = (etype, text)",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDedupesAreScopedToTheTurn::test_the_same_text_in_a_different_block_is_a_different_beat"
+ },
+ {
+  "id": "S15R-L2-3/a the campaign-log failure is silent again",
+  "file": "tools/playtest_driver.py",
+  "old": "            digest.note(f\"⚠ campaign log unavailable this turn: \"\n                        f\"{type(exc).__name__}: {exc}\"[:200])",
+  "new": "            pass",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheLogIsReadWhole::test_a_failure_is_reported_not_swallowed"
+ },
+ {
+  "id": "S15R-L2-2/a the allowlist stops covering the engine arm",
+  "file": "tools/playtest_driver.py",
+  "old": "} | (_ENGINE_COURT_TO_COURT - _NOT_A_THIRD_PARTY_BEAT))",
+  "new": "})",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheAllowlistCoversTheEnginesOwnArm"
+ },
+ {
+  "id": "S15R-L2-2/b the exclusion set grows a name the engine never had",
+  "file": "tools/playtest_driver.py",
+  "old": "_NOT_A_THIRD_PARTY_BEAT = frozenset({\n    # A war France is in is the player's own story",
+  "new": "_NOT_A_THIRD_PARTY_BEAT = frozenset({\n    \"not_a_real_event_type\",\n    # A war France is in is the player's own story",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheAllowlistCoversTheEnginesOwnArm::test_every_exclusion_is_written_down"
+ },
+ {
+  "id": "S15R-L2-2/c the engine arm import resolves to nothing",
+  "file": "tools/playtest_driver.py",
+  "old": "_ENGINE_COURT_TO_COURT = frozenset(_ENGINE_ARM)",
+  "new": "_ENGINE_COURT_TO_COURT = frozenset()",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheAllowlistCoversTheEnginesOwnArm::test_the_engine_arm_resolved"
+ },
+ {
+  "id": "S15R-L2-2/d the engine restates the tuple instead of consuming it",
+  "file": "backend/campaign_log.py",
+  "old": "        if event_type in COURT_TO_COURT_EVENT_TYPES:",
+  "new": "        if event_type in (\"diplomatic_treaty_signed\", \"diplomatic_war_declared\"):",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheAllowlistCoversTheEnginesOwnArm::test_the_filter_consumes_the_constant"
+ },
+ {
+  "id": "S15R-L2-4/a the fogged arm records an int again",
+  "file": "tools/playtest_driver.py",
+  "old": "                self.record(\"enemy_phase\", count=0, attacks=0, captures=0,\n                            verbs={}, actions=[], fogged=len(fog))",
+  "new": "                self.record(\"enemy_phase\", actions=0, attacks=0,\n                            fogged=len(fog))",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheEnemyPhaseRecordHasOneShape"
+ },
+ {
+  "id": "S15R-L2-4/b the visible arm loses the fogged count",
+  "file": "tools/playtest_driver.py",
+  "old": "                    captures=len(taken), verbs=verbs, fogged=len(fog),",
+  "new": "                    captures=len(taken), verbs=verbs,",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheEnemyPhaseRecordHasOneShape::test_both_arms_carry_the_same_keys"
+ },
+ {
+  "id": "S15R-L2-5/a the fog cap is silent again",
+  "file": "tools/playtest_driver.py",
+  "old": "                if len(fog) > MAX_FOG_ROWS:\n                    self._md(f\"  - fogged: +{len(fog) - MAX_FOG_ROWS} more \"\n                             f\"court(s) not listed\")",
+  "new": "                if False:\n                    self._md(\"  - fogged: +0 more court(s) not listed\")",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheEnemyPhaseRecordHasOneShape::test_the_cap_says_what_it_dropped"
+ },
+ {
+  "id": "S15R-L2-5/b the truncation note fires when nothing was dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "                if len(fog) > MAX_FOG_ROWS:",
+  "new": "                if len(fog) >= 1:",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheEnemyPhaseRecordHasOneShape::test_an_uncapped_block_says_nothing_extra"
+ },
+ {
+  "id": "S15R-16/a the stamp is read without being spent",
+  "file": "backend/main.py",
+  "old": "    if _provenance:\n        _PARSE_PROVENANCE.set(None)",
+  "new": "    if _provenance:\n        pass",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheStampIsSpentByItsOwnResponse"
+ },
+ {
+  "id": "S15R-16/b the consume site is counted as a stamp again",
+  "file": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py",
+  "old": "                  and not (len(n.args) == 1\n                           and isinstance(n.args[0], ast.Constant)\n                           and n.args[0].value is None)]",
+  "new": "                  ]",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheRunRecordsWhoParsedItAndOnWhatBoard::test_the_backend_stamps_the_players_parse_only"
+ },
+ {
+  "id": "S15R-7/a the production census stops using the shared walk",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "            for name, sites in TestASerializedFieldIsNeverDeleted._deletions_in(\n                    path.read_text(encoding=\"utf-8\"), path.name).items():",
+  "new": "            for name, sites in {}.items():",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted"
+ },
+ {
+  "id": "S15R-7/b the `del x.attr` arm is deleted from the shared walk",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "            if isinstance(node, ast.Delete):\n                for target in node.targets:",
+  "new": "            if False:\n                for target in node.targets:",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted::test_both_deletion_forms_are_walked"
+ },
+ {
+  "id": "S15R-8/a the offender loop stops naming the class",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "                out.append(\n                    f\"{klass.__name__}.to_dict reads self.{name} bare, but it \"\n                    f\"is deleted at {', '.join(deleted[name])}\")",
+  "new": "                out.append(\"an offender\")",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted::test_the_p1_shape_is_caught"
+ },
+ {
+  "id": "S15R-8/b the offender loop skips every class",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "        for klass in SERIALIZABLE_CLASSES:\n            if not hasattr(klass, \"to_dict\"):\n                continue",
+  "new": "        for klass in SERIALIZABLE_CLASSES:\n            if True:\n                continue",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted::test_the_p1_shape_is_caught"
+ },
+ {
+  "id": "S15R-17/a the ast.Load guard is removed from the census",
+  "file": "tests/test_serialization_enforcement.py",
+  "old": "                    and node.value.id == \"self\"\n                    and isinstance(node.ctx, ast.Load)):\n                out.add(node.attr)",
+  "new": "                    and node.value.id == \"self\"):\n                out.add(node.attr)",
+  "tests": "tests/test_serialization_enforcement.py::TestASerializedFieldIsNeverDeleted::test_a_write_is_not_a_read"
+ },
+ {
+  "id": "S15R-9/a the stub census's borrow walk matches nothing again",
+  "file": "tests/test_fa_slice8_the_instrument_2026_09_02.py",
+  "old": "                        and node.value.attr == \"Digest\"",
+  "new": "                        and node.value.attr == \"NotADigest\"",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDigestDoubleCannotDrift::test_every_stub_digest_can_survive_a_real_method"
+ },
+ {
+  "id": "S15R-L2-6/a the class-constant half of the borrow rule is dropped",
+  "file": "tests/test_fa_slice8_the_instrument_2026_09_02.py",
+  "old": "            elif node.attr.isupper():",
+  "new": "            elif False:",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDigestDoubleCannotDrift"
+ },
+ {
+  "id": "S15R-L2-6/b NET_COMPONENTS goes back onto the class",
+  "file": "tools/playtest_driver.py",
+  "old": "                     for key, label in NET_COMPONENTS",
+  "new": "                     for key, label in self.NET_COMPONENTS",
+  "tests": "tests/test_fa_slice8_the_instrument_2026_09_02.py::TestTheDigestDoubleCannotDrift::test_every_stub_digest_can_survive_a_real_method"
+ },
+ {
+  "id": "S15R-9(pins)/a the loop-read predicate accepts a hoisted read",
+  "file": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py",
+  "old": "        return any(isinstance(n, (ast.For, ast.While))\n                   and _reads_log(n) and \"post\" in _names(n)\n                   for n in ast.walk(tree))",
+  "new": "        return any(isinstance(n, (ast.For, ast.While))\n                   and _reads_log(n)\n                   for n in ast.walk(tree))",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDigestSeesTheOtherPowers::test_the_loop_reads_the_endpoint_once_per_turn"
+ },
+ {
+  "id": "S15R-10(pins)/a _code_lines stops stripping docstrings",
+  "file": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py",
+  "old": "                if d not in body:          # a docstring that runs on",
+  "new": "                if False:",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDocumentationIsNoLongerFalse::test_a_docstring_alone_does_not_satisfy_the_drift_pin"
+ },
+ {
+  "id": "S15R-18/a the threat key stops being live",
+  "file": "backend/main.py",
+  "old": "        \"talleyrand_mission_summary\": _get_talleyrand_mission_summary(world),\n        \"threat_level\": int(getattr(world, 'threat_level', 0)),\n        \"coalition_brewing\": _player_coalition_brewing(world) is not None,\n        \"coalition_brewing_turns\": int(\n",
+  "new": "        \"talleyrand_mission_summary\": _get_talleyrand_mission_summary(world),\n        \"threat_level\": 0,\n        \"coalition_brewing\": _player_coalition_brewing(world) is not None,\n        \"coalition_brewing_turns\": int(\n",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheLedgerLineCarriesTheThreat::test_the_backend_stamps_it_on_every_post"
+ },
+ {
+  "id": "DOC/b the fogged sentence loses the both-arms claim",
+  "file": "docs/PLAYTESTING.md",
+  "old": "  > record carries the same keys on both arms",
+  "new": "  > record carries different keys on each arm",
+  "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheDocumentationIsNoLongerFalse::test_the_page_describes_the_record_shape"
+ }
+]

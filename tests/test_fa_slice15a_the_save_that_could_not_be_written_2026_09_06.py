@@ -132,14 +132,28 @@ class TestTheGateCanNowSeeADeletedField:
 
     def test_getattr_is_the_exempt_idiom(self):
         """A field that MAY be deleted must be read defensively, and the
-        census must not punish the safe form."""
-        src = "def to_dict(self):\n    return {'a': getattr(self, 'a', None)}\n"
-        tree = ast.parse(src)
-        loads = {n.attr for n in ast.walk(tree)
-                 if isinstance(n, ast.Attribute)
-                 and isinstance(n.value, ast.Name) and n.value.id == "self"
-                 and isinstance(n.ctx, ast.Load)}
-        assert loads == set()
+        census must not punish the safe form.
+
+        ⚠ It calls the PRODUCTION helper. The first cut re-implemented the
+        walk inline and so executed no census code at all — a pin that could
+        not have noticed if the exemption were removed. Measured by the
+        slice-15 review round: patching the real helper to raise left it
+        green.
+        """
+        T = self._census()
+
+        class _Safe:
+            def to_dict(self):
+                return {"a": getattr(self, "a", None)}
+
+        class _Unsafe:
+            def to_dict(self):
+                return {"a": self.a}
+
+        assert T._bare_self_reads_in_to_dict(_Safe) == set()
+        # …and the same helper DOES see the bare form, so the empty set above
+        # is the exemption working and not the walk finding nothing.
+        assert T._bare_self_reads_in_to_dict(_Unsafe) == {"a"}
 
 
 class TestTheClientGatePinsCannotBeSatisfiedByProse:
@@ -179,9 +193,26 @@ class TestTheClientGatePinsCannotBeSatisfiedByProse:
         """The gate's comment had to avoid naming an order verb because a
         Python pin grepped for one. That constraint is retired, and this
         asserts the retirement is real rather than merely intended."""
-        body = self._gate_body()
-        assert "attack" in body, (
-            "the comment that proves the trap is gone has itself gone")
+        # ⚠ It must NOT assert the comment SAYS "attack". The first cut did,
+        # and that re-created FA-N34's own defect inverted — a Python pin
+        # binding a GDScript comment's wording, so an editor tidying the
+        # comment reds a test about parsing. What is asserted instead is what
+        # the retirement MEANS: the verb may appear anywhere in the body
+        # without changing the gate's answer.
         from tests.test_fa_slice1_the_two_words_2026_09_02 import (
             TestTheClientGateSpeaksTheSameVocabulary as T)
         assert T._client_gate("Ney, attack Mack next turn") is False
+        assert T._client_gate("end turn") is True
+        body = self._gate_body()
+        commented = body + "\n# attack recruit fortify\n"
+        assert self._needles(body) == self._needles(commented), (
+            "a comment changed the gate's needles — the trap is back")
+
+    @staticmethod
+    def _needles(body):
+        """The literals the gate actually compares against, comments stripped
+        — the same shape slice 1's evaluator derives."""
+        import re
+        code = "\n".join(line for line in body.split("\n")
+                         if not line.strip().startswith("#"))
+        return sorted(set(re.findall(r'"([^"]+)"', code)))

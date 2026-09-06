@@ -365,10 +365,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 15 part b: **58 defect rows
-> and 24 design rows / gates still open**, of 233 filed; 134 closed, 17
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 58 are spoken for by
-> the slice-15 review round → slice 16;
+> number in a heading. After the slice-15 review round: **60 defect rows
+> and 24 design rows / gates still open**, of 234 filed; 133 closed, 17
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. It went UP by two
+> because the round re-opened FA-91 and filed FA-S15-2; the 60 are
+> spoken for by slice 16, whose reproduction is already committed;
 > the 24 need rulings, not builds.
 >
 > **⛔ SLICE 15 (PART a) "THE SAVE THAT COULD NOT BE WRITTEN" IS LANDED —
@@ -392,6 +393,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > coalition's peace offer**, and with `--diplomacy accept` the same seed goes
 > 6 → 27 provinces.
 >
+> **▶ THE SLICE 15 REVIEW ROUND "THE INSTRUMENT IS CALIBRATED" IS LANDED —
+> September 6, 2026** (landing record = the boxed SLICE 15 REVIEW ROUND block
+> in `BUG_FIXES.md`). Three lenses at `e500587c` with two refuters each: 39
+> filed, **37 survived**. ⛔ **The headline is a false claim of mine, carried
+> in three files and a commit message** — the FA-D27 aside ("an instrument
+> that could not answer the coalition's peace offer… 27 provinces instead of
+> 6") does not reproduce, its figure came from `ambient_probe.py`, which takes
+> no `--diplomacy` flag, and accept/decline end **3/3, 4/4, 10/10** on three
+> seeds with no settlement offer in 160 driven turns; it is STRUCK in all
+> three places. **Five behaviour defects inside the fix**: both new dedupes
+> lived for the whole RUN, so a ten-turn standing order printed **2 rows
+> instead of 10** — FA-77's own blindness; the log read took `turns[0]`, the
+> just-BEGUN turn on 8 of 8 reads, losing **20 of 57 beats**; the allowlist
+> covered **5 of the engine's 19** court-to-court types, dropping
+> `british_subsidy` 21 times on one board; the `enemy_phase` jsonl record was
+> polymorphic; the fog cap was silent. **FA-91 is RE-OPENED** — the slice
+> closed it on a class its own title never names while all three named blind
+> spots survive, proved by refuters running the row's own behaviour tests —
+> and **FA-S15-2** filed (a save failure reaches the server console and
+> nobody else, which is why the P1 was invisible for as long as it existed).
+> **Eleven pins repaired**, headline `assert borrowed or True` sitting under a
+> borrow walk that matched **nothing on any file**; repaired, it immediately
+> found `ledger_line` reaching for `self.NET_COMPONENTS` while being borrowed.
+> ⚠ **Four INERT sweep results were all the sweep telling the truth about the
+> FIXTURE** — a seventh instance of that lesson. **NEXT = slice 16, then
+> ruling 1 (FA-D27), then position 10.**
+>
 > **▶ SLICE 15 "THE HARNESS" IS LANDED — September 6, 2026.** Landing
 > records = the boxed SLICE 15 (part a) and SLICE 15 (part b) blocks in
 > `BUG_FIXES.md`; the rules are `SYSTEMS_REFERENCE.md` §40. **Part a** took a
@@ -405,21 +433,26 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > instrument the whole audit was read off: turns with no enemy-phase line at
 > all **12 of 40 → 0**, `LEDGER` rows carrying a threat figure **0 of 1,246
 > → every row**, `ORDER` rows in the archive **0 → 8 in a 10-turn march**,
-> AI-vs-AI beats **1 → per turn**, runs recording their scenario **0 of 52
-> → every run**. **Four rows were wrong about their own subject** (FA-84's
+> AI-vs-AI beats **1 of the nine audit arms (8 of 52 runs) → per turn**,
+> runs recording their scenario **0 of 52 → every run**. **Four rows were wrong about their own subject** (FA-84's
 > allowlist names a type that does not exist; `PLAYTESTING.md` claimed the
 > FULL action list where it is the FOGGED view, 93 of 1,185; FA-N87's `threat`
 > parameter was dead, not mis-read; the log must be read per turn or a 40-turn
 > run loses a third of itself to the 500-row roll), and **two defects were
 > found inside the fix** — the HIGH rail dropped **CRITICAL** entirely, and
 > `ledger_line` reached for `self._private` in a borrowed-method idiom that
-> forbids it. ⚠ **For the FA-D27 gate:** "unattended France overrun on 8/8
-> seeds" was measured on an instrument that could not answer the coalition's
-> peace offer — with `--diplomacy accept` the same seed ends at **27
-> provinces instead of 6**. ⚠ Slice 15's remaining rows (FA-72/75/78/79/85/
-> 89/90/102, FA-N35) are **not built** and are re-homed to slice 16, the copy
-> sweep they belong to. **NEXT = the three-lens review round on slice 15, then
-> slice 16, then ruling 1 (FA-D27).**
+> forbids it. ⚠ Slice 15's remaining rows (FA-72/75/78/79/85/89/90/102,
+> FA-N35) are **not built** and are re-homed to slice 16 — they are HARNESS
+> rows, not copy rows, and the row cells say so. **The three-lens review
+> round then took 37 surviving findings** (landing record = the boxed SLICE
+> 15 REVIEW ROUND block): the two new dedupes lived for the whole RUN, so a
+> ten-turn standing order printed **2 rows instead of 10**; the log read took
+> `turns[0]`, which is the just-BEGUN turn on every read, losing **20 of 57
+> beats**; the allowlist covered **5 of the engine's own 19** court-to-court
+> types, dropping `british_subsidy` 21 times on one board; the
+> `enemy_phase` jsonl record was polymorphic; and **a claim I put in three
+> files and a commit message — the FA-D27 aside — does not reproduce and is
+> STRUCK**. **NEXT = slice 16, then ruling 1 (FA-D27), then position 10.**
 >
 > **▶ SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED
 > September 6, 2026.** Landing record = the boxed SLICE 14 (part 2d) block in

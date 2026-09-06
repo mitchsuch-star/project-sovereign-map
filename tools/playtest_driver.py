@@ -264,6 +264,34 @@ _ANNOTATION_RE = re.compile(r"^\[[^\]]*\]")
 # pin asserts it — the row's own filed allowlist named `coalition_formed`,
 # which is not a type (the real ones are `coalition_declared`,
 # `coalition_brewing_started`, `coalition_dissolved`, …).
+#
+# ⚠ AND it must COVER the engine's own court-to-court arm. The slice-15
+# review round measured the first cut of this list overlapping
+# `campaign_log.COURT_TO_COURT_EVENT_TYPES` by 5 of 19: `british_subsidy`
+# was served to the digest 21 times on one 30-turn board and dropped every
+# time, so a reader concluded the paymaster funded nobody, and
+# `sponsorship_granted` was printed while `sponsorship_reneged` — the
+# strongest casus belli in the game — was not. A one-directional census is
+# how that shipped; the pin runs both ways now, and anything deliberately
+# left out has to be named in `_NOT_A_THIRD_PARTY_BEAT` below.
+#
+# A module-level import: `REPO_ROOT` is on `sys.path` from line 99, and this
+# module is pure data with no game state. Deriving beats restating — the pin
+# below asserts the import actually resolved, because an empty fallback would
+# make the coverage half of the census vacuous, which is the failure it
+# exists to prevent.
+from backend.campaign_log import COURT_TO_COURT_EVENT_TYPES as _ENGINE_ARM  # noqa: E402
+
+_ENGINE_COURT_TO_COURT = frozenset(_ENGINE_ARM)
+
+# Deliberate exclusions from the engine's arm, each with its reason. These
+# are the only names allowed to be in the engine's list and not in ours.
+_NOT_A_THIRD_PARTY_BEAT = frozenset({
+    # A war France is in is the player's own story, and the HIGH rail plus
+    # the war panel both carry it; printing it here says it twice.
+    "diplomatic_war_declared",
+})
+
 AI_AI_LOG_TYPES = frozenset({
     "ai_ai_proposal_refused",
     "ai_proposal_rejected",
@@ -284,8 +312,24 @@ AI_AI_LOG_TYPES = frozenset({
     "vassal_broke_free",
     "defensive_cascade",
     "auto_downgrade",
-    "balance_of_europe_shifted",
-})
+} | (_ENGINE_COURT_TO_COURT - _NOT_A_THIRD_PARTY_BEAT))
+
+
+# The Net components, MODULE-level for the same reason as the two caps
+# below: `ledger_line` IS borrowed by a stub, and it read `self.NET_COMPONENTS`
+# — measured by the slice-15 review round, the slice's own `_Recorder` raised
+# on `ledger_line(..., economy=...)`. The class re-exports it, so existing
+# `Digest.NET_COMPONENTS` readers are unchanged.
+NET_COMPONENTS = (
+    ("income", "income"), ("trade_income", "trade"),
+    ("overseas", "overseas"), ("vassal_tribute", "tribute"),
+    ("treaty_gold", "treaty"), ("settlement_gold", "settlement"),
+    ("upkeep", "upkeep"), ("state_charges", "charges"),
+    ("contributions", "contributions"), ("requisitions", "requisitions"),
+    ("occupation", "occupation"), ("blockade", "blockade"),
+    ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
+    ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
+)
 
 
 # The rail's cap, and the fog's. MODULE-level, because a stub Digest that
@@ -533,6 +577,22 @@ class Digest:
 
     def turn_header(self, turn, label):
         self.counters["turns"] += 1
+        # ⚠ The two new dedupe sets are PER TURN, and this is where they are
+        # cleared. The hazard they exist for is intra-turn: `Answerer.scan`
+        # re-runs on every drain follow-up, and the strategic processor
+        # re-emits a parked decision. Keeping them for the whole run instead
+        # was measured to drop 8 of 11 ORDER rows on a ten-turn hold — the
+        # digest could not tell a standing order that ran for ten turns from
+        # one that stopped after two, which is the blindness FA-77 was filed
+        # to close. Reset by NAME, not by rebinding, so a stub Digest that
+        # borrows this method and never created them is unaffected.
+        # `_seen_log_rows` is deliberately NOT in this list: it is keyed on
+        # the log BLOCK's own turn number, so it dedupes a re-read block
+        # across the whole run while still letting a genuinely new beat in an
+        # old block through. Clearing it per turn would reprint the entire
+        # visible log every turn.
+        for _dedupe in ("_seen_order_rows", "_seen_rail_types"):
+            self.__dict__.pop(_dedupe, None)
         self._md(f"\n## Turn {turn}" + (f" — {label}" if label else ""))
         self.record("turn", turn=turn, label=label)
 
@@ -647,7 +707,20 @@ class Digest:
                 self._md(f"- enemy phase: nothing visible — {fog[0]}")
                 for extra in fog[1:MAX_FOG_ROWS]:
                     self._md(f"  - fogged: {extra}")
-                self.record("enemy_phase", actions=0, attacks=0, fogged=len(fog))
+                # No silent caps. Measured 9-10 hidden courts on a fogged
+                # turn against a cap of 4, so the markdown was dropping five
+                # of them without saying so — and the count lived only in the
+                # jsonl, which `--archive` does not copy.
+                if len(fog) > MAX_FOG_ROWS:
+                    self._md(f"  - fogged: +{len(fog) - MAX_FOG_ROWS} more "
+                             f"court(s) not listed")
+                # ⚠ ONE schema for this kind, both arms. The first cut wrote
+                # `actions=0` here and `actions=[...]` on the visible arm, so
+                # `kind == "enemy_phase"` was polymorphic and any consumer
+                # doing `len(rec["actions"])` crashed or read a different
+                # quantity depending on the weather.
+                self.record("enemy_phase", count=0, attacks=0, captures=0,
+                            verbs={}, actions=[], fogged=len(fog))
             return
         # The verb lives at row["ai_action"]["action"] (turn_manager.py:964
         # builds it, and _build_visible_enemy_phase FOG-FILTERS, collapses
@@ -719,7 +792,7 @@ class Digest:
         # capture prose found ONE of the three the markdown had flagged.
         # This is a machine surface; store the message.
         self.record("enemy_phase", count=len(actions), attacks=len(attacks),
-                    captures=len(taken), verbs=verbs,
+                    captures=len(taken), verbs=verbs, fogged=len(fog),
                     actions=[{"nation": a.get("nation"),
                               "action": _verb(a),
                               "marshal": (a.get("ai_action") or {}).get("marshal")
@@ -764,16 +837,7 @@ class Digest:
     # when Paget stood on Normandy, or that the restless-interior term flipped
     # Net negative. The keys are `GET /ledger`'s own — measured against a live
     # payload, not guessed.
-    NET_COMPONENTS = (
-        ("income", "income"), ("trade_income", "trade"),
-        ("overseas", "overseas"), ("vassal_tribute", "tribute"),
-        ("treaty_gold", "treaty"), ("settlement_gold", "settlement"),
-        ("upkeep", "upkeep"), ("state_charges", "charges"),
-        ("contributions", "contributions"), ("requisitions", "requisitions"),
-        ("occupation", "occupation"), ("blockade", "blockade"),
-        ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
-        ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
-    )
+    NET_COMPONENTS = NET_COMPONENTS
     MAX_RAIL_ROWS = MAX_RAIL_ROWS
     MAX_FOG_ROWS = MAX_FOG_ROWS
 
@@ -814,7 +878,7 @@ class Digest:
             self.record("order_progress", marshal=marshal,
                         order_status=status, message=message)
 
-    def campaign_log(self, events):
+    def campaign_log(self, events, turn=None):
         """FA-84: the AI-vs-AI beats no other surface carries.
 
         "Did an AI war open, did a coalition form or dissolve" could not be
@@ -834,12 +898,12 @@ class Digest:
             text = first_line(event.get("display") or event.get("text"), 150)
             if not text:
                 continue
-            key = (etype, text)
+            key = (turn, etype, text)
             if key in _seen(self, "_seen_log_rows"):
                 continue
             _seen(self, "_seen_log_rows").add(key)
             self._md(f"  - LOG {etype}: {text}")
-            self.record("campaign_log", dtype=etype, text=text)
+            self.record("campaign_log", dtype=etype, text=text, log_turn=turn)
 
     def ledger_line(self, treasury, net, threat, provinces=None,
                     economy=None):
@@ -873,7 +937,7 @@ class Digest:
         # which term turned on, and a line of eleven zeroes hides it.
         if isinstance(economy, dict):
             moved = {label: int(economy[key])
-                     for key, label in self.NET_COMPONENTS
+                     for key, label in NET_COMPONENTS
                      if isinstance(economy.get(key), (int, float))
                      and int(economy[key])}
             if moved:
@@ -1925,10 +1989,29 @@ def run(args):
         try:
             log = transport.get("/campaign_log") or {}
             turns = log.get("turns")
-            if isinstance(turns, list) and turns:
-                digest.campaign_log((turns[0] or {}).get("events"))
-        except Exception:
-            pass
+            if isinstance(turns, list):
+                # ⚠ EVERY block, not `turns[0]`. Measured at the first cut:
+                # `turns[0]` is the just-BEGUN turn on 8 of 8 reads, never
+                # the just-ended one FA-84 asked for, and the fog filter and
+                # the IGR-B collapse re-derive the whole log against the
+                # CURRENT world on every call — so blocks keep gaining events
+                # after the driver has walked past them (after one end turn,
+                # blocks 7, 6, 5 and 3 each gained one). 20 of 57 beats were
+                # never handed to the digest and 18 reached no surface at
+                # all, the whole paymaster thread among them. The per-turn
+                # read still matters — the log rolls at 500 rows — but it is
+                # the roll it protects against, not this. The `_seen_log_rows`
+                # dedupe makes re-reading a block free.
+                for block in turns:
+                    digest.campaign_log((block or {}).get("events"),
+                                        turn=(block or {}).get("turn"))
+        except Exception as exc:
+            # Not silence. This surface going dark for a whole run is
+            # exactly the "absence is not evidence of absence" failure the
+            # instrument exists to prevent, and a bare `pass` reported
+            # `completed` with no trace of it.
+            digest.note(f"⚠ campaign log unavailable this turn: "
+                        f"{type(exc).__name__}: {exc}"[:200])
 
         if response.get("game_over"):
             digest.note("GAME OVER reported — stopping")

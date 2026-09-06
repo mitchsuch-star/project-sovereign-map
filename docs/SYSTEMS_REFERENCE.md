@@ -4976,3 +4976,45 @@ Three things that are easy to get wrong, each measured:
 
 The digest prints the mark only when the mode is not `mock`, so a mock run's
 digest stays byte-identical line for line and archived comparisons hold.
+
+### 40.4 What the review round added to the rules
+
+**A dedupe on a per-turn surface is keyed per TURN.** The hazard is
+intra-turn (a drain follow-up re-running the scan; the strategic processor
+re-emitting a parked decision). A run-lifetime key silently reports an
+absence you did observe: measured, a ten-turn standing order printed two
+rows.
+
+**Read every log block, not the newest one.** `GET /campaign_log`'s
+`turns[0]` is the just-BEGUN turn, and the fog filter re-derives the whole
+log against the CURRENT world on every call, so old blocks keep gaining
+events. Dedupe on `(block turn, type, text)` and re-reading is free.
+
+**Derive an allowlist from the engine; never restate it.**
+`campaign_log.COURT_TO_COURT_EVENT_TYPES` is the engine's own definition of
+an AI-vs-AI beat and `filter_campaign_log` consumes it. Any consumer's
+census runs BOTH ways — every name exists, and every engine name is covered
+or named in an exclusion set with its reason.
+
+**One `kind`, one schema.** A jsonl record written from two arms must carry
+the same keys with the same types on both.
+
+**No silent caps** — a truncated block says how many it did not list.
+
+**A per-request stamp is CONSUMED by its response.** A `contextvars` value
+that is only read outlives a direct in-process call and marks the next
+response in that context.
+
+**A borrowed method may reach for nothing that is not module-level.** Not a
+private helper, not eagerly-created state, and NOT a class constant. Both
+halves are exercised on synthetic source, because a green tree has no
+instance of either and a sweep over the real tree reports them INERT.
+
+**A census must be scoped to CODE, and `_code_lines` strips docstrings as
+well as comments.** The fog drift pin was satisfied by the driver's own
+docstring; rewriting the code tuple to `("x1","x2")` left it green.
+
+**A structural property is asserted structurally.** "The read is inside the
+turn loop" is an AST predicate with a synthetic hoisted fixture that must be
+REJECTED — a textual "appears before `finish`" is satisfied by the very
+regression it names.

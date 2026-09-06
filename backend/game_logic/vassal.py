@@ -2134,7 +2134,9 @@ def release_vassal(
 
     # IGR-A4: snapshot BEFORE the mutations below destroy the evidence.
     # `original_nation` is the only marker of an assimilated contingent and is
-    # delattr'd four lines down; `world.vassals[...]` is deleted outright; and
+    # cleared to None four lines down (it used to be `delattr`'d — FA-S15-1,
+    # which broke every save for the rest of the campaign, because `to_dict`
+    # reads it bare); `world.vassals[...]` is deleted outright; and
     # Continental-System membership is discarded further on. The whole report
     # is assembled at the tail from these locals.
     released_marshals = sorted(

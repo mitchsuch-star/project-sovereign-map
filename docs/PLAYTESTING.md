@@ -320,8 +320,13 @@ across the slice's driver edits.
   > enemy actions produced 93 visible ones (7.8%), and on 12 of the 40 turns
   > nothing was visible at all. What the driver sees is what the PLAYER sees
   > — which is the point of the instrument, but it means an absence in the
-  > digest is not evidence of an absence on the board. The `fogged` count on
-  > the record says how many courts moved out of sight.
+  > digest is not evidence of an absence on the board. Every `enemy_phase`
+  > record carries the same keys on both arms — `count`, `attacks`,
+  > `captures`, `verbs`, `actions`, `fogged` — so `fogged` says how many
+  > courts moved out of sight whether or not anything was visible, and
+  > `actions` is always a list. (The first cut wrote `actions=0` on the
+  > fogged arm and `actions=[…]` on the visible one, under the same `kind`.)
+  > A fog block longer than the cap says how many courts it did not list.
 - `meta.json` — args, policy, counters, `unknown_blockers`, finish
   status (`completed` / `blocked` / `game-over`), and the run's WORLD:
   `scenario`, `script`, `cheats`, `strict` (added by FA-N89 — 52 archived

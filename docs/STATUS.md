@@ -4,13 +4,64 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ THE SLICE 15 REVIEW ROUND — "THE INSTRUMENT IS CALIBRATED" — LANDED September 6, 2026
+>
+> **Landing record = the boxed SLICE 15 REVIEW ROUND block in
+> `docs/BUG_FIXES.md` (authoritative).** Three lenses at `e500587c`, two
+> refuters each: **39 filed, 37 survived**. Sweep **30/30, 0 INERT, 0
+> BROKEN**; ruff clean; parser eval 681/681; series + M1–M7 byte-identical;
+> parse harness EXIT=0 (47 scripts); boot 0 SCRIPT ERROR.
+>
+> ⛔ **The headline is a false claim of mine, carried in three files and a
+> commit message.** The FA-D27 aside — "measured on an instrument that could
+> not answer the coalition's peace offer… 27 provinces instead of 6" — does
+> not reproduce: that figure came from `ambient_probe.py`, which takes no
+> `--diplomacy` flag, and accept/decline end **3/3, 4/4, 10/10** on three
+> seeds with **no settlement offer in 160 driven turns**. Struck in all three
+> files with the correction written where it stood.
+>
+> **Five behaviour defects inside slice 15's own fix.** Both new dedupes lived
+> for the whole RUN, so a ten-turn standing order printed **2 rows instead of
+> 10** — the exact blindness FA-77 exists to close. The log read took
+> `turns[0]`, which is the just-BEGUN turn on 8 of 8 reads, losing **20 of 57
+> beats** (18 reaching no surface at all, the whole paymaster thread among
+> them). The allowlist covered **5 of the engine's own 19** court-to-court
+> types — `british_subsidy` served 21 times on one board and dropped every
+> time. The `enemy_phase` jsonl record was polymorphic. The fog cap was
+> silent. Plus the parse stamp was never spent.
+>
+> **FA-91 is RE-OPENED** (59 → 60 open defect rows, and that is the honest
+> direction): the slice closed it on a class the row never names, while all
+> three blind spots in its title survive — proved by two refuters running the
+> row's own `behaviour_test` mutations. New row **FA-S15-2**: `save_game`
+> swallows every failure into a flag nothing renders, which is why the
+> FA-S15-1 P1 was invisible for as long as it existed. The nine unbuilt
+> slice-15 rows now carry an owner and a done-when, and are correctly called
+> HARNESS rows.
+>
+> **Eleven pins repaired.** The one that mattered:
+> `test_every_stub_digest_can_survive_a_real_method` ended in
+> `assert borrowed or True`, and the computation above it matched **nothing on
+> any file** — the borrow walk tested for an `ast.Name` where the shape is an
+> `ast.Attribute`. Repaired, it immediately found a live hazard:
+> `Digest.ledger_line` read `self.NET_COMPONENTS`, and `ledger_line` IS
+> borrowed.
+>
+> **▶ NEXT = slice 16 "The Copy Sweep"** — 60 open defect rows, reproduction
+> already committed under `docs/audits/fa_build_2026_09_04/repro/`
+> (`REPRO_J6_copy_sweep_N.md`, `REPRO_J7_copy_sweep_FA.md`, and the harness
+> rows in `REPRO_J5_the_instrument.md`), each with a per-file landing order
+> and its own warnings. **Then ruling 1 (FA-D27 — measure first, memo
+> `docs/audits/FA_D27_BALANCE_MEASURE_<date>.md`, touch no constant), then
+> position 10.**
+
 > ## ▶ FA SLICE 15 (part b) — "THE INSTRUMENT SEES" — LANDED September 6, 2026
 >
 > **Landing record = the boxed SLICE 15 (part b) block in `docs/BUG_FIXES.md`
 > (authoritative).** The digest is what the whole final audit was read off,
 > and the instrument that wrote it was blind on 22% of its turns. **FA-N79,
 > FA-N86, FA-N87, FA-77, FA-84, FA-39, FA-N89 closed.** Sweep **22/22, 0
-> INERT, 0 BROKEN**; suite **20,788 / 4**; ruff clean; parser eval 681/681;
+> INERT, 0 BROKEN**; suite **20,790 / 4**; ruff clean; parser eval 681/681;
 > series + M1–M7 byte-identical; zero `.gd`.
 >
 > Measured before and after, on the 52 archived runs and a fresh 40-turn
@@ -19,8 +70,8 @@
 > printed **0 → every turn it exists** · `LEDGER` rows carrying a threat
 > figure **0 of 1,246 → every row** · `ORDER` rows in the whole archive
 > **0 → 8 in a 10-turn scripted march**, exposing Ney's silent lost turns ·
-> AI-vs-AI beats **1 in the whole archive → per turn** · runs recording their
-> scenario **0 of 52 → every run**.
+> AI-vs-AI beats **1 of the nine audit arms (8 of 52 runs, all one type)
+> → per turn** · runs recording their scenario **0 of 52 → every run**.
 >
 > **Four things the rows themselves got wrong**, each measured: FA-84's filed
 > allowlist names `coalition_formed`, which is **not a campaign-log type** (a
@@ -46,11 +97,19 @@
 > `command`, so reading the envelope stamped `None` on every response. A mock
 > run's digest is unchanged line for line.
 >
-> ⚠ **For the FA-D27 gate, from this slice's own measurement:** "unattended
-> France overrun on 8/8 seeds" was measured on an instrument that **could not
-> answer the coalition's peace offer**. With `--diplomacy accept` the same
-> seed ends at **27 provinces instead of 6**. The figure is not wrong; what it
-> measures is narrower than the row says.
+> ⛔ **AN ASIDE THIS ENTRY ORIGINALLY CARRIED TO THE FA-D27 GATE IS
+> STRUCK, and the review round is what struck it.** It said the 8/8-seed
+> figure "was measured on an instrument that could not answer the coalition's
+> peace offer — with `--diplomacy accept` the same seed ends at 27 provinces
+> instead of 6." Both halves are wrong. That figure came from
+> `ambient_probe.py`, a raw `from_scenario` + `end_turn()×40` loop to which
+> `--diplomacy` cannot apply; and the number does not reproduce — measured at
+> HEAD, accept and decline end at **3 and 3** on `historical`, **4 and 4** on
+> `austerlitz`, **10 and 10** on `ulm`, with **no settlement offer in 160
+> driven turns** for the policy to answer. "27 and 6" are two lever-arm
+> figures from `REVIEW_slice4_R2_balance_measurement.md`, transcribed into a
+> sentence they do not belong to. **Ruling 1 gets no correction from this
+> slice; it gets a fixed instrument.**
 >
 > **▶ NEXT = the three-lens review round on slice 15, then slice 16 "The Copy
 > Sweep" (remaining P3/P4 incl. FA-S13-1), then ruling 1 (FA-D27 — measure
@@ -101,11 +160,13 @@
 > names a campaign-log type that does not exist**; **FA-72(d) DECLARES WAR**
 > and deleting the "no" needle does not close it (the `options[0]` fallback
 > does the same); slice 8's rail **drops every CRITICAL event**; two POLICY
-> keys are read by nothing; and **FA-D27's "unattended France overrun on 8/8
-> seeds" was measured on an instrument that could not answer the coalition's
-> peace offer** — with `--diplomacy accept` the same seed goes 6 → 27
-> provinces. That last one is decisive for the FA-D27 gate and must be on the
-> record before it is taken.
+> keys are read by nothing. ⛔ **A sixth claim in this list — that FA-D27's
+> 8/8-seed figure "was measured on an instrument that could not answer the
+> coalition's peace offer", 6 → 27 provinces — was CARRIED INTO THE SLICE-15
+> RECORD AND IS NOW STRUCK.** The review round measured it three ways: the
+> figure came from `ambient_probe.py`, which takes no `--diplomacy` flag, and
+> accept/decline end identically on three seeds. It was the one claim in this
+> list nobody had re-derived.
 
 
 > ## ✅ FA SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED September 6, 2026

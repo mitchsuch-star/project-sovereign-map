@@ -840,27 +840,22 @@ class TestASerializedFieldIsNeverDeleted:
     @staticmethod
     def _deleted_attribute_names():
         """Every attribute name any `delattr(x, "name")` or `del x.name`
-        removes anywhere under `backend/`."""
-        import ast
+        removes anywhere under `backend/`.
+
+        ⚠ It DELEGATES to `_deletions_in` rather than repeating the walk.
+        The first cut carried its own inline copy, so the synthetic-source
+        pin below exercised a function no production path called and the
+        `del x.attr` arm of the real census was unpinned — the slice-15
+        review round measured that deleting the arm here left every test
+        green.
+        """
         import pathlib
         names = {}
         root = pathlib.Path(__file__).resolve().parents[1] / "backend"
         for path in root.rglob("*.py"):
-            tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
-            for node in ast.walk(tree):
-                if (isinstance(node, ast.Call)
-                        and isinstance(node.func, ast.Name)
-                        and node.func.id == "delattr"
-                        and len(node.args) == 2
-                        and isinstance(node.args[1], ast.Constant)
-                        and isinstance(node.args[1].value, str)):
-                    names.setdefault(node.args[1].value, []).append(
-                        f"{path.name}:{node.lineno}")
-                if isinstance(node, ast.Delete):
-                    for target in node.targets:
-                        if isinstance(target, ast.Attribute):
-                            names.setdefault(target.attr, []).append(
-                                f"{path.name}:{node.lineno}")
+            for name, sites in TestASerializedFieldIsNeverDeleted._deletions_in(
+                    path.read_text(encoding="utf-8"), path.name).items():
+                names.setdefault(name, []).extend(sites)
         return names
 
     @staticmethod
@@ -883,16 +878,26 @@ class TestASerializedFieldIsNeverDeleted:
                 out.add(node.attr)
         return out
 
-    def test_no_serialized_field_is_deleted_anywhere_in_the_backend(self):
-        deleted = self._deleted_attribute_names()
-        offenders = []
-        for cls in SERIALIZABLE_CLASSES:
-            if not hasattr(cls, "to_dict"):
+    @classmethod
+    def _offenders(cls, deleted):
+        """The census's whole judgement, as one function.
+
+        Extracted so the P1-shape pin below runs THIS code rather than a
+        re-implementation of it. The first cut asserted a set intersection it
+        had built by hand, and so was green about a body it never executed.
+        """
+        out = []
+        for klass in SERIALIZABLE_CLASSES:
+            if not hasattr(klass, "to_dict"):
                 continue
-            for name in self._bare_self_reads_in_to_dict(cls) & set(deleted):
-                offenders.append(
-                    f"{cls.__name__}.to_dict reads self.{name} bare, but it is "
-                    f"deleted at {', '.join(deleted[name])}")
+            for name in cls._bare_self_reads_in_to_dict(klass) & set(deleted):
+                out.append(
+                    f"{klass.__name__}.to_dict reads self.{name} bare, but it "
+                    f"is deleted at {', '.join(deleted[name])}")
+        return out
+
+    def test_no_serialized_field_is_deleted_anywhere_in_the_backend(self):
+        offenders = self._offenders(self._deleted_attribute_names())
         assert not offenders, (
             "a delattr of a serialized field breaks every save from that "
             "moment on: " + " | ".join(offenders))
@@ -905,14 +910,21 @@ class TestASerializedFieldIsNeverDeleted:
         assert "relationship_with_lord" in deleted, sorted(deleted)
 
     def test_the_p1_shape_is_caught(self):
-        """The pin binds: re-introduce the exact FA-S15-1 shape and it fires."""
+        """The pin binds: re-introduce the exact FA-S15-1 shape and the
+        census's OWN judgement fires.
+
+        It calls `_offenders`, the function the real test calls, and asserts
+        the message names the class and the field. Asserting a hand-built set
+        intersection instead — the first cut — proves only that `&` works.
+        """
         deleted = dict(self._deleted_attribute_names())
         deleted["original_nation"] = ["vassal.py:0000"]
-        reads = self._bare_self_reads_in_to_dict(Marshal)
-        assert "original_nation" in reads, (
-            "Marshal.to_dict no longer reads original_nation bare — if it was "
-            "moved to getattr(), this pin needs a new exemplar")
-        assert set(deleted) & reads
+        offenders = self._offenders(deleted)
+        assert any("Marshal.to_dict reads self.original_nation bare" in o
+                   for o in offenders), offenders
+        # …and the same call with the real census stays clean, so the pin is
+        # measuring the injected shape and not a standing failure.
+        assert not self._offenders(self._deleted_attribute_names())
 
     def test_both_deletion_forms_are_walked(self):
         """⚠ Exercised on SYNTHETIC source, because the `del x.attr` arm has

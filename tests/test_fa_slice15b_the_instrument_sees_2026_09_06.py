@@ -30,11 +30,35 @@ _spec.loader.exec_module(pdriver)
 
 
 def _code_lines(source):
-    """`source` with every full-line and trailing comment removed. A census
-    that reads raw source is satisfied by the prose explaining the guard —
-    that has now cost this build two INERT pins."""
-    return "\n".join(line for line in source.split("\n")
-                     if not line.lstrip().startswith("#"))
+    """`source` with the PROSE removed — full-line comments AND docstrings.
+
+    A census that reads raw source is satisfied by the prose explaining the
+    guard, which has now cost this build three INERT pins and one wrong
+    verdict: the slice-15 review round measured the fog drift pin green
+    against a code tuple rewritten to ("x1","x2"), because both keys were in
+    the function's own docstring.
+    """
+    out, in_doc, delim = [], False, ""
+    for line in source.split("\n"):
+        stripped = line.strip()
+        if in_doc:
+            if delim in stripped:
+                in_doc = False
+            continue
+        if stripped.startswith("#"):
+            continue
+        for d in ('"""', "'''"):
+            if stripped.startswith(d) or stripped.startswith(f"r{d}"):
+                body = stripped.split(d, 1)[1]
+                if d not in body:          # a docstring that runs on
+                    in_doc, delim = True, d
+                break
+        else:
+            out.append(line)
+            continue
+        if not in_doc:                     # a one-line docstring
+            continue
+    return "\n".join(out)
 
 
 class _Recorder:
@@ -58,6 +82,10 @@ class _Recorder:
     campaign_log = pdriver.Digest.campaign_log
     dispatch = pdriver.Digest.dispatch
     ledger_line = pdriver.Digest.ledger_line
+    # Borrowed because the two dedupes are now scoped to the turn and this is
+    # where they are cleared — and borrowing it is itself the test that
+    # `turn_header` is safe to borrow.
+    turn_header = pdriver.Digest.turn_header
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -119,10 +147,21 @@ class TestTheDigestSaysWhatItCannotSee:
         this catches it before a digest goes quiet again."""
         gd = (REPO / "godot-client" / "project-sovereign" / "scripts"
               / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
-        driver_src = inspect.getsource(pdriver.fog_sentences)
+        # ⚠ CODE lines on all three sides, and the PRODUCER is read too. The
+        # first cut checked `key in inspect.getsource(fog_sentences)` — and
+        # both keys appear in that function's own DOCSTRING, so rewriting the
+        # code tuple to ("x1","x2") left the pin green. It also never read
+        # the backend, so a rename at the source would have been invisible on
+        # the side that causes the drift.
+        driver_code = _code_lines(inspect.getsource(pdriver.fog_sentences))
+        backend_code = _code_lines(
+            (REPO / "backend" / "main.py").read_text(encoding="utf-8"))
+        gd_code = "\n".join(ln for ln in gd.split("\n")
+                            if not ln.strip().startswith("#"))
         for key in ("fog_hidden_summary", "fog_hidden_nations"):
-            assert key in gd, key
-            assert key in driver_src, key
+            assert key in backend_code, f"{key}: the producer is gone"
+            assert key in gd_code, f"{key}: the client no longer renders it"
+            assert key in driver_code, f"{key}: the digest no longer reads it"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -152,8 +191,33 @@ class TestTheLedgerLineCarriesTheThreat:
             "the cached dispatch must be the FALLBACK, not the source")
 
     def test_the_backend_stamps_it_on_every_post(self):
-        main = (REPO / "backend" / "main.py").read_text(encoding="utf-8")
-        assert '"threat_level": int(getattr(world, \'threat_level\', 0)),' in main
+        """⚠ BEHAVIOURAL. The first cut asserted a source literal — satisfied
+        by the string appearing anywhere, blind to the line being removed
+        from the dict it sits in, and with no sibling that could see it
+        either. Drive the endpoint instead."""
+        import contextlib
+        import io
+        import os
+        os.environ.setdefault(
+            "INK_IRON_SAVE_DIR",
+            str(pathlib.Path(os.environ.get("TEMP", "/tmp")) / "fa_s15b_saves"))
+        pathlib.Path(os.environ["INK_IRON_SAVE_DIR"]).mkdir(
+            parents=True, exist_ok=True)
+        from fastapi.testclient import TestClient
+
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            client = TestClient(M.app)
+            client.post("/new_game", json={})
+            M.parser = CommandParser(use_real_llm=False)
+            body = client.post("/command", json={"command": "status"}).json()
+            M.world.threat_level = 41
+            moved = client.post("/command", json={"command": "status"}).json()
+        assert isinstance(body.get("threat_level"), int)
+        # …and it is LIVE, not a constant: moving the world moves the key.
+        assert moved.get("threat_level") == 41
 
     def test_a_low_threat_still_prints(self):
         """The regression that mattered: below 30 the old source is None."""
@@ -256,10 +320,59 @@ class TestTheDigestSeesTheOtherPowers:
         IGR-B eviction trap and a census over raw source would be satisfied
         by prose. A single read after the loop loses a third of a 40-turn
         campaign, so the position is asserted too, not just the presence."""
-        code = _code_lines(inspect.getsource(pdriver.run))
-        assert 'transport.get("/campaign_log")' in code
-        assert (code.index('transport.get("/campaign_log")')
-                < code.index("digest.finish(status)"))
+        # ⚠ Textual position is NOT the property. The first cut asserted the
+        # read appeared before `digest.finish(status)`, and a single read
+        # HOISTED OUT of the turn loop to just above `finish` satisfies that
+        # while losing a third of a 40-turn campaign to the 500-row roll.
+        # Assert the structure: the call is lexically inside a `for` whose
+        # body also ends the turn.
+        tree = ast.parse(textwrap.dedent(inspect.getsource(pdriver.run)))
+
+        def _names(node):
+            return {n.attr for n in ast.walk(node)
+                    if isinstance(n, ast.Attribute)}
+
+        def _reads_log(node):
+            return any(isinstance(n, ast.Constant) and n.value == "/campaign_log"
+                       for n in ast.walk(node))
+
+        assert self._read_is_in_a_turn_loop(tree), (
+            "the /campaign_log read is not inside a loop that drives turns — "
+            "a hoisted single read loses a third of a 40-turn campaign")
+
+        # SENSITIVITY, on synthetic source: the predicate must REJECT the
+        # hoisted form. Without this the pin cannot be killed by a mutation,
+        # because on the real tree the only loop containing the read is also
+        # the turn loop — the two readings agree, and a sweep reports INERT.
+        # ⚠ The read must be inside a loop that is NOT the turn loop, or the
+        # `post` half of the predicate is not what the fixture tests and a
+        # mutation removing it stays green — measured, this pin was INERT
+        # against exactly that mutation on its first cut.
+        hoisted = ast.parse(textwrap.dedent("""
+            def run(args):
+                for turn in range(10):
+                    transport.post("/command", {})
+                for block in transport.get("/campaign_log"):
+                    digest.campaign_log(block)
+        """))
+        assert not self._read_is_in_a_turn_loop(hoisted)
+
+    @staticmethod
+    def _read_is_in_a_turn_loop(tree):
+        """True when the `/campaign_log` read is lexically inside a loop whose
+        body also POSTs — i.e. the per-turn loop, not a tail read."""
+        def _names(node):
+            return {n.attr for n in ast.walk(node)
+                    if isinstance(n, ast.Attribute)}
+
+        def _reads_log(node):
+            return any(isinstance(n, ast.Constant)
+                       and n.value == "/campaign_log"
+                       for n in ast.walk(node))
+
+        return any(isinstance(n, (ast.For, ast.While))
+                   and _reads_log(n) and "post" in _names(n)
+                   for n in ast.walk(tree))
 
     def test_an_unlisted_type_is_ignored(self):
         d = _Recorder()
@@ -333,9 +446,23 @@ class TestTheRunRecordsWhoParsedItAndOnWhatBoard:
         re-parse a sentence the ENGINE composed and clobber `parsed`.
         Stamping those would attribute the engine's line to the player."""
         main = (REPO / "backend" / "main.py").read_text(encoding="utf-8")
-        assert main.count("_PARSE_PROVENANCE.set(") == 1
-        head = main[:main.index("_PARSE_PROVENANCE.set(")]
-        assert head.count("parsed = parser.parse(") == 1, (
+        # ⚠ Count the STAMPS, not every `.set(`. `build_base_response`
+        # CONSUMES the stamp with `.set(None)` so it cannot outlive the
+        # response it belongs to, and a bare string count read that clear as
+        # a second stamp. Walk the AST and ignore the `None` writes.
+        tree = ast.parse(main)
+        stamps = [n for n in ast.walk(tree)
+                  if isinstance(n, ast.Call)
+                  and isinstance(n.func, ast.Attribute)
+                  and n.func.attr == "set"
+                  and isinstance(n.func.value, ast.Name)
+                  and n.func.value.id == "_PARSE_PROVENANCE"
+                  and not (len(n.args) == 1
+                           and isinstance(n.args[0], ast.Constant)
+                           and n.args[0].value is None)]
+        assert len(stamps) == 1, [n.lineno for n in stamps]
+        head = main.split("\n")[:stamps[0].lineno]
+        assert "\n".join(head).count("parsed = parser.parse(") == 1, (
             "the stamp is no longer on the FIRST parse")
 
     def test_a_real_response_carries_the_stamp(self):
@@ -430,6 +557,252 @@ class TestTheDocumentationIsNoLongerFalse:
         assert "carries the FULL action list" not in page
         assert "FOGGED view" in page
 
+    def test_a_docstring_alone_does_not_satisfy_the_drift_pin(self):
+        """SENSITIVITY for `_code_lines`. On the real tree both the docstring
+        AND the code carry the keys, so swapping `_code_lines` for raw source
+        changes nothing and a sweep reports INERT. This is the case that
+        distinguishes them."""
+        def _prose_only():
+            """A MULTI-LINE docstring, deliberately.
+
+            A one-line one is skipped by the same branch whether or not the
+            run-on tracking works, so it cannot kill the mutation. This
+            mentions fog_hidden_summary in prose and nowhere else.
+            """
+            return []
+
+        raw = inspect.getsource(_prose_only)
+        assert "fog_hidden_summary" in raw
+        assert "fog_hidden_summary" not in _code_lines(raw)
+
+    def test_the_page_describes_the_record_shape(self):
+        """S15R-6: the page's `fogged` sentence was written for a record shape
+        the slice did not ship. It says the one that IS shipped now."""
+        page = (REPO / "docs" / "PLAYTESTING.md").read_text(encoding="utf-8")
+        assert "carries the same keys on both arms" in page
+        assert "`actions` is always a list" in page
+
     def test_the_driver_comment_no_longer_says_only_strips_new_state(self):
         src = (REPO / "tools" / "playtest_driver.py").read_text(encoding="utf-8")
         assert 'only strips new_state' not in src or 'never true' in src
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE SLICE-15 REVIEW ROUND — the fixes to the fixes
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestTheDedupesAreScopedToTheTurn:
+    """S15R-1 / S15R-12. Both new dedupe sets lived for the whole RUN.
+
+    Measured on a ten-turn scripted hold: 11 ORDER rows offered, 8 dropped —
+    every HOLD arm in `strategic.py` builds its message from the marshal name
+    and the region alone, so the triple is byte-identical every turn and the
+    digest printed it twice in ten turns. A reader could not tell a standing
+    order that ran for ten turns from one that stopped after two, which is
+    the blindness FA-77 exists to close. The hazard the dedupe was written
+    for — `Answerer.scan` re-running on a drain follow-up, and the strategic
+    processor re-emitting a parked decision — is INTRA-turn, and a per-turn
+    key absorbs it exactly.
+    """
+
+    @staticmethod
+    def _report(status="continues", message="Soult holds Lorraine."):
+        return [{"marshal": "Soult", "order_status": status,
+                 "message": message}]
+
+    def test_the_same_row_prints_once_within_a_turn(self):
+        d = _Recorder()
+        d.order_progress(self._report())
+        d.order_progress(self._report())
+        assert sum("ORDER Soult" in ln for ln in d.lines) == 1
+
+    def test_the_same_row_prints_again_next_turn(self):
+        d = _Recorder()
+        d.order_progress(self._report())
+        d.turn_header(2, "")
+        d.order_progress(self._report())
+        assert sum("ORDER Soult" in ln for ln in d.lines) == 2
+
+    def test_a_rail_type_is_suppressed_within_its_own_turn_only(self):
+        d = _Recorder()
+        d.dispatch("head", events=[{"type": "design_promoted",
+                                    "priority": "HIGH", "text": "REVANCHE"}])
+        d.campaign_log([{"type": "design_promoted", "display": "REVANCHE"}],
+                       turn=1)
+        assert sum("design_promoted" in ln for ln in d.lines) == 1
+        d.turn_header(2, "")
+        d.campaign_log([{"type": "design_promoted", "display": "AGAIN"}],
+                       turn=2)
+        assert any("LOG design_promoted: AGAIN" in ln for ln in d.lines)
+
+    def test_the_log_dedupe_survives_the_turn_boundary(self):
+        """`_seen_log_rows` is deliberately NOT reset: every block is re-read
+        every turn now, so clearing it would reprint the whole visible log
+        each turn."""
+        d = _Recorder()
+        d.campaign_log([{"type": "volte_face", "display": "Russia turns"}],
+                       turn=3)
+        d.turn_header(4, "")
+        d.campaign_log([{"type": "volte_face", "display": "Russia turns"}],
+                       turn=3)
+        assert sum("volte_face" in ln for ln in d.lines) == 1
+
+    def test_the_same_text_in_a_different_block_is_a_different_beat(self):
+        d = _Recorder()
+        d.campaign_log([{"type": "british_subsidy", "display": "300g/turn"}],
+                       turn=3)
+        d.campaign_log([{"type": "british_subsidy", "display": "300g/turn"}],
+                       turn=9)
+        assert sum("british_subsidy" in ln for ln in d.lines) == 2
+
+    def test_the_reset_is_by_name_so_a_stub_survives_it(self):
+        """`turn_header` is borrowable. It must not rebind attributes a stub
+        never created."""
+        d = _Recorder()
+        d.turn_header(1, "")   # nothing created yet
+        assert "_seen_order_rows" not in d.__dict__
+
+
+class TestTheLogIsReadWhole:
+    """S15R-L2-1. `turns[0]` is the just-BEGUN turn on every read, and the
+    fog filter re-derives the whole log against the CURRENT world on every
+    call, so blocks keep gaining events after the driver has walked past
+    them. Measured: 20 of 57 beats never handed to the digest, 18 of them
+    reaching no surface at all — the whole paymaster thread among them."""
+
+    def test_every_block_is_offered(self):
+        code = _code_lines(inspect.getsource(pdriver.run))
+        assert "turns[0]" not in code, (
+            "the read is back to a single block")
+        assert "for block in turns:" in code
+        # …and it passes the BLOCK's own turn, which is what makes
+        # `_seen_log_rows` able to tell a re-read from a new beat. Passing
+        # `turn=None` collapses every block into one key and the direct-call
+        # pins cannot see it.
+        assert 'turn=(block or {}).get("turn")' in code
+
+    def test_a_late_arriving_event_in_an_old_block_still_prints(self):
+        d = _Recorder()
+        d.campaign_log([{"type": "volte_face", "display": "first"}], turn=3)
+        d.turn_header(4, "")
+        d.campaign_log([{"type": "volte_face", "display": "first"},
+                        {"type": "sponsorship_reneged", "display": "second"}],
+                       turn=3)
+        assert sum("LOG" in ln for ln in d.lines) == 2
+
+    def test_a_failure_is_reported_not_swallowed(self):
+        code = _code_lines(inspect.getsource(pdriver.run))
+        i = code.index('transport.get("/campaign_log")')
+        tail = code[i:i + 900]
+        assert "except Exception" in tail
+        assert "pass" not in tail.split("except Exception")[1][:200], (
+            "the campaign-log read is silent again")
+        assert "campaign log unavailable" in tail
+
+
+class TestTheAllowlistCoversTheEnginesOwnArm:
+    """S15R-L2-2. The first cut overlapped `COURT_TO_COURT_EVENT_TYPES` by 5
+    of 19. `british_subsidy` was served 21 times on one 30-turn board and
+    dropped every time, so a reader concluded the paymaster funded nobody;
+    `sponsorship_granted` printed while `sponsorship_reneged` — the strongest
+    casus belli in the game — did not."""
+
+    def test_the_engine_arm_is_covered(self):
+        from backend.campaign_log import COURT_TO_COURT_EVENT_TYPES
+        missing = (set(COURT_TO_COURT_EVENT_TYPES)
+                   - set(pdriver.AI_AI_LOG_TYPES)
+                   - set(pdriver._NOT_A_THIRD_PARTY_BEAT))
+        assert not missing, sorted(missing)
+
+    def test_every_exclusion_is_written_down(self):
+        from backend.campaign_log import COURT_TO_COURT_EVENT_TYPES
+        stray = (set(pdriver._NOT_A_THIRD_PARTY_BEAT)
+                 - set(COURT_TO_COURT_EVENT_TYPES))
+        assert not stray, (
+            f"an exclusion that excludes nothing: {sorted(stray)}")
+
+    def test_the_engine_arm_resolved(self):
+        """The import must be real. An empty fallback would make the coverage
+        half of this census vacuous — which is the failure it exists for."""
+        assert len(pdriver._ENGINE_COURT_TO_COURT) >= 15
+
+    def test_the_paymaster_reaches_the_digest(self):
+        d = _Recorder()
+        d.campaign_log([{"type": "british_subsidy",
+                         "display": "Britain sponsors Austria (400g/turn)"}],
+                       turn=1)
+        assert any("british_subsidy" in ln for ln in d.lines)
+
+    def test_the_filter_consumes_the_constant(self):
+        """Drift: the engine's own arm must BE the constant, not a copy."""
+        src = _code_lines(inspect.getsource(
+            __import__("backend.campaign_log", fromlist=["x"]).filter_campaign_log))
+        assert "COURT_TO_COURT_EVENT_TYPES" in src
+
+
+class TestTheEnemyPhaseRecordHasOneShape:
+    """S15R-L2-4 / S15R-14. `actions` was an int on the fogged arm and a list
+    on the visible one, under the same `kind`."""
+
+    def test_both_arms_carry_the_same_keys(self):
+        fogged = _Recorder()
+        fogged.enemy_phase([], {"fog_hidden_summary": ["a court"]})
+        visible = _Recorder()
+        visible.enemy_phase([{"nation": "Austria", "message": "Mack moves"}],
+                            {"fog_hidden_nations": ["others stirred"]})
+        a = [r for r in fogged.records if r["kind"] == "enemy_phase"][0]
+        b = [r for r in visible.records if r["kind"] == "enemy_phase"][0]
+        assert set(a) == set(b), set(a) ^ set(b)
+
+    def test_actions_is_a_list_on_both_arms(self):
+        d = _Recorder()
+        d.enemy_phase([], {"fog_hidden_summary": ["a court"]})
+        rec = [r for r in d.records if r["kind"] == "enemy_phase"][0]
+        assert isinstance(rec["actions"], list)
+        assert rec["count"] == 0 and rec["fogged"] == 1
+
+    def test_the_cap_says_what_it_dropped(self):
+        d = _Recorder()
+        d.enemy_phase([], {"fog_hidden_summary": [f"court {i}"
+                                                  for i in range(9)]})
+        assert any("+5 more court(s) not listed" in ln for ln in d.lines)
+
+    def test_an_uncapped_block_says_nothing_extra(self):
+        d = _Recorder()
+        d.enemy_phase([], {"fog_hidden_summary": ["a", "b"]})
+        assert not any("more court(s)" in ln for ln in d.lines)
+
+
+class TestTheStampIsSpentByItsOwnResponse:
+    """S15R-16. The ContextVar was never reset, so a DIRECT in-process
+    `execute_command` — which runs in the caller's context, not a fresh
+    per-request one — left the stamp behind to mark somebody else's
+    response."""
+
+    def test_a_direct_call_does_not_stamp_the_next_response(self):
+        import contextlib
+        import io
+        import os
+        os.environ.setdefault(
+            "INK_IRON_SAVE_DIR",
+            str(pathlib.Path(os.environ.get("TEMP", "/tmp")) / "fa_s15b_saves"))
+        pathlib.Path(os.environ["INK_IRON_SAVE_DIR"]).mkdir(
+            parents=True, exist_ok=True)
+        from fastapi.testclient import TestClient
+
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            client = TestClient(M.app)
+            client.post("/new_game", json={})
+            M.parser = CommandParser(use_real_llm=False)
+            stamped = client.post("/command",
+                                  json={"command": "status"}).json()
+            M._PARSE_PROVENANCE.set(("anthropic", 0.9))
+            after = M.build_base_response(M.world, True, "x")
+            leaked = M.build_base_response(M.world, True, "x")
+        assert stamped.get("parse_mode") == "mock"
+        assert after.get("parse_mode") == "anthropic"
+        assert "parse_mode" not in leaked, (
+            "the stamp outlived the response it belonged to")

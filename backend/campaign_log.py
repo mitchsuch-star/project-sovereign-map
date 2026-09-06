@@ -583,6 +583,41 @@ def _player_marshal_involved(event: dict, world_state) -> bool:
     return False
 
 
+# The court-to-court arm: a third party's story the player may see at
+# PARTIAL+ on any named party. This is the ENGINE's own definition of "an
+# AI-vs-AI beat", and it is a module constant so a consumer can be checked
+# AGAINST it rather than restating it. The slice-15 review round found the
+# playtest driver's hand-rolled allowlist overlapping this by 5 of 19, with
+# `british_subsidy` — served 21 times on a 30-turn board — dropped every
+# time, so a reader of the digest concluded the paymaster funded nobody.
+COURT_TO_COURT_EVENT_TYPES = (
+    "diplomatic_treaty_signed", "diplomatic_war_declared",
+    "diplomatic_treaty_broken", "diplomatic_alliance_cascade",
+    "diplomatic_ai_ai_treaty",
+    # AI-2a review fix [14]: the court-to-court refusal
+    # rides the same visibility arm as its treaty
+    # sibling — without this branch the event was
+    # silently dropped and NO surface showed it.
+    "ai_ai_proposal_refused",
+    # AI-2b: instrument events ride the same arm —
+    # a player-party event passes the player-event
+    # gate above; court-to-court needs PARTIAL+ on a
+    # named party (payer/recipient/breaker/victim).
+    "sponsorship_granted", "sponsorship_reneged",
+    "sponsorship_expired", "design_bought_off",
+    "bargain_reneged", "guarantee_pledged",
+    "guarantee_abandoned",
+    # AI-2e: the paymaster subsidy rides the same
+    # PARTIAL+ arm (payer/recipient keys)
+    "british_subsidy",
+    "instrument_lapsed",
+    "balance_of_europe_shifted",
+    "call_to_arms_refused_defensive",
+    "call_to_arms_refused_offensive",
+    "call_to_arms_honored_costly",
+)
+
+
 def filter_campaign_log(event_log: list, world_state) -> list:
     """
     Filter the full event log for the Campaign Log overlay.
@@ -844,30 +879,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             continue
 
         # Diplomacy events (Session 8D): PARTIAL+ on any relevant nation
-        if event_type in ("diplomatic_treaty_signed", "diplomatic_war_declared",
-                          "diplomatic_treaty_broken", "diplomatic_alliance_cascade",
-                          "diplomatic_ai_ai_treaty",
-                          # AI-2a review fix [14]: the court-to-court refusal
-                          # rides the same visibility arm as its treaty
-                          # sibling — without this branch the event was
-                          # silently dropped and NO surface showed it.
-                          "ai_ai_proposal_refused",
-                          # AI-2b: instrument events ride the same arm —
-                          # a player-party event passes the player-event
-                          # gate above; court-to-court needs PARTIAL+ on a
-                          # named party (payer/recipient/breaker/victim).
-                          "sponsorship_granted", "sponsorship_reneged",
-                          "sponsorship_expired", "design_bought_off",
-                          "bargain_reneged", "guarantee_pledged",
-                          "guarantee_abandoned",
-                          # AI-2e: the paymaster subsidy rides the same
-                          # PARTIAL+ arm (payer/recipient keys)
-                          "british_subsidy",
-                          "instrument_lapsed",
-                          "balance_of_europe_shifted",
-                          "call_to_arms_refused_defensive",
-                          "call_to_arms_refused_offensive",
-                          "call_to_arms_honored_costly"):
+        if event_type in COURT_TO_COURT_EVENT_TYPES:
             # Check PARTIAL+ on any nation mentioned
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             nations_to_check = []

@@ -1407,9 +1407,9 @@ func _is_end_turn_phrasing(command: String) -> bool:
 	# second name after the desk still owns the order, and `Berthier, Sire,
 	# end turn` is not an end turn.
 	#
-	# The helper is defined further down, deliberately: a Python-side pin
-	# re-derives this gate by reading the source between this function's own
-	# header and the header of the next one, and HARVESTS the equality
+	# The helper is defined further down, deliberately: FOUR Python-side pins
+	# re-derive this gate by reading the source between this function's own
+	# header and the header of the next one, and HARVEST the equality
 	# comparisons below. Do not quote either header verbatim in this comment:
 	# an earlier draft did, and it truncated the harvested body to nothing.
 	#

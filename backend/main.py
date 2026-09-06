@@ -556,8 +556,16 @@ def build_base_response(world, success: bool = True, message: str = "",
     # build straight through this function — a stamp on the executor road
     # alone left the digest unable to say who parsed a `status`. Outside a
     # `/command` request the contextvar is unset and this is a no-op.
+    # CONSUMED, not merely read: the stamp marks exactly one response and is
+    # cleared as it is spent. Measured across five `/command` roads
+    # (`status`, an order, `economy`, a scout, `end turn`), this function is
+    # called exactly once per request, so consuming here cannot lose the
+    # stamp — and it means a DIRECT in-process `execute_command` call, which
+    # runs in the caller's own context rather than a fresh per-request one,
+    # cannot leave the stamp behind to mark somebody else's response.
     _provenance = _PARSE_PROVENANCE.get()
     if _provenance:
+        _PARSE_PROVENANCE.set(None)
         response.setdefault("parse_mode", _provenance[0])
         response.setdefault("parse_confidence", _provenance[1])
     # NA-6 §11.10-3: the identity override map rides EVERY response so the
@@ -2845,6 +2853,14 @@ def execute_command(request: CommandRequest):
             str(parsed.get("mode") or "mock"),
             (_parsed_command or {}).get("confidence")
             if isinstance(_parsed_command, dict) else None))
+        # ⚠ Under HTTP each request gets its own context and this is
+        # discarded with it. A DIRECT in-process call to `execute_command`
+        # (which the test suite and any future in-process tool make) runs in
+        # the CALLER's context, so without a reset the stamp would outlive
+        # the command and mark every later response in that context — a
+        # `status` GET attributed to a parse that happened three calls ago.
+        # `build_base_response` CONSUMES it, so it is spent by the response
+        # it belongs to and never outlives it.
         if parsed.get("success") and isinstance(parsed.get("command"), dict):
             if request.action:
                 parsed["command"]["action"] = request.action

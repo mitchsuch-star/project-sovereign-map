@@ -637,26 +637,45 @@ class TestTheDigestDoubleCannotDrift:
         import pathlib
         import textwrap
 
-        stub_files = [
-            "test_playtest_driver_instrument.py",
-            "test_fa_slice8_the_instrument_2026_09_02.py",
-            "test_playtest_harness_win_campaign_2026_08_16.py",
-            "test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py",
-        ]
+        # DERIVED, not listed. The hand-written list named four files, two
+        # of which borrow nothing and three real borrowers of which it had
+        # never heard — including the one the same commit added. A census
+        # whose scope is a literal goes stale the moment somebody writes a
+        # sixth stub, which is the failure mode this class exists for.
         root = pathlib.Path(__file__).resolve().parent
-        borrowed = set()
-        for name in stub_files:
-            tree = ast.parse((root / name).read_text(encoding="utf-8"), name)
+        borrowed = {}
+        for path in sorted(root.glob("test_*.py")):
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"), path.name)
+            except SyntaxError:
+                continue
+            # ⚠ The borrow is `pdriver.Digest.method`, so the node under the
+            # method name is an Attribute (`.Digest`), NOT a Name. The first
+            # cut tested `isinstance(stmt.value.value, ast.Name)` and
+            # therefore matched nothing on ANY file — which the `or True`
+            # below it made invisible. Match the real shape, in a class body
+            # (the borrow) or as a direct call (the same dependency).
             for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef):
-                    for stmt in node.body:
-                        if (isinstance(stmt, ast.Assign)
-                                and isinstance(stmt.value, ast.Attribute)
-                                and isinstance(stmt.value.value, ast.Name)
-                                and stmt.value.value.id in ("pdriver", "driver")):
-                            borrowed.add(stmt.value.attr)
-        # Whether or not any stub borrows today, every PUBLIC Digest method a
-        # stub COULD borrow must be safe to borrow. That is the durable rule.
+                if not (isinstance(node, ast.Attribute)
+                        and isinstance(node.value, ast.Attribute)
+                        and node.value.attr == "Digest"
+                        and isinstance(node.value.value, ast.Name)
+                        and node.value.value.id in ("pdriver", "driver")):
+                    continue
+                if node.attr.startswith("_"):
+                    continue
+                borrowed.setdefault(node.attr, set()).add(path.name)
+        # The census must actually find borrowers. `assert borrowed or True`
+        # — the first cut — is a no-op that let the whole computation above
+        # be dead code.
+        assert borrowed, (
+            "no stub borrows a Digest method any more: either the idiom is "
+            "gone (delete this census and say so) or the walk has stopped "
+            "working")
+
+        # Every PUBLIC Digest method a stub COULD borrow must be safe to
+        # borrow, whether or not one borrows it today. That is the durable
+        # rule, and it has two halves.
         offenders = []
         for name in dir(pdriver.Digest):
             if name.startswith("_"):
@@ -668,19 +687,57 @@ class TestTheDigestDoubleCannotDrift:
                 src = textwrap.dedent(inspect.getsource(method))
             except (OSError, TypeError):
                 continue
-            for node in ast.walk(ast.parse(src)):
-                if (isinstance(node, ast.Attribute)
-                        and isinstance(node.value, ast.Name)
-                        and node.value.id == "self"
-                        and isinstance(node.ctx, ast.Load)
-                        and node.attr.startswith("_")
-                        and node.attr not in ("_md", "_write_meta")):
-                    offenders.append(f"Digest.{name} -> self.{node.attr}")
+            offenders.extend(self._unsafe_self_reads(name, src))
         assert not offenders, (
-            "a borrowed Digest method must not reach for a private helper or "
-            "eagerly-created state — the stubs do not have it: "
-            + " | ".join(sorted(set(offenders))))
-        assert borrowed or True  # documented: the borrow set may be empty
+            "a borrowed Digest method must not reach for a private helper, "
+            "eagerly-created state or a class constant — the stubs do not "
+            "have them: " + " | ".join(sorted(set(offenders))))
+
+    @staticmethod
+    def _unsafe_self_reads(name, src):
+        """The two halves of the borrow rule, as one function over source.
+
+        Extracted so BOTH can be exercised on synthetic source: neither arm
+        has an instance in the tree once the census is green, so a sweep over
+        the real tree reports them INERT — a fact about the tree, not about
+        the guard.
+        """
+        import ast as _ast
+        out = []
+        for node in _ast.walk(_ast.parse(src)):
+            if not (isinstance(node, _ast.Attribute)
+                    and isinstance(node.value, _ast.Name)
+                    and node.value.id == "self"
+                    and isinstance(node.ctx, _ast.Load)):
+                continue
+            # HALF 1 — a private helper or eagerly-created state.
+            if (node.attr.startswith("_")
+                    # `__dict__` is not state OF the Digest — every object
+                    # has one, including a stub, which is exactly why the
+                    # lazy `_seen` idiom uses it.
+                    and node.attr not in ("_md", "_write_meta", "__dict__")):
+                out.append(f"Digest.{name} -> self.{node.attr}")
+            # HALF 2 — a CLASS CONSTANT. `self.MAX_RAIL_ROWS` breaks a stub
+            # exactly as `self._helper` does, one step out, and the first cut
+            # did not check for it: `NET_COMPONENTS` was live on the class
+            # and `ledger_line` IS borrowed.
+            elif node.attr.isupper():
+                out.append(f"Digest.{name} -> self.{node.attr} "
+                           f"(class constant; use the module one)")
+        return out
+
+    def test_both_halves_of_the_borrow_rule_bind(self):
+        """Synthetic source, because a green tree has no instance of either
+        half and a sweep therefore cannot kill a mutation that removes one."""
+        private = self._unsafe_self_reads(
+            "x", "def x(self):\n    return self._helper()\n")
+        constant = self._unsafe_self_reads(
+            "x", "def x(self):\n    return self.MAX_ROWS\n")
+        exempt = self._unsafe_self_reads(
+            "x", "def x(self):\n    self._md(self.__dict__)\n    return 1\n")
+        assert private and "self._helper" in private[0]
+        assert constant and "class constant" in constant[0]
+        assert exempt == []
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -792,10 +849,13 @@ class TestTheDispatchLineCarriesTheRail:
         assert any("TURN EVENTS 6" in line for line in digest.lines)
 
     def test_the_families_this_row_was_filed_for_are_graded_high(self):
-        """The filter is HIGH-only, so it is only safe while the families
-        that carry a satellite changing hands, a nation dying or a war
-        beginning are graded HIGH. A re-grading to MEDIUM would silently
-        hide them from every future digest — this pin reds instead."""
+        """The filter takes HIGH and CRITICAL — slice 15's review round found
+        it HIGH-ONLY, so the severest notices the game has (a coalition
+        declared, a capital fallen) were the only ones it never printed. It
+        is still safe only while the families that carry a satellite changing
+        hands, a nation dying or a war beginning are graded at or above HIGH.
+        A re-grading to MEDIUM would silently hide them from every future
+        digest — this pin reds instead."""
         from backend.game_logic.dispatch import _DIPLOMATIC_EVENT_PRIORITY
         for etype in ("diplomatic_vassal_defected",
                       "diplomatic_vassal_transferred",
