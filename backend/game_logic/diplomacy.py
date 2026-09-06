@@ -21,6 +21,9 @@ from backend.display_names import (
     proposal_display_name as _proposal_display_name,
 )
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+# FA-S16-D3: imported as a MODULE, never `from ... import` — the constant
+# must be resolved at call time so one home moves both readers.
+from backend.game_logic import battle_scale
 from backend.game_logic.settlement_helpers import (
     CascadeContext,
     WAR_INSTANCE_MERGE_REQUIRED,
@@ -9436,9 +9439,13 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         turn=getattr(world, "current_turn", None),
     )
 
-    # R9: Only battles with >= 1000 total casualties count for war score
+    # R9: Only battles below this many total casualties earn no war score.
+    # FA-S16-D3: the bare literal became a NAMED constant in a home neither
+    # this module nor the narrator owns, so Berthier can no longer call
+    # "a grievous defeat" something the engine scores at zero. Resolved as a
+    # module attribute at call time — see battle_scale's own warning.
     total_casualties = attacker_casualties + defender_casualties
-    if total_casualties < 1000:
+    if not battle_scale.is_a_battle(total_casualties):
         return
 
     record = {

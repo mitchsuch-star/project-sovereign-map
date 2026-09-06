@@ -573,6 +573,214 @@
 > completes twice in ten turns, one of them a six-pair multilateral
 > ratification, with zero refusals.
 
+> ### ✅ FA-S16-D3 + FA-S16-D4 — "THE SCALE OF A BATTLE" AND "THE SCHOOL HAS NO LAURELS" — TAKEN AND BUILT September 6, 2026
+>
+> **Landing record: this block.** The two rulings slice 16 (part c) filed
+> rather than took. Backend only, zero `.gd`, zero new serialized fields.
+> Suite and sweep figures are on the commit.
+>
+> ---
+>
+> ## FA-S16-D3 — none of the three filed options
+>
+> The row is real and reproduces verbatim: a **1-vs-58** exchange on ground
+> worth +20 draws *"Even the favorable ground could not save Massena, Sire.
+> Archduke Charles overcame the terrain."* `_pick_observation` binds
+> casualties at the top of the function and never reads them again.
+>
+> **The ruling reframed the question.** There were never two floors. There
+> are **four answers** to "how small is too small", and a `MIN_CASUALTIES`
+> grep finds one of them:
+>
+> | where | quantity | shape |
+> |---|---|---|
+> | `diplomacy.record_battle` | **sum of both sides** | bare `1000` |
+> | `dispatch.OWN_MAULED_MIN_CASUALTIES` | **one side**, ANDed with ≥25% of that corps | `500` |
+> | `coalition.add_war_exhaustion_from_battle` | one side | `// 1000`, a rate |
+> | `battle_report._pick_bombardment_observation` | the target's strength | **a 3% FRACTION** |
+>
+> The first is already the right number for the right quantity, so it was
+> **extracted** into `backend/game_logic/battle_scale.py` and the narrator
+> reads the same object. **Floor count 3 → 2, not 3 → 4.**
+>
+> ⚠ **The fourth answer is unfiled and neither the row nor the ruling saw
+> it.** It is in the same file as the narrator's own gate. It is named in
+> `battle_scale`'s docstring and deliberately unchanged — 58 casualties on a
+> 58-man corps is 100% of it, so a fraction cannot answer FA-44 (WO-16's
+> remnant lesson again).
+>
+> ### Why not the filed options
+>
+> **(a) reuse `OWN_MAULED_MIN_CASUALTIES`** — refuted on three legs. It is
+> ONE side's dead ANDed with a 25% proportion, so reading it against a
+> two-sided total gives it two referents about a factor of two apart; it
+> leaves the war score's own bare `1000` unnamed over the exact quantity the
+> new gate reads, so the engine would say *"no war score"* at 900 while
+> Berthier says *"a grievous defeat"* at 600; and it under-fires the measured
+> archive by **8 points of loss verdicts** (191 vs 239 of 601). **WO-16's 500
+> is untouched and untuned, so its written dissent stands unamended** — which
+> is the honest outcome, since this build does not tune it at all.
+>
+> **(b) a fraction of national strength** — refuted by measurement: 1,890 at
+> boot and 1,196 by turn 20, while the corps producing these lines fall to
+> 1,148 and 593. It drifts away from the case it would be built for.
+>
+> **(c) mint the second absolute floor** — what the reframing avoids.
+>
+> ### ⛔ And the obvious SHAPE was measured and rejected too
+>
+> A `we_lost and total < FLOOR` early return at priority 3.5 — the natural
+> build, and the one a reviewer recommended — was simulated in-process and
+> the **full suite run under it: 1 FAILED**. Two reasons, and the first is a
+> standing pin:
+>
+> * it reds `TestCavalryOverrunAttacker::test_defender_cavalry_counter_different_template`
+>   (total 350, France defending, enemy cavalry over our guns) — invisible to
+>   a census scoped to banks NAMED `lost_*`, because the gate's own predicate
+>   is `we_lost` and `cavalry_overran_artillery` is not a `lost_*` bank;
+> * it **re-buries PT-D4**, turning three archived *"his men are scattered"*
+>   lines into *"there was no battle to speak of"* about days on which a
+>   corps broke. PT-D4 landed that arm five slices ago and said so in the
+>   code.
+>
+> So the gate is **per-arm on the five gravity verdicts** — the two terrain
+> arms, the narrow defeat, the costly defeat, and (rider (i)) the costly
+> VICTORY, whose nine archived instances are **9 of 9 sub-floor, median
+> 292**; leaving it out re-creates FA-44 facing the other way. Every arm that
+> reports a mechanical STATE is untouched: the rout, the destroyed fort, guns
+> caught in transit, cavalry over a battery, an overwatch repulse. **Per-arm:
+> zero behaviour pins flip.**
+>
+> ### Two limits stated rather than discovered later
+>
+> ⚠ The **coordination family** — seventy archived sub-floor lines, including
+> *"even together, the field could not be held"* at a total of **one** — sits
+> ABOVE every candidate gate and is out of scope. The gate covers the
+> sub-floor loss population minus about a fifth.
+> ⚠ `we_lost` is computed against `player_nation`, so in a third-party
+> AI-vs-AI battle France "loses" whenever the attacker wins; coverage there
+> is arbitrary. Pre-existing, and now written down.
+>
+> The free option — no bank, fall through to *"A standard affair"* — was
+> measured (239 archived lines would collapse into it, making it the most
+> common loss verdict on a collapse board) and **declined**. One three-line
+> bank ships, about SCALE and never consequence, because a 58-man remnant may
+> well have been annihilated and the line has to stay true if it was.
+>
+> ---
+>
+> ## FA-S16-D4 — the crown is not a display, so the ladder sleeps
+>
+> The lesson reported *"Ney, crowned four turns ago, has been beaten in the
+> field"* about a mechanic the twelve-turn syllabus never teaches.
+>
+> **PC15-D3's written carve-out is CONSCIOUSLY OVERRULED and the defence is
+> measured.** TUT-F5 left glory running so "the Generals screen stays
+> honest". But the crown is **+1 shock / +1 defense / +1 administration**;
+> Ney's admin 3→4 crosses the **MC-2b Intendance tier boundary**, which is a
+> recruit price; and **Austria's Schwarzenberg is crowned in the lesson too**
+> (defense 7→8), so it is an AI-side combat modifier. What the clause was
+> really protecting is `battles_won` — measured **byte-identical** with the
+> lever either way: Ney 6 / Davout 5 / Senarmont 5 / Soult 0 on the trust
+> script, 4/3/3/0 on the insist script.
+>
+> ⚠ **The leak is FIVE wide, not the four the row counts.**
+> `glory_crown_lost` fires **twice** in the shipped trust lesson (turn 11
+> Ney, turn 12 Senarmont) and is **never written to `event_log`** — only the
+> gain branch logs — so an `event_log` census is blind to half of it by
+> construction. Every pin here reads the DELIVERED events.
+>
+> ⚠ **Gating the accrual alone SWAPS a leak instead of closing it.** §4's
+> restlessness loop has a literal arm reading `consecutive_hold_turns` that
+> never touches the ladder. Measured across all four lever combinations on
+> the shipped trust lesson:
+>
+> | glory dormant | restlessness sleeps | restlessness beats |
+> |---|---|---|
+> | ✗ | ✗ (HEAD) | **5** — Davout's ladder line, turns 2/3/4/11 |
+> | ✓ | ✗ | **1** — *Soult*, turn 2, **a beat that does not fire today** |
+> | ✗ | ✓ | 0 |
+> | ✓ | ✓ (shipped) | **0** |
+>
+> At HEAD the single allowed warning is consumed by Davout's ladder arm;
+> silence the ladder and Soult's literal arm takes the slot. Two guards ship,
+> **on separate levers**, so the two changes stay measurable apart — and the
+> second is keyed on `jealousy_dormant`, not on glory, because the arm it
+> closes never reads the ladder.
+>
+> ### The crown is CLEARED, not frozen and not announced
+>
+> ⚠ TUT-F2 permits manual saves in the tutorial, so a save written before
+> this build carries `glory_crowned: True` — and an accrual gate cannot reach
+> stored state. Both alternatives were measured and both are worse:
+> `return []` from `recompute_crowns` **freezes a migrated crown forever** at
+> +1 skills, and leaving the function running hands that save its crown until
+> the 8-turn window rolls the events off and then delivers *"the laurels have
+> passed"* **into the classroom**. The dormant arm resolves no holder,
+> **clears in silence, and appends no beat** — the only shape that makes the
+> crown unreachable for a LOADED lesson as well as a fresh one. No fresh-run
+> pin can see this; there is a migration pin.
+>
+> ### Three prose sites amended, and one thing deliberately not touched
+>
+> `jealousy.jealousy_dormant` and `dotation.dotation_dormant` both claimed
+> glory keeps accruing; both are narrowed to `battles_won` with the
+> measurement cited. And **`world_state.scenario_name`'s own declaration said
+> no mechanic may ever branch on it** — false since TUT-F5, and emphatically
+> false now. The rule that actually holds is written in its place: the field
+> selects a scenario's CARVE-OUTS, never feeds a formula, and every branch on
+> it is world-scoped so GR5 survives. ⚠ The retracted sentence is
+> **paraphrased, not quoted** — a source census cannot tell a rule from a
+> rule being retracted, and my first cut redded its own pin by quoting it.
+>
+> ⛔ **`marshal_management.gd` is NOT touched.** Deleting its "only glory
+> answers envy" header was offered as a free one-string edit; it is not free
+> — `test_tutorial_position7.py:263` pins that string as a **conscious flip**
+> of the R159 contract, so removing it costs a second conscious flip of a pin
+> already flipped once. A pin asserts the prohibition held.
+>
+> ⚠ `docs/audits/playtest_digests/audit-tutorial/digest.md` is FA-98's own
+> evidence and is now **unreproducible by design**. Superseded, not stale.
+>
+> ---
+>
+> ## ⛔ Found in passing: a standing ordering pin was reading its own docstring
+>
+> `test_record_battle_calls_settlement_accrual_before_1000_casualty_war_score_gate`
+> exists to guarantee that settlement contribution accrues BEFORE the
+> war-score floor drops sub-floor records — the exact contract the extraction
+> was warned not to disturb. It located the accrual with
+> `src.find("accrue_battle_contribution")`.
+>
+> **`record_battle`'s own docstring says the arguments "are forwarded into
+> `accrue_battle_contribution()`" — at character 1192, while the real call is
+> at ~3,000 and the gate at ~3,986.** The pin had been measuring the
+> DOCSTRING's position since it was written, and would have stayed green with
+> the accrual moved anywhere below the gate.
+>
+> Found by this slice's sweep, not by reading: the mutation that hoists the
+> gate above the accrual came back **INERT**, and the first repair of the
+> mutation was itself inert-by-construction (`str.find` returns the FIRST
+> occurrence, so appending a second reference below the gate changes
+> nothing). The pin now strips the docstring before searching, and carries a
+> sensitivity arm that fails if the stripper stops stripping — plus a second
+> arm that fails if the docstring stops mentioning the accrual, since that
+> would make the first arm vacuous.
+>
+> This is the same lesson three slices running: **prose inside a file a pin
+> reads is code.**
+>
+> ---
+>
+> ## What the harnesses say, and why it is worth nothing on its own
+>
+> `BASELINE_SERIES` and M1–M7 are byte-identical **by construction**: neither
+> harness world is the lesson (`europe_1805` boots
+> `scenario_name = "The Third Coalition, 1805"`), and both `battle_scale`'s
+> gate and `glory_dormant` are world-scoped. That is stated as the reason
+> rather than offered as evidence of safety — the green tells you the harness
+> never enters the changed path, not that the path is safe.
+
 > ### ✅ FA-S16-D1 + FA-S16-D2 — "THE CANNON-FIRE RULING" — TAKEN AND BUILT September 6, 2026
 >
 > **Landing record: this block.** Two rulings slice 16 (part b) filed rather
@@ -5300,7 +5508,7 @@
 | **FA-41** | P2 | **The playtest digest never records what an answered popup DID — the campaign's Trafalgar, camp and lifted blockade are invisible in the archived record.** `drain` scans follow-up responses (the '1' clarification answer, `/strategic_response` answers) for further blockers but never writes their `message`; `digest.command` is called only for script commands (driver:1330/1350/1360); `dispatch` rows carry only the headline (driver:548). So the naval run's decisive fleet action (46 coalition sail lost on turn 5), the boulogne_camp beat (73,483 men, turn 6), `blockade_broken` for France/Holland/Spain (turn 7) and the refused Davout/Ney attacks all left no trace in audit-naval/digest.md. *Fix:* ONE seam: in `drain` (driver:1176), after `followups = answerer.scan(current)`, write each follow-up's `message` as a command row (`digest.command(f"↳ answer {choice}", followup)`), and extend `Digest.dispatch` to also record the HIGH-priority DIPLOMATIC EVENTS lines of the morning dispatch payload so beats that never lead (TRAFALGAR, THE CAMP, blo… | `tools/playtest_driver.py:1176` | **OPEN** — memo §3; HARNESS (author-checked, no refuter) · **DUPLICATE (Sept 2 verification)** |
 | **FA-42** | P2 | **The tutorial's promised 'trust branch pivot' does not exist: step VII asserts 'Kienmayer's screen still stands' for two turns after he is a prisoner.** docs/TUTORIAL_SCRIPT.md:343 promises 'Trust branch = Ney attacks early and the next card pivots'. tutorial_overlay.gd STEPS has no such arm: `first_battle` (:112-115, turn_gate 4) always renders 'Kienmayer's screen still stands across the Rhine…' with the chip `Ney, attack Kienmayer`, and `_maybe_catch_up` (:365-371) releases a stuck step only at gate+2. The card names `trust` FIRST among the three answers (:93). Under trust, Ney attacks and captures Kienmayer on T2 (archived digest :14-23), so on T4 the card teaches a refused order and the 'overdue' line (TUT-F4c) only appears from T5. The TUTORIAL_SCRIPT.md table is also stale against the STEPS (rows :344-345 say First blood T3 / guns T4;… *Fix:* ONE seam: the `first_battle` step gets a branch keyed on a new latch `_kienmayer_gone` (set in `_note_observations` when a battle_report/conquest names Kienmayer as the beaten side or a dispatch event of type capture names him) — body/chip re-target to Jellacic ('the screen is taken; the Tyrol pass is next: Ney, attack Jellacic') and `_pred_battle_… | `godot-client/project-sovereign/scripts/tutorial_overlay.gd:112` | ✅ **FIXED September 6, 2026 — FA slice 14 (part 2c)** (landing record = the boxed SLICE 14 (part 2c) block). Four-valued honest availability (`stands` / `running` / `lost` / `taken`) in a nested `alt` dict that re-uses the `"suggest"` key names so T-B1 pins the branch chips for free. **THREE prescribed shapes were measured and rejected**: the row's own latch is a NO-OP for the predicate and a LIE for the copy (captured and escaped produce byte-comparable events, both `enemy_destroyed: false`); the reproduction's binary `location == "Swabia"` branch deletes a chip that works ~8% of the time; and an early release — my own first instinct — DETONATES the lesson, because `turn_gate` gates DISPLAY not ADVANCE, so a latch true at turn 2 consumes card VII before it is shown (card IX on screen by turn 5 in 19 of 40 runs). ⚠ `game_state.enemies` is FOG-MASKED — `strength` reads 0 at PARTIAL against a truth of 900–1,500 — so the fog clause is tested BEFORE the location clause and neither field is ever printed. ⛔ A `const` Dictionary is READ-ONLY AT RUNTIME in Godot 4 and the parse harness cannot see the violation (it never calls `_render()`); verified on the engine that `duplicate()` is required and that all four arms render. The five stale `TUTORIAL_SCRIPT.md` rows are corrected, including the measured-false claim that Kienmayer "has no friendly exit". |
 | **FA-43** | P2 | **The zip ships CC-BY assets without THIRD_PARTY_LICENSES.md — both in-game credit surfaces point the player at a file that is not in the build.** build.bat:52-61 copies exactly three files into deploy/dist/ink_iron_server (config.txt, launch.bat, README_TESTER.txt); ink_iron.spec datas add only the three map JSONs (:134-139). THIRD_PARTY_LICENSES.md (repo root, 16,254 bytes) is never copied. Yet settings_panel.gd:309-312 credits 'Unit icons by Lorc, Delapouite & contributors (game-icons.net, CC BY 3.0) ... Musket volley: aaronsiler & Benboncan (CC BY 4.0) ... Full terms: THIRD_PARTY_LICENSES.md' and README_TESTER.txt:246-247 says 'see THIRD_PARTY_LICENSES.md in the source tree'. CC BY requires the attribution + license notice to travel with the distribution; the tester zip is a distribution. *Fix:* ONE seam: build.bat gains `copy /y "THIRD_PARTY_LICENSES.md" "deploy\dist\ink_iron_server\THIRD_PARTY_LICENSES.md"` beside the README copy, and README_TESTER.txt:247 drops 'in the source tree' for 'in this folder'. | `deploy/build.bat`, the copy block (navigate by `copy /y "deploy\README_TESTER.txt"`) · `deploy/README_TESTER.txt` · `settings_panel.gd` | ✅ **FIXED September 5, 2026 — FA slice 13 "Shipping"** (landing record above). Landed as ONE edit with FA-N84, because the row's fix does NOT discharge it: `THIRD_PARTY_LICENSES.md` satisfies the font obligation by pointing at `assets/fonts/`, which is not in the zip either. |
-| **FA-44** | P3 | **'Even the favorable ground could not save Massena' at 1 vs 58 casualties: Berthier's terrain verdict has no scale gate.** `_pick_observation` selects `lost_despite_terrain`/`lost_terrain_disadvantage` purely on `we_lost and terrain-bonus modifier >= 15` (backend/game_logic/battle_report.py:832-838, banks at :333-342) with no floor on battle size — reproduced directly: a 1-vs-58-casualty exchange with a defender terrain-bonus modifier of 20 returns 'Even the favorable ground could not save Massena, Sire. Archduke Charles overcame the terrain.', matching digest line 125 verbatim. The same sub-1000-casualty engagements already fall below the war-score floor (diplomacy.py:9418-9420, `total_casualties < 1000`) and add 0 war exhaustion per side (coalition.py:1436-1437, `casualties // 1000` — note: statement is at lin… *Fix:* ONE seam: at the top of the loss ladder in `_pick_observation` (before :818), branch on the same 1,000-casualty floor war score uses — a sub-floor loss against a remnant gets a 'skirmish' bank ('The remnant of {marshal}'s corps was brushed aside — {n} men, Sire; there was no battle to speak of') instead of any terrain/stance verdict. | `backend/game_logic/battle_report.py:836` | ⚠ **NOT BUILT — filed as a RULING September 6, 2026** (`DESIGN_REFINEMENT.md` **FA-S16-D3**, with an owner and a done-when). The defect is real and reproduced: `_pick_observation` has no scale gate anywhere in its ladder, so a 1-vs-58 exchange draws "Even the favorable ground could not save Massena." But the row proposes a **SECOND absolute floor at 1,000** for a question a landed sibling already answers at 500 (`dispatch.OWN_MAULED_MIN_CASUALTIES`, WO-16) — **and that constant carries a written dissent** ("if 500 is tuned TWICE, take the fraction-of-national-strength form"). Minting a third number for one question is a decision, not a patch. ⚠ Its placement is wrong too: `_corrected` says priority 2 and `fix_shape` says one tier later, and the earlier position would outrank the fort arms. A pin asserts no third floor was minted while the ruling is open. |
+| **FA-44** | P3 | **'Even the favorable ground could not save Massena' at 1 vs 58 casualties: Berthier's terrain verdict has no scale gate.** `_pick_observation` selects `lost_despite_terrain`/`lost_terrain_disadvantage` purely on `we_lost and terrain-bonus modifier >= 15` (backend/game_logic/battle_report.py:832-838, banks at :333-342) with no floor on battle size — reproduced directly: a 1-vs-58-casualty exchange with a defender terrain-bonus modifier of 20 returns 'Even the favorable ground could not save Massena, Sire. Archduke Charles overcame the terrain.', matching digest line 125 verbatim. The same sub-1000-casualty engagements already fall below the war-score floor (diplomacy.py:9418-9420, `total_casualties < 1000`) and add 0 war exhaustion per side (coalition.py:1436-1437, `casualties // 1000` — note: statement is at lin… *Fix:* ONE seam: at the top of the loss ladder in `_pick_observation` (before :818), branch on the same 1,000-casualty floor war score uses — a sub-floor loss against a remnant gets a 'skirmish' bank ('The remnant of {marshal}'s corps was brushed aside — {n} men, Sire; there was no battle to speak of') instead of any terrain/stance verdict. | `backend/game_logic/battle_report.py:836` | ✅ **FIXED September 6, 2026 — as ruling FA-S16-D3** (landing record = the boxed **FA-S16-D3 + FA-S16-D4** block). **None of the three filed options**: the row wants a second absolute floor, and what shipped is the war score’s OWN bare `1000`, extracted into `battle_scale` and read by both — floor count **3 → 2, not 3 → 4**. ⚠ There were never two floors: a **fourth** answer sits in the same file as the narrator’s gate (`_pick_bombardment_observation`, a 3% FRACTION) and a `MIN_CASUALTIES` grep cannot see it. ⚠ The natural SHAPE was rejected on measurement too — a `we_lost and total < FLOOR` return at priority 3.5 reds a standing cavalry pin and re-buries PT-D4’s rout arm, so the gate is per-arm on five gravity verdicts and every mechanical-state arm fires at any scale. The defect was real and reproduced: `_pick_observation` has no scale gate anywhere in its ladder, so a 1-vs-58 exchange draws "Even the favorable ground could not save Massena." But the row proposes a **SECOND absolute floor at 1,000** for a question a landed sibling already answers at 500 (`dispatch.OWN_MAULED_MIN_CASUALTIES`, WO-16) — **and that constant carries a written dissent** ("if 500 is tuned TWICE, take the fraction-of-national-strength form"). Minting a third number for one question is a decision, not a patch. ⚠ Its placement is wrong too: `_corrected` says priority 2 and `fix_shape` says one tier later, and the earlier position would outrank the fort arms. A pin asserts no third floor was minted while the ruling is open. |
 | **FA-45** | P3 | **'build ships' blames green crews for a readiness fall that is 5/6 blockade rot — the player concludes building makes the fleet worse.** `lay_down_ship` folds one 40-readiness hull into the fleet (naval.py:1941): at 46 sail that costs ~1 point. `_readiness_tick` (naval.py:1573) then rots a BLOCKADED fleet −5/turn. The build result (naval_executor.py:60-66) prints the post-fold readiness with the clause '(new crews come aboard green at 40; only sea-time makes a navy)' and never names the blockade, so four consecutive keels read 69→63→58→53 as if each keel cost five points. *Fix:* Have `lay_down_ship` return `readiness_before`; the build message quotes the fold delta and, when `blockade_forecast(world, actor)['self_blockaded_by']` is set, adds the rot clause from the same single source the blockade order uses ('a green crew costs 1 point; the Royal Navy's blockade rots her 5 a turn — that is the number to fix'). | `backend/commands/naval_executor.py:63` | ✅ **FIXED September 6, 2026 — FA slice 16 (part a)** (landing record = the boxed SLICE 16 (part a) block; reproduction = `REPRO_L_slice16_at_head.md`). The receipt quotes the REAL delta and names the blockader with its number. ⚠ **The row understates itself**: measured over four consecutive keels the fold is −1, −1, **0**, **0** while readiness falls 69/63/58/53 — from the third keel the message printed an UNCHANGED readiness and blamed green crews for a fall the keel had not caused at all. ⚠ Two hazards in the filed fix avoided: `lay_down_ship`'s second return arm (rebuilt-from-nothing) is executor-reachable and would have KeyError'd, and `blockade_forecast_sentence` is a three-clause Continental-System paragraph that never states the per-turn number. |
 | **FA-46** | P3 | **A MOVE_TO whose last leg is a SHUT sea link is accepted with a route and no warning.** CONFIRMED as filed, with one refinement to the fix_shape: order-issuance route-building in `_execute_strategic_command` (backend/commands/strategic_executor.py:1507, message built from `route_str = \" -> \".join([marshal.location] + order.path)`) never consults naval state — `world.find_weighted_path`/`find_path` (backend/models/world_state.py:4943-5070) walk `adjacent_regions` unconditionally and the only passability gate they call, `_region_passable_for` (world_state.py:4919), is diplomatic-only. The per-turn step correctly gates via `movement_executor._execute_move`'s crossing check (movement_executor.py:153-170), so the SHUT verdict only surfaces after the marshal physically halts at the… *Fix:* ONE seam: in `_execute_strategic_command` before the response is built (strategic_executor.py ~1495-1507), walk `order.path` pairwise, call `naval.crossing_check(world, marshal.nation, a, b, marshal.strength)` on each `naval.is_sea_link` leg, and append the leg's verdict to the message ("— the Normandy–London leg is SHUT today, the Royal Navy at 3.… | `backend/commands/strategic_executor.py:1507` | **FIXED September 4, 2026 — FA slice 5 "The Road Law" (landing record in §Final Whole-Game Audit)** · was VERIFIED (Sept 2 verification) |
 | **FA-47** | P3 | **A marshal DISMISSED by the player is later refused as 'his corps was destroyed at <location>' — the tombstone stores the cause, the refusal ignores it.** `destroy_marshal` writes `{'nation','turn','location','cause'}` into `fallen_marshals` (world_state.py:2631-2636) and the redemption `dismiss` arm calls it with `cause='dismissed'` (disobedience.py:1756); `_addressed_lost_marshal_refusal` (main.py:893, sentence at 929-933) formats every player tomb as 'Marshal {name} is lost to us, Sire — his corps was destroyed at {location}. His name cannot lead the army again.' with no branch on `cause`. The flagship-mock digest shows the dismiss path is live in ordinary play (line 208 'POPUP redemption: Bernadotte, 9 -> dismiss'; Bernadotte never appears again in lines 209-398). *Fix:* ONE seam: `_addressed_lost_marshal_refusal` reads `tomb.get('cause')` and renders a `dismissed` arm ('Marshal {name} was relieved of command by your own order on turn {turn}; his name cannot lead the army again.') — the Marshalate hand-off that follows (main.py:936-945) stays identical. | `backend/main.py:931` | **✅ FIXED September 4, 2026 (slice 7 — the mock speaks plainly)** — was OPEN — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **VERIFIED (Sept 2 verification)** |
@@ -5354,7 +5562,7 @@
 | **FA-95** | P4 | **Cooldown refusal prints the turns REMAINING as 'turns ago' ('rejected our last proposal only 1 turns ago') and names no wait.** `_execute_diplomatic_propose`'s cooldown refusal (backend/commands/diplomatic_executor.py:686 and the per-type sibling at :695) prints the DECREMENTING "turns remaining until re-proposal is allowed" value as if it were elapsed time since the rejection: `f"...{target_nation} rejected our last proposal only {remaining} turns ago."` The cooldown is set to 4 on rejection at world_state.py:10179 (:10182 for the `{target}_{ptype}` key — corrected from the cited 10186-10190, which lands a few lines below on the neighboring `apply_rejection_cooldowns`/`record_diplomatic_refusal` calls in the same REJECT branch) and is decremented toward zero once per turn by `CooldownManager.decrement_all()` (cooldo… *Fix:* ONE seam: the two f-strings at diplomatic_executor.py:686 and :695 — 'Talleyrand advises patience, Sire — Russia refused us; the court will not receive another envoy for N more turn(s).' using `remaining` for what it is. | `backend/commands/diplomatic_executor.py:686` | ✅ **FIXED September 6, 2026 — FA slice 16 (part c)** (landing record = the boxed SLICE 16 (part c) block; reproduction = `REPRO_L_slice16_at_head.md`). Both refusals count DOWN. `player_proposal_cooldowns` is a `CooldownManager` slot decremented to zero, so printing it as elapsed time inverted the advice — a fresh refusal read as old and a stale one as fresh; every other reader in the codebase treats it as remaining. The court is named through `formed_display_name` too (the import was already in the function, inside a branch that does not reach here). ⚠ **The Make Amends sibling shares the "only N turns ago" phrasing and is CORRECT** — genuinely elapsed, with a standing pin on its wording; sweeping it would have redded that pin and broken a true sentence. A pin states the exemption. |
 | **FA-96** | P4 | **Dead popup channel on both sides: `coalition_popup` is PopupQueue priority 0, a serialized world property, and has neither a producer nor a client reader.** CONFIRMED core defect, NARROWED fix scope: `world.coalition_popup` (the PopupQueue-backed property at `backend/models/world_state.py:2159-2164`, serialized at `:7295`/round-tripped at `:8147`, and ranked top-priority in `cooldown_manager.py:145-163`'s `PRIORITY_ORDER`/`RESPONSE_KEYS`) has zero live producers — the only write anywhere is a defensive `= None` at `turn_manager.py:443` — and zero `.gd` readers (`grep -rn coalition_popup godot-client/project-sovereign/scripts/` = 0 hits). The similarly-named local variable built at `coalition.py:1676-1694` inside `form_coalition()` is a documented, deliberate replacement (comment at `coalition.py:1661-1663`: "The live UI now uses the persistent n… *Fix:* ONE seam: cooldown_manager.PopupQueue — drop `coalition_popup` from PRIORITY_ORDER/RESPONSE_KEYS (keep from_dict tolerant of the old key), delete the world property + to_dict line and the dead main.gd:2669 `marshal_switched` branch. | `backend/models/cooldown_manager.py:146` | **OPEN** — memo §3; NARROWED (refuter corrected it; the corrected reading is what follows) · **DUPLICATE (Sept 2 verification)** |
 | **FA-97** | P4 | **The C3 auto-advance guard rides the autosave: the first End Turn after Continue is absorbed with a message about 'your last action point'.** When the last AP triggers an auto-advance, executor.py:2533 stamps `world._auto_advanced_to_turn = world.current_turn` and the autosave at :2717 is written AFTER that stamp; to_dict/from_dict carry it (:7318/:8210) and neither `load_game` (save_manager.py:136-247) nor `/load` (main.py:4065-4143) zero it. `TurnManager.end_turn` (turn_manager.py:128-140) then absorbs the first `end turn` of the resumed session and returns 'The turn already advanced to N when your last action point was spent. Order end turn again'. The guard is a same-process double-press latch, not campaign state. *Fix:* ONE line in `load_game`'s transient-clear block (save_manager.py:217): `world._auto_advanced_to_turn = 0` — a loaded world has no in-flight duplicate press to absorb. (Keep it serialized so to_dict stays complete.) | `backend/save_manager.py:217` | **OPEN** — memo §3; AUTHOR-VERIFIED (hand-reproduced this session) · **REFUTED (Sept 2 verification)** |
-| **FA-98** | P4 | **The crown beat leaks into the lesson: 'Ney, crowned four turns ago, has been beaten in the field' on turn 6 of the School.** CONFIRMED as filed, with one framing correction: this is not "TUT-F5 missed a seam" — TUT-F5's jealousy_dormant (jealousy.py:204-212) deliberately gates only apply_jealousy (:883) and _push_petition (:1853), and its docstring explicitly says glory/crowns must keep accruing so "the Generals screen stays honest." recompute_crowns (jealousy.py:529, called unconditionally at :3428 inside process_turn) is correctly ungated by design. The defect is that dispatch.py's reversal-arc builder (_build_marshal_arcs :1377, _compose_reversal_line :1289, the sentence itself at dispatch.py:1311-1316) has zero tutorial-awareness (dispatch.py has no scenario_name reference at all) and narrates that intentional… *Fix:* ONE seam: the crown-fall headline producer in dispatch.py consults the same jealousy_dormant predicate (jealousy.py:212) before emitting; optionally the same for the 'crowned' arc beats in campaign_log. | `backend/game_logic/dispatch.py:1313` | ⚠ **NOT BUILT — filed as a RULING September 6, 2026** (`DESIGN_REFINEMENT.md` **FA-S16-D4**). Reproduced: the archived tutorial digest reads "Ney, crowned four turns ago, has been beaten in the field", and `dispatch.py`/`campaign_log.py` contain ZERO `scenario_name` references between them. ⚠ **PC15-D3 is the precedent and it points the OTHER way** — ruled "gate the STATE, not the beats" — so FA-98 would be the first tutorial gate to suppress a BEAT while leaving its state deliberately alive. The row's routing note is stale: it defers to that gate as though it were open, and it was ruled and built on August 15. |
+| **FA-98** | P4 | **The crown beat leaks into the lesson: 'Ney, crowned four turns ago, has been beaten in the field' on turn 6 of the School.** CONFIRMED as filed, with one framing correction: this is not "TUT-F5 missed a seam" — TUT-F5's jealousy_dormant (jealousy.py:204-212) deliberately gates only apply_jealousy (:883) and _push_petition (:1853), and its docstring explicitly says glory/crowns must keep accruing so "the Generals screen stays honest." recompute_crowns (jealousy.py:529, called unconditionally at :3428 inside process_turn) is correctly ungated by design. The defect is that dispatch.py's reversal-arc builder (_build_marshal_arcs :1377, _compose_reversal_line :1289, the sentence itself at dispatch.py:1311-1316) has zero tutorial-awareness (dispatch.py has no scenario_name reference at all) and narrates that intentional… *Fix:* ONE seam: the crown-fall headline producer in dispatch.py consults the same jealousy_dormant predicate (jealousy.py:212) before emitting; optionally the same for the 'crowned' arc beats in campaign_log. | `backend/game_logic/dispatch.py:1313` | ✅ **FIXED September 6, 2026 — as ruling FA-S16-D4, option (a)** (landing record = the boxed **FA-S16-D3 + FA-S16-D4** block). Glory itself sleeps in the School, so the beat stops on its own. ⚠ **PC15-D3’s written carve-out is CONSCIOUSLY OVERRULED** and the defence is measured: the crown is +1 shock / +1 defense / +1 administration, Ney’s admin 3→4 crosses the MC-2b Intendance tier boundary, and Austria’s Schwarzenberg is crowned in the lesson too — while `battles_won`, what the clause was really protecting, is byte-identical either way (6/5/5/0). ⚠ **The leak is FIVE wide, not four**: `glory_crown_lost` fires twice in the shipped trust lesson and is never written to `event_log`, so an `event_log` census is blind to half of it. ⚠ And gating accrual ALONE swaps a leak rather than closing it — measured, it frees the single allowed warning and Soult’s literal restlessness line appears where it does not fire today; a second guard ships on its own lever. Reproduced: the archived tutorial digest reads "Ney, crowned four turns ago, has been beaten in the field", and `dispatch.py`/`campaign_log.py` contain ZERO `scenario_name` references between them. ⚠ **PC15-D3 is the precedent and it points the OTHER way** — ruled "gate the STATE, not the beats" — so FA-98 would be the first tutorial gate to suppress a BEAT while leaving its state deliberately alive. The row's routing note is stale: it defers to that gate as though it were open, and it was ruled and built on August 15. |
 | **FA-99** | P4 | **`/load` drains `settlement_draft_notices` into a response the world-swap handler never renders (the same drain PC15-10 B0 fixed for the popup queue).** `build_base_response` (main.py:446-449) unconditionally calls `world.drain_settlement_draft_notices()` (world_state.py:2008-2016: returns AND clears). `/load` (main.py:4079-4085) builds its response through it with only `include_popup_passthroughs=False`. The client's load handler `_apply_world_swap_response` (main.gd:4600-4665) reads message/HUD/wars/capture/interrupt/redemption only; `settlement_draft_notices` is rendered solely in `_on_command_result` (main.gd:2452 func, :2496). The notice is produced inside `_advance_turn_internal` (world_state.py:9188-9236) and the end-turn autosave (meta_executor.py:482) is written BEFORE the end-turn response drains it, so every autosave taken on a dr… *Fix:* ONE seam: give `build_base_response` a `drain_draft_notices: bool = True` kwarg and pass `False` from `/load` (mirroring `include_popup_passthroughs=False`), so the notice rides the player's first `/command` exactly as the popups now do. | `backend/main.py:4079` | **FIXED September 4, 2026 — FA slice 6 "The Popup Queue" (landing record in §Final Whole-Game Audit)** · was VERIFIED (Sept 2 verification) |
 | **FA-100** | P4 | **`load_game` still wipes `threat_sources_this_turn` (and two siblings) that `from_dict` restores — the Balance-of-Europe tab reads 'No new threats' for the rest of any loaded turn.** world_state.py:7718-7725 (the `WorldState.from_dict` DialogueManager restore, right after the existing `conflict_alert` stale-item removal) is the correct seam, not save_manager.py:217-240. The underlying save/load defect is real — verified by direct reproduction via FastAPI TestClient (`/command` "fortify" → `/save` → `/load` → `/command` "Ney" silently reissues/objects to the pre-save fortify order) — but it is a BACKEND/API contract gap, not a live player-facing bug: `clarification_popup` is a registered MODAL (main.gd:435) whose `_show_clarification_popup` (main.gd:5093-5096) disables the terminal, send button AND end-turn button (`set_input_enabled(false)`, main.gd:3932-3937), and both… *Fix:* Delete save_manager.py:240 (and :217/:218) as the sixth, seventh and eighth deliberate NON-clears, citing the same contract the block already documents: serialized under the mid-turn-save contract, restored by from_dict, cleared at the real boundary by `_advance_turn_internal` (:9253/:9257/:9263). | `backend/save_manager.py:240` | ✅ **FIXED September 6, 2026 — FA slice 16 (part c)** (landing record = the boxed SLICE 16 (part c) block; reproduction = `REPRO_L_slice16_at_head.md`). **Half (a) built; half (b) left where the row put it.** `load_game` cleared three per-turn stores AFTER `from_dict` restored them, inside a block whose own comment documents FIVE non-clears citing exactly the contract these three violated. Measured: `threat_sources` **4 live → 4 after `from_dict` → 0 after `load_game`**, and the ledger's "why" rows went with them, 2→0. Not cosmetic — `mild_concerns_this_turn` is a per-marshal DEDUPE list, so the wipe let a marshal raise the same concern twice across a mid-turn save. ⚠ **The sixth `fix_shape`-vs-`_corrected` member, and here the trap runs the OTHER way**: `_corrected` describes half (b) and reads as an instruction to skip half (a) — the half the title, summary, repro and fix_shape are all about. THREE standing pins flipped consciously and renamed; three comment scrapes re-anchored. |
 | **FA-101** | P4 | **`pending_objection` at load: the KNOWN_SILENT remainder's named owner (WO slice 12) landed without it, and row WO is closed — but the state is unreachable through the UI.** main.py:4120-4122 and WEIRD_OUTCOMES_SPEC.md:4414-4420 declare the tactical-objection-at-load legibility gap 'owned by slice 12'; slice 12's landing record (spec §3 Slice 12, lines 3291-3613) contains no mention of an objection (grep), the DoD at spec:4570 records slice 12 landed Sept 1, and CLAUDE.md declares row WO build-complete — an unowned deferral (Golden Rule 9). Reachability check for a future engineer: the objection dialog is modal (dialog_manager.gd:44 default `modal=true`) with only trust/insist/compromise exits (objection_dialog.gd:275-285); ESC (main.gd:992-994) and the gear (main.gd:5380-5383) refuse to open the pause menu while a modal is open; the executor block (executor.py:… *Fix:* Docs-only: strike 'owner = row WO slice 12' at main.py:4121 and BUG_FIXES.md WO-35, and record KNOWN_SILENT as ACCEPTED-UNREACHABLE with the modal/end-turn reachability argument above (or, if an owner is wanted, the 3-line attach guarded by `response.get('objection', {}).get('options')` so the buttonless strategic modal the memo feared cannot rende… | `backend/main.py:4120` | **OPEN** — memo §3; UNVERIFIED (refuter budget exhausted; the finder's own cited evidence stands) · **NARROWED (Sept 2 verification)** |

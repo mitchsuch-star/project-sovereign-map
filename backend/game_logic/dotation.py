@@ -199,9 +199,14 @@ def dotation_dormant(world) -> bool:
     erodes every turn, so "Ney's grievance is 9 turns old" fired mid-
     lesson and his objection cited victories the school never taught him
     to expect rewards for. Gate the STATE, not the beats: no grace
-    clock, no erosion, no rail notices, no card block. Glory and
-    `battles_won` still accrue (the Generals screen stays honest — the
-    claim DERIVED from the record sleeps, the record does not). GR5:
+    clock, no erosion, no rail notices, no card block. ⚠ NARROWED
+    September 6, 2026 (FA-S16-D4): this used to read "glory and
+    `battles_won` still accrue". `battles_won` does — measured
+    byte-identical in every arm — but GLORY no longer does, because the
+    crown it produces is +1 shock / +1 defense / +1 administration on
+    both sides and not a display at all. The claim DERIVED from the
+    record sleeps, and now so does the part of the record that is
+    itself a mechanic. GR5:
     both sides go quiet together. Same serialized discriminator as
     TUT-F2/TUT-F5. No reward beat is added to the lesson (the syllabus
     is over-full; the school's doctrine for un-taught systems is

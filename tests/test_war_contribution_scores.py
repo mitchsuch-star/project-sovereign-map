@@ -892,22 +892,63 @@ def test_record_battle_calls_settlement_accrual_before_1000_casualty_war_score_g
     from pruned raw battle records. The only correct place to accrue is
     before the gate that drops sub-1000 records. If a future refactor moves
     the call below the gate, this assertion fires immediately.
+
+    ⚠ RE-ANCHORED CONSCIOUSLY September 6, 2026 (FA-S16-D3). The gate used
+    to be a bare `total_casualties < 1000`; the literal was extracted into
+    `battle_scale.MIN_BATTLE_CASUALTIES` so the narrator reads the same
+    number the war score does. The ORDERING contract this pin exists for is
+    unchanged and is the thing the extraction was warned not to disturb —
+    only the string it looks for moved. The number itself is now pinned in
+    `test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py`.
+
+    ⛔ AND THE PIN WAS NOT BINDING, found by that slice's mutation sweep.
+    `record_battle`'s own docstring says the arguments "are forwarded into
+    `accrue_battle_contribution()`" — at character 1192, while the real call
+    is at ~3000 and the gate at ~3986. So `src.find` had been measuring the
+    DOCSTRING's position all along, and the guard would have stayed green
+    with the accrual moved anywhere below the gate. The search now runs over
+    code with the docstring stripped, and a sensitivity arm proves the
+    stripper actually removes it.
     """
+    import ast
     import inspect
 
-    from backend.game_logic import diplomacy
+    from backend.game_logic import battle_scale, diplomacy
 
-    src = inspect.getsource(diplomacy.record_battle)
+    def _no_docstring(text: str) -> str:
+        body = ast.parse(text.lstrip()).body[0].body
+        first = body[0]
+        if (isinstance(first, ast.Expr)
+                and isinstance(first.value, ast.Constant)
+                and isinstance(first.value.value, str)):
+            lines = text.lstrip().splitlines()
+            for i in range(first.lineno - 1, first.end_lineno):
+                lines[i] = ""
+            return chr(10).join(lines)
+        return text
+
+    raw = inspect.getsource(diplomacy.record_battle)
+    src = _no_docstring(raw)
+    assert "are forwarded into" not in src, (
+        "the docstring stripper is not stripping — this pin measures prose"
+    )
+    assert raw.find("accrue_battle_contribution") < 2000, (
+        "the docstring no longer mentions the accrual, so the sensitivity "
+        "arm above is vacuous; re-derive it or delete it"
+    )
 
     accrue_pos = src.find("accrue_battle_contribution")
-    gate_pos = src.find("total_casualties < 1000")
+    gate_pos = src.find("battle_scale.is_a_battle")
 
     assert accrue_pos != -1, (
         "record_battle() must call accrue_battle_contribution() — the "
         "Slice B2 settlement contribution entrypoint."
     )
     assert gate_pos != -1, (
-        "record_battle() must keep the 1000-casualty war-score early return."
+        "record_battle() must keep the war-score early return."
+    )
+    assert battle_scale.MIN_BATTLE_CASUALTIES == 1000, (
+        "…and it must still be the 1000-casualty gate this pin is about."
     )
     assert accrue_pos < gate_pos, (
         "Settlement contribution accrual must precede the 1000-casualty "

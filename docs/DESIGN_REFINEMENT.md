@@ -1480,10 +1480,39 @@ both live at the same acceptance seam (`strategic_executor.py:1400-1403`).
 | **FA-S16-D2** | P3 | **The cannon-fire trigger is nation-blind** — measured, a French marshal was interrupted, and charged, over Blücher vs Hohenlohe, a Prussian pair neither of whose sides is France. | `strategic._check_interrupts` → `world.get_battles_within_range(marshal.location, 2)` | either a nation predicate, or a docstring saying why there is none | a marshal under orders is not charged for a battle his nation has no stake in | ✅ **RULED AND BUILT September 6, 2026** — the predicate `_cannon_fire_concerns`, behind the lever `CANNON_FIRE_READS_THE_FLAGS`. Landing record = the same boxed block. ⚠ The row's own reproduction is not fixed by its own fix — see below. |
 
 | **FA-S16-D5** | P3 | **The stalemate popup charges −3 on hold AND on cancel and quotes neither** — the same scene as FA-S16-D1, the same "Hold Position" label, one function over. FA-49 put prices on the cannon-fire buttons; `_respond_combat_stalemate` was correctly out of that slice's scope and is still unpriced. | `strategic.StrategicOrderProcessor._respond_combat_stalemate` · `strategic.interrupt_option_costs` | extend the existing pure quoter to the stalemate interrupt type, or state at the seam why this popup carries no numbers | the price on the button is the price charged, for both of its paying arms | **OPEN.** Filed September 6, 2026 by the FA-S16-D1/D2 build, which found it beside its own seam and did not absorb it. |
-| **FA-S16-D3** | P3 | **A second absolute casualty floor, for a question a landed sibling already answered with a different number** — see the section below. | `battle_report._pick_observation` priority 4 · `dispatch.OWN_MAULED_MIN_CASUALTIES` | pick ONE of the two existing floors; do not mint a third | a 1-vs-58 exchange does not draw the "even the favorable ground could not save him" verdict | **OPEN — needs a ruling.** Filed by FA slice 16 (part c). |
-| **FA-S16-D4** | P3 | **The crown beat leaks into the School** — the tutorial has no gate on the glory beats, and the precedent points the other way. | `dispatch.py` · `campaign_log.py` (zero `scenario_name` references in either) | gate the BEAT, or gate the STATE, or neither | a tutorial dispatch does not report a crowning the lesson never taught | **OPEN — needs a ruling.** Filed with FA-S16-D3. |
+| **FA-S16-D3** | P3 | **A second absolute casualty floor, for a question a landed sibling already answered with a different number** — see the section below. | `battle_report._pick_observation` priority 4 · `dispatch.OWN_MAULED_MIN_CASUALTIES` | pick ONE of the two existing floors; do not mint a third | a 1-vs-58 exchange does not draw the "even the favorable ground could not save him" verdict | ✅ **RULED AND BUILT September 6, 2026** — none of the three filed options: the floor count goes **3 → 2** by extracting the war score's own bare `1000` into `battle_scale`, read by both. Landing record = the boxed **FA-S16-D3 + FA-S16-D4** block in `BUG_FIXES.md`. |
+| **FA-S16-D4** | P3 | **The crown beat leaks into the School** — the tutorial has no gate on the glory beats, and the precedent points the other way. | `dispatch.py` · `campaign_log.py` (zero `scenario_name` references in either) | gate the BEAT, or gate the STATE, or neither | a tutorial dispatch does not report a crowning the lesson never taught | ✅ **RULED (a) AND BUILT September 6, 2026** — glory itself sleeps in the School, on its own lever, and PC15-D3's written carve-out is consciously OVERRULED with its defence measured. Landing record = the boxed **FA-S16-D3 + FA-S16-D4** block in `BUG_FIXES.md`. |
 
 ### FA-S16-D3 — a second casualty floor, against a landed dissent
+
+> ✅ **RULED AND BUILT September 6, 2026 — and the answer is none of (a),
+> (b) or (c).** Landing record = the boxed **FA-S16-D3 + FA-S16-D4** block in
+> `BUG_FIXES.md`.
+>
+> The ruling reframed the question. There were never two floors — there were
+> **four answers**, and a `MIN_CASUALTIES` grep finds one of them. The bare
+> `1000` inside `diplomacy.record_battle` was already the right number for
+> the right quantity (the SUM of both sides), so it was extracted into
+> `backend/game_logic/battle_scale.py` and the narrator reads the same
+> object. **Floor count 3 → 2, not 3 → 4.** Option (a) is refuted (500 is
+> ONE side's dead ANDed with 25% of that corps — two referents a factor of
+> two apart, and it under-fires the measured population by 8 points); option
+> (b) is refuted by measurement (a national fraction is 1,890 at boot and
+> 1,196 by turn 20 while the corps producing these lines fall to 1,148 and
+> 593 — it drifts away from FA-44's own case); option (c) is what the
+> reframing avoids. **WO-16's 500 is untouched and untuned, so its dissent
+> stands unamended.**
+>
+> ⚠ **The obvious SHAPE was measured and rejected too.** A
+> `we_lost and total < FLOOR` early return at priority 3.5 reds a standing
+> behaviour pin (total 350, France defending, enemy cavalry over our guns)
+> and re-buries PT-D4's rout arm. The gate is **per-arm** on the five
+> gravity verdicts; every mechanical-state arm fires at any scale.
+>
+> ⚠ **A FOURTH answer exists and neither this ruling nor the row saw it**:
+> `_pick_bombardment_observation` already answers "how small is small" in the
+> same file with a **3% fraction**. It is named in `battle_scale`'s docstring
+> and deliberately not changed.
 
 **Filed September 6, 2026 by FA slice 16 (part c).** FA-44 is real: a 1-vs-58
 exchange with a defender terrain bonus draws the verdict *"Even the favorable
@@ -1514,6 +1543,35 @@ it would outrank the fort arms.
 question, or the record says why two do.
 
 ### FA-S16-D4 — the crown beat in the School
+
+> ✅ **RULED (a) AND BUILT September 6, 2026** — glory is dormant in the
+> lesson, so the beat stops on its own and PC15-D3's shape is followed
+> rather than departed from. Landing record = the boxed **FA-S16-D3 +
+> FA-S16-D4** block in `BUG_FIXES.md`.
+>
+> ⚠ **PC15-D3's written carve-out is CONSCIOUSLY OVERRULED**, and the
+> defence is measured, not argued. That clause said glory keeps accruing so
+> "the Generals screen stays honest" — but the crown it produces is **+1
+> shock / +1 defense / +1 administration**, Ney's admin 3→4 crosses the
+> MC-2b Intendance tier boundary (a recruit price), and **Austria's
+> Schwarzenberg is crowned in the lesson too**, so it is an AI-side combat
+> modifier and not a display at all. What the clause was really protecting
+> is `battles_won` — measured **byte-identical** with the lever either way
+> (Ney 6 / Davout 5 / Senarmont 5 / Soult 0). Option (b) cannot reach the
+> +1 skills; option (c) leaves a live modifier in the classroom.
+>
+> ⚠ **The leak was FIVE wide, not the four this row counts.**
+> `glory_crown_lost` fires twice in the shipped trust lesson and is **never
+> written to `event_log`** — only the gain branch logs — so an `event_log`
+> census is structurally blind to half of it.
+>
+> ⚠ **And gating glory alone SWAPS a leak instead of closing it.** §4's
+> restlessness loop has a literal arm that never reads the ladder; measured,
+> silencing the ladder frees the single allowed warning and **Soult's line
+> appears where it does not fire today**. A second guard ships on its own
+> lever. ⚠ `marshal_management.gd` is deliberately NOT touched: its "only
+> glory answers envy" header is a pinned conscious flip of the R159
+> contract, and deleting it costs a second conscious flip.
 
 **Filed with the above.** The archived tutorial digest reads *"Sire — Ney,
 crowned four turns ago, has been beaten in the field."* The lesson never

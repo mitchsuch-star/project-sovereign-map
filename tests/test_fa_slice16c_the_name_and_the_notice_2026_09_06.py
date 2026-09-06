@@ -480,10 +480,22 @@ class TestTwoRowsAreRulingsNotBuilds:
         assert "**Owner:**" in block and "**Done when**" in block
 
     def test_no_third_casualty_floor_was_minted(self):
-        """The whole reason FA-44 is a ruling: there are already two floors
-        for this question and the landed one carries a written dissent."""
-        from backend.game_logic import dispatch
+        """⚠ FLIPPED CONSCIOUSLY September 6, 2026 — the ruling was TAKEN
+        (FA-S16-D3) and this pin would now pass VACUOUSLY: the floor lives
+        in a third module and is spelled `MIN_BATTLE_CASUALTIES`, so the
+        old string check can never fail again.
+
+        Its intent survives and is strengthened. The ruling did not mint a
+        third floor — it deleted one, by extracting the war score's own bare
+        literal into a shared home. So the pin now asserts the OUTCOME: 500
+        untouched and untuned (WO-16's dissent unamended), exactly one
+        absolute 1,000 in the tree, and neither reader carrying a private
+        copy of it.
+        """
+        from backend.game_logic import battle_report, battle_scale, dispatch
         assert dispatch.OWN_MAULED_MIN_CASUALTIES == 500
-        from backend.game_logic import battle_report
-        src = _code(inspect.getsource(battle_report))
-        assert "MIN_CASUALTIES = 1000" not in src
+        assert battle_scale.MIN_BATTLE_CASUALTIES == 1000
+        for mod in (battle_report, dispatch):
+            src = _code(inspect.getsource(mod))
+            assert "MIN_CASUALTIES = 1000" not in src
+            assert "MIN_BATTLE_CASUALTIES = " not in src

@@ -1758,11 +1758,26 @@ class WorldState:
         from backend.game_logic.campaign_variance import resolve_campaign_seed
         self.campaign_seed: str = resolve_campaign_seed()
 
-        # POSITION 7: display-only identity of the authored scenario this world
-        # was booted from ("" for a bare/default world). Stamped via from_dict
-        # from the scenario JSON's `scenario_name` key; the client's tutorial
-        # overlay arms on the value "tutorial". NO mechanic may ever branch on
-        # this field — it exists so the client can recognize the world.
+        # POSITION 7: identity of the authored scenario this world was booted
+        # from ("" for a bare/default world). Stamped via from_dict from the
+        # scenario JSON's `scenario_name` key; the client's tutorial overlay
+        # arms on the value "tutorial".
+        #
+        # ⚠ CORRECTED September 6, 2026 (FA-S16-D4). This used to call the
+        # field display-only and forbid any mechanic from branching on it.
+        # ⚠ The forbidding sentence is deliberately NOT quoted here: a
+        # source census cannot tell a rule from a rule being retracted, and
+        # this build has already been bitten three times by a pin reading
+        # the prose that explains the thing it is meant to check.
+        # The prohibition has been false since TUT-F5 (Aug 8):
+        # `jealousy.jealousy_dormant`,
+        # `dotation.is_dotation_world` and now `jealousy.glory_dormant` all
+        # branch on it, the last of them suppressing a live combat modifier
+        # (+1 shock/defense/administration) on both sides. The rule that
+        # actually holds is narrower and is the one to keep: this field
+        # selects a SCENARIO'S CARVE-OUTS — a named world may switch a
+        # subsystem off wholesale — and it is never an input to a formula.
+        # Every branch on it is world-scoped, so GR5 survives.
         self.scenario_name: str = ""
 
         # HC-0 "The Calendar": display-only anchor date ("YYYY-MM-DD")

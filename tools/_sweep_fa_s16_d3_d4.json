@@ -1,0 +1,212 @@
+[
+ {
+  "id": "D3/a the floor moves",
+  "file": "backend/game_logic/battle_scale.py",
+  "old": "MIN_BATTLE_CASUALTIES = 1000",
+  "new": "MIN_BATTLE_CASUALTIES = 40",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py"
+ },
+ {
+  "id": "D3/b the predicate stops consulting the constant",
+  "file": "backend/game_logic/battle_scale.py",
+  "old": "        return int(total_casualties) >= MIN_BATTLE_CASUALTIES",
+  "new": "        return True",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py"
+ },
+ {
+  "id": "D3/c the war score keeps its own private literal",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if not battle_scale.is_a_battle(total_casualties):",
+  "new": "    if total_casualties < 1000:",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestOneFloorTwoReaders"
+ },
+ {
+  "id": "D3/d the narrator binds a COPY instead of the module",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "from backend.game_logic import battle_scale",
+  "new": "from backend.game_logic.battle_scale import is_a_battle, SKIRMISH_GATE_ACTIVE\nimport backend.game_logic.battle_scale as _unused_battle_scale  # noqa: F401",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestOneFloorTwoReaders::test_neither_reader_binds_a_copy"
+ },
+ {
+  "id": "D3/e the lever stops reproducing the pre-fix narration",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    _at_scale = (not battle_scale.SKIRMISH_GATE_ACTIVE\n                 or battle_scale.is_a_battle(",
+  "new": "    _at_scale = (battle_scale.SKIRMISH_GATE_ACTIVE\n                 and battle_scale.is_a_battle(",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestTheRowsOwnCase"
+ },
+ {
+  "id": "D3/f the despite-terrain arm loses its gate",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if we_lost and _at_scale and _mod_value(our_mods, \"terrain\", \"bonus\") >= 15:",
+  "new": "    if we_lost and _mod_value(our_mods, \"terrain\", \"bonus\") >= 15:",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py"
+ },
+ {
+  "id": "D3/g the terrain-disadvantage arm loses its gate",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if we_lost and _at_scale and _mod_value(their_mods, \"terrain\", \"bonus\") >= 15:",
+  "new": "    if we_lost and _mod_value(their_mods, \"terrain\", \"bonus\") >= 15:",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestTheFiveGravityArms"
+ },
+ {
+  "id": "D3/h the costly-VICTORY arm loses its gate (rider (i))",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if (we_won and _at_scale and our_original > 0\n            and our_casualties > our_original * 0.40):",
+  "new": "    if we_won and our_original > 0 and our_casualties > our_original * 0.40:",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestTheFiveGravityArms"
+ },
+ {
+  "id": "D3/i the narrow-defeat arm loses its gate",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if (we_lost and _at_scale and not _has_mod(our_mods, \"drill\", \"bonus\")",
+  "new": "    if (we_lost and not _has_mod(our_mods, \"drill\", \"bonus\")",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestTheFiveGravityArms"
+ },
+ {
+  "id": "D3/j the costly-defeat arm loses its gate",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if (we_lost and _at_scale and our_original > 0\n            and our_casualties > our_original * 0.30):",
+  "new": "    if we_lost and our_original > 0 and our_casualties > our_original * 0.30:",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py"
+ },
+ {
+  "id": "D3/k the ROUT arm is gated too (the positional shape's defect)",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if _our_side(battle_result, player_nation).get(\"forced_retreat\"):\n        return _fill(random.choice(_OBSERVATIONS[\"routed\"]))",
+  "new": "    if _at_scale and _our_side(battle_result, player_nation).get(\"forced_retreat\"):\n        return _fill(random.choice(_OBSERVATIONS[\"routed\"]))",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py"
+ },
+ {
+  "id": "D3/l the terminal arm vanishes and the default takes it",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if we_lost and not _at_scale:\n        return _fill(random.choice(_OBSERVATIONS[\"skirmish\"]))",
+  "new": "    if False:\n        return _fill(random.choice(_OBSERVATIONS[\"skirmish\"]))",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py"
+ },
+ {
+  "id": "D3/m the copy claims a consequence",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "        \"A skirmish, Sire. {marshal}'s men traded shots with {enemy}; \"\n        \"there was no battle to speak of.\",",
+  "new": "        \"A skirmish, Sire. {marshal}'s corps is intact after {enemy} \"\n        \"withdrew; losses were light.\",",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestTheCopy"
+ },
+ {
+  "id": "D3/n the record stops naming the fourth answer",
+  "file": "backend/game_logic/battle_scale.py",
+  "old": "  4. `battle_report._pick_bombardment_observation` — a **3% FRACTION**",
+  "new": "  4. (nothing else answers this question)",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestOneFloorTwoReaders::test_the_fourth_answer_is_named_on_the_record"
+ },
+ {
+  "id": "D3/o the record stops stating the coordination limit",
+  "file": "backend/game_logic/battle_scale.py",
+  "old": "⚠ **Two stated limits.** (a) The coordination family — seventy archived",
+  "new": "The gate covers every sub-floor loss. (a) Seventy archived",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestWhatTheGateDoesNotCover"
+ },
+ {
+  "id": "D3/p the record stops stating the third-party limit",
+  "file": "backend/game_logic/battle_scale.py",
+  "old": "(b) `we_lost` is computed against `player_nation`, so in a third-party",
+  "new": "(b) coverage is total, because in every",
+  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestWhatTheGateDoesNotCover::test_the_third_party_limit_is_stated"
+ },
+ {
+  "id": "D4/a the predicate stops discriminating",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    return GLORY_DORMANT_ACTIVE and jealousy_dormant(world)",
+  "new": "    return False",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py"
+ },
+ {
+  "id": "D4/b the lever stops reproducing HEAD",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "# teaches.\nGLORY_DORMANT_ACTIVE = True",
+  "new": "# teaches.\nGLORY_DORMANT_ACTIVE = False",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestThePredicate"
+ },
+ {
+  "id": "D4/c the accrual gate is removed",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    if glory_dormant(world):\n        return\n    turn = int(world.current_turn)",
+  "new": "    turn = int(world.current_turn)",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py"
+ },
+ {
+  "id": "D4/d the crown recompute stops clearing the ladder",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        ladder = [] if dormant else get_nation_ladder(world, nation)",
+  "new": "        ladder = get_nation_ladder(world, nation)",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestALoadedLesson"
+ },
+ {
+  "id": "D4/e the migrated crown is ANNOUNCED instead of cleared in silence",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            if dormant:\n                continue          # cleared in silence — no beat, no log row",
+  "new": "            pass",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestALoadedLesson::test_a_migrated_crown_is_cleared_in_silence"
+ },
+ {
+  "id": "D4/f the restlessness guard is removed",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world))\n              else 0)",
+  "new": "    warned = 0",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheLessonIsSilent"
+ },
+ {
+  "id": "D4/g the restlessness guard is keyed on GLORY (the measured mistake)",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world))",
+  "new": "    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and glory_dormant(world))",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheLessonIsSilent"
+ },
+ {
+  "id": "D4/h the ladder payload stops standing down",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    if glory_dormant(world):\n        return []\n    ladder = get_nation_ladder(world, world.player_nation)",
+  "new": "    ladder = get_nation_ladder(world, world.player_nation)",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheMechanicSleeps::test_the_ladder_payload_is_empty_in_the_school"
+ },
+ {
+  "id": "D4/i the glory predicate reads the OTHER lever",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    return GLORY_DORMANT_ACTIVE and jealousy_dormant(world)",
+  "new": "    return RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world)",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestThePredicate::test_the_lever_reproduces_head"
+ },
+ {
+  "id": "D4/j the jealousy_dormant prose reverts its claim about glory",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    ⚠ CORRECTED September 6, 2026 (FA-S16-D4). The sentence above used to",
+  "new": "    Note. The sentence above used to",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheCarveOutThatWasOverruled::test_the_two_prose_sites_were_narrowed"
+ },
+ {
+  "id": "D4/k the dotation prose reverts its claim about glory",
+  "file": "backend/game_logic/dotation.py",
+  "old": "    clock, no erosion, no rail notices, no card block. ⚠ NARROWED",
+  "new": "    clock, no erosion, no rail notices, no card block. ⚠ Amended",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheCarveOutThatWasOverruled::test_the_two_prose_sites_were_narrowed"
+ },
+ {
+  "id": "D4/l the scenario_name contract goes back to forbidding what it does",
+  "file": "backend/models/world_state.py",
+  "old": "        # selects a SCENARIO'S CARVE-OUTS — a named world may switch a",
+  "new": "        # is display-only and NO mechanic may ever branch on this field. A",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheCarveOutThatWasOverruled::test_the_scenario_name_contract_was_corrected"
+ },
+ {
+  "id": "D4/m the .gd prohibition is broken",
+  "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+  "old": "only glory answers envy",
+  "new": "envy is answered",
+  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheCarveOutThatWasOverruled::test_the_gd_prohibition_holds"
+ },
+ {
+  "id": "D3/q the war-score return is hoisted above the settlement accrual",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    from backend.game_logic.war_contribution import accrue_battle_contribution\n    accrue_battle_contribution(",
+  "new": "    if not battle_scale.is_a_battle(attacker_casualties + defender_casualties):\n        return\n    from backend.game_logic.war_contribution import accrue_battle_contribution\n    accrue_battle_contribution(",
+  "tests": "tests/test_war_contribution_scores.py::test_record_battle_calls_settlement_accrual_before_1000_casualty_war_score_gate"
+ }
+]

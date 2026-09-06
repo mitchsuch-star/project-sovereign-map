@@ -14,6 +14,9 @@ from backend.display_names import humanize_entity_name
 from typing import Dict, List
 
 from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
+# FA-S16-D3: a MODULE import, never `from ... import` — the floor must be
+# resolved at call time so one home moves this reader and the war score.
+from backend.game_logic import battle_scale
 from backend.models.personality_modifiers import (
     get_attack_modifier_for_personality,
     get_defense_modifier_for_personality,
@@ -575,6 +578,17 @@ _OBSERVATIONS = {
         "The square held its ground. {marshal}'s infantry stood like a fortress on the field.",
         "{marshal}'s men formed square and weathered the storm. Discipline held the line.",
     ],
+    # FA-S16-D3: too small for the engine to score as a battle at all.
+    # About SCALE, never consequence — a 58-man remnant may well have been
+    # annihilated, and the line must stay true if it was.
+    "skirmish": [
+        "A skirmish, Sire. {marshal}'s men traded shots with {enemy}; "
+        "there was no battle to speak of.",
+        "Hardly an engagement, Sire — a brush between {marshal} and "
+        "{enemy}, and the day moved on.",
+        "Scarcely an action, Sire. {marshal} and {enemy} came to blows on "
+        "too small a scale to signify.",
+    ],
     "default": [
         "The engagement proceeded as one might expect, Sire.",
         "A standard affair. Nothing unusual to report.",
@@ -636,6 +650,17 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     attacker_won = outcome in ("attacker_victory", "attacker_tactical_victory")
     defender_won = outcome in ("defender_victory", "defender_tactical_victory")
+
+    # FA-S16-D3: is this large enough to be spoken of as a battle at all?
+    # `battle_scale` owns the number and the reasoning; it is the SAME
+    # number the war score reads, so the engine and the narrator can no
+    # longer disagree about whether a day was a battle. Applied per-arm to
+    # the GRAVITY verdicts only — never to an arm reporting a mechanical
+    # state (a rout, a destroyed fort, guns caught in transit), which the
+    # player must have at any scale.
+    _at_scale = (not battle_scale.SKIRMISH_GATE_ACTIVE
+                 or battle_scale.is_a_battle(
+                     attacker_casualties + defender_casualties))
 
     # Determine perspective: which side is ours?
     attacker_nation = battle_result.get("attacker_nation", "")
@@ -832,13 +857,14 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Priority 4: We lost + terrain was a factor
     # When we attacked into enemy terrain: their_mods has terrain bonus
     # When enemy attacked us on our terrain and still won: our_mods has terrain bonus (we lost DESPITE it)
-    if we_lost and _mod_value(their_mods, "terrain", "bonus") >= 15:
+    if we_lost and _at_scale and _mod_value(their_mods, "terrain", "bonus") >= 15:
         return _fill(random.choice(_OBSERVATIONS["lost_terrain_disadvantage"]))
-    if we_lost and _mod_value(our_mods, "terrain", "bonus") >= 15:
+    if we_lost and _at_scale and _mod_value(our_mods, "terrain", "bonus") >= 15:
         return _fill(random.choice(_OBSERVATIONS["lost_despite_terrain"]))
 
     # Priority 5: We won + heavy casualties (>40% of our original)
-    if we_won and our_original > 0 and our_casualties > our_original * 0.40:
+    if (we_won and _at_scale and our_original > 0
+            and our_casualties > our_original * 0.40):
         return _fill(random.choice(_OBSERVATIONS["won_heavy_casualties"]))
 
     # Priority 5.5 (coordination): Hostile marshal forced to fight via SUPPORT (D3/A-M4)
@@ -931,7 +957,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # sentence was still wrong about the day. Guarded rather than
     # reordered, so the whole ladder above stays byte-identical and only
     # the routed case falls through to its own arm at 8.6.
-    if (we_lost and not _has_mod(our_mods, "drill", "bonus")
+    if (we_lost and _at_scale and not _has_mod(our_mods, "drill", "bonus")
             and not _our_side(battle_result, player_nation).get(
                 "forced_retreat")):
         if our_original > 0:
@@ -942,7 +968,8 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Priority 8.5: We lost with significant casualties (>30% of original) — catch-all for
     # losses that didn't match any specific condition (terrain, stance, fort, narrow margin).
     # Without this, devastating defeats like losing half an army fall through to "standard affair".
-    if we_lost and our_original > 0 and our_casualties > our_original * 0.30:
+    if (we_lost and _at_scale and our_original > 0
+            and our_casualties > our_original * 0.30):
         return _fill(random.choice(_OBSERVATIONS["lost_costly"]))
 
     # ── PT-D4, priority 8.6 ─────────────────────────────────────────────
@@ -991,6 +1018,18 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     if our_hostile_refused:
         return _fill(random.choice(_OBSERVATIONS["coordination_hostile_refused"]),
                      ally=our_hostile_refused[0])
+
+    # Priority 15 (FA-S16-D3): below the scale at which the engine will
+    # call this a battle. Everything above has had its chance, including
+    # every arm that reports a mechanical state, so what is left is a
+    # skirmish with no verdict to give. Saying so beats "A standard
+    # affair", which is the only other thing that fits and is the sentence
+    # that would otherwise become the most common loss verdict on a
+    # collapse board (239 archived lines). The copy speaks to SCALE and
+    # never to consequence — the butcher's bill is already on the line
+    # above it.
+    if we_lost and not _at_scale:
+        return _fill(random.choice(_OBSERVATIONS["skirmish"]))
 
     # Priority 16: Default
     return _fill(random.choice(_OBSERVATIONS["default"]))

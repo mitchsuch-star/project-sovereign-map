@@ -208,8 +208,46 @@ def jealousy_dormant(world) -> bool:
     measured five Soult confrontations in three lesson turns, each a modal
     the twelve-turn syllabus never explains. Glory itself still accrues (the
     Generals screen stays honest); the guard is world-scoped, so both sides
-    go quiet together (GR5). Same discriminator as the TUT-F2 autosave guard."""
+    go quiet together (GR5). Same discriminator as the TUT-F2 autosave guard.
+
+    ⚠ CORRECTED September 6, 2026 (FA-S16-D4). The sentence above used to
+    say glory "still accrues (the Generals screen stays honest)", and that
+    carve-out was measured and consciously OVERRULED: the crown is not a
+    display, it is +1 shock / +1 defense / +1 administration, it crowns
+    AUSTRIAN marshals in the lesson too, and Ney's admin 3→4 crosses the
+    MC-2b Intendance tier boundary — a recruit price. What the carve-out
+    was protecting is `battles_won`, and `battles_won` is measured
+    BYTE-IDENTICAL under the glory gate (Ney 6 / Davout 5 / Senarmont 5 /
+    Soult 0 in every arm). See `glory_dormant` below."""
     return getattr(world, "scenario_name", "") == "tutorial"
+
+
+# ⚠ FLIP LEVER (FA-S16-D4). False reproduces HEAD: glory accrues, the crown
+# forms, and the School's dispatch reports "Ney, crowned four turns ago, has
+# been beaten in the field" about a mechanic the twelve-turn syllabus never
+# teaches.
+GLORY_DORMANT_ACTIVE = True
+
+# ⚠ ITS OWN FLIP LEVER, deliberately not folded into the one above. The
+# restlessness beat is guarded on `jealousy_dormant`, not on glory, because
+# §4's literal arm never reads the ladder — so the two changes must be
+# measurable apart. False reproduces HEAD.
+RESTLESSNESS_SLEEPS_IN_SCHOOL = True
+
+
+def glory_dormant(world) -> bool:
+    """FA-S16-D4 (FA-98): the glory ladder itself sleeps in the School.
+
+    Deliberately SEPARATE from `jealousy_dormant` rather than folded into
+    it — the two carve-outs answer different questions and PC15-D3's
+    precedent ("gate the STATE, not the beats") points the other way for
+    this one, so the overrule wants its own name and its own lever.
+
+    ⚠ Beat-gating was considered and rejected: it cannot reach the +1 skills
+    a crowned Schwarzenberg is drawing in the classroom. World-scoped, so
+    both sides go quiet together (GR5).
+    """
+    return GLORY_DORMANT_ACTIVE and jealousy_dormant(world)
 
 
 # ═══════════════════════════ GLORY SCORING ═══════════════════════════════
@@ -306,7 +344,13 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     exemption used to ride an `is_garrison` argument that no production caller
     could set; it is now the `not is_garrison` term on the pipeline's glory
     step, so the ladder excludes garrison combat in both directions.
+
+    FA-S16-D4: the ONE accrual chokepoint — all eleven `_append_glory` calls
+    are lexically inside this function and there are exactly two production
+    callers — so the School's gate belongs here and nowhere else.
     """
+    if glory_dormant(world):
+        return
     turn = int(world.current_turn)
     atk_outnumbered = pre_attacker_strength < pre_defender_strength
     def_outnumbered = pre_defender_strength < pre_attacker_strength
@@ -531,9 +575,18 @@ def recompute_crowns(world) -> List[Dict]:
     nation (glory > 0) carries +1 shock/defense/administration. Returns
     change events for the player's own nation."""
     events = []
+    # FA-S16-D4: on the lesson world the crown is CLEARED, not frozen and
+    # not announced. ⚠ Both alternatives were measured and both are worse:
+    # `return []` freezes a migrated save's crown FOREVER (+1 skills and the
+    # ★ intact — TUT-F2 permits manual saves in the tutorial), and leaving
+    # the function running hands that save its crown until the 8-turn window
+    # rolls the events off and then delivers "the laurels have passed" into
+    # the classroom. Clearing is the only arm that makes the crown
+    # unreachable for a LOADED lesson as well as a fresh one.
+    dormant = glory_dormant(world)
     nations = {m.nation for m in world.marshals.values()}
     for nation in nations:
-        ladder = get_nation_ladder(world, nation)
+        ladder = [] if dormant else get_nation_ladder(world, nation)
         holder = None
         if ladder and ladder[0][1] > 0:
             # a tie for the top leaves the crown vacant — no one is
@@ -548,6 +601,8 @@ def recompute_crowns(world) -> List[Dict]:
             if was == now:
                 continue
             marshal.glory_crowned = now
+            if dormant:
+                continue          # cleared in silence — no beat, no log row
             if marshal.nation == world.player_nation:
                 if now:
                     events.append({
@@ -3312,7 +3367,17 @@ def process_turn(world) -> List[Dict]:
         apply_jealousy(world, marshal, target, delta, threshold, events)
 
     # 4) restlessness pre-warnings (spec §5) — player only, threshold-1
-    warned = 0
+    #
+    # FA-S16-D4: guarded on jealousy_dormant, NOT glory_dormant. The literal
+    # arm below reads `consecutive_hold_turns` and never touches the ladder,
+    # so no amount of glory-gating reaches it — measured, gating glory alone
+    # UNMASKS it ("Soult has been holding position… He may begin to feel...
+    # overlooked", envy vocabulary in a jealousy-dormant world, appearing on
+    # a branch where it does not fire today because Davout's ladder arm had
+    # consumed the `warned >= 1` break). TUT-F5's own docstring already
+    # promises no grievance of any kind; this completes that contract.
+    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world))
+              else 0)
     for marshal in world.marshals.values():
         if warned >= 1:
             break
@@ -3825,7 +3890,13 @@ def build_glory_card_fields(marshal, world) -> Dict:
 
 
 def build_glory_ladder_payload(world) -> List[Dict]:
-    """The player's glory ladder for the Generals screen header."""
+    """The player's glory ladder for the Generals screen header.
+
+    FA-S16-D4: empty in the School — which also hides a migrated save's
+    stale non-empty ladder. The one `.gd` reader guards on `size() > 1`.
+    """
+    if glory_dormant(world):
+        return []
     ladder = get_nation_ladder(world, world.player_nation)
     payload = []
     for marshal, score in ladder:
