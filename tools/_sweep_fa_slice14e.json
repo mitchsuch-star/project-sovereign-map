@@ -1,0 +1,156 @@
+[
+ {
+  "id": "FA-S12-1/a the window lever is down",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "CORRIDOR_MINIMUM_WINDOW_ACTIVE = True",
+  "new": "CORRIDOR_MINIMUM_WINDOW_ACTIVE = False",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheDoorIsLeftOpen::test_a_stranding_free_peace_writes_a_window"
+ },
+ {
+  "id": "FA-S12-1/b the nobody-stranded rollback writes no window",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "            grants.pop(key, None)\n        _open_minimum_window(world, nation_a, nation_b)\n        return {}",
+  "new": "            grants.pop(key, None)\n        return {}",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheDoorIsLeftOpen::test_a_stranding_free_peace_writes_a_window"
+ },
+ {
+  "id": "FA-S12-1/c the all-cut-off rollback writes no window",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "        # the geography reopens inside the window.\n        _open_minimum_window(world, nation_a, nation_b)",
+  "new": "        # the geography reopens inside the window.",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheWindowKnowsWhenNotToOpen::test_the_all_cut_off_branch_gets_one_too"
+ },
+ {
+  "id": "FA-S12-1/d a window is written even where the border is already open",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "    if (can_enter_territory(world, nation_a, nation_b, ignore_evacuation=True)\n            and can_enter_territory(world, nation_b, nation_a,\n                                    ignore_evacuation=True)):\n        return",
+  "new": "    if False:\n        return",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheWindowKnowsWhenNotToOpen::test_a_state_that_already_opens_the_border_writes_nothing"
+ },
+ {
+  "id": "FA-S12-1/e the promotion never runs",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "    _promote_minimum_windows(world)\n    grants = getattr(world, \"evacuation_grants\", None)",
+  "new": "    grants = getattr(world, \"evacuation_grants\", None)",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheDoorIsLeftOpen::test_a_corps_stranded_inside_the_window_is_handed_a_road"
+ },
+ {
+  "id": "FA-S12-1/f the promotion runs BELOW the early return",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "    _promote_minimum_windows(world)\n    grants = getattr(world, \"evacuation_grants\", None)\n    if not grants:\n        return events",
+  "new": "    grants = getattr(world, \"evacuation_grants\", None)\n    if not grants:\n        return events\n    _promote_minimum_windows(world)",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheDoorIsLeftOpen::test_a_corps_stranded_inside_the_window_is_handed_a_road"
+ },
+ {
+  "id": "FA-S12-1/g the promotion measures the road before opening it",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "        grants[key] = current + EVACUATION_MAX_TURNS\n        world._evac_direction_cache = None\n        longest = None",
+  "new": "        longest = None",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheCorridorIsSizedAtDiscovery::test_the_promotion_writes_a_provisional_grant_first"
+ },
+ {
+  "id": "FA-S12-1/h an expired window is resurrected",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "        if current > int(windows[key]):\n            windows.pop(key, None)\n            continue",
+  "new": "        if False:\n            windows.pop(key, None)\n            continue",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheDoorHasAHorizon::test_past_the_window_he_is_on_his_own"
+ },
+ {
+  "id": "FA-S12-1/i the corridor is sized from the TREATY turn, not discovery",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "        grants[key] = current + int(duration)\n        windows.pop(key, None)\n        world._evac_direction_cache = None",
+  "new": "        grants[key] = int(windows[key]) - CORRIDOR_MINIMUM_WINDOW + int(duration)\n        windows.pop(key, None)\n        world._evac_direction_cache = None",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheCorridorIsSizedAtDiscovery::test_the_clock_starts_when_he_is_found"
+ },
+ {
+  "id": "FA-S12-1/j a window becomes a right of transit",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "    key = world._make_diplo_key(nation_a, nation_b)\n    _windows(world)[key] = int(world.current_turn) + CORRIDOR_MINIMUM_WINDOW",
+  "new": "    key = world._make_diplo_key(nation_a, nation_b)\n    _windows(world)[key] = int(world.current_turn) + CORRIDOR_MINIMUM_WINDOW\n    _grants(world)[key] = int(world.current_turn) + CORRIDOR_MINIMUM_WINDOW",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestAWindowIsNotARightOfTransit::test_a_standing_window_grants_nothing"
+ },
+ {
+  "id": "FA-S12-1/k a resumed war leaves the window standing",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "    _windows(world).pop(key, None)\n    if not grants:",
+  "new": "    if not grants:",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheWindowKnowsWhenNotToOpen::test_a_resumed_war_purges_the_window"
+ },
+ {
+  "id": "FA-S12-1/l the window stops serializing",
+  "file": "backend/models/world_state.py",
+  "old": "            \"corridor_windows\": {k: int(v) for k, v in getattr(self, \"corridor_windows\", {}).items()},",
+  "new": "",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheWindowSurvivesTheSave::test_it_round_trips"
+ },
+ {
+  "id": "FA-S12-1/m the cut-off pin goes vacuous again",
+  "file": "tests/test_win_d3_road_home.py",
+  "old": "        soult = world.marshals[\"Soult\"]\n        soult.location = \"Bohemia\"\n        _make_peace(world)",
+  "new": "        _make_peace(world)",
+  "tests": "tests/test_win_d3_road_home.py::TestCutOffCorps::test_a_cut_off_corps_is_never_interned"
+ },
+ {
+  "id": "FA-S12-2/a the threat lever is down",
+  "file": "backend/models/world_state.py",
+  "old": "ELIMINATION_RELIEVES_THE_LORD = True",
+  "new": "ELIMINATION_RELIEVES_THE_LORD = False",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFourthExitRelievesTheLord::test_the_empire_is_one_satellite_smaller"
+ },
+ {
+  "id": "FA-S12-2/b the relief is sited BEFORE the pop (the empire docks itself)",
+  "file": "backend/models/world_state.py",
+  "old": "        _lord_of_the_fallen = str(\n            (self.vassals.get(nation) or {}).get(\"lord\") or \"\")\n        self.vassals.pop(nation, None)",
+  "new": "        _lord_of_the_fallen = str(\n            (self.vassals.get(nation) or {}).get(\"lord\") or \"\")\n        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:\n            from backend.game_logic.coalition import reduce_threat\n            reduce_threat(self, 10, \"vassal_lost_to_conquest\",\n                          target=_lord_of_the_fallen)\n        self.vassals.pop(nation, None)",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFourthExitRelievesTheLord::test_the_empire_does_not_dock_itself"
+ },
+ {
+  "id": "FA-S12-2/c the declined sibling shock ships anyway",
+  "file": "backend/models/world_state.py",
+  "old": "        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:\n            from backend.game_logic.coalition import reduce_threat",
+  "new": "        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:\n            for _o in self.vassals.values():\n                if _o.get(\"lord\") == _lord_of_the_fallen:\n                    _o[\"loyalty\"] = max(0, int(_o[\"loyalty\"]) - 10)\n            from backend.game_logic.coalition import reduce_threat",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheThreeDeclines::test_the_siblings_do_not_notice"
+ },
+ {
+  "id": "FA-S12-2/d the declined relation rupture ships anyway",
+  "file": "backend/models/world_state.py",
+  "old": "            reduce_threat(self, 10, \"vassal_lost_to_conquest\",\n                          target=_lord_of_the_fallen)",
+  "new": "            reduce_threat(self, 10, \"vassal_lost_to_conquest\",\n                          target=_lord_of_the_fallen)\n            self.modify_nation_relation(_lord_of_the_fallen, nation, -50)",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheThreeDeclines::test_no_relation_moves"
+ },
+ {
+  "id": "FA-S12-2/e the fifth-exit lever is down",
+  "file": "backend/models/world_state.py",
+  "old": "FREED_SATELLITE_KEEPS_ITS_ARMY = True",
+  "new": "FREED_SATELLITE_KEEPS_ITS_ARMY = False",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFifthExitIsWorseThanTheFourth::test_the_freed_satellite_keeps_its_army"
+ },
+ {
+  "id": "FA-S12-2/f the hand-back runs AFTER the marshal sweep",
+  "file": "backend/models/world_state.py",
+  "old": "                        _marshal.nation = _freed\n                        _marshal.original_nation = None",
+  "new": "                        _marshal.nation = _freed\n                        _marshal.original_nation = None\n                        _marshal.nation = nation",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFifthExitIsWorseThanTheFourth::test_the_freed_satellite_keeps_its_army"
+ },
+ {
+  "id": "FA-S12-2/g the freeing goes silent again",
+  "file": "backend/models/world_state.py",
+  "old": "                self.log_event({\n                    \"type\": \"vassal_broke_free\",\n                    \"vassal\": _freed,\n                    \"lord\": nation,\n                    \"exit\": \"lord_eliminated\",\n                    \"turn\": int(self.current_turn),\n                })",
+  "new": "                pass",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFifthExitIsWorseThanTheFourth::test_the_freeing_is_no_longer_silent"
+ },
+ {
+  "id": "FA-S12-2/h the one-liner declares a war nobody fought",
+  "file": "backend/campaign_log.py",
+  "old": "        if exit_path == \"lord_eliminated\":\n            return (f\"{lord} has fallen — {nation} is a satellite no longer, \"\n                    f\"and its corps march under their own colours again.\")",
+  "new": "        if False:\n            return \"\"",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFifthExitIsWorseThanTheFourth::test_the_one_liner_does_not_declare_a_war_nobody_fought"
+ },
+ {
+  "id": "FA-S12-2/i the ledger label is dropped",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    \"vassal_lost_to_conquest\": \"Lost a satellite to conquest\",",
+  "new": "",
+  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFourthExitRelievesTheLord::test_the_relief_is_labelled_on_the_ledger"
+ }
+]

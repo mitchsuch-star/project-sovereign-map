@@ -614,15 +614,39 @@ class TestCutOffCorps:
         assert not can_enter_territory(world, "France", "Russia")
 
     def test_a_cut_off_corps_is_never_interned(self, world):
+        """⚠ RE-SITED by FA slice 14 part 2d (September 6, 2026). It was
+        INERT, and its own slice's mutation sweep is what said so: measured,
+        all fifteen tick calls returned at `if not grants:` and the
+        `dist is None` guard it exists for ran ZERO times.
+
+        The vacuity is now impossible by construction rather than by
+        fixture: a SECOND, reachable corps keeps a grant standing, so the
+        tick reaches the judging pass every turn and the cut-off corps is
+        judged and spared rather than skipped. (Its non-vacuous sibling is
+        `test_fa_slice12_the_road_home_2026_09_05.py::TestTheGuardsAreShared
+        ::test_a_cut_off_corps_is_still_refused_honestly`; this one keeps its
+        own WIN-D3 geometry.)
+        """
         davout = self._strand_beyond_rescue(world)
+        # The reachable companion: he is what keeps the corridor alive, and
+        # therefore what makes the guard below reachable at all.
+        soult = world.marshals["Soult"]
+        soult.location = "Bohemia"
         _make_peace(world)
         home = W.get_home_zone(world, "France")
         if W.distance_home(world, davout, home) is not None:
             pytest.skip("fixture drift: this province is reachable by land")
+        assert world.evacuation_grants, (
+            "the fixture must leave a corridor standing, or the tick returns "
+            "at `if not grants:` and this pin proves nothing")
 
+        reached_the_judge = 0
         for _ in range(15):
             world.current_turn += 1
+            if world.evacuation_grants:
+                reached_the_judge += 1
             W.process_evacuation_grants(world)
+        assert reached_the_judge >= 1, "the judging pass was never reached"
         assert "Davout" in world.marshals, (
             "refusing to invent a rescue must not become punishing a corps "
             "for failing to walk a road that does not exist")

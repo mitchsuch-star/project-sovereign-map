@@ -874,9 +874,34 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # REVIEW_slice4_R2_balance_measurement.md — an unattended France overrun on
 # 8/8 seeds, a scripted one on 5/5 arms) and is put to the user as a gate
 # in the round's landing record; nothing here retunes it.
+# ── FA slice 14 part 2d re-record (September 6, 2026) ──────────────────────
+# TWO levers move it and a third is measurably inert. Six arms, arm 0
+# reproducing the prior series byte-for-byte, so the attribution is exact:
+#
+#   0   control ................ the prior series, byte-for-byte
+#   A   CORRIDOR_MINIMUM_WINDOW_ACTIVE (FA-S12-1) ... diverges at [24] ALONE,
+#       3 -> 13. Spain's Castanos is rescued from Guyenne at turn 17 instead
+#       of standing there for twenty-five turns, so Switzerland's
+#       `vassal_rebellion` -10 lands one loop later on a different board.
+#   B   ELIMINATION_RELIEVES_THE_LORD (FA-S12-2) ... diverges at [10],
+#       55 -> 45; indices 10-22 are a uniform -10 translation of the decay
+#       ramp. The lever fires EXACTLY ONCE in 40 turns (KingdomOfItaly is
+#       eliminated out of France's web at world turn 10).
+#   C   FREED_SATELLITE_KEEPS_ITS_ARMY (FA-S12-2, the fifth exit) ...
+#       BYTE-IDENTICAL, and inert BY CONSTRUCTION rather than by luck: every
+#       lord that ever exists on this board is France, and France is the
+#       player, whose elimination returns at the handler's first line.
+#   AB  A + B ................. [10] as B, and A still adds [23] = 6.
+#       AB != B, so neither lever is masked by the other.
+#   ALL A + B + C ............. IDENTICAL to AB, which is C's inertness
+#       measured a second time, in combination.
+#
+# The `provinces` map is IDENTICAL to control in all eighteen nations on
+# every arm. Neither lever changes who holds what; they change when France's
+# threat decays to nothing.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 68, 66, 63, 60, 58, 55, 52, 49, 46, 43, 40, 37,
-    34, 31, 28, 25, 22, 19, 16, 3, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 68, 66, 63, 60, 58, 45, 42, 39, 36, 33, 30, 27,
+    24, 21, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
 ]
 

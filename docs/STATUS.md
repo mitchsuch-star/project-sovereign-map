@@ -4,6 +4,44 @@
 
 ## ▶ NEXT UP
 
+> ## ✅ FA SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED September 6, 2026
+>
+> **Landing record = the boxed SLICE 14 (part 2d) block in
+> `docs/BUG_FIXES.md` (authoritative); the rules are `SYSTEMS_REFERENCE.md`
+> §39.** The two rulings slice 12 filed against itself, **FA-S12-1** and
+> **FA-S12-2**. Sweep **22/22, 0 INERT**; suite **20,747 / 4**; ONE new
+> serialized field (`corridor_windows`); `BASELINE_SERIES` **re-recorded once,
+> six-arm attributed**; M1–M7 byte-identical.
+>
+> * **FA-S12-1**: a peace now leaves a three-turn DOOR even when it stranded
+>   nobody. ⚠ A window is a MEMORY, not a right of transit — invisible to
+>   `has_evacuation_grant`, which closes the Trojan question by construction;
+>   the fallback both agents recommended was **measured completely inert** and
+>   is not built. Organic case closed both ways: Castanos stood at Guyenne
+>   turns 17–41 in control and is home at Aragon by turn 18 with the fix.
+>   ⛔ **The promotion shipped BROKEN the first time** and driving it caught
+>   it: `distance_home` routes WITH the corridor, so measuring before opening
+>   asks a corps to walk a road that does not exist.
+> * **FA-S12-2**: only the threat relief ships, and **all three declines are
+>   stated in code AND pinned**. The **fifth** exit is fixed with it — an
+>   eliminated LORD freed its satellites in silence and destroyed their corps
+>   under its own flag.
+>
+> **Series, six arms**: 0 control byte-for-byte · A alone at [24] · B alone at
+> [10] · **C byte-identical, inert BY CONSTRUCTION** · AB ≠ B (neither lever
+> masked) · ALL = AB. Provinces identical in all eighteen nations on every arm.
+> One downstream pin was **re-anchored, not re-blessed** — the elimination
+> relief takes the "largest fall" title from the rebellion, and bumping a
+> number there would have been wrong.
+>
+> **▶ NEXT = slice 15 "The Harness"** — FA-36, FA-39, FA-N79, FA-72, FA-75,
+> FA-77, FA-78, FA-79, FA-83, FA-84, FA-85, FA-89, FA-90, FA-91, FA-N34,
+> FA-N35, FA-N86, FA-N87, FA-N89, FA-102. It must land BEFORE the FA-D27
+> measurement so the driver measured with is the fixed one, and it takes a
+> three-lens review round after it. Then slice 16 (the P3/P4 copy sweep,
+> including FA-S13-1) and rulings 1 (FA-D27) and 4, then position 10.
+
+
 > ## ✅ FA SLICE 14 (part 2c) — "THE SCHOOL SEES THE ANSWER" — LANDED September 6, 2026
 >
 > **Landing record = the boxed SLICE 14 (part 2c) block in `docs/BUG_FIXES.md`

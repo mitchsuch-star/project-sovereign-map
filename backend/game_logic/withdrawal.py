@@ -143,6 +143,41 @@ EVACUATION_MAX_TURNS = 12
 # Warn while the surplus has fallen to this or below (but is still viable).
 EVACUATION_WARNING_MARGIN = 2
 
+# ── FA-S12-1 — the peace that stranded nobody still leaves a door ──────────
+#
+# `open_evacuation_corridor` rolls its provisional grant back when nobody is
+# stranded, "rather than leave an unused right of transit standing" — and
+# then `process_evacuation_grants` returns at `if not grants:` forever. So a
+# corps stranded DURING that peace was silently abandoned: no road, no
+# warning, no clock, while the identical stranding under a peace that DID
+# strand somebody is handed a road. The outcome for two corps stranded by the
+# same cause turned on whether a THIRD corps happened to be caught out when
+# the ink dried.
+#
+# Measured organically on the shipped board: the Britain|Spain peace at turn
+# 16 strands nobody and is rolled back; Britain takes Guyenne out from under
+# Spain's Castanos at turn 17; he then stands there for **25 consecutive
+# turns**, order-less, ringed by courts at PEACE, and the only thing the game
+# ever says about him is one line 23 turns late, attached to an unrelated
+# treaty.
+#
+# ⚠ A WINDOW IS NOT A RIGHT OF TRANSIT. It is a memory — "a peace happened
+# here recently" — and it confers nothing until a corps is actually found
+# stranded under it, at which point a REAL corridor is written, sized by the
+# peace's own formula against where he is standing NOW. That distinction is
+# deliberate and it is what keeps the Trojan-corridor question closed: a
+# window is invisible to `has_evacuation_grant`, so no marshal can walk on
+# one. (A `has_evacuation_grant` fallback was prototyped and MEASURED
+# COMPLETELY INERT on the shipped board — it changed no outcome anywhere,
+# and it was the sole component carrying any transit risk.)
+#
+# ⚠ AND IT HAS A HORIZON, which is the honest limit of the fix: a corps
+# stranded more than CORRIDOR_MINIMUM_WINDOW turns after the peace is not
+# helped at all. Measured at a delay of 4 turns the board is identical to
+# control. That is the only place the constant is falsifiable.
+CORRIDOR_MINIMUM_WINDOW_ACTIVE = True
+CORRIDOR_MINIMUM_WINDOW = 3
+
 # The order's own record.  Rider-(d) idiom, "words become the record": an
 # evacuation march is recognised by the phrase the treaty wrote on it, which
 # is also what the player reads in the Orders ledger.  No new serialized
@@ -160,6 +195,22 @@ def _grants(world) -> Dict[str, int]:
         grants = {}
         world.evacuation_grants = grants
     return grants
+
+
+def _windows(world) -> Dict[str, int]:
+    """FA-S12-1's store, deliberately NOT `evacuation_grants`.
+
+    A window has to be invisible to every reader of the grants store — the
+    retire rules, the judge, `has_evacuation_grant` — or it becomes a right
+    of transit, which is the thing §3.4 says a corridor must never turn into.
+    Keeping it separate is also why this row flips zero existing pins: the
+    grants store's behaviour is byte-identical.
+    """
+    windows = getattr(world, "corridor_windows", None)
+    if windows is None:
+        windows = {}
+        world.corridor_windows = windows
+    return windows
 
 
 def has_evacuation_grant(world, nation_a: str, nation_b: str,
@@ -252,9 +303,14 @@ def revoke_evacuation_grant(world, nation_a: str, nation_b: str) -> bool:
     # flush in `open_evacuation_corridor`, mirrored).
     world._evac_direction_cache = None
     grants = getattr(world, "evacuation_grants", None)
+    key = world._make_diplo_key(nation_a, nation_b)
+    # FA-S12-1: the window dies with the peace too. It grants nothing, but a
+    # window surviving into a resumed war would promote into a real corridor
+    # the moment somebody was found stranded — a peace instrument outliving
+    # the peace by the back door.
+    _windows(world).pop(key, None)
     if not grants:
         return False
-    key = world._make_diplo_key(nation_a, nation_b)
     return grants.pop(key, None) is not None
 
 
@@ -558,6 +614,7 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
             grants[key] = previous
         else:
             grants.pop(key, None)
+        _open_minimum_window(world, nation_a, nation_b)
         return {}
 
     if marching:
@@ -573,6 +630,13 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
             grants[key] = previous
         else:
             grants.pop(key, None)
+        # FA-S12-1: this branch gets a window TOO, and the symmetry is the
+        # argument. Withholding it would mean a peace that stranded people we
+        # could not help affords LESS than a peace that stranded nobody, which
+        # is arbitrary. It is near-inert by design — promotion needs a
+        # reachable road and a cut-off corps has none — so it bites only if
+        # the geography reopens inside the window.
+        _open_minimum_window(world, nation_a, nation_b)
 
     # FA-N61: a NEW treaty is a NEW offer — but only for a nation that had
     # NO passage standing at all.
@@ -617,6 +681,96 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
         "message": _grant_message(world, summary),
     })
     return summary
+
+
+def _open_minimum_window(world, nation_a: str, nation_b: str) -> None:
+    """Remember that a peace happened here, for CORRIDOR_MINIMUM_WINDOW turns.
+
+    Called from BOTH rollback branches of `open_evacuation_corridor`, which is
+    what sites it inside `WITHDRAWAL_ACTIVE` by construction — the only caller
+    returns above these lines when the lever is down.
+
+    SKIPPED when the new diplomatic state already opens the border in both
+    directions (VASSAL, ALLIANCE, OPEN_BORDERS…). A corridor there answers a
+    question nobody is asking, and writing one re-opens §3.4's "it must never
+    become open borders" for no benefit.
+    """
+    if not CORRIDOR_MINIMUM_WINDOW_ACTIVE:
+        return
+    from backend.game_logic.diplomacy import can_enter_territory
+    if (can_enter_territory(world, nation_a, nation_b, ignore_evacuation=True)
+            and can_enter_territory(world, nation_b, nation_a,
+                                    ignore_evacuation=True)):
+        return
+    key = world._make_diplo_key(nation_a, nation_b)
+    _windows(world)[key] = int(world.current_turn) + CORRIDOR_MINIMUM_WINDOW
+
+
+def _promote_minimum_windows(world) -> None:
+    """Turn a window into a REAL corridor the moment somebody needs one.
+
+    Runs as the first statement of `process_evacuation_grants`, ABOVE its
+    `if not grants:` return — on the turn a window promotes the grants store
+    is empty until it does, and the tick would otherwise return without ever
+    judging or offering.
+
+    ⚠ THE CORRIDOR IS SIZED AT DISCOVERY, NOT AT THE PEACE, and that is the
+    difference between a fix and a corps-killer. Sizing it from the treaty
+    turn hands a corps a clock that has already been running for three turns:
+    measured on synthetic geometry, every arm ended `marshal_interned` on the
+    turn of discovery, and the shipped board's one organic case survived on a
+    surplus of exactly 0.
+
+    ⚠ And the window must still be LIVE. An earlier cut sized an EXPIRED
+    window and resurrected it — a silent off-by-one that rescued a corps three
+    turns after the door had shut.
+    """
+    windows = getattr(world, "corridor_windows", None)
+    if not windows or not CORRIDOR_MINIMUM_WINDOW_ACTIVE:
+        return  # GR8: this runs every turn from advance_turn
+    grants = _grants(world)
+    current = int(world.current_turn)
+    for key in sorted(windows):
+        parts = key.split("|")
+        if len(parts) != 2:
+            windows.pop(key, None)
+            continue
+        if current > int(windows[key]):
+            windows.pop(key, None)
+            continue
+        if key in grants:
+            windows.pop(key, None)
+            continue
+        if world.get_diplomatic_state(parts[0], parts[1]) == "WAR":
+            windows.pop(key, None)
+            continue
+        # A PROVISIONAL grant goes in first, for the same reason
+        # `open_evacuation_corridor` writes one: `distance_home` routes WITH
+        # the corridor — it must, since the corridor IS the road — so asking
+        # the question before writing the grant asks every corps to walk a
+        # road that does not exist yet, and every one of them answers "no
+        # road". Measured: without this the promotion never fires at all.
+        grants[key] = current + EVACUATION_MAX_TURNS
+        world._evac_direction_cache = None
+        longest = None
+        for nation in parts:
+            home = get_home_zone(world, nation)
+            for marshal in _evacuating_marshals(world, nation, home):
+                dist = distance_home(world, marshal, home)
+                if dist is None:
+                    continue
+                longest = max(longest or 0, int(dist))
+        if longest is None:
+            # Nobody stranded, or nobody with a road. Roll the provisional
+            # grant back — the door stays shut and the window keeps waiting.
+            grants.pop(key, None)
+            world._evac_direction_cache = None
+            continue
+        duration = min(longest + EVACUATION_SLACK_TURNS,
+                       max(EVACUATION_MAX_TURNS, longest))
+        grants[key] = current + int(duration)
+        windows.pop(key, None)
+        world._evac_direction_cache = None
 
 
 def _grant_message(world, summary: Dict) -> str:
@@ -942,6 +1096,9 @@ def process_evacuation_grants(world) -> List[Dict]:
     events: List[Dict] = []
     if not WITHDRAWAL_ACTIVE:
         return events
+    # FA-S12-1: ABOVE the early return, deliberately. On the turn a window
+    # promotes, `evacuation_grants` is empty until it does.
+    _promote_minimum_windows(world)
     grants = getattr(world, "evacuation_grants", None)
     if not grants:
         return events

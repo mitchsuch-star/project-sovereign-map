@@ -49,6 +49,10 @@ _THREAT_SOURCE_LABELS = {
     "diplomatic_downgrade": "Downgraded diplomatic relations",
     "vassal_rebellion": "Vassal rebellion",
     "voluntary_vassal_release": "Released vassal voluntarily",
+    # FA-S12-2: without this row the fallback renders the raw key title-cased
+    # ("Vassal Lost To Conquest") on the Balance-of-Europe panel and in
+    # Talleyrand's "what stirred Europe this turn".
+    "vassal_lost_to_conquest": "Lost a satellite to conquest",
     "region_control_50": "Controls 50%+ of map",
     "region_control_40": "Controls 40%+ of map",
     "region_control_30": "Controls 30%+ of map",

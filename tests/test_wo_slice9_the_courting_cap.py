@@ -968,19 +968,40 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.
         at `current_turn` i+1. The capped rebellion is not a coincidence
-        in the series — it IS the series' largest single-turn fall (-12,
-        where every other FALL is at most 2; the series does contain a
-        +18 RISE at index 13->14, which an earlier draft of this
-        sentence got wrong. The assertion uses `min(steps)` and was
-        always correct).
+        in the series — it is a large single-turn fall, and the largest
+        one the ORDINARY decay schedule can produce.
+
+        ⚠ RE-ANCHORED by FA slice 14 part 2d (September 6, 2026), and NOT
+        by bumping a number. `ELIMINATION_RELIEVES_THE_LORD` grants France a
+        one-off -10 when KingdomOfItaly is eliminated out of its web at world
+        turn 10; with the ordinary -3 decay on the same tick that step is
+        -13, and it TAKES the "largest fall" title from the rebellion. The
+        old pin then demanded the rebellion at turn 11 against an actual 25 —
+        an honest failure, not a stale literal.
+
+        The rebellion is now identified as the largest fall among the steps
+        the elimination did not author. The `count == 1` clause stays: it is
+        what makes "the" largest fall meaningful, and it is the clause that
+        rejected the `amount = 8` variant, which produced a joint-worst step.
+
+        The prose about magnitudes was ALSO wrong before this edit and is
+        corrected rather than carried: the worst step was -13, not -12, and
+        the series holds some twenty other falls of -3.
 
         Killed by: any change to the rebellion timing that does not also
-        move the recorded series."""
+        move the recorded series.
+        """
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
         steps = [BASELINE_SERIES[i + 1] - BASELINE_SERIES[i]
                  for i in range(len(BASELINE_SERIES) - 1)]
-        worst = min(steps)
-        assert steps.count(worst) == 1, (
-            f"the largest fall {worst} is no longer unique: {steps}")
-        index = steps.index(worst) + 1
+        # The elimination relief is a known, once-only event at world turn 10,
+        # i.e. the step from index 9 to index 10. Name it and exclude it.
+        elimination_step = 9
+        assert steps[elimination_step] == -13, steps[elimination_step]
+        ordinary = [s for i, s in enumerate(steps) if i != elimination_step]
+        worst = min(ordinary)
+        assert ordinary.count(worst) == 1, (
+            f"the largest ordinary fall {worst} is no longer unique: {steps}")
+        index = steps.index(worst, 0) + 1
+        assert steps[index - 1] == worst and index - 1 != elimination_step
         assert _rebellion_turn(True) == index + 1

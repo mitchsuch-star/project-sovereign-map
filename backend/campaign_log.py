@@ -2010,6 +2010,14 @@ def format_event_oneliner(event: dict) -> str:
         if exit_path == "vassal_rebellion_independent":
             return (f"Vassal rebellion: {nation} breaks free of {lord} "
                     f"and stands alone.")
+        # FA-S12-2: the FOURTH arm, and it is not a rebellion at all — the
+        # lord is dead and the satellite is free by default. Without it the
+        # `lord_eliminated` exit falls through to "…has broken free. War.",
+        # which is wrong in every clause: nobody broke anything and there is
+        # no war.
+        if exit_path == "lord_eliminated":
+            return (f"{lord} has fallen — {nation} is a satellite no longer, "
+                    f"and its corps march under their own colours again.")
         return f"Vassal rebellion: {nation} has broken free of {lord}. War."
 
 

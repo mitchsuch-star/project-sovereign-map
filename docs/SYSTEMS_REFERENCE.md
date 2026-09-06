@@ -4817,3 +4817,78 @@ mounts it carries `capture_choice` and `pending_capture_choice` together.
 an ordinary command alike — so it cannot be hardened by a key-presence check,
 and any successful command heals a stale card. That is why observing the
 letter-book is safe: it changes WHEN the card heals, not whether.
+
+---
+
+## 39. The door and the fallen lord (FA slice 14 part 2d, landed September 6, 2026)
+
+The two rulings slice 12 filed against itself. Landing record in
+`BUG_FIXES.md` §Final Whole-Game Audit; pins in
+`tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py`.
+
+**1. A peace leaves a door open for three turns, even when it stranded
+nobody** (`world.corridor_windows`, `CORRIDOR_MINIMUM_WINDOW = 3`). Without
+it the outcome for two identically stranded corps turned on whether a THIRD
+corps happened to be caught out when the ink dried.
+
+**⚠ A WINDOW IS NOT A RIGHT OF TRANSIT.** It is a memory that a peace
+happened here, it lives in its OWN store, and it is invisible to
+`has_evacuation_grant` — no marshal can walk on one. It confers nothing until
+a corps is actually found stranded under it, at which point a REAL corridor is
+written. That is what closes the Trojan-corridor question by construction, and
+it is also why the row flips no existing pin: `evacuation_grants` behaves
+byte-identically.
+
+**⛔ The promotion must write a PROVISIONAL grant before it measures.**
+`distance_home` routes WITH the corridor — the corridor IS the road — so
+asking how far a corps is from home before opening the door asks him to walk a
+road that does not exist, and he answers "no road". This shipped broken once
+and driving it is what caught it; `open_evacuation_corridor` has always solved
+it the same way.
+
+**The corridor is sized at DISCOVERY, never at the peace.** Sizing from the
+treaty turn hands a corps a clock that has already been running for three
+turns. A pin asserting only a floor on the surplus is INERT — compare the
+surplus at two discovery delays instead.
+
+**An EXPIRED window is refused, both rollback branches write one, and a
+resumed war purges it.** The all-cut-off branch gets a window because
+withholding it would mean a peace that stranded people we could not help
+affords LESS than a peace that stranded nobody; it is near-inert by design,
+since promotion needs a reachable road.
+
+**The honest limit is part of the rule: a corps stranded more than
+`CORRIDOR_MINIMUM_WINDOW` turns after the peace is not covered.** That is the
+only place the constant is falsifiable and it is pinned in both directions.
+
+**2. Elimination is a FOURTH way to stop being a satellite** — and the one
+that actually fires on the shipped board. Only the threat relief ships
+(`ELIMINATION_RELIEVES_THE_LORD`, `reduce_threat(..., 10,
+"vassal_lost_to_conquest", target=lord)`), sited **AFTER**
+`self.vassals.pop(nation, None)`: before it, the departing row still satisfies
+`other_state["lord"] == lord` and the empire docks ITSELF.
+
+**Each of the three declines is stated in code AND pinned**, because a decline
+nobody can see is indistinguishable from an omission. The −50 relation (no
+court left to be angry with). The corps hand-back on the satellite path
+(neither siting is right — an assimilated contingent flies the LORD's flag).
+The sibling −10 shock (a defiance-is-contagious signal, and a satellite EATEN
+by a rival demonstrates the opposite; it is also the only arm that costs
+France a province, which against the FA-D27 gate makes an already-overrun
+France strictly worse). `amount = 8` — the `release_vassal` figure — is
+measured WORSE: it makes the series' largest single-turn fall non-unique.
+
+**3. There is a FIFTH exit and it is worse than the fourth**
+(`FREED_SATELLITE_KEEPS_ITS_ARMY`). When a LORD is eliminated the same handler
+freed its satellites in total silence AND destroyed the satellite's own
+assimilated corps, tombstoning it under the lord's flag, because the marshal
+sweep keys on `m.nation` — while the satellite survived with its provinces and
+no army. **The hand-back therefore runs BEFORE the sweep, which is the
+opposite siting from the satellite path**, reading the rows sixty lines before
+they are deleted (the FA-38 `_lord_of_the_fallen` idiom).
+
+**Reuse `vassal_broke_free` with `exit: "lord_eliminated"`; do not mint a
+type** (a new one costs twelve pins across twelve files and forfeits the fog
+arm, the one-liner switch and the dispatch consumer). **But reuse is not
+free**: without its own arm in `format_event_oneliner` the exit falls through
+to "…has broken free of {lord}. War." — wrong in every clause.

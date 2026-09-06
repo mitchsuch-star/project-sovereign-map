@@ -365,11 +365,33 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After slice 14 part 2c: **71 defect rows
-> and 24 design rows / gates still open**, of 232 filed; 122 closed, 15
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 71 are spoken for by
-> slices 14 (part 2d) → 15 → 16;
+> number in a heading. After slice 14 (complete): **69 defect rows
+> and 24 design rows / gates still open**, of 232 filed; 124 closed, 15
+> disposed (duplicate, refuted, or re-homed). The FA-R family is empty. The 69 are spoken for by
+> slices 15 → 16;
 > the 24 need rulings, not builds.
+>
+> **▶ SLICE 14 IS COMPLETE — part 2d "THE DOOR AND THE FALLEN LORD" LANDED
+> September 6, 2026.** Landing record = the boxed SLICE 14 (part 2d) block in
+> `BUG_FIXES.md`; the rules are `SYSTEMS_REFERENCE.md` §39. **FA-S12-1** +
+> **FA-S12-2**, the two rulings slice 12 filed against itself. A peace now
+> leaves a three-turn DOOR even when it stranded nobody — ⚠ a window is a
+> MEMORY, not a right of transit, invisible to `has_evacuation_grant`, which
+> closes the Trojan question by construction; the fallback both agents
+> recommended was measured **completely inert** and is not built. Organic case:
+> Castanos stood at Guyenne turns 17–41 in control, home at Aragon by t18 with
+> the fix. ⛔ **The promotion shipped BROKEN the first time** — `distance_home`
+> routes WITH the corridor, so measuring before opening asks a corps to walk a
+> road that does not exist. FA-S12-2 ships only the threat relief, with **all
+> three declines stated in code AND pinned**, plus the FIFTH exit (an
+> eliminated LORD freed its satellites in silence and destroyed their corps
+> under its own flag; the hand-back runs BEFORE the marshal sweep, the opposite
+> siting from the satellite path). ONE new serialized field
+> (`corridor_windows`); sweep 22/22, 0 INERT; **`BASELINE_SERIES` re-recorded
+> once, six-arm attributed** — C byte-identical and inert BY CONSTRUCTION, AB
+> ≠ B so neither lever is masked, provinces identical in all eighteen nations.
+> One downstream pin **re-anchored, not re-blessed**. **NEXT = slice 15 "The
+> Harness"**, which must land before the FA-D27 measurement.
 >
 > **▶ SLICE 14 (PART 2c) "THE SCHOOL SEES THE ANSWER" IS LANDED — September 6,
 > 2026.** Landing record = the boxed SLICE 14 (part 2c) block in

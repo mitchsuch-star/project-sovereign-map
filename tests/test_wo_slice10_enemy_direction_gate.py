@@ -1022,8 +1022,17 @@ class TestTheAmbientBoard:
         THE SLICE-4 BOARD, and the byte-identity this pin can still prove
         against the original record is indices [0]-[3]. What it proves
         beyond that is the levers' honesty in the other direction: the
-        gated arm (below) equals the standing BASELINE_SERIES exactly."""
-        assert ungated["series"] == [70, 68, 66, 64, 62, 68, 66, 64, 62, 60, 58, 55, 52, 49, 46, 43, 40, 37, 34, 31, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        gated arm (below) equals the standing BASELINE_SERIES exactly.
+
+        Re-recorded again by FA slice 14 part 2d (September 6, 2026):
+        `ELIMINATION_RELIEVES_THE_LORD` grants France a one-off -10 when
+        KingdomOfItaly is eliminated out of its web at world turn 10, which
+        forks BOTH arms at index [10] (here 58 -> 48). The gated arm's own
+        fork is recorded in `test_ai_intent_threat_migration.py` with a
+        six-arm attribution; this list is the same change seen from the
+        ungated side, and indices [0]-[9] are byte-identical to the previous
+        record."""
+        assert ungated["series"] == [70, 68, 66, 64, 62, 68, 66, 64, 62, 60, 48, 45, 42, 39, 36, 33, 30, 27, 24, 21, 23, 20, 17, 19, 16, 3, 5, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite

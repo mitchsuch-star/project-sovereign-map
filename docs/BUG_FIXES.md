@@ -451,6 +451,164 @@
 > |---|---|---|---|---|
 > | **FA-S13-1** | P4 | **Three residues from the slices 12+13 review round, each measured, each deliberately out of that round's scope.** (a) **The two map-key routes read different fields.** `map_renderer_base.gd::_unhandled_input` matches `event.physical_keycode` for M / Home / +/−; `main.gd::_alt_game_key`, added by slice 13, matches `event.keycode`. On a non-US layout the bare key and its Alt form therefore answer different physical keys. A refuter measured which half is the odd one and it is **not** the slice's: `keycode` is the layout-mapped value a player expects from a labelled key, and the `physical_keycode` half is five months old and untouched by slice 13 — so this is a pre-existing inconsistency the new call sits beside, not one it created. (b) **The "free win" reached only one route.** `cycle_map_fill_mode() -> String` returns the new mode; the Alt route prints it to the terminal, the bare route in `map_renderer_base` still discards it, so a player who clicks the map and presses M is told nothing. It cannot simply be copied — the map renderer has no terminal to write to and would need a signal or a call back into `main.gd`. (c) **The Settings credits line hard-codes the SHIPPED layout.** `settings_panel.gd` now says the notices are "beside the game, with the per-family notices in `licenses\`", which is true of the zip and false of a source checkout — in the same slice that created `Utils.launch_hint()` precisely because a location claim depends on which build is running. Also recorded, not filed: the strategic debug line prints `(issued turn None)` for the treaty's order, which is dev-facing stdout only. | `godot-client/project-sovereign/scenes/map_renderer_base.gd::_unhandled_input` vs `scripts/main.gd::_alt_game_key` · `map_renderer_base.gd::cycle_map_fill_mode` and its bare caller · `scripts/settings_panel.gd` (the credits line) | ⚠ **OPEN — filed September 5, 2026 by the slices 12+13 review round.** Owner: **slice 16** (the copy sweep), which already owns the P3/P4 remainder and touches these surfaces. Done when (a) both routes read the same field with the choice stated in a comment, (b) the bare map-key route either reports the mode or the Alt route's report is documented as the only one and why, and (c) the credits line branches on `OS.has_feature("editor")` like `Utils.launch_hint()` does — each with a pin. |
 
+> ### ✅ SLICE 14 (part 2d) — "THE DOOR AND THE FALLEN LORD" — FIXED September 6, 2026
+>
+> **Landing record: this block.** The two rulings slice 12 filed against
+> itself: **FA-S12-1** and **FA-S12-2**. Sweep **22 mutations, 22 killed, 0
+> INERT, 0 BROKEN**; suite **20,747 / 4**; ruff clean; parser eval 681/681;
+> M1–M7 byte-identical. ONE new serialized field. `BASELINE_SERIES`
+> **re-recorded ONCE, six-arm flip-attributed**. **Slice 14 is now complete.**
+>
+> ---
+>
+> **FA-S12-1 — a peace that stranded nobody left no door at all.**
+> `open_evacuation_corridor` rolls its provisional grant back when nobody is
+> stranded, and `process_evacuation_grants` then returns at `if not grants:`
+> forever — so a corps stranded DURING that peace was silently abandoned,
+> while the identical stranding under a peace that DID strand somebody is
+> handed a road. The outcome for two corps stranded by the same cause turned
+> on whether a THIRD corps happened to be caught out when the ink dried.
+>
+> **The organic case, measured on the shipped board both ways.** The
+> Britain|Spain peace at turn 16 strands nobody; Britain takes Guyenne out
+> from under Spain's Castanos at turn 17. Control: he stands there **turns
+> 17 through 41**, order-less, ringed by courts at PEACE. Fixed: 4 windows
+> written, one promotion at turn 17, and he is **home at Aragon by turn 18**.
+>
+> **⚠ A WINDOW IS NOT A RIGHT OF TRANSIT, and that is what closes the
+> Trojan-corridor question by construction.** It is a memory — "a peace
+> happened here" — invisible to `has_evacuation_grant`, so no marshal can
+> walk on one. It confers nothing until a corps is actually found stranded
+> under it, at which point a REAL corridor is written. **The refuter measured
+> the `has_evacuation_grant` fallback both agents recommended as COMPLETELY
+> INERT on the shipped board** — it changed no outcome anywhere, and it was
+> the sole component carrying any transit risk. It is not built.
+>
+> **It lives in its own store, `world.corridor_windows`, and that is why this
+> row flips zero existing pins**: `evacuation_grants` behaves byte-identically,
+> so the retire rules, the judge and the direction term are all untouched. The
+> reproduction's own first shape put it in the grants store and cost six pins.
+>
+> **⛔ THE PROMOTION SHIPPED BROKEN THE FIRST TIME AND DRIVING IT IS WHAT
+> CAUGHT IT.** `distance_home` routes WITH the corridor — it must, the
+> corridor IS the road — so asking "how far is he from home" before writing
+> the grant asks him to walk a road that does not exist, and he answers "no
+> road". Measured: the promotion never fired, on any geometry. It writes a
+> PROVISIONAL grant first and rolls it back if nobody has a road, exactly as
+> `open_evacuation_corridor` does, and there is a pin whose pre-condition is
+> that the unmeasured distance is `None`. **The six-arm series experiment had
+> already been run against the broken code and was re-run afterwards** — the
+> arms are identical, which is worth knowing and would not have been safe to
+> assume.
+>
+> **Two more constraints, both measured rather than reasoned.** The corridor
+> is **sized at DISCOVERY**, never at the peace: sizing from the treaty turn
+> hands a corps a clock that has already been running, and the pin compares
+> the surplus at two discovery delays rather than asserting a floor (the floor
+> version was found INERT by the sweep). And the promotion refuses an EXPIRED
+> window — an off-by-one there silently resurrects a door three turns after it
+> shut.
+>
+> **The honest limit is on the row and in the code: a corps stranded more than
+> `CORRIDOR_MINIMUM_WINDOW` turns after the peace is not helped at all.** That
+> is the only place the constant is falsifiable, and it is pinned in both
+> directions.
+>
+> **The all-cut-off branch gets a window too**, and the symmetry is the
+> argument: withholding it would mean a peace that stranded people we could
+> not help affords LESS than a peace that stranded nobody. It is near-inert by
+> design — promotion needs a reachable road and a cut-off corps has none.
+>
+> **`test_win_d3_road_home.py::TestCutOffCorps::test_a_cut_off_corps_is_never_interned`
+> is RE-SITED, not re-noted.** It was inert and its own slice's sweep said so:
+> all fifteen tick calls returned at `if not grants:` and the `dist is None`
+> guard it exists for ran ZERO times. It now stages a second, reachable corps
+> so the judging pass is reached, and asserts that it was.
+>
+> ---
+>
+> **FA-S12-2 — elimination is a fourth way to stop being a satellite, and it
+> is the one that actually fires on the shipped board.** KingdomOfItaly leaves
+> France that way at turn 10 and Holland's loyalty does not move by a point.
+>
+> **ONLY the threat relief ships, and each of the three declines is stated in
+> code AND pinned** — a decline nobody can see is indistinguishable from an
+> omission. The **−50 relation** is declined because there is no court left to
+> be angry with (measured inert; `release_vassal`, the engine's own
+> non-betrayal precedent, declines it too). The **corps hand-back on the
+> satellite path** is declined because neither siting is right: an assimilated
+> contingent flies the LORD's flag, so before the sweep it acquires the dead
+> satellite's name and dies, and after it is an orphan of a nation with no
+> territory. The **sibling −10 shock** is declined twice over: in
+> `check_vassal_rebellion` it is a defiance-is-contagious signal and a
+> satellite EATEN by a rival demonstrates the opposite, and it is the only arm
+> that costs France a province on the measured board — which against the
+> standing **FA-D27** balance gate makes an already-overrun France strictly
+> worse.
+>
+> **`amount = 8`** — the exact `release_vassal` figure — was measured and is
+> worse: it makes the series' largest single-turn fall non-unique, destroying
+> a standing pin's identity for no gain. 10 stands.
+>
+> **The FIFTH exit is worse than the fourth and is fixed with it.** When a
+> LORD is eliminated the same handler frees its satellites in total silence —
+> and the satellite's own assimilated corps is DESTROYED and tombstoned under
+> the lord's flag, because the marshal sweep keys on `m.nation`, while the
+> satellite survives with its provinces and no army. The hand-back therefore
+> runs **BEFORE** the sweep, which is the opposite of where it would go on the
+> satellite path, reading the rows sixty lines before they are deleted (the
+> FA-38 `_lord_of_the_fallen` idiom).
+>
+> **It reuses `vassal_broke_free` with `exit: "lord_eliminated"` rather than
+> minting a type** — a new one costs twelve pins across twelve files and
+> forfeits the fog arm, the one-liner switch and the dispatch consumer that
+> the reuse inherits free. **But reuse is not free either, and the refuter
+> caught it**: without its own arm the exit falls through to *"…has broken
+> free of {lord}. **War.**"* — wrong in every clause, since nobody broke
+> anything and there is no war. The fourth arm is written, and pinned against
+> both words.
+>
+> ---
+>
+> **THE SERIES — one re-record, six arms, and the attribution is exact.**
+>
+> | arm | lever | result |
+> |---|---|---|
+> | **0** | control | reproduces the prior series **byte-for-byte** |
+> | **A** | `CORRIDOR_MINIMUM_WINDOW_ACTIVE` | diverges at **[24] ALONE**, 3 → 13 |
+> | **B** | `ELIMINATION_RELIEVES_THE_LORD` | diverges at **[10]**, 55 → 45; [10]–[22] a uniform −10 translation |
+> | **C** | `FREED_SATELLITE_KEEPS_ITS_ARMY` | **BYTE-IDENTICAL** |
+> | **AB** | A + B | [10] as B, **and A still adds [23] = 6** — so neither lever is masked |
+> | **ALL** | A + B + C | **identical to AB** — C's inertness measured a second time |
+>
+> Arm A's cause is Castanos rescued from Guyenne, so Switzerland's
+> `vassal_rebellion` lands one loop later on a different board. Arm B's lever
+> fires **exactly once in 40 turns**. **Arm C is inert BY CONSTRUCTION, not by
+> luck**: every lord that ever exists on this board is France, and France is
+> the player, whose elimination returns at the handler's first line. The
+> `provinces` map is **identical to control in all eighteen nations on every
+> arm** — neither lever changes who holds what, only when France's threat
+> decays to nothing.
+>
+> **Two downstream pins moved, and one of them is NOT a re-bless.**
+> `test_wo_slice10`'s hard-coded UNGATED list re-records at index [10] (58 →
+> 48) — the same change seen from the other side. But
+> `test_wo_slice9…::test_the_delay_is_where_the_series_falls_furthest` asserts
+> the capped rebellion IS the series' unique largest fall, and the elimination
+> relief (−10, plus the ordinary −3 on the same tick) **takes that title from
+> it**. Bumping a number there would have been wrong; the pin is RE-ANCHORED
+> to the largest fall among the steps the elimination did not author, keeping
+> the uniqueness clause that is what rejected `amount = 8`. Its prose was also
+> wrong before this edit (the worst step was −13, not −12) and is corrected
+> rather than carried.
+>
+> ⚠ **A prediction that did NOT survive contact**: the measurement agent
+> warned that `test_the_cap_delays_the_rebellion_it_does_not_prevent_it` would
+> go to a zero delay and become a green tautology. That was a B-only
+> measurement. With both levers the delay survives at one turn and the pin
+> passes untouched — which is why the arms are run in combination and not just
+> singly.
+
 > ### ✅ SLICE 14 (part 2c) — "THE SCHOOL SEES THE ANSWER" — FIXED September 6, 2026
 >
 > **Landing record: this block.** Rows closed: **FA-N78** and **FA-42**.
@@ -1407,8 +1565,8 @@
 >
 > | ID | P | Finding | Seam | Status |
 > |---|---|---|---|---|
-> | **FA-S12-1** | P3 | **A peace that stranded nobody leaves no corridor at all, so a corps stranded DURING that peace is silently abandoned — no road, no warning, no clock, and no right of transit — while the identical stranding under a peace that DID strand somebody is handed a road.** The outcome for two corps stranded by the same cause turns on whether a THIRD corps happened to be caught out when the ink dried. Measured: `open_evacuation_corridor` writes a provisional grant, finds `marching` and `cut_off` both empty, and rolls it back "rather than leave an unused right of transit standing"; `process_evacuation_grants` then returns at `if not grants:` forever, so slice 12's top-up — keyed on a standing grant — never reaches him either. Found twice, independently: once by a reproduction agent probing the no-grant geometry, and once by the slice's own mutation sweep, which reported the cut-off guard INERT because the pin had staged exactly this shape and was green about a line it never executed. **Two candidate resolutions, and the choice is a design call, not a bug fix.** (a) Give the corridor a minimum window so the tick can top up anyone stranded inside it — but the "finished" retire rule pops a grant the moment nobody is stranded, so this needs memory of whether the corridor ever served anyone, and an unbounded version would make the corridor the OPEN_BORDERS that §3.4 says it must never be. (b) Rule that a corps stranded after a stranding-free peace is deliberately uncovered — consistent with §3.4 ("it exists only because a war just ended"), and cheaper — but then say so somewhere, because today he is simply stuck with no explanation. **WO-17's direction term makes (a) safe from the Trojan-corridor exploit** (only a genuinely stranded corps has a claim), which is the fact that makes the choice live rather than foreclosed. | `backend/game_logic/withdrawal.py::open_evacuation_corridor` (the rollback) · `::process_evacuation_grants` (the `if not grants:` early return and the "everybody is home" retire rule) | ⚠ **OPEN — filed September 5, 2026 by FA slice 12.** Owner: **slice 14** (the singles), or a gate if (a) is preferred, since it changes the corridor's lifetime rule. Done when a corps stranded during a stranding-free peace either gets the same treatment as one stranded during any other peace, or is documented as uncovered with a falsifiable pin saying so — and either way the slice-12 cut-off pin's fixture note is updated to point at the ruling. |
-> | **FA-S12-2** | P3 | **A satellite has a FOURTH way to stop being one — elimination — and it applies none of the four break effects, and it is the exit that actually fires on the shipped board.** `WorldState`'s elimination handler pops the vassal row directly (the block carrying the FA-38 `_lord_of_the_fallen` comment) without calling `vassal.complete_vassal_break`, so no assimilated corps is handed back, no sibling satellite takes the −10, the lord's coalition threat does not fall, and no relation moves. Measured on the ambient 40-turn board: KingdomOfItaly leaves France this way at turn 11 (`'KingdomOfItaly Eliminated!'`), Holland sits at loyalty 92 on turn 10 and 92 on turn 11, and Switzerland moves only by its normal drift. Found by a refuter attacking the FA-N73 reproduction, whose own conclusion — "the graceful exit fires zero times in 40 turns" — is true and hid this. **Not all four effects are obviously owed**: the corps hand-back and the −50 relation are arguable when the satellite is conquered by a THIRD party rather than departing, while the sibling shock and the lord's threat reduction describe "the empire is smaller" and read as owed. **This moves `BASELINE_SERIES`** — `reduce_threat` is one of the four — so it needs a flip-arm attribution, which is why it is filed rather than folded into slice 12. | `backend/models/world_state.py` — the nation-elimination handler's `self.vassals.pop(nation, None)` and its sibling-lord sweep · `backend/game_logic/vassal.py::complete_vassal_break` | ⚠ **OPEN — filed September 5, 2026 by FA slice 12.** Owner: **slice 14** (it changes AI-visible threat and needs a series flip-arm). Done when the elimination exit either calls the shared tail or states in code which of the four it deliberately declines and why, with a pin per arm and a re-recorded series attributed to the `reduce_threat` lever alone. |
+> | **FA-S12-1** | P3 | **A peace that stranded nobody leaves no corridor at all, so a corps stranded DURING that peace is silently abandoned — no road, no warning, no clock, and no right of transit — while the identical stranding under a peace that DID strand somebody is handed a road.** The outcome for two corps stranded by the same cause turns on whether a THIRD corps happened to be caught out when the ink dried. Measured: `open_evacuation_corridor` writes a provisional grant, finds `marching` and `cut_off` both empty, and rolls it back "rather than leave an unused right of transit standing"; `process_evacuation_grants` then returns at `if not grants:` forever, so slice 12's top-up — keyed on a standing grant — never reaches him either. Found twice, independently: once by a reproduction agent probing the no-grant geometry, and once by the slice's own mutation sweep, which reported the cut-off guard INERT because the pin had staged exactly this shape and was green about a line it never executed. **Two candidate resolutions, and the choice is a design call, not a bug fix.** (a) Give the corridor a minimum window so the tick can top up anyone stranded inside it — but the "finished" retire rule pops a grant the moment nobody is stranded, so this needs memory of whether the corridor ever served anyone, and an unbounded version would make the corridor the OPEN_BORDERS that §3.4 says it must never be. (b) Rule that a corps stranded after a stranding-free peace is deliberately uncovered — consistent with §3.4 ("it exists only because a war just ended"), and cheaper — but then say so somewhere, because today he is simply stuck with no explanation. **WO-17's direction term makes (a) safe from the Trojan-corridor exploit** (only a genuinely stranded corps has a claim), which is the fact that makes the choice live rather than foreclosed. | `backend/game_logic/withdrawal.py::open_evacuation_corridor` (the rollback) · `::process_evacuation_grants` (the `if not grants:` early return and the "everybody is home" retire rule) | ✅ **FIXED September 6, 2026 — FA slice 14 (part 2d)** (landing record = the boxed SLICE 14 (part 2d) block). Resolution **(a)**, built on its OWN serialized store `world.corridor_windows` — which is why it flips zero existing pins, the grants store being byte-identical. **⚠ A window is a MEMORY, not a right of transit**: invisible to `has_evacuation_grant`, so nobody can walk on one, which closes the Trojan question by construction. The `has_evacuation_grant` fallback both agents recommended was **measured COMPLETELY INERT** and carried the entire transit risk — NOT built. The organic case is closed both ways: control leaves Spain's Castanos at Guyenne turns 17–41, and the fix has him home at Aragon by turn 18. **⛔ The promotion shipped BROKEN the first time** — `distance_home` routes WITH the corridor, so measuring the road before opening it asks every corps to walk a road that does not exist, and the promotion never fired on any geometry; it writes a PROVISIONAL grant first, as `open_evacuation_corridor` does. Sized at DISCOVERY (the floor-style pin for that was found INERT and is now a two-delay comparison); an expired window is refused; both rollback branches get one; a resumed war purges it. The honest limit is stated and pinned in both directions: a corps stranded more than 3 turns after the peace is not covered. `test_win_d3_road_home::TestCutOffCorps::test_a_cut_off_corps_is_never_interned` is RE-SITED rather than re-noted — it was inert and now stages a second reachable corps so the judging pass is reached. |
+> | **FA-S12-2** | P3 | **A satellite has a FOURTH way to stop being one — elimination — and it applies none of the four break effects, and it is the exit that actually fires on the shipped board.** `WorldState`'s elimination handler pops the vassal row directly (the block carrying the FA-38 `_lord_of_the_fallen` comment) without calling `vassal.complete_vassal_break`, so no assimilated corps is handed back, no sibling satellite takes the −10, the lord's coalition threat does not fall, and no relation moves. Measured on the ambient 40-turn board: KingdomOfItaly leaves France this way at turn 11 (`'KingdomOfItaly Eliminated!'`), Holland sits at loyalty 92 on turn 10 and 92 on turn 11, and Switzerland moves only by its normal drift. Found by a refuter attacking the FA-N73 reproduction, whose own conclusion — "the graceful exit fires zero times in 40 turns" — is true and hid this. **Not all four effects are obviously owed**: the corps hand-back and the −50 relation are arguable when the satellite is conquered by a THIRD party rather than departing, while the sibling shock and the lord's threat reduction describe "the empire is smaller" and read as owed. **This moves `BASELINE_SERIES`** — `reduce_threat` is one of the four — so it needs a flip-arm attribution, which is why it is filed rather than folded into slice 12. | `backend/models/world_state.py` — the nation-elimination handler's `self.vassals.pop(nation, None)` and its sibling-lord sweep · `backend/game_logic/vassal.py::complete_vassal_break` | ✅ **FIXED September 6, 2026 — FA slice 14 (part 2d)** (landing record = the boxed SLICE 14 (part 2d) block). **Only the threat relief ships**, sited AFTER the pop (before it, the departing row satisfies `other_state["lord"] == lord` and the empire docks ITSELF), and **each of the three declines is stated in code AND pinned** — a decline nobody can see is indistinguishable from an omission. The −50 relation: no court left to be angry with. The corps hand-back on the satellite path: NEITHER siting is right, because an assimilated contingent flies the lord's flag. The sibling −10 shock: it is a defiance-is-contagious signal and a satellite EATEN by a rival demonstrates the opposite — and it is the only arm that costs France a province, which against the standing FA-D27 gate makes an already-overrun France strictly worse. `amount = 8` was measured and is worse (it makes the series' largest fall non-unique). **The FIFTH exit is fixed with it and is worse than the fourth**: an eliminated LORD freed its satellites in total silence AND its satellite's corps was destroyed and tombstoned under the lord's flag, so the hand-back runs BEFORE the marshal sweep — the opposite siting from the satellite path. Reuses `vassal_broke_free` with `exit: lord_eliminated` (a new type costs twelve pins across twelve files), **and the reuse needed its own one-liner arm**, which the refuter caught: without it the exit fell through to “…has broken free. War.” — nobody broke anything and there is no war. |
 
 > ### ✅ SLICE 12 — "THE ROAD HOME IS WALKED" — FIXED September 5, 2026
 >

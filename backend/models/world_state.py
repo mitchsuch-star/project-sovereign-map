@@ -701,6 +701,52 @@ def _reconcile_saved_adjacency(regions: Dict[str, "Region"]) -> int:
 # apply to every nation's horse, not only the player's (GR5).
 CAVALRY_LIMITS_ALL_NATIONS = True
 
+# ── FA-S12-2 — elimination is a fourth (and a fifth) vassal exit ───────────
+#
+# A satellite has FOUR ways to stop being one and the handler below applies
+# none of the break effects to the fourth — which is the exit that actually
+# fires on the shipped board (KingdomOfItaly leaves France that way at turn
+# 10, and Holland's loyalty does not move by a point).
+#
+# The RULING, and what it declines, is stated here rather than left to the
+# diff. Only the threat relief ships:
+#
+#   * THREAT RELIEF — SHIPPED. France's coalition threat is accumulated fear
+#     of a GROWING France, and France is one satellite smaller. The engine's
+#     own precedent for a non-betrayal departure, `release_vassal`, grants 8
+#     for giving one up voluntarily; losing one to a rival is at least as much.
+#   * The -50 RELATION — DECLINED. It is a rupture term and there is no court
+#     left to be angry with. Measured inert on the series; `release_vassal`
+#     declines it too; it would add a ghost row beside one that already
+#     survives elimination.
+#   * The CORPS HAND-BACK on the SATELLITE path — DECLINED, and the reason is
+#     that neither siting is right. An assimilated contingent flies the LORD's
+#     flag and has no homeland to return to: run before the marshal sweep and
+#     it acquires the dead satellite's name and is destroyed; run after and it
+#     is an orphan of a nation with no territory, no capital and no
+#     diplomatic states.
+#   * The SIBLING -10 SHOCK — DECLINED, twice over. In `check_vassal_rebellion`
+#     it is a defiance-is-contagious signal, and a satellite EATEN by Austria
+#     demonstrates the opposite; `release_vassal` declines it outright. And it
+#     is the only arm that costs France a province on the measured board
+#     (France 5 -> 4, Austria 26 -> 27), which against the standing FA-D27
+#     balance gate makes an already-overrun France strictly worse.
+#
+# `amount = 8` (the exact `release_vassal` figure) was measured and is worse:
+# it makes the series' largest single-turn fall non-unique, which destroys a
+# standing pin's identity for no gain. 10 stands.
+ELIMINATION_RELIEVES_THE_LORD = True
+
+# The FIFTH exit, and it is worse than the fourth. When a LORD is eliminated
+# the same handler deletes every satellite row in total silence — and the
+# satellite's own assimilated corps is DESTROYED and tombstoned under the
+# lord's flag, because the marshal sweep keys on `m.nation` and an assimilated
+# contingent flies the lord's. The satellite survives with its provinces and
+# no army. The hand-back therefore has to run BEFORE the sweep, which is the
+# opposite of where it would go on the satellite path.
+FREED_SATELLITE_KEEPS_ITS_ARMY = True
+
+
 class WorldState:
     """
     The complete game state.
@@ -1273,6 +1319,12 @@ class WorldState:
         # the slice adds; see `backend/game_logic/withdrawal.py` for why the
         # self-refreshing corridor needs no memory of last turn's positions.
         self.evacuation_grants: Dict[str, int] = {}
+        # FA-S12-1: {diplo_key: expiry_turn} — a MEMORY that a peace
+        # happened here, NOT a right of transit. No marshal can walk on a
+        # window; it exists so that a corps stranded within
+        # CORRIDOR_MINIMUM_WINDOW turns of a peace that stranded NOBODY is
+        # handed a real corridor instead of being silently abandoned.
+        self.corridor_windows: Dict[str, int] = {}
 
         # Armistice turn tracking: tracks how many turns each pair has been in ARMISTICE
         self.armistice_turns: Dict[str, int] = {}
@@ -4002,6 +4054,37 @@ class WorldState:
             return
         latched.add(nation)
 
+        # FA-S12-2, the FIFTH exit. Read the satellites of a dying LORD and
+        # hand their corps back BEFORE the sweep below, which keys on
+        # `m.nation` — an assimilated contingent flies the LORD's flag, so
+        # the sweep destroys it and tombstones it under the lord's name while
+        # the satellite itself survives with its provinces. The rows are not
+        # deleted until ~60 lines down; this is the FA-38 `_lord_of_the_fallen`
+        # idiom (Golden Rule 4: get the value, use it, then clear).
+        if FREED_SATELLITE_KEEPS_ITS_ARMY:
+            _freed_satellites = [
+                vname for vname, vstate in self.vassals.items()
+                if (vstate or {}).get("lord") == nation]
+            for _freed in _freed_satellites:
+                for _marshal in list(self.marshals.values()):
+                    if (getattr(_marshal, "original_nation", None) == _freed
+                            and getattr(_marshal, "nation", "") == nation):
+                        _marshal.nation = _freed
+                        _marshal.original_nation = None
+                        if hasattr(_marshal, "relationship_with_lord"):
+                            delattr(_marshal, "relationship_with_lord")
+                # Reuses `vassal_broke_free` with its own `exit` rather than
+                # minting a type: a new one costs twelve pins across twelve
+                # files and forfeits the fog arm, the one-liner switch and the
+                # dispatch consumer this inherits for free.
+                self.log_event({
+                    "type": "vassal_broke_free",
+                    "vassal": _freed,
+                    "lord": nation,
+                    "exit": "lord_eliminated",
+                    "turn": int(self.current_turn),
+                })
+
         # Remove all marshals
         # PC15-1: tombstoned but NOT per-marshal logged — the nation's fall
         # is its own announced event, and a dozen marshal_destroyed rows on
@@ -4066,6 +4149,15 @@ class WorldState:
         for vname in list(self.vassals.keys()):
             if self.vassals[vname].get("lord") == nation:
                 del self.vassals[vname]
+        # FA-S12-2, the FOURTH exit. Sited AFTER the pop, and that ordering
+        # is load-bearing for any later rider: before it, the departing row
+        # still satisfies `other_state["lord"] == lord` and the empire docks
+        # ITSELF. See the levers above for the three effects declined here
+        # and why.
+        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:
+            from backend.game_logic.coalition import reduce_threat
+            reduce_threat(self, 10, "vassal_lost_to_conquest",
+                          target=_lord_of_the_fallen)
         # Do this before the diplomatic-state tear-down so any same-turn
         # hegemony check sees the post-elimination bloc geometry.
         self.invalidate_active_nations_cache()
@@ -7123,6 +7215,7 @@ class WorldState:
             "battle_counts": {k: int(v) for k, v in self.battle_counts.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
             "evacuation_grants": {k: int(v) for k, v in self.evacuation_grants.items()},
+            "corridor_windows": {k: int(v) for k, v in getattr(self, "corridor_windows", {}).items()},
             "armistice_turns": {k: int(v) for k, v in self.armistice_turns.items()},
             "previous_treaties": {k: [copy.deepcopy(t) for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
@@ -7791,6 +7884,7 @@ class WorldState:
         # WIN-D3: absent on every pre-slice save, and an empty corridor store
         # is exactly right for one — no war ended while it was being written.
         world.evacuation_grants = {k: int(v) for k, v in data.get("evacuation_grants", {}).items()}
+        world.corridor_windows = {k: int(v) for k, v in data.get("corridor_windows", {}).items()}
         world.armistice_turns = {k: int(v) for k, v in data.get("armistice_turns", {}).items()}
         # deepcopy mirrors to_dict's depth — treaty records nest clause lists
         # (Aug 2026 health-check audit: shallow-on-load aliased nested
