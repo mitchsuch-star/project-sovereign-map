@@ -85,6 +85,29 @@
 > first, and the mailbox loop pinned as a method rather than as a step of
 > `run()`. `BASELINE_SERIES` / M1–M7 structurally untouched (no harness
 > test references the driver).
+>
+> **part g — "THE CLIENT TELLS THE TRUTH" — LANDED** (FA-70/82/94/S13-1/
+> N81/81/101 — the client's word and the docs' word). The war detail prints
+> enemy exhaustion once (NV-12's fleet line had split an `if` from its
+> `else`); choosing the School clears the Skip/Conclude latch (⛔ in
+> `_launch`, not the row's function — the saved player never passes through
+> it); `PopupBase` gains ESC → an overridable `esc_control()`, NULL by
+> default so no decision modal is answered by reflex, pressing the HANDLER
+> (never `close_popup()` — the soft-lock class), wired to the Proclamation
+> and the letter-book only; the two map-key routes read one field, the bare
+> M reports the mode through the ONE sentence the Alt route now shares, and
+> the credits line branches on the build; the F1 wizard greys EXACTLY what
+> the transit gate refuses — ⛔ not a `propose_*` prefix (two settlement
+> verbs pass the gate), an explicit set beside the gate, drift-pinned
+> through the wizard's own echo table + the mock parser, `cancel_mission` a
+> twelfth id the row never named; the README and the School inventory teach
+> the Emperor and the roster pin that stayed green without him now derives
+> from the scenario; FA-101 recorded ACCEPTED-UNREACHABLE with the argument
+> MEASURED (end turn and the typed save both refused under a standing
+> objection, so no client road reaches a save with it). Sweep 26/26, 0 INERT;
+> parse harness EXIT=0; boot smoke 0 `SCRIPT ERROR`. ⚠ Lesson: a prose
+> census over BUG_FIXES.md read the FA-101 row's own quotation of the
+> phrase it struck as the defect — scope such a census to the ROW.
 
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >

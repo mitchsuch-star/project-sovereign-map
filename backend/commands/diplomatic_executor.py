@@ -102,6 +102,43 @@ def _specify_courts(world) -> str:
     return ", ".join(names[:-1]) + f", or {names[-1]}"
 
 
+# FA-N81 (slice 17, Sept 11 2026): the EC-Q transit gate in
+# `_execute_diplomatic` refuses EVERY action it dispatches but
+# `diplomatic_feasibility` while Talleyrand is IN_TRANSIT. The wizard's rows
+# are built by `diplomacy.get_available_diplomatic_actions`, and only its
+# MISSION rows ever read the state — the eleven proposal / war / treaty rows
+# and the cancel row rendered enabled and were refused on the click. This is
+# the set of wizard action ids whose typed echo (diplomacy_wizard.gd's
+# `_action_to_command` table) parses into one of the gated executor actions;
+# `TRANSIT_GATED_EXECUTOR_ACTIONS` is that dispatch set minus feasibility.
+# Drift-pinned against the wizard's own echo table through the mock parser
+# in tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py — an
+# id here that parses OUTSIDE the gate, or a wizard id outside this set
+# that parses INTO it, reds the pin.
+#
+# NOT a `propose_*` prefix: `propose_white_peace` and `open_settlement`
+# (`propose_common_peace`) dispatch to the settlement package and pass the
+# gate; and `cancel_mission` — which the row never named — dispatches INTO
+# it (a proposal in transit PAUSES the active mission, so the cancel row is
+# on screen and refused).
+TRANSIT_GATED_EXECUTOR_ACTIONS = frozenset({
+    "diplomatic_proposal", "diplomatic_mission", "diplomatic_advisory",
+    "diplomatic_error", "diplomatic_break", "diplomatic_downgrade",
+    "diplomatic_declare_war", "diplomatic_ultimatum", "make_amends",
+    "repudiate_bargain",
+})
+TRANSIT_GATED_WIZARD_ACTIONS = frozenset({
+    "propose_armistice", "propose_peace", "propose_open_borders",
+    "propose_non_aggression", "propose_defensive_alliance", "propose_alliance",
+    "propose_vassal",
+    "declare_war", "break_treaty", "downgrade", "send_ultimatum",
+    "mission_improve_relations", "mission_court", "mission_gather_intel",
+    "mission_undermine", "mission_reassure",
+    "cancel_mission",
+})
+TRANSIT_DISABLED_REASON = "Talleyrand in transit"
+
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -135,6 +172,9 @@ class DiplomaticExecutor:
             }
 
         # Check Talleyrand state — can't negotiate while in transit (EC-Q)
+        # FA-N81 (slice 17): the wizard rows this gate refuses are listed in
+        # `TRANSIT_GATED_WIZARD_ACTIONS` beside this function, and
+        # `diplomacy.get_available_diplomatic_actions` greys exactly those.
         talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
         if talleyrand_state == "IN_TRANSIT" and action != "diplomatic_feasibility":
             return {

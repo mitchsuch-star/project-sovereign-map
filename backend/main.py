@@ -4684,7 +4684,14 @@ async def load_endpoint(request: LoadRequest):
     # records no tactical/strategic discriminator the modal needs, and the
     # strategic arm would render a modal with no buttons and no ESC exit
     # (a soft-lock). Its block names the answer words, so the state is
-    # answerable — declared as a P3 legibility gap, owner = row WO slice 12.
+    # answerable. FA-101 (slice 17, Sept 11 2026): ACCEPTED-UNREACHABLE —
+    # through the client the state cannot be standing at save time. The
+    # objection modal's only exits answer it, the command line is disabled
+    # and ESC / the gear refuse the pause menu under a modal, and the
+    # executor's disobedience block refuses `end turn` and the typed save
+    # alike (measured: the turn does not advance, so the autosave never
+    # runs). Only a raw POST /save from outside the client can write it,
+    # and the block's own typed words remain its answer.
     for _lm in world.get_player_marshals():
         # Hazard-4 idiom (PC15-4): a marshal who no longer STANDS —
         # captured (strength 0 at the captor's capital) or destroyed —

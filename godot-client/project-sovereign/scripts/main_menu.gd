@@ -472,6 +472,14 @@ func _launch(action: String) -> void:
 	if _leaving:
 		return
 	_leaving = true
+	# FA-82 (slice 17): choosing the School IS the consent. `_conclude` latches
+	# `tutorial_done` per machine and `on_world_swap` disarms the tutor on it, so
+	# a second visit booted the Danube map with no card. Cleared HERE and only
+	# here — `_on_tutorial_pressed` only reaches `_launch` through the confirm
+	# row's Yes button once any save exists, so a clear sited there would have
+	# silently missed every player who could hit the bug.
+	if action == "tutorial":
+		UiSettings.set_tutorial_done(false)
 	MenuBoot.pending_action = action
 	MenuBoot.came_from_game = false
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_STOP

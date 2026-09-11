@@ -64,6 +64,14 @@ _DOWNGRADE_ORDER = [
 # States that allow movement through territory
 OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
 
+# FA-N81 (slice 17, Sept 11 2026) flip lever: the F1 wizard greys EVERY row
+# the executor's EC-Q transit gate refuses while Talleyrand is in transit —
+# the set lives beside that gate (`diplomatic_executor.
+# TRANSIT_GATED_WIZARD_ACTIONS`). False = the prior builder: only the mission
+# rows read the state; proposal / war / treaty / cancel rows rendered enabled
+# and were refused on the click ("Talleyrand is currently en route…").
+WIZARD_MIRRORS_THE_TRANSIT_GATE = True
+
 # ═══════ TRADE INCOME TABLE (§7e) ═══════
 TRADE_INCOME = {
     "PEACE": 50,
@@ -10701,6 +10709,28 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     actions = []
     active_treaties = getattr(world, 'active_treaties', {})
 
+    def _mirror_transit_gate(rows):
+        """FA-N81 (slice 17): the executor's EC-Q transit gate, mirrored on
+        EVERY row it refuses — the set lives beside the gate
+        (`diplomatic_executor.TRANSIT_GATED_WIZARD_ACTIONS`). Only the mission
+        rows ever read the state; the eleven proposal / war / treaty rows and
+        the cancel row (BOTH branches — a proposal in transit pauses the
+        active mission, so the cancel is on screen) rendered enabled and were
+        refused on the click. The gate fires before every other executor
+        check, so its reason is the one the click would have printed."""
+        if not WIZARD_MIRRORS_THE_TRANSIT_GATE:
+            return rows
+        if getattr(world, 'talleyrand_state', 'IDLE') != "IN_TRANSIT":
+            return rows
+        from backend.commands.diplomatic_executor import (
+            TRANSIT_DISABLED_REASON, TRANSIT_GATED_WIZARD_ACTIONS)
+        for row in rows:
+            if row.get("action") in TRANSIT_GATED_WIZARD_ACTIONS:
+                row["available"] = False
+                row["disabled_reason"] = TRANSIT_DISABLED_REASON
+                row["disabled_reason_display"] = TRANSIT_DISABLED_REASON
+        return rows
+
     def _cancel_mission_row():
         """DPF-2 cancel-mission row, shared by the vassal branch and the
         foreign-affairs tail (WO-D2/G1 contract 8: the vassal branch's
@@ -10856,7 +10886,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if _vassal_cancel_row:
             actions.append(_vassal_cancel_row)
 
-        return actions
+        return _mirror_transit_gate(actions)
 
     # ── FOREIGN AFFAIRS (§2b) ──
     cooldowns = getattr(world, 'player_proposal_cooldowns', {})
@@ -11271,7 +11301,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     if _tail_cancel_row:
         actions.append(_tail_cancel_row)
 
-    return actions
+    return _mirror_transit_gate(actions)
 
 
 def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:

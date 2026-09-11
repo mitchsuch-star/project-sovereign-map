@@ -805,7 +805,8 @@ class TestWO30TheLoadedSaveRaisesIt:
             # arm's modal with no buttons and no ESC exit (a soft-lock).
             # The block names its own answer words, so the state is
             # answerable by typed trust/insist/compromise — a P3 legibility
-            # gap, owner = row WO slice 12. The sibling
+            # gap, ACCEPTED-UNREACHABLE (FA-101, slice 17: no client road
+            # leaves it standing at save time). The sibling
             # `pending_strategic_objection` slot is INVISIBLE to this census
             # (it shares this response key); WO-38 made it self-limiting —
             # it lapses at the turn boundary with a told message, and the
@@ -813,7 +814,9 @@ class TestWO30TheLoadedSaveRaisesIt:
             "pending_objection": "WO-35 remainder — answerable by typed "
                                  "words; modal-at-load needs a "
                                  "discriminator the saved dict lacks; "
-                                 "owner = row WO slice 12",
+                                 "ACCEPTED-UNREACHABLE (FA-101, slice 17): "
+                                 "no client road leaves it standing at "
+                                 "save time",
         }
         src = MAIN_GD.read_text(encoding="utf-8")
         table = re.search(

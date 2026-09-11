@@ -108,8 +108,9 @@ THE MAP:
   YOUR MARSHALS
 ================================================================
 
-Seven marshals stand ready in the east; more can be raised
-from the Commission bench on the Generals screen (G).
+Seven marshals and the Emperor himself stand ready in the east;
+more can be raised from the Commission bench on the Generals
+screen (G).
 
   NEY (aggressive) — "The Bravest of the Brave." Wants to
     charge. Objects to defensive orders. Devastating in the
@@ -133,6 +134,17 @@ from the Commission bench on the Generals screen (G).
     to another man's rescue. Do not pair him with Davout.
 
   MASSENA (aggressive) — Holds Italy alone. Thrifty he is not.
+
+  THE EMPEROR — Napoleon himself, at Lorraine with his Guard of
+    10,000. He marches like a marshal ("Napoleon, march to
+    Swabia") and never objects to his own orders. Every corps
+    fighting beside him fights harder — the battle report names
+    the bonus — and the aura dims as your grip on the Empire
+    slips. He can be CAPTURED: encircled with no road out, the
+    Guard buys his escape once; taken, the war ends on the
+    enemy's terms. Seated at Paris he adds +1 diplomatic point
+    a turn. Not in the School of War — the Danube Lesson is
+    played without him.
 
   BERTHIER — Chief of staff. Reads your orders back, annotates
     battle reports, and runs the tutorial.

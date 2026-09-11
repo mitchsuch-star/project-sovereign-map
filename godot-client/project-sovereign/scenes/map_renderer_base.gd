@@ -5,6 +5,9 @@ signal region_clicked(region_name)
 # UX pass July 16: dismiss affordances — right-click anywhere or left-click on
 # open water both read as "put the panel away" in every map game.
 signal map_dismiss_requested
+# FA-S13-1(b) (slice 17): the bare M key's report. The renderer has no
+# terminal; main.gd prints the mode through ONE handler the Alt route shares.
+signal map_mode_changed(mode: String)
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
@@ -2223,7 +2226,11 @@ func _unhandled_input(event):
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		var screen_center = global_position + size / 2.0
-		match event.physical_keycode:
+		# FA-S13-1(a) (slice 17): `keycode`, not `physical_keycode` — the
+		# layout-mapped value a player expects from the LABELLED key, and the
+		# field main.gd's Alt route (`_alt_game_key`) reads, so the bare key
+		# and its Alt form answer the same key on a non-US layout.
+		match event.keycode:
 			KEY_EQUAL, KEY_KP_ADD:
 				_zoom_at_point(screen_center, 1.0 + ZOOM_SPEED)
 			KEY_MINUS, KEY_KP_SUBTRACT:
@@ -2231,7 +2238,10 @@ func _unhandled_input(event):
 			KEY_HOME:
 				_center_view_on_map()
 			KEY_M:
-				cycle_map_fill_mode()
+				# FA-S13-1(b): the renderer has no terminal; the mode goes out
+				# on a signal main.gd prints, so the bare key and the Alt route
+				# say the same thing.
+				map_mode_changed.emit(cycle_map_fill_mode())
 func _zoom_at_point(point: Vector2, zoom_factor: float):
 	var new_zoom = clamp(_zoom_level * zoom_factor, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom, _zoom_level):

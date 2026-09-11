@@ -429,15 +429,19 @@ func _render_war_detail(w: Dictionary):
 		elif we_int >= 40:
 			we_color = COLOR_AMBER
 		bbcode += "Enemy War Exhaustion: [color=" + we_color + "]" + str(we_int) + "[/color]\n"
+	else:
+		# FA-70 (slice 17): this `else` belongs to `if we != null` — NV-12
+		# inserted the fleet block between the two, so a fleetless court with
+		# known exhaustion printed BOTH a figure and "Unknown", and a fogged
+		# fleet-holder (Britain, the boot's only war row) printed neither.
+		bbcode += "Enemy War Exhaustion: [color=" + COLOR_DIMMED + "]Unknown[/color]\n"
 
 	# NV-12 (recon gap 8): the per-belligerent fleet line — built by
 	# war_status.py since NV-0 (counts/postures are ruled PUBLIC) and
-	# consumed by NOTHING until now.
+	# consumed by NOTHING until now. Standalone: no else (FA-70).
 	var naval_line = str(w.get("naval_line", ""))
 	if naval_line != "":
 		bbcode += "Their fleet: " + Utils.humanize_nation_keys_in_text(naval_line) + "\n"
-	else:
-		bbcode += "Enemy War Exhaustion: [color=" + COLOR_DIMMED + "]Unknown[/color]\n"
 
 	# Recent battles
 	var recent = w.get("recent_battles", [])

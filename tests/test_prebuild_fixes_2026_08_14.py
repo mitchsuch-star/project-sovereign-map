@@ -239,10 +239,21 @@ class TestReadmeTesterCurrent:
         assert "GROUCHY (" not in text
 
     def test_current_roster_present(self):
+        """FA-81 (slice 17): derived from the SHIPPED roster, not a hard-coded
+        seven — the old tuple was written before NP-0 embodied the Emperor and
+        stayed green with him missing from the README for four weeks."""
+        import json
+        from pathlib import Path
         text = self._text()
-        for name in ("NEY", "DAVOUT", "SOULT", "LANNES", "MURAT",
-                     "BERNADOTTE", "MASSENA"):
-            assert name in text, name
+        scenario = json.loads((Path(__file__).resolve().parents[1] / "godot-client"
+                               / "project-sovereign" / "assets" / "maps"
+                               / "europe_1805.json").read_text(encoding="utf-8"))
+        french = [name for name, m in scenario["marshals"].items() if m.get("nation") == "France"]
+        assert len(french) == 8, french
+        for name in french:
+            label = "THE EMPEROR" if name == "Napoleon" else name.upper()
+            assert label in text, f"README YOUR MARSHALS block omits {name}"
+        assert "Seven marshals and the Emperor himself" in text
 
     def test_hotkeys_match_main_gd(self):
         # The old README taught D = dispatch; D is the diplomatic ledger

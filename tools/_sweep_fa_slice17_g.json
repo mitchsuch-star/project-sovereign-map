@@ -1,0 +1,184 @@
+[
+  {
+    "id": "70/a the Unknown arm hangs off the fleet line again (NV-12's shape)",
+    "file": "godot-client/project-sovereign/scripts/war_detail_popup.gd",
+    "old": "\telse:\n\t\t# FA-70 (slice 17): this `else` belongs to `if we != null` — NV-12\n\t\t# inserted the fleet block between the two, so a fleetless court with\n\t\t# known exhaustion printed BOTH a figure and \"Unknown\", and a fogged\n\t\t# fleet-holder (Britain, the boot's only war row) printed neither.\n\t\tbbcode += \"Enemy War Exhaustion: [color=\" + COLOR_DIMMED + \"]Unknown[/color]\\n\"\n\n\t# NV-12 (recon gap 8): the per-belligerent fleet line — built by\n\t# war_status.py since NV-0 (counts/postures are ruled PUBLIC) and\n\t# consumed by NOTHING until now. Standalone: no else (FA-70).\n\tvar naval_line = str(w.get(\"naval_line\", \"\"))\n\tif naval_line != \"\":\n\t\tbbcode += \"Their fleet: \" + Utils.humanize_nation_keys_in_text(naval_line) + \"\\n\"\n",
+    "new": "\n\tvar naval_line = str(w.get(\"naval_line\", \"\"))\n\tif naval_line != \"\":\n\t\tbbcode += \"Their fleet: \" + Utils.humanize_nation_keys_in_text(naval_line) + \"\\n\"\n\telse:\n\t\tbbcode += \"Enemy War Exhaustion: [color=\" + COLOR_DIMMED + \"]Unknown[/color]\\n\"\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA70ExhaustionIsPrintedOnce"
+  },
+  {
+    "id": "70/b a third writer of the exhaustion line",
+    "file": "godot-client/project-sovereign/scripts/war_detail_popup.gd",
+    "old": "\t\tbbcode += \"Enemy War Exhaustion: [color=\" + we_color + \"]\" + str(we_int) + \"[/color]\\n\"\n",
+    "new": "\t\tbbcode += \"Enemy War Exhaustion: [color=\" + we_color + \"]\" + str(we_int) + \"[/color]\\n\"\n\t\tbbcode += \"Enemy War Exhaustion: [color=\" + we_color + \"]\" + str(we_int) + \"[/color]\\n\"\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA70ExhaustionIsPrintedOnce"
+  },
+  {
+    "id": "82/a choosing the School no longer clears the latch",
+    "file": "godot-client/project-sovereign/scripts/main_menu.gd",
+    "old": "\t\tUiSettings.set_tutorial_done(false)\n",
+    "new": "\t\tpass\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA82TheSchoolCanBeChosenAgain"
+  },
+  {
+    "id": "94/a ESC closes the card directly (the soft-lock class)",
+    "file": "godot-client/project-sovereign/scripts/popup_base.gd",
+    "old": "\tget_viewport().set_input_as_handled()\n\tcontrol.pressed.emit()\n",
+    "new": "\tget_viewport().set_input_as_handled()\n\tclose_popup()\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss"
+  },
+  {
+    "id": "94/b the default control is the first Button found (a decision answered by reflex)",
+    "file": "godot-client/project-sovereign/scripts/popup_base.gd",
+    "old": "\treturn null\n\nfunc _unhandled_input(",
+    "new": "\treturn _first_button(self)\n\nfunc _unhandled_input(",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss"
+  },
+  {
+    "id": "94/c a disabled control is pressed anyway",
+    "file": "godot-client/project-sovereign/scripts/popup_base.gd",
+    "old": "\tif control == null or control.disabled:\n",
+    "new": "\tif control == null:\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss"
+  },
+  {
+    "id": "94/d the Proclamation loses its override",
+    "file": "godot-client/project-sovereign/scripts/proclamation_popup.gd",
+    "old": "func esc_control() -> Button:\n\t# FA-94: a single-Acknowledge ceremony card is read-and-dismiss; ESC\n\t# presses Acknowledge (through its handler, so `dismissed` still fires).\n\treturn acknowledge_btn\n\n\n",
+    "new": "",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss"
+  },
+  {
+    "id": "94/e the interrupt popup (a decision) gains an ESC control",
+    "file": "godot-client/project-sovereign/scripts/interrupt_popup.gd",
+    "old": "ontainer)\n\nfunc _on_option_pressed(option_id: String):\n\t\"\"\"Handle player selecting an interrupt response option.\"\"\"\n\tclose_popup()\n\tchoice_made.emit(current_marshal, current_response_type, option_id)\n",
+    "new": "ontainer)\n\nfunc _on_option_pressed(option_id: String):\n\t\"\"\"Handle player selecting an interrupt response option.\"\"\"\n\tclose_popup()\n\tchoice_made.emit(current_marshal, current_response_type, option_id)\n\n\nfunc esc_control() -> Button:\n\treturn get_node_or_null(\"Buttons/Last\")\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss"
+  },
+  {
+    "id": "94/f the letter-book's ESC is gone",
+    "file": "godot-client/project-sovereign/scripts/mailbox_panel.gd",
+    "old": "func _unhandled_input(event: InputEvent) -> void:\n\t# FA-94 (slice 17): ESC dismisses the letter-book. Through `_on_close`\n\t# (the EXISTING handler, which emits `panel_closed` — main.gd's tail\n\t# re-enables the command line on it), never a bare hide().\n\tif not visible:\n\t\treturn\n\tif event.is_action_pressed(\"ui_cancel\"):\n\t\tget_viewport().set_input_as_handled()\n\t\t_on_close()\n",
+    "new": "func _unhandled_input(_event: InputEvent) -> void:\n\treturn\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss"
+  },
+  {
+    "id": "S13/a the renderer reads physical_keycode again",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "\t\tmatch event.keycode:\n",
+    "new": "\t\tmatch event.physical_keycode:\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAS131TheMapKeysAgree"
+  },
+  {
+    "id": "S13/b the bare M discards the mode again",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "\t\t\t\tmap_mode_changed.emit(cycle_map_fill_mode())\n",
+    "new": "\t\t\t\tcycle_map_fill_mode()\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAS131TheMapKeysAgree"
+  },
+  {
+    "id": "S13/c the Alt route prints its own copy of the sentence (two printers)",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t\t_on_map_mode_changed(map_area.cycle_map_fill_mode())\n",
+    "new": "\t\t\t\tvar mode: String = map_area.cycle_map_fill_mode()\n\t\t\t\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]Map view: \" + mode + \"[/color]\")\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAS131TheMapKeysAgree"
+  },
+  {
+    "id": "S13/d the signal is never connected",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tmap_area.map_mode_changed.connect(_on_map_mode_changed)\n",
+    "new": "\t\tpass\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAS131TheMapKeysAgree"
+  },
+  {
+    "id": "S13/e the credits line stops branching on the build",
+    "file": "godot-client/project-sovereign/scripts/settings_panel.gd",
+    "old": "\t\tif OS.has_feature(\"editor\")\n",
+    "new": "\t\tif false\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAS131TheMapKeysAgree"
+  },
+  {
+    "id": "N81/a the lever is down (the prior builder)",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "WIZARD_MIRRORS_THE_TRANSIT_GATE = True\n",
+    "new": "WIZARD_MIRRORS_THE_TRANSIT_GATE = False\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "N81/b the vassal branch returns unmirrored",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        return _mirror_transit_gate(actions)\n",
+    "new": "        return actions\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "N81/c the display key is not set (the wizard reads it first)",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "                row[\"disabled_reason_display\"] = TRANSIT_DISABLED_REASON\n",
+    "new": "",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "N81/d declare_war leaves the wizard set",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "    \"declare_war\", \"break_treaty\", \"downgrade\", \"send_ultimatum\",\n",
+    "new": "    \"break_treaty\", \"downgrade\", \"send_ultimatum\",\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "N81/e cancel_mission leaves the wizard set (the row's own blind spot)",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "    \"cancel_mission\",\n})\n",
+    "new": "})\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "N81/f the executor set drops repudiate_bargain",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "    \"diplomatic_declare_war\", \"diplomatic_ultimatum\", \"make_amends\",\n    \"repudiate_bargain\",\n})\n",
+    "new": "    \"diplomatic_declare_war\", \"diplomatic_ultimatum\", \"make_amends\",\n})\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "N81/g a settlement row is added to the wizard set (over-greying)",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "    \"cancel_mission\",\n})\n",
+    "new": "    \"cancel_mission\", \"open_settlement\",\n})\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFAN81TheWizardMirrorsTheTransitGate"
+  },
+  {
+    "id": "81/a the README's roster sentence loses the Emperor",
+    "file": "deploy/README_TESTER.txt",
+    "old": "Seven marshals and the Emperor himself stand ready in the east;\n",
+    "new": "Seven marshals stand ready in the east;\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA81TheEmperorIsTaught tests/test_prebuild_fixes_2026_08_14.py::TestReadmeTesterCurrent"
+  },
+  {
+    "id": "81/b the School inventory loses its rows",
+    "file": "docs/TUTORIAL_SCRIPT.md",
+    "old": "| The Seat: seated at Paris he adds +1 diplomatic point a turn | Ledger DP line names the Seat | Should-know |\n| His Guard (10,000) was carved from Soult's corps — the national total is unchanged | Generals screen strengths | Nice-to-know |\n",
+    "new": "",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA81TheEmperorIsTaught"
+  },
+  {
+    "id": "81/c the roster pin is hard-coded again",
+    "file": "tests/test_prebuild_fixes_2026_08_14.py",
+    "old": "        french = [name for name, m in scenario[\"marshals\"].items() if m.get(\"nation\") == \"France\"]\n        assert len(french) == 8, french\n",
+    "new": "        french = [\"Ney\", \"Davout\", \"Soult\", \"Lannes\", \"Murat\", \"Bernadotte\", \"Massena\", \"Massena\"]  # \"MASSENA\"\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA81TheEmperorIsTaught"
+  },
+  {
+    "id": "101/a the dead owner returns to main.py",
+    "file": "backend/main.py",
+    "old": "    # answerable. FA-101 (slice 17, Sept 11 2026): ACCEPTED-UNREACHABLE —\n",
+    "new": "    # answerable — declared as a P3 legibility gap, owner = row WO slice 12.\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA101TheObjectionAtLoadIsAcceptedUnreachable"
+  },
+  {
+    "id": "101/b end turn becomes an objection-free read (the turn advances, the autosave carries the state)",
+    "file": "backend/commands/executor.py",
+    "old": "OBJECTION_FREE_READS = frozenset({\n    \"status\", \"help\", \"economy\", \"treasury\", \"finances\",\n})\n",
+    "new": "OBJECTION_FREE_READS = frozenset({\n    \"status\", \"help\", \"economy\", \"treasury\", \"finances\", \"end_turn\",\n})\n",
+    "tests": "tests/test_fa_slice17_g_the_client_tells_the_truth_2026_09_11.py::TestFA101TheObjectionAtLoadIsAcceptedUnreachable"
+  }
+]

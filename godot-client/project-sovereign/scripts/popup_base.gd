@@ -23,6 +23,30 @@ func show_popup(_data: Dictionary = {}):
 	"""Override in subclass. Called with popup data from backend."""
 	show()
 
+func esc_control() -> Button:
+	"""FA-94 (slice 17): the button ESC presses on this popup, or null.
+
+	NULL BY DEFAULT — a decision modal (interrupt, paradox, capture choice)
+	must never be answered by a reflex keypress: the rightmost cannon-fire
+	option is `hold_position` at −3 trust and a cancelled order. A
+	read-and-dismiss surface overrides this to its own dismiss button.
+	ESC presses the button's HANDLER (which emits the dismissal main.gd's
+	control-return tail listens for), never `close_popup()` directly — a
+	bare close hides the card, leaves the command line disabled and orphans
+	every stashed surface (the FA-N4 / slice-6 soft-lock class)."""
+	return null
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if not event.is_action_pressed("ui_cancel"):
+		return
+	var control := esc_control()
+	if control == null or control.disabled:
+		return  # decline WITHOUT consuming — main.gd's ESC ladder may want it
+	get_viewport().set_input_as_handled()
+	control.pressed.emit()
+
 func claim_cue(p) -> void:
 	"""Declare the player `AudioManager.play()` returned as this popup's own,
 	so `close_popup` silences exactly THAT sound.

@@ -316,6 +316,17 @@ func _on_overlay_input(event):
 		_on_close()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	# FA-94 (slice 17): ESC dismisses the letter-book. Through `_on_close`
+	# (the EXISTING handler, which emits `panel_closed` — main.gd's tail
+	# re-enables the command line on it), never a bare hide().
+	if not visible:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close()
+
+
 func _on_close():
 	hide()
 	panel_closed.emit()

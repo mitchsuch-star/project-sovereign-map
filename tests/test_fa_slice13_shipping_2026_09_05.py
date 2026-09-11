@@ -335,13 +335,21 @@ class TestTheAdvertisedKeysAreReachableWhileTyping:
         assert "func zoom_step(" in base
 
     def test_cycling_the_map_says_which_view_you_landed_on(self):
-        """`cycle_map_fill_mode() -> String` returns the new mode and its
-        only other caller discards it."""
+        """`cycle_map_fill_mode() -> String` returns the new mode. ⚠ RE-SITED
+        September 11, 2026 (FA slice 17 part g, FA-S13-1(b)): the printer
+        moved out of this arm into `_on_map_mode_changed`, the ONE handler the
+        renderer's bare M (via `map_mode_changed`) and this Alt route share —
+        so the pin follows the call rather than asserting the sentence sits
+        inline (which is exactly the two-printer drift the row filed)."""
         table = _focus_safe_source()
         at = table.index("KEY_M:")
         arm = table[at:table.index("KEY_HOME:")]
-        assert "add_output" in arm, arm
-        assert "mode" in arm
+        assert "_on_map_mode_changed(map_area.cycle_map_fill_mode())" in arm, arm
+        handler = _read(SCRIPTS / "main.gd")
+        h_at = handler.index("func _on_map_mode_changed(")
+        body = handler[h_at:handler.index("\nfunc ", h_at + 10)]
+        assert "add_output" in body, body
+        assert "Map view: " in body
 
     def test_the_alt_arm_consumes_the_event_either_way(self):
         """Alt+E must never type an "e" into the command line, even when the

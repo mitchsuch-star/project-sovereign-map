@@ -306,10 +306,18 @@ func _build_credits_section() -> void:
 	_add_header("CREDITS")
 	var credit := Label.new()
 	credit.name = "AssetCredits"
+	# FA-S13-1(c) (slice 17): the location claim depends on which build is
+	# running — the same reason `Utils.launch_hint()` exists. The zip carries
+	# the notices beside the game in `licenses\`; a source checkout keeps
+	# them at the repository root and beside each asset.
+	var terms_where := ("THIRD_PARTY_LICENSES.md at the repository root, with the "
+		+ "per-family notices beside each asset under assets\\"
+		if OS.has_feature("editor")
+		else "THIRD_PARTY_LICENSES.md, beside the game, with the per-family notices in licenses\\")
 	credit.text = ("Unit icons by Lorc, Delapouite & contributors (game-icons.net, "
 		+ "CC BY 3.0) · Interface icons: Phosphor (MIT) · Musket volley: aaronsiler "
 		+ "& Benboncan (CC BY 4.0) · Menu paintings, marshal portraits & music: "
-		+ "public domain (Wikimedia Commons / IMSLP) · Full terms: THIRD_PARTY_LICENSES.md, beside the game, with the per-family notices in licenses\\.")
+		+ "public domain (Wikimedia Commons / IMSLP) · Full terms: " + terms_where + ".")
 	credit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	credit.add_theme_font_size_override("font_size", 10)
 	credit.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)

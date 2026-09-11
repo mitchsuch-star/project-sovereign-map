@@ -616,6 +616,10 @@ func _ready():
 	# UX pass July 16: right-click / open-water click dismiss the panel.
 	if map_area and map_area.has_signal("map_dismiss_requested"):
 		map_area.map_dismiss_requested.connect(_on_map_dismiss_requested)
+	# FA-S13-1(b): the bare M key (map focused) reports the mode through the
+	# SAME sentence the Alt+M route prints — the renderer has no terminal.
+	if map_area and map_area.has_signal("map_mode_changed"):
+		map_area.map_mode_changed.connect(_on_map_mode_changed)
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -960,13 +964,10 @@ func _alt_game_key(keycode: int) -> bool:
 			return true
 		KEY_M:
 			if _map_keys_live():
-				# The mode is what the player wanted to know, and
-				# `cycle_map_fill_mode()`'s String return was discarded by
-				# its only other caller — so this route says which of
-				# blended / political / terrain he landed on.
-				var mode: String = map_area.cycle_map_fill_mode()
-				add_output("[color=#" + Utils.COLOR_INFO
-					+ "]Map view: " + mode + "[/color]")
+				# The mode is what the player wanted to know. FA-S13-1(b):
+				# both routes — this one and the renderer's bare M, which
+				# emits `map_mode_changed` — say it through ONE handler.
+				_on_map_mode_changed(map_area.cycle_map_fill_mode())
 			return true
 		KEY_HOME:
 			if _map_keys_live():
@@ -6278,6 +6279,14 @@ func _on_map_dismiss_requested():
 	"""Right-click or open-water click on the map — put the panel away."""
 	if region_panel and region_panel.visible:
 		region_panel.close_panel()
+
+
+func _on_map_mode_changed(mode: String):
+	"""FA-S13-1(b): the one sentence for a map-mode change — reached by the
+	renderer's bare M (signal) and by Alt+M (`_alt_game_key`) alike, so the
+	two routes cannot drift apart. Says which of blended / political /
+	terrain the player landed on."""
+	add_output("[color=#" + Utils.COLOR_INFO + "]Map view: " + mode + "[/color]")
 
 
 func _on_region_panel_command(command: String):

@@ -306,6 +306,21 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Success raises reward expectation (estates/rentes) | The Reward chip on every Generals card states its gate reason | Should-know |
 | New marshals can be commissioned | Commission bench on the Generals screen (honest availability) | Nice-to-know |
 
+### The Emperor (SHIPPED — row NP, August 15, 2026; FA-81 inventory)
+
+> NOT in the built tutorial by design: the Danube Lesson is sovereign-free
+> (`NAPOLEON_SPEC.md` §14.1 — the School teaches the marshal loop first).
+> These rows are the inventory for the campaign's first-encounter hints and
+> the README's YOUR MARSHALS block, which names him.
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| Napoleon is a piece you command like a marshal ("Napoleon, march to Swabia") and he never objects | README YOUR MARSHALS "THE EMPEROR" entry; the Generals screen card | Must-know |
+| The Presence: every corps fighting beside him fights harder, and the bonus dims as imperial grip slips | Battle report names the aura figure ("+9% — his star dims") | Must-know |
+| The Peril is CAPTURE, not death: encircled with no road out, the Guard buys his escape once; taken, the war ends on the enemy's terms | The encirclement warning + the Eagle-in-Chains outcome copy | Must-know |
+| The Seat: seated at Paris he adds +1 diplomatic point a turn | Ledger DP line names the Seat | Should-know |
+| His Guard (10,000) was carved from Soult's corps — the national total is unchanged | Generals screen strengths | Nice-to-know |
+
 ### Naval (SHIPPED — DEF-5 "The Wooden Wall")
 
 | Concept | Teach by | Priority |

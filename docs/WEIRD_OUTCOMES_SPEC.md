@@ -4417,7 +4417,13 @@ independently attributable), M1–M7 checked.
 >    render `options == []`, a modal with no buttons and no ESC exit (the
 >    filed fix was a soft-lock; pinned by mutation #11). Its remainder — a
 >    P3 legibility gap, answerable by the block's own typed words — is
->    **owned by slice 12**. The invisible third slot
+>    **ACCEPTED-UNREACHABLE** (FA-101, slice 17, September 11, 2026:
+>    through the client the state cannot be standing at save time — the
+>    modal's only exits answer it, the command line is disabled under it,
+>    ESC and the gear refuse the pause menu, and the executor refuses
+>    `end turn` and the typed save alike, so the autosave never runs; only
+>    a raw `POST /save` from outside the client writes it). The invisible
+>    third slot
 >    (`pending_strategic_objection`, which shares the response key and so
 >    the census cannot see it) is resolved by the WO-38 lapse: undecided is
 >    not a state it can occupy any more.
@@ -4440,8 +4446,8 @@ independently attributable), M1–M7 checked.
 > `pending_interrupt` → LOAD_REATTACHED; `redemption_event` →
 > RECOVERED_BY_POLL (new class); `pending_objection` stays KNOWN_SILENT
 > with the WRONG rationale corrected in place (the "requires success==true"
-> comment named the one thing that was not load-bearing) and its owner
-> named (slice 12).
+> comment named the one thing that was not load-bearing) and its remainder
+> recorded ACCEPTED-UNREACHABLE (FA-101, slice 17).
 
 ---
 

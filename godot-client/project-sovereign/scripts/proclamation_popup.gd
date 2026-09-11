@@ -102,6 +102,12 @@ func show_proclamation(data: Dictionary):
 	Utils.clamp_centered_panel($PanelContainer)
 
 
+func esc_control() -> Button:
+	# FA-94: a single-Acknowledge ceremony card is read-and-dismiss; ESC
+	# presses Acknowledge (through its handler, so `dismissed` still fires).
+	return acknowledge_btn
+
+
 func _on_acknowledge_pressed():
 	close_popup()
 	dismissed.emit()
