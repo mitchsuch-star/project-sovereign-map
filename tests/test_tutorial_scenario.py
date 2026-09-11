@@ -96,9 +96,11 @@ class TestBootFacts:
         # S5 live-drive retune (Aug 8): Jellacic CAUTIOUS (a literal's
         # stagnation-breaker lunged him off the Tyrol anchor by turn 4 —
         # a cautious defender fortifies the pass and stays); Charles at
-        # HUNGARY (a Vienna-paired reserve combined and sortied by turn 5,
-        # 44k onto the scripted beats — apart, the combined-strength attack
-        # arrives in the designed turn-8+ window).
+        # HUNGARY. FA-63 (Sept 11, 2026): this comment used to claim the
+        # split start put the combined-strength attack "in the designed
+        # turn-8+ window" — measured FALSE (Charles strikes Munich in the
+        # turn-2 enemy phase, the pair on turn 3); the timing pin lives in
+        # tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py.
         expected = {
             "Ney": ("France", "Rhineland", 24000, "aggressive"),
             "Davout": ("France", "Lorraine", 26000, "cautious"),

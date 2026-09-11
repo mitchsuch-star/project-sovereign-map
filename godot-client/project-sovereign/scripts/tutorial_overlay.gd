@@ -211,7 +211,7 @@ const STEPS := [
 		"id": "free_stand",
 		"turn_gate": 9,
 		"title": "XIII. The Counter-Blow",
-		"body": "Charles and Schwarzenberg will come west — fifty thousand of them. Mountains favor the defender; so do earthworks ([color=#e8d4a8]Ney, fortify[/color]) and a garrison detachment. Stand where the ground is strong and let them bleed on it.",
+		"body": "Charles and Schwarzenberg have been on you since the second morning — fifty thousand of them, and they will keep coming. Mountains favor the defender; so do earthworks ([color=#e8d4a8]Ney, fortify[/color]) and a garrison detachment. Stand where the ground is strong and let them bleed on it.",
 		"suggest": "Ney, fortify",
 		"suggest_action": "fortify",
 		"advance": "_pred_turn_gte_10",

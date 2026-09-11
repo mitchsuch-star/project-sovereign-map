@@ -347,8 +347,25 @@ mock-parse-verified against the tutorial roster in
 | 6 | Conquest | `Davout, move to Bohemia` | Battle-win capture → Plunder/Secure modal (typed answers work; no estate stage — no enemy `dotation_regions`); fallback `Ney, move to Tyrol` = PF-3 move-capture, same modal. Capitals lesson: Munich 10,000 / Vienna 25,000 on screen |
 | 6 | The conqueror's choice | *(the modal's own buttons)* | Same as beat V: the capture modal disables the command line, so the shipped answer is the PLUNDER / SECURE button, not a typed token. `plunder` (×4 income, quoted live) vs `secure` — the card counsels SECURE on an allied front |
 | 7 | The depots | `Soult, recruit troops` | 450g at Paris (200 × 0.75 capital × 3 war; admin-7 neutral Intendance — pinned); second admin action: `build watchtower in Lorraine` |
-| 8+ | The fog | `Davout, scout Bohemia` | The telegraphed Austrian counter-blow (P3.7 pulls the Vienna pair west ~T8-10) |
-| 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs ~50k cautious Austrians |
+| 8+ | The fog | `Davout, scout Bohemia` | Austria's main body is ALREADY on you — see the FA-63 note below; the fog lesson is where it has gone, not whether it is coming |
+| 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs the Vienna pair (~50k, cautious) — by this turn they have been in contact for six turns |
+
+> **FA-63 (Sept 11, 2026) — the reserve's timing, measured.** The scenario
+> file's original `_comment` and this table's rows XII/XIII claimed that
+> starting Archduke Charles at Hungary "delays the combined-strength attack
+> into the designed turn-8+ free-play window". **It does not, and never did.**
+> Driven through the real `/command` surface with the lesson's own T1 order
+> (Senarmont to Munich): Charles marches Hungary → Tyrol in the turn-1 enemy
+> phase and **attacks Senarmont at Munich in the turn-2 enemy phase**; the
+> combined Charles + Schwarzenberg + Kienmayer assault lands **on turn 3**,
+> before "First blood" (beat IV, turn 4) has been taught. Both filed
+> mechanical remedies were measured and rejected: starting Charles one
+> province further east buys at most ONE turn (he covers Hungary → Tyrol in
+> one phase), and an authored `fortified: true` on the pair is stripped by
+> the enemy AI inside turn 1 (three unfortify rungs) — measured inert. So the
+> copy was corrected to what the engine does (card XIII no longer says the
+> pair "will come west"), and `tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py`
+> pins the turn-2 first contact so the claim can never drift back.
 | 10+ | The instruments | *(hotkeys)* | T / G / D / R — the R159 lines name each screen's mechanic. **HC-5:** step XIV also names THE ADMIRALTY (ledger book 7), the F1 wizard + its Formable Nations button, the Generals card's Reward chip, and the ledger's Design rows — honest pointers, no new lessons (the R159 self-teaching screens carry the depth) |
 | 12 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
 

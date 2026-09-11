@@ -4,6 +4,28 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ FA SLICE 17 — "FINISH THE AUDIT" — IN PROGRESS, September 11, 2026
+>
+> The user's brief: land ALL 38 open defect rows (parts 0, d, e, f, g, h), run
+> a three-lens review round, take ALL 25 open design rulings (Phase 2), then
+> play and re-score every pillar (Phase 3). Delegated authority; commits
+> direct to master; push at each phase end. Landing records = the boxed
+> **SLICE 17 (part …)** blocks in `docs/BUG_FIXES.md` §Final Whole-Game Audit.
+>
+> **part 0 — "THE REMNANT HOLDS NO GROUND" — LANDED** (FA-9 P1 + FA-63).
+> A corps in the retreat-recovery window marches but annexes nothing, at the
+> SHARED walk-in seam (GR5) and the AI's two capture rungs, reading ONE
+> `Marshal.in_retreat_recovery()`; the recovery FLIGHT stays legal — ⛔ REPRO_L's
+> own recommended fix (widen `_corps_is_limited`) would have parked every
+> beaten AI corps for three turns, and a pin forbids it. The row's 1,000-man
+> floor is routed to the FA-D29 ruling; the WORSE measured case (a healthy
+> 7,655-man corps through 25 ungarrisoned provinces) is FA-D27's. FA-63: the
+> School's "turn-8+ counter-blow" premise is measured false (Charles strikes
+> Munich in the turn-2 phase, pinned through `/command`), both filed remedies
+> measured inert, the copy corrected in three places. Sweep 17/17, 0 INERT;
+> series + provinces byte-identical on four flip arms WITH the reason
+> measured (33 recovering marshal-turns, 0 refusals on the ambient board).
+
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >
 > **Landing records = four boxed blocks in `docs/BUG_FIXES.md`** —

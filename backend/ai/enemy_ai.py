@@ -126,6 +126,17 @@ P0_READS_FUTILITY = True
 P425_SKIPS_A_HELD_FIELD = True           # FA-8: a garrisoned province with a field army is P4's business; P7.5 prices the field too
 SQUARE_FORMS_AFTER_THE_STRIKES = True    # FA-27 / FA-N38: the square is the LAST word of a phase, and a broken one takes a cooldown
 BROKEN_AI_CORPS_IS_LIMITED = True        # FA-N6: a broken corps takes the limiter (both sides, GR5)
+# FA-9 (slice 17, Sept 11 2026): a corps in the RETREAT-RECOVERY window takes
+# no ground — the P-1 capture-current rung and a stored capture intent are
+# refused for the whole window, not only the turn it routed. The player's own
+# retreat block already refuses him `attack` while recovering (executor.py's
+# `allowed_during_retreat`); this is the AI side of the same rule. The flight
+# itself (P1 `_get_recovery_action`) stays legal — the limiter arm is NOT
+# widened, so a beaten corps may still walk to safety. Measured on the School
+# of War board: Kienmayer, 1,218 men, `retreating=True, retreat_recovery=1`,
+# fled into ungarrisoned Lorraine and the walk-in seam annexed it; with a
+# garrison under him the P-1 rung would have done the same one step earlier.
+RECOVERING_AI_CORPS_TAKES_NO_GROUND = True
 COUNTER_PUNCH_PRICES_THE_FIELD = True    # FA-N7: the free blow is priced against the field, under a floor
 STAGNATION_READS_THE_CROSSING = True     # FA-N80: the breaker never orders an attack across barred water
 ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES = True  # FA-R1: "attacking X to join" picks an ENEMY, never an ally standing with him
@@ -1586,8 +1597,9 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # FA-N6 (slice 4): a broken corps executes no stored intent either
         # — the block precedes the limiter, and jumped it.
+        # FA-9 (slice 17): nor does a corps still in the recovery window.
         if (marshal.name in self._pending_intents
-                and not self._corps_is_limited(marshal)):
+                and not self._corps_takes_no_ground(marshal)):
             intent = self._pending_intents.pop(marshal.name)
             intent_type = intent.get("intent")
             intent_target = intent.get("target")
@@ -1652,9 +1664,11 @@ class EnemyAI:
         # it was live — exactly as they were.
         # ════════════════════════════════════════════════════════════
         current_region = world.get_region(marshal.location)
+        # FA-9 (slice 17): `_corps_takes_no_ground` — the limiter's cases plus
+        # the whole recovery window; a fleeing remnant annexes nothing.
         if (current_region and current_region.controller != nation
                 and current_region.controller != "Neutral"
-                and not self._corps_is_limited(marshal)
+                and not self._corps_takes_no_ground(marshal)
                 and world.is_at_war(nation, current_region.controller)):
             enemies_here = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
             # Region with garrison >= 5000 is NOT undefended — requires assault via P4
@@ -2770,6 +2784,25 @@ class EnemyAI:
         if getattr(marshal, "retreated_this_turn", False):
             return True
         return BROKEN_AI_CORPS_IS_LIMITED and bool(getattr(marshal, "broken", False))
+
+    @staticmethod
+    def _corps_takes_no_ground(marshal: Marshal) -> bool:
+        """FA-9 (slice 17): the predicate the two CAPTURE rungs read — the
+        limiter's own cases PLUS the whole retreat-recovery window.
+
+        Deliberately not folded into `_corps_is_limited`: that predicate also
+        gates the limiter arm (stance/wait), and widening it would stop the
+        P1 recovery flight for every beaten AI corps — a balance change this
+        row does not own. Here only the ANNEXATION is refused; the corps may
+        still walk to safety, and what it walks onto, it does not take
+        (the shared `movement_executor` seam reads the same
+        `Marshal.in_retreat_recovery`)."""
+        if EnemyAI._corps_is_limited(marshal):
+            return True
+        if not RECOVERING_AI_CORPS_TAKES_NO_GROUND:
+            return False
+        in_recovery = getattr(marshal, "in_retreat_recovery", None)
+        return bool(in_recovery()) if callable(in_recovery) else False
 
     def _stagnation_can_strike(self, world: WorldState, nation: str,
                                origin: str, dest: str) -> bool:

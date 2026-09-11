@@ -967,6 +967,20 @@ class Marshal:
         """Check if marshal has active strategic order."""
         return self.strategic_order is not None
 
+    def in_retreat_recovery(self) -> bool:
+        """FA-9 (slice 17, Sept 11 2026): the WHOLE multi-turn recovery
+        window — `retreating`, or a recovery stage still running.
+
+        The two seams that let a beaten remnant annex provinces both read
+        this ONE predicate (GR5): the shared walk-in capture in
+        `movement_executor._execute_move`, and the enemy AI's P-1
+        capture-current / stored-intent rungs. `_corps_is_limited` kept its
+        own narrower reading (`retreated_this_turn` / `broken`) on purpose —
+        that predicate also gates the limiter arm that would otherwise stop
+        the recovery FLIGHT, which stays legal. Derived, never serialized.
+        """
+        return bool(self.retreating) or int(getattr(self, "retreat_recovery", 0) or 0) > 0
+
     @property
     def strategic_command_type(self) -> Optional[str]:
         """Get current strategic command type if any."""

@@ -77,6 +77,28 @@ def destination_grounding_note(raw_text, resolved_name: str) -> str:
 # for every mover; P6.5 reads `fortified`, the road-home walker unfortifies.
 FORTIFIED_CORPS_NEVER_MARCHES = True
 
+# FA-9 (slice 17, Sept 11 2026, GR5 both sides): a corps in the RETREAT-
+# RECOVERY window holds no ground it walks onto. The PF-3 walk-in capture
+# tested controller / war / hidden defenders / fortification / garrison and
+# never the MOVER'S state, so a beaten remnant fleeing through empty enemy
+# provinces annexed each one — measured on the School of War: Kienmayer,
+# 1,218 men, `retreating=True`, took Lorraine, then Rhineland, then Orleanais
+# and two more in one phase (seed `gamma`, 28 -> 23 French provinces). The
+# MARCH stays legal (the W6-1 doctrine's tier-5 flight into at-war soil is
+# how a cornered corps survives); only the annexation is refused, and the
+# player is told why. The healthy-corps walk-in (a 7,655-man corps at morale
+# 100 through 25 ungarrisoned provinces) is a different question and is the
+# FA-D27 gate's — this predicate does not touch it, by design.
+RECOVERING_CORPS_TAKES_NO_GROUND = True
+
+
+def corps_takes_no_ground(marshal) -> bool:
+    """True when the mover may march but may not annex: the recovery window."""
+    if not RECOVERING_CORPS_TAKES_NO_GROUND:
+        return False
+    in_recovery = getattr(marshal, "in_retreat_recovery", None)
+    return bool(in_recovery()) if callable(in_recovery) else False
+
 
 def _marshal_not_a_province(world, marshal, target, region_error):
     """FA slice 7 review round (R2-8): `Ney, move to Mack` / `Ney, scout
@@ -700,7 +722,7 @@ class MovementExecutor:
         # genuine ATTACK contest and are intentionally out of scope.
         dest_region = world.get_region(target_name)
         captured_on_move = False
-        if (dest_region is not None
+        walk_in_open = (dest_region is not None
                 and dest_region.controller
                 and dest_region.controller != marshal.nation
                 and world.is_at_war(marshal.nation, dest_region.controller)
@@ -708,7 +730,18 @@ class MovementExecutor:
                 and not dest_region.has_building("fortification")
                 and not (dest_region.garrison_strength >= 5000
                          or (dest_region.garrison_detachment
-                             and dest_region.garrison_strength > 0))):
+                             and dest_region.garrison_strength > 0)))
+        capture_refused_recovering = False
+        if walk_in_open and corps_takes_no_ground(marshal):
+            # FA-9: the province lies open and the corps may stand on it,
+            # but a corps still rallying from a rout annexes nothing. Said
+            # once, here, so the player learns the rule from the refusal.
+            capture_refused_recovering = True
+            if marshal.nation == world.player_nation:
+                move_message += (f". {target_name} lies open, but {marshal.name}'s "
+                                 f"men are still rallying from the rout — a corps "
+                                 f"in recovery holds no ground it walks onto.")
+        if walk_in_open and not capture_refused_recovering:
             _old_controller = dest_region.controller
             # PF-3 review fix: an earlier marshal's still-pending choice must
             # survive this capture (the single-slot pending_capture_choice is
@@ -888,6 +921,11 @@ class MovementExecutor:
         if fog_discovery:
             result["fog_discovery"] = True
             result["discovered_enemies"] = [e.name for e in discovered_enemies]
+        if capture_refused_recovering:
+            # FA-9: structured, beside the sentence — a reader (the digest,
+            # a pin) can tell "walked on and did not take" from "no capture
+            # was possible" without parsing prose.
+            result["capture_refused_recovering"] = True
         if capture_hints:
             result["capture_hints"] = capture_hints
         # PF-3: surface the plunder/secure popup for a player's move-capture,
