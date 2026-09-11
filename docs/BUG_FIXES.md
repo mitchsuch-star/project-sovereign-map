@@ -453,6 +453,130 @@
 > | **FA-S15-2** | P2 | **An autosave that FAILS is reported to the server console and to nobody else — the player is never told the campaign has stopped being saveable.** `save_manager.save_game` wraps its whole body in `except Exception as e: return {"success": False, "message": f"Save failed: {e}"}`, and both callers of `autosave` discard that: `meta_executor.py:486` `print`s it to stdout, and `main.py:4582` reads the flag into a local nothing renders. So the FA-S15-1 P1 was invisible for as long as it existed — the delattr was half the defect and the swallow was the other half, and slice 15 fixed only the delattr. The same swallow will hide the NEXT one. Found by the slice-15 review round (S15R-4), which is also where it was noticed that the part-a landing block names the silent failure as half the harm and then homes nothing. | `backend/save_manager.py::save_game` · `backend/commands/meta_executor.py:486` · `backend/main.py:4582` ✅ **FIXED September 6, 2026** (landing record = the boxed **FA-S15-2** block). CRITICAL, latched, one per campaign, on the rail — and the pin drives a real end turn with `save_game` forced to raise. ⚠ **The row’s framing of the harm is wrong in the common case**: measured, `autosave.json` EXISTS and goes **stale** (world 4, slot 2), so it sits in the Load menu looking plausible while Continue silently resumes the player turns back — the copy says that, and a pin measures the lag. ⚠ **A second, larger defect sat underneath**: `ensure_save_dir()` was OUTSIDE `save_game`’s try, so it could RAISE despite its docstring and destroy four keys of the end-turn response on both roads (two triggers, and the row names neither) — hence TWO levers, because one could not reproduce prior behaviour for that half. ⚠ The announcement is sited **inside `autosave()`**, the door that already exists, not in the filed `autosave_and_report` helper three callers must remember: both roads covered with zero call-site edits, and the two prints DELETED rather than joined by a third. Original text: **OWNER: slice 16.** **Done when** a failed autosave reaches the player on a surface the client renders (the notification rail is the natural one — CRITICAL, latched, one per campaign), AND a pin drives a real end turn with `save_game` forced to raise and asserts the response carries it. ⚠ Do NOT make the autosave failure abort the turn: the comment at `meta_executor.py:483` is right that it must be non-blocking, and a turn the player cannot end is worse than a save they are told about. |
 > | **FA-S13-1** | P4 | **Three residues from the slices 12+13 review round, each measured, each deliberately out of that round's scope.** (a) **The two map-key routes read different fields.** `map_renderer_base.gd::_unhandled_input` matches `event.physical_keycode` for M / Home / +/−; `main.gd::_alt_game_key`, added by slice 13, matches `event.keycode`. On a non-US layout the bare key and its Alt form therefore answer different physical keys. A refuter measured which half is the odd one and it is **not** the slice's: `keycode` is the layout-mapped value a player expects from a labelled key, and the `physical_keycode` half is five months old and untouched by slice 13 — so this is a pre-existing inconsistency the new call sits beside, not one it created. (b) **The "free win" reached only one route.** `cycle_map_fill_mode() -> String` returns the new mode; the Alt route prints it to the terminal, the bare route in `map_renderer_base` still discards it, so a player who clicks the map and presses M is told nothing. It cannot simply be copied — the map renderer has no terminal to write to and would need a signal or a call back into `main.gd`. (c) **The Settings credits line hard-codes the SHIPPED layout.** `settings_panel.gd` now says the notices are "beside the game, with the per-family notices in `licenses\`", which is true of the zip and false of a source checkout — in the same slice that created `Utils.launch_hint()` precisely because a location claim depends on which build is running. Also recorded, not filed: the strategic debug line prints `(issued turn None)` for the treaty's order, which is dev-facing stdout only. | `godot-client/project-sovereign/scenes/map_renderer_base.gd::_unhandled_input` vs `scripts/main.gd::_alt_game_key` · `map_renderer_base.gd::cycle_map_fill_mode` and its bare caller · `scripts/settings_panel.gd` (the credits line) | ✅ **FIXED September 11, 2026** (landing record = the boxed **SLICE 17 (part g)** block) — (a) both routes read `event.keycode`, the choice stated at the `match`; (b) the bare M emits `map_mode_changed` and main.gd prints it through the ONE handler the Alt route now shares (one printer, census-pinned); (c) the credits line branches on `OS.has_feature("editor")` like `Utils.launch_hint()`. Original text: ⚠ **OPEN — filed September 5, 2026 by the slices 12+13 review round.** Owner: **slice 16** (the copy sweep), which already owns the P3/P4 remainder and touches these surfaces. Done when (a) both routes read the same field with the choice stated in a comment, (b) the bare map-key route either reports the mode or the Alt route's report is documented as the only one and why, and (c) the credits line branches on `OS.has_feature("editor")` like `Utils.launch_hint()` does — each with a pin. |
 
+> ### ✅ SLICE 17 REVIEW ROUND — "THE WINDOW IS READ EVERYWHERE" — FIXED September 11, 2026
+>
+> **Landing record: this block.** Three lenses at `9f0681be` (correctness —
+> attack the fix; shown vs applied; the pins), two refuters per finding.
+> Of thirty-one filed (two duplicates), both refuters agreed on the shape: **L1-1 and L1-2 survive as REAL** — driven on real routs by both refuters (a DEFENSIVE rout keeps recklessness, so a cavalryman with momentum charged and annexed the turn after he was routed; the player's OWN lost attack leaves `retreating=True, retreat_recovery=0` in the same phase, where the `[7A-1]` guard read the stage only and a PURSUE fought and annexed); **L2-1, L2-3, L2-4, L2-6 and L3-1 at P3**; L1-4, L2-2, L2-5, L2-7, L2-10, L2-11, L3-2, L3-3, L3-5, L3-9 at P4 — all built.
+> Killed by both refuters and RECORDED, not built: L1-6 (the FA-101 sentence is true of the tactical slot it names; the strategic lapse is WO-38's design — the four sites now say so), L1-7 (typed white peace is a bilateral proposal, the wizard row a settlement verb — by design), L2-8 (the clamp is the family's convention, in the player's favour), L3-6 (the resolver is deliberately tolerant), and the naming nits L3-11/12/13 (taken anyway). Split verdicts taken as hygiene: L1-3 (the wire key rides anyway), L1-5 (unreachable at HEAD by NPC-2's census — kept as a guard for pre-slice saves), L3-4 (refuter B: 'No active orders' is literally true; refuter A: P3 — built as legibility under the FA-N36 lever), L2-7 (refuter A: EB-1's design; B: P4 — the unit is stated), L3-7 / L3-8 (no live member — the census resolves what it can and NAMES what it cannot). ⛔ Found while re-keying: the player's OWN ultimatum answer (`ultimatum_accepted` / `ultimatum_rejected`) matched no fog arm and never reached the log screen — fixed at the filter, pinned.
+> Sweep **23/23, 0 INERT at close (one pin of mine repaired — the client census asserted the arm's text and not its guard)**;
+> `tests/test_fa_slice17_r_the_review_round_2026_09_11.py`; parse harness
+> EXIT=0; boot smoke 0 `SCRIPT ERROR`; ruff clean. `BASELINE_SERIES` byte-identical on arm 0 (41 values, provinces identical) — the charge and issuance guards are player-only (the AI's recovery flight is a tactical move), the rest is display; M1–M7 untouched by construction.
+>
+> ---
+>
+> ## L1-1 + L1-2 — the recovery window is read at the charge seam and at the strategic issuance guard
+>
+> Part 0 minted ONE predicate (`Marshal.in_retreat_recovery`) and read it at
+> the walk-in seam and the AI's two capture rungs. Two more player seams
+> stayed open: `charge` is not in the executor's objection list, so the
+> retreat block that refuses `attack` never ran for it, and a beaten reckless
+> cavalryman charged onto an ungarrisoned province and took it; and the
+> `[7A-1]` strategic issuance guard read `retreat_recovery > 0`, so on the rout
+> turn itself (`retreating` set, the stage not yet ticked) a PURSUE was
+> accepted and its first step attacked and annexed under strategic execution
+> while `attack` was refused. Both now read the predicate, behind part 0's
+> `RECOVERING_CORPS_TAKES_NO_GROUND`. The AI's recovery flight is a tactical
+> `move` (never a strategic order), so the widened guard cannot park a beaten
+> AI corps — REPRO_L's trap, checked again.
+>
+> ## L1-3 — the refused walk-in reaches the wire and the digest
+>
+> `capture_refused_recovering` was stamped on the executor result and copied
+> to no response (`_COMMAND_RESULT_SIMPLE_FIELDS`); it rides now, and the
+> digest writes "walked in and annexed nothing".
+>
+> ## L1-4 — a stale return is the bad outcome (FA-N64)
+>
+> The stale-reject arm of `_process_proposal_in_transit` returned before the
+> stamp, so an overridden proposal that went stale stayed `pending` and the
+> NEXT proposal of any kind stamped it with ITS verdict. Stamped `bad` at the
+> arm.
+>
+> ## L1-5 + L3-4 — one word on both morning surfaces, on the two shapes the slice did not stage
+>
+> The ledger's `_is_halted` read any truthy `pending_interrupt`; a stale
+> order-BOUND interrupt with no order (the TUT-F4a class) read "awaiting
+> decision" on the ledger and "Awaiting orders." in the briefing. It now reads
+> a standalone decision, or an order-bound interrupt whose order still stands.
+> And the ORDERS tab said "No active orders" for a man asked to fight to the
+> last — the FA-N36 class on the FA-N28 geometry (lens 3's masked fixture):
+> an order-free decision now renders "LAST STAND — AWAITING YOUR WORD — Mack"
+> with no cancel button, under the same lever.
+>
+> ## L2-1 — the Emperor's Peril, as the engine runs it
+>
+> Part g's README and School inventory said "encircled with no road out, the
+> Guard buys his escape once; taken, the war ends on the enemy's terms". Lens
+> 2 drove it: the 30% toll is the NOT-encircled arm and is paid every time
+> (4,000 → 2,800 → 1,960 → 1,372); with no road out the player is asked (fight
+> to the last, or a breakout at even odds); and capture ENDS NOTHING — the war
+> stands, authority −40, captivity is peace leverage (NAPOLEON_SPEC §7.2).
+> Both surfaces rewritten to the mechanics.
+>
+> ## L2-2 — the rout sentence quotes what was applied
+>
+> "Only 900 survivors (5%)" for a 900-man corps that kept every man: the
+> sentence printed the DICE while part e's `rout_survivors` applied the floor.
+> The percent is now `survivors / old_strength`.
+>
+> ## L2-3 — FA-N52's `ultimatum_issued` had no producer
+>
+> ⛔ The first cut re-keyed the dead `incoming_ultimatum` to `ultimatum_issued`
+> — a type in `CAMPAIGN_LOG_TYPES` with a one-liner arm and NO `log_event`
+> writer (the executor appends to `diplomatic_history` only): dead exactly as
+> before, invisible to a membership pin — the very class FA-N52 said it
+> closed. The collectors now name the ANSWER types the log carries
+> (`ultimatum_accepted` / `ultimatum_rejected` ours, `ai_ultimatum_accepted` /
+> `ai_ultimatum_rejected` theirs), and a producer census pins every
+> collector key to a literal `log_event` writer (both arms of the naval
+> `IfExp` resolved; one indirect producer named with its site).
+>
+> ## L2-4 / L2-5 / L2-6 / L2-11 — the copy
+>
+> The paper printed raw lords ("KingdomOfItaly passes from…") and a nameless
+> coalition; the relaxation aside called bloc POWER "the continent's
+> strength"; the blowback line printed "— -3" and a raw court; the defiance
+> notice read "chose to attacks". Fixed at the arms.
+>
+> ## L2-7 — rate points say their unit
+>
+> The Charges of Empire terms (+30, +50) are RATE points under a gold figure;
+> the ledger now carries a `state_charges_rate_note` built from the constants
+> the charge is computed with, and the client prints it beside the terms.
+>
+> ## L2-10 — the digest's lines
+>
+> `Digest.ratified` read prose keys the summary never has and dumped JSON; it
+> composes from the real keys. The MAILBOX line carries the row's own summary.
+>
+> ## L3-1 / L3-2 / L3-3 / L3-5 / L3-7 / L3-8 / L3-9 / L3-11 / L3-12 / L3-13 — the pins
+>
+> The renderer parity pin now demands the WAR PURPOSE read itself; the roster
+> guard asserts the derivation (the sweep's kill came from a comment the
+> mutation planted); FA-70's "Unknown" is read off code; the attacker
+> surround arm has a behaviour pin; the FA-N30 producer census resolves
+> Name / IfExp / dict-Subscript arguments and NAMES what it cannot; FA-N70's
+> regex sees `strategic_type` and the dead default's copy is fixed; two
+> `or True` assertions are real; a trivial sensitivity pin retired; part d's
+> `#`-splitting stripper replaced; the flipped CA9 pin renamed.
+>
+> ## Recorded, not built
+>
+> L1-6: the FA-101 sentence was true for the TACTICAL objection only — a
+> strategic objection lapses at the turn boundary by design (WO-38); the four
+> sites now say so. L1-7: typed `propose white peace with X` is a BILATERAL
+> peace (gated in transit) while the wizard's structured row is a settlement
+> verb (not gated) — the words mean different things, recorded. L2-8: the
+> stalemate quote is the nominal −3 while the clamp charges less at trust
+> < 3 — the cannon-fire family's convention, in the player's favour. L3-6:
+> the send-site `"pending"` literal is text-pinned; the resolver is
+> deliberately tolerant. A third bare `−3` in the support-target-lost
+> responder's `cancel_support` arm (FA-S16-D5's class, a different popup) is
+> named on that row.
+>
+> ---
+>
 > ### ✅ SLICE 17 (part h) — "THE LEDGER AND THE GAZETTE" — FIXED September 11, 2026
 >
 > **Landing record: this block.** The last of the 38 — **FA-N52, FA-N53,
@@ -676,7 +800,9 @@
 > with the argument **measured, not quoted**: the objection modal's only exits
 > answer it, the command line is disabled and ESC / the gear refuse the pause
 > menu under a modal, and the executor's disobedience block refuses `end turn`
-> AND the typed save alike — probed on the 1805 boot: `end turn` under a
+> AND the typed save alike for a standing TACTICAL objection (a STRATEGIC
+> objection lapses at the turn boundary by design, WO-38 — the review round
+> measured `end turn` advancing under it, review L1-6) — probed on the 1805 boot: `end turn` under a
 > staged objection → refused, turn 1 → 1, no autosave written; `save game` →
 > the same refusal; a raw `POST /save` from outside the client is the only
 > writer (it succeeds, and the state round-trips, as WO-35 says). The

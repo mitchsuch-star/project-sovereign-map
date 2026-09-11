@@ -4421,7 +4421,9 @@ independently attributable), M1–M7 checked.
 >    through the client the state cannot be standing at save time — the
 >    modal's only exits answer it, the command line is disabled under it,
 >    ESC and the gear refuse the pause menu, and the executor refuses
->    `end turn` and the typed save alike, so the autosave never runs; only
+>    `end turn` and the typed save alike for a standing TACTICAL objection,
+>    so the autosave never runs (a strategic objection lapses at the turn
+>    boundary by design, WO-38 — the review round measured that); only
 >    a raw `POST /save` from outside the client writes it). The invisible
 >    third slot
 >    (`pending_strategic_objection`, which shares the response key and so

@@ -997,10 +997,16 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
         # AI proposal responses to player: always show (player is target)
         # NA-5: the ultimatum pair is the same shape — the player answered.
+        # Slice 17 review round (L2-3, found while re-keying the Gazette): the
+        # player's OWN ultimatum answer (`ultimatum_accepted` /
+        # `ultimatum_rejected`, written with a `target` and no nation key)
+        # matched no arm and fell through to the drop — his own act was
+        # invisible on the log screen and unreachable to Le Moniteur.
         if event_type in ("ai_proposal_accepted", "ai_proposal_rejected",
                           "ai_proposal_counter_failed",
                           "ai_ultimatum_accepted", "ai_ultimatum_rejected",
-                          "ai_ultimatum_void"):
+                          "ai_ultimatum_void",
+                          "ultimatum_accepted", "ultimatum_rejected"):
             filtered.append(event)
             continue
 
@@ -2312,10 +2318,15 @@ def format_event_oneliner(event: dict) -> str:
         # Stage D review fix [r6]: an ECLIPSE coalition names its own
         # target — never dressed as a coalition against France.
         target = event.get("target_nation") or "France"
+        # Slice 17 review round (L2-5): the paper names the coalition the
+        # notification names ("The Fourth Austria Coalition") — FA-N85's
+        # ordinal reached every surface but this one.
+        name = str(event.get("coalition_name") or "")
+        prefix = f"{name} — " if name else ""
         if target != "France":
-            return (f"Coalition formed against {display_nation(target)}! "
+            return (f"{prefix}Coalition formed against {display_nation(target)}! "
                     f"Members: {members_str}")
-        return f"Coalition formed against France! Members: {members_str}"
+        return f"{prefix}Coalition formed against France! Members: {members_str}"
 
     if event_type == "coalition_dissolved":
         target = event.get("target_nation") or "France"
@@ -2345,9 +2356,12 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "vassal_transferred":
         # VS-5: peace-table lord re-homing
-        vassal = event.get("vassal", "Unknown")
-        from_lord = event.get("from_lord", "Unknown")
-        to_lord = event.get("to_lord", "Unknown")
+        # Slice 17 review round (L2-4): raw nation keys reached Le Moniteur
+        # ("KingdomOfItaly passes from…") — the R7 chokepoint, like the rows
+        # around it.
+        vassal = display_nation(event.get("vassal", "Unknown"))
+        from_lord = display_nation(event.get("from_lord", "Unknown"))
+        to_lord = display_nation(event.get("to_lord", "Unknown"))
         return (f"{vassal} passes from {from_lord}'s suzerainty "
                 f"to {to_lord}'s.")
 

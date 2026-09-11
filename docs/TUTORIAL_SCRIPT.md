@@ -317,7 +317,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 |---------|----------|----------|
 | Napoleon is a piece you command like a marshal ("Napoleon, march to Swabia") and he never objects | README YOUR MARSHALS "THE EMPEROR" entry; the Generals screen card | Must-know |
 | The Presence: every corps fighting beside him fights harder, and the bonus dims as imperial grip slips | Battle report names the aura figure ("+9% — his star dims") | Must-know |
-| The Peril is CAPTURE, not death: encircled with no road out, the Guard buys his escape once; taken, the war ends on the enemy's terms | The encirclement warning + the Eagle-in-Chains outcome copy | Must-know |
+| The Peril is CAPTURE, not death: beaten with a road open, the Guard buys his escape every time (30% of his corps); with no road out you choose — fight to the last, or a breakout at even odds; taken, he is the captor's bargaining chip (authority collapses; every peace is priced with him in it) | The encirclement question + the Eagle-in-Chains outcome copy | Must-know |
 | The Seat: seated at Paris he adds +1 diplomatic point a turn | Ledger DP line names the Seat | Should-know |
 | His Guard (10,000) was carved from Soult's corps — the national total is unchanged | Generals screen strengths | Nice-to-know |
 

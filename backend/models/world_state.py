@@ -10207,6 +10207,11 @@ class WorldState:
             tgt_idx = _UPGRADE_ORDER.index(target_state)
             if tgt_idx <= curr_idx:
                 # State already at or above proposed level — proposal is stale
+                # FA-N64, slice 17 review round (L1-4): a stale return IS the
+                # bad outcome; before this the entry stayed "pending" and the
+                # NEXT proposal of any kind stamped it with ITS verdict.
+                from backend.commands.diplomatic_defiance import resolve_pending_override
+                resolve_pending_override(self, "bad")
                 events.append({
                     "type": "diplomatic_proposal_returned",
                     "target": target,

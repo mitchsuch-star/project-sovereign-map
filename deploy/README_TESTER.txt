@@ -140,11 +140,14 @@ screen (G).
     Swabia") and never objects to his own orders. Every corps
     fighting beside him fights harder — the battle report names
     the bonus — and the aura dims as your grip on the Empire
-    slips. He can be CAPTURED: encircled with no road out, the
-    Guard buys his escape once; taken, the war ends on the
-    enemy's terms. Seated at Paris he adds +1 diplomatic point
-    a turn. Not in the School of War — the Danube Lesson is
-    played without him.
+    slips. He can be CAPTURED. Beaten with a road open, the
+    Guard buys his escape every time, at 30% of his corps;
+    beaten with no road out, you choose — fight to the last,
+    or a breakout at even odds. Taken, he is the enemy's
+    bargaining chip: your authority collapses and every peace
+    is priced with him in it. Seated at Paris he adds
+    +1 diplomatic point a turn. Not in the School of War —
+    the Danube Lesson is played without him.
 
   BERTHIER — Chief of staff. Reads your orders back, annotates
     battle reports, and runs the tutorial.

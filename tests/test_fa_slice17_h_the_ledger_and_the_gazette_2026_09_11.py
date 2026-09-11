@@ -68,7 +68,7 @@ class TestFAN52TheMoniteurReadsLiveTypes:
         monkeypatch.setattr(G, "THE_MONITEUR_READS_LIVE_TYPES", False)
         court = G.collector_types(G._COURT_TYPES)
         assert "coalition_formed" in court and "coalition_declared" not in court
-        assert "incoming_ultimatum" in court and "ultimatum_issued" not in court
+        assert "incoming_ultimatum" in court and "ai_ultimatum_accepted" not in court
         assert "vassal_created" in court and "vassal_transferred" not in court
         army = G.collector_types(G._ARMY_TYPES)
         assert "marshal_petition" in army and "fontainebleau_petition" not in army
@@ -333,8 +333,10 @@ class TestFAN88TheSingleSourceIsCalled:
         with _quiet():
             applied = world.process_income_phase("France")
         assert applied["state_charges"] == 12345
-        assert int(world.nation_gold["France"]) - before == int(applied.get("net", applied.get("net_gold", 0)) or 0) or True
-        assert before - int(world.nation_gold["France"]) >= 12345 - int(income.get("gross", income.get("total_income", 10**9)) or 10**9) - 10**9 or True
+        # Review round (L3-9): the treasury moved by the applied net, which
+        # carries the sentinel — an exact identity, not an `or True`.
+        assert int(world.nation_gold["France"]) - before == int(applied.get("net", 0))
+        assert applied["state_charges"] == 12345
 
     def test_the_rate_default_keeps_the_twelve_call_sites_byte_identical(self, world):
         world.nation_gold["France"] = 50_000

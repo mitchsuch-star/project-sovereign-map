@@ -36,6 +36,15 @@ from backend.commands.movement_executor import destination_grounding_note
 SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
 
 
+def _defiant_verb(action: str) -> str:
+    """Slice 17 review round (L2-11): the defiance notice's SECOND clause
+    needs an infinitive ("chose to attack") and ACTION_DISPLAY is third
+    person ("attacks"). The fallback table yields three verbs; anything
+    else still reads through the display map."""
+    return {"attack": "attack", "bombardment": "bombard", "fortify": "fortify"}.get(
+        str(action or ""), _action_display_name(action))
+
+
 def order_verb_display(order_or_action: str) -> str:
     """FA-N70 (slice 17): an ORDER enum ("MOVE_TO") reads through the R7
     single source as a lower-case verb ("march"); anything else is an action
@@ -504,9 +513,15 @@ class StrategicExecutor:
         if not marshal:
             return None
 
-        # [7A-1] Broken/retreating marshals cannot accept strategic orders
-        if getattr(marshal, 'retreat_recovery', 0) > 0:
-            turns_left = marshal.retreat_recovery
+        # [7A-1] Broken/retreating marshals cannot accept strategic orders.
+        # FA-9, slice 17 review round (L1-2): the WHOLE recovery window —
+        # on the rout turn itself (`retreating` set, the stage not yet
+        # ticked) a PURSUE was accepted and its first step attacked and
+        # annexed under strategic execution, while `attack` was refused.
+        from backend.commands.movement_executor import RECOVERING_CORPS_TAKES_NO_GROUND
+        if (marshal.in_retreat_recovery() if RECOVERING_CORPS_TAKES_NO_GROUND
+                else getattr(marshal, 'retreat_recovery', 0) > 0):
+            turns_left = max(1, int(getattr(marshal, 'retreat_recovery', 0) or 0))
             return {
                 "success": False,
                 "message": f"{marshal.name} is recovering from retreat ({turns_left} turn(s) remaining) and cannot accept strategic orders."
@@ -1705,7 +1720,7 @@ class StrategicExecutor:
                     f"Consider breaking square first.\""
                 )
         else:
-            msg = f"{marshal.name} received strategic order: {strategic_type}.{first_step_msg}"
+            msg = f"{marshal.name} received the order to {order_verb_display(strategic_type)}.{first_step_msg}"
 
         cond_str = ""
         if condition:
@@ -2791,7 +2806,7 @@ class StrategicExecutor:
                     # FA-N70 (the unfiled third site): `strategic_type` is the
                     # raw order enum here — through the R7 source, not ACTION_DISPLAY.
                     f"{marshal_name} defied your order to {order_verb_display(strategic_type)} "
-                    f"and chose to {_action_display_name(defiant_action)} instead.",
+                    f"and chose to {_defiant_verb(defiant_action)} instead.",
                     world.current_turn,
                 ))
 

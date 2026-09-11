@@ -2072,7 +2072,7 @@ class TestN37RoutRecovery:
             assert rows and rows[0]["severity"] == expected, (
                 f"stage {stage}: {rows}")
 
-    def test_stage_three_must_stay_good(self):
+    def test_stage_three_reaches_the_briefing_flipped_consciously(self):
         """FLIPPED CONSCIOUSLY by FA-N58 (slice 17, Sept 11 2026).
 
         This pin used to assert `retreat_recovered` was NOT whitelisted, on

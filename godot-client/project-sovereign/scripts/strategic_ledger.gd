@@ -465,7 +465,13 @@ func _render_economy():
 			var term_bits = []
 			for t in charge_terms:
 				term_bits.append(str(t.get("label", "")) + " +" + str(int(t.get("amount", 0))))
-			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + ", ".join(PackedStringArray(term_bits)) + ")[/color]\n"
+			# Slice 17 review round (L2-7): the terms are rate points, not gold —
+			# the backend states the unit from the constants it computes with.
+			var rate_note = str(econ.get("state_charges_rate_note", ""))
+			var terms_text = ", ".join(PackedStringArray(term_bits))
+			if rate_note != "":
+				terms_text += " — " + rate_note
+			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + terms_text + ")[/color]\n"
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).
@@ -940,6 +946,17 @@ func _render_orders():
 			continue
 		var mname = str(o.get("marshal", "?"))
 		var location = str(o.get("location", "?"))
+		var decision = str(o.get("decision", ""))
+		if decision != "":
+			# FA-N36 review round: an order-FREE decision (last stand, muster
+			# confirm) is not idle — the same word the FORCES tab uses.
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]" + mname + " at " + location
+			bbcode += "  │ " + str(o.get("order_type", "AWAITING YOUR WORD")).to_upper()
+			var quarry = str(o.get("target", ""))
+			if quarry != "":
+				bbcode += " — " + quarry
+			bbcode += "[/color]\n"
+			continue
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + mname
 		bbcode += " at " + location
 		bbcode += "  │ No active orders"

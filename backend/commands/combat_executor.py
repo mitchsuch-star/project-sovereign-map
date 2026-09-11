@@ -3939,7 +3939,11 @@ class CombatExecutor:
                 marshal.strategic_order = None
                 clear_order_bound_interrupt(marshal)  # NPC-2
 
-            survival_percent = int(survival_rate * 100)
+            # Slice 17 review round (L2-2): the sentence quotes what was APPLIED,
+            # not the dice — `rout_survivors` floors and clamps the count, and
+            # "Only 900 survivors (5%)" was printed for a 900-man corps that
+            # kept every man.
+            survival_percent = int(survivors * 100 // max(1, int(old_strength)))
             # Log marshal_broken event
             world.log_event({
                 "type": "marshal_broken",
@@ -7916,6 +7920,20 @@ class CombatExecutor:
         marshal = world.get_marshal(marshal_name)
         if not marshal:
             return {"success": False, "message": f"Marshal '{marshal_name}' not found"}
+
+        # FA-9, slice 17 review round (L1-1): the recovery predicate part 0
+        # minted is read HERE too. `charge` is not in the executor's objection
+        # list, so the retreat block that refuses `attack` never ran for it,
+        # and a beaten reckless cavalryman charged onto a province and took
+        # it. Same refusal shape as the tactical attack's; same lever.
+        from backend.commands.movement_executor import RECOVERING_CORPS_TAKES_NO_GROUND
+        if RECOVERING_CORPS_TAKES_NO_GROUND and marshal.in_retreat_recovery():
+            return {
+                "success": False,
+                "message": (f"{marshal.name} is recovering from retreat and cannot "
+                            f"charge — his men are still rallying from the rout."),
+                "retreating": True,
+            }
 
         # Must be reckless cavalry
         if not marshal.is_reckless_cavalry:

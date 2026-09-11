@@ -742,6 +742,10 @@ class Digest:
             mark += "]"
         self._md(f"- CMD `{text}` → {ok}{mark} "
                  f"{first_line(response.get('message'))}")
+        if response.get("capture_refused_recovering"):
+            # FA-9 review round (L1-3): the walk-in that annexed nothing.
+            self._md("  - ↳ walked in and annexed nothing — the corps is still "
+                     "rallying from the rout (FA-9)")
         self.record("command", text=text, success=response.get("success"),
                     parse_mode=mode, parse_confidence=confidence,
                     message=first_line(response.get("message"), 400))
@@ -835,6 +839,19 @@ class Digest:
         was read by nothing in the driver."""
         text = (summary.get("summary") or summary.get("text") or summary.get("message")
                 if isinstance(summary, dict) else summary)
+        if not text and isinstance(summary, dict):
+            # Review round (L2-10): `build_peace_ratification_summary` writes
+            # target_nation / new_state / war_outcome / territory_gained /
+            # gold_received, never a prose key — compose, do not dump JSON.
+            bits = [str(summary.get("target_nation") or "?"),
+                    str(summary.get("new_state") or "")]
+            if summary.get("war_outcome"):
+                bits.append(str(summary["war_outcome"]))
+            if summary.get("territory_gained"):
+                bits.append(f"gained {summary['territory_gained']}")
+            if summary.get("gold_received"):
+                bits.append(f"gold {summary['gold_received']}")
+            text = " · ".join(b for b in bits if b)
         text = first_line(text, 300) if text else json.dumps(summary, default=str)[:300]
         self._md(f"  - RATIFIED {text}")
         self.record("ratified", summary=summary)
@@ -1768,6 +1785,10 @@ class Answerer:
             court = row.get("source_nation") or row.get("from_nation") or "?"
             kind = (row.get("item_type") or row.get("proposal_type")
                     or row.get("type") or "?")
+            # Review round (L2-10): the row's own `summary` ("Prussia — Open
+            # Borders Agreement") beside the transport type.
+            label = str(row.get("summary") or "").strip()
+            kind = f"{kind}: {label}" if label else kind
             self.d.note(f"MAILBOX #{mid} {court} {kind} → "
                         + ("activated" if reply.get("success") is not False
                            else f"refused: {first_line(reply.get('message'), 80)}"))

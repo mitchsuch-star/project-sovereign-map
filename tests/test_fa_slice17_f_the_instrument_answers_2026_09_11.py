@@ -523,7 +523,9 @@ class TestFA89TheSchoolStepIsApproximateAndOnTheWire:
         from backend.game_logic import tutorial_state as T
         assert T.STEPS == self._overlay_steps(), "tutorial_state.STEPS drifted from tutorial_overlay.gd"
 
-    def test_the_drift_pin_is_sensitive(self):
+    def _retired_test_the_drift_pin_is_sensitive(self):
+        # Review round (L3-11): retired — `T.STEPS[:1] != rows[1:2]` only said
+        # two different rows differ; the real sensitivity is the sweep's 89/a.
         from backend.game_logic import tutorial_state as T
         rows = self._overlay_steps()
         assert len(rows) == 15 and rows[5][0] == "bombardment"

@@ -85,7 +85,9 @@ def _post(client, text):
 class TestFA70ExhaustionIsPrintedOnce:
 
     def _region(self):
-        src = _read(SCRIPTS / "war_detail_popup.gd")
+        # Review round (L3-3): CODE only — "Unknown" was being read off the
+        # FA-70 comment beside the arm.
+        src = _code_only(_read(SCRIPTS / "war_detail_popup.gd"))
         we_at = src.index("\tif we != null:")
         naval_at = src.index('\tif naval_line != "":', we_at)
         return src, src[we_at:naval_at], src[naval_at:naval_at + 400]
@@ -406,6 +408,10 @@ class TestFA81TheEmperorIsTaught:
         body = src[src.index("def test_current_roster_present"):]
         body = body[:body.index("\n    def ")] if "\n    def " in body else body
         assert "europe_1805.json" in body
+        # Review round (L3-2): assert the DERIVATION, not the absence of a name —
+        # the sweep's kill came from a comment the mutation itself planted.
+        assert re.search(r'scenario\["marshals"\]\.items\(\)', body), "the roster must come from the scenario"
+        assert "len(french) == 8" in body, "and the count must be pinned"
         assert '"MASSENA"' not in body, "the hard-coded seven is what stayed green with the Emperor missing"
         assert "THE EMPEROR" in body
 

@@ -741,6 +741,9 @@ def _message_with_suggestion(result: dict) -> str:
 
 _COMMAND_RESULT_SIMPLE_FIELDS = (
     "show_load_dialog",
+    # FA-9, slice 17 review round (L1-3): the walk-in-refused flag reaches the
+    # wire, so the digest (and a pin) can tell "walked on and did not take".
+    "capture_refused_recovering",
     "cavalry_terrain_message",
     "bombardment_advisory",
     "battle_report",
@@ -4704,9 +4707,13 @@ async def load_endpoint(request: LoadRequest):
     # objection modal's only exits answer it, the command line is disabled
     # and ESC / the gear refuse the pause menu under a modal, and the
     # executor's disobedience block refuses `end turn` and the typed save
-    # alike (measured: the turn does not advance, so the autosave never
-    # runs). Only a raw POST /save from outside the client can write it,
-    # and the block's own typed words remain its answer.
+    # alike for a standing TACTICAL objection (measured: the turn does not
+    # advance, so the autosave never runs). A STRATEGIC objection is not
+    # this block's: it lapses at the turn boundary by design (WO-38) and
+    # is answered by its own modal — the review round measured `end turn`
+    # advancing under it. Only a raw POST /save from outside the client
+    # can write either, and the block's own typed words remain the
+    # tactical answer.
     for _lm in world.get_player_marshals():
         # Hazard-4 idiom (PC15-4): a marshal who no longer STANDS —
         # captured (strength 0 at the captor's capital) or destroyed —

@@ -180,9 +180,13 @@ class TestFAN70NoRawEnumInPlayerCopy:
         bad = []
         for path in list((REPO / "backend" / "commands").glob("*.py")) + list((REPO / "backend" / "game_logic").glob("*.py")):
             src = path.read_text(encoding="utf-8")
-            for m in re.finditer(r'f"([^"\n]*\{(?:old_order|order)\.command_type\}[^"\n]*)"', src):
+            # Review round (L3-8): `strategic_type` is the same enum one frame up.
+            for m in re.finditer(r'f"([^"\n]*\{(?:(?:old_order|order)\.command_type|strategic_type)\}[^"\n]*)"', src):
                 literal = m.group(1)
-                if literal.startswith("[") or "Unknown strategic command" in literal:
+                # Debug prints open with a bracketed tag, sometimes indented
+                # (`  [DEFIANCE] …`) — review round L3-8 widened the regex and
+                # the indent slipped past `startswith`.
+                if literal.lstrip().startswith("[") or "Unknown strategic command" in literal:
                     continue
                 bad.append((path.name, literal[:80]))
         assert bad == [], bad
@@ -344,7 +348,11 @@ class TestFAN69N71RendererParity:
         main = _strip_gd_comments((GD / "main.gd").read_text(encoding="utf-8"))
         view = _strip_gd_comments((GD / "dispatch_view.gd").read_text(encoding="utf-8"))
         main_reads = {k for k in keys if f'"{k}"' in main}
-        assert {"talleyrand_report", "coalition_status"} <= main_reads
+        # Review round (L3-1): the WAR PURPOSE read itself, not only its header
+        # — a main.gd that stopped reading `war_objectives` behind a dead
+        # header was green.
+        assert {"talleyrand_report", "coalition_status", "war_objectives",
+                "talleyrand_override_note"} <= main_reads
         missing = sorted(k for k in main_reads - self.ALLOWLIST if f'"{k}"' not in view)
         assert missing == [], f"dispatch_view.gd drops keys main.gd renders: {missing}"
 

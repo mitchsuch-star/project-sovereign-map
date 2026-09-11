@@ -66,7 +66,9 @@ def _last_stand(name, where):
 
 
 def _strip_gd_comments(src: str) -> str:
-    return "\n".join(line.split("#", 1)[0] for line in src.splitlines())
+    """Drop FULL-LINE comments only (review round L3-12) — an inline `#` split
+    guts every `[color=#…` bbcode string, which part e retired the same day."""
+    return "\n".join(line for line in src.splitlines() if not line.lstrip().startswith("#"))
 
 
 # ═══════════════════════════════════════════════════════════════════════

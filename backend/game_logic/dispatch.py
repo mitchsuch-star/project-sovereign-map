@@ -4644,16 +4644,22 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
             share_pct = int(round(float(share) * 100))
         except (TypeError, ValueError):
             share_pct = 0
+        # Slice 17 review round (L2-6): `share` is bloc POWER (regions ×
+        # tier weight, coalition.py), the figure the sibling template calls
+        # "European bloc power" — never "strength", which is men.
         return (f"The courts breathe a little easier, Sire — {label}'s shadow over "
-                f"Europe recedes; its share of the continent's strength has fallen "
+                f"Europe recedes; its share of Europe's bloc power has fallen "
                 f"to {share_pct}%.")
     if event_type == "diplomatic_mission_blowback":
-        nation = template_vars.get("nation", "a foreign court")
+        from backend.display_names import display_nation
+        nation = display_nation(template_vars.get("nation") or "a foreign court")
         delta = int(template_vars.get("delta", 0) or 0)
         value = template_vars.get("value")
         tail = f" (relations now {int(value)})" if value is not None else ""
+        # Slice 17 review round (L2-6): a signed figure after a colon — the
+        # dash-then-minus ("— -3") read as a typo.
         return (f"Blowback from Talleyrand's mission: {nation} discovered our "
-                f"scheming — {delta} to relations{tail}.")
+                f"scheming: {delta:+d} to relations{tail}.")
 
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:

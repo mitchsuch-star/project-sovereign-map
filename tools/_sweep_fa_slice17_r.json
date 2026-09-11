@@ -1,0 +1,163 @@
+[
+  {
+    "id": "L1-1/a the charge seam stops reading the window",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if RECOVERING_CORPS_TAKES_NO_GROUND and marshal.in_retreat_recovery():\n            return {\n                \"success\": False,\n                \"message\": (f\"{marshal.name} is recovering from retreat and cannot \"\n                            f\"charge — his men are still rallying from the rout.\"),\n",
+    "new": "        if False:\n            return {\n                \"success\": False,\n                \"message\": (f\"{marshal.name} is recovering from retreat and cannot \"\n                            f\"charge — his men are still rallying from the rout.\"),\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL1TheRecoveryWindowIsReadEverywhere"
+  },
+  {
+    "id": "L1-1/b the charge gate reads the stage only (the rout turn slips)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if RECOVERING_CORPS_TAKES_NO_GROUND and marshal.in_retreat_recovery():\n",
+    "new": "        if RECOVERING_CORPS_TAKES_NO_GROUND and int(getattr(marshal, 'retreat_recovery', 0) or 0) > 1:\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL1TheRecoveryWindowIsReadEverywhere"
+  },
+  {
+    "id": "L2-2/a the sentence quotes the dice again",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            survival_percent = int(survivors * 100 // max(1, int(old_strength)))\n",
+    "new": "            survival_percent = int(survival_rate * 100)\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheRoutSentenceQuotesWhatWasApplied"
+  },
+  {
+    "id": "L1-2/a the issuance guard reads the stage only again",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "        if (marshal.in_retreat_recovery() if RECOVERING_CORPS_TAKES_NO_GROUND\n                else getattr(marshal, 'retreat_recovery', 0) > 0):\n",
+    "new": "        if getattr(marshal, 'retreat_recovery', 0) > 0:\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL1TheRecoveryWindowIsReadEverywhere"
+  },
+  {
+    "id": "L2-11/a the second clause goes third-person again",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                    f\"and chose to {_defiant_verb(defiant_action)} instead.\",\n",
+    "new": "                    f\"and chose to {_action_display_name(defiant_action)} instead.\",\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheCopyReadsAsTheGameNamesThings"
+  },
+  {
+    "id": "L1-4/a the stale arm stops stamping",
+    "file": "backend/models/world_state.py",
+    "old": "                from backend.commands.diplomatic_defiance import resolve_pending_override\n                resolve_pending_override(self, \"bad\")\n                events.append({\n                    \"type\": \"diplomatic_proposal_returned\",\n                    \"target\": target,\n                    \"outcome\": \"REJECT\",\n                    \"message\": f\"Talleyrand returns from {target}: the diplomatic situation has changed — our proposal is no longer viable.\",\n",
+    "new": "                events.append({\n                    \"type\": \"diplomatic_proposal_returned\",\n                    \"target\": target,\n                    \"outcome\": \"REJECT\",\n                    \"message\": f\"Talleyrand returns from {target}: the diplomatic situation has changed — our proposal is no longer viable.\",\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL1TheStaleReturnIsTheBadOutcome"
+  },
+  {
+    "id": "L1-5/a any interrupt is a halt again",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    return bool(getattr(marshal, \"pending_interrupt\", None)\n                and getattr(marshal, \"strategic_order\", None))\n",
+    "new": "    return bool(getattr(marshal, \"pending_interrupt\", None))\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestTheLedgerAndTheDispatchAgreeOnEveryShape"
+  },
+  {
+    "id": "L3-4/a the decision row is dropped (idle again)",
+    "file": "backend/game_logic/ledger.py",
+    "old": "            pending = standalone_decision(marshal) if THE_LEDGER_SEES_THE_HALT else None\n",
+    "new": "            pending = None\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestTheLedgerAndTheDispatchAgreeOnEveryShape"
+  },
+  {
+    "id": "L3-4/b the decision row grows a cancel button",
+    "file": "backend/game_logic/ledger.py",
+    "old": "                    \"has_order\": False,\n                    \"decision\": kind,\n",
+    "new": "                    \"has_order\": True,\n                    \"decision\": kind,\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestTheLedgerAndTheDispatchAgreeOnEveryShape"
+  },
+  {
+    "id": "L2-7/a the rate note is dropped",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        \"state_charges_rate_note\": _state_charges_rate_note(),\n",
+    "new": "        \"state_charges_rate_note\": \"\",\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheRatePointsSayTheirUnit"
+  },
+  {
+    "id": "L3-4/c the client prints the decision row as idle",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\tvar decision = str(o.get(\"decision\", \"\"))\n\t\tif decision != \"\":\n",
+    "new": "\t\tvar decision = str(o.get(\"decision\", \"\"))\n\t\tif false:\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestTheLedgerAndTheDispatchAgreeOnEveryShape"
+  },
+  {
+    "id": "L2-7/b the client drops the unit",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\t\tif rate_note != \"\":\n\t\t\t\tterms_text += \" — \" + rate_note\n",
+    "new": "\t\t\tif false:\n\t\t\t\tterms_text += \" - \" + rate_note\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheRatePointsSayTheirUnit"
+  },
+  {
+    "id": "L2-4/a raw lords again",
+    "file": "backend/campaign_log.py",
+    "old": "        vassal = display_nation(event.get(\"vassal\", \"Unknown\"))\n",
+    "new": "        vassal = event.get(\"vassal\", \"Unknown\")\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheCopyReadsAsTheGameNamesThings"
+  },
+  {
+    "id": "L2-5/a the coalition's name is dropped",
+    "file": "backend/campaign_log.py",
+    "old": "        prefix = f\"{name} — \" if name else \"\"\n",
+    "new": "        prefix = \"\"\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheCopyReadsAsTheGameNamesThings"
+  },
+  {
+    "id": "L2-6/a 'strength' returns",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                f\"Europe recedes; its share of Europe's bloc power has fallen \"\n",
+    "new": "                f\"Europe recedes; its share of the continent's strength has fallen \"\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheCopyReadsAsTheGameNamesThings"
+  },
+  {
+    "id": "L2-6/b the unsigned dash returns",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                f\"scheming: {delta:+d} to relations{tail}.\")\n",
+    "new": "                f\"scheming — {delta} to relations{tail}.\")\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheCopyReadsAsTheGameNamesThings"
+  },
+  {
+    "id": "L2-3/a the producer-less key returns to the court collector",
+    "file": "backend/game_logic/gazette.py",
+    "old": "    \"nation_eliminated\", \"ultimatum_accepted\", \"ultimatum_rejected\",\n",
+    "new": "    \"nation_eliminated\", \"ultimatum_issued\", \"ultimatum_rejected\",\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2EveryCollectorKeyHasAProducer"
+  },
+  {
+    "id": "L2-3/b we-defied leaves the collector",
+    "file": "backend/game_logic/gazette.py",
+    "old": "    \"ai_ultimatum_accepted\", \"ai_ultimatum_rejected\",\n",
+    "new": "    \"ai_ultimatum_accepted\",\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2EveryCollectorKeyHasAProducer"
+  },
+  {
+    "id": "L2-3/c the player's own ultimatum answer is fogged again",
+    "file": "backend/campaign_log.py",
+    "old": "                          \"ai_ultimatum_void\",\n                          \"ultimatum_accepted\", \"ultimatum_rejected\"):\n",
+    "new": "                          \"ai_ultimatum_void\"):\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2EveryCollectorKeyHasAProducer"
+  },
+  {
+    "id": "L1-3/a the wire key is dropped again",
+    "file": "backend/main.py",
+    "old": "    \"capture_refused_recovering\",\n",
+    "new": "",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL1TheRefusedWalkInReachesTheWire"
+  },
+  {
+    "id": "L1-3/b the digest stops writing the refused walk-in",
+    "file": "tools/playtest_driver.py",
+    "old": "        if response.get(\"capture_refused_recovering\"):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL1TheRefusedWalkInReachesTheWire"
+  },
+  {
+    "id": "L2-10/a the JSON blob returns",
+    "file": "tools/playtest_driver.py",
+    "old": "        if not text and isinstance(summary, dict):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2TheDigestLines"
+  },
+  {
+    "id": "L2-1/a the README promises 'once' again",
+    "file": "deploy/README_TESTER.txt",
+    "old": "    Guard buys his escape every time, at 30% of his corps;\n",
+    "new": "    Guard buys his escape once, at 30% of his corps;\n",
+    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestL2ThePerilIsTaughtAsItRuns"
+  }
+]

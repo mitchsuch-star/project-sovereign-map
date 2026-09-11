@@ -91,7 +91,18 @@ THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = True
 
 
 def _is_halted(marshal) -> bool:
-    return bool(THE_LEDGER_SEES_THE_HALT and getattr(marshal, "pending_interrupt", None))
+    """FA-N36. Slice 17 review round (L1-5): a standalone DECISION, or an
+    order-BOUND interrupt whose order still stands. A stale interrupt with
+    no order (the TUT-F4a class, reachable from a pre-slice save) is not a
+    halt — the dispatch reads "Awaiting orders." for it and both surfaces
+    must say the same word."""
+    if not THE_LEDGER_SEES_THE_HALT:
+        return False
+    from backend.commands.strategic import standalone_decision
+    if standalone_decision(marshal):
+        return True
+    return bool(getattr(marshal, "pending_interrupt", None)
+                and getattr(marshal, "strategic_order", None))
 
 
 def _derive_status(marshal) -> str:
@@ -277,6 +288,12 @@ def _levy_block(world) -> dict:
     """Lazy door onto the single source (see `economy_executor.get_levy_status`)."""
     from backend.commands.economy_executor import get_levy_status
     return get_levy_status(world)
+
+
+def _state_charges_rate_note() -> str:
+    from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
+    return (f"rate points — each draws 1g per {int(WAR_EFFORT_DIVISOR):,}g of the chest "
+            f"above the {int(CHARGES_HOARD_FLOOR):,}g floor")
 
 
 def _build_economy(world, player: str, income_data: dict = None) -> dict:
@@ -500,6 +517,9 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "overseas": overseas,
         "state_charges": state_charges,
         "state_charges_terms": state_charges_terms,
+        # Slice 17 review round (L2-7): the terms are RATE POINTS under a gold
+        # figure; say the unit, from the constants the charge is computed with.
+        "state_charges_rate_note": _state_charges_rate_note(),
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "infrastructure": infrastructure,
@@ -797,6 +817,33 @@ def _build_orders(world, player: str) -> list:
                 "has_order": True,
             })
         else:
+            # FA-N36, slice 17 review round (L3-4): an order-FREE decision
+            # (last stand, muster confirm) is not idle. The FORCES tab already
+            # said `awaiting_decision`; the ORDERS tab said "No active orders"
+            # for a man asked to fight to the last. One word on both tabs.
+            from backend.commands.strategic import standalone_decision
+            pending = standalone_decision(marshal) if THE_LEDGER_SEES_THE_HALT else None
+            if pending:
+                kind = str(pending.get("interrupt_type") or "")
+                quarry = str(pending.get("enemy") or pending.get("quarry")
+                             or pending.get("target") or "")
+                idle_marshals.append({
+                    "marshal": marshal.name,
+                    "unit_type": _derive_unit_type(marshal),
+                    "location": marshal.location,
+                    "order_type": ("Last stand" if kind == "last_stand" else "Muster")
+                                  + " — awaiting your word",
+                    "order_type_raw": "",
+                    "target": quarry,
+                    "path_remaining": 0,
+                    "turns_active": 0,
+                    "condition": "HALTED — awaiting your word",
+                    "started_turn": 0,
+                    "arrived_turn": -1,
+                    "has_order": False,
+                    "decision": kind,
+                })
+                continue
             idle_marshals.append({
                 "marshal": marshal.name,
                 "unit_type": _derive_unit_type(marshal),

@@ -38,8 +38,10 @@ MAX_ISSUES = 20         # blessed, in-band — the archive's depth
 THE_MONITEUR_READS_LIVE_TYPES = True
 _DEAD_KEYS_BEFORE_FA_N52 = {
     "coalition_declared": "coalition_formed",
-    "ultimatum_issued": "incoming_ultimatum",
+    "ultimatum_accepted": "incoming_ultimatum",
+    "ultimatum_rejected": "incoming_ultimatum",
     "ai_ultimatum_accepted": "incoming_ultimatum",
+    "ai_ultimatum_rejected": "incoming_ultimatum",
     "vassal_transferred": "vassal_created",
     "fontainebleau_petition": "marshal_petition",
 }
@@ -66,10 +68,17 @@ _WAR_TYPES = {
 _COURT_TYPES = {
     "war_declaration", "diplomatic_war_declared", "peace_ratified",
     "third_party_peace", "diplomatic_treaty_signed", "nation_formed",
-    # FA-N52 (slice 17): the types the log actually carries. An ultimatum
-    # is logged as `ultimatum_issued` (ours) / `ai_ultimatum_accepted`
-    # (theirs, yielded to); a coalition forms as `coalition_declared`.
-    "nation_eliminated", "ultimatum_issued", "ai_ultimatum_accepted",
+    # FA-N52 (slice 17): the types the log actually carries. ⛔ The first
+    # cut re-keyed to `ultimatum_issued`, which is in CAMPAIGN_LOG_TYPES with
+    # an arm and NO producer (the executor appends to `diplomatic_history`
+    # only) — dead exactly as before, invisible to a membership pin (review
+    # round L2-3). What is written is the ANSWER: ours `ultimatum_accepted`
+    # / `ultimatum_rejected`, theirs `ai_ultimatum_accepted` (we yielded) /
+    # `ai_ultimatum_rejected` (we defied). A coalition forms as
+    # `coalition_declared`. The producer census pins every key here to a
+    # literal `log_event` writer.
+    "nation_eliminated", "ultimatum_accepted", "ultimatum_rejected",
+    "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no
     # producer either — the same inert shape as the campaign log's entry.

@@ -123,8 +123,22 @@
 > the −3 it charges on hold and cancel; FA-N51's "FA-21 needs a second half"
 > is refuted by FA-21's own landing — the gold term's linear, uncapped shape
 > is pinned so it cannot drift unobserved. Sweep 21/21, 0 INERT at close (22 swept: one pin of mine was INERT — the helper ignoring a passed `rate` was unobservable while every fixture passed the real rate, now pinned with rate 0 and 2×rate — and one mutation RETIRED as inert BY CONSTRUCTION, recorded under FA-S16-D5's paragraph). `BASELINE_SERIES` byte-identical on arm 0 AND with `THE_CROWN_LOST_IS_LOGGED` + `THE_SIEGE_ON_OUR_SOIL_IS_REPORTED` down — 41 values, provinces identical in all eighteen nations (FA-N85's `coalition_count` is read for naming only; the crown row never reaches a threat producer); M1–M7 byte-identical (11 passed).
-> **NEXT = the three-lens review round at the committed SHA, then push,
-> then Phase 2 (the 25 rulings, FA-D27 measured first).**
+> **THE REVIEW ROUND — "THE WINDOW IS READ EVERYWHERE" — LANDED.** Three
+> lenses at `9f0681be`, two refuters per finding. Of thirty-one filed (two duplicates), both refuters agreed on the shape: **L1-1 and L1-2 survive as REAL** — driven on real routs by both refuters (a DEFENSIVE rout keeps recklessness, so a cavalryman with momentum charged and annexed the turn after he was routed; the player's OWN lost attack leaves `retreating=True, retreat_recovery=0` in the same phase, where the `[7A-1]` guard read the stage only and a PURSUE fought and annexed); **L2-1, L2-3, L2-4, L2-6 and L3-1 at P3**; L1-4, L2-2, L2-5, L2-7, L2-10, L2-11, L3-2, L3-3, L3-5, L3-9 at P4 — all built. ⛔ The
+> headline is part 0's own class one seam over: the ONE recovery predicate was
+> not read at the charge seam (a beaten reckless cavalryman charged onto a
+> province and took it) nor at the strategic issuance guard (on the rout turn
+> a PURSUE was accepted and its first step annexed while `attack` was
+> refused). And FA-N52's re-key to `ultimatum_issued` was a type with an arm
+> and NO producer — dead exactly as the key it replaced, invisible to the
+> membership pin; the collectors now name the answer types and a producer
+> census pins every key to a writer. Part g's README taught a Peril the
+> engine does not run (the Guard's toll is paid every time, capture ends
+> nothing); the rout sentence quoted the dice while part e's helper applied
+> the floor; the order-free decision read "No active orders" on the ORDERS
+> tab. Sweep 23/23, 0 INERT at close (one pin of mine repaired — the client census asserted the arm's text and not its guard). `BASELINE_SERIES` byte-identical on arm 0 (41 values, provinces identical) — the charge and issuance guards are player-only (the AI's recovery flight is a tactical move), the rest is display; M1–M7 untouched by construction.
+> **NEXT = push, then Phase 2 (the 24 rulings; FA-D27 measured — memo
+> `docs/audits/FA_D27_BALANCE_MEASURE_2026_09_11.md`).**
 
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >
