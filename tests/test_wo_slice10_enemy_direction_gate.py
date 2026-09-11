@@ -982,7 +982,7 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 33}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 across FA slices 2, 2r, 4, 4r, 17
+        assert seams == {"_fuzzy_match_enemy": 21}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -995,8 +995,8 @@ class TestTheAmbientBoard:
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
         assert dict(pairs) == {("Leon", "Napoleon"): 3,
-                               ("Champagne", "Ney"): 9,
-                               ("Gascony", "Ney"): 21}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 across FA slices 2, 2r, 4, 4r, 17
+                               ("Gascony", "Ney"): 13,
+                               ("Guyenne", "Ney"): 5}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 across FA slices 2, 2r, 4, 4r, 17, 17p3
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1052,8 +1052,15 @@ class TestTheAmbientBoard:
         fork this arm at index [18] (57 -> 58); indices [0]-[17] are
         byte-identical to the Phase-2 record, and the gated arm below still
         equals the standing BASELINE_SERIES exactly (seven-arm attribution
-        in `test_ai_intent_threat_migration.py`)."""
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 64, 70, 76, 74, 72, 70, 68, 66, 64, 62, 60, 58, 55, 42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        in `test_ai_intent_threat_migration.py`).
+
+        Re-recorded again by FA slice 17 Phase 3 (September 11, 2026): the
+        AI's contact list is built in MAP order (FA-S17-2 — it was the
+        process hash seed's order), which forks EVERY seeded arm at index
+        [7], the first battle-affected reading; indices [0]-[6] are
+        byte-identical to every prior record, and the gated arm below still
+        equals the standing BASELINE_SERIES exactly."""
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1677,8 +1684,11 @@ class TestTheAiIsNotFrozenInstead:
         # Re-measured by FA slice 17 Phase 2b (September 11, 2026): 33 vs 4.
         # The ungated count is unchanged; the gated board writes three more
         # refusals on the board the 2b levers fork (FA-D4 with FA-S2-D1).
-        assert cooldowns["ungated"] == 33, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 across slices
-        assert cooldowns["gated"] == 4, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 across slices
+        # Re-measured by FA slice 17 Phase 3 (September 11, 2026): 21 vs 5,
+        # the contact list in map order (FA-S17-2) — the ungated board's 21
+        # collisions are again the whole ungated count.
+        assert cooldowns["ungated"] == 21, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 across slices
+        assert cooldowns["gated"] == 5, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 across slices
 
 
 _COOLDOWN_PROBE = r'''

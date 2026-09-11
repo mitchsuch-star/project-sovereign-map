@@ -279,6 +279,15 @@ THE_SPINE_WAR_HAS_A_PURPOSE = True
 # verb's own flag) feeds the province's stability like a standing marshal.
 # False = marshals only (the prior tick).
 THE_DETACHMENT_FEEDS_STABILITY = True
+# FA-S17-2 (slice 17, Phase 3) flip lever: the AI's live contact list is
+# built in MAP order (sorted region names). It was built by iterating a
+# SET of region names, so its order — and P4's first-found target — was the
+# process's hash seed: the same campaign seed gave a different enemy phase
+# under PYTHONHASHSEED 0 and 1 (measured on the School's control lesson,
+# turn 6: Archduke Charles attacks Senarmont under one seed and Davout
+# under the other). The driver pins the hash seed and never saw it; an
+# in-process test did. False = the hash-ordered list.
+THE_CONTACT_LIST_IS_ORDERED = True
 # PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
 # a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
 # campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
@@ -3902,9 +3911,15 @@ class WorldState:
         return self.get_hostile_marshals_in_region_indexed(region_name, nation)
 
     def get_live_visible_enemies(self, nation: str) -> List[Marshal]:
-        """Return enemies visible to any nation under live sight rules only."""
+        """Return enemies visible to any nation under live sight rules only.
+
+        FA-S17-2: in MAP order — the cached region set's iteration order is
+        the process hash seed, and the AI reads this list's ORDER (P4 takes
+        the first target at an equal ratio)."""
         self.refresh_marshal_indexes()
         visible_regions = self._get_live_visible_regions_cached(nation)
+        if THE_CONTACT_LIST_IS_ORDERED:
+            visible_regions = sorted(visible_regions)
         enemies: List[Marshal] = []
         for region_name in visible_regions:
             enemies.extend(self.get_hostile_marshals_in_region_indexed(region_name, nation))

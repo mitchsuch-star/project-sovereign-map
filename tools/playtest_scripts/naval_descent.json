@@ -3,21 +3,22 @@
   "seed": "historical",
   "llm": "anthropic",
   "_note_fa85": "FA-85 (Sept 11, 2026): the expedition marshal stages at BORDELAIS, a controlled Atlantic yard OUTSIDE the Descent camp set (Flanders/Artois/Normandy/Brittany). Normandy was never a yard, so both land lines were refused and the archived naval digest carried zero expedition evidence; Brittany (REPRO_J5 pick) is a camp province and would perturb the staging this script measures. The driver flags a run SCRIPT PRECONDITION when every land line is refused.",
+  "_note_phase3": "FA slice 17 Phase 3 (Sept 11, 2026): staging Soult at the yard was not enough — the transports lift 15,000 and NO boot French corps is under it (Soult 28,940 refused twice, 'cannot be lightened: a garrison detaches a fixed 3,000 and we already hold our 3'; Napoleon's 10,000 Guard may not sail). The script now follows the lift counsel's OWN road (FA-D16, THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE): commission the cheapest bench marshal (Oudinot, 3,500g, a 5,000-man corps at Paris) on turn 3, march him to Bordelais, and put him into the transports for Munster. Measured on the mock parser: the expedition is drawn up at 72 in 100, lands, takes Munster, and the Royal Navy's counter-landing (Moore) retakes it — the whole Free Ireland arc end to end. The camp/diversion half of the Descent (Ney at Flanders, Davout at Normandy, blockade, the Grand Diversion) is kept exactly as before.",
   "turns": {
     "1": ["Ney, march to Flanders", "Davout, march to Normandy", "build ships"],
-    "2": ["Soult, march to Bordelais", "build ships"],
-    "3": ["status", "build ships"],
-    "4": ["blockade Britain", "build ships"],
+    "2": ["build ships", "status"],
+    "3": ["commission Oudinot", "build ships"],
+    "4": ["Oudinot, march to Bordelais", "blockade Britain"],
     "5": ["order the diversion"],
-    "6": ["Ney, march to London"],
+    "6": ["Ney, march to London", "build ships"],
     "7": ["order the diversion"],
     "8": ["Ney, march to London", "Davout, march to London"],
     "9": ["build ships", "status"],
-    "10": ["order the diversion"],
-    "11": ["Ney, march to London"],
-    "12": ["land Soult in Munster with 12,000 men"],
-    "13": ["land Soult in Munster confirmed"],
-    "14": ["Ney, march to London", "status"]
+    "10": ["land Oudinot in Munster with 5,000 men"],
+    "11": ["land Oudinot in Munster confirmed"],
+    "12": ["status"],
+    "13": ["land Oudinot in Munster with 5,000 men"],
+    "14": ["land Oudinot in Munster confirmed", "status"]
   },
   "policy": {"objection": "trust", "diplomacy": "decline"}
 }

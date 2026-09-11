@@ -1,0 +1,30 @@
+[
+  {
+    "id": "S17-3/a the pass-1 guard",
+    "file": "backend/commands/strategic.py",
+    "old": "            if order is None:\n                print(f\"[STRATEGIC] {marshal.name}: SKIP - order consumed by an earlier step this pass\")\n",
+    "new": "            if False:\n                print(f\"[STRATEGIC] {marshal.name}: SKIP - order consumed by an earlier step this pass\")\n",
+    "tests": "tests/test_fa_s17_3_the_order_consumed_mid_pass_2026_09_11.py"
+  },
+  {
+    "id": "S17-3/c the report's status",
+    "file": "backend/commands/strategic.py",
+    "old": "                    \"order_status\": \"consumed\",\n",
+    "new": "                    \"order_status\": \"active\",\n",
+    "tests": "tests/test_fa_s17_3_the_order_consumed_mid_pass_2026_09_11.py"
+  },
+  {
+    "id": "S17-2/a the sort",
+    "file": "backend/models/world_state.py",
+    "old": "        if THE_CONTACT_LIST_IS_ORDERED:\n            visible_regions = sorted(visible_regions)\n",
+    "new": "        if THE_CONTACT_LIST_IS_ORDERED:\n            visible_regions = list(visible_regions)\n",
+    "tests": "tests/test_fa_s17_2_the_contact_list_is_ordered_2026_09_11.py"
+  },
+  {
+    "id": "S17-2/b the lever",
+    "file": "backend/models/world_state.py",
+    "old": "THE_CONTACT_LIST_IS_ORDERED = True\n",
+    "new": "THE_CONTACT_LIST_IS_ORDERED = False\n",
+    "tests": "tests/test_fa_s17_2_the_contact_list_is_ordered_2026_09_11.py"
+  }
+]

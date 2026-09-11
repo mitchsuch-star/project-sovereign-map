@@ -1072,6 +1072,34 @@ class StrategicOrderProcessor:
                 print(f"[STRATEGIC] {marshal.name}: SKIP - marshal defeated, order cleared")
                 continue
 
+            # FA-S17-3 (slice 17, Phase 3, September 11 2026): the roster is
+            # taken once, but an EARLIER corps' step this pass can consume a
+            # later corps' order — measured on the tyrant/austerlitz board at
+            # world turn 7: Bernadotte's PURSUE beat Mack at Bohemia and his
+            # advance into Hungary took the co-located Ney along, whose fresh
+            # MOVE_TO the attack-movement cleared; the loop then printed
+            # `order.command_type` on None, the end turn raised, and the turn
+            # could not be ended at all (the driver's run BLOCKED). The loop's
+            # own read above is FRESH — it happens when the loop reaches this
+            # marshal, after the earlier steps — so the missing piece was the
+            # None check, not a re-read (a re-read was measured INERT by the
+            # sweep and removed); a consumed order is reported, never
+            # dereferenced (pass 2's `_execute_strategic_turn` already
+            # guards `not order`).
+            if order is None:
+                print(f"[STRATEGIC] {marshal.name}: SKIP - order consumed by an earlier step this pass")
+                reports.append({
+                    "marshal": marshal.name,
+                    "command": "",
+                    "order_status": "consumed",
+                    "destination": "",
+                    "turns_remaining": 0,
+                    "message": (f"{marshal.name}'s standing order was overtaken this turn — "
+                                f"he marched with a colleague's action and stands at "
+                                f"{marshal.location}, awaiting your next word."),
+                })
+                continue
+
             print(f"[STRATEGIC] {marshal.name}: {order.command_type} -> {order.target} "
                   f"(issued turn {getattr(order, 'issued_turn', '?')})")
 

@@ -956,10 +956,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # 24) and the −3 decay; Switzerland is eliminated at turn 33; the rise 0 →
 # 6 at [25]–[29] is the surviving France's own accrual — see
 # test_wo_slice9_the_courting_cap for the anchor.
+# FA slice 17, Phase 3 (September 11, 2026) — re-recorded ONCE more, for ONE
+# lever: world_state.THE_CONTACT_LIST_IS_ORDERED (FA-S17-2). The AI's live
+# contact list was built by iterating a SET of region names, so its order —
+# and P4's first-found target at an equal ratio — was the process hash seed;
+# this runner pins PYTHONHASHSEED=0 and never saw it, the School's
+# in-process driver did (two event lists across seeds; the enemy phase of
+# turn 6 first diverges). The list is in MAP order now: the arm with the
+# lever DOWN reproduces the Phase-2b series byte-for-byte, the lever UP
+# forks at [7] — the first battle-affected reading — and ends t40 France 9
+# / Austria 17 / Britain 24 / Bavaria 2 / Switzerland 1 against Phase 2b's
+# 11 / 15 / 26 / 3. The FA-S17-3 guard (a consumed order in pass 1) is inert
+# here by construction: the passive France holds no standing order. The −13
+# at index 25 → 26 (31 → 18) is KingdomOfItaly's elimination out of France's
+# web (world turn 26); the −12 at 28 → 29 (12 → 0) is Switzerland's
+# rebellion at turn 30 with the decay, the floor clamping the rest; the rise
+# 44 → 51 at [12]–[15] is the surviving France's own accrual — see
+# test_wo_slice9_the_courting_cap for the anchor.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 60, 58, 63, 60, 58, 56, 54, 52, 50, 48, 46, 44,
-    42, 39, 36, 33, 30, 27, 4, 1, 0, 2, 4, 4, 6, 3, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0,
+    70, 68, 66, 64, 62, 60, 58, 55, 52, 50, 48, 46, 44, 47, 50, 51, 49,
+    47, 45, 43, 41, 39, 37, 35, 33, 31, 18, 15, 12, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
 ]
 
 

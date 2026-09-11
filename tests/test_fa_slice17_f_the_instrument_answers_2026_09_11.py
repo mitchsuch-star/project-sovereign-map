@@ -424,8 +424,15 @@ class TestFA75TheMailboxIsReadWhole:
 class TestTheRunSaysWhatItCouldNotDo:
 
     def test_the_naval_script_stages_at_a_yard_outside_the_camp(self):
+        """FA-85 (part f) staged Soult at Bordelais; FA-S17-4 (Phase 3, Sept 11,
+        2026) found no boot French corps is under the 15,000-man lift, so the
+        script now follows the lift counsel's own marshalate road: commission
+        Oudinot (a 5,000-man corps) and stage HIM at the Atlantic yard."""
         script = json.loads((REPO_ROOT / "tools" / "playtest_scripts" / "naval_descent.json").read_text(encoding="utf-8"))
-        assert "Soult, march to Bordelais" in script["turns"]["2"]
+        assert "commission Oudinot" in script["turns"]["3"]
+        assert "Oudinot, march to Bordelais" in script["turns"]["4"]
+        assert any(x.startswith("land Oudinot in Munster") for turn in script["turns"].values() for x in turn)
+        assert not any("Soult" in x and ("Bordelais" in x or "Munster" in x) for turn in script["turns"].values() for x in turn)
         assert not any("Normandy" in x and "Soult" in x for turn in script["turns"].values() for x in turn)
 
     def test_every_expedition_line_refused_is_a_script_precondition(self):

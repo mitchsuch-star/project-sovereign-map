@@ -980,8 +980,12 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # enemy's one-turn wait (FA-S2-D1) is load-bearing on that board —
         # uncapped 20 (unchanged), capped 24. The cap buys four turns; the
         # contract holds. (Arm 0 of the 2b attribution reproduces 20 / 22.)
-        assert uncapped == 20, uncapped
-        assert capped == 24, capped
+        # Re-measured by FA slice 17 Phase 3 (September 11, 2026): the AI's
+        # contact list in MAP order (FA-S17-2) moves every seeded board from
+        # the first battle — uncapped 28, capped 30. The cap buys two turns;
+        # the contract holds.
+        assert uncapped == 28, uncapped
+        assert capped == 30, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1033,9 +1037,18 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # tick, as the class docstring says, and it is unique; the
         # elimination is named on it rather than excluded from it, and the
         # rebellion turn is derived from the same index.
-        elimination_step = 22
-        assert steps[elimination_step] == -23, steps
-        assert all(step > -10 for i, step in enumerate(steps)
-                   if i != elimination_step), steps
-        index = elimination_step + 1
+        # FA slice 17 Phase 3 (September 11, 2026): with the contact list in
+        # MAP order (FA-S17-2) the two no longer share a tick — the
+        # elimination is -13 (31 -> 18, index 25 -> 26, world turn 26), named
+        # and excluded; the rebellion is the unique largest ORDINARY fall,
+        # -12 (12 -> 0, the floor clamping -3 decay -10 rebellion) at index
+        # 28 -> 29, turn 30. The general form of the pin is restored.
+        elimination_step = 25
+        assert steps[elimination_step] == -13, steps
+        ordinary = [s for i, s in enumerate(steps) if i != elimination_step]
+        worst = min(ordinary)
+        assert ordinary.count(worst) == 1, (
+            f"the largest ordinary fall {worst} is no longer unique: {steps}")
+        index = steps.index(worst, 0) + 1
+        assert steps[index - 1] == worst and index - 1 != elimination_step
         assert _rebellion_turn(True) == index + 1
