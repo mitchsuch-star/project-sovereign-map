@@ -587,6 +587,32 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
 # armistice route and the wizard's Propose Peace row carries the paradox
 # reason instead of staying green. False = the prior copy and a green row.
 THE_PARADOX_BLOCK_NAMES_THE_TRUCE = True
+# FA-D7 (slice 17, Phase 2) flip lever: the bilateral peace mount reads the
+# desk first — a settlement offer covering the target's war greys the Send
+# arm with the request-terms route's own sentence. False = the prior mount
+# (drafted, estimated and charged while the offer sat in the mailbox).
+THE_DESK_IS_READ_BEFORE_THE_DRAFT = True
+
+
+def _settlement_offer_on_the_desk(world, player: str, target: str) -> str:
+    """FA-D7: the desk sentence when a settlement offer covering `target`'s
+    war is pending or promoted — the request-terms route's own predicates
+    and copy, never a copy of them. '' when the desk is clear."""
+    from backend.game_logic.ai_diplomacy import (
+        _find_war_instance_for_pair, _settlement_offer_already_pending,
+        _settlement_offer_already_promoted)
+    war = _find_war_instance_for_pair(world, player, target)
+    war_id = str((war or {}).get("war_id") or "")
+    if not war_id:
+        return ""
+    pending = getattr(world, "pending_settlement_dialogues", None) or []
+    if (_settlement_offer_already_pending(pending, war_id=war_id)
+            or _settlement_offer_already_promoted(world, war_id=war_id)):
+        from backend.display_names import SETTLEMENT_DISABLED_REASON_DISPLAY
+        return str(SETTLEMENT_DISABLED_REASON_DISPLAY.get(
+            "offer_already_pending",
+            "Their terms are already on the desk, Sire — answer the offer in the mailbox."))
+    return ""
 
 
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
@@ -914,6 +940,30 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                 _options.append(_opt)
             if _options:
                 dialogue["options"] = _options
+
+    # FA-D7 (slice 17, Phase 2): `propose peace with X` drafted, estimated and
+    # charged 3 DP while the coalition's settlement offer covering X sat on
+    # the desk — and `request terms` refused for exactly that reason. The
+    # mount reads the desk first (the request-terms route's own predicates)
+    # and the Send arm arrives DISABLED with the same sentence.
+    if proposal_type == "peace" and THE_DESK_IS_READ_BEFORE_THE_DRAFT:
+        _desk = _settlement_offer_on_the_desk(world, player_nation, target_nation)
+        if _desk:
+            dialogue["desk_block_warning"] = _desk
+            dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
+                {"severity": "high", "text": _desk}
+            ]
+            _desk_options = []
+            for _opt in dialogue.get("options") or []:
+                if isinstance(_opt, dict) and _opt.get("action") == "execute_proposal":
+                    _opt = dict(_opt)
+                    _opt["enabled"] = False
+                    _opt["available"] = False
+                    _opt["unavailable_reason"] = _desk
+                    _opt["description"] = _desk
+                _desk_options.append(_opt)
+            if _desk_options:
+                dialogue["options"] = _desk_options
 
     return dialogue
 

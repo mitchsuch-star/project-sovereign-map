@@ -269,6 +269,16 @@ CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is rest
 # FA-D1 (slice 17, Phase 2) flip lever: the restless-interior term carries
 # the provinces that trip it. False = the bare label and no `regions` key.
 THE_RESTLESS_TERM_NAMES_ITS_PROVINCES = True
+# FA-D4 (slice 17, Phase 2) flip lever: every belligerent of a scenario's
+# starting wars boots with the objective a LIVE declaration would have given
+# it — the defender's `defense` (which `set war purpose` may replace, as the
+# rule for a defense objective has always allowed) — instead of no purpose
+# at all. False = the prior boot (`war_objectives == {}`).
+THE_SPINE_WAR_HAS_A_PURPOSE = True
+# FA-D19 (slice 17, Phase 2) flip lever: a DETACHED garrison (the `garrison`
+# verb's own flag) feeds the province's stability like a standing marshal.
+# False = marshals only (the prior tick).
+THE_DETACHMENT_FEEDS_STABILITY = True
 # PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
 # a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
 # campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
@@ -6613,7 +6623,11 @@ class WorldState:
                     0, region.stability - DISRUPTION_STABILITY_DRAIN)
                 continue
             base_growth = 5
-            garrison_bonus = 5 if self._has_marshal_in_region(region.name, region.controller) else 0
+            # FA-D19 (slice 17, Phase 2): the `garrison` verb's own detachment
+            # counts as the garrison it is (one predicate, read here).
+            garrison_bonus = 5 if (self._has_marshal_in_region(region.name, region.controller)
+                                   or (THE_DETACHMENT_FEEDS_STABILITY
+                                       and self.region_has_detached_garrison(region))) else 0
             steward = steward_map.get(region.name, 0)
             region.stability = min(100, region.stability + base_growth + garrison_bonus + steward)
             # Clear plundered flag when region recovers (Phase 6.2.E)
@@ -6932,6 +6946,15 @@ class WorldState:
                         "nation": region.controller or "",
                     })
         return events
+
+    @staticmethod
+    def region_has_detached_garrison(region) -> bool:
+        """FA-D19: a province holding a DETACHED garrison — the `garrison`
+        verb's flag with men behind it. The stability tick reads this; the
+        vassal loyalty arm (`vassal.lord_garrison_present`) counts ANY
+        garrison the lord controls, a superset that includes this one."""
+        return (bool(getattr(region, "garrison_detachment", False))
+                and int(getattr(region, "garrison_strength", 0) or 0) > 0)
 
     def _has_marshal_in_region(self, region_name: str, nation: str) -> bool:
         """Check if any marshal of the given nation is in the region."""
@@ -8728,6 +8751,24 @@ class WorldState:
                     )
                 world.diplomatic_states[pair] = "WAR"
                 world.war_start_turns.setdefault(pair, int(world.current_turn))
+            # FA-D4 (slice 17, Phase 2): the war every 1805 campaign is about
+            # booted with `war_objectives == {}` — no objective, no enemy
+            # objective, no ticking, nothing for the war-detail popup to say.
+            # A LIVE declaration gives the defender `defense` at once; the
+            # boot now gives EVERY belligerent of every starting pair the
+            # same, from the same producer — the attacker of record too
+            # (France's, which `set war purpose` may replace). A defense
+            # objective ticks only for homeland LOST, so the boot war score
+            # moves nothing on turn 1.
+            if THE_SPINE_WAR_HAS_A_PURPOSE:
+                from backend.game_logic.diplomacy import _auto_assign_defense_objective
+                for entry in starting_wars:
+                    attacker = str(entry.get("attacker") or "").strip()
+                    defender = str(entry.get("defender") or "").strip()
+                    pair = world._make_diplo_key(attacker, defender)
+                    for side, other in ((defender, attacker), (attacker, defender)):
+                        if side not in (world.war_objectives.get(pair) or {}):
+                            _auto_assign_defense_objective(world, side, other, pair)
 
         # DEF-5 naval (NAVAL_SPEC §3.2/§6): transform the authored `navies`
         # block into live fleet records. MUST run after the starting-wars

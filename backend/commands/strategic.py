@@ -122,6 +122,10 @@ BLOCKED_PATH_ABANDON_TRUST = -3   # …and 0 when the order has not begun
 # the same responder and is quoted alike. Continue is free (FA-S16-D1).
 STALEMATE_ABANDON_TRUST = -3
 THE_STALEMATE_QUOTES_ITS_PRICE = True   # False = the buttons carry no figure
+# FA-D6 (slice 17, Phase 2) flip lever: the treaty's road-home order is
+# literal by nature — cannon fire never redirects or interrupts it. False =
+# an ordinary order (the prior behaviour: abandoned for any stake battle).
+THE_ROAD_HOME_IS_LITERAL = True
 
 
 def _continue_order_verb(command_type) -> str:
@@ -3524,6 +3528,18 @@ class StrategicOrderProcessor:
         # LITERAL NEVER GETS INTERRUPTED BY CANNON FIRE
         if personality == "literal":
             return None
+
+        # FA-D6 (slice 17, Phase 2): the treaty's road home is literal by
+        # nature. It was an ORDINARY order to this system, so an aggressive
+        # corps abandoned it for any battle within two provinces that
+        # concerned his nation and wandered deeper into the country it was
+        # leaving (measured: a stake battle one province over redirected a
+        # road-home MOVE_TO on the shipped board). The order the peace
+        # issued is not the marshal's to drop.
+        if THE_ROAD_HOME_IS_LITERAL:
+            from backend.game_logic.withdrawal import is_road_home_order
+            if is_road_home_order(getattr(marshal, "strategic_order", None)):
+                return None
 
         # Skip cannon fire if marshal recently chose "continue" (suppress for 1 turn)
         ignored_turn = getattr(marshal, 'cannon_fire_ignored_turn', None)

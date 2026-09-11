@@ -975,8 +975,13 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # loyalty 28), capped 22 (`vassal_broke_free`, exit=vassal_rebellion).
         # The cap buys two turns; the contract holds. (With the two FA-D29
         # levers down and everything else shipped: 25 / 26 — same shape.)
+        # Re-measured by FA slice 17 Phase 2b (September 11, 2026): the
+        # boot war's purpose (FA-D4) forks the board at turn 18 and the
+        # enemy's one-turn wait (FA-S2-D1) is load-bearing on that board —
+        # uncapped 20 (unchanged), capped 24. The cap buys four turns; the
+        # contract holds. (Arm 0 of the 2b attribution reproduces 20 / 22.)
         assert uncapped == 20, uncapped
-        assert capped == 22, capped
+        assert capped == 24, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1019,13 +1024,18 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # 21, rebellion turn 22. Should the elimination return, the -12/-13
         # signature (-2/-3 decay - 10 relief) names it again and this pin
         # fails loudly here.
-        elimination_step = None
-        assert all(step > -10 or step == worst_expected for step, worst_expected
-                   in ((x, -13) for x in steps)), steps
-        ordinary = list(steps)
-        worst = min(ordinary)
-        assert ordinary.count(worst) == 1, (
-            f"the largest ordinary fall {worst} is no longer unique: {steps}")
-        index = steps.index(worst, 0) + 1
-        assert steps[index - 1] == worst and index - 1 != elimination_step
+        # FA slice 17 Phase 2b (September 11, 2026): the elimination is
+        # BACK — with every boot war carrying a purpose (FA-D4) KingdomOfItaly
+        # is eliminated out of France's web at world turn 23 — and on this
+        # board it lands on the SAME tick as Switzerland's rebellion (logged
+        # at 24): -3 decay - 10 relief - 10 rebellion = -23 (27 -> 4), the
+        # step from index 22 to 23. So the largest fall IS the rebellion's
+        # tick, as the class docstring says, and it is unique; the
+        # elimination is named on it rather than excluded from it, and the
+        # rebellion turn is derived from the same index.
+        elimination_step = 22
+        assert steps[elimination_step] == -23, steps
+        assert all(step > -10 for i, step in enumerate(steps)
+                   if i != elimination_step), steps
+        index = elimination_step + 1
         assert _rebellion_turn(True) == index + 1

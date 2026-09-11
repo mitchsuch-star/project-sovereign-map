@@ -416,6 +416,12 @@ class CombatExecutor:
     # strength relative to leading its own corps). Single source, read by
     # both the resolution path and the muster odds band (CO-2).
     COMMITTED_ALPHA = 0.6
+    # FA-D23 (slice 17, Phase 2): trust's ONE consequence both sides share — a
+    # reinforcer at the HOSTILE tier (trust < 30, objection_v2's own line)
+    # brings this fraction of his weight to a colleague's field, on either
+    # side. Blessed, in-band tunable. False = trust reaches no field.
+    TRUST_REACHES_THE_FIELD = True
+    BROKEN_TRUST_CONTRIBUTION = 0.5
 
     def _pair_contribution_scale(self, lead, ally) -> float:
         """How much of `ally`'s weight actually reaches a battle `lead` leads.
@@ -447,6 +453,14 @@ class CombatExecutor:
             pair_rel = min(lead.get_relationship(ally.name),
                            ally.get_relationship(lead.name))
             scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
+        if self.TRUST_REACHES_THE_FIELD and scale > 0.0:
+            # FA-D23: a Broken marshal brings less — the AI's rentes buy
+            # something real, and the player can read enemy disaffection
+            # off the same rule.
+            from backend.commands.objection_v2 import TrustTier, get_trust_tier
+            _trust = getattr(getattr(ally, "trust", None), "value", None)
+            if _trust is not None and get_trust_tier(int(_trust)) == TrustTier.HOSTILE:
+                scale *= self.BROKEN_TRUST_CONTRIBUTION
         return scale
 
     def _committed_bodies(self, lead, participants) -> int:
@@ -3514,6 +3528,12 @@ class CombatExecutor:
                     # FA-16: where he was asked — a question answered
                     # somewhere else is a different question.
                     "location": marshal.location,
+                    # FA-S2-D1: when and by whom the question was raised —
+                    # "by the AI" = during an AI phase (the marker
+                    # `EnemyAI.process_nation_turn` sets), the one moment the
+                    # player cannot answer before the enemy's next action.
+                    "raised_turn": int(getattr(world, "current_turn", 0)),
+                    "raised_by_ai": bool(getattr(world, "_ai_phase_nation", "")),
                     "options": ["fight_to_the_last", "attempt_breakout"],
                     "sovereign": True,
                     "message": (
@@ -3568,6 +3588,12 @@ class CombatExecutor:
                 # FA-16: where he was asked — a question answered somewhere
                 # else is a different question.
                 "location": marshal.location,
+                # FA-S2-D1: when and by whom the question was raised —
+                # "by the AI" = during an AI phase (the marker
+                # `EnemyAI.process_nation_turn` sets), the one moment the
+                # player cannot answer before the enemy's next action.
+                "raised_turn": int(getattr(world, "current_turn", 0)),
+                "raised_by_ai": bool(getattr(world, "_ai_phase_nation", "")),
                 "options": ["fight_to_the_last", "attempt_breakout"],
                 "message": (
                     f"{marshal.name} is cornered at {marshal.location} with "

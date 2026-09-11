@@ -4522,6 +4522,9 @@ func _on_redemption_choice_made(choice: String):
 	match choice:
 		"grant_autonomy":
 			choice_text = "You grant the marshal autonomy to act independently."
+		"settle_account":
+			# FA-D5 (slice 17, Phase 2): the arm that pays him.
+			choice_text = "You settle the marshal's account with a rente."
 		"dismiss":
 			choice_text = "You dismiss the marshal from command."
 		"administrative_role":
@@ -4594,6 +4597,13 @@ func _on_redemption_response(response):
 			# reached this banner.
 			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + Utils.COLOR_GOLD + "]   TRANSFERRED TO THE STAFF[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
+
+		elif choice == "settle_account":
+			# FA-D5 (slice 17, Phase 2): the executor's own receipt for the rente.
+			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]   THE ACCOUNT SETTLED[/color]")
 			add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
 

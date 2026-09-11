@@ -137,8 +137,35 @@
 > nothing); the rout sentence quoted the dice while part e's helper applied
 > the floor; the order-free decision read "No active orders" on the ORDERS
 > tab. Sweep 23/23, 0 INERT at close (one pin of mine repaired — the client census asserted the arm's text and not its guard). `BASELINE_SERIES` byte-identical on arm 0 (41 values, provinces identical) — the charge and issuance guards are player-only (the AI's recovery flight is a tactical move), the rest is display; M1–M7 untouched by construction.
-> **NEXT = push, then Phase 2 (the 24 rulings; FA-D27 measured — memo
-> `docs/audits/FA_D27_BALANCE_MEASURE_2026_09_11.md`).**
+> **NEXT = push, then Phase 3 (play and re-score every pillar — the driver
+> arms incl. the FA-D27 five with every Phase-2 lever up, the tutorial, naval,
+> both fixtures, one anthropic arm, the Mode-C pass on port 8006, the review
+> fleet; memo `docs/audits/PLAYTEST_FULL_RESCORE_<date>.md`).**
+>
+> **PHASE 2b — "THE MECHANICS RULINGS" — LANDED.** The last seven open
+> design rows — FA-D4, D5, D6, D7, D19, D23, FA-S2-D1 — reproduced on the
+> shipped board first, then ruled and built behind seven levers (landing
+> record = the boxed **SLICE 17 (Phase 2b)** block in `BUG_FIXES.md`; every
+> ruling on its own row in `DESIGN_REFINEMENT.md`). ⛔ Two could not ship as
+> first built: the enemy's wait (FA-S2-D1) filtered the three AI lookups and
+> still lost the corps — P0 reads the WORLD's occupancy lookup, so the second
+> and third co-located corps answered the question the first had raised; and
+> hiding him from the occupancy read made his province read as UNDEFENDED,
+> inviting the capture attack the wait exists to hold back. The rule that
+> shipped: the wait is read where a TARGET is chosen, never where OCCUPANCY
+> is read; the `raised_by_ai` stamp is the AI-phase marker
+> `world._ai_phase_nation`, not a constant. FA-D4 broke FA-D2 a day after it
+> landed (every boot pair now carries the default `defense`, so a NAMED
+> purpose against a member never rendered) — fixed as `_pick_war_objective`.
+> `BASELINE_SERIES` re-recorded ONCE, seven-arm attributed plus five
+> combination arms (arm 0 byte-identical; P forks at [17]; T moves the map
+> only; G inert with the reason measured; R inert by construction; W inert
+> ALONE while the wait engaged 89 times — a one-phase delay resolving to the
+> same board — and load-bearing with P; shipped France 11 / Austria 15 /
+> Britain 26 / Bavaria 3 against Phase 2a's 4 / 12 / 35). Sweep
+> 28/28, 0 INERT; harness EXIT=0; boot clean; **⚠ FOR USER CONFIRMATION:
+> FA-D4, FA-S2-D1 (a user gate), FA-D23.** Tally after: **0 design rows
+> open; 1 defect row (FA-S17-2, test hygiene, owned by the Phase-3 fleet).**
 >
 > **PHASE 2a — "THE RULINGS READ THE BOARD" — LANDED.** Sixteen of the
 > twenty-four open design rows in one batch (landing record = the boxed

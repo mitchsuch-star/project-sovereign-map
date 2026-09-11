@@ -24,6 +24,9 @@ signal choice_made(choice: String)
 @onready var admin_button = $PanelContainer/VBoxContainer/ButtonContainer/AdminButton
 
 var current_marshal: String = ""
+# FA-D5 (slice 17, Phase 2): the arm that pays him — built from the payload
+# like the others, first in the column, hidden until the audience offers it.
+var settle_button: Button = null
 
 # Napoleonic color palette
 const COLOR_TEXT = "eee"
@@ -35,6 +38,13 @@ func _ready():
 	autonomy_button.pressed.connect(_on_autonomy_pressed)
 	dismiss_button.pressed.connect(_on_dismiss_pressed)
 	admin_button.pressed.connect(_on_admin_pressed)
+	settle_button = Button.new()
+	settle_button.name = "SettleButton"
+	settle_button.visible = false
+	settle_button.pressed.connect(_on_settle_pressed)
+	var _column = autonomy_button.get_parent()
+	_column.add_child(settle_button)
+	_column.move_child(settle_button, 0)
 
 	# Hide by default
 	hide()
@@ -71,6 +81,9 @@ func show_redemption(redemption_data: Dictionary):
 		available_ids.append(opt_id)
 
 		match opt_id:
+			"settle_account":
+				settle_button.text = opt_text if opt_text else "Settle his account (a rente)"
+				settle_button.tooltip_text = opt_desc
 			"grant_autonomy":
 				autonomy_button.text = opt_text if opt_text else "Grant Autonomy (3 turns)"
 				autonomy_button.tooltip_text = opt_desc
@@ -82,6 +95,7 @@ func show_redemption(redemption_data: Dictionary):
 				dismiss_button.tooltip_text = opt_desc
 
 	# Show/hide buttons based on availability
+	settle_button.visible = "settle_account" in available_ids
 	autonomy_button.visible = "grant_autonomy" in available_ids
 	admin_button.visible = "administrative_role" in available_ids
 	dismiss_button.visible = "dismiss" in available_ids
@@ -101,6 +115,11 @@ func show_redemption(redemption_data: Dictionary):
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
 	print("REDEMPTION DIALOG: visible = ", visible)
+
+func _on_settle_pressed():
+	"""FA-D5: the player pays him — the executor prices and gates it."""
+	hide()
+	choice_made.emit("settle_account")
 
 func _on_autonomy_pressed():
 	"""Player grants marshal autonomy."""

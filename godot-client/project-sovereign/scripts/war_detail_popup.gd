@@ -415,6 +415,10 @@ func _render_war_detail(w: Dictionary):
 			bbcode += ", +" + str(rate) + "/turn"
 		bbcode += ")\n"
 
+	# FA-D4 (slice 17, Phase 2): the verb that sets a war purpose had no UI home.
+	var objective_hint = str(w.get("objective_hint", ""))
+	if objective_hint != "":
+		bbcode += "[color=#" + Utils.COLOR_DIMMED + "]" + objective_hint + "[/color]\n"
 	var enemy_objective = w.get("enemy_objective", null)
 	if enemy_objective != null and enemy_objective is Dictionary:
 		bbcode += "Enemy Objective: " + str(enemy_objective.get("type_display", "Objective")) + "\n"

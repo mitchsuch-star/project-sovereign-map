@@ -917,10 +917,49 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # descents gain, Austria's reinforced stacks bleed); ⚠ FOR USER CONFIRMATION
 # on the FA-D29 row. The −13 at index 20 → 21 is Switzerland's rebellion
 # (turn 22) — see test_wo_slice9_the_courting_cap for the anchor.
+# FA slice 17, Phase 2b (September 11, 2026) — re-recorded ONCE, seven-arm
+# attributed plus five combination arms (scratch runners series_arms_p2b /
+# series_arm.py, levers flipped in the child). Arm 0 (every 2b lever False)
+# reproduces the PRIOR (Phase-2a) series byte-for-byte, t40 France 4 /
+# Austria 12 / Britain 35. P = world_state.THE_SPINE_WAR_HAS_A_PURPOSE
+# (FA-D4): diverges at [17] (41 -> 42), t40 France 9 / Austria 13 /
+# Britain 30 / Bavaria 2 — every boot war now carries the live
+# declaration's defensive objective, so every objective-reading seam moves
+# and Bavaria survives. G = world_state.THE_DETACHMENT_FEEDS_STABILITY
+# (FA-D19): INERT with the reason measured — the +5 applied on 36 ticks,
+# all on AI-held provinces far from France's war (Silesia, Lithuania,
+# Podolia, Bohemia — four detachments standing from turn 13), and
+# stability there feeds nothing the series or the map reads in 40 turns.
+# T = combat_executor.CombatExecutor.TRUST_REACHES_THE_FIELD (FA-D23): the
+# SERIES is byte-identical but the MAP moves (t40 France 5 / Austria 11
+# against 4 / 12) — a broken reinforcer's half weight decides one field
+# without touching the threat. R = strategic.THE_ROAD_HOME_IS_LITERAL
+# (FA-D6): INERT BY CONSTRUCTION — `_check_interrupts` runs for the
+# PLAYER's marshals only (`process_strategic_orders` filters on
+# `player_nation`), and the passive France issues no order and signs no
+# peace in 40 turns (0 calls measured). W = enemy_ai.THE_ENEMY_WAITS_ONE_TURN
+# (FA-S2-D1): ALONE, series AND map byte-identical to arm 0 while the wait
+# ENGAGED — seven last-stand questions raised in AI phases (Lannes at
+# Munich t13, Murat t15, Lannes t16, Murat t17, Massena t18, Ney t37 and
+# t39) and 89 AI reads filtered — a one-phase delay that resolves to the
+# same board (FA-1 resolves the same corps the next phase and the coalition
+# takes the same provinces a phase later); WITH P it is load-bearing: PW
+# equals PGTRW (index 23: 14 -> 4, t40 France 11 / Austria 15 / Britain 26
+# / Bavaria 3) while PG, PT, PR and PGTR all equal P alone — on the
+# purposed board the phase the wait buys changes an outcome. PGTRW = the
+# shipped state below: t40 France 11 / Austria 15 / Britain 26 / Bavaria 3
+# against Phase 2a's 4 / 12 / 35; ⚠ FOR USER CONFIRMATION on the FA-D4 and
+# FA-S2-D1 rows (both move AI behaviour). The −23 at index 22 → 23 (27 →
+# 4) is ONE tick carrying KingdomOfItaly's elimination out of France's web
+# (`ELIMINATION_RELIEVES_THE_LORD`'s −10, world turn 23 — the relief is
+# BACK on this board), Switzerland's `vassal_broke_free` (−10, logged at
+# 24) and the −3 decay; Switzerland is eliminated at turn 33; the rise 0 →
+# 6 at [25]–[29] is the surviving France's own accrual — see
+# test_wo_slice9_the_courting_cap for the anchor.
 BASELINE_SERIES = [
     70, 68, 66, 64, 62, 60, 58, 63, 60, 58, 56, 54, 52, 50, 48, 46, 44,
-    41, 38, 35, 32, 19, 19, 19, 16, 13, 20, 17, 14, 11, 8, 5, 2, 0, 0, 0,
-    0, 0, 0, 0, 0,
+    42, 39, 36, 33, 30, 27, 4, 1, 0, 2, 4, 4, 6, 3, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0,
 ]
 
 

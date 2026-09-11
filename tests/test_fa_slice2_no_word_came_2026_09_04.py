@@ -710,7 +710,14 @@ class TestNoWordCame:
         cornered at Milan by three co-located Austrian corps. Before: six
         attacks, 8,000 -> 259, still standing. After: he is resolved by the
         second defeat at the latest, and the nation's remaining actions go
-        elsewhere."""
+        elsewhere.
+
+        FA-S2-D1 (slice 17, Phase 2b): the enemy now WAITS a phase for a
+        question its own attack raised, so the first phase ends with
+        Massena ASKED (fresh, stamped by the AI phase) rather than resolved,
+        and the NEXT phase resolves him by his own character. The grind
+        contract is unchanged — at most two attacks on him in a phase, never
+        six — and the resolution is one phase later."""
         import os
         from backend.ai.enemy_ai import EnemyAI
         from backend.models.world_state import WorldState
@@ -744,6 +751,17 @@ class TestNoWordCame:
         on_massena = [a for a in actions
                       if a.get("ai_action", {}).get("target") == "Massena"]
         assert len(on_massena) <= 2, [a.get("ai_action") for a in actions]
+        standing = (massena.location == "Milan" and massena.strength > 0
+                    and not massena.captured_by)
+        if standing:
+            # FA-S2-D1: he stands only because the question is fresh
+            ask = massena.pending_interrupt or {}
+            assert ask.get("interrupt_type") == "last_stand", ask
+            assert ask.get("raised_by_ai") is True
+            assert ask.get("raised_turn") == int(w.current_turn)
+            w.current_turn += 1
+            with _quiet():
+                ai.process_nation_turn("Austria", w, {"world": w})
         assert not (massena.location == "Milan" and massena.strength > 0
                     and not massena.captured_by), (
             massena.location, massena.strength, massena.captured_by)

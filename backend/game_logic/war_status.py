@@ -166,22 +166,16 @@ def build_active_wars(world) -> Dict[str, Any]:
         # against Austria" rendered nothing while the score moved. Walk the
         # war's opponents (leader first) and take the first live objective,
         # labelling the court it targets; single-opponent rows are unchanged.
-        if THE_COALITION_ROW_READS_EVERY_PAIR and not (
-                france_obj and france_obj.get("concluded_turn") is None):
-            for court in _war_opponents_for_objectives(world, france, opponent, coalition_members):
-                cand = getattr(world, 'war_objectives', {}).get(
-                    world._make_diplo_key(france, court), {}).get(france, {})
-                if cand and cand.get("concluded_turn") is None:
-                    france_obj, objective_against = cand, court
-                    break
-        if THE_COALITION_ROW_READS_EVERY_PAIR and not (
-                enemy_obj and enemy_obj.get("concluded_turn") is None):
-            for court in _war_opponents_for_objectives(world, france, opponent, coalition_members):
-                cand = getattr(world, 'war_objectives', {}).get(
-                    world._make_diplo_key(france, court), {}).get(court, {})
-                if cand and cand.get("concluded_turn") is None:
-                    enemy_obj, enemy_objective_by = cand, court
-                    break
+        # FA-D4 (Phase 2b) on top: every boot pair now carries the
+        # declaration's default `defense`, so "the first live objective"
+        # was always the leader pair's default and a purpose the player
+        # NAMED against a member never rendered again. A named purpose
+        # outranks a default one; the leader still wins among equals.
+        if THE_COALITION_ROW_READS_EVERY_PAIR:
+            france_obj, objective_against = _pick_war_objective(
+                world, france, opponent, coalition_members, france_obj, side="france")
+            enemy_obj, enemy_objective_by = _pick_war_objective(
+                world, france, opponent, coalition_members, enemy_obj, side="enemy")
 
         objective_info = None
         if france_obj and france_obj.get("concluded_turn") is None:
@@ -263,6 +257,9 @@ def build_active_wars(world) -> Dict[str, Any]:
             "is_coalition_leader": is_coalition_leader,
             "objective": objective_info,
             "enemy_objective": enemy_objective_info,
+            # FA-D4 (slice 17, Phase 2): the verb that sets a purpose had no
+            # UI home — the popup says it where the objective block stands.
+            "objective_hint": _objective_hint(objective_info, opponent),
             "settlement_tier": tier,
             "settlement_tier_display": SETTLEMENT_TIER_DISPLAY.get(tier, tier),
             "contribution_share": contribution.get("rows", []),
@@ -766,6 +763,44 @@ def _leader_first(nations: List[str], leader: str) -> List[str]:
 # read across every opponent pair the score already sums. False = the
 # leader pair only (the prior row).
 THE_COALITION_ROW_READS_EVERY_PAIR = True
+
+
+def _objective_hint(objective_info, opponent: str) -> str:
+    """FA-D4: what the popup says under (or instead of) the objective block —
+    the verb that names a purpose, and that a defensive one is only the
+    default a declaration hands out."""
+    from backend.models.world_state import THE_SPINE_WAR_HAS_A_PURPOSE
+    if not THE_SPINE_WAR_HAS_A_PURPOSE:
+        return ""
+    if not objective_info:
+        return (f"No war purpose set — 'set war purpose against {opponent}' names one; "
+                f"until then the war ticks toward nothing.")
+    if str(objective_info.get("type") or "") == "defense":
+        return (f"A defensive purpose only (hold the homeland) — 'set war purpose against "
+                f"{opponent}' names a purpose of your own.")
+    return ""
+
+
+def _pick_war_objective(world, france: str, leader: str, coalition_members,
+                        leader_obj, side: str):
+    """FA-D2 + FA-D4: the objective a coalition row shows for one side —
+    `side == "france"` reads France's purpose against each court, `"enemy"`
+    each court's purpose against France. Leader first; a NAMED purpose (any
+    type but the declaration's default `defense`) outranks a default one;
+    the first live objective when nothing is named. Returns
+    ``(objective, court)``; ``(leader_obj, leader)`` when nothing is live."""
+    live = []
+    for court in _war_opponents_for_objectives(world, france, leader, coalition_members):
+        pair = getattr(world, 'war_objectives', {}).get(world._make_diplo_key(france, court), {})
+        cand = pair.get(france if side == "france" else court, {})
+        if cand and cand.get("concluded_turn") is None:
+            live.append((cand, court))
+    for cand, court in live:
+        if str(cand.get("type") or "") != "defense":
+            return cand, court
+    if live:
+        return live[0]
+    return leader_obj, leader
 
 
 def _war_opponents_for_objectives(world, france: str, leader: str, coalition_members) -> list:

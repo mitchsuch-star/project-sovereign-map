@@ -723,6 +723,10 @@ REDEMPTION_NET_ACTIVE = True
 # man behind it. R2-3 (WO-41, pre-existing, widened): a latch whose question
 # went stale was never released, so the man never asked again on release.
 REDEMPTION_ASKS_THE_LIVING = True
+# FA-D5 (slice 17, Phase 2) flip lever: the redemption audience offers the arm
+# that pays the man — a rente, through the executor — when an unpaid
+# expectation is the cause. False = the three prior arms only.
+THE_AUDIENCE_NAMES_ITS_CAUSE = True
 # FA-N76 (slice 14) flip lever: the answer to a redemption audience must be
 # one of the courses the audience OFFERED. False restores the pre-slice
 # behaviour, in which the endpoint checked a hardcoded three-word list and
@@ -1575,6 +1579,30 @@ class DisobedienceSystem:
         """
         options = []
 
+        # FA-D5 (slice 17, Phase 2): the audience could not address its own
+        # cause — no arm settled an unpaid expectation, and the 'right'
+        # answer (pay him) lived on a different screen. When a shortfall is
+        # open and a rente would actually help, the FIRST arm is the rente,
+        # priced by the same builder the rail quotes.
+        if THE_AUDIENCE_NAMES_ITS_CAUSE:
+            from backend.game_logic import dotation as _dot
+            if (_dot.is_dotation_world(world)
+                    and _dot.get_shortfall(marshal, world) > 0
+                    and not _dot.rente_grant_would_not_help(marshal, world)):
+                _offer = _dot.build_rente_offer(marshal, world)
+                _face = int(_offer.get("face", 0) or 0)
+                _cost = int(_offer.get("cost", 0) or 0)
+                options.append({
+                    'id': 'settle_account',
+                    'text': f"Settle {marshal.name}'s account — a rente of {_face:,}g a turn",
+                    'description': (
+                        f"His claim is {_dot.get_shortfall(marshal, world):,}g a turn in arrears; "
+                        f"a rente of {_face:,}g closes it and the erosion stops. The treasury "
+                        f"pays {_cost:,}g a turn. Costs 1 administrative action; the audience "
+                        f"stands if the action or the gold is wanting."),
+                    'effect': 'grant_pension_via_the_executor',
+                })
+
         # Get counts using world_state helpers
         field_marshals = world.get_field_marshals()
         admin_marshals = world.get_admin_marshals()
@@ -1796,6 +1824,39 @@ class DisobedienceSystem:
                         f"{', '.join(offered)}."),
                     'offered_options': offered,
                 }
+
+        # ── FA-D5 (slice 17, Phase 2): the arm that pays him ──────────────
+        # The SAME dict the UX23-A rail and the AI rung send, through the
+        # executor, so the price, the action cost and every gate are the
+        # executor's (GR5). A refusal leaves the question STANDING: no latch
+        # cleared, no cooldown paid, nothing spent.
+        if choice == 'settle_account':
+            executor = game_state.get('executor') if isinstance(game_state, dict) else None
+            if executor is None:
+                from backend.commands.executor import CommandExecutor
+                executor = CommandExecutor()
+            _gs = game_state if isinstance(game_state, dict) else {'world': world}
+            _res = executor.execute({'command': {'type': 'specific', 'marshal': marshal_name,
+                                                 'action': 'grant_pension'}}, _gs)
+            if not _res.get('success'):
+                return {
+                    'success': False,
+                    'type': 'redemption_refused',
+                    'choice': 'settle_account',
+                    'marshal': marshal_name,
+                    'message': str(_res.get('message') or ''),
+                    'standing': True,
+                }
+            marshal.redemption_pending = False
+            marshal.redemption_cooldown_until = getattr(world, 'current_turn', 0) + 5
+            return {
+                'success': True,
+                'type': 'redemption_resolved',
+                'choice': 'settle_account',
+                'marshal': marshal_name,
+                'message': str(_res.get('message') or ''),
+                'pension': int(getattr(marshal, 'pension', 0) or 0),
+            }
 
         # FIX: Clear redemption_pending flag now that we're resolving it
         marshal.redemption_pending = False

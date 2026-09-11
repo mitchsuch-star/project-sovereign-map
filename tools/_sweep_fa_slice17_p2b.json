@@ -1,0 +1,198 @@
+[
+  {
+    "id": "D4/a lever",
+    "file": "backend/models/world_state.py",
+    "old": "            if THE_SPINE_WAR_HAS_A_PURPOSE:\n                from backend.game_logic.diplomacy import _auto_assign_defense_objective\n",
+    "new": "            if False:\n                from backend.game_logic.diplomacy import _auto_assign_defense_objective\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD4TheSpineWarHasAPurpose"
+  },
+  {
+    "id": "D4/b one side only",
+    "file": "backend/models/world_state.py",
+    "old": "                    for side, other in ((defender, attacker), (attacker, defender)):\n",
+    "new": "                    for side, other in ((defender, attacker),):\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD4TheSpineWarHasAPurpose"
+  },
+  {
+    "id": "D4/c the hint's defensive arm",
+    "file": "backend/game_logic/war_status.py",
+    "old": "    if str(objective_info.get(\"type\") or \"\") == \"defense\":\n",
+    "new": "    if str(objective_info.get(\"type\") or \"\") == \"defensive\":\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD4TheSpineWarHasAPurpose"
+  },
+  {
+    "id": "D4+D2/d a named purpose outranks the default",
+    "file": "backend/game_logic/war_status.py",
+    "old": "    for cand, court in live:\n        if str(cand.get(\"type\") or \"\") != \"defense\":\n            return cand, court\n",
+    "new": "    for cand, court in live:\n        if False:\n            return cand, court\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair"
+  },
+  {
+    "id": "D5/a lever",
+    "file": "backend/commands/disobedience.py",
+    "old": "        if THE_AUDIENCE_NAMES_ITS_CAUSE:\n            from backend.game_logic import dotation as _dot\n",
+    "new": "        if False:\n            from backend.game_logic import dotation as _dot\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD5TheAudienceNamesItsCause"
+  },
+  {
+    "id": "D5/b offered with no arrears",
+    "file": "backend/commands/disobedience.py",
+    "old": "                    and _dot.get_shortfall(marshal, world) > 0\n",
+    "new": "                    and _dot.get_shortfall(marshal, world) >= 0\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD5TheAudienceNamesItsCause"
+  },
+  {
+    "id": "D5/c a refusal clears the latch",
+    "file": "backend/commands/disobedience.py",
+    "old": "            if not _res.get('success'):\n                return {\n                    'success': False,\n                    'type': 'redemption_refused',\n",
+    "new": "            if False:\n                return {\n                    'success': False,\n                    'type': 'redemption_refused',\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD5TheAudienceNamesItsCause"
+  },
+  {
+    "id": "D5/d the wrong verb",
+    "file": "backend/commands/disobedience.py",
+    "old": "                                                 'action': 'grant_pension'}}, _gs)\n",
+    "new": "                                                 'action': 'revoke_pension'}}, _gs)\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD5TheAudienceNamesItsCause"
+  },
+  {
+    "id": "D6/a lever",
+    "file": "backend/commands/strategic.py",
+    "old": "        if THE_ROAD_HOME_IS_LITERAL:\n            from backend.game_logic.withdrawal import is_road_home_order\n",
+    "new": "        if False:\n            from backend.game_logic.withdrawal import is_road_home_order\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD6TheRoadHomeIsLiteral"
+  },
+  {
+    "id": "D6/b inverted",
+    "file": "backend/commands/strategic.py",
+    "old": "            if is_road_home_order(getattr(marshal, \"strategic_order\", None)):\n                return None\n",
+    "new": "            if not is_road_home_order(getattr(marshal, \"strategic_order\", None)):\n                return None\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD6TheRoadHomeIsLiteral"
+  },
+  {
+    "id": "D7/a lever",
+    "file": "backend/game_logic/diplomatic_dialogue.py",
+    "old": "    if proposal_type == \"peace\" and THE_DESK_IS_READ_BEFORE_THE_DRAFT:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD7TheDeskIsReadBeforeTheDraft"
+  },
+  {
+    "id": "D7/b the arm stays live",
+    "file": "backend/game_logic/diplomatic_dialogue.py",
+    "old": "                    _opt[\"enabled\"] = False\n                    _opt[\"available\"] = False\n                    _opt[\"unavailable_reason\"] = _desk\n",
+    "new": "                    _opt[\"enabled\"] = True\n                    _opt[\"available\"] = True\n                    _opt[\"unavailable_reason\"] = _desk\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD7TheDeskIsReadBeforeTheDraft"
+  },
+  {
+    "id": "D7/c a promoted offer is not read",
+    "file": "backend/game_logic/diplomatic_dialogue.py",
+    "old": "            or _settlement_offer_already_promoted(world, war_id=war_id)):\n",
+    "new": "            or False):\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD7TheDeskIsReadBeforeTheDraft"
+  },
+  {
+    "id": "D19/a lever",
+    "file": "backend/models/world_state.py",
+    "old": "                                   or (THE_DETACHMENT_FEEDS_STABILITY\n                                       and self.region_has_detached_garrison(region))) else 0\n",
+    "new": "                                   or (False\n                                       and self.region_has_detached_garrison(region))) else 0\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD19TheDetachmentFeedsStability"
+  },
+  {
+    "id": "D19/b a flag with no men",
+    "file": "backend/models/world_state.py",
+    "old": "                and int(getattr(region, \"garrison_strength\", 0) or 0) > 0)\n",
+    "new": "                and True)\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD19TheDetachmentFeedsStability"
+  },
+  {
+    "id": "D23/a lever",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if self.TRUST_REACHES_THE_FIELD and scale > 0.0:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD23TrustReachesTheField"
+  },
+  {
+    "id": "D23/b the wrong tier",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            if _trust is not None and get_trust_tier(int(_trust)) == TrustTier.HOSTILE:\n",
+    "new": "            if _trust is not None and get_trust_tier(int(_trust)) != TrustTier.HOSTILE:\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD23TrustReachesTheField"
+  },
+  {
+    "id": "D23/c the blessed number",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    BROKEN_TRUST_CONTRIBUTION = 0.5\n",
+    "new": "    BROKEN_TRUST_CONTRIBUTION = 1.0\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD23TrustReachesTheField"
+  },
+  {
+    "id": "S2D1/a lever inverted",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if not THE_ENEMY_WAITS_ONE_TURN:\n            return False\n        ask = getattr(marshal, \"pending_interrupt\", None)\n",
+    "new": "        if THE_ENEMY_WAITS_ONE_TURN:\n            return False\n        ask = getattr(marshal, \"pending_interrupt\", None)\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/b any raiser",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                and bool(ask.get(\"raised_by_ai\"))\n",
+    "new": "                and True\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/c any turn",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                and int(ask.get(\"raised_turn\", -1)) == int(getattr(world, \"current_turn\", -2)))\n",
+    "new": "                and True)\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/d the P0 brake site",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        enemies = [e for e in enemies if not self._freshly_asked(e, world)]\n        if not P0_ENGAGEMENT_BRAKES_ACTIVE:\n",
+    "new": "        enemies = list(enemies)\n        if not P0_ENGAGEMENT_BRAKES_ACTIVE:\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/e the contacts read",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        return [m for m in self._enemy_query_cache[cache_key]\n                if not self._freshly_asked(m, world)]\n",
+    "new": "        return [m for m in self._enemy_query_cache[cache_key]\n                if True]\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/f the same-region read",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        return [m for m in world.get_hostile_marshals_in_region_indexed(marshal.location, marshal.nation)\n                if not self._freshly_asked(m, world)]  # FA-S2-D1\n",
+    "new": "        return [m for m in world.get_hostile_marshals_in_region_indexed(marshal.location, marshal.nation)\n                if True]  # FA-S2-D1\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/g the occupancy read hides him",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        self._ensure_marshal_indexes(world)\n        return world.get_hostile_marshals_in_region_indexed(region_name, nation)\n",
+    "new": "        self._ensure_marshal_indexes(world)\n        return [m for m in world.get_hostile_marshals_in_region_indexed(region_name, nation) if not self._freshly_asked(m, world)]\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/h the stamp is a constant",
+    "file": "backend/commands/combat_executor.py",
+    "old": "\n                \"raised_by_ai\": bool(getattr(world, \"_ai_phase_nation\", \"\")),\n",
+    "new": "\n                \"raised_by_ai\": True,\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/i the marker is never cleared",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        finally:\n            world._ai_phase_nation = previous\n",
+    "new": "        finally:\n            world._ai_phase_nation = nation\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  },
+  {
+    "id": "S2D1/j the stamp's turn",
+    "file": "backend/commands/combat_executor.py",
+    "old": "\n                \"raised_turn\": int(getattr(world, \"current_turn\", 0)),\n",
+    "new": "\n                \"raised_turn\": int(getattr(world, \"current_turn\", 0)) - 1,\n",
+    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
+  }
+]

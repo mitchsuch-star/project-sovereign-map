@@ -105,9 +105,17 @@ class TestD2CoalitionRowReadsEveryPair:
         assert rows, "the 1805 boot has a coalition war"
         return rows[0]
 
-    def test_boot_row_has_no_objective(self):
+    def test_boot_row_carries_only_the_declarations_default(self, monkeypatch):
+        """FA-D4 (Phase 2b) gives every boot pair the declaration's default
+        `defense`; the row shows the LEADER pair's, labelled, and nothing
+        named. With D4 down the boot row has no objective at all."""
+        from backend.models import world_state as WS
         w = _boot()
-        assert self._coalition_row(w)["objective"] is None
+        row = self._coalition_row(w)
+        assert row["objective"]["type"] == "defense"
+        assert row["objective"]["against"] == row["opponent"]
+        _flip(monkeypatch, WS, "THE_SPINE_WAR_HAS_A_PURPOSE", False)
+        assert self._coalition_row(_boot())["objective"] is None
 
     def test_a_purpose_set_against_a_member_renders_on_the_coalition_row(self):
         w = _boot()
@@ -148,7 +156,10 @@ class TestD2CoalitionRowReadsEveryPair:
         key = w._make_diplo_key("France", "Austria")
         w.war_objectives.setdefault(key, {})["France"] = {
             "type": "humiliation", "set_turn": w.current_turn, "concluded_turn": None}
-        assert self._coalition_row(w)["objective"] is None
+        row = self._coalition_row(w)
+        # the leader pair's own default (FA-D4), never the member's named purpose
+        assert row["objective"]["type"] == "defense"
+        assert row["objective"]["against"] == row["opponent"]
 
     def test_the_detail_screen_prints_the_court_it_targets(self):
         src = (GD / "war_detail_popup.gd").read_text(encoding="utf-8")

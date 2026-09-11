@@ -200,7 +200,7 @@ class TestTheTreatyClaimsNoFirstStep:
 
 class TestAStandingQuestionIsNotLoitering:
 
-    def test_an_unanswered_ask_never_costs_the_army(self, live):
+    def test_an_unanswered_ask_never_costs_the_army(self, live, monkeypatch):
         """Interrupts LIVE and unanswered — the unattended shape.
 
         Removing the stamp un-shields the issuance turn from
@@ -208,13 +208,36 @@ class TestAStandingQuestionIsNotLoitering:
         rider the fix is a REGRESSION for this arm: measured, interned at
         Vienna on turn 5 having marched nothing, against Bohemia on turn 6
         having marched one province.
+
+        FA-D6 (slice 17, Phase 2b): the treaty's road is LITERAL now —
+        cannon fire never asks a road-home corps anything — so the question
+        this rider protects is only raised with `THE_ROAD_HOME_IS_LITERAL`
+        down. The rider's MECHANISM (a standing question is not loitering)
+        is pinned on that arm; the literal road is pinned in the sibling.
         """
+        from backend.commands import strategic as ST
+        monkeypatch.setattr(ST, "THE_ROAD_HOME_IS_LITERAL", False)
         davout = _peace_with_austria(live.world)
         for _ in range(9):
             live.end_turn()
         assert "Davout" in live.world.marshals, (
             "the clock must not run on the game's own silence")
         assert davout.pending_interrupt is not None
+
+    def test_the_literal_road_is_never_asked_and_is_walked(self, live):
+        """FA-D6 (slice 17, Phase 2b): the same nine live turns with the
+        lever up raise NO question on the road-home corps — the guns one
+        province over are not his to hear — and he walks: off Vienna, home
+        or still on the treaty's road, never interned."""
+        davout = _peace_with_austria(live.world)
+        for _ in range(9):
+            live.end_turn()
+        assert "Davout" in live.world.marshals
+        assert davout.pending_interrupt is None
+        assert davout.location != "Vienna"
+        assert (live.world.get_region(davout.location).controller == "France"
+                or W.is_road_home_order(davout.strategic_order)), (
+            davout.location, davout.strategic_order)
 
     def test_the_mercy_is_marshal_scoped_and_the_corridor_still_closes(
             self, world):

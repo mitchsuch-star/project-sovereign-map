@@ -128,6 +128,12 @@ P425_SKIPS_A_HELD_FIELD = True           # FA-8: a garrisoned province with a fi
 # defender's VISIBLE muster forecast (the preview's own term). False = the
 # field standing in the province alone (the prior price).
 P4_PRICES_THE_MUSTER = True
+# FA-S2-D1 (slice 17, Phase 2) flip lever: a player marshal whose last-stand
+# question the AI raised THIS turn is a non-target for the rest of the enemy
+# phase (every court's), so the W6-7 choice reaches the player; an ask still
+# standing at the next phase is resolved by FA-1's rule as before. False =
+# the next action in the same phase answers it.
+THE_ENEMY_WAITS_ONE_TURN = True
 SQUARE_FORMS_AFTER_THE_STRIKES = True    # FA-27 / FA-N38: the square is the LAST word of a phase, and a broken one takes a cooldown
 BROKEN_AI_CORPS_IS_LIMITED = True        # FA-N6: a broken corps takes the limiter (both sides, GR5)
 # FA-9 (slice 17, Sept 11 2026): a corps in the RETREAT-RECOVERY window takes
@@ -644,7 +650,8 @@ class EnemyAI:
     def _get_hostile_marshals_in_same_region(self, marshal: Marshal, world: WorldState) -> List[Marshal]:
         """AI-only same-region hostile lookup backed by the marshal index."""
         self._ensure_marshal_indexes(world)
-        return world.get_hostile_marshals_in_region_indexed(marshal.location, marshal.nation)
+        return [m for m in world.get_hostile_marshals_in_region_indexed(marshal.location, marshal.nation)
+                if not self._freshly_asked(m, world)]  # FA-S2-D1
 
     def _get_marshals_in_region(self, region_name: str, world: WorldState) -> List[Marshal]:
         """AI-only region lookup backed by the marshal index."""
@@ -652,7 +659,17 @@ class EnemyAI:
         return world.get_marshals_in_region_indexed(region_name)
 
     def _get_hostile_marshals_in_region(self, region_name: str, nation: str, world: WorldState) -> List[Marshal]:
-        """AI-only hostile region lookup backed by the marshal index."""
+        """AI-only hostile region lookup backed by the marshal index.
+
+        An OCCUPANCY read, deliberately NOT under the FA-S2-D1 wait: P4.5
+        asks it whether a province is undefended, P4.25 whether a field
+        army holds the garrison's province, the path scan whether a corps
+        blocks the road. A freshly-asked corps still STANDS there — hiding
+        him here read his province as empty and invited the very capture
+        attack the wait exists to hold back. The wait is applied where a
+        target is CHOSEN (`_get_enemy_contacts`,
+        `_get_hostile_marshals_in_same_region`, `_engageable_enemies`).
+        """
         self._ensure_marshal_indexes(world)
         return world.get_hostile_marshals_in_region_indexed(region_name, nation)
 
@@ -720,6 +737,25 @@ class EnemyAI:
         del marshal
         return bool(nation)
 
+    @staticmethod
+    def _freshly_asked(marshal, world) -> bool:
+        """FA-S2-D1: is this marshal's last-stand question one the AI raised
+        THIS turn? Then the enemy waits — the province is denied for one
+        turn and the player chooses; at the next phase the question is
+        resolved by the marshal's own character (FA-1).
+
+        Read where a TARGET is chosen (contacts, the same-region engagement
+        list, the P0 brake site) and never where OCCUPANCY is read: the
+        asked corps still stands on his province, so it is not undefended,
+        not a free road, and not a garrison without a field army."""
+        if not THE_ENEMY_WAITS_ONE_TURN:
+            return False
+        ask = getattr(marshal, "pending_interrupt", None)
+        return (isinstance(ask, dict)
+                and ask.get("interrupt_type") == "last_stand"
+                and bool(ask.get("raised_by_ai"))
+                and int(ask.get("raised_turn", -1)) == int(getattr(world, "current_turn", -2)))
+
     def _get_enemy_contacts(
         self,
         nation: str,
@@ -743,7 +779,9 @@ class EnemyAI:
             else:
                 self._enemy_query_cache[cache_key] = tuple(world.get_enemies_of_nation(nation))
 
-        return list(self._enemy_query_cache[cache_key])
+        # FA-S2-D1: a freshly-asked player marshal is not a contact this phase.
+        return [m for m in self._enemy_query_cache[cache_key]
+                if not self._freshly_asked(m, world)]
 
     def _get_strategic_enemy_regions(self, nation: str, world: WorldState) -> List[str]:
         """Return hostile-controlled regions as coarse targets when no enemies are visible.
@@ -1010,6 +1048,20 @@ class EnemyAI:
         }
 
     def process_nation_turn(self, nation: str, world: WorldState, game_state: Dict) -> List[Dict]:
+        """The AI phase for one nation. Marks the world with the acting
+        court for its duration (`world._ai_phase_nation`, a transient read
+        by `_check_marshal_fate`'s FA-S2-D1 stamp: a last-stand question
+        raised while this court acts is one the player could not yet
+        answer, and the enemy waits a phase for it). Both callers — the
+        turn manager's enemy phase and `/debug ai_turn` — inherit it."""
+        previous = getattr(world, "_ai_phase_nation", "")
+        world._ai_phase_nation = nation
+        try:
+            return self._process_nation_turn_marked(nation, world, game_state)
+        finally:
+            world._ai_phase_nation = previous
+
+    def _process_nation_turn_marked(self, nation: str, world: WorldState, game_state: Dict) -> List[Dict]:
         """
         Process a single nation's turn with round-robin action distribution.
 
@@ -2854,7 +2906,12 @@ class EnemyAI:
         pairs.
         """
         from backend.commands.strategic import ATTACK_FUTILITY_LIMIT
-        enemies = list(enemies)
+        # FA-S2-D1: P0 reads the WORLD's occupancy lookup and hands it
+        # here, so this is where the wait meets the co-located corps —
+        # measured: with the filter on the three lookups alone, Charles's
+        # attack raised the question and Mack's and John's answered it in
+        # the same phase (3,000 -> 1,075 -> captured).
+        enemies = [e for e in enemies if not self._freshly_asked(e, world)]
         if not P0_ENGAGEMENT_BRAKES_ACTIVE:
             return enemies
         attacked = getattr(self, '_attacked_targets_this_turn', None) or set()
