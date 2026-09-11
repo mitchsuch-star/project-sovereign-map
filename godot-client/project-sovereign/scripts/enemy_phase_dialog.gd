@@ -435,8 +435,11 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 
 	# Fort degradation
 	if event.get("fortification_degraded", false):
-		var fort_old = int(event.get("fortification_old", 0) * 100)
-		var fort_new = int(event.get("fortification_new", 0) * 100)
+		# FA-N55 (slice 17): the producer already emits an INT percent (combat.py's
+		# `int(fortification_old * 100)`, "FINAL-8: int() for Godot") — scaling it again
+		# printed "Fort degraded: 2000% -> 1000%". main.gd reads it bare; so does this.
+		var fort_old = int(event.get("fortification_old", 0))
+		var fort_new = int(event.get("fortification_new", 0))
 		if fort_new <= 0:
 			result += "[color=#" + Utils.COLOR_INFO + "]    Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]\n"
 		else:
@@ -573,8 +576,8 @@ func _format_bombardment(event: Dictionary) -> String:
 
 	# Fort degradation
 	if event.get("fort_degraded", false):
-		var fort_old = int(event.get("fort_old", 0) * 100)
-		var fort_new = int(event.get("fort_new", 0) * 100)
+		var fort_old = int(event.get("fort_old", 0))
+		var fort_new = int(event.get("fort_new", 0))
 		if fort_new <= 0:
 			result += "[color=#" + Utils.COLOR_BATTLE + "]    Fortifications DESTROYED![/color]\n"
 		else:

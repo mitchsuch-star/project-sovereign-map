@@ -2,9 +2,10 @@
   "name": "naval-descent",
   "seed": "historical",
   "llm": "anthropic",
+  "_note_fa85": "FA-85 (Sept 11, 2026): the expedition marshal stages at BORDELAIS, a controlled Atlantic yard OUTSIDE the Descent camp set (Flanders/Artois/Normandy/Brittany). Normandy was never a yard, so both land lines were refused and the archived naval digest carried zero expedition evidence; Brittany (REPRO_J5 pick) is a camp province and would perturb the staging this script measures. The driver flags a run SCRIPT PRECONDITION when every land line is refused.",
   "turns": {
     "1": ["Ney, march to Flanders", "Davout, march to Normandy", "build ships"],
-    "2": ["Soult, march to Normandy", "build ships"],
+    "2": ["Soult, march to Bordelais", "build ships"],
     "3": ["status", "build ships"],
     "4": ["blockade Britain", "build ships"],
     "5": ["order the diversion"],

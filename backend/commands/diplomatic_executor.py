@@ -5486,10 +5486,15 @@ class DiplomaticExecutor:
                 "diplomatic_state_at_send": world.get_diplomatic_state(get_player_nation(world), target_nation),  # PL-13-A
             }
 
-            # Record override if player overrode Talleyrand's objection
+            # Record override if player overrode Talleyrand's objection.
+            # FA-N64 (slice 17): "pending" — the VERDICT is stamped a turn
+            # later by `world_state._process_proposal_in_transit`, which is the
+            # only place the outcome is known. This used to write the literal
+            # "override", which the only reader (`get_override_dispatch_note`)
+            # matched against "good"/"bad" — so the payoff never fired.
             if action == "send_override":
                 from backend.commands.diplomatic_defiance import record_override
-                record_override(world, proposal_type, "override")
+                record_override(world, proposal_type, "pending")
 
             world.log_event({
                 "type": "diplomatic_proposal_sent",

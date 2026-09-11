@@ -28,6 +28,26 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # same substitution.
 from backend.commands.movement_executor import destination_grounding_note
 
+# FA-N57 (slice 17, Sept 11 2026): the "is in square formation" Berthier
+# advisory read the LIVE `square_formation` 1,142 lines AFTER this very
+# function had auto-broken the square — production-dead since Session 67
+# while its `fortified` sibling one line up was live. False reproduces the
+# silence; True reads the PRE-break state and states the consequence.
+SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
+
+
+def order_verb_display(order_or_action: str) -> str:
+    """FA-N70 (slice 17): an ORDER enum ("MOVE_TO") reads through the R7
+    single source as a lower-case verb ("march"); anything else is an action
+    name and reads through `ACTION_DISPLAY`. Two player sentences printed
+    the raw enum — `form square`'s "Strategic order (MOVE_TO) cancelled" and
+    the defiance notification's "defied your order to MOVE_TO"."""
+    from backend.display_names import STRATEGIC_ORDER_DISPLAY
+    key = str(order_or_action or "")
+    if key in STRATEGIC_ORDER_DISPLAY:
+        return get_strategic_display(key).lower()
+    return _action_display_name(key)
+
 
 def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
     """Best-effort resolve a messy MOVE_TO/HOLD target phrase to a real region.
@@ -522,6 +542,9 @@ class StrategicExecutor:
             }
 
         # Auto-break square formation (Session 67: "any strategic command breaks square")
+        # FA-N57: remember the PRE-break state — the SUPPORT advisory below
+        # reads it, because after this line the live attribute is always False.
+        was_in_square = bool(getattr(marshal, 'square_formation', False))
         self._executor._auto_break_square(marshal, strategic_type or "strategic order")
 
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
@@ -1664,7 +1687,18 @@ class StrategicExecutor:
                     f"but is fortified — they cannot march to reinforce from their current "
                     f"position. Consider unfortifying, or rely on the co-location coordination bonus.\""
                 )
-            elif getattr(marshal, 'square_formation', False):
+            elif SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE and was_in_square:
+                # FA-N57: the CONSEQUENCE, not the old sentence on the captured
+                # state — "they cannot march to reinforce" (he can) and
+                # "consider breaking square first" (it is already broken) are
+                # both false once the auto-break above has run.
+                msg += (
+                    f"\n\nBerthier: \"Sire, {marshal.name} has broken square to take up "
+                    f"the order — he marches to {target}'s aid, but the anti-cavalry "
+                    f"formation is gone.\""
+                )
+            elif (not SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE
+                  and getattr(marshal, 'square_formation', False)):
                 msg += (
                     f"\n\nBerthier: \"Sire, {marshal.name} is ordered to support {target} "
                     f"but is in square formation — they cannot march to reinforce. "
@@ -2754,7 +2788,9 @@ class StrategicExecutor:
                     MARSHAL_DEFIED_ORDER,
                     NotificationPriority.HIGH,
                     f"{marshal_name} defied your strategic order!",
-                    f"{marshal_name} defied your order to {_action_display_name(strategic_type)} "
+                    # FA-N70 (the unfiled third site): `strategic_type` is the
+                    # raw order enum here — through the R7 source, not ACTION_DISPLAY.
+                    f"{marshal_name} defied your order to {order_verb_display(strategic_type)} "
                     f"and chose to {_action_display_name(defiant_action)} instead.",
                     world.current_turn,
                 ))

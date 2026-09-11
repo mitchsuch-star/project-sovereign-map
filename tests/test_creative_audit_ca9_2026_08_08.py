@@ -2073,12 +2073,21 @@ class TestN37RoutRecovery:
                 f"stage {stage}: {rows}")
 
     def test_stage_three_must_stay_good(self):
-        """`retreat_recovered` is NOT in the whitelist, so the final stage
-        of THIS event is the only recovery news the player ever gets —
-        which is why the fix could not simply demote the class."""
+        """FLIPPED CONSCIOUSLY by FA-N58 (slice 17, Sept 11 2026).
+
+        This pin used to assert `retreat_recovered` was NOT whitelisted, on
+        the premise that "the final stage of THIS event is the only recovery
+        news the player ever gets". That premise was the defect: the
+        producer's PC15-14 guard caps `retreat_recovery` at stage 2, so the
+        stage-3 `good` arm was unreachable and the completion — carried by
+        `retreat_recovered`, exactly as the broken family's `broken_recovered`
+        is — was dropped at the whitelist. Both recovery families now carry
+        their completion; the per-stage `info` arm is unchanged.
+        """
         from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
         assert "retreat_recovery" in _DISPATCH_EVENT_TYPES
-        assert "retreat_recovered" not in _DISPATCH_EVENT_TYPES
+        assert "retreat_recovered" in _DISPATCH_EVENT_TYPES
+        assert "broken_recovered" in _DISPATCH_EVENT_TYPES
 
 
 class TestN31ClampedLoyalty:

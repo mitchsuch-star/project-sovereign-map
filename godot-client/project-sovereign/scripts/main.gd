@@ -3627,6 +3627,9 @@ func _display_morning_dispatch(data: Dictionary):
 					icon = "-"
 				"artillery":
 					icon = "+"
+				"awaiting_decision":
+					# FA-N28: a man whose question the player has not answered.
+					icon = "?"
 				_:
 					icon = "-"
 
@@ -3823,12 +3826,31 @@ func _display_morning_dispatch(data: Dictionary):
 	# â•â•â• TALLEYRAND REPORT â•â•â•
 	# Talleyrand report
 	var talleyrand_report = data.get("talleyrand_report", [])
-	if talleyrand_report is Array and talleyrand_report.size() > 0:
+	# FA-N64 (slice 17): the override payoff — "was overriding Talleyrand
+	# right?" — was written to this key and read by no renderer.
+	var override_note = data.get("talleyrand_override_note", null)
+	var has_override_note = override_note != null and str(override_note) != ""
+	if (talleyrand_report is Array and talleyrand_report.size() > 0) or has_override_note:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC STATUS[/color]")
-		for tal_entry in talleyrand_report:
-			var tal_msg = str(tal_entry.get("message", "")) if tal_entry is Dictionary else str(tal_entry)
-			if tal_msg != "":
-				add_output("[color=#" + Utils.COLOR_INFO + "]  " + tal_msg + "[/color]")
+		if talleyrand_report is Array:
+			for tal_entry in talleyrand_report:
+				var tal_msg = str(tal_entry.get("message", "")) if tal_entry is Dictionary else str(tal_entry)
+				if tal_msg != "":
+					add_output("[color=#" + Utils.COLOR_INFO + "]  " + tal_msg + "[/color]")
+		if has_override_note:
+			add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Talleyrand: " + str(override_note) + "[/color]")
+		add_output("")
+
+	# FA-N71 (slice 17): WAR PURPOSE — WPS-A's section was built on every
+	# dispatch and rendered by nothing. Empty until a war has a stated
+	# purpose (the boot wars have none — FA-D4).
+	var war_objectives = data.get("war_objectives", [])
+	if war_objectives is Array and war_objectives.size() > 0:
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]WAR PURPOSE[/color]")
+		for wo in war_objectives:
+			var wo_text = str(wo.get("text", "")) if wo is Dictionary else str(wo)
+			if wo_text != "":
+				add_output("[color=#" + Utils.COLOR_INFO + "]  " + wo_text + "[/color]")
 		add_output("")
 
 	# ═══ COALITION STATUS ═══

@@ -102,6 +102,29 @@ DECISIVENESS_MORALE_SLOPE = 22       # extra morale loss per unit of ratio over 
 DECISIVENESS_MORALE_CAP = 55         # ceiling on the extra morale loss
 
 
+# FA-N32 (slice 17, Sept 11 2026): a rout's survivor arithmetic, ONE source.
+# `combat_executor`'s rout arm has clamped `min(old, max(1000, …))` since
+# July 6 with a comment naming the case; the two auto-charge "surrounded"
+# arms in `world_state._process_reckless_cavalry_turn_start` never got it,
+# so a 900-man corps SHATTERED into 1,000 — a net gain of a hundred men for
+# being routed (REPRO_L forced the surround and measured 900 → 1000 at four
+# seeds). False reproduces the bare floor at all three sites.
+ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY = True
+
+
+def rout_survivors(old_strength: int, survival_rate: float) -> int:
+    """Men left after a rout: 3–10% of the army, floored at 1,000 — and never
+    more than the army had when it broke. Design note recorded, not fixed:
+    the clamp means a sub-1,000 corps routs with ZERO losses
+    (`min(900, 1000) = 900`); that is the maintained sibling's behaviour and
+    the three sites now agree on it — consistency, not new arithmetic."""
+    old = int(old_strength)
+    floored = max(1000, int(old * float(survival_rate)))
+    if ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY:
+        return min(old, floored)
+    return floored
+
+
 def decisiveness_morale_penalty(loser_casualties: float,
                                 winner_casualties: float) -> int:
     """CO-3: extra morale loss for the side losing a lopsided casualty

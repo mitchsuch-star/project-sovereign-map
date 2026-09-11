@@ -238,6 +238,15 @@ STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil",
 # to any other candidate. Blessed default, display-only, tunable in band.
 STANDING_LEAD_MAX = 2
 
+# ── FA slice 17 part d "The Status Tells the Truth" (Sept 11, 2026) ─────────
+# One lever per row; each False arm reproduces the pre-slice behaviour
+# byte-for-byte. All five are renderer-side — no AI reads any of them.
+DECISION_OUTRANKS_THE_ORDER_IT_LACKS = True   # FA-N28: an order-FREE decision (last_stand / muster_confirm) is `awaiting_decision`, not "Awaiting orders."
+HALTED_IS_NOT_READY = True                    # FA-N29: a halted marshal silences "Your armies stand ready"
+RECOVERY_COMPLETION_REACHES_THE_BRIEFING = True  # FA-N58: `retreat_recovered` passes the turn-events whitelist, like its broken sibling
+RAW_EVENT_KEYS_NEVER_PRINT = True             # FA-N30: an unformatted event renders its producer's own sentence or nothing — never "Diplomatic event: <key>"
+ARREARS_AGE_IS_THE_MARSHALS = True            # FA-N27: the estate line's "N turns" is the marshal's arrears age, not the page's run counter
+
 # Sub-beat slots under the headline. Named (it was a bare `>= 2`) because
 # WO-D6's diverse-tail rule is expressed as "the LAST slot", and a magic
 # number cannot say which one that is.
@@ -261,12 +270,15 @@ DIVERSE_TAIL_MAX_WEIGHT_DROP = 15
 # genuinely the only news. Indexed by how long it has led; the last entry is
 # the terminal register. The base template is streak 1.
 _STANDING_ESCALATION: Dict[str, List[str]] = {
+    # FA-N27: `{age}` is the marshal's own arrears clock (world_state.py's
+    # "First unmet turn: start the grace clock"), supplied by the producer;
+    # `{turns}` remains the page's run counter for the classes below.
     "estate_eroding": [
-        "Sire — Marshal {marshal} has now gone unrewarded {turns} turns. The "
+        "Sire — Marshal {marshal} has now gone unrewarded {age} turns. The "
         "staff have noticed which of us he no longer looks at.",
-        "Sire — {turns} turns without settlement on Marshal {marshal}. A "
+        "Sire — {age} turns without settlement on Marshal {marshal}. A "
         "rente would close it today; the arrears will not close themselves.",
-        "Sire — Marshal {marshal}'s grievance is {turns} turns old and has "
+        "Sire — Marshal {marshal}'s grievance is {age} turns old and has "
         "stopped being a household matter. It is now a question of the army.",
     ],
     "enemy_on_our_soil": [
@@ -1123,14 +1135,31 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
         get_expectation, get_satisfaction, is_dotation_world, is_eroding,
     )
     if is_dotation_world(world):
+        # FA-N27 (slice 17): ONE estate line per page is kept (the `break`
+        # was deliberate), but the candidate is the man who has waited
+        # LONGEST, not dict-order-first — measured, Davout eroded from turn
+        # 4 and the page never named him until Ney was settled on turn 12.
+        # And the line carries the marshal's own arrears AGE (his serialized
+        # `expectation_grace_turn`, the clock world_state.py started), not
+        # the page's run counter — the escalation copy claims "N turns
+        # unrewarded", so the number must be his.
+        _eroding: list = []
         for m in world.marshals.values():
             if m.nation != player_nation or m.strength <= 0:
                 continue
             if (get_expectation(m) > get_satisfaction(m, world)
                     and is_eroding(m, world)):
+                _grace = int(getattr(m, "expectation_grace_turn", -1))
+                _age = max(0, int(world.current_turn) - _grace) if _grace >= 0 else 0
+                _eroding.append((_age, m.name))
+        if _eroding:
+            if ARREARS_AGE_IS_THE_MARSHALS:
+                _age, _name = max(_eroding, key=lambda t: (t[0], t[1]))
                 _add("estate_eroding",
-                     identity=f"estate_eroding:{m.name}", marshal=m.name)
-                break
+                     identity=f"estate_eroding:{_name}", marshal=_name, age=_age)
+            else:
+                _add("estate_eroding",
+                     identity=f"estate_eroding:{_eroding[0][1]}", marshal=_eroding[0][1])
 
     # The corps is starving (econ spec review §5). `supply_attrition` was not
     # in HEADLINE_WEIGHTS at all, so an army bleeding 6% a turn — the drain
@@ -1376,6 +1405,13 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
         # escalation copy renders exactly as it was authored to.
         fmt["marshal"] = _cand.get("identity", "").split(":", 1)[-1]
         fmt["turns"] = _run
+        # FA-N27: a variant may interpolate `{age}` (the marshal's arrears
+        # clock). A candidate that carries no `age` — another producer, a
+        # pre-fix save's memory — falls back to the run so the `except`
+        # below does not silently swallow the escalation: measured, the
+        # bare `{age}` rendered the authored line forever (5 distinct lines
+        # over six turns → 1).
+        fmt.setdefault("age", _run)
         try:
             candidates[_idx] = dict(_cand, text=variants[step].format(**fmt))
         except (KeyError, IndexError):
@@ -2762,6 +2798,32 @@ def _derive_marshal_status(marshal, world) -> tuple:
     7. idle_restless (aggressive personality, idle 3+ turns)
     8. awaiting (default)
     """
+    # FA-N28 (slice 17): a STANDALONE decision — last_stand / muster_confirm,
+    # by definition order-free — outranks everything below. The pending-
+    # decision read further down is nested under `in_strategic_mode`, so it
+    # could never see these two types and the man asked to fight to the last
+    # was filed as "Awaiting orders." A question the player must answer is
+    # the first thing to say about him; the order-bound arm below is left
+    # exactly where the TUT-F4a / slice-3 invariants put it.
+    if DECISION_OUTRANKS_THE_ORDER_IT_LACKS:
+        from backend.commands.strategic import standalone_decision
+        _decision = standalone_decision(marshal)
+        if _decision:
+            _kind = str(_decision.get("interrupt_type") or "")
+            _where = _decision.get("location", "") or marshal.location
+            if _kind == "last_stand":
+                _foe = humanize_entity_name(_decision.get("enemy", "") or "")
+                if _foe:
+                    return ("awaiting_decision",
+                            f"ENCIRCLED at {_where} by {_foe} — awaiting your word.")
+                return ("awaiting_decision", f"ENCIRCLED at {_where} — awaiting your word.")
+            _quarry = humanize_entity_name(_decision.get("target", "") or "")
+            if _quarry:
+                return ("awaiting_decision",
+                        f"HALTED at {_where} — the muster against {_quarry} stands; "
+                        f"awaiting your word.")
+            return ("awaiting_decision", f"HALTED at {_where} — awaiting your word.")
+
     # ETA is command-aware (MC gate Q3): high-command marshals rally 2 stages/turn.
     if marshal.broken:
         rally_stages = marshal.get_rally_stages_per_turn()
@@ -2928,6 +2990,9 @@ _DISPATCH_EVENT_TYPES = {
     # giving him an order two turns later.
     "order_voided_by_battle",
     "garrison_regen", "broken_recovered",
+    # FA-N58 (slice 17): the retreat family's completion, beside the broken
+    # family's. Gated at the filter by RECOVERY_COMPLETION_REACHES_THE_BRIEFING.
+    "retreat_recovered",
     # Info severity (no special highlight)
     "occupation_continues", "drill_locked", "drill_started",
     "fortify_strengthened", "fortify_stable",
@@ -3004,6 +3069,9 @@ def _build_turn_events(
         # Whitelist filter: only dispatch-relevant event types
         if event_type not in _DISPATCH_EVENT_TYPES:
             continue
+        if (event_type == "retreat_recovered"
+                and not RECOVERY_COMPLETION_REACHES_THE_BRIEFING):
+            continue  # FA-N58 lever down: the pre-slice drop
 
         # Filter: only show events relevant to player nation
         event_nation = event.get("nation")
@@ -3031,6 +3099,7 @@ def _build_turn_events(
         elif event_type in ("construction_complete", "occupation_complete",
                             "drill_complete",
                             "garrison_regen", "broken_recovered",
+                            "retreat_recovered",      # FA-N58: the sibling the broken family always had
                             "marshal_released",
                             "jealousy_resolved",
                             "glory_crowned", "marshal_commissioned"):
@@ -3045,11 +3114,14 @@ def _build_turn_events(
             # penalty was reported as GOOD news. It is good news only at
             # the stage where the penalty is gone.
             #
-            # It must NOT simply become "info": `retreat_recovered` is not
-            # in `_DISPATCH_EVENT_TYPES`, so the final stage of THIS event
-            # is the only recovery news the player ever gets. Stage 3 keeps
-            # `good`; the intermediate stages, which are reports of a corps
-            # still broken, drop to `info`.
+            # FA-N58 (slice 17) corrects the comment that used to stand here:
+            # `retreat_recovered` IS now whitelisted (beside its broken
+            # sibling), so the completion news rides its own event. The
+            # producer never emits a stage-3 `retreat_recovery` (PC15-14's
+            # guard caps it at 2), so the `>= 3` arm below is unreachable in
+            # production and is KEPT only because a standing pin feeds it
+            # synthetic stages; the intermediate stages — reports of a corps
+            # still broken — are `info`.
             severity = "good" if int(event.get("stage", 0)) >= 3 else "info"
         elif event_type == "vassal_loyalty":
             # W6-3: falling loyalty is a warning; rising is mere info.
@@ -3353,6 +3425,12 @@ def _pick_berthier_note(
     # ready, Sire. The initiative is ours." — the failure below rung 4 was
     # not a silent default but an active and false reassurance.
     non_ready_statuses = {"broken", "retreating", "drilling", "idle_restless"}
+    # FA-N29 (slice 17): `awaiting_decision` joins it — the same one-word
+    # omission CA8-8 fixed for `idle_restless`. The roster line above said a
+    # marshal was HALTED awaiting the player's word and this line closed
+    # "Your armies stand ready, Sire." `arrived` stays out: arrived IS ready.
+    if HALTED_IS_NOT_READY:
+        non_ready_statuses = non_ready_statuses | {"awaiting_decision"}
     all_ready = all(m["status"] not in non_ready_statuses for m in marshals_data)
     if all_ready and marshals_data:
         return "Your armies stand ready, Sire. The initiative is ours."
@@ -4279,6 +4357,9 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "crisis_passed": "HIGH",
     "guarantee_called": "HIGH",
     "third_party_peace": "HIGH",
+    # FA-N30 (slice 17): an offer on the desk is the diplomatic news of the
+    # morning; it used to print as a raw key at MEDIUM.
+    "settlement_offer_arrival": "HIGH",
     # AI-5b (Stage E): both are beats — a sworn revanche and a great
     # power changing sides are events, never routine ladder lines.
     "design_promoted": "HIGH",
@@ -4369,6 +4450,30 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "bargain_voided": "MEDIUM",
     "bargain_dormant_notice": "LOW",
 }
+
+
+# FA-N30 (slice 17): producers that compose their own sentence onto the
+# event's `message` instead of routing through a template. The renderability
+# census (test_fa_slice17_d) requires every literal producer type to be in a
+# template, a per-type arm, the commitments routes, the settlement family, or
+# THIS set — so the next bare-dict producer reds a test instead of printing
+# its key on the Emperor's desk.
+_MESSAGE_CARRYING_EVENT_TYPES = frozenset({"settlement_offer_arrival"})
+
+
+def dispatch_event_type_is_renderable(event_type: str) -> bool:
+    """Can `_build_diplomatic_events_section` print a sentence for this type
+    without leaking the key? (A pure predicate for the census; never called
+    on the render path.)"""
+    if event_type in _DIPLOMATIC_EVENT_TEMPLATES or event_type in COMMITMENTS_ROUTES:
+        return True
+    if is_settlement_event_type(event_type) or event_type in _MESSAGE_CARRYING_EVENT_TYPES:
+        return True
+    try:
+        text = _format_dispatch_event_text(event_type, {})
+    except Exception:  # noqa: BLE001 — a per-type arm that needs its vars
+        return True
+    return bool(text) and not text.startswith("Diplomatic event:")
 
 
 def queue_dispatch_event(world, event_type: str, template_vars: dict, fog_rule: str) -> None:
@@ -4530,8 +4635,36 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
             return f"{witness} has taken note of {perpetrator}'s breach against {victim} {scope_phrase}."
         return f"{witness} has taken note of {perpetrator}'s breach against {victim}."
 
+    # FA-N30 (slice 17): two typed producers that never had copy. Both use
+    # `.get` defaults so a pre-fix save's bare event still renders.
+    if event_type == "hegemony_relaxation_aside":
+        label = template_vars.get("label") or template_vars.get("hegemon") or "the hegemon"
+        share = template_vars.get("share", 0) or 0
+        try:
+            share_pct = int(round(float(share) * 100))
+        except (TypeError, ValueError):
+            share_pct = 0
+        return (f"The courts breathe a little easier, Sire — {label}'s shadow over "
+                f"Europe recedes; its share of the continent's strength has fallen "
+                f"to {share_pct}%.")
+    if event_type == "diplomatic_mission_blowback":
+        nation = template_vars.get("nation", "a foreign court")
+        delta = int(template_vars.get("delta", 0) or 0)
+        value = template_vars.get("value")
+        tail = f" (relations now {int(value)})" if value is not None else ""
+        return (f"Blowback from Talleyrand's mission: {nation} discovered our "
+                f"scheming — {delta} to relations{tail}.")
+
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:
+        # FA-N30: an internal identifier is not a sentence. Return nothing;
+        # `_build_diplomatic_events_section` falls back to the producer's
+        # own composed `message` and otherwise DROPS the row. Measured on the
+        # shipped boot: turn 4 printed "Diplomatic event:
+        # settlement_offer_arrival" while the event carried a perfectly good
+        # sentence nobody read.
+        if RAW_EVENT_KEYS_NEVER_PRINT:
+            return ""
         return f"Diplomatic event: {event_type}"
     if event_type in ("diplomatic_carved_vassal_created",
                       "diplomatic_carved_vassal_dissolved"):
@@ -4623,6 +4756,15 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             continue
 
         text = _format_dispatch_event_text(event_type, template_vars)
+        if not text and RAW_EVENT_KEYS_NEVER_PRINT:
+            # FA-N30 arm 1: a producer that composed its own sentence onto
+            # the event (the settlement-offer arrival does) is quoted verbatim.
+            # Arm 2: with neither template nor message the row is DROPPED —
+            # a raw key is never something to show the Emperor. The census
+            # in test_fa_slice17_d pins that no producer relies on arm 2.
+            text = str(event.get("message") or "").strip()
+            if not text:
+                continue
         if event_type in COMMITMENTS_ROUTES:
             priority = commitments_priority(event_type, template_vars)
         else:

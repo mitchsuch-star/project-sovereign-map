@@ -10262,6 +10262,11 @@ class WorldState:
         decision_reason = determine_counterparty_decision_reason(proposal, self, result)
 
         from backend.game_logic.dispatch import queue_dispatch_event
+        # FA-N64 (slice 17): the override's verdict is stamped HERE, where the
+        # outcome is known — the send site records only "pending". A failed
+        # ratification below re-stamps "bad".
+        from backend.commands.diplomatic_defiance import resolve_pending_override
+        resolve_pending_override(self, "good" if outcome == "ACCEPT" else "bad")
 
         if outcome == "ACCEPT":
             # Apply treaty
@@ -10278,6 +10283,7 @@ class WorldState:
             from backend.display_names import proposal_display_name
             ptype_display = proposal_display_name(proposal.get("type", ""))
             if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
+                resolve_pending_override(self, "bad")   # FA-N64: agreed in principle is not signed
                 events.append({
                     "type": "diplomatic_proposal_returned",
                     "target": target,
@@ -12547,7 +12553,7 @@ class WorldState:
         Returns:
             List of events describing auto-actions
         """
-        from backend.game_logic.combat import CombatResolver
+        from backend.game_logic.combat import CombatResolver, rout_survivors
 
         events = []
         combat_resolver = CombatResolver()
@@ -12773,7 +12779,8 @@ class WorldState:
                         survival_rate = _rng.uniform(0.03, 0.10)
                         spawn_loc = self.find_safe_spawn(enemy, exclude=old_enemy_loc)
                         enemy.move_to(spawn_loc)
-                        enemy.strength = max(1000, int(enemy.strength * survival_rate))
+                        # FA-N32: the clamped helper — never more men than he had.
+                        enemy.strength = rout_survivors(enemy.strength, survival_rate)
                         enemy.morale = 20
                         enemy.broken = True
                         enemy.broken_recovery = 0
@@ -12815,7 +12822,8 @@ class WorldState:
                         survival_rate = _rng2.uniform(0.03, 0.10)
                         spawn_loc = self.find_safe_spawn(marshal, exclude=old_atk_loc)
                         marshal.move_to(spawn_loc)
-                        marshal.strength = max(1000, int(marshal.strength * survival_rate))
+                        # FA-N32: the clamped helper — never more men than he had.
+                        marshal.strength = rout_survivors(marshal.strength, survival_rate)
                         marshal.morale = 20
                         marshal.broken = True
                         marshal.broken_recovery = 0

@@ -1,0 +1,163 @@
+[
+ {
+  "id": "N57/a the lever defaults to the pre-fix position",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True",
+  "new": "SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = False",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN57TheSquareAdvisorySpeaks"
+ },
+ {
+  "id": "N57/b the pre-break capture is lost (reads the live, already-false attribute)",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "        was_in_square = bool(getattr(marshal, 'square_formation', False))\n        self._executor._auto_break_square(marshal, strategic_type or \"strategic order\")",
+  "new": "        self._executor._auto_break_square(marshal, strategic_type or \"strategic order\")\n        was_in_square = bool(getattr(marshal, 'square_formation', False))",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN57TheSquareAdvisorySpeaks::test_a_support_order_from_square_names_the_broken_square"
+ },
+ {
+  "id": "N57/c the old false sentence returns on the captured state",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                    f\"\\n\\nBerthier: \\\"Sire, {marshal.name} has broken square to take up \"\n                    f\"the order — he marches to {target}'s aid, but the anti-cavalry \"\n                    f\"formation is gone.\\\"\"",
+  "new": "                    f\"\\n\\nBerthier: \\\"Sire, {marshal.name} is ordered to support {target} \"\n                    f\"but is in square formation — they cannot march to reinforce. \"\n                    f\"Consider breaking square first.\\\"\"",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN57TheSquareAdvisorySpeaks::test_a_support_order_from_square_names_the_broken_square"
+ },
+ {
+  "id": "N70/a form_square prints the raw enum again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            strategic_cancel_msg = (f\" His {order_verb_display(old_order.command_type)} \"\n                                    f\"order is cancelled.\")",
+  "new": "            strategic_cancel_msg = f\" Strategic order ({old_order.command_type}) cancelled.\"",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN70NoRawEnumInPlayerCopy"
+ },
+ {
+  "id": "N70/b the helper stops reading the R7 source",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "    if key in STRATEGIC_ORDER_DISPLAY:\n        return get_strategic_display(key).lower()\n    return _action_display_name(key)",
+  "new": "    return _action_display_name(key)",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN70NoRawEnumInPlayerCopy"
+ },
+ {
+  "id": "N70/c the defiance notice prints the raw enum again",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                    f\"{marshal_name} defied your order to {order_verb_display(strategic_type)} \"",
+  "new": "                    f\"{marshal_name} defied your order to {_action_display_name(strategic_type)} \"",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN70NoRawEnumInPlayerCopy::test_the_defiance_notice_and_the_square_message_read_the_helper"
+ },
+ {
+  "id": "N55/a one client read rescales again",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\tvar fort_new = int(event.get(\"fort_new\", 0))",
+  "new": "\t\tvar fort_new = int(event.get(\"fort_new\", 0) * 100)",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN55TheFortPercentIsScaledOnce::test_the_client_never_rescales"
+ },
+ {
+  "id": "N55/b a producer stops scaling to percent",
+  "file": "backend/game_logic/combat.py",
+  "old": "            # Fortification degradation (Session 31) — FINAL-8: int() for Godot\n            \"fortification_degraded\": fortification_degraded,\n            \"fortification_old\": int(fortification_old * 100),",
+  "new": "            # Fortification degradation (Session 31) — FINAL-8: int() for Godot\n            \"fortification_degraded\": fortification_degraded,\n            \"fortification_old\": int(fortification_old),",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN55TheFortPercentIsScaledOnce::test_every_producer_writes_an_int_percent tests/test_final_audit_s1.py"
+ },
+ {
+  "id": "N64/a the lever defaults to the pre-fix position",
+  "file": "backend/commands/diplomatic_defiance.py",
+  "old": "OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION = True",
+  "new": "OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION = False",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered"
+ },
+ {
+  "id": "N64/b the send site writes the old literal",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                record_override(world, proposal_type, \"pending\")",
+  "new": "                record_override(world, proposal_type, \"override\")",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered::test_the_send_site_records_pending_not_a_verdict"
+ },
+ {
+  "id": "N64/c the resolver never stamps",
+  "file": "backend/models/world_state.py",
+  "old": "        resolve_pending_override(self, \"good\" if outcome == \"ACCEPT\" else \"bad\")",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered"
+ },
+ {
+  "id": "N64/d a failed ratification stays 'good'",
+  "file": "backend/models/world_state.py",
+  "old": "                resolve_pending_override(self, \"bad\")   # FA-N64: agreed in principle is not signed\n",
+  "new": "",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered::test_agreed_in_principle_but_unratified_is_bad_news"
+ },
+ {
+  "id": "N64/e the stamp writes the wrong verdict",
+  "file": "backend/commands/diplomatic_defiance.py",
+  "old": "        latest[\"override_result\"] = \"good\" if verdict == \"good\" else \"bad\"",
+  "new": "        latest[\"override_result\"] = \"bad\" if verdict == \"good\" else \"good\"",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered"
+ },
+ {
+  "id": "N64/f main.gd loses the note",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar override_note = data.get(\"talleyrand_override_note\", null)\n\tvar has_override_note = override_note != null and str(override_note) != \"\"\n\tif (talleyrand_report is Array and talleyrand_report.size() > 0) or has_override_note:\n\t\tadd_output(",
+  "new": "\tvar override_note = null\n\tvar has_override_note = false\n\tif (talleyrand_report is Array and talleyrand_report.size() > 0) or has_override_note:\n\t\tadd_output(",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered::test_both_renderers_print_the_note tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN69N71RendererParity"
+ },
+ {
+  "id": "N69/a the view loses COALITION THREAT",
+  "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+  "old": "\tvar coalition_status = data.get(\"coalition_status\", null)\n\tif coalition_status != null and coalition_status is Dictionary:\n\t\tvar threat_level = int(coalition_status.get(\"threat_level\", 0))\n\t\tvar tier = str(coalition_status.get(\"tier\", \"\"))\n\t\tif threat_level > 0:\n\t\t\tbbcode += \"[color=#\" + Utils.COLOR_BERTHIER + \"]COALITION THREAT[/color]\\n\"",
+  "new": "\tvar coalition_status = null\n\tif coalition_status != null and coalition_status is Dictionary:\n\t\tvar threat_level = int(coalition_status.get(\"threat_level\", 0))\n\t\tvar tier = str(coalition_status.get(\"tier\", \"\"))\n\t\tif threat_level > 0:\n\t\t\tbbcode += \"[color=#\" + Utils.COLOR_BERTHIER + \"]THREAT[/color]\\n\"",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN69N71RendererParity"
+ },
+ {
+  "id": "N71/a both renderers lose WAR PURPOSE (main.gd)",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar war_objectives = data.get(\"war_objectives\", [])\n\tif war_objectives is Array and war_objectives.size() > 0:\n\t\tadd_output(\"[color=#\" + Utils.COLOR_BERTHIER + \"]WAR PURPOSE[/color]\")",
+  "new": "\tvar war_objectives = []\n\tif war_objectives is Array and war_objectives.size() > 0:\n\t\tadd_output(\"[color=#\" + Utils.COLOR_BERTHIER + \"]PURPOSE[/color]\")",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN69N71RendererParity"
+ },
+ {
+  "id": "N71/b the producer stops composing the row",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        lines.append({\n            \"text\": line_text,\n            \"target_nation\": target_nation,\n            \"objective_type\": obj_type,\n        })",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN69N71RendererParity::test_the_war_purpose_producer_still_composes_the_row"
+ },
+ {
+  "id": "N69/b the census stops reading the producer",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        dispatch[\"war_objectives\"] = war_objective_lines",
+  "new": "        dispatch.update({\"war_objectives\": war_objective_lines})",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN69N71RendererParity::test_the_census_sees_the_conditional_keys"
+ },
+ {
+  "id": "N32/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/combat.py",
+  "old": "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY = True",
+  "new": "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY = False",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad"
+ },
+ {
+  "id": "N32/b the helper loses its clamp",
+  "file": "backend/game_logic/combat.py",
+  "old": "    if ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY:\n        return min(old, floored)\n    return floored",
+  "new": "    return floored",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad"
+ },
+ {
+  "id": "N32/c the defender arm goes back to the bare floor",
+  "file": "backend/models/world_state.py",
+  "old": "                        enemy.strength = rout_survivors(enemy.strength, survival_rate)",
+  "new": "                        enemy.strength = max(1000, int(enemy.strength * survival_rate))",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad"
+ },
+ {
+  "id": "N32/d the attacker arm goes back to the bare floor",
+  "file": "backend/models/world_state.py",
+  "old": "                        marshal.strength = rout_survivors(marshal.strength, survival_rate)",
+  "new": "                        marshal.strength = max(1000, int(marshal.strength * survival_rate))",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad::test_all_three_sites_read_the_helper"
+ },
+ {
+  "id": "N32/e the executor arm goes back to its inline clamp",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            survivors = rout_survivors(old_strength, survival_rate)",
+  "new": "            survivors = min(old_strength, max(1000, int(old_strength * survival_rate)))",
+  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad::test_all_three_sites_read_the_helper"
+ }
+]

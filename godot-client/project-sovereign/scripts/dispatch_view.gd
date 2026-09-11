@@ -202,6 +202,9 @@ func _on_dispatch_received(response):
 					icon = "-"
 				"artillery":
 					icon = "+"
+				"awaiting_decision":
+					# FA-N28: a man whose question the player has not answered.
+					icon = "?"
 				_:
 					icon = "-"
 
@@ -366,6 +369,57 @@ func _on_dispatch_received(response):
 				"LOW":
 					de_color = "808088"      # dim grey
 			bbcode += "[color=#" + de_color + "]  " + de_text + "[/color]\n"
+		bbcode += "\n"
+
+	# ═══ DIPLOMATIC STATUS ═══
+	# FA-N69 (slice 17): this re-read screen dropped two sections main.gd
+	# prints from the SAME payload, both non-empty on turn 1 of every
+	# campaign. Translated to bbcode (this file has no add_output).
+	# FA-N64: the override payoff rides the same block.
+	var talleyrand_report = data.get("talleyrand_report", [])
+	var override_note = data.get("talleyrand_override_note", null)
+	var has_override_note = override_note != null and str(override_note) != ""
+	if (talleyrand_report is Array and talleyrand_report.size() > 0) or has_override_note:
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC STATUS[/color]\n"
+		if talleyrand_report is Array:
+			for tal_entry in talleyrand_report:
+				var tal_msg = str(tal_entry.get("message", "")) if tal_entry is Dictionary else str(tal_entry)
+				if tal_msg != "":
+					bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + tal_msg + "[/color]\n"
+		if has_override_note:
+			bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Talleyrand: " + str(override_note) + "[/color]\n"
+		bbcode += "\n"
+
+	# ═══ COALITION THREAT ═══
+	var coalition_status = data.get("coalition_status", null)
+	if coalition_status != null and coalition_status is Dictionary:
+		var threat_level = int(coalition_status.get("threat_level", 0))
+		var tier = str(coalition_status.get("tier", ""))
+		if threat_level > 0:
+			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]COALITION THREAT[/color]\n"
+			var tier_color = Utils.COLOR_ERROR if tier == "CRITICAL" or tier == "HIGH" else Utils.COLOR_BATTLE
+			bbcode += "[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "][/color]\n"
+			var brewing = coalition_status.get("brewing", null)
+			if brewing != null and brewing is Dictionary:
+				var brew_turns = int(brewing.get("turns_remaining", 0))
+				bbcode += "[color=#" + Utils.COLOR_ERROR + "]  Coalition forming in " + str(brew_turns) + " turns![/color]\n"
+			var active_coal = coalition_status.get("active_coalition", null)
+			if active_coal != null and active_coal is Dictionary:
+				var coal_name = str(active_coal.get("name", "Coalition"))
+				var coal_leader = str(active_coal.get("leader", "?"))
+				bbcode += "[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]\n"
+			bbcode += "\n"
+
+	# ═══ WAR PURPOSE ═══
+	# FA-N71 (slice 17): WPS-A's section, built on every dispatch, rendered
+	# by nothing until now. Empty until a war has a stated purpose (FA-D4).
+	var war_objectives = data.get("war_objectives", [])
+	if war_objectives is Array and war_objectives.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]WAR PURPOSE[/color]\n"
+		for wo in war_objectives:
+			var wo_text = str(wo.get("text", "")) if wo is Dictionary else str(wo)
+			if wo_text != "":
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + wo_text + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ DEFEAT WARNING ═══

@@ -593,13 +593,47 @@ def get_objection_text(concern_level: ConcernLevel, proposal: Dict, talleyrand) 
 # HONESTY PROBLEM (§10c)
 # ════════════════════════════════════════════════════════════════════════════
 
+# FA-N64 (slice 17, Sept 11 2026): the override's outcome is written where the
+# proposal RESOLVES, not where it is sent. False leaves a "pending" entry
+# unwritten forever — the pre-slice behaviour under a different literal.
+OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION = True
+
+# The two literals the send site may write. Pre-slice saves carry "override";
+# both are tolerated by the reader (never reported, never a crash).
+_UNRESOLVED_OVERRIDE_RESULTS = ("pending", "override")
+
+
+def resolve_pending_override(world, verdict: str) -> bool:
+    """Stamp the latest UNRESOLVED override entry with its verdict
+    ("good" — the proposal was accepted and ratified; "bad" — anything
+    else). Idempotent: an entry already carrying a verdict is left alone, so
+    the failed-ratification re-stamp overrides the optimistic first stamp
+    and nothing later can flip it back. Returns True when an entry moved."""
+    if not OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION:
+        return False
+    history = getattr(world, 'talleyrand_override_history', None) or []
+    if not history:
+        return False
+    latest = history[-1]
+    if not isinstance(latest, dict):
+        return False
+    current = str(latest.get("override_result") or "")
+    if current in _UNRESOLVED_OVERRIDE_RESULTS or (verdict == "bad" and current == "good"
+                                                    and int(latest.get("turn", -1)) >= int(getattr(world, "current_turn", 0)) - 1):
+        latest["override_result"] = "good" if verdict == "good" else "bad"
+        world.talleyrand_override_history = history
+        return True
+    return False
+
+
 def record_override(world, proposal_type: str, override_result: str) -> None:
     """Record when player overrides Talleyrand's objection.
 
     Args:
         world: WorldState
         proposal_type: Type of proposal overridden
-        override_result: "good" or "bad"
+        override_result: "pending" at send time (FA-N64); "good"/"bad" once
+            `resolve_pending_override` has stamped the outcome
     """
     history = getattr(world, 'talleyrand_override_history', [])
     history.append({

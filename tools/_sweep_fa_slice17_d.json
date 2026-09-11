@@ -1,0 +1,198 @@
+[
+ {
+  "id": "N28/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "DECISION_OUTRANKS_THE_ORDER_IT_LACKS = True",
+  "new": "DECISION_OUTRANKS_THE_ORDER_IT_LACKS = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN28ADecisionOutranksTheOrderItLacks"
+ },
+ {
+  "id": "N28/b the standalone arm is deleted (the order-bound arm alone)",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        _decision = standalone_decision(marshal)\n        if _decision:",
+  "new": "        _decision = None\n        if _decision:",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN28ADecisionOutranksTheOrderItLacks::test_an_order_free_last_stand_is_reported_as_a_decision"
+ },
+ {
+  "id": "N28/c the note loses the shared phrase",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                            f\"ENCIRCLED at {_where} by {_foe} — awaiting your word.\")",
+  "new": "                            f\"ENCIRCLED at {_where} by {_foe}.\")",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN28ADecisionOutranksTheOrderItLacks::test_an_order_free_last_stand_is_reported_as_a_decision"
+ },
+ {
+  "id": "N28/d main.gd loses the glyph arm",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\t\t\"awaiting_decision\":\n\t\t\t\t\t# FA-N28: a man whose question the player has not answered.\n\t\t\t\t\ticon = \"?\"\n",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN28ADecisionOutranksTheOrderItLacks::test_both_renderers_give_the_halt_its_own_glyph"
+ },
+ {
+  "id": "N29/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "HALTED_IS_NOT_READY = True",
+  "new": "HALTED_IS_NOT_READY = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN29HaltedIsNotReady"
+ },
+ {
+  "id": "N29/b the set is not widened",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        non_ready_statuses = non_ready_statuses | {\"awaiting_decision\"}",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN29HaltedIsNotReady::test_a_halted_marshal_silences_the_ready_line"
+ },
+ {
+  "id": "N36/a the ledger lever defaults to the pre-fix position",
+  "file": "backend/game_logic/ledger.py",
+  "old": "THE_LEDGER_SEES_THE_HALT = True",
+  "new": "THE_LEDGER_SEES_THE_HALT = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN36TheLedgerSeesTheHalt"
+ },
+ {
+  "id": "N36/b the status arm is removed",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    if _is_halted(marshal):\n        # FA-N36: the pending decision outranks the order it suspends.\n        return \"awaiting_decision\"",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN36TheLedgerSeesTheHalt::test_forces_and_orders_both_say_halted"
+ },
+ {
+  "id": "N36/c the summary keeps its turns-left count",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    if _is_halted(marshal):\n        # FA-N36: no turns-left count for a man who is not moving.\n        return f\"{get_strategic_display(cmd)} {target} — HALTED, awaiting your word\"",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN36TheLedgerSeesTheHalt::test_forces_and_orders_both_say_halted"
+ },
+ {
+  "id": "N36/d the ORDERS row keeps promising progress",
+  "file": "backend/game_logic/ledger.py",
+  "old": "                \"path_remaining\": 0 if halted else int(len(order.path)),",
+  "new": "                \"path_remaining\": int(len(order.path)),",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN36TheLedgerSeesTheHalt::test_forces_and_orders_both_say_halted"
+ },
+ {
+  "id": "N65/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/ledger.py",
+  "old": "THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = True",
+  "new": "THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN65ThePrisonerLeavesTheOrdersTab"
+ },
+ {
+  "id": "N65/b the prisoner skip is removed",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        if THE_ORDERS_TAB_KNOWS_ITS_PRISONERS and getattr(marshal, \"captured_by\", \"\"):\n            # FA-N65: a prisoner has no orders row — see the lever's note.\n            continue",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN65ThePrisonerLeavesTheOrdersTab::test_a_captured_marshal_has_no_orders_row"
+ },
+ {
+  "id": "N58/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "RECOVERY_COMPLETION_REACHES_THE_BRIEFING = True",
+  "new": "RECOVERY_COMPLETION_REACHES_THE_BRIEFING = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN58RecoveryReachesTheBriefing"
+ },
+ {
+  "id": "N58/b the type leaves the whitelist",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"retreat_recovered\",\n    # Info severity (no special highlight)",
+  "new": "    # Info severity (no special highlight)",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN58RecoveryReachesTheBriefing::test_retreat_recovered_is_good_news tests/test_creative_audit_ca9_2026_08_08.py::TestN37RoutRecovery::test_stage_three_must_stay_good"
+ },
+ {
+  "id": "N58/c the completion is info, not good",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                            \"retreat_recovered\",      # FA-N58: the sibling the broken family always had\n",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN58RecoveryReachesTheBriefing::test_retreat_recovered_is_good_news"
+ },
+ {
+  "id": "N30/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "RAW_EVENT_KEYS_NEVER_PRINT = True",
+  "new": "RAW_EVENT_KEYS_NEVER_PRINT = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing"
+ },
+ {
+  "id": "N30/b the raw key prints again",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if RAW_EVENT_KEYS_NEVER_PRINT:\n            return \"\"\n        return f\"Diplomatic event: {event_type}\"",
+  "new": "        return f\"Diplomatic event: {event_type}\"",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing::test_an_unknown_type_renders_nothing"
+ },
+ {
+  "id": "N30/c the message fallback is dropped (the offer line vanishes)",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            text = str(event.get(\"message\") or \"\").strip()\n            if not text:\n                continue",
+  "new": "            continue",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing::test_the_settlement_offer_line_is_the_producers_own_sentence"
+ },
+ {
+  "id": "N30/d an empty row is appended instead of dropped",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            text = str(event.get(\"message\") or \"\").strip()\n            if not text:\n                continue",
+  "new": "            text = str(event.get(\"message\") or \"\").strip()",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing::test_an_event_with_neither_template_nor_message_is_dropped"
+ },
+ {
+  "id": "N30/e the offer arrival loses its HIGH priority",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"settlement_offer_arrival\": \"HIGH\",",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing::test_the_settlement_offer_line_is_the_producers_own_sentence"
+ },
+ {
+  "id": "N30/f the hegemony arm is removed",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if event_type == \"hegemony_relaxation_aside\":\n        label = template_vars.get(\"label\") or template_vars.get(\"hegemon\") or \"the hegemon\"",
+  "new": "    if False:\n        label = template_vars.get(\"label\") or template_vars.get(\"hegemon\") or \"the hegemon\"",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing"
+ },
+ {
+  "id": "N30/g the message-carrying allowlist is emptied (the census must red)",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "_MESSAGE_CARRYING_EVENT_TYPES = frozenset({\"settlement_offer_arrival\"})",
+  "new": "_MESSAGE_CARRYING_EVENT_TYPES = frozenset()",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing::test_every_producer_type_has_a_sentence_or_carries_its_own"
+ },
+ {
+  "id": "N30/h the renderability predicate says yes to everything",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    return bool(text) and not text.startswith(\"Diplomatic event:\")",
+  "new": "    return True",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN30NoRawKeyReachesTheBriefing::test_the_census_is_sensitive"
+ },
+ {
+  "id": "N27/a the lever defaults to the pre-fix position",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "ARREARS_AGE_IS_THE_MARSHALS = True",
+  "new": "ARREARS_AGE_IS_THE_MARSHALS = False",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN27TheArrearsAgeIsTheMarshals"
+ },
+ {
+  "id": "N27/b the producer stops passing the age (the setdefault hides it as the run)",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                     identity=f\"estate_eroding:{_name}\", marshal=_name, age=_age)",
+  "new": "                     identity=f\"estate_eroding:{_name}\", marshal=_name)",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN27TheArrearsAgeIsTheMarshals::test_the_escalated_line_carries_the_true_age"
+ },
+ {
+  "id": "N27/c dict-order-first again",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                _age, _name = max(_eroding, key=lambda t: (t[0], t[1]))",
+  "new": "                _age, _name = _eroding[0]",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN27TheArrearsAgeIsTheMarshals::test_the_longest_eroding_marshal_is_the_one_named"
+ },
+ {
+  "id": "N27/d the setdefault guard is removed (REPRO_L's measured silent no-op)",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        fmt.setdefault(\"age\", _run)\n",
+  "new": "",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN27TheArrearsAgeIsTheMarshals::test_a_missing_age_still_renders_the_authored_line tests/test_creative_audit_ca9_2026_08_08.py::TestN47EscalationCanActuallyFire"
+ },
+ {
+  "id": "N27/e the variants read the run counter again",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        \"Sire — Marshal {marshal} has now gone unrewarded {age} turns. The \"",
+  "new": "        \"Sire — Marshal {marshal} has now gone unrewarded {turns} turns. The \"",
+  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN27TheArrearsAgeIsTheMarshals::test_the_escalated_line_carries_the_true_age"
+ }
+]

@@ -25,6 +25,39 @@
 > measured inert, the copy corrected in three places. Sweep 17/17, 0 INERT;
 > series + provinces byte-identical on four flip arms WITH the reason
 > measured (33 recovering marshal-turns, 0 refusals on the ambient board).
+>
+> **part d — "THE STATUS TELLS THE TRUTH" — LANDED** (FA-N28/N29/N36/N65/
+> N58/N30/N27). Both morning surfaces report a halted, captured or
+> recovering marshal honestly on ONE word (`awaiting_decision`), the ORDERS
+> tab stops promising progress for a frozen march and lists no prisoner, the
+> retreat family's completion reaches the briefing like the broken family's
+> always did, the briefing never prints a raw event key (the producer's own
+> sentence is quoted, else the row is dropped; an AST census closes the
+> class), and the estate line carries the marshal's own arrears age. ⛔ Three
+> filed fix shapes were not built as filed (N30's "return '' and drop" would
+> have deleted the settlement offer's only line; N65's `'prisoner'` reds two
+> slice-11 pins and cannot reach the client's literal; N27's `{age}`-only
+> edit is a silent no-op behind the escalation block's `except`). One pin
+> flipped consciously (CA9's `test_stage_three_must_stay_good` asserted the
+> defect). Sweep 28/28 after one INERT pin of mine was repaired (a
+> parametrization the first cut lacked).
+>
+> **part e — "THE SQUARE AND THE SURVIVORS" — LANDED** (FA-N57/N70/N55/
+> N64/N69/N71/N32). The production-dead square advisory speaks (and says
+> the consequence, not the old false sentence); no raw order enum reaches
+> the player at either site, incl. the defiance notice REPRO_L found
+> unfiled; the enemy-phase dialog stops double-scaling fort percents; the
+> override payoff is stamped at RESOLUTION and rendered on both dispatch
+> screens; the re-read screen gains DIPLOMATIC STATUS / COALITION THREAT
+> and both screens gain WAR PURPOSE under a comment-stripped source-census
+> parity pin; and a rout never leaves more men than the army had — ONE
+> `combat.rout_survivors` at all three sites, pinned by a forced-surround
+> arm (900 → 1,000 on 12/12 seeds with the lever down). Series
+> byte-identical on both arms because the surround arm is unreached on the
+> ambient board. Sweep 23/23. ⚠ Two lessons: a `#`-splitting comment
+> stripper guts `[color=#…` strings (a parity pin passed vacuously), and the
+> surround arm is reached only at ~1:1 odds. Parts d and e landed as ONE
+> commit (one shared docs edit, both green on one tree).
 
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >

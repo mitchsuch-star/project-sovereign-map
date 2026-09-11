@@ -134,7 +134,10 @@ def test_every_standing_class_has_escalation_copy():
         variants = dispatch_mod._STANDING_ESCALATION.get(cls)
         assert variants, f"{cls} has no escalation copy"
         for text in variants:
-            assert "{turns}" in text, f"{cls} variant never says how long"
+            # FA-N27 (slice 17, Sept 11 2026): the estate class says how long
+            # with the MARSHAL's own arrears clock (`{age}`), not the page's
+            # run counter — either field is "how long".
+            assert "{turns}" in text or "{age}" in text, f"{cls} variant never says how long"
         assert len(set(variants)) == len(variants), f"{cls} repeats itself"
 
 
@@ -160,7 +163,10 @@ def test_escalation_copy_is_formattable():
     """
     for cls, variants in dispatch_mod._STANDING_ESCALATION.items():
         base = dispatch_mod._HEADLINE_TEMPLATES[cls]
-        allowed = _placeholders(base) | {"marshal", "turns"}
+        # FA-N27 (slice 17, Sept 11 2026): the selector now injects THREE
+        # fields — `fmt.setdefault("age", _run)` beside `marshal`/`turns` —
+        # so `{age}` (the estate line's arrears clock) is always renderable.
+        allowed = _placeholders(base) | {"marshal", "turns", "age"}
         if cls == "supply_strain":
             # PC15-12: the candidate builder supplies BOTH agreement verbs
             # ({stand}/{have}); the base template uses only {stand}, so the

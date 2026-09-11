@@ -76,6 +76,22 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
 # FA-32 (slice 11) flip lever: False restores the ledger's silence about a
 # prisoner (an `idle` corps standing in the captor's capital at strength 0).
 THE_LEDGER_KNOWS_ITS_PRISONERS = True
+# FA-N36 (slice 17): a marshal frozen by an unanswered interrupt is
+# `awaiting_decision` on the FORCES tab, his order summary says HALTED, and
+# the ORDERS row stops claiming progress — the same lie the dispatch was
+# fixed for on July 19. One word shared with `dispatch._derive_marshal_status`;
+# `strategic_ledger.gd` already renders it ("Awaiting decision") unchanged.
+THE_LEDGER_SEES_THE_HALT = True
+# FA-N65 (slice 17): the ORDERS tab lists no prisoner. FA-32 fixed the FORCES
+# half ("Held by Austria at Vienna"); the ORDERS half still appended him to
+# `idle_marshals` as "Ney at Vienna │ No active orders" — the client's
+# literal at strategic_ledger.gd:945, so no payload word could fix it. He is
+# on FORCES and in the dispatch's PRISONERS OF WAR block; here he is absent.
+THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = True
+
+
+def _is_halted(marshal) -> bool:
+    return bool(THE_LEDGER_SEES_THE_HALT and getattr(marshal, "pending_interrupt", None))
 
 
 def _derive_status(marshal) -> str:
@@ -88,6 +104,9 @@ def _derive_status(marshal) -> str:
         # `strategic_ledger.gd`. Captivity outranks every other status: a man
         # in irons is not idle, not holding, not fortified.
         return "captured"
+    if _is_halted(marshal):
+        # FA-N36: the pending decision outranks the order it suspends.
+        return "awaiting_decision"
     if marshal.broken:
         return "broken"
     if marshal.retreating:
@@ -118,6 +137,9 @@ def _derive_strategic_order_summary(marshal) -> str:
         return "None"
     cmd = order.command_type
     target = order.target
+    if _is_halted(marshal):
+        # FA-N36: no turns-left count for a man who is not moving.
+        return f"{get_strategic_display(cmd)} {target} — HALTED, awaiting your word"
     if cmd == "MOVE_TO":
         turns_left = len(order.path)
         return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left)"
@@ -746,10 +768,19 @@ def _build_orders(world, player: str) -> list:
     for marshal in world.marshals.values():
         if marshal.nation != player:
             continue
+        if THE_ORDERS_TAB_KNOWS_ITS_PRISONERS and getattr(marshal, "captured_by", ""):
+            # FA-N65: a prisoner has no orders row — see the lever's note.
+            continue
 
         order = marshal.strategic_order
         if order is not None:
             condition_text = _derive_condition_text(order, world)
+            halted = _is_halted(marshal)
+            if halted:
+                # FA-N36: the client composes "(N regions left)" from
+                # `path_remaining` itself, so a frozen march must publish 0
+                # or the ORDERS tab keeps promising progress.
+                condition_text = "HALTED — awaiting your word"
 
             active_orders.append({
                 "marshal": marshal.name,
@@ -758,7 +789,7 @@ def _build_orders(world, player: str) -> list:
                 "order_type": _derive_order_display_name(order.command_type),
                 "order_type_raw": order.command_type,
                 "target": order.target,
-                "path_remaining": int(len(order.path)),
+                "path_remaining": 0 if halted else int(len(order.path)),
                 "turns_active": int(world.current_turn - order.started_turn),
                 "condition": condition_text,
                 "started_turn": int(order.started_turn),

@@ -3891,7 +3891,10 @@ class CombatExecutor:
             # Minimum 1000 survivors, but a rout can never leave MORE troops than
             # the army had when it broke: for a sub-1000 army the flat floor would
             # otherwise be a net gain (an 800-man corps "shatters" to 1000).
-            survivors = min(old_strength, max(1000, int(old_strength * survival_rate)))
+            # FA-N32 (slice 17): ONE helper, shared with the two auto-charge
+            # "surrounded" arms in world_state that never got this clamp.
+            from backend.game_logic.combat import rout_survivors
+            survivors = rout_survivors(old_strength, survival_rate)
 
             # V2-65: Find safe spawn (capital may be enemy-occupied)
             # V2-93: Exclude battle location so broken marshal doesn't stay in place
@@ -7800,7 +7803,12 @@ class CombatExecutor:
             if old_order.command_type == "HOLD":
                 marshal.holding_position = False
                 marshal.hold_region = ""
-            strategic_cancel_msg = f" Strategic order ({old_order.command_type}) cancelled."
+            # FA-N70 (slice 17): the R7 single source, not the raw enum —
+            # "Strategic order (MOVE_TO) cancelled" was the one player-facing
+            # site that bypassed it.
+            from backend.commands.strategic_executor import order_verb_display
+            strategic_cancel_msg = (f" His {order_verb_display(old_order.command_type)} "
+                                    f"order is cancelled.")
 
         # PC-9 (quiet-France played campaign, Aug 3 2026): the second line is
         # a rule addressed to the PLAYER ("any order you give…"), and it was
