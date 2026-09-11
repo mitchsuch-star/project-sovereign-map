@@ -58,6 +58,33 @@
 > stripper guts `[color=#…` strings (a parity pin passed vacuously), and the
 > surround arm is reached only at ~1:1 odds. Parts d and e landed as ONE
 > commit (one shared docs edit, both green on one tree).
+>
+> **part f — "THE INSTRUMENT ANSWERS" — LANDED** (FA-72/75/78/79/85/89/90/
+> 102/N35 — the harness rows, in REPRO_L's determinism order). The driver
+> now answers the three blocking decisions the client answers (paradox /
+> rebellion / sabotage: action id + `dialogue_id`, deduped per chain, an
+> id-less popup left standing and SAID), never presses a disabled option
+> (the archived `propose` arm pressed a greyed "Send as suggested" seven
+> times), matches needles as whole `_`-tokens (`no` used to match ho-NO-r
+> and declare war under `decline`), answers redemption/petition from their
+> own dials and writes the replies down, reads the WHOLE mailbox (majors,
+> armistices, settlement offers — Britain's offer stood ten turns unseen)
+> and digests what lapsed, records a script precondition failure instead of
+> a silent no-op (the naval script staged its expedition at a yard inside
+> the camp), stamps `driver_revision` on every `meta.json` (the attribution
+> REPRO_L's "archive a fresh set" step existed for — the nine `audit-*`
+> digests stay as historical evidence and are NOT re-run), and gains
+> `--reload-every N` (a save/load round trip at the turn boundary, the
+> re-raised questions written down). FA-89: the School's step reaches the
+> wire as a display-only, APPROXIMATE `tutorial_step` from a backend mirror
+> of the overlay's own table, drift-pinned (GR6). Sweep 32/32 — ⛔ five of
+> my own pins were INERT on the first sweep and every one was a real
+> weakness: two needle pins that could not tell substring from token once
+> `no` had left the needles, the all-disabled standing reason no fixture
+> reached, the popup-arm dedupe reachable only when the DIALOGUE arm answers
+> first, and the mailbox loop pinned as a method rather than as a step of
+> `run()`. `BASELINE_SERIES` / M1–M7 structurally untouched (no harness
+> test references the driver).
 
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >

@@ -150,13 +150,51 @@ POLICY_DEFAULTS = {
     # A marshal's redemption audience (trust <= 20; rare). Answered through
     # POST /respond_to_redemption since Sept 1, 2026 — before that this key
     # was read by nothing (WO-41's landing found it).
-    "redemption": "dismiss",        # dismiss | grant_autonomy | administrative_role
+    # FA-79 (slice 17, Sept 11 2026): the default was `dismiss` — the
+    # PERMANENT `destroy_marshal` arm (a `fallen_marshals` tombstone) — and
+    # the archive's one redemption line is exactly that: "Bernadotte, 9 →
+    # dismiss", never mentioned again. An unattended camera must not delete
+    # a marshal by default. `grant_autonomy` self-expires in 3 turns, changes
+    # no roster and grants no permanent AP; `administrative_role` permanently
+    # adds `bonus_actions += 1` and zeroes the corps. Both remain dials.
+    "redemption": "grant_autonomy", # grant_autonomy | administrative_role | dismiss
     # Marshal petitions (jealousy/rivalry/Fontainebleau/war-weary):
     # first ENABLED option — usually the free acknowledge arm.
-    "petition": "first_enabled",
+    # FA-79: `rotate` cycles the ENABLED arms per petition kind so the paid
+    # and adversarial arcs get exercised — OPT-IN ONLY (it makes every
+    # archived digest non-regenerable and ties the reward economy to
+    # petition order), never bundled into the default.
+    "petition": "first_enabled",    # first_enabled | rotate
     # Strategic interrupts (cannon fire / blocked path / ally moving):
     # first offered option.
     "interrupt": "first",
+    # FA-72: the two standalone decisions the interrupt arm answers get
+    # their own dials. Defaults stay `first` (= today's answers:
+    # `fight_to_the_last`, `attack_anyway`) so every archived digest and the
+    # FA-D27 balance measurement stay comparable — a RECORDED deviation from
+    # the row's "least state-changing arm" prescription. `last_stand`:
+    # first | fight | breakout. `contact`: first | attack | around | hold |
+    # cancel.
+    "last_stand": "first",
+    "contact": "first",
+    # FA-72 / FA-N35: the commitment paradox had NO policy — under `decline`
+    # the needle "no" substring-matched ho-NO-r_defender and DECLARED WAR;
+    # under every other mode `options[0]` was honor_defender too. Neither arm
+    # is state-neutral (honor = war; break = ALLIANCE→PEACE + a betrayal
+    # record), so the default is CHOSEN and named: `honor` — France keeps her
+    # word, which is what every archived arm effectively did (the archive
+    # stays comparable) and which does not write a permanent betrayal.
+    "paradox": "honor",             # honor | break
+    # FA-N35: the vassal-rebellion and sabotage decisions, answered the way
+    # the client answers them (by action id + dialogue_id). `accept` = let
+    # events unfold (the camera's choice: spends nothing); `confront` =
+    # authority +5.
+    "rebellion": "accept",          # accept | invest | garrison
+    "sabotage": "confront",         # confront | overlook
+    # FA-90 (ii): the Emperor Pays — type the reward rail's own
+    # `action_command` ("grant Ney a rente") once per notification. OFF by
+    # default: it spends admin AP the scripts budgeted for.
+    "reward": "ignore",             # ignore | pay
     # PT-F1 war purpose gate: the script ORDERED the attack, so backing
     # out would contradict it — an unattended run declares Conquest.
     "war_purpose": "1",
@@ -209,17 +247,42 @@ DIALOGUE_TYPE_ANSWERS = {
     # by policy (the Aug-15 wedge). An unattended run stays with the joint
     # settlement; typed "keep" resolves keep_joint_settlement.
     "settlement_pair_substitute_confirm": "keep",
+    # FA-72 / FA-N35 (slice 17): the three blocking decisions, each on its
+    # own policy key, answered BEFORE the generic diplomacy block.
+    "commitment_paradox": "paradox",
+    "vassal_rebellion_imminent": "rebellion",
+    "sabotage_confrontation": "sabotage",
+}
+
+# FA-N35: the popup keys of those three decisions. Since slice 0 each
+# payload carries the `dialogue_id` of the dialogue it renders, so the
+# driver answers exactly like the client: the action id + the id, through
+# POST /respond_to_diplomatic_dialogue. Measured (Sept 11, 2026): the
+# paradox rides as BOTH `diplomatic_dialogue` and its popup key with one id
+# (answered once per chain); the rebellion queues behind the morning's
+# letters and reaches the wire only once the mail is answered; the sabotage
+# confrontation is deferred off the enemy-phase response. A payload without
+# an id is left standing AND SAID.
+DECISION_POPUP_KEYS = {
+    "vassal_rebellion_imminent": ("rebellion", {
+        "accept": "accept_vassal_rebellion", "invest": "invest_vassal_rebellion",
+        "garrison": "garrison_vassal_rebellion"}),
+    "commitment_paradox_popup": ("paradox", {
+        "honor": "honor_defender", "break": "break_defender_alliance"}),
+    "diplomatic_sabotage": ("sabotage", {
+        "confront": "confront_sabotage", "overlook": "overlook_sabotage"}),
 }
 
 # Popup keys that are DISPLAY-ONLY: delivered popped (the queue clears on
 # inclusion), nothing to answer — digest and move on.
+# FA-N35 (slice 17): `diplomatic_sabotage`, `vassal_rebellion_imminent` and
+# `commitment_paradox_popup` LEFT this tuple — they are DECISIONS (see
+# DECISION_POPUP_KEYS). Ten of eleven archived rebellion popups read
+# "→ display-only" and the paradox never appeared in any digest at all.
 DISPLAY_ONLY_KEYS = (
     "coalition_popup",
-    "diplomatic_sabotage",
-    "vassal_rebellion_imminent",
     "nation_proclamation",
     "proposal_result",
-    "commitment_paradox_popup",
     "battle_diorama",
 )
 
@@ -462,6 +525,69 @@ def dig(payload, *names, default=None):
 # Transport
 # ═══════════════════════════════════════════════════════════════════════
 
+def driver_revision() -> str:
+    """FA-75/FA-79 step 3 (slice 17): the driver revision every run's
+    meta.json names. REPRO_L's "archive a fresh digest set" is NOT re-run for
+    the nine old `audit-*` digests (they stay as historical evidence with the
+    driver that produced them); attributability is met by stamping THIS —
+    a content hash of the driver, deterministic, no git dependency."""
+    import hashlib
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
+
+
+class ExpeditionTracker:
+    """FA-85: a naval script whose every `land` / expedition line is REFUSED
+    must not be filed as evidence of a mechanic that never ran — the archived
+    naval digest carried two refusals and zero expeditions for a month."""
+    NEEDLES = ("land ", "naval_expedition", "expedition")
+
+    def __init__(self):
+        self.issued = 0
+        self.ran = 0
+
+    def observe(self, text, response):
+        low = str(text or "").strip().lower()
+        if not any(low.startswith(n) or n in low for n in self.NEEDLES):
+            return
+        self.issued += 1
+        if (response or {}).get("success") is not False:
+            self.ran += 1
+
+    def precondition_failed(self) -> bool:
+        return self.issued > 0 and self.ran == 0
+
+    def report(self, digest):
+        if self.precondition_failed():
+            digest.note(f"⚠ SCRIPT PRECONDITION — every expedition line in the "
+                        f"script was refused ({self.issued}); this digest is NOT "
+                        f"evidence about naval expeditions")
+            if isinstance(getattr(digest, "meta", None), dict):
+                digest.meta["script_precondition_failed"] = True
+
+
+def reload_round_trip(transport, digest, answerer, name, turn, strict):
+    """FA-102: save then load at the TURN BOUNDARY, stamp the round trip, and
+    put the questions the load re-raised INTO the digest before the ordinary
+    drain answers them.
+
+    Contract (re-stated from the row, which promised more than the seam can
+    give): byte-identical to the no-reload run MODULO the load lines AND any
+    answer the load re-raises — Mode A only (`seed_module_rng` is skipped
+    under --http, and any POST inside a turn shifts that turn's draws)."""
+    filename = f"{name}_reload_t{turn}"
+    saved = transport.post("/save", {"save_name": filename})
+    loaded = transport.post("/load", {"filename": f"{filename}.json"})
+    reraised = [k for k in ("pending_capture_choice", "pending_interrupt",
+                            "redemption_event", "pending_redemption",
+                            "diplomatic_dialogue", "marshal_petition",
+                            "pending_objection")
+                if loaded.get(k)]
+    digest.note(f"RELOAD t{turn}: save → {first_line(saved.get('message'), 60)} "
+                f"· load → {first_line(loaded.get('message'), 60)}")
+    digest.note(f"    ↳ re-raised on load: {', '.join(reraised) if reraised else 'nothing'}")
+    drain(transport, digest, answerer, loaded, strict)
+
+
 class Transport:
     """POST/GET against either an in-process TestClient or a live server.
 
@@ -683,6 +809,46 @@ class Digest:
     def note(self, text):
         self._md(f"  - {text}")
         self.record("note", text=text)
+
+    def envoy_state(self, lapsed, pending, count):
+        """FA-75 (A-half): what LAPSED unanswered and which envoys WAIT — both
+        were on `GET /dispatch` all along (`lapsed_offers`,
+        `pending_envoys`), fetched every turn and printed nowhere. Measured:
+        16 of 38 mailbox item-turns were unreachable to the driver, Britain's
+        settlement offer standing ten consecutive turns unseen."""
+        lapsed = [r for r in (lapsed or []) if isinstance(r, dict)]
+        pending = [r for r in (pending or []) if isinstance(r, dict)]
+        if lapsed:
+            self._md("- LAPSED " + " · ".join(
+                f"{r.get('nation', '?')} {r.get('proposal_type', '?')}" for r in lapsed))
+        if pending:
+            self._md(f"- ENVOYS WAITING {int(count or len(pending))} · " + " · ".join(
+                f"{r.get('nation', '?')} {r.get('proposal_type', '?')}"
+                + (f" ({str(r.get('status')).lower()})" if r.get('status') else "")
+                for r in pending))
+        if lapsed or pending:
+            self.record("envoys", lapsed=lapsed, pending=pending)
+
+    def ratified(self, summary):
+        """FA-90 (i): WHAT was signed — `peace_ratification_summary` is
+        stamped on the response by `_include_peace_ratification_summary` and
+        was read by nothing in the driver."""
+        text = (summary.get("summary") or summary.get("text") or summary.get("message")
+                if isinstance(summary, dict) else summary)
+        text = first_line(text, 300) if text else json.dumps(summary, default=str)[:300]
+        self._md(f"  - RATIFIED {text}")
+        self.record("ratified", summary=summary)
+
+    def school_step(self, step):
+        """FA-89: the School's step, from the backend's display-only
+        `tutorial_step` key — a SECOND, approximate source by construction
+        (the overlay's advance predicates are fifteen GDScript functions
+        over cross-response latches), so the line says so."""
+        if not isinstance(step, dict):
+            return
+        self._md(f"- SCHOOL step {step.get('step', '?')} ({step.get('title', step.get('id', '?'))})"
+                 + (" — approximate" if step.get("approximate") else ""))
+        self.record("school", **{k: step.get(k) for k in ("step", "id", "title")})
 
     def enemy_phase(self, actions, phase=None):
         """FA-N79 / FA-N86: what the enemy did, INCLUDING what we could not see.
@@ -1107,6 +1273,13 @@ class Answerer:
         # chain. Bounded so a genuinely wedged surface is left standing with
         # its reason instead of spinning. Reset by begin_post().
         self._stale_refusals = {}
+        # FA-78: why the last dialogue was left standing (a disabled-only
+        # option list), so the digest line can say it.
+        self.last_standing_reason = ""
+        # FA-79: `petition: rotate` — the next enabled arm per petition kind.
+        self._petition_rotation = {}
+        # FA-90 (ii): reward notifications already typed, by id.
+        self._rewarded_ids = set()
 
     def begin_post(self):
         """Start a fresh answer chain (called by drain()).
@@ -1143,6 +1316,39 @@ class Answerer:
             if payload:
                 self.d.popup(key, _summ(payload, "title", "message", "nation",
                                         "headline"), "display-only")
+
+        # FA-90 (i): what was signed, when a response says so.
+        if response.get("peace_ratification_summary") and hasattr(self.d, "ratified"):
+            self.d.ratified(response["peace_ratification_summary"])
+
+        # 0. The three blocking DECISIONS that used to be filed display-only
+        #    (FA-N35). Answered like the client: action id + dialogue_id.
+        #    Deduped per chain against the dialogue arm below, because the
+        #    paradox rides on both transports with one id.
+        for key, (policy_key, actions) in DECISION_POPUP_KEYS.items():
+            payload = _as_dict(response.get(key))
+            if not payload:
+                continue
+            did = payload.get("dialogue_id")
+            summary = _summ(payload, "nation", "target_nation", "attacker",
+                            "defiance_type")
+            if did is None:
+                self.d.popup(key, summary, "(left standing — no dialogue_id on the payload)")
+                continue
+            if did in self._answered_dialogue_ids:
+                self.d.popup(key, summary, f"(stale passthrough — #{did} already answered this chain)")
+                continue
+            choice = actions.get(str(self.policy.get(policy_key, "")))
+            if choice is None:
+                choice = next(iter(actions.values()))
+            self.d.popup(key, f"{summary} #{did}", choice)
+            reply = self.t.post("/respond_to_diplomatic_dialogue",
+                                {"choice": choice, "dialogue_id": did})
+            if reply.get("success") is False:
+                self.d.note(f"    ↳ refused: {first_line(reply.get('message'), 110)}")
+            else:
+                self._answered_dialogue_ids.add(did)
+            followups.append(reply)
 
         if response.get("battle_report"):
             self.d.battle(response["battle_report"])
@@ -1206,10 +1412,27 @@ class Answerer:
             for payload in payloads:
                 options = payload.get("options") or payload.get("choices") or []
                 choice = None
-                for opt in options:
-                    if _enabled(opt):
-                        choice = _option_id(opt)
-                        break
+                # FA-72: the two standalone decisions read their own dials
+                # (defaults `first` = the historical answers).
+                kind = str(payload.get("interrupt_type") or "")
+                ids = [str(_option_id(o) or "") for o in options]
+                wanted = None
+                if kind == "last_stand":
+                    wanted = {"fight": "fight_to_the_last",
+                              "breakout": "attempt_breakout"}.get(
+                        str(self.policy.get("last_stand", "first")))
+                elif kind in ("contact_bad_odds", "enemy_contact", "blocked_path",
+                              "attack_on_arrival"):
+                    wanted = {"attack": "attack_anyway", "around": "go_around",
+                              "hold": "hold_position", "cancel": "cancel_order"}.get(
+                        str(self.policy.get("contact", "first")))
+                if wanted and wanted in ids and _enabled(options[ids.index(wanted)]):
+                    choice = wanted
+                if choice is None:
+                    for opt in options:
+                        if _enabled(opt):
+                            choice = _option_id(opt)
+                            break
                 choice = choice or "continue"
                 self.d.popup("strategic_interrupt",
                              _summ(payload, "marshal", "interrupt_type", "message"),
@@ -1291,19 +1514,30 @@ class Answerer:
         if response.get("marshal_petition"):
             payload = _as_dict(response["marshal_petition"])
             options = payload.get("options") or []
+            enabled = [o for o in options if _enabled(o)]
             choice = None
-            for opt in options:
-                if _enabled(opt):
-                    choice = _option_id(opt)
-                    break
+            if enabled and str(self.policy.get("petition", "first_enabled")) == "rotate":
+                # FA-79: cycle the enabled arms per kind (opt-in).
+                kind = str(payload.get("kind") or payload.get("type") or "petition")
+                idx = self._petition_rotation.get(kind, 0)
+                choice = _option_id(enabled[idx % len(enabled)])
+                self._petition_rotation[kind] = idx + 1
+            elif enabled:
+                choice = _option_id(enabled[0])
             if choice is None and options:
                 choice = _option_id(options[0])
             self.d.popup("marshal_petition",
                          _summ(payload, "marshal", "kind", "title"),
                          choice or "(no options)")
             if choice is not None:
-                followups.append(self.t.post("/marshal_petition_response",
-                                             {"choice": str(choice)}))
+                reply = self.t.post("/marshal_petition_response",
+                                    {"choice": str(choice)})
+                # FA-79 (A-third): the REPLY, which used to be dropped — a
+                # refusal (FA-N76's offered-arms guard) was invisible.
+                self.d.note(("    ↳ refused: " if reply.get("success") is False
+                             else "    ↳ ")
+                            + first_line(reply.get("message"), 110))
+                followups.append(reply)
 
         # 5. Talleyrand pre-proposal objection ---------------------------------
         if response.get("diplomatic_objection"):
@@ -1336,11 +1570,18 @@ class Answerer:
         # glorious-charge arm; the choice is logged like every other answer.
         if response.get("redemption_event"):
             payload = _as_dict(response.get("redemption_event"))
-            choice = self.policy.get("redemption", "dismiss")
+            choice = self.policy.get("redemption", "grant_autonomy")
             self.d.popup("redemption", _summ(payload, "marshal", "trust"),
                          choice)
-            followups.append(self.t.post("/respond_to_redemption",
-                                         {"choice": choice}))
+            reply = self.t.post("/respond_to_redemption", {"choice": choice})
+            # FA-79 (A-third): the reply — since slice 14's FA-N76 a choice the
+            # audience did not offer is refused and the question STANDS, so a
+            # blind default against a Last-Marshal audience was a silent,
+            # permanent no-op that re-raised every turn.
+            self.d.note(("    ↳ refused: " if reply.get("success") is False
+                         else "    ↳ ")
+                        + first_line(reply.get("message"), 110))
+            followups.append(reply)
 
         # 7. Diplomatic dialogue (incoming proposals, settlement offers,
         #    ultimatums, envoys — anything answerable on the dialogue stack).
@@ -1383,8 +1624,12 @@ class Answerer:
             # legitimate five-stage settlement ceremony ends in two distinct
             # `proposal_confirm`s and tripped it every long propose run).
             label = summary + (f" #{did}" if did is not None else "")
-            self.d.popup("diplomatic_dialogue", label,
-                         choice or "(left standing)")
+            standing = "(left standing)"
+            if choice is None and self.last_standing_reason:
+                # FA-78: WHY — the option list was all disabled, and the
+                # reason is the engine's own honest-availability text.
+                standing = f"(left standing — disabled: {first_line(self.last_standing_reason, 90)})"
+            self.d.popup("diplomatic_dialogue", label, choice or standing)
             if choice is not None:
                 body = {"choice": choice}
                 if did is not None:
@@ -1501,6 +1746,57 @@ class Answerer:
             replies.append(reply)
         return replies
 
+    def answer_mailbox_items(self, mailbox_payload, answered_ids=()):
+        """FA-75 (B-half): every mailbox item the letter-book did NOT answer
+        — a major court's proposal, an armistice, a settlement offer — is
+        ACTIVATED (`POST /mailbox/activate`) and the returned payload handed
+        back to be drained through the ordinary dialogue arm. Before this
+        the driver's only mailbox read was the letter-book, so Britain's
+        settlement offer stood ten turns unseen and no archived arm could
+        ratify a settlement."""
+        if not isinstance(mailbox_payload, dict):
+            return []
+        replies = []
+        skip = set(int(i) for i in answered_ids)
+        for row in mailbox_payload.get("items") or []:
+            if not isinstance(row, dict) or row.get("mailbox_id") is None:
+                continue
+            mid = int(row["mailbox_id"])
+            if mid in skip:
+                continue
+            reply = self.t.post("/mailbox/activate", {"mailbox_id": mid})
+            court = row.get("source_nation") or row.get("from_nation") or "?"
+            kind = (row.get("item_type") or row.get("proposal_type")
+                    or row.get("type") or "?")
+            self.d.note(f"MAILBOX #{mid} {court} {kind} → "
+                        + ("activated" if reply.get("success") is not False
+                           else f"refused: {first_line(reply.get('message'), 80)}"))
+            replies.append(reply)
+        return replies
+
+    def reward_from_rail(self, response):
+        """FA-90 (ii): `--reward pay` types the reward rail's own
+        `details.action_command` (the UX23-A "grant Ney a rente" string, a
+        pinned corpus row) once per notification id. Returns the replies."""
+        if str(self.policy.get("reward", "ignore")) != "pay":
+            return []
+        replies = []
+        for row in response.get("notifications") or []:
+            if not isinstance(row, dict):
+                continue
+            command = ((row.get("details") or {}).get("action_command")
+                       if isinstance(row.get("details"), dict) else None)
+            nid = row.get("id") or row.get("uuid")
+            if not command or nid in self._rewarded_ids:
+                continue
+            self._rewarded_ids.add(nid)
+            reply = self.t.post("/command", {"command": str(command)})
+            self.d.note(f"REWARD `{command}` → "
+                        + ("✓ " if reply.get("success", True) else "✗ ")
+                        + first_line(reply.get("message"), 100))
+            replies.append(reply)
+        return replies
+
     @staticmethod
     def _refusal_key(dialogue):
         """Identity for the refused-choice memory.
@@ -1541,7 +1837,30 @@ class Answerer:
 
     def _pick_dialogue_choice(self, dialogue):
         dtype = str(dialogue.get("type") or "")
-        options = dialogue.get("options") or dialogue.get("choices") or []
+        all_options = dialogue.get("options") or dialogue.get("choices") or []
+        # FA-78: a DISABLED option is never pressed. The archive's `propose`
+        # arm pressed a greyed "Send as suggested" seven times and recorded
+        # WIN-1's honest refusals as artefacts. Enabled-only from here on —
+        # and the literal fallbacks below are gated on `any_enabled`, because
+        # filtering the list alone is a measured NO-OP on the headline case
+        # (the `proposal_confirm` branch returned the literal "confirm").
+        options = [o for o in all_options if _enabled(o)]
+        any_enabled = bool(options) or not all_options
+        self.last_standing_reason = ""
+        if all_options and not options:
+            first = all_options[0]
+            self.last_standing_reason = (str(first.get("description") or first.get("label") or "")
+                                         if isinstance(first, dict) else str(first))
+        # The literal "confirm" is resolved SERVER-side to the confirm-family
+        # option (execute / confirm / send / proceed). If THAT option is the
+        # disabled one, the literal would press it — so the gate is on the
+        # option the word resolves to, not on "is anything enabled".
+        disabled_confirm = [o for o in all_options if isinstance(o, dict) and not _enabled(o)
+                            and any(t in str(_option_id(o) or "").lower()
+                                    for t in ("execute", "confirm", "send", "proceed"))]
+        if disabled_confirm and not self.last_standing_reason:
+            first = disabled_confirm[0]
+            self.last_standing_reason = str(first.get("description") or first.get("label") or "")
         keywords = [str(_option_id(o) or "").lower() for o in options]
 
         # WO slice 5 REVIEW (August 22, 2026) — the ultimatum discriminator.
@@ -1593,16 +1912,36 @@ class Answerer:
                     else "reject")
 
         def find(*needles):
+            # FA-72: WHOLE `_`-tokens, never substrings — "no" used to match
+            # ho-NO-r_defender and declare war under `decline`.
             for i, kw in enumerate(keywords):
+                tokens = set(kw.replace("-", "_").split("_"))
                 for needle in needles:
-                    if needle in kw:
+                    if needle in tokens:
                         return _option_id(options[i])
             return None
 
         if dtype in DIALOGUE_TYPE_ANSWERS:
             policy_key = DIALOGUE_TYPE_ANSWERS[dtype]
+            # FA-72 / FA-N35: the three decisions answer from their OWN
+            # dials, before any diplomacy-mode reading of the options.
+            if policy_key in ("paradox", "rebellion", "sabotage"):
+                actions = {
+                    "paradox": {"honor": "honor_defender", "break": "break_defender_alliance"},
+                    "rebellion": {"accept": "accept_vassal_rebellion",
+                                  "invest": "invest_vassal_rebellion",
+                                  "garrison": "garrison_vassal_rebellion"},
+                    "sabotage": {"confront": "confront_sabotage", "overlook": "overlook_sabotage"},
+                }[policy_key]
+                wanted = actions.get(str(self.policy.get(policy_key, "")))
+                if wanted is None:
+                    wanted = next(iter(actions.values()))
+                if all_options and not any(str(_option_id(o) or "") == wanted for o in options):
+                    return None if not any_enabled else wanted
+                return wanted
             if policy_key == "confirm":
-                return find("confirm", "yes", "proceed", "send") or "confirm"
+                return find("confirm", "yes", "proceed", "send") or (
+                    None if disabled_confirm or not any_enabled else "confirm")
             # PC15-3/PC15-H: the pair-substitute chooser. `keep` is a
             # documented NO-OP that restores the prior settlement_confirm
             # — so under an ACCEPTING policy it cycles forever against
@@ -1617,11 +1956,11 @@ class Answerer:
                 if self.policy["diplomacy"] in ACCEPTING_DIPLOMACY_MODES:
                     return (find("confirm_pair", "confirm", "substitute")
                             or "confirm_pair_substitute")
-                return find("keep") or "keep"
+                return find("keep") or ("keep" if any_enabled else None)
             if policy_key in ("war_purpose", "ultimatum"):
                 answer = self.policy[policy_key]
                 if answer == "defy":
-                    return find("defy", "refuse") or "defy"
+                    return find("defy", "refuse") or ("defy" if any_enabled else None)
                 return answer
 
         mode = self.policy["diplomacy"]
@@ -1632,10 +1971,12 @@ class Answerer:
         elif mode == "first":
             picked = _option_id(options[0]) if options else None
         else:  # decline
-            picked = find("decline", "reject", "refuse", "no")
+            # FA-72: "no" dropped — it earned nothing (decline/reject/refuse
+            # cover the live vocabulary) and cost a war declaration.
+            picked = find("decline", "reject", "refuse")
         if picked is None and options:
             picked = _option_id(options[-1] if mode == "decline" else options[0])
-        if picked is None and dtype in DIALOGUE_TYPE_ANSWERS:
+        if picked is None and dtype in DIALOGUE_TYPE_ANSWERS and any_enabled:
             # Known-answerable family with no options list: the endpoint
             # accepts a keyword — "decline" is the family's safe word.
             picked = "decline" if self.policy["diplomacy"] == "decline" else "1"
@@ -1785,6 +2126,12 @@ def run(args):
         policy["objection"] = args.objection
     if args.diplomacy:
         policy["diplomacy"] = args.diplomacy
+    # FA slice 17 part f: the new dials, flag over script key over default.
+    for key in ("redemption", "petition", "paradox", "rebellion", "sabotage",
+                "reward", "last_stand", "contact"):
+        value = getattr(args, key, "")
+        if value:
+            policy[key] = value
 
     if args.http:
         transport = make_http_transport(args)
@@ -1824,6 +2171,10 @@ def run(args):
         "cheats": bool(getattr(args, "cheats", False)),
         "strict": bool(getattr(args, "strict", False)),
         "rng": rng_meta,
+        # FA-75/79 (slice 17): the driver revision that produced this run —
+        # the attribution REPRO_L's "archive a fresh set" step exists for.
+        "driver_revision": driver_revision(),
+        "reload_every": int(getattr(args, "reload_every", 0) or 0),
     })
     answerer = Answerer(transport, digest, policy, args.strict)
 
@@ -1851,6 +2202,8 @@ def run(args):
     turn_scripts = {str(k): v for k, v in (script.get("turns") or {}).items()}
 
     status = "completed"
+    expeditions = ExpeditionTracker()          # FA-85
+    reload_every = int(getattr(args, "reload_every", 0) or 0)
     for turn_index in range(1, args.turns + 1):
         # NB: `status` is the run's finish state — this one is the payload.
         status_payload = transport.get("/status")
@@ -1869,8 +2222,17 @@ def run(args):
         # commands — unanswered letters lapse when the turn ends, and the
         # /command copy of envoy_digest is nulled on every enemy-phase
         # response, so GET /mailbox is where an unattended run must read it.
-        for reply in answerer.answer_envoy_digest(
-                (transport.get("/mailbox") or {}).get("envoy_digest")):
+        mailbox = transport.get("/mailbox") or {}
+        letterbook = mailbox.get("envoy_digest") or {}
+        for reply in answerer.answer_envoy_digest(letterbook):
+            drain(transport, digest, answerer, reply, args.strict)
+        # FA-75 (B-half): the rest of the mailbox — what the letter-book
+        # excludes (majors, armistices, settlement offers) — activated and
+        # drained. Sited AFTER the letter-book so a routine ask never blocks
+        # a major court's offer.
+        answered = {int(r["mailbox_id"]) for r in (letterbook.get("items") or [])
+                    if isinstance(r, dict) and r.get("mailbox_id") is not None}
+        for reply in answerer.answer_mailbox_items(mailbox, answered):
             drain(transport, digest, answerer, reply, args.strict)
 
         for text in turn_scripts.get(str(turn_index), []):
@@ -1878,7 +2240,10 @@ def run(args):
                 continue  # implicit below
             response = transport.post("/command", {"command": text})
             digest.command(text, response)
+            expeditions.observe(text, response)          # FA-85
             drain(transport, digest, answerer, response, args.strict)
+            for reply in answerer.reward_from_rail(response):   # FA-90 (ii)
+                drain(transport, digest, answerer, reply, args.strict)
 
         # WO slice 5: the active peace arm, drained like any other command
         # so the settlement dialogue it raises is answered by the same
@@ -1949,6 +2314,14 @@ def run(args):
             morning = (transport.get("/dispatch") or {}).get("dispatch") or {}
         except Exception:
             morning = {}
+        # FA-75 (A-half): what lapsed and who waits — zero POSTs, zero
+        # backend change; the keys were on this payload all along.
+        digest.envoy_state(morning.get("lapsed_offers"),
+                           morning.get("pending_envoys"),
+                           morning.get("pending_envoy_count"))
+        # FA-89: the School's (approximate, display-only) step.
+        if response.get("tutorial_step"):
+            digest.school_step(response.get("tutorial_step"))
         # FA-37 / FA-39: `threat` sat in `ledger_line`'s signature and never
         # printed. `GET /ledger` carries no `threat_level` at any depth, so
         # the recursive dig returned None on EVERY turn of every archived
@@ -2018,6 +2391,15 @@ def run(args):
             status = "game-over"
             break
 
+        # FA-102: the save/load round trip at the TURN BOUNDARY — after every
+        # read of this turn, before the next iteration's reseed — so a
+        # save-transparency defect is legible rather than absorbed. Mode A
+        # only (see reload_round_trip).
+        if reload_every and not args.http and turn_index % reload_every == 0:
+            reload_round_trip(transport, digest, answerer, args.name,
+                              current_turn, args.strict)
+
+    expeditions.report(digest)                 # FA-85
     digest.finish(status)
     print(f"[driver] {status}: {digest.md_path}")
 
@@ -2075,6 +2457,23 @@ def main():
                     help="propose = France actively sues for peace (one "
                          "bilateral overture per turn) and signs what she "
                          "is offered")
+    # FA slice 17 part f — the decision dials (see POLICY_DEFAULTS).
+    ap.add_argument("--redemption", default="",
+                    choices=["", "grant_autonomy", "administrative_role", "dismiss"])
+    ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate"],
+                    help="rotate cycles the enabled arms per petition kind (opt-in)")
+    ap.add_argument("--paradox", default="", choices=["", "honor", "break"])
+    ap.add_argument("--rebellion", default="", choices=["", "accept", "invest", "garrison"])
+    ap.add_argument("--sabotage", default="", choices=["", "confront", "overlook"])
+    ap.add_argument("--reward", default="", choices=["", "ignore", "pay"],
+                    help="pay = type the reward rail's own command once per notice")
+    ap.add_argument("--last-stand", dest="last_stand", default="",
+                    choices=["", "first", "fight", "breakout"])
+    ap.add_argument("--contact", default="",
+                    choices=["", "first", "attack", "around", "hold", "cancel"])
+    ap.add_argument("--reload-every", dest="reload_every", type=int, default=0,
+                    help="FA-102: save+load every N turns at the turn boundary "
+                         "(Mode A only); the re-raised questions are digested")
     ap.add_argument("--cheats", action="store_true",
                     help="arm DEBUG_MODE for the run (cheat commands work)")
     ap.add_argument("--strict", action="store_true",

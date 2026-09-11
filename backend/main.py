@@ -608,6 +608,14 @@ def build_base_response(world, success: bool = True, message: str = "",
     # something the client can be told about, so an empty rail ships `[]`.
     if include_notifications:
         response["notifications"] = world.notifications.get_pending()
+    # FA-89 (slice 17): the School's step, display-only and APPROXIMATE (a
+    # floor on the overlay's own state), so an unattended run's digest can
+    # say which beat the lesson had reached. None off the tutorial scenario,
+    # and then the key is omitted rather than shipped as null.
+    from backend.game_logic.tutorial_state import tutorial_step_for
+    _school = tutorial_step_for(world)
+    if _school:
+        response["tutorial_step"] = _school
     return response
 
 

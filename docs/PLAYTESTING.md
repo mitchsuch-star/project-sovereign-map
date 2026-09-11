@@ -203,6 +203,57 @@ Anything unrecognized is
 left standing, logged as `⚠ UNKNOWN BLOCKER`, and — if it blocks `end
 turn` — the run STOPS with status `blocked` rather than spinning.
 
+### The decision dials (FA slice 17 part f, September 11, 2026)
+
+Nine harness rows closed at once (FA-72/75/78/79/85/89/90/102/N35 — landing
+record = the boxed SLICE 17 (part f) block in `BUG_FIXES.md`). What changed
+for a reader of digests:
+
+* **The mailbox is read whole.** After the letter-book, every remaining
+  `/mailbox` item (majors, armistices, settlement offers) is ACTIVATED and
+  drained through the ordinary dialogue arm, and the morning prints
+  `LAPSED …` / `ENVOYS WAITING …` lines. Before this Britain's settlement
+  offer stood ten consecutive turns unseen and no archived arm could
+  ratify a settlement. A digest can now say `RATIFIED …` (what was signed).
+* **Three decisions that used to be "display-only" are answered**, by
+  action id + `dialogue_id` exactly as the client answers them, on their
+  own dials: `--paradox honor|break` (default **honor** — chosen and named:
+  France keeps her word, which every archived arm effectively did, and it
+  writes no betrayal record; under `decline` the old needle "no" matched
+  ho-NO-r_defender and DECLARED WAR), `--rebellion accept|invest|garrison`
+  (default accept: spends nothing), `--sabotage confront|overlook`.
+* **A disabled option is never pressed.** The `propose` arm used to press a
+  greyed "Send as suggested" and log WIN-1's honest refusal as an artefact;
+  an all-disabled surface is now left standing WITH the engine's reason.
+* **`--redemption` defaults to `grant_autonomy`** (self-expiring, no roster
+  change) — `dismiss` was the permanent `destroy_marshal` arm. Both replies
+  (`/respond_to_redemption`, `/marshal_petition_response`) are digested with
+  `↳ refused:` when the engine refused them. `--petition rotate` cycles the
+  enabled arms per kind — OPT-IN (it makes every archived digest
+  non-regenerable).
+* **`--last-stand first|fight|breakout` and `--contact first|attack|around|
+  hold|cancel`** exist; defaults stay `first` (= the historical answers) so
+  the archive and the FA-D27 balance measurement stay comparable — a
+  recorded deviation from the row's "least state-changing arm".
+* **`--reward pay`** types the reward rail's own `action_command` once per
+  notification (off by default: it spends the admin AP scripts budget).
+* **`--reload-every N`** saves and loads at the turn boundary and writes the
+  questions the load RE-RAISED into the digest. Contract: byte-identical to
+  the no-reload run MODULO the load lines and any re-raised answer, Mode A
+  only.
+* **`SCHOOL step N (title) — approximate`** on the tutorial scenario, from a
+  display-only backend `tutorial_step` key: the latest step whose turn gate
+  the turn has reached — a floor on what the overlay shows, never the
+  overlay's own state.
+* **`⚠ SCRIPT PRECONDITION`** — a script whose every `land`/expedition line
+  is refused is stamped so (digest + `meta.script_precondition_failed`);
+  the committed `naval_descent.json` now stages Soult at **Bordelais** (a
+  yard outside the Descent's camp set; Normandy was never a yard).
+* **`meta.driver_revision`** — a content hash of the driver that produced
+  the run. The nine pre-slice `audit-*` digests were NOT re-archived; they
+  stand as evidence of the driver they name, and this stamp is the
+  attribution going forward.
+
 ### `--diplomacy propose` — the arm that asks (WO slice 5)
 
 Every other policy is REACTIVE: it answers what arrives. Across every WO

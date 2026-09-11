@@ -1,0 +1,226 @@
+[
+ {
+  "id": "72/a the paradox dial reverts to the diplomacy mode",
+  "file": "tools/playtest_driver.py",
+  "old": "            if policy_key in (\"paradox\", \"rebellion\", \"sabotage\"):",
+  "new": "            if policy_key in (\"rebellion\", \"sabotage\"):",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA72TheParadoxIsAnsweredOnPurpose"
+ },
+ {
+  "id": "72/b needles go back to substrings (\"no\" in ho-NO-r)",
+  "file": "tools/playtest_driver.py",
+  "old": "                tokens = set(kw.replace(\"-\", \"_\").split(\"_\"))\n                for needle in needles:\n                    if needle in tokens:",
+  "new": "                for needle in needles:\n                    if needle in kw:",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA72TheParadoxIsAnsweredOnPurpose"
+ },
+ {
+  "id": "72/c \"no\" returns to the decline needles",
+  "file": "tools/playtest_driver.py",
+  "old": "            picked = find(\"decline\", \"reject\", \"refuse\")",
+  "new": "            picked = find(\"decline\", \"reject\", \"refuse\", \"no\")",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA72TheParadoxIsAnsweredOnPurpose"
+ },
+ {
+  "id": "72/d the paradox default flips to break",
+  "file": "tools/playtest_driver.py",
+  "old": "    \"paradox\": \"honor\",             # honor | break",
+  "new": "    \"paradox\": \"break\",             # honor | break",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA72TheParadoxIsAnsweredOnPurpose"
+ },
+ {
+  "id": "78/a the enabled filter is dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "        options = [o for o in all_options if _enabled(o)]\n        any_enabled = bool(options) or not all_options",
+  "new": "        options = list(all_options)\n        any_enabled = True",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA78ADisabledOptionIsNeverPressed"
+ },
+ {
+  "id": "78/b the confirm literal is ungated again (the measured no-op)",
+  "file": "tools/playtest_driver.py",
+  "old": "                return find(\"confirm\", \"yes\", \"proceed\", \"send\") or (\n                    None if disabled_confirm or not any_enabled else \"confirm\")",
+  "new": "                return find(\"confirm\", \"yes\", \"proceed\", \"send\") or \"confirm\"",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA78ADisabledOptionIsNeverPressed::test_the_literal_confirm_fallback_is_gated"
+ },
+ {
+  "id": "78/c the standing reason is not recorded",
+  "file": "tools/playtest_driver.py",
+  "old": "        if all_options and not options:\n            first = all_options[0]",
+  "new": "        if False:\n            first = all_options[0]",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA78ADisabledOptionIsNeverPressed"
+ },
+ {
+  "id": "79/a the redemption default destroys the marshal again",
+  "file": "tools/playtest_driver.py",
+  "old": "    \"redemption\": \"grant_autonomy\", # grant_autonomy | administrative_role | dismiss",
+  "new": "    \"redemption\": \"dismiss\", # grant_autonomy | administrative_role | dismiss",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA79TheRedemptionAndPetitionArms::test_the_default_is_the_self_expiring_arm"
+ },
+ {
+  "id": "79/b the redemption reply is dropped again",
+  "file": "tools/playtest_driver.py",
+  "old": "            reply = self.t.post(\"/respond_to_redemption\", {\"choice\": choice})\n            # FA-79 (A-third): the reply",
+  "new": "            reply = self.t.post(\"/respond_to_redemption\", {\"choice\": choice})\n            reply = {\"success\": True, \"message\": \"\"}\n            # FA-79 (A-third): the reply",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA79TheRedemptionAndPetitionArms::test_the_redemption_reply_is_written_to_the_digest"
+ },
+ {
+  "id": "79/c the petition reply is dropped again",
+  "file": "tools/playtest_driver.py",
+  "old": "                self.d.note((\"    ↳ refused: \" if reply.get(\"success\") is False\n                             else \"    ↳ \")\n                            + first_line(reply.get(\"message\"), 110))\n                followups.append(reply)",
+  "new": "                followups.append(reply)",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA79TheRedemptionAndPetitionArms::test_the_petition_reply_is_written_to_the_digest"
+ },
+ {
+  "id": "79/d rotate stops rotating",
+  "file": "tools/playtest_driver.py",
+  "old": "                self._petition_rotation[kind] = idx + 1",
+  "new": "                self._petition_rotation[kind] = idx",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA79TheRedemptionAndPetitionArms::test_rotate_cycles_the_enabled_arms_per_kind"
+ },
+ {
+  "id": "N35/a a decision key is display-only again",
+  "file": "tools/playtest_driver.py",
+  "old": "DISPLAY_ONLY_KEYS = (\n    \"coalition_popup\",\n    \"nation_proclamation\",",
+  "new": "DISPLAY_ONLY_KEYS = (\n    \"coalition_popup\",\n    \"vassal_rebellion_imminent\",\n    \"nation_proclamation\",",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFAN35TheThreeDecisionsAreAnswered"
+ },
+ {
+  "id": "N35/b the popup arm posts without the dialogue_id (the row's own inverted instruction)",
+  "file": "tools/playtest_driver.py",
+  "old": "            reply = self.t.post(\"/respond_to_diplomatic_dialogue\",\n                                {\"choice\": choice, \"dialogue_id\": did})",
+  "new": "            reply = self.t.post(\"/respond_to_diplomatic_dialogue\",\n                                {\"choice\": choice})",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFAN35TheThreeDecisionsAreAnswered::test_a_rebellion_popup_is_answered_with_its_dialogue_id"
+ },
+ {
+  "id": "N35/c the per-chain dedupe is lost (the paradox answered twice)",
+  "file": "tools/playtest_driver.py",
+  "old": "            if did in self._answered_dialogue_ids:\n                self.d.popup(key, summary, f\"(stale passthrough — #{did} already answered this chain)\")\n                continue",
+  "new": "",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFAN35TheThreeDecisionsAreAnswered"
+ },
+ {
+  "id": "N35/d the rebellion dial is ignored",
+  "file": "tools/playtest_driver.py",
+  "old": "            choice = actions.get(str(self.policy.get(policy_key, \"\")))\n            if choice is None:\n                choice = next(iter(actions.values()))",
+  "new": "            choice = next(iter(actions.values()))",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFAN35TheThreeDecisionsAreAnswered::test_the_rebellion_policy_dial"
+ },
+ {
+  "id": "N35/e an id-less popup is answered blind",
+  "file": "tools/playtest_driver.py",
+  "old": "            if did is None:\n                self.d.popup(key, summary, \"(left standing — no dialogue_id on the payload)\")\n                continue",
+  "new": "            if did is None:\n                did = -1",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFAN35TheThreeDecisionsAreAnswered::test_a_popup_without_an_id_is_left_standing_and_said"
+ },
+ {
+  "id": "75/a the letter-book's items are activated a second time",
+  "file": "tools/playtest_driver.py",
+  "old": "            if mid in skip:\n                continue\n            reply = self.t.post(\"/mailbox/activate\", {\"mailbox_id\": mid})",
+  "new": "            reply = self.t.post(\"/mailbox/activate\", {\"mailbox_id\": mid})",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA75TheMailboxIsReadWhole::test_major_court_items_are_activated_and_drained"
+ },
+ {
+  "id": "75/b the lapsed line is silent",
+  "file": "tools/playtest_driver.py",
+  "old": "        if lapsed:\n            self._md(\"- LAPSED \" + \" · \".join(",
+  "new": "        if False:\n            self._md(\"- LAPSED \" + \" · \".join(",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA75TheMailboxIsReadWhole::test_the_lapsed_offers_and_waiting_envoys_are_digested"
+ },
+ {
+  "id": "75/c the run loop stops activating the mailbox",
+  "file": "tools/playtest_driver.py",
+  "old": "        for reply in answerer.answer_mailbox_items(mailbox, answered):\n            drain(transport, digest, answerer, reply, args.strict)",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA75TheMailboxIsReadWhole"
+ },
+ {
+  "id": "85/a one refused line no longer counts as issued",
+  "file": "tools/playtest_driver.py",
+  "old": "        self.issued += 1\n        if (response or {}).get(\"success\") is not False:\n            self.ran += 1",
+  "new": "        self.issued += 1\n        self.ran += 1",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_every_expedition_line_refused_is_a_script_precondition"
+ },
+ {
+  "id": "85/b the script marches Soult to Normandy again",
+  "file": "tools/playtest_scripts/naval_descent.json",
+  "old": "    \"2\": [\"Soult, march to Bordelais\", \"build ships\"],",
+  "new": "    \"2\": [\"Soult, march to Normandy\", \"build ships\"],",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_the_naval_script_stages_at_a_yard_outside_the_camp"
+ },
+ {
+  "id": "90/a the ratified line is dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "        self._md(f\"  - RATIFIED {text}\")",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_the_ratification_summary_reaches_the_digest"
+ },
+ {
+  "id": "90/b the reward arm types every notice every time",
+  "file": "tools/playtest_driver.py",
+  "old": "            if not command or nid in self._rewarded_ids:\n                continue",
+  "new": "            if not command:\n                continue",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_the_reward_arm_types_the_rails_own_command"
+ },
+ {
+  "id": "90/c the reward arm ignores its own dial",
+  "file": "tools/playtest_driver.py",
+  "old": "        if str(self.policy.get(\"reward\", \"ignore\")) != \"pay\":\n            return []",
+  "new": "        pass",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_the_reward_arm_is_off_by_default"
+ },
+ {
+  "id": "102/a the round trip loads before it saves",
+  "file": "tools/playtest_driver.py",
+  "old": "    saved = transport.post(\"/save\", {\"save_name\": filename})\n    loaded = transport.post(\"/load\", {\"filename\": f\"{filename}.json\"})",
+  "new": "    loaded = transport.post(\"/load\", {\"filename\": f\"{filename}.json\"})\n    saved = transport.post(\"/save\", {\"save_name\": filename})",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_reload_round_trip_saves_then_loads_and_says_so"
+ },
+ {
+  "id": "102/b the re-raised questions are not written down",
+  "file": "tools/playtest_driver.py",
+  "old": "    digest.note(f\"    ↳ re-raised on load: {', '.join(reraised) if reraised else 'nothing'}\")",
+  "new": "    pass",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_reload_round_trip_saves_then_loads_and_says_so"
+ },
+ {
+  "id": "102/c the load reply is not drained",
+  "file": "tools/playtest_driver.py",
+  "old": "    drain(transport, digest, answerer, loaded, strict)\n\n\nclass Transport:",
+  "new": "\n\nclass Transport:",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_reload_round_trip_saves_then_loads_and_says_so"
+ },
+ {
+  "id": "89/a the mirror drifts by one gate",
+  "file": "backend/game_logic/tutorial_state.py",
+  "old": "    (\"first_battle\", 4, \"VII. First Blood\"),",
+  "new": "    (\"first_battle\", 3, \"VII. First Blood\"),",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA89TheSchoolStepIsApproximateAndOnTheWire::test_the_mirror_matches_the_overlay_exactly"
+ },
+ {
+  "id": "89/b the payload stops saying it is approximate",
+  "file": "backend/game_logic/tutorial_state.py",
+  "old": "        \"approximate\": True,",
+  "new": "        \"approximate\": False,",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA89TheSchoolStepIsApproximateAndOnTheWire"
+ },
+ {
+  "id": "89/c the key ships on every world",
+  "file": "backend/game_logic/tutorial_state.py",
+  "old": "    if not is_tutorial_world(world):\n        return None",
+  "new": "    pass",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA89TheSchoolStepIsApproximateAndOnTheWire"
+ },
+ {
+  "id": "89/d the response stops carrying the key",
+  "file": "backend/main.py",
+  "old": "    if _school:\n        response[\"tutorial_step\"] = _school",
+  "new": "    if False:\n        response[\"tutorial_step\"] = _school",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA89TheSchoolStepIsApproximateAndOnTheWire::test_the_key_rides_a_real_tutorial_response_and_no_campaign_response"
+ },
+ {
+  "id": "rev/a the revision stamp stops hashing the driver",
+  "file": "tools/playtest_driver.py",
+  "old": "    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]",
+  "new": "    return \"000000000000\"",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_the_driver_revision_is_a_content_hash"
+ }
+]
