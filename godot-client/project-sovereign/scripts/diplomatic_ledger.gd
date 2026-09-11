@@ -840,7 +840,22 @@ func _render_balance_of_europe():
 	for i in range(empty):
 		bar += "░"
 	bar += "[/color]"
-	bbcode += bar + "\n\n"
+	bbcode += bar + "\n"
+	# FA-D11 (slice 17, Phase 2): the one number a player plans around — the
+	# backend computed it all along and no renderer read it.
+	var projection = boe.get("threat_projection", {})
+	if projection is Dictionary and projection.size() > 0:
+		var nxt = int(projection.get("after_next_war", threat_level))
+		var brewing = int(projection.get("brewing_threshold", 60))
+		var instant = int(projection.get("instant_threshold", 80))
+		var to_brewing = int(projection.get("wars_until_brewing", 0))
+		var to_instant = int(projection.get("wars_until_instant", 0))
+		bbcode += "[color=#" + Utils.COLOR_DIMMED + "]Next war of conquest: " + str(threat_level) + " → " + str(nxt)
+		bbcode += " · brews at " + str(brewing) + " (" + (str(to_brewing) + " war" + ("s" if to_brewing != 1 else "") + " away" if to_brewing > 0 else "now") + ")"
+		bbcode += " · forms at once at " + str(instant) + " (" + (str(to_instant) if to_instant > 0 else "now") + ")"
+		var dissolve = int(boe.get("dissolution_threat_threshold", 20))
+		bbcode += " · dissolves below " + str(dissolve) + "[/color]\n"
+	bbcode += "\n"
 
 	# Threat sources this turn (with human-readable labels)
 	var sources = boe.get("threat_sources_this_turn", [])
@@ -889,6 +904,15 @@ func _render_balance_of_europe():
 			var m_nation = Utils.display_nation_name(str(mem.get("nation", "?")))
 			var m_strength = str(mem.get("strength_display", "?"))
 			var m_we = int(mem.get("war_exhaustion", 0))
+			# FA-D11: which member is tiring — the backend's own trend, a glyph.
+			var trend = str(mem.get("war_exhaustion_trend", ""))
+			var trend_glyph = ""
+			if trend == "rising":
+				trend_glyph = " ▲"
+			elif trend == "falling":
+				trend_glyph = " ▼"
+			elif trend != "":
+				trend_glyph = " –"
 			# AI-4c: exhaustion runs to WAR_EXHAUSTION_MAX (200), not 100 —
 			# a saturated court used to read "WE: 200/100".
 			var we_max = int(boe.get("war_exhaustion_max", 200))

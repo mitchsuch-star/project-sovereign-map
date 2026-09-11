@@ -716,10 +716,17 @@ def over_lift_refusal(world, marshal) -> str:
     detach = EconomyExecutor.GARRISON_DETACHMENT_SIZE
     # Is there another corps that COULD sail? Named, because "send a
     # smaller corps" is only advice if one exists.
-    eligible = sorted(
+    # FA-D16 (slice 17, Phase 2): the Emperor is never the counsel — at
+    # boot every French corps but his Guard is over the lift, so the only
+    # expedition advice a player got was to ship Napoleon to Ireland.
+    under_lift = sorted(
         (m for m in world.get_marshals_by_nation(marshal.nation)
          if m.name != marshal.name and 0 < int(m.strength) <= lift),
         key=lambda m: -int(m.strength))
+    eligible = [m for m in under_lift
+                if not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE
+                        and getattr(m, "is_sovereign", False))]
+    sovereign_only = [m for m in under_lift if m not in eligible]
     parts = [f"The transports lift {lift:,} men; {marshal.name} commands "
              f"{troops:,} — {excess:,} too many."]
     need = -(-excess // detach)              # ceil
@@ -758,13 +765,50 @@ def over_lift_refusal(world, marshal) -> str:
         best = eligible[0]
         parts.append(f"Send a corps of {lift:,} or fewer instead — "
                      f"{best.name} stands at {int(best.strength):,}.")
+    elif sovereign_only:
+        # FA-D16: the Guard IS under the lift — say why it is not offered
+        # rather than pretend no corps is.
+        parts.append(f"Only {sovereign_only[0].name}'s Guard is under the lift, and the "
+                     f"Emperor does not sail on an expedition.")
     elif not _promised:
         # Gated on the promise arm: without this the sentence could read
         # "Detaching 1 garrison would bring him under the lift … No corps
         # of ours is under the lift, so none can sail."
         parts.append(f"No corps of ours is under the lift this turn, so "
                      f"none can sail.")
+    road = marshalate_road(world, marshal.nation)
+    if road:
+        parts.append(road)
     return " ".join(parts)
+
+
+# FA-D16 (slice 17, Phase 2) flip lever: the lift counsel excludes the
+# sovereign and names the Marshalate's road (a 5,000-man commission). False
+# = the prior counsel, which named the Emperor.
+THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE = True
+
+
+def marshalate_road(world, nation: str) -> str:
+    """The historical road to an expedition corps: commission the cheapest
+    bench marshal the executor's own gate would pass RIGHT NOW (PT-J4's
+    `first_affordable_commission`, never a copy of the rule) — his corps is
+    under the lift by construction."""
+    if not THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:
+        return ""
+    try:
+        from backend.game_logic.recruitment import (RECRUIT_MARSHAL_CORPS,
+                                                    first_affordable_commission)
+    except Exception:
+        return ""
+    cand = first_affordable_commission(world, nation)
+    if not cand:
+        return ""
+    name = str(cand.get("name") or cand.get("id") or "")
+    cost = int(cand.get("cost", 0) or 0)
+    if not name:
+        return ""
+    return (f"Or commission {name} — {int(RECRUIT_MARSHAL_CORPS):,} men for {cost:,}g, "
+            f"under the transports' lift from the day he is raised — and march him to a yard.")
 
 
 def blockade_trade_loss(world) -> Dict[str, int]:

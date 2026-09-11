@@ -533,6 +533,13 @@ class TestAllySupportNeverStrikesAnAlly:
     def test_an_enemy_standing_with_the_ally_is_still_struck(self):
         world, wel = self._shape()
         world.marshals["Blucher"].nation = "France"
+        # FA-D29 (slice 17, Phase 2): the strike is priced with the defender's
+        # MUSTER — Ney's 40,000 at Belgium answer a blow on Blucher at
+        # Netherlands — so 30,000 against a 6,000-man corps backed by 40,000
+        # next door is 0.9:1 and rightly declined. The pin's intent (an ENEMY
+        # standing with the ally is a legitimate target) holds at odds that
+        # survive the honest price.
+        wel.strength = 100000
         world._build_marshal_index()
         world.calculate_visibility()
         with _quiet():

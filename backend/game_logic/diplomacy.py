@@ -4099,6 +4099,18 @@ ARMISTICE_AUTO_PEACE_RELATION = -60
 # visible: the HUD `relation_trend` reads "rising" at 3 and "stable" at 1, and
 # an invisible mechanism is what caused this defect in the first place.
 ARMISTICE_THAW_PER_TURN = 3
+# FA-D18 (slice 17, Phase 2) flip lever: the armistice projection counts the
+# thaw the truce runs. False = the relation NOW against the line (the prior
+# projection, which promised a peace the arithmetic could not deliver).
+THE_TRUCE_PROJECTION_COUNTS_THE_THAW = True
+
+
+def armistice_projected_relation(relation_now: int, remaining_turns: int) -> int:
+    """Where relations will stand at expiry: now + the thaw per active turn,
+    never above the line the thaw itself stops at."""
+    if not THE_TRUCE_PROJECTION_COUNTS_THE_THAW:
+        return int(relation_now)
+    return int(relation_now) + int(ARMISTICE_THAW_PER_TURN) * int(max(0, remaining_turns))
 
 HARSHNESS_LABELS = [
     (0.10, "generous"),
@@ -4378,22 +4390,34 @@ def build_war_context_snapshot(
     # block whenever an armistice is being proposed OR is already running.
     if proposed_state == "ARMISTICE" or current_state == "ARMISTICE":
         relation_now = int(world.nation_relations.get(diplo_key, 0))
-        on_course_for_peace = relation_now >= ARMISTICE_AUTO_PEACE_RELATION
+        # FA-D18 (slice 17, Phase 2): the projection read the relation NOW
+        # against the −60 line and ignored the thaw the truce itself runs
+        # (ARMISTICE_THAW_PER_TURN per active turn) — from the boot's −80 a
+        # single 5-turn truce "on course for war" thaws to −65: still short,
+        # and the copy must SAY the figure it will reach.
+        remaining = (int(max(0, ARMISTICE_DURATION - int(world.armistice_turns.get(diplo_key, 0))))
+                     if current_state == "ARMISTICE" else int(ARMISTICE_DURATION))
+        projected_relation = armistice_projected_relation(relation_now, remaining)
+        on_course_for_peace = projected_relation >= ARMISTICE_AUTO_PEACE_RELATION
         if on_course_for_peace:
             projection_line = (
-                f"Relations stand at {relation_now} — on course to settle "
+                f"Relations stand at {relation_now} and will thaw to "
+                f"{projected_relation} by expiry — on course to settle "
                 "into peace when the truce expires."
             )
         else:
             projection_line = (
-                f"Relations stand at {relation_now} — unless they heal to "
-                f"{ARMISTICE_AUTO_PEACE_RELATION} or better, the war "
-                "resumes when the truce expires."
+                f"Relations stand at {relation_now} and will thaw to "
+                f"{projected_relation} by expiry — short of "
+                f"{ARMISTICE_AUTO_PEACE_RELATION}; the war resumes when the "
+                "truce expires unless relations improve by other means, or a "
+                "second truce follows."
             )
         snapshot["armistice_mechanics"] = {
             "duration_turns": int(ARMISTICE_DURATION),
             "auto_peace_relation_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
             "current_relation": relation_now,
+            "projected_relation": int(projected_relation),
             "projected_outcome": "peace" if on_course_for_peace else "war",
             "display_lines": [
                 # Aug 30, 2026 review: this said "the war score freezes", and
@@ -11150,7 +11174,20 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "ARMISTICE":
-        actions.append(_proposal_action("propose_peace", "Propose Peace", "PEACE"))
+        _peace_row = _proposal_action("propose_peace", "Propose Peace", "PEACE")
+        # FA-D17 (slice 17, Phase 2): the same predicate the send gate refuses
+        # on — a bilateral peace that breaks an ally's war is a HARD_STOP at
+        # the confirm; the row said so only after the draft was written.
+        from backend.game_logic.diplomatic_dialogue import THE_PARADOX_BLOCK_NAMES_THE_TRUCE
+        if THE_PARADOX_BLOCK_NAMES_THE_TRUCE and _peace_row.get("available"):
+            _hard = [c for c in get_peace_commitment_conflicts(world, player, target_nation, [])
+                     if c.get("severity") == "HARD_STOP"]
+            if _hard:
+                _peace_row["available"] = False
+                _peace_row["disabled_reason"] = (
+                    "Would break an ally's war — propose an armistice, or settle jointly")
+                _peace_row["disabled_reason_display"] = _peace_row["disabled_reason"]
+        actions.append(_peace_row)
         actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
         actions.append(_mission_action("mission_court", "Court Nation", "COURT_NATION"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))

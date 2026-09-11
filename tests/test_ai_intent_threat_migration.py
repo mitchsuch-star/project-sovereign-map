@@ -899,9 +899,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # The `provinces` map is IDENTICAL to control in all eighteen nations on
 # every arm. Neither lever changes who holds what; they change when France's
 # threat decays to nothing.
+# FA slice 17, Phase 2 (September 11, 2026) — re-recorded ONCE, six-arm
+# attributed (scratch runner series_arms_p2 over series_arm.py, levers flipped
+# in the child). Arm 0 (every lever False) reproduces the PRIOR series
+# byte-for-byte. D = battle_report.BERTHIER_ROTATES_HIS_OBSERVATIONS (FA-D24):
+# the old picker spent module-random draws on a DISPLAY line, so the dice
+# after it shifted — index 10 moves by +1 (GR6's decoupling, not a mechanic).
+# A = enemy_ai.P4_PRICES_THE_MUSTER (FA-D29 a, the ADJACENT reinforcers'
+# forecast): index 10, t40 France 5 / Austria 23 / Britain 26. B =
+# combat.CASUALTIES_FALL_ON_THE_FIELD (FA-D29 b, a reinforced side bleeds by
+# its ENGAGED bodies — the lead's corps plus each reinforcer's committed
+# share): index 7, t40 France 2 / Austria 16 / Britain 36. C =
+# diplomatic_templates.EVERY_PRISONER_IS_ON_THE_TABLE (FA-D3): INERT (arm DC
+# == arm D). ABCD = the shipped state below: t40 France 4 / Austria 12 /
+# Britain 35 against the prior 5 / 26 / 21 — France holds nearly what it
+# held; the coalition's own war changes shape (Britain's single-corps
+# descents gain, Austria's reinforced stacks bleed); ⚠ FOR USER CONFIRMATION
+# on the FA-D29 row. The −13 at index 20 → 21 is Switzerland's rebellion
+# (turn 22) — see test_wo_slice9_the_courting_cap for the anchor.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 68, 66, 63, 60, 58, 45, 42, 39, 36, 33, 30, 27,
-    24, 21, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 60, 58, 63, 60, 58, 56, 54, 52, 50, 48, 46, 44,
+    41, 38, 35, 32, 19, 19, 19, 16, 13, 20, 17, 14, 11, 8, 5, 2, 0, 0, 0,
     0, 0, 0, 0, 0,
 ]
 

@@ -628,6 +628,48 @@ def _our_side(battle_result: Dict, player_nation: str = "France") -> Dict:
     return data if isinstance(data, dict) else {}
 
 
+# FA-D24 (slice 17, Phase 2) flip lever: Berthier's after-battle line ROTATES
+# through its bank per pair of commanders — XR-5's idiom for the enemy voice —
+# so one enemy phase cannot print the same verbatim line twice for two battles
+# between the same men, and the sequence is deterministic from a fresh process.
+# `_pick_observation` runs inside the world-independent resolver, so the counter
+# lives here (display-only, never serialized — GR6). False = the unseeded module
+# `random`, which ALSO advanced the mechanics' RNG stream on every pick.
+BERTHIER_ROTATES_HIS_OBSERVATIONS = True
+_OBSERVATION_COUNTS: Dict[tuple, int] = {}
+
+
+class _BankRotator:
+    """A `choice()` that walks a bank instead of rolling it: index = (base +
+    n) mod len, where `base` is derived from the pair (so different pairs start
+    on different lines) and `n` counts this pair's battles in the process."""
+
+    def __init__(self, base: int, count: int):
+        self.base = int(base)
+        self.count = int(count)
+
+    def choice(self, seq):
+        seq = list(seq)
+        if not seq:
+            raise IndexError("cannot choose from an empty bank")
+        return seq[(self.base + self.count) % len(seq)]
+
+
+def _observation_rng(battle_result: Dict):
+    """The picker for THIS battle: a per-pair rotator (the lever up) or the
+    module `random` (the lever down). Advances the pair's counter once."""
+    if not BERTHIER_ROTATES_HIS_OBSERVATIONS:
+        return random
+    import zlib
+    a = battle_result.get("attacker", {}) or {}
+    d = battle_result.get("defender", {}) or {}
+    pair = tuple(sorted((str(a.get("name") or ""), str(d.get("name") or ""))))
+    n = _OBSERVATION_COUNTS.get(pair, 0)
+    _OBSERVATION_COUNTS[pair] = n + 1
+    base = zlib.crc32("|".join(pair).encode("utf-8")) % 1000
+    return _BankRotator(base, n)
+
+
 def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str:
     """
     Select a Berthier observation based on priority rules.
@@ -650,6 +692,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     attacker_won = outcome in ("attacker_victory", "attacker_tactical_victory")
     defender_won = outcome in ("defender_victory", "defender_tactical_victory")
+    _rng = _observation_rng(battle_result)
 
     # FA-S16-D3: is this large enough to be spoken of as a battle at all?
     # `battle_scale` owns the number and the reasoning; it is the SAME
@@ -770,7 +813,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     # Priority 0.5: Full combined arms triangle (3/3 unit types) — our side
     if our_type_count >= 3:
-        return _fill(random.choice(_OBSERVATIONS["coordination_full_triangle"]))
+        return _fill(_rng.choice(_OBSERVATIONS["coordination_full_triangle"]))
 
     # Priority 0.7: Reinforcement results (our side)
     arrived = [r for r in our_reinforcements if r.get("arrived")]
@@ -780,7 +823,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         # Mixed: some arrived, some didn't — mention both
         arrived_names = _join_names([r.get("marshal", "") for r in arrived])
         failed_names = _join_names([r.get("marshal", "") for r in failed])
-        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_mixed"]),
+        return _fill(_rng.choice(_OBSERVATIONS["coordination_reinforcement_mixed"]),
                      ally=arrived_names, failed_ally=failed_names,
                      failed_was=("were" if len(failed) > 1 else "was"))
 
@@ -802,7 +845,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
             bank = "coordination_reinforcement_arrival"
         else:
             bank = "coordination_reinforcement_arrival_lost"
-        return _fill(random.choice(_OBSERVATIONS[bank]), ally=ally_names)
+        return _fill(_rng.choice(_OBSERVATIONS[bank]), ally=ally_names)
 
     # Priority 0.8: All reinforcements failed (our side)
     if failed:
@@ -814,7 +857,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         # template editing could have made the verb agree. Safe by
         # construction: `_fill` defaults `{failed_was}` to "was", so every
         # other template and the singular case stay byte-identical.
-        return _fill(random.choice(_OBSERVATIONS[bank]), ally=failed_names,
+        return _fill(_rng.choice(_OBSERVATIONS[bank]), ally=failed_names,
                      failed_was=("were" if len(failed) > 1 else "was"))
 
     # Priority 0.6: Support auto-bombardment (Session 68)
@@ -828,57 +871,57 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
                 support_artillery_name = atk_data["name"]
                 break
         if support_bombardment_damage > defender_original * 0.05:
-            return _fill(random.choice(_OBSERVATIONS["support_bombardment_effective"]),
+            return _fill(_rng.choice(_OBSERVATIONS["support_bombardment_effective"]),
                          artillery=support_artillery_name)
         else:
-            return _fill(random.choice(_OBSERVATIONS["support_bombardment_minimal"]),
+            return _fill(_rng.choice(_OBSERVATIONS["support_bombardment_minimal"]),
                          artillery=support_artillery_name)
 
     # Priority 1: Mutual destruction
     if outcome == "mutual_destruction":
-        return _fill(random.choice(_OBSERVATIONS["mutual_destruction"]))
+        return _fill(_rng.choice(_OBSERVATIONS["mutual_destruction"]))
 
     # Priority 2: We lost + fortifications were involved
     # 2a: We attacked into enemy fort and lost
     if we_lost and _has_mod(their_mods, "fortif", "bonus"):
-        return _fill(random.choice(_OBSERVATIONS["lost_into_fortification"]))
+        return _fill(_rng.choice(_OBSERVATIONS["lost_into_fortification"]))
     # 2b: Enemy attacked our fort and still won — our fort was overrun
     if we_lost and _has_mod(our_mods, "fortif", "bonus"):
-        return _fill(random.choice(_OBSERVATIONS["lost_fort_overrun"]))
+        return _fill(_rng.choice(_OBSERVATIONS["lost_fort_overrun"]))
 
     # Priority 3: We lost + our side was aggressive, their side was defensive
     if we_lost and _has_mod(our_mods, "aggressive stance") and _has_mod(their_mods, "defensive stance"):
         # Use perspective-aware templates: attacking into defense vs caught defending aggressively
         if we_are_attacker:
-            return _fill(random.choice(_OBSERVATIONS["lost_bad_stance_attacking"]))
+            return _fill(_rng.choice(_OBSERVATIONS["lost_bad_stance_attacking"]))
         else:
-            return _fill(random.choice(_OBSERVATIONS["lost_bad_stance_defending"]))
+            return _fill(_rng.choice(_OBSERVATIONS["lost_bad_stance_defending"]))
 
     # Priority 4: We lost + terrain was a factor
     # When we attacked into enemy terrain: their_mods has terrain bonus
     # When enemy attacked us on our terrain and still won: our_mods has terrain bonus (we lost DESPITE it)
     if we_lost and _at_scale and _mod_value(their_mods, "terrain", "bonus") >= 15:
-        return _fill(random.choice(_OBSERVATIONS["lost_terrain_disadvantage"]))
+        return _fill(_rng.choice(_OBSERVATIONS["lost_terrain_disadvantage"]))
     if we_lost and _at_scale and _mod_value(our_mods, "terrain", "bonus") >= 15:
-        return _fill(random.choice(_OBSERVATIONS["lost_despite_terrain"]))
+        return _fill(_rng.choice(_OBSERVATIONS["lost_despite_terrain"]))
 
     # Priority 5: We won + heavy casualties (>40% of our original)
     if (we_won and _at_scale and our_original > 0
             and our_casualties > our_original * 0.40):
-        return _fill(random.choice(_OBSERVATIONS["won_heavy_casualties"]))
+        return _fill(_rng.choice(_OBSERVATIONS["won_heavy_casualties"]))
 
     # Priority 5.5 (coordination): Hostile marshal forced to fight via SUPPORT (D3/A-M4)
     if our_hostile_forced:
-        return _fill(random.choice(_OBSERVATIONS["coordination_hostile_forced"]),
+        return _fill(_rng.choice(_OBSERVATIONS["coordination_hostile_forced"]),
                      ally=our_hostile_forced[0])
 
     # Priority 6: We won + fortifications were involved
     # 6a: We attacked and broke through enemy fort
     if we_won and _has_mod(their_mods, "fortif", "bonus"):
-        return _fill(random.choice(_OBSERVATIONS["won_broke_fortification"]))
+        return _fill(_rng.choice(_OBSERVATIONS["won_broke_fortification"]))
     # 6b: We defended with a fort and held — our investment paid off
     if we_won and _has_mod(our_mods, "fortif", "bonus"):
-        return _fill(random.choice(_OBSERVATIONS["won_fort_held"]))
+        return _fill(_rng.choice(_OBSERVATIONS["won_fort_held"]))
 
     # Priority 6c: Fortification degradation — walls damaged by battle (Session 31)
     # Fires regardless of who won — any battle with degradation is notable
@@ -890,48 +933,48 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         if fort_new <= 0:
             # Fort destroyed
             if defender_is_ours:
-                return _fill(random.choice(_OBSERVATIONS["fort_destroyed_defender"]))
+                return _fill(_rng.choice(_OBSERVATIONS["fort_destroyed_defender"]))
             else:
-                return _fill(random.choice(_OBSERVATIONS["fort_destroyed_attacker"]))
+                return _fill(_rng.choice(_OBSERVATIONS["fort_destroyed_attacker"]))
         else:
             # Fort damaged but standing
             if defender_is_ours:
-                return _fill(random.choice(_OBSERVATIONS["fort_degraded_defender"]))
+                return _fill(_rng.choice(_OBSERVATIONS["fort_degraded_defender"]))
             else:
-                return _fill(random.choice(_OBSERVATIONS["fort_degraded_attacker"]))
+                return _fill(_rng.choice(_OBSERVATIONS["fort_degraded_attacker"]))
 
     # Priority 6d: Artillery-specific observations
     cavalry_counter = battle_result.get("cavalry_counter_message")
 
     # Cavalry overran our artillery
     if we_lost and cavalry_counter and not we_are_attacker:
-        return _fill(random.choice(_OBSERVATIONS["cavalry_overran_artillery"]))
+        return _fill(_rng.choice(_OBSERVATIONS["cavalry_overran_artillery"]))
 
     # Our artillery caught moving
     if we_lost and _has_mod(our_mods, "artillery in transit", "penalty"):
-        return _fill(random.choice(_OBSERVATIONS["artillery_caught_moving"]))
+        return _fill(_rng.choice(_OBSERVATIONS["artillery_caught_moving"]))
 
     # Our artillery bombardment was effective (we won + fort degradation from artillery)
     if we_won and fort_degraded and we_are_attacker:
         # Check if the attacker is artillery (fort degrades 10% vs 5%)
         atk_nation = battle_result.get("attacker_nation", "")
         if atk_nation == player_nation:
-            return _fill(random.choice(_OBSERVATIONS["artillery_fort_degradation"]))
+            return _fill(_rng.choice(_OBSERVATIONS["artillery_fort_degradation"]))
 
     # Our cavalry overran enemy artillery (attacker side)
     if we_won and cavalry_counter and we_are_attacker:
-        return _fill(random.choice(_OBSERVATIONS["cavalry_overrun_attacker"]))
+        return _fill(_rng.choice(_OBSERVATIONS["cavalry_overrun_attacker"]))
 
     # Priority 6e: Square formation interactions (Session 67)
     # Cavalry repulsed by square
     if _has_mod(their_mods, "square formation (vs cavalry)", "penalty") and not we_lost:
-        return _fill(random.choice(_OBSERVATIONS["square_cavalry_repulsed"]))
+        return _fill(_rng.choice(_OBSERVATIONS["square_cavalry_repulsed"]))
     # Artillery punished square
     if _has_mod(our_mods, "square formation (vs artillery)", "bonus") and we_won:
-        return _fill(random.choice(_OBSERVATIONS["square_artillery_punished"]))
+        return _fill(_rng.choice(_OBSERVATIONS["square_artillery_punished"]))
     # Square held on defense (defender had square bonus)
     if _has_mod(our_mods, "square formation", "bonus") and not we_lost and not we_are_attacker:
-        return _fill(random.choice(_OBSERVATIONS["square_held_defense"]))
+        return _fill(_rng.choice(_OBSERVATIONS["square_held_defense"]))
 
     # Priority 6f: Overwatch observation (Session 68)
     # Fires when overwatch was active AND defender won.
@@ -941,12 +984,12 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     overwatch_count_val = battle_result.get("overwatch_count", 0)
     if overwatch_count_val > 0:
         if (we_won and not we_are_attacker) or (we_lost and we_are_attacker):
-            return _fill(random.choice(_OBSERVATIONS["overwatch_repelled"]),
+            return _fill(_rng.choice(_OBSERVATIONS["overwatch_repelled"]),
                          artillery="our artillery")
 
     # Priority 7: We won + our side had drill bonus
     if we_won and _has_mod(our_mods, "drill", "bonus"):
-        return _fill(random.choice(_OBSERVATIONS["won_drilled"]))
+        return _fill(_rng.choice(_OBSERVATIONS["won_drilled"]))
 
     # Priority 8: We lost + no drill + narrow margin (< 15% of our original strength)
     #
@@ -963,34 +1006,34 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         if our_original > 0:
             margin = abs(our_casualties - enemy_casualties)
             if margin < our_original * 0.15:
-                return _fill(random.choice(_OBSERVATIONS["lost_narrow_no_drill"]))
+                return _fill(_rng.choice(_OBSERVATIONS["lost_narrow_no_drill"]))
 
     # Priority 8.5: We lost with significant casualties (>30% of original) — catch-all for
     # losses that didn't match any specific condition (terrain, stance, fort, narrow margin).
     # Without this, devastating defeats like losing half an army fall through to "standard affair".
     if (we_lost and _at_scale and our_original > 0
             and our_casualties > our_original * 0.30):
-        return _fill(random.choice(_OBSERVATIONS["lost_costly"]))
+        return _fill(_rng.choice(_OBSERVATIONS["lost_costly"]))
 
     # ── PT-D4, priority 8.6 ─────────────────────────────────────────────
     # Below the 30% line and above the default. A rout is not about the
     # butcher's bill — a corps can be driven from the field having taken
     # 26% — and there was no arm for it at any priority.
     if _our_side(battle_result, player_nation).get("forced_retreat"):
-        return _fill(random.choice(_OBSERVATIONS["routed"]))
+        return _fill(_rng.choice(_OBSERVATIONS["routed"]))
 
     # Priority 8.7: Flawless victory (we won with zero casualties)
     if we_won and our_casualties == 0 and enemy_casualties > 0:
-        return _fill(random.choice(_OBSERVATIONS["won_flawless"]))
+        return _fill(_rng.choice(_OBSERVATIONS["won_flawless"]))
 
     # Priority 9: We won decisively (2:1+ casualty ratio in our favor)
     if we_won and enemy_casualties > 0 and our_casualties > 0:
         if enemy_casualties >= our_casualties * 2:
-            return _fill(random.choice(_OBSERVATIONS["won_decisively"]))
+            return _fill(_rng.choice(_OBSERVATIONS["won_decisively"]))
 
     # Priority 9.5 (coordination): Devoted ally synergy — more interesting than generic stalemate
     if our_devoted_allies:
-        return _fill(random.choice(_OBSERVATIONS["coordination_devoted_synergy"]),
+        return _fill(_rng.choice(_OBSERVATIONS["coordination_devoted_synergy"]),
                      ally=our_devoted_allies[0])
 
     # Priority 9.6 (coordination): Rival→Professional relationship improvement (A-I3)
@@ -1007,16 +1050,16 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     ]
     if player_rel_improvements:
         rc = player_rel_improvements[0]
-        return _fill(random.choice(_OBSERVATIONS["coordination_rival_improved"]),
+        return _fill(_rng.choice(_OBSERVATIONS["coordination_rival_improved"]),
                      ally=rc.get("toward", ""))
 
     # Priority 10: Stalemate
     if outcome == "stalemate":
-        return _fill(random.choice(_OBSERVATIONS["stalemate"]))
+        return _fill(_rng.choice(_OBSERVATIONS["stalemate"]))
 
     # Priority 12 (coordination): Hostile ally in region with 0% coordination (no SUPPORT)
     if our_hostile_refused:
-        return _fill(random.choice(_OBSERVATIONS["coordination_hostile_refused"]),
+        return _fill(_rng.choice(_OBSERVATIONS["coordination_hostile_refused"]),
                      ally=our_hostile_refused[0])
 
     # Priority 15 (FA-S16-D3): below the scale at which the engine will
@@ -1029,10 +1072,10 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # never to consequence — the butcher's bill is already on the line
     # above it.
     if we_lost and not _at_scale:
-        return _fill(random.choice(_OBSERVATIONS["skirmish"]))
+        return _fill(_rng.choice(_OBSERVATIONS["skirmish"]))
 
     # Priority 16: Default
-    return _fill(random.choice(_OBSERVATIONS["default"]))
+    return _fill(_rng.choice(_OBSERVATIONS["default"]))
 
 
 # HC-2 "The Butcher's Ledger Speaks" (gate §3): past this many of a

@@ -318,26 +318,12 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 	# WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §16.2 — top-five
 	# contribution share rows + overflow indicator. Rows come from
 	# `build_active_wars` which already enforces the cap server-side.
-	var contribution = war_data.get("contribution_share", [])
-	if contribution is Array and contribution.size() > 0:
+	# FA-D10 (slice 17, Phase 2): ONE formatter for both surfaces (Utils).
+	var standing_rows = Utils.standing_lines(war_data)
+	if standing_rows.size() > 0:
 		lines.append("---")
-		lines.append("Standing (top 5):")
-		for row in contribution:
-			if not row is Dictionary:
-				continue
-			var nation = str(row.get("nation", "?"))
-			var standing = str(row.get("standing_display", "Standing pending"))
-			var material = float(row.get("material_share", 0.0)) * 100.0
-			var leader_marker = "*" if row.get("is_leader", false) else " "
-			lines.append("  " + leader_marker + " " + Utils.display_nation_name(nation) + " — " + standing + " (" + str(int(round(material))) + "%)")
-		var overflow = int(war_data.get("contribution_overflow_count", 0))
-		if overflow > 0:
-			lines.append("  +" + str(overflow) + " more participant(s)")
-	else:
-		var status_display = str(war_data.get("standing_status_display", ""))
-		if status_display != "":
-			lines.append("---")
-			lines.append("Standing: " + status_display)
+		for ln in standing_rows:
+			lines.append(ln)
 	return "\n".join(lines)
 
 

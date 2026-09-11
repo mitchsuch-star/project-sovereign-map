@@ -266,6 +266,9 @@ CHARGES_GRIP_RATE = 50        # B5: imperial grip < 70 — "the Emperor's grip f
 CHARGES_ILL_SCORE = -20       # war-score threshold for the ILL term
 CHARGES_GRIP_THRESHOLD = 70   # grip threshold for the GRIP term
 CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is restless
+# FA-D1 (slice 17, Phase 2) flip lever: the restless-interior term carries
+# the provinces that trip it. False = the bare label and no `regions` key.
+THE_RESTLESS_TERM_NAMES_ITS_PROVINCES = True
 # PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
 # a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
 # campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
@@ -5607,18 +5610,31 @@ class WorldState:
         # hostile army or sitting at/below the unrest stability line. One
         # pass over the nation's own regions via the cached index (GR8).
         disrupted = self.get_disrupted_regions()
-        restless = False
+        # FA-D1 (slice 17, Phase 2): the SAME one pass (GR8), collecting the
+        # provinces that trip the term instead of stopping at the first —
+        # the ledger printed "the interior is restless +75" with no way to
+        # trace a ~7x-the-occupation-line charge to the conquest that
+        # caused it.
+        restless_regions = []
         for region_name in self.get_nation_regions(nation):
             region = self.regions.get(region_name)
             if region is None:
                 continue
             if region_name in disrupted or region.stability <= CHARGES_UNREST_STABILITY:
-                restless = True
-                break
-        if restless:
+                restless_regions.append(region_name)
+                if not THE_RESTLESS_TERM_NAMES_ITS_PROVINCES:
+                    break
+        if restless_regions:
+            label = "the interior is restless"
+            if THE_RESTLESS_TERM_NAMES_ITS_PROVINCES:
+                shown = sorted(restless_regions)[:3]
+                more = len(restless_regions) - len(shown)
+                label += " — " + ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
             terms.append({"key": "restless_interior",
-                          "label": "the interior is restless",
-                          "amount": CHARGES_UNREST_RATE})
+                          "label": label,
+                          "amount": CHARGES_UNREST_RATE,
+                          "regions": sorted(restless_regions)
+                          if THE_RESTLESS_TERM_NAMES_ITS_PROVINCES else []})
         # NOTE: no try/except here — this slice's first cut imported the
         # wrong module path inside one and shipped a silently-DEAD term
         # (the ILL term fell into the same trap with a wrong signature).

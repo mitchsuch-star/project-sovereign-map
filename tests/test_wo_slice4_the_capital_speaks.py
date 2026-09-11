@@ -560,8 +560,10 @@ class TestTheDiverseTail:
         _take_marshal(world)
         head = _build_headline(world, "France")
         assert head["class"] == "home_captured", head
-        assert head["sub_beats"][0].endswith(
-            "Enemy colours fly over French homeland soil."), head["sub_beats"]
+        # FA-D8 (slice 17, Phase 2): the sentence now ends with the counter
+        # clause (the garrison the law halts a march at, the corps that
+        # forces a battle) — the fallen-province line is still slot 0.
+        assert "Enemy colours fly over French homeland soil." in head["sub_beats"][0], head["sub_beats"]
         assert "Soult" in head["sub_beats"][1], head["sub_beats"]
 
     def test_the_slot_count_is_named(self):

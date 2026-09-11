@@ -108,8 +108,13 @@ def test_war_status_and_ledger_do_not_depend_on_raw_settlement_labels() -> None:
         "godot-client/project-sovereign/scripts/diplomatic_ledger.gd"
     )
 
+    utils = read_repo_file("godot-client/project-sovereign/scripts/utils.gd")
     assert '"standing_status_display"' in war_status
-    assert "standing_status_display" in panel
+    # FA-D10 (slice 17, Phase 2): the HUD tooltip and the War Detail screen
+    # read the standing rows from ONE formatter, `Utils.standing_lines`, so
+    # the display key lives there and the panel calls it.
+    assert "standing_status_display" in utils
+    assert "Utils.standing_lines(" in panel
     assert "display_label" in ledger
     assert "standing_display" in ledger
     assert "code_display" in ledger

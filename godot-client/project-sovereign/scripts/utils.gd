@@ -39,6 +39,31 @@ static func backend_origin_label() -> String:
 # `launch.bat` reuses an already-answering server and then runs
 # `start /wait InkAndIron.exe`, so a player who launched the exe directly must
 # CLOSE it first or the batch waits behind the window it is telling them about.
+# FA-D10 (slice 17, Phase 2): the ally-standing rows, formatted ONCE for the
+# HUD tooltip and the War Detail screen (both read `contribution_share`).
+static func standing_lines(war_data: Dictionary) -> Array:
+	var lines: Array = []
+	var contribution = war_data.get("contribution_share", [])
+	if contribution is Array and contribution.size() > 0:
+		lines.append("Standing (top 5):")
+		for row in contribution:
+			if not row is Dictionary:
+				continue
+			var nation = str(row.get("nation", "?"))
+			var standing = str(row.get("standing_display", "Standing pending"))
+			var material = float(row.get("material_share", 0.0)) * 100.0
+			var leader_marker = "*" if row.get("is_leader", false) else " "
+			lines.append("  " + leader_marker + " " + display_nation_name(nation) + " — " + standing + " (" + str(int(round(material))) + "%)")
+		var overflow = int(war_data.get("contribution_overflow_count", 0))
+		if overflow > 0:
+			lines.append("  +" + str(overflow) + " more participant(s)")
+	else:
+		var status_display = str(war_data.get("standing_status_display", ""))
+		if status_display != "":
+			lines.append("Standing: " + status_display)
+	return lines
+
+
 static func launch_hint() -> String:
 	if OS.has_feature("editor"):
 		return ".venv\\Scripts\\python.exe -m backend.main"

@@ -107,6 +107,11 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	_add_negotiate_button(_current_nation)
 	if bool(war_data.get("settlement_available", false)):
 		_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
+	elif str(war_data.get("settlement_tier_display", "")) != "" and str(war_data.get("settlement_disabled_reason_display", "")) != "":
+		# FA-D15 (slice 17, Phase 2): the Request Terms idiom — a settlement-tier
+		# war whose review is unavailable renders the button DISABLED with the
+		# reason in the tooltip, instead of vanishing.
+		_add_disabled_settlement_button(str(war_data.get("settlement_disabled_reason_display", "")))
 	# SC-30 / Slice G1: Request Terms — absent state never renders (the
 	# no-false-affordance rule); disabled renders ONLY for deterministic
 	# temporal reasons, with the pre-click clock in the tooltip (G4F-16).
@@ -401,6 +406,10 @@ func _render_war_detail(w: Dictionary):
 		var rate = int(float(objective.get("ticking_rate", 0)))
 		var active = "active" if bool(objective.get("ticking_active", false)) else "not ticking"
 		bbcode += "Objective: [color=" + COLOR_GOLD + "]" + obj_type + "[/color] - " + target_text
+		# FA-D2 (slice 17, Phase 2): a coalition row's objective names the court it targets.
+		var against = str(objective.get("against", ""))
+		if against != "" and bool(w.get("is_multi_participant_war", false)):
+			bbcode += " (against " + Utils.display_nation_name(against) + ")"
 		bbcode += " (" + active + ", +" + str(accumulated)
 		if rate > 0:
 			bbcode += ", +" + str(rate) + "/turn"
@@ -409,6 +418,11 @@ func _render_war_detail(w: Dictionary):
 	var enemy_objective = w.get("enemy_objective", null)
 	if enemy_objective != null and enemy_objective is Dictionary:
 		bbcode += "Enemy Objective: " + str(enemy_objective.get("type_display", "Objective")) + "\n"
+
+	# FA-D10 (slice 17, Phase 2): who is carrying the coalition war — the rows
+	# the HUD tooltip alone used to show, from the ONE shared formatter.
+	for ln in Utils.standing_lines(w):
+		bbcode += ln + "\n"
 
 	# Duration
 	bbcode += "Duration: " + str(duration) + " turns (since Turn " + str(started) + ")\n"
@@ -554,6 +568,16 @@ func _add_settlement_button(war_id: String, nation: String, label: String):
 		hide()
 		settlement_clicked.emit(war_id, nation)
 	)
+	button_row.add_child(btn)
+
+
+func _add_disabled_settlement_button(reason: String):
+	var btn = Button.new()
+	btn.text = "Open Settlement"
+	btn.custom_minimum_size = Vector2(190, 36)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.disabled = true
+	btn.tooltip_text = reason
 	button_row.add_child(btn)
 
 

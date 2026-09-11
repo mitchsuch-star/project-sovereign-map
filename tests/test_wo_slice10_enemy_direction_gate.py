@@ -958,7 +958,14 @@ class TestTheAmbientBoard:
     times — three `Leon -> Napoleon`, ten `Champagne -> Ney`, eight
     `Gascony -> Ney`, four `Maine -> Ney`: the ungated board now names TWO
     new provinces (Champagne, Maine) because a no-longer-parked British
-    horse and an un-frozen Austrian corps press different fronts."""
+    horse and an un-frozen Austrian corps press different fronts.
+
+    Re-measured a sixth time by FA slice 17 Phase 2 (September 11, 2026):
+    a reinforced side now bleeds by its ENGAGED bodies (FA-D29 b) and the
+    AI prices the adjacent muster (FA-D29 a), so the board forks at turn 8
+    and the UNGATED AI hits the collision THIRTY-THREE times — three
+    `Leon -> Napoleon`, nine `Champagne -> Ney`, twenty-one `Gascony -> Ney`
+    (Maine is no longer pressed). The gated board still collapses never."""
 
     @pytest.fixture(scope="class")
     def ungated(self):
@@ -975,7 +982,7 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 25}, seams  # 17 -> 18 -> 17 -> 29 -> 25 across FA slices 2, 2r, 4, 4r
+        assert seams == {"_fuzzy_match_enemy": 33}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 across FA slices 2, 2r, 4, 4r, 17
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -988,9 +995,8 @@ class TestTheAmbientBoard:
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
         assert dict(pairs) == {("Leon", "Napoleon"): 3,
-                               ("Champagne", "Ney"): 10,
-                               ("Gascony", "Ney"): 8,
-                               ("Maine", "Ney"): 4}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 across FA slices 2, 2r, 4, 4r
+                               ("Champagne", "Ney"): 9,
+                               ("Gascony", "Ney"): 21}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 across FA slices 2, 2r, 4, 4r, 17
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1031,8 +1037,16 @@ class TestTheAmbientBoard:
         fork is recorded in `test_ai_intent_threat_migration.py` with a
         six-arm attribution; this list is the same change seen from the
         ungated side, and indices [0]-[9] are byte-identical to the previous
-        record."""
-        assert ungated["series"] == [70, 68, 66, 64, 62, 68, 66, 64, 62, 60, 48, 45, 42, 39, 36, 33, 30, 27, 24, 21, 23, 20, 17, 19, 16, 3, 5, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0]
+        record.
+
+        Re-recorded again by FA slice 17 Phase 2 (September 11, 2026): the
+        engaged-bodies casualty pool and the adjacent-muster price fork EVERY
+        arm at index [5] (68 -> 60), so this list is the pre-WO-10
+        configuration AS IT RUNS ON THE PHASE-2 BOARD; indices [0]-[4] are
+        byte-identical to the original record, and the gated arm below still
+        equals the standing BASELINE_SERIES exactly (its own six-arm
+        attribution is in `test_ai_intent_threat_migration.py`)."""
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 64, 70, 76, 74, 72, 70, 68, 66, 64, 62, 60, 57, 54, 41, 38, 35, 32, 29, 26, 23, 20, 17, 14, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1649,8 +1663,12 @@ class TestTheAiIsNotFrozenInstead:
         # The gated board's seven survivors were six drilling-corps refusals
         # and one cavalry re-park (R1-5 / R1-7, both fixed); the ungated
         # board's twenty-five collisions plus the AI's other refusals write 37.
-        assert cooldowns["ungated"] == 37, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 across slices
-        assert cooldowns["gated"] == 4, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 across slices
+        # Re-measured by FA slice 17 Phase 2 (September 11, 2026): 33 vs 1.
+        # The engaged-bodies pool and the adjacent-muster price move the
+        # board; the ungated collisions (33) are the whole ungated count, and
+        # the gated board writes ONE refusal in forty turns.
+        assert cooldowns["ungated"] == 33, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 across slices
+        assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 across slices
 
 
 _COOLDOWN_PROBE = r'''

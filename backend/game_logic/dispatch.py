@@ -167,6 +167,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     "passage_lapsing": 74,
     "supply_strain": 72,
     "war_touches_us": 70,       # coalition tier change / war decl. vs us
+    # FA-D12 (slice 17, Phase 2): the player's OWN peace — the mirror of
+    # war_touches_us. Below the wounds, above a routine conquest.
+    "peace_signed": 70,
     # The peace's own consequence for the army. Below every direct wound to
     # France, above a routine conquest — it is the answer to "what happens
     # to the men who won it", which the player asks the moment he signs.
@@ -278,7 +281,10 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
         "staff have noticed which of us he no longer looks at.",
         "Sire — {age} turns without settlement on Marshal {marshal}. A "
         "rente would close it today; the arrears will not close themselves.",
-        "Sire — Marshal {marshal}'s grievance is {age} turns old and has "
+        # FA-D22 (slice 17, Phase 2): "grievance" is jealousy's word (a rival
+        # to appease); an unpaid expectation is a CLAIM in arrears — the
+        # rail's own vocabulary (rente / estate).
+        "Sire — Marshal {marshal}'s claim is {age} turns in arrears and has "
         "stopped being a household matter. It is now a question of the army.",
     ],
     "enemy_on_our_soil": [
@@ -317,7 +323,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "capital_lost": ("Sire — {region} HAS FALLEN. Our capital is in "
                      "{captor}'s hands, and every courier in Europe is "
                      "already carrying the news."),
-    "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
+    "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.{lever}",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
     # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
     # because the captive court and the field are both optional.
@@ -359,6 +365,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
                       "which feeds {capacity}. {over} too many. {losses} "
                       "lost in {turns} turns. {remedy}"),
     "war_touches_us": "Sire — {line}",
+    "peace_signed": "Sire — peace with {other} is signed. {line}",
     # WIN-D3 §4.3 — the beat names names and the deadline, and when a corps
     # has no land route it says so plainly rather than pretending (§5).
     "road_home": "Sire — the war with {other} is over. {line}",
@@ -471,6 +478,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "passage_lapsing": "A treaty's patience is short, Sire. Order him home, or explain the loss to the Senate.",
     "levy_open": "The depots are full and the ordinance allows it, Sire. Conscripts do not improve with keeping.",
     "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
+    "peace_signed": "A treaty is a breathing space, Sire, not a rest. The next war is already being priced.",
     "ally_broken": "Our ally bleeds, Sire. If we do not steady them, they may seek terms without us.",
     "estate_eroding": "A marshal who feels forgotten fights like one, Sire. The estate rolls want attention.",
     "europe_at_war": "A war we are not in, Sire — for now. Both courts will come asking; the question is what our neutrality is worth.",
@@ -601,7 +609,8 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                     # five ways (`test_three_provinces_and_nothing_else_
                     # still_fill_both_slots` and four siblings). Collapsing
                     # here reds all five. Two designs, one already chosen.
-                    _add("home_captured", f"home_captured:{region}", region=region)
+                    _add("home_captured", f"home_captured:{region}", region=region,
+                         lever=_home_captured_lever(world, region, player_nation, e))
                 elif _ours_to_lose:
                     # CA8-22: if the province was a marshal's endowment, the
                     # human fact outranks the map fact — it is the same
@@ -915,6 +924,25 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                         "loser": str(e.get("attacker", "") or ""),
                         "annihilation": _outcome == "defender_victory",
                     }
+        elif (etype == "peace_ratified" and THE_PEACE_LEADS_THE_BRIEFING
+                and player_nation in (e.get("ratifying_nations") or [])):
+            # FA-D12 (slice 17, Phase 2): no headline class existed for the
+            # player's own peace — the war's end led the briefing only when a
+            # corps happened to be stranded (`road_home`). The same log row
+            # `_build_peace_settlement_section` reads; `road_home` still
+            # outranks it by identity when both stand (it says the same thing
+            # and names the road).
+            _other = (e.get("target_nation") if e.get("proposer_nation") == player_nation
+                      else e.get("proposer_nation")) or e.get("target_nation") or ""
+            _outcome = str(e.get("war_outcome") or "")
+            _line = {
+                "white_peace": "A white peace — the map stands as it was.",
+                "stalemate": "Terms on both sides; the war ends in a stalemate.",
+            }.get(_outcome, "The war is over.")
+            if _other and not any(c["identity"].startswith("road_home:") and _other in c["identity"]
+                                  for c in candidates):
+                _add("peace_signed", f"peace_signed:{_other}",
+                     other=formed_display_name(world, _other), line=_line)
         elif etype in ("diplomatic_war_declared", "war_declaration"):
             aggressor = e.get("aggressor") or e.get("nation", "")
             target = e.get("target", "")
@@ -1898,6 +1926,50 @@ def _intel_marshal_is_enemy(world, player_nation: str, km: dict) -> bool:
     return bool(world.is_at_war(player_nation, km_nation))
 
 
+# FA-D8 (slice 17, Phase 2) flip lever: the fallen-province headline names
+# the counter — a 5,000-man garrison holds a province against a march, a
+# corps standing there forces a battle — and, when the player's own intel
+# can see it, the corps that took it. False = the bare sentence.
+THE_FALLEN_PROVINCE_NAMES_THE_COUNTER = True
+# FA-D9 (slice 17, Phase 2) flip lever: the wavering-morale row names the
+# drill and its figure. False = the bare line.
+THE_WAVERING_LINE_NAMES_THE_DRILL = True
+# FA-D12 (slice 17, Phase 2) flip lever: the player's own peace has a
+# headline class. False = the peace leads only through `road_home`.
+THE_PEACE_LEADS_THE_BRIEFING = True
+
+
+def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
+    """The clause after "{region} has fallen": who stands there (fog-legal,
+    the player's own intel of the province) and the counters, priced from
+    the movement law itself — a march-capture halts at ANY detached garrison
+    (the `garrison` verb detaches `GARRISON_DETACHMENT_SIZE`) or at
+    `MARCH_HALTS_AT_GARRISON` men of any garrison; a corps standing there
+    forces a battle (the AI's P4 must fight it)."""
+    if not THE_FALLEN_PROVINCE_NAMES_THE_COUNTER:
+        return ""
+    from backend.commands.economy_executor import EconomyExecutor
+    from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+    detach = int(EconomyExecutor.GARRISON_DETACHMENT_SIZE)
+    floor = int(MARCH_HALTS_AT_GARRISON)
+    who = ""
+    intel = getattr(world, "intel", {}).get(region)
+    if intel is not None and getattr(intel, "visibility", UNKNOWN) != UNKNOWN:
+        for km in getattr(intel, "known_marshals", []) or []:
+            if not _intel_marshal_is_enemy(world, player_nation, km):
+                continue
+            name = str(km.get("name") or km.get("marshal") or "")
+            if "strength" in km:
+                who = f" {name}'s corps of {int(km['strength']):,} stands there."
+            elif "band" in km:
+                who = f" {name}'s corps of ~{int(BAND_MIDPOINTS.get(km['band'], 0)):,} stands there."
+            else:
+                who = f" {name} stands there."
+            break
+    return (who + f" A garrison you detach ({detach:,} men) holds a province against a "
+            f"march, as does any garrison of {floor:,}; a corps standing there forces a battle.")
+
+
 def _derive_danger(marshal, world, player_nation: str,
                    supply_turns: Dict[str, List[int]]) -> str:
     """W6-3 §5.2: one danger string per marshal row ("" when none).
@@ -1921,7 +1993,20 @@ def _derive_danger(marshal, world, player_nation: str,
                     f"the field ({marshal.location}).")
     # 2. Morale failing.
     if int(marshal.morale) < 40:
-        return f"Morale failing ({int(marshal.morale)}) — the men waver."
+        # FA-D9 (slice 17, Phase 2): morale never regenerates in peacetime
+        # and the line named no verb — a corps sat at 0 for eight turns and
+        # broke at first contact. The remedy, priced from the constants the
+        # drill executor applies (shown = applied).
+        tail = ""
+        if THE_WAVERING_LINE_NAMES_THE_DRILL:
+            if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+                tail = " Drilling now."
+            else:
+                gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
+                trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
+                tail = (f" Two turns of drill would steady them (+{gain} morale; "
+                        f"+{trained} with a training ground).")
+        return f"Morale failing ({int(marshal.morale)}) — the men waver.{tail}"
     # 3. Force-retreated last phase.
     if getattr(marshal, "retreating", False) or getattr(
             marshal, "retreated_this_turn", False):

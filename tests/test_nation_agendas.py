@@ -2021,6 +2021,13 @@ class TestPreviewPositiveRow:
         moved to the gate's honest threshold."""
         key = world._make_diplo_key("France", "Austria")
         world.diplomatic_states[key] = "ARMISTICE"
+        # FA-D17 (slice 17, Phase 2): the wizard's Propose Peace row now
+        # greys while an ALLY still fights the target — the send gate has
+        # always refused that peace (the BPH-C §10.1 paradox), and at boot
+        # France's ally Bavaria is at war with Austria. The Pressburg shape
+        # this fixture models had Bavaria at Austria's table too, so the
+        # ally's war is settled first and the route is one the gate SENDS.
+        world.diplomatic_states[world._make_diplo_key("Bavaria", "Austria")] = "PEACE"
         world.invalidate_bloc_members_cache()
         _set_war_score(world, "France", "Austria", -25)
         world.nation_relations[key] = 40

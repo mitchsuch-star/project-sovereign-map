@@ -125,6 +125,14 @@ def rout_survivors(old_strength: int, survival_rate: float) -> int:
     return floored
 
 
+# FA-D29 (slice 17, Phase 2) flip lever: a reinforced side's casualty pool is
+# the bodies on the field (primary + relocated reinforcers), the same list the
+# executor distributes the losses over. False = the primary's strength alone
+# (CO-1's half-landing: strength committed to the exchange, no bodies in the
+# pool).
+CASUALTIES_FALL_ON_THE_FIELD = True
+
+
 def decisiveness_morale_penalty(loser_casualties: float,
                                 winner_casualties: float) -> int:
     """CO-3: extra morale loss for the side losing a lopsided casualty
@@ -225,6 +233,8 @@ class CombatResolver:
             apply_casualties: bool = True,
             committed_attacker: float = 0.0,
             committed_defender: float = 0.0,
+            attacker_bodies: int = 0,
+            defender_bodies: int = 0,
     ) -> Dict:
         """
         Resolve a battle between two marshals using 2d6 dice system.
@@ -244,7 +254,16 @@ class CombatResolver:
                 for a solo battle → identical to pre-CO-1 behaviour.
             committed_defender: symmetric additive strength for a reinforced
                 defender (GR5 — same code path both sides).
+            attacker_bodies / defender_bodies: FA-D29 — the men actually on
+                the field for each side (primary + relocated reinforcers, the
+                executor's casualty participants). The casualty POOL and the
+                morale casualty RATE read these; 0 (a solo battle) reads the
+                primary's strength, byte-identical to pre-FA-D29.
         """
+        atk_bodies = (int(attacker_bodies) if (CASUALTIES_FALL_ON_THE_FIELD and attacker_bodies)
+                      else int(attacker.strength))
+        def_bodies = (int(defender_bodies) if (CASUALTIES_FALL_ON_THE_FIELD and defender_bodies)
+                      else int(defender.strength))
 
         # C2 fix: Log warning for same-nation combat (defensive programming).
         # Hard block is in executor target resolution; this is a safety net.
@@ -289,13 +308,13 @@ class CombatResolver:
 
         # Base casualties before skill modifiers
         base_attacker_casualties = self._calculate_casualties(
-            attacker.strength,
+            atk_bodies,
             defender_effective,
             attacker_effective
         )
 
         base_defender_casualties = self._calculate_casualties(
-            defender.strength,
+            def_bodies,
             attacker_effective,
             defender_effective
         )
@@ -680,6 +699,7 @@ class CombatResolver:
                 is_drilling,
                 square_cavalry_message, square_artillery_message,
                 iron_resolve_message=iron_resolve_message,
+                attacker_bodies=atk_bodies, defender_bodies=def_bodies,
             )
 
         # Apply casualties FIRST (this was missing!)
@@ -688,8 +708,9 @@ class CombatResolver:
 
         # Calculate casualty rates for morale scaling
         # Heavier losses = worse morale hit (Napoleonic armies broke after severe casualties)
-        atk_casualty_rate = attacker_casualties / max(attacker_original_strength, 1)
-        def_casualty_rate = defender_casualties / max(defender_original_strength, 1)
+        # FA-D29: the rate is losses over the BODIES that bore them.
+        atk_casualty_rate = attacker_casualties / max(atk_bodies, 1)
+        def_casualty_rate = defender_casualties / max(def_bodies, 1)
 
         def _scaled_morale_loss(casualty_rate: float, base_loss: int) -> int:
             """Scale morale loss by casualty severity. Worse losses = worse morale.
@@ -1307,6 +1328,7 @@ class CombatResolver:
             is_drilling,
             square_cavalry_message=None, square_artillery_message=None,
             iron_resolve_message=None,
+            attacker_bodies: int = 0, defender_bodies: int = 0,
     ) -> Dict:
         """Build result dict for apply_casualties=False (Session 62).
 
@@ -1315,8 +1337,9 @@ class CombatResolver:
         except fort degradation (battle-triggered per C1).
         """
         # Casualty rates for morale scaling (same formula as normal path)
-        atk_casualty_rate = attacker_casualties / max(attacker_original_strength, 1)
-        def_casualty_rate = defender_casualties / max(defender_original_strength, 1)
+        # FA-D29: over the bodies on the field (0 = the primary alone).
+        atk_casualty_rate = attacker_casualties / max(attacker_bodies or attacker_original_strength, 1)
+        def_casualty_rate = defender_casualties / max(defender_bodies or defender_original_strength, 1)
 
         def _scaled_morale_loss(casualty_rate: float, base_loss: int) -> int:
             severity = min(casualty_rate / 0.15, 2.5)
@@ -1333,8 +1356,12 @@ class CombatResolver:
         _dec_atk = decisiveness_morale_penalty(attacker_casualties, defender_casualties)
 
         # C2: Victor from PROJECTED strength (never modify .strength)
-        projected_atk = attacker.strength - attacker_casualties
-        projected_def = defender.strength - defender_casualties
+        # FA-D29: the pool is the bodies on the field, so the projection is
+        # the FIELD's — a reinforced side that keeps most of its men is a
+        # tactical result, never an annihilation of its primary. 0 bodies (a
+        # solo battle, or the lever down) reads the primary as before.
+        projected_atk = (attacker_bodies or attacker.strength) - attacker_casualties
+        projected_def = (defender_bodies or defender.strength) - defender_casualties
 
         # W6-11 (E-CA-1): winner delta = outcome bonus − casualty-scaled
         # loss — MUST mirror the normal path's table exactly (the caller

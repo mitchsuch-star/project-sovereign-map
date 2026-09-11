@@ -3478,6 +3478,12 @@ def generate_ultimatum_terms(target_nation: str, world, *, issuer: str = None,
 
 # ═══════ SUGGESTED TERMS GENERATION ═══════
 
+# FA-D3 (slice 17, Phase 2) flip lever: every held marshal of the two courts
+# rides the suggested terms (sovereign first). False = the NP-4 sovereign gate
+# alone (the prior producer).
+EVERY_PRISONER_IS_ON_THE_TABLE = True
+
+
 def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> Dict:
     """Generate smart treaty terms based on game state AND nation-specific knowledge.
 
@@ -3716,20 +3722,34 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     # the acceptance formula (diplomacy.py N10). Runs LAST deliberately:
     # the economic-feasibility and estimate-convergence stages rebuild the
     # term lists and would silently drop a clause they cannot price.
-    for _held in world.marshals.values():
-        if not getattr(_held, "is_sovereign", False):
+    # FA-D3 (slice 17, Phase 2): the clause was complete end to end and its
+    # ONLY producer was this sovereign gate — an ordinary captured marshal
+    # was priced by the formula, applied by ratification, and never put on
+    # the table. Every held marshal of the two courts rides now, the
+    # sovereign FIRST (the Brétigny ordering pin), then the rest by strength.
+    _held_rows = sorted(
+        world.marshals.values(),
+        key=lambda m: (0 if getattr(m, "is_sovereign", False) else 1,
+                       -int(getattr(m, "strength", 0) or 0), m.name))
+    for _held in _held_rows:
+        if (not getattr(_held, "is_sovereign", False)
+                and not EVERY_PRISONER_IS_ON_THE_TABLE):
             continue
         _captor = getattr(_held, "captured_by", "")
         if _held.nation == player_nation and _captor == target_nation:
             _demands = terms.setdefault("demands", [])
-            if not any(d.get("type") == "prisoner_return" for d in _demands):
-                _demands.insert(0, {"type": "prisoner_return",
-                                    "marshal": _held.name})
+            if not any(d.get("type") == "prisoner_return" and d.get("marshal") == _held.name
+                       for d in _demands):
+                _at = sum(1 for d in _demands if d.get("type") == "prisoner_return")
+                _demands.insert(_at, {"type": "prisoner_return",
+                                      "marshal": _held.name})
         elif _held.nation == target_nation and _captor == player_nation:
             _sweets = terms.setdefault("sweeteners", [])
-            if not any(s.get("type") == "prisoner_return" for s in _sweets):
-                _sweets.insert(0, {"type": "prisoner_return",
-                                   "marshal": _held.name})
+            if not any(s.get("type") == "prisoner_return" and s.get("marshal") == _held.name
+                       for s in _sweets):
+                _at = sum(1 for s in _sweets if s.get("type") == "prisoner_return")
+                _sweets.insert(_at, {"type": "prisoner_return",
+                                     "marshal": _held.name})
 
     # --- Stage 5: Return ---
     return terms

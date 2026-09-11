@@ -1,0 +1,233 @@
+[
+  {
+    "id": "D1/a lever",
+    "file": "backend/models/world_state.py",
+    "old": "                if not THE_RESTLESS_TERM_NAMES_ITS_PROVINCES:\n                    break\n",
+    "new": "                if True:\n                    break\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD1RestlessTermNamesItsProvinces"
+  },
+  {
+    "id": "D1/b three named",
+    "file": "backend/models/world_state.py",
+    "old": "                shown = sorted(restless_regions)[:3]\n",
+    "new": "                shown = sorted(restless_regions)[:2]\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD1RestlessTermNamesItsProvinces::test_more_than_three_are_counted_not_listed"
+  },
+  {
+    "id": "D2/a lever (our objective)",
+    "file": "backend/game_logic/war_status.py",
+    "old": "        if THE_COALITION_ROW_READS_EVERY_PAIR and not (\n                france_obj and france_obj.get(\"concluded_turn\") is None):\n",
+    "new": "        if False and not (\n                france_obj and france_obj.get(\"concluded_turn\") is None):\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair"
+  },
+  {
+    "id": "D2/b against",
+    "file": "backend/game_logic/war_status.py",
+    "old": "                \"against\": objective_against,\n",
+    "new": "                \"against\": opponent,\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair::test_a_purpose_set_against_a_member_renders_on_the_coalition_row"
+  },
+  {
+    "id": "D2/c enemy objective by",
+    "file": "backend/game_logic/war_status.py",
+    "old": "        if THE_COALITION_ROW_READS_EVERY_PAIR and not (\n                enemy_obj and enemy_obj.get(\"concluded_turn\") is None):\n",
+    "new": "        if False and not (\n                enemy_obj and enemy_obj.get(\"concluded_turn\") is None):\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair::test_the_enemy_objective_reads_every_pair_too"
+  },
+  {
+    "id": "D3/a lever",
+    "file": "backend/game_logic/diplomatic_templates.py",
+    "old": "        if (not getattr(_held, \"is_sovereign\", False)\n                and not EVERY_PRISONER_IS_ON_THE_TABLE):\n",
+    "new": "        if (not getattr(_held, \"is_sovereign\", False)\n                and True):\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD3EveryPrisonerIsOnTheTable"
+  },
+  {
+    "id": "D3/b sovereign first",
+    "file": "backend/game_logic/diplomatic_templates.py",
+    "old": "        key=lambda m: (0 if getattr(m, \"is_sovereign\", False) else 1,\n",
+    "new": "        key=lambda m: (1 if getattr(m, \"is_sovereign\", False) else 0,\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD3EveryPrisonerIsOnTheTable::test_our_captured_men_ride_the_demands_sovereign_first"
+  },
+  {
+    "id": "D8/a lever",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if not THE_FALLEN_PROVINCE_NAMES_THE_COUNTER:\n        return \"\"\n",
+    "new": "    if True:\n        return \"\"\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD8FallenProvinceNamesTheCounter"
+  },
+  {
+    "id": "D8/b quotes the floor",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            f\"march, as does any garrison of {floor:,}; a corps standing there forces a battle.\")\n",
+    "new": "            f\"march, as does any garrison of {floor + 1:,}; a corps standing there forces a battle.\")\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD8FallenProvinceNamesTheCounter::test_the_clause_quotes_both_figures_from_the_law"
+  },
+  {
+    "id": "D8/c the corps arm",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            if not _intel_marshal_is_enemy(world, player_nation, km):\n                continue\n            name = str(km.get(\"name\") or km.get(\"marshal\") or \"\")\n",
+    "new": "            if not _intel_marshal_is_enemy(world, player_nation, km):\n                continue\n            continue\n            name = str(km.get(\"name\") or km.get(\"marshal\") or \"\")\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD8FallenProvinceNamesTheCounter::test_the_corps_standing_there_is_named_when_our_intel_sees_it"
+  },
+  {
+    "id": "D9/a lever",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if THE_WAVERING_LINE_NAMES_THE_DRILL:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD9WaveringLineNamesTheDrill"
+  },
+  {
+    "id": "D9/b quotes the constant",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                gain = int(getattr(type(world), \"DRILL_MORALE_GAIN\", 10))\n",
+    "new": "                gain = int(getattr(type(world), \"DRILL_MORALE_GAIN\", 10)) + 1\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD9WaveringLineNamesTheDrill::test_the_line_quotes_the_drill_constants"
+  },
+  {
+    "id": "D12/a lever",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        elif (etype == \"peace_ratified\" and THE_PEACE_LEADS_THE_BRIEFING\n",
+    "new": "        elif (etype == \"peace_ratified\" and False\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD12PeaceLeadsTheBriefing"
+  },
+  {
+    "id": "D12/b ours only",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                and player_nation in (e.get(\"ratifying_nations\") or [])):\n",
+    "new": "                and True):\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD12PeaceLeadsTheBriefing::test_a_third_partys_peace_is_not_our_headline"
+  },
+  {
+    "id": "D16/a the sovereign excluded",
+    "file": "backend/game_logic/naval.py",
+    "old": "                if not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE\n                        and getattr(m, \"is_sovereign\", False))]\n",
+    "new": "                if not (False\n                        and getattr(m, \"is_sovereign\", False))]\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD16LiftCounselNamesTheMarshalate"
+  },
+  {
+    "id": "D16/b the road",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if not THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:\n        return \"\"\n    try:\n",
+    "new": "    if True:\n        return \"\"\n    try:\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD16LiftCounselNamesTheMarshalate::test_the_road_names_the_cheapest_commission_the_gate_would_pass"
+  },
+  {
+    "id": "D17/a the block",
+    "file": "backend/game_logic/diplomatic_dialogue.py",
+    "old": "            if THE_PARADOX_BLOCK_NAMES_THE_TRUCE:\n",
+    "new": "            if False:\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD17ParadoxBlockNamesTheTruce"
+  },
+  {
+    "id": "D17/b the wizard row",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        if THE_PARADOX_BLOCK_NAMES_THE_TRUCE and _peace_row.get(\"available\"):\n",
+    "new": "        if False and _peace_row.get(\"available\"):\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD17ParadoxBlockNamesTheTruce::test_the_wizard_row_is_greyed_with_the_reason"
+  },
+  {
+    "id": "D18/a the arithmetic",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    if not THE_TRUCE_PROJECTION_COUNTS_THE_THAW:\n        return int(relation_now)\n",
+    "new": "    if True:\n        return int(relation_now)\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD18TruceProjectionCountsTheThaw"
+  },
+  {
+    "id": "D18/b the HUD fork",
+    "file": "backend/game_logic/war_status.py",
+    "old": "                \"peace\" if armistice_projected_relation(relation, remaining)\n",
+    "new": "                \"peace\" if relation\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD18TruceProjectionCountsTheThaw::test_a_truce_that_will_thaw_over_the_line_projects_peace"
+  },
+  {
+    "id": "D18/c the snapshot counts REMAINING",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        remaining = (int(max(0, ARMISTICE_DURATION - int(world.armistice_turns.get(diplo_key, 0))))\n                     if current_state == \"ARMISTICE\" else int(ARMISTICE_DURATION))\n",
+    "new": "        remaining = int(ARMISTICE_DURATION)\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD18TruceProjectionCountsTheThaw::test_the_snapshot_says_the_figure_it_will_reach"
+  },
+  {
+    "id": "D22 one word",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        \"Sire — Marshal {marshal}'s claim is {age} turns in arrears and has \"\n",
+    "new": "        \"Sire — Marshal {marshal}'s grievance is {age} turns old and has \"\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD22OneWordMeansOneThing"
+  },
+  {
+    "id": "D24/a the counter advances",
+    "file": "backend/game_logic/battle_report.py",
+    "old": "    _OBSERVATION_COUNTS[pair] = n + 1\n",
+    "new": "    _OBSERVATION_COUNTS[pair] = n\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD24BerthierRotatesHisObservations::test_consecutive_battles_between_the_same_pair_rotate_the_bank"
+  },
+  {
+    "id": "D24/b lever",
+    "file": "backend/game_logic/battle_report.py",
+    "old": "    if not BERTHIER_ROTATES_HIS_OBSERVATIONS:\n        return random\n",
+    "new": "    if True:\n        return random\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD24BerthierRotatesHisObservations"
+  },
+  {
+    "id": "D26 lever",
+    "file": "backend/game_logic/ledger.py",
+    "old": "                     if THE_LEDGER_SHOWS_THE_MATERIEL_BILL else 0),\n",
+    "new": "                     if False else 0),\n",
+    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD26MaterielBill"
+  },
+  {
+    "id": "D29a/a lever",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if not P4_PRICES_THE_MUSTER:\n            return 0\n",
+    "new": "        if True:\n            return 0\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestThePriceReadsTheMuster"
+  },
+  {
+    "id": "D29a/b P4 reads it",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                _defenders += self._muster_price(enemy, nation, world)\n",
+    "new": "                _defenders += 0 * self._muster_price(enemy, nation, world)\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestThePriceReadsTheMuster::test_a_smaller_attacker_declines_what_it_would_have_charged"
+  },
+  {
+    "id": "D29a/c the preview's own summer",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        return int(combat._committed_reinforcement_strength(\n            target, joining, world, expected_at=target.location))\n",
+    "new": "        return int(sum(int(m.strength) for m in joining))\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestThePriceReadsTheMuster::test_the_muster_term_is_the_previews_own_summer"
+  },
+  {
+    "id": "D29b/a the defender pool",
+    "file": "backend/game_logic/combat.py",
+    "old": "        def_bodies = (int(defender_bodies) if (CASUALTIES_FALL_ON_THE_FIELD and defender_bodies)\n",
+    "new": "        def_bodies = (int(defender_bodies) if (False and defender_bodies)\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestCasualtiesFallOnTheField"
+  },
+  {
+    "id": "D29b/b the executor passes bodies",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                defender_bodies=self._committed_bodies(enemy_marshal, def_participants),\n",
+    "new": "                defender_bodies=0,\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestCasualtiesFallOnTheField::test_the_executor_passes_the_bodies_it_distributes_over"
+  },
+  {
+    "id": "D29b/c the rate reads bodies",
+    "file": "backend/game_logic/combat.py",
+    "old": "        def_casualty_rate = defender_casualties / max(defender_bodies or defender_original_strength, 1)\n",
+    "new": "        def_casualty_rate = defender_casualties / max(defender_original_strength, 1)\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestCasualtiesFallOnTheField::test_the_morale_rate_is_losses_over_the_bodies_that_bore_them"
+  },
+  {
+    "id": "D29b/d the projection reads bodies",
+    "file": "backend/game_logic/combat.py",
+    "old": "        projected_def = (defender_bodies or defender.strength) - defender_casualties\n",
+    "new": "        projected_def = defender.strength - defender_casualties\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestCasualtiesFallOnTheField::test_a_reinforced_field_that_keeps_its_men_is_a_tactical_result"
+  },
+  {
+    "id": "D29b/e the committed share is alpha-scaled",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            total += self.COMMITTED_ALPHA * float(r.strength) * scale\n",
+    "new": "            total += float(r.strength) * scale\n",
+    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestCasualtiesFallOnTheField::test_the_executor_passes_the_bodies_it_distributes_over"
+  }
+]

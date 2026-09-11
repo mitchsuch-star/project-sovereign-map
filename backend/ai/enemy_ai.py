@@ -124,6 +124,10 @@ P0_READS_FUTILITY = True
 # FA slice 4 "The AI Reads the Board" (Sept 4 2026) — one lever per row,
 # each False reproducing the slice-2-review-round series byte-for-byte:
 P425_SKIPS_A_HELD_FIELD = True           # FA-8: a garrisoned province with a field army is P4's business; P7.5 prices the field too
+# FA-D29 (slice 17, Phase 2) flip lever: the four field-price rungs add the
+# defender's VISIBLE muster forecast (the preview's own term). False = the
+# field standing in the province alone (the prior price).
+P4_PRICES_THE_MUSTER = True
 SQUARE_FORMS_AFTER_THE_STRIKES = True    # FA-27 / FA-N38: the square is the LAST word of a phase, and a broken one takes a cooldown
 BROKEN_AI_CORPS_IS_LIMITED = True        # FA-N6: a broken corps takes the limiter (both sides, GR5)
 # FA-9 (slice 17, Sept 11 2026): a corps in the RETREAT-RECOVERY window takes
@@ -1619,11 +1623,12 @@ class EnemyAI:
                     }, 1)
                 # Validate intent is still valid (region still undefended and enemy-controlled)
                 region = world.get_region(intent_target)
+                from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
                 if (region and region.controller != nation
                         and world.is_at_war(nation, region.controller)
                         # July 2026 AI audit: garrisoned regions need P4.25's
                         # ratio-gated assault, never a blind intent attack
-                        and getattr(region, 'garrison_strength', 0) < 5000
+                        and getattr(region, 'garrison_strength', 0) < MARCH_HALTS_AT_GARRISON
                         and not getattr(region, 'garrison_detachment', None)):
                     defenders = world.get_live_visible_enemies_in_region(intent_target, nation)
                     if not defenders:
@@ -1672,7 +1677,8 @@ class EnemyAI:
                 and world.is_at_war(nation, current_region.controller)):
             enemies_here = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
             # Region with garrison >= 5000 is NOT undefended — requires assault via P4
-            has_garrison = current_region.garrison_strength >= 5000
+            from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+            has_garrison = current_region.garrison_strength >= MARCH_HALTS_AT_GARRISON
             if not enemies_here and not has_garrison:
                 # Standing on undefended enemy territory - capture it!
                 # Must unfortify first if fortified
@@ -1773,6 +1779,8 @@ class EnemyAI:
             # charged it.
             defenders = self._defending_strength_in_region(
                 field_in_region if P0_PRICES_THE_WHOLE_FIELD else enemies_in_region)
+            # FA-D29: plus what his friends next door will commit.
+            defenders += self._muster_price(weakest_enemy, nation, world)
             ratio = combined_strength / defenders if defenders > 0 else 999
             threshold = self._get_mood_adjusted_threshold(marshal, world)
 
@@ -2940,6 +2948,8 @@ class EnemyAI:
                     # whoever else stood there (a 5k friend for a 30k Ney,
                     # ratio 4.0 where the board said 0.57). P4's own guard.
                     field = max(field, int(enemy.strength))
+                # FA-D29: plus what his friends next door will commit.
+                field += self._muster_price(enemy, nation, world)
             else:
                 field = enemy.strength
             base_ratio = marshal.strength / field if field > 0 else 999
@@ -2985,6 +2995,44 @@ class EnemyAI:
             if not getattr(other, 'broken', False)
             and not getattr(other, 'retreated_this_turn', False)
         )
+
+    def _muster_price(self, target, nation: str, world) -> int:
+        """FA-D29 (slice 17, Phase 2): what the target's FRIENDS will commit
+        when he is attacked — the defender's muster forecast, read off the
+        executor's own preview summer (`_defender_muster` /
+        `_committed_reinforcement_strength(expected_at=...)`, never a copy),
+        read as GROUND TRUTH — the player's own odds band reads the enemy
+        muster the same way (CA9-F1: a safety gate, not intel surfaced), so
+        GR5 gives the AI the same gate. Measured on the row's own geometry: a 100,000-man
+        Moore priced a 500-man Ney at Paris as 200:1 while Davout's 48,000
+        stood one province over and arrived — the honest price is 2.9:1.
+        Returns 0 with the lever down."""
+        if not P4_PRICES_THE_MUSTER:
+            return 0
+        combat = getattr(self.executor, "_combat", None)
+        if combat is None or target is None:
+            return 0
+        try:
+            joining, _ = combat._defender_muster(target, world)
+        except Exception:
+            return 0
+        # Only the friends who would MARCH: a corps already standing in the
+        # target's province is in the field sum the caller prices (the
+        # CA9-N6 rung reads every visible enemy there), so counting it here
+        # again would price the same men twice — measured on the artillery
+        # pin: a 25,000 cavalry corps declined a 30,000 field read as 39,000.
+        joining = [m for m in joining
+                   if getattr(m, "location", None) != getattr(target, "location", None)]
+        if not joining:
+            return 0
+        # Ground truth, not the acting court's intel: the player's own odds
+        # band reads the defender's muster the same way (the CA9-F1 call
+        # site: "a safety gate on the player's own marshal, not enemy intel
+        # surfaced ... under-protecting in fog is the wrong failure
+        # direction"), and GR5 gives the AI the same gate. Printed figures
+        # elsewhere stay fog-legal; this is a decision, not a display.
+        return int(combat._committed_reinforcement_strength(
+            target, joining, world, expected_at=target.location))
 
     @staticmethod
     def _defending_strength_in_region(defenders) -> int:
@@ -3134,6 +3182,8 @@ class EnemyAI:
                     world.get_live_visible_enemies_in_region(
                         enemy.location, nation))
                 _defenders = max(_defenders, int(enemy.strength))
+                # FA-D29: plus what his friends next door will commit.
+                _defenders += self._muster_price(enemy, nation, world)
                 base_ratio = combined_strength / _defenders
                 # Calculate effective ratio considering target's tactical state
                 effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
@@ -3524,7 +3574,8 @@ class EnemyAI:
                 # Check garrison
                 garrison = getattr(lost_region, 'garrison_strength', 0) or 0
                 detachment = getattr(lost_region, 'garrison_detachment', False)
-                if garrison >= 5000 or (detachment and garrison > 0):
+                from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+                if garrison >= MARCH_HALTS_AT_GARRISON or (detachment and garrison > 0):
                     # Garrisoned — only attack if strong enough
                     if marshal.strength >= garrison * 1.5:
                         print(f"  [HOMELAND DEFENSE] {marshal.name} assaulting garrison at {best_target} ({garrison:,} troops)")
@@ -3796,7 +3847,8 @@ class EnemyAI:
 
             # Skip garrisoned regions (handled by P4.25 garrison assault)
             # Capital garrisons >= 5k and detachment garrisons (any size) both require assault
-            if adj_region.garrison_strength >= 5000:
+            from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+            if adj_region.garrison_strength >= MARCH_HALTS_AT_GARRISON:
                 ai_debug(f"        -> Skip: garrison defense ({adj_region.garrison_strength:,} troops)")
                 continue
             if adj_region.garrison_detachment and adj_region.garrison_strength > 0:
@@ -3865,12 +3917,13 @@ class EnemyAI:
         if not marshal_region:
             return None
 
+        from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
         for adj_name in marshal_region.adjacent_regions:
             adj_region = world.get_region(adj_name)
             if not adj_region or adj_region.garrison_strength <= 0:
                 continue
-            # Skip garrisons below 5k UNLESS they are detachment garrisons (fight to death)
-            if adj_region.garrison_strength < 5000 and not adj_region.garrison_detachment:
+            # Skip garrisons below the march floor UNLESS they are detachment garrisons (fight to death)
+            if adj_region.garrison_strength < MARCH_HALTS_AT_GARRISON and not adj_region.garrison_detachment:
                 continue
             if adj_region.controller == nation:
                 continue
@@ -3952,6 +4005,8 @@ class EnemyAI:
         combined = self._get_combined_strength_in_region(marshal, nation, world)
         field = max(self._defending_strength_in_region(list(enemies_at_dest)),
                     int(weakest.strength))
+        # FA-D29: plus what his friends next door will commit.
+        field += self._muster_price(weakest, nation, world)
         base_ratio = combined / field if field > 0 else 999
         effective = self._evaluate_target_ratio(base_ratio, weakest, world)
         threshold = self._get_mood_adjusted_threshold(marshal, world)
@@ -5508,7 +5563,8 @@ class EnemyAI:
 
             # Garrisoned regions are P4.25's job (personality ratio gate) —
             # the intent path has no ratio check, so never target them here
-            if (getattr(adj_region, 'garrison_strength', 0) >= 5000
+            from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+            if (getattr(adj_region, 'garrison_strength', 0) >= MARCH_HALTS_AT_GARRISON
                     or getattr(adj_region, 'garrison_detachment', None)):
                 continue
 

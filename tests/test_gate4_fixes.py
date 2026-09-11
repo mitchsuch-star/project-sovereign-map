@@ -417,8 +417,14 @@ class TestReinforcerRetreatOnLoss:
         artillery. Wellington re-tuned 50k -> 42k so the assault still FAILS
         (Waterloo stays British) but the artillery's morale holds above the
         rout threshold — isolating the invariant under test (artillery never
-        relocates) from the separate forced-retreat path."""
-        random.seed(99)
+        relocates) from the separate forced-retreat path.
+        FA slice 17 Phase 2 (September 11, 2026): Berthier's observation no
+        longer spends module-random draws (FA-D24), so every roll after the
+        report shifted — at seed 99 the losing assault now routs the whole
+        force, artillery included (the separate path this test isolates
+        from). Seed 100 keeps the geometry (Waterloo stays British, Ney bleeds
+        20,000 -> ~12,400) with the artillery's morale above the rout line."""
+        random.seed(100)
         ney = self.world.get_marshal("Ney")
         ney.location = "Waterloo"
         ney.strength = 20000

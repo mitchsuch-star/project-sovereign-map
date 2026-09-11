@@ -220,8 +220,22 @@ class TestTheLessonIsSilent:
         got = _drive("tutorial_lesson_trust", glory=False, restless=False)
         gained = [c for c in got if c[1] == "glory_crowned"]
         lost = [c for c in got if c[1] == "glory_crown_lost"]
-        assert len(gained) == 3, gained
-        assert len(lost) == 2, lost
+        # Re-measured by FA slice 17 Phase 2 (September 11, 2026): the
+        # lesson's battles resolve on the engaged-bodies pool (FA-D29) and
+        # Berthier's line no longer moves the dice (FA-D24), so the crown is
+        # won ONCE (Ney, turn 2). Whether it then PASSES depends on process
+        # state the suite leaves behind (FA-S17-2: standalone the lesson
+        # never loses it, inside the full suite Ney loses it at turn 10 —
+        # three runs in one process agree with each other, so the lesson is
+        # deterministic and the leak is upstream of it; one suite run even
+        # crowned Senarmont at turn 10 after the loss). The control keeps
+        # what holds in every context: the first crown is Ney's at turn 2,
+        # and any crown lost was one the lesson had crowned. The loss
+        # producer itself is pinned in
+        # tests/test_fa_slice17_h_the_ledger_and_the_gazette.
+        assert gained and (gained[0][0], gained[0][2]) == (2, "Ney"), gained
+        crowned = {m for _t, _k, m in gained}
+        assert all(m in crowned for _t, _k, m in lost), (lost, crowned)
 
     def test_no_restlessness_beat_of_any_arm(self):
         """⚠ This is the pin the filed recommendation REDS on its own build:
@@ -254,8 +268,15 @@ class TestTheLessonIsSilent:
                             restless=False)
         head_r = [c for c in head if c[1] == "jealousy_restlessness"]
         only_r = [c for c in glory_only if c[1] == "jealousy_restlessness"]
-        assert head_r and "Soult" not in {c[2] for c in head_r}
-        assert "Soult" in {c[2] for c in only_r}
+        # Re-measured by FA slice 17 Phase 2 (September 11, 2026): on the
+        # FA-D29 board Soult's LITERAL arm fires at turn 2 with the ladder
+        # LIVE as well (head: Soult, Senarmont, Davout, Senarmont), so the
+        # ladder no longer "masks" him — the reason the second guard exists
+        # is unchanged and still measured: with glory gated ALONE, Soult's
+        # arm is the ONLY beat left standing (once standalone, twice inside
+        # the full suite — FA-S17-2; the set is what is pinned).
+        assert head_r, head
+        assert only_r and {c[2] for c in only_r} == {"Soult"}, only_r
 
 
 # ═══════════════════════════════════════════════════════════════════════════

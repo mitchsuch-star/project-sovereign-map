@@ -139,6 +139,46 @@
 > tab. Sweep 23/23, 0 INERT at close (one pin of mine repaired — the client census asserted the arm's text and not its guard). `BASELINE_SERIES` byte-identical on arm 0 (41 values, provinces identical) — the charge and issuance guards are player-only (the AI's recovery flight is a tactical move), the rest is display; M1–M7 untouched by construction.
 > **NEXT = push, then Phase 2 (the 24 rulings; FA-D27 measured — memo
 > `docs/audits/FA_D27_BALANCE_MEASURE_2026_09_11.md`).**
+>
+> **PHASE 2a — "THE RULINGS READ THE BOARD" — LANDED.** Sixteen of the
+> twenty-four open design rows in one batch (landing record = the boxed
+> **SLICE 17 (Phase 2a)** block in `BUG_FIXES.md`; every ruling on its own row
+> in `DESIGN_REFINEMENT.md` with options, measurement, ruling, dissent and
+> re-open condition). The fifteen legibility rulings (FA-D1/D2/D3/D8/D9/D10/
+> D11/D12/D15/D16/D17/D18/D22/D24/D26) are BUILT behind fifteen levers; FA-D27
+> is RULED on its measurement (memo
+> `docs/audits/FA_D27_BALANCE_MEASURE_2026_09_11.md` — the balance is decided
+> by whether France answers the table: passive 5 / 12 / 8 / 10 / 29, answering
+> 27–28, proposing 27–29, the tyrant 2–11, the Emperor captured on 2 of 3
+> seeds; option (a), a written re-open condition); and **FA-D29's
+> reproduction found a P1 one layer under the row — FA-S17-1: a reinforced
+> side's casualties were sized by its primary corps alone, so a 500-man stub
+> with 48,000 next door made a 100,000-man attacker take ten losses for one,
+> break, and be captured whole on 3 of 5 rolls.** Fixed behind
+> `CASUALTIES_FALL_ON_THE_FIELD` (the pool is the ENGAGED bodies — the lead's
+> corps plus each reinforcer's committed share; the first, every-body cut was
+> measured and rejected before it shipped); the muster is priced at the four
+> AI rungs behind `P4_PRICES_THE_MUSTER`. ⛔ Three rows could not be built as
+> filed (D24's rotation needs a world the resolver does not have; D18's
+> full-duration thaw over-promises; D29's own fix leaves its own case
+> unchanged). In passing: the old Berthier picker spent the mechanics' RNG on
+> a display line (GR6), and the march-capture floor lived as a bare `5000` at
+> six sites. `BASELINE_SERIES` re-recorded ONCE, six-arm attributed (arm 0
+> byte-identical to the prior series; the shipped state t40 France 4 /
+> Austria 12 / Britain 35 vs 5 / 26 / 21); M1–M7 byte-identical (the harness
+> never modelled the lead-only pool); ten standing pins re-sited consciously
+> with reasons in-file (the slice-4 ally strike, the slice-9 timings, the
+> gate-4 seed, the over-lift counsel, the fallen-province sub-beat, the slice-F
+> census, the School's control, Charles's rout band, the slice-10 ambient
+> counts and series). Sweep 33/33, 0 INERT at close (one pin of mine repaired — the deferred morale-rate pin had compared casualty POOLS, which both cap at a 40% loss; it now isolates the rate with decisiveness zeroed — and two mutations added for the field projection and the α share); parse harness EXIT=0; boot smoke 0 `SCRIPT ERROR`.
+> **⚠ FOR USER CONFIRMATION: FA-D29's levers move the ambient series board
+> (France 5 → 4, Austria 26 → 12, Britain 21 → 35) — Phase 3 re-measures the
+> D27 arms with the levers up.** Row tally: **1 defect row (FA-S17-2 — the
+> School's control lesson is process-state dependent; filed, test hygiene)
+> and 7 design rows / gates open.**
+> **NEXT = Phase 2b (the mechanics rows FA-D4, D5, D6, D7, D19, D23, FA-S2-D1 —
+> reproduce first, series arms, FOR USER CONFIRMATION where a blessed number
+> moves), then Phase 3 (play + re-score every pillar).**
 
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >

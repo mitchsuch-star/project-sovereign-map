@@ -498,6 +498,12 @@ func _render_economy():
 	var admiralty = int(econ.get("admiralty", 0))
 	if admiralty > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Admiralty: -" + str(admiralty) + "g[/color]\n"
+	# FA-D26 (slice 17, Phase 2): the Butcher's Bill (EC-W3) — charged at the
+	# battle, OUTSIDE Net by design (the plunder-gold precedent), so it is
+	# informational: dimmed, and NOT part of the SC-33 sum above.
+	var materiel = int(econ.get("materiel", 0))
+	if materiel > 0:
+		bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]Materiel: -" + str(materiel) + "g  (guns, horses and stores lost with the fallen this turn — paid at the field, outside Net)[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).

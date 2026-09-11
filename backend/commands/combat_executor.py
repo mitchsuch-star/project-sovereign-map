@@ -449,6 +449,28 @@ class CombatExecutor:
             scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
         return scale
 
+    def _committed_bodies(self, lead, participants) -> int:
+        """FA-D29 (slice 17, Phase 2): the men actually ENGAGED on a side —
+        the lead's whole corps plus each reinforcer's committed share
+        (COMMITTED_ALPHA × strength × the same relationship/personality scale
+        `_committed_reinforcement_strength` applies), i.e. the QUANTITY half
+        of that term without the quality multipliers (effectiveness, the
+        attack modifier). The resolver's casualty pool and morale rate read
+        this, so a corps that commits six-tenths of itself bleeds six-tenths
+        of itself — and a hostile reinforcer who commits nothing bleeds
+        nothing. A lead alone returns his own strength (pre-FA-D29 pool)."""
+        total = float(getattr(lead, "strength", 0) or 0)
+        for r in participants:
+            if r is lead or r.name == lead.name:
+                continue
+            if getattr(r, "strength", 0) <= 0:
+                continue
+            scale = self._pair_contribution_scale(lead, r)
+            if scale <= 0.0:
+                continue
+            total += self.COMMITTED_ALPHA * float(r.strength) * scale
+        return int(total)
+
     def _committed_reinforcement_strength(self, lead, participants, world,
                                           expected_at=None) -> float:
         """CO-1/CO-1b: additive committed strength a lead's reinforcers bring
@@ -6249,6 +6271,12 @@ class CombatExecutor:
                 apply_casualties=False,
                 committed_attacker=committed_attacker,
                 committed_defender=committed_defender,
+                # FA-D29: the loss pool is the ENGAGED bodies of each side — the
+                # lead's whole corps plus each reinforcer's committed share —
+                # over the same two participant lists the distribution below
+                # spreads the losses across.
+                attacker_bodies=self._committed_bodies(marshal, atk_participants),
+                defender_bodies=self._committed_bodies(enemy_marshal, def_participants),
             )
 
             # Distribute raw casualties proportionally among participants

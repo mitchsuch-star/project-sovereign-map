@@ -18,6 +18,7 @@ def build_active_wars(world) -> Dict[str, Any]:
     All numbers int()-wrapped per Golden Rule #2.
     """
     from backend.game_logic.diplomacy import (
+        armistice_projected_relation,
         calculate_war_score,
     )
     from backend.game_logic.diplomatic_ledger import (
@@ -157,12 +158,37 @@ def build_active_wars(world) -> Dict[str, Any]:
         war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
         france_obj = war_obj_data.get(france, {})
         enemy_obj = war_obj_data.get(opponent, {})
+        objective_against = opponent
+        enemy_objective_by = opponent
+        # FA-D2 (slice 17, Phase 2): a purpose set against a coalition MEMBER
+        # ticks into the score (which sums every pair) but the row resolved
+        # its objective through the LEADER pair only, so "set war purpose
+        # against Austria" rendered nothing while the score moved. Walk the
+        # war's opponents (leader first) and take the first live objective,
+        # labelling the court it targets; single-opponent rows are unchanged.
+        if THE_COALITION_ROW_READS_EVERY_PAIR and not (
+                france_obj and france_obj.get("concluded_turn") is None):
+            for court in _war_opponents_for_objectives(world, france, opponent, coalition_members):
+                cand = getattr(world, 'war_objectives', {}).get(
+                    world._make_diplo_key(france, court), {}).get(france, {})
+                if cand and cand.get("concluded_turn") is None:
+                    france_obj, objective_against = cand, court
+                    break
+        if THE_COALITION_ROW_READS_EVERY_PAIR and not (
+                enemy_obj and enemy_obj.get("concluded_turn") is None):
+            for court in _war_opponents_for_objectives(world, france, opponent, coalition_members):
+                cand = getattr(world, 'war_objectives', {}).get(
+                    world._make_diplo_key(france, court), {}).get(court, {})
+                if cand and cand.get("concluded_turn") is None:
+                    enemy_obj, enemy_objective_by = cand, court
+                    break
 
         objective_info = None
         if france_obj and france_obj.get("concluded_turn") is None:
             obj_type = france_obj.get("type", "")
             objective_info = {
                 "type": obj_type,
+                "against": objective_against,
                 "type_display": OBJECTIVE_TYPE_DISPLAY.get(obj_type, obj_type),
                 "target_regions": france_obj.get("target_regions", []),
                 "accumulated_ticking": int(france_obj.get("accumulated_ticking", 0)),
@@ -174,6 +200,7 @@ def build_active_wars(world) -> Dict[str, Any]:
         if enemy_obj and enemy_obj.get("concluded_turn") is None:
             eo_type = enemy_obj.get("type", "")
             enemy_objective_info = {
+                "by": enemy_objective_by,
                 "type": eo_type,
                 "type_display": OBJECTIVE_TYPE_DISPLAY.get(eo_type, eo_type),
             }
@@ -384,9 +411,13 @@ def build_active_wars(world) -> Dict[str, Any]:
             # G4F-17: project the expiry fork (relations vs the -60 line)
             # so the HUD/detail can say where the truce is heading, not
             # just how long it has left.
+            # FA-D18 (slice 17, Phase 2): the HUD's fork counts the thaw over the
+            # turns REMAINING, the same arithmetic the war-context snapshot uses.
             "armistice_projected_outcome": (
-                "peace" if relation >= ARMISTICE_AUTO_PEACE_RELATION else "war"
+                "peace" if armistice_projected_relation(relation, remaining)
+                >= ARMISTICE_AUTO_PEACE_RELATION else "war"
             ),
+            "armistice_projected_relation": int(armistice_projected_relation(relation, remaining)),
             "armistice_auto_peace_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
             "relation": relation,
             "relation_descriptor": relation_desc,
@@ -729,6 +760,24 @@ def _leader_first(nations: List[str], leader: str) -> List[str]:
         ordered.remove(leader)
         return [leader] + ordered
     return ordered
+
+
+# FA-D2 (slice 17, Phase 2) flip lever: the coalition row's objective is
+# read across every opponent pair the score already sums. False = the
+# leader pair only (the prior row).
+THE_COALITION_ROW_READS_EVERY_PAIR = True
+
+
+def _war_opponents_for_objectives(world, france: str, leader: str, coalition_members) -> list:
+    """The courts whose pair with France may carry the war's objective:
+    the leader first, then every coalition member France is at war with."""
+    courts = [leader]
+    for member in coalition_members or []:
+        if member == france or member in courts:
+            continue
+        if world.diplomatic_states.get(world._make_diplo_key(france, member)) == "WAR":
+            courts.append(member)
+    return courts
 
 
 def _resolve_contribution_share(world, france: str, opponent: str) -> Dict[str, Any]:

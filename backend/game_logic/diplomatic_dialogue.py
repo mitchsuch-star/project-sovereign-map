@@ -583,6 +583,12 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
     return dialogue
 
 
+# FA-D17 (slice 17, Phase 2) flip lever: the alliance-paradox block names the
+# armistice route and the wizard's Propose Peace row carries the paradox
+# reason instead of staying green. False = the prior copy and a green row.
+THE_PARADOX_BLOCK_NAMES_THE_TRUCE = True
+
+
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
     """Add proposal terms summary, acceptance estimate, harshness, and DP cost to dialogue.
 
@@ -865,11 +871,23 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         _hard = [c for c in _conflicts if c.get("severity") == "HARD_STOP"]
         if _hard:
             _ally = str(_hard[0].get("affected_entity") or "an ally")
-            block_text = (
-                f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
-                f"Settle the war jointly at the settlement table, or resolve "
-                f"{_ally}'s war first."
-            )
+            if THE_PARADOX_BLOCK_NAMES_THE_TRUCE:
+                # FA-D17 (slice 17, Phase 2): the old sentence named a route
+                # France cannot execute ("resolve X's war first") and omitted
+                # the one the executor exempts — the armistice carries no
+                # contradiction, and its expiry makes the peace.
+                block_text = (
+                    f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
+                    f"Propose an armistice instead (a truce carries no contradiction, "
+                    f"and its expiry makes the peace), or settle the war jointly at the "
+                    f"settlement table."
+                )
+            else:
+                block_text = (
+                    f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
+                    f"Settle the war jointly at the settlement table, or resolve "
+                    f"{_ally}'s war first."
+                )
             dialogue["commitment_block_warning"] = block_text
             dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
                 {"severity": "high", "text": block_text}

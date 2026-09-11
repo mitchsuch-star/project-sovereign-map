@@ -543,9 +543,16 @@ class TestCharlesRoutThreshold:
             # lopsided-exchange decisiveness penalty, a two-corps assault
             # crushes Charles far harder — starting morale re-tuned 40 -> 72
             # to keep the loser inside the (15, 25] isolation band.
+            # FA slice 17 Phase 2 (September 11, 2026, FA-S17-1): the
+            # assaulting side's casualty pool is now its ENGAGED bodies (Ney
+            # + Davout's committed share), so the attackers bleed more and
+            # the exchange is less lopsided — Charles keeps 28 more morale
+            # (72 -> 44). Re-tuned 72 -> 62 (measured: 62 -> 23 with the
+            # ability, 21 and routed without) so the loser lands in the band
+            # again; the ability contrast under test is unchanged.
             charles = make_marshal("Charles", location="Belgium",
                                    nation="Britain", personality="cautious",
-                                   strength=35000, morale=72, ability=ability)
+                                   strength=35000, morale=62, ability=ability)
             world = make_world(ney, davout, charles)
             result = execute_attack(world, "Ney", "Charles")
             return charles, result

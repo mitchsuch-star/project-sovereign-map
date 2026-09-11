@@ -290,6 +290,12 @@ def _levy_block(world) -> dict:
     return get_levy_status(world)
 
 
+# FA-D26 (slice 17, Phase 2) flip lever: the economy tab carries the Materiel
+# bill as an informational line (charged at the battle, not in Net). False =
+# no row (the prior ledger).
+THE_LEDGER_SHOWS_THE_MATERIEL_BILL = True
+
+
 def _state_charges_rate_note() -> str:
     from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
     return (f"rate points — each draws 1g per {int(WAR_EFFORT_DIVISOR):,}g of the chest "
@@ -520,6 +526,15 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # Slice 17 review round (L2-7): the terms are RATE POINTS under a gold
         # figure; say the unit, from the constants the charge is computed with.
         "state_charges_rate_note": _state_charges_rate_note(),
+        # FA-D26 (slice 17, Phase 2): the Butcher's Bill (EC-W3) is charged at
+        # the battle, OUTSIDE Net by design (the plunder-gold precedent), and
+        # the ledger had no row for it — the one component the applied
+        # identity needs. Informational in both modes: the gold the turn's
+        # battles have cost SO FAR (the store resets when the turn ends), so
+        # a mid-turn read is "spent so far" and the applied read is the
+        # whole turn's bill.
+        "materiel": (int((getattr(world, "materiel_spent_this_turn", {}) or {}).get(player, 0))
+                     if THE_LEDGER_SHOWS_THE_MATERIEL_BILL else 0),
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "infrastructure": infrastructure,

@@ -90,6 +90,12 @@ FORTIFIED_CORPS_NEVER_MARCHES = True
 # 100 through 25 ungarrisoned provinces) is a different question and is the
 # FA-D27 gate's — this predicate does not touch it, by design.
 RECOVERING_CORPS_TAKES_NO_GROUND = True
+# FA-D8 (slice 17, Phase 2): the movement law's march-capture floor — a
+# province whose garrison stands at or above this (or carries ANY detached
+# garrison) is not open ground: it must be assaulted. Was a bare `5000` at
+# four sites (two here, two in enemy_ai); the fallen-province headline
+# quotes it, so it has ONE home.
+MARCH_HALTS_AT_GARRISON = 5000
 
 
 def corps_takes_no_ground(marshal) -> bool:
@@ -728,7 +734,7 @@ class MovementExecutor:
                 and world.is_at_war(marshal.nation, dest_region.controller)
                 and not discovered_enemies
                 and not dest_region.has_building("fortification")
-                and not (dest_region.garrison_strength >= 5000
+                and not (dest_region.garrison_strength >= MARCH_HALTS_AT_GARRISON
                          or (dest_region.garrison_detachment
                              and dest_region.garrison_strength > 0)))
         capture_refused_recovering = False
@@ -898,7 +904,7 @@ class MovementExecutor:
                     enemies_there = world.get_marshals_in_region(adj_name)
                     enemy_marshals = [m for m in enemies_there if m.nation != marshal.nation and m.strength > 0
                                       and world.is_at_war(marshal.nation, m.nation)]
-                    has_garrison = adj_region.garrison_strength >= 5000 or (
+                    has_garrison = adj_region.garrison_strength >= MARCH_HALTS_AT_GARRISON or (
                         adj_region.garrison_detachment and adj_region.garrison_strength > 0
                     )
                     if not enemy_marshals and not has_garrison:

@@ -329,8 +329,21 @@ class TestTheOverLiftRefusal:
         assert "our 7" in msg and "7 of 7" in msg, msg
 
     def test_it_names_a_corps_that_could_actually_sail(self, world):
+        # FA-D16 (slice 17, Phase 2): at boot the ONLY corps under the lift
+        # is the Emperor's Guard, and the counsel no longer sends Napoleon to
+        # Ireland — it says so instead. The pin's subject (name a corps that
+        # can actually sail) is kept on a corps that can: Bernadotte at 12,000.
+        world.get_marshal("Bernadotte").strength = 12000
         msg = naval.over_lift_refusal(world, world.get_marshal("Soult"))
-        assert "Napoleon" in msg and "10,000" in msg, msg
+        assert "Bernadotte" in msg and "12,000" in msg, msg
+        assert "Napoleon stands at" not in msg, msg
+
+    def test_the_emperor_is_never_the_counsel(self, world):
+        """FA-D16: the Guard is under the lift at boot; the sentence says why
+        it is not offered rather than pretending no corps is."""
+        msg = naval.over_lift_refusal(world, world.get_marshal("Soult"))
+        assert "Only Napoleon's Guard is under the lift" in msg, msg
+        assert "Napoleon stands at" not in msg, msg
 
     def test_it_says_plainly_when_no_corps_is_under_the_lift(self, world):
         for m in world.get_marshals_by_nation("France"):

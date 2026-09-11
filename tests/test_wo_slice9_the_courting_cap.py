@@ -847,6 +847,13 @@ from backend.game_logic import vassal as V
 from backend.models.world_state import WorldState
 
 V.COURTING_TARGET_CAP_ACTIVE = sys.argv[3] == "1"
+# FA slice 17 Phase 2: optional MODULE:LEVER=VALUE flips, set in THIS child
+# before the world boots (never a source edit) — the series runner's idiom.
+import importlib
+for _arg in sys.argv[4:]:
+    _mod, _rest = _arg.split(":", 1)
+    _name, _val = _rest.split("=", 1)
+    setattr(importlib.import_module(_mod), _name, eval(_val))
 answer = None
 with contextlib.redirect_stdout(io.StringIO()):
     world = WorldState.from_scenario(sys.argv[2])
@@ -863,8 +870,9 @@ sys.stderr.write("REBELLION=%s\\n" % answer)
 '''
 
 
-def _rebellion_turn(cap: bool):
-    """The turn France|Switzerland stops being a VASSAL, or None."""
+def _rebellion_turn(cap: bool, flips=()):
+    """The turn France|Switzerland stops being a VASSAL, or None.
+    `flips` = MODULE:LEVER=VALUE strings applied in the child before boot."""
     import json  # noqa: F401  (kept: mirrors the series runner's imports)
     import subprocess
     import sys
@@ -886,7 +894,7 @@ def _rebellion_turn(cap: bool):
     try:
         result = subprocess.run(
             [sys.executable, script, str(REPO), str(scenario),
-             "1" if cap else "0"],
+             "1" if cap else "0", *flips],
             env=env, cwd=str(REPO), capture_output=True, text=True,
             timeout=300)
     finally:
@@ -960,8 +968,15 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # later either way, and the two arms converge on the same
         # rebellion. The contract stands (delay, never save); the SIZE of
         # the delay is a fact about the board and moves with it.
-        assert uncapped == 24, uncapped
-        assert capped == 25, capped
+        # Re-measured by FA slice 17 Phase 2 (September 11, 2026): with a
+        # reinforced side bleeding by the men it commits (FA-D29 b) and the
+        # AI pricing the adjacent muster (FA-D29 a), the coalition's war
+        # forks at turn 8 — uncapped 20 (the satellite walks out into PEACE,
+        # loyalty 28), capped 22 (`vassal_broke_free`, exit=vassal_rebellion).
+        # The cap buys two turns; the contract holds. (With the two FA-D29
+        # levers down and everything else shipped: 25 / 26 — same shape.)
+        assert uncapped == 20, uncapped
+        assert capped == 22, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -996,9 +1011,18 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
                  for i in range(len(BASELINE_SERIES) - 1)]
         # The elimination relief is a known, once-only event at world turn 10,
         # i.e. the step from index 9 to index 10. Name it and exclude it.
-        elimination_step = 9
-        assert steps[elimination_step] == -13, steps[elimination_step]
-        ordinary = [s for i, s in enumerate(steps) if i != elimination_step]
+        # FA slice 17 Phase 2 (September 11, 2026): on the re-recorded series
+        # KingdomOfItaly SURVIVES the forty turns (it is still auto-joining
+        # France's wars at turn 22), so no lord relief fires and there is
+        # nothing to exclude — the whole series is ordinary, and the -13
+        # (32 -> 19 at the turn-22 exit) is its unique largest fall: index
+        # 21, rebellion turn 22. Should the elimination return, the -12/-13
+        # signature (-2/-3 decay - 10 relief) names it again and this pin
+        # fails loudly here.
+        elimination_step = None
+        assert all(step > -10 or step == worst_expected for step, worst_expected
+                   in ((x, -13) for x in steps)), steps
+        ordinary = list(steps)
         worst = min(ordinary)
         assert ordinary.count(worst) == 1, (
             f"the largest ordinary fall {worst} is no longer unique: {steps}")
