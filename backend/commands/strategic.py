@@ -114,6 +114,14 @@ ATTACK_FUTILITY_LIMIT = 3
 CANNON_FIRE_CONTINUE_TRUST = 0    # FA-S16-D1: obedience is free
 CANNON_FIRE_HOLD_TRUST = -3       # abandoning the order to stand still
 BLOCKED_PATH_ABANDON_TRUST = -3   # …and 0 when the order has not begun
+# FA-S16-D5 (slice 17, Sept 11 2026): the stalemate popup's two paying arms.
+# Hold and cancel both abandon a live order after an inconclusive field —
+# the price the cannon-fire hold pays. Extracted from the two bare −3
+# literals in `_respond_combat_stalemate`, so the quote on the button and
+# the charge behind it are ONE number; `repeated_combat` answers through
+# the same responder and is quoted alike. Continue is free (FA-S16-D1).
+STALEMATE_ABANDON_TRUST = -3
+THE_STALEMATE_QUOTES_ITS_PRICE = True   # False = the buttons carry no figure
 
 
 def _continue_order_verb(command_type) -> str:
@@ -167,6 +175,11 @@ def interrupt_option_costs(interrupt: Optional[Dict],
         if not first_step:
             for option in ("hold_position", "cancel_order"):
                 costs[option] = BLOCKED_PATH_ABANDON_TRUST
+    elif kind in ("combat_stalemate", "repeated_combat"):
+        # FA-S16-D5: priced from the constant the responder charges.
+        if THE_STALEMATE_QUOTES_ITS_PRICE:
+            for option in ("hold_position", "cancel_order"):
+                costs[option] = STALEMATE_ABANDON_TRUST
     return {k: v for k, v in costs.items() if k in options and v}
 
 
@@ -1899,7 +1912,7 @@ class StrategicOrderProcessor:
             # [7A-2] Clear holding state
             marshal.holding_position = False
             marshal.hold_region = ""
-            trust_change = -3
+            trust_change = STALEMATE_ABANDON_TRUST   # FA-S16-D5: the quoted number
             if hasattr(marshal, 'trust'):
                 trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
@@ -1915,7 +1928,7 @@ class StrategicOrderProcessor:
             # [7A-2] Clear holding state
             marshal.holding_position = False
             marshal.hold_region = ""
-            trust_change = -3
+            trust_change = STALEMATE_ABANDON_TRUST   # FA-S16-D5: the quoted number
             if hasattr(marshal, 'trust'):
                 trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({

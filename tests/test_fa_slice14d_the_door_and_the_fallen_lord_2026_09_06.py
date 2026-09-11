@@ -405,5 +405,5 @@ class TestTheFifthExitIsWorseThanTheFourth:
         """Minting one costs twelve pins across twelve files and forfeits the
         fog arm, the one-liner switch and the dispatch consumer that the reuse
         inherits for free."""
-        assert len(CAMPAIGN_LOG_TYPES) == 161
+        assert len(CAMPAIGN_LOG_TYPES) == 162  # 161->162 flipped consciously: FA-N52 (slice 17) adds `glory_crown_lost` — the laurels passing had a dispatch beat and no log row, so Le Moniteur's collector key for it was dead
         assert "vassal_freed_by_conquest" not in CAMPAIGN_LOG_TYPES

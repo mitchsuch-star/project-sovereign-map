@@ -1,0 +1,149 @@
+[
+  {
+    "id": "N52/a the lever is down (dead keys back)",
+    "file": "backend/game_logic/gazette.py",
+    "old": "THE_MONITEUR_READS_LIVE_TYPES = True\n",
+    "new": "THE_MONITEUR_READS_LIVE_TYPES = False\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
+  },
+  {
+    "id": "N52/b a dead key returns to the court collector",
+    "file": "backend/game_logic/gazette.py",
+    "old": "    \"nation_eliminated\", \"ultimatum_issued\", \"ai_ultimatum_accepted\",\n",
+    "new": "    \"nation_eliminated\", \"incoming_ultimatum\", \"ai_ultimatum_accepted\",\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
+  },
+  {
+    "id": "N52/c the composer ignores the lever (reads the raw sets)",
+    "file": "backend/game_logic/gazette.py",
+    "old": "    _war, _court, _army = (collector_types(_WAR_TYPES), collector_types(_COURT_TYPES),\n                           collector_types(_ARMY_TYPES))\n",
+    "new": "    _war, _court, _army = (set(_WAR_TYPES), set(_COURT_TYPES), set(_ARMY_TYPES))\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
+  },
+  {
+    "id": "N52/d vassal_transferred leaves the court collector",
+    "file": "backend/game_logic/gazette.py",
+    "old": "    \"coalition_dissolved\", \"vassal_transferred\", \"vassal_broke_free\",\n",
+    "new": "    \"coalition_dissolved\", \"vassal_broke_free\",\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
+  },
+  {
+    "id": "N52/e the laurels passing is not logged",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_CROWN_LOST_IS_LOGGED = True\n",
+    "new": "THE_CROWN_LOST_IS_LOGGED = False\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
+  },
+  {
+    "id": "N52/f the new type has no one-liner arm (prints its key)",
+    "file": "backend/campaign_log.py",
+    "old": "    if event_type == \"glory_crown_lost\":\n        marshal = event.get(\"marshal\", \"Unknown\")\n        nation = event.get(\"nation\", \"\")\n        return (f\"{_name_tag(marshal, nation)} is no longer the army's most \"\n                f\"celebrated commander — the laurels have passed\")\n",
+    "new": "",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
+  },
+  {
+    "id": "N53/a the option quotes the bare +3 again",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "             \"detail\": (f\"Their patience extends {_promise_window_quote()} \"\n",
+    "new": "             \"detail\": (f\"Their patience extends {FONTAINEBLEAU_PROMISE_GRACE} \"\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN53ThePromiseQuotesItsWindow"
+  },
+  {
+    "id": "N53/b the confirmation quotes the bare +3 again",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                   f\"{_promise_window_quote()} turns — but the court \"\n",
+    "new": "                   f\"{FONTAINEBLEAU_PROMISE_GRACE} turns — but the court \"\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN53ThePromiseQuotesItsWindow"
+  },
+  {
+    "id": "N53/c the window is mis-derived (the mechanic pin reads the constant, not the arm)",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "FONTAINEBLEAU_PROMISE_WINDOW = dotation.GRACE_TURNS + FONTAINEBLEAU_PROMISE_GRACE\n",
+    "new": "FONTAINEBLEAU_PROMISE_WINDOW = FONTAINEBLEAU_PROMISE_GRACE + 3\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN53ThePromiseQuotesItsWindow"
+  },
+  {
+    "id": "N53/d the MECHANIC is changed instead of the copy (the row's warning)",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            marshal.expectation_grace_turn = int(world.current_turn) \\\n                + FONTAINEBLEAU_PROMISE_GRACE\n",
+    "new": "            marshal.expectation_grace_turn = int(world.current_turn) \\\n                + FONTAINEBLEAU_PROMISE_WINDOW - dotation.GRACE_TURNS + 1\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN53ThePromiseQuotesItsWindow"
+  },
+  {
+    "id": "N66/a the lever is down",
+    "file": "backend/main.py",
+    "old": "THE_SIEGE_ON_OUR_SOIL_IS_REPORTED = True\n",
+    "new": "THE_SIEGE_ON_OUR_SOIL_IS_REPORTED = False\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN66TheSiegeOnOurSoilIsReported"
+  },
+  {
+    "id": "N66/b the arm reads the FA-23 pair inline again",
+    "file": "backend/main.py",
+    "old": "                    if evt.get(\"type\") not in _own_soil_event_types():\n",
+    "new": "                    if evt.get(\"type\") not in (\"garrison_assault\", \"garrison_destroyed\"):\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN66TheSiegeOnOurSoilIsReported"
+  },
+  {
+    "id": "N66/c the region-ownership half is dropped (the leak the row warned of)",
+    "file": "backend/main.py",
+    "old": "                    if _region is not None and _region.controller == player_nation:\n",
+    "new": "                    if _region is not None:\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN66TheSiegeOnOurSoilIsReported"
+  },
+  {
+    "id": "N85/a the authored count says 1 again",
+    "file": "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "old": "    \"coalition_count\": 3,\n",
+    "new": "    \"coalition_count\": 1,\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN85TheFourthCoalition"
+  },
+  {
+    "id": "N88/a the income path re-derives the arithmetic inline",
+    "file": "backend/models/world_state.py",
+    "old": "        state_charges = 0\n        if europe:\n            state_charges = self.calculate_state_charges(\n                nation, rate=charges_rate[\"rate\"])\n",
+    "new": "        state_charges = 0\n        if europe:\n            _chest = int(self.nation_gold.get(nation, 0)) - CHARGES_HOARD_FLOOR\n            if _chest > 0 and charges_rate[\"rate\"] > 0:\n                state_charges = int(\n                    _chest * charges_rate[\"rate\"] // WAR_EFFORT_DIVISOR)\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN88TheSingleSourceIsCalled"
+  },
+  {
+    "id": "N88/b the helper ignores the rate passed in",
+    "file": "backend/models/world_state.py",
+    "old": "        if rate is None:\n            rate = self.get_state_charges_rate(nation)[\"rate\"]\n",
+    "new": "        rate = self.get_state_charges_rate(nation)[\"rate\"]\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN88TheSingleSourceIsCalled"
+  },
+  {
+    "id": "D5/a the lever is down",
+    "file": "backend/commands/strategic.py",
+    "old": "THE_STALEMATE_QUOTES_ITS_PRICE = True   # False = the buttons carry no figure\n",
+    "new": "THE_STALEMATE_QUOTES_ITS_PRICE = False   # False = the buttons carry no figure\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAS16D5TheStalemateQuotesItsPrice"
+  },
+  {
+    "id": "D5/b the quoter prices continue as well",
+    "file": "backend/commands/strategic.py",
+    "old": "        if THE_STALEMATE_QUOTES_ITS_PRICE:\n            for option in (\"hold_position\", \"cancel_order\"):\n                costs[option] = STALEMATE_ABANDON_TRUST\n",
+    "new": "        if THE_STALEMATE_QUOTES_ITS_PRICE:\n            for option in (\"continue_order\", \"hold_position\", \"cancel_order\"):\n                costs[option] = STALEMATE_ABANDON_TRUST\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAS16D5TheStalemateQuotesItsPrice"
+  },
+  {
+    "id": "D5/c the charge drifts from the quote (a bare literal back on one arm)",
+    "file": "backend/commands/strategic.py",
+    "old": "            marshal.strategic_order = None\n            # [7A-2] Clear holding state\n            marshal.holding_position = False\n            marshal.hold_region = \"\"\n            trust_change = STALEMATE_ABANDON_TRUST   # FA-S16-D5: the quoted number\n            if hasattr(marshal, 'trust'):\n                trust_change = marshal.trust.modify(trust_change)\n            return self._attach_redemption_if_needed({\n                \"success\": True,\n                \"message\": f\"{marshal.name} abandons the order and awaits new instructions.\",\n",
+    "new": "            marshal.strategic_order = None\n            # [7A-2] Clear holding state\n            marshal.holding_position = False\n            marshal.hold_region = \"\"\n            trust_change = -2\n            if hasattr(marshal, 'trust'):\n                trust_change = marshal.trust.modify(trust_change)\n            return self._attach_redemption_if_needed({\n                \"success\": True,\n                \"message\": f\"{marshal.name} abandons the order and awaits new instructions.\",\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAS16D5TheStalemateQuotesItsPrice"
+  },
+  {
+    "id": "D5/d repeated_combat is no longer quoted",
+    "file": "backend/commands/strategic.py",
+    "old": "    elif kind in (\"combat_stalemate\", \"repeated_combat\"):\n        # FA-S16-D5",
+    "new": "    elif kind in (\"combat_stalemate\",):\n        # FA-S16-D5",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAS16D5TheStalemateQuotesItsPrice"
+  },
+  {
+    "id": "N51/a the gold term is capped like the settlement path (a balance change without a gate)",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    deal_balance = sweetener_total + demand_total\n",
+    "new": "    deal_balance = sweetener_total + max(-45.0, demand_total)\n",
+    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN51TheGoldTermIsLinearAndUncapped"
+  }
+]

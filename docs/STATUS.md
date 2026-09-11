@@ -108,6 +108,23 @@
 > parse harness EXIT=0; boot smoke 0 `SCRIPT ERROR`. ⚠ Lesson: a prose
 > census over BUG_FIXES.md read the FA-101 row's own quotation of the
 > phrase it struck as the defect — scope such a census to the ROW.
+>
+> **part h — "THE LEDGER AND THE GAZETTE" — LANDED. ALL 38 DEFECT ROWS ARE
+> CLOSED** (FA-N52/N53/N66/N85 + FA-N88/FA-S16-D5 in DESIGN_REFINEMENT +
+> FA-N51 REFUTED BY EVENTS). Le Moniteur's collectors name live log types
+> (⛔ five dead keys not six; the crown-loss and the petition DO have
+> producers — the laurels passing is now LOGGED, 161 → 162 re-blessed ×11,
+> `marshal_petition` → the collective Fontainebleau petition by decision);
+> the promise quotes the seven turns it buys, measured; a siege on our soil
+> survives the fog (⛔ the row's FA-23 critique is moot — FA-23 shipped
+> filter-side; one tuple entry); the Third Coalition's successor is the
+> Fourth (⚠ save-compat stated); the Charges of Empire's documented single
+> source is finally CALLED (sentinel join pin); the stalemate popup quotes
+> the −3 it charges on hold and cancel; FA-N51's "FA-21 needs a second half"
+> is refuted by FA-21's own landing — the gold term's linear, uncapped shape
+> is pinned so it cannot drift unobserved. Sweep 21/21, 0 INERT at close (22 swept: one pin of mine was INERT — the helper ignoring a passed `rate` was unobservable while every fixture passed the real rate, now pinned with rate 0 and 2×rate — and one mutation RETIRED as inert BY CONSTRUCTION, recorded under FA-S16-D5's paragraph). `BASELINE_SERIES` byte-identical on arm 0 AND with `THE_CROWN_LOST_IS_LOGGED` + `THE_SIEGE_ON_OUR_SOIL_IS_REPORTED` down — 41 values, provinces identical in all eighteen nations (FA-N85's `coalition_count` is read for naming only; the crown row never reaches a threat producer); M1–M7 byte-identical (11 passed).
+> **NEXT = the three-lens review round at the committed SHA, then push,
+> then Phase 2 (the 25 rulings, FA-D27 measured first).**
 
 > ## ▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026 (same day, four commits)
 >

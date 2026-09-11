@@ -235,7 +235,7 @@ class TestTheSatellitesFateIsBriefedTruthfully:
         161 for a real new surface; this test's point is unchanged — the
         RETIREMENT paid for the addition, and the slice's own claim of
         "nine" was already stale by one."""
-        assert len(CAMPAIGN_LOG_TYPES) == 161  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).
+        assert len(CAMPAIGN_LOG_TYPES) == 162  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).  # 161->162 flipped consciously: FA-N52 (slice 17) adds `glory_crown_lost` — the laurels passing had a dispatch beat and no log row, so Le Moniteur's collector key for it was dead
         assert "vassal_broke_free" in CAMPAIGN_LOG_TYPES
         assert "diplomatic_vassal_rebellion" not in CAMPAIGN_LOG_TYPES
 

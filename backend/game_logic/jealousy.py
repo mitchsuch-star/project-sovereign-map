@@ -116,6 +116,24 @@ FONTAINEBLEAU_COOLDOWN = 8          # turns between petitions
 FONTAINEBLEAU_CONCEDE_TRUST = 2
 FONTAINEBLEAU_REFUSE_TRUST = -8
 FONTAINEBLEAU_PROMISE_GRACE = 3     # extra grace turns
+# FA-N53 (slice 17, Sept 11 2026): the WINDOW the promise actually buys. The
+# arm sets `expectation_grace_turn = now + PROMISE_GRACE`, and erosion resumes
+# only `dotation.GRACE_TURNS` after THAT — seven turns, the figure the
+# dispatch's "patience holds N more turns" already printed while the option
+# and its confirmation said three. The strings quote the arithmetic the arm
+# applies; the mechanic is untouched (the dispatch and the erosion tick
+# already agree on 7, and it is a balance number).
+FONTAINEBLEAU_PROMISE_WINDOW = dotation.GRACE_TURNS + FONTAINEBLEAU_PROMISE_GRACE
+THE_PROMISE_QUOTES_ITS_WINDOW = True   # False = the bare +3 in both strings
+# FA-N52 (slice 17): the laurels PASSING is written to the campaign log
+# beside the dispatch beat it always raised — the Gazette's collector key
+# for it was dead. False = beat only, no log row.
+THE_CROWN_LOST_IS_LOGGED = True
+
+
+def _promise_window_quote() -> int:
+    return (FONTAINEBLEAU_PROMISE_WINDOW if THE_PROMISE_QUOTES_ITS_WINDOW
+            else FONTAINEBLEAU_PROMISE_GRACE)
 FONTAINEBLEAU_PROMISE_AUTHORITY = -2
 
 # ESP-2 war-weary (spec §0.3): fully-met expectation at/above this floor
@@ -629,6 +647,12 @@ def recompute_crowns(world) -> List[Dict]:
                         "nation": marshal.nation,
                         "marshal": marshal.name,
                     })
+                    if THE_CROWN_LOST_IS_LOGGED:
+                        world.log_event({
+                            "type": "glory_crown_lost",
+                            "marshal": marshal.name,
+                            "nation": marshal.nation,
+                        })
     return events
 
 
@@ -2288,7 +2312,7 @@ def queue_fontainebleau_petition(world, eroding: List) -> str:
                        f"petitioner. The erosion continues.",
              "cost_note": "", "enabled": True},
             {"id": "promise", "label": "\"The next conquest is yours\"",
-             "detail": (f"Their patience extends {FONTAINEBLEAU_PROMISE_GRACE} "
+             "detail": (f"Their patience extends {_promise_window_quote()} "
                         f"turns; the court hears you buy time with words "
                         f"(authority {FONTAINEBLEAU_PROMISE_AUTHORITY})."),
              "cost_note": "", "enabled": True},
@@ -3047,7 +3071,7 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
                 + FONTAINEBLEAU_PROMISE_GRACE
         world.authority_tracker.modify_authority(FONTAINEBLEAU_PROMISE_AUTHORITY)
         message = ("\"The next conquest is yours.\" Their patience extends "
-                   f"{FONTAINEBLEAU_PROMISE_GRACE} turns — but the court "
+                   f"{_promise_window_quote()} turns — but the court "
                    "heard you buy time with words.")
     world.log_event({
         "type": "fontainebleau_petition",

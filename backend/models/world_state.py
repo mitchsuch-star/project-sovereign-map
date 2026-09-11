@@ -5644,7 +5644,7 @@ class WorldState:
                                         fallen // CHARGES_PENSIONS_DIVISOR)})
         return {"rate": int(sum(t["amount"] for t in terms)), "terms": terms}
 
-    def calculate_state_charges(self, nation: str) -> int:
+    def calculate_state_charges(self, nation: str, rate=None) -> int:
         """EB-1 "The Charges of Empire": the per-turn condition-priced draw
         on the treasury (absorbs EC-W2's War Effort — the WE term rides
         inside the rate).
@@ -5657,13 +5657,21 @@ class WorldState:
         the income phase, the treasury report and the ledger (shown =
         applied). Europe-scoped (N1). Bankruptcy mercy not needed — the
         term is self-limiting above the floor.
+
+        FA-N88 (slice 17, Sept 11 2026): `rate` — the income path computes
+        `get_state_charges_rate` ONCE and shares it with the breakdown (G4:
+        the rate read walks the nation's regions), so it passes the rate in
+        and this helper is finally the source it claimed to be. Before this
+        it had ZERO production callers; the income phase re-derived the
+        arithmetic inline and twelve tests pinned the copy nobody called.
         """
         if getattr(self, "sovereign_map", "legacy") != "europe":
             return 0
         gold = int(self.nation_gold.get(nation, 0)) - CHARGES_HOARD_FLOOR
         if gold <= 0:
             return 0
-        rate = self.get_state_charges_rate(nation)["rate"]
+        if rate is None:
+            rate = self.get_state_charges_rate(nation)["rate"]
         if rate <= 0:
             return 0
         return int(gold * rate // WAR_EFFORT_DIVISOR)
@@ -5832,12 +5840,15 @@ class WorldState:
         # Rate computed ONCE here and shared with the breakdown (G4: the
         # rate read walks the nation's regions — never do it twice).
         charges_rate = self.get_state_charges_rate(nation)
+        # FA-N88 (slice 17): the documented single source is CALLED, with the
+        # rate computed once above passed in (G4 — never walk the regions
+        # twice). Byte-identical arithmetic; what changed is that the applied
+        # figure is now PRODUCED BY the helper the ledger and the treasury
+        # report are documented to share.
         state_charges = 0
         if europe:
-            _chest = int(self.nation_gold.get(nation, 0)) - CHARGES_HOARD_FLOOR
-            if _chest > 0 and charges_rate["rate"] > 0:
-                state_charges = int(
-                    _chest * charges_rate["rate"] // WAR_EFFORT_DIVISOR)
+            state_charges = self.calculate_state_charges(
+                nation, rate=charges_rate["rate"])
 
         # EB-5a: what OUR armies requisition from the provinces they disrupt.
         requisitions = int(self.get_requisition_map().get(nation, 0))

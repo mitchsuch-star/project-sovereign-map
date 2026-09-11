@@ -2120,6 +2120,22 @@ def _include_popup_passthroughs(response: dict, world) -> None:
 # FA-23 (slice 11) flip lever: False restores the suppression of an enemy
 # assault on the player's own garrison.
 THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED = True
+# FA-N66 (slice 17, Sept 11 2026): `occupation_started` joins the arm below.
+# Both producers (the post-garrison twin and the unopposed march inside
+# `_execute_attack`) emit a `region` and no ownership key, and the province
+# IS still the player's when it fires (the siege has not completed) — so an
+# enemy beginning a siege on a French province at PARTIAL was dropped and the
+# court read as 'beyond our sight'. Measured on the boot: 0 kept vs 1 for a
+# `garrison_assault` on the same province. False = the FA-23 pair only.
+THE_SIEGE_ON_OUR_SOIL_IS_REPORTED = True
+
+
+def _own_soil_event_types() -> tuple:
+    """The event types whose `region` is read against the player's soil."""
+    types = ("garrison_assault", "garrison_destroyed")
+    if THE_SIEGE_ON_OUR_SOIL_IS_REPORTED:
+        types += ("occupation_started",)
+    return types
 
 
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
@@ -2243,8 +2259,7 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                 for evt in events:
                     if not isinstance(evt, dict):
                         continue
-                    if evt.get("type") not in ("garrison_assault",
-                                               "garrison_destroyed"):
+                    if evt.get("type") not in _own_soil_event_types():
                         continue
                     _assaulted = str(evt.get("region")
                                      or evt.get("defender_location") or "")

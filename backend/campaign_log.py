@@ -274,6 +274,9 @@ CAMPAIGN_LOG_TYPES = {
     "jealousy_confrontation",
     "rivalry_confrontation",
     "glory_crowned",
+    # FA-N52 (slice 17): the laurels PASSING reaches the log (and Le Moniteur)
+    # like the crowning always did — the dispatch beat existed, the row did not.
+    "glory_crown_lost",
     # ESP riders (Jealousy v3.2 build)
     "fontainebleau_petition",
     "rente_defaulted",
@@ -382,6 +385,7 @@ CATEGORY_MAP = {
     "jealousy_confrontation": "command",
     "rivalry_confrontation": "command",
     "glory_crowned": "command",
+    "glory_crown_lost": "command",
     "fontainebleau_petition": "command",
     "rente_defaulted": "economy",
     "marshal_commissioned": "command",
@@ -1052,7 +1056,8 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         if event_type in ("jealousy_fired", "jealousy_resolved",
                           "jealousy_escalation", "jealousy_autonomous",
                           "jealousy_confrontation", "rivalry_confrontation",
-                          "glory_crowned", "fontainebleau_petition",
+                          "glory_crowned", "glory_crown_lost",
+                          "fontainebleau_petition",
                           "rente_defaulted", "marshal_commissioned",
                           "order_voided_by_battle"):
             if event.get("nation") == world_state.player_nation:
@@ -1617,6 +1622,12 @@ def format_event_oneliner(event: dict) -> str:
         nation = event.get("nation", "")
         return (f"{_name_tag(marshal, nation)} stands crowned with glory — "
                 f"the army's most celebrated commander")
+
+    if event_type == "glory_crown_lost":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        return (f"{_name_tag(marshal, nation)} is no longer the army's most "
+                f"celebrated commander — the laurels have passed")
 
     if event_type == "fontainebleau_petition":
         marshals = event.get("marshals", []) or []

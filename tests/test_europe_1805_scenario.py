@@ -344,7 +344,10 @@ def test_third_coalition_seeded(world1805):
     # for headroom (band [65,75]); the Third Coalition is authored-active,
     # not threshold-formed, so the lower boot deletes nothing.
     assert world1805.threat_level == 70
-    assert world1805.coalition_count == 1
+    # FA-N85 (slice 17): re-blessed 1 -> 3. The scenario names the boot
+    # coalition the THIRD; the authored count beneath it said 1, so the next
+    # one was minted "The Second". Save-compat: a pre-slice save keeps 1.
+    assert world1805.coalition_count == 3
 
 
 def test_british_subsidy_flows_to_austria(world1805):

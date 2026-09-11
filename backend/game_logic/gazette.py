@@ -26,6 +26,32 @@ from backend.campaign_log import filter_campaign_log, format_event_oneliner
 ISSUE_INTERVAL = 5      # blessed, in-band — an issue every 5 turns
 MAX_ISSUES = 20         # blessed, in-band — the archive's depth
 
+# FA-N52 (slice 17, Sept 11 2026) flip lever: the collectors name LIVE
+# campaign-log types. Five of the keys below named types NO producer ever
+# wrote to the log — `coalition_formed`, `incoming_ultimatum`,
+# `vassal_created`, `marshal_petition`, and `glory_crown_lost`, which had a
+# dispatch beat but no log row until this slice — and `compose_issue` reads
+# only `filter_campaign_log` output, so a key outside `CAMPAIGN_LOG_TYPES`
+# is dead by construction: Le Moniteur could never report a coalition
+# forming, an ultimatum, a client changing lord or the laurels passing.
+# False = the prior collectors (the dead keys back, those stories unprinted).
+THE_MONITEUR_READS_LIVE_TYPES = True
+_DEAD_KEYS_BEFORE_FA_N52 = {
+    "coalition_declared": "coalition_formed",
+    "ultimatum_issued": "incoming_ultimatum",
+    "ai_ultimatum_accepted": "incoming_ultimatum",
+    "vassal_transferred": "vassal_created",
+    "fontainebleau_petition": "marshal_petition",
+}
+
+
+def collector_types(types) -> set:
+    """The keys one section collects: the live types, or — lever down —
+    the pre-FA-N52 keys the filter could never pass."""
+    if THE_MONITEUR_READS_LIVE_TYPES:
+        return set(types)
+    return {_DEAD_KEYS_BEFORE_FA_N52.get(t, t) for t in types}
+
 # Event types each section collects. The composition NEVER reads raw
 # world state for its rows — only already-fog-filtered events — so a
 # fog-hidden battle can never appear in print.
@@ -40,21 +66,31 @@ _WAR_TYPES = {
 _COURT_TYPES = {
     "war_declaration", "diplomatic_war_declared", "peace_ratified",
     "third_party_peace", "diplomatic_treaty_signed", "nation_formed",
-    "nation_eliminated", "incoming_ultimatum", "coalition_formed",
+    # FA-N52 (slice 17): the types the log actually carries. An ultimatum
+    # is logged as `ultimatum_issued` (ours) / `ai_ultimatum_accepted`
+    # (theirs, yielded to); a coalition forms as `coalition_declared`.
+    "nation_eliminated", "ultimatum_issued", "ai_ultimatum_accepted",
+    "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no
     # producer either — the same inert shape as the campaign log's entry.
     # `vassal_broke_free` is the type that is now written, and
     # `format_event_oneliner` has an arm for it, so Le Moniteur prints a
     # sentence rather than the raw `Event: vassal_broke_free` fallback.
-    # (`vassal_created` is ALSO producer-less; it is out of this slice's
-    # scope and is left alone rather than quietly retired.)
-    "coalition_dissolved", "vassal_created", "vassal_broke_free",
+    # FA-N52 (slice 17): `vassal_created` retired for `vassal_transferred`,
+    # the only client-status type the log carries beside the break.
+    "coalition_dissolved", "vassal_transferred", "vassal_broke_free",
 }
 _ARMY_TYPES = {
+    # FA-N52 (slice 17): `glory_crown_lost` is LIVE now (jealousy.py logs
+    # the laurels passing beside the beat it always raised). DECIDED, not
+    # deleted: `marshal_petition` is the POPUP channel's type and was never
+    # a log type; the collective Fontainebleau petition is the public beat
+    # Le Moniteur prints, while a single marshal's §6 confrontation stays
+    # the Emperor's private audience.
     "glory_crowned", "glory_crown_lost", "dotation_granted",
     "estate_confiscated", "marshal_captured", "last_stand",
     "marshal_destroyed",
-    "marshal_petition",
+    "fontainebleau_petition",
 }
 
 _SECTION_CAP = 8  # rows per section — a paper, not a ledger dump
@@ -315,10 +351,12 @@ def compose_issue(world, since_turn: int,
     """
     events = filter_campaign_log(
         world.get_events_since_turn(max(1, int(since_turn))), world)
-    war_rows = [e for e in events if str(e.get("type", "")) in _WAR_TYPES]
+    _war, _court, _army = (collector_types(_WAR_TYPES), collector_types(_COURT_TYPES),
+                           collector_types(_ARMY_TYPES))
+    war_rows = [e for e in events if str(e.get("type", "")) in _war]
     court_rows = [e for e in events
-                  if str(e.get("type", "")) in _COURT_TYPES]
-    army_rows = [e for e in events if str(e.get("type", "")) in _ARMY_TYPES]
+                  if str(e.get("type", "")) in _court]
+    army_rows = [e for e in events if str(e.get("type", "")) in _army]
 
     # Review round [1/4]: the number continues from the last ISSUE, not
     # from the eviction-capped archive length — № 21 is followed by
