@@ -4,6 +4,224 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ THE IMPROVEMENT QUEUE — row IQ, opened September 12, 2026
+>
+> **User direction:** *"improve everything but win conditions one by one — let
+> the agents make decisions on how; start with a comprehensive econ fix that
+> finally makes it work better."*
+>
+> **This block is the routing authority for the queue.** Everything the
+> September 12 playtest and its Steam-style read raised is below as one row,
+> each row with its evidence, its owner, its completion definition (GR9) and
+> its exit. Rows are taken **one at a time, in the order listed**. Nothing here
+> is speculative: every row rests on a measurement from
+> `docs/audits/PLAYTEST_RESCORE_2026_09_12.md` or from a row already filed in
+> `BUG_FIXES.md` / `DESIGN_REFINEMENT.md`.
+>
+> **⛔ WIN CONDITIONS ARE EXCLUDED BY DIRECTION.** The game cannot end —
+> `sandbox_mode` suppresses victory *and* defeat on every Europe world
+> (`turn_manager._check_enemy_victory`; the EC-6a decision). That is owned by
+> the **Victory & Objectives Pass, ROADMAP positions 12–13**, and no IQ row
+> builds it, proposes it, or quietly half-builds it. **IQ-2 is the exception
+> that proves the rule**: it makes the collapse *legible* without making it
+> *terminal*, and its scope note says so explicitly.
+>
+> ### How a row is taken
+>
+> Each row opens with a **decision fleet** — read-only agents that measure the
+> disease on the shipped board, read the specs that constrain it, census the
+> seams, design the fix, and then a refuter that attacks the design. Their
+> rulings are recorded on the row and become the build contract. The standing
+> delegated grant applies: **decide, build, commit to master, push** — escalate
+> nothing mid-row; anything that would move a blessed number out of band is
+> built anyway and the row is marked **RULED — FOR USER CONFIRMATION**.
+>
+> The standing method rules hold on every row: a module-level flip lever whose
+> False arm reproduces prior behaviour; attack the FIX, not only the finding;
+> probe the compound sentence and every consumer downstream of a guard; a
+> census is over code or AST, never prose, and carries a sensitivity arm; an
+> INERT mutation is a question; sweep every pin and `git diff` after every
+> sweep; reproduce before filing.
+>
+> ### The queue
+>
+> | # | row | what it fixes | evidence | state |
+> |---|---|---|---|---|
+> | 1 | **IQ-1 THE ECONOMY THAT BITES** | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **457×** | ▶ **IN PROGRESS** — decision fleet running |
+> | 2 | **IQ-2 THE COLLAPSE IS LEGIBLE** | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | queued |
+> | 3 | **IQ-3 THE COALITION IS RARE** | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | queued |
+> | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | queued |
+> | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | queued |
+> | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | queued |
+> | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | queued |
+> | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | queued |
+> | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
+> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ **BLOCKED ON ENVIRONMENT** — no Godot binary in this container | blocked |
+>
+> ---
+>
+> ### IQ-1 — THE ECONOMY THAT BITES  ▶ IN PROGRESS
+>
+> **Absorbs:** FA-S17-D2 (the DECLINED gold-sink ruling — **re-opened by user
+> direction**, so its owner moves from "EC-2 pass 2" to this row) · IGR-X9 (the
+> razing / EC-U2 interaction, homed at the econ gate) · the live half of
+> `ECONOMY_REVISIT_SPEC.md` Track 3 (ES-4 "development") · the consequence of
+> the **EC-U1 reversal** (upkeep bills on fielded strength, so attrition LOWERS
+> the bill and losing is cheap).
+>
+> **The disease, measured:**
+>
+> * A peaceful France banks **82,524 gold by turn 30** and **88,556 by turn
+>   40**, monotonically, while its own dispatch reads *"the levy has stood open
+>   15 turns. 150 gold puts 10,000 foot in the line at Paris"* — a **457×**
+>   ratio of purse to the most powerful thing money buys.
+> * **Threat FALLS 68 → 44** while France holds 26 of 28 provinces, so there is
+>   no counter-pressure either.
+> * **EB-1's charges cannot catch it.** State charges spike to ~2,887/turn at
+>   war and fall to ~955 at peace — about **1.2% of the chest** against a
+>   compounding income.
+> * Army upkeep on the commanded board falls **2,224 → ~450** as the army
+>   bleeds. The bill goes DOWN as the campaign goes badly.
+> * The pillar has scored **6.0 at three consecutive re-scores.** The
+>   arithmetic is exact and the brake is real; the sink is not.
+>
+> **The row must answer four questions, not one:** (a) what absorbs gold —
+> something worth tens of thousands, repeatable, that a player WANTS; (b) what
+> makes wealth conditional on playing well; (c) what makes a bad position
+> expensive; (d) what makes all of it legible on a surface the player reads.
+>
+> **Constraints the build inherits:** GR5 symmetry through one executor · GR8
+> no per-region scans in hot paths · GR9 no open-ended deferrals · prefer zero
+> new serialized fields · France's turn-1 absorption is **0.555 and in band**,
+> so any boot movement needs a measured reason and a FOR USER CONFIRMATION
+> mark · every mechanic states up front whether it expects to move
+> `BASELINE_SERIES` or M1–M7, and why.
+>
+> **Completion definition:** a 40-turn commanded run and a 40-turn ambient run
+> on the historical seed in which (i) the treasury is **not monotonic** on the
+> commanded arm, (ii) a losing France's per-turn Net is **worse** than a
+> winning France's at the same army size, (iii) every gold component the
+> player is charged appears as a signed line in the Strategic Ledger and sums
+> to the Net shown, and (iv) an acceptance test states the 457× ratio's
+> replacement as falsifiable arithmetic in both directions. **Exit:** the
+> economy pillar is re-measured on the same instrument; if it does not move off
+> 6.0, the row's dissent is read and its re-open condition taken.
+>
+> ---
+>
+> ### IQ-2 — THE COLLAPSE IS LEGIBLE
+>
+> **Scope note, binding:** this row does **not** end the game. `sandbox_mode`
+> stands; the Victory & Objectives Pass (ROADMAP 12–13) owns victory and
+> defeat. This row makes the *state* honest on the surfaces that describe it.
+>
+> **Evidence (PR-X1):** ambient-marengo holds **0 provinces from turn 37** and
+> the campaign runs four more turns. The briefing tells an annihilated France
+> that *"the diplomatic winds favor us"*. The war-purpose line lists twenty
+> provinces France no longer holds. **Completion:** on a staged save at that
+> turn, no producer claims a holding France does not hold, and the briefing's
+> lead names the collapse.
+>
+> ---
+>
+> ### IQ-3 — THE COALITION IS RARE
+>
+> **Evidence (PR-D1):** up to **ten coalitions in forty turns**, each forming
+> and dissolving as members peace out. PR-1 stopped a ratified peace being
+> annulled inside the same `end turn`; it did not make a coalition a rare,
+> weighty thing. Diplomacy is held at 6.5 by this and by the settlement
+> machinery's own frequency. **Completion:** a stated, measured expectation for
+> how many coalitions a 40-turn campaign should see, and a board that produces
+> it on ≥3 seeds, with the rarity DERIVED (threat, exhaustion, memory) rather
+> than a cooldown bolted on top.
+>
+> ---
+>
+> ### IQ-4 — THE CABINET IS VISIBLE
+>
+> **Evidence (PR-D2, PR-D3):** the diplomatic mission system is mechanically
+> live after the September 12 fixes — and absent from the Strategic Ledger, the
+> notification rail, the campaign log, the tutorial and the help text. A player
+> can finish a campaign without knowing it exists. PR-D3: `COURT_NATION`
+> dominates the mission mix. **Completion:** a live mission is visible on at
+> least the ledger and the rail with its applied figure and its remaining
+> turns, the help text names the verbs, and the mission mix on a 40-turn run is
+> not one type.
+>
+> ---
+>
+> ### IQ-5 — BOTH SIDES OF THE BUTCHER'S BILL
+>
+> **Evidence (PR-X2):** there is no `defender_casualties_scope` anywhere in the
+> backend, so FA-S17-1's own case — a reinforced side bleeding by the men it
+> commits — is the one a reader cannot see; the `own corps` label is
+> attacker-only. **(PR-X3):** FA-D23 (a Broken marshal brings half his weight)
+> ships no copy of its own, and the line that does fire names the
+> RELATIONSHIP, not trust. Both are confirmed rulings whose own evidence is
+> invisible in play. **Completion:** each of the two rulings can be observed by
+> a player from the battle report alone, and a pin asserts the label on the
+> defender's side.
+>
+> ---
+>
+> ### IQ-6 — EUROPE SPEAKS ITS MIND
+>
+> **Evidence (PR-X4):** `intent_hardens` / `intent_eases` — the whole Stage-F
+> narration cap and its producer — fired **0 times in twelve 40-turn runs**.
+> `volte_face` likewise 0. AI aliveness scores 7.5 on beats that DO fire (48
+> third-party peace beats, 52 `design_promoted`); this is the half that does
+> not. **Completion:** the producer's gate is measured, the reason it never
+> opens is stated, and either the gate is corrected or the feature is retired
+> under GR9 with its promise removed from the spec.
+>
+> ---
+>
+> ### IQ-7 — THE SATELLITES HAVE A POSITION
+>
+> **Evidence:** vassals hold at **6.5**, the lowest live pillar after economy.
+> The FA-S17-D7 shape reproduced exactly: **10 rebellion events on the five
+> unattended arms, 0 on the three commanded arms** — so a competent Emperor
+> never sees the system at all, and an incompetent one sees only its failure
+> mode. FA-S17-D7 was DECLINED to "the FA-D27 balance owner"; this row is that
+> owner. **Completion:** a commanded 40-turn run in which the satellite web
+> produces at least one consequential decision that is not a rebellion, and a
+> stated expectation for what a loyal vassal is FOR.
+>
+> ---
+>
+> ### IQ-8 — THE HARNESS TELLS THE TRUTH
+>
+> **Evidence (PR-X5):** `meta.json` records the scenario *requested*, not the
+> board actually resolved, so a digest can name a scenario it did not play.
+> **(PR-D4):** the COMMANDED-arm table published September 11 does not
+> reproduce on this machine (23/24/21 provinces measured against 20/24/22
+> published; 81/77/75 of 160 AP against a claimed 160/160) and the cause was
+> never isolated. **Completion:** `meta.json` records the resolved board and
+> the resolved seed, and `PLAYTESTING.md`'s tables carry their platform.
+>
+> ---
+>
+> ### IQ-9 — THE KEYLESS PARSER GATE
+>
+> **Evidence:** the `--llm anthropic` arm is the only check on the escalation
+> path and it cannot run in CI or in a keyless environment; it could not run
+> this session and is recorded as NOT RUN. The golden corpus (681/681) covers
+> the fast parser only. **Completion:** a recorded-response replay gate that
+> exercises the escalation path deterministically without a key, wired into the
+> suite, with a stated list of what it does and does not cover.
+>
+> ---
+>
+> ### IQ-10 — THE CLIENT PASS  ⚠ BLOCKED ON ENVIRONMENT
+>
+> **Blocked, not deferred:** there is no Godot binary in this container, so
+> Mode C cannot run and UI/UX was not re-scored on September 12 (its prior
+> **7.5** stands untouched; zero `.gd` files changed). This row runs the moment
+> a binary is available — on the user's own machine or in a container that has
+> one — and carries every open visual sign-off with it. **Completion:** a Mode
+> C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
+> archived, and UI/UX re-scored on named evidence.
+
 > ## ▶ THE POST-AUDIT PLAYTEST AND RE-SCORE — LANDED September 12, 2026
 >
 > **Memo of record = `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`,
