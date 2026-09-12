@@ -32,6 +32,8 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  # FA-S9-D1 (slice 14): recalling a man from the desk
                  # is an administrative act, like commissioning one.
                  "recall_marshal",
+                 # IQ-1 SW-1: buying substitutes is an administrative act.
+                 "purchase_levy",
                  "build_fleet"}
 
 

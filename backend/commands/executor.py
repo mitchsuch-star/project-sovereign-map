@@ -2431,6 +2431,8 @@ class CommandExecutor:
             result = self._meta._execute_help(command, game_state)
         elif action == "recruit":
             result = self._economy._execute_recruit(command, game_state)
+        elif action == "purchase_levy":
+            result = self._economy._execute_purchase_levy(command, game_state)
         elif action == "recruit_marshal":
             result = self._economy._execute_recruit_marshal(command, game_state)
         elif action == "recall_marshal":

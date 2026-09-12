@@ -1823,10 +1823,20 @@ class LLMClient:
         elif any(kw in command_lower for kw in ["bombard", "barrage", "shell", "cannonade"]):
             action = "attack"
         # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
-        elif any(kw in command_lower for kw in [
-            "pursue", "chase", "hunt down", "track down", "hunt",
-            "intercept", "give chase", "go after", "harry", "hound", "shadow",
-        ]):
+        #
+        # IQ-1 SW-1 fixed a PRE-EXISTING substring false positive here, of
+        # exactly the class the charge branch above warns about in writing
+        # ("Use \b word boundaries … e.g. 'bypass' matching 'pass'"): this
+        # list was matched with bare `in`, so **"chase" matched
+        # "pur-CHASE"** and every sentence containing the word `purchase`
+        # was parsed as an attack. Measured: `purchase a levy for Ney` ->
+        # attack. The single words now carry word boundaries; the
+        # multi-word idioms stay substring checks, which is safe because a
+        # phrase cannot hide inside another word.
+        elif (re.search(r'\b(pursue|chase|hunt|intercept|harry|hound|shadow)\b',
+                        command_lower)
+              or any(kw in command_lower for kw in [
+                  "hunt down", "track down", "give chase", "go after"])):
             action = "attack"
         # Colloquial battle vocabulary (July 18, 2026 playtest fix). Everything
         # a player types that MEANS "give battle" but carries none of the four
@@ -1996,6 +2006,21 @@ class LLMClient:
               or re.search(r'\bappoint\b.*\bmarshal', command_lower)
               or "marshalate" in command_lower):
             action = "recruit_marshal"
+        # IQ-1 SW-1 "The Substitute Market". ORDERING RULE: above the troop
+        # recruit branch, because "purchase a levy" and "hire replacements"
+        # must not be read as a draft, and below recruit_marshal so
+        # "commission" keeps its own branch. The pension guard is the same
+        # one the four older administrative branches carry — the ESP review
+        # measured "raise X's pension" recruiting infantry, and `buy` is a
+        # live collision with buy_off_design, so that is guarded too.
+        elif (not _mentions_pension(command_lower)
+              and "buy off" not in command_lower
+              and (re.search(r'\bsubstitutes?\b', command_lower)
+                   or re.search(r'\bremplacants?\b', command_lower)
+                   or re.search(r'\bpurchase\b.{0,14}\blev(y|ies)\b', command_lower)
+                   or re.search(r'\b(buy|hire|purchase)\b.{0,20}\breplacements?\b',
+                                command_lower))):
+            action = "purchase_levy"
         elif "recruit" in command_lower or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower)) or "conscript" in command_lower:
             action = "recruit"
             # What arm the player ASKED for (feeds the soft-correction message

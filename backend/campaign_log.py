@@ -307,6 +307,11 @@ CAMPAIGN_LOG_TYPES = {
     "rente_defaulted",
     # Marshal recruitment
     "marshal_commissioned",
+    # IQ-1 SW-1 "The Substitute Market": men bought rather than called.
+    # A purchase leaves a trace for the same reason FA-R5 gave the
+    # garrison assault one — an AI nation putting 30,000 bought men in the
+    # line is news, and without a row it happens on no persistent surface.
+    "substitutes_purchased",
     # CA9-F13: a standing order voided by a battle the marshal
     # ANSWERED rather than chose. It died silently — Murat's march
     # on Vienna was cancelled by a jealousy attack and the player
@@ -414,6 +419,7 @@ CATEGORY_MAP = {
     "fontainebleau_petition": "command",
     "rente_defaulted": "economy",
     "marshal_commissioned": "command",
+    "substitutes_purchased": "economy",
     "order_voided_by_battle": "command",
     "marshal_captured": "combat",
     "marshal_destroyed": "combat",
@@ -1701,6 +1707,17 @@ def format_event_oneliner(event: dict) -> str:
         location = event.get("location", "the capital")
         return (f"{_name_tag(marshal, nation)} commissioned to the "
                 f"marshalate — raises his corps at {location}")
+
+    if event_type == "substitutes_purchased":
+        # IQ-1 SW-1. Names the price, because the price IS the mechanic —
+        # a substitute costs four times the drafted man at a full class and
+        # sixteen times at an empty one.
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        men = int(event.get("men", 0))
+        gold = int(event.get("gold", 0))
+        return (f"{_name_tag(marshal, nation)} takes {men:,} substitutes "
+                f"into the line — {gold:,} gold, and not a man off the rolls")
 
     if event_type == "order_voided_by_battle":
         # CA9-F13: the standing order the marshal lost by answering a

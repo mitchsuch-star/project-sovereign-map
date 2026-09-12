@@ -5870,7 +5870,12 @@ class EnemyAI:
             # through the same function, so it commits in one step rather
             # than opening a clarification dialogue no one is there to
             # answer.
-            for extra_key in ("region", "new_level", "confirmed"):
+            # IQ-1 SW-1: `batches` joins the whitelist. The rung passes 1
+            # today, which is also the executor's default, so omitting it
+            # would be harmless AND silent — and a silently dropped
+            # structured field is the exact class of defect this project
+            # keeps finding (IGR-E's dead AI plunder branch).
+            for extra_key in ("region", "new_level", "confirmed", "batches"):
                 if extra_key in action:
                     command["command"][extra_key] = action[extra_key]
 
@@ -5915,6 +5920,69 @@ class EnemyAI:
                     f"{unused_ap} AP saved, treasury: {world.nation_gold.get(nation, 0)}")
 
         return results
+
+    def _find_substitute_purchase(self, nation: str, world, treasury: int):
+        """IQ-1 SW-1's AI rung — the P1.25 substitute buy.
+
+        Returns a `purchase_levy` command or None. Every gate below is a
+        reason NOT to pay four times the drafted price:
+
+        * the market must be open (the slice's flip lever, read through the
+          executor module so one switch governs both sides);
+        * the nation must be AT WAR — nobody buys replacements in peacetime;
+        * a marshal must be genuinely weak (the same weakest-marshal helper
+          the urgent draft uses, so the two rungs agree about who needs men);
+        * the infantry class must be too thin to cover a batch, or the draft
+          would be the cheaper answer and P1 would already have taken it;
+        * he must stand at a capital or depot, which is where the executor
+          receives substitutes;
+        * and the treasury must hold 3x the price.
+
+        Prices through the executor's own helpers, never an inline copy —
+        W6-11's rule, for W6-11's reason: a local estimate goes optimistic
+        the moment the real price moves and the AI attempts-and-fails.
+        """
+        from backend.commands.economy_executor import (
+            THE_SUBSTITUTE_MARKET_IS_OPEN, levy_substitute_price,
+            levy_purchase_ceiling, region_has_friendly_supply,
+        )
+        from backend.models.world_state import INFANTRY_RECRUIT_AMOUNT
+
+        if not THE_SUBSTITUTE_MARKET_IS_OPEN:
+            return None
+        if not world.get_nations_at_war_with(nation):
+            return None
+
+        pool = int((world.manpower_pools.get(nation) or {}).get("infantry", 0))
+        if pool >= INFANTRY_RECRUIT_AMOUNT:
+            return None
+
+        ceiling = levy_purchase_ceiling(world, nation)
+        if ceiling:
+            standing = int(world.calculate_turn_upkeep(nation)["total_strength"])
+            if ceiling - standing < INFANTRY_RECRUIT_AMOUNT:
+                return None
+
+        weakest = self._find_weakest_marshal_for_admin(nation, world,
+                                                       ignore_pool=True)
+        if weakest is None:
+            return None
+        if getattr(weakest, "cavalry", False) or getattr(weakest, "artillery", False):
+            return None
+
+        region = world.get_region(weakest.location)
+        if region is None or region.controller != nation:
+            return None
+        if not region_has_friendly_supply(region):
+            return None
+
+        price = self.executor._calculate_recruit_cost(
+            region, world, base_cost=levy_substitute_price(world, nation),
+            nation=nation, marshal=weakest)
+        if price <= 0 or treasury < price * 3:
+            return None
+        return {"action": "purchase_levy", "marshal": weakest.name,
+                "target": weakest.name, "batches": 1}
 
     def _pick_admin_action(self, nation: str, world, admin_ap: int, skip_actions: set = None) -> Optional[Dict]:
         """Pick the best admin action for the AI nation.
@@ -5976,6 +6044,27 @@ class EnemyAI:
                     "marshal": weakest.name,
                     "target": weakest.location
                 }
+
+        # Priority 1.25: BUY SUBSTITUTES (IQ-1 SW-1, GR5). Sited BELOW the
+        # urgent draft — a nation with men in the depots calls them, it does
+        # not pay four times over for them — and ABOVE the endowment, because
+        # putting men in the line outranks rewarding a marshal.
+        #
+        # Fires when the ordinary draft cannot: at war, a marshal genuinely
+        # weak, and an infantry class too thin to cover a batch. Requires
+        # 3x the price so a purchase never empties the chest, which is what
+        # keeps the rung from firing every turn on a rich nation.
+        #
+        # Without this the slice's GR5 compliance would be formal rather
+        # than real. "The AI can reach it" and "the AI reaches it" are
+        # different claims, and this project has shipped the first while
+        # believing the second (IGR-E: the AI could never plunder, on any
+        # board, ever, because two sites read an attribute Marshal has not).
+        if "purchase_levy" not in skip_actions:
+            substitutes = self._find_substitute_purchase(nation, world,
+                                                          treasury)
+            if substitutes:
+                return substitutes
 
         # Priority 1.5: ES-7 estate endowment / rente (Economy Revisit S7 +
         # §0.6.8 second pass, GR5) — below urgent recruit, above generic
@@ -6335,7 +6424,8 @@ class EnemyAI:
     AI_RECRUITMENT_THRESHOLD = 0.50       # Below this: urgent (Priority 1)
     AI_RECRUITMENT_REBUILD_CAP = 1.0      # Above this: stop recruiting
 
-    def _find_weakest_marshal_for_admin(self, nation: str, world, threshold: float = None) -> Optional['Marshal']:
+    def _find_weakest_marshal_for_admin(self, nation: str, world, threshold: float = None,
+                                        ignore_pool: bool = False) -> Optional['Marshal']:
         """Find the weakest marshal below recruitment threshold for recruitment.
 
         Skips marshals whose manpower pool can't support a recruit.
@@ -6343,6 +6433,14 @@ class EnemyAI:
         Args:
             threshold: Override threshold. Defaults to AI_RECRUITMENT_THRESHOLD (urgent).
                        Pass AI_RECRUITMENT_REBUILD_CAP (1.0) for low-priority rebuild.
+            ignore_pool: IQ-1 SW-1. The substitute market exists precisely
+                       BECAUSE the class is empty, so the pool gate below —
+                       correct for a draft — makes this helper answer None on
+                       the only board the substitute rung is for. One source,
+                       the differing input value, rather than a second scan
+                       that would drift. Found by a mutation sweep: the rung's
+                       first pin was INERT because it asserted None on a board
+                       where the answer was None for the WRONG reason.
         """
         if threshold is None:
             threshold = self.AI_RECRUITMENT_THRESHOLD
@@ -6374,7 +6472,7 @@ class EnemyAI:
                     recruit_type = "infantry"
                     needed = INFANTRY_RECRUIT_AMOUNT
                 pool = world.manpower_pools.get(nation, {})
-                if pool.get(recruit_type, 0) < needed:
+                if not ignore_pool and pool.get(recruit_type, 0) < needed:
                     continue  # Pool can't support this marshal's recruit type
 
                 # Check if marshal's location is suitable for recruiting

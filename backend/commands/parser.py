@@ -834,6 +834,8 @@ class CommandParser:
             "revoke_pension",   # "revoke Ney's rente"
             # Marshal Recruitment (Jealousy v3.2 final phase)
             "recruit_marshal",  # "commission Grouchy" — 1 admin AP + gold
+            # IQ-1 SW-1: "buy substitutes for Ney" — 1 admin AP, gold only
+            "purchase_levy",
             "recall_marshal",   # FA-S9-D1: "recall Murat" — 1 admin AP
             # DEF-5 naval — "The Wooden Wall" (NAVAL_SPEC §9)
             "build_fleet",       # "build ships" — 1 admin AP + 400g
