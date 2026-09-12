@@ -165,6 +165,17 @@ POLICY_DEFAULTS = {
     # archived digest non-regenerable and ties the reward economy to
     # petition order), never bundled into the default.
     "petition": "first_enabled",    # first_enabled | rotate
+    # FA-S17-D6 (Phase 4, Sept 12 2026): the player's OWN declare-war
+    # confirmation after Talleyrand's objection — `force_declare_war_
+    # confirmation`. It was in no table, so it fell to the generic diplomacy
+    # block, where "Proceed — break the treaty" carries none of the accept
+    # needles; `picked` stayed None and the fallback took `options[0]`, which
+    # IS Proceed. Measured: 9 of 10 Phase-3 runs tore up a treaty France had
+    # just signed, so no balance arm could show a France at peace. `cancel`
+    # is the honest default for an unattended camera — an irreversible
+    # diplomatic act the script never asked for is not the harness's to take
+    # — and `proceed` reproduces every pre-Phase-4 archived digest.
+    "declare_war": "cancel",        # cancel | proceed
     # Strategic interrupts (cannon fire / blocked path / ally moving):
     # first offered option.
     "interrupt": "first",
@@ -252,6 +263,8 @@ DIALOGUE_TYPE_ANSWERS = {
     "commitment_paradox": "paradox",
     "vassal_rebellion_imminent": "rebellion",
     "sabotage_confrontation": "sabotage",
+    # FA-S17-D6 (Phase 4): own dial, above the generic diplomacy read.
+    "force_declare_war_confirmation": "declare_war",
 }
 
 # FA-N35: the popup keys of those three decisions. Since slice 0 each
@@ -754,8 +767,18 @@ class Digest:
         self.counters["battles"] += 1
         summary = report.get("casualty_summary") if isinstance(report, dict) else None
         if isinstance(summary, dict) and summary.get("attacker_name"):
+            # FA-S17-10 (Phase 4): the game sets `attacker_casualties_scope`
+            # = "own corps" whenever the report's figure is the LEAD's corps
+            # and the prose names the whole army (PT-D5's two-figures-one-label
+            # rule). The digest printed the number and dropped the label, so a
+            # reader comparing the two surfaces saw a contradiction the game
+            # does not have — 14 of 14 compared pairs in the Phase-3 evidence.
+            # The row is NARROWED to this line.
+            _atk_scope = str(summary.get("attacker_casualties_scope") or "")
+            _atk_lost = (f"{summary.get('attacker_casualties', '?')}"
+                         + (f", {_atk_scope}" if _atk_scope else ""))
             head = (f"{summary['attacker_name']} (lost "
-                    f"{summary.get('attacker_casualties', '?')}) vs "
+                    f"{_atk_lost}) vs "
                     f"{summary.get('defender_name', '?')} (lost "
                     f"{summary.get('defender_casualties', '?')})")
             observation = first_line(dig(report, "observation"), 120)
@@ -1985,6 +2008,16 @@ class Answerer:
                     return (find("confirm_pair", "confirm", "substitute")
                             or "confirm_pair_substitute")
                 return find("keep") or ("keep" if any_enabled else None)
+            # FA-S17-D6: the declaration confirm answers from its own dial.
+            # `cancel` looks for the cancel/keep-the-peace arm and falls back
+            # to the LAST option (the confirm arm is always offered first);
+            # `proceed` reproduces the pre-Phase-4 `options[0]` answer.
+            if policy_key == "declare_war":
+                if str(self.policy.get("declare_war", "cancel")) == "proceed":
+                    return (find("proceed", "declare", "war")
+                            or (_option_id(options[0]) if options else None))
+                return (find("cancel", "keep", "abort", "no")
+                        or (_option_id(options[-1]) if options else None))
             if policy_key in ("war_purpose", "ultimatum"):
                 answer = self.policy[policy_key]
                 if answer == "defy":
@@ -2490,6 +2523,11 @@ def main():
                     choices=["", "grant_autonomy", "administrative_role", "dismiss"])
     ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate"],
                     help="rotate cycles the enabled arms per petition kind (opt-in)")
+    ap.add_argument("--declare-war", dest="declare_war", default="",
+                    choices=["", "cancel", "proceed"],
+                    help="FA-S17-D6: answer the player's own declare-war "
+                         "confirmation. Default cancel — an unattended run "
+                         "does not break a treaty the script never named.")
     ap.add_argument("--paradox", default="", choices=["", "honor", "break"])
     ap.add_argument("--rebellion", default="", choices=["", "accept", "invest", "garrison"])
     ap.add_argument("--sabotage", default="", choices=["", "confront", "overlook"])

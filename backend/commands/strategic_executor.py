@@ -478,6 +478,12 @@ class StrategicExecutor:
     # Creates StrategicOrder on marshal & executes first step immediately.
     # ════════════════════════════════════════════════════════════════════════
 
+    # FA-S17-9 (slice 17, Phase 4, September 12 2026) flip lever: the PURSUE
+    # acceptance line quotes the sighting the road was plotted from. False =
+    # the prior line, re-resolved after the first step (and reading
+    # "(at unknown)" whenever that step lost the quarry).
+    PURSUIT_QUOTES_THE_SIGHTING = True
+
     def _pursue_known_location(self, world, marshal, enemy):
         """Thin delegate to the single source in `strategic.py`.
 
@@ -758,9 +764,16 @@ class StrategicExecutor:
                             "variable_action_cost": 0,
                         }
                     else:
+                        # FA-S17-13: one answer for one state, and it names
+                        # the road (this arm used to refuse flat, with the
+                        # raw scenario key).
+                        from backend.commands.strategic import hostile_verb_at_peace
+                        _one = hostile_verb_at_peace(world, marshal, enemy, "pursue")
                         return {
                             "success": False,
-                            "message": f"Cannot pursue {enemy.name} — not at war with {enemy.nation}.",
+                            "message": _one or (
+                                f"Cannot pursue {enemy.name} — not at war "
+                                f"with {enemy.nation}."),
                             "variable_action_cost": 0,
                         }
                 # NPC-5: refuse UP FRONT when we have never seen him. The
@@ -805,6 +818,12 @@ class StrategicExecutor:
 
         # ── Build path for movement orders ────────────────────────────
         path = []
+        # FA-S17-9 (Phase 4): the province the PURSUE road is plotted from —
+        # what our own scouts saw at issuance. The acceptance line used to
+        # re-resolve this AFTER the first step, and the first step's own
+        # visibility refresh can lose the quarry, so an order the fog gate had
+        # just ACCEPTED on a real sighting announced itself "(at unknown)".
+        pursue_sighted_at = None
         if strategic_type in ("MOVE_TO", "PURSUE", "SUPPORT", "HOLD"):
             dest = None
             if strategic_type == "MOVE_TO":
@@ -813,6 +832,7 @@ class StrategicExecutor:
                 enemy = world.get_marshal(target)
                 # NPC-5: the road we plot is to where we BELIEVE he is.
                 dest = self._pursue_known_location(world, marshal, enemy)
+                pursue_sighted_at = dest  # FA-S17-9
             elif strategic_type == "SUPPORT":
                 ally = world.get_marshal(target)
                 dest = ally.location if ally else None
@@ -1646,8 +1666,12 @@ class StrategicExecutor:
             # quarry actually is — only where his own scouts last saw him.
             # NPC-12: and it must spell his name the way every other surface
             # does ("Archduke Charles"), not as the internal key.
-            loc = (self._pursue_known_location(world, marshal, enemy_m)
-                   or "unknown")
+            # FA-S17-9: quote the sighting the road was plotted from, never
+            # a re-resolution taken after the first step has already moved us.
+            loc = pursue_sighted_at if self.PURSUIT_QUOTES_THE_SIGHTING else None
+            if not loc:
+                loc = (self._pursue_known_location(world, marshal, enemy_m)
+                       or "unknown")
             msg = (f"{marshal.name} pursues {humanize_entity_name(target)} "
                    f"(at {loc}).{first_step_msg}")
         elif strategic_type == "HOLD":

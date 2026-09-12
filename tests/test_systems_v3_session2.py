@@ -418,7 +418,14 @@ class TestGloriousChargeTarget:
 
         result = ex._execute_glorious_charge(ney, "Schwarzenberg", w, {"world": w})
         assert not result["success"]
-        assert "cannot find" in result["message"].lower() or "target" in result["message"].lower()
+        # FA-S17-13 (slice 17, Phase 4) — CONSCIOUSLY FLIPPED. The intent is
+        # unchanged and still asserted (an at-peace marshal cannot be
+        # charged); what changed is that the refusal no longer blames the MAP
+        # for a diplomatic state. "Cannot find target 'Schwarzenberg'" was a
+        # false cause about a marshal standing in the same province.
+        low = result["message"].lower()
+        assert "not at war with austria" in low, result["message"]
+        assert "cannot find" not in low, result["message"]
 
     def test_can_target_war_enemy(self):
         """British (at war) can be targeted by glorious charge."""

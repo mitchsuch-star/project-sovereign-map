@@ -507,16 +507,28 @@ class TestPopupScriptWiring:
         assert "Political Context:" in source
 
     def test_envoy_and_result_popups_render_decision_reason(self):
+        """FA-S17-D9 (slice 17, Phase 4) — CONSCIOUSLY NARROWED.
+
+        This pin used to read `proposal_result_popup.gd` too. That scene was
+        referenced by no `.gd`, no `.tscn` and no autoload — `dialog_manager`'s
+        own layer note called it an orphan never shown — so its rendering of
+        the rationale was dead code, and the ruling RETIRED the scene and the
+        script. The rationale itself is not dropped: it reaches the player on
+        the popup that IS shown, and the outcome reaches him twice more (the
+        response's `proposal_result` and a persistent rail notice), which is
+        what this test now asserts instead.
+        """
         incoming = Path(
             "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd"
         ).read_text(encoding="utf-8")
-        result = Path(
-            "godot-client/project-sovereign/scripts/proposal_result_popup.gd"
-        ).read_text(encoding="utf-8")
         assert 'decision_reason_display' in incoming
         assert 'Court rationale:' in incoming
-        assert 'decision_reason_display' in result
-        assert 'Court rationale:' in result
+        assert not Path(
+            "godot-client/project-sovereign/scripts/proposal_result_popup.gd"
+        ).exists(), "the orphan was un-retired without a ruling"
+        main_py = Path("backend/main.py").read_text(encoding="utf-8")
+        assert 'response["proposal_result"] = proposal_result' in main_py
+        assert "_queue_informational_diplomacy_notices" in main_py
 
 
 # ════════════════════════════════════════════════════════════════

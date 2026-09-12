@@ -1946,6 +1946,49 @@ def _push_petition(world, petition: Dict) -> str:
     return PETITION_QUEUED
 
 
+# FA-S17-12 / ruling FA-S17-D4 (slice 17, Phase 4, September 12 2026) flip
+# lever: a petition whose quarrel has already cooled is RETIRED at the
+# delivery seam instead of being shown. The card is built inside the turn
+# pass and the battle-time resolution (pipeline 9.5) runs between build and
+# answer, so the answer-time guard in `handle_petition_response` —
+# `marshal.jealous_of != target` — was firing on 7 of the 12 petitions
+# delivered across the Phase-3 tree: the player pressed an arm and was told
+# "The moment has passed … Nothing was spent." The predicate is the same one;
+# it is asked one step earlier, at the moment the card would reach him.
+# False = deliver it and let the answer fail.
+THE_AUDIENCE_IS_STILL_OWED = True
+
+
+def petition_is_still_live(petition: Dict, world) -> bool:
+    """FA-S17-D4: is this petition still about something true?
+
+    ONE predicate, sharing its rule with `handle_petition_response`'s
+    answer-time guard: a confrontation card names the marshal and the
+    colleague he resented, and it is stale the moment his resentment has
+    moved on (or he is in no position to ask). Every other kind is live by
+    default — this is deliberately not a general liveness sweep; it answers
+    the one question the Phase-3 evidence asked.
+    """
+    if not THE_AUDIENCE_IS_STILL_OWED:
+        return True
+    if not isinstance(petition, dict):
+        return True
+    if str(petition.get("kind") or "") != "jealousy_confrontation":
+        return True
+    context = petition.get("context") or {}
+    asked_about = context.get("target") or petition.get("target")
+    marshal_name = (context.get("marshal") or petition.get("marshal")
+                    or petition.get("speaker"))
+    if not asked_about or not marshal_name:
+        return True
+    marshal = world.get_marshal(marshal_name)
+    if marshal is None:
+        return False
+    if int(getattr(marshal, "strength", 0) or 0) <= 0 or getattr(marshal, "captured_by", ""):
+        return False
+    return getattr(marshal, "jealous_of", None) == asked_about
+
+
 def refresh_petition_affordability(petition: Dict, world) -> Dict:
     """Re-derive each option's `enabled` against the player's CURRENT AP.
 

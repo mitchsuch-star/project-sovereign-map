@@ -42,13 +42,13 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (September 11, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (September 12, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **▶ THE FA AUDIT IS CLOSED — Phases 1, 2 and 3 landed and pushed September 11, 2026** (`e6c9880b` → `1ae82476` + the Phase-3 part-2 commit). **All 38 open defect rows and all 25 open design rulings are disposed.** Phase 1 built the defect rows and its review round; **Phase 2a** took fifteen legibility rulings behind fifteen levers and RULED FA-D27 on a 17-run balance memo; **Phase 2b** took the last seven mechanics rulings (FA-D4 the spine war's purpose · FA-D5 the audience that can pay him · FA-D6 the literal road home · FA-D7 the desk read before the draft · FA-D19 the detachment that feeds stability · FA-D23 trust at the field · FA-S2-D1 the enemy's one-turn wait); **Phase 3** played every pillar and re-scored.
+> **▶ THE FA AUDIT IS CLOSED — all four phases landed, September 11–12, 2026.** `tools/fa_row_tally.py` reads **0 defect rows and 0 design rows/gates open, of 268 filed (248 closed, 20 disposed)**. **NEXT = ROADMAP position 10, the shippable build.** Phases 1–3 landed September 11 (`e6c9880b` → `1ae82476` → `9f65cd56`); **Phase 4 — "THE RE-SCORE'S OWN ROWS" — landed September 12** and closed the eleven rows Phase 3 routed (FA-S17-9..19) plus all nine of its rulings (FA-S17-D1..D9: four built, four declined with their measurements, one folded into FA-S17-12). Sweep **52/52, 0 INERT**; parse harness EXIT=0 (46 scripts, 7 scenes); M1–M7 and `BASELINE_SERIES` byte-identical with the reason measured. Landing record = the boxed **SLICE 17 (Phase 4)** block in `BUG_FIXES.md`. **All 38 open defect rows and all 25 open design rulings are disposed.** Phase 1 built the defect rows and its review round; **Phase 2a** took fifteen legibility rulings behind fifteen levers and RULED FA-D27 on a 17-run balance memo; **Phase 2b** took the last seven mechanics rulings (FA-D4 the spine war's purpose · FA-D5 the audience that can pay him · FA-D6 the literal road home · FA-D7 the desk read before the draft · FA-D19 the detachment that feeds stability · FA-D23 trust at the field · FA-S2-D1 the enemy's one-turn wait); **Phase 3** played every pillar and re-scored.
 >
 > **▶ THE RE-SCORE — memo of record `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_11.md`, authoritative.** 34 driver runs on the committed instrument (`tools/playtest_driver.py`), 34 completed, 0 blocked, 0 unknown blockers, 0 script preconditions — the FA-D27 five arms with every Phase-2 lever up, the re-open condition's own arm (5 seeds × 2 scripts with `--diplomacy accept`), the tutorial, the naval Descent (Trafalgar and a landing at Munster), both fixtures, a reload arm, one live-parser arm, and a Mode C client pass on `SOVEREIGN_PORT=8006`. **Directional ≈6.8 → ≈6.9**: command & parsing 6.5 → **7.5**, narration 6.5 → **7.0**, naval 6.5 → **7.0**, UI/UX 7.0 → **7.5**; marshal drama 7.5 → **7.0** and economy 6.5 → **6.0**; combat legibility 7.0, diplomacy 6.0, AI aliveness 7.5 and vassals 6.5 held. **The re-score found and fixed a P1 — the peace table PAID THE LOSER** (the defense objective ticked against every opposing court whoever held the province, and the war-level `ticking` sum was never clamped: a France that had lost Paris and ten provinces scored **+2 winning**, now **−29**, and Britain's offer turns from *"Offering 3169 gold"* into *"Asking 5987 gold"*) — plus the rebellion question that outlived its rebellion, the Emperor captured off the field by his own Guard's toll, the cascade one-liner's "Unknown", and a harness P2 (the driver never read `deferred_marshal_petition`, so **every Phase-3 claim about the Jealousy channel predates that fix**).
 >
-> **⚠ FIVE RULINGS AWAIT USER CONFIRMATION** (each recorded on its own row): **FA-D29 / FA-S17-1** (a reinforced side bleeds by the men it commits), **FA-D4** (every boot war carries the declaration's defensive purpose), **FA-S2-D1** (the enemy waits one turn for a cornered corps — a user gate), **FA-D23** (a Broken marshal brings half his weight), and **the FA-D27 re-open**, which FIRED on the tyrant-accept arm (4 of 5 seeds below 20 provinces) while option (b) measured INERT (treasury 800 → 2,000 changes no outcome on ten runs; the player's AP is a hardcoded 4) — **no blessed number was moved; the ruling stands at (a) with the re-open recorded**, and the France-side lever is left to a human campaign.
+> **⚠ FIVE RULINGS AWAIT USER CONFIRMATION** (each recorded on its own row): **FA-D29 / FA-S17-1** (a reinforced side bleeds by the men it commits), **FA-D4** (every boot war carries the declaration's defensive purpose), **FA-S2-D1** (the enemy waits one turn for a cornered corps — a user gate), **FA-D23** (a Broken marshal brings half his weight), and **the FA-D27 re-open**, which FIRED on the tyrant-accept arm (4 of 5 seeds below 20 provinces) while option (b) measured INERT (treasury 800 → 2,000 changes no outcome on ten runs; the player's AP is a hardcoded 4) — **no blessed number was moved; the ruling stands at (a) with the re-open recorded**. **⚠ Phase 4 then DATED that reading rather than retiring it (FA-S17-D6):** the COMMANDED arm now exists (`tools/playtest_scripts/commanded_full40.json`, forty loops, 160 of 160 action points) and the driver answers the declaration confirm on its own dial (`--declare-war`, default **cancel** — it had been answering "Proceed" on 9 of 10 Phase-3 runs, so those arms measured a France breaking peaces nobody scripted). **A commanded France ends turn 40 holding 20 / 24 / 22 of 28 provinces on three seeds, so the re-open condition does not fire on a France that is still being played** (0 of 3); threat falls 15 → 9 and the board is flat for nineteen turns. ⚠ Honest limit: four French marshals die between turns 30 and 37 on the historical seed, so **Fr@30 is the sounder read on that arm**. Whether a HUMAN campaign feels the same is unchanged and still owed.
 >
 > **▶ NEXT = the eleven routed defect rows (FA-S17-9..19, P2 → P4) and the nine design items (FA-S17-D1..D9), then ROADMAP position 10, the shippable build.**
 >
@@ -371,15 +371,18 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > delivery road makes the first road's pin inert: darken the second road in
 > the isolation pin, never weaken the assertion.**
 >
-> **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
-> the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. **After Phase 3 (September 11, 2026): 11 defect rows
-> and 9 design items open, every one of them FILED BY THE RE-SCORE ITSELF**
-> (FA-S17-9..19 and FA-S17-D1..D9) — the audit's original 128 rows and its 25
-> design rulings are closed, of 268 filed; 231 closed, 17 disposed
-> (duplicate, refuted, or re-homed). The FA-R family is empty. The 11 are
-> ranked in the re-score memo §7 with their evidence; the 9 need rulings,
-> not builds.
+> **📏 HOW MUCH IS LEFT: NOTHING — run `tools/fa_row_tally.py` to see it**
+> (`--open` for the ids). It derives the count from the row tables rather than
+> trusting a number in a heading, and **after Phase 4 (September 12, 2026) it
+> reads 0 defect rows and 0 design rows/gates open, of 268 filed: 248 closed,
+> 20 disposed** (duplicate, refuted, or re-homed). Every family is empty,
+> FA-R included. **⚠ Five rulings carry a FOR USER CONFIRMATION flag** (FA-D29
+> / FA-S17-1, FA-D4, FA-S2-D1, FA-D23, and the FA-D27 re-open as dated by
+> FA-S17-D6) — they are BUILT and recorded, not open work. **⚠ Three rulings
+> were DECLINED to named owners and are theirs, not the audit's:** FA-S17-D1
+> (the defence tick model — declined on measurement, with a re-open condition
+> on its row), FA-S17-D2 (the gold sink → EC-2 pass 2), FA-S17-D7 (vassal
+> tension for a competent Emperor → the FA-D27 balance owner).
 
 > **▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026** (four commits;
 > landing records = the boxed **FA-S16-D1 + FA-S16-D2**, **FA-S16-D3 +
@@ -2430,7 +2433,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` |
 | Popup not showing after early return | Use `build_base_response()` or `_build_result_response()` — they structurally guarantee popup passthroughs (R4) |
 | Popup not showing after endpoint | Use `build_base_response()` for ALL POST handlers. Only `/command` main path (enemy_phase deferral) calls `_include_popup_passthroughs()` directly |
-| New dialogue type shows in terminal | **TWO things:** (1) Add dtype to `main.gd:697` whitelist so Godot shows popup. (2) If dialogue concludes with a result, set `world.proposal_result_popup` so outcome shows as popup. See PL-14 fix |
+| New dialogue type shows in terminal | Add the dtype to the `main.gd` popup whitelist (search the dtype list — do not trust the line number) so Godot renders it. **Do NOT reach for `world.proposal_result_popup`** — FA-S17-D9 (Sept 12, 2026) retired its orphan scene: that field is a legacy INFORMATIONAL channel whose payload rides the response as `proposal_result` and lands on the notice rail, never as a modal. A dialogue that concludes with a CHOICE needs its own popup per the "Adding a new popup" recipe. |
 | Raw internal keys in popup text | Use display maps (FEEDBACK_STRINGS, DEFIANCE_TYPE_DISPLAY, PROPOSAL_TYPE_DISPLAY) — never expose raw component/enum keys to players |
 | Fog leak — player sees fogged enemies | Use `world.get_visible_enemies(nation)` for player-facing queries (R5). `get_enemies_of_nation()` is omniscient — only for combat/AI/mechanics |
 | Region attribute returns default silently | Region uses `income_value` (not `income`) and `adjacent_regions` (not `connections`). Check `region.py` for exact names |

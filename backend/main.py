@@ -1654,9 +1654,15 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
         try:
             _petition = world._popup_queue.get("pending_marshal_petition")
             if _petition is not None and _popup_dialogue_is_current(world, _petition):
-                from backend.game_logic.jealousy import refresh_petition_affordability
-                response["deferred_marshal_petition"] = refresh_petition_affordability(
-                    dict(_petition), world)
+                from backend.game_logic.jealousy import (
+                    petition_is_still_live, refresh_petition_affordability,
+                )
+                # FA-S17-12 / FA-S17-D4: a card whose quarrel has already
+                # cooled is retired here rather than handed over to be
+                # pressed and refused ("The moment has passed").
+                if petition_is_still_live(_petition, world):
+                    response["deferred_marshal_petition"] = refresh_petition_affordability(
+                        dict(_petition), world)
                 world._popup_queue.clear_type("pending_marshal_petition")
         except Exception:
             pass

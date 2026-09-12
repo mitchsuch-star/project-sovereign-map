@@ -56,7 +56,7 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 ```
 
 Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
-`--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose`
+`--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose` · `--declare-war cancel|proceed`
 (there is no `--ultimatum` flag — `defy` is the policy default, stamped into
 every run's `meta.json`)
 · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
@@ -253,6 +253,43 @@ for a reader of digests:
   the run. The nine pre-slice `audit-*` digests were NOT re-archived; they
   stand as evidence of the driver they name, and this stamp is the
   attribution going forward.
+
+### The COMMANDED arm and `--declare-war` (FA-S17-D6, September 12, 2026)
+
+**Read this before measuring balance on a scripted arm.** Every pre-Phase-4
+"fighting France" script spends **9–22 of 160 action points** over forty turns
+and its `turns` map ends at loop 22–30, so `Fr@30` and `Fr@40` on those arms
+measure a France that has **stopped being played** — which is why the FA-D27
+re-open condition could not be read on them. Two things changed:
+
+* **`tools/playtest_scripts/commanded_full40.json`** — the committed COMMANDED
+  arm. Forty loops, four military actions every turn, 160 of 160 AP: it fights
+  the opening campaign, keeps its corps concentrated, recruits, and answers the
+  table. Pair it with `--diplomacy accept`. It deliberately never orders an
+  attack on a court France has just signed with.
+* **`--declare-war cancel|proceed` (default `cancel`)** — the player's OWN
+  declaration confirm (`force_declare_war_confirmation`). It was in no policy
+  table, so it fell through to the generic diplomacy block, where "Proceed —
+  break the treaty" matches none of the accept needles and the fallback took
+  `options[0]` — which IS Proceed. **Measured: 9 of 10 Phase-3 runs tore up a
+  treaty France had just signed.** An unattended camera does not take an
+  irreversible diplomatic act the script never named, so the default is
+  `cancel`; **`proceed` reproduces every pre-Phase-4 archived digest**, which is
+  the arm to pass when re-generating one.
+
+Measured on the commanded arm, three seeds, boot 28 provinces each:
+
+| seed | provinces at turn 40 |
+|---|---|
+| historical | **20** |
+| austerlitz | **24** |
+| marengo | **22** |
+
+⚠ **Honest limit.** On the historical seed four French marshals are destroyed
+between turns 30 and 37, so the arm's last ten turns spend roughly half their
+orders on dead men and measure a smaller France than the script intends.
+**`Fr@30` is the sounder read on this arm**; a script that re-commissions from
+the Marshalate bench would fix it and does not exist yet.
 
 ### `--diplomacy propose` — the arm that asks (WO slice 5)
 

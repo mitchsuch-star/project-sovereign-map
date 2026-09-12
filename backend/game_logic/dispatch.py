@@ -417,6 +417,65 @@ _CRISIS_CAUSE_HEADLINE: Dict[str, str] = {
 }
 
 
+# FA-S17-D3 (slice 17, Phase 4) flip lever: a war declared ON US names its
+# cause. AI-3's pin 4 — "no unexplained war" — was honoured for a war between
+# two OTHER powers (`europe_at_war` renders `stated_reason`) and not for a war
+# on France: `war_touches_us` read "Britain and France are at war." and
+# stopped there. Measured across the Phase-3 accept arms: Britain re-declares
+# the turn the 8-turn PAIR_EXIT_TRUCE_FLOOR lapses, on every seed, and offers
+# terms three turns later — an eleven-turn metronome in which the player is
+# never told why any lap began. Display only (GR6) and derived only: the
+# ladder reads what the engine already records, in the order a court would
+# state it. The STRUCTURAL half of the row — the coalition threat floor that
+# makes the metronome inevitable — is declined to the diplomacy gate and is
+# untouched here. False = the bare sentence.
+THE_DECLARATION_NAMES_ITS_CAUSE = True
+
+
+def war_declaration_cause(world, aggressor: str, event: dict) -> str:
+    """The clause that says WHY, or '' when nothing is on the record.
+
+    Ladder, strongest evidence first: a treaty this declaration broke (the
+    event already carries it) -> the declaring court's own active design
+    (NA-1's derivation) -> the largest grievance our own conduct fed into
+    its alarm THIS turn (the `threat_sources_this_turn` rows the diplomatic
+    ledger's threat panel already renders, resolved through the SAME label
+    source so the two surfaces cannot disagree).
+    """
+    if not THE_DECLARATION_NAMES_ITS_CAUSE:
+        return ""
+    treaty = str((event or {}).get("breached_treaty") or "").strip()
+    if treaty:
+        return f"He tears up the {treaty} to do it."
+    title = ""
+    try:
+        from backend.game_logic.agendas import get_active_agenda
+        view = get_active_agenda(aggressor, world)
+        title = str(getattr(view, "title", "") or "").strip() if view else ""
+    except Exception:
+        title = ""
+    if title:
+        return f"His court declares it in the name of {title}."
+    player = getattr(world, "player_nation", "France")
+    best = None
+    for row in (getattr(world, "threat_sources_this_turn", None) or []):
+        if not isinstance(row, dict):
+            continue
+        if row.get("target", player) != player:
+            continue
+        amount = int(row.get("amount") or 0)
+        if amount <= 0:
+            continue
+        if best is None or amount > int(best.get("amount") or 0):
+            best = row
+    if best is not None:
+        from backend.game_logic.diplomatic_ledger import _threat_source_label
+        label = _threat_source_label(world, str(best.get("source") or ""))
+        if label:
+            return f"The stated grievance is ours: {label.lower()}."
+    return ""
+
+
 def _crisis_cause_headline(cause: str) -> str:
     """Headline phrasing for a beat-7 cause, honest for every cause id."""
     key = str(cause or "")
@@ -948,8 +1007,13 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             target = e.get("target", "")
             if player_nation in (aggressor, target):
                 other = target if aggressor == player_nation else aggressor
-                _add("war_touches_us",
-                     line=f"{formed_display_name(world, other)} and France are at war.")
+                # FA-S17-D3 (Phase 4): the cause, when the record holds one.
+                _cause = ("" if aggressor == player_nation
+                          else war_declaration_cause(world, aggressor, e))
+                _line = f"{formed_display_name(world, other)} and France are at war."
+                if _cause:
+                    _line = f"{_line} {_cause}"
+                _add("war_touches_us", line=_line)
             elif etype == "war_declaration" and aggressor and target:
                 # AI-3 (Stage D): a war between other powers may lead the
                 # dispatch — with its STATED REASON (pin 4: no unexplained

@@ -411,9 +411,16 @@ func _render_war_detail(w: Dictionary):
 		if against != "" and bool(w.get("is_multi_participant_war", false)):
 			bbcode += " (against " + Utils.display_nation_name(against) + ")"
 		bbcode += " (" + active + ", +" + str(accumulated)
-		if rate > 0:
+		# FA-S17-19 (Phase 4): a rate printed beside "not ticking" read as a
+		# contradiction — "(not ticking, +0, +1/turn)" on the boot board,
+		# where a defence objective ticks only for homeland LOST. State the
+		# rate when it is running; state what WOULD start it when it is not.
+		if rate > 0 and bool(objective.get("ticking_active", false)):
 			bbcode += ", +" + str(rate) + "/turn"
-		bbcode += ")\n"
+		bbcode += ")"
+		if rate > 0 and not bool(objective.get("ticking_active", false)):
+			bbcode += " — +" + str(rate) + "/turn once it begins"
+		bbcode += "\n"
 
 	# FA-D4 (slice 17, Phase 2): the verb that sets a war purpose had no UI home.
 	var objective_hint = str(w.get("objective_hint", ""))

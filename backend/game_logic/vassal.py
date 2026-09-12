@@ -89,6 +89,70 @@ BRIBE_VASSAL_PAUSE = 1         # per-vassal latch: one bribe attempt per turn
 CONTRIBUTION_LOYAL_MIN = 60
 CONTRIBUTION_DISAFFECTED_BELOW = 35
 
+# FA-S17-D8 (slice 17, Phase 4) flip lever: the band where the mechanic BITES
+# says so, once per band per vassal.
+#
+# The row filed this as "the rebellion warning arrives one tick before the
+# rebellion" and its own reproduction narrows it: the blocking modal fires at
+# loyalty <= 10 and the rebellion at <= 0, so at the ordinary -2 drift there
+# are five turns of warning, and the passive `diplomatic_vassal_unrest` beat
+# already covers 11-39. What is genuinely silent is the CROSSING. VS-4 gives
+# loyalty military teeth at exactly 59 (a wavering satellite withholds its
+# assimilated ex-marshals from auto-reinforce and from the muster preview) and
+# at 34 (a disaffected one refuses NEW calls to arms outright) — and nothing
+# on any surface that comes to the player says either boundary was passed.
+# The per-tick line prints the NUMBER ("Bavaria loyalty 58 (-2): satellite
+# drift"), which is shown-but-not-applied: the number moved by two and the
+# contract underneath it changed.
+#
+# So the beat is the tier change, not the tick. The FIRST cut latched it in
+# a `tiers_seen` list on the vassal row, and VS-R's own guardrail caught that
+# immediately and was right to: the loyalty pass stamps no new key on that
+# row (memo Q6). It does not need one — a crossing is a single-tick event, so
+# reading THIS tick's own old and new loyalty fires each boundary exactly once
+# by construction, with no store, no new field and no latch to go stale. A
+# satellite that recovers and falls again is announced again, which is
+# correct: it is news the second time. False = no crossing beat.
+THE_TIER_CROSSING_IS_ANNOUNCED = True
+
+# What each crossing COSTS, in the words of the mechanic that charges it.
+_TIER_CROSSING_LINES = {
+    "wavering": ("{vassal} is no longer a willing ally, Sire — its own "
+                 "regiments will hold back from our musters and our "
+                 "reinforcements until its loyalty is mended."),
+    "disaffected": ("{vassal} is disaffected, Sire — it will refuse the next "
+                    "call to arms outright, and a rival court may now bid "
+                    "for it."),
+}
+
+
+def tier_crossing_line(vassal_name: str, old_loyalty: int,
+                       new_loyalty: int) -> str:
+    """FA-S17-D8: the sentence for a vassal that has just FALLEN through a VS-4
+    contribution boundary on THIS tick, or ''.
+
+    Pure and stateless: the boundaries are the VS-4 constants, so the copy
+    cannot drift from the mechanic that charges it, and "once per crossing"
+    is a property of the arithmetic rather than of a latch. A drop that clears
+    BOTH boundaries in one tick (a −10 cascade) names the worse one, which is
+    the one that now binds.
+    """
+    if not THE_TIER_CROSSING_IS_ANNOUNCED:
+        return ""
+    old_v, new_v = int(old_loyalty), int(new_loyalty)
+    # No separate "is this a fall" guard: each clause below is of the form
+    # `old >= BOUND > new`, which already entails `new < old`. The first cut
+    # had one and the Phase-4 sweep reported it INERT — correctly, because it
+    # was unreachable, not because the pin was weak.
+    tier = ""
+    if old_v >= CONTRIBUTION_DISAFFECTED_BELOW > new_v:
+        tier = "disaffected"
+    elif old_v >= CONTRIBUTION_LOYAL_MIN > new_v:
+        tier = "wavering"
+    if not tier:
+        return ""
+    return _TIER_CROSSING_LINES.get(tier, "").format(vassal=vassal_name)
+
 # ═══════ LAND GRANTS (VS-3, July 16, 2026 — VASSAL_DEEPENING_SPEC §1) ═══════
 # "Reward Bavaria for its service — cede it the province it bled for."
 # Worth-scaled: bonus = min(CAP, BASE + income_value // DIVISOR), so a rich
@@ -711,6 +775,11 @@ def process_vassal_loyalty(world) -> List[dict]:
             if delta < 0 and new_loyalty >= 40:
                 recovery_hint = recovery_hint_for_grip(lord_grip)
 
+            # FA-S17-D8 (Phase 4): the CROSSING, once per band. Derived from
+            # the VS-4 single source, so shown is exactly what is applied.
+            crossing = tier_crossing_line(vassal_name, int(old_loyalty),
+                                          int(new_loyalty))
+
             events.append({
                 "type": "vassal_loyalty",
                 "vassal": vassal_name,
@@ -723,10 +792,15 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "delta": int(applied_delta),
                 "reason": reason,
                 "recovery_hint": recovery_hint,
+                # FA-S17-D8: display-only; the tier itself is derived.
+                "tier_crossing": crossing,
+                "contribution_tier": vassal_military_contribution(
+                    world, vassal_name),          # VS-4 single source
                 "message": (
                     f"{vassal_name} loyalty {int(new_loyalty)} ({delta_str})"
                     + (f": {reason}" if reason else "")
                     + (f" — {recovery_hint}" if recovery_hint else "")
+                    + (f" {crossing}" if crossing else "")
                 ),
             })
 

@@ -2408,6 +2408,11 @@ class CombatExecutor:
         Returns message describing any forced retreats or broken armies.
         """
         retreat_messages = []
+        # FA-S17-11: who was free when the guns fell silent — so the pass can
+        # tell whether IT took him, rather than reporting a captivity that
+        # began somewhere else.
+        _free_before = {m.name for m in (attacker, defender)
+                        if m is not None and not getattr(m, "captured_by", "")}
 
         # Check attacker forced retreat
         if battle_result.get("attacker", {}).get("forced_retreat"):
@@ -2422,6 +2427,9 @@ class CombatExecutor:
                 msg = self._apply_forced_retreat_or_break(defender, attacker, world)
                 if msg:
                     retreat_messages.append(msg)
+
+        self._stamp_capture_on_report(battle_result, attacker, defender,
+                                      _free_before)
 
         if retreat_messages:
             return "\n" + "\n".join(retreat_messages)
@@ -3400,6 +3408,25 @@ class CombatExecutor:
     # the army that beat him. False = the prior toll.
     THE_GUARD_CANNOT_BUY_A_ROAD_IT_CANNOT_PAY = True
     GUARD_RUBBLE_FLOOR = 50
+    # FA-S17-11 (slice 17, Phase 4, September 12 2026) flip lever: the battle
+    # report of an engagement that CAPTURED a commander says so, whatever its
+    # scale. ⚠ The row's own evidence was half wrong and is corrected on it:
+    # in ambient-marengo the captured man was Soult, not the Emperor. The real
+    # case is tyrant-austerlitz turn 38 — Moore lost 3 men, Napoleon 57,
+    # Berthier said "Scarcely an action, Sire … too small a scale to signify",
+    # and the SAME turn's dispatch said "the Emperor himself is TAKEN". The
+    # skirmish verdict was TRUE about the scale (FA-S16-D3's gate is not the
+    # defect) — it was the last word on a day that ended the campaign. The
+    # report is generated inside `combat.py` BEFORE this fate pass runs, so
+    # the clause is APPENDED here rather than picked there. False = the
+    # observation exactly as generated.
+    THE_CAPTURE_IS_ON_THE_REPORT = True
+
+    # FA-S17-D5 (ruling, Phase 4) flip lever: the Guard's last road is NAMED
+    # before it is spent. The Peril had a capture and no approach — the toll
+    # was silent until the turn it could no longer be paid. One clause on the
+    # toll note when the NEXT toll would spend him. False = the prior note.
+    THE_GUARD_COUNTS_ITS_ROADS = True
     # FA-1 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE idiom.
     # False reproduces the pre-slice behaviour byte-for-byte: a second defeat
     # with a last-stand question standing RE-ASKS it and suppresses the
@@ -3534,6 +3561,18 @@ class CombatExecutor:
                 marshal._sovereign_toll_note = (
                     f"The Guard bought the road with its own ranks — "
                     f"{toll:,} men fall covering the withdrawal.")
+                # FA-S17-D5: one more road, or none? Say it while he still
+                # has the choice — the toll is 30% of what remains, so the
+                # next one is unaffordable when what is left after it would
+                # fall under the rubble floor.
+                _left = int(marshal.strength)
+                if (self.THE_GUARD_COUNTS_ITS_ROADS
+                        and _left - int(_left * self.GUARD_ESCAPE_TOLL)
+                        < self.GUARD_RUBBLE_FLOOR):
+                    marshal._sovereign_toll_note += (
+                        f" {marshal.name} has {_left:,} men about him now, "
+                        f"Sire — the Guard cannot buy another road. Bring "
+                        f"him out, or reinforce him where he stands.")
                 return None
             if marshal.nation == world.player_nation:
                 interrupt = {
@@ -3842,6 +3881,45 @@ class CombatExecutor:
         })
         return (f"{marshal.name} falls back on {destination}, his corps "
                 f"disordered but in the field.{attrition_note}")
+
+    @classmethod
+    def _stamp_capture_on_report(cls, battle_result, attacker, defender,
+                                 free_before) -> None:
+        """FA-S17-11: name a capture on the battle report, at any scale.
+
+        `generate_battle_report` runs inside `combat.py`, before the fate
+        pass, and the report carries no capture signal — so a 60-casualty
+        engagement that took the Emperor closed on "Scarcely an action, Sire
+        … too small a scale to signify" and nothing else. Berthier's verdict
+        about SCALE is kept (it was true); the capture is appended to it, so
+        the gravest mechanical outcome the game has cannot be the one thing
+        the report omits. Idempotent: the clause is added once.
+        """
+        if not cls.THE_CAPTURE_IS_ON_THE_REPORT:
+            return
+        report = battle_result.get("battle_report")
+        if not isinstance(report, dict):
+            return
+        taken = [m for m in (attacker, defender)
+                 if m is not None and getattr(m, "captured_by", "")
+                 and m.name in (free_before or set())]
+        if not taken:
+            return
+        from backend.display_names import humanize_entity_name
+        clauses = []
+        for m in taken:
+            who = humanize_entity_name(m.name)
+            captor = humanize_entity_name(str(getattr(m, "captured_by", "")))
+            clauses.append(
+                (f"And the Emperor himself was taken on that field — "
+                 f"{captor} holds him.") if getattr(m, "is_sovereign", False)
+                else (f"And {who} was taken on that field — {captor} holds "
+                      f"him."))
+        observation = str(report.get("observation") or "")
+        for clause in clauses:
+            if clause not in observation:
+                observation = (observation + " " + clause).strip()
+        report["observation"] = observation
 
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
                                        skip_fate: bool = False) -> str:
@@ -8093,9 +8171,20 @@ class CombatExecutor:
                         break
 
         if not target_marshal:
+            # FA-S17-13: the lookup above filters on `is_at_war`, so a court
+            # at PEACE produced "Cannot find target" — a false cause about a
+            # marshal who is standing right there. Ask whether the name
+            # resolves at all before blaming the map.
+            # `get_marshal` already falls back case-insensitively, so a
+            # second hand-rolled loop over `world.marshals` was redundant —
+            # the Phase-4 sweep reported it INERT and it is deleted rather
+            # than re-pinned.
+            from backend.commands.strategic import hostile_verb_at_peace
+            _known = world.get_marshal(str(target)) if target else None
+            _one = hostile_verb_at_peace(world, marshal, _known, "charge") if _known else ""
             return {
                 "success": False,
-                "message": f"Cannot find target '{target}' for Glorious Charge."
+                "message": _one or f"Cannot find target '{target}' for Glorious Charge."
             }
 
         # FA slice 7 review round (R2-8): a captive is named, not "has no

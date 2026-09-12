@@ -53,7 +53,18 @@ static func standing_lines(war_data: Dictionary) -> Array:
 			var standing = str(row.get("standing_display", "Standing pending"))
 			var material = float(row.get("material_share", 0.0)) * 100.0
 			var leader_marker = "*" if row.get("is_leader", false) else " "
-			lines.append("  " + leader_marker + " " + display_nation_name(nation) + " — " + standing + " (" + str(int(round(material))) + "%)")
+			# FA-S17-18 (Phase 4): say which side each row is on. The block
+			# listed both sides under a title naming only the ENEMIES
+			# ("WAR WITH BRITAIN + AUSTRIA + RUSSIA"), so France and her
+			# allies read as peers of the courts they are fighting — and on
+			# the boot board Austria sorted FIRST, above France. The backend
+			# has always carried `side_label`; the formatter dropped it. The
+			# ordering, the cap and the overflow count are untouched.
+			var side_label = str(row.get("side_label", ""))
+			var side_note = ""
+			if side_label != "":
+				side_note = " [" + side_label + "]"
+			lines.append("  " + leader_marker + " " + display_nation_name(nation) + side_note + " — " + standing + " (" + str(int(round(material))) + "%)")
 		var overflow = int(war_data.get("contribution_overflow_count", 0))
 		if overflow > 0:
 			lines.append("  +" + str(overflow) + " more participant(s)")

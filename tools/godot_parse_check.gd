@@ -69,7 +69,6 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/clarification_popup.gd",
 	"res://scripts/vassal_rebellion_popup.gd",
 	"res://scripts/reward_dialog.gd",
-	"res://scripts/proposal_result_popup.gd",
 	# Main Menu pass (position 6): the front door + the shared Settings
 	# surface + the scene hand-off statics (XR-1 — every touched script
 	# parses in the harness).

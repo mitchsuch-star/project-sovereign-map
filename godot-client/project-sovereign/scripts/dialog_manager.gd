@@ -27,7 +27,16 @@ class_name DialogManager
 #   112: incoming_proposal_popup
 #   113: talleyrand_objection_popup
 #   114: marshal_petition_dialog (Jealousy v3.2 — the petition channel)
-#   115: vassal_rebellion_popup + proposal_result_popup (orphan scene, never
+#   115: vassal_rebellion_popup. FA-S17-D9 (Phase 4, Sept 12 2026) RETIRED
+#        the `proposal_result_popup` scene that used to be listed here: it
+#        was referenced by no .gd, no .tscn and no autoload, while the
+#        backend's `world.proposal_result_popup` already reaches the player
+#        twice — as the response's `proposal_result` and as a persistent
+#        DIPLOMATIC_PROPOSAL_RESULT rail notice. Routing it would have added
+#        a modal for information already on screen and re-opened the
+#        popup-drain family (IGR-X7) for nothing. The backend field is a
+#        legacy INFORMATIONAL channel, not a popup; see CLAUDE.md.
+#        (the old note read: orphan scene, never
 #        registered or routed — recorded so the slot is not re-used blind)
 #   116: sabotage_discovery_popup
 #   117: proclamation_popup (NA-6b — The Proclamation, spec §11.8 stage 2)

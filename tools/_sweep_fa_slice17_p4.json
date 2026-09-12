@@ -1,0 +1,373 @@
+[
+  {
+    "id": "S17-9/a the sighting is never captured",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                pursue_sighted_at = dest  # FA-S17-9",
+    "new": "                pursue_sighted_at = None  # FA-S17-9",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestThePursuitQuotesItsSighting"
+  },
+  {
+    "id": "S17-9/b the acceptance line re-resolves instead of reading it",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "            loc = pursue_sighted_at if self.PURSUIT_QUOTES_THE_SIGHTING else None",
+    "new": "            loc = None",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestThePursuitQuotesItsSighting"
+  },
+  {
+    "id": "S17-9/c the cold trail is a bare refusal again",
+    "file": "backend/commands/strategic.py",
+    "old": "            if THE_COLD_TRAIL_IS_AN_OUTCOME:",
+    "new": "            if False:",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheColdTrailIsAnOutcome"
+  },
+  {
+    "id": "S17-11/a the capture stamp is switched off inside the helper",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if not cls.THE_CAPTURE_IS_ON_THE_REPORT:",
+    "new": "        if True:",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheCaptureIsOnTheReport"
+  },
+  {
+    "id": "S17-11/b the fate pass never calls the stamp",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        self._stamp_capture_on_report(battle_result, attacker, defender,",
+    "new": "        self._noop_capture_on_report(battle_result, attacker, defender,",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheCaptureIsOnTheReport::test_the_fate_pass_calls_it"
+  },
+  {
+    "id": "D5/a the rubble floor is zero, so the Guard can always pay",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    GUARD_RUBBLE_FLOOR = 50",
+    "new": "    GUARD_RUBBLE_FLOOR = 0",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheGuardCountsItsRoads"
+  },
+  {
+    "id": "D5/b the last road is not named",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                if (self.THE_GUARD_COUNTS_ITS_ROADS",
+    "new": "                if (False",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheGuardCountsItsRoads"
+  },
+  {
+    "id": "S17-12/a a cooled quarrel is delivered again",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if not THE_AUDIENCE_IS_STILL_OWED:",
+    "new": "    if True:",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheAudienceIsStillOwed"
+  },
+  {
+    "id": "S17-12/b the delivery seam stops asking",
+    "file": "backend/main.py",
+    "old": "                if petition_is_still_live(_petition, world):",
+    "new": "                if True:",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheAudienceIsStillOwed::test_the_delivery_seam_asks"
+  },
+  {
+    "id": "S17-10/a the digest drops the scope label again",
+    "file": "tools/playtest_driver.py",
+    "old": "            _atk_scope = str(summary.get(\"attacker_casualties_scope\") or \"\")",
+    "new": "            _atk_scope = \"\"",
+    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheDigestPrintsTheScope"
+  },
+  {
+    "id": "S17-13/a the peaceful court's sentence loses its state",
+    "file": "backend/commands/strategic.py",
+    "old": "    return (f\"We are not at war with {nation}, Sire — {who} may not be \"",
+    "new": "    return (f\"That cannot be done, Sire. \"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer"
+  },
+  {
+    "id": "S17-13/b the name is the raw scenario key again",
+    "file": "backend/commands/strategic.py",
+    "old": "    who = humanize_entity_name(getattr(enemy, \"name\", \"\") or \"\")",
+    "new": "    who = str(getattr(enemy, \"name\", \"\") or \"\")",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer::test_the_name_is_humanized_not_the_scenario_key"
+  },
+  {
+    "id": "S17-13/c the predicate answers even at war",
+    "file": "backend/commands/strategic.py",
+    "old": "        if world.is_at_war(own, nation):\n            return \"\"",
+    "new": "        if False:\n            return \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer"
+  },
+  {
+    "id": "S17-13/d the armistice arm forgets the turns left",
+    "file": "backend/commands/strategic.py",
+    "old": "        return (f\"We hold an armistice with {nation}, Sire — {who} may not be \"\n                f\"touched for {turns} more turn(s). Let it lapse, or break it \"",
+    "new": "        return (f\"We hold an armistice with {nation}, Sire — {who} may not be \"\n                f\"touched. Let it lapse, or break it \"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer::test_an_armistice_names_the_turns_left"
+  },
+  {
+    "id": "S17-13/e the pursue arm stops reading the shared answer",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                        _one = hostile_verb_at_peace(world, marshal, enemy, \"pursue\")",
+    "new": "                        _one = \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer::test_the_pursue_arm_reads_it"
+  },
+  {
+    "id": "S17-13/f the charge arm blames the map again",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            _one = hostile_verb_at_peace(world, marshal, _known, \"charge\") if _known else \"\"",
+    "new": "            _one = \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer::test_the_charge_arm_stops_blaming_the_map"
+  },
+  {
+    "id": "S17-13/g the charge arm resolves nobody, so nothing is found",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            _known = world.get_marshal(str(target)) if target else None",
+    "new": "            _known = None",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestThePeacefulCourtGetsOneAnswer"
+  },
+  {
+    "id": "S17-14/a the producer stores the engine's clause as the player's words",
+    "file": "backend/commands/delegation.py",
+    "old": "    spoken = f\"{verb} {_typed}\".strip() or clause",
+    "new": "    spoken = clause",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn::test_the_producer_carries_the_typed_remainder"
+  },
+  {
+    "id": "S17-14/b the ASK quotes the resolution again",
+    "file": "backend/commands/delegation.py",
+    "old": "    quoted = match.spoken if THE_QUOTE_IS_THE_PLAYERS_OWN else match.clause",
+    "new": "    quoted = match.clause",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn"
+  },
+  {
+    "id": "S17-14/c the reading is never stated beside the quote",
+    "file": "backend/commands/delegation.py",
+    "old": "    _resolution = (\"\" if quoted == match.clause\n                   else f\" I read that as {who}.\")",
+    "new": "    _resolution = \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn::test_the_engine_states_its_reading_beside_the_quote"
+  },
+  {
+    "id": "S17-14/d the gloss is printed even for an exact order",
+    "file": "backend/commands/delegation.py",
+    "old": "    _resolution = (\"\" if quoted == match.clause\n                   else f\" I read that as {who}.\")",
+    "new": "    _resolution = f\" I read that as {who}.\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn::test_an_exact_order_gains_no_redundant_reading"
+  },
+  {
+    "id": "S17-14/e the slot is undeclared, so the field cannot be set",
+    "file": "backend/commands/delegation.py",
+    "old": "                 \"target_display\", \"verb\", \"clause\", \"spoken\")",
+    "new": "                 \"target_display\", \"verb\", \"clause\", \"spoken_\")",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn::test_the_slot_is_declared_so_it_serializes_with_the_object"
+  },
+  {
+    "id": "S17-15/a the guard finds the pair's war but does nothing",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "                        or _settlement_offer_already_promoted(world, war_id=_war_id)):\n                    coalition_blocked = True",
+    "new": "                        or _settlement_offer_already_promoted(world, war_id=_war_id)):\n                    pass",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheCourtSendsOneEnvoyPerWar"
+  },
+  {
+    "id": "S17-15/b the guard is sited below the P1 decision",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "        if not coalition_blocked and THE_COURT_SENDS_ONE_ENVOY_PER_WAR:",
+    "new": "        if False:",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheCourtSendsOneEnvoyPerWar"
+  },
+  {
+    "id": "S17-15/c a pending offer for another war blocks anyway",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "        if str(entry.get(\"war_id\") or \"\") == war_id:\n            return True\n    return False\n\n\ndef _settlement_offer_already_promoted",
+    "new": "        return True\n    return False\n\n\ndef _settlement_offer_already_promoted",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheCourtSendsOneEnvoyPerWar"
+  },
+  {
+    "id": "S17-16/a the log prefers the court's intent again",
+    "file": "backend/campaign_log.py",
+    "old": "        raw = str(event.get(\"proposal_type_offered\") or \"\").strip()",
+    "new": "        raw = \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLogNamesWhatWasProposed"
+  },
+  {
+    "id": "S17-16/b the fallback is dropped, so an older event loses its name",
+    "file": "backend/campaign_log.py",
+    "old": "    raw = raw or str(event.get(\"proposal_type\") or \"\").strip()",
+    "new": "    raw = raw",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLogNamesWhatWasProposed"
+  },
+  {
+    "id": "S17-16/c the producer stops stamping the offered type",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            \"proposal_type_offered\": str(terms.get(\"type\") or \"\") or proposal_type,",
+    "new": "            \"decision_note\": str(terms.get(\"type\") or \"\") or proposal_type,",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLogNamesWhatWasProposed::test_the_producer_stamps_it"
+  },
+  {
+    "id": "S17-17/a from_dict never runs the migration",
+    "file": "backend/models/world_state.py",
+    "old": "        world._migrate_missing_war_purposes()",
+    "new": "        pass",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLoadedWarHasAPurposeToo::test_from_dict_calls_it"
+  },
+  {
+    "id": "S17-17/b the migration overwrites a purpose the player set",
+    "file": "backend/models/world_state.py",
+    "old": "            if (self.war_objectives or {}).get(key):\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLoadedWarHasAPurposeToo"
+  },
+  {
+    "id": "S17-17/c the migration runs for a pair not at war",
+    "file": "backend/models/world_state.py",
+    "old": "            if str(state) != \"WAR\":\n                continue",
+    "new": "            if False:\n                continue",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLoadedWarHasAPurposeToo"
+  },
+  {
+    "id": "S17-17/d only the leader is given a purpose",
+    "file": "backend/models/world_state.py",
+    "old": "            for side, other in ((a, b), (b, a)):",
+    "new": "            for side, other in ((a, b),):",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheLoadedWarHasAPurposeToo"
+  },
+  {
+    "id": "S17-18/a the standing row drops its side label",
+    "file": "godot-client/project-sovereign/scripts/utils.gd",
+    "old": "\t\t\t\tside_note = \" [\" + side_label + \"]\"",
+    "new": "\t\t\t\tside_note = \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheStandingBlockNamesItsSides"
+  },
+  {
+    "id": "S17-18/b the producer stops stamping side_label",
+    "file": "backend/game_logic/settlement_presentation.py",
+    "old": "            \"side_label\": side_label_display(side),\n            \"standing\": standing,",
+    "new": "            \"standing\": standing,",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheStandingBlockNamesItsSides::test_the_producer_stamps_the_key_the_formatter_reads"
+  },
+  {
+    "id": "S17-19/a the rate prints beside 'not ticking' again",
+    "file": "godot-client/project-sovereign/scripts/war_detail_popup.gd",
+    "old": "\t\tif rate > 0 and bool(objective.get(\"ticking_active\", false)):",
+    "new": "\t\tif rate > 0:",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheRateIsNotPrintedBesideNotTicking"
+  },
+  {
+    "id": "S17-19/b the dormant clause is dropped, so a dormant rate is silent",
+    "file": "godot-client/project-sovereign/scripts/war_detail_popup.gd",
+    "old": "\t\t\tbbcode += \" — +\" + str(rate) + \"/turn once it begins\"",
+    "new": "\t\t\tbbcode += \"\"",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheRateIsNotPrintedBesideNotTicking::test_a_dormant_rate_says_what_would_start_it"
+  },
+  {
+    "id": "D3/a the cause is never derived",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if not THE_DECLARATION_NAMES_ITS_CAUSE:\n        return \"\"",
+    "new": "    if True:\n        return \"\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D3/b a broken treaty is not named",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        return f\"He tears up the {treaty} to do it.\"",
+    "new": "        return \"\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D3/c a relieving threat row is read as a cause",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if amount <= 0:\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D3/d a grievance aimed at a third court is read as ours",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if row.get(\"target\", player) != player:\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D3/e the smaller grievance wins",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if best is None or amount > int(best.get(\"amount\") or 0):",
+    "new": "        if best is None or amount < int(best.get(\"amount\") or 0):",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D3/f the sentence stops using the ledger's own label source",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        label = _threat_source_label(world, str(best.get(\"source\") or \"\"))",
+    "new": "        label = \"Some grievance\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D3/g the player's own beat drops the cause",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                if _cause:\n                    _line = f\"{_line} {_cause}\"",
+    "new": "                if False:\n                    _line = f\"{_line} {_cause}\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
+  },
+  {
+    "id": "D6/a the driver breaks the peace by default again",
+    "file": "tools/playtest_driver.py",
+    "old": "    \"declare_war\": \"cancel\",        # cancel | proceed",
+    "new": "    \"declare_war\": \"proceed\",       # cancel | proceed",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheCommandedArmExists"
+  },
+  {
+    "id": "D6/b the declaration confirm falls back to the generic block",
+    "file": "tools/playtest_driver.py",
+    "old": "    \"force_declare_war_confirmation\": \"declare_war\",",
+    "new": "    \"force_declare_war_confirmation_OFF\": \"declare_war\",",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheCommandedArmExists"
+  },
+  {
+    "id": "D6/c the commanded script stops spending every action",
+    "file": "tools/playtest_scripts/commanded_full40.json",
+    "old": "    \"40\": [\"status\", \"Ney, drill\", \"Massena, fortify\", \"Davout, fortify\"]",
+    "new": "    \"40\": [\"status\"]",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheCommandedArmExists"
+  },
+  {
+    "id": "D8/a the crossing is never derived",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if not THE_TIER_CROSSING_IS_ANNOUNCED:\n        return \"\"",
+    "new": "    if True:\n        return \"\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheTierCrossingIsAnnounced"
+  },
+  {
+    "id": "D8/c the cascade names the band it has left, not the one that binds",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if old_v >= CONTRIBUTION_DISAFFECTED_BELOW > new_v:\n        tier = \"disaffected\"\n    elif old_v >= CONTRIBUTION_LOYAL_MIN > new_v:\n        tier = \"wavering\"",
+    "new": "    if old_v >= CONTRIBUTION_LOYAL_MIN > new_v:\n        tier = \"wavering\"\n    elif old_v >= CONTRIBUTION_DISAFFECTED_BELOW > new_v:\n        tier = \"disaffected\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheTierCrossingIsAnnounced"
+  },
+  {
+    "id": "D8/d a tick inside a band is narrated as a crossing",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    elif old_v >= CONTRIBUTION_LOYAL_MIN > new_v:\n        tier = \"wavering\"",
+    "new": "    elif new_v < CONTRIBUTION_LOYAL_MIN:\n        tier = \"wavering\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheTierCrossingIsAnnounced"
+  },
+  {
+    "id": "D8/e the producer never says it",
+    "file": "backend/game_logic/vassal.py",
+    "old": "                    + (f\" {crossing}\" if crossing else \"\")",
+    "new": "                    + \"\"",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheTierCrossingIsAnnounced"
+  },
+  {
+    "id": "D9/a the doc row sends the next builder back to the retired popup",
+    "file": "CLAUDE.md",
+    "old": "**Do NOT reach for `world.proposal_result_popup`**",
+    "new": "Set `world.proposal_result_popup`",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheOrphanPopupIsRetired"
+  },
+  {
+    "id": "D9/b the parse harness still names the retired script",
+    "file": "tools/godot_parse_check.gd",
+    "old": "\t\"res://scripts/region_panel.gd\",",
+    "new": "\t\"res://scripts/region_panel.gd\",\n\t\"res://scripts/proposal_result_popup.gd\",",
+    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheOrphanPopupIsRetired"
+  },
+  {
+    "id": "S17-14/f the quote carries a raw scenario key into player copy",
+    "file": "backend/commands/delegation.py",
+    "old": "    if _typed and humanize_entity_name(_typed) == target_display:\n        _typed = target_display",
+    "new": "    if False:\n        _typed = target_display",
+    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn tests/test_command_robustness_cr5_personality_disambiguation.py::TestDelegationCopyHumanizesEnemyKeys"
+  }
+]

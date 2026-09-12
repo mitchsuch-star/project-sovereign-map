@@ -6638,6 +6638,12 @@ class DiplomaticExecutor:
             "type": "ai_proposal_rejected",
             "source": source_nation,
             "proposal_type": proposal_type,
+            # FA-S17-16: the type the LETTER carried — what the player read
+            # on the row and answered. `proposal_type` above stays the
+            # court's original intent (the collapse predicate keys on it),
+            # and the two differ whenever a downstream rewrite fired (a
+            # `friendly_gift` at relation < 0 becomes `open_borders`).
+            "proposal_type_offered": str(terms.get("type") or "") or proposal_type,
             "decision_reason": "counterparty_reversal",
         })
 

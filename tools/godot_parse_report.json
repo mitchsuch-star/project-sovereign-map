@@ -250,12 +250,6 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
-      "path": "res://scripts/proposal_result_popup.gd"
-    },
-    {
-      "errors": [],
-      "load_ok": true,
-      "parse_ok": true,
       "path": "res://scripts/main_menu.gd"
     },
     {
@@ -331,5 +325,5 @@
       "path": "res://scenes/map_connection_layer.gd"
     }
   ],
-  "timestamp": "2026-09-11T22:29:08Z"
+  "timestamp": "2026-09-12T14:19:56Z"
 }

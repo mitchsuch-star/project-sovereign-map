@@ -232,7 +232,16 @@ class TestPursueFog:
 
         result = strategic_exec._execute_pursue(pursuer, world, game_state)
 
-        assert "No intelligence" in result.get("message", "")
+        # FA-S17-9 (slice 17, Phase 4) — CONSCIOUSLY FLIPPED. The intent is
+        # unchanged and still asserted (a pursuit with no intel BREAKS), but
+        # the sentence is no longer the ISSUANCE gate's refusal: an order that
+        # was accepted on a real sighting and then lost its quarry now ends as
+        # an OUTCOME that names the quarry and where he was last making for.
+        # Before, a refused order and a running one that had gone cold printed
+        # the same line and the player could not tell them apart.
+        msg = result.get("message", "")
+        assert "trail has gone cold" in msg, msg
+        assert "Wellington" in msg, msg
         assert result.get("order_status") in ("breaks", "cancelled")
 
     def test_pursue_stale_uses_last_known(self):

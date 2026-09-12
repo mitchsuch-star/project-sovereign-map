@@ -384,3 +384,70 @@ worth pulling; does the Jealousy channel feel alive when its petitions are
 actually delivered) need a person at the keyboard. The Phase-3 fixes to the
 instrument (the petition key) and to the scripts (FA-S17-D6) are the
 precondition for that being worth measuring.
+
+---
+
+## 11. Phase-4 addendum — September 12, 2026 (what this memo got wrong)
+
+Phase 4 closed every row and ruling this memo routed. Three of its findings
+correct the memo itself, and they are recorded here rather than only in the
+landing block, because this file is the memo of record and a reader who stops
+here must not be misled.
+
+**(a) §7's FA-S17-10 is a HARNESS defect, and the memo states it as a game
+defect.** "The two surfaces still disagree on the ENEMY attacker's casualties,
+14 of 14 compared pairs" is a true reading of the DIGEST and a false reading of
+the game. PT-D5 settled in August that `casualty_summary.attacker_casualties`
+is the LEAD's own corps while the prose names the whole army, and the producer
+stamps `attacker_casualties_scope = "own corps"` on exactly the battles where
+the two differ. The digest dropped that label. **No production behaviour
+changed**, and the row's "one number for one army" completion was consciously
+not built: two figures with two labels is the landed design.
+
+**(b) §7's FA-S17-11 cites the wrong battle.** ambient-marengo Turn 26
+captured **Soult**, not the Emperor — the destruction line and the capture line
+sat in the same block and were read as one event. The real case is
+**tyrant-austerlitz T38**, and it moves the seam: the defect is not the
+FA-S16-D3 skirmish gate's verdict copy but that **a capture on the field
+reaches no report at all, at any scale**.
+
+**(c) §3's FA-D27 reading is dated, not wrong — and the arm it needed now
+exists.** The memo says the re-open condition fires on the tyrant-accept arm
+(4 of 5 seeds below 20 provinces) and that the France-side lever is left to a
+human. FA-S17-D6 built the COMMANDED arm the memo asked for
+(`tools/playtest_scripts/commanded_full40.json`, forty loops, 160 of 160 action
+points) and gave the driver a dial for the declaration confirm it had been
+answering "Proceed" on 9 of 10 runs. On that arm, over three seeds:
+
+| seed | provinces at boot | at turn 40 | threat at turn 40 |
+|---|---|---|---|
+| historical | 28 | **20** | 9 |
+| austerlitz | 28 | **24** | — |
+| marengo | 28 | **22** | — |
+
+**The re-open condition does not fire on a France that is still being played**
+— 0 of 3 seeds below 20 provinces. The trajectory on the historical seed is 28
+→ 29 by turn 2, 27 at turn 12, 20 by turn 21, and then **flat for nineteen
+turns** while threat falls 15 → 9 and the treasury reaches 52,688.
+
+⚠ **Two honest limits on that arm.** Four French marshals are destroyed
+between turns 30 and 37 on the historical seed, so its last ten turns spend
+roughly half their orders on dead men and measure a smaller France than the
+script intends — **Fr@30 is the sounder read**, and a script that
+re-commissions from the Marshalate bench would fix it and does not exist. And
+the arm still answers the table by policy rather than by judgement, so §6's
+central limit stands unchanged: **the driver is a camera with reflexes.**
+Whether a competently played France *feels* strong is still owed to a person at
+the keyboard. The ruling stands at (a) with the re-open recorded FOR USER
+CONFIRMATION.
+
+**What Phase 4 landed**, for a reader following the chain: eleven defect rows
+(FA-S17-9..19) and nine rulings (FA-S17-D1..D9) — four built, four declined
+with their measurements, one folded into FA-S17-12. **FA-S17-D1's premise is
+refuted by measurement**: across 212 archived driver runs there are 178 defence
+objectives, 11 tick at all, and 3 reach the 25 cap — all three the same board
+on three repeats of one seed. Landing record = the boxed **SLICE 17 (Phase 4)**
+block in `docs/BUG_FIXES.md`. **The pillar scores in §2 are unchanged by Phase
+4 and were not re-run**; nothing in it touches a mechanic a pillar was scored
+on, and saying otherwise without a re-run would be a claim this memo cannot
+support.

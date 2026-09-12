@@ -288,6 +288,16 @@ THE_DETACHMENT_FEEDS_STABILITY = True
 # under the other). The driver pins the hash seed and never saw it; an
 # in-process test did. False = the hash-ordered list.
 THE_CONTACT_LIST_IS_ORDERED = True
+# FA-S17-17 (slice 17, Phase 4) flip lever: FA-D4's boot purpose reaches a
+# LOADED campaign too. The ruling gives every belligerent of every starting
+# war the objective a live declaration would have given it — but the pass
+# lived in `from_scenario` only, so a campaign saved before September 11 (and
+# both committed playtest fixtures) keeps a purposeless spine war: the
+# war-detail popup honestly says "No war purpose set" forever and the score
+# ticks toward nothing. The same producer runs once at load, and ONLY for a
+# pair that has no objectives at all — a campaign where the player has set
+# his own purpose, or concluded one, is untouched. False = scenario boots only.
+THE_LOADED_WAR_HAS_A_PURPOSE_TOO = True
 # PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
 # a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
 # campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
@@ -8549,7 +8559,53 @@ class WorldState:
                 and "hegemony_signal_hegemon" not in data):
             world._bootstrap_hegemony_signal_state()
 
+        # FA-S17-17 (Phase 4): FA-D4's ruling, applied to a LOADED campaign.
+        # The boot pass lives in `from_scenario`, so a campaign saved before
+        # September 11 2026 — and both committed playtest fixtures — resumed
+        # with a purposeless spine war forever. `starting_wars` is not
+        # retained on the world, so the load-time rule is the simpler one a
+        # live declaration already obeys: a pair AT WAR with no objective at
+        # all on either side gets the defender's default `defense`, both
+        # ways. A pair where anyone has set or concluded a purpose is
+        # untouched, so this is a one-time migration and never a re-write.
+        world._migrate_missing_war_purposes()
+
         return world
+
+    def _migrate_missing_war_purposes(self) -> None:
+        """FA-S17-17: give a loaded war the purpose a declaration would have.
+
+        Runs once at load, only for a pair at WAR whose `war_objectives`
+        entry is absent or empty — the state the current engine cannot
+        create for a new war (every declaration assigns the defender
+        `defense` at once), so the only worlds this touches are saves from
+        before FA-D4 landed.
+        """
+        if not THE_LOADED_WAR_HAS_A_PURPOSE_TOO:
+            return
+        # N1, and the reason the first cut broke to_dict/from_dict identity:
+        # FA-D4's boot pass lives in `from_scenario`, so the LEGACY fixture
+        # world has always booted at war with no objectives BY DESIGN. An
+        # unscoped migration gave it one on every load — perturbing the
+        # legacy globals the golden rules forbid touching, and making the
+        # round trip non-identity for `war_objectives`, which is exactly what
+        # `test_serialization_enforcement` exists to catch. Scoped to a
+        # Europe/scenario world through the canonical predicate.
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return
+        from backend.game_logic.diplomacy import _auto_assign_defense_objective
+        for key, state in list((self.diplomatic_states or {}).items()):
+            if str(state) != "WAR":
+                continue
+            if (self.war_objectives or {}).get(key):
+                continue
+            pair = [p for p in str(key).split("|") if p]
+            if len(pair) != 2:
+                continue
+            a, b = pair
+            for side, other in ((a, b), (b, a)):
+                if side not in (self.war_objectives.get(key) or {}):
+                    _auto_assign_defense_objective(self, side, other, key)
 
     @classmethod
     def from_scenario(cls, scenario_path: str,

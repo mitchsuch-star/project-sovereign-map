@@ -104,18 +104,26 @@ class DelegationMatch:
     """
 
     __slots__ = ("marshal", "personality", "target", "scout_target",
-                 "target_display", "verb", "clause")
+                 "target_display", "verb", "clause", "spoken")
 
     def __init__(self, marshal: str, personality: str, target: str,
                  scout_target: str, target_display: str, verb: str,
-                 clause: str):
+                 clause: str, spoken: str = ""):
         self.marshal = marshal
         self.personality = personality
         self.target = target                # ATTACK target (marshal or region)
         self.scout_target = scout_target    # OBSERVE target (a region)
         self.target_display = target_display  # player-facing label
         self.verb = verb                    # matched delegation verb
-        self.clause = clause                # e.g. 'deal with Mack' (verbatim-ish)
+        self.clause = clause                # e.g. 'deal with Mack' (verb + RESOLVED target)
+        # FA-S17-14 (Phase 4): the player's OWN words for the same order —
+        # verb + the object phrase exactly as typed. CR-5 rider (d) is
+        # "words become the record", and the record must be his words: the
+        # ASK used to put the engine's resolution in quotation marks, so a
+        # player who typed "deal with the Austrians" was quoted back "deal
+        # with Archduke John" — a sentence he never spoke, attributed to
+        # him by the one marshal whose whole doctrine is the verbatim quote.
+        self.spoken = spoken or clause
 
 
 def _resolve_target(world, remainder: str,
@@ -304,8 +312,18 @@ def detect_delegation(world, raw_command: str,
 
     personality = (getattr(marshal, "personality", "") or "").lower()
     clause = f"{verb} {target_display}".strip()
+    # FA-S17-14: the player's own words. ONE narrowing, and R7 is why: when
+    # the typed phrase IS the raw scenario key ("deal with ArchdukeCharles"),
+    # humanizing it gives exactly the display form, so there is nothing to
+    # gloss and quoting the typed text would put a camelCase key in player
+    # copy — the one thing `humanize_entity_name` exists to prevent, pinned
+    # by CR-5's own review. In that case the quote is the clean clause.
+    _typed = str(remainder or "").strip()
+    if _typed and humanize_entity_name(_typed) == target_display:
+        _typed = target_display
+    spoken = f"{verb} {_typed}".strip() or clause
     return DelegationMatch(marshal.name, personality, target, scout_target,
-                           target_display, verb, clause)
+                           target_display, verb, clause, spoken)
 
 
 # Battle-STARTING actions. A cautious marshal must never be handed one of these
@@ -314,6 +332,11 @@ def detect_delegation(world, raw_command: str,
 # router clamps a cautious delegation that resolved to a battle action back to
 # scout. Deterministic safety net, not a personality change.
 BATTLE_ACTIONS = frozenset({"attack", "charge", "bombard"})
+
+# FA-S17-14 (slice 17, Phase 4) flip lever: the ASK quotes the player's own
+# clause and states the engine's reading beside it. False = the prior quote,
+# which put the resolved target inside the quotation marks.
+THE_QUOTE_IS_THE_PLAYERS_OWN = True
 
 # The aggressive -> engage arm resolves an inferred, AP-committing, undo-less
 # battle start. It rides a delegation-INFERRED strategic PURSUE order whose every
@@ -621,13 +644,20 @@ def resolve_live_cautious_prefix(match: DelegationMatch,
 def _ask_question(match: DelegationMatch) -> str:
     """The personality-named ASK copy (§6.3c legibility — the surface NAMES
     the marshal's character). Literal Soult declines to presume; a neutral /
-    unset marshal has no character to read, so Berthier asks plainly."""
+    unset marshal has no character to read, so Berthier asks plainly.
+
+    FA-S17-14 (Phase 4): the QUOTE is the player's own clause (`spoken`), and
+    the resolution is stated beside it rather than inside the quotation marks.
+    """
     who = match.target_display
+    quoted = match.spoken if THE_QUOTE_IS_THE_PLAYERS_OWN else match.clause
+    _resolution = ("" if quoted == match.clause
+                   else f" I read that as {who}.")
     if match.personality == "literal":
         return (f'{match.marshal} will not presume your meaning, Sire. '
-                f'"{match.clause}" — give battle, or observe {who}?')
+                f'"{quoted}" —{_resolution} give battle, or observe {who}?')
     # neutral / balanced / loyal / unset
-    return (f'How shall this be done, Sire? "{match.clause}" — '
+    return (f'How shall this be done, Sire? "{quoted}" —{_resolution} '
             f'is {who} to be attacked, or observed?')
 
 

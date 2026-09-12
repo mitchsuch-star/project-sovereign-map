@@ -122,7 +122,22 @@ def _delivered(resp):
 
 
 def _petition(world):
-    return J.queue_confrontation_petition(world, world.marshals["Ney"],
+    # FA-S17-12 (Phase 4): the quarrel has to be REAL. This fixture used to
+    # queue a confrontation card without ever setting `Ney.jealous_of`, which
+    # means the card it delivered was already stale at ANSWER time — the
+    # `_apply_confrontation_choice` guard would have replied "The moment has
+    # passed", and `test_the_card_is_answerable_and_the_channel_frees` passed
+    # on that reply because the stale arm also returns `success: True`. The
+    # delivery-time liveness predicate made it visible. Setting the resentment
+    # is what these three pins were always meant to be about.
+    ney = world.marshals["Ney"]
+    ney.jealous_of = "Davout"
+    # Long enough to SURVIVE the turn's own tick: the transport these three
+    # pins exist to prove is only observable if the card is still live when it
+    # is delivered, and a 1-turn quarrel is cleared by `_process_jealousy`
+    # before the response is built (which is FA-S17-12's whole finding).
+    ney.jealousy_turns_remaining = 5
+    return J.queue_confrontation_petition(world, ney,
                                           world.marshals["Davout"], 0)
 
 

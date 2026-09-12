@@ -1468,6 +1468,23 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                     or pressburg_ready):
                 coalition_blocked = True
 
+        # FA-S17-15 (slice 17, Phase 4): the same court sent a bilateral
+        # Peace Treaty envoy AND a coalition settlement offer for the SAME
+        # war in one turn (tyrant-accept/austerlitz T18: "ENVOYS WAITING 2 ·
+        # Austria peace · Austria settlement offer"); answering the
+        # settlement left the twin refusing with "We already have PEACE with
+        # France. A PEACE treaty would be a downgrade." FA-D7 made the
+        # PLAYER's peace verb read the desk before drafting; this is the
+        # AI's side of the same rule, through the same predicates.
+        if not coalition_blocked and THE_COURT_SENDS_ONE_ENVOY_PER_WAR:
+            _war = _find_war_instance_for_pair(world, nation, world.player_nation)
+            _war_id = str((_war or {}).get("war_id") or "")
+            if _war_id:
+                _pending = getattr(world, "pending_settlement_dialogues", None) or []
+                if (_settlement_offer_already_pending(_pending, war_id=_war_id)
+                        or _settlement_offer_already_promoted(world, war_id=_war_id)):
+                    coalition_blocked = True
+
         if not coalition_blocked:
             # Decide: armistice if war_score > -70, peace if truly desperate
             if war_score < -70:
@@ -3453,6 +3470,12 @@ def _settlement_offer_next_seq(
         if str(entry.get("offer_id") or "").startswith(prefix):
             seq += 1
     return seq
+
+
+# FA-S17-15 (slice 17, Phase 4) flip lever: a court with a settlement offer
+# already on the player's desk for a war does not also send a bilateral peace
+# envoy for that same war. False = both envoys, as measured.
+THE_COURT_SENDS_ONE_ENVOY_PER_WAR = True
 
 
 def _settlement_offer_already_pending(

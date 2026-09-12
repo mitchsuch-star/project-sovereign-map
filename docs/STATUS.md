@@ -137,9 +137,79 @@
 > nothing); the rout sentence quoted the dice while part e's helper applied
 > the floor; the order-free decision read "No active orders" on the ORDERS
 > tab. Sweep 23/23, 0 INERT at close (one pin of mine repaired — the client census asserted the arm's text and not its guard). `BASELINE_SERIES` byte-identical on arm 0 (41 values, provinces identical) — the charge and issuance guards are player-only (the AI's recovery flight is a tactical move), the rest is display; M1–M7 untouched by construction.
-> **NEXT = the eleven routed defect rows (FA-S17-9..19) and the nine design
-> items (FA-S17-D1..D9), then ROADMAP position 10, the shippable build. The
-> audit's original 128 rows and 25 rulings are CLOSED.**
+> **✅ THE FA AUDIT IS CLOSED — September 12, 2026. `tools/fa_row_tally.py`
+> reads 0 defect rows and 0 design rows/gates open, of 268 filed (248 closed,
+> 20 disposed). NEXT = ROADMAP position 10, the shippable build.**
+>
+> **PHASE 4 — "THE RE-SCORE'S OWN ROWS" — LANDED.** Landing record = the boxed
+> **SLICE 17 (Phase 4)** block in `BUG_FIXES.md` (authoritative). The eleven
+> rows Phase 3 routed (FA-S17-9..19) are FIXED and all nine rulings
+> (FA-S17-D1..D9) are TAKEN — four built, four declined on the record with
+> their measurements, one folded into FA-S17-12. Sweep **52/52, 0 INERT, 0
+> BROKEN**; parse harness EXIT=0 (46 scripts, 7 scenes); M1–M7 and
+> `BASELINE_SERIES` byte-identical **with the reason measured** (the two levers
+> with mechanical reach flipped OFF together reproduce the series — no
+> settlement offer reaches the desk in 40 ambient turns and the series boots
+> from scenario, never from a save; every other Phase-4 lever is display-only).
+>
+> **Three rows were corrected by their own reproduction, two in ways that
+> changed what shipped.** **FA-S17-10 is a HARNESS defect and the memo said it
+> was a game defect** — PT-D5 settled in August that the two casualty figures
+> are the lead's corps and the whole army and the producer already labels them;
+> the DIGEST dropped the label, so 14 of 14 pairs read as a contradiction. No
+> production behaviour changed. **FA-S17-11's evidence is half wrong** —
+> ambient-marengo T26 captured Soult, not the Emperor (two lines in one block),
+> and the real case moves the seam: a capture on the field reached **no report
+> at all, at any scale**, so the skirmish gate is untouched. **FA-S17-17's
+> filed fix shape is right and incomplete** — the migration has to be
+> Europe-scoped, because the legacy fixture world boots at war with no
+> objectives BY DESIGN and an unscoped pass broke `to_dict`/`from_dict`
+> identity, which `test_serialization_enforcement` exists to catch.
+>
+> **BUILT: D3** (a war declared ON US names its cause — AI-3's "no unexplained
+> war" was honoured for a war between two other powers and not for a war on
+> France; derived through a ladder the engine already records and labelled
+> through the ledger's own source) · **D5** (the Guard's last road is named
+> before it is spent) · **D8** (the band where the mechanic BITES announces
+> itself — ⚠ the row's "one tick before the rebellion" framing does not
+> survive its own reproduction; what is silent is the VS-4 CROSSING at 59 and
+> 34) · **D9** (the orphan `proposal_result_popup` RETIRED — scene, script and
+> parse-harness row deleted, because the outcome already reaches the player
+> twice; CLAUDE.md's row that sent builders to it is corrected) · **D4** folded
+> into FA-S17-12.
+>
+> **DECLINED with measurements: D1** — its premise is **refuted**: across 212
+> archived runs there are 178 defence objectives, **11 tick at all** (mean
+> 0.81) and **3 reach the 25 cap, all three the same board on three repeats of
+> one seed**; the dissent and a re-open condition are recorded. **D2** to EC-2
+> pass 2 (a gold sink is an economy pass). **D7** to the FA-D27 balance owner.
+>
+> **⚠ FOR USER CONFIRMATION — FA-S17-D6 is built and its measurement dates the
+> FA-D27 re-open rather than retiring it.** The COMMANDED arm is committed
+> (forty loops, 160 of 160 action points) and the driver gained `--declare-war`
+> (default **cancel**) for the confirm it had been answering "Proceed" on 9 of
+> 10 Phase-3 runs. **A commanded France ends turn 40 holding 20 / 24 / 22 of 28
+> provinces on three seeds — the re-open condition does not fire on a France
+> that is still being played** (0 of 3, against 4 of 5 on the tyrant-accept arm
+> whose script stops at loop 22–30); threat falls 15 → 9 and the board is flat
+> for nineteen turns. ⚠ Honest limit: four French marshals die between turns 30
+> and 37 on the historical seed, so the arm's last ten turns spend about half
+> their orders on dead men — **Fr@30 is the sounder read**. The ruling stands at
+> (a); whether a HUMAN campaign feels the same is unchanged and still owed.
+>
+> **⛔ Two lessons, both from the sweep and both about my own code.** Two INERT
+> mutations were not weak pins: the charge arm's hand-rolled case-insensitive
+> fallback was redundant with `world.get_marshal`, and D8's "is this a fall"
+> guard was **provably unreachable** (`old >= BOUND > new` already entails
+> `new < old`). Both **deleted rather than re-pinned**. A third INERT was the
+> familiar kind — a consumer census matching the CALL and not the APPEND — and
+> gained a behavioural sibling. And the first cut of the D8 census **matched
+> the comment explaining why the latch had been removed**: the helper now
+> strips comments and deliberately KEEPS string literals, because a dictionary
+> key is exactly what a row-key census must be able to see, with a sensitivity
+> arm proving it still can. **One standing guard caught a regression before the
+> hook did** — VS-R pins that the loyalty pass stamps no new key on the vassal
+> row, and D8's first cut stored a latch there.
 >
 > **PHASE 3 — "THE GAME IS PLAYED AND RE-SCORED" — HELD.** Memo of record =
 > `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_11.md` (authoritative); landing record for the code = the boxed

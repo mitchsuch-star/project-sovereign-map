@@ -126,6 +126,61 @@ THE_STALEMATE_QUOTES_ITS_PRICE = True   # False = the buttons carry no figure
 # literal by nature — cannon fire never redirects or interrupts it. False =
 # an ordinary order (the prior behaviour: abandoned for any stake battle).
 THE_ROAD_HOME_IS_LITERAL = True
+# FA-S17-9 (slice 17, Phase 4) flip lever: a pursuit that loses its quarry
+# ends with a verdict — the trail went cold, and where he was making for —
+# instead of the bare intelligence refusal the ISSUANCE gate uses for an
+# order it never accepted. Measured: emperor-historical turn 13 accepted a
+# pursuit on a real sighting and turn 14 cancelled it with the same sentence
+# the issuance gate prints, so the player could not tell a refused order from
+# an order that had been running. False = the prior sentence.
+THE_COLD_TRAIL_IS_AN_OUTCOME = True
+# FA-S17-13 (slice 17, Phase 4) flip lever: ONE answer for one state. A
+# hostile verb aimed at a court France is at PEACE with got four different
+# replies — `march` named the road ("Secure open borders or declare war to
+# pass"), the in-range attack staged the war-purpose declaration, `pursue`
+# refused flat with a raw scenario key ("Cannot pursue ArchdukeCharles — not
+# at war with Austria", ~70 times across the Phase-3 accept arms), and
+# `charge` misstated the cause entirely ("Cannot find target 'Mack' for
+# Glorious Charge" — the marshal exists; the war does not). The two dishonest
+# arms now read the sentence the march arm already used. False = the prior
+# four replies.
+THE_PEACEFUL_COURT_GETS_ONE_ANSWER = True
+
+
+def hostile_verb_at_peace(world, marshal, enemy, verb: str) -> str:
+    """FA-S17-13: the one sentence for `verb` aimed at a court at peace.
+
+    Returns '' when the pair IS at war (or the state is unreadable), so a
+    caller may use it as the whole predicate. The wording follows the
+    movement refusal that already got this right — name the state, name the
+    two roads out — and humanizes the marshal's name (NPC-12's class, which
+    is why the pursue arm printed `ArchdukeCharles`).
+    """
+    if not THE_PEACEFUL_COURT_GETS_ONE_ANSWER:
+        return ""
+    if enemy is None or marshal is None:
+        return ""
+    from backend.display_names import humanize_entity_name
+    nation = str(getattr(enemy, "nation", "") or "")
+    own = str(getattr(marshal, "nation", "") or "")
+    if not nation or not own or nation == own:
+        return ""
+    try:
+        if world.is_at_war(own, nation):
+            return ""
+    except Exception:
+        return ""
+    key = world._make_diplo_key(own, nation)
+    state = str((getattr(world, "diplomatic_states", {}) or {}).get(key, "PEACE"))
+    who = humanize_entity_name(getattr(enemy, "name", "") or "")
+    if state == "ARMISTICE":
+        turns = int((getattr(world, "armistice_cooldowns", {}) or {}).get(key, 1))
+        return (f"We hold an armistice with {nation}, Sire — {who} may not be "
+                f"touched for {turns} more turn(s). Let it lapse, or break it "
+                f"by declaring war.")
+    return (f"We are not at war with {nation}, Sire — {who} may not be "
+            f"attacked while the peace holds. Declare war on {nation} first, "
+            f"or leave him be.")
 
 
 def _continue_order_verb(command_type) -> str:
@@ -2569,13 +2624,24 @@ class StrategicOrderProcessor:
         # Player marshal with zero intel cannot pursue
         # ═══════════════════════════════════════════════════════════
         if is_player_marshal and not last_known:
+            _quarry_name = humanize_entity_name(str(order.target))
+            if THE_COLD_TRAIL_IS_AN_OUTCOME:
+                # FA-S17-9: he WAS given this order on a sighting; say that
+                # the trail went cold, and from where, so a running order's
+                # end reads differently from an order never accepted.
+                _from = ((order.path[-1] if getattr(order, "path", None) else "")
+                         or marshal.location)
+                return self._break_order(marshal, world,
+                    f"The trail has gone cold, Sire — {_quarry_name} was last "
+                    f"making for {_from}, and {marshal.name} has no further "
+                    f"word of him. Scout for him to take up the chase again.")
             return self._break_order(marshal, world,
                 # N27 (CA9), unfiled sibling found while pinning the
                 # PURSUE prose: this is the line the player actually
                 # meets, and it named the raw key —
                 # "No intelligence on ArchdukeCharles's position, Sire."
                 f"No intelligence on "
-                f"{humanize_entity_name(str(order.target))}'s position, "
+                f"{_quarry_name}'s position, "
                 f"Sire.")
 
         # Same region? Engage and complete (physical encounter — real data).

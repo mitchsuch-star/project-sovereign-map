@@ -42,8 +42,28 @@ def _display_defiance_action(action: str) -> str:
     return _DEFIANCE_DISPLAY.get(action, action.replace("_", " "))
 
 
+# FA-S17-16 (slice 17, Phase 4) flip lever: one envoy, one name. The
+# letter-book titles a row from the TERMS the letter carries (PT-D3's landed
+# decision — a `friendly_gift` at relation < 0 is rewritten into an
+# `open_borders` proposal downstream, and titling the row "Gift of
+# Friendship" above a body reading "Proposal: Open Borders Agreement"
+# contradicts itself), while the campaign log named the CONTEXT label — the
+# court's original intent. Both are defensible alone; together the player
+# reads two names for one envoy ("LETTER Hanover: Open Borders Agreement"
+# then "We rejected Hanover's gift of friendship proposal", 174 log rows
+# across the Phase-3 tree). The log now prefers the terms-derived name the
+# player actually answered, and the context label — which the batching
+# predicate keys on — is untouched. False = the prior label.
+THE_LOG_NAMES_WHAT_WAS_PROPOSED = True
+
+
 def _proposal_label(event: dict) -> str:
     """Player-facing label for an event's proposal_type. Never the raw key.
+
+    FA-S17-16 (Phase 4): when the producer recorded the terms-derived type
+    (`proposal_type_offered`), that is the name the player saw on the letter
+    and the one this line uses. The `proposal_type` key stays the court's
+    original intent, because the collapse predicate keys on it.
 
     CA8-23 (creative audit, Aug 4 2026): ten call sites in this module each
     hand-rolled `(event.get("proposal_type") or "proposal").replace("_", " ")`,
@@ -68,7 +88,12 @@ def _proposal_label(event: dict) -> str:
     a sentence rather than "Unknown Proposal".
     """
     from backend.display_names import proposal_display_name
-    raw = str(event.get("proposal_type") or "").strip()
+    # FA-S17-16: prefer the type the letter CARRIED (what the player read and
+    # answered) over the court's original intent, when the producer knew it.
+    raw = ""
+    if THE_LOG_NAMES_WHAT_WAS_PROPOSED:
+        raw = str(event.get("proposal_type_offered") or "").strip()
+    raw = raw or str(event.get("proposal_type") or "").strip()
     if not raw:
         return "proposal"
     return proposal_display_name(raw).lower()
