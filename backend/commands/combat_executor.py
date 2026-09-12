@@ -3388,6 +3388,18 @@ class CombatExecutor:
     # his corps' remaining strength (the squares die so the berline gets
     # out). Only true encirclement can take him.
     GUARD_ESCAPE_TOLL = 0.30
+    # FA-S17-7 (slice 17, Phase 3, September 11 2026) flip lever: the Guard's
+    # toll was paid even when it left the Emperor under the rubble floor
+    # (`take_casualties` zeroes a corps below 50 men) — the report said "the
+    # Guard bought the road", the next morning said "the Emperor himself is
+    # TAKEN" by a court that never fought him (emperor/historical turn 28:
+    # beaten by Britain's Moore, held by Russia). A road the Guard cannot pay
+    # for is no road: the toll that would spend him is treated as the
+    # encirclement it is, and the player is ASKED (fight / cut our way out)
+    # or the AI sovereign takes his deterministic last stand — captured by
+    # the army that beat him. False = the prior toll.
+    THE_GUARD_CANNOT_BUY_A_ROAD_IT_CANNOT_PAY = True
+    GUARD_RUBBLE_FLOOR = 50
     # FA-1 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE idiom.
     # False reproduces the pre-slice behaviour byte-for-byte: a second defeat
     # with a last-stand question standing RE-ASKS it and suppresses the
@@ -3509,7 +3521,11 @@ class CombatExecutor:
         # authored: he was surrounded.
         # ══════════════════════════════════════════════════════════════
         if getattr(marshal, "is_sovereign", False):
-            if not encircled:
+            _guard_spent = False
+            if not encircled and self.THE_GUARD_CANNOT_BUY_A_ROAD_IT_CANNOT_PAY:
+                _toll = int(marshal.strength * self.GUARD_ESCAPE_TOLL)
+                _guard_spent = (int(marshal.strength) - _toll) < self.GUARD_RUBBLE_FLOOR
+            if not encircled and not _guard_spent:
                 toll = int(marshal.strength * self.GUARD_ESCAPE_TOLL)
                 if toll > 0:
                     marshal.take_casualties(toll)
@@ -3537,10 +3553,14 @@ class CombatExecutor:
                     "options": ["fight_to_the_last", "attempt_breakout"],
                     "sovereign": True,
                     "message": (
-                        f"{marshal.name} is ENCIRCLED at {marshal.location} "
-                        f"with {int(marshal.strength):,} men, Sire — the "
-                        f"Guard dies; it does not surrender. Fight to the "
-                        f"last, or cut our way out."
+                        (f"{marshal.name}'s Guard is SPENT at {marshal.location} — "
+                         f"{int(marshal.strength):,} men cannot buy another road, "
+                         f"Sire. Fight to the last, or cut our way out.")
+                        if _guard_spent else
+                        (f"{marshal.name} is ENCIRCLED at {marshal.location} "
+                         f"with {int(marshal.strength):,} men, Sire — the "
+                         f"Guard dies; it does not surrender. Fight to the "
+                         f"last, or cut our way out.")
                     ),
                 }
                 marshal.pending_interrupt = interrupt

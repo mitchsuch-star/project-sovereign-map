@@ -999,6 +999,34 @@ def record_vassal_break(
 EVERY_BREAK_COMPLETES_ITSELF = True
 
 
+# FA-S17-6 (slice 17, Phase 3, September 11 2026) flip lever: every exit a
+# rebellion takes retires the "rebellion imminent" question. Only
+# `transfer_vassal` and `release_vassal` purged it; the WAR, independent and
+# armistice exits of `check_vassal_rebellion` left it standing — delivered
+# the turn AFTER "Switzerland has rebelled", answering "rebellion will
+# follow", and, as the current dialogue, refusing the letter-book and a
+# settlement offer for 2-5 turns ("A satellite on the edge of revolt still
+# awaits your word"). Measured on 9 of 17 ambient/tyrant/emperor boards.
+THE_REBELLION_RETIRES_ITS_QUESTION = True
+
+
+def _retire_rebellion_question(world, vassal_name: str) -> None:
+    """Purge the standing `vassal_rebellion_imminent` popup(s) and dialogue
+    for `vassal_name` — the one purge `transfer_vassal` always did."""
+    if getattr(world, 'vassal_rebellion_imminent_popup', None):
+        if world.vassal_rebellion_imminent_popup.get("nation", "") == vassal_name:
+            world.vassal_rebellion_imminent_popup = None
+    if hasattr(world, 'vassal_rebellion_imminent_popups'):
+        world.vassal_rebellion_imminent_popups = [
+            p for p in world.vassal_rebellion_imminent_popups
+            if p.get("nation") != vassal_name
+        ]
+    world.dialogue_manager.remove_matching(
+        lambda d: (d.get("type") == "vassal_rebellion_imminent"
+                   and d.get("context", {}).get("vassal_name") == vassal_name)
+    )
+
+
 def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
     """The four things that are TRUE of a satellite leaving, however it left.
 
@@ -1121,6 +1149,8 @@ def check_vassal_rebellion(world) -> List[dict]:
                 # out here would double them (measured: sibling
                 # loyalty -20, relation -100).
                 complete_vassal_break(world, vassal_name, lord)
+                if THE_REBELLION_RETIRES_ITS_QUESTION:
+                    _retire_rebellion_question(world, vassal_name)  # FA-S17-6
                 continue
         else:
             from backend.game_logic.diplomacy import (
@@ -1218,10 +1248,14 @@ def check_vassal_rebellion(world) -> List[dict]:
                 # mechanical effects, and it is the exit BOTH big satellites
                 # take on the 1805 board.
                 complete_vassal_break(world, vassal_name, lord)
+                if THE_REBELLION_RETIRES_ITS_QUESTION:
+                    _retire_rebellion_question(world, vassal_name)  # FA-S17-6
                 continue
 
         # The four mechanical effects, shared with the other two exits.
         complete_vassal_break(world, vassal_name, lord)
+        if THE_REBELLION_RETIRES_ITS_QUESTION:
+            _retire_rebellion_question(world, vassal_name)  # FA-S17-6
         if not EVERY_BREAK_COMPLETES_ITSELF:
             for marshal in list(world.marshals.values()):
                 if (getattr(marshal, 'original_nation', None) == vassal_name
@@ -1899,19 +1933,9 @@ def transfer_vassal(world, vassal_name: str, to_lord: str,
     set_diplomatic_state(world, to_lord, vassal_name, "VASSAL", reason)
     _reconcile_vassal_diplomacy(world, to_lord, vassal_name)
 
-    # Clear stale rebellion popups/dialogues (mirrors release_vassal)
-    if getattr(world, 'vassal_rebellion_imminent_popup', None):
-        if world.vassal_rebellion_imminent_popup.get("nation", "") == vassal_name:
-            world.vassal_rebellion_imminent_popup = None
-    if hasattr(world, 'vassal_rebellion_imminent_popups'):
-        world.vassal_rebellion_imminent_popups = [
-            p for p in world.vassal_rebellion_imminent_popups
-            if p.get("nation") != vassal_name
-        ]
-    world.dialogue_manager.remove_matching(
-        lambda d: (d.get("type") == "vassal_rebellion_imminent"
-                   and d.get("context", {}).get("vassal_name") == vassal_name)
-    )
+    # Clear stale rebellion popups/dialogues (mirrors release_vassal) —
+    # FA-S17-6: one helper, shared with every rebellion exit.
+    _retire_rebellion_question(world, vassal_name)
 
     # R50 mirror: leaving the player's web leaves the Continental System.
     if from_lord == getattr(world, 'player_nation', 'France'):

@@ -137,10 +137,40 @@
 > nothing); the rout sentence quoted the dice while part e's helper applied
 > the floor; the order-free decision read "No active orders" on the ORDERS
 > tab. Sweep 23/23, 0 INERT at close (one pin of mine repaired — the client census asserted the arm's text and not its guard). `BASELINE_SERIES` byte-identical on arm 0 (41 values, provinces identical) — the charge and issuance guards are player-only (the AI's recovery flight is a tactical move), the rest is display; M1–M7 untouched by construction.
-> **NEXT = push, then Phase 3 (play and re-score every pillar — the driver
-> arms incl. the FA-D27 five with every Phase-2 lever up, the tutorial, naval,
-> both fixtures, one anthropic arm, the Mode-C pass on port 8006, the review
-> fleet; memo `docs/audits/PLAYTEST_FULL_RESCORE_<date>.md`).**
+> **NEXT = the eleven routed defect rows (FA-S17-9..19) and the nine design
+> items (FA-S17-D1..D9), then ROADMAP position 10, the shippable build. The
+> audit's original 128 rows and 25 rulings are CLOSED.**
+>
+> **PHASE 3 — "THE GAME IS PLAYED AND RE-SCORED" — HELD.** Memo of record =
+> `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_11.md` (authoritative); landing record for the code = the boxed
+> **SLICE 17 (Phase 3)** block in `BUG_FIXES.md`. 34 driver runs on the
+> committed instrument, 34 completed, 0 blocked, 0 unknown blockers, 0 script
+> preconditions: the FA-D27 five arms with every Phase-2 lever up, the
+> re-open condition's own arm (the tyrant and Emperor scripts WITH
+> `--diplomacy accept`, 5 seeds each), the tutorial, the naval Descent, both
+> fixtures, a reload arm, one live-parser arm, and a Mode C pass on port 8006
+> (four screenshots). **Directional ≈6.8 → ≈6.9** — command & parsing 6.5 →
+> 7.5, narration 6.5 → 7.0, naval 6.5 → 7.0, UI/UX 7.0 → 7.5; marshal drama
+> 7.5 → 7.0 and economy 6.5 → 6.0; four held. **The re-score found a P1 and
+> fixed it: the peace table PAID THE LOSER** — the defense objective ticked
+> against every opposing court whoever held the province and the war-level
+> `ticking` sum was never clamped, so a France that had lost Paris and ten
+> provinces read as winning (turn 31 on the ambient board: **+2 → −29**) and
+> was offered indemnities by the courts beating her; re-running the ten
+> played arms turns *"Offering 3169 gold"* into *"Asking 5987 gold"*. Three
+> more fixed (the rebellion question outliving its rebellion; the Emperor
+> captured off the field by his own Guard's toll; the cascade one-liner's
+> "Unknown"), plus a harness P2 — the driver never read
+> `deferred_marshal_petition`, so the Jealousy channel was unexercised and
+> every Phase-3 claim about it predates the fix. **⚠ FOR USER CONFIRMATION:
+> the FA-D27 re-open fired** on the tyrant-accept arm (4 of 5 below 20) and
+> not on emperor-accept (2 of 5); Paris held on 34 of 34. Option (b) is
+> measured INERT (treasury 800 → 2,000 changes nothing on ten runs; the
+> player's AP is hardcoded 4), so **no blessed number is moved and the ruling
+> stands at (a) with the re-open recorded** — the France-side lever is left to
+> a human campaign. Sweeps 4/4 and 10/10, 0 INERT; `BASELINE_SERIES`
+> re-recorded ONCE for part 1's contact-list lever and byte-identical on
+> part 2's (a fact about the instrument, stated as one).
 >
 > **PHASE 2b — "THE MECHANICS RULINGS" — LANDED.** The last seven open
 > design rows — FA-D4, D5, D6, D7, D19, D23, FA-S2-D1 — reproduced on the

@@ -2303,7 +2303,10 @@ def format_event_oneliner(event: dict) -> str:
         return f"War declared: {aggressor} → {target}"
 
     if event_type == "defensive_cascade":
-        nation = event.get("nation", "Unknown")
+        # FA-S17-8 (Phase 3): the producer writes `defender`; this read
+        # `nation` and printed "Unknown joins war via …" twenty times across
+        # seventeen Phase-3 runs.
+        nation = event.get("defender") or event.get("nation", "Unknown")
         ally = event.get("ally", "Unknown")
         return f"Defensive cascade: {nation} joins war via {ally}"
 

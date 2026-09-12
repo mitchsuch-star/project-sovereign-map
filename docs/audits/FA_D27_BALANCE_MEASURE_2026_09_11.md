@@ -46,11 +46,11 @@ and a France that PROPOSES peace.
 | propose-ulm | 28 | 28 | 28 | **28** | 30 28 26 24 22 20 | held | free | 12 |
 | propose-austerlitz | 28 | 27 | 27 | **27** | 26 24 22 20 18 16 | held | free | 10 |
 | tyrant-historical | 28 | 28 | 18 | **10** | 60 57 46 45 44 43 | held | free | 34 |
-| tyrant-ulm | 32 | 29 | 28 | **11** | 54 53 52 51 50 47 | held | free | 49 |
-| tyrant-austerlitz | 27 | 15 | 4 | **2** | 4 3 4 3 2 1 | held | free | 49 |
+| tyrant-ulm | 32 | 29 | 28 | **11** | 54 53 52 51 50 47 | held | **captured (Russia)** ⚠ | 49 |
+| tyrant-austerlitz | 27 | 15 | 4 | **2** | 4 3 4 3 2 1 | held | **captured (Britain)** ⚠ | 49 |
 | emperor-historical | 29 | 31 | 33 | **24** | 95 92 91 90 79 78 | held | **captured t35** | 55 |
 | emperor-ulm | 28 | 17 | 11 | **13** | 2 3 2 1 0 0 | held | free | 27 |
-| emperor-austerlitz | 28 | 28 | 29 | **28** | 79 77 75 73 71 69 | held | **captured** | 42 |
+| emperor-austerlitz | 28 | 28 | 29 | **28** | 79 77 75 73 71 69 | held | free (128 men) ⚠ | 42 |
 
 Seed means: ambient Fr@30 **13.0** / Fr@40 **12.8** (the slice-4 review's "after"
 tree: 3.9 / 2.2; its own fixes then measured 5); accept 27.7 / 27.7; propose
@@ -80,10 +80,16 @@ provinces, not the roster).
    engine, was the confound.
 3. **A fighting France that refuses peace pays for it.** The tyrant script
    (all-out attack, plunder, insist) ends 2–11; the Emperor script holds
-   13–28 but **Napoleon is captured on 2 of 3 seeds** (historical turn 35 by
-   Kutuzov at Vienna; austerlitz) — and the run continues, because captivity
-   is peace LEVERAGE (NP-4's Brétigny rule puts his return as the first clause
-   of any draft), not an ending.
+   13–28 but **Napoleon is captured on 1 of 3 seeds** (historical, turn 35, by
+   Kutuzov at Vienna; on austerlitz he ends the run FREE with 128 men) — and
+   the run continues, because captivity is peace LEVERAGE (NP-4's Brétigny
+   rule puts his return as the first clause of any draft), not an ending.
+   ⚠ *Corrected September 11, 2026 (Phase 3): the first cut read "captured on
+   2 of 3" off the run summariser's Napoleon column, whose regex matched a
+   PROVINCE captured within eighty characters of his name; the saves say 1 of
+   3 here — and the same regex UNDER-counted the tyrant rows, where Russia
+   (ulm) and Britain (austerlitz) did take him. The three ⚠ cells above are
+   the corrected reading from each run's final autosave.*
 4. **Nothing in the table shows the AI "too strong" rather than "finally not
    wasting its actions".** A France that does nothing and refuses every offer
    loses the Third Coalition war on most seeds; a France that answers the
@@ -107,3 +113,37 @@ peace-route honesty (ruled below), not a constant.
 
 FA-D29 (a 500-man stub shields a garrison from P4) is measured and ruled in the
 same session — see its row.
+
+## 5. Phase-3 addendum (September 11, 2026) — the re-open condition fired
+
+Re-measured on master `1ae82476` with every Phase-2 lever up (memo of record
+for the whole re-score: `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_11.md`
+§1 and §3). The five arms here, seed means at turn 40: ambient **10.6** (was
+12.8), accept **27.0**, propose **26.7**, tyrant **3.3**, emperor **6.7**;
+Paris held on every run; the Emperor captured on 3 of 17 (ambient-marengo,
+tyrant-austerlitz, emperor-historical — read from the saves).
+
+The §4 condition's own arm — the scripted France that FIGHTS and ANSWERS
+(`--diplomacy accept` on the two scripts, five seeds): emperor-accept 19 / 26
+/ 18 / 22 / 21 (below 20 on 2 of 5), tyrant-accept 19 / 13 / 10 / 8 / 25
+(below 20 on **4 of 5** — the condition is MET on this arm). Option (b) was
+then measured on the same ten runs: **starting treasury 800 → 2,000 changes
+no outcome** (every Fr@40 identical; the scripts buy nothing the gold gates),
+and **starting AP is not a lever this instrument can pull** (the player's AP
+is the hardcoded 4 of `WorldState.calculate_max_actions`, and the scripted
+France never spends its fourth action on any turn of any run).
+
+⚠ **Re-taken on the shipped tree** (after the FA-S17-5 P1 — the peace table
+had been paying the loser): emperor-accept 17 / 22 / 23 / 21 / 26 (below 20 on
+1 of 5, was 2) and tyrant-accept 19 / 13 / 8 / 25 / 13 (below 20 on 4 of 5,
+unchanged). The disposition is unchanged and now rests on the shipped board.
+
+**Disposition — ⚠ FOR USER CONFIRMATION:** no blessed number is moved on an
+inert measurement. The ruling stands at (a) with the re-open RECORDED as
+fired and measured; the France-side lever can only be judged by a HUMAN
+campaign that actually spends the extra gold or AP, and the second condition
+(Paris before turn 20 without a refused offer) never fired on 34 runs. Two
+numbers a human campaign should check first: the passive board's drift
+(12.8 → 10.6 provinces, no constant changed — the purpose, the wait and the
+ordered contact list) and the Emperor's captivity (3 of 31 saved runs, once
+on a passive board).

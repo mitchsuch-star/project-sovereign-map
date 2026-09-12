@@ -109,18 +109,62 @@ class TestSideWarScoreSingleSource:
         assert side["decisive"] == DECISIVE_SCORE_CAP, side
 
     def test_the_total_clamps_hold_on_both_aggregates(self):
-        """[Probe B] both docstrings promise ±100; both are reachable."""
-        from backend.game_logic.diplomacy import sum_stored_side_score
+        """[Probe B] both docstrings promise ±100; both are reachable.
+
+        ⚠ RE-SITED September 11, 2026 by FA-S17-5 (Phase 3), and the
+        re-site is the point of the fix. This pin used to reach 100 by
+        giving two pairs `accumulated_ticking: 70` — the ONE component the
+        war-level aggregate did not re-clamp, which is exactly the defect
+        that let a France holding nine provinces and no capital read as
+        winning a nine-court war and be PAID indemnities by the courts
+        beating her. That vehicle was never reachable anyway:
+        `accumulate_war_objective_ticking` caps each pair at TICKING_CAP
+        (25), so 70 was a state the engine cannot produce.
+
+        The claim under test is unchanged — the TOTAL clamps at ±100 — and
+        it is reached now the way a real board reaches it: components that
+        legitimately stack (a two-front battle streak at its cap, decisive
+        battles at theirs, both capitals taken, and the ticking each pair
+        can really hold). The ticking bound is asserted beside it so the
+        FA-S17-5 clamp cannot be removed without reddening this pin too."""
+        from backend.game_logic.diplomacy import (
+            DECISIVE_SCORE_CAP, TICKING_CAP, sum_stored_side_score,
+        )
         world = self._world_with_battles()
         key_a = world._make_diplo_key("France", "Austria")
         key_p = world._make_diplo_key("France", "Prussia")
-        # Live components: two pairs of unclamped ticking sum past 100.
         world.war_objectives = {
-            key_a: {"France": {"accumulated_ticking": 70}},
-            key_p: {"France": {"accumulated_ticking": 70}},
+            key_a: {"France": {"accumulated_ticking": TICKING_CAP}},
+            key_p: {"France": {"accumulated_ticking": TICKING_CAP}},
         }
-        world.battle_records = {}
-        world.decisive_battles = {}
+        world.battle_records = {
+            key_a: [{"winner": "France", "turn": 10, "location": "Bohemia"}
+                    for _ in range(12)],
+            key_p: [{"winner": "France", "turn": 10, "location": "Berlin"}
+                    for _ in range(12)],
+        }
+        world.decisive_battles = {
+            key_a: [{"winner": "France", "turn": 10}] * 4,
+            key_p: [{"winner": "France", "turn": 10}] * 4,
+        }
+        # France holds both enemy homelands — territory and both capitals,
+        # the components a two-front conqueror really banks.
+        for court in ("Austria", "Prussia"):
+            for name in world.nation_starting_regions.get(court, []):
+                region = world.get_region(name)
+                if region:
+                    region.controller = "France"
+        world.invalidate_active_nations_cache()
+        components = calculate_side_war_score(
+            "France", ["Austria", "Prussia"], world, return_components=True)
+        # FA-S17-5: the ninth component is bounded like its siblings — two
+        # pairs at the pair cap do not make a 50-point claim.
+        assert components["ticking"] == TICKING_CAP, components
+        assert components["decisive"] == DECISIVE_SCORE_CAP, components
+        # …and the raw sum of the parts overruns, so the ±100 total clamp is
+        # genuinely exercised rather than merely satisfied.
+        assert sum(v for k, v in components.items() if k != "total") > 100, components
+        assert components["total"] == 100, components
         assert calculate_side_war_score(
             "France", ["Austria", "Prussia"], world) == 100
         # Stored sums: two +80 pair scores clamp to 100.

@@ -1528,8 +1528,15 @@ class Answerer:
                 followups.append(self.t.post("/command", {"command": "1"}))
 
         # 4. Marshal petition --------------------------------------------------
-        if response.get("marshal_petition"):
-            payload = _as_dict(response["marshal_petition"])
+        # FA slice 17 Phase 3 (September 11, 2026): the end-turn response
+        # has carried the petition under `deferred_marshal_petition` since
+        # slice 6 (backend/main.py; the client reads that key), and the
+        # driver read only `marshal_petition` — 25 of 34 Phase-3 runs
+        # answered no petition at all and the rest answered after it lapsed.
+        _petition_raw = (response.get("marshal_petition")
+                         or response.get("deferred_marshal_petition"))
+        if _petition_raw:
+            payload = _as_dict(_petition_raw)
             options = payload.get("options") or []
             enabled = [o for o in options if _enabled(o)]
             choice = None

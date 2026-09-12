@@ -42,7 +42,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (September 2, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (September 11, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+>
+> **▶ THE FA AUDIT IS CLOSED — Phases 1, 2 and 3 landed and pushed September 11, 2026** (`e6c9880b` → `1ae82476` + the Phase-3 part-2 commit). **All 38 open defect rows and all 25 open design rulings are disposed.** Phase 1 built the defect rows and its review round; **Phase 2a** took fifteen legibility rulings behind fifteen levers and RULED FA-D27 on a 17-run balance memo; **Phase 2b** took the last seven mechanics rulings (FA-D4 the spine war's purpose · FA-D5 the audience that can pay him · FA-D6 the literal road home · FA-D7 the desk read before the draft · FA-D19 the detachment that feeds stability · FA-D23 trust at the field · FA-S2-D1 the enemy's one-turn wait); **Phase 3** played every pillar and re-scored.
+>
+> **▶ THE RE-SCORE — memo of record `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_11.md`, authoritative.** 34 driver runs on the committed instrument (`tools/playtest_driver.py`), 34 completed, 0 blocked, 0 unknown blockers, 0 script preconditions — the FA-D27 five arms with every Phase-2 lever up, the re-open condition's own arm (5 seeds × 2 scripts with `--diplomacy accept`), the tutorial, the naval Descent (Trafalgar and a landing at Munster), both fixtures, a reload arm, one live-parser arm, and a Mode C client pass on `SOVEREIGN_PORT=8006`. **Directional ≈6.8 → ≈6.9**: command & parsing 6.5 → **7.5**, narration 6.5 → **7.0**, naval 6.5 → **7.0**, UI/UX 7.0 → **7.5**; marshal drama 7.5 → **7.0** and economy 6.5 → **6.0**; combat legibility 7.0, diplomacy 6.0, AI aliveness 7.5 and vassals 6.5 held. **The re-score found and fixed a P1 — the peace table PAID THE LOSER** (the defense objective ticked against every opposing court whoever held the province, and the war-level `ticking` sum was never clamped: a France that had lost Paris and ten provinces scored **+2 winning**, now **−29**, and Britain's offer turns from *"Offering 3169 gold"* into *"Asking 5987 gold"*) — plus the rebellion question that outlived its rebellion, the Emperor captured off the field by his own Guard's toll, the cascade one-liner's "Unknown", and a harness P2 (the driver never read `deferred_marshal_petition`, so **every Phase-3 claim about the Jealousy channel predates that fix**).
+>
+> **⚠ FIVE RULINGS AWAIT USER CONFIRMATION** (each recorded on its own row): **FA-D29 / FA-S17-1** (a reinforced side bleeds by the men it commits), **FA-D4** (every boot war carries the declaration's defensive purpose), **FA-S2-D1** (the enemy waits one turn for a cornered corps — a user gate), **FA-D23** (a Broken marshal brings half his weight), and **the FA-D27 re-open**, which FIRED on the tyrant-accept arm (4 of 5 seeds below 20 provinces) while option (b) measured INERT (treasury 800 → 2,000 changes no outcome on ten runs; the player's AP is a hardcoded 4) — **no blessed number was moved; the ruling stands at (a) with the re-open recorded**, and the France-side lever is left to a human campaign.
+>
+> **▶ NEXT = the eleven routed defect rows (FA-S17-9..19, P2 → P4) and the nine design items (FA-S17-D1..D9), then ROADMAP position 10, the shippable build.**
 >
 > **▶ THE AUDIT VERIFICATION PASS — ✅ HELD September 2, 2026. Report of
 > record = `docs/audits/FINAL_AUDIT_VERIFICATION_2026_09_02.md`, authoritative
@@ -365,12 +373,13 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **📏 HOW MUCH IS LEFT:** run `tools/fa_row_tally.py` (`--open` for
 > the ids) — it derives the count from the row tables rather than trusting a
-> number in a heading. After the six open items closed: **38 defect rows
-> and 25 design rows / gates still open**, of 239 filed; 159 closed, 17
-> disposed (duplicate, refuted, or re-homed). The FA-R family is empty.
-> The 38 are spoken for by slice 16 parts d–h, whose reproduction is
-> already committed as `REPRO_L_slice16_at_head.md`;
-> the 25 need rulings, not builds.
+> number in a heading. **After Phase 3 (September 11, 2026): 11 defect rows
+> and 9 design items open, every one of them FILED BY THE RE-SCORE ITSELF**
+> (FA-S17-9..19 and FA-S17-D1..D9) — the audit's original 128 rows and its 25
+> design rulings are closed, of 268 filed; 231 closed, 17 disposed
+> (duplicate, refuted, or re-homed). The FA-R family is empty. The 11 are
+> ranked in the re-score memo §7 with their evidence; the 9 need rulings,
+> not builds.
 
 > **▶ THE SIX OPEN ITEMS ARE CLOSED — September 6, 2026** (four commits;
 > landing records = the boxed **FA-S16-D1 + FA-S16-D2**, **FA-S16-D3 +

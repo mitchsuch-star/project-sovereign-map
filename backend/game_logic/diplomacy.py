@@ -3289,7 +3289,11 @@ def calculate_side_war_score(nation: str, opponents, world,
                         min(BLOCKADE_SCORE_CAP, sums["blockade"])),
         "captive": max(-CAPTIVE_EAGLE_SCORE,
                        min(CAPTIVE_EAGLE_SCORE, sums["captive"])),
-        "ticking": int(sums["ticking"]),
+        # FA-S17-5: the docstring's own rule, finally applied to the ninth
+        # component — nine courts' claims summed un-clamped outweighed a
+        # lost capital and a lost frontier.
+        "ticking": (max(-TICKING_CAP, min(TICKING_CAP, sums["ticking"]))
+                    if THE_TICKING_SUM_IS_CLAMPED else int(sums["ticking"])),
     }
     total = int(max(-100, min(100, sum(components.values()))))
 
@@ -3460,6 +3464,17 @@ TICKING_RATES = {
     "liberation": 1,
 }
 TICKING_CAP = 25
+# FA-S17-5 (slice 17, Phase 3, September 11 2026) flip levers. The defense
+# objective ticked +1 per lost home region per turn on EVERY pair the
+# defender had, whoever held the province — so under FA-D4's boot purpose
+# a France that lost Paris to Austria accrued a claim against Prussia,
+# Russia, Sweden and every other court that took nothing; and the war-
+# level sum re-clamped every component at its pair cap EXCEPT `ticking`.
+# Measured (tyrant-accept / austerlitz, turn 11-12): Paris fell, France
+# held 17 provinces, the side score read "winning", and Britain PAID
+# France 3,169 gold to make peace. False = the prior behaviour.
+THE_DEFENSE_TICK_NAMES_ITS_HOLDER = True   # the claim runs against the court that holds the province
+THE_TICKING_SUM_IS_CLAMPED = True          # the war-level `ticking` is capped like its siblings
 
 SETTLEMENT_TIERS = [
     (80, "total_victory"),
@@ -3986,6 +4001,8 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
         if diplo_state != "WAR":
             continue
 
+        _pair = [p for p in str(diplo_key).split("|") if p]
+
         for nation, obj in nation_objectives.items():
             if obj.get("concluded_turn") is not None:
                 continue
@@ -4005,9 +4022,18 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
                         if world.regions[target_region].controller == nation:
                             gained += rate
             elif obj_type == "defense":
+                # FA-S17-5: the claim runs against the court that HOLDS the
+                # lost province — this pair's other side — not against every
+                # court the defender is at war with.
+                _holder = [p for p in _pair if p != nation]
+                _holder = _holder[0] if len(_holder) == 1 else None
                 for target_region in obj.get("target_regions", []):
                     if target_region in world.regions:
-                        if world.regions[target_region].controller != nation:
+                        _ctrl = world.regions[target_region].controller
+                        if THE_DEFENSE_TICK_NAMES_ITS_HOLDER and _holder is not None:
+                            if _ctrl == _holder:
+                                gained += 1
+                        elif _ctrl != nation:
                             gained += 1
             elif obj_type == "liberation":
                 for target_region in obj.get("target_regions", []):
