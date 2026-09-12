@@ -178,5 +178,23 @@
   "old": "elif [ -f \".venv/bin/python\" ]; then\n  PYTHON=\".venv/bin/python\"\n  RUFF=\".venv/bin/ruff\"",
   "new": "elif false; then\n  PYTHON=\".venv/bin/python\"\n  RUFF=\".venv/bin/ruff\"",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "        p if p in _WAR_LABEL_SEPARATORS else display_nation(p.strip()) or p",
+  "new": "        p",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "    war_label = humanize_war_label(\n        payload_label",
+  "new": "    war_label = (\n        payload_label",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "_WAR_LABEL_SEPARATORS = (\" vs \", \" + \")",
+  "new": "_WAR_LABEL_SEPARATORS = (\" vs \",)",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
  }
 ]

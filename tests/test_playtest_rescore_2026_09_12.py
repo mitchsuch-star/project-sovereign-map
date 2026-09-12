@@ -772,3 +772,51 @@ class TestTheQualityGateCanRun(unittest.TestCase):
             self.skipTest("no hook installed in this checkout")
         self.assertEqual(installed.read_text(encoding="utf-8"), self._hook(),
                          "the installed hook is stale — re-copy it")
+
+
+class TestTheSettlementRailNamesItsCourts(unittest.TestCase):
+    """PR-2, the last producer: a war label is composed by several
+    functions, some `X vs Y` and some `A + B vs C + D`, and every one of
+    them joined internal TAGS. Humanised at the RENDER chokepoint instead of
+    chased producer by producer."""
+
+    def test_a_plus_joined_label_is_humanised(self):
+        from backend.game_logic.settlement_presentation import humanize_war_label
+        out = humanize_war_label(
+            "France + Spain + KingdomOfItaly vs Britain + PapalStates")
+        self.assertNotIn("KingdomOfItaly", out)
+        self.assertNotIn("PapalStates", out)
+        self.assertIn("Kingdom of Italy", out)
+        self.assertIn("Papal States", out)
+
+    def test_the_separators_survive(self):
+        from backend.game_logic.settlement_presentation import humanize_war_label
+        out = humanize_war_label("Ottoman + Saxony vs France")
+        self.assertIn(" vs ", out)
+        self.assertIn(" + ", out)
+
+    def test_an_unknown_token_is_left_alone(self):
+        from backend.game_logic.settlement_presentation import humanize_war_label
+        self.assertEqual(humanize_war_label("war_3"), "war_3")
+        self.assertEqual(humanize_war_label(""), "")
+
+    def test_lever_down_reproduces_the_raw_label(self):
+        from backend.game_logic import settlement_presentation as SP
+        original = SP.WAR_LABEL_NAMES_ITS_COURTS
+        try:
+            SP.WAR_LABEL_NAMES_ITS_COURTS = False
+            self.assertIn("KingdomOfItaly",
+                          SP.humanize_war_label("France vs KingdomOfItaly"))
+        finally:
+            SP.WAR_LABEL_NAMES_ITS_COURTS = original
+
+    def test_the_oneliner_uses_it(self):
+        from backend.game_logic.settlement_presentation import (
+            compose_summary_oneliner)
+        line = compose_summary_oneliner({
+            "war_id": "war_1",
+            "war_label": "France + KingdomOfItaly vs Britain",
+            "terms_summary": ["white_peace"],
+        })
+        self.assertNotIn("KingdomOfItaly", line)
+        self.assertIn("Kingdom of Italy", line)

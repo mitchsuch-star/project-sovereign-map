@@ -274,9 +274,23 @@ form all along and no producer called it.
 Fixed at the single source in every case: a derived `{x_display}` /
 `{x_adjective}` suffix resolved at the dispatch fill site, `nation_adjective`
 in the coalition namer, the ordinal map extended through twelve, and
-`display_nation` at the three producers the template fix did not reach. Fresh
-digests now read *"An envoy from the Papal States has arrived with a
-proposal."*, *"The Eighth Austrian Coalition"*, *"the French fleet"*.
+`display_nation` at the three producers the template fix did not reach.
+
+A **fifth** producer survived that pass and was found by re-measuring rather
+than by reading: the settlement rail's war label, composed by several
+functions in two shapes (`X vs Y` and `A + B + C vs D + E`), every one of them
+joining tags. Rather than chase each producer, `humanize_war_label` runs at the
+**render** chokepoint — the one place a war label becomes prose — splitting only
+on the separators the producers use, so a display name containing a space
+survives and an unknown token is left exactly as it was.
+
+Fresh digests now read *"An envoy from the Papal States has arrived with a
+proposal."*, *"The Eighth Austrian Coalition"*, *"the French fleet"*,
+*"Britain tears up the Peace Treaty to do it."* and *"Settlement of France +
+Spain + Holland + Bavaria + Kingdom of Italy vs Britain + Austria + Russia"*.
+A 40-turn commanded run on the shipped tree contains **zero** raw nation tags
+in game prose; the one remaining occurrence is a driver-side digest line
+(`LETTER PapalStates:`), filed with PR-X5.
 
 `nation_adjective` was also **inventing demonyms for the NA-6c carve tags** —
 "Duchyofwarsawian", "Romanrepublician", "Polandian" — which are real runtime
