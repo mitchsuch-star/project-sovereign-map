@@ -10090,6 +10090,17 @@ def _process_mission_dp(world) -> List[Dict]:
             mission["paused_turns"] = 0
             world.diplomatic_points -= cost
             mission["turns_active"] = mission.get("turns_active", 0) + 1
+        elif _in_transit and world.diplomatic_points >= cost:
+            # MS-10b (review round, September 12 2026): a mission WAITING for
+            # its diplomat is not a mission STARVING. The first cut let the
+            # transit case fall into the arm below, which feeds the
+            # 3-consecutive-paused-turns auto-cancel at the foot of this
+            # function — measured, three envoys on three consecutive turns
+            # DESTROYED a fully funded mission (99 DP throughout) and told
+            # the player it had "collapsed after prolonged inactivity",
+            # with no warning beforehand because the warning is emitted only
+            # by the insufficient-DP arm. The clock belongs to starvation.
+            pass
         else:
             # Still can't afford — increment paused turns
             mission["paused_turns"] = mission.get("paused_turns", 0) + 1
@@ -11165,7 +11176,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     _MISSION_EFFECT_SHORT = {
         "IMPROVE_RELATIONS": f"{_rel('IMPROVE_RELATIONS'):+d} relation/turn",
         "COURT_NATION": f"{_rel('COURT_NATION'):+d} relation/turn, 20% blowback",
-        "GATHER_INTEL": "3-turn full intel",
+        # MS-3b (review round): "3-turn" is the mission's RUN length; the
+        # reward is `current_turn + 5` turns of visibility. Both strings
+        # quoted the run length as if it were the grant.
+        "GATHER_INTEL": "3 turns, then full intel for 5",
         "UNDERMINE_ALLIANCE": (
             f"{_rel('UNDERMINE_ALLIANCE', 'target_pair_relation_change'):+d} "
             "relation between targets/turn"),

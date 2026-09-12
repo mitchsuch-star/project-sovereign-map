@@ -4237,6 +4237,16 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
         qualifying = get_qualifying_nations(world)
         if qualifying:
             section["qualifying_nations"] = qualifying
+        else:
+            # PR-1c: nobody can join. A forward-looking tier with an empty
+            # list, no countdown and nothing behind it is the CA8-18 lie one
+            # direction over, and the PR-1 fresh-peace floor makes it
+            # reachable for five turns at a stretch.
+            section["tier"] = _coalition_tier_is_honest(
+                world, section.get("tier", ""), qualifying)
+            section["no_qualifying_reason"] = (
+                "No court is free to join — those we have just fought are "
+                "still bound by their peace with us.")
 
     return section
 
@@ -4870,6 +4880,31 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
 DISPATCH_TEMPLATES_NAME_THE_NATION = True
 
 _NATION_FORM_SUFFIXES = ("_display", "_adjective")
+
+
+# PR-1c (review round, September 12 2026). `get_threat_tier` is derived from
+# the threat scalar alone and never asks whether anyone can actually join, so
+# with every ex-belligerent inside the PR-1 fresh-peace floor the section read
+# `tier: "Brewing"` with an EMPTY qualifying list, no countdown and nothing
+# behind it — measured, threat 100, `qualifying: []`, `active_coalition: None`,
+# five turns running. `get_threat_tier`'s own docstring is about exactly this
+# class of lie in the other direction (CA8-18: the one gauge the player steers
+# by told him the thing that had already happened was about to). False = the
+# threat-only tier.
+THE_GAUGE_ASKS_WHO_COULD_JOIN = True
+
+
+def _coalition_tier_is_honest(world, tier: str, qualifying: list) -> str:
+    """Downgrade a forward-looking tier nobody can currently satisfy."""
+    if not THE_GAUGE_ASKS_WHO_COULD_JOIN:
+        return tier
+    if qualifying:
+        return tier
+    if getattr(world, "active_coalition", None):
+        return tier            # it already happened; the gauge is right
+    if str(tier) in ("Brewing", "Imminent"):
+        return "Watchful"
+    return tier
 
 
 def _with_nation_forms(template: str, template_vars: dict) -> dict:

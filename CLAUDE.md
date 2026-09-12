@@ -58,6 +58,44 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **▶ THE FIVE FOR-USER-CONFIRMATION RULINGS WERE ALL OBSERVED UNDER PLAY**, the two a digest cannot show by probe: **FA-D29/FA-S17-1** firing (101 battle lines carry `own corps`; ⚠ the label is attacker-only — there is no `defender_casualties_scope` anywhere in the backend, so FA-S17-1's own case is the one a reader cannot see: PR-X2) · **FA-D4** firing (7 `war_objectives` entries at turn 1, both sides of every boot pair at `defense`) · **FA-S2-D1** firing (29 last-stand questions reached the player) · **FA-D23** firing (`_pair_contribution_scale` 1.0 → **0.5** at trust 0; ⚠ it ships no copy of its own and the line that fires names the RELATIONSHIP, not trust: PR-X3) · **the FA-D27 re-open DOES NOT FIRE** (Fr@40 = 29 / 20 / 21). Of the three DECLINED rulings, **FA-S17-D2's evidence is now overwhelming** — a peaceful France banks **82,524** gold by turn 30 while its own dispatch says 10,000 infantry cost **150** — and **FA-S17-D7 reproduced exactly** (10 rebellions on the five unattended arms, **0** on the three commanded ones).
 >
+>
+> **▶ THE REVIEW ROUND — two lenses at `295bd7f`, both told to attack the FIX
+> rather than the finding.** ⛔ **Both independently reproduced a regression
+> this slice shipped**, and between them took 8 more fixes; tests 55 → **86**,
+> sweep **45 killed / 0 INERT**. **MS-7 had made its own defect WORSE and its
+> pin was green about it** — the ledger's current reading was re-pointed at
+> the target↔ally pair while the baseline kept reading player↔target, so a
+> successful undermining of a HOSTILE court rendered as **"Hostile → Neutral
+> (+55)" in the success colour**; the pin hand-set the baseline to the PAIR
+> value production never writes there. **MS-10 DESTROYED a fully funded
+> mission after three turns of ordinary envoy traffic** (the transit pause fed
+> the starvation clock; measured, 99 diplomatic points and the player told it
+> collapsed from inactivity) — the pin was a one-tick pin over a three-tick
+> rule. **PR-1 never fired on the ordinary BILATERAL peace** — `ended_turn` is
+> stamped only when NO active pair remains and the shipped board is ONE merged
+> instance carrying seven, so the measured headline case (a COMMON peace) was
+> the only route that worked, and all seven PR-1 pins planted a synthetic
+> two-nation instance that could not see it; the gate asks the PAIR first now
+> (`diplo_key_meta[pair]["resolved_turn"]`), verified end to end, and the
+> archive scan is DELETED as unreachable by construction. Plus PR-1c (the
+> dispatch read "Brewing" with an empty qualifying list for five turns —
+> CA8-18's lie one direction over, made reachable by PR-1), PR-2b/2c/2d
+> (**`Ireland` was missed, so PR-2 turned a readable-if-wrong "the Ireland
+> fleet" into a coined "the Irelandian fleet" — the exact failure its own
+> commit message went looking for**; the two new carve demonyms were the only
+> capitalised values in a table the parser matches case-sensitively and were
+> structurally dead there; the compound fallback returned the raw tag its own
+> comment promised it would not, and a pin enshrined that; the refusal line
+> humanised one side of the verb; `_ORDINALS` past twelve gave "21th") and
+> MS-3b. **Four of the slice's own pins were repaired** — the two hook pins
+> were satisfied by the error message the fix prints WHEN IT FAILS, the
+> PEP-701 sensitivity arm was version-dependent in the opposite direction, the
+> ordinal pin never went through the call site, and the producer pin was a
+> source census a mutation leaves untouched. ⛔ **Every regression was
+> invisible to 55 pins and a green 21,590-test suite, and each was found by
+> constructing the ORDINARY case instead of the convenient one** — a hostile
+> target, three ticks, a bilateral peace.
+>
 > **▶ THE FA AUDIT IS CLOSED — all four phases landed, September 11–12, 2026.** `tools/fa_row_tally.py` reads **0 defect rows and 0 design rows/gates open, of 268 filed (248 closed, 20 disposed)**. **NEXT = ROADMAP position 10, the shippable build.** Phases 1–3 landed September 11 (`e6c9880b` → `1ae82476` → `9f65cd56`); **Phase 4 — "THE RE-SCORE'S OWN ROWS" — landed September 12** and closed the eleven rows Phase 3 routed (FA-S17-9..19) plus all nine of its rulings (FA-S17-D1..D9: four built, four declined with their measurements, one folded into FA-S17-12). Sweep **52/52, 0 INERT**; parse harness EXIT=0 (46 scripts, 7 scenes); M1–M7 and `BASELINE_SERIES` byte-identical with the reason measured. Landing record = the boxed **SLICE 17 (Phase 4)** block in `BUG_FIXES.md`. **All 38 open defect rows and all 25 open design rulings are disposed.** Phase 1 built the defect rows and its review round; **Phase 2a** took fifteen legibility rulings behind fifteen levers and RULED FA-D27 on a 17-run balance memo; **Phase 2b** took the last seven mechanics rulings (FA-D4 the spine war's purpose · FA-D5 the audience that can pay him · FA-D6 the literal road home · FA-D7 the desk read before the draft · FA-D19 the detachment that feeds stability · FA-D23 trust at the field · FA-S2-D1 the enemy's one-turn wait); **Phase 3** played every pillar and re-scored.
 >
 > **▶ THE RE-SCORE — memo of record `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_11.md`, authoritative.** 34 driver runs on the committed instrument (`tools/playtest_driver.py`), 34 completed, 0 blocked, 0 unknown blockers, 0 script preconditions — the FA-D27 five arms with every Phase-2 lever up, the re-open condition's own arm (5 seeds × 2 scripts with `--diplomacy accept`), the tutorial, the naval Descent (Trafalgar and a landing at Munster), both fixtures, a reload arm, one live-parser arm, and a Mode C client pass on `SOVEREIGN_PORT=8006`. **Directional ≈6.8 → ≈6.9**: command & parsing 6.5 → **7.5**, narration 6.5 → **7.0**, naval 6.5 → **7.0**, UI/UX 7.0 → **7.5**; marshal drama 7.5 → **7.0** and economy 6.5 → **6.0**; combat legibility 7.0, diplomacy 6.0, AI aliveness 7.5 and vassals 6.5 held. **The re-score found and fixed a P1 — the peace table PAID THE LOSER** (the defense objective ticked against every opposing court whoever held the province, and the war-level `ticking` sum was never clamped: a France that had lost Paris and ten provinces scored **+2 winning**, now **−29**, and Britain's offer turns from *"Offering 3169 gold"* into *"Asking 5987 gold"*) — plus the rebellion question that outlived its rebellion, the Emperor captured off the field by his own Guard's toll, the cascade one-liner's "Unknown", and a harness P2 (the driver never read `deferred_marshal_petition`, so **every Phase-3 claim about the Jealousy channel predates that fix**).

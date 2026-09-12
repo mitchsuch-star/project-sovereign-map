@@ -1297,17 +1297,25 @@ def _collapsed_refusal_line(event: dict, ptype: str, count: int) -> str:
     stands for, the rest would have vanished silently — which is worse
     than the spam it replaces.
 
-    Raw nation tags, exactly as the uncollapsed arm and its
-    `diplomatic_ai_ai_treaty` sibling pass them: the client repairs them
-    through `Utils.humanize_nation_keys_in_text`, and the NA-6 formation
-    overrides can only rename a nation that is still a raw tag. Composing
-    finished prose with `display_nation` here would bake a dead name into
-    the sentence past the point either repair can reach it (the §11.8
-    stage-3 hazard IGR-A hit).
+    PR-2b (review round, September 12 2026) — this paragraph used to say
+    the opposite and was WRONG about the mechanism, so it is restated with
+    the reading that was verified: names are humanised HERE, on both sides
+    of the verb. `formations.apply_formation_names_to_history` searches for
+    `display_nation(tag)` — the HUMANISED form — so composing with it is
+    exactly what the NA-6 dead-name repair keys on, not something that
+    escapes it (measured: pre-fix "KingdomOfItaly rebuffs ..." was repaired
+    client-side to "Italy"; post-fix "Kingdom of Italy rebuffs ..." is
+    repaired backend-side to the same thing). The client's
+    `Utils.humanize_nation_keys_in_text` simply no-ops on an already-clean
+    line. What the earlier wording got right is the hazard it names — a
+    dead name baked past every repair — and that hazard belongs to a
+    producer that bypasses `apply_formation_names_to_history` entirely,
+    which is `gazette.py`'s call to `format_event_oneliner`.
     """
+    from backend.display_names import display_nation as _named
     pairs = event.get("collapsed_pairs") or []
-    proposers = _unique_in_order(p.get("proposer") for p in pairs)
-    refusers = _unique_in_order(p.get("refused_by") for p in pairs)
+    proposers = [_named(n) for n in _unique_in_order(p.get("proposer") for p in pairs)]
+    refusers = [_named(n) for n in _unique_in_order(p.get("refused_by") for p in pairs)]
 
     # A SMALL bucket loses nothing: when one side is a single court and the
     # other is short enough to list, every name in the uncollapsed rows

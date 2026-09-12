@@ -1200,7 +1200,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
             "IMPROVE_RELATIONS": f"{_mag('IMPROVE_RELATIONS'):+d} relation per turn",
             "COURT_NATION": (f"{_mag('COURT_NATION'):+d} relation per turn, "
                              "20% blowback risk"),
-            "GATHER_INTEL": "Full intel for 3 turns",
+            # MS-3b (review round): the mission RUNS 3 turns and grants 5.
+            "GATHER_INTEL": "3 turns to complete, then full intel for 5",
             "UNDERMINE_ALLIANCE": (
                 f"{_mag('UNDERMINE_ALLIANCE', 'target_pair_relation_change'):+d} "
                 "relation between targets per turn"),
@@ -1228,10 +1229,21 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         # turns of undermining Austria|Prussia (60 -> 10) rendered as
         # "Hostile -> Wary (+10, 10 turns)".
         _progress_pair = (player, mission_target)
-        if (MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES
-                and mission.get("type") == "UNDERMINE_ALLIANCE"
-                and mission.get("target_ally")):
+        _undermining = (MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES
+                        and mission.get("type") == "UNDERMINE_ALLIANCE"
+                        and mission.get("target_ally"))
+        if _undermining:
             _progress_pair = (mission_target, mission.get("target_ally"))
+            # MS-7b: read the baseline for the SAME pair. A mission started
+            # before this landed carries no pair baseline; showing the
+            # current value against the player<->target baseline would be a
+            # cross-pair subtraction, so such a mission reports a delta of
+            # zero rather than a wrong one.
+            _pair_initial = mission.get("initial_pair_relation")
+            initial_relation = (int(_pair_initial) if _pair_initial is not None
+                                else int(world.nation_relations.get(
+                                    world._make_diplo_key(*_progress_pair), 0)
+                                    or 0))
         current_relation = int(world.nation_relations.get(
             world._make_diplo_key(*_progress_pair), 0
         ) or 0)

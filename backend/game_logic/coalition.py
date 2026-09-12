@@ -70,6 +70,22 @@ _ORDINALS = {1: "First", 2: "Second", 3: "Third", 4: "Fourth", 5: "Fifth",
              6: "Sixth", 7: "Seventh", 8: "Eighth", 9: "Ninth", 10: "Tenth",
              11: "Eleventh", 12: "Twelfth"}
 
+def coalition_ordinal(count: int) -> str:
+    """The word, or a correctly-suffixed numeral past the authored map.
+
+    PR-2d (review round, September 12 2026): the fallback was a bare
+    `f"{n}th"`, which gives "21th", "22th", "23th". A numeral beyond the
+    authored words is acceptable; a WRONG numeral is not.
+    """
+    n = int(count or 0)
+    word = _ORDINALS.get(n)
+    if word:
+        return word
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }".replace(" ", "")
+
+
 # PR-2 flip lever (playtest re-score, September 12 2026). COALITION_SPEC §3f
 # authors "The Coalition of [Leader Nation]" rendered as the ADJECTIVE —
 # "The British Coalition", "The Second Austrian Coalition" — and the code
@@ -1074,28 +1090,45 @@ def peace_with_target_is_fresh(nation: str, world, target: str) -> bool:
     never at war with each other are not exempted from a coalition against
     one of them.
 
-    Reads live `war_instances` first and the archive second; on this engine
-    the retention window is wider than any floor worth setting, so a war
-    that ended inside the floor is always still readable.
+    The PAIR is asked first and the war second. PR-1b (review round,
+    September 12 2026): the first cut read only `exited_turn` / `ended_turn`,
+    and `resolve_pair_to_resolved` stamps those only when a court — or the
+    whole war — has NO remaining active pair. The shipped 1805 board is ONE
+    merged instance carrying seven pairs into which France's satellites
+    cascade, so an ordinary BILATERAL France-X peace always leaves X
+    attached and the exemption never fired: measured, France signs with
+    Britain and `qualifies_for_coalition('Britain')` is still True on the
+    same turn. `diplo_key_meta[pair]["resolved_turn"]` is the per-pair fact
+    that route DOES stamp, and it is read first.
+
+    Only LIVE `war_instances` are scanned. The archive is unreachable by
+    construction — a war is archived at `turn - ended_turn >=
+    ARCHIVE_RETENTION_TURNS` (10), which is already outside any floor worth
+    setting — so scanning it was a growing, append-only walk that could
+    never return True. Measured before removal: 0 archived instances at
+    turn 40 on the ambient board, and the branch False on every probe.
     """
     if not COALITION_HONOURS_A_FRESH_PEACE:
         return False
     turn = int(getattr(world, "current_turn", 0) or 0)
-    live = list((getattr(world, "war_instances", {}) or {}).values())
-    archived = list(getattr(world, "archived_war_instances", []) or [])
-    for inst in live + archived:
+
+    def _fresh(value) -> bool:
+        return value is not None and 0 <= turn - int(value) < FRESH_PEACE_FLOOR_TURNS
+
+    pair_key = world._make_diplo_key(str(nation), str(target))
+    for inst in (getattr(world, "war_instances", {}) or {}).values():
+        pair_meta = ((inst.get("diplo_key_meta") or {}).get(pair_key) or {})
+        if pair_meta.get("pair_status") == "resolved" and _fresh(
+                pair_meta.get("resolved_turn")):
+            return True
         meta = inst.get("participant_meta") or {}
         mine, theirs = meta.get(str(nation)), meta.get(str(target))
         if not mine or not theirs:
             continue
         if mine.get("side") and mine.get("side") == theirs.get("side"):
             continue
-        ended = mine.get("exited_turn")
-        if ended is None:
-            ended = inst.get("ended_turn")
-        if ended is None:
-            continue
-        if 0 <= turn - int(ended) < FRESH_PEACE_FLOOR_TURNS:
+        if _fresh(mine.get("exited_turn")) or (
+                mine.get("exited_turn") is None and _fresh(inst.get("ended_turn"))):
             return True
     return False
 
@@ -1630,7 +1663,7 @@ def form_coalition(qualifying_nations: List[str], world,
     world.coalition_count += 1
 
     # 5. Build coalition name (§3f)
-    ordinal = _ORDINALS.get(world.coalition_count, f"{world.coalition_count}th")
+    ordinal = coalition_ordinal(world.coalition_count)
     if COALITION_NAME_USES_THE_ADJECTIVE:
         from backend.display_names import nation_adjective
         leader_label = nation_adjective(leader)

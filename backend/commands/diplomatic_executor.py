@@ -5151,6 +5151,19 @@ class DiplomaticExecutor:
             if mission_type == "UNDERMINE_ALLIANCE":
                 target_ally = terms.get("target_ally", "")
                 mission_dict["target_ally"] = target_ally
+                # MS-7b (review round, September 12 2026): `initial_relation`
+                # above is player<->target, which is NOT the pair this mission
+                # moves. MS-7 re-pointed the ledger's CURRENT reading at
+                # target<->ally and left the baseline alone, so the readout
+                # became a cross-pair subtraction — measured, a successful
+                # undermining of a HOSTILE court rendered as a green +55.
+                # The baseline for the pair is recorded here, at the only
+                # moment it is the baseline.
+                if target_ally:
+                    mission_dict["initial_pair_relation"] = int(
+                        world.nation_relations.get(
+                            world._make_diplo_key(mission_target, target_ally),
+                            0) or 0)
             world.active_diplomatic_mission = mission_dict
             world.talleyrand_state = "ON_MISSION"
 

@@ -7,30 +7,6 @@
  },
  {
   "file": "backend/game_logic/coalition.py",
-  "old": "        if 0 <= turn - int(ended) < FRESH_PEACE_FLOOR_TURNS:",
-  "new": "        if False:",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
-  "old": "        if mine.get(\"side\") and mine.get(\"side\") == theirs.get(\"side\"):\n            continue",
-  "new": "        if False:\n            continue",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
-  "old": "        ended = mine.get(\"exited_turn\")\n        if ended is None:\n            ended = inst.get(\"ended_turn\")",
-  "new": "        ended = inst.get(\"ended_turn\")",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
-  "old": "    if not COALITION_HONOURS_A_FRESH_PEACE:\n        return False",
-  "new": "    if COALITION_HONOURS_A_FRESH_PEACE:\n        return False",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
   "old": "        leader_label = nation_adjective(leader)",
   "new": "        leader_label = leader",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
@@ -43,8 +19,8 @@
  },
  {
   "file": "backend/display_names.py",
-  "old": "        if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):\n            return display_nation(nation)",
-  "new": "        pass",
+  "old": "        if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):\n            # PR-2c (review round): `display_nation` alone returns an",
+  "new": "        if False:\n            # PR-2c (review round): `display_nation` alone returns an",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
  },
  {
@@ -115,12 +91,6 @@
  },
  {
   "file": "backend/game_logic/diplomacy.py",
-  "old": "        if world.diplomatic_points >= cost and not _in_transit:",
-  "new": "        if world.diplomatic_points >= cost:",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
   "old": "        elif (mission_type == \"UNDERMINE_ALLIANCE\"\n              and MISSION_UNDERMINE_ROW_IS_HONEST\n              and not _has_any_ally(world, target_nation)):",
   "new": "        elif False:",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
@@ -133,8 +103,8 @@
  },
  {
   "file": "backend/game_logic/diplomatic_ledger.py",
-  "old": "        if (MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES\n                and mission.get(\"type\") == \"UNDERMINE_ALLIANCE\"\n                and mission.get(\"target_ally\")):",
-  "new": "        if False:",
+  "old": "        _undermining = (MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES\n                        and mission.get(\"type\") == \"UNDERMINE_ALLIANCE\"\n                        and mission.get(\"target_ally\"))",
+  "new": "        _undermining = False",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
  },
  {
@@ -195,6 +165,108 @@
   "file": "backend/game_logic/settlement_presentation.py",
   "old": "_WAR_LABEL_SEPARATORS = (\" vs \", \" + \")",
   "new": "_WAR_LABEL_SEPARATORS = (\" vs \",)",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if target_ally:\n                    mission_dict[\"initial_pair_relation\"] = int(",
+  "new": "                if False:\n                    mission_dict[\"initial_pair_relation\"] = int(",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "            _pair_initial = mission.get(\"initial_pair_relation\")\n            initial_relation = (int(_pair_initial) if _pair_initial is not None",
+  "new": "            _pair_initial = None\n            initial_relation = (int(_pair_initial) if _pair_initial is not None",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/display_names.py",
+  "old": "    \"ireland\": \"irish\",",
+  "new": "",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/display_names.py",
+  "old": "            return named if named != nation else humanize_entity_name(nation)",
+  "new": "            return named",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    return f\"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }\".replace(\" \", \"\")",
+  "new": "    return f\"{n}th\"",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    ordinal = coalition_ordinal(world.coalition_count)",
+  "new": "    ordinal = _ORDINALS.get(world.coalition_count, f\"{world.coalition_count}th\")",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/campaign_log.py",
+  "old": "    proposers = [_named(n) for n in _unique_in_order(p.get(\"proposer\") for p in pairs)]",
+  "new": "    proposers = _unique_in_order(p.get(\"proposer\") for p in pairs)",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "scripts/git-hooks/pre-commit",
+  "old": "  PYTHON=\".venv/bin/python\"\n  RUFF=\".venv/bin/ruff\"",
+  "new": "  PYTHON=\".venv/Scripts/python.exe\"\n  RUFF=\".venv/bin/ruff\"",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        \"GATHER_INTEL\": \"3 turns, then full intel for 5\",",
+  "new": "        \"GATHER_INTEL\": \"3-turn full intel\",",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if pair_meta.get(\"pair_status\") == \"resolved\" and _fresh(\n                pair_meta.get(\"resolved_turn\")):\n            return True",
+  "new": "        if False:\n            return True",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "        return value is not None and 0 <= turn - int(value) < FRESH_PEACE_FLOOR_TURNS",
+  "new": "        return False",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if not COALITION_HONOURS_A_FRESH_PEACE:\n        return False\n    turn = int(getattr(world, \"current_turn\", 0) or 0)",
+  "new": "    if COALITION_HONOURS_A_FRESH_PEACE:\n        return False\n    turn = int(getattr(world, \"current_turn\", 0) or 0)",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if mine.get(\"side\") and mine.get(\"side\") == theirs.get(\"side\"):\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        elif _in_transit and world.diplomatic_points >= cost:",
+  "new": "        elif False:",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if world.diplomatic_points >= cost and not _in_transit:\n            # Resume",
+  "new": "        if world.diplomatic_points >= cost:\n            # Resume",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            section[\"tier\"] = _coalition_tier_is_honest(\n                world, section.get(\"tier\", \"\"), qualifying)",
+  "new": "            pass",
+  "tests": "tests/test_playtest_rescore_2026_09_12.py"
+ },
+ {
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if str(tier) in (\"Brewing\", \"Imminent\"):\n        return \"Watchful\"",
+  "new": "    if False:\n        return \"Watchful\"",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
  }
 ]

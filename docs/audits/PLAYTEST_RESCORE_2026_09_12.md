@@ -442,3 +442,78 @@ Design → `DESIGN_REFINEMENT.md` §Playtest Re-Score (**PR-D1..PR-D4**).
    not trust (PR-X3).
 5. **The Stage-F intent narration never fires** — `intent_hardens` /
    `intent_eases` produced zero lines in twelve 40-turn runs (PR-X4).
+
+---
+
+## 11. The review round (two lenses, at the committed SHA)
+
+Two adversarial agents, each told to attack the FIX rather than the finding.
+**Both independently reproduced a regression this slice shipped**, and between
+them took 8 more fixes. Tests 55 → 86; sweep 45 mutations, 45 killed, 0 INERT.
+
+**Three findings were mine, and two of them were worse than what they
+replaced.**
+
+1. **MS-7 made its own defect worse and its pin was green about it.** The
+   Talleyrand tab's `current_relation` was re-pointed at the target↔ally pair
+   while `initial_relation` kept reading the player↔target figure the executor
+   stamps, so the delta became a subtraction across two different pairs.
+   Measured on the ordinary case — undermining a HOSTILE court's alliance —
+   France↔Austria −45 against Austria↔Prussia 60 → 10 rendered as **"Hostile
+   → Neutral (+55)" in the success colour**, directly above its own line
+   reading "−4 relation between targets per turn". The pin could not fail: it
+   hand-set `initial_relation` to the PAIR value, which production never
+   writes into that field. Fixed as MS-7b.
+
+2. **MS-10 destroyed a fully funded mission after three turns of ordinary
+   envoy traffic.** The transit pause fell into the same arm as DP starvation
+   and fed the three-turn auto-cancel; measured, three envoys on three
+   consecutive turns killed a mission holding **99 diplomatic points** and
+   told the player it had collapsed from inactivity. The pin was a one-tick
+   pin over a three-tick rule. Fixed as MS-10b.
+
+3. **PR-1 never fired on the ordinary BILATERAL peace.** `ended_turn` and
+   `exited_turn` are stamped only when a court — or the whole war — has no
+   remaining active pair, and the shipped board is ONE merged instance
+   carrying seven. The measured headline case is a COMMON peace, the one
+   route that stamps `ended_turn`, which is why the gap was invisible and why
+   all seven PR-1 pins — each planting a synthetic two-nation instance with
+   `ended_turn` pre-set — could not see it. The gate asks the PAIR first now
+   (`diplo_key_meta[pair]["resolved_turn"]`), verified end to end through the
+   real peace path. The archive scan is deleted: a war is archived at
+   `ended_turn + 10`, already outside any floor worth setting.
+
+Plus PR-1c (the Morning Dispatch read "Brewing" with an empty qualifying list
+for five turns — CA8-18's lie one direction over, made reachable by PR-1),
+PR-2b/2c/2d (`Ireland` missed, so PR-2 turned a readable-if-wrong "the Ireland
+fleet" into a coined "the Irelandian fleet"; the two new carve demonyms were
+the only capitalised values in a table the parser matches case-sensitively,
+and were structurally dead there; the compound fallback returned the raw tag
+its own comment promised it would not, **and a pin enshrined that**;
+`_collapsed_refusal_line` humanised one side of the verb and not the other;
+`_ORDINALS` past twelve gave "21th") and MS-3b (`GATHER_INTEL` runs three
+turns and grants five; both strings quoted the run length).
+
+**Four of the slice's own pins were repaired.** The two pre-commit-hook pins
+were satisfied by the error message the fix prints *when it fails* — deleting
+the whole layout probe left both green. The PEP-701 sensitivity arm was
+version-dependent in the OPPOSITE direction and would have RED on the very
+machine the defect shipped from. The ordinal pin called the helper directly
+and never went through the call site. And the producer pin for
+`initial_pair_relation` was an `inspect.getsource` census an `if False:`
+mutation leaves untouched.
+
+**The widening cost nothing.** PR-1b makes the gate fire on a route it
+previously missed entirely, so it was worth re-measuring whether the balance
+moved again. It did not: the three COMMANDED seeds re-run on the shipped tree
+give **29 / 20 / 21** at turn 40 and **29 / 23 / 26** at turn 30 — identical to
+the first fix run, to the digit, because the settlements that arm actually
+signs are common peaces and those already worked. The FA-D27 re-open reading
+is unchanged: 0 of 3 below 20.
+
+**The method note.** Every one of the three regressions was invisible to this
+slice's own 55 pins and to a green 21,590-test suite, and each was found by
+constructing the ORDINARY case rather than the convenient one: a hostile
+target instead of a friendly one, three ticks instead of one, a bilateral
+peace instead of a common one. That is the fourth consecutive slice in which
+attacking the fix found what attacking the finding did not.

@@ -100,6 +100,44 @@
 > while the suite runs**: two runs failed on different `inspect.getsource`
 > census pins that passed in isolation; the quiet run was clean.
 >
+>
+> **▶ THE REVIEW ROUND — two lenses at `295bd7f`, both told to attack the FIX
+> rather than the finding.** ⛔ **Both independently reproduced a regression
+> this slice shipped**, and between them took 8 more fixes; tests 55 → **86**,
+> sweep **45 killed / 0 INERT**. **MS-7 had made its own defect WORSE and its
+> pin was green about it** — the ledger's current reading was re-pointed at
+> the target↔ally pair while the baseline kept reading player↔target, so a
+> successful undermining of a HOSTILE court rendered as **"Hostile → Neutral
+> (+55)" in the success colour**; the pin hand-set the baseline to the PAIR
+> value production never writes there. **MS-10 DESTROYED a fully funded
+> mission after three turns of ordinary envoy traffic** (the transit pause fed
+> the starvation clock; measured, 99 diplomatic points and the player told it
+> collapsed from inactivity) — the pin was a one-tick pin over a three-tick
+> rule. **PR-1 never fired on the ordinary BILATERAL peace** — `ended_turn` is
+> stamped only when NO active pair remains and the shipped board is ONE merged
+> instance carrying seven, so the measured headline case (a COMMON peace) was
+> the only route that worked, and all seven PR-1 pins planted a synthetic
+> two-nation instance that could not see it; the gate asks the PAIR first now
+> (`diplo_key_meta[pair]["resolved_turn"]`), verified end to end, and the
+> archive scan is DELETED as unreachable by construction. Plus PR-1c (the
+> dispatch read "Brewing" with an empty qualifying list for five turns —
+> CA8-18's lie one direction over, made reachable by PR-1), PR-2b/2c/2d
+> (**`Ireland` was missed, so PR-2 turned a readable-if-wrong "the Ireland
+> fleet" into a coined "the Irelandian fleet" — the exact failure its own
+> commit message went looking for**; the two new carve demonyms were the only
+> capitalised values in a table the parser matches case-sensitively and were
+> structurally dead there; the compound fallback returned the raw tag its own
+> comment promised it would not, and a pin enshrined that; the refusal line
+> humanised one side of the verb; `_ORDINALS` past twelve gave "21th") and
+> MS-3b. **Four of the slice's own pins were repaired** — the two hook pins
+> were satisfied by the error message the fix prints WHEN IT FAILS, the
+> PEP-701 sensitivity arm was version-dependent in the opposite direction, the
+> ordinal pin never went through the call site, and the producer pin was a
+> source census a mutation leaves untouched. ⛔ **Every regression was
+> invisible to 55 pins and a green 21,590-test suite, and each was found by
+> constructing the ORDINARY case instead of the convenient one** — a hostile
+> target, three ticks, a bilateral peace.
+>
 > **▶ NEXT = ROADMAP position 10, the shippable build**, with PR-X1..X5 and
 > PR-D1..D4 as the routed backlog.
 

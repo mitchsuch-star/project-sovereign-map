@@ -247,6 +247,123 @@
 > `format_event_oneliner` made the name local for EVERY arm and raised
 > `UnboundLocalError` six hundred lines away.**
 
+> ### ✅ THE REVIEW ROUND — September 12, 2026 (two lenses at `295bd7f`)
+>
+> **Landing record: this block.** Two adversarial agents, each told to attack
+> the FIX rather than the finding — the discipline that has repeatedly found
+> what attacking the finding did not. **Both independently reproduced a
+> regression this slice shipped**, and between them took 8 more fixes. Tests
+> 55 → **86**; sweep **45 mutations, 45 killed, 0 INERT**; suite green.
+>
+> **⛔ MS-7 had made its own defect WORSE, and its pin was green about it.**
+> MS-7 re-pointed the Talleyrand tab's `current_relation` at the target↔ally
+> pair and left `initial_relation` reading the **player↔target** figure the
+> executor stamps — so `relation_delta` became a subtraction across two
+> different pairs. Measured on the ordinary case (undermining a HOSTILE
+> court's alliance): France↔Austria −45, Austria↔Prussia 60 → 10, and the
+> client rendered **"Hostile → Neutral (+55)" in the success COLOUR**, above
+> its own line reading "−4 relation between targets per turn". The pre-fix
+> number was wrong but coherent; the post-fix number was wrong across two
+> pairs and green. **The pin could not fail** — it hand-set `initial_relation`
+> to the PAIR value, which production never writes into that field, and put
+> the player relation ABOVE it so the sign survived twice over. Fixed as
+> **MS-7b**: the mission records `initial_pair_relation` at the one moment it
+> IS the baseline, the ledger reads the same pair on both halves, and a
+> mission started before this lands reports a delta of **zero** rather than a
+> wrong one. The pin now drives the real `start_mission` dialogue action.
+>
+> **⛔ MS-10 DESTROYED a fully funded mission after three turns of ordinary
+> envoy traffic.** The transit pause fell into the same arm as DP starvation,
+> so it incremented the counter feeding the 3-consecutive-paused-turns
+> auto-cancel — measured, three envoys on three consecutive turns killed a
+> mission holding **99 diplomatic points**, and the player was told it
+> "collapsed after prolonged inactivity", with no warning beforehand because
+> the warning is emitted only by the insufficient-DP arm. The slice's own pin
+> was a **one-tick pin over a three-tick rule**. Fixed as **MS-10b**: a
+> mission waiting for its diplomat is not a mission starving, and the clock
+> belongs to starvation. Starvation still collapses a mission — pinned.
+>
+> **⛔ PR-1 never fired on the ordinary BILATERAL peace.** `ended_turn` is
+> stamped only when NO active pair remains on the instance, and `exited_turn`
+> only when that court has none — and the shipped board is ONE merged
+> instance carrying seven pairs into which France's satellites cascade. So a
+> bilateral France–Britain peace left Britain attached and she qualified for
+> the coalition **on the turn she signed**. The measured headline case is a
+> COMMON peace, which is the one route that stamps `ended_turn` — which is
+> why the defect was invisible, and why all seven PR-1 pins (each planting a
+> synthetic two-nation instance with `ended_turn` pre-set) could not see it.
+> Fixed as **PR-1b**: the gate asks the PAIR first —
+> `diplo_key_meta[pair]["resolved_turn"]`, which `resolve_pair_to_resolved`
+> DOES stamp on every route — and the war second. Verified end to end through
+> the real `set_diplomatic_state` + `cleanup_war_end` path: Britain now
+> exempt at turn 10, qualifying again at 15. **The archive scan is deleted**
+> — a war is archived at `ended_turn + 10`, already outside any floor worth
+> setting, so that branch could never return True on a list that only grows.
+>
+> **PR-1c, the gauge.** With every ex-belligerent inside the floor the
+> Morning Dispatch read `tier: "Brewing"` with an EMPTY qualifying list, no
+> countdown and nothing behind it, for five turns — CA8-18's own lie one
+> direction over, made reachable by PR-1. A forward-looking tier nobody can
+> currently satisfy is now **Watchful**, with the reason stated; a coalition
+> that has already formed is never downgraded.
+>
+> **PR-2b/2c/2d, the naming family's own residue.** `Ireland` — the fourth
+> `formable_nations` entry and the DEF-5 client's real tag — was missed, and
+> its shape (all-alpha, no internal capital) is precisely what the
+> compound-tag guard cannot catch, so PR-2 **converted a readable-if-wrong
+> "the Ireland fleet" into a coined "the Irelandian fleet"**: the exact
+> failure its own commit message went looking for. The two new carve values
+> were also the only CAPITALISED entries in a table `strategic_parser`
+> imports and matches case-sensitively against a lower-cased line — both rows
+> structurally dead on the parse side; lowercased, and the round trip is
+> pinned (`"the Warsaw army"` → `DuchyOfWarsaw`). The compound-tag fallback
+> returned the raw camelCase tag, which its own comment promised it would not
+> — and **a pin enshrined that**; it humanises now. `_collapsed_refusal_line`
+> humanised one side of the verb and not the other, and its docstring argued
+> against the fix in terms that are **wrong about the mechanism**
+> (`apply_formation_names_to_history` searches for `display_nation(tag)` —
+> the humanised form — so composing with it is what the NA-6 dead-name repair
+> keys ON); both sides humanised, docstring restated with the verified
+> reading. And `_ORDINALS` past twelve gave **"21th"**.
+>
+> **MS-3b.** `GATHER_INTEL` RUNS three turns and grants **five** turns of
+> sight; both display strings — in the two dicts MS-3 had just edited —
+> quoted the run length as if it were the grant.
+>
+> **Four of the slice's own pins were repaired, three because the sweep said
+> so and one because a reviewer applied its stated killer:** the two
+> pre-commit-hook pins were satisfied by the error message the fix prints
+> **when it fails** (deleting the entire layout probe left both green — they
+> bind to the `PYTHON=` assignments now); the PEP-701 sensitivity arm was
+> version-dependent in the OPPOSITE direction and would have RED on the very
+> machine the defect shipped from; the ordinal pin called the helper directly
+> and never went through the call site; and the producer pin for
+> `initial_pair_relation` was an `inspect.getsource` census that an
+> `if False:` mutation leaves untouched.
+>
+> **⚠ ONE STANDING PIN FLIPPED CONSCIOUSLY.** IGR-B's
+> `test_raw_nation_tags_are_preserved` asserted the OPPOSITE of the
+> `_collapsed_refusal_line` change, on the reasoning that the NA-6 formation
+> overrides "can only rename a still-raw tag". They cannot. Measured, with
+> Italy formed on turn 10 and the line dated turn 15: the humanised
+> composition is repaired to *"… rebuff Italy"*, and the raw-tag composition
+> is **not repaired at all** — `apply_formation_names_to_history` searches
+> for `display_nation(tag)`, so a raw tag is precisely what it cannot see. The
+> old behaviour defeated the very repair it cited and left the Gazette (which
+> applies neither repair) printing an internal key. The measurement is now a
+> pin of its own.
+>
+> **Recorded, not filed** (the reviewers' own judgement, and I agree): a
+> latent `participant_meta.setdefault` on re-attach that would score a
+> volte-faced court against its old side, unreachable on the shipped board; a
+> `{delta:+d}` format spec that escapes the fill site's `except (KeyError,
+> IndexError)` guard, unreachable because its one producer casts to `int`; and
+> `_with_nation_forms` overwriting a producer-supplied `{x}_display`, which no
+> producer supplies. **One reviewer's headline was REFUTED by its own probe
+> and reported anyway** — the NA-6 dead-name hazard on `_join_courts` — and
+> PR-2 in fact improved that line from a client-side repair to a backend-side
+> one.
+
 | id | P | title | status |
 |---|---|---|---|
 | PR-1 | P1 | A ratified settlement is annulled inside the same `end turn` by `form_coalition`, which re-enrols its own signatories | **FIXED** — `COALITION_HONOURS_A_FRESH_PEACE`, `FRESH_PEACE_FLOOR_TURNS = 5` (⚠ FOR USER CONFIRMATION) |

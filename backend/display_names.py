@@ -115,10 +115,22 @@ NATION_DEMONYMS = {
     # PR-2 (playtest re-score, September 12 2026): the NA-6c carve tags mint
     # REAL runtime nations, so they reach every consumer of this table. The
     # derivation gave "Duchyofwarsawian" / "Romanrepublician" / "Polandian".
-    "duchyofwarsaw": "Warsaw",
-    "romanrepublic": "Roman",
+    # PR-2b (review round, September 12 2026): LOWERCASE, like every other
+    # value here. `nation_adjective` capitalises for prose, while
+    # `strategic_parser._nation_demonyms` reads the SAME table and matches
+    # case-sensitively against a lower-cased line — so a capitalised value
+    # is structurally dead on the parse side ("the Warsaw army" resolved to
+    # nothing while "the Polish corps" resolved to Poland).
+    "duchyofwarsaw": "warsaw",
+    "romanrepublic": "roman",
     "poland": "polish",
     "normandy": "norman",
+    # PR-2b: `Ireland` is the fourth `formable_nations` entry and was missed
+    # — and its shape (all-alpha, no internal capital) is exactly what
+    # `_tag_shape_defeats_derivation` CANNOT catch, so it coined
+    # "Irelandian" and reached the Trafalgar line and the naval diorama.
+    "ireland": "irish",
+    "freeireland": "irish",
 }
 
 # PR-2: a tag the table does not hold and whose SHAPE the -n/-ian derivation
@@ -147,7 +159,13 @@ def nation_adjective(nation: str) -> str:
     demonym = NATION_DEMONYMS.get(base)
     if demonym is None:
         if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):
-            return display_nation(nation)
+            # PR-2c (review round): `display_nation` alone returns an
+            # UNAUTHORED tag verbatim, so the promised "the Kingdom of Italy
+            # fleet" degradation only held for tags already in the table.
+            # `humanize_entity_name` splits camelCase, which is the whole
+            # point of the fallback.
+            named = display_nation(nation)
+            return named if named != nation else humanize_entity_name(nation)
         demonym = base + "n" if base.endswith("a") else base + "ian"
     return demonym[:1].upper() + demonym[1:]
 
