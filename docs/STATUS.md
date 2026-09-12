@@ -4,6 +4,107 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ THE POST-AUDIT PLAYTEST AND RE-SCORE — LANDED September 12, 2026
+>
+> **Memo of record = `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`,
+> authoritative.** Landing record = the boxed **Playtest Re-Score (PR / MS)**
+> block in `docs/BUG_FIXES.md`. Design rows = `DESIGN_REFINEMENT.md`
+> §Playtest Re-Score (PR-D1..D4). Suite **21,590 / 4 skipped, 0 failed**;
+> sweep `tools/_sweep_playtest_rescore.json` **29 killed, 0 INERT**;
+> `BASELINE_SERIES` + M1–M7 byte-identical **without re-record, reason
+> measured**; ruff clean; zero `.gd` changes.
+>
+> Sixteen seeded driver runs — five 40-turn ambient seeds, the COMMANDED arm
+> on three seeds with `--diplomacy accept`, `--diplomacy propose`, a
+> scripted-aggressive arm, the naval Descent, the tutorial, both committed
+> fixtures, a reload arm, a `--declare-war proceed` control and a
+> repeat-determinism control — then **twelve re-run after the fixes**, so
+> every claim about a change is a before/after on the same seed.
+>
+> **⚠ Two arms could not run and are recorded as NOT RUN, not as passes:**
+> `--llm anthropic` (no API key in this environment) and the Mode-C client
+> pass (no Godot binary). **UI/UX is not re-scored and its prior 7.5 stands.**
+>
+> **Directional ≈6.9 → ≈7.0.** Diplomacy 6.0 → **6.5**, marshal drama 7.0 →
+> **7.5**; command 7.5, combat legibility 7.0, narration 7.0, economy 6.0, AI
+> aliveness 7.5, vassals 6.5 and naval 7.0 all hold, each on named evidence.
+>
+> **THE P1: the peace table was a formality.** COMMANDED arm, turn 4 — France
+> ratifies Britain's settlement (seven pairs to PEACE, a 1,358-gold indemnity
+> FROM Britain) and inside the same `end turn` `form_coalition` re-enrols
+> Britain, Austria and Russia and declares war for all eight qualifying
+> courts. The peace lasted **zero turns**, and the loop ran to a **tenth**
+> coalition in forty turns. `qualifies_for_coalition` asked relation < −10,
+> not-a-vassal, not-already-at-war — and nothing about a peace signed
+> yesterday. Fixed DERIVED (zero new fields): the war instance already carries
+> `ended_turn` and a durable `participant_meta[n]["side"]` at the moment the
+> coalition forms. ⚠ `FRESH_PEACE_FLOOR_TURNS = 5` is **RULED — FOR USER
+> CONFIRMATION**. Measured reach: **0** blocks on the ambient board (the
+> driver's passive France signs nothing — which is WHY the series is
+> unchanged) and **232** on the commanded board. Balance is not a tilt: nine
+> of twelve re-run arms byte-identical, and the three that move go **+6 / −4 /
+> 0** provinces.
+>
+> **THE STANDING QUESTION ANSWERED — the mission system.** Audited end to
+> end. Mechanically live, and **one bug from unusable after its first
+> completion**: a COMPLETED mission is never cleared (that is what lets the
+> ledger report it), three consumers checked `completed` and the Cabinet's own
+> gate did not, so after the first intelligence mission **every mission row
+> for every court read "Mission already active" for the rest of the
+> campaign** — while the top bar beside it said Talleyrand was idle, and the
+> serialized dict carried the lockout through save/load. Nine more fixed with
+> it: every displayed figure was the raw constant while the tick pays ×1.5
+> (advertised +5, paid **+8**, always); the undermine line printed its own
+> template **braces** every turn; the collapse notice was fogged against the
+> mission it had already deleted; the progress readout tracked the pair the
+> mission does not move; three types taxed the DP budget **forever** at the
+> relation ceiling for an effect of zero; the transit pause was undone by the
+> next tick. What is still missing is **exposure, not machinery** — PR-D2.
+>
+> **⚠ THE SUITE DID NOT RUN ON THIS MACHINE AT ALL.**
+> `tests/test_notifications.py` used a nested same-type quote in an f-string
+> (Python 3.12 only), so the file failed to COLLECT and pytest **interrupted
+> the entire run**; `tools/mutation_sweep.py` hard-coded
+> `.venv/Scripts/python.exe`, killing the sweep tool and the twelve pins that
+> drive it on any non-Windows checkout; one pin read an absolute
+> `C:\Users\User\…` path and two depended on an untracked `.env`. All fixed;
+> the pre-commit hook was unusable here until they were. A census pin now
+> compiles every repo source file under the running interpreter.
+>
+> **⚠ A DOCUMENTED TABLE DOES NOT REPRODUCE (PR-D4).** The COMMANDED-arm
+> figures published the previous day in three files (20 / 24 / 22 at turn 40,
+> "160 of 160 AP") measure **23 / 24 / 21** here, deterministically, at the
+> same commit — and **81 / 77 / 75** of 160 AP, with 35–38% of orders refused.
+> `BASELINE_SERIES` passes byte-identically on this platform, so the ambient
+> board is stable and this is not a general divergence; the authoring platform
+> could not be re-run from here, so the cause is NOT isolated. **The ruling's
+> conclusion survives either reading — 0 of 3 seeds below 20 provinces.**
+> `PLAYTESTING.md` now carries both columns with their platforms.
+>
+> **The five FOR-USER-CONFIRMATION rulings were all observed under play** and
+> the two a digest cannot show were probed: FA-D29/FA-S17-1 firing (101 `own
+> corps` battle lines), FA-D4 firing (7 `war_objectives` entries at turn 1,
+> both sides of every boot pair at `defense`), FA-S2-D1 firing (29 last-stand
+> questions reaching the player), FA-D23 firing (`_pair_contribution_scale`
+> 1.0 → **0.5** at trust 0), and the **FA-D27 re-open does not fire**
+> (Fr@40 = 29 / 20 / 21). Of the three DECLINED rulings, **FA-S17-D2's
+> evidence is now overwhelming**: a peaceful France banks **82,524** gold by
+> turn 30 while the dispatch tells it 10,000 infantry cost **150**.
+>
+> **⛔ Three method lessons, all paid for.** A local `from … import` inside
+> ONE arm of `format_event_oneliner` made the name local for EVERY arm and
+> raised `UnboundLocalError` six hundred lines away. My first cut of the
+> collapse-notice fix moved the event above the deletion — but the fog is
+> evaluated when the DISPATCH is built, a turn later, so queue order is
+> irrelevant, and this slice's own pin said so. And **do not edit `backend/`
+> while the suite runs**: two runs failed on different `inspect.getsource`
+> census pins that passed in isolation; the quiet run was clean.
+>
+> **▶ NEXT = ROADMAP position 10, the shippable build**, with PR-X1..X5 and
+> PR-D1..D4 as the routed backlog.
+
+---
+
 > ## ▶ FA SLICE 17 — "FINISH THE AUDIT" — IN PROGRESS, September 11, 2026
 >
 > The user's brief: land ALL 38 open defect rows (parts 0, d, e, f, g, h), run

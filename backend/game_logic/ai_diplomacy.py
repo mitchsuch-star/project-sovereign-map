@@ -4008,9 +4008,13 @@ def _resolve_settlement_terms_requests(
 
 
 def _settlement_request_war_label(war, war_id: str) -> str:
+    # PR-2: this label reaches the settlement rail verbatim — measured,
+    # "Settlement of France + Spain + Holland + Bavaria + KingdomOfItaly
+    # vs Britain + Austria + Russia".
+    from backend.display_names import display_nation
     if isinstance(war, dict):
-        attackers = list(war.get("attackers") or [])
-        defenders = list(war.get("defenders") or [])
+        attackers = [display_nation(str(n)) for n in (war.get("attackers") or [])]
+        defenders = [display_nation(str(n)) for n in (war.get("defenders") or [])]
         if attackers and defenders:
             return f"{' + '.join(attackers)} vs {' + '.join(defenders)}"
     return str(war_id) or "the war"

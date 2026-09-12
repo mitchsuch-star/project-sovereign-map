@@ -309,10 +309,18 @@ class TestCoalitionFormation:
         assert world.get_diplomatic_state("France", "Austria") == "WAR"
 
     def test_form_coalition_naming_first(self):
+        # PR-2 (playtest re-score, September 12 2026) — CONSCIOUS FLIP.
+        # This pin asserted the internal TAG ("The Britain Coalition")
+        # against COALITION_SPEC §3f, which authors the ADJECTIVE ("The
+        # British Coalition", "The Second Austrian Coalition"). It was the
+        # only thing holding the defect in place.
+        from backend.display_names import nation_adjective
         world = _make_world()
         result = form_coalition(["Austria"], world)
         leader = result["leader"]
-        assert result["coalition_name"] == f"The {leader} Coalition"
+        assert result["coalition_name"] == (
+            f"The {nation_adjective(leader)} Coalition")
+        assert result["coalition_name"] != f"The {leader} Coalition"
 
     def test_form_coalition_naming_second(self):
         world = _make_world()

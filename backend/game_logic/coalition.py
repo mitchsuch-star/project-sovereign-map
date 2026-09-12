@@ -64,9 +64,50 @@ WAR_EXHAUSTION_BATTLE_CAP = 20
 # Coalition loyalty penalty base (§6a)
 COALITION_LOYALTY_BASE = -15
 
-# Coalition ordinal names
+# Coalition ordinal names. PR-2: the map stopped at seven, and a board that
+# churns coalitions reaches eight — measured, "The 8th Austria Coalition".
 _ORDINALS = {1: "First", 2: "Second", 3: "Third", 4: "Fourth", 5: "Fifth",
-             6: "Sixth", 7: "Seventh"}
+             6: "Sixth", 7: "Seventh", 8: "Eighth", 9: "Ninth", 10: "Tenth",
+             11: "Eleventh", 12: "Twelfth"}
+
+# PR-2 flip lever (playtest re-score, September 12 2026). COALITION_SPEC §3f
+# authors "The Coalition of [Leader Nation]" rendered as the ADJECTIVE —
+# "The British Coalition", "The Second Austrian Coalition" — and the code
+# interpolated the raw tag instead: measured across nine 40-turn boards,
+# "The Fourth Russia Coalition", "The Seventh Austria Coalition". False
+# reproduces the tag form.
+COALITION_NAME_USES_THE_ADJECTIVE = True
+
+# ── PR-1 "The Peace That Never Was" (playtest re-score, September 12 2026) ──
+# `qualifies_for_coalition` asked three questions — relation < -10, not a
+# vassal, not already at war — and none of them was "did this court sign a
+# peace with the target yesterday". Measured on the COMMANDED arm
+# (`commanded_full40.json`, seed historical, `--diplomacy accept`): on turn 4
+# France ratifies Britain's settlement, seven pairs go WAR -> PEACE and
+# Britain pays a 1,358-gold indemnity; in that same `end turn`
+# `process_coalition_turn` -> `form_coalition` re-enrols all eight courts —
+# Britain, Austria and Russia among them — and `declare_war`s for every one.
+# The peace France signed lasted zero turns, and the cycle repeated until the
+# board reached a SEVENTH coalition in forty turns.
+#
+# The world already knows: at the moment `form_coalition` runs, the war
+# instance carries `ended_turn = 4` and `participant_meta[nation]["side"]`,
+# so the gate is DERIVED — no new serialized field, no new write. A court
+# whose war with the target ended inside the floor is not enrolled as a NEW
+# belligerent; it may still be counted by the `already_at_war` arm, the
+# coalition still forms around whoever IS free to fight, threat keeps
+# accruing, and the court joins the next one once the floor lapses. That is
+# Pressburg: a peace buys time, not immunity.
+COALITION_HONOURS_A_FRESH_PEACE = True
+
+# ⚠ FOR USER CONFIRMATION — a balance-relevant number with no prior blessing.
+# 5 is the CONSERVATIVE choice: it matches `armistice_cooldowns`'s own 5
+# (`world_state.py`, R5b) and is the smallest value that removes the
+# same-turn annulment. The natural larger candidate is the 8 that
+# `settlement_third_party.PAIR_EXIT_TRUCE_FLOOR_TURNS` already gives an
+# AI-vs-AI pair exit — a peace the PLAYER negotiates is arguably owed at
+# least as much. In-band tunable.
+FRESH_PEACE_FLOOR_TURNS = 5
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1023,11 +1064,48 @@ def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
 # §3b. QUALIFYING NATIONS
 # ════════════════════════════════════════════════════════════════
 
+def peace_with_target_is_fresh(nation: str, world, target: str) -> bool:
+    """Did `nation` conclude a war against `target` inside the floor?
+
+    PR-1. Derived, never stored: a war instance keeps `ended_turn` and a
+    durable `participant_meta[n]["side"]`, and a court that left early keeps
+    its own `exited_turn` — which is the pair's real peace date whenever it
+    is present. Opposite sides are REQUIRED, so two co-belligerents who were
+    never at war with each other are not exempted from a coalition against
+    one of them.
+
+    Reads live `war_instances` first and the archive second; on this engine
+    the retention window is wider than any floor worth setting, so a war
+    that ended inside the floor is always still readable.
+    """
+    if not COALITION_HONOURS_A_FRESH_PEACE:
+        return False
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    live = list((getattr(world, "war_instances", {}) or {}).values())
+    archived = list(getattr(world, "archived_war_instances", []) or [])
+    for inst in live + archived:
+        meta = inst.get("participant_meta") or {}
+        mine, theirs = meta.get(str(nation)), meta.get(str(target))
+        if not mine or not theirs:
+            continue
+        if mine.get("side") and mine.get("side") == theirs.get("side"):
+            continue
+        ended = mine.get("exited_turn")
+        if ended is None:
+            ended = inst.get("ended_turn")
+        if ended is None:
+            continue
+        if 0 <= turn - int(ended) < FRESH_PEACE_FLOOR_TURNS:
+            return True
+    return False
+
+
 def qualifies_for_coalition(nation: str, world, target: Optional[str] = None) -> bool:
     """Check if a nation qualifies for coalition membership (§3b).
 
     Qualifies if: relation < -10, not vassal, not already at war with the
-    coalition's target (default: the player — §4.4b anchor work).
+    coalition's target (default: the player — §4.4b anchor work), and — PR-1
+    — has not just concluded a peace with that target.
     """
     tgt = target or world.player_nation
     if nation == tgt:
@@ -1035,7 +1113,10 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None) ->
     relation = _get_relation(world, tgt, nation)
     is_vassal = nation in getattr(world, 'vassals', {})
     already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
-    return relation < -10 and not is_vassal and not already_at_war
+    if relation >= -10 or is_vassal or already_at_war:
+        return False
+    # PR-1: a court that signed yesterday is not marched back out today.
+    return not peace_with_target_is_fresh(nation, world, tgt)
 
 
 def get_qualifying_nations(world, target: Optional[str] = None) -> List[str]:
@@ -1550,10 +1631,15 @@ def form_coalition(qualifying_nations: List[str], world,
 
     # 5. Build coalition name (§3f)
     ordinal = _ORDINALS.get(world.coalition_count, f"{world.coalition_count}th")
-    if world.coalition_count == 1:
-        name = f"The {leader} Coalition"
+    if COALITION_NAME_USES_THE_ADJECTIVE:
+        from backend.display_names import nation_adjective
+        leader_label = nation_adjective(leader)
     else:
-        name = f"The {ordinal} {leader} Coalition"
+        leader_label = leader
+    if world.coalition_count == 1:
+        name = f"The {leader_label} Coalition"
+    else:
+        name = f"The {ordinal} {leader_label} Coalition"
 
     # 6. Set active coalition
     world.active_coalition = {

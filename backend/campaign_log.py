@@ -1256,7 +1256,15 @@ def _unique_in_order(values) -> list:
 
 
 def _join_courts(names: list) -> str:
-    """'A', 'A and B', 'A, B and C' — chancery list register."""
+    """'A', 'A and B', 'A, B and C' — chancery list register.
+
+    PR-2 (playtest re-score, September 12 2026): the list is the single
+    chokepoint every court-list one-liner passes through, and it rendered
+    internal tags — measured, "Portugal, Saxony and PapalStates rebuff
+    Prussia".
+    """
+    from backend.display_names import display_nation
+    names = [display_nation(str(n)) for n in names]
     if len(names) == 1:
         return names[0]
     return f"{', '.join(names[:-1])} and {names[-1]}"
@@ -2372,7 +2380,13 @@ def format_event_oneliner(event: dict) -> str:
         # Drive-by (VS-4 build): the emitter passes "lord"; the old read of
         # only "overlord" rendered every one-liner as "Unknown's war".
         overlord = event.get("overlord") or event.get("lord", "Unknown")
-        return f"Vassal {vassal} joined {overlord}'s war."
+        # PR-2: measured, "Vassal KingdomOfItaly joined France's war."
+        # NB: no local import here — `display_nation` is module-level, and a
+        # function-scoped `from ... import` would shadow it for EVERY other
+        # arm of this same function (measured: UnboundLocalError on the
+        # `nation` arm ~600 lines below, caught by the IGR-B endpoint pins).
+        return (f"Vassal {display_nation(vassal)} joined "
+                f"{display_nation(overlord)}'s war.")
 
     if event_type == "vassal_refuses_call":
         # VS-4: a disaffected satellite declines the call-to-arms

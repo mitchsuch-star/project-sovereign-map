@@ -313,14 +313,15 @@ _MISSION_TYPE_DISPLAY = {
     "GATHER_INTEL": "Gathering Intel",
     "UNDERMINE_ALLIANCE": "Undermining Alliance",
     "REASSURE_ALLY": "Reassuring Ally",
-    "CONTINENTAL_SYSTEM": "Continental System",
+    # MS-8: "CONTINENTAL_SYSTEM" removed — see MISSION_DP_COSTS.
 }
 
 
 def _get_talleyrand_mission_summary(w) -> str:
     """Get Talleyrand mission summary for top bar."""
+    from backend.game_logic.diplomatic_dialogue import mission_is_live
     mission = getattr(w, 'active_diplomatic_mission', None)
-    if mission and not mission.get("completed"):
+    if mission_is_live(w):
         raw_type = mission.get("type", "Unknown")
         m_type = _MISSION_TYPE_DISPLAY.get(raw_type, raw_type.replace("_", " ").title())
         m_target = mission.get("target", "Unknown")
@@ -5371,9 +5372,10 @@ def get_diplomatic_preview_endpoint(
             from backend.game_logic.diplomacy import get_relation_descriptor
 
             # W2: Check for active mission target
+            from backend.game_logic.diplomatic_dialogue import mission_is_live
             active_mission = getattr(world, 'active_diplomatic_mission', None)
             mission_target = None
-            if active_mission and isinstance(active_mission, dict) and not active_mission.get("completed"):
+            if mission_is_live(world):
                 mission_target = active_mission.get("target")
 
             for n in enemy_nations:

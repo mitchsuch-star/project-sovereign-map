@@ -342,11 +342,30 @@ class TestR6TradeDiminishingReturns:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestR18ContinentalSystemCost:
-    """R18: CONTINENTAL_SYSTEM explicitly in MISSION_DP_COSTS."""
+    """MS-8 (Sept 12 2026): was "R18: CONTINENTAL_SYSTEM explicitly in
+    MISSION_DP_COSTS" — a pin that asserted a dict literal, executed no
+    production code, and stayed green while the type it named was
+    unreachable from the parser AND inert in the tick. It now pins the
+    thing that matters: every priced mission type can be STARTED and does
+    SOMETHING."""
 
-    def test_continental_system_cost_is_1(self):
-        """CONTINENTAL_SYSTEM DP cost is explicitly 1."""
-        assert MISSION_DP_COSTS["CONTINENTAL_SYSTEM"] == 1
+    def test_every_priced_mission_type_is_reachable_and_does_something(self):
+        """A priced type must be parseable, describable and effective."""
+        from backend.game_logic.diplomatic_dialogue import (
+            MISSION_DESCRIPTIONS, MISSION_EFFECTS, MISSION_TYPE_KEYWORDS)
+        for mission_type in MISSION_DP_COSTS:
+            assert mission_type in MISSION_TYPE_KEYWORDS, (
+                f"{mission_type} is priced but no phrasing can emit it")
+            assert mission_type in MISSION_DESCRIPTIONS, (
+                f"{mission_type} is priced but no confirm can name it")
+            assert MISSION_EFFECTS.get(mission_type), (
+                f"{mission_type} is priced but its tick writes nothing")
+
+    def test_continental_system_is_gone(self):
+        """MS-8: the dead type is removed from BOTH tables that held it."""
+        from backend import main as main_module
+        assert "CONTINENTAL_SYSTEM" not in MISSION_DP_COSTS
+        assert "CONTINENTAL_SYSTEM" not in main_module._MISSION_TYPE_DISPLAY
 
 
 # ═══════════════════════════════════════════════════════════════════════════

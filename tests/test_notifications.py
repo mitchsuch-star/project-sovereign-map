@@ -666,7 +666,7 @@ class TestDispatchSeverity:
             result = _build_turn_events(events, "France")
             assert len(result) == 1
             assert result[0]["severity"] == expected, (
-                f"stage {stage} reported as {result[0]["severity"]}")
+                f"stage {stage} reported as {result[0]['severity']}")
 
     def test_info_events_get_info_severity(self):
         from backend.game_logic.dispatch import _build_turn_events

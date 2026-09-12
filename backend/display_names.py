@@ -84,6 +84,11 @@ def display_nation(nation: str) -> str:
     return NATION_DISPLAY.get(nation, nation)
 
 
+# PR-2 flip lever. False = the pre-fix derivation, which coined a word from
+# any tag at all.
+NATION_ADJECTIVE_REFUSES_TO_COIN = True
+
+
 # ============================================================================
 # NATION ADJECTIVES — "the French fleet", never "the France fleet"
 # The SINGLE source (R7). `ai/strategic_parser.py` reads the same table for
@@ -107,7 +112,28 @@ NATION_DEMONYMS = {
     "hesse": "hessian",
     "papalstates": "papal",
     "kingdomofitaly": "italian",
+    # PR-2 (playtest re-score, September 12 2026): the NA-6c carve tags mint
+    # REAL runtime nations, so they reach every consumer of this table. The
+    # derivation gave "Duchyofwarsawian" / "Romanrepublician" / "Polandian".
+    "duchyofwarsaw": "Warsaw",
+    "romanrepublic": "Roman",
+    "poland": "polish",
+    "normandy": "norman",
 }
+
+# PR-2: a tag the table does not hold and whose SHAPE the -n/-ian derivation
+# cannot handle — anything carrying an internal capital, a space or a
+# non-letter. `nation_adjective` returns the display NAME for these rather
+# than a coined word, so a nation added to the game without a table row
+# degrades to "the Kingdom of Italy fleet" (clumsy) instead of
+# "the Kingdomofitalyian fleet" (broken).
+def _tag_shape_defeats_derivation(nation: str) -> bool:
+    raw = str(nation or "")
+    if not raw:
+        return False
+    if not raw.isalpha():
+        return True
+    return any(ch.isupper() for ch in raw[1:])
 
 
 def nation_adjective(nation: str) -> str:
@@ -120,6 +146,8 @@ def nation_adjective(nation: str) -> str:
         return ""
     demonym = NATION_DEMONYMS.get(base)
     if demonym is None:
+        if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):
+            return display_nation(nation)
         demonym = base + "n" if base.endswith("a") else base + "ian"
     return demonym[:1].upper() + demonym[1:]
 

@@ -279,17 +279,40 @@ re-open condition could not be read on them. Two things changed:
 
 Measured on the commanded arm, three seeds, boot 28 provinces each:
 
-| seed | provinces at turn 40 |
-|---|---|
-| historical | **20** |
-| austerlitz | **24** |
-| marengo | **22** |
+| seed | Sept 12 (authoring platform) | Sept 12 re-measure (Linux, same commit) | after PR-1 |
+|---|---|---|---|
+| historical | 20 | **23** | **29** |
+| austerlitz | 24 | **24** | **20** |
+| marengo | 22 | **21** | **21** |
+
+⚠ **The middle column does not reproduce the first, and the cause is not
+isolated** (playtest re-score, September 12 2026 — `DESIGN_REFINEMENT.md`
+PR-D4). Mode A is deterministic on both platforms and `BASELINE_SERIES` passes
+byte-identically on Linux, so the ambient board is platform-stable and this is
+not a general engine divergence; the Windows arm could not be re-run from the
+measuring environment. **The ruling's conclusion survives every reading: 0 of 3
+seeds below 20 provinces at turn 40.** Cite the column whose platform you are
+on, and say which.
+
+⚠ **"four military actions every turn, 160 of 160 AP" is the SCRIPT'S LINE
+COUNT, not the campaign.** Measured from the three digests' own end-turn
+warnings: **81 / 77 / 75** of 160 action points actually spent, with an
+unused-action warning on **36 / 37 / 37** of 40 turns, because 35–38% of the
+orders are refused (stance locks, fortification state, a court France has just
+signed with). That is still a large improvement on the Phase-3 scripts' 9–22,
+and a France played at half strength still holds 20–29 provinces — which
+strengthens the ruling rather than weakening it. But do not quote 160/160.
 
 ⚠ **Honest limit.** On the historical seed four French marshals are destroyed
 between turns 30 and 37, so the arm's last ten turns spend roughly half their
 orders on dead men and measure a smaller France than the script intends.
 **`Fr@30` is the sounder read on this arm**; a script that re-commissions from
 the Marshalate bench would fix it and does not exist yet.
+
+⚠ **`--declare-war` is INERT on this arm.** `cancel` and `proceed` produce
+identical outcomes here (23 provinces, 81,593 gold either way) because the
+script deliberately never orders an attack on a court France has just signed
+with. It is not inert in general — see the measurement above it.
 
 ### `--diplomacy propose` — the arm that asks (WO slice 5)
 
@@ -533,6 +556,7 @@ only the screen can verify.
 | `SOVEREIGN_SMOKE_START` | settlement smoke presets — popped by the driver | popped |
 | `SOVEREIGN_MAP` | `legacy` = 19-region rollback — popped by the driver | popped |
 | `PYTHONHASHSEED` | `0` for byte-identity work (M1–M7/BASELINE_SERIES idiom) | `0` (the driver re-execs itself with it when unset; recorded in `meta.json`) |
+| `ANTHROPIC_API_KEY` | required by `--llm anthropic`; **without it that arm cannot run at all** and must be reported as NOT RUN rather than skipped | — |
 
 Never set `PYTHONIOENCODING` when running tests (fakes 6 subprocess-test
 errors — standing memory).
@@ -562,6 +586,20 @@ errors — standing memory).
   SEEDING REGIME, not a completion certificate; check `status` before
   citing a run. Keep sweep concurrency modest (`wo_1b_sweep.py --jobs 4`)
   and don't run sweeps while an 18k-test suite is hammering the machine.
+
+- **Never edit a file under `backend/` while the suite is running.** Learned
+  September 12, 2026: two full-suite runs failed on *different*
+  `inspect.getsource` structural-census pins, each of which passed in
+  isolation, and a third run with no concurrent edits was clean at 21,590
+  passed / 0 failed. The census idiom reads through `linecache` and is not
+  robust to a file changing mid-run — a red census pin during a session that is
+  editing sources is an artefact until a quiet run says otherwise.
+
+- **Two arms need things the environment may not have.** `--llm anthropic`
+  needs a key; Mode C needs the Godot binary. A session that cannot run them
+  must say so and leave the pillar they cover UNSCORED — the prior score
+  stands. `unknown_blockers: []` is not coverage, and neither is a pillar
+  nobody looked at.
 
 - The driver's policy plays a PASSIVE, honest France — it is a camera
   with reflexes, not a strategist. Campaign-quality evaluation still

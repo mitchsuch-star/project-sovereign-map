@@ -6,6 +6,22 @@
 
 ---
 
+## Playtest Re-Score — design items (PR-D) — filed September 12, 2026 (**ALL OPEN**)
+
+> From the post-audit playtest. Memo of record =
+> `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`. Defects from the same session
+> are `BUG_FIXES.md` §Playtest Re-Score. Each row below names an owner and a
+> completion definition; none is a defect I chose not to fix.
+
+| id | P | item | measurement | owner | completion |
+|---|---|---|---|---|---|
+| **PR-D1** | P2 | **Coalitions are a revolving door.** Up to **ten** form in forty turns, each with eight or nine members, each dissolving when two of them make peace. The ordinal reached "Tenth" on a 40-turn commanded arm and would have printed "The 8th Austria Coalition" but for PR-2. Every re-formation tears up whatever the settlement system just achieved, so the churn is what caps the diplomacy pillar even after PR-1. The question is not the naming (fixed) but the CADENCE: should a coalition that dissolves for `insufficient_members` be able to re-form the next turn against the same target, or should the dissolution itself buy the target a breathing space the way a peace now does? | `fix-cmd-austerlitz`: 7 coalitions in 40 turns; `fix-cmd-historical`: 6, reaching "The Tenth Austrian Coalition". Pre-fix: 4 each, all of which included the courts that had just signed. | the coalition owner (`COALITION_SPEC` §3e/§4b) | a blessed cadence rule with a measured coalition count per 40 turns, and a behaviour test that a dissolved coalition cannot re-form against the same target inside it |
+| **PR-D2** | P2 | **The mission system is invisible on every surface a player actually reads.** It is absent from the Strategic Ledger, the notification rail, the campaign log's live events (only `started` and `cancelled_eliminated` have log types), the tutorial and the help text — which names "mission" once, generically, with no type, no cost and no cadence. A running mission shows on the top bar, the Talleyrand ledger tab, one LOW dispatch line per turn and a `[MISSION]` tag in the wizard. After MS-1..MS-10 the machinery is sound; what is missing is exposure. | audited across every `.gd` file and every backend payload builder: zero mission hits in `ledger.py`, `strategic_ledger.gd`, `notifications.py`, `intel_report.py`, `war_status.py`, `tutorial_1805.json`, `TUTORIAL_SCRIPT.md` | the next UX slice | a mission appears on the Strategic Ledger's Orders tab and on the notice rail when it pauses or completes, and the tutorial or help names one type with its per-turn cost |
+| **PR-D3** | P3 | **`COURT_NATION` is strictly dominated.** Per DP: `IMPROVE_RELATIONS` is +8 −1 decay = **+7 per 1 DP**; `COURT_NATION` is +8 − 0.6 expected blowback = **+7.4 per 2 DP**. Its only other mechanical read is a decay exemption. A live, reachable, authored mission type that is never the right choice. | measured against the shipped Talleyrand (skill 10, ×1.5) with the decay term at `diplomacy.py`'s relation tick and the exemption at the `COURT_NATION` arm | the diplomacy owner | either a second effect that pays for the extra DP, or the type is folded into `IMPROVE_RELATIONS` (GR9) |
+| **PR-D4** | P3 | **The documented COMMANDED-arm table does not reproduce, and its AP claim is wrong.** `PLAYTESTING.md`, the SLICE 17 (Phase 4) block and the FA-S17-D6 row all record 20 / 24 / 22 provinces at turn 40 and "160 of 160 action points". Measured at the same commit on Linux, deterministically: **23 / 24 / 21** pre-fix (29 / 20 / 21 post-PR-1) and **81 / 77 / 75** of 160 AP, with an unused-action warning on 36–37 of 40 turns. `BASELINE_SERIES` passes byte-identically here, so the ambient board is platform-stable and this is not a general engine divergence; the Windows arm could not be tested from this environment, so the cause is **not isolated**. The ruling's conclusion survives either reading (0 of 3 below 20). | two independent measurements this session agree to the digit | the FA-D27 owner | the table is re-measured on the authoring platform and BOTH readings are recorded with their platform, or the divergence is root-caused |
+
+---
+
 ## Verification-Pass Tie-Ins (FA-N) — filed September 2, 2026 (**ALL OPEN**)
 
 > Found by the verification pass's neighbourhood sweeps. **Both rows below are

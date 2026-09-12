@@ -431,6 +431,14 @@ _CRISIS_CAUSE_HEADLINE: Dict[str, str] = {
 # untouched here. False = the bare sentence.
 THE_DECLARATION_NAMES_ITS_CAUSE = True
 
+# PR-4 (playtest re-score, September 12 2026). The cause clause opened with
+# a bare "He" / "His court", which reads only if the sentence before it named
+# ONE court. It does not: the headline it follows is "Britain and France are
+# at war." — two nations, then a pronoun with no antecedent. Measured, it is
+# the single most frequent dispatch headline on the shipped board (13 of the
+# distinct headlines across twelve 40-turn runs). False = the pronoun.
+THE_DECLARATION_NAMES_THE_DECLARER = True
+
 
 def war_declaration_cause(world, aggressor: str, event: dict) -> str:
     """The clause that says WHY, or '' when nothing is on the record.
@@ -444,8 +452,13 @@ def war_declaration_cause(world, aggressor: str, event: dict) -> str:
     """
     if not THE_DECLARATION_NAMES_ITS_CAUSE:
         return ""
+    from backend.display_names import display_nation
+    who = (display_nation(str(aggressor or "")) or "The aggressor"
+           if THE_DECLARATION_NAMES_THE_DECLARER else "He")
     treaty = str((event or {}).get("breached_treaty") or "").strip()
     if treaty:
+        if THE_DECLARATION_NAMES_THE_DECLARER:
+            return f"{who} tears up the {treaty} to do it."
         return f"He tears up the {treaty} to do it."
     title = ""
     try:
@@ -455,6 +468,8 @@ def war_declaration_cause(world, aggressor: str, event: dict) -> str:
     except Exception:
         title = ""
     if title:
+        if THE_DECLARATION_NAMES_THE_DECLARER:
+            return f"The court of {who} declares it in the name of {title}."
         return f"His court declares it in the name of {title}."
     player = getattr(world, "player_nation", "France")
     best = None
@@ -4232,7 +4247,11 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
 
 # Event text templates — keyed by event type
 _DIPLOMATIC_EVENT_TEMPLATES = {
-    "diplomatic_proposal_sent": "Talleyrand has departed for the {nation} court.",
+    # PR-2: `{nation_display}` is derived at the fill site below, so
+    # "PapalStates" renders "the Papal States" and no template needs to know
+    # about the R7 table. The sentence is restructured rather than made
+    # adjectival so no article has to agree with a demonym.
+    "diplomatic_proposal_sent": "Talleyrand has departed for the court of {nation_display}.",
     "diplomatic_proposal_returned": "Talleyrand returns from {nation} with a response.",
     "diplomatic_sabotage_discovered": "Talleyrand altered your proposal to {nation}. He {change_description}.",
     "diplomatic_treaty_signed": "{nation_a} and {nation_b} have signed the {treaty_type}.",
@@ -4253,8 +4272,13 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_vassal_refuses_call": "{vassal} refuses {lord}'s call to arms against {enemy} — loyalty {loyalty}.",
     "diplomatic_vassal_transferred": "{vassal} passes from {from_lord}'s suzerainty to {to_lord}'s.",
     "diplomatic_vassal_defected": "THE DEFECTION: {briber}'s gold turns {vassal} against {lord}.",
-    "diplomatic_ai_proposal": "A {nation} envoy has arrived with a proposal.",
+    "diplomatic_ai_proposal": "An envoy from {nation_display} has arrived with a proposal.",
     "diplomatic_mission_progress": "Talleyrand's efforts in {nation} continue. Relations now at {value}.",
+    # MS-5: the undermine tick moves the TARGET PAIR, not our own relation,
+    # and sends `ally`/`delta` — keys the sibling template does not name.
+    "diplomatic_mission_undermine_progress": (
+        "Talleyrand works to part {nation_display} from {ally_display}: "
+        "{delta:+d} between them (now {value})."),
     "diplomatic_mission_completed": "Talleyrand has completed his mission in {nation}.",
     "diplomatic_mission_paused": "Talleyrand's diplomatic efforts curtailed — insufficient resources.",
     "diplomatic_mission_cancelled": "Talleyrand's efforts in {nation} have collapsed.",
@@ -4392,7 +4416,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "Continent's ports are closed to {target}."
     ),
     "trafalgar": (
-        "TRAFALGAR: {winner_admiral}'s line has shattered the {loser} "
+        "TRAFALGAR: {winner_admiral}'s line has shattered the {loser_adjective} "
         "fleet — {loser_ships_lost} sail lost in a decisive action. "
         "{winner} commands the sea."
     ),
@@ -4550,6 +4574,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_vassal_defected": "HIGH",
     "diplomatic_ai_proposal": "HIGH",
     "diplomatic_mission_progress": "LOW",
+    "diplomatic_mission_undermine_progress": "LOW",
     "diplomatic_mission_completed": "MEDIUM",
     "diplomatic_mission_paused": "MEDIUM",
     "diplomatic_mission_cancelled": "HIGH",
@@ -4821,6 +4846,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         if RAW_EVENT_KEYS_NEVER_PRINT:
             return ""
         return f"Diplomatic event: {event_type}"
+    if DISPATCH_TEMPLATES_NAME_THE_NATION:
+        template_vars = _with_nation_forms(template, template_vars)
     if event_type in ("diplomatic_carved_vassal_created",
                       "diplomatic_carved_vassal_dissolved"):
         # PC-9: "the Duchy of Warsaw" but plain "Switzerland". Both sentences
@@ -4836,6 +4863,46 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     except (KeyError, IndexError):
         # Graceful fallback if template vars missing
         return template
+
+
+# ── PR-2 "The Nation Is Not An Adjective" (playtest re-score, Sept 12 2026) ──
+# False reproduces the raw-tag prose.
+DISPATCH_TEMPLATES_NAME_THE_NATION = True
+
+_NATION_FORM_SUFFIXES = ("_display", "_adjective")
+
+
+def _with_nation_forms(template: str, template_vars: dict) -> dict:
+    """Derive `{x_display}` / `{x_adjective}` from the producer's own `{x}`.
+
+    PR-2. The templates carried the internal tag straight into prose — "A
+    PapalStates envoy has arrived", "the France fleet", "Talleyrand has
+    departed for the Russia court" — while `display_names` had held both
+    correct forms all along. A template that wants the bare tag keeps `{x}`
+    and never enters this function; one that wants a name or an adjective
+    asks for it by suffix and the fill site answers from the SINGLE source.
+    """
+    from backend.display_names import (display_nation, nation_adjective,
+                                       with_definite_article)
+
+    def _named(tag: str) -> str:
+        # `display_nation` FIRST — it is the R7 table and the only thing that
+        # knows "Ottoman" is the Ottoman Empire and that "of" stays lower
+        # case in "Kingdom of Italy"; `with_definite_article` then adds "the"
+        # only where English wants it, and leaves "Prussia" bare.
+        return with_definite_article(display_nation(tag))
+
+    out = None
+    for key in list(template_vars.keys()):
+        for suffix, fn in ((("_display"), _named),
+                           (("_adjective"), nation_adjective)):
+            placeholder = "{" + str(key) + suffix + "}"
+            if placeholder not in template:
+                continue
+            if out is None:
+                out = dict(template_vars)
+            out[str(key) + suffix] = fn(str(template_vars.get(key, "") or ""))
+    return out if out is not None else template_vars
 
 
 def _build_relation_change_events(world, player_nation: str) -> list:
