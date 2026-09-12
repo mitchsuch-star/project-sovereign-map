@@ -295,6 +295,40 @@ def _levy_block(world) -> dict:
 # no row (the prior ledger).
 THE_LEDGER_SHOWS_THE_MATERIEL_BILL = True
 
+# IQ-1 SW-0 "The Chest Speaks" flip lever: the economy tab states what the
+# turn has SPENT and where the treasury is headed under the charges now in
+# force. False = neither line, and a byte-identical payload.
+#
+# Why this exists: `gold_spent_this_turn` has been serialized since Phase 6
+# and rendered on no screen in the game, and the treasury's own fixed point
+# — the single most decision-relevant number in the economy — is recomputed
+# every turn inside `get_state_charges_rate` and shown to nobody. Measured
+# September 12, 2026: a commanded France reaches 88,556g by turn 40 having
+# spent 2.5% of 199,101g gross, because the two admin actions a turn can
+# only reach ~1,308g of purchases against a boot net of 1,842g.
+THE_CHEST_STATES_ITS_CEILING = True
+
+
+def state_charges_ceiling(net: int, rate: int) -> int:
+    """The treasury EB-1's Charges of Empire are steering toward.
+
+    `calculate_state_charges` draws `(treasury - FLOOR) * rate // DIVISOR`
+    each turn, so the fixed point — where the draw finally equals the gold
+    coming in — is `FLOOR + net * DIVISOR / rate`. Returns 0 as the
+    int-safe "unbounded at this rate" sentinel (GR2) when the rate is 0 or
+    the nation is not making money, which are the two cases where no such
+    treasury exists.
+
+    SINGLE SOURCE: read by the ledger, the dispatch and the playtest
+    driver. It takes the rate rather than deriving it so the caller passes
+    the SAME rate the charge was applied with (shown = applied — the
+    CA9-N11 rule this module already documents for every fraction term).
+    """
+    from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
+    if int(rate) <= 0 or int(net) <= 0:
+        return 0
+    return int(CHARGES_HOARD_FLOOR + int(net) * int(WAR_EFFORT_DIVISOR) // int(rate))
+
 
 def _state_charges_rate_note() -> str:
     from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
@@ -535,6 +569,16 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # whole turn's bill.
         "materiel": (int((getattr(world, "materiel_spent_this_turn", {}) or {}).get(player, 0))
                      if THE_LEDGER_SHOWS_THE_MATERIEL_BILL else 0),
+        # IQ-1 SW-0: what this turn has actually cost, and where the chest is
+        # headed. Both informational and OUTSIDE Net — `spent` is money that
+        # has already left the treasury this turn (so counting it in a
+        # projection would charge it twice), and `ceiling` is a destination,
+        # not a flow. The SC-33 identity is untouched by construction.
+        "spent": (int((getattr(world, "gold_spent_this_turn", {}) or {}).get(player, 0))
+                  if THE_CHEST_STATES_ITS_CEILING else 0),
+        "ceiling": (state_charges_ceiling(net, sum(
+            int(t.get("amount", 0)) for t in state_charges_terms))
+            if THE_CHEST_STATES_ITS_CEILING else 0),
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "infrastructure": infrastructure,

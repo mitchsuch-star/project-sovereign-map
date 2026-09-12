@@ -549,6 +549,22 @@ func _render_economy():
 	var net_sign = "+" if net >= 0 else ""
 	bbcode += "  Net:      [color=#" + net_color + "]" + net_sign + str(net) + "g[/color]\n"
 
+	# IQ-1 SW-0 "The Chest Speaks". Both lines are informational and sit
+	# BELOW Net on purpose: `Spent` is money already gone this turn (the
+	# projection above does not and must not count it twice), and `Ceiling`
+	# is where the Charges of Empire are steering the treasury at the rate
+	# now in force — a destination, not a flow.
+	var spent = int(econ.get("spent", 0))
+	if spent > 0:
+		bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]Spent:    -" + str(spent) + "g  (orders paid for this turn)[/color]\n"
+	var ceiling = int(econ.get("ceiling", 0))
+	if ceiling > 0:
+		var ceil_color = Utils.COLOR_DIMMED
+		if treasury > 0 and ceiling > treasury * 4:
+			ceil_color = Utils.COLOR_WARNING
+		bbcode += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
+			+ "g  (where the charges level the chest off at this rate)[/color]\n"
+
 	if bankruptcy > 0:
 		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"
 

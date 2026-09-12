@@ -661,7 +661,13 @@ def make_inprocess_transport(args, out_dir):
     else:
         import backend.main as backend_main
 
-    return Transport(TestClient(backend_main.app), "in-process", console_log)
+    tx = Transport(TestClient(backend_main.app), "in-process", console_log)
+    # IQ-1 SW-0: the in-process transport can see the whole board. Used for
+    # ONE thing — recording every nation's treasury to the jsonl so a GR5
+    # economy claim is falsifiable from a digest. Never read for anything
+    # the player-facing markdown renders.
+    tx.backend_main = backend_main
+    return tx
 
 
 def make_http_transport(args):
@@ -676,6 +682,27 @@ def make_http_transport(args):
 # ═══════════════════════════════════════════════════════════════════════
 # Digest
 # ═══════════════════════════════════════════════════════════════════════
+
+def _all_purses(transport):
+    """Every nation's treasury, or None when the driver has no world.
+
+    IQ-1 SW-0. Omniscient by construction, so the caller records it to the
+    jsonl only. Returns None under `--http` (no in-process handle) and on
+    any failure, because a measurement instrument that raises is worse than
+    one that is silent about a thing it could not see.
+    """
+    bm = getattr(transport, "backend_main", None)
+    if bm is None:
+        return None
+    try:
+        world = getattr(bm, "world", None)
+        gold = getattr(world, "nation_gold", None)
+        if not isinstance(gold, dict):
+            return None
+        return dict(gold)
+    except Exception:
+        return None
+
 
 class Digest:
     def __init__(self, out_dir, meta):
@@ -1112,7 +1139,7 @@ class Digest:
             self.record("campaign_log", dtype=etype, text=text, log_turn=turn)
 
     def ledger_line(self, treasury, net, threat, provinces=None,
-                    economy=None):
+                    economy=None, purses=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -1135,10 +1162,37 @@ class Digest:
                      else f" ({provinces - last:+d})")
             bits.append(f"provinces {provinces}{delta}")
             self._last_provinces = provinces
+        # IQ-1 SW-0 "The Chest Speaks". Two numbers the digest could never
+        # show: what the turn actually SPENT (`gold_spent_this_turn`,
+        # serialized since Phase 6 and rendered nowhere) and where EB-1's
+        # Charges of Empire are steering the chest at the rate now in force.
+        # Without them a run's economy story is a treasury column with no
+        # cause beside it.
+        spent = None
+        ceiling = None
+        if isinstance(economy, dict):
+            spent = int(economy.get("spent", 0) or 0)
+            ceiling = int(economy.get("ceiling", 0) or 0)
+            if spent:
+                bits.append(f"spent {spent}")
+            if ceiling:
+                bits.append(f"ceiling {ceiling}")
         if bits:
             self._md("- LEDGER " + " · ".join(bits))
             self.record("ledger", treasury=treasury, net=net, threat=threat,
-                        provinces=provinces)
+                        provinces=provinces, spent=spent, ceiling=ceiling)
+        # IQ-1 SW-0: the OTHER purses. The digest recorded the player's
+        # treasury and no AI treasury at all, so no GR5 claim about the
+        # economy was falsifiable from any archived digest — measured
+        # September 12, 2026, and it needed a bespoke probe to see that a
+        # neutral Ottoman Empire ends a 40-turn ambient run as the richest
+        # state in Europe (55,062g, 68.8x its boot chest). This is OMNISCIENT
+        # data: it goes to the jsonl only, never to the markdown the digest
+        # reads like a player's eye view, and it is None under --http, where
+        # the driver has no world handle.
+        if purses:
+            self.record("purses", purses={str(k): int(v)
+                                          for k, v in purses.items()})
         # FA-37. Only the components that MOVED — a run's economy story is
         # which term turned on, and a line of eleven zeroes hides it.
         if isinstance(economy, dict):
@@ -2407,7 +2461,8 @@ def run(args):
                            dig(ledger, "net_gold", "net"),
                            threat,
                            len(own) if isinstance(own, list) else None,
-                           economy=(body or {}).get("economy"))
+                           economy=(body or {}).get("economy"),
+                           purses=_all_purses(transport))
         try:
             digest.dispatch(dig(morning, "text", "content", "message",
                                 default=""),
