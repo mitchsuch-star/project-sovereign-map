@@ -1,0 +1,49 @@
+{
+  "name": "iq12-spender",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "accept",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "grant_autonomy",
+    "petition": "first_enabled",
+    "declare_war": "cancel",
+    "interrupt": "first",
+    "last_stand": "first",
+    "contact": "first",
+    "paradox": "honor",
+    "rebellion": "accept",
+    "sabotage": "confront",
+    "reward": "ignore",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 40,
+  "started": "2026-09-13 19:51",
+  "from_save": "",
+  "scenario": "",
+  "script": "tools/playtest_scripts/commanded_spender40.json",
+  "cheats": false,
+  "strict": false,
+  "rng": {
+    "deterministic": true,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "pythonhashseed": "0"
+  },
+  "driver_revision": "a581fcfa8642",
+  "reload_every": 0,
+  "status": "completed",
+  "counters": {
+    "commands": 213,
+    "popups": 48,
+    "battles": 26,
+    "turns": 40
+  },
+  "unknown_blockers": []
+}

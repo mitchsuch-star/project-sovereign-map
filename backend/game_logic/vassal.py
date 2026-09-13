@@ -1500,6 +1500,8 @@ def process_vassal_tribute(world) -> dict:
         vassal_gold = world.nation_gold.get(vassal_name, 0)
         actual_tribute = min(tribute_amount, max(0, vassal_gold))
         if actual_tribute > 0:
+            # IQ1-2 (3): NOT in `Spent` — this debits the VASSAL's chest, and
+            # `Spent` is the player's own purchases. The lord's side is income.
             world.nation_gold[vassal_name] = int(vassal_gold - actual_tribute)
             lord_gold = world.nation_gold.get(lord, 0)
             world.nation_gold[lord] = int(lord_gold + actual_tribute)
@@ -1622,6 +1624,8 @@ def invest_in_vassal(world, vassal_name: str, actor: str = None) -> dict:
     mult = get_authority_lever_multiplier(world, lord)
     gain = int(INVEST_LOYALTY_GAIN * mult)
     world.nation_gold[lord] = int(gold - INVEST_GOLD_COST)
+    # IQ1-2 (3): investing in a satellite is a player purchase.
+    world.record_gold_spent(lord, int(INVEST_GOLD_COST))
     old_loyalty = state["loyalty"]
     state["loyalty"] = int(min(LOYALTY_MAX, old_loyalty + gain))
     cooldowns[vassal_name] = INVEST_COOLDOWN
@@ -2792,6 +2796,8 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
             # The approach costs half the purse and the lord's court hears
             world.nation_gold[nation] = int(
                 world.nation_gold.get(nation, 0) - BRIBE_FREE_COST // 2)
+            # IQ1-2 (3): a failed approach is still money spent.
+            world.record_gold_spent(nation, int(BRIBE_FREE_COST // 2))
             if lord == getattr(world, 'player_nation', 'France'):
                 from backend.notifications import (
                     NotificationPriority,
@@ -2824,6 +2830,8 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
         if can_transfer:
             world.nation_gold[nation] = int(
                 world.nation_gold.get(nation, 0) - BRIBE_TRANSFER_COST)
+            # IQ1-2 (3): the bribe is a purchase — of a satellite.
+            world.record_gold_spent(nation, int(BRIBE_TRANSFER_COST))
             # Post-build review C1 (HIGH, reproduced live): the briber and
             # the vassal are usually at WAR (the vassal cascade-joined its
             # lord's war), and transfer_vassal requires that pair settled
@@ -2861,6 +2869,8 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
         else:
             world.nation_gold[nation] = int(
                 world.nation_gold.get(nation, 0) - BRIBE_FREE_COST)
+            # IQ1-2 (3): the cheaper outcome, same purchase.
+            world.record_gold_spent(nation, int(BRIBE_FREE_COST))
             free_result = _defect_vassal_free_and_hostile(
                 world, vassal_name, nation)
             outcome = free_result["outcome"]

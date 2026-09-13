@@ -54,28 +54,13 @@ from backend.models.world_state import WorldState
 # provinces they disrupt) and "overseas" (the authored colonial pool) are
 # the two new POSITIVE components — declared here so the guard forces
 # both render lines.
-NET_GOLD_COMPONENTS = {
-    "income": +1,
-    "trade_income": +1,
-    "admin_bonus": +1,
-    "treaty_gold": +1,
-    "vassal_tribute": +1,
-    "settlement_gold": +1,
-    "requisitions": +1,
-    "overseas": +1,
-    "occupation": -1,
-    "contributions": -1,
-    "state_charges": -1,
-    "dotation_skim": -1,
-    "rente_cost": -1,
-    "infrastructure": -1,
-    # DEF-5 naval (NV-0/NV-1): the blockade's trade suspension and the
-    # fleet's war upkeep — both boot-zero on fleet-less worlds.
-    "blockade": -1,
-    "admiralty": -1,
-    "upkeep_base": -1,
-    "upkeep_surcharge": -1,
-}
+# IQ1-2: this map used to be a HAND-MAINTAINED THIRD COPY of the ledger's own
+# net expression, and a fourth lived in `tools/playtest_driver.py` and had
+# drifted (it omitted `admin_bonus`, leaving a residual of exactly +50 on 40
+# of 40 LEDGER rows of both archived IQ-1 arms). The docstring above always
+# said this "MUST mirror ledger.py _build_economy's net expression" — so the
+# ledger is now the single source and every reader imports it.
+from backend.game_logic.ledger import NET_GOLD_COMPONENTS  # noqa: E402
 
 _LEDGER_GD = (
     Path(__file__).resolve().parents[1]

@@ -591,6 +591,17 @@ MILITARY COMMANDS:
                x3 AT WAR, dearer above the FORCE LIMIT, and the
                marshal's administration prices the levy (Davout -15%,
                Murat +15% - his card explains, press G).
+  substitutes - "buy substitutes for Ney" (1 Admin AP + gold)
+               "purchase a levy for Ney" / "hire replacements for Ney"
+               The remplacant: under the
+               conscription law a called-up man could pay another
+               to serve in his place. Draws NO men from the pools -
+               gold alone - so it is the one purchase your TREASURY
+               limits rather than your class. It is dear, and it
+               grows dearer as the class empties. You may buy up to
+               the point where keeping the men turns punitive, and
+               not a man past it; Berthier names the ceiling if you
+               ask for more. Replacements, never expansion.
 
   bombardment - Artillery fires on adjacent region (max 2/turn)
                "bombard Swabia" - Cannot fire after moving.

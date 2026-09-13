@@ -10987,6 +10987,10 @@ class WorldState:
                 if from_nation in self.nation_gold:
                     available = self.nation_gold[from_nation]
                     transfer = min(int(abs(amount)), max(0, available))
+                    # IQ1-2 (3): NOT in `Spent` — a ratified treaty clause is
+                    # an obligation the settlement already showed the player,
+                    # and a transfer (the other side's rise is this gold).
+                    # Signed Net line; owner IQ1-3a.
                     self.nation_gold[from_nation] -= transfer
                     if to_nation in self.nation_gold:
                         self.nation_gold[to_nation] += transfer
@@ -11749,6 +11753,9 @@ class WorldState:
                     if from_nation in self.nation_gold:
                         available = self.nation_gold[from_nation]
                         transfer = min(int(amount), max(0, available))
+                        # IQ1-2 (3): NOT in `Spent` — same reason as the lump
+                        # clause above, and this one ALREADY records itself in
+                        # `_applied_income_transfers` for the ledger mirror.
                         self.nation_gold[from_nation] = available - transfer
                         if to_nation in self.nation_gold:
                             self.nation_gold[to_nation] += transfer
@@ -13328,6 +13335,12 @@ class WorldState:
                                               (enemy.nation, ac_def_cas)):
                         _bill = int(_m_cas * MATERIEL_RATE)
                         if _bill > 0 and _m_nation:
+                            # IQ1-2 (3): NOT in `Spent`, permanently. Read the
+                            # expression, not the function name — this is the
+                            # SAME EC-W3 Butcher's Bill as the combat pipeline's
+                            # (`_m_cas * MATERIEL_RATE`), charged for the
+                            # auto-resolved charge, and it tallies into
+                            # `materiel_spent_this_turn` three lines below.
                             self.nation_gold[_m_nation] = int(
                                 self.nation_gold.get(_m_nation, 0) - _bill)
                             _tally = getattr(

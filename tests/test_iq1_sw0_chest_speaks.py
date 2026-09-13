@@ -103,11 +103,28 @@ class TestTheCeilingIsTheFixedPoint:
         assert state_charges_ceiling(-500, 30) == 0
 
     def test_the_boot_world_ceiling_is_reachable_and_finite(self, world):
+        """⚠ PIN FLIPPED CONSCIOUSLY, IQ1-2.
+
+        This asserted `ceiling == state_charges_ceiling(econ["net"], rate)`,
+        which is the production expression restated — a tautology that could
+        only ever fail if the call were deleted. It stayed GREEN through the
+        whole defect, and it stayed green because at the BOOT the chest (800)
+        is below `CHARGES_HOARD_FLOOR` (2,000), so `state_charges` is 0 and
+        the pre-charge and post-charge arguments are the same number. It is
+        re-written against the arithmetic instead, and the chest is raised so
+        the two arguments differ.
+        """
+        world.nation_gold["France"] = 40_000
         econ = _build_economy(world, "France")
         rate = sum(int(t.get("amount", 0))
                    for t in econ.get("state_charges_terms", []))
         assert rate > 0, "France boots at war — the crown and war terms fire"
-        assert econ["ceiling"] == state_charges_ceiling(econ["net"], rate)
+        assert econ["state_charges"] > 0, "the charge must actually bite here"
+        gross = econ["net"] + econ["state_charges"]
+        assert econ["ceiling"] == CHARGES_HOARD_FLOOR + gross * WAR_EFFORT_DIVISOR // rate
+        assert econ["ceiling"] != state_charges_ceiling(econ["net"], rate), (
+            "the pre-charge and post-charge readings must differ here, or "
+            "this fixture cannot tell the defect from the fix")
         assert econ["ceiling"] > int(world.nation_gold["France"])
 
 
@@ -124,8 +141,17 @@ class TestShownEqualsApplied:
                          for t in econ["state_charges_terms"])
         applied_rate = world.get_state_charges_rate("France")["rate"]
         assert shown_rate == applied_rate
-        assert econ["ceiling"] == state_charges_ceiling(econ["net"],
-                                                        applied_rate)
+        # ⚠ PIN FLIPPED CONSCIOUSLY, IQ1-2 — the second assertion was the
+        # same tautology as above. What shown=applied actually requires is
+        # that the ceiling is computed at the rate the CHARGE was taken at,
+        # which is what this now says, with the chest raised so the charge
+        # is non-zero and the two readings are distinguishable.
+        world.nation_gold["France"] = 40_000
+        econ = _build_economy(world, "France")
+        applied = world.get_state_charges_rate("France")["rate"]
+        gross = econ["net"] + econ["state_charges"]
+        assert econ["state_charges"] > 0
+        assert econ["ceiling"] == state_charges_ceiling(gross, applied)
 
     def test_spent_is_the_sum_of_the_record_calls(self, world):
         world.record_gold_spent("France", 400)
@@ -146,9 +172,10 @@ class TestShownEqualsApplied:
 
 class TestTheIdentityIsUntouched:
     def test_neither_key_enters_net(self, world):
-        from tests.test_economy_ledger_reconciliation import NET_GOLD_COMPONENTS
+        from backend.game_logic.ledger import NET_GOLD_COMPONENTS
         assert "spent" not in NET_GOLD_COMPONENTS
         assert "ceiling" not in NET_GOLD_COMPONENTS
+        assert "ceiling_state" not in NET_GOLD_COMPONENTS
         world.record_gold_spent("France", 7777)
         econ = _build_economy(world, "France")
         assert econ["net"] == sum(int(econ[k]) * sign
@@ -216,22 +243,34 @@ class TestTheClientRendersThem:
 # a real outflow the `Spent` line cannot see, and the point of pinning it is
 # that a NEW one fails this test. Measured September 12, 2026 — 15 of 21.
 UNRECORDED_OUTFLOWS = {
+    # IQ1-2 (3) shrank this 15 -> 8. Each survivor carries a one-line reason
+    # at its own call site; the three dispositions are:
+    #
+    #   (A) PLAYER PURCHASE  -> records into `Spent`. Seven moved in IQ1-2:
+    #       build_fleet, buy_off_design, both make_amends variants, the
+    #       ultimatum payment, invest_in_vassal and all three bribe arms.
+    #   (B) RECURRING OBLIGATION -> belongs on a signed Net LINE, not in
+    #       `Spent`. Owner IQ1-3a: the British subsidy, the Continental
+    #       System, signed instruments, and the two treaty-clause arms.
+    #   (C) NOT A PLAYER SPEND -> stays here permanently, with its reason.
+    #
+    # (C) — never in `Spent`:
     ("backend/commands/combat_executor.py", "_post_combat_pipeline"),
-    ("backend/commands/diplomatic_executor.py", "_execute_buy_off_design"),
-    ("backend/commands/diplomatic_executor.py", "_execute_make_amends"),
-    ("backend/commands/diplomatic_executor.py",
-     "_execute_make_amends_grievance_variant"),
-    ("backend/commands/diplomatic_executor.py", "_apply_ultimatum_demands"),
-    ("backend/commands/naval_executor.py", "_execute_build_fleet"),
+    # ...and its twin. IQ1-2 correction: this was dispositioned "a penalty,
+    # not a purchase" on the strength of the function's NAME. Reading the
+    # expression, it is `_m_cas * MATERIEL_RATE` tallied into
+    # `materiel_spent_this_turn` — the SAME EC-W3 bill, for the
+    # auto-resolved charge.
+    ("backend/models/world_state.py", "_process_reckless_cavalry_turn_start"),
+    # ...debits the VASSAL's chest; the lord's side is income.
+    ("backend/game_logic/vassal.py", "process_vassal_tribute"),
+    #
+    # (B) — a signed Net line, owner IQ1-3a:
     ("backend/game_logic/coalition.py", "_process_british_subsidy"),
     ("backend/game_logic/diplomacy.py", "apply_continental_system"),
     ("backend/game_logic/instruments.py", "process_instruments"),
-    ("backend/game_logic/vassal.py", "process_vassal_tribute"),
-    ("backend/game_logic/vassal.py", "invest_in_vassal"),
-    ("backend/game_logic/vassal.py", "attempt_vassal_bribe"),
     ("backend/models/world_state.py", "_ratify_treaty"),
     ("backend/models/world_state.py", "_process_treaty_clauses"),
-    ("backend/models/world_state.py", "_process_reckless_cavalry_turn_start"),
 }
 
 
@@ -291,6 +330,13 @@ class TestTheSpendCensus:
                 "_execute_recruit") in recorded
         assert ("backend/game_logic/recruitment.py",
                 "commission_marshal") in recorded
+        # IQ1-2: the seven purchases this slice moved must read as RECORDED,
+        # or the census is matching the call and not the function.
+        for site in (("backend/commands/naval_executor.py", "_execute_build_fleet"),
+                     ("backend/commands/diplomatic_executor.py", "_execute_buy_off_design"),
+                     ("backend/game_logic/vassal.py", "invest_in_vassal"),
+                     ("backend/game_logic/vassal.py", "attempt_vassal_bribe")):
+            assert site in recorded, f"{site} should record its spend"
         assert len(found) >= 21
 
 

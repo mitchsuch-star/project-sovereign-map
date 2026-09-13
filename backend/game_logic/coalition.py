@@ -1411,6 +1411,8 @@ def _process_british_subsidy(world) -> List[Dict]:
     if payer_gold < subsidy:
         return events
 
+    # IQ1-2 (3): NOT in `Spent` — a per-turn obligation, not a purchase.
+    # It belongs on a signed Net line instead; owner IQ1-3a.
     world.nation_gold[payer] = int(payer_gold - subsidy)
     recipient_gold = world.nation_gold.get(recipient, 0)
     world.nation_gold[recipient] = int(recipient_gold + subsidy)

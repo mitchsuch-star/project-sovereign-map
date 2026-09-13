@@ -10659,6 +10659,9 @@ def apply_continental_system(world) -> None:
             # erased any pre-existing debt (a nation at -3,000 was lifted to 0
             # every turn), conjuring gold outside every ledger component
             # (Aug 2026 health-check audit).
+            # IQ1-2 (3): NOT in `Spent` — the Continental System's cost is a
+            # per-turn consequence of a standing policy, not a purchase, and
+            # it debits BOTH sides. It belongs on a signed Net line; IQ1-3a.
             if member in world.nation_gold:
                 world.nation_gold[member] -= min(
                     int(blocked), max(0, world.nation_gold[member])

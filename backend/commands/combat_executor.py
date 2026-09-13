@@ -2934,6 +2934,11 @@ class CombatExecutor:
                                         (defender_nation, int(def_casualties))):
                     bill = int(m_cas * MATERIEL_RATE)
                     if bill > 0 and m_nation:
+                        # IQ1-2 (3): NOT in `Spent`, permanently. The Butcher's
+                        # Bill (EC-W3) is charged at the battle and is documented
+                        # OUTSIDE Net; it already renders as its own `materiel`
+                        # row and on the same end-turn banner line as `Spent`, so
+                        # recording it here would name one bill twice.
                         world.nation_gold[m_nation] = int(
                             world.nation_gold.get(m_nation, 0) - bill)
                         # PT-C4: and TALLY it, so the end-turn banner can

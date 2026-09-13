@@ -557,13 +557,32 @@ func _render_economy():
 	var spent = int(econ.get("spent", 0))
 	if spent > 0:
 		bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]Spent:    -" + str(spent) + "g  (orders paid for this turn)[/color]\n"
+	# IQ1-2: the ceiling had ONE sentence for three states, and the zero
+	# sentinel meant the line VANISHED exactly when the chest was largest
+	# (the charge had exceeded the gross, so the old post-charge argument
+	# went negative). The three states are now named by the backend.
 	var ceiling = int(econ.get("ceiling", 0))
-	if ceiling > 0:
-		var ceil_color = Utils.COLOR_DIMMED
-		if treasury > 0 and ceiling > treasury * 4:
-			ceil_color = Utils.COLOR_WARNING
-		bbcode += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
-			+ "g  (where the charges level the chest off at this rate)[/color]\n"
+	var ceiling_state = str(econ.get("ceiling_state", "bounded"))
+	if ceiling_state == "unbounded":
+		bbcode += "  [color=#" + Utils.COLOR_DIMMED \
+			+ "]Ceiling:  none — nothing is drawing on the chest[/color]\n"
+	elif ceiling_state == "no_surplus":
+		bbcode += "  [color=#" + Utils.COLOR_DIMMED \
+			+ "]Ceiling:  none — the chest is not growing[/color]\n"
+	elif ceiling > 0:
+		if treasury > ceiling:
+			# The case the fix makes reachable: the chest is PAST its own
+			# fixed point, so the charges are pulling it back down. It had
+			# no copy because it could not previously be rendered at all.
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Ceiling:  " \
+				+ _format_number(ceiling) \
+				+ "g  — the chest is above it; the charges are drawing it down[/color]\n"
+		else:
+			var ceil_color = Utils.COLOR_DIMMED
+			if treasury > 0 and ceiling > treasury * 4:
+				ceil_color = Utils.COLOR_WARNING
+			bbcode += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
+				+ "g  (where the charges level the chest off at this rate)[/color]\n"
 
 	if bankruptcy > 0:
 		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"

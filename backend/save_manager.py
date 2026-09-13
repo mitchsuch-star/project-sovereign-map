@@ -244,8 +244,14 @@ def load_game(filepath: Path) -> Dict:
         #     wipe was not cosmetic — a mid-turn save/load let a marshal who
         #     had already raised a mild concern raise it again. That is the
         #     WO-23 budget-refresh shape exactly.
-        #   * `gold_spent_this_turn` is read by the recruit pricing and is
-        #     saved/restored around post-objection.
+        #   * `gold_spent_this_turn` is saved/restored around post-objection.
+        #     ⚠ IQ1-2 CORRECTION: this used to say it "is read by the recruit
+        #     pricing". It is not, and the same claim was in IQ-1 SW-0's own
+        #     commit body. An AST census of its readers: `ledger._build_economy`,
+        #     `economy_executor`'s typed economy report, and the two end-turn
+        #     banner snapshots. `_calculate_recruit_cost` does NOT read it —
+        #     which is what makes it display-only, and is the basis for IQ1-2
+        #     being byte-identical to the series by construction.
         #   * `threat_sources_this_turn` is the coalition's own record of WHY
         #     the alarm rose. Measured: 4 sources live, 4 after `from_dict`,
         #     **0 after `load_game`** — and the diplomatic ledger's "why" rows

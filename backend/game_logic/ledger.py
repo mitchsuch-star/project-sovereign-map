@@ -308,6 +308,80 @@ THE_LEDGER_SHOWS_THE_MATERIEL_BILL = True
 # only reach ~1,308g of purchases against a boot net of 1,842g.
 THE_CHEST_STATES_ITS_CEILING = True
 
+# IQ-1 IQ1-2 "The Chest Tells the Truth" flip lever. False restores every
+# pre-slice reading: the POST-charge ceiling argument, the player-scoped
+# `treasury` / `bankruptcy_turns` keys, and the single `ceiling == 0`
+# sentinel. The rest of the payload is byte-identical either way.
+#
+# Three defects, all display, all measured on ONE unchanged 1805 boot world:
+#
+# 1. THE CEILING WAS NOT A FIXED POINT. `_build_economy` fed
+#    `state_charges_ceiling` the net that had ALREADY had `state_charges`
+#    subtracted, so a figure defined to be independent of the chest slid
+#    with it. At rate 80, varying only the treasury:
+#        800 -> 59,562 · 5,000 -> 56,562 · 20,000 -> 41,562
+#        40,000 -> 21,562 · 60,000 -> 0 · 88,556 -> 0
+#    against a true fixed point of 59,562 at all six. The shipped figure
+#    always UNDERSTATES the destination, and once the charge exceeds the
+#    gross it collapsed to the GR2 zero sentinel — and `strategic_ledger.gd`
+#    renders `if ceiling > 0`, so the line vanished exactly when the chest
+#    was largest. On the turn-40 peace board the row was opened over (rate
+#    30) it rendered 252,000 against a true 338,500: the player was told the
+#    brake was 86,500 gold closer than it is.
+#
+# 2. THE ECONOMY TAB ANSWERED FOR FRANCE WHEN ASKED ABOUT AUSTRIA.
+#    `"treasury": int(world.gold)` and `bankruptcy_turns` read
+#    `player_nation`-scoped properties (`world_state.gold`, :2268) while the
+#    function takes a `player` argument every other key honours. Measured on
+#    the boot: asked about Austria it reported 800 against a real 700; about
+#    Britain, 800 against 2,000. No GR5 claim about an AI court's economy
+#    was readable.
+#
+# 3. THE SENTINEL SAID ONE WORD FOR TWO STATES. "no rate, so unbounded" and
+#    "not making money, so no such treasury" both returned 0. They are
+#    different sentences to a player, and the fix makes a THIRD state
+#    reachable — a chest already past its own fixed point — which had no
+#    copy at all because it could not previously be rendered.
+THE_CHEST_TELLS_THE_TRUTH = True
+
+# The signed components of `_build_economy`'s `net` expression, as the
+# CANONICAL map. The ledger is the source of this truth: the
+# reconciliation test's own docstring has always said it "MUST mirror
+# ledger.py _build_economy's net expression", and `tools/playtest_driver.py`
+# kept a THIRD hand-maintained copy which had drifted — it omitted
+# `admin_bonus`, leaving a residual of exactly +50 on 40 of 40 LEDGER rows
+# of both archived IQ-1 arms. Both readers now import this.
+#
+# `materiel`, `spent` and `ceiling` are deliberately absent: the first is
+# charged at the battle and documented outside Net, and the other two are
+# informational (see THE_CHEST_STATES_ITS_CEILING).
+NET_GOLD_COMPONENTS = {
+    "income": +1,
+    "trade_income": +1,
+    "admin_bonus": +1,
+    "treaty_gold": +1,
+    "vassal_tribute": +1,
+    "settlement_gold": +1,
+    "requisitions": +1,
+    "overseas": +1,
+    "occupation": -1,
+    "contributions": -1,
+    "state_charges": -1,
+    "dotation_skim": -1,
+    "rente_cost": -1,
+    "infrastructure": -1,
+    "blockade": -1,
+    "admiralty": -1,
+    "upkeep_base": -1,
+    "upkeep_surcharge": -1,
+}
+
+# The three states `ceiling` can be in. GR2: `ceiling` stays an int for
+# Godot; `ceiling_state` says which sentence to print.
+CEILING_BOUNDED = "bounded"           # a real fixed point; `ceiling` is it
+CEILING_NO_RATE = "unbounded"         # rate 0 — nothing steers the chest
+CEILING_NO_SURPLUS = "no_surplus"     # not making money — no such treasury
+
 
 def state_charges_ceiling(net: int, rate: int) -> int:
     """The treasury EB-1's Charges of Empire are steering toward.
@@ -319,10 +393,21 @@ def state_charges_ceiling(net: int, rate: int) -> int:
     the nation is not making money, which are the two cases where no such
     treasury exists.
 
-    SINGLE SOURCE: read by the ledger, the dispatch and the playtest
-    driver. It takes the rate rather than deriving it so the caller passes
-    the SAME rate the charge was applied with (shown = applied — the
+    SINGLE SOURCE. It takes the rate rather than deriving it so the caller
+    passes the SAME rate the charge was applied with (shown = applied — the
     CA9-N11 rule this module already documents for every fraction term).
+
+    `net` MUST be the gold coming in BEFORE the charge is drawn from it.
+    That is the whole content of the fixed point, and the one production
+    caller (`_build_economy`) passed the post-charge figure until IQ1-2 —
+    see THE_CHEST_TELLS_THE_TRUTH for the measurement.
+
+    IQ1-2 correction: this docstring used to claim three readers ("the
+    ledger, the dispatch and the playtest driver"). There is exactly ONE
+    production call site — `_build_economy` — and the caller is responsible
+    for distinguishing the two zero cases (CEILING_NO_RATE vs
+    CEILING_NO_SURPLUS), which this function cannot tell apart in its
+    return type.
     """
     from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
     if int(rate) <= 0 or int(net) <= 0:
@@ -540,8 +625,38 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
             "type": region.region_type,
         })
 
+    # IQ1-2 (2): answer for the nation that was ASKED about. `world.gold`
+    # and `world.bankruptcy_turns` are player-scoped properties, so every
+    # AI court's economy read France's chest back.
+    if THE_CHEST_TELLS_THE_TRUTH:
+        _treasury = int((getattr(world, "nation_gold", None) or {}).get(player, 0))
+        _bankruptcy = int(
+            (getattr(world, "nation_bankruptcy_turns", None) or {}).get(player, 0))
+    else:
+        _treasury = int(world.gold)
+        _bankruptcy = int(world.bankruptcy_turns)
+
+    # IQ1-2 (1): the fixed point is defined against the gold coming IN, which
+    # is the net BEFORE the charge is taken out of it — `net` above has
+    # already subtracted `state_charges`. Passing the post-charge figure made
+    # the "destination" move with the chest it is the destination OF.
+    _ceiling_rate = sum(int(t.get("amount", 0)) for t in state_charges_terms)
+    _ceiling_gross = net + state_charges if THE_CHEST_TELLS_THE_TRUTH else net
+    if not THE_CHEST_STATES_ITS_CEILING:
+        _ceiling_value, _ceiling_state = 0, CEILING_BOUNDED
+    elif not THE_CHEST_TELLS_THE_TRUTH:
+        _ceiling_value = state_charges_ceiling(net, _ceiling_rate)
+        _ceiling_state = CEILING_BOUNDED
+    elif _ceiling_rate <= 0:
+        _ceiling_value, _ceiling_state = 0, CEILING_NO_RATE
+    elif _ceiling_gross <= 0:
+        _ceiling_value, _ceiling_state = 0, CEILING_NO_SURPLUS
+    else:
+        _ceiling_value = state_charges_ceiling(_ceiling_gross, _ceiling_rate)
+        _ceiling_state = CEILING_BOUNDED
+
     return {
-        "treasury": int(world.gold),
+        "treasury": _treasury,
         "income": income,
         "trade_income": trade_income,
         "admin_bonus": admin_bonus,
@@ -576,9 +691,8 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # not a flow. The SC-33 identity is untouched by construction.
         "spent": (int((getattr(world, "gold_spent_this_turn", {}) or {}).get(player, 0))
                   if THE_CHEST_STATES_ITS_CEILING else 0),
-        "ceiling": (state_charges_ceiling(net, sum(
-            int(t.get("amount", 0)) for t in state_charges_terms))
-            if THE_CHEST_STATES_ITS_CEILING else 0),
+        "ceiling": _ceiling_value,
+        "ceiling_state": _ceiling_state,
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "infrastructure": infrastructure,
@@ -597,7 +711,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # the gate was shut, invisible the moment it opened.
         "levy": _levy_block(world),
         "net": net,
-        "bankruptcy_turns": int(world.bankruptcy_turns),
+        "bankruptcy_turns": _bankruptcy,
         "construction_queue": construction_queue,
         "income_breakdown": income_breakdown,
     }

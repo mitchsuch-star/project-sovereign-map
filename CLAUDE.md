@@ -44,6 +44,16 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 12, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ OWNING SPEC FOR ROW IQ = `docs/IMPROVEMENT_QUEUE_SPEC.md`** (opened
+> September 13, 2026 by IQ1-2 — the row had run two slices with no doc record).
+> **IQ-1 has three slices landed: IQ1-0 the instrument, IQ1-1 the substitute
+> market, IQ1-2 the chest tells the truth. NEXT = IQ1-3 "The Recurring
+> Obligation".** The crux (the August 7 blessing vs the September 12 brief) is
+> RULED in spec §0.2 — the blessed rate stands and the fix is somewhere for the
+> gold to GO — and question (c) is ROUTED OUT to its own design gate by user
+> ruling. Three figures in the row's own contract did not reproduce and are
+> corrected (457× → **590×**, the upkeep floor, and two mixed boards).
+>
 > **▶ THE IMPROVEMENT QUEUE (row IQ) IS THE LIVE ROUTING AUTHORITY — opened September 12, 2026 by user direction** (*"improve everything but win conditions one by one — let the agents make decisions on how; start with a comprehensive econ fix that finally makes it work better"*). **The queue lives in `docs/STATUS.md` ▶ NEXT UP and is authoritative for what is built next.** Ten rows, taken one at a time, each opened by a read-only decision fleet whose rulings become the build contract: **IQ-1 the economy that bites** (▶ in progress — absorbs the DECLINED FA-S17-D2 gold-sink ruling, re-opened here by direction, plus IGR-X9 and the live half of `ECONOMY_REVISIT_SPEC.md` Track 3) → IQ-2 the collapse is legible (PR-X1) → IQ-3 the coalition is rare (PR-D1) → IQ-4 the cabinet is visible (PR-D2/D3) → IQ-5 both sides of the butcher's bill (PR-X2/X3) → IQ-6 Europe speaks its mind (PR-X4) → IQ-7 the satellites have a position (FA-S17-D7's owner) → IQ-8 the harness tells the truth (PR-X5, PR-D4) → IQ-9 the keyless parser gate → **IQ-10 the client pass, ⚠ BLOCKED ON ENVIRONMENT** (no Godot binary in this container). **⛔ WIN CONDITIONS ARE EXCLUDED BY DIRECTION** — `sandbox_mode` suppresses victory AND defeat on every Europe world and that stays owned by the Victory & Objectives Pass, ROADMAP positions 12–13; no IQ row builds it or half-builds it, and IQ-2's scope note states in writing that making the collapse legible does not make it terminal.
 >
 > **▶ THE POST-AUDIT PLAYTEST AND RE-SCORE — ✅ HELD September 12, 2026. Memo of record = `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`, authoritative where it amends the September 11 re-score.** Sixteen seeded driver runs (five 40-turn ambient seeds · the COMMANDED arm on three seeds with `--diplomacy accept` · `--diplomacy propose` · scripted-aggressive · the naval Descent · the tutorial · both fixtures · a reload arm · a `--declare-war proceed` control · a repeat-determinism control), then **twelve re-run after the fixes** so every claim about a change is a before/after on the same seed. **Directional ≈6.9 → ≈7.0** — diplomacy 6.0 → **6.5**, marshal drama 7.0 → **7.5**, seven pillars hold on named evidence. **⚠ `--llm anthropic` (no API key) and the Mode-C client pass (no Godot binary) could NOT run and are recorded as NOT RUN, not as passes — UI/UX is not re-scored and its prior 7.5 stands; zero `.gd` changed.** Landing record = the boxed **Playtest Re-Score (PR / MS)** block in `BUG_FIXES.md`; design rows = `DESIGN_REFINEMENT.md` §Playtest Re-Score (PR-D1..D4); routed defects PR-X1..X5. Suite **21,590/4**, sweep **29 killed / 0 INERT**, `BASELINE_SERIES` + M1–M7 byte-identical **with the reason measured**, ruff clean.
@@ -2390,10 +2400,10 @@ For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
 4. Add cost to `_action_costs` in `world_state.py`
 5. Add keywords to mock parser in `llm_client.py` (search "ADD NEW ACTION KEYWORDS HERE" — do not trust line numbers)
 6. Add few-shot example in `prompt_builder.py` if complex
-7. If triggerable by objection, add to `objection_actions` in `disobedience.py`
+7. If triggerable by objection, add to `objection_actions` — ⚠ **it is in `executor.py`, NOT `disobedience.py`** (corrected IQ1-2, Sept 13 2026; navigate by the symbol). A verb that is a PURCHASE rather than an order is deliberately absent from it (e.g. `purchase_levy`); record that judgement on the slice.
 8. Add to_dict/from_dict if new state fields needed
 9. Add to `ACTION_DISPLAY` in `display_names.py`
-10. Add to `_DEFIANCE_DISPLAY` + `_OBJECTION_DISPLAY` in `campaign_log.py` (lines ~21, ~43)
+10. Add to `DEFIANCE_DISPLAY` + `OBJECTION_DISPLAY` — ⚠ **both are in `display_names.py`, with NO leading underscore** (corrected IQ1-2, Sept 13 2026: the old row named the wrong file, the wrong names and two stale line numbers; `campaign_log.py` holds only import aliases)
 11. Add event type to `CAMPAIGN_LOG_TYPES` in `campaign_log.py` (line ~83) + format in `format_event_oneliner()`
 12. Add a golden-corpus entry in `tests/data/parser_golden_corpus.json` (CR-1) — the eval harness's action-coverage gate fails CI for any mock-reachable action with zero corpus coverage
 
@@ -2545,6 +2555,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Need | Read |
 |------|------|
 | Session state / what's next | `docs/STATUS.md` |
+| **The Improvement Queue (row IQ) — landing records, rulings, dissents** | **`docs/IMPROVEMENT_QUEUE_SPEC.md`** — row IQ's OWNING SPEC. STATUS stays the ROUTING authority (which row is next); this holds the per-slice landing records, the crux ruling, the filed dissent and re-open condition, and the re-stated completion items. Slice ids are `IQ1-n` (the first two shipped as `SW-0`/`SW-1`, which collides with `SEASONS_WEATHER_SPEC.md`; the alias is recorded). |
 | **PLAYTEST / live-verify / evaluate the game (START HERE for any of those)** | **`docs/PLAYTESTING.md`** — Mode A `tools/playtest_driver.py` (in-process, seeded, popup-answering, digest output) is the default; Mode B live-HTTP (`SOVEREIGN_PORT`), Mode C client visual pass; fixtures in `tests/fixtures/playtest_saves/` |
 | **UI Visual Foundation Sweep (▶ NEXT — take slices UI-0→UI-3 in order)** | **`docs/UI_VISUAL_FOUNDATION_SPEC.md`** (queued July 12, 2026; assets in `assets/` + credits at repo-root `THIRD_PARTY_LICENSES.md`) |
 | Wave 6 fun-factor build (✅ COMPLETE July 10, 2026) | `docs/WAVE6_FUN_FACTOR_SPEC.md` (§15 DoD; audit evidence in `docs/audits/CREATIVE_AUDIT_2026_07_10.md`) |

@@ -47,7 +47,7 @@
 >
 > | # | row | what it fixes | evidence | state |
 > |---|---|---|---|---|
-> | 1 | **IQ-1 THE ECONOMY THAT BITES** | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **457×** | ▶ **IN PROGRESS** — decision fleet running |
+> | 1 | **IQ-1 THE ECONOMY THAT BITES** | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ▶ **IN PROGRESS** — IQ1-0/1/2 LANDED; next = **IQ1-3** the recurring obligation |
 > | 2 | **IQ-2 THE COLLAPSE IS LEGIBLE** | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | queued |
 > | 3 | **IQ-3 THE COALITION IS RARE** | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | queued |
 > | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | queued |
@@ -60,12 +60,23 @@
 >
 > ---
 >
-> ### IQ-1 — THE ECONOMY THAT BITES  ▶ IN PROGRESS
+> ### IQ-1 — THE ECONOMY THAT BITES  ▶ IN PROGRESS — three slices landed
+>
+> **⚠ OWNING SPEC: `docs/IMPROVEMENT_QUEUE_SPEC.md` (opened by IQ1-2; it is
+> authoritative for the landing records, the crux ruling, the dissent, the
+> re-open condition and the re-stated completion items). This block stays
+> normative for SCOPE.** Slice ids: the first two shipped as `SW-0` / `SW-1`,
+> which collides with `SEASONS_WEATHER_SPEC.md`; every remaining slice is
+> `IQ1-n`, with the alias recorded in the spec.
 >
 > **Absorbs:** FA-S17-D2 (the DECLINED gold-sink ruling — **re-opened by user
-> direction**, so its owner moves from "EC-2 pass 2" to this row) · IGR-X9 (the
-> razing / EC-U2 interaction, homed at the econ gate) · the live half of
-> `ECONOMY_REVISIT_SPEC.md` Track 3 (ES-4 "development") · the consequence of
+> direction**, so its owner moves from "EC-2 pass 2" to this row) · ~~IGR-X9~~ (⚠ **STRUCK by IQ1-2**: decided and fixed at the
+> August 7 Econ Balance gate, EB-3.2, and it does not reproduce at HEAD. The
+> still-open neighbour is **CA8-D1**, the building-slot ceiling — France holds
+> 13 of the map's 97 slots) · the live half of
+> `ECONOMY_REVISIT_SPEC.md` Track 3 (ES-4 "development" — ⚠ **HANDED BACK by
+> IQ1-2**: it RAISES income and is a want, not a recurring drain, and the spec
+> still assigns it to "EC-2 pass 2 … USER DESIGN GATE") · the consequence of
 > the **EC-U1 reversal** (upkeep bills on fielded strength, so attrition LOWERS
 > the bill and losing is cheap).
 >
@@ -73,15 +84,30 @@
 >
 > * A peaceful France banks **82,524 gold by turn 30** and **88,556 by turn
 >   40**, monotonically, while its own dispatch reads *"the levy has stood open
->   15 turns. 150 gold puts 10,000 foot in the line at Paris"* — a **457×**
+>   15 turns. 150 gold puts 10,000 foot in the line at Paris"* — a **590×**
 >   ratio of purse to the most powerful thing money buys.
-> * **Threat FALLS 68 → 44** while France holds 26 of 28 provinces, so there is
->   no counter-pressure either.
+>   *(⚠ **CORRECTED by IQ1-2**: this read **457×** in three places, once as a
+>   completion criterion. 88,556 / 150 = **590.4**; 82,524 / 150 = 550.2; and
+>   457 × 150 = 68,550, a treasury in no published figure. The memo this block
+>   names authoritative — `PLAYTEST_RESCORE_2026_09_12.md` — says 590×.
+>   **RULED — FOR USER CONFIRMATION**, because it grades the row. ⚠ The
+>   denominator is itself ambiguous — the same pricer returns 150 at the
+>   capital at peace and 654 at the boot, and the modal DELIVERED purchase
+>   across all archived digests is 3,000 men for 200 gold — so item (iv)'s
+>   replacement is re-specified in the owning spec §0.7.)*
+> * **Threat FALLS 68 → 44** on the `--diplomacy propose` arm while France holds
+>   26 of 28 provinces, so there is no counter-pressure either. *(⚠ **CORRECTED
+>   by IQ1-2**: 88,556 is the **commanded** arm, whose threat goes **76 → 77**
+>   and which ends with a coalition brewing at 77 — these four bullets had
+>   silently mixed two boards. The point survives on both: nothing the player
+>   does to get rich costs them anything.)*
 > * **EB-1's charges cannot catch it.** State charges spike to ~2,887/turn at
 >   war and fall to ~955 at peace — about **1.2% of the chest** against a
 >   compounding income.
-> * Army upkeep on the commanded board falls **2,224 → ~450** as the army
->   bleeds. The bill goes DOWN as the campaign goes badly.
+> * Army upkeep on the commanded board falls **2,224 → 592** as the army
+>   bleeds (turn 40 reads 624; the 40-turn minimum is 592). The bill goes DOWN
+>   as the campaign goes badly. *(⚠ **CORRECTED by IQ1-2**: this read "~450",
+>   which occurs only on collapsing arms.)*
 > * The pillar has scored **6.0 at three consecutive re-scores.** The
 >   arithmetic is exact and the brake is real; the sink is not.
 >
@@ -221,6 +247,98 @@
 > one — and carries every open visual sign-off with it. **Completion:** a Mode
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
+
+> ## ▶ ROW IQ-1, THREE SLICES LANDED — September 12–13, 2026
+>
+> **Owning spec = `docs/IMPROVEMENT_QUEUE_SPEC.md`, authoritative** (opened by
+> IQ1-2, because the row had run two slices with no doc record at all).
+> Suite **21,744 passed / 4 skipped / 0 failed**; sweeps
+> `_sweep_iq1_sw0.json` 13/13, `_sweep_iq1_sw1.json` 23/23,
+> `_sweep_iq1_iq1_2.json` **21/21, 0 INERT, 0 BROKEN**; ruff clean;
+> `BASELINE_SERIES` + M1–M7 byte-identical **without re-record**.
+>
+> **IQ1-0 "The Chest Speaks"** (`3686922`) — instrument only. The Strategic
+> Ledger gained `spent` and the treasury's own fixed point; an AST census found
+> **21 functions subtract from `nation_gold` and 15 never record it**; the
+> driver learned to record **every nation's purse**, which is how a neutral
+> Ottoman Empire turned out to be the richest state in Europe at turn 40 while
+> France held 1.4% of Europe's cash.
+>
+> **IQ1-1 "The Substitute Market"** (`c3d74fa`) — `purchase_levy`: the first
+> purchase in the game bounded by **gold** rather than by manpower, slots or a
+> bench. The *remplaçant*, priced through the EXISTING recruit pricer so the
+> capital discount, the war ×3, the ES-3 ladder and the Intendance all compose
+> on top (GR5, shown = applied).
+>
+> **IQ1-2 "The Chest Tells the Truth"** — zero balance, lever
+> `THE_CHEST_TELLS_THE_TRUTH`. The instrument was lying three ways.
+> **(1)** The ledger's `ceiling` — "the treasury the Charges of Empire are
+> steering toward" — was fed the **post-charge** net, so a figure defined to be
+> independent of the chest **slid with it**: at one unchanged boot world and one
+> unchanged rate it read **59,562 → 56,562 → 41,562 → 21,562 → 0 → 0** as the
+> chest grew, against a true fixed point of 59,562 at all six. Two faces, both
+> real: at rate 80 the line **vanishes** at a large chest (the client renders
+> `if ceiling > 0`); at rate 30 — the turn-40 peace board this row was opened
+> over — it rendered **252,000 against a true 338,500**, telling the player the
+> brake was **86,500 gold closer** than it is. **(2)**
+> `_build_economy(world, 'Austria')['treasury']` returned **France's** chest
+> (800 against a real 700; Britain 800 against 2,000), so no GR5 claim about an
+> AI court's economy was readable. **(3)** The digest kept a **fourth**
+> hand-maintained copy of the ledger's net expression and had drifted —
+> `admin_bonus` missing, so the printed NET sub-line under-counted by **exactly
+> 50 on 40 of 40 rows** of both archived arms — and `spent` rendered on **ZERO**
+> rows of all three archived digests, including the spender arm that bought
+> 18,537 gold, because the engine clears the tally inside `advance_turn`.
+> All three fixed; the ledger is now the single source (`NET_GOLD_COMPONENTS`)
+> and both the reconciliation test and the driver import it.
+>
+> **The 15 unrecorded outflows are judged 15 → 8**, three dispositions, a
+> written reason at every surviving call site (GR9 — IQ1-0 had deferred this to
+> "a later slice" with no slice id). ⚠ One disposition was **corrected by
+> reading the code**: `_process_reckless_cavalry_turn_start` was called "a
+> penalty" on the strength of its NAME; the expression is the same EC-W3
+> materiel bill as the combat pipeline's.
+>
+> **⛔ IQ1-1's OWN HEADLINE FIGURE IS WRONG AND IS CORRECTED.** "Absorbs 29,564
+> — a THIRD of the surplus" is a **cross-script difference**: 6 of 13 buys
+> succeeded for 18,537 gold, 6 were refused on an own-soil gate the commit says
+> it removed, and the arm ends on **24 provinces against the baseline's 29**.
+> The arm is **repaired** (the buy is now additive, so it differs from its
+> parent by the purchase and nothing else) and both arms are archived. On the
+> paired 40-turn run the control reproduces **88,556 exactly and is perfectly
+> monotonic — zero falls in forty turns** — while the spender arm falls **7**
+> times: purchases **18,312**, treasury difference **34,113**, provinces **−5**.
+> Three numbers, never one.
+>
+> **⚠ AND THE SINK IS CURRENTLY SELF-DEFEATING** — the finding that matters for
+> IQ1-3. The spender arm ends with **+37,282 more men and 5 FEWER provinces**,
+> because the receipt says what it costs: *"Morale 89% → 75% (bought men muster
+> at 25%)"*. A player in a good position who spends gold gets a bigger, weaker
+> army and loses ground. Every success also delivered **9,000 men against the
+> 30,000 asked** (the field cap), so the dearest purchase on this board is
+> ~2,400–7,572 gold, not the 24,840 the design's worked example quotes.
+>
+> **THE CRUX WAS RULED** (`IMPROVEMENT_QUEUE_SPEC.md` §0.2, **FOR USER
+> CONFIRMATION**): the August 7 blessing and the September 12 brief reconcile —
+> August blessed a *rich* France, September measured a *decision-free* one — so
+> the blessed rate **stands** and the fix is somewhere for the gold to GO,
+> priced by the threat the player's own success creates. **Question (c) is
+> ROUTED OUT to its own design gate** by user ruling: every route to it is
+> closed (the EC-U1 reversal, a rate worth zero gold to a broke loser by
+> construction, a P1 war-score regression, and a flat charge that is the
+> mechanical half of a defeat condition `sandbox_mode` suppresses). The row's
+> **dissent and re-open condition are filed** — it had neither, a GR9 breach on
+> the row itself, while its own exit clause instructs that both be read.
+>
+> **⚠ NO GODOT BINARY IN THIS CONTAINER**, so the parse harness and boot smoke
+> **DID NOT RUN** on the one `.gd` touched. Recorded as NOT RUN, not as a pass;
+> the render arm carries **IQ-10**'s open visual sign-off with it.
+>
+> **▶ NEXT = IQ1-3 "The Recurring Obligation"** — only a rate can absorb a
+> rate, and every purchase in the game is capped by a non-gold quantity (97
+> building slots on the whole map, a bench each hirable once, 1–2 keels a turn,
+> `max_admin_actions` a hardcoded 2). ⚠ It prices the coalition, so it must be
+> sequenced with **IQ-3**.
 
 > ## ▶ THE POST-AUDIT PLAYTEST AND RE-SCORE — LANDED September 12, 2026
 >

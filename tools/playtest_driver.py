@@ -357,6 +357,17 @@ _ANNOTATION_RE = re.compile(r"^\[[^\]]*\]")
 # make the coverage half of the census vacuous, which is the failure it
 # exists to prevent.
 from backend.campaign_log import COURT_TO_COURT_EVENT_TYPES as _ENGINE_ARM  # noqa: E402
+# IQ1-2 (4): the same rule, one module over. The digest kept a FOURTH
+# hand-maintained copy of the ledger's net expression and it had drifted.
+# The ledger is the source — its own reconciliation test has said so in a
+# docstring since it was written — so the signs are derived, never restated.
+from backend.game_logic.ledger import (  # noqa: E402
+    NET_GOLD_COMPONENTS as _ENGINE_NET_COMPONENTS,
+)
+
+_NET_NEGATIVE_KEYS = frozenset(
+    k for k, sign in _ENGINE_NET_COMPONENTS.items() if sign < 0
+) | {"upkeep"}   # the folded total stands in for base + surcharge
 
 _ENGINE_COURT_TO_COURT = frozenset(_ENGINE_ARM)
 
@@ -398,6 +409,13 @@ AI_AI_LOG_TYPES = frozenset({
 # `Digest.NET_COMPONENTS` readers are unchanged.
 NET_COMPONENTS = (
     ("income", "income"), ("trade_income", "trade"),
+    # IQ1-2 (4): `admin_bonus` was MISSING, and it is the only component the
+    # digest's NET line omitted. Measured on the archived turn-40 row:
+    #   3550 + 620 + 937 - 624 - 1038 - 15 - 480 = 2,950 against a printed
+    #   net of +3,000 — a residual of exactly +50, on 40 of 40 rows of BOTH
+    # post-SW-0 arms. This was a fourth hand-maintained copy of the ledger's
+    # own net expression; it is now checked against the canonical map below.
+    ("admin_bonus", "admin"),
     ("overseas", "overseas"), ("vassal_tribute", "tribute"),
     ("treaty_gold", "treaty"), ("settlement_gold", "settlement"),
     ("upkeep", "upkeep"), ("state_charges", "charges"),
@@ -406,6 +424,13 @@ NET_COMPONENTS = (
     ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
     ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
 )
+
+# The one deliberate difference from the ledger's canonical map: the digest
+# prints the FOLDED `upkeep` total where the ledger declares `upkeep_base`
+# and `upkeep_surcharge` separately. `total == base + surcharge` is a pinned
+# ES-3 invariant, so the fold sums identically and the archived digests stay
+# diff-comparable. Anything else that diverges is drift.
+NET_COMPONENTS_FOLDED = {"upkeep": ("upkeep_base", "upkeep_surcharge")}
 
 
 # The rail's cap, and the fog's. MODULE-level, because a stub Digest that
@@ -1138,8 +1163,21 @@ class Digest:
             self._md(f"  - LOG {etype}: {text}")
             self.record("campaign_log", dtype=etype, text=text, log_turn=turn)
 
+    def turn_spend(self, economy):
+        """IQ1-2 (5): what THIS turn's orders cost, read before the turn
+        ends and the engine clears the tally. Prints only when the player
+        actually bought something, so a passive arm is unchanged."""
+        if not isinstance(economy, dict):
+            return
+        spent = int(economy.get("spent", 0) or 0)
+        if spent <= 0:
+            return
+        self._md(f"- SPENT {spent}g on this turn's orders")
+        self.record("turn_spend", spent=spent,
+                    treasury=int(economy.get("treasury", 0) or 0))
+
     def ledger_line(self, treasury, net, threat, provinces=None,
-                    economy=None, purses=None):
+                    economy=None, purses=None, army=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -1177,10 +1215,17 @@ class Digest:
                 bits.append(f"spent {spent}")
             if ceiling:
                 bits.append(f"ceiling {ceiling}")
+        # IQ1-2 (5): the army, beside the chest. Completion item (ii) — "a
+        # losing France's Net is worse than a winning France's AT THE SAME
+        # ARMY SIZE" — has no instrument without it, and the figure was on
+        # the payload the driver already fetched.
+        if army is not None:
+            bits.append(f"army {army}")
         if bits:
             self._md("- LEDGER " + " · ".join(bits))
             self.record("ledger", treasury=treasury, net=net, threat=threat,
-                        provinces=provinces, spent=spent, ceiling=ceiling)
+                        provinces=provinces, spent=spent, ceiling=ceiling,
+                        army=army)
         # IQ-1 SW-0: the OTHER purses. The digest recorded the player's
         # treasury and no AI treasury at all, so no GR5 claim about the
         # economy was falsifiable from any archived digest — measured
@@ -1203,7 +1248,20 @@ class Digest:
             if moved:
                 self._md("  - NET " + " · ".join(
                     f"{label} {value}" for label, value in moved.items()))
-            self.record("economy", **moved)
+            # IQ1-2 (4): the NET sub-line must re-sum to the `net` printed
+            # beside it. Recorded (never printed) so a drift is falsifiable
+            # from any archived run rather than needing a bespoke probe.
+            residual = None
+            if isinstance(net, int):
+                total = 0
+                for key, _label in NET_COMPONENTS:
+                    value = economy.get(key)
+                    if not isinstance(value, (int, float)):
+                        continue
+                    sign = -1 if key in _NET_NEGATIVE_KEYS else +1
+                    total += sign * int(value)
+                residual = total - int(net)
+            self.record("economy", net_residual=residual, **moved)
 
     def dispatch(self, text, events=None, turn_events=None):
         head = first_line(text, 200)
@@ -2386,6 +2444,18 @@ def run(args):
             digest.note(f"saved `{args.name}_t{turn_index}` → "
                         f"{first_line(saved.get('message'))}")
 
+        # IQ1-2 (5): read the chest BEFORE the turn ends. `_advance_turn_internal`
+        # clears `gold_spent_this_turn`, and the driver's only two `/ledger`
+        # reads were the turn header and post-end-turn — so `spent` rendered on
+        # ZERO rows of all three archived IQ-1 digests, INCLUDING the spender
+        # arm that bought 18,537 gold of substitutes. A sink the instrument
+        # cannot see cannot be measured, and this row is the whole point of
+        # IQ-1. Cheap: one GET, and only what the turn actually spent is kept.
+        _pre = transport.get("/ledger")
+        _pre_body = _pre.get("ledger") if isinstance(_pre, dict) else None
+        _pre_econ = (_pre_body or {}).get("economy") if isinstance(_pre_body, dict) else None
+        digest.turn_spend(_pre_econ)
+
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
         digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
@@ -2462,7 +2532,9 @@ def run(args):
                            threat,
                            len(own) if isinstance(own, list) else None,
                            economy=(body or {}).get("economy"),
-                           purses=_all_purses(transport))
+                           purses=_all_purses(transport),
+                           army=((body or {}).get("economy") or {}).get(
+                               "army_strength_total"))
         try:
             digest.dispatch(dig(morning, "text", "content", "message",
                                 default=""),
