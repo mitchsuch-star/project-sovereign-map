@@ -180,10 +180,22 @@ Commit `c3d74fa`. The first purchase in the game bounded by **gold**.
 
 ### §0.5 LANDING RECORD — IQ1-2 "The Chest Tells the Truth"
 
-**Zero balance.** Flip lever `ledger.THE_CHEST_TELLS_THE_TRUTH`; the False arm
-restores the post-charge ceiling argument, the player-scoped `treasury` /
-`bankruptcy_turns` keys and the 15-entry allowlist, and the player's own
-payload is asserted byte-identical key by key.
+**Zero balance.** Flip lever `ledger.THE_CHEST_TELLS_THE_TRUTH`.
+
+⚠ **WHAT THE LEVER ACTUALLY COVERS** — corrected by the review round, which was
+right that the first wording claimed more than it can do. The False arm restores
+the **post-charge ceiling argument**, the **single `bounded` sentinel**, the
+**player-scoped `treasury` / `bankruptcy_turns` keys** and the **player-scoped
+levy** — parts (1) and (2), and with them (6), because lever-down hands the
+client the old int and the old state, which is the arm the previous `.gd`
+rendered. The player's own payload is asserted byte-identical key by key. It
+does **not** revert part (3) (the seven `record_gold_spent` calls), part (4) (the
+canonical component map) or part (5) (the driver). **A considered decision, not
+an omission:** those three are additive — a display record, a de-duplicated
+constant and a dev instrument — with no prior *reading* to restore, and a lever
+threaded through four files for a figure that changes no mechanic would be
+ceremony. The allowlist is a TEST constant, is not levered at all, and is now
+**10 entries, not 8** (§0.5.2).
 
 It goes before the sink because **three of the row's four completion items
 could not be measured at all**, and because the instrument was lying in three
@@ -226,7 +238,10 @@ several.
 **(3) The fifteen outflows are judged, row by row, into three dispositions
 with a written reason each** (GR9 — SW-0 deferred this with no slice id, and it
 sits directly on completion item (iii)). The exact-match allowlist shrinks
-**15 → 8**; the sensitivity arm stays, so a NEW unrecorded outflow still reds.
+**15 → 10**; the sensitivity arm stays, so a NEW unrecorded outflow still reds.
+*(⚠ It read 15 → 8 on first publication. The review round found the census
+could not see a LOCAL ALIAS, so two real outflows had been escaping it entirely
+— the coverage claim was 22 of 24 — and both are disposition (B). §0.5.2.)*
 
 * **(A) PLAYER PURCHASE → records into `Spent`** (7 sites):
   `naval_executor._execute_build_fleet`,
@@ -342,6 +357,138 @@ and `ceiling_state` are display; the driver and the scripts are not production.
 **Completion items served:** (iii) for Net and for player purchases; the
 **instrument** for (i), (ii) and (iv).
 
+#### §0.5.2 THE REVIEW ROUND — six lenses, 41 findings, and I republished the
+#### very error I had just struck
+
+Held at `ba90d19`, immediately after the slice landed. Six read-only lenses,
+each finding refuted by an independent agent. **Everything below was fixed in
+the follow-up commit.** Three findings were reached by two or three lenses
+independently, which is what makes them certain.
+
+**⛔ THE HEADLINE IS MINE. "Purchases 18,312" IS A CROSS-SCRIPT DIFFERENCE, NOT
+A PURCHASE MEASUREMENT** — the exact mistake this slice's record struck SW-1
+for, one paragraph after striking it. 18,312 is `spender total spend − control
+total spend`, and the two arms' RECRUIT prices diverge with their boards, so
+the difference is not the purchases. Read off the receipts themselves — which
+state each price — the true figure is **18,852 gold across 6 successful
+purchases** (7,572 + 2,400 + 2,400 + 2,040 + 2,400 + 2,040). **Corrected
+everywhere. The method rule that follows from it, stated so the third
+occurrence is harder: a spend is measured from the RECEIPT, never from a
+difference between two boards.**
+
+**THE FIX TOUCHED TWO OF THREE PLAYER-SCOPED READS IN THE SAME FUNCTION**
+(found by two lenses). `_levy_block(world)` took no nation and
+`get_levy_status` defaults to `world.player_nation`, so after part (2)
+`_build_economy(world, "Austria")` returned **Austria's treasury beside
+France's force limit, army total and infantry pool** — a payload contradicting
+itself. This repo's own lesson, for the sixth time: *a fix that touches one
+reader of a pipeline must be checked against every other reader in the same
+function.* Fixed; the levy is nation-scoped and levered with the rest.
+
+**THE OUTFLOW CENSUS COULD NOT SEE TWO REAL OUTFLOWS.** It matched only
+`<x>.nation_gold[...]`, so a function that takes a **local alias** first —
+`nation_gold = world.nation_gold; nation_gold[payer] = balance - transfer` —
+was invisible. `settlement_offers.process_recurring_settlement_payments` and
+`settlement_ratify._apply_settlement_terms` were escaping it, so the coverage
+claim was **22 of 24**, and a new unrecorded outflow written that way would
+have red nothing. The census now sees both idioms, the allowlist is **10 not
+8**, both new rows carry their reason (disposition (B), IQ1-3a's), and the
+sensitivity arm synthesises a module in each idiom and requires both to be
+found.
+
+**THE CEILING LADDER ASKED THE RATE BEFORE THE GROSS**, so a legacy world
+(rate 0 by construction) that was *bleeding money* was told *"nothing is drawing
+on the chest."* The gross is asked first now. And two copy defects with it: that
+sentence names the **charges** rather than "the chest" — it printed twenty lines
+under an `Upkeep: -865g` line that **is** drawing on it — and the `no_surplus`
+arm, the worst state the tab can report, was rendered in the **calmest colour in
+the palette**. It is an error colour now.
+
+**A FALSE CLAIM IN PRODUCTION `.gd` SOURCE, repeated in a pin's docstring.**
+*"It had no copy because it could not previously be rendered at all"* is wrong:
+the above-the-ceiling case **was** rendered, by the generic arm, with the wrong
+sentence and often the calm colour. What was unreachable was a ceiling below the
+chest that is also *correct*. Corrected in both places.
+
+**THE INSTRUMENT LOST A PURCHASE MADE WITH THE LAST ACTION POINT.** `/command`
+auto-ends the turn when the last AP is spent, and the engine clears the tally
+then — so the new pre-`end turn` read missed it. `turn_spend` is a **high-water
+mark** now, fed by a read after each command; the auto-advance case itself is a
+**stated limit** (the figure is in the end-turn banner the digest already
+prints), not a silent hole. ⚠ And factoring the peak out immediately broke the
+**borrowed-method** rule this repo documents — a stub Digest that borrows only
+`turn_spend` died on a `self.observe_spend` call, caught by this slice's own
+pin. The peak update is inlined, and a `Lone` stub pins it.
+
+**THE DIGEST RECORDED A FALSE ZERO AND AN AMBIGUOUS ONE.** `ledger_line`'s
+`spent` is structurally dead on that read, so it wrote `spent: 0` into the jsonl
+beside `turn_spend`'s true figure — worse than writing nothing; the key is gone.
+And `ceiling` 0 meant two different facts with no way to tell them apart in an
+archive, so `ceiling_state` is recorded now. **`net_residual`'s sign was the
+opposite of every prose statement of it** — `printed_net − component_sum` now,
+so a positive residual means the sub-line under-counts, which is the direction
+"+50" is quoted in.
+
+**THE LEVER'S COVERAGE WAS OVERSTATED, and the record is corrected rather than
+the code.** `THE_CHEST_TELLS_THE_TRUTH` reverts parts **1, 2 and 6** (the
+ceiling argument, the three-state sentinel, the per-nation reads and the levy
+scoping — and part 6's client half reverts with them, because lever-down
+restores the old int and the old `bounded` state, which is the arm the previous
+`.gd` rendered). It does **not** revert part 3 (the seven `record_gold_spent`
+calls), part 4 (the canonical map) or part 5 (the driver). **That is a
+considered decision, not an omission:** those three are additive — a display
+record, a de-duplicated constant and a dev instrument — with no prior *reading*
+to restore, and a lever over four files for a figure that changes no mechanic
+would be ceremony. §0.5's contract is re-worded to say exactly this.
+
+**PART 2 IS PRODUCTION-DEAD TODAY** (found by three lenses). All three callers —
+`build_strategic_ledger`, `_execute_economy_report`, `dispatch` — pass
+`world.player_nation`, for whom the property and the dict read are identical by
+definition. So no rendered figure moves. **It is kept, as defence in depth**,
+because this row is about to make GR5 economy claims about AI courts and the
+next caller that asks about one would have been silently wrong; and the levy
+half of the same defect was NOT dead — it would have shipped a
+self-contradicting payload the moment anything asked. Recorded honestly rather
+than sold as a live fix.
+
+**THE GR5 HALF OF PART 3 IS UNOBSERVABLE IN THE DIGEST.** Every AI-side
+`record_gold_spent` is cleared by `advance_turn` inside the same `end_turn`, so
+an AI purchase never reaches a `SPENT` row. The calls are correct and symmetric
+(GR5 is satisfied in the engine); the *instrument* cannot show it. Stated, not
+fixed — IQ1-3 can carry an AI-side probe if it needs one.
+
+**NINE VACUOUS PINS, ALL REWRITTEN.** The worst three: the `.gd` sensitivity arm
+was a `str.replace` tautology that executed zero production code and was the
+**only** claimed sensitivity arm for the slice's only `.gd`; `test_the_reasons
+_are_not_vacuous` asserted that two function *names* exist in `vassal.py` and
+nothing about the markers its docstring said it guarded; and the new-outflow
+census pin was two **lower bounds**, which a new unrecorded outflow satisfies
+happily. Also: the signs pin could not tell derived from restated and passed
+with a set that wrongly negated a positive component; the help census matched a
+**comment** and survived deleting the whole entry; the seven recorder sites had
+no behavioural pin at all (now two drive the production functions, including the
+**refusal** case and the **clamped** ultimatum); and `net_residual`, the slice's
+own drift detector, had neither a pin nor a sweep mutation. ⚠ Two of my
+*replacement* pins were then wrong about the code in turn — an absolute-indent
+assertion that `invest_in_vassal`'s early-returning gates disprove, and a
+fixture that never reached the spend because the boot vassals sit at
+`LOYALTY_MAX` and the verb refuses there by design. Both rewritten; the refusal
+became the better half of the pin.
+
+**Two smaller corrections:** the new import of `NET_GOLD_COMPONENTS` inherited
+`campaign_log`'s *"pure data with no game state"* licence, which it does not
+deserve — it pulls 23 more backend modules including `world_state` — so the
+comment now states why it is nonetheless safe (`backend.main` is not among them
+and exactly one module-scope env read exists, for a variable the driver never
+sets). And the archive note claimed `turn_spend` is jsonl-only; it prints to the
+markdown too, `--archive` still copies md + meta only, and **teaching
+`--archive` to carry the jsonl is now a named IQ1-5 landing.**
+
+**Restored:** the cross-file forcing function the canonical map had removed.
+Production reads only `ledger.NET_GOLD_COMPONENTS`; `EXPECTED_NET_SIGNS` in the
+reconciliation test is a **tripwire** asserted equal to it, so adding or
+re-signing a component reds in a second file and has to be done on purpose.
+
 #### §0.5.1 THE PAIRED MEASUREMENT, AND TWO FINDINGS IT PRODUCED
 
 The row had no attribution vehicle — which is how a cross-script difference
@@ -366,13 +513,18 @@ Both arms archived with their jsonl at
 | provinces at turn 40 | 29 | **24** |
 | army at turn 40 | 81,453 | **118,735** |
 | recorded spend, all turns | 5,046 | 23,358 |
+| of which substitute purchases | — | **18,852** (6 receipts) |
 | NET sub-line residual | **0** | **0** |
 
 **The control reproduces the row's disease figure to the gold** — 88,556, and
 **perfectly monotonic: zero falls in forty turns.** So the three numbers, stated
 separately as they must be from now on:
 
-* **purchase component: 18,312 gold** (23,358 − 5,046);
+* **purchases: 18,852 gold**, read off the six receipts themselves
+  (7,572 + 2,400 + 2,400 + 2,040 + 2,400 + 2,040). ⚠ This read **18,312**
+  on first publication — `spender total spend − control total spend`, which
+  is a CROSS-SCRIPT DIFFERENCE and the exact error this record strikes SW-1
+  for two paragraphs above. See §0.5.2.
 * **treasury difference: 34,113 gold** — NOT absorption, see below;
 * **province divergence: −5.**
 

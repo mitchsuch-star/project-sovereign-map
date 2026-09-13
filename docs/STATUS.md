@@ -292,7 +292,7 @@
 > All three fixed; the ledger is now the single source (`NET_GOLD_COMPONENTS`)
 > and both the reconciliation test and the driver import it.
 >
-> **The 15 unrecorded outflows are judged 15 → 8**, three dispositions, a
+> **The 15 unrecorded outflows are judged 15 → 10**, three dispositions, a
 > written reason at every surviving call site (GR9 — IQ1-0 had deferred this to
 > "a later slice" with no slice id). ⚠ One disposition was **corrected by
 > reading the code**: `_process_reckless_cavalry_turn_start` was called "a
@@ -307,8 +307,13 @@
 > parent by the purchase and nothing else) and both arms are archived. On the
 > paired 40-turn run the control reproduces **88,556 exactly and is perfectly
 > monotonic — zero falls in forty turns** — while the spender arm falls **7**
-> times: purchases **18,312**, treasury difference **34,113**, provinces **−5**.
-> Three numbers, never one.
+> times: purchases **18,852**, treasury difference **34,113**, provinces **−5**.
+> Three numbers, never one. *(⚠ **CORRECTED BY THE REVIEW ROUND**: purchases
+> first read **18,312**, which is `spender total spend − control total spend` —
+> a CROSS-SCRIPT DIFFERENCE, the exact error this block struck SW-1 for one
+> paragraph earlier. 18,852 is read off the six receipts themselves. The rule
+> that follows: a spend is measured from the RECEIPT, never from a difference
+> between two boards.)*
 >
 > **⚠ AND THE SINK IS CURRENTLY SELF-DEFEATING** — the finding that matters for
 > IQ1-3. The spender arm ends with **+37,282 more men and 5 FEWER provinces**,
@@ -333,6 +338,38 @@
 > **⚠ NO GODOT BINARY IN THIS CONTAINER**, so the parse harness and boot smoke
 > **DID NOT RUN** on the one `.gd` touched. Recorded as NOT RUN, not as a pass;
 > the render arm carries **IQ-10**'s open visual sign-off with it.
+>
+> **▶ THE REVIEW ROUND — six lenses at `ba90d19`, all told to attack the FIX.
+> 41 findings; everything below fixed in the follow-up commit.** ⛔ **The
+> headline is mine and it is the error this very block struck SW-1 for, one
+> paragraph later: "purchases 18,312" is a CROSS-SCRIPT DIFFERENCE**, not a
+> purchase measurement — the arms' recruit prices diverge with their boards. Off
+> the six receipts themselves it is **18,852**. *A spend is measured from the
+> RECEIPT, never from a difference between two boards.* **The fix also touched
+> two of three player-scoped reads in the same function** (two lenses):
+> `_levy_block` took no nation, so an Austria query returned Austria's treasury
+> beside **France's** force limit and infantry pool — this repo's own lesson for
+> the sixth time. **The outflow census could not see a LOCAL ALIAS**, so two real
+> outflows were escaping it and the coverage claim was 22 of 24; the allowlist is
+> **10 not 8**. **The ceiling ladder asked the rate before the gross**, so a
+> legacy world bleeding money was told "nothing is drawing on the chest" — which
+> printed twenty lines under an `Upkeep: -865g` line that is; and the worst state
+> the tab can report was rendered in the **calmest colour in the palette**. **A
+> false claim in production `.gd` source** ("it could not previously be rendered
+> at all" — it was, with the wrong copy). **The instrument lost a purchase made
+> with the last action point** (`/command` auto-ends the turn and clears the
+> tally); `turn_spend` is a high-water mark now, and factoring that out
+> immediately broke the **borrowed-method** rule, caught by the slice's own pin.
+> **`net_residual`'s sign was inverted** against every prose statement of it, and
+> the digest wrote a **false zero** beside the true figure. **Part 2 is
+> production-dead today** (three lenses — all three callers pass the player
+> nation): kept as defence in depth and recorded as such, not sold as a live fix.
+> **The lever's coverage was overstated** — it reverts parts 1, 2 and 6; parts 3,
+> 4 and 5 are additive and the record now says so. **Nine vacuous pins rewritten**,
+> the worst a `str.replace` tautology that was the only sensitivity arm for the
+> slice's only `.gd` — and **two of my replacement pins were then wrong about the
+> code in turn**, both rewritten. The cross-file reconciliation tripwire the
+> canonical map had removed is **restored**.
 >
 > **▶ NEXT = IQ1-3 "The Recurring Obligation"** — only a rate can absorb a
 > rate, and every purchase in the game is capped by a non-gold quantity (97

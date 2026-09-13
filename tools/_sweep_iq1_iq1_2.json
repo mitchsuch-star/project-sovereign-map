@@ -128,8 +128,8 @@
  {
   "id": "IQ12-19 the SW-0 allowlist keeps a purchase it should have lost",
   "file": "tests/test_iq1_sw0_chest_speaks.py",
-  "old": "    (\"backend/models/world_state.py\", \"_process_treaty_clauses\"),\n}",
-  "new": "    (\"backend/models/world_state.py\", \"_process_treaty_clauses\"),\n    (\"backend/game_logic/vassal.py\", \"invest_in_vassal\"),\n}",
+  "old": "    (\"backend/game_logic/settlement_ratify.py\", \"_apply_settlement_terms\"),\n}",
+  "new": "    (\"backend/game_logic/settlement_ratify.py\", \"_apply_settlement_terms\"),\n    (\"backend/game_logic/vassal.py\", \"invest_in_vassal\"),\n}",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged tests/test_iq1_sw0_chest_speaks.py"
  },
  {
@@ -145,5 +145,89 @@
   "old": "        _ceiling_value, _ceiling_state = 0, CEILING_NO_SURPLUS",
   "new": "        _ceiling_value, _ceiling_state = 0, CEILING_NO_RATE",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheThreeCeilingStates"
+ },
+ {
+  "id": "IQ12-22 the levy reverts to answering for the player",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        \"levy\": _levy_block(world, player if THE_CHEST_TELLS_THE_TRUTH else None),",
+  "new": "        \"levy\": _levy_block(world, None),",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestItAnswersForTheCourtAsked"
+ },
+ {
+  "id": "IQ12-23 the state ladder asks the rate before the gross again",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    elif _ceiling_gross <= 0:",
+  "new": "    elif _ceiling_rate <= 0 and False:",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheThreeCeilingStates"
+ },
+ {
+  "id": "IQ12-24 the worst ceiling state goes back to the calm colour",
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_ERROR \\\n\t\t\t+ \"]Ceiling:  none \u2014 the chest is not growing at this rate[/color]\\n\"",
+  "new": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_DIMMED \\\n\t\t\t+ \"]Ceiling:  none \u2014 the chest is not growing at this rate[/color]\\n\"",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-25 the unbounded copy goes back to naming the chest",
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "+ \"]Ceiling:  none \u2014 the charges of empire do not draw at this rate[/color]\\n\"",
+  "new": "+ \"]Ceiling:  none \u2014 nothing is drawing on the chest[/color]\\n\"",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-26 the census stops seeing a local alias",
+  "file": "tests/test_iq1_sw0_chest_speaks.py",
+  "old": "            or (isinstance(base, _ast.Name) and base.id == \"nation_gold\"))",
+  "new": "            or False)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged tests/test_iq1_sw0_chest_speaks.py"
+ },
+ {
+  "id": "IQ12-27 the residual sign is inverted",
+  "file": "tools/playtest_driver.py",
+  "old": "                residual = int(net) - total",
+  "new": "                residual = total - int(net)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-28 turn_spend stops keeping the high-water mark",
+  "file": "tools/playtest_driver.py",
+  "old": "            if _last > int(getattr(self, \"_turn_spend_peak\", 0) or 0):",
+  "new": "            if _last >= 0:",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-29 the ultimatum records the demand, not the clamped transfer",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    world.record_gold_spent(target_nation, int(transfer))",
+  "new": "                    world.record_gold_spent(target_nation, int(value))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-30 invest records against the player instead of the lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    world.record_gold_spent(lord, int(INVEST_GOLD_COST))",
+  "new": "    world.record_gold_spent(getattr(world, 'player_nation', 'France'), int(INVEST_GOLD_COST))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-31 the ledger's canonical map is re-signed under the tripwire",
+  "file": "backend/game_logic/ledger.py",
+  "old": "NET_GOLD_COMPONENTS = {\n    \"income\": +1,\n    \"trade_income\": +1,",
+  "new": "NET_GOLD_COMPONENTS = {\n    \"income\": +1,\n    \"trade_income\": -1,",
+  "tests": "tests/test_economy_ledger_reconciliation.py"
+ },
+ {
+  "id": "IQ12-32 the ledger row records the dead spent key again",
+  "file": "tools/playtest_driver.py",
+  "old": "                        provinces=provinces, ceiling=ceiling,",
+  "new": "                        provinces=provinces, ceiling=ceiling, spent=spent,",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-33 the help drops the gates it must name",
+  "file": "backend/commands/meta_executor.py",
+  "old": "               will name for you: substitutes are received only on\n               ground WE hold, and a marshal in the field takes them\n               in a smaller draft than one at a depot.",
+  "new": "               will name for you, if you ask him.",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestThePlayerCanLearnItExists"
  }
 ]

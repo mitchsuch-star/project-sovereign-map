@@ -245,6 +245,8 @@ def load_game(filepath: Path) -> Dict:
         #     had already raised a mild concern raise it again. That is the
         #     WO-23 budget-refresh shape exactly.
         #   * `gold_spent_this_turn` is saved/restored around post-objection.
+        #     It is DISPLAY ONLY (see the correction below), so the save/restore
+        #     protects a figure the player reads, not a mechanic.
         #     ⚠ IQ1-2 CORRECTION: this used to say it "is read by the recruit
         #     pricing". It is not, and the same claim was in IQ-1 SW-0's own
         #     commit body. An AST census of its readers: `ledger._build_economy`,

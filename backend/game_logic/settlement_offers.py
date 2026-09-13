@@ -3464,6 +3464,10 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
         # full / completion events.
         balance = int(nation_gold.get(payer, 0) or 0)
         transfer = min(int(amount), max(0, balance))
+        # IQ1-2 (3): NOT in `Spent` — a per-turn settlement obligation the
+        # treaty already showed the player, and a TRANSFER (the recipient's
+        # rise is this same gold). It belongs on a signed Net line via the
+        # `_applied_income_transfers` record below; owner IQ1-3a.
         nation_gold[payer] = balance - transfer
         nation_gold[recipient] = int(nation_gold.get(recipient, 0) or 0) + transfer
         # Record the APPLIED transfer for the ledger mirror (verify-fleet

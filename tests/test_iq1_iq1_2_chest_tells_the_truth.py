@@ -247,6 +247,31 @@ class TestItAnswersForTheCourtAsked:
                 continue
             assert on[key] == off[key], f"{key} moved for the player"
 
+    def test_the_levy_answers_for_that_nation_too(self, world):
+        """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT. Reverting
+        `_levy_block(world, player)` to `_levy_block(world, None)` killed
+        nothing: this class only ever asserted `treasury` and
+        `bankruptcy_turns`, which is precisely how the original defect —
+        two of three player-scoped reads — survived in the first place."""
+        fr = _build_economy(world, "France")["levy"]
+        au = _build_economy(world, "Austria")["levy"]
+        assert fr["force_limit"] != au["force_limit"], (
+            "the levy block is answering for one nation on both queries")
+        assert au["force_limit"] == int(world.get_force_limit("Austria") or 0)
+        assert (au["infantry_pool"]
+                == int(world.manpower_pools.get("Austria", {}).get("infantry", 0)))
+
+    def test_the_whole_payload_agrees_about_whose_economy_it_is(self, world):
+        """The defect was a payload contradicting itself. State that as one
+        assertion over every nation-shaped key at once."""
+        for nation in ("Austria", "Britain", "Russia"):
+            econ = _build_economy(world, nation)
+            assert econ["treasury"] == int(world.nation_gold.get(nation, 0))
+            assert econ["levy"]["force_limit"] == int(
+                world.get_force_limit(nation) or 0)
+            assert econ["army_strength_total"] == int(
+                world.calculate_turn_upkeep(nation).get("total_strength", 0))
+
     def test_bankruptcy_is_per_nation_too(self, world):
         world.nation_bankruptcy_turns["Austria"] = 3
         assert _build_economy(world, "Austria")["bankruptcy_turns"] == 3
@@ -298,17 +323,32 @@ class TestOneCanonicalComponentMap:
         assert "admin_bonus" in NET_GOLD_COMPONENTS
 
     def test_the_driver_signs_are_derived_not_restated(self):
+        """⚠ REWRITTEN BY THE REVIEW ROUND. The first cut asserted a subset
+        and one absent key — which a hand-written literal satisfies, so it
+        could not tell derived from restated, and it would have passed with a
+        set that wrongly negated a POSITIVE component. Assert the EXACT set,
+        derived here the same way, and assert no positive component is in it."""
         import sys
         sys.path.insert(0, str(REPO / "tools"))
         import playtest_driver as drv
-        negative = {k for k, s in NET_GOLD_COMPONENTS.items() if s < 0}
-        assert negative <= drv._NET_NEGATIVE_KEYS
-        assert "income" not in drv._NET_NEGATIVE_KEYS
+        expected = {k for k, sign in NET_GOLD_COMPONENTS.items() if sign < 0}
+        # `upkeep` is the declared fold (base + surcharge), so it is the one
+        # member with no canonical counterpart. Nothing else may differ.
+        assert drv._NET_NEGATIVE_KEYS - expected == {"upkeep"}
+        assert expected - drv._NET_NEGATIVE_KEYS == set()
+        positives = {k for k, sign in NET_GOLD_COMPONENTS.items() if sign > 0}
+        assert not (positives & drv._NET_NEGATIVE_KEYS), (
+            "a POSITIVE component is being negated by the digest")
 
 
 # ════════════════════════════════════════════════════════════════════════
 # 4. The fifteen outflows are judged, row by row
 # ════════════════════════════════════════════════════════════════════════
+
+from tests.test_iq1_sw0_chest_speaks import (  # noqa: E402
+    _is_nation_gold_target, UNRECORDED_OUTFLOWS,
+)
+
 
 def _gold_subtracting_functions():
     out = {}
@@ -331,10 +371,16 @@ def _gold_subtracting_functions():
                     targets = node.targets
                 else:
                     continue
+                # IQ1-2 review round: this matched ONLY
+                # `<x>.nation_gold[...]` (an Attribute value), so a function
+                # that takes a LOCAL ALIAS first —
+                # `nation_gold = world.nation_gold; nation_gold[p] = b - t` —
+                # was invisible to it. Two real production outflows were
+                # escaping (settlement_offers, settlement_ratify), so the
+                # coverage claim was 22 of 24 and a NEW outflow written in that
+                # idiom would have red nothing. A bare Name target counts too.
                 for t in targets:
-                    if (isinstance(t, ast.Subscript)
-                            and isinstance(t.value, ast.Attribute)
-                            and t.value.attr == "nation_gold"):
+                    if _is_nation_gold_target(t):
                         subs = True
             if not subs:
                 continue
@@ -367,15 +413,49 @@ class TestTheOutflowsAreJudged:
             assert site in found, f"{site} no longer subtracts gold at all"
             assert found[site], f"{site} still does not record its spend"
 
-    def test_the_allowlist_shrank_to_eight(self):
-        from tests.test_iq1_sw0_chest_speaks import UNRECORDED_OUTFLOWS
-        assert len(UNRECORDED_OUTFLOWS) == 8
+    def test_the_allowlist_is_exactly_the_ten_survivors(self):
+        """⚠ REVIEW ROUND: this said EIGHT. It is TEN, and the two extra were
+        not "kept" — they were INVISIBLE to a census that matched only
+        `<x>.nation_gold[...]` and so could not see a local alias. The
+        coverage claim was 22 of 24. Both are settlement transfers and both
+        are disposition (B), owner IQ1-3a."""
+        assert len(UNRECORDED_OUTFLOWS) == 10
         assert not (MOVED_TO_SPENT & UNRECORDED_OUTFLOWS)
+        for late in (("backend/game_logic/settlement_offers.py",
+                      "process_recurring_settlement_payments"),
+                     ("backend/game_logic/settlement_ratify.py",
+                      "_apply_settlement_terms")):
+            assert late in UNRECORDED_OUTFLOWS
+
+    def test_the_census_sees_a_local_alias(self):
+        """The sensitivity arm for the widening itself: a function that
+        aliases `nation_gold` to a local and then subtracts through the alias
+        must be FOUND. Without this the widening could be reverted silently."""
+        import ast as _ast
+        src = (REPO / "backend/game_logic/settlement_ratify.py").read_text(
+            encoding="utf-8")
+        tree = _ast.parse(src)
+        hits = []
+        for fn in _ast.walk(tree):
+            if not isinstance(fn, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+                continue
+            for node in _ast.walk(fn):
+                if isinstance(node, _ast.Assign):
+                    for t in node.targets:
+                        if (isinstance(t, _ast.Subscript)
+                                and isinstance(t.value, _ast.Name)
+                                and t.value.id == "nation_gold"):
+                            hits.append(fn.name)
+        assert "_apply_settlement_terms" in hits, (
+            "the bare-alias idiom this census was widened for is gone — "
+            "re-check whether the widening is still needed")
+        found = _gold_subtracting_functions()
+        assert ("backend/game_logic/settlement_ratify.py",
+                "_apply_settlement_terms") in found
 
     def test_every_survivor_states_its_reason_at_the_call_site(self):
         """GR9: SW-0 deferred this to 'a later slice' with no slice id. A
         survivor without a written reason is an open-ended deferral."""
-        from tests.test_iq1_sw0_chest_speaks import UNRECORDED_OUTFLOWS
         for rel, fn_name in sorted(UNRECORDED_OUTFLOWS):
             src = (REPO / rel).read_text(encoding="utf-8")
             tree = ast.parse(src)
@@ -390,18 +470,241 @@ class TestTheOutflowsAreJudged:
                 f"{rel}::{fn_name} stays unrecorded with no stated reason")
 
     def test_the_reasons_are_not_vacuous(self):
-        """Sensitivity: the marker must sit in the FUNCTION, not merely
-        somewhere in the file."""
+        """⚠ REWRITTEN BY THE REVIEW ROUND. The first cut asserted that two
+        function NAMES exist in vassal.py and nothing whatsoever about the
+        markers its own docstring said it guarded — it would have passed with
+        every reason deleted.
+
+        What it must prove is that the marker is read from the FUNCTION BODY
+        and not from anywhere in the file: `vassal.py` contains BOTH a
+        recorded purchase (`invest_in_vassal`) and an unrecorded survivor
+        (`process_vassal_tribute`), so a file-wide grep cannot tell them
+        apart and this asserts the per-function reader does."""
         src = (REPO / "backend/game_logic/vassal.py").read_text(encoding="utf-8")
         tree = ast.parse(src)
-        names = {fn.name for fn in ast.walk(tree)
-                 if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))}
-        assert "invest_in_vassal" in names and "process_vassal_tribute" in names
+        bodies = {}
+        for fn in ast.walk(tree):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                bodies[fn.name] = "\n".join(
+                    src.splitlines()[fn.lineno - 1:fn.end_lineno])
+        assert "IQ1-2 (3)" in bodies["process_vassal_tribute"], (
+            "the survivor's reason is not in its own body")
+        # …and the marker is NOT smeared across the whole file: a function in
+        # the same module that is neither a survivor nor a purchase must be
+        # clean, or the per-function read proves nothing.
+        clean = [n for n, b in bodies.items()
+                 if "IQ1-2 (3)" not in b and "record_gold_spent" not in b]
+        assert clean, "every function in vassal.py carries the marker — the "
+        assert "IQ1-2 (3)" in src
+
+    def test_the_amount_recorded_is_the_amount_subtracted(self, world):
+        """⚠ ADDED BY THE REVIEW ROUND, which was right that the seven sites
+        were pinned by a PRESENCE census only — blind to the amount, to the
+        nation, and to whether the call is reachable at all. Driven for real
+        through the production function, both ways round.
+
+        ⚠ The first cut of this fixture did not reach the spend: the boot
+        vassals sit at LOYALTY_MAX and the verb refuses there by design (WO-D2
+        contract 6, "charges NOTHING"). Which makes the refusal the other half
+        of the pin, and the more valuable half — a recorder outside its own
+        branch would charge a refused purchase.
+        """
+        from backend.game_logic import vassal as vassal_mod
+        from backend.game_logic.vassal import INVEST_GOLD_COST, LOYALTY_MAX
+
+        target = next(iter(getattr(world, "vassals", {}) or {}), None)
+        assert target, "the 1805 boot world has vassals — fixture precondition"
+        lord = world.vassals[target]["lord"]
+
+        # (a) THE REFUSAL RECORDS NOTHING. Loyalty at max, so the verb refuses.
+        world.vassals[target]["loyalty"] = LOYALTY_MAX
+        world.gold_spent_this_turn = {}
+        world.nation_gold[lord] = 5_000
+        refused = vassal_mod.invest_in_vassal(world, target, actor=lord)
+        assert refused.get("success") is False
+        assert int(world.nation_gold.get(lord, 0)) == 5_000, "a refusal charged"
+        assert int(world.gold_spent_this_turn.get(lord, 0)) == 0, (
+            "a REFUSED purchase was recorded as a spend")
+
+        # (b) THE SPEND RECORDS EXACTLY WHAT LEFT THE CHEST.
+        world.vassals[target]["loyalty"] = 40
+        world.vassal_investment_cooldowns = {}
+        world.nation_dp = getattr(world, "nation_dp", {}) or {}
+        world.nation_dp[lord] = 10
+        world.gold_spent_this_turn = {}
+        world.nation_gold[lord] = 5_000
+        ok = vassal_mod.invest_in_vassal(world, target, actor=lord)
+        assert ok.get("success") is True, ok.get("message")
+        moved = 5_000 - int(world.nation_gold.get(lord, 0))
+        recorded = int(world.gold_spent_this_turn.get(lord, 0))
+        assert moved == INVEST_GOLD_COST
+        assert recorded == moved, (
+            f"recorded {recorded} but {moved} left the chest")
+        # …and against the RIGHT nation, not the player by reflex.
+        assert set(world.gold_spent_this_turn) == {lord}
+
+    def test_a_non_player_lord_is_charged_against_itself(self, world):
+        """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT, and it is the GR5
+        half. Re-pointing the recorder at `world.player_nation` killed nothing,
+        because on the shipped 1805 board every vassal's lord IS France, which
+        IS the player — so "records the lord" and "records the player" are the
+        same assertion there, and a GR5 defect would have been invisible.
+
+        Give the vassal a lord who is not the player and the two come apart.
+        """
+        from backend.game_logic import vassal as vassal_mod
+        from backend.game_logic.vassal import INVEST_GOLD_COST, LOYALTY_MAX
+
+        target = next(iter(getattr(world, "vassals", {}) or {}), None)
+        assert target
+        lord = "Austria"
+        assert lord != world.player_nation, "fixture precondition"
+        world.vassals[target]["lord"] = lord
+        world.vassals[target]["loyalty"] = min(40, LOYALTY_MAX - 1)
+        world.vassal_investment_cooldowns = {}
+        world.nation_dp = getattr(world, "nation_dp", {}) or {}
+        world.nation_dp[lord] = 10
+        world.nation_gold[lord] = 5_000
+        world.gold_spent_this_turn = {}
+
+        ok = vassal_mod.invest_in_vassal(world, target, actor=lord)
+        assert ok.get("success") is True, ok.get("message")
+        assert int(world.gold_spent_this_turn.get(lord, 0)) == INVEST_GOLD_COST
+        assert world.player_nation not in world.gold_spent_this_turn, (
+            "an AI lord's purchase was charged to the PLAYER's Spent line")
+
+    def test_the_clamped_ultimatum_records_what_moved_not_what_was_asked(self):
+        """The clamp, stated as arithmetic over the production expression:
+        `transfer = min(int(value), max(0, available))` and the recorder is
+        handed `transfer`. A recorder handed `value` would over-report every
+        time a court cannot pay in full."""
+        src = (REPO / "backend/commands/diplomatic_executor.py").read_text(
+            encoding="utf-8")
+        idx = src.index("world.record_gold_spent(target_nation, int(transfer))")
+        window = src[max(0, idx - 700):idx]
+        assert "transfer = min(int(value), max(0, available))" in window, (
+            "the ultimatum recorder is no longer downstream of the clamp")
+        assert "record_gold_spent(target_nation, int(value))" not in src, (
+            "the ultimatum records the DEMAND, not the gold that moved")
+
+    def test_every_recorder_sits_with_its_own_subtraction(self):
+        """A record outside the conditional that guards the subtraction would
+        report a spend on a REFUSED purchase.
+
+        ⚠ The first cut of this pin asserted an absolute indent >= 8 and was
+        simply WRONG about the code: `invest_in_vassal` validates and returns
+        early, so its subtraction and its recorder both sit at function-body
+        level. The real invariant is that the recorder matches the INDENT of
+        the `nation_gold` write it accompanies — same branch, same guard.
+        """
+        for rel in ("backend/commands/naval_executor.py",
+                    "backend/game_logic/vassal.py",
+                    "backend/commands/diplomatic_executor.py"):
+            lines = (REPO / rel).read_text(encoding="utf-8").splitlines()
+            recorders = [i for i, ln in enumerate(lines)
+                         if "record_gold_spent(" in ln
+                         and not ln.strip().startswith("#")]
+            assert recorders, f"{rel}: no recorder found"
+            for i in recorders:
+                indent = len(lines[i]) - len(lines[i].lstrip())
+                # Walk back to the nearest `nation_gold` write and require the
+                # same indentation — i.e. the same branch.
+                near = None
+                for j in range(i - 1, max(0, i - 12), -1):
+                    if "nation_gold[" in lines[j] and "=" in lines[j]:
+                        near = len(lines[j]) - len(lines[j].lstrip())
+                        break
+                assert near is not None, (
+                    f"{rel}:{i + 1} records a spend with no nearby "
+                    f"nation_gold write — is it still beside its subtraction?")
+                assert indent == near, (
+                    f"{rel}:{i + 1} recorder indent {indent} != subtraction "
+                    f"indent {near} — it may be outside the guarding branch")
+
+    def test_the_residual_detects_a_dropped_component(self):
+        """⚠ ADDED BY THE REVIEW ROUND: `net_residual` is the slice's own
+        drift detector and it had NO behavioural pin and no sweep mutation, so
+        a sign error would ship silently. Drive the recorder's arithmetic and
+        assert both the zero case and the +50 the archive actually showed."""
+        import sys
+        sys.path.insert(0, str(REPO / "tools"))
+        import playtest_driver as drv
+
+        class Stub:
+            def __init__(self):
+                self.md = []
+                self.rec = []
+
+            def _md(self, text):
+                self.md.append(text)
+
+            def record(self, kind, **kw):
+                self.rec.append((kind, kw))
+
+            ledger_line = drv.Digest.ledger_line
+
+        econ = {"income": 3550, "trade_income": 620, "admin_bonus": 50,
+                "overseas": 0, "vassal_tribute": 937, "treaty_gold": 0,
+                "settlement_gold": 0, "requisitions": 0, "upkeep": 624,
+                "state_charges": 1038, "contributions": 0, "occupation": 15,
+                "blockade": 0, "admiralty": 480, "infrastructure": 0,
+                "dotation_skim": 0, "rente_cost": 0}
+        net = 3550 + 620 + 50 + 937 - 624 - 1038 - 15 - 480
+
+        good = Stub()
+        good.ledger_line(1000, net, 40, 29, economy=econ)
+        rows = [kw for kind, kw in good.rec if kind == "economy"]
+        assert rows and rows[0]["net_residual"] == 0, rows
+
+        # Drop `admin_bonus` — the exact archived defect — and the residual
+        # must read +50, i.e. "the printed sub-line UNDER-counts by 50".
+        blind = Stub()
+        without = {k: v for k, v in econ.items() if k != "admin_bonus"}
+        blind.ledger_line(1000, net, 40, 29, economy=without)
+        rows = [kw for kind, kw in blind.rec if kind == "economy"]
+        assert rows and rows[0]["net_residual"] == 50, (
+            f"expected +50 (under-count), got {rows[0]['net_residual']} — "
+            f"the SIGN is the thing every prose statement of this defect uses")
 
     def test_the_census_still_reds_on_a_new_unrecorded_outflow(self):
+        """⚠ REWRITTEN BY THE REVIEW ROUND. The first cut asserted
+        `len(found) >= 22` and `sum(...) >= 14` — two LOWER BOUNDS, which a
+        new unrecorded outflow satisfies happily. The census's actual
+        contract is the EXACT-MATCH allowlist, so state it, and drive the
+        failure by synthesising a new outflow on a temp module."""
         found = _gold_subtracting_functions()
-        assert len(found) >= 22
-        assert sum(found.values()) >= 14
+        unrecorded = {k for k, rec in found.items() if not rec}
+        assert unrecorded == UNRECORDED_OUTFLOWS, (
+            f"new unrecorded outflow(s): {sorted(unrecorded - UNRECORDED_OUTFLOWS)}; "
+            f"newly recorded: {sorted(UNRECORDED_OUTFLOWS - unrecorded)}")
+
+    def test_the_census_would_actually_see_a_new_outflow(self, tmp_path):
+        """The sensitivity arm the bound-based pin never had: run the census's
+        own AST logic over a synthesised module that subtracts from
+        `nation_gold` without recording, and assert it is FOUND — through both
+        idioms, attribute and local alias."""
+        probe = tmp_path / "probe.py"
+        probe.write_text(
+            "def attribute_form(world, n, amount):\n"
+            "    world.nation_gold[n] = world.nation_gold.get(n, 0) - amount\n"
+            "\n"
+            "def alias_form(world, n, amount):\n"
+            "    nation_gold = world.nation_gold\n"
+            "    nation_gold[n] = nation_gold.get(n, 0) - amount\n",
+            encoding="utf-8")
+        tree = ast.parse(probe.read_text(encoding="utf-8"))
+        seen = set()
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for node in ast.walk(fn):
+                targets = (node.targets if isinstance(node, ast.Assign)
+                           else [node.target] if isinstance(node, ast.AugAssign)
+                           else [])
+                if any(_is_nation_gold_target(t) for t in targets):
+                    seen.add(fn.name)
+        assert seen == {"attribute_form", "alias_form"}, (
+            f"the census cannot see {{'attribute_form','alias_form'}} - {seen}")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -443,6 +746,7 @@ class TestTheDigestCanSeeTheSink:
                 self.rec.append((kind, kw))
 
             turn_spend = drv.Digest.turn_spend
+            observe_spend = drv.Digest.observe_spend
 
         quiet = Stub()
         quiet.turn_spend({"spent": 0})
@@ -456,6 +760,41 @@ class TestTheDigestCanSeeTheSink:
         bought.turn_spend({"spent": 654, "treasury": 1200})
         assert bought.md and "654" in bought.md[0]
         assert bought.rec and bought.rec[0][0] == "turn_spend"
+
+        # Review round: the HIGH-WATER MARK. `/command` auto-ends the turn on
+        # the last action point and the engine clears the tally then, so a
+        # single read before `end turn` missed a purchase made with the last
+        # AP. The peak survives a later reading of ZERO.
+        peak = Stub()
+        peak.observe_spend({"spent": 8189, "treasury": 15412})
+        peak.turn_spend({"spent": 0})
+        assert peak.md and "8189" in peak.md[0]
+
+        # …and it RESETS, or turn 2 would inherit turn 1's figure.
+        assert int(getattr(peak, "_turn_spend_peak", 0) or 0) == 0
+        peak.md.clear()
+        peak.turn_spend({"spent": 0})
+        assert peak.md == []
+
+        # ⚠ And `turn_spend` must NOT call another borrowed method: a stub
+        # that borrows only `turn_spend` must still work. This pin caught
+        # exactly that regression when the peak logic was first factored out.
+        class Lone:
+            def __init__(self):
+                self.md = []
+                self.rec = []
+
+            def _md(self, text):
+                self.md.append(text)
+
+            def record(self, kind, **kw):
+                self.rec.append((kind, kw))
+
+            turn_spend = drv.Digest.turn_spend
+
+        lone = Lone()
+        lone.turn_spend({"spent": 400, "treasury": 900})
+        assert lone.md and "400" in lone.md[0]
 
     def test_the_army_reaches_the_ledger_row(self):
         src = DRIVER.read_text(encoding="utf-8")
@@ -472,6 +811,40 @@ class TestTheDigestCanSeeTheSink:
     def test_the_residual_is_recorded(self):
         src = DRIVER.read_text(encoding="utf-8")
         assert "net_residual" in src
+
+    def test_the_ledger_row_does_not_record_the_dead_spent_key(self):
+        """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT. Re-adding
+        `spent=spent` to the LEDGER record killed nothing. That read runs
+        AFTER the turn ends, when the engine has cleared the tally, so it
+        recorded a FALSE 0 into the jsonl beside `turn_spend`'s true figure —
+        worse than recording nothing, because an archived run then has two
+        disagreeing answers."""
+        import sys
+        sys.path.insert(0, str(REPO / "tools"))
+        import playtest_driver as drv
+
+        class Stub:
+            def __init__(self):
+                self.md = []
+                self.rec = []
+
+            def _md(self, text):
+                self.md.append(text)
+
+            def record(self, kind, **kw):
+                self.rec.append((kind, kw))
+
+            ledger_line = drv.Digest.ledger_line
+
+        st = Stub()
+        st.ledger_line(1000, 500, 40, 29, economy={"income": 500, "spent": 0})
+        rows = [kw for kind, kw in st.rec if kind == "ledger"]
+        assert rows, "no ledger row recorded"
+        assert "spent" not in rows[0], (
+            "the LEDGER row records `spent`, which is structurally zero on "
+            "that read — the live figure is turn_spend's")
+        assert "ceiling_state" in rows[0], (
+            "which of the two zeros `ceiling` means must be recorded")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -491,17 +864,70 @@ class TestTheClientRendersTheThreeStates:
         assert f'ceiling_state == "{state}"' in src
 
     def test_the_above_the_ceiling_case_has_copy(self):
-        """The case the fix newly makes reachable. It had none, because it
-        could not previously be rendered at all."""
+        """⚠ DOCSTRING CORRECTED BY THE REVIEW ROUND. This said the case
+        "could not previously be rendered at all". It was rendered — by the
+        generic arm, with the wrong sentence and often the calm colour. What
+        was unreachable was a ceiling below the chest that is also CORRECT."""
         src = self._gd()
         assert "treasury > ceiling" in src
         assert "drawing it down" in src
 
-    def test_the_census_is_not_vacuous(self, tmp_path):
-        stripped = self._gd().replace('econ.get("ceiling_state"', 'econ.get("x"')
-        probe = tmp_path / "probe.gd"
-        probe.write_text(stripped, encoding="utf-8")
-        assert 'econ.get("ceiling_state"' not in probe.read_text(encoding="utf-8")
+    def test_the_worst_state_is_not_the_calmest_colour(self):
+        """Review round: `no_surplus` — the treasury not growing at all — was
+        rendered in COLOR_DIMMED, calmer than the informational bounded line.
+        Pin the ladder so the inversion cannot come back."""
+        src = self._gd()
+        block = src[src.index('ceiling_state == "no_surplus"'):]
+        block = block[:block.index("elif ceiling > 0")]
+        assert "COLOR_ERROR" in block, "the worst ceiling state must not be dimmed"
+        assert "COLOR_DIMMED" not in block
+
+    def test_the_unbounded_copy_names_the_charges_not_the_chest(self):
+        """Review round: "nothing is drawing on the chest" prints ~20 lines
+        under an Upkeep line that is drawing on it."""
+        src = self._gd()
+        block = src[src.index('ceiling_state == "unbounded"'):]
+        block = block[:block.index('elif ceiling_state')]
+        # Read only the RENDERED lines — a comment explaining the old copy
+        # legitimately quotes it, and the first cut of this pin failed on its
+        # own explanation.
+        rendered = "\n".join(ln for ln in block.splitlines()
+                              if "bbcode" in ln or "[color" in ln or "Ceiling" in ln)
+        assert "charges of empire do not draw" in rendered
+        assert "nothing is drawing on the chest" not in rendered
+
+    def test_the_gd_literals_are_the_backend_constants(self):
+        """Review round, found by THREE lenses independently: the three render
+        arms were joined to the backend's three constants by nothing at all, so
+        renaming a sentinel's VALUE would silently blank the Ceiling line with
+        every pin green. Assert the actual values appear in the .gd."""
+        src = self._gd()
+        for const in (CEILING_NO_RATE, CEILING_NO_SURPLUS):
+            assert f'ceiling_state == "{const}"' in src, (
+                f"the .gd does not branch on {const!r} — the backend constant "
+                f"and the client literal have drifted apart")
+        assert CEILING_BOUNDED == "bounded"
+        assert 'econ.get("ceiling_state", "bounded")' in src, (
+            "the .gd default must be CEILING_BOUNDED's value")
+
+    def test_the_census_is_not_vacuous(self):
+        """⚠ REWRITTEN BY THE REVIEW ROUND. The first cut wrote a mutated copy
+        to a temp file and asserted the mutation had happened — a `str.replace`
+        tautology that executed ZERO production code and was the only claimed
+        sensitivity arm for the slice's only `.gd`.
+
+        The real question is whether the assertion binds to the RENDER path
+        rather than to a passing mention, so require the key read and the
+        branch on it to sit inside `_render_economy` itself."""
+        src = self._gd()
+        start = src.index("func _render_economy")
+        nxt = src.find("\nfunc ", start + 1)
+        body = src[start:nxt if nxt != -1 else len(src)]
+        assert 'econ.get("ceiling_state"' in body, (
+            "ceiling_state is read somewhere, but not in _render_economy")
+        for const in (CEILING_NO_RATE, CEILING_NO_SURPLUS):
+            assert f'"{const}"' in body
+        assert "Ceiling:" in body
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -510,10 +936,15 @@ class TestTheClientRendersTheThreeStates:
 
 class TestThePlayerCanLearnItExists:
     def test_the_help_text_names_the_verb(self):
+        """⚠ REVIEW ROUND: `assert "substitutes" in src` matched a COMMENT and
+        survived deleting the entire help entry. Scope it to the help STRING —
+        the block between the `recruit` entry and the next section."""
         src = (REPO / "backend/commands/meta_executor.py").read_text(
             encoding="utf-8")
-        assert "substitutes" in src
-        assert "buy substitutes for Ney" in src
+        assert "  substitutes -" in src, "the help entry is gone"
+        block = src[src.index("  substitutes -"):]
+        block = block[:block.index("\n\n")]
+        assert "buy substitutes for Ney" in block
 
     def test_the_phrasings_the_help_teaches_actually_parse(self):
         """A help entry naming a sentence the parser refuses is worse than
@@ -534,6 +965,19 @@ class TestThePlayerCanLearnItExists:
         for phrase in taught:
             assert phrase in utterances, (
                 f"help teaches {phrase!r} but no golden-corpus row pins it")
+
+    def test_it_names_the_gates_that_actually_refuse(self):
+        """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT, and because the help
+        was measured wrong: it named the TREASURY as the limit while the
+        board's own archive shows 3 of 13 scripted purchases refused on the
+        own-soil gate and every success capped at 9,000 of 30,000 men asked."""
+        src = (REPO / "backend/commands/meta_executor.py").read_text(
+            encoding="utf-8")
+        block = src[src.index("  substitutes -"):]
+        block = block[:block.index("\n\n")]
+        assert "ground WE hold" in block, "the own-soil gate is not named"
+        assert "smaller draft" in block, "the field batch cap is not named"
+        assert "morale" in block, "the morale dilution is not named"
 
     def test_it_says_what_makes_it_different(self):
         """The one fact that makes it a sink: it costs gold and no men."""

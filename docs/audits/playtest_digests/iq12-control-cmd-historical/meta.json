@@ -1,5 +1,5 @@
 {
-  "name": "iq12-control",
+  "name": "rr-control",
   "seed": "historical",
   "llm": "mock",
   "transport": "in-process",
@@ -25,7 +25,7 @@
     "clarification": "first"
   },
   "turns_requested": 40,
-  "started": "2026-09-13 19:51",
+  "started": "2026-09-13 22:01",
   "from_save": "",
   "scenario": "",
   "script": "tools/playtest_scripts/commanded_full40.json",
@@ -36,7 +36,7 @@
     "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
     "pythonhashseed": "0"
   },
-  "driver_revision": "a581fcfa8642",
+  "driver_revision": "42511ec7973b",
   "reload_every": 0,
   "status": "completed",
   "counters": {

@@ -564,16 +564,30 @@ func _render_economy():
 	var ceiling = int(econ.get("ceiling", 0))
 	var ceiling_state = str(econ.get("ceiling_state", "bounded"))
 	if ceiling_state == "unbounded":
+		# Review round: name the CHARGES, not "the chest". This prints ~20
+		# lines under an "Upkeep: -865g" line that IS drawing on the chest, so
+		# "nothing is drawing on the chest" contradicted the payload above it.
 		bbcode += "  [color=#" + Utils.COLOR_DIMMED \
-			+ "]Ceiling:  none — nothing is drawing on the chest[/color]\n"
+			+ "]Ceiling:  none — the charges of empire do not draw at this rate[/color]\n"
 	elif ceiling_state == "no_surplus":
-		bbcode += "  [color=#" + Utils.COLOR_DIMMED \
-			+ "]Ceiling:  none — the chest is not growing[/color]\n"
+		# Review round: the COLOUR was inverted. This is the worst economic
+		# state the tab can report — the treasury is not growing at all — and
+		# it was rendered in the calmest colour in the palette, dimmer than
+		# the merely-informational bounded line. It is an ERROR now, and the
+		# sentence says what is true rather than what is absent.
+		bbcode += "  [color=#" + Utils.COLOR_ERROR \
+			+ "]Ceiling:  none — the chest is not growing at this rate[/color]\n"
 	elif ceiling > 0:
 		if treasury > ceiling:
-			# The case the fix makes reachable: the chest is PAST its own
-			# fixed point, so the charges are pulling it back down. It had
-			# no copy because it could not previously be rendered at all.
+			# The chest is PAST its own fixed point, so the charges are pulling
+			# it back down. ⚠ REVIEW ROUND CORRECTION: the first version of
+			# this comment said the case "could not previously be rendered at
+			# all". That is FALSE and the review caught it — the case WAS
+			# rendered before, by the generic arm below, with the wrong copy
+			# ("where the charges level the chest off") and, at a chest above
+			# a quarter of the ceiling, the calm colour. What was unreachable
+			# was a ceiling BELOW the chest that is also CORRECT; the old
+			# post-charge argument understated it toward zero.
 			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Ceiling:  " \
 				+ _format_number(ceiling) \
 				+ "g  — the chest is above it; the charges are drawing it down[/color]\n"

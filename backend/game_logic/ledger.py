@@ -284,10 +284,21 @@ def _build_territories(world, player: str) -> list:
 # ECONOMY SECTION
 # ============================================================================
 
-def _levy_block(world) -> dict:
-    """Lazy door onto the single source (see `economy_executor.get_levy_status`)."""
+def _levy_block(world, nation: str = None) -> dict:
+    """Lazy door onto the single source (see `economy_executor.get_levy_status`).
+
+    IQ1-2 review round: the `nation` argument did not exist, and
+    `get_levy_status` defaults to `world.player_nation` — so this was the
+    THIRD player-scoped read inside `_build_economy`, and IQ1-2's first cut
+    fixed two of the three. That left the payload contradicting itself:
+    `_build_economy(world, "Austria")` returned Austria's treasury beside
+    FRANCE's force limit, army total and infantry pool. Two independent
+    reviewers found it. The lesson is this repo's own, for the sixth time:
+    a fix that touches one reader of a pipeline must be checked against
+    every other reader in the same function.
+    """
     from backend.commands.economy_executor import get_levy_status
-    return get_levy_status(world)
+    return get_levy_status(world, nation)
 
 
 # FA-D26 (slice 17, Phase 2) flip lever: the economy tab carries the Materiel
@@ -378,9 +389,14 @@ NET_GOLD_COMPONENTS = {
 
 # The three states `ceiling` can be in. GR2: `ceiling` stays an int for
 # Godot; `ceiling_state` says which sentence to print.
-CEILING_BOUNDED = "bounded"           # a real fixed point; `ceiling` is it
-CEILING_NO_RATE = "unbounded"         # rate 0 — nothing steers the chest
-CEILING_NO_SURPLUS = "no_surplus"     # not making money — no such treasury
+CEILING_BOUNDED = "bounded"        # a real fixed point; `ceiling` is it
+CEILING_NO_RATE = "unbounded"      # rate 0 — THE CHARGES do not draw at all
+CEILING_NO_SURPLUS = "no_surplus"  # gross <= 0 — the chest is not growing
+# ⚠ Review round: CEILING_NO_RATE's copy must name the CHARGES, not "the
+# chest". A legacy world pays no Charges of Empire and still pays upkeep, so
+# "nothing is drawing on the chest" is printed ~20 lines under an
+# "Upkeep: -865g" line that is drawing on it. And the ladder asks the gross
+# BEFORE the rate, so a losing legacy world gets the honest sentence.
 
 
 def state_charges_ceiling(net: int, rate: int) -> int:
@@ -647,10 +663,15 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     elif not THE_CHEST_TELLS_THE_TRUTH:
         _ceiling_value = state_charges_ceiling(net, _ceiling_rate)
         _ceiling_state = CEILING_BOUNDED
+    elif _ceiling_gross <= 0:
+        # Review round: the GROSS is asked FIRST. The first cut asked the rate
+        # first, so a legacy world (rate 0 by construction) that was BLEEDING
+        # money was told "nothing is drawing on the chest" — true of the
+        # charges and false of the situation, and the more urgent fact is that
+        # the chest is not growing.
+        _ceiling_value, _ceiling_state = 0, CEILING_NO_SURPLUS
     elif _ceiling_rate <= 0:
         _ceiling_value, _ceiling_state = 0, CEILING_NO_RATE
-    elif _ceiling_gross <= 0:
-        _ceiling_value, _ceiling_state = 0, CEILING_NO_SURPLUS
     else:
         _ceiling_value = state_charges_ceiling(_ceiling_gross, _ceiling_rate)
         _ceiling_state = CEILING_BOUNDED
@@ -709,7 +730,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # panel read. Before this the force limit reached the ledger but was
         # rendered only inside the over-limit warning — visible exactly when
         # the gate was shut, invisible the moment it opened.
-        "levy": _levy_block(world),
+        "levy": _levy_block(world, player if THE_CHEST_TELLS_THE_TRUTH else None),
         "net": net,
         "bankruptcy_turns": _bankruptcy,
         "construction_queue": construction_queue,

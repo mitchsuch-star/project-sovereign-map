@@ -598,10 +598,13 @@ MILITARY COMMANDS:
                to serve in his place. Draws NO men from the pools -
                gold alone - so it is the one purchase your TREASURY
                limits rather than your class. It is dear, and it
-               grows dearer as the class empties. You may buy up to
-               the point where keeping the men turns punitive, and
-               not a man past it; Berthier names the ceiling if you
-               ask for more. Replacements, never expansion.
+               grows dearer as the class empties. Two limits Berthier
+               will name for you: substitutes are received only on
+               ground WE hold, and a marshal in the field takes them
+               in a smaller draft than one at a depot. You may buy up
+               to the point where keeping the men turns punitive, and
+               not a man past it. Replacements, never expansion -
+               and green men dilute a veteran corps' morale.
 
   bombardment - Artillery fires on adjacent region (max 2/turn)
                "bombard Swabia" - Cannot fire after moving.

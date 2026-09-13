@@ -271,7 +271,31 @@ UNRECORDED_OUTFLOWS = {
     ("backend/game_logic/instruments.py", "process_instruments"),
     ("backend/models/world_state.py", "_ratify_treaty"),
     ("backend/models/world_state.py", "_process_treaty_clauses"),
+    # IQ1-2 REVIEW ROUND: two more, visible only once the census learned to
+    # see a LOCAL ALIAS. Both are settlement TRANSFERS that already write
+    # `_applied_income_transfers`, so they are disposition (B) exactly like
+    # their `world_state` siblings above — IQ1-3a gives all five signed Net
+    # lines. They were never "judged and kept"; they were INVISIBLE, which is
+    # the more useful thing to record.
+    ("backend/game_logic/settlement_offers.py",
+     "process_recurring_settlement_payments"),
+    ("backend/game_logic/settlement_ratify.py", "_apply_settlement_terms"),
 }
+
+
+def _is_nation_gold_target(node) -> bool:
+    """A subscript assignment into `nation_gold`, reached either through an
+    attribute (`world.nation_gold[x]`) or through a local alias
+    (`nation_gold = world.nation_gold` … `nation_gold[x]`). IQ1-2's review
+    round added the second arm; without it the census was blind to two real
+    production outflows.
+    """
+    import ast as _ast
+    if not isinstance(node, _ast.Subscript):
+        return False
+    base = node.value
+    return ((isinstance(base, _ast.Attribute) and base.attr == "nation_gold")
+            or (isinstance(base, _ast.Name) and base.id == "nation_gold"))
 
 
 def _gold_subtracting_functions():
@@ -297,9 +321,15 @@ def _gold_subtracting_functions():
                     targets = node.targets
                 else:
                     continue
-                if any(isinstance(t, ast.Subscript)
-                       and isinstance(t.value, ast.Attribute)
-                       and t.value.attr == "nation_gold" for t in targets):
+                # IQ1-2 review round: this matched ONLY
+                # `<x>.nation_gold[...]` (an Attribute value), so a function
+                # that takes a LOCAL ALIAS first —
+                # `nation_gold = world.nation_gold; nation_gold[p] = b - t` —
+                # was invisible to it. Two real production outflows were
+                # escaping (settlement_offers, settlement_ratify), so the
+                # coverage claim was 22 of 24 and a NEW outflow written in that
+                # idiom would have red nothing. A bare Name target counts too.
+                if any(_is_nation_gold_target(t) for t in targets):
                     subs = True
             if not subs:
                 continue

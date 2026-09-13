@@ -62,6 +62,36 @@ from backend.models.world_state import WorldState
 # ledger is now the single source and every reader imports it.
 from backend.game_logic.ledger import NET_GOLD_COMPONENTS  # noqa: E402
 
+# ⚠ REVIEW ROUND: collapsing the map into ledger.py removed the one sign
+# statement that lived OUTSIDE production, and this guard's whole job is to be
+# a cross-file forcing function — a test that imports its expectations from the
+# module it audits cannot notice that module changing. So the forcing function
+# is restored WITHOUT a second source of truth: production reads only
+# `ledger.NET_GOLD_COMPONENTS`; this literal is a TRIPWIRE, asserted equal to
+# it below, so adding or re-signing a Net component reds here and the author
+# has to say so on purpose.
+EXPECTED_NET_SIGNS = {
+    "income": +1, "trade_income": +1, "admin_bonus": +1, "treaty_gold": +1,
+    "vassal_tribute": +1, "settlement_gold": +1, "requisitions": +1,
+    "overseas": +1,
+    "occupation": -1, "contributions": -1, "state_charges": -1,
+    "dotation_skim": -1, "rente_cost": -1, "infrastructure": -1,
+    "blockade": -1, "admiralty": -1, "upkeep_base": -1, "upkeep_surcharge": -1,
+}
+
+
+def test_the_canonical_map_matches_the_cross_file_tripwire():
+    """If this reds, a Net component was added, removed or re-signed. That is
+    allowed — but it must be a deliberate edit in two files, and every consumer
+    (the Strategic Ledger render guard below, `tools/playtest_driver.py`) has to
+    be checked. Do not "fix" it by copying the new value across."""
+    assert NET_GOLD_COMPONENTS == EXPECTED_NET_SIGNS, (
+        "ledger.NET_GOLD_COMPONENTS changed: "
+        f"added {set(NET_GOLD_COMPONENTS) - set(EXPECTED_NET_SIGNS)}, "
+        f"removed {set(EXPECTED_NET_SIGNS) - set(NET_GOLD_COMPONENTS)}, "
+        "re-signed "
+        f"{{k for k in NET_GOLD_COMPONENTS.keys() & EXPECTED_NET_SIGNS.keys() if NET_GOLD_COMPONENTS[k] != EXPECTED_NET_SIGNS[k]}}")
+
 _LEDGER_GD = (
     Path(__file__).resolve().parents[1]
     / "godot-client"

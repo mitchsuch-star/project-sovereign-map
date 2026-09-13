@@ -10,7 +10,15 @@ leaving it to be re-discovered:
   by design, because it is omniscient data and the markdown is written to read
   like a player's eye view. So every GR5 economy claim on an archived arm was
   unfalsifiable.
-* IQ1-2's own `net_residual` and the `turn_spend` rows are likewise jsonl-only.
+* IQ1-2's own `net_residual` is likewise **jsonl-only**.
+  ⚠ **Review-round correction:** `turn_spend` is NOT jsonl-only — it prints a
+  `- SPENT …g` line into the markdown as well. The jsonl carries the machine
+  figure beside it; the markdown is what a reader sees.
+* ⚠ **And the mechanism is unchanged:** `--archive` still copies `digest.md`
+  and `meta.json` only. This pair was copied by hand. So the NEXT IQ-1 arm
+  loses `net_residual` and the per-nation purses again unless it is archived
+  the same way — **IQ1-5 owns teaching `--archive` to carry the jsonl**, and
+  that is a named landing, not a wish.
 
 So this pair — the **control** (`commanded_full40`) and the **spender**
 (`commanded_spender40`), same seed, same `--diplomacy accept`, differing by the
