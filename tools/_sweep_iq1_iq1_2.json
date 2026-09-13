@@ -79,8 +79,8 @@
  {
   "id": "IQ12-12 the third ledger read moves back after the end turn",
   "file": "tools/playtest_driver.py",
-  "old": "        digest.turn_spend(_pre_econ)\n\n        response = transport.post(\"/command\", {\"command\": \"end turn\"})",
-  "new": "        response = transport.post(\"/command\", {\"command\": \"end turn\"})\n        digest.turn_spend(_pre_econ)",
+  "old": "        digest.observe_spend(_pre_econ)\n\n        response = transport.post(\"/command\", {\"command\": \"end turn\"})",
+  "new": "        response = transport.post(\"/command\", {\"command\": \"end turn\"})\n        digest.observe_spend(_pre_econ)",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
  },
  {
@@ -229,5 +229,54 @@
   "old": "               will name for you: substitutes are received only on\n               ground WE hold, and a marshal in the field takes them\n               in a smaller draft than one at a depot.",
   "new": "               will name for you, if you ask him.",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestThePlayerCanLearnItExists"
+ },
+ {
+  "id": "IQ12-34 the auto-advance fold is removed",
+  "file": "tools/playtest_driver.py",
+  "old": "            spent = int(event.get(\"spent\", 0) or 0)",
+  "new": "            spent = 0",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-35 the fold understates a whole-turn reading",
+  "file": "tools/playtest_driver.py",
+  "old": "            if spent > int(getattr(self, \"_turn_spend_peak\", 0) or 0):\n                self._turn_spend_peak = spent\n                self._turn_spend_treasury = int(event.get(\"treasury\", 0) or 0)",
+  "new": "            self._turn_spend_peak = spent\n            self._turn_spend_treasury = int(event.get(\"treasury\", 0) or 0)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-36 the false claim returns to production source unmarked",
+  "file": "backend/game_logic/ledger.py",
+  "old": "#    different sentences to a player, and they are named separately now.",
+  "new": "#    different sentences, and the third could not previously be rendered.",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-37 a recorder is handed the player instead of the debited court",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            world.record_gold_spent(nation, int(BRIBE_TRANSFER_COST))",
+  "new": "            world.record_gold_spent(world.player_nation, int(BRIBE_TRANSFER_COST))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-38 a recorder is handed the wrong constant",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            world.record_gold_spent(nation, int(BRIBE_FREE_COST // 2))",
+  "new": "            world.record_gold_spent(nation, int(BRIBE_FREE_COST))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-39 the tripwire diagnostic loses the re-signed key",
+  "file": "tests/test_economy_ledger_reconciliation.py",
+  "old": "    resigned = {k: (expected[k], actual[k])",
+  "new": "    resigned = {k: (expected[k], expected[k])",
+  "tests": "tests/test_economy_ledger_reconciliation.py::test_the_drift_diagnostic_names_the_offending_key"
+ },
+ {
+  "id": "IQ12-40 the record's instrument counts go stale again",
+  "file": "docs/IMPROVEMENT_QUEUE_SPEC.md",
+  "old": "(**65** at close)",
+  "new": "(**44** at close)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheRecordIsNotStale"
  }
 ]

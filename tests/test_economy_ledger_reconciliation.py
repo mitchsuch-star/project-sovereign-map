@@ -85,12 +85,50 @@ def test_the_canonical_map_matches_the_cross_file_tripwire():
     allowed — but it must be a deliberate edit in two files, and every consumer
     (the Strategic Ledger render guard below, `tools/playtest_driver.py`) has to
     be checked. Do not "fix" it by copying the new value across."""
-    assert NET_GOLD_COMPONENTS == EXPECTED_NET_SIGNS, (
-        "ledger.NET_GOLD_COMPONENTS changed: "
-        f"added {set(NET_GOLD_COMPONENTS) - set(EXPECTED_NET_SIGNS)}, "
-        f"removed {set(EXPECTED_NET_SIGNS) - set(NET_GOLD_COMPONENTS)}, "
-        "re-signed "
-        f"{{k for k in NET_GOLD_COMPONENTS.keys() & EXPECTED_NET_SIGNS.keys() if NET_GOLD_COMPONENTS[k] != EXPECTED_NET_SIGNS[k]}}")
+    assert NET_GOLD_COMPONENTS == EXPECTED_NET_SIGNS, describe_map_drift(
+        EXPECTED_NET_SIGNS, NET_GOLD_COMPONENTS)
+
+
+def describe_map_drift(expected: dict, actual: dict) -> str:
+    """The tripwire's diagnostic, EXTRACTED so it can be pinned.
+
+    ⚠ SYNTHESIS ROUND, and it took two passes. The first cut built the
+    "re-signed" clause inside an f-string with ESCAPED braces, so on the one
+    failure mode this tripwire exists for — a re-signed component, where
+    `added` and `removed` are both empty — the message printed the
+    comprehension's own source text and named no key at all. The second cut
+    computed it properly but was still INERT under mutation, for a reason
+    worth recording: **a test cannot check its own failure message.** Nothing
+    drives the assertion to failure, so nothing reads what it says. Extracting
+    the message into a pure function is what makes it assertable.
+    """
+    added = sorted(set(actual) - set(expected))
+    removed = sorted(set(expected) - set(actual))
+    resigned = {k: (expected[k], actual[k])
+                for k in sorted(set(actual) & set(expected))
+                if actual[k] != expected[k]}
+    return (f"ledger.NET_GOLD_COMPONENTS changed: added {added}, "
+            f"removed {removed}, re-signed (was, now) {resigned}")
+
+
+def test_the_drift_diagnostic_names_the_offending_key():
+    """The re-sign case is the ONE this tripwire exists for, and it is the one
+    where `added` and `removed` are both empty — so if the message does not
+    name the key there, it names nothing useful at all."""
+    base = {"income": +1, "upkeep_base": -1}
+    resigned = describe_map_drift(base, {"income": -1, "upkeep_base": -1})
+    assert "income" in resigned
+    assert "(1, -1)" in resigned, resigned
+    assert "added []" in resigned and "removed []" in resigned
+
+    added = describe_map_drift(base, {**base, "tariffs": +1})
+    assert "tariffs" in added
+
+    removed = describe_map_drift(base, {"income": +1})
+    assert "upkeep_base" in removed
+
+    # …and it must not name a key that did not move.
+    assert "upkeep_base" not in resigned.split("re-signed")[1]
 
 _LEDGER_GD = (
     Path(__file__).resolve().parents[1]

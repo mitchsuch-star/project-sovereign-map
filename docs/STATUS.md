@@ -371,6 +371,31 @@
 > code in turn**, both rewritten. The cross-file reconciliation tripwire the
 > canonical map had removed is **restored**.
 >
+> **▶ THE SYNTHESIS ROUND — the 48-agent fleet's verdict was "shippable, no
+> behavioural defect survives", and then it took six more.** Every one an error
+> in the RECORD, not the code — which is its own lesson: *by the third pass the
+> defects stop being in the game and start being in what you wrote about it.*
+> ⛔ **"Corrected in both places" was a FALSE COMPLETENESS CLAIM, written in the
+> sentence that fixed the first instance of exactly that failure mode** — the
+> claim was in FOUR places including **production source** (`ledger.py`'s lever
+> header) and §0.5's own item (6); a census pin now derives the completeness
+> instead of asserting it. ⛔ **The auto-advance "stated limit" was a silent hole
+> wearing a limit's clothes**: the record said the lost figure "is in the
+> end-turn banner the digest already prints", and the digest prints only the
+> message's FIRST LINE — measured, the archive carries **zero** `| Spent:`.
+> **CLOSED, not restated** (both producers already stamp a structured `spent` on
+> the `turn_end` event). The record's own **instrument counts were stale** (44
+> and 21 against a real 65 and 40), so a pin **derives** them — and it red on
+> this round's own new mutations within the hour, with the sweep tool then
+> refusing a red baseline: two gates, right order. The new tripwire's diagnostic
+> **named no key** on its one failure mode (escaped braces). **Six of seven
+> recorder sites still had no per-site pin**; every call's `(amount, nation)` is
+> now asserted by AST — a line parser read the wrapped grievance call as empty.
+> And a **pre-existing false clause this slice had touched and left**:
+> `save_manager` says `gold_spent_this_turn` is "saved/restored around
+> post-objection", false twice over, four lines above IQ1-2's own correction of
+> its neighbour.
+>
 > **▶ NEXT = IQ1-3 "The Recurring Obligation"** — only a rate can absorb a
 > rate, and every purchase in the game is capped by a non-gold quantity (97
 > building slots on the whole map, a bench each hirable once, 1–2 keels a turn,

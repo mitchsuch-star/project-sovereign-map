@@ -302,9 +302,17 @@ completion item (ii)'s only possible instrument; it is on the LEDGER row now.
 
 **(6) The client renders all three ceiling states.** The sentinel said one word
 for two facts (*"nothing is drawing on the chest"* vs *"the chest is not
-growing"*), and the fix makes a **third** state reachable — a chest already
-**past** its own fixed point — which had no copy at all because it could not
-previously be rendered. `CEILING_BOUNDED` / `CEILING_NO_RATE` /
+growing"*), and the fix makes a **third** state *correctly* reachable — a
+chest already **past** its own fixed point.
+
+⚠ **SYNTHESIS-ROUND CORRECTION.** This used to read "which had no copy at all
+because it could not previously be rendered", and that is **false**, measured:
+on the pre-slice post-charge argument, **29 of 58 probed chests from 31,000 to
+59,000 at rate 80 DID render** the above-the-ceiling case — with the *bounded*
+copy at the calm DIMMED colour (chest 31,000 read ceiling 30,562; chest 59,000
+read 2,562). Only above roughly **60,000**, where the post-charge net went
+non-positive, did the line vanish. What was unreachable was a ceiling below the
+chest that is also **correct**. `CEILING_BOUNDED` / `CEILING_NO_RATE` /
 `CEILING_NO_SURPLUS`; `ceiling` stays an int for Godot (GR2) and
 `ceiling_state` says which sentence to print. ⚠ `CEILING_NO_RATE` is reachable
 on exactly one board: `get_state_charges_rate` returns rate 0 for any world
@@ -332,8 +340,14 @@ economy report, and the two end-turn banner snapshots;
 *"(recruit, build, repair)"* is corrected in the same slice that shrinks the
 allowlist.
 
-**Tests** `tests/test_iq1_iq1_2_chest_tells_the_truth.py` (44); sweep
-`tools/_sweep_iq1_iq1_2.json` **21 killed / 0 INERT / 0 BROKEN**.
+**Tests** `tests/test_iq1_iq1_2_chest_tells_the_truth.py` (**65** at close);
+sweep `tools/_sweep_iq1_iq1_2.json` (**40** mutations) **40 killed / 0 INERT /
+0 BROKEN**. ⚠ These read *(44)* and *21 killed* until the synthesis round: the
+review round added 14 tests and 12 mutations and updated neither figure. The
+class of error is a number restated in prose, so
+`test_the_instrument_counts_are_not_stale` now DERIVES both from the collected
+test count and `len()` of the sweep file — if you change either, that pin tells
+you which line to edit.
 
 **Series.** `BASELINE_SERIES` and M1–M7 **byte-identical without re-record**,
 and for this slice that is a **property of the fix**, not a fact about the
@@ -408,14 +422,37 @@ the palette**. It is an error colour now.
 *"It had no copy because it could not previously be rendered at all"* is wrong:
 the above-the-ceiling case **was** rendered, by the generic arm, with the wrong
 sentence and often the calm colour. What was unreachable was a ceiling below the
-chest that is also *correct*. Corrected in both places.
+chest that is also *correct*.
+
+⚠ **AND "CORRECTED IN BOTH PLACES" WAS ITSELF A FALSE COMPLETENESS CLAIM —
+this repo's own named failure mode, committed in the sentence that fixed the
+first instance of it.** The phrase was in **FOUR** places: the `.gd`, the pin
+docstring, **`ledger.py`'s `THE_CHEST_TELLS_THE_TRUTH` lever header** (the
+canonical in-code statement of what the lever does) and **§0.5 item (6)**
+itself. Two were corrected and two — one of them production source — were not.
+All four are corrected now, and a claim census pins that the phrase cannot
+return anywhere without a `FALSE`/`CORRECTION` marker beside it. *The rule: a
+completeness statement over a multi-site correction must be derived from a
+census, not written from memory of the sites you happened to edit.*
 
 **THE INSTRUMENT LOST A PURCHASE MADE WITH THE LAST ACTION POINT.** `/command`
 auto-ends the turn when the last AP is spent, and the engine clears the tally
 then — so the new pre-`end turn` read missed it. `turn_spend` is a **high-water
-mark** now, fed by a read after each command; the auto-advance case itself is a
-**stated limit** (the figure is in the end-turn banner the digest already
-prints), not a silent hole. ⚠ And factoring the peak out immediately broke the
+mark** now, fed by a read after each command.
+
+⚠ **AND THE "STATED LIMIT" WAS A FALSE MITIGATION — the synthesis round killed
+it.** The record said the auto-advance figure "is in the end-turn banner the
+digest already prints". `Digest.command` prints `first_line(message)` **only**,
+and the banner is on a later line: measured, the archived spender digest
+contains **zero** occurrences of `| Spent:`, `| Treasury:`, `| Upkeep:` or
+`Income:`, and the 7,572-gold buy turn's end-turn line reads in full *"Turn 3
+ended. (Warning: 2 action(s) unused) Turn 4 begins!"*. So the figure was
+recoverable from **no archive at all** — a silent hole wearing a limit's
+clothes. **It is CLOSED rather than restated:** both end-turn producers already
+stamp a structured `spent` on the `turn_end` event, which rides the response,
+so `observe_end_turn_spend` folds that into the peak and the flush moved after
+the end turn. *The rule: do not name an alternative source without checking
+that the instrument captures it.* ⚠ And factoring the peak out immediately broke the
 **borrowed-method** rule this repo documents — a stub Digest that borrows only
 `turn_spend` died on a `self.observe_spend` call, caught by this slice's own
 pin. The peak update is inlined, and a `Lone` stub pins it.
@@ -483,6 +520,88 @@ and exactly one module-scope env read exists, for a variable the driver never
 sets). And the archive note claimed `turn_spend` is jsonl-only; it prints to the
 markdown too, `--archive` still copies md + meta only, and **teaching
 `--archive` to carry the jsonl is now a named IQ1-5 landing.**
+
+#### §0.5.3 THE SYNTHESIS ROUND — the review round's own record was wrong five
+#### ways, and one of its "limits" was a silent hole
+
+The 48-agent fleet's synthesiser returned **"shippable as it stands — no
+behavioural defect survives"**, and then took six more. Every one is an error
+in the RECORD rather than in the code, which is its own lesson: *by the third
+pass the defects stop being in the game and start being in what you wrote
+about the game.*
+
+**⛔ "CORRECTED IN BOTH PLACES" WAS A FALSE COMPLETENESS CLAIM — written in the
+sentence that fixed the first instance of exactly that failure mode.** The
+claim *"could not previously be rendered"* was in **four** places, not two:
+the `.gd`, the pin docstring, **`ledger.py`'s lever header** — the canonical
+in-code statement of what the lever does — and **§0.5 item (6)** itself. Two
+were corrected. All four are now, and
+`test_the_false_claim_cannot_return_unmarked` derives the completeness rather
+than asserting it: every surviving occurrence of the phrase must sit beside a
+`FALSE`/`CORRECTION` marker. **The rule: a completeness statement over a
+multi-site correction must come from a census, not from memory of the sites you
+happened to edit.**
+
+**⛔ AND THE CLAIM'S REPLACEMENT NEEDED A MEASUREMENT, WHICH IT NOW HAS.** On
+the pre-slice post-charge argument, **29 of 58 probed chests from 31,000 to
+59,000 at rate 80 DID render** the above-the-ceiling case — chest 31,000 read
+ceiling 30,562, chest 59,000 read 2,562 — with the *bounded* copy at the calm
+DIMMED colour. Only above roughly 60,000 did the line vanish.
+
+**⛔ THE AUTO-ADVANCE "STATED LIMIT" WAS A SILENT HOLE WEARING A LIMIT'S
+CLOTHES.** The review round wrote that the lost figure "is in the end-turn
+banner the digest already prints". It is not: `Digest.command` prints
+`first_line(message)` **only**, and the banner is on a later line — measured,
+the archived spender digest contains **zero** occurrences of `| Spent:`,
+`| Treasury:`, `| Upkeep:` or `Income:`, and the 7,572-gold buy turn's end-turn
+line reads in full *"Turn 3 ended. (Warning: 2 action(s) unused) Turn 4
+begins!"*. So the figure was recoverable from **no archive at all**. **CLOSED,
+not restated:** both end-turn producers already stamp a structured `spent` on
+the `turn_end` event, so `observe_end_turn_spend` folds it into the peak and
+the flush moved after the end turn. **The rule: do not name an alternative
+source without checking that the instrument captures it.**
+
+**THE RECORD'S OWN INSTRUMENT COUNTS WERE STALE** — *(44)* tests and *21
+killed* against a real 65 and 40, because the review round added 14 tests and
+12 mutations and updated neither. The class of error is *a number restated in
+prose*, so `test_the_instrument_counts_are_not_stale` **derives** both from the
+collected test count and `len()` of the sweep file. It earned its keep within
+the hour: it red on this very round's seven new mutations, and the sweep tool
+then refused to run on a red baseline (FA-92's guard) — two gates catching one
+slip, in the right order.
+
+**THE NEW TRIPWIRE'S DIAGNOSTIC NAMED NO KEY on the one failure mode it exists
+for.** Its "re-signed" clause was built inside an f-string with **escaped
+braces**, so on a re-sign — where `added` and `removed` are both empty — it
+printed the comprehension's own source text. Computed properly now, with
+`(was, now)` per key.
+
+**SIX OF THE SEVEN RECORDER SITES STILL HAD NO PER-SITE PIN** — one behavioural
+pin on `invest_in_vassal` plus an indent census, neither of which reads the
+ARGUMENTS. Now every call's `(amount, nation)` pair is asserted by name against
+the subtraction beside it, extracted by **AST** — a line parser read the
+grievance-variant call as empty, because it wraps across two lines, which is
+how the first cut of that pin failed. Plus a structural GR5 pin: not one of the
+nine calls may name `player_nation`.
+
+**A PRE-EXISTING FALSE CLAUSE THIS SLICE HAD TOUCHED AND LEFT.**
+`save_manager.load_game` says `gold_spent_this_turn` "is saved/restored around
+post-objection" — false twice over, and it sat **four lines above** IQ1-2's own
+correction of the neighbouring claim. There is no RESTORE (the only writers are
+`from_dict` and the `advance_turn` clear; all four `saved_gold_spent` sites are
+one-way `.copy()`), and the siting is **turn advance**, not post-objection —
+`handle_objection_response`'s own PT-F5 comment records that that path never
+re-enters `CommandExecutor.execute`. Inherited verbatim from slice 16c.
+
+**One finding the synthesiser corrected against its own fleet, worth keeping:**
+two lenses reported the levy defect as still live and four flagged the "every
+other key honours" phrasing. The levy is fixed at HEAD and §0.5.2 discloses the
+two-of-three miss honestly. The one key still sensitive to `world.player_nation`
+is **`admin_bonus`** — measured, holding `player="Austria"`: 0 vs 50, carrying
+`net` 405→455 and `ceiling` 14,656→16,218 — and that is **deliberate and
+documented** at `world_state._calculate_admin_bonus`, to avoid double-counting
+the AI's own admin phase. Not a defect, and recorded here so the next reader
+does not "fix" it.
 
 **Restored:** the cross-file forcing function the canonical map had removed.
 Production reads only `ledger.NET_GOLD_COMPONENTS`; `EXPECTED_NET_SIGNS` in the

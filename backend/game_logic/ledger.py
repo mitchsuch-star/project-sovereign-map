@@ -350,9 +350,18 @@ THE_CHEST_STATES_ITS_CEILING = True
 #
 # 3. THE SENTINEL SAID ONE WORD FOR TWO STATES. "no rate, so unbounded" and
 #    "not making money, so no such treasury" both returned 0. They are
-#    different sentences to a player, and the fix makes a THIRD state
-#    reachable — a chest already past its own fixed point — which had no
-#    copy at all because it could not previously be rendered.
+#    different sentences to a player, and they are named separately now.
+#
+#    ⚠ SYNTHESIS-ROUND CORRECTION. This used to end "…and the fix makes a
+#    THIRD state reachable — a chest already past its own fixed point — which
+#    had no copy at all because it could not previously be rendered." That is
+#    FALSE, and it was measured false: on the pre-slice (post-charge)
+#    argument, 29 of 58 probed chests from 31,000 to 59,000 at rate 80 DID
+#    render the above-the-ceiling case — with the BOUNDED copy at the calm
+#    DIMMED colour (chest 31,000 read ceiling 30,562; chest 59,000 read
+#    2,562). Only above about 60,000, where the post-charge net went
+#    non-positive, did the line vanish entirely. What was unreachable was a
+#    ceiling below the chest that is ALSO CORRECT.
 THE_CHEST_TELLS_THE_TRUTH = True
 
 # The signed components of `_build_economy`'s `net` expression, as the

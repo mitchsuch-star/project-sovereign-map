@@ -54,6 +54,7 @@ import io
 import json
 import pathlib
 import re
+import sys
 
 import pytest
 
@@ -543,6 +544,62 @@ class TestTheOutflowsAreJudged:
         # …and against the RIGHT nation, not the player by reflex.
         assert set(world.gold_spent_this_turn) == {lord}
 
+    def test_each_recorder_names_the_amount_its_own_site_subtracts(self):
+        """⚠ SYNTHESIS ROUND (IQ12-P3): six of the seven sites had no pin that
+        could see a WRONG AMOUNT or a WRONG NATION — only a presence census and
+        an indent census, neither of which reads the arguments.
+
+        Driving all seven through production would need seven fixtures; what
+        is cheap and binding is to assert each recorder's ARGUMENTS against the
+        subtraction beside it, by name. A recorder handed a different constant,
+        or a different nation variable, reds here."""
+        expected = {
+            ("backend/commands/naval_executor.py", "naval.SHIP_COST", "actor"),
+            ("backend/commands/diplomatic_executor.py", "amount", "player"),
+            ("backend/commands/diplomatic_executor.py",
+             "self._MAKE_AMENDS_GOLD_COST", "player"),
+            ("backend/commands/diplomatic_executor.py",
+             "self._MAKE_AMENDS_GRIEVANCE_GOLD_COST", "player"),
+            ("backend/commands/diplomatic_executor.py", "transfer",
+             "target_nation"),
+            ("backend/game_logic/vassal.py", "INVEST_GOLD_COST", "lord"),
+            ("backend/game_logic/vassal.py", "BRIBE_FREE_COST // 2", "nation"),
+            ("backend/game_logic/vassal.py", "BRIBE_TRANSFER_COST", "nation"),
+            ("backend/game_logic/vassal.py", "BRIBE_FREE_COST", "nation"),
+        }
+        found = set()
+        for rel in {e[0] for e in expected}:
+            src = (REPO / rel).read_text(encoding="utf-8")
+            tree = ast.parse(src)
+            for node in ast.walk(tree):
+                if not (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and node.func.attr == "record_gold_spent"):
+                    continue
+                # AST, not a line parser: the grievance-variant call WRAPS
+                # across two lines and a line parser read it as empty — which
+                # is how the first cut of this pin failed.
+                nation = ast.unparse(node.args[0])
+                amount = ast.unparse(node.args[1])
+                if amount.startswith("int(") and amount.endswith(")"):
+                    amount = amount[4:-1]
+                found.add((rel, amount.strip(), nation.strip()))
+        assert found == expected, (
+            f"recorder arguments drifted.\n  unexpected: {sorted(found - expected)}"
+            f"\n  missing:    {sorted(expected - found)}")
+
+    def test_no_recorder_is_handed_the_player_by_reflex(self):
+        """The GR5 half, structurally: not one of the nine calls may name
+        `player_nation`. The nation recorded is always the nation debited."""
+        for rel in ("backend/commands/naval_executor.py",
+                    "backend/commands/diplomatic_executor.py",
+                    "backend/game_logic/vassal.py"):
+            for line in (REPO / rel).read_text(encoding="utf-8").splitlines():
+                if "record_gold_spent(" in line and not line.strip().startswith("#"):
+                    assert "player_nation" not in line, (
+                        f"{rel}: a recorder names player_nation — an AI court's "
+                        f"purchase would be charged to the player: {line.strip()}")
+
     def test_a_non_player_lord_is_charged_against_itself(self, world):
         """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT, and it is the GR5
         half. Re-pointing the recorder at `world.player_nation` killed nothing,
@@ -717,9 +774,15 @@ class TestTheDigestCanSeeTheSink:
         structurally always zero — which is why it rendered on 0 of 117
         archived rows including the arm that bought 18,537 gold."""
         src = DRIVER.read_text(encoding="utf-8")
-        idx_read = src.index("digest.turn_spend(_pre_econ)")
+        idx_read = src.index("digest.observe_spend(_pre_econ)")
         idx_end = src.index('transport.post("/command", {"command": "end turn"})')
         assert idx_read < idx_end, "the read must precede the end turn"
+        # …and the FLUSH must follow it, because the turn_end event carries the
+        # auto-advance figure (synthesis round). Ordering both ways round.
+        idx_flush = src.index("digest.turn_spend(None)")
+        idx_fold = src.index("digest.observe_end_turn_spend(response)")
+        assert idx_end < idx_fold < idx_flush, (
+            "the structured turn_end spend must be folded in before the flush")
 
     def test_the_producer_is_not_inside_ledger_line(self):
         """`ledger_line` IS borrowed by a stub (the module comment records
@@ -795,6 +858,83 @@ class TestTheDigestCanSeeTheSink:
         lone = Lone()
         lone.turn_spend({"spent": 400, "treasury": 900})
         assert lone.md and "400" in lone.md[0]
+
+    def test_the_auto_advance_spend_is_not_lost(self):
+        """⚠ SYNTHESIS ROUND (IQ12-R2). `/command` auto-ends the turn on the
+        last action point and clears the tally inside that same call, so the
+        pre-`end turn` read missed the purchase. The first record called that
+        "a stated limit — the figure is in the end-turn banner the digest
+        already prints", which was FALSE (the digest prints only the message's
+        first line; the archived spender digest has zero `| Spent:`). It is
+        closed by reading the STRUCTURED `spent` on the turn_end event.
+
+        `test_there_is_a_read_before_the_turn_ends` is a source-index
+        comparison and is structurally blind to a second clear site; this
+        drives the producer."""
+        import sys
+        sys.path.insert(0, str(REPO / "tools"))
+        import playtest_driver as drv
+
+        class Stub:
+            def __init__(self):
+                self.md = []
+                self.rec = []
+
+            def _md(self, text):
+                self.md.append(text)
+
+            def record(self, kind, **kw):
+                self.rec.append((kind, kw))
+
+            observe_spend = drv.Digest.observe_spend
+            observe_end_turn_spend = drv.Digest.observe_end_turn_spend
+            turn_spend = drv.Digest.turn_spend
+
+        # The auto-advance case: the /ledger read sees a CLEARED tally (0),
+        # and only the turn_end event carries the figure.
+        st = Stub()
+        st.observe_spend({"spent": 0, "treasury": 900})
+        st.observe_end_turn_spend({"events": [
+            {"type": "turn_end", "spent": 4012, "treasury": 900}]})
+        st.turn_spend(None)
+        assert st.md and "4012" in st.md[0], (
+            "a purchase made with the last action point is still lost")
+        rows = [kw for kind, kw in st.rec if kind == "turn_spend"]
+        assert rows and rows[0]["spent"] == 4012
+
+        # And the ordinary case still wins when it is larger, so folding the
+        # event cannot UNDERSTATE a turn the mid-turn read saw whole.
+        st2 = Stub()
+        st2.observe_spend({"spent": 8189, "treasury": 15412})
+        st2.observe_end_turn_spend({"events": [
+            {"type": "turn_end", "spent": 0, "treasury": 15412}]})
+        st2.turn_spend(None)
+        assert st2.md and "8189" in st2.md[0]
+
+        # A response with no turn_end event must be harmless.
+        st3 = Stub()
+        st3.observe_end_turn_spend({"events": [{"type": "battle"}]})
+        st3.observe_end_turn_spend(None)
+        st3.turn_spend(None)
+        assert st3.md == []
+
+    def test_the_banner_source_the_first_record_named_is_not_captured(self):
+        """Pin the measurement that killed the false mitigation, so nobody
+        re-asserts it: `Digest.command` prints the message's FIRST LINE only,
+        and the archived digests carry no banner component at all."""
+        src = DRIVER.read_text(encoding="utf-8")
+        start = src.index("    def command(")
+        body = src[start:src.index("\n    def ", start + 10)]
+        assert "first_line(" in body, (
+            "if command() now prints the whole message, re-check whether the "
+            "banner reaches the digest and update the record")
+        archived = (REPO / "docs/audits/playtest_digests"
+                    / "iq12-spender-cmd-historical" / "digest.md").read_text(
+                        encoding="utf-8")
+        for banner in ("| Spent:", "| Treasury:", "| Upkeep:"):
+            assert banner not in archived, (
+                f"{banner} now reaches the archive — the 'stated limit' the "
+                f"first record claimed would have been true after all")
 
     def test_the_army_reaches_the_ledger_row(self):
         src = DRIVER.read_text(encoding="utf-8")
@@ -872,6 +1012,55 @@ class TestTheClientRendersTheThreeStates:
         assert "treasury > ceiling" in src
         assert "drawing it down" in src
 
+    def test_the_false_claim_cannot_return_unmarked(self):
+        """⚠ SYNTHESIS ROUND. The FALSE claim "could not previously be
+        rendered" was in FOUR places; the review round corrected two and wrote
+        "Corrected in both places" over the partial fix — this repo's own
+        named failure mode,
+        committed in the very sentence that fixed the first instance of it.
+
+        So the completeness statement is DERIVED from here instead of written
+        from memory: every surviving occurrence of the phrase must sit beside a
+        FALSE/CORRECTION marker, i.e. be part of the correction rather than the
+        claim.
+        """
+        # Assembled rather than written, so this pin's OWN definition of the
+        # phrase is not an occurrence of it. (The first cut flagged itself.)
+        phrase = " ".join(["could", "not", "previously", "be", "rendered"])
+        targets = [
+            REPO / "backend/game_logic/ledger.py",
+            REPO / "docs/IMPROVEMENT_QUEUE_SPEC.md",
+            REPO / "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+            REPO / "tests/test_iq1_iq1_2_chest_tells_the_truth.py",
+        ]
+        unmarked = []
+        for path in targets:
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for i, line in enumerate(lines):
+                if phrase not in line:
+                    continue
+                # ⚠ The window looks BACKWARD only. A mutation proved the
+                # first cut inert: re-asserting the claim on a line whose
+                # CORRECTION block follows it passed happily, because the
+                # marker was in the forward half of the window. A correction
+                # announces itself before it quotes the thing it corrects.
+                window = "\n".join(lines[max(0, i - 6):i + 1])
+                # Marker ROOTS, not whole words: the first cut listed
+                # "CORRECTION" and missed a docstring that says "CORRECTED".
+                if not any(m in window for m in ("FALSE", "false", "CORRECT",
+                                                 "wrong", "is not")):
+                    unmarked.append(f"{path.name}:{i + 1}")
+        assert not unmarked, (
+            f"the phrase stands unmarked (i.e. as a CLAIM) at: {unmarked}")
+
+    def test_the_measured_band_is_on_the_record(self):
+        """The correction has to carry its measurement or it is just a
+        different assertion. 29 of 58 probed chests rendered the case."""
+        spec = (REPO / "docs/IMPROVEMENT_QUEUE_SPEC.md").read_text(
+            encoding="utf-8")
+        assert "29 of 58" in spec
+        assert "30,562" in spec
+
     def test_the_worst_state_is_not_the_calmest_colour(self):
         """Review round: `no_surplus` — the treasury not growing at all — was
         rendered in COLOR_DIMMED, calmer than the informational bounded line.
@@ -933,6 +1122,32 @@ class TestTheClientRendersTheThreeStates:
 # ════════════════════════════════════════════════════════════════════════
 # 7. A player can learn the sink exists
 # ════════════════════════════════════════════════════════════════════════
+
+class TestTheRecordIsNotStale:
+    """⚠ SYNTHESIS ROUND. The landing record published "(44)" tests and "21
+    killed" after the review round had made them 64 and 33. A figure restated
+    in prose goes stale silently, so derive it — and name which line to edit."""
+
+    def test_the_instrument_counts_are_not_stale(self):
+        import subprocess
+        spec = (REPO / "docs/IMPROVEMENT_QUEUE_SPEC.md").read_text(
+            encoding="utf-8")
+        sweep = json.loads(
+            (REPO / "tools/_sweep_iq1_iq1_2.json").read_text(encoding="utf-8"))
+        out = subprocess.run(
+            [sys.executable, "-m", "pytest", str(pathlib.Path(__file__)),
+             "--collect-only", "-q", "--no-header", "-p", "no:randomly"],
+            capture_output=True, text=True, cwd=str(REPO))
+        m = re.search(r"(\d+) tests collected", out.stdout)
+        assert m, out.stdout[-500:]
+        collected = int(m.group(1))
+        assert f"(**{collected}** at close)" in spec, (
+            f"IMPROVEMENT_QUEUE_SPEC §0.5 names a test count that is not "
+            f"{collected} — update the 'Tests' line of the IQ1-2 record")
+        assert f"(**{len(sweep)}** mutations)" in spec, (
+            f"the record names a sweep size that is not {len(sweep)} — update "
+            f"the same line")
+
 
 class TestThePlayerCanLearnItExists:
     def test_the_help_text_names_the_verb(self):

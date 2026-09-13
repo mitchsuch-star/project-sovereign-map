@@ -1192,6 +1192,33 @@ class Digest:
             self._turn_spend_peak = spent
             self._turn_spend_treasury = int(economy.get("treasury", 0) or 0)
 
+    def observe_end_turn_spend(self, response):
+        """⚠ REVIEW-ROUND SYNTHESIS: close the auto-advance hole rather than
+        restate it.
+
+        `/command` auto-ends the turn when the last action point is spent and
+        `_advance_turn_internal` clears the tally inside that same call, so a
+        purchase made with the last AP was invisible to every /ledger read. The
+        first fix called that "a stated limit — the figure is in the end-turn
+        banner the digest already prints", and THAT WAS FALSE: `Digest.command`
+        prints `first_line(message)` only, and the banner is on a later line —
+        measured, the archived spender digest contains ZERO occurrences of
+        `| Spent:`. So the figure was recoverable from no archive at all.
+
+        It does not need to be. Both end-turn producers already stamp a
+        STRUCTURED `spent` on the `turn_end` event (`executor.py` and
+        `meta_executor.py`), which rides the response. Read that.
+        """
+        if not isinstance(response, dict):
+            return
+        for event in (response.get("events") or []):
+            if not isinstance(event, dict) or event.get("type") != "turn_end":
+                continue
+            spent = int(event.get("spent", 0) or 0)
+            if spent > int(getattr(self, "_turn_spend_peak", 0) or 0):
+                self._turn_spend_peak = spent
+                self._turn_spend_treasury = int(event.get("treasury", 0) or 0)
+
     def turn_spend(self, economy):
         """IQ1-2 (5): what THIS turn's orders cost, read before the turn
         ends and the engine clears the tally. Prints only when the player
@@ -2518,19 +2545,23 @@ def run(args):
         _pre = transport.get("/ledger")
         _pre_body = _pre.get("ledger") if isinstance(_pre, dict) else None
         _pre_econ = (_pre_body or {}).get("economy") if isinstance(_pre_body, dict) else None
-        # ⚠ REVIEW ROUND — A SECOND CLEAR, AND A STATED LIMIT. The tally is
+        # ⚠ REVIEW ROUND — A SECOND CLEAR, NOW CLOSED. The tally is
         # cleared by `_advance_turn_internal`, and `/command` AUTO-ENDS THE
         # TURN when the last action point is spent — so a purchase made with
         # the last AP is already gone by the time this read happens, measured.
-        # `turn_spend` therefore takes the MAX of every reading taken during
-        # the turn (see the per-command reads above), and when the turn
-        # auto-advanced under us the figure is simply not available here: it is
-        # in the end-turn banner that `digest.command` already printed. That is
-        # a recorded limit of the instrument, not a silent hole.
-        digest.turn_spend(_pre_econ)
+        # `turn_spend` takes the MAX of every reading taken during the turn
+        # (see the per-command reads above) AND of the structured `spent` on
+        # the end-turn event, which is why the flush happens after the end turn
+        # rather than before it. The synthesis round killed the earlier claim
+        # that the auto-advance case was "a stated limit, the figure is in the
+        # banner the digest already prints" — the digest prints only the first
+        # line of the message, so it was a silent hole. It is closed.
+        digest.observe_spend(_pre_econ)
 
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
+        digest.observe_end_turn_spend(response)
+        digest.turn_spend(None)
         digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
                            response.get("enemy_phase"))
         # FA-77: sited in the LOOP, not in `Answerer.scan`. Measured over 52
