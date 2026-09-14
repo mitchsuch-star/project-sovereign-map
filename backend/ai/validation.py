@@ -97,6 +97,9 @@ VALID_ACTIONS: Set[str] = {
     # Marshal Recruitment (Jealousy v3.2 final phase) — "commission Grouchy";
     # target = candidate name from the nation's authored marshal_pool.
     "recruit_marshal",
+    # IQ-1 SW-1 "The Substitute Market" — "buy substitutes for Ney";
+    # marshal target, 1 admin AP, gold only (no manpower draw).
+    "purchase_levy",
     # FA-S9-D1 (slice 14): bring a marshal back from the desk.
     "recall_marshal",
     # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5) — nation-target
@@ -198,7 +201,7 @@ NON_ORDER_ACTIONS = frozenset({
 ADMINISTRATIVE_ACTIONS = frozenset({
     "grant_pension", "revoke_pension", "grant_dotation", "recruit_marshal",
     "recall_marshal",
-    "recruit", "build", "repair", "garrison",
+    "recruit", "purchase_levy", "build", "repair", "garrison",
 })
 NEVER_STRATEGIC_ACTIONS = frozenset(
     META_ACTIONS | NON_ORDER_ACTIONS | ADMINISTRATIVE_ACTIONS)

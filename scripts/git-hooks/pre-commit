@@ -6,11 +6,23 @@
 # Any failure aborts the commit. Do NOT bypass with --no-verify; fix the
 # underlying failure instead (CLAUDE.md "work directly on master" workflow).
 
-PYTHON=".venv/Scripts/python.exe"
-RUFF=".venv/Scripts/ruff.exe"
+# PR-3 (playtest re-score, September 12 2026): these were the bare Windows
+# literals, so on any non-Windows checkout the hook aborted every commit with
+# "venv python not found" and the quality gate could not run at all. The
+# Windows layout is probed FIRST, so on the machine the hook was written for
+# the resolved values are byte-identical to the old literals.
+if [ -f ".venv/Scripts/python.exe" ]; then
+  PYTHON=".venv/Scripts/python.exe"
+  RUFF=".venv/Scripts/ruff.exe"
+elif [ -f ".venv/bin/python" ]; then
+  PYTHON=".venv/bin/python"
+  RUFF=".venv/bin/ruff"
+else
+  PYTHON=""
+fi
 
-if [ ! -f "$PYTHON" ]; then
-  echo "[pre-commit] venv python not found at $PYTHON" 1>&2
+if [ -z "$PYTHON" ]; then
+  echo "[pre-commit] venv python not found (.venv/Scripts/python.exe or .venv/bin/python)" 1>&2
   echo "[pre-commit] create/restore the project venv, then retry." 1>&2
   exit 1
 fi
@@ -22,7 +34,7 @@ else
   "$PYTHON" -m ruff check backend/ || { echo "[pre-commit] ruff failed -- commit aborted." 1>&2; exit 1; }
 fi
 
-echo "[pre-commit] full pytest suite (tests/) -- this may take ~30s ..."
+echo "[pre-commit] full pytest suite (tests/) -- this takes ~4 minutes ..."
 "$PYTHON" -m pytest tests/ -q || { echo "[pre-commit] tests failed -- commit aborted." 1>&2; exit 1; }
 
 echo "[pre-commit] OK -- ruff clean, suite green."

@@ -129,7 +129,13 @@ MISSION_DP_COSTS = {
     "GATHER_INTEL": 1,
     "UNDERMINE_ALLIANCE": 2,
     "REASSURE_ALLY": 1,
-    "CONTINENTAL_SYSTEM": 1,  # R18: Explicit (was defaulting to 1 via .get)
+    # MS-8 (playtest re-score, September 12 2026): "CONTINENTAL_SYSTEM" was
+    # REMOVED. It appeared here, in `main.py`'s display map and in one test
+    # asserting this dict literal — and in `MISSION_TYPE_KEYWORDS` (so no
+    # parse could emit it), `MISSION_DESCRIPTIONS` (so no confirm could
+    # name it), `MISSION_EFFECTS` (so the tick wrote nothing) and no wizard
+    # row. GR9: a dead branch with no owner is removed, not left labelled.
+    # The Continental System itself is alive and is NAVAL_SPEC's CS 2.0.
 }
 
 # ═══════ MISSION EFFECTS ═══════
@@ -142,12 +148,72 @@ MISSION_EFFECTS = {
 }
 
 MISSION_DESCRIPTIONS = {
-    "IMPROVE_RELATIONS": "improve relations",
+    # MS-4: every other description carries its own preposition; this one
+    # did not, so the flagship mission's confirmation read "begin efforts to
+    # improve relations Austria".
+    "IMPROVE_RELATIONS": "improve relations with",
     "COURT_NATION": "court and charm",
     "GATHER_INTEL": "gather intelligence on",
     "UNDERMINE_ALLIANCE": "undermine alliances with",
     "REASSURE_ALLY": "reassure",
 }
+
+
+# ── MS-1 "The Desk Is Not Locked" (playtest re-score, September 12 2026) ──
+# `world.active_diplomatic_mission` is NOT cleared when a mission completes
+# (`GATHER_INTEL` sets `completed: True` and leaves the dict standing, which
+# is what lets the ledger say "completed"). Three consumers checked
+# `completed` — the top bar, the Talleyrand ledger tab and the wizard's
+# nation list — and the wizard's own availability gate did not. Measured:
+# after the FIRST intelligence mission finishes, every mission row for every
+# court reads "Mission already active" for the rest of the campaign, while
+# the top bar next to it says Talleyrand is idle. The dict is serialized, so
+# the lockout survives save/load. One predicate now answers the question
+# everywhere. False reproduces the "any dict at all locks the desk" arm.
+ONE_PREDICATE_ANSWERS_MISSION_LIVENESS = True
+
+
+def mission_is_live(world) -> bool:
+    """Is a diplomatic mission actually running right now?
+
+    A completed mission is a RECORD, not a commitment: it keeps the surfaces
+    able to say what was achieved without holding the desk shut.
+    """
+    mission = getattr(world, "active_diplomatic_mission", None)
+    if not mission or not isinstance(mission, dict):
+        return False
+    if not ONE_PREDICATE_ANSWERS_MISSION_LIVENESS:
+        return True
+    return not mission.get("completed")
+
+
+def mission_effect_magnitude(world, mission_type: str, key: str) -> int:
+    """The figure the tick will ACTUALLY apply, skill scaling included.
+
+    MS-3. `MISSION_EFFECTS` holds the base; `_process_mission_effects`
+    multiplies it by the acting diplomat's skill bonus before writing. Every
+    display surface quoted the base, so on the shipped 1805 board — where
+    Talleyrand's skill is 10 and the bonus is always x1.5 — the game
+    advertised +5 and paid +8, "-3 between targets" and paid -4. Shown is
+    applied now, from one source both sides call.
+    """
+    base = int((MISSION_EFFECTS.get(mission_type, {}) or {}).get(key, 0) or 0)
+    if not base or not MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE:
+        return base
+    try:
+        from backend.game_logic.diplomacy import get_mission_skill_multiplier
+    except Exception:
+        return base
+    # `int(round(...))`, byte-for-byte what `_process_mission_effects`
+    # writes. `int()` alone gave +7 where the tick pays +8 — the same
+    # shown-vs-applied gap one rounding mode down, caught by the standing
+    # pin on its first run.
+    return int(round(base * get_mission_skill_multiplier(world)))
+
+
+# MS-3 flip lever. False reproduces the un-scaled base figure on every
+# display surface.
+MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE = True
 
 
 _ROSTER_NATION_PATTERNS: Optional[list] = None

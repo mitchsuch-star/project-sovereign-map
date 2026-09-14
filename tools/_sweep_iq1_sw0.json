@@ -1,0 +1,93 @@
+[
+  {
+    "id": "SW0-1 the ceiling formula is inverted",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    return int(CHARGES_HOARD_FLOOR + int(net) * int(WAR_EFFORT_DIVISOR) // int(rate))",
+    "new": "    return int(CHARGES_HOARD_FLOOR + int(net) * int(rate) // int(WAR_EFFORT_DIVISOR))",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheCeilingIsTheFixedPoint"
+  },
+  {
+    "id": "SW0-2 the floor is dropped from the fixed point",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    return int(CHARGES_HOARD_FLOOR + int(net) * int(WAR_EFFORT_DIVISOR) // int(rate))",
+    "new": "    return int(int(net) * int(WAR_EFFORT_DIVISOR) // int(rate))",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheCeilingIsTheFixedPoint"
+  },
+  {
+    "id": "SW0-3 the unbounded sentinel stops guarding",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    if int(rate) <= 0 or int(net) <= 0:\n        return 0",
+    "new": "    if int(rate) <= 0:\n        return 0",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheCeilingIsTheFixedPoint::test_zero_rate_and_zero_net_are_the_unbounded_sentinel"
+  },
+  {
+    "id": "SW0-4 the ledger stops reading gold_spent_this_turn",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        \"spent\": (int((getattr(world, \"gold_spent_this_turn\", {}) or {}).get(player, 0))\n                  if THE_CHEST_STATES_ITS_CEILING else 0),",
+    "new": "        \"spent\": 0,",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestShownEqualsApplied tests/test_iq1_sw0_chest_speaks.py::TestTheLever"
+  },
+  {
+    "id": "SW0-5 the ceiling is re-derived instead of read from the applied terms",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        \"ceiling\": (state_charges_ceiling(net, sum(\n            int(t.get(\"amount\", 0)) for t in state_charges_terms))\n            if THE_CHEST_STATES_ITS_CEILING else 0),",
+    "new": "        \"ceiling\": (state_charges_ceiling(net, 30)\n            if THE_CHEST_STATES_ITS_CEILING else 0),",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestShownEqualsApplied tests/test_iq1_sw0_chest_speaks.py::TestTheCeilingIsTheFixedPoint::test_the_boot_world_ceiling_is_reachable_and_finite"
+  },
+  {
+    "id": "SW0-6 the lever's False arm leaks spent",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        \"spent\": (int((getattr(world, \"gold_spent_this_turn\", {}) or {}).get(player, 0))\n                  if THE_CHEST_STATES_ITS_CEILING else 0),",
+    "new": "        \"spent\": int((getattr(world, \"gold_spent_this_turn\", {}) or {}).get(player, 0)),",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheLever"
+  },
+  {
+    "id": "SW0-7 the client stops reading the ceiling",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\tvar ceiling = int(econ.get(\"ceiling\", 0))",
+    "new": "\tvar ceiling = int(econ.get(\"ceiling_gone\", 0))",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheClientRendersThem"
+  },
+  {
+    "id": "SW0-8 the client stops reading spent",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\tvar spent = int(econ.get(\"spent\", 0))",
+    "new": "\tvar spent = int(econ.get(\"spent_gone\", 0))",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheClientRendersThem"
+  },
+  {
+    "id": "SW0-9 a recorded outflow stops recording",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        world.record_gold_spent(build_acting_nation, gold_cost)",
+    "new": "        pass  # record_gold_spent removed",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheSpendCensus"
+  },
+  {
+    "id": "SW0-10 an unrecorded outflow starts recording",
+    "file": "backend/commands/naval_executor.py",
+    "old": "        world.nation_gold[actor] = int(treasury - naval.SHIP_COST)",
+    "new": "        world.nation_gold[actor] = int(treasury - naval.SHIP_COST)\n        world.record_gold_spent(actor, naval.SHIP_COST)",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheSpendCensus"
+  },
+  {
+    "id": "SW0-11 the driver stops recording the purses",
+    "file": "tools/playtest_driver.py",
+    "old": "                           purses=_all_purses(transport))",
+    "new": "                           purses=None)",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheDigestCanSeeTheOtherPurses"
+  },
+  {
+    "id": "SW0-12 the purses helper returns nothing",
+    "file": "tools/playtest_driver.py",
+    "old": "        return dict(gold)",
+    "new": "        return {}",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheDigestCanSeeTheOtherPurses::test_a_live_short_run_records_both"
+  },
+  {
+    "id": "SW0-13 the driver stops printing the ceiling on the LEDGER row",
+    "file": "tools/playtest_driver.py",
+    "old": "            if ceiling:\n                bits.append(f\"ceiling {ceiling}\")",
+    "new": "            if False:\n                bits.append(f\"ceiling {ceiling}\")",
+    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheDigestCanSeeTheOtherPurses::test_a_live_short_run_records_both"
+  }
+]

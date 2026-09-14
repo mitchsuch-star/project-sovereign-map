@@ -1,0 +1,163 @@
+[
+  {
+    "id": "SW1-1 the flat premium is dropped",
+    "file": "backend/models/world_state.py",
+    "old": "LEVY_SUBSTITUTE_MULT = 4       # flat premium over the drafted price",
+    "new": "LEVY_SUBSTITUTE_MULT = 1       # flat premium over the drafted price",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmC_LosingCostsMore tests/test_iq1_sw1_substitute_market.py::TestItComposesTheExistingMultipliers"
+  },
+  {
+    "id": "SW1-2 scarcity stops raising the price",
+    "file": "backend/models/world_state.py",
+    "old": "LEVY_SCARCITY_MULT = 3.0       # price at an EMPTY class = (1 + 3.0) x the floor",
+    "new": "LEVY_SCARCITY_MULT = 0.0       # price at an EMPTY class = (1 + 3.0) x the floor",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmC_LosingCostsMore tests/test_iq1_sw1_substitute_market.py::TestArmA_ThePurseIsSpendable"
+  },
+  {
+    "id": "SW1-3 bought men arrive as veterans",
+    "file": "backend/models/world_state.py",
+    "old": "LEVY_MORALE_BASE = 25          # vs RECRUIT_MORALE_BASE 40 — the Marie-Louises of 1814",
+    "new": "LEVY_MORALE_BASE = 100          # vs RECRUIT_MORALE_BASE 40 — the Marie-Louises of 1814",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmA_ThePurseIsSpendable::test_bought_men_dilute_morale_to_the_bought_rate"
+  },
+  {
+    "id": "SW1-4 the batch clamp is removed",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        batches = max(1, min(int(LEVY_MAX_BATCH), batches))",
+    "new": "        batches = max(1, batches)",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmE_TheMarketBuysReplacementsNotExpansion::test_batches_are_clamped_to_the_maximum"
+  },
+  {
+    "id": "SW1-5 the purchase draws from the pool after all",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        marshal.morale = new_morale\n        marshal.add_troops(men)\n        world.nation_gold[acting_nation] = int(treasury - gold_cost)\n        world.record_gold_spent(acting_nation, gold_cost)",
+    "new": "        marshal.morale = new_morale\n        marshal.add_troops(men)\n        world.manpower_pools.setdefault(acting_nation, {})[\"infantry\"] = max(\n            0, pool_before - men)\n        world.nation_gold[acting_nation] = int(treasury - gold_cost)\n        world.record_gold_spent(acting_nation, gold_cost)",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmA_ThePurseIsSpendable"
+  },
+  {
+    "id": "SW1-6 the spend is not recorded",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        world.nation_gold[acting_nation] = int(treasury - gold_cost)\n        world.record_gold_spent(acting_nation, gold_cost)\n\n        scarcity_note",
+    "new": "        world.nation_gold[acting_nation] = int(treasury - gold_cost)\n\n        scarcity_note",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheWiring::test_the_spend_is_recorded tests/test_iq1_sw0_chest_speaks.py::TestTheSpendCensus"
+  },
+  {
+    "id": "SW1-7 the establishment ceiling stops binding",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        ceiling = levy_purchase_ceiling(world, acting_nation)\n        if ceiling:",
+    "new": "        ceiling = levy_purchase_ceiling(world, acting_nation)\n        if False:",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmE_TheMarketBuysReplacementsNotExpansion"
+  },
+  {
+    "id": "SW1-8 cavalry may be bought after all",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if getattr(marshal, \"cavalry\", False) or getattr(marshal, \"artillery\", False):\n            arm = \"cavalry\" if getattr(marshal, \"cavalry\", False) else \"artillery\"",
+    "new": "        if False:\n            arm = \"cavalry\" if getattr(marshal, \"cavalry\", False) else \"artillery\"",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheRefusalsAreHonest::test_cavalry_and_artillery_have_no_market"
+  },
+  {
+    "id": "SW1-9 the field cap stops binding (a besieged corps takes a full batch)",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        per_batch_men = (AI_CORPS_REGEN_CAP if in_the_field\n                         else INFANTRY_RECRUIT_AMOUNT)",
+    "new": "        per_batch_men = INFANTRY_RECRUIT_AMOUNT",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheRefusalsAreHonest::test_the_field_caps_the_draft_rather_than_refusing_it"
+  },
+  {
+    "id": "SW1-10 the lever stops closing the market",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if not THE_SUBSTITUTE_MARKET_IS_OPEN:",
+    "new": "        if False:",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmB_TheControl::test_the_lever_closes_the_market"
+  },
+  {
+    "id": "SW1-11 the premium is quoted after the men arrive",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        drafted = self._calculate_recruit_cost(\n            region, world, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,\n            nation=acting_nation, marshal=marshal)\n\n        old_strength = int(marshal.strength)",
+    "new": "        drafted = 0\n\n        old_strength = int(marshal.strength)",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestItComposesTheExistingMultipliers::test_the_quoted_premium_is_measured_before_the_men_arrive"
+  },
+  {
+    "id": "SW1-12 the purchase leaves no trace",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        world.log_event({\n            \"type\": \"substitutes_purchased\",",
+    "new": "        _unused_event = ({\n            \"type\": \"substitutes_purchased\",",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheWiring::test_the_purchase_leaves_a_trace"
+  },
+  {
+    "id": "SW1-13 the severe band is re-derived instead of shared",
+    "file": "backend/models/world_state.py",
+    "old": "    return fl + fl // 2",
+    "new": "    return fl * 2",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheSevereBandPromotion tests/test_iq1_sw1_substitute_market.py::TestArmE_TheMarketBuysReplacementsNotExpansion"
+  },
+  {
+    "id": "SW1-14 the upkeep ladder keeps its own copy of the band",
+    "file": "backend/models/world_state.py",
+    "old": "            severe_threshold = severe_band_threshold(force_limit)",
+    "new": "            severe_threshold = force_limit + force_limit // 2",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheSevereBandPromotion::test_the_upkeep_ladder_reads_the_same_source"
+  },
+  {
+    "id": "SW1-15 the AI rung fires with a full class",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        pool = int((world.manpower_pools.get(nation) or {}).get(\"infantry\", 0))\n        if pool >= INFANTRY_RECRUIT_AMOUNT:\n            return None",
+    "new": "        pool = int((world.manpower_pools.get(nation) or {}).get(\"infantry\", 0))\n        if False:\n            return None",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmD_TheAIPaysTheSamePrice"
+  },
+  {
+    "id": "SW1-16 the AI command builder drops the batch count",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "            for extra_key in (\"region\", \"new_level\", \"confirmed\", \"batches\"):",
+    "new": "            for extra_key in (\"region\", \"new_level\", \"confirmed\"):",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmD_TheAIPaysTheSamePrice::test_the_ai_command_builder_carries_the_batch_count"
+  },
+  {
+    "id": "SW1-17 the pursue vocabulary goes back to bare substrings",
+    "file": "backend/ai/llm_client.py",
+    "old": "        elif (re.search(r'\\b(pursue|chase|hunt|intercept|harry|hound|shadow)\\b',\n                        command_lower)\n              or any(kw in command_lower for kw in [\n                  \"hunt down\", \"track down\", \"give chase\", \"go after\"])):",
+    "new": "        elif any(kw in command_lower for kw in [\n            \"pursue\", \"chase\", \"hunt down\", \"track down\", \"hunt\",\n            \"intercept\", \"give chase\", \"go after\", \"harry\", \"hound\", \"shadow\",\n        ]):",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheWiring::test_the_fast_parser_reaches_it"
+  },
+  {
+    "id": "SW1-18 the verb is unrouted",
+    "file": "backend/commands/executor.py",
+    "old": "        elif action == \"purchase_levy\":\n            result = self._economy._execute_purchase_levy(command, game_state)",
+    "new": "        elif action == \"purchase_levy_disabled\":\n            result = self._economy._execute_purchase_levy(command, game_state)",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmA_ThePurseIsSpendable"
+  },
+  {
+    "id": "SW1-19 it stops being an administrative action",
+    "file": "backend/commands/meta_executor.py",
+    "old": "                 # IQ-1 SW-1: buying substitutes is an administrative act.\n                 \"purchase_levy\",",
+    "new": "                 # IQ-1 SW-1: buying substitutes is an administrative act.",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheWiring::test_it_costs_one_administrative_action"
+  },
+  {
+    "id": "SW1-20 the rung goes back to the pool-gated helper (the INERT finding)",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        weakest = self._find_weakest_marshal_for_admin(nation, world,\n                                                       ignore_pool=True)",
+    "new": "        weakest = self._find_weakest_marshal_for_admin(nation, world)",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmD_TheAIPaysTheSamePrice"
+  },
+  {
+    "id": "SW1-21 the pool gate stops being optional",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                if not ignore_pool and pool.get(recruit_type, 0) < needed:",
+    "new": "                if pool.get(recruit_type, 0) < needed:",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmD_TheAIPaysTheSamePrice"
+  },
+  {
+    "id": "SW1-22 the AI is not charged for its substitutes",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        world.nation_gold[acting_nation] = int(treasury - gold_cost)\n        world.record_gold_spent(acting_nation, gold_cost)\n\n        scarcity_note",
+    "new": "        world.nation_gold[acting_nation] = int(treasury)\n        world.record_gold_spent(acting_nation, gold_cost)\n\n        scarcity_note",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmD_TheAIPaysTheSamePrice::test_the_ai_rung_ACTUALLY_FIRES tests/test_iq1_sw1_substitute_market.py::TestArmA_ThePurseIsSpendable"
+  },
+  {
+    "id": "SW1-23 a typed count is ignored (LEVY_MAX_BATCH unreachable from English)",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                if _n >= INFANTRY_RECRUIT_AMOUNT:\n                    batches = -(-_n // INFANTRY_RECRUIT_AMOUNT)  # ceil",
+    "new": "                if False:\n                    batches = -(-_n // INFANTRY_RECRUIT_AMOUNT)  # ceil",
+    "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheTypedCount"
+  }
+]

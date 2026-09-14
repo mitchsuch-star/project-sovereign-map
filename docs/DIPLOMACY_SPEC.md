@@ -361,7 +361,7 @@ Same pattern as military strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT). Tall
 | **UNDERMINE_ALLIANCE** | 2 | Nation pair | Target pair loses -3 relation/turn | Ongoing | Weaken Britain-Prussia bond. Requires PARTIAL+ intel on target pair. |
 | **GATHER_INTEL** | 1 | Any nation | Reveals relations, army sizes, treaty details, diplomatic intentions | 3 turns (auto-completes) | One-shot. Intel delivered via dispatch on completion. |
 | **REASSURE_ALLY** | 1 | Your ally/partner | Prevents alliance decay, +3 relation/turn | Ongoing | Maintain what you have. Cheaper than rebuilding. |
-| **CONTINENTAL_SYSTEM** | 2 | Britain (special) | See §5d | Ongoing | Reframed as a diplomatic mission. |
+| ~~**CONTINENTAL_SYSTEM**~~ | — | — | — | — | ❌ **REMOVED September 12, 2026 (MS-8).** It was priced in two tables and reachable from none — no parse keyword, no description, no wizard row, no effects entry — so it charged nothing and did nothing. The Continental System itself is alive and is `NAVAL_SPEC.md`'s CS 2.0 closure. |
 
 **Removed: IMPROVE_LOYALTY mission.** Vassal loyalty is now maintained passively (garrison, autonomy, gold investment) plus the one-shot "Invest in vassal" action (§4b, §8b). This frees Talleyrand for actual diplomacy. See §8b for the full passive maintenance model.
 
@@ -1868,7 +1868,7 @@ Following the JEALOUSY_SPEC pattern, all diplomatic dispatch events are enumerat
 | `diplomatic_vassal_unrest` | Vassal loyalty < 40 | "Talleyrand reports unrest in {nation}." | MEDIUM |
 | `diplomatic_vassal_rebellion_imminent` | Vassal loyalty < 10 | "{nation} is on the verge of rebellion!" | HIGH |
 | `diplomatic_vassal_rebellion` | Vassal loyalty = 0 | "{nation} has rebelled!" | HIGH |
-| `diplomatic_ai_proposal` | AI sends proposal to player | "A {nation} envoy has arrived with a proposal." | HIGH |
+| `diplomatic_ai_proposal` | AI sends proposal to player | "An envoy from {nation_display} has arrived with a proposal." (PR-2, September 12 2026 — was "A {nation} envoy…", which rendered the internal TAG: "A PapalStates envoy has arrived") | HIGH |
 | `diplomatic_mission_progress` | Ongoing mission tick | "Talleyrand's efforts in {nation} continue. Relations now at {value}." | LOW |
 | `diplomatic_mission_paused` | DP insufficient for mission | "Talleyrand's diplomatic efforts curtailed — insufficient resources." | MEDIUM |
 | `diplomatic_mission_cancelled` | Mission auto-cancelled (3+ paused turns) | "Talleyrand's diplomatic efforts in {nation} have collapsed." | HIGH |
@@ -2874,7 +2874,7 @@ Major additions based on user feedback:
 - IMPROVE_RELATIONS (+5 rel/turn, 1 DP), ~~IMPROVE_LOYALTY~~ (removed in v2.0 — replaced by passive vassal management §8b)
 - COURT_NATION (+8 rel/turn + alliance undermining, 2 DP), UNDERMINE_ALLIANCE (-3 rel/turn target pair, 2 DP)
 - GATHER_INTEL (3-turn one-shot, 1 DP), REASSURE_ALLY (+3 rel/turn, 1 DP)
-- CONTINENTAL_SYSTEM reframed as a mission (2 DP ongoing)
+- ~~CONTINENTAL_SYSTEM reframed as a mission (2 DP ongoing)~~ — **REMOVED September 12, 2026 (MS-8)**: it was never reachable from any parse, wizard row or effects entry
 - One mission at a time. Talleyrand skill bonus: +50% at skill 10.
 - Proposals pause missions temporarily (1 transit turn), then resume.
 

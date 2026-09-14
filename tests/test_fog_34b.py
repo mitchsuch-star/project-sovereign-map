@@ -958,13 +958,16 @@ class TestFogAwareWiringEnforcement:
 
     def test_all_callers_pass_fog_aware_or_marshal(self):
         """Every _get_enemy_occupied_regions() call must include fog_aware= or marshal=."""
+        import pathlib
         import re
-        strategic_path = (
-            "C:\\Users\\User\\PycharmProjects\\project-sovereign-map"
-            "\\backend\\commands\\strategic.py"
-        )
-        with open(strategic_path, "r", encoding="utf-8") as f:
-            source = f.read()
+        # Playtest re-score, September 12 2026: this path was the literal
+        # "C:\\Users\\User\\PycharmProjects\\...", so the census could only
+        # run on one machine and FAILED (not skipped) on every other
+        # checkout. Derived from this file's own location, like every
+        # sibling structural pin.
+        strategic_path = (pathlib.Path(__file__).resolve().parents[1]
+                          / "backend" / "commands" / "strategic.py")
+        source = strategic_path.read_text(encoding="utf-8")
 
         # Find all call sites (not the def itself)
         call_pattern = re.compile(

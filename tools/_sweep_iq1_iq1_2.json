@@ -1,0 +1,282 @@
+[
+ {
+  "id": "IQ12-1 the ceiling reverts to the post-charge net",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    _ceiling_gross = net + state_charges if THE_CHEST_TELLS_THE_TRUTH else net",
+  "new": "    _ceiling_gross = net",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheCeilingIsAFixedPoint"
+ },
+ {
+  "id": "IQ12-2 the ceiling is fed a constant instead of the gross",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        _ceiling_value = state_charges_ceiling(_ceiling_gross, _ceiling_rate)",
+  "new": "        _ceiling_value = state_charges_ceiling(1000, _ceiling_rate)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheCeilingIsAFixedPoint"
+ },
+ {
+  "id": "IQ12-3 the no-rate sentinel collapses back into no-surplus",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        _ceiling_value, _ceiling_state = 0, CEILING_NO_RATE",
+  "new": "        _ceiling_value, _ceiling_state = 0, CEILING_NO_SURPLUS",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheThreeCeilingStates"
+ },
+ {
+  "id": "IQ12-4 the treasury key reverts to the player property",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        _treasury = int((getattr(world, \"nation_gold\", None) or {}).get(player, 0))",
+  "new": "        _treasury = int(world.gold)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestItAnswersForTheCourtAsked"
+ },
+ {
+  "id": "IQ12-5 bankruptcy reverts to the player property",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        _bankruptcy = int(\n            (getattr(world, \"nation_bankruptcy_turns\", None) or {}).get(player, 0))",
+  "new": "        _bankruptcy = int(world.bankruptcy_turns)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestItAnswersForTheCourtAsked"
+ },
+ {
+  "id": "IQ12-6 admin_bonus drops out of the canonical map",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    \"admin_bonus\": +1,\n    \"treaty_gold\": +1,",
+  "new": "    \"treaty_gold\": +1,",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestOneCanonicalComponentMap tests/test_economy_ledger_reconciliation.py"
+ },
+ {
+  "id": "IQ12-7 admin_bonus drops out of the digest's display set",
+  "file": "tools/playtest_driver.py",
+  "old": "    (\"admin_bonus\", \"admin\"),",
+  "new": "",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestOneCanonicalComponentMap"
+ },
+ {
+  "id": "IQ12-8 build_fleet stops recording its spend",
+  "file": "backend/commands/naval_executor.py",
+  "old": "        world.record_gold_spent(actor, int(naval.SHIP_COST))",
+  "new": "        pass",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-9 invest_in_vassal stops recording its spend",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    world.record_gold_spent(lord, int(INVEST_GOLD_COST))",
+  "new": "    pass",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-10 buy_off_design stops recording its spend",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        world.record_gold_spent(player, int(amount))",
+  "new": "        pass",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-11 a survivor loses its stated reason",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    # IQ1-2 (3): NOT in `Spent` \u2014 a per-turn obligation, not a purchase.",
+  "new": "    # a per-turn obligation, not a purchase.",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-12 the third ledger read moves back after the end turn",
+  "file": "tools/playtest_driver.py",
+  "old": "        digest.observe_spend(_pre_econ)\n\n        response = transport.post(\"/command\", {\"command\": \"end turn\"})",
+  "new": "        response = transport.post(\"/command\", {\"command\": \"end turn\"})\n        digest.observe_spend(_pre_econ)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-13 turn_spend prints on a zero spend",
+  "file": "tools/playtest_driver.py",
+  "old": "        if spent <= 0:\n            return",
+  "new": "        if spent < 0:\n            return",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-14 the army figure is read from the wrong section",
+  "file": "tools/playtest_driver.py",
+  "old": "                           army=((body or {}).get(\"economy\") or {}).get(\n                               \"army_strength_total\"))",
+  "new": "                           army=((body or {}).get(\"forces\") or {}).get(\n                               \"army_strength_total\"))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-15 the client loses the above-the-ceiling arm",
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "\t\tif treasury > ceiling:",
+  "new": "\t\tif false:",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-16 the client stops reading the state key",
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "\tvar ceiling_state = str(econ.get(\"ceiling_state\", \"bounded\"))",
+  "new": "\tvar ceiling_state = \"bounded\"",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-17 the help stops teaching the sink",
+  "file": "backend/commands/meta_executor.py",
+  "old": "  substitutes - \"buy substitutes for Ney\" (1 Admin AP + gold)",
+  "new": "  substitutes - buy substitutes (1 Admin AP + gold)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestThePlayerCanLearnItExists"
+ },
+ {
+  "id": "IQ12-18 the help teaches a phrasing no corpus row pins",
+  "file": "backend/commands/meta_executor.py",
+  "old": "               \"purchase a levy for Ney\" / \"hire replacements for Ney\"",
+  "new": "               \"buy me some substitutes\" / \"hire replacements for Ney\"",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestThePlayerCanLearnItExists"
+ },
+ {
+  "id": "IQ12-19 the SW-0 allowlist keeps a purchase it should have lost",
+  "file": "tests/test_iq1_sw0_chest_speaks.py",
+  "old": "    (\"backend/game_logic/settlement_ratify.py\", \"_apply_settlement_terms\"),\n}",
+  "new": "    (\"backend/game_logic/settlement_ratify.py\", \"_apply_settlement_terms\"),\n    (\"backend/game_logic/vassal.py\", \"invest_in_vassal\"),\n}",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged tests/test_iq1_sw0_chest_speaks.py"
+ },
+ {
+  "id": "IQ12-20 the reconciliation test re-grows its own copy",
+  "file": "tests/test_economy_ledger_reconciliation.py",
+  "old": "from backend.game_logic.ledger import NET_GOLD_COMPONENTS  # noqa: E402",
+  "new": "NET_GOLD_COMPONENTS = {\"income\": +1}",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestOneCanonicalComponentMap"
+ },
+ {
+  "id": "IQ12-21 the no-surplus sentinel collapses into no-rate",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        _ceiling_value, _ceiling_state = 0, CEILING_NO_SURPLUS",
+  "new": "        _ceiling_value, _ceiling_state = 0, CEILING_NO_RATE",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheThreeCeilingStates"
+ },
+ {
+  "id": "IQ12-22 the levy reverts to answering for the player",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        \"levy\": _levy_block(world, player if THE_CHEST_TELLS_THE_TRUTH else None),",
+  "new": "        \"levy\": _levy_block(world, None),",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestItAnswersForTheCourtAsked"
+ },
+ {
+  "id": "IQ12-23 the state ladder asks the rate before the gross again",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    elif _ceiling_gross <= 0:",
+  "new": "    elif _ceiling_rate <= 0 and False:",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheThreeCeilingStates"
+ },
+ {
+  "id": "IQ12-24 the worst ceiling state goes back to the calm colour",
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_ERROR \\\n\t\t\t+ \"]Ceiling:  none \u2014 the chest is not growing at this rate[/color]\\n\"",
+  "new": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_DIMMED \\\n\t\t\t+ \"]Ceiling:  none \u2014 the chest is not growing at this rate[/color]\\n\"",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-25 the unbounded copy goes back to naming the chest",
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "+ \"]Ceiling:  none \u2014 the charges of empire do not draw at this rate[/color]\\n\"",
+  "new": "+ \"]Ceiling:  none \u2014 nothing is drawing on the chest[/color]\\n\"",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-26 the census stops seeing a local alias",
+  "file": "tests/test_iq1_sw0_chest_speaks.py",
+  "old": "            or (isinstance(base, _ast.Name) and base.id == \"nation_gold\"))",
+  "new": "            or False)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged tests/test_iq1_sw0_chest_speaks.py"
+ },
+ {
+  "id": "IQ12-27 the residual sign is inverted",
+  "file": "tools/playtest_driver.py",
+  "old": "                residual = int(net) - total",
+  "new": "                residual = total - int(net)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-28 turn_spend stops keeping the high-water mark",
+  "file": "tools/playtest_driver.py",
+  "old": "            if _last > int(getattr(self, \"_turn_spend_peak\", 0) or 0):",
+  "new": "            if _last >= 0:",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-29 the ultimatum records the demand, not the clamped transfer",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    world.record_gold_spent(target_nation, int(transfer))",
+  "new": "                    world.record_gold_spent(target_nation, int(value))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-30 invest records against the player instead of the lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    world.record_gold_spent(lord, int(INVEST_GOLD_COST))",
+  "new": "    world.record_gold_spent(getattr(world, 'player_nation', 'France'), int(INVEST_GOLD_COST))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-31 the ledger's canonical map is re-signed under the tripwire",
+  "file": "backend/game_logic/ledger.py",
+  "old": "NET_GOLD_COMPONENTS = {\n    \"income\": +1,\n    \"trade_income\": +1,",
+  "new": "NET_GOLD_COMPONENTS = {\n    \"income\": +1,\n    \"trade_income\": -1,",
+  "tests": "tests/test_economy_ledger_reconciliation.py"
+ },
+ {
+  "id": "IQ12-32 the ledger row records the dead spent key again",
+  "file": "tools/playtest_driver.py",
+  "old": "                        provinces=provinces, ceiling=ceiling,",
+  "new": "                        provinces=provinces, ceiling=ceiling, spent=spent,",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-33 the help drops the gates it must name",
+  "file": "backend/commands/meta_executor.py",
+  "old": "               will name for you: substitutes are received only on\n               ground WE hold, and a marshal in the field takes them\n               in a smaller draft than one at a depot.",
+  "new": "               will name for you, if you ask him.",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestThePlayerCanLearnItExists"
+ },
+ {
+  "id": "IQ12-34 the auto-advance fold is removed",
+  "file": "tools/playtest_driver.py",
+  "old": "            spent = int(event.get(\"spent\", 0) or 0)",
+  "new": "            spent = 0",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-35 the fold understates a whole-turn reading",
+  "file": "tools/playtest_driver.py",
+  "old": "            if spent > int(getattr(self, \"_turn_spend_peak\", 0) or 0):\n                self._turn_spend_peak = spent\n                self._turn_spend_treasury = int(event.get(\"treasury\", 0) or 0)",
+  "new": "            self._turn_spend_peak = spent\n            self._turn_spend_treasury = int(event.get(\"treasury\", 0) or 0)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheDigestCanSeeTheSink"
+ },
+ {
+  "id": "IQ12-36 the false claim returns to production source unmarked",
+  "file": "backend/game_logic/ledger.py",
+  "old": "#    different sentences to a player, and they are named separately now.",
+  "new": "#    different sentences, and the third could not previously be rendered.",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
+ },
+ {
+  "id": "IQ12-37 a recorder is handed the player instead of the debited court",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            world.record_gold_spent(nation, int(BRIBE_TRANSFER_COST))",
+  "new": "            world.record_gold_spent(world.player_nation, int(BRIBE_TRANSFER_COST))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-38 a recorder is handed the wrong constant",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            world.record_gold_spent(nation, int(BRIBE_FREE_COST // 2))",
+  "new": "            world.record_gold_spent(nation, int(BRIBE_FREE_COST))",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
+ },
+ {
+  "id": "IQ12-39 the tripwire diagnostic loses the re-signed key",
+  "file": "tests/test_economy_ledger_reconciliation.py",
+  "old": "    resigned = {k: (expected[k], actual[k])",
+  "new": "    resigned = {k: (expected[k], expected[k])",
+  "tests": "tests/test_economy_ledger_reconciliation.py::test_the_drift_diagnostic_names_the_offending_key"
+ },
+ {
+  "id": "IQ12-40 the record's instrument counts go stale again",
+  "file": "docs/IMPROVEMENT_QUEUE_SPEC.md",
+  "old": "(**65** at close)",
+  "new": "(**44** at close)",
+  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheRecordIsNotStale"
+ }
+]

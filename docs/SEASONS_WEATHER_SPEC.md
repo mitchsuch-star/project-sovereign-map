@@ -184,6 +184,16 @@ reason it is user-gated:
 - **SW-1** winter supply strain + shelter (the §3.2 arm) + shown=applied
   copy. The FIRST baseline mover; the re-record rides this slice.
 - **SW-2** winter march bill (§3.3).
+
+> **⚠ SLICE-ID COLLISION, recorded September 13, 2026 so this spec's owner
+> knows before it builds.** Row IQ-1 (the Improvement Queue, `docs/
+> IMPROVEMENT_QUEUE_SPEC.md`) shipped two slices committed as `SW-0` and
+> `SW-1`, and its own record called the next one "SW-2 — the recurring half".
+> **The ids here are the incumbents and are NOT changing.** Row IQ-1 has moved
+> to `IQ1-n` for every remaining slice and records the alias
+> (IQ-1 SW-0 ≡ IQ1-0, IQ-1 SW-1 ≡ IQ1-1). So `SW-2` in this file means the
+> **winter march bill** and nothing else. If you find an `SW-2` elsewhere that
+> talks about gold, it is row IQ-1's and it is now called IQ1-3.
 - **SW-3** winter at sea (§3.4).
 - **SW-4** the council's season sense (§3.5) + the season-turn beats.
 - **SW-V** the assurance pass: per-arm flip levers verified, a played

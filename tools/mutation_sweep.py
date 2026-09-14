@@ -37,7 +37,30 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
+
+
+def _resolve_interpreter() -> str:
+    """The venv interpreter, on whatever platform this checkout sits.
+
+    Playtest re-score, September 12 2026: this was the literal
+    ``.venv/Scripts/python.exe``, so every mutation sweep — and the twelve
+    committed pins in ``test_fa_slice8_the_instrument_2026_09_02.py`` that
+    drive it — died with ``FileNotFoundError`` on any non-Windows checkout.
+    The Windows path is probed FIRST, so on the machine the tool was written
+    for the resolved value is byte-identical to the old literal; the POSIX
+    layout and finally ``sys.executable`` are fallbacks that only run where
+    the old literal could not have worked at all. That ordering is the
+    "prior behaviour is preserved" guarantee — there is no flip lever
+    because the False arm of this change is a crash.
+    """
+    for rel in (("Scripts", "python.exe"), ("bin", "python")):
+        cand = ROOT.joinpath(".venv", *rel)
+        if cand.exists():
+            return str(cand)
+    return sys.executable
+
+
+PY = _resolve_interpreter()
 
 
 def _normalized(raw: bytes) -> tuple:

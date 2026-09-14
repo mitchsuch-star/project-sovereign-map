@@ -486,6 +486,9 @@ class DiplomaticExecutor:
         world.nation_gold[player] = treasury - amount
         world.nation_gold[target] = int(
             world.nation_gold.get(target, 0)) + amount
+        # IQ1-2 (3): buying off a design is a player purchase. The RECIPIENT
+        # side is a receipt, not a spend, so only the payer is recorded.
+        world.record_gold_spent(player, int(amount))
         result = create_compensation_bargain(
             world, payer=player, recipient=target,
             design_id=view.want_id, granted={"gold": amount})
@@ -1348,6 +1351,8 @@ class DiplomaticExecutor:
 
         # ── Deduct resources ──
         world.nation_gold[player] = available_gold - self._MAKE_AMENDS_GOLD_COST
+        # IQ1-2 (3): reparations are bought with gold.
+        world.record_gold_spent(player, int(self._MAKE_AMENDS_GOLD_COST))
         world.diplomatic_points = available_dp - self._MAKE_AMENDS_DP_COST
 
         # ── Apply reliability + relation rewards ──
@@ -1713,6 +1718,9 @@ class DiplomaticExecutor:
         world.nation_gold[player] = (
             available_gold - self._MAKE_AMENDS_GRIEVANCE_GOLD_COST
         )
+        # IQ1-2 (3): the grievance variant is the same purchase.
+        world.record_gold_spent(
+            player, int(self._MAKE_AMENDS_GRIEVANCE_GOLD_COST))
         world.diplomatic_points = (
             available_dp - self._MAKE_AMENDS_GRIEVANCE_DP_COST
         )
@@ -3302,6 +3310,11 @@ class DiplomaticExecutor:
                 if transfer > 0:
                     world.nation_gold[target_nation] = world.nation_gold.get(target_nation, 0) - transfer
                     world.nation_gold[player] = world.nation_gold.get(player, 0) + transfer
+                    # IQ1-2 (3): the gold left the YIELDING court's chest at
+                    # its own decision (Yield, not a tax) — recorded against
+                    # the payer, never the beneficiary. GR5: `target_nation`
+                    # is whoever yielded, player or AI.
+                    world.record_gold_spent(target_nation, int(transfer))
                     descriptions.append(f"{transfer} gold seized")
 
             elif dtype == "gold_per_turn":
@@ -5151,6 +5164,19 @@ class DiplomaticExecutor:
             if mission_type == "UNDERMINE_ALLIANCE":
                 target_ally = terms.get("target_ally", "")
                 mission_dict["target_ally"] = target_ally
+                # MS-7b (review round, September 12 2026): `initial_relation`
+                # above is player<->target, which is NOT the pair this mission
+                # moves. MS-7 re-pointed the ledger's CURRENT reading at
+                # target<->ally and left the baseline alone, so the readout
+                # became a cross-pair subtraction — measured, a successful
+                # undermining of a HOSTILE court rendered as a green +55.
+                # The baseline for the pair is recorded here, at the only
+                # moment it is the baseline.
+                if target_ally:
+                    mission_dict["initial_pair_relation"] = int(
+                        world.nation_relations.get(
+                            world._make_diplo_key(mission_target, target_ally),
+                            0) or 0)
             world.active_diplomatic_mission = mission_dict
             world.talleyrand_state = "ON_MISSION"
 

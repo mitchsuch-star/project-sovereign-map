@@ -47,6 +47,7 @@ ACTION_DISPLAY = {
     "grant_pension": "is granted a rente",            # ES-7 second pass (§0.6.8)
     "revoke_pension": "has his rente withdrawn",      # ES-7 second pass (§0.6.8)
     "recruit_marshal": "commissions",                 # Marshal Recruitment (v3.2)
+    "purchase_levy": "buys substitutes",              # IQ-1 SW-1
     "recall_marshal": "recalls",                      # FA-S9-D1 (slice 14)
     "grant_region_to_vassal": "cedes territory to",   # VS-3 (Vassal Depth)
     "sponsor_design": "sponsors",                     # AI-2b (D5-2)
@@ -84,6 +85,11 @@ def display_nation(nation: str) -> str:
     return NATION_DISPLAY.get(nation, nation)
 
 
+# PR-2 flip lever. False = the pre-fix derivation, which coined a word from
+# any tag at all.
+NATION_ADJECTIVE_REFUSES_TO_COIN = True
+
+
 # ============================================================================
 # NATION ADJECTIVES — "the French fleet", never "the France fleet"
 # The SINGLE source (R7). `ai/strategic_parser.py` reads the same table for
@@ -107,7 +113,40 @@ NATION_DEMONYMS = {
     "hesse": "hessian",
     "papalstates": "papal",
     "kingdomofitaly": "italian",
+    # PR-2 (playtest re-score, September 12 2026): the NA-6c carve tags mint
+    # REAL runtime nations, so they reach every consumer of this table. The
+    # derivation gave "Duchyofwarsawian" / "Romanrepublician" / "Polandian".
+    # PR-2b (review round, September 12 2026): LOWERCASE, like every other
+    # value here. `nation_adjective` capitalises for prose, while
+    # `strategic_parser._nation_demonyms` reads the SAME table and matches
+    # case-sensitively against a lower-cased line — so a capitalised value
+    # is structurally dead on the parse side ("the Warsaw army" resolved to
+    # nothing while "the Polish corps" resolved to Poland).
+    "duchyofwarsaw": "warsaw",
+    "romanrepublic": "roman",
+    "poland": "polish",
+    "normandy": "norman",
+    # PR-2b: `Ireland` is the fourth `formable_nations` entry and was missed
+    # — and its shape (all-alpha, no internal capital) is exactly what
+    # `_tag_shape_defeats_derivation` CANNOT catch, so it coined
+    # "Irelandian" and reached the Trafalgar line and the naval diorama.
+    "ireland": "irish",
+    "freeireland": "irish",
 }
+
+# PR-2: a tag the table does not hold and whose SHAPE the -n/-ian derivation
+# cannot handle — anything carrying an internal capital, a space or a
+# non-letter. `nation_adjective` returns the display NAME for these rather
+# than a coined word, so a nation added to the game without a table row
+# degrades to "the Kingdom of Italy fleet" (clumsy) instead of
+# "the Kingdomofitalyian fleet" (broken).
+def _tag_shape_defeats_derivation(nation: str) -> bool:
+    raw = str(nation or "")
+    if not raw:
+        return False
+    if not raw.isalpha():
+        return True
+    return any(ch.isupper() for ch in raw[1:])
 
 
 def nation_adjective(nation: str) -> str:
@@ -120,6 +159,14 @@ def nation_adjective(nation: str) -> str:
         return ""
     demonym = NATION_DEMONYMS.get(base)
     if demonym is None:
+        if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):
+            # PR-2c (review round): `display_nation` alone returns an
+            # UNAUTHORED tag verbatim, so the promised "the Kingdom of Italy
+            # fleet" degradation only held for tags already in the table.
+            # `humanize_entity_name` splits camelCase, which is the whole
+            # point of the fallback.
+            named = display_nation(nation)
+            return named if named != nation else humanize_entity_name(nation)
         demonym = base + "n" if base.endswith("a") else base + "ian"
     return demonym[:1].upper() + demonym[1:]
 
@@ -163,6 +210,7 @@ OBJECTION_DISPLAY = {
     "grant_pension": "receiving a rente",           # ES-7 second pass (no objections in v1)
     "revoke_pension": "losing his rente",           # ES-7 second pass (no objections in v1)
     "recruit_marshal": "commissioning a marshal",   # Marshal Recruitment (no objections in v1)
+    "purchase_levy": "buying substitutes",         # IQ-1 SW-1 (no objections)
     "recall_marshal": "recalling a marshal from the desk",  # FA-S9-D1
     "grant_region_to_vassal": "ceding territory",   # VS-3 (no objections in v1)
     "sponsor_design": "sponsoring a design",        # AI-2b (no objections in v1)
@@ -213,6 +261,7 @@ DEFIANCE_DISPLAY = {
     "grant_pension": "received a rente",           # ES-7 second pass (no defiance in v1)
     "revoke_pension": "lost his rente",            # ES-7 second pass (no defiance in v1)
     "recruit_marshal": "commissioned a marshal",   # Marshal Recruitment (no defiance in v1)
+    "purchase_levy": "bought substitutes",         # IQ-1 SW-1 (no defiance)
     "recall_marshal": "recalled a marshal",        # FA-S9-D1
     "grant_region_to_vassal": "ceded territory",   # VS-3 (no defiance in v1)
     "sponsor_design": "sponsored a design",        # AI-2b (no defiance in v1)

@@ -32,6 +32,8 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  # FA-S9-D1 (slice 14): recalling a man from the desk
                  # is an administrative act, like commissioning one.
                  "recall_marshal",
+                 # IQ-1 SW-1: buying substitutes is an administrative act.
+                 "purchase_levy",
                  "build_fleet"}
 
 
@@ -612,6 +614,20 @@ MILITARY COMMANDS:
                x3 AT WAR, dearer above the FORCE LIMIT, and the
                marshal's administration prices the levy (Davout -15%,
                Murat +15% - his card explains, press G).
+  substitutes - "buy substitutes for Ney" (1 Admin AP + gold)
+               "purchase a levy for Ney" / "hire replacements for Ney"
+               The remplacant: under the
+               conscription law a called-up man could pay another
+               to serve in his place. Draws NO men from the pools -
+               gold alone - so it is the one purchase your TREASURY
+               limits rather than your class. It is dear, and it
+               grows dearer as the class empties. Two limits Berthier
+               will name for you: substitutes are received only on
+               ground WE hold, and a marshal in the field takes them
+               in a smaller draft than one at a depot. You may buy up
+               to the point where keeping the men turns punitive, and
+               not a man past it. Replacements, never expansion -
+               and green men dilute a veteran corps' morale.
 
   bombardment - Artillery fires on adjacent region (max 2/turn)
                "bombard Swabia" - Cannot fire after moving.
@@ -721,6 +737,23 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
                ceding conquered land is in the Cabinet's court page.
   war terms  - open the war banner on the left and press
                [Request Terms] to make the enemy name a price.
+  THE COMPACTS - three instruments that shipped and were never
+               named here, so no player could learn they exist:
+  buy off    - "buy off Prussia" - a court aims a grievance at us;
+               gold buys its SLEEP for a term. The price is stated
+               before you offer (D4 - diplomacy has no fog), and it
+               is read off how badly they want the thing.
+  sponsor    - "sponsor Prussia against Austria, 200 gold" - arm
+               somebody else's grievance, per turn, for a term.
+               "license Prussia against Austria" at no gold sells
+               permission instead: the same bond, a cheaper coin.
+               Talleyrand refuses to aim a design at ourselves.
+  guarantee  - "guarantee Saxony" - pledge to defend a border.
+               Coveters read the pledge and want it less; abandon
+               it and the grievance is ours to answer for.
+  NOTE: a standing compact runs its TERM. There is no cancelling
+        it - war on the court, or a pledge that contradicts it,
+        is a RENEGE, and Europe remembers who broke a word.
 
   Press D for the Diplomatic Ledger - all twenty nations of Europe,
   treaties, wars, and the Balance of Europe.

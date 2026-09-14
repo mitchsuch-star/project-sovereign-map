@@ -389,3 +389,79 @@ class TestReviewRoundTheSnapshotNamesWhoseTerms:
             assert "Settlement (theirs to impose): " in code, name
             # The old gold line survives as the fallback.
             assert 'bbcode += "Settlement: [color=#e0c070]%s[/color]\\n" % tier_display' in code, name
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Row IQ-2's own completion item (PR-X1), pinned at the merge with row IQ
+# ─────────────────────────────────────────────────────────────────────────
+
+def _defense_line(world, nation="Britain"):
+    import backend.game_logic.dispatch as D
+    return next(r["text"] for r in D._build_war_objective_section(world, "France")
+                if r["target_nation"] == nation and "Defense" in r["text"])
+
+
+class TestTheWarPurposeListsOnlyWhatIsHeld:
+    """PR-X1: 'the war-purpose line lists twenty provinces France no longer
+    holds' — a Defence purpose names what is HELD, or says the homeland is
+    lost; it never advertises a lost province as an objective."""
+
+    def test_a_rump_names_only_what_it_holds(self):
+        text = _defense_line(_collapsed(keep=("Brittany",)))
+        named = text.split(" [", 1)[0]
+        assert named.endswith("— holding Brittany"), text
+        assert "Paris" not in named and "Normandy" not in named
+
+    def test_a_fallen_realm_says_the_homeland_is_lost(self):
+        text = _defense_line(_collapsed(keep=()))
+        # The count belongs to WAR_PURPOSE_COUNTS_WHAT_IS_HELD, which speaks
+        # only for a partial hold; at none held the bracket reads "not held".
+        assert "— the homeland is lost [not held]" in text
+        assert "Paris" not in text
+
+    def test_lever_down_restores_the_full_list(self, monkeypatch):
+        import backend.game_logic.dispatch as D
+        monkeypatch.setattr(D, "WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD", False)
+        assert "Paris" in _defense_line(_collapsed(keep=("Brittany",))).split(" [", 1)[0]
+
+    def test_a_standing_realm_keeps_its_full_list(self):
+        text = _defense_line(_boot())
+        assert "Paris" in text and "[HELD]" in text
+
+
+class TestTheIQ2CompletionDefinition:
+    """IQ-2 (STATUS ▶ NEXT UP): 'on a staged save at that turn, no producer
+    claims a holding France does not hold, and the briefing's lead names the
+    collapse.' Staged here as the measured state — France at ZERO provinces —
+    and driven through one real `end turn` on the typed path."""
+
+    def test_the_staged_collapse(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+        w = _collapsed(keep=())
+        with contextlib.redirect_stdout(io.StringIO()):
+            parser = CommandParser(use_real_llm=False)
+        monkeypatch.setattr(M, "parser", parser)
+        monkeypatch.setattr(M, "world", w)
+        monkeypatch.setattr(M, "game_state", {"world": w})
+        client = TestClient(M.app)
+        with contextlib.redirect_stdout(io.StringIO()):
+            client.post("/command", json={"command": "end turn"})
+            ledger = client.get("/ledger").json()
+        assert not w.get_player_regions(), "the staged board must stay landless"
+        dispatch = w.last_morning_dispatch
+        # The lead names the collapse (the Emperor's capture may outrank it,
+        # in which case the collapse is the first sub-beat).
+        head = dispatch["headline"]
+        page = [head["text"]] + list(head.get("sub_beats") or [])
+        assert any("holds no province of her own" in line for line in page[:2]), page
+        # No producer claims a holding France does not hold.
+        assert dispatch["situation"]["player_regions"] == 0
+        for row in dispatch.get("war_objectives") or []:
+            if "Defense" in row["text"]:
+                assert "the homeland is lost" in row["text"], row["text"]
+        assert not any("the depots hold" in line for line in page), page
+        body = ledger.get("ledger") or ledger
+        assert body.get("territories") in ([], None) or not body.get("territories")
+        assert "holds no province of her own" in (body.get("collapse_note") or "")

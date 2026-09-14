@@ -4,15 +4,273 @@
 
 ## ▶ NEXT UP
 
-> ## ▶ IQ-2 "THE COLLAPSE IS LEGIBLE" — LANDED September 14, 2026
+> ## ▶ THE IMPROVEMENT QUEUE — row IQ, opened September 12, 2026
 >
-> The user's row — *an annihilated France told the winds favour it, holding
-> zero provinces from turn 37 and playing four more turns* — with its scope
-> note binding: **legible, never terminal** (win and defeat stay with the
-> Victory & Objectives Pass). ⚠ The IQ list itself is NOT in the repo; this
-> row's contract is the user's description, and the landing record says so.
+> **User direction:** *"improve everything but win conditions one by one — let
+> the agents make decisions on how; start with a comprehensive econ fix that
+> finally makes it work better."*
+>
+> **This block is the routing authority for the queue.** Everything the
+> September 12 playtest and its Steam-style read raised is below as one row,
+> each row with its evidence, its owner, its completion definition (GR9) and
+> its exit. Rows are taken **one at a time, in the order listed**. Nothing here
+> is speculative: every row rests on a measurement from
+> `docs/audits/PLAYTEST_RESCORE_2026_09_12.md` or from a row already filed in
+> `BUG_FIXES.md` / `DESIGN_REFINEMENT.md`.
+>
+> **⛔ WIN CONDITIONS ARE EXCLUDED BY DIRECTION.** The game cannot end —
+> `sandbox_mode` suppresses victory *and* defeat on every Europe world
+> (`turn_manager._check_enemy_victory`; the EC-6a decision). That is owned by
+> the **Victory & Objectives Pass, ROADMAP positions 12–13**, and no IQ row
+> builds it, proposes it, or quietly half-builds it. **IQ-2 is the exception
+> that proves the rule**: it makes the collapse *legible* without making it
+> *terminal*, and its scope note says so explicitly.
+>
+> ### How a row is taken
+>
+> Each row opens with a **decision fleet** — read-only agents that measure the
+> disease on the shipped board, read the specs that constrain it, census the
+> seams, design the fix, and then a refuter that attacks the design. Their
+> rulings are recorded on the row and become the build contract. The standing
+> delegated grant applies: **decide, build, commit to master, push** — escalate
+> nothing mid-row; anything that would move a blessed number out of band is
+> built anyway and the row is marked **RULED — FOR USER CONFIRMATION**.
+>
+> The standing method rules hold on every row: a module-level flip lever whose
+> False arm reproduces prior behaviour; attack the FIX, not only the finding;
+> probe the compound sentence and every consumer downstream of a guard; a
+> census is over code or AST, never prose, and carries a sensitivity arm; an
+> INERT mutation is a question; sweep every pin and `git diff` after every
+> sweep; reproduce before filing.
+>
+> ### The queue
+>
+> | # | row | what it fixes | evidence | state |
+> |---|---|---|---|---|
+> | 1 | ~~**IQ-1 THE ECONOMY THAT BITES**~~ | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ✅ **CLOSED September 14, 2026** — IQ1-0/1/2/3 landed, **IQ1-5 the exit held**; 85.2% of the surplus converts; pillar **6.0 → 6.5**; (c) routed out, (ii) measured-open |
+> | 2 | ~~**IQ-2 THE COLLAPSE IS LEGIBLE**~~ | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | ✅ **CLOSED September 14, 2026** — PR-X1 fixed; completion item pinned on a staged zero-province board; a P1 underneath closed (a landless France fielded a FREE army); record `BUG_FIXES.md` §Collapse Legibility (IQ-2) + spec §1.1 |
+> | 3 | **IQ-3 THE COALITION IS RARE** | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | ▶ **NEXT** |
+> | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | queued |
+> | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | queued |
+> | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | queued |
+> | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | queued |
+> | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | queued |
+> | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
+> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ **BLOCKED ON ENVIRONMENT** — no Godot binary in this container | blocked |
+>
+> ---
+>
+> ### IQ-1 — THE ECONOMY THAT BITES  ✅ CLOSED — four slices landed, the exit held
+>
+> **⚠ OWNING SPEC: `docs/IMPROVEMENT_QUEUE_SPEC.md` (opened by IQ1-2; it is
+> authoritative for the landing records, the crux ruling, the dissent, the
+> re-open condition and the re-stated completion items). This block stays
+> normative for SCOPE.** Slice ids: the first two shipped as `SW-0` / `SW-1`,
+> which collides with `SEASONS_WEATHER_SPEC.md`; every remaining slice is
+> `IQ1-n`, with the alias recorded in the spec.
+>
+> **Absorbs:** FA-S17-D2 (the DECLINED gold-sink ruling — **re-opened by user
+> direction**, so its owner moves from "EC-2 pass 2" to this row) · ~~IGR-X9~~ (⚠ **STRUCK by IQ1-2**: decided and fixed at the
+> August 7 Econ Balance gate, EB-3.2, and it does not reproduce at HEAD. The
+> still-open neighbour is **CA8-D1**, the building-slot ceiling — France holds
+> 13 of the map's 97 slots) · the live half of
+> `ECONOMY_REVISIT_SPEC.md` Track 3 (ES-4 "development" — ⚠ **HANDED BACK by
+> IQ1-2**: it RAISES income and is a want, not a recurring drain, and the spec
+> still assigns it to "EC-2 pass 2 … USER DESIGN GATE") · the consequence of
+> the **EC-U1 reversal** (upkeep bills on fielded strength, so attrition LOWERS
+> the bill and losing is cheap).
+>
+> **The disease, measured:**
+>
+> * A peaceful France banks **82,524 gold by turn 30** and **88,556 by turn
+>   40**, monotonically, while its own dispatch reads *"the levy has stood open
+>   15 turns. 150 gold puts 10,000 foot in the line at Paris"* — a **590×**
+>   ratio of purse to the most powerful thing money buys.
+>   *(⚠ **CORRECTED by IQ1-2**: this read **457×** in three places, once as a
+>   completion criterion. 88,556 / 150 = **590.4**; 82,524 / 150 = 550.2; and
+>   457 × 150 = 68,550, a treasury in no published figure. The memo this block
+>   names authoritative — `PLAYTEST_RESCORE_2026_09_12.md` — says 590×.
+>   **RULED — FOR USER CONFIRMATION**, because it grades the row. ⚠ The
+>   denominator is itself ambiguous — the same pricer returns 150 at the
+>   capital at peace and 654 at the boot, and the modal DELIVERED purchase
+>   across all archived digests is 3,000 men for 200 gold — so item (iv)'s
+>   replacement is re-specified in the owning spec §0.7.)*
+>   *(⚠ **AND THE THIRD SITE — the COMPLETION CRITERION at :131 — was still
+>   wrong until IQ1-3.** IQ1-2's own correction note said "this read 457× in
+>   three places"; two were fixed and the one that GRADES THE ROW was not.
+>   That is §0.5.3's lesson a third time: a completeness statement over a
+>   multi-site correction must come from a census, not from memory. A census
+>   pin now derives it — `test_the_retired_ratio_is_gone_from_the_contract`.)*
+> * **Threat FALLS 68 → 44** on the `--diplomacy propose` arm while France holds
+>   26 of 28 provinces, so there is no counter-pressure either. *(⚠ **CORRECTED
+>   by IQ1-2**: 88,556 is the **commanded** arm, whose threat goes **76 → 77**
+>   and which ends with a coalition brewing at 77 — these four bullets had
+>   silently mixed two boards. The point survives on both: nothing the player
+>   does to get rich costs them anything.)*
+> * **EB-1's charges cannot catch it.** State charges spike to ~2,887/turn at
+>   war and fall to ~955 at peace — about **1.2% of the chest** against a
+>   compounding income.
+> * Army upkeep on the commanded board falls **2,224 → 592** as the army
+>   bleeds (turn 40 reads 624; the 40-turn minimum is 592). The bill goes DOWN
+>   as the campaign goes badly. *(⚠ **CORRECTED by IQ1-2**: this read "~450",
+>   which occurs only on collapsing arms.)*
+> * The pillar has scored **6.0 at three consecutive re-scores.** The
+>   arithmetic is exact and the brake is real; the sink is not.
+>
+> **The row must answer four questions, not one:** (a) what absorbs gold —
+> something worth tens of thousands, repeatable, that a player WANTS; (b) what
+> makes wealth conditional on playing well; (c) what makes a bad position
+> expensive; (d) what makes all of it legible on a surface the player reads.
+>
+> **Constraints the build inherits:** GR5 symmetry through one executor · GR8
+> no per-region scans in hot paths · GR9 no open-ended deferrals · prefer zero
+> new serialized fields · France's turn-1 absorption is **0.555 and in band**,
+> so any boot movement needs a measured reason and a FOR USER CONFIRMATION
+> mark · every mechanic states up front whether it expects to move
+> `BASELINE_SERIES` or M1–M7, and why.
+>
+> **Completion definition:** a 40-turn commanded run and a 40-turn ambient run
+> on the historical seed in which (i) the treasury is **not monotonic** on the
+> commanded arm, (ii) a losing France's per-turn Net is **worse** than a
+> winning France's at the same army size, (iii) every gold component the
+> player is charged appears as a signed line in the Strategic Ledger and sums
+> to the Net shown, and (iv) an acceptance test states the 590× ratio's
+> replacement as falsifiable arithmetic in both directions. **Exit:** the
+> economy pillar is re-measured on the same instrument; if it does not move off
+> 6.0, the row's dissent is read and its re-open condition taken.
+>
+> ---
+>
+> ### IQ-2 — THE COLLAPSE IS LEGIBLE  ✅ CLOSED September 14, 2026
+>
+> **Landing record = `docs/BUG_FIXES.md` §Collapse Legibility (IQ-2)**
+> (authoritative; filed in `IMPROVEMENT_QUEUE_SPEC.md` §1.1). The completion
+> item below is MET and pinned (`TestTheIQ2CompletionDefinition`: a staged
+> zero-province board through a real `end turn` — the lead is the new standing
+> class `empire_reduced`, and no producer claims a holding France does not
+> hold, the Defence war-purpose line now naming only what is HELD or *"the
+> homeland is lost"*). The scope note held: `sandbox_mode` is untouched.
+>
+> **Scope note, binding:** this row does **not** end the game. `sandbox_mode`
+> stands; the Victory & Objectives Pass (ROADMAP 12–13) owns victory and
+> defeat. This row makes the *state* honest on the surfaces that describe it.
+>
+> **Evidence (PR-X1):** ambient-marengo holds **0 provinces from turn 37** and
+> the campaign runs four more turns. The briefing tells an annihilated France
+> that *"the diplomatic winds favor us"*. The war-purpose line lists twenty
+> provinces France no longer holds. **Completion:** on a staged save at that
+> turn, no producer claims a holding France does not hold, and the briefing's
+> lead names the collapse.
+>
+> ---
+>
+> ### IQ-3 — THE COALITION IS RARE
+>
+> **Evidence (PR-D1):** up to **ten coalitions in forty turns**, each forming
+> and dissolving as members peace out. PR-1 stopped a ratified peace being
+> annulled inside the same `end turn`; it did not make a coalition a rare,
+> weighty thing. Diplomacy is held at 6.5 by this and by the settlement
+> machinery's own frequency. **Completion:** a stated, measured expectation for
+> how many coalitions a 40-turn campaign should see, and a board that produces
+> it on ≥3 seeds, with the rarity DERIVED (threat, exhaustion, memory) rather
+> than a cooldown bolted on top.
+>
+> ---
+>
+> ### IQ-4 — THE CABINET IS VISIBLE
+>
+> **Evidence (PR-D2, PR-D3):** the diplomatic mission system is mechanically
+> live after the September 12 fixes — and absent from the Strategic Ledger, the
+> notification rail, the campaign log, the tutorial and the help text. A player
+> can finish a campaign without knowing it exists. PR-D3: `COURT_NATION`
+> dominates the mission mix. **Completion:** a live mission is visible on at
+> least the ledger and the rail with its applied figure and its remaining
+> turns, the help text names the verbs, and the mission mix on a 40-turn run is
+> not one type.
+>
+> ---
+>
+> ### IQ-5 — BOTH SIDES OF THE BUTCHER'S BILL
+>
+> **Evidence (PR-X2):** there is no `defender_casualties_scope` anywhere in the
+> backend, so FA-S17-1's own case — a reinforced side bleeding by the men it
+> commits — is the one a reader cannot see; the `own corps` label is
+> attacker-only. **(PR-X3):** FA-D23 (a Broken marshal brings half his weight)
+> ships no copy of its own, and the line that does fire names the
+> RELATIONSHIP, not trust. Both are confirmed rulings whose own evidence is
+> invisible in play. **Completion:** each of the two rulings can be observed by
+> a player from the battle report alone, and a pin asserts the label on the
+> defender's side.
+>
+> ---
+>
+> ### IQ-6 — EUROPE SPEAKS ITS MIND
+>
+> **Evidence (PR-X4):** `intent_hardens` / `intent_eases` — the whole Stage-F
+> narration cap and its producer — fired **0 times in twelve 40-turn runs**.
+> `volte_face` likewise 0. AI aliveness scores 7.5 on beats that DO fire (48
+> third-party peace beats, 52 `design_promoted`); this is the half that does
+> not. **Completion:** the producer's gate is measured, the reason it never
+> opens is stated, and either the gate is corrected or the feature is retired
+> under GR9 with its promise removed from the spec.
+>
+> ---
+>
+> ### IQ-7 — THE SATELLITES HAVE A POSITION
+>
+> **Evidence:** vassals hold at **6.5**, the lowest live pillar after economy.
+> The FA-S17-D7 shape reproduced exactly: **10 rebellion events on the five
+> unattended arms, 0 on the three commanded arms** — so a competent Emperor
+> never sees the system at all, and an incompetent one sees only its failure
+> mode. FA-S17-D7 was DECLINED to "the FA-D27 balance owner"; this row is that
+> owner. **Completion:** a commanded 40-turn run in which the satellite web
+> produces at least one consequential decision that is not a rebellion, and a
+> stated expectation for what a loyal vassal is FOR.
+>
+> ---
+>
+> ### IQ-8 — THE HARNESS TELLS THE TRUTH
+>
+> **Evidence (PR-X5):** `meta.json` records the scenario *requested*, not the
+> board actually resolved, so a digest can name a scenario it did not play.
+> **(PR-D4):** the COMMANDED-arm table published September 11 does not
+> reproduce on this machine (23/24/21 provinces measured against 20/24/22
+> published; 81/77/75 of 160 AP against a claimed 160/160) and the cause was
+> never isolated. **Completion:** `meta.json` records the resolved board and
+> the resolved seed, and `PLAYTESTING.md`'s tables carry their platform.
+>
+> ---
+>
+> ### IQ-9 — THE KEYLESS PARSER GATE
+>
+> **Evidence:** the `--llm anthropic` arm is the only check on the escalation
+> path and it cannot run in CI or in a keyless environment; it could not run
+> this session and is recorded as NOT RUN. The golden corpus (681/681) covers
+> the fast parser only. **Completion:** a recorded-response replay gate that
+> exercises the escalation path deterministically without a key, wired into the
+> suite, with a stated list of what it does and does not cover.
+>
+> ---
+>
+> ### IQ-10 — THE CLIENT PASS  ⚠ BLOCKED ON ENVIRONMENT
+>
+> **Blocked, not deferred:** there is no Godot binary in this container, so
+> Mode C cannot run and UI/UX was not re-scored on September 12 (its prior
+> **7.5** stands untouched; zero `.gd` files changed). This row runs the moment
+> a binary is available — on the user's own machine or in a container that has
+> one — and carries every open visual sign-off with it. **Completion:** a Mode
+> C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
+> archived, and UI/UX re-scored on named evidence.
+
+> ## ▶ IQ-2 "THE COLLAPSE IS LEGIBLE" — LANDED September 14, 2026. **ROW IQ-2 IS CLOSED.**
+>
+> Row IQ-2 (PR-X1) with its scope note binding: **legible, never terminal**
+> (win and defeat stay with the Victory & Objectives Pass). ⚠ Built in a
+> session whose local master predated the queue's opening, from the user's
+> own description of this row — the two matched and were reconciled at the
+> merge, which added the war-purpose fix the row's completion item names.
 > Landing record = `BUG_FIXES.md` §Collapse Legibility (IQ-2), authoritative;
-> rules = `SYSTEMS_REFERENCE.md` §41.
+> filed in `IMPROVEMENT_QUEUE_SPEC.md` §1.1; rules = `SYSTEMS_REFERENCE.md` §41.
 >
 > **A mechanical P1 sat under the copy.** At 0 provinces France fell OFF
 > `get_active_nations()` while `_eliminate_nation` refused to tear her down,
@@ -24,39 +282,551 @@
 > **One read-only source, every surface.** `backend/game_logic/collapse.py`
 > (sandbox, ≤ 1 province) feeds a standing headline class `empire_reduced`,
 > a Berthier collapse rung (no more *"The initiative is ours"*), Talleyrand
-> naming the TRUE cause of his "opening", the sandbox arm of the defeat
-> warning (*"THE EMPIRE IN EXTREMIS"* + rail notice), the end-turn banner,
-> the war room, both ledgers, the status report, Le Moniteur and the
-> chronicle — none of it promises an ending. Plus ~20 general legibility
-> defects the census found, each behind its own lever (the levy advertising
-> an enemy-held capital, own losses fogging out of the player's own
-> chronicle 27 → 5 rows, `[HELD]` for 1 of 28, direction-blind settlement
-> tiers, the captive Emperor "coming for" his captor, +10 loyalty quoted
-> where +4 applies, GR2 `threat_level`, R7 prisoner note, and more).
+> saying only what the score measures (never *"the winds favour us"*), the
+> sandbox arm of the defeat warning (*"THE EMPIRE IN EXTREMIS"* + rail
+> notice), the end-turn banner, the war room, both ledgers, the status report,
+> Le Moniteur and the chronicle — none of it promises an ending. Plus ~20
+> general legibility defects the census found, each behind its own lever (the
+> levy advertising an enemy-held capital, own losses fogging out of the
+> player's own chronicle 27 → 5 rows, a Defence war purpose listing provinces
+> France no longer holds, direction-blind settlement tiers, the captive
+> Emperor "coming for" his captor, +10 loyalty quoted where +4 applies, GR2
+> `threat_level`, R7 prisoner note, and more).
 >
-> Commit `87f5459a` — suite 21,747 / 4, ruff clean, Godot parse harness
-> EXIT=0, boot smoke 0 SCRIPT ERROR; six new test files; 4 pins flipped
-> consciously; `BASELINE_SERIES` + M1–M7 byte-identical (France never reaches
-> 0 provinces on the ambient board — a fact about the harness; the roster
-> change is measured directly). Mutation sweep 13/13 after one inert pin was
-> repaired.
+> **Commits** `87f5459a` (build: suite 21,747 / 4, sweep 13/13 after one
+> inert pin repaired) → `f586484f` (review round: seven lenses, two refuters
+> per finding, reading a `git archive` snapshot so a sweep could run beside
+> it; the survivors fixed — Berthier promised "a treasury behind it" to a
+> bankrupt France and froze the hand-back, Talleyrand and the Balance tab
+> named causes they never measure, the tier side was missing where the peace
+> is SIGNED and called a white peace "theirs", the levy named non-refusals, a
+> second fall of the same province was swallowed, an AI reckless-charge
+> conquest logged no `region_captured` row; sweep 15/15) → `5c41532d` (lens
+> 7: the fog arm and the client colour pins bind again; sweep 7/7) → the
+> merge with row IQ. `BASELINE_SERIES` + M1–M7 byte-identical — France never
+> reaches 0 provinces on the ambient board, a fact about the harness; the
+> roster change is measured directly. Godot parse harness EXIT=0; ⚠ the
+> eyes-on pass on the IQ-2 client surfaces rides IQ-10.
 >
-> **Review round, same day** (seven lenses at `87f5459a`, two refuters per
-> finding, reading a `git archive` snapshot so a sweep could run beside it):
-> fifteen findings, the survivors fixed — Berthier promised "a treasury
-> behind it" to a bankrupt France and froze the hand-back (the collapse rung
-> now sits below the money rungs); Talleyrand and the Balance tab named
-> causes they never measure (now only measured facts); the tier side was
-> missing where the peace is SIGNED (both proposal popups) and called a white
-> peace "theirs"; the levy named non-refusals; a second fall of the same
-> province was swallowed by the edition key; and an AI reckless-charge
-> conquest logged no `region_captured` row at all (pre-existing). The roster
-> change's hegemon/paymaster and legacy edges were refuted twice each and are
-> recorded on the lever as deliberate. Record = `BUG_FIXES.md` §Collapse
-> Legibility (IQ-2) → Review round.
+> **▶ NEXT = IQ-3 "THE COALITION IS RARE"** (PR-D1).
+
+> ## ▶ IQ1-5 "THE EXIT" — HELD September 14, 2026. **ROW IQ-1 IS CLOSED.**
 >
-> **▶ NEXT = ROADMAP position 10, the shippable build** — and whatever IQ
-> rows the user holds beyond IQ-2 (not recorded here).
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §0.6b, authoritative.**
+> **ZERO production code**, as the slice defines itself. Four completion items
+> measured against the re-stated predicates of §0.7 on committed archived arms;
+> the (iv) acceptance test verified in both directions; the pillar re-scored;
+> §0.8's re-open condition resolved. Re-run sweeps at the restart came back
+> **IQ1-2 40/40 and IQ1-3 35/35, 0 INERT, 0 BROKEN**, tree clean.
+>
+> **(i) MET — and the predicate throws out the arm's own bad turns.** *A fall
+> whose largest single term is a player spend, with provinces non-decreasing:*
+> spender **10 qualifying of 12 falls** (turns 6, 12, 15, 18, 21, 24, 27, 30,
+> 36, 39) · control **0 falls in forty turns** · ambient **23 falls, 0
+> qualifying**. The two it rejected are exactly the two turns the spender lost
+> ground (9: 29→28, 33: 29→27) — so §0.6's ⛔ *"do not score a collapse as a
+> sink"* is honoured **by the predicate**, not by excluding the arm.
+>
+> **(ii) measured FALSE — and it is a RATCHET, not the fixed handicap the row
+> filed.** Two boards, army allowed to fall, engine recovery ticks running,
+> **both held at PEACE before every tick** so the gap is upkeep and not a war
+> rate. The whole France (189,000 men, 28 provinces) leads turns 0–4 by a
+> shrinking 266 → 48; then at turn **5** the beaten one's army falls a further
+> 25,000 (94,500 → 69,500), its upkeep falls *again*, and the gap **inverts and
+> widens every turn after**: **+634 / +670 / +706 / +731**. **The mechanism is
+> worse than "the army is smaller": the peace ceded the ground two corps were
+> standing on** — Ney and Davout both at Rhineland, 12,000 + 13,000 = the whole
+> 25,000 — warned three times and then interned. **Losing territory cuts the
+> loser's bill twice**, once for the men lost fighting and again for the corps
+> left on the ground it gave away. ⚠ That mechanism was named by an INERT
+> mutation, not by me: the first pin blamed supply attrition and disabling
+> attrition outright changed nothing. Underneath it the
+> shapes are opposite — **the victor's Net decays 784 → 538 while the beaten
+> one's grows 518 → 1,269** — so it never closes on its own. **Every further
+> defeat makes the loser richer.** ⛔ **And the exit struck a claim of its own
+> here before publishing it:** the first measurement made peace BEFORE applying
+> the losses and reported the loser ahead by **+534 at turn 0**; that does not
+> reproduce, because the war-end cleanup hands occupied territory back and
+> leaves France a *richer* 23 provinces (gross 2,056 vs 1,256). Built the other
+> way the winner leads turn 0 by 266. The two orders agree to within **ten gold
+> a turn** on the late arm, so only the late arm is pinned. Question (c) was
+> **ROUTED OUT to its own design gate by user ruling, September 13**, so the
+> row records this **measured-open and handed off** rather than fudging its own
+> grade.
+>
+> **(iii) MET for 18 of 19 gold streams; the nineteenth measured, not argued.**
+> Tracing **every** write to France's purse across ten real turns, four
+> production sites move it: `process_income_phase` (−11,430; its 14 terms are
+> all declared Net components), `process_vassal_tribute` (+9,370),
+> `process_trade_income` (+1,750, delivering `trade_income − blockade` as ONE
+> net write) — and **`process_instruments` at −2,000 which moves Net by exactly
+> 0**. That is IQ1-3a′'s gap at face value: a standing 200 g/turn sponsorship
+> costs 200 and is named nowhere. Net **==** the signed sum of its 18 declared
+> components, every one rendered in `.gd`, stays pinned.
+>
+> **(iv) MET and mutation-proven.** `the_chest_is_convertible` — control
+> (88,556 banked, 0 converted) **False**, HEAD-after-IQ1-1 (conversion 0.150)
+> **False**, the slice (hoard 8.1 turns, conversion 0.783) **True** — with the
+> negative control failing in both directions at the pre-row values. 63 tests
+> green; IQ13-33/34/35 killed.
+>
+> **▶ NEW FINDING — IQ1-5-1, filed in `BUG_FIXES.md` §Improvement Queue (P3,
+> not fixed here).** The Charges of Empire are **quoted one war-effort tick
+> stale**. Every other ledger term is exact to the gold; the whole miss is
+> `state_charges`, because `get_state_charges_rate` carries a `war_exhaustion`
+> term that ticks **+8/turn at war** (measured 0 → 8 → 16 → 24 → 32) while the
+> economy tab is a forward projection by contract (CA9-N11). Quoted 1,216 /
+> paid 1,337; quoted 1,355 / paid 1,478; quoted 1,492 / paid 1,616. Magnitude
+> `(treasury − 2000) × 8 // 2500` — **121 g/turn at a 40,000 chest, 277 at the
+> control arm's 88,556** — on the ledger's largest discretionary term, whose
+> docstring claims *"shown = applied"*.
+>
+> **⚠ The exit's own claims were wrong twice before they were right.**
+> `advance_turn` calls `process_income_phase` internally, so a probe that calls
+> both charges the nation twice; the first two item-(iii) probes did exactly
+> that and read their own double charge as a phantom unnamed residual growing
+> 590 → 1,061 gold/turn. It does not exist. Recorded because the row's rule is
+> to reproduce before filing and the first two reproductions were the thing
+> being measured.
+>
+> **PILLAR RE-SCORE — economy 6.0 → 6.5. ⚠ RULED — FOR USER CONFIRMATION.**
+> **Up** because the chest is convertible on the arm that engages with it
+> (85.2% of the surplus, receipts 4.00×, hoard 21.9 → 8.1 turns of gross), the
+> treasury stops being monotonic for the *right* reason for the first time, and
+> the player can finally read what they are charged. **Held below 7** because a
+> France that simply does not buy reproduces the September 12 disease board
+> exactly — the control arm ends on **88,556 gold, 29 provinces, 81,453 men and
+> zero treasury falls**, the same 88,556 the row opened on — and because **(c)
+> is not merely unbuilt but measured widening**. A user who reads the control
+> arm as the governing case would hold it at 6.0.
+>
+> **§0.8's re-open condition does NOT fire** (the pillar moved off 6.0), so the
+> stability ratchet is not re-opened — but **the dissent stands unretracted**
+> and is now carried by IQ1-3e and the (c) gate: a sink a winning player may
+> decline leaves a winning game easy, which is what the control arm shows.
+>
+> **Limits, stated rather than implied:** no new arm was driven (the exit grades
+> committed archives, as specified) · **no `--llm anthropic` arm and no Godot
+> client pass** — no API key and no Godot binary here, so IQ1-3's region-panel
+> levy chip is **unverified on screen** and carries **IQ-10**'s sign-off · the
+> AI substitute rung remains measured unreachable on the shipped board (18 of 20
+> nations boot holding a pool ≥ 10,000), which is why `BASELINE_SERIES` needs no
+> re-record — a fact about the board, not evidence the rung works.
+>
+> **Pins.** `tests/test_iq1_iq1_5_the_exit.py` (**24**) — the grade made
+> falsifiable — and sweep `tools/_sweep_iq1_iq1_5.json` (**23**) **23 killed /
+> 0 INERT / 0 BROKEN** at close, after four rounds. ⚠ Lessons kept on the
+> record: item (i)'s "largest term" clause was unpinned; **both record pins
+> were a bare `in` over a whole file** and were satisfied by a different
+> occurrence (`6.0 → 6.5` occurs 3× in the spec, `war_exhaustion` 6× in
+> BUG_FIXES); **three of my own mutations were invalid, all the same shape —
+> weakening an assertion cannot make a test fail**; and one DETONATED (renaming
+> `NET_GOLD_COMPONENTS` breaks every importer at collection time, so no pin is
+> evaluated).
+>
+> **▶ NEXT was IQ-2 "THE COLLAPSE IS LEGIBLE"** (PR-X1) — ✅ **LANDED September
+> 14, 2026**, see its block above. ⛔ Its scope note stood:
+> making the collapse legible does **not** make it terminal — win *and* defeat
+> conditions stay with the Victory & Objectives Pass, ROADMAP positions 12–13.
+
+> ## ▶ IQ1-3 "THE GRANARY AND THE ALARM" — LANDED September 14, 2026
+>
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §0.6a, authoritative.**
+> Suite **21,830 / 4 skipped / 0 failed**, sweep `_sweep_iq1_iq1_3.json` **35 killed / 0 INERT /
+> 0 BROKEN**, ruff clean, `BASELINE_SERIES` + M1–M7 byte-identical without
+> re-record with the reason measured.
+>
+> **⛔ THIS IS NOT §0.6's RETAINER, and the recommendation was overturned on a
+> measurement.** A 17-agent decision fleet drove the entire
+> diplomacy-instrument channel through the real executor at a 1,000,000-gold
+> chest: **4,824 gold, one-shot, for every buyable design in Europe** — 5.4% of
+> the disease chest — and afterwards `get_qualifying_nations` is
+> **byte-identical**, because `qualifies_for_coalition` reads relation,
+> vassalage, at-war and PR-1's fresh-peace floor and **nothing monetary**. Three
+> more symbols killed it: the retainer's payoff **has no consumer**
+> (`intent._derive_weight` never reads `directed_sponsorships`, and
+> `war_council`'s design coercion is AI-vs-AI only by its own comment, so a
+> retainer on a France-aimed design can never open); §0.6's **"cancel verb"
+> does not exist**; and a retainer is **dominated 8–10×** by
+> `_execute_buy_off_design`, which already ships and has no `aim == player`
+> refusal. **§0.8's dissent is therefore MOOT, not overruled.**
+>
+> **WHAT DOES ABSORB IS THE SINK THE ROW ALREADY LANDED.** Receipts read at the
+> executor, never a difference between boards: **18,852 → 75,486 gold = 4.00×,
+> and 85.2% of the 88,556 surplus** — with the board ending **BETTER**, 26
+> provinces against 24, and the one surviving refusal on PRICE.
+>
+> **A — THE GRANARY.** The levy refused on OWNERSHIP while the engine's own
+> supply decision (PC15-D2 "The Ally's Table") already feeds a guest army on
+> ALLIANCE / DEFENSIVE_ALLIANCE / VASSAL soil, and `dispatch.py` says so out
+> loud on the identical fact. All **six** archived refusals were on soil PC15-D2
+> feeds. ONE extracted predicate now, read by the levy, the AI rung and its own
+> origin; a passage right is still not a granary (the Ansbach line, free by
+> construction). ⚠ **§0.4's own example is wrong twice** — Milan has no depot
+> (the map holds zero in 126 provinces) and is refused at boot even with the
+> gate open, by the establishment's 6,000 of room against a capital batch's
+> 10,000. **Pin Franconia.**
+>
+> **A2 — THE HOST'S PRICE.** Opening the gate made the 25% capital discount
+> newly reachable on an ALLY's capital: measured at Munich, a full batch for
+> 4,959 gold = **165 g per 1,000 men** against the same arm's dearest at 1,074.
+> Suppressed via a default-off kwarg, so nine existing call sites are
+> byte-identical by construction.
+>
+> **B — NOT PUNISHED TWICE.** The designed premium is 15 below a draft; the
+> purchase path wrote a FLAT base while the draft path reads `training_ground`
+> (an absolute 70) and Shorncliffe (a floor of 60) — so the real gap was **45
+> and 35**, and **the one counterweight a player can already buy was void for
+> substitutes**. Now 25 / 55 / 45, the bare rung byte-identical. Plus the
+> missing rout-line warning (base, `FORCED_RETREAT_THRESHOLD` and the rout line
+> are all 25).
+>
+> **C — THE ALARM.** §0.2's own words: a frightened continent does not sell its
+> sons cheaply to the power frightening it. `1 + max(0, threat − 75)/100`,
+> **boot-dormant on every seed by construction** (the authored band is [65, 75]
+> and the anchor is its ceiling), and `max(0, …)` means an absent slot is never
+> a discount. ⚠ **RULED — FOR USER CONFIRMATION**: a new multiplier on a blessed
+> price.
+>
+> **D — THE RIDERS**, all three of §0.6's plus a fourth: the `get_levy_status`
+> `substitutes` block + a region-panel chip that names the marshal and is
+> dimmed-with-its-reason rather than absent; `substitutes_purchased` reaching
+> the campaign log for non-player courts (⚠ the fleet said the filter has "no
+> economy branch" — it has had one since Session 8; the TYPE was missing from
+> it, and the producer emitted no `region` for the fog rule to read); the three
+> shipped instrument verbs **named in the help for the first time**; and
+> `--archive` finally carrying the **jsonl**, where `purses` and `net_residual`
+> live.
+>
+> **⛔ §0.5.1 FINDING 1's CAUSAL SENTENCE IS STRUCK — the third occurrence of
+> the error this row has already struck twice.** "A bigger, weaker army and
+> loses ground" was a cross-board difference presented as a mechanism: 18 of 19
+> French battles are byte-identical across the arms, all five province losses
+> were unopposed marches, a bigger-greener corps measures **stronger**, and with
+> 3.5× more substitutes the board ends on **26** provinces. **The method rule
+> this extends: A PROVINCE COUNT IS A BOARD DIFFERENCE TOO** — paired arms stop
+> being an isolation at the first AI decision that reads the board.
+>
+> **Completion item (iv): the 590× ratio is RETIRED**, replaced by the
+> unconverted hoard in turns of gross income (ceiling 12 — control **21.9**,
+> HEAD 17.3, positive **8.1**) plus a conversion floor (0.40 — control 0.000,
+> HEAD 0.150, positive **0.783**), in one function shared with its own negative
+> control. ⚠ NOT §0.7's obligation fixed point, which is satisfiable by
+> **over-commitment**. **And the ambient baseline the row had been missing is
+> archived** — 5 provinces, 2,593 gold, 23 treasury falls that are *collapse,
+> not spending*, which is what item (i) was re-stated for.
+>
+> **⚠ Five sweep mutations came back INERT first and every one was a real
+> coverage gap** — nothing DROVE a purchase in a training-ground province, or
+> onto the rout line; the archive pin matched the guard line above the copy it
+> meant to check; and neither clause of item (iv) was isolated on an arm where
+> only it bites. Two of my own pins were then wrong about their subject: one
+> compared combat-effectiveness MULTIPLIERS (1.5 → 1.29) and red, which is the
+> multiplier correctly falling while the product rises — the very confusion
+> FINDING 1 made — and one claimed HEAD fails only the conversion clause when
+> its hoard is 17.3, above the ceiling.
+>
+> **Housekeeping cleared:** the **third** 457× site — the completion criterion
+> that grades the row, which IQ1-2's own "three places" note missed — now reads
+> 590× behind a census pin; and the wrong receipt figure 18,537 is corrected to
+> **18,852** in all eight surviving sites.
+>
+> ~~**▶ NEXT = IQ1-5 "The Exit"**~~ ✅ **HELD September 14, 2026 — see the top
+> entry.** The pillar moved **6.0 → 6.5**, so §0.8's re-open condition does not
+> fire.
+
+> ## ▶ ROW IQ-1, THREE SLICES LANDED — September 12–13, 2026
+>
+> **Owning spec = `docs/IMPROVEMENT_QUEUE_SPEC.md`, authoritative** (opened by
+> IQ1-2, because the row had run two slices with no doc record at all).
+> Suite **21,744 passed / 4 skipped / 0 failed**; sweeps
+> `_sweep_iq1_sw0.json` 13/13, `_sweep_iq1_sw1.json` 23/23,
+> `_sweep_iq1_iq1_2.json` **21/21, 0 INERT, 0 BROKEN**; ruff clean;
+> `BASELINE_SERIES` + M1–M7 byte-identical **without re-record**.
+>
+> **IQ1-0 "The Chest Speaks"** (`3686922`) — instrument only. The Strategic
+> Ledger gained `spent` and the treasury's own fixed point; an AST census found
+> **21 functions subtract from `nation_gold` and 15 never record it**; the
+> driver learned to record **every nation's purse**, which is how a neutral
+> Ottoman Empire turned out to be the richest state in Europe at turn 40 while
+> France held 1.4% of Europe's cash.
+>
+> **IQ1-1 "The Substitute Market"** (`c3d74fa`) — `purchase_levy`: the first
+> purchase in the game bounded by **gold** rather than by manpower, slots or a
+> bench. The *remplaçant*, priced through the EXISTING recruit pricer so the
+> capital discount, the war ×3, the ES-3 ladder and the Intendance all compose
+> on top (GR5, shown = applied).
+>
+> **IQ1-2 "The Chest Tells the Truth"** — zero balance, lever
+> `THE_CHEST_TELLS_THE_TRUTH`. The instrument was lying three ways.
+> **(1)** The ledger's `ceiling` — "the treasury the Charges of Empire are
+> steering toward" — was fed the **post-charge** net, so a figure defined to be
+> independent of the chest **slid with it**: at one unchanged boot world and one
+> unchanged rate it read **59,562 → 56,562 → 41,562 → 21,562 → 0 → 0** as the
+> chest grew, against a true fixed point of 59,562 at all six. Two faces, both
+> real: at rate 80 the line **vanishes** at a large chest (the client renders
+> `if ceiling > 0`); at rate 30 — the turn-40 peace board this row was opened
+> over — it rendered **252,000 against a true 338,500**, telling the player the
+> brake was **86,500 gold closer** than it is. **(2)**
+> `_build_economy(world, 'Austria')['treasury']` returned **France's** chest
+> (800 against a real 700; Britain 800 against 2,000), so no GR5 claim about an
+> AI court's economy was readable. **(3)** The digest kept a **fourth**
+> hand-maintained copy of the ledger's net expression and had drifted —
+> `admin_bonus` missing, so the printed NET sub-line under-counted by **exactly
+> 50 on 40 of 40 rows** of both archived arms — and `spent` rendered on **ZERO**
+> rows of all three archived digests, including the spender arm that bought
+> 18,852 gold, because the engine clears the tally inside `advance_turn`.
+> All three fixed; the ledger is now the single source (`NET_GOLD_COMPONENTS`)
+> and both the reconciliation test and the driver import it.
+>
+> **The 15 unrecorded outflows are judged 15 → 10**, three dispositions, a
+> written reason at every surviving call site (GR9 — IQ1-0 had deferred this to
+> "a later slice" with no slice id). ⚠ One disposition was **corrected by
+> reading the code**: `_process_reckless_cavalry_turn_start` was called "a
+> penalty" on the strength of its NAME; the expression is the same EC-W3
+> materiel bill as the combat pipeline's.
+>
+> **⛔ IQ1-1's OWN HEADLINE FIGURE IS WRONG AND IS CORRECTED.** "Absorbs 29,564
+> — a THIRD of the surplus" is a **cross-script difference**: 6 of 13 buys
+> succeeded for 18,852 gold, 6 were refused on an own-soil gate the commit says
+> it removed, and the arm ends on **24 provinces against the baseline's 29**.
+> The arm is **repaired** (the buy is now additive, so it differs from its
+> parent by the purchase and nothing else) and both arms are archived. On the
+> paired 40-turn run the control reproduces **88,556 exactly and is perfectly
+> monotonic — zero falls in forty turns** — while the spender arm falls **7**
+> times: purchases **18,852**, treasury difference **34,113**, provinces **−5**.
+> Three numbers, never one. *(⚠ **CORRECTED BY THE REVIEW ROUND**: purchases
+> first read **18,312**, which is `spender total spend − control total spend` —
+> a CROSS-SCRIPT DIFFERENCE, the exact error this block struck SW-1 for one
+> paragraph earlier. 18,852 is read off the six receipts themselves. The rule
+> that follows: a spend is measured from the RECEIPT, never from a difference
+> between two boards.)*
+>
+> **⚠ AND THE SINK IS CURRENTLY SELF-DEFEATING** — the finding that matters for
+> IQ1-3. The spender arm ends with **+37,282 more men and 5 FEWER provinces**,
+> because the receipt says what it costs: *"Morale 89% → 75% (bought men muster
+> at 25%)"*. A player in a good position who spends gold gets a bigger, weaker
+> army and loses ground. Every success also delivered **9,000 men against the
+> 30,000 asked** (the field cap), so the dearest purchase on this board is
+> ~2,400–7,572 gold, not the 24,840 the design's worked example quotes.
+>
+> **THE CRUX WAS RULED** (`IMPROVEMENT_QUEUE_SPEC.md` §0.2, **FOR USER
+> CONFIRMATION**): the August 7 blessing and the September 12 brief reconcile —
+> August blessed a *rich* France, September measured a *decision-free* one — so
+> the blessed rate **stands** and the fix is somewhere for the gold to GO,
+> priced by the threat the player's own success creates. **Question (c) is
+> ROUTED OUT to its own design gate** by user ruling: every route to it is
+> closed (the EC-U1 reversal, a rate worth zero gold to a broke loser by
+> construction, a P1 war-score regression, and a flat charge that is the
+> mechanical half of a defeat condition `sandbox_mode` suppresses). The row's
+> **dissent and re-open condition are filed** — it had neither, a GR9 breach on
+> the row itself, while its own exit clause instructs that both be read.
+>
+> **⚠ NO GODOT BINARY IN THIS CONTAINER**, so the parse harness and boot smoke
+> **DID NOT RUN** on the one `.gd` touched. Recorded as NOT RUN, not as a pass;
+> the render arm carries **IQ-10**'s open visual sign-off with it.
+>
+> **▶ THE REVIEW ROUND — six lenses at `ba90d19`, all told to attack the FIX.
+> 41 findings; everything below fixed in the follow-up commit.** ⛔ **The
+> headline is mine and it is the error this very block struck SW-1 for, one
+> paragraph later: "purchases 18,312" is a CROSS-SCRIPT DIFFERENCE**, not a
+> purchase measurement — the arms' recruit prices diverge with their boards. Off
+> the six receipts themselves it is **18,852**. *A spend is measured from the
+> RECEIPT, never from a difference between two boards.* **The fix also touched
+> two of three player-scoped reads in the same function** (two lenses):
+> `_levy_block` took no nation, so an Austria query returned Austria's treasury
+> beside **France's** force limit and infantry pool — this repo's own lesson for
+> the sixth time. **The outflow census could not see a LOCAL ALIAS**, so two real
+> outflows were escaping it and the coverage claim was 22 of 24; the allowlist is
+> **10 not 8**. **The ceiling ladder asked the rate before the gross**, so a
+> legacy world bleeding money was told "nothing is drawing on the chest" — which
+> printed twenty lines under an `Upkeep: -865g` line that is; and the worst state
+> the tab can report was rendered in the **calmest colour in the palette**. **A
+> false claim in production `.gd` source** ("it could not previously be rendered
+> at all" — it was, with the wrong copy). **The instrument lost a purchase made
+> with the last action point** (`/command` auto-ends the turn and clears the
+> tally); `turn_spend` is a high-water mark now, and factoring that out
+> immediately broke the **borrowed-method** rule, caught by the slice's own pin.
+> **`net_residual`'s sign was inverted** against every prose statement of it, and
+> the digest wrote a **false zero** beside the true figure. **Part 2 is
+> production-dead today** (three lenses — all three callers pass the player
+> nation): kept as defence in depth and recorded as such, not sold as a live fix.
+> **The lever's coverage was overstated** — it reverts parts 1, 2 and 6; parts 3,
+> 4 and 5 are additive and the record now says so. **Nine vacuous pins rewritten**,
+> the worst a `str.replace` tautology that was the only sensitivity arm for the
+> slice's only `.gd` — and **two of my replacement pins were then wrong about the
+> code in turn**, both rewritten. The cross-file reconciliation tripwire the
+> canonical map had removed is **restored**.
+>
+> **▶ THE SYNTHESIS ROUND — the 48-agent fleet's verdict was "shippable, no
+> behavioural defect survives", and then it took six more.** Every one an error
+> in the RECORD, not the code — which is its own lesson: *by the third pass the
+> defects stop being in the game and start being in what you wrote about it.*
+> ⛔ **"Corrected in both places" was a FALSE COMPLETENESS CLAIM, written in the
+> sentence that fixed the first instance of exactly that failure mode** — the
+> claim was in FOUR places including **production source** (`ledger.py`'s lever
+> header) and §0.5's own item (6); a census pin now derives the completeness
+> instead of asserting it. ⛔ **The auto-advance "stated limit" was a silent hole
+> wearing a limit's clothes**: the record said the lost figure "is in the
+> end-turn banner the digest already prints", and the digest prints only the
+> message's FIRST LINE — measured, the archive carries **zero** `| Spent:`.
+> **CLOSED, not restated** (both producers already stamp a structured `spent` on
+> the `turn_end` event). The record's own **instrument counts were stale** (44
+> and 21 against a real 65 and 40), so a pin **derives** them — and it red on
+> this round's own new mutations within the hour, with the sweep tool then
+> refusing a red baseline: two gates, right order. The new tripwire's diagnostic
+> **named no key** on its one failure mode (escaped braces). **Six of seven
+> recorder sites still had no per-site pin**; every call's `(amount, nation)` is
+> now asserted by AST — a line parser read the wrapped grievance call as empty.
+> And a **pre-existing false clause this slice had touched and left**:
+> `save_manager` says `gold_spent_this_turn` is "saved/restored around
+> post-objection", false twice over, four lines above IQ1-2's own correction of
+> its neighbour.
+>
+> **▶ NEXT = IQ1-3 "The Recurring Obligation"** — only a rate can absorb a
+> rate, and every purchase in the game is capped by a non-gold quantity (97
+> building slots on the whole map, a bench each hirable once, 1–2 keels a turn,
+> `max_admin_actions` a hardcoded 2). ⚠ It prices the coalition, so it must be
+> sequenced with **IQ-3**.
+
+> ## ▶ THE POST-AUDIT PLAYTEST AND RE-SCORE — LANDED September 12, 2026
+>
+> **Memo of record = `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`,
+> authoritative.** Landing record = the boxed **Playtest Re-Score (PR / MS)**
+> block in `docs/BUG_FIXES.md`. Design rows = `DESIGN_REFINEMENT.md`
+> §Playtest Re-Score (PR-D1..D4). Suite **21,590 / 4 skipped, 0 failed**;
+> sweep `tools/_sweep_playtest_rescore.json` **29 killed, 0 INERT**;
+> `BASELINE_SERIES` + M1–M7 byte-identical **without re-record, reason
+> measured**; ruff clean; zero `.gd` changes.
+>
+> Sixteen seeded driver runs — five 40-turn ambient seeds, the COMMANDED arm
+> on three seeds with `--diplomacy accept`, `--diplomacy propose`, a
+> scripted-aggressive arm, the naval Descent, the tutorial, both committed
+> fixtures, a reload arm, a `--declare-war proceed` control and a
+> repeat-determinism control — then **twelve re-run after the fixes**, so
+> every claim about a change is a before/after on the same seed.
+>
+> **⚠ Two arms could not run and are recorded as NOT RUN, not as passes:**
+> `--llm anthropic` (no API key in this environment) and the Mode-C client
+> pass (no Godot binary). **UI/UX is not re-scored and its prior 7.5 stands.**
+>
+> **Directional ≈6.9 → ≈7.0.** Diplomacy 6.0 → **6.5**, marshal drama 7.0 →
+> **7.5**; command 7.5, combat legibility 7.0, narration 7.0, economy 6.0, AI
+> aliveness 7.5, vassals 6.5 and naval 7.0 all hold, each on named evidence.
+>
+> **THE P1: the peace table was a formality.** COMMANDED arm, turn 4 — France
+> ratifies Britain's settlement (seven pairs to PEACE, a 1,358-gold indemnity
+> FROM Britain) and inside the same `end turn` `form_coalition` re-enrols
+> Britain, Austria and Russia and declares war for all eight qualifying
+> courts. The peace lasted **zero turns**, and the loop ran to a **tenth**
+> coalition in forty turns. `qualifies_for_coalition` asked relation < −10,
+> not-a-vassal, not-already-at-war — and nothing about a peace signed
+> yesterday. Fixed DERIVED (zero new fields): the war instance already carries
+> `ended_turn` and a durable `participant_meta[n]["side"]` at the moment the
+> coalition forms. ⚠ `FRESH_PEACE_FLOOR_TURNS = 5` is **RULED — FOR USER
+> CONFIRMATION**. Measured reach: **0** blocks on the ambient board (the
+> driver's passive France signs nothing — which is WHY the series is
+> unchanged) and **232** on the commanded board. Balance is not a tilt: nine
+> of twelve re-run arms byte-identical, and the three that move go **+6 / −4 /
+> 0** provinces.
+>
+> **THE STANDING QUESTION ANSWERED — the mission system.** Audited end to
+> end. Mechanically live, and **one bug from unusable after its first
+> completion**: a COMPLETED mission is never cleared (that is what lets the
+> ledger report it), three consumers checked `completed` and the Cabinet's own
+> gate did not, so after the first intelligence mission **every mission row
+> for every court read "Mission already active" for the rest of the
+> campaign** — while the top bar beside it said Talleyrand was idle, and the
+> serialized dict carried the lockout through save/load. Nine more fixed with
+> it: every displayed figure was the raw constant while the tick pays ×1.5
+> (advertised +5, paid **+8**, always); the undermine line printed its own
+> template **braces** every turn; the collapse notice was fogged against the
+> mission it had already deleted; the progress readout tracked the pair the
+> mission does not move; three types taxed the DP budget **forever** at the
+> relation ceiling for an effect of zero; the transit pause was undone by the
+> next tick. What is still missing is **exposure, not machinery** — PR-D2.
+>
+> **⚠ THE SUITE DID NOT RUN ON THIS MACHINE AT ALL.**
+> `tests/test_notifications.py` used a nested same-type quote in an f-string
+> (Python 3.12 only), so the file failed to COLLECT and pytest **interrupted
+> the entire run**; `tools/mutation_sweep.py` hard-coded
+> `.venv/Scripts/python.exe`, killing the sweep tool and the twelve pins that
+> drive it on any non-Windows checkout; one pin read an absolute
+> `C:\Users\User\…` path and two depended on an untracked `.env`. All fixed;
+> the pre-commit hook was unusable here until they were. A census pin now
+> compiles every repo source file under the running interpreter.
+>
+> **⚠ A DOCUMENTED TABLE DOES NOT REPRODUCE (PR-D4).** The COMMANDED-arm
+> figures published the previous day in three files (20 / 24 / 22 at turn 40,
+> "160 of 160 AP") measure **23 / 24 / 21** here, deterministically, at the
+> same commit — and **81 / 77 / 75** of 160 AP, with 35–38% of orders refused.
+> `BASELINE_SERIES` passes byte-identically on this platform, so the ambient
+> board is stable and this is not a general divergence; the authoring platform
+> could not be re-run from here, so the cause is NOT isolated. **The ruling's
+> conclusion survives either reading — 0 of 3 seeds below 20 provinces.**
+> `PLAYTESTING.md` now carries both columns with their platforms.
+>
+> **The five FOR-USER-CONFIRMATION rulings were all observed under play** and
+> the two a digest cannot show were probed: FA-D29/FA-S17-1 firing (101 `own
+> corps` battle lines), FA-D4 firing (7 `war_objectives` entries at turn 1,
+> both sides of every boot pair at `defense`), FA-S2-D1 firing (29 last-stand
+> questions reaching the player), FA-D23 firing (`_pair_contribution_scale`
+> 1.0 → **0.5** at trust 0), and the **FA-D27 re-open does not fire**
+> (Fr@40 = 29 / 20 / 21). Of the three DECLINED rulings, **FA-S17-D2's
+> evidence is now overwhelming**: a peaceful France banks **82,524** gold by
+> turn 30 while the dispatch tells it 10,000 infantry cost **150**.
+>
+> **⛔ Three method lessons, all paid for.** A local `from … import` inside
+> ONE arm of `format_event_oneliner` made the name local for EVERY arm and
+> raised `UnboundLocalError` six hundred lines away. My first cut of the
+> collapse-notice fix moved the event above the deletion — but the fog is
+> evaluated when the DISPATCH is built, a turn later, so queue order is
+> irrelevant, and this slice's own pin said so. And **do not edit `backend/`
+> while the suite runs**: two runs failed on different `inspect.getsource`
+> census pins that passed in isolation; the quiet run was clean.
+>
+>
+> **▶ THE REVIEW ROUND — two lenses at `295bd7f`, both told to attack the FIX
+> rather than the finding.** ⛔ **Both independently reproduced a regression
+> this slice shipped**, and between them took 8 more fixes; tests 55 → **86**,
+> sweep **45 killed / 0 INERT**. **MS-7 had made its own defect WORSE and its
+> pin was green about it** — the ledger's current reading was re-pointed at
+> the target↔ally pair while the baseline kept reading player↔target, so a
+> successful undermining of a HOSTILE court rendered as **"Hostile → Neutral
+> (+55)" in the success colour**; the pin hand-set the baseline to the PAIR
+> value production never writes there. **MS-10 DESTROYED a fully funded
+> mission after three turns of ordinary envoy traffic** (the transit pause fed
+> the starvation clock; measured, 99 diplomatic points and the player told it
+> collapsed from inactivity) — the pin was a one-tick pin over a three-tick
+> rule. **PR-1 never fired on the ordinary BILATERAL peace** — `ended_turn` is
+> stamped only when NO active pair remains and the shipped board is ONE merged
+> instance carrying seven, so the measured headline case (a COMMON peace) was
+> the only route that worked, and all seven PR-1 pins planted a synthetic
+> two-nation instance that could not see it; the gate asks the PAIR first now
+> (`diplo_key_meta[pair]["resolved_turn"]`), verified end to end, and the
+> archive scan is DELETED as unreachable by construction. Plus PR-1c (the
+> dispatch read "Brewing" with an empty qualifying list for five turns —
+> CA8-18's lie one direction over, made reachable by PR-1), PR-2b/2c/2d
+> (**`Ireland` was missed, so PR-2 turned a readable-if-wrong "the Ireland
+> fleet" into a coined "the Irelandian fleet" — the exact failure its own
+> commit message went looking for**; the two new carve demonyms were the only
+> capitalised values in a table the parser matches case-sensitively and were
+> structurally dead there; the compound fallback returned the raw tag its own
+> comment promised it would not, and a pin enshrined that; the refusal line
+> humanised one side of the verb; `_ORDINALS` past twelve gave "21th") and
+> MS-3b. **Four of the slice's own pins were repaired** — the two hook pins
+> were satisfied by the error message the fix prints WHEN IT FAILS, the
+> PEP-701 sensitivity arm was version-dependent in the opposite direction, the
+> ordinal pin never went through the call site, and the producer pin was a
+> source census a mutation leaves untouched. ⛔ **Every regression was
+> invisible to 55 pins and a green 21,590-test suite, and each was found by
+> constructing the ORDINARY case instead of the convenient one** — a hostile
+> target, three ticks, a bilateral peace.
+>
+> **▶ NEXT = ROADMAP position 10, the shippable build**, with PR-X1..X5 and
+> PR-D1..D4 as the routed backlog.
+
+---
 
 > ## ▶ FA SLICE 17 — "FINISH THE AUDIT" — IN PROGRESS, September 11, 2026
 >

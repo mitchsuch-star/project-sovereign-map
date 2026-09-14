@@ -114,9 +114,15 @@
 
 ## Collapse Legibility (IQ-2) — "The Collapse Is Legible", landed September 14, 2026
 
-> **The row's contract is the user's own description** (the IQ list is not
-> recorded in the repo): *an annihilated France told the winds favour it,
-> holding zero provinces from turn 37 and playing four more turns.* **Scope
+> **The row's contract** is row IQ-2 of the improvement queue
+> (`docs/STATUS.md` ▶ NEXT UP; evidence row **PR-X1**). The queue was opened
+> on `origin/master` by a session this build's local master predated, so the
+> build worked from the user's own description — *an annihilated France told
+> the winds favour it, holding zero provinces from turn 37 and playing four
+> more turns* — which matched it; the two were merged on landing and the
+> row's own completion item (*on a staged save at that turn, no producer
+> claims a holding France does not hold, and the briefing's lead names the
+> collapse*) is pinned by `TestTheIQ2CompletionDefinition`. **Scope
 > note, binding:** making the collapse legible does not make it terminal —
 > win and defeat conditions stay with the Victory & Objectives Pass (ROADMAP
 > 12–13). No copy authored here says or implies the campaign ends; where the
@@ -229,6 +235,355 @@ cause, and dropping the turn from the edition key).
 solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
 pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
 pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
+
+## Improvement Queue (IQ) — filed September 14, 2026 at the IQ1-5 exit
+
+> **Owning spec = `docs/IMPROVEMENT_QUEUE_SPEC.md`.** Row IQ-1 is CLOSED
+> (§0.6b). These are the rows its exit measured but did not build — IQ1-5
+> ships no production code by definition.
+
+### IQ1-5-1 — the Charges of Empire are quoted one war-effort tick stale (**OPEN**, P3)
+
+**Measured, September 14, 2026**, while reconciling completion item (iii) on
+the 1805 boot at a 40,000-gold chest:
+
+| term | ledger quote | charged | moved |
+|---|---|---|---|
+| income | 3,400 | 3,400 | 0 |
+| admin_bonus | 50 | 50 | 0 |
+| admiralty | 90 | 90 | 0 |
+| upkeep_base / surcharge | 1,512 / 1,118 | 1,512 / 1,118 | 0 |
+| **state_charges** | **1,216** | **1,337** | **+121** |
+
+Every other term is exact. The whole miss is `state_charges`, and the cause is
+confirmed by reading the rate on both sides of the advance:
+`WorldState.get_state_charges_rate` carries a `war_exhaustion` term that ticks
+**+8 per turn at war** (measured 0 → 8 → 16 → 24 → 32 over four turns), while
+the Strategic Ledger's economy tab is a **forward projection by contract**
+(CA9-N11, stated in `ledger._build_economy`'s own docstring: *"a caller
+projecting forward … passes nothing"*). So the tab prices the charge at
+**today's** war effort and `process_income_phase` levies it at **tomorrow's**.
+Three consecutive turns: quoted 1,216 / paid 1,337 · quoted 1,355 / paid 1,478
+· quoted 1,492 / paid 1,616.
+
+**Magnitude** = `(treasury − CHARGES_HOARD_FLOOR) × 8 // WAR_EFFORT_DIVISOR`,
+so it scales with the chest: **121 gold/turn at 40,000**, **277 at the control
+arm's 88,556**. It sits on the ledger's single largest discretionary term —
+whose own docstring claims *"the SINGLE source for the income phase, the
+treasury report and the ledger (shown = applied)"*, which is true of the
+formula and not of the rate fed to it.
+
+⚠ **Reproduce before fixing, and mind this trap:** `advance_turn` calls
+`process_income_phase` internally, so a probe that calls BOTH charges the
+nation twice and shows a phantom residual growing 590 → 1,061 gold/turn. Two
+of the exit's own probes did exactly that. Drive `advance_turn` alone and read
+the applied record out of `world._income_phase_results`.
+
+**Fix shape (not built):** the projection should price the rate the charge will
+actually be levied at. The war-exhaustion tick is deterministic and monotone,
+so this is arithmetic, not a guess — but check whether the tick fires for every
+belligerent before assuming +8, and whether a nation at peace on the quote turn
+can be at war on the charge turn. **Do not** make `_build_economy` read the
+applied cache to paper over it: CA9-N11 chose the projection deliberately and
+the prefer-applied path already exists for callers describing a turn that ran.
+
+### IQ1-3a′ — a standing sponsorship moves the chest and not the Net (**OPEN**, owned by IQ1-3a′ in the spec)
+
+Not new — but now **measured at face value instead of argued**. Tracing every
+write to France's purse across ten real turns, four production sites move it
+and three are named on the ledger (`process_income_phase`'s 14 declared terms,
+`process_vassal_tribute`, and `process_trade_income` delivering
+`trade_income − blockade` as one net write). The fourth,
+`instruments.process_instruments`, moved **−2,000 over ten turns** — a standing
+200 g/turn `directed_sponsorship` — and moved Net by **exactly 0**, every turn,
+for as long as it stands. See `IMPROVEMENT_QUEUE_SPEC.md` §0.6b and §0.6's
+IQ1-3a′ brief, which already carries the `_applied_income_transfers` idiom this
+must use on **both** sides and the R7 label collision it must avoid.
+
+---
+
+
+## Playtest Re-Score (PR / MS) — filed September 12, 2026 (**✅ ALL P1/P2 FIXED same session; 5 rows ROUTED**)
+
+> ### ✅ THE SLICE IS LANDED — September 12, 2026
+>
+> **Landing record: this block. Memo of record =
+> `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`, authoritative.** Sixteen seeded
+> driver runs on the committed instrument, then twelve re-run after the fixes so
+> every claim about a change is a before/after on the same seed. Tests
+> `tests/test_playtest_rescore_2026_09_12.py` (52); mutation sweep
+> `tools/_sweep_playtest_rescore.json` — **29 mutations, 29 killed, 0 INERT**
+> (six INERT on the first sweep; four were real pin weaknesses, one of them
+> **vacuous**). `BASELINE_SERIES` and M1–M7 byte-identical **without re-record,
+> with the reason MEASURED** (§8 of the memo). Zero `.gd` changes.
+>
+> ⚠ **Two arms could not run here and are recorded as NOT RUN, not as passes:**
+> `--llm anthropic` (no API key in this environment) and the Mode-C client
+> visual pass (no Godot binary). **UI/UX is not re-scored.**
+>
+> **PR-1 "The Peace That Never Was" (P1) — the peace table was a formality.**
+> Measured on the COMMANDED arm, turn 4: France ratifies Britain's settlement
+> (seven war pairs to PEACE, a 1,358-gold indemnity **from** Britain) and inside
+> the same `end turn` `process_coalition_turn` → `form_coalition` re-enrols
+> Britain, Austria and Russia and `declare_war`s for all eight qualifying
+> courts. The peace lasted **zero turns**; the loop repeated to a **tenth**
+> coalition in forty turns. Root: `qualifies_for_coalition` asked relation < −10,
+> not-a-vassal, not-already-at-war — and nothing about a peace concluded
+> yesterday; `armistice_cooldowns`, the store every other war-entry gate reads,
+> is written by no peace path and read by no coalition path. Fixed **derived**
+> (zero new serialized fields): the war instance already carries `ended_turn`
+> and a durable `participant_meta[n]["side"]` at the moment the coalition forms,
+> so a court whose war against the target ended inside the floor is not enrolled
+> as a NEW belligerent. Opposite sides required (a co-belligerent is never
+> exempted); a court's own `exited_turn` outranks the war's end. The
+> already-at-war arm is untouched, the coalition still forms around whoever is
+> free, threat keeps accruing, and the court joins the next one once the floor
+> lapses. ⚠ **`FRESH_PEACE_FLOOR_TURNS = 5` — RULED, FOR USER CONFIRMATION** (a
+> new constant; 5 matches the engine's own `armistice_cooldowns` value and is
+> the smallest that removes the same-turn annulment; the larger candidate is the
+> **8** of `settlement_third_party.PAIR_EXIT_TRUCE_FLOOR_TURNS`).
+> **Measured reach:** ambient board 39 evaluations / **0** blocks; COMMANDED
+> board 367 / **232**. That is why the series is unchanged — the driver's
+> passive France signs nothing — and it is a fact about the harness, not
+> evidence of inertness. **Balance: not a tilt.** Nine of twelve re-run arms
+> byte-identical; the three that move are the three that sign treaties, and they
+> move +6 / **−4** / 0 provinces at turn 40.
+>
+> **PR-2 "The Nation Is Not An Adjective" (P2).** Nine producers carried the
+> internal TAG into player-facing prose. Measured across nine 40-turn boards: 68 ×
+> *"A Prussia envoy has arrived"*, 29 × *"A **PapalStates** envoy"* (a raw
+> camelCase tag, which R7 forbids outright), *"the **France** fleet"* in the
+> TRAFALGAR headline, *"the **Russia** court"*, *"Vassal **KingdomOfItaly**
+> joined France's war"*, *"Portugal, Saxony and **PapalStates** rebuff
+> Prussia"*, and settlement rails listing `France + Spain + Holland + Bavaria +
+> KingdomOfItaly vs …`. `COALITION_SPEC` §3f authors the ADJECTIVE ("The
+> British Coalition", "The Second Austrian Coalition") and the code
+> interpolated the tag — **"The Fourth Russia Coalition"**, and once the ordinal
+> map ran out at seven, **"The 8th Austria Coalition"**.
+> `display_names.nation_adjective` had held the correct form all along and no
+> producer called it. Fixed at the single source: a derived `{x_display}` /
+> `{x_adjective}` suffix resolved at the dispatch fill site (composing
+> `display_nation` then `with_definite_article`, so "the Papal States" and "the
+> Ottoman Empire" get their article and "Prussia" does not), `nation_adjective`
+> in the coalition namer, `_ORDINALS` through twelve, and `display_nation` at
+> the three producers the template fix could not reach. **Found while fixing:**
+> `nation_adjective` was COINING demonyms for the NA-6c carve tags —
+> "Duchyofwarsawian", "Romanrepublician", "Polandian" — which are real runtime
+> nations, so the envoy fix would have shipped *"An envoy from the
+> Duchyofwarsawian court"*; the table gained the four carve rows and the
+> derivation now refuses to coin for any compound tag.
+>
+> **PR-4 (P3).** The most frequent dispatch headline on the board — 13 of the
+> distinct headlines across twelve runs — read *"Sire — Britain and France are
+> at war. **He** tears up the Peace Treaty to do it."* The cause clause (FA
+> slice 17 Phase 4, landed the previous day) opens with a pronoun that reads
+> only if the preceding sentence named ONE court. It names two. The clause now
+> names the declarer.
+>
+> **THE MISSION SYSTEM (MS-1..MS-10).** Audited end to end against the standing
+> question *"does it need fleshing out or more UX representation?"*. It is
+> mechanically live — four of five reachable types do real work and
+> `GATHER_INTEL`'s five-turn intel grant is correctly wired — and it was **one
+> bug from unusable after its first completion**. **MS-1 (P1):**
+> `active_diplomatic_mission` is never cleared on COMPLETION (that is what lets
+> the ledger report what was achieved); three consumers checked `completed` and
+> the Cabinet's own availability gate did not, so after the first intelligence
+> mission finishes **every mission row for every court reads "Mission already
+> active" for the rest of the campaign** while the top bar beside it says
+> Talleyrand is idle — and the dict is serialized, so the lockout survives
+> save/load. One predicate `mission_is_live` now answers it everywhere.
+> **MS-3 (P2):** every displayed effect figure was the raw table constant while
+> the tick multiplies by diplomat skill; the shipped Talleyrand is skill 10,
+> i.e. ×1.5 ALWAYS, so the game advertised "+5 relation per turn" beside a tick
+> paying **+8**, on every surface, in the player's favour. **MS-5 (P2):** the
+> undermine mission's only per-turn feedback used a template naming `{nation}`
+> and `{value}` while its producer sent `ally` and `delta`, so the KeyError arm
+> printed the template RAW, braces and all, every turn it ran. **MS-2 (P2):**
+> the DP-collapse cancellation carried the `player_mission` fog rule, which asks
+> at dispatch-build time whether the world still holds a mission aimed at that
+> court — the branch had just deleted it, so the collapse notice could never
+> reach the briefing; the elimination exit queued no dispatch event at all.
+> **MS-7 (P2):** an `UNDERMINE_ALLIANCE` mission moves target↔ally and the
+> ledger read player↔target, so ten turns of undermining Austria|Prussia from 60
+> to 10 rendered as *"Hostile → Wary (+10, 10 turns)"*. **MS-9 (P2):** three
+> mission types have no duration and no completion arm while relations clamp at
+> ±100, so at the ceiling the mission drew 1–2 DP a turn FOREVER for a relation
+> change of zero — a silent permanent tax of up to 40% of a budget that does not
+> accumulate. **MS-10 (P3):** the transit pause was undone by the very next
+> tick (no `talleyrand_state` guard on the resume arm), so both of the pause
+> writes were inert and missions earned while the diplomat was provably abroad.
+> **MS-6 (P3):** the undermine row was the only diplomacy row that did not state
+> its gate. **MS-4 (P4):** *"begin efforts to improve relations Austria"*.
+> **MS-8 (P4):** `CONTINENTAL_SYSTEM` was priced in two tables and reachable
+> from none — removed (GR9), and the one test that named it asserted a dict
+> literal and executed no production code; it is now a reachability census over
+> every priced type.
+>
+> **THE SUITE DID NOT RUN ON THIS MACHINE (PR-3, P2).** Three committed
+> portability defects, all fixed: `tests/test_notifications.py:669` used a
+> nested same-type quote inside an f-string (PEP 701, legal only on Python
+> 3.12), so the file failed to COLLECT and pytest **interrupted the entire
+> run**; `tools/mutation_sweep.py` hard-coded `.venv/Scripts/python.exe`, so the
+> sweep tool and the **twelve** pins that drive it died with `FileNotFoundError`
+> on any non-Windows checkout (the Windows path is probed FIRST, so the
+> developer's resolved value is byte-identical to the old literal); a structural
+> fog pin read an absolute `C:\Users\User\PycharmProjects\…` path; and two cheat
+> pins passed only where an untracked `.env` sets `DEBUG_MODE=true`. **The
+> pre-commit hook was unusable here until these landed.** A census pin now
+> compiles every repo source file under the running interpreter, with a
+> sensitivity arm.
+>
+> **Two defects were caught inside the fixes by this slice's own instruments.**
+> The applied-figure helper used `int()` where the tick uses `int(round(...))`
+> — the same shown-vs-applied gap one rounding mode down, red on a standing
+> pin's first run. And my first cut of MS-2 moved the event above the deletion,
+> reasoning the fog rule could then see its subject; the fog is evaluated when
+> the DISPATCH is built, a turn later, so queue order is irrelevant — this
+> file's own pin said so. **⛔ And the lesson that cost the most time: a
+> function-scoped `from … import display_nation` inside one arm of
+> `format_event_oneliner` made the name local for EVERY arm and raised
+> `UnboundLocalError` six hundred lines away.**
+
+> ### ✅ THE REVIEW ROUND — September 12, 2026 (two lenses at `295bd7f`)
+>
+> **Landing record: this block.** Two adversarial agents, each told to attack
+> the FIX rather than the finding — the discipline that has repeatedly found
+> what attacking the finding did not. **Both independently reproduced a
+> regression this slice shipped**, and between them took 8 more fixes. Tests
+> 55 → **86**; sweep **45 mutations, 45 killed, 0 INERT**; suite green.
+>
+> **⛔ MS-7 had made its own defect WORSE, and its pin was green about it.**
+> MS-7 re-pointed the Talleyrand tab's `current_relation` at the target↔ally
+> pair and left `initial_relation` reading the **player↔target** figure the
+> executor stamps — so `relation_delta` became a subtraction across two
+> different pairs. Measured on the ordinary case (undermining a HOSTILE
+> court's alliance): France↔Austria −45, Austria↔Prussia 60 → 10, and the
+> client rendered **"Hostile → Neutral (+55)" in the success COLOUR**, above
+> its own line reading "−4 relation between targets per turn". The pre-fix
+> number was wrong but coherent; the post-fix number was wrong across two
+> pairs and green. **The pin could not fail** — it hand-set `initial_relation`
+> to the PAIR value, which production never writes into that field, and put
+> the player relation ABOVE it so the sign survived twice over. Fixed as
+> **MS-7b**: the mission records `initial_pair_relation` at the one moment it
+> IS the baseline, the ledger reads the same pair on both halves, and a
+> mission started before this lands reports a delta of **zero** rather than a
+> wrong one. The pin now drives the real `start_mission` dialogue action.
+>
+> **⛔ MS-10 DESTROYED a fully funded mission after three turns of ordinary
+> envoy traffic.** The transit pause fell into the same arm as DP starvation,
+> so it incremented the counter feeding the 3-consecutive-paused-turns
+> auto-cancel — measured, three envoys on three consecutive turns killed a
+> mission holding **99 diplomatic points**, and the player was told it
+> "collapsed after prolonged inactivity", with no warning beforehand because
+> the warning is emitted only by the insufficient-DP arm. The slice's own pin
+> was a **one-tick pin over a three-tick rule**. Fixed as **MS-10b**: a
+> mission waiting for its diplomat is not a mission starving, and the clock
+> belongs to starvation. Starvation still collapses a mission — pinned.
+>
+> **⛔ PR-1 never fired on the ordinary BILATERAL peace.** `ended_turn` is
+> stamped only when NO active pair remains on the instance, and `exited_turn`
+> only when that court has none — and the shipped board is ONE merged
+> instance carrying seven pairs into which France's satellites cascade. So a
+> bilateral France–Britain peace left Britain attached and she qualified for
+> the coalition **on the turn she signed**. The measured headline case is a
+> COMMON peace, which is the one route that stamps `ended_turn` — which is
+> why the defect was invisible, and why all seven PR-1 pins (each planting a
+> synthetic two-nation instance with `ended_turn` pre-set) could not see it.
+> Fixed as **PR-1b**: the gate asks the PAIR first —
+> `diplo_key_meta[pair]["resolved_turn"]`, which `resolve_pair_to_resolved`
+> DOES stamp on every route — and the war second. Verified end to end through
+> the real `set_diplomatic_state` + `cleanup_war_end` path: Britain now
+> exempt at turn 10, qualifying again at 15. **The archive scan is deleted**
+> — a war is archived at `ended_turn + 10`, already outside any floor worth
+> setting, so that branch could never return True on a list that only grows.
+>
+> **PR-1c, the gauge.** With every ex-belligerent inside the floor the
+> Morning Dispatch read `tier: "Brewing"` with an EMPTY qualifying list, no
+> countdown and nothing behind it, for five turns — CA8-18's own lie one
+> direction over, made reachable by PR-1. A forward-looking tier nobody can
+> currently satisfy is now **Watchful**, with the reason stated; a coalition
+> that has already formed is never downgraded.
+>
+> **PR-2b/2c/2d, the naming family's own residue.** `Ireland` — the fourth
+> `formable_nations` entry and the DEF-5 client's real tag — was missed, and
+> its shape (all-alpha, no internal capital) is precisely what the
+> compound-tag guard cannot catch, so PR-2 **converted a readable-if-wrong
+> "the Ireland fleet" into a coined "the Irelandian fleet"**: the exact
+> failure its own commit message went looking for. The two new carve values
+> were also the only CAPITALISED entries in a table `strategic_parser`
+> imports and matches case-sensitively against a lower-cased line — both rows
+> structurally dead on the parse side; lowercased, and the round trip is
+> pinned (`"the Warsaw army"` → `DuchyOfWarsaw`). The compound-tag fallback
+> returned the raw camelCase tag, which its own comment promised it would not
+> — and **a pin enshrined that**; it humanises now. `_collapsed_refusal_line`
+> humanised one side of the verb and not the other, and its docstring argued
+> against the fix in terms that are **wrong about the mechanism**
+> (`apply_formation_names_to_history` searches for `display_nation(tag)` —
+> the humanised form — so composing with it is what the NA-6 dead-name repair
+> keys ON); both sides humanised, docstring restated with the verified
+> reading. And `_ORDINALS` past twelve gave **"21th"**.
+>
+> **MS-3b.** `GATHER_INTEL` RUNS three turns and grants **five** turns of
+> sight; both display strings — in the two dicts MS-3 had just edited —
+> quoted the run length as if it were the grant.
+>
+> **Four of the slice's own pins were repaired, three because the sweep said
+> so and one because a reviewer applied its stated killer:** the two
+> pre-commit-hook pins were satisfied by the error message the fix prints
+> **when it fails** (deleting the entire layout probe left both green — they
+> bind to the `PYTHON=` assignments now); the PEP-701 sensitivity arm was
+> version-dependent in the OPPOSITE direction and would have RED on the very
+> machine the defect shipped from; the ordinal pin called the helper directly
+> and never went through the call site; and the producer pin for
+> `initial_pair_relation` was an `inspect.getsource` census that an
+> `if False:` mutation leaves untouched.
+>
+> **⚠ ONE STANDING PIN FLIPPED CONSCIOUSLY.** IGR-B's
+> `test_raw_nation_tags_are_preserved` asserted the OPPOSITE of the
+> `_collapsed_refusal_line` change, on the reasoning that the NA-6 formation
+> overrides "can only rename a still-raw tag". They cannot. Measured, with
+> Italy formed on turn 10 and the line dated turn 15: the humanised
+> composition is repaired to *"… rebuff Italy"*, and the raw-tag composition
+> is **not repaired at all** — `apply_formation_names_to_history` searches
+> for `display_nation(tag)`, so a raw tag is precisely what it cannot see. The
+> old behaviour defeated the very repair it cited and left the Gazette (which
+> applies neither repair) printing an internal key. The measurement is now a
+> pin of its own.
+>
+> **Recorded, not filed** (the reviewers' own judgement, and I agree): a
+> latent `participant_meta.setdefault` on re-attach that would score a
+> volte-faced court against its old side, unreachable on the shipped board; a
+> `{delta:+d}` format spec that escapes the fill site's `except (KeyError,
+> IndexError)` guard, unreachable because its one producer casts to `int`; and
+> `_with_nation_forms` overwriting a producer-supplied `{x}_display`, which no
+> producer supplies. **One reviewer's headline was REFUTED by its own probe
+> and reported anyway** — the NA-6 dead-name hazard on `_join_courts` — and
+> PR-2 in fact improved that line from a client-side repair to a backend-side
+> one.
+
+| id | P | title | status |
+|---|---|---|---|
+| PR-1 | P1 | A ratified settlement is annulled inside the same `end turn` by `form_coalition`, which re-enrols its own signatories | **FIXED** — `COALITION_HONOURS_A_FRESH_PEACE`, `FRESH_PEACE_FLOOR_TURNS = 5` (⚠ FOR USER CONFIRMATION) |
+| PR-2 | P2 | Nine producers render the internal nation TAG in player-facing prose | **FIXED** — `DISPATCH_TEMPLATES_NAME_THE_NATION`, `COALITION_NAME_USES_THE_ADJECTIVE`, `NATION_ADJECTIVE_REFUSES_TO_COIN`, `WAR_LABEL_NAMES_ITS_COURTS`. ⚠ **A fifth producer survived the first pass and was found by RE-MEASURING, not by reading**: the settlement rail's war label, composed by several functions in two shapes (`X vs Y` and `A + B + C vs D + E`), all joining tags. Humanised at the RENDER chokepoint (`settlement_presentation.humanize_war_label`) rather than chased producer by producer — it splits only on the separators the producers use, so a display name containing a space survives and an unknown token is untouched. A 40-turn commanded run on the shipped tree now contains **zero** raw nation tags in game prose |
+| PR-3 | P2 | The committed suite does not collect on Python 3.11; the mutation sweep cannot run off Windows; three pins are machine-bound | **FIXED** |
+| PR-4 | P3 | The game's most frequent dispatch headline opens with a pronoun that has no antecedent | **FIXED** — `THE_DECLARATION_NAMES_THE_DECLARER` |
+| MS-1 | P1 | A completed mission locks every Cabinet mission row for the rest of the campaign, and the lockout survives save/load | **FIXED** — `ONE_PREDICATE_ANSWERS_MISSION_LIVENESS` |
+| MS-2 | P2 | The mission-collapse notice is fogged against the mission it has already deleted; the elimination exit queues nothing | **FIXED** — `MISSION_COLLAPSE_IS_ANNOUNCED` |
+| MS-3 | P2 | Every displayed mission figure is the unscaled table constant; the tick pays ×1.5 | **FIXED** — `MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE` |
+| MS-5 | P2 | The undermine mission's per-turn line prints its own template braces | **FIXED** — `MISSION_UNDERMINE_LINE_RENDERS` |
+| MS-7 | P2 | The mission progress readout tracks the pair the mission does not move | **FIXED** — `MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES` |
+| MS-9 | P2 | A mission at the relation ceiling charges DP forever for a measured effect of zero | **FIXED** — `MISSION_AT_THE_CEILING_IS_FINISHED` |
+| MS-10 | P3 | The transit pause is undone by the next tick; both pause writes are inert | **FIXED** — `MISSION_PAUSE_SURVIVES_TRANSIT` |
+| MS-6 | P3 | The undermine row is the only diplomacy row that does not state its gate | **FIXED** — `MISSION_UNDERMINE_ROW_IS_HONEST` |
+| MS-4 | P4 | "begin efforts to improve relations Austria" | **FIXED** |
+| MS-8 | P4 | `CONTINENTAL_SYSTEM` is priced in two tables and reachable from none | **FIXED** (removed, GR9) |
+| **PR-X1** | **P2** | **A France at zero provinces is told "the diplomatic winds favor us", and its war-purpose line lists twenty provinces it no longer holds.** Measured: ambient-marengo holds 0 provinces from turn 37 and plays four more turns. The *absence of a defeat condition* is owned by the Victory & Objectives pass (`sandbox_mode` suppresses victory AND defeat on every Europe world) — **the LEGIBILITY of the collapse is not owned there and is this row.** Completion: a France with no territory gets a dispatch that says so, and the war-purpose line does not advertise lost provinces as an objective. Owner: the next narration slice. | ✅ **FIXED September 14, 2026 by row IQ-2** (§Collapse Legibility (IQ-2) above; `87f5459a` → `f586484f` → `5c41532d` + the merge). The dispatch leads with the standing collapse headline `empire_reduced`; Talleyrand no longer says the winds favour us; a Defence war-purpose line names only what is HELD, or *"the homeland is lost"* (`WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD`). Pinned by `test_iq2_collapse_integration.py::TestTheIQ2CompletionDefinition` on a staged zero-province board through a real `end turn`. |
+| **PR-X2** | **P3** | **`defender_casualties_scope` does not exist anywhere in the backend.** `attacker_casualties_scope = "own corps"` is stamped for the attacker only (`combat_executor._reconcile_report_survivors`), so a reinforced DEFENDER's figure is his own corps and carries no label — which is FA-S17-1's own case. Completion: both sides carry a scope label, or the label is retired and one figure means one thing. Owner: the next combat-legibility slice. | OPEN |
+| **PR-X3** | **P3** | **FA-D23 ships no copy of its own.** A Broken marshal's halved contribution is reported by slice 4's pre-existing *"he and {lead} are at odds; expect about half his weight"*, which is the RELATIONSHIP vocabulary — so when the cause is trust, the player is told the wrong reason. Verified: `git log -S` puts that string in slice 4 (`d2ca022`), and the FA-D23 commit adds only the arithmetic. Completion: a trust-caused halving names trust. Owner: the FA-D23 confirmation. | OPEN |
+| **PR-X4** | **P3** | **The Stage-F intent narration never fires.** `intent_hardens` / `intent_eases` produced **zero** lines across twelve 40-turn runs on five seeds. Either the producer's weight × proximity cap is unreachable on the shipped board or the beats are exempting everything. Completion: a probe that says which, then either a reachable cap or the row retired. Owner: AI Intent. | OPEN |
+| **PR-X5** | **P4** | **`meta.json` records the scenario REQUEST, not the resolved board.** A default run records `"scenario": ""`, which a reader cannot tell from unset — the gap FA-N89 existed to close. `WorldState.scenario_name` is already serialized and display-only. Completion: the driver records the resolved name. Owner: the harness. | OPEN |
+
+---
 
 ## Verification-Pass Findings (FA-N) — filed September 2, 2026
 

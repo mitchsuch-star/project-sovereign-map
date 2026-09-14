@@ -54,28 +54,81 @@ from backend.models.world_state import WorldState
 # provinces they disrupt) and "overseas" (the authored colonial pool) are
 # the two new POSITIVE components — declared here so the guard forces
 # both render lines.
-NET_GOLD_COMPONENTS = {
-    "income": +1,
-    "trade_income": +1,
-    "admin_bonus": +1,
-    "treaty_gold": +1,
-    "vassal_tribute": +1,
-    "settlement_gold": +1,
-    "requisitions": +1,
+# IQ1-2: this map used to be a HAND-MAINTAINED THIRD COPY of the ledger's own
+# net expression, and a fourth lived in `tools/playtest_driver.py` and had
+# drifted (it omitted `admin_bonus`, leaving a residual of exactly +50 on 40
+# of 40 LEDGER rows of both archived IQ-1 arms). The docstring above always
+# said this "MUST mirror ledger.py _build_economy's net expression" — so the
+# ledger is now the single source and every reader imports it.
+from backend.game_logic.ledger import NET_GOLD_COMPONENTS  # noqa: E402
+
+# ⚠ REVIEW ROUND: collapsing the map into ledger.py removed the one sign
+# statement that lived OUTSIDE production, and this guard's whole job is to be
+# a cross-file forcing function — a test that imports its expectations from the
+# module it audits cannot notice that module changing. So the forcing function
+# is restored WITHOUT a second source of truth: production reads only
+# `ledger.NET_GOLD_COMPONENTS`; this literal is a TRIPWIRE, asserted equal to
+# it below, so adding or re-signing a Net component reds here and the author
+# has to say so on purpose.
+EXPECTED_NET_SIGNS = {
+    "income": +1, "trade_income": +1, "admin_bonus": +1, "treaty_gold": +1,
+    "vassal_tribute": +1, "settlement_gold": +1, "requisitions": +1,
     "overseas": +1,
-    "occupation": -1,
-    "contributions": -1,
-    "state_charges": -1,
-    "dotation_skim": -1,
-    "rente_cost": -1,
-    "infrastructure": -1,
-    # DEF-5 naval (NV-0/NV-1): the blockade's trade suspension and the
-    # fleet's war upkeep — both boot-zero on fleet-less worlds.
-    "blockade": -1,
-    "admiralty": -1,
-    "upkeep_base": -1,
-    "upkeep_surcharge": -1,
+    "occupation": -1, "contributions": -1, "state_charges": -1,
+    "dotation_skim": -1, "rente_cost": -1, "infrastructure": -1,
+    "blockade": -1, "admiralty": -1, "upkeep_base": -1, "upkeep_surcharge": -1,
 }
+
+
+def test_the_canonical_map_matches_the_cross_file_tripwire():
+    """If this reds, a Net component was added, removed or re-signed. That is
+    allowed — but it must be a deliberate edit in two files, and every consumer
+    (the Strategic Ledger render guard below, `tools/playtest_driver.py`) has to
+    be checked. Do not "fix" it by copying the new value across."""
+    assert NET_GOLD_COMPONENTS == EXPECTED_NET_SIGNS, describe_map_drift(
+        EXPECTED_NET_SIGNS, NET_GOLD_COMPONENTS)
+
+
+def describe_map_drift(expected: dict, actual: dict) -> str:
+    """The tripwire's diagnostic, EXTRACTED so it can be pinned.
+
+    ⚠ SYNTHESIS ROUND, and it took two passes. The first cut built the
+    "re-signed" clause inside an f-string with ESCAPED braces, so on the one
+    failure mode this tripwire exists for — a re-signed component, where
+    `added` and `removed` are both empty — the message printed the
+    comprehension's own source text and named no key at all. The second cut
+    computed it properly but was still INERT under mutation, for a reason
+    worth recording: **a test cannot check its own failure message.** Nothing
+    drives the assertion to failure, so nothing reads what it says. Extracting
+    the message into a pure function is what makes it assertable.
+    """
+    added = sorted(set(actual) - set(expected))
+    removed = sorted(set(expected) - set(actual))
+    resigned = {k: (expected[k], actual[k])
+                for k in sorted(set(actual) & set(expected))
+                if actual[k] != expected[k]}
+    return (f"ledger.NET_GOLD_COMPONENTS changed: added {added}, "
+            f"removed {removed}, re-signed (was, now) {resigned}")
+
+
+def test_the_drift_diagnostic_names_the_offending_key():
+    """The re-sign case is the ONE this tripwire exists for, and it is the one
+    where `added` and `removed` are both empty — so if the message does not
+    name the key there, it names nothing useful at all."""
+    base = {"income": +1, "upkeep_base": -1}
+    resigned = describe_map_drift(base, {"income": -1, "upkeep_base": -1})
+    assert "income" in resigned
+    assert "(1, -1)" in resigned, resigned
+    assert "added []" in resigned and "removed []" in resigned
+
+    added = describe_map_drift(base, {**base, "tariffs": +1})
+    assert "tariffs" in added
+
+    removed = describe_map_drift(base, {"income": +1})
+    assert "upkeep_base" in removed
+
+    # …and it must not name a key that did not move.
+    assert "upkeep_base" not in resigned.split("re-signed")[1]
 
 _LEDGER_GD = (
     Path(__file__).resolve().parents[1]

@@ -305,7 +305,7 @@ class TestSection2BlockingLifecycle:
             "raw_command": "cheat clear_dialogue",
         }
         # Call _execute_cheat directly (execute() guard blocks ALL commands when dialogue pending)
-        with patch.dict("os.environ", {"LLM_MODE": "mock"}):
+        with patch.dict("os.environ", {"LLM_MODE": "mock", "DEBUG_MODE": "true"}):
             result = executor._execute_cheat(command, gs)
         assert result.get("success") is True
         assert "Cleared" in result.get("message", "")
@@ -323,7 +323,7 @@ class TestSection2BlockingLifecycle:
             "cheat_args": [],
             "raw_command": "cheat clear_dialogue",
         }
-        with patch.dict("os.environ", {"LLM_MODE": "mock"}):
+        with patch.dict("os.environ", {"LLM_MODE": "mock", "DEBUG_MODE": "true"}):
             result = executor._execute_cheat(command, gs)
         assert result.get("success") is True
         assert "No dialogue" in result.get("message", "")

@@ -569,6 +569,55 @@ func _render_economy():
 	var net_sign = "+" if net >= 0 else ""
 	bbcode += "  Net:      [color=#" + net_color + "]" + net_sign + str(net) + "g[/color]\n"
 
+	# IQ-1 SW-0 "The Chest Speaks". Both lines are informational and sit
+	# BELOW Net on purpose: `Spent` is money already gone this turn (the
+	# projection above does not and must not count it twice), and `Ceiling`
+	# is where the Charges of Empire are steering the treasury at the rate
+	# now in force — a destination, not a flow.
+	var spent = int(econ.get("spent", 0))
+	if spent > 0:
+		bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]Spent:    -" + str(spent) + "g  (orders paid for this turn)[/color]\n"
+	# IQ1-2: the ceiling had ONE sentence for three states, and the zero
+	# sentinel meant the line VANISHED exactly when the chest was largest
+	# (the charge had exceeded the gross, so the old post-charge argument
+	# went negative). The three states are now named by the backend.
+	var ceiling = int(econ.get("ceiling", 0))
+	var ceiling_state = str(econ.get("ceiling_state", "bounded"))
+	if ceiling_state == "unbounded":
+		# Review round: name the CHARGES, not "the chest". This prints ~20
+		# lines under an "Upkeep: -865g" line that IS drawing on the chest, so
+		# "nothing is drawing on the chest" contradicted the payload above it.
+		bbcode += "  [color=#" + Utils.COLOR_DIMMED \
+			+ "]Ceiling:  none — the charges of empire do not draw at this rate[/color]\n"
+	elif ceiling_state == "no_surplus":
+		# Review round: the COLOUR was inverted. This is the worst economic
+		# state the tab can report — the treasury is not growing at all — and
+		# it was rendered in the calmest colour in the palette, dimmer than
+		# the merely-informational bounded line. It is an ERROR now, and the
+		# sentence says what is true rather than what is absent.
+		bbcode += "  [color=#" + Utils.COLOR_ERROR \
+			+ "]Ceiling:  none — the chest is not growing at this rate[/color]\n"
+	elif ceiling > 0:
+		if treasury > ceiling:
+			# The chest is PAST its own fixed point, so the charges are pulling
+			# it back down. ⚠ REVIEW ROUND CORRECTION: the first version of
+			# this comment said the case "could not previously be rendered at
+			# all". That is FALSE and the review caught it — the case WAS
+			# rendered before, by the generic arm below, with the wrong copy
+			# ("where the charges level the chest off") and, at a chest above
+			# a quarter of the ceiling, the calm colour. What was unreachable
+			# was a ceiling BELOW the chest that is also CORRECT; the old
+			# post-charge argument understated it toward zero.
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Ceiling:  " \
+				+ _format_number(ceiling) \
+				+ "g  — the chest is above it; the charges are drawing it down[/color]\n"
+		else:
+			var ceil_color = Utils.COLOR_DIMMED
+			if treasury > 0 and ceiling > treasury * 4:
+				ceil_color = Utils.COLOR_WARNING
+			bbcode += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
+				+ "g  (where the charges level the chest off at this rate)[/color]\n"
+
 	if bankruptcy > 0:
 		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"
 

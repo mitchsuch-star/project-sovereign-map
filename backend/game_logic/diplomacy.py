@@ -10085,13 +10085,31 @@ def _process_mission_dp(world) -> List[Dict]:
     cost = MISSION_DP_COSTS.get(mission["type"], 1)
 
     if mission.get("paused"):
+        # MS-10: two call sites pause the mission while Talleyrand carries a
+        # proposal abroad, and this resume arm had no `talleyrand_state`
+        # guard — so the next tick un-paused, charged the DP and applied the
+        # full relation change while the diplomat was provably elsewhere.
+        # Both of those writes were inert.
+        _in_transit = (MISSION_PAUSE_SURVIVES_TRANSIT
+                       and getattr(world, 'talleyrand_state', '') == "IN_TRANSIT")
         # Already paused — check if we can resume
-        if world.diplomatic_points >= cost:
+        if world.diplomatic_points >= cost and not _in_transit:
             # Resume
             mission["paused"] = False
             mission["paused_turns"] = 0
             world.diplomatic_points -= cost
             mission["turns_active"] = mission.get("turns_active", 0) + 1
+        elif _in_transit and world.diplomatic_points >= cost:
+            # MS-10b (review round, September 12 2026): a mission WAITING for
+            # its diplomat is not a mission STARVING. The first cut let the
+            # transit case fall into the arm below, which feeds the
+            # 3-consecutive-paused-turns auto-cancel at the foot of this
+            # function — measured, three envoys on three consecutive turns
+            # DESTROYED a fully funded mission (99 DP throughout) and told
+            # the player it had "collapsed after prolonged inactivity",
+            # with no warning beforehand because the warning is emitted only
+            # by the insufficient-DP arm. The clock belongs to starvation.
+            pass
         else:
             # Still can't afford — increment paused turns
             mission["paused_turns"] = mission.get("paused_turns", 0) + 1
@@ -10124,12 +10142,47 @@ def _process_mission_dp(world) -> List[Dict]:
             "target": target,
             "message": f"Talleyrand's mission to {target} has collapsed after prolonged inactivity.",
         })
-        # Dispatch event (Session 8D)
+        # MS-2 (playtest re-score, September 12 2026): this event carried the
+        # `player_mission` fog rule, which asks — at DISPATCH-BUILD time, a
+        # turn later — whether the world still holds a mission aimed at
+        # `nation`. This branch has just deleted it, so the answer was always
+        # no: the mission died after three starved turns and the briefing
+        # could never say so. (Queueing earlier does NOT fix it; the fog is
+        # evaluated when the dispatch is built, not when the event is
+        # queued — my own first cut, caught by this file's own pin.) The
+        # END of the player's own mission is never a secret from him.
         from backend.game_logic.dispatch import queue_dispatch_event as _qde
-        _qde(world, "diplomatic_mission_cancelled",
-             {"nation": target}, "player_mission")
+        _qde(world, "diplomatic_mission_cancelled", {"nation": target},
+             "always" if MISSION_COLLAPSE_IS_ANNOUNCED else "player_mission")
 
     return events
+
+
+# ── MS flip levers (playtest re-score, September 12 2026). False arms
+#    reproduce the pre-fix behaviour exactly. ──
+MISSION_COLLAPSE_IS_ANNOUNCED = True
+MISSION_UNDERMINE_LINE_RENDERS = True
+MISSION_UNDERMINE_ROW_IS_HONEST = True
+MISSION_AT_THE_CEILING_IS_FINISHED = True
+MISSION_PAUSE_SURVIVES_TRANSIT = True
+
+
+def get_mission_skill_multiplier(world) -> float:
+    """The acting diplomat's mission multiplier — 10 -> 1.5x, 4-6 -> 0.75x.
+
+    MS-3: extracted from `_process_mission_effects` so the display surfaces
+    can quote the figure the tick will actually write instead of the table's
+    unscaled base. Single source; the tick below calls it.
+    """
+    player_nation = getattr(world, 'player_nation', 'France')
+    diplomats = getattr(world, 'diplomats', {}) or {}
+    talleyrand = diplomats.get(player_nation)
+    skill = talleyrand.skill if talleyrand else 5
+    if skill >= 10:
+        return 1.5
+    if 4 <= skill <= 6:
+        return 0.75
+    return 1.0
 
 
 def _process_mission_effects(world) -> List[Dict]:
@@ -10147,25 +10200,43 @@ def _process_mission_effects(world) -> List[Dict]:
     if not target:
         return events
 
-    # Get Talleyrand skill for bonus calculation
     player_nation = getattr(world, 'player_nation', 'France')
-    diplomats = getattr(world, 'diplomats', {})
-    talleyrand = diplomats.get(player_nation)  # Player's diplomat
-    skill = talleyrand.skill if talleyrand else 5
-
-    # Skill multiplier: 10 → 1.5x, 4-6 → 0.75x, else → 1.0x
-    if skill >= 10:
-        multiplier = 1.5
-    elif 4 <= skill <= 6:
-        multiplier = 0.75
-    else:
-        multiplier = 1.0
+    multiplier = get_mission_skill_multiplier(world)
 
     # Apply relation change
     relation_change = effects.get("relation_change", 0)
     if relation_change:
         scaled = int(round(relation_change * multiplier))
+        # MS-9 (playtest re-score, September 12 2026): IMPROVE_RELATIONS,
+        # COURT_NATION and REASSURE_ALLY have no `duration` and no
+        # completion arm, and relations clamp at +/-100 — so a mission that
+        # reached the ceiling went on drawing 1-2 DP a turn, forever, for a
+        # measured relation change of ZERO, while the ledger still read
+        # "Ongoing" and quoted its full per-turn effect. DP does not
+        # accumulate and regen is 5/turn, so that is a silent permanent tax
+        # of up to 40% of the whole diplomatic budget. A mission whose work
+        # is done is DONE; it is not given a duration it was never
+        # designed to have.
+        _key = world._make_diplo_key(player_nation, target)
+        _before = int(world.nation_relations.get(_key, 0) or 0)
         world.modify_nation_relation(player_nation, target, scaled)
+        _after = int(world.nation_relations.get(_key, 0) or 0)
+        if MISSION_AT_THE_CEILING_IS_FINISHED and _before == _after and scaled:
+            mission["completed"] = True
+            world.talleyrand_state = "IDLE"
+            _ceiling = "highest" if scaled > 0 else "lowest"
+            events.append({
+                "type": "diplomatic_mission_completed",
+                "target": target,
+                "mission_type": mission_type,
+                "message": (
+                    f"Relations with {target} can go no {_ceiling}, Sire — "
+                    "Talleyrand's mission has done all it can and is closed."),
+            })
+            from backend.game_logic.dispatch import queue_dispatch_event as _q
+            _q(world, "diplomatic_mission_completed",
+               {"nation": target}, "player_mission")
+            return events
         # Dispatch event (Session 8D)
         diplo_key = world._make_diplo_key(player_nation, target)
         current_relation = world.nation_relations.get(diplo_key, 0)
@@ -10236,10 +10307,22 @@ def _process_mission_effects(world) -> List[Dict]:
                 scaled_pair = int(round(pair_change * multiplier))
                 world.modify_nation_relation(target, target_ally, scaled_pair)
                 from backend.game_logic.dispatch import queue_dispatch_event
-                queue_dispatch_event(world, "diplomatic_mission_progress",
-                                    {"nation": target, "ally": target_ally,
-                                     "delta": int(scaled_pair)},
-                                    "player_mission")
+                # MS-5: `diplomatic_mission_progress`'s template reads
+                # `{nation}` and `{value}`; this producer sends `ally` and
+                # `delta` instead, so `_format_dispatch_event_text` caught
+                # the KeyError and printed the template RAW — measured, the
+                # only per-turn feedback an undermining mission has rendered
+                # as literal "Relations now at {value}." every turn it ran.
+                queue_dispatch_event(
+                    world,
+                    ("diplomatic_mission_undermine_progress"
+                     if MISSION_UNDERMINE_LINE_RENDERS
+                     else "diplomatic_mission_progress"),
+                    {"nation": target, "ally": target_ally,
+                     "delta": int(scaled_pair),
+                     "value": int(world.nation_relations.get(
+                         world._make_diplo_key(target, target_ally), 0))},
+                    "player_mission")
                 # Auto-cancel if alliance broke
                 if not world.are_allies(target, target_ally):
                     mission["completed"] = True
@@ -10300,6 +10383,14 @@ def _check_mission_target_eliminated(world) -> List[Dict]:
             "type": "diplomatic_mission_cancelled_eliminated",
             "target": target,
         })
+        # MS-2, second arm: this exit queued NO dispatch event at all, so a
+        # mission that ended because its court was wiped off the map reached
+        # the campaign log and nothing else. `always`, for the same reason as
+        # the DP-collapse arm: the mission it would be fogged against is gone.
+        if MISSION_COLLAPSE_IS_ANNOUNCED:
+            from backend.game_logic.dispatch import queue_dispatch_event as _qde
+            _qde(world, "diplomatic_mission_cancelled", {"nation": target},
+                 "always")
 
     return events
 
@@ -10577,6 +10668,9 @@ def apply_continental_system(world) -> None:
             # erased any pre-existing debt (a nation at -3,000 was lifted to 0
             # every turn), conjuring gold outside every ledger component
             # (Aug 2026 health-check audit).
+            # IQ1-2 (3): NOT in `Spent` — the Continental System's cost is a
+            # per-turn consequence of a standing policy, not a purchase, and
+            # it debits BOTH sides. It belongs on a signed Net line; IQ1-3a.
             if member in world.nation_gold:
                 world.nation_gold[member] -= min(
                     int(blocked), max(0, world.nation_gold[member])
@@ -10790,14 +10884,29 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 row["disabled_reason_display"] = TRANSIT_DISABLED_REASON
         return rows
 
+    def _has_any_ally(world_, court: str) -> bool:
+        """MS-6: does `court` hold an alliance anyone could be parted from?"""
+        for other in world_.get_active_nations():
+            if other == court:
+                continue
+            try:
+                if world_.are_allies(court, other):
+                    return True
+            except Exception:
+                continue
+        return False
+
     def _cancel_mission_row():
         """DPF-2 cancel-mission row, shared by the vassal branch and the
         foreign-affairs tail (WO-D2/G1 contract 8: the vassal branch's
         early `return` used to drop it — once the wizard is the only
         door, a mission against a later-vassalized court would have lost
         its only cancel)."""
+        from backend.game_logic.diplomatic_dialogue import (
+            mission_is_live as _mission_is_live)
         mission = getattr(world, 'active_diplomatic_mission', None)
-        if not mission or mission.get("target") != target_nation:
+        # MS-1: a finished mission is a record, not something to cancel.
+        if not _mission_is_live(world) or mission.get("target") != target_nation:
             return None
         initial = int(mission.get("initial_relation") or 0)
         current_rel = int(world.nation_relations.get(
@@ -11065,17 +11174,28 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         }
 
     # ── MISSION HELPERS ──
-    from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS
+    from backend.game_logic.diplomatic_dialogue import (
+        MISSION_DP_COSTS, mission_effect_magnitude, mission_is_live)
     active_mission = getattr(world, 'active_diplomatic_mission', None)
     tal_state = getattr(world, 'talleyrand_state', 'IDLE')
 
-    # W5: Mission effect text mapping
+    # W5 / MS-3: the effect text quotes the SCALED figure the tick writes —
+    # the shipped Talleyrand's skill is 10, so every one of these read low
+    # by a third ("+5 relation/turn" while the engine applied +8).
+    def _rel(mt, key="relation_change"):
+        return mission_effect_magnitude(world, mt, key)
+
     _MISSION_EFFECT_SHORT = {
-        "IMPROVE_RELATIONS": "+5 relation/turn",
-        "COURT_NATION": "+5 relation/turn, 20% blowback",
-        "GATHER_INTEL": "3-turn full intel",
-        "UNDERMINE_ALLIANCE": "-3 relation between targets/turn",
-        "REASSURE_ALLY": "+3 relation/turn",
+        "IMPROVE_RELATIONS": f"{_rel('IMPROVE_RELATIONS'):+d} relation/turn",
+        "COURT_NATION": f"{_rel('COURT_NATION'):+d} relation/turn, 20% blowback",
+        # MS-3b (review round): "3-turn" is the mission's RUN length; the
+        # reward is `current_turn + 5` turns of visibility. Both strings
+        # quoted the run length as if it were the grant.
+        "GATHER_INTEL": "3 turns, then full intel for 5",
+        "UNDERMINE_ALLIANCE": (
+            f"{_rel('UNDERMINE_ALLIANCE', 'target_pair_relation_change'):+d} "
+            "relation between targets/turn"),
+        "REASSURE_ALLY": f"{_rel('REASSURE_ALLY'):+d} relation/turn",
     }
 
     def _mission_action(action_key: str, display: str, mission_type: str):
@@ -11085,9 +11205,21 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if tal_state == "IN_TRANSIT":
             available = False
             reason = "Talleyrand in transit"
-        elif active_mission is not None:
+        elif mission_is_live(world):
+            # MS-1: `active_mission is not None` locked the desk FOREVER —
+            # a completed mission is never cleared, so the first finished
+            # intelligence run shut every mission row for every court while
+            # the top bar beside it still said Talleyrand was idle.
             available = False
             reason = "Mission already active"
+        elif (mission_type == "UNDERMINE_ALLIANCE"
+              and MISSION_UNDERMINE_ROW_IS_HONEST
+              and not _has_any_ally(world, target_nation)):
+            # MS-6: the only row in the diplomacy list that did not state
+            # its gate. It rendered enabled at 2 DP against a court with no
+            # alliances at all and dead-ended in a Dismiss-only refusal.
+            available = False
+            reason = "No alliance to undermine"
         elif dp < cost:
             available = False
             reason = "Insufficient DP"

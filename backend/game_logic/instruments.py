@@ -480,6 +480,10 @@ def process_instruments(world) -> List[Dict]:
             payer_gold = int(world.nation_gold.get(payer, 0))
             paid = min(amount, max(0, payer_gold))
             if paid > 0:
+                # IQ1-2 (3): NOT in `Spent` — a per-turn obligation under a
+                # signed instrument, and a TRANSFER (the recipient's rise is
+                # the same gold). It belongs on a signed Net line on BOTH
+                # sides via the applied-transfer idiom; owner IQ1-3a.
                 world.nation_gold[payer] = payer_gold - paid
                 world.nation_gold[recipient] = int(
                     world.nation_gold.get(recipient, 0)) + paid

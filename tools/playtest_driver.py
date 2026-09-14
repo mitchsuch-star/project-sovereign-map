@@ -357,6 +357,30 @@ _ANNOTATION_RE = re.compile(r"^\[[^\]]*\]")
 # make the coverage half of the census vacuous, which is the failure it
 # exists to prevent.
 from backend.campaign_log import COURT_TO_COURT_EVENT_TYPES as _ENGINE_ARM  # noqa: E402
+# IQ1-2 (4): the same rule, one module over. The digest kept a FOURTH
+# hand-maintained copy of the ledger's net expression and it had drifted.
+# The ledger is the source — its own reconciliation test has said so in a
+# docstring since it was written — so the signs are derived, never restated.
+#
+# ⚠ REVIEW ROUND: this import does NOT inherit `campaign_log`'s "pure data with
+# no game state" licence, and the comment above must not be read as extending
+# it. Measured: `backend.campaign_log` pulls 7 backend modules; this one pulls
+# 23 more, including `world_state`, `region`, `nation_config`, `dispatch` and
+# `agendas`. It is still safe, for a reason worth stating rather than assuming:
+# `backend.main` is NOT among them (the world is not booted), and an AST census
+# of MODULE-SCOPE `os.environ` reads across all 29 finds exactly one —
+# `backend/utils/debug.py`'s `INK_DEBUG`, which this driver never sets. So none
+# of the six variables `make_inprocess_transport` sets is captured at import
+# time. The risk is latent, not live; if a module-scope env read is ever added
+# under `backend/game_logic/`, move `NET_GOLD_COMPONENTS` to a leaf constants
+# module that both the ledger and this driver import.
+from backend.game_logic.ledger import (  # noqa: E402
+    NET_GOLD_COMPONENTS as _ENGINE_NET_COMPONENTS,
+)
+
+_NET_NEGATIVE_KEYS = frozenset(
+    k for k, sign in _ENGINE_NET_COMPONENTS.items() if sign < 0
+) | {"upkeep"}   # the folded total stands in for base + surcharge
 
 _ENGINE_COURT_TO_COURT = frozenset(_ENGINE_ARM)
 
@@ -398,6 +422,13 @@ AI_AI_LOG_TYPES = frozenset({
 # `Digest.NET_COMPONENTS` readers are unchanged.
 NET_COMPONENTS = (
     ("income", "income"), ("trade_income", "trade"),
+    # IQ1-2 (4): `admin_bonus` was MISSING, and it is the only component the
+    # digest's NET line omitted. Measured on the archived turn-40 row:
+    #   3550 + 620 + 937 - 624 - 1038 - 15 - 480 = 2,950 against a printed
+    #   net of +3,000 — a residual of exactly +50, on 40 of 40 rows of BOTH
+    # post-SW-0 arms. This was a fourth hand-maintained copy of the ledger's
+    # own net expression; it is now checked against the canonical map below.
+    ("admin_bonus", "admin"),
     ("overseas", "overseas"), ("vassal_tribute", "tribute"),
     ("treaty_gold", "treaty"), ("settlement_gold", "settlement"),
     ("upkeep", "upkeep"), ("state_charges", "charges"),
@@ -406,6 +437,13 @@ NET_COMPONENTS = (
     ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
     ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
 )
+
+# The one deliberate difference from the ledger's canonical map: the digest
+# prints the FOLDED `upkeep` total where the ledger declares `upkeep_base`
+# and `upkeep_surcharge` separately. `total == base + surcharge` is a pinned
+# ES-3 invariant, so the fold sums identically and the archived digests stay
+# diff-comparable. Anything else that diverges is drift.
+NET_COMPONENTS_FOLDED = {"upkeep": ("upkeep_base", "upkeep_surcharge")}
 
 
 # The rail's cap, and the fog's. MODULE-level, because a stub Digest that
@@ -661,7 +699,13 @@ def make_inprocess_transport(args, out_dir):
     else:
         import backend.main as backend_main
 
-    return Transport(TestClient(backend_main.app), "in-process", console_log)
+    tx = Transport(TestClient(backend_main.app), "in-process", console_log)
+    # IQ-1 SW-0: the in-process transport can see the whole board. Used for
+    # ONE thing — recording every nation's treasury to the jsonl so a GR5
+    # economy claim is falsifiable from a digest. Never read for anything
+    # the player-facing markdown renders.
+    tx.backend_main = backend_main
+    return tx
 
 
 def make_http_transport(args):
@@ -676,6 +720,27 @@ def make_http_transport(args):
 # ═══════════════════════════════════════════════════════════════════════
 # Digest
 # ═══════════════════════════════════════════════════════════════════════
+
+def _all_purses(transport):
+    """Every nation's treasury, or None when the driver has no world.
+
+    IQ-1 SW-0. Omniscient by construction, so the caller records it to the
+    jsonl only. Returns None under `--http` (no in-process handle) and on
+    any failure, because a measurement instrument that raises is worse than
+    one that is silent about a thing it could not see.
+    """
+    bm = getattr(transport, "backend_main", None)
+    if bm is None:
+        return None
+    try:
+        world = getattr(bm, "world", None)
+        gold = getattr(world, "nation_gold", None)
+        if not isinstance(gold, dict):
+            return None
+        return dict(gold)
+    except Exception:
+        return None
+
 
 class Digest:
     def __init__(self, out_dir, meta):
@@ -1111,8 +1176,73 @@ class Digest:
             self._md(f"  - LOG {etype}: {text}")
             self.record("campaign_log", dtype=etype, text=text, log_turn=turn)
 
+    def observe_spend(self, economy):
+        """Review round: keep the HIGH-WATER MARK of the turn's tally.
+
+        `/command` auto-ends the turn when the last action point is spent,
+        and `_advance_turn_internal` clears `gold_spent_this_turn` — so a
+        single read taken before `end turn` misses a purchase made with the
+        last AP. Reading after each command and keeping the max closes every
+        case except the auto-advance itself, which is stated at the call site.
+        """
+        if not isinstance(economy, dict):
+            return
+        spent = int(economy.get("spent", 0) or 0)
+        if spent > int(getattr(self, "_turn_spend_peak", 0) or 0):
+            self._turn_spend_peak = spent
+            self._turn_spend_treasury = int(economy.get("treasury", 0) or 0)
+
+    def observe_end_turn_spend(self, response):
+        """⚠ REVIEW-ROUND SYNTHESIS: close the auto-advance hole rather than
+        restate it.
+
+        `/command` auto-ends the turn when the last action point is spent and
+        `_advance_turn_internal` clears the tally inside that same call, so a
+        purchase made with the last AP was invisible to every /ledger read. The
+        first fix called that "a stated limit — the figure is in the end-turn
+        banner the digest already prints", and THAT WAS FALSE: `Digest.command`
+        prints `first_line(message)` only, and the banner is on a later line —
+        measured, the archived spender digest contains ZERO occurrences of
+        `| Spent:`. So the figure was recoverable from no archive at all.
+
+        It does not need to be. Both end-turn producers already stamp a
+        STRUCTURED `spent` on the `turn_end` event (`executor.py` and
+        `meta_executor.py`), which rides the response. Read that.
+        """
+        if not isinstance(response, dict):
+            return
+        for event in (response.get("events") or []):
+            if not isinstance(event, dict) or event.get("type") != "turn_end":
+                continue
+            spent = int(event.get("spent", 0) or 0)
+            if spent > int(getattr(self, "_turn_spend_peak", 0) or 0):
+                self._turn_spend_peak = spent
+                self._turn_spend_treasury = int(event.get("treasury", 0) or 0)
+
+    def turn_spend(self, economy):
+        """IQ1-2 (5): what THIS turn's orders cost, read before the turn
+        ends and the engine clears the tally. Prints only when the player
+        actually bought something, so a passive arm is unchanged."""
+        # ⚠ NO self-call to `observe_spend`. A stub Digest BORROWS single
+        # methods (the module comment above records it), so one borrowed method
+        # calling another breaks from a distance — which this slice's own pin
+        # caught immediately. The peak update is inlined instead.
+        if isinstance(economy, dict):
+            _last = int(economy.get("spent", 0) or 0)
+            if _last > int(getattr(self, "_turn_spend_peak", 0) or 0):
+                self._turn_spend_peak = _last
+                self._turn_spend_treasury = int(economy.get("treasury", 0) or 0)
+        spent = int(getattr(self, "_turn_spend_peak", 0) or 0)
+        treasury = int(getattr(self, "_turn_spend_treasury", 0) or 0)
+        self._turn_spend_peak = 0
+        self._turn_spend_treasury = 0
+        if spent <= 0:
+            return
+        self._md(f"- SPENT {spent}g on this turn's orders")
+        self.record("turn_spend", spent=spent, treasury=treasury)
+
     def ledger_line(self, treasury, net, threat, provinces=None,
-                    economy=None):
+                    economy=None, purses=None, army=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -1135,10 +1265,55 @@ class Digest:
                      else f" ({provinces - last:+d})")
             bits.append(f"provinces {provinces}{delta}")
             self._last_provinces = provinces
+        # IQ-1 SW-0 "The Chest Speaks". Two numbers the digest could never
+        # show: what the turn actually SPENT (`gold_spent_this_turn`,
+        # serialized since Phase 6 and rendered nowhere) and where EB-1's
+        # Charges of Empire are steering the chest at the rate now in force.
+        # Without them a run's economy story is a treasury column with no
+        # cause beside it.
+        spent = None
+        ceiling = None
+        if isinstance(economy, dict):
+            # Review round: `spent` is STRUCTURALLY DEAD on this read.
+            # `_advance_turn_internal` clears `gold_spent_this_turn`, and this
+            # line runs AFTER the end turn — so it recorded a FALSE 0 in the
+            # jsonl beside `turn_spend`'s true figure, which is worse than
+            # recording nothing. The live read is `turn_spend`, in the turn
+            # loop. Kept only as an assertion that it IS zero here.
+            spent = int(economy.get("spent", 0) or 0)
+            ceiling = int(economy.get("ceiling", 0) or 0)
+            if ceiling:
+                bits.append(f"ceiling {ceiling}")
+        # IQ1-2 (5): the army, beside the chest. Completion item (ii) — "a
+        # losing France's Net is worse than a winning France's AT THE SAME
+        # ARMY SIZE" — has no instrument without it, and the figure was on
+        # the payload the driver already fetched.
+        if army is not None:
+            bits.append(f"army {army}")
         if bits:
             self._md("- LEDGER " + " · ".join(bits))
             self.record("ledger", treasury=treasury, net=net, threat=threat,
-                        provinces=provinces)
+                        provinces=provinces, ceiling=ceiling,
+                        # Review round: WHICH zero. `ceiling` is an int-safe
+                        # GR2 sentinel, so 0 meant two different facts — "the
+                        # charges do not draw at all" and "the chest is not
+                        # growing" — and an archived run could not tell them
+                        # apart. The backend now says; record what it says.
+                        ceiling_state=(economy.get("ceiling_state")
+                                       if isinstance(economy, dict) else None),
+                        army=army)
+        # IQ-1 SW-0: the OTHER purses. The digest recorded the player's
+        # treasury and no AI treasury at all, so no GR5 claim about the
+        # economy was falsifiable from any archived digest — measured
+        # September 12, 2026, and it needed a bespoke probe to see that a
+        # neutral Ottoman Empire ends a 40-turn ambient run as the richest
+        # state in Europe (55,062g, 68.8x its boot chest). This is OMNISCIENT
+        # data: it goes to the jsonl only, never to the markdown the digest
+        # reads like a player's eye view, and it is None under --http, where
+        # the driver has no world handle.
+        if purses:
+            self.record("purses", purses={str(k): int(v)
+                                          for k, v in purses.items()})
         # FA-37. Only the components that MOVED — a run's economy story is
         # which term turned on, and a line of eleven zeroes hides it.
         if isinstance(economy, dict):
@@ -1149,7 +1324,25 @@ class Digest:
             if moved:
                 self._md("  - NET " + " · ".join(
                     f"{label} {value}" for label, value in moved.items()))
-            self.record("economy", **moved)
+            # IQ1-2 (4): the NET sub-line must re-sum to the `net` printed
+            # beside it. Recorded (never printed) so a drift is falsifiable
+            # from any archived run rather than needing a bespoke probe.
+            residual = None
+            if isinstance(net, int):
+                total = 0
+                for key, _label in NET_COMPONENTS:
+                    value = economy.get(key)
+                    if not isinstance(value, (int, float)):
+                        continue
+                    sign = -1 if key in _NET_NEGATIVE_KEYS else +1
+                    total += sign * int(value)
+                # Review round: SIGN CORRECTED. `printed_net - component_sum`,
+                # so a POSITIVE residual means the printed sub-line UNDER-counts
+                # — which is the direction every prose statement of this defect
+                # uses ("under-counted by exactly 50"). The first cut computed
+                # it the other way round and read -50.
+                residual = int(net) - total
+            self.record("economy", net_residual=residual, **moved)
 
     def dispatch(self, text, events=None, turn_events=None):
         head = first_line(text, 200)
@@ -2302,6 +2495,16 @@ def run(args):
             response = transport.post("/command", {"command": text})
             digest.command(text, response)
             expeditions.observe(text, response)          # FA-85
+            # IQ1-2 review round: keep the turn's spend HIGH-WATER MARK as we
+            # go. `/command` auto-ends the turn on the last action point and
+            # the engine clears the tally then, so a single read before
+            # `end turn` misses a purchase made with the last AP (measured).
+            if not response.get("turn_advanced"):
+                _seen = transport.get("/ledger")
+                _seen_body = _seen.get("ledger") if isinstance(_seen, dict) else None
+                digest.observe_spend(
+                    (_seen_body or {}).get("economy")
+                    if isinstance(_seen_body, dict) else None)
             drain(transport, digest, answerer, response, args.strict)
             for reply in answerer.reward_from_rail(response):   # FA-90 (ii)
                 drain(transport, digest, answerer, reply, args.strict)
@@ -2332,8 +2535,33 @@ def run(args):
             digest.note(f"saved `{args.name}_t{turn_index}` → "
                         f"{first_line(saved.get('message'))}")
 
+        # IQ1-2 (5): read the chest BEFORE the turn ends. `_advance_turn_internal`
+        # clears `gold_spent_this_turn`, and the driver's only two `/ledger`
+        # reads were the turn header and post-end-turn — so `spent` rendered on
+        # ZERO rows of all three archived IQ-1 digests, INCLUDING the spender
+        # arm that bought 18,852 gold of substitutes. A sink the instrument
+        # cannot see cannot be measured, and this row is the whole point of
+        # IQ-1. Cheap: one GET, and only what the turn actually spent is kept.
+        _pre = transport.get("/ledger")
+        _pre_body = _pre.get("ledger") if isinstance(_pre, dict) else None
+        _pre_econ = (_pre_body or {}).get("economy") if isinstance(_pre_body, dict) else None
+        # ⚠ REVIEW ROUND — A SECOND CLEAR, NOW CLOSED. The tally is
+        # cleared by `_advance_turn_internal`, and `/command` AUTO-ENDS THE
+        # TURN when the last action point is spent — so a purchase made with
+        # the last AP is already gone by the time this read happens, measured.
+        # `turn_spend` takes the MAX of every reading taken during the turn
+        # (see the per-command reads above) AND of the structured `spent` on
+        # the end-turn event, which is why the flush happens after the end turn
+        # rather than before it. The synthesis round killed the earlier claim
+        # that the auto-advance case was "a stated limit, the figure is in the
+        # banner the digest already prints" — the digest prints only the first
+        # line of the message, so it was a silent hole. It is closed.
+        digest.observe_spend(_pre_econ)
+
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
+        digest.observe_end_turn_spend(response)
+        digest.turn_spend(None)
         digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
                            response.get("enemy_phase"))
         # FA-77: sited in the LOOP, not in `Answerer.scan`. Measured over 52
@@ -2407,7 +2635,10 @@ def run(args):
                            dig(ledger, "net_gold", "net"),
                            threat,
                            len(own) if isinstance(own, list) else None,
-                           economy=(body or {}).get("economy"))
+                           economy=(body or {}).get("economy"),
+                           purses=_all_purses(transport),
+                           army=((body or {}).get("economy") or {}).get(
+                               "army_strength_total"))
         try:
             digest.dispatch(dig(morning, "text", "content", "message",
                                 default=""),
@@ -2474,6 +2705,15 @@ def run(args):
         archive_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(digest.md_path, archive_dir / "digest.md")
         shutil.copy2(digest.meta_path, archive_dir / "meta.json")
+        # IQ-1 IQ1-3D: the JSONL too. It was left out for a defensible reason
+        # (the markdown is the readable record), and the reason stopped holding
+        # the moment row IQ-1 started grading itself on machine keys: SW-0's
+        # per-nation `purses` — the only instrument that makes a GR5 economy
+        # claim falsifiable from an archive — and IQ1-2's `net_residual` and
+        # `turn_spend` rows are jsonl-only, so every archived arm lost them and
+        # the IQ1-2 pair had to be copied by hand.
+        if digest.jsonl_path.exists():
+            shutil.copy2(digest.jsonl_path, archive_dir / "digest.jsonl")
         print(f"[driver] archived: {archive_dir}")
 
     if digest.unknown_blockers and args.strict:

@@ -307,6 +307,11 @@ CAMPAIGN_LOG_TYPES = {
     "rente_defaulted",
     # Marshal recruitment
     "marshal_commissioned",
+    # IQ-1 SW-1 "The Substitute Market": men bought rather than called.
+    # A purchase leaves a trace for the same reason FA-R5 gave the
+    # garrison assault one — an AI nation putting 30,000 bought men in the
+    # line is news, and without a row it happens on no persistent surface.
+    "substitutes_purchased",
     # CA9-F13: a standing order voided by a battle the marshal
     # ANSWERED rather than chose. It died silently — Murat's march
     # on Vienna was cancelled by a jealousy attack and the player
@@ -414,6 +419,7 @@ CATEGORY_MAP = {
     "fontainebleau_petition": "command",
     "rente_defaulted": "economy",
     "marshal_commissioned": "command",
+    "substitutes_purchased": "economy",
     "order_voided_by_battle": "command",
     "marshal_captured": "combat",
     "marshal_destroyed": "combat",
@@ -915,7 +921,23 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           # where our intel reaches (region PARTIAL+)
                           "dotation_granted", "estate_lost",
                           # W6-8: same rule for conquered-estate resolutions
-                          "estate_confiscated", "estate_respected"):
+                          "estate_confiscated", "estate_respected",
+                          # IQ-1 IQ1-3D rider 2: a court BUYING substitutes is
+                          # an economy event under exactly this rule, and it was
+                          # absent from the tuple — so every non-player purchase
+                          # fell through the loop and was dropped, while twelve
+                          # `len(CAMPAIGN_LOG_TYPES) == 163` pin comments
+                          # asserted the row existed "because an AI nation
+                          # buying 30,000 men had no persistent surface".
+                          #
+                          # ⚠ The decision fleet reported this as "the filter
+                          # has NO economy branch and no default arm". Half
+                          # right, and the correction is the smaller fix: the
+                          # branch has been here since Session 8 — the TYPE was
+                          # missing from it. The producer also emitted no
+                          # `region` key, so the "region PARTIAL+" rule below
+                          # had nothing to read; it does now.
+                          "substitutes_purchased"):
             # Try to get a region for the event
             econ_region = event.get("region") or event.get("location") or ""
             if econ_region:
@@ -1275,7 +1297,15 @@ def _unique_in_order(values) -> list:
 
 
 def _join_courts(names: list) -> str:
-    """'A', 'A and B', 'A, B and C' — chancery list register."""
+    """'A', 'A and B', 'A, B and C' — chancery list register.
+
+    PR-2 (playtest re-score, September 12 2026): the list is the single
+    chokepoint every court-list one-liner passes through, and it rendered
+    internal tags — measured, "Portugal, Saxony and PapalStates rebuff
+    Prussia".
+    """
+    from backend.display_names import display_nation
+    names = [display_nation(str(n)) for n in names]
     if len(names) == 1:
         return names[0]
     return f"{', '.join(names[:-1])} and {names[-1]}"
@@ -1308,17 +1338,25 @@ def _collapsed_refusal_line(event: dict, ptype: str, count: int) -> str:
     stands for, the rest would have vanished silently — which is worse
     than the spam it replaces.
 
-    Raw nation tags, exactly as the uncollapsed arm and its
-    `diplomatic_ai_ai_treaty` sibling pass them: the client repairs them
-    through `Utils.humanize_nation_keys_in_text`, and the NA-6 formation
-    overrides can only rename a nation that is still a raw tag. Composing
-    finished prose with `display_nation` here would bake a dead name into
-    the sentence past the point either repair can reach it (the §11.8
-    stage-3 hazard IGR-A hit).
+    PR-2b (review round, September 12 2026) — this paragraph used to say
+    the opposite and was WRONG about the mechanism, so it is restated with
+    the reading that was verified: names are humanised HERE, on both sides
+    of the verb. `formations.apply_formation_names_to_history` searches for
+    `display_nation(tag)` — the HUMANISED form — so composing with it is
+    exactly what the NA-6 dead-name repair keys on, not something that
+    escapes it (measured: pre-fix "KingdomOfItaly rebuffs ..." was repaired
+    client-side to "Italy"; post-fix "Kingdom of Italy rebuffs ..." is
+    repaired backend-side to the same thing). The client's
+    `Utils.humanize_nation_keys_in_text` simply no-ops on an already-clean
+    line. What the earlier wording got right is the hazard it names — a
+    dead name baked past every repair — and that hazard belongs to a
+    producer that bypasses `apply_formation_names_to_history` entirely,
+    which is `gazette.py`'s call to `format_event_oneliner`.
     """
+    from backend.display_names import display_nation as _named
     pairs = event.get("collapsed_pairs") or []
-    proposers = _unique_in_order(p.get("proposer") for p in pairs)
-    refusers = _unique_in_order(p.get("refused_by") for p in pairs)
+    proposers = [_named(n) for n in _unique_in_order(p.get("proposer") for p in pairs)]
+    refusers = [_named(n) for n in _unique_in_order(p.get("refused_by") for p in pairs)]
 
     # A SMALL bucket loses nothing: when one side is a single court and the
     # other is short enough to list, every name in the uncollapsed rows
@@ -1727,6 +1765,17 @@ def format_event_oneliner(event: dict) -> str:
         location = event.get("location", "the capital")
         return (f"{_name_tag(marshal, nation)} commissioned to the "
                 f"marshalate — raises his corps at {location}")
+
+    if event_type == "substitutes_purchased":
+        # IQ-1 SW-1. Names the price, because the price IS the mechanic —
+        # a substitute costs four times the drafted man at a full class and
+        # sixteen times at an empty one.
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        men = int(event.get("men", 0))
+        gold = int(event.get("gold", 0))
+        return (f"{_name_tag(marshal, nation)} takes {men:,} substitutes "
+                f"into the line — {gold:,} gold, and not a man off the rolls")
 
     if event_type == "order_voided_by_battle":
         # CA9-F13: the standing order the marshal lost by answering a
@@ -2425,7 +2474,13 @@ def format_event_oneliner(event: dict) -> str:
         # Drive-by (VS-4 build): the emitter passes "lord"; the old read of
         # only "overlord" rendered every one-liner as "Unknown's war".
         overlord = event.get("overlord") or event.get("lord", "Unknown")
-        return f"Vassal {vassal} joined {overlord}'s war."
+        # PR-2: measured, "Vassal KingdomOfItaly joined France's war."
+        # NB: no local import here — `display_nation` is module-level, and a
+        # function-scoped `from ... import` would shadow it for EVERY other
+        # arm of this same function (measured: UnboundLocalError on the
+        # `nation` arm ~600 lines below, caught by the IGR-B endpoint pins).
+        return (f"Vassal {display_nation(vassal)} joined "
+                f"{display_nation(overlord)}'s war.")
 
     if event_type == "vassal_refuses_call":
         # VS-4: a disaffected satellite declines the call-to-arms

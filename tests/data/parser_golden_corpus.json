@@ -5398,6 +5398,61 @@
       },
       "source": "FA slice 14 (ruling 3: the recall verb, Sept 5, 2026)",
       "notes": "NEGATIVE GUARD recording a PRE-EXISTING collision this slice does NOT fix: `restore` belongs to the masonry-repair vocabulary. Pinned so the wart is visible and so a later widening of `recall` cannot silently claim it."
+    },
+    {
+      "id": "iq1-buy-substitutes-for-ney",
+      "utterance": "buy substitutes for Ney",
+      "world": "1805",
+      "expected": {
+        "action": "purchase_levy",
+        "marshal": "Ney"
+      },
+      "source": "IQ-1 SW-1 \"The Substitute Market\" (the improvement queue, row IQ) — new-action corpus coverage (checklist step 12).",
+      "notes": "The primary phrasing. A substitute draws nothing from the manpower pool — the price is set by how empty the class is, so the verb carries no amount and the batch count is an optional structured field."
+    },
+    {
+      "id": "iq1-purchase-a-levy-for-ney",
+      "utterance": "purchase a levy for Ney",
+      "world": "1805",
+      "expected": {
+        "action": "purchase_levy",
+        "marshal": "Ney"
+      },
+      "source": "IQ-1 SW-1 \"The Substitute Market\" (the improvement queue, row IQ) — new-action corpus coverage (checklist step 12).",
+      "notes": "PINS A PRE-EXISTING FIX. The strategic-PURSUE keyword list was matched with bare `in`, so \"chase\" matched \"pur-CHASE\" and this utterance parsed as an ATTACK — the exact substring class the charge branch above warns about in writing. The list now carries word boundaries."
+    },
+    {
+      "id": "iq1-hire-replacements-for-ney",
+      "utterance": "hire replacements for Ney",
+      "world": "1805",
+      "expected": {
+        "action": "purchase_levy",
+        "marshal": "Ney"
+      },
+      "source": "IQ-1 SW-1 \"The Substitute Market\" (the improvement queue, row IQ) — new-action corpus coverage (checklist step 12).",
+      "notes": "The plain-speech phrasing."
+    },
+    {
+      "id": "iq1-raise-neys-pension-is-still-a-pension",
+      "utterance": "raise Ney's pension",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Ney"
+      },
+      "source": "IQ-1 SW-1 \"The Substitute Market\" (the improvement queue, row IQ) — new-action corpus coverage (checklist step 12).",
+      "notes": "NEGATIVE pin. The ESP review measured \"raise X's pension\" recruiting infantry, so every administrative branch carries the `_mentions_pension` guard and the substitute branch is no exception."
+    },
+    {
+      "id": "iq1-buy-off-prussia-is-still-diplomacy",
+      "utterance": "buy off Prussia",
+      "world": "1805",
+      "expected": {
+        "action": "buy_off_design",
+        "target": "Prussia"
+      },
+      "source": "IQ-1 SW-1 \"The Substitute Market\" (the improvement queue, row IQ) — new-action corpus coverage (checklist step 12).",
+      "notes": "NEGATIVE pin. `buy` collides with the AI-2b compensation instrument; the substitute branch excludes \"buy off\" explicitly rather than relying on ordering."
     }
   ]
 }

@@ -34,6 +34,7 @@ import json
 
 from backend.campaign_log import (
     CAMPAIGN_LOG_TYPES,
+    _collapsed_refusal_line,
     collapse_refusal_family,
     filter_campaign_log,
     format_event_oneliner,
@@ -432,14 +433,57 @@ class TestCollapsedLine:
                      ptype="defensive_alliance")
         assert "(defensive alliance)" in line
 
-    def test_raw_nation_tags_are_preserved(self):
-        """The client repairs tags via `humanize_nation_keys_in_text`, and the
-        NA-6 formation overrides can only rename a still-raw tag. Baking
-        `display_nation` prose here is the §11.8 stage-3 hazard IGR-A hit."""
+    def test_nation_names_are_rendered_not_keyed(self):
+        """PR-2b (playtest re-score review round, September 12 2026) —
+        CONSCIOUS FLIP, on a measurement that reverses this pin's premise.
+
+        It used to assert the opposite ("raw nation tags are preserved"),
+        reasoning that the NA-6 formation overrides "can only rename a
+        still-raw tag". They cannot: `apply_formation_names_to_history`
+        searches for `display_nation(tag)` — the HUMANISED form — so raw
+        tags are precisely what that repair CANNOT see. Measured directly,
+        with Italy formed on turn 10 and the line dated turn 15:
+
+            composed humanised : "... rebuff Kingdom of Italy (alliance)"
+            after NA-6 repair  : "... rebuff Italy (alliance)"        <- renamed
+            composed raw tag   : "KingdomOfItaly rebuffs ... (alliance)"
+            after NA-6 repair  : "KingdomOfItaly rebuffs ... (alliance)"  <- NOT
+
+        So the old behaviour defeated the very repair it cited, and left the
+        Gazette (which applies neither repair) printing an internal key. The
+        client's `humanize_nation_keys_in_text` simply no-ops on a clean
+        line, so nothing downstream regresses."""
         line = _line([("KingdomOfItaly", "PapalStates"),
                       ("KingdomOfItaly", "Naples")])
-        assert "KingdomOfItaly" in line
-        assert "Kingdom of Italy" not in line
+        assert "KingdomOfItaly" not in line
+        assert "Kingdom of Italy" in line
+        assert "PapalStates" not in line
+        assert "Papal States" in line
+
+    def test_the_na6_repair_can_reach_the_composed_line(self):
+        """The measurement above, as a pin: a formed nation's later line is
+        renamed. This is what the old behaviour made impossible."""
+        import pathlib
+
+        from backend.game_logic.formations import apply_formation_names_to_history
+
+        # The 1805 board: `_is_prose_safe_name` consults the live region set,
+        # so the repair must be exercised on the map it guards.
+        world = WorldState.from_scenario(str(
+            pathlib.Path(__file__).resolve().parents[1] / "godot-client"
+            / "project-sovereign" / "assets" / "maps" / "europe_1805.json"))
+        world.current_turn = 20
+        world.nation_formations = {"KingdomOfItaly": {
+            "id": "risorgimento", "sponsor": "France", "turn": 10,
+            "display_name": "Italy", "flag": "Italy"}}
+        event = {"type": "ai_ai_proposal_refused", "turn": 15,
+                 "collapsed_pairs": [
+                     {"proposer": "KingdomOfItaly", "refused_by": "Portugal"},
+                     {"proposer": "KingdomOfItaly", "refused_by": "Saxony"}]}
+        line = _collapsed_refusal_line(event, "alliance", 2)
+        repaired = apply_formation_names_to_history(world, line, event)
+        assert "Italy" in repaired
+        assert "Kingdom of Italy" not in repaired
 
 
 # ════════════════════════════════════════════════════════════
@@ -543,7 +587,7 @@ class TestEndpoint:
 class TestContracts:
 
     def test_no_new_event_type(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 162  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).  # 161->162 flipped consciously: FA-N52 (slice 17) adds `glory_crown_lost` — the laurels passing had a dispatch beat and no log row, so Le Moniteur's collector key for it was dead
+        assert len(CAMPAIGN_LOG_TYPES) == 163  # 157->158 flipped consciously: PC15-1 adds `marshal_destroyed` (corps annihilation had NO event type — Ney and Murat fell unannounced in the Aug-15 flagship). Prior: 156->157 CA9-F13 `order_voided_by_battle`.  # 158->160 flipped consciously: WIN-D3 adds `evacuation_granted` + `evacuation_lapsing` (internment itself reuses PC15-1's `marshal_destroyed` with cause="interned").  # 160->161 flipped consciously: FA-R5 adds `garrison_assault` (two of the resolver's three exits left NO trace on any persistent surface; no inert type was available to retire in exchange — the only six producerless types are all `diplomacy`, while all seventeen `combat` types have producers).  # 161->162 flipped consciously: FA-N52 (slice 17) adds `glory_crown_lost` — the laurels passing had a dispatch beat and no log row, so Le Moniteur's collector key for it was dead  # 162->163 flipped consciously: IQ-1 SW-1 adds `substitutes_purchased` — the substitute market is the first purchase in the game limited by gold alone, and an AI nation buying 30,000 men had no persistent surface to appear on
 
     def test_the_collapse_is_not_inside_the_filter(self):
         """51 test call sites depend on `filter_campaign_log`'s contract."""

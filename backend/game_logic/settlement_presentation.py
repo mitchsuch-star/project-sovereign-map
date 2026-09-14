@@ -375,6 +375,38 @@ def is_settlement_event_visible(
 # ---------------------------------------------------------------------------
 
 
+# PR-2 (playtest re-score, September 12 2026). A war label is composed by
+# several producers — some "X vs Y", some "A + B + C vs D + E" — and every
+# one of them joined internal TAGS. Measured on a 40-turn commanded board,
+# the settlement rail read "Settlement of France + Spain + Holland + Bavaria
+# + KingdomOfItaly vs Britain + Austria + Russia". Rather than chase each
+# producer, the RENDER chokepoint humanises whatever it is handed: this is
+# the only place a war label becomes player-facing prose. False = the raw
+# label.
+WAR_LABEL_NAMES_ITS_COURTS = True
+
+_WAR_LABEL_SEPARATORS = (" vs ", " + ")
+
+
+def humanize_war_label(label: str) -> str:
+    """Render an internal war label in player-facing names.
+
+    Splits only on the separators the label producers use, so a court whose
+    display name contains a space survives, and leaves any token the R7
+    table does not know exactly as it was.
+    """
+    from backend.display_names import display_nation
+    text = str(label or "")
+    if not text or not WAR_LABEL_NAMES_ITS_COURTS:
+        return text
+    import re
+    pattern = "(" + "|".join(re.escape(s) for s in _WAR_LABEL_SEPARATORS) + ")"
+    parts = re.split(pattern, text)
+    return "".join(
+        p if p in _WAR_LABEL_SEPARATORS else display_nation(p.strip()) or p
+        for p in parts)
+
+
 def _war_label(world: Any, war_id: str) -> str:
     """Return a short war label, falling back to the raw war id."""
     if not war_id:
@@ -565,7 +597,7 @@ def compose_summary_oneliner(
     """
     war_id = str(event.get("war_id", "") or "")
     payload_label = str(event.get("war_label", "") or "")
-    war_label = (
+    war_label = humanize_war_label(
         payload_label
         or (_war_label(world, war_id) if world is not None else (war_id or "war"))
     )

@@ -224,7 +224,12 @@ class TestTalleyrandMissionEffect(unittest.TestCase):
         ledger = build_diplomatic_ledger(world)
         mission = ledger["talleyrand"]["active_mission"]
         self.assertIsNotNone(mission)
-        self.assertEqual(mission["effect_text"], "+5 relation per turn")
+        # MS-3 (playtest re-score, September 12 2026) — CONSCIOUS FLIP.
+        # This pin asserted the table CONSTANT while its sibling
+        # `test_mission_skill_bonus` asserted the +8 the tick actually
+        # writes, and nothing compared the two. The ledger now quotes the
+        # applied figure, so the two pins agree for the first time.
+        self.assertEqual(mission["effect_text"], "+8 relation per turn")
         self.assertEqual(mission["dp_cost_per_turn"], 1)
 
     def test_talleyrand_mission_remaining_turns(self):
@@ -443,7 +448,8 @@ class TestWizardStep2(unittest.TestCase):
         for ma in mission_actions:
             self.assertIn("effect_text", ma)
             if ma["action"] == "mission_improve_relations":
-                self.assertEqual(ma["effect_text"], "+5 relation/turn")
+                # MS-3 CONSCIOUS FLIP — see TestTalleyrandMissionEffect.
+                self.assertEqual(ma["effect_text"], "+8 relation/turn")
 
     def test_wizard_step2_no_preview_no_proposals(self):
         from backend.game_logic.diplomacy import get_diplomatic_preview

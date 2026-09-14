@@ -1296,20 +1296,37 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         "seat_bonus": dp_seat_bonus,
     }
 
+    # MS-7 flip lever (playtest re-score, September 12 2026). False reads
+    # the player's own relation for every mission type, as before.
+    MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES = True
+
     # Active mission
     active_mission = None
     mission = getattr(world, 'active_diplomatic_mission', None)
-    if mission and not mission.get("completed"):
+    from backend.game_logic.diplomatic_dialogue import (
+        MISSION_DP_COSTS, MISSION_EFFECTS, mission_effect_magnitude,
+        mission_is_live)
+    if mission_is_live(world):
         mission_type = mission.get("type", "")
 
-        # TA4: Mission effect descriptions
-        from backend.game_logic.diplomatic_dialogue import MISSION_EFFECTS, MISSION_DP_COSTS
+        # TA4 / MS-3: the effect line quotes the figure `_process_mission_
+        # effects` will actually write — base x the acting diplomat's skill
+        # multiplier. These five strings were the raw table constants, so on
+        # the shipped board (Talleyrand skill 10, x1.5 always) the Talleyrand
+        # tab advertised "+5 relation per turn" beside a tick paying +8.
+        def _mag(mt, key="relation_change"):
+            return mission_effect_magnitude(world, mt, key)
+
         _MISSION_EFFECT_TEXT = {
-            "IMPROVE_RELATIONS": "+5 relation per turn",
-            "COURT_NATION": "+5 relation per turn, 20% blowback risk",
-            "GATHER_INTEL": "Full intel for 3 turns",
-            "UNDERMINE_ALLIANCE": "-3 relation between targets per turn",
-            "REASSURE_ALLY": "+3 relation per turn",
+            "IMPROVE_RELATIONS": f"{_mag('IMPROVE_RELATIONS'):+d} relation per turn",
+            "COURT_NATION": (f"{_mag('COURT_NATION'):+d} relation per turn, "
+                             "20% blowback risk"),
+            # MS-3b (review round): the mission RUNS 3 turns and grants 5.
+            "GATHER_INTEL": "3 turns to complete, then full intel for 5",
+            "UNDERMINE_ALLIANCE": (
+                f"{_mag('UNDERMINE_ALLIANCE', 'target_pair_relation_change'):+d} "
+                "relation between targets per turn"),
+            "REASSURE_ALLY": f"{_mag('REASSURE_ALLY'):+d} relation per turn",
         }
         effect_text = _MISSION_EFFECT_TEXT.get(mission_type, "")
         dp_cost_per_turn = int(MISSION_DP_COSTS.get(mission_type, 1))
@@ -1327,8 +1344,29 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         mission_target = mission.get("target", "")
         initial_relation = int(mission.get("initial_relation") or 0)
         player = getattr(world, 'player_nation', 'France')
+        # MS-7: an UNDERMINE_ALLIANCE mission moves target<->ally, never
+        # player<->target, so reading our OWN relation showed a number
+        # drifting the opposite way from the mission's work — measured, ten
+        # turns of undermining Austria|Prussia (60 -> 10) rendered as
+        # "Hostile -> Wary (+10, 10 turns)".
+        _progress_pair = (player, mission_target)
+        _undermining = (MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES
+                        and mission.get("type") == "UNDERMINE_ALLIANCE"
+                        and mission.get("target_ally"))
+        if _undermining:
+            _progress_pair = (mission_target, mission.get("target_ally"))
+            # MS-7b: read the baseline for the SAME pair. A mission started
+            # before this landed carries no pair baseline; showing the
+            # current value against the player<->target baseline would be a
+            # cross-pair subtraction, so such a mission reports a delta of
+            # zero rather than a wrong one.
+            _pair_initial = mission.get("initial_pair_relation")
+            initial_relation = (int(_pair_initial) if _pair_initial is not None
+                                else int(world.nation_relations.get(
+                                    world._make_diplo_key(*_progress_pair), 0)
+                                    or 0))
         current_relation = int(world.nation_relations.get(
-            world._make_diplo_key(player, mission_target), 0
+            world._make_diplo_key(*_progress_pair), 0
         ) or 0)
 
         active_mission = {

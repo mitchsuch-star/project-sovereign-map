@@ -373,6 +373,9 @@ def _apply_settlement_terms(
             if from_nation in nation_gold:
                 available = int(nation_gold.get(from_nation, 0))
                 transfer = min(amount, max(0, available))
+                # IQ1-2 (3): NOT in `Spent` — a ratified settlement term, and
+                # a TRANSFER. Signed Net line; owner IQ1-3a. Same disposition
+                # as its `world_state._process_treaty_clauses` sibling.
                 nation_gold[from_nation] = available - transfer
                 if to_nation in nation_gold:
                     nation_gold[to_nation] = int(nation_gold.get(to_nation, 0)) + transfer

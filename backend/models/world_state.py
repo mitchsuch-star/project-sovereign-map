@@ -142,6 +142,35 @@ CAVALRY_REGEN_BONUS_CAP = 1500         # Hard cap on the summed plains+stables c
 ARSENAL_REGION_TYPES = frozenset({"city", "major_city", "capital"})
 CITY_ARTILLERY_REGEN = 80              # Bonus per arsenal-type region controlled
 ARTILLERY_REGEN_CAP = 600              # Hard cap on a nation's total artillery regen per turn
+# ═══════ IQ-1 SW-1 "THE SUBSTITUTE MARKET" (remplacement) ═══════
+# The one purchase in this game that is limited by GOLD and by nothing else.
+#
+# Measured September 12, 2026: every sink the game has is capped by a
+# non-gold resource — 97 build slots on the whole map, 46 recruit batches in
+# a 40-turn campaign (manpower, not money), a seven-man commission bench —
+# so none of them can respond to a gold surplus, and a commanded France
+# banks 88,556g having spent 2.5% of 199,101g gross. A substitute draws
+# NOTHING from `manpower_pools`, so its only limit is the purse and the
+# establishment.
+#
+# The fiction is exact: under the Napoleonic conscription law a called-up
+# man could pay a `remplaçant` to serve in his place, and the price of a
+# substitute rose as the class emptied — ruinous by 1813.
+LEVY_SUBSTITUTE_MULT = 4       # flat premium over the drafted price
+LEVY_SCARCITY_FLOOR = 40000    # pool at/above which substitutes sell at the floor
+LEVY_SCARCITY_MULT = 3.0       # price at an EMPTY class = (1 + 3.0) x the floor
+LEVY_MORALE_BASE = 25          # vs RECRUIT_MORALE_BASE 40 — the Marie-Louises of 1814
+# IQ1-3B: the DESIGNED gap between a bought man and a drafted one, promoted
+# from the difference of two constants in two files to the thing itself. The
+# purchase path used to write LEVY_MORALE_BASE FLAT while the draft path reads
+# `training_ground` (an absolute 70) and Shorncliffe (a floor of 60) — so the
+# real gap was 45 and 35 at those rungs and the counterweight a player can buy
+# was void for substitutes. `substitute_arrival_morale` mirrors the draft's
+# rung at THIS premium; a pin asserts
+# LEVY_MORALE_BASE == RECRUIT_MORALE_BASE - LEVY_MORALE_PREMIUM.
+LEVY_MORALE_PREMIUM = 15
+LEVY_MAX_BATCH = 3             # batches of INFANTRY_RECRUIT_AMOUNT per admin action
+
 MAX_INFANTRY_POOL = 100000             # Pool cap
 MAX_CAVALRY_POOL = 30000               # Pool cap
 MAX_ARTILLERY_POOL = 20000             # Pool cap
@@ -172,6 +201,14 @@ FORCE_LIMIT_PER_REGION = 2500          # Limit growth per controlled region (E3)
 # and every other nation sit below the threshold and are byte-unaffected, so
 # this bites the hegemon's surplus without breaking the E1 band. GR5: any
 # nation that grows this large pays it. Europe-scoped (N1). Sweep-tunable.
+# IQ-1 SW-1: the ES-3 ladder's 150% boundary, promoted from the bare
+# `force_limit + force_limit // 2` literal inside `calculate_turn_upkeep`.
+# Above it upkeep already charges the full rate rather than half, and it is
+# also the ceiling the substitute market may not buy past — so the price of
+# the last man you may purchase and the point at which he becomes punitive
+# to keep are provably the same line, and the refusal can say so.
+FORCE_LIMIT_SEVERE_BAND = 1.5
+
 GRANDE_ARMEE_THRESHOLD = 140000        # men; above this, the premium rate applies
 GRANDE_ARMEE_RATE = 18                 # g per 1,000 men above the threshold
 #   Sweep-3 tuning (measured, France/1805): rate 18 puts France's turn-1
@@ -208,6 +245,21 @@ EUROPE_INFRASTRUCTURE_UPKEEP_BY_TIER = {
     "town": 20,
     "rural": 20,
 }
+
+
+def severe_band_threshold(force_limit: int) -> int:
+    """The ES-3 severe band — `FORCE_LIMIT_SEVERE_BAND` x the limit.
+
+    IQ-1 SW-1. Written as the integer expression the upkeep ladder has
+    always used (`x + x // 2`), which is identical to `int(x * 1.5)` for
+    every integer x, so promoting the literal moves no number. ONE source,
+    read by `calculate_turn_upkeep` and by the substitute market's
+    purchase ceiling.
+    """
+    fl = int(force_limit or 0)
+    if fl <= 0:
+        return 0
+    return fl + fl // 2
 
 
 def infrastructure_upkeep_rate(region) -> int:
@@ -1121,6 +1173,11 @@ class WorldState:
             # the authored gold price + the initial corps from the infantry
             # manpower pool, all charged in-executor.
             "recruit_marshal": 1,
+            # IQ-1 SW-1 "The Substitute Market": an ADMIN action like every
+            # other purchase, deliberately — the point of the slice is that
+            # ONE admin action can now absorb thousands of gold, not that
+            # there are more actions.
+            "purchase_levy": 1,
             # FA-S9-D1 (slice 14): an ADMIN action. Note the asymmetry
             # deliberately: the freeze BUYS a military action and the
             # recall SPENDS an administrative one, so the loop is
@@ -6068,7 +6125,7 @@ class WorldState:
         force_limit = self.get_force_limit(nation)
         surcharge = 0
         if force_limit is not None and total_strength > force_limit:
-            severe_threshold = force_limit + force_limit // 2  # 150% of limit
+            severe_threshold = severe_band_threshold(force_limit)
             band_over = min(total_strength, severe_threshold) - force_limit
             band_severe = max(0, total_strength - severe_threshold)
             surcharge = (band_over // 1000) * (rate // 2) \
@@ -6759,6 +6816,13 @@ class WorldState:
         to a with-depot capacity is exact, not an approximation.
         """
         is_home = (region.controller == nation)
+        # IQ1-3A: this computation was COPIED in three places — here, the
+        # levy's own gate and `dispatch.py`'s depot-remedy arm — and the levy's
+        # copy disagreed with the other two. It is one predicate now; this is
+        # its original home and it reads the shared source so they cannot
+        # drift again. (The lever lives with the levy because that is the
+        # behaviour it changes; on THIS path the ally arm is pre-existing and
+        # must stay live either way, so it is read directly.)
         is_fed = is_home
         if (not is_fed and region.controller
                 and self.get_diplomatic_state(nation, region.controller)
@@ -9186,6 +9250,16 @@ class WorldState:
                 # was charged another, at the moment of choosing. Fogged
                 # downstream with the rest of the econ block.
                 "recruit_price_here": int(self._region_recruit_price(region)),
+                # IQ-1 IQ1-3D rider 1: what SUBSTITUTES cost HERE, for the
+                # marshal actually standing here. Two things the draft's own
+                # key learned the hard way and this must not repeat: price it
+                # in THIS province (the capital's rate ran up to twice the
+                # local one) and price it for THIS MARSHAL — MC-2b's Intendance
+                # moves the charge +-15% and `_region_recruit_price` passes no
+                # `marshal=`, so reusing it would quote a figure the executor
+                # does not charge. 0 = no substitute market here.
+                "substitute_price_here": int(
+                    self._region_substitute_price(region)),
                 # Building data for region tooltip
                 "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
                 "building_under_construction": {
@@ -9272,6 +9346,35 @@ class WorldState:
         except Exception:
             return 0
 
+    def _region_substitute_price(self, region) -> int:
+        """Gold for one SUBSTITUTE batch bought in THIS province, by the
+        marshal standing in it (GR1: the executor's own pricer).
+
+        Returns 0 when the province does not feed us — the same predicate
+        the executor refuses on — so a renderer can gate the chip on the
+        figure alone without re-deciding the rule.
+        """
+        try:
+            from backend.commands.economy_executor import (
+                _levy_pricer, levy_substitute_price, region_feeds_nation,
+            )
+            nation = self.player_nation
+            if not region_feeds_nation(self, nation, region):
+                return 0
+            marshal = None
+            for candidate in self.marshals.values():
+                if (getattr(candidate, "nation", None) == nation
+                        and getattr(candidate, "location", None) == region.name):
+                    marshal = candidate
+                    break
+            return int(_levy_pricer()._calculate_recruit_cost(
+                region, self,
+                base_cost=levy_substitute_price(self, nation),
+                nation=nation, marshal=marshal,
+                foreign_soil=(region.controller != nation)))
+        except Exception:
+            return 0
+
     def region_econ_visible(self, region_name: str) -> bool:
         """WO slice 8: the ONE predicate for whether the player's screens
         may state a province's economic block (income / stability /
@@ -9346,6 +9449,8 @@ class WorldState:
                 filtered_region["supply_capacity"] = region_data["supply_capacity"]
                 filtered_region["recruit_price_here"] = region_data.get(
                     "recruit_price_here", 0)
+                filtered_region["substitute_price_here"] = region_data.get(
+                    "substitute_price_here", 0)
                 filtered_region["buildings"] = region_data["buildings"]
                 filtered_region["building_under_construction"] = region_data["building_under_construction"]
                 filtered_region["max_building_slots"] = region_data["max_building_slots"]
@@ -10991,6 +11096,10 @@ class WorldState:
                 if from_nation in self.nation_gold:
                     available = self.nation_gold[from_nation]
                     transfer = min(int(abs(amount)), max(0, available))
+                    # IQ1-2 (3): NOT in `Spent` — a ratified treaty clause is
+                    # an obligation the settlement already showed the player,
+                    # and a transfer (the other side's rise is this gold).
+                    # Signed Net line; owner IQ1-3a.
                     self.nation_gold[from_nation] -= transfer
                     if to_nation in self.nation_gold:
                         self.nation_gold[to_nation] += transfer
@@ -11753,6 +11862,9 @@ class WorldState:
                     if from_nation in self.nation_gold:
                         available = self.nation_gold[from_nation]
                         transfer = min(int(amount), max(0, available))
+                        # IQ1-2 (3): NOT in `Spent` — same reason as the lump
+                        # clause above, and this one ALREADY records itself in
+                        # `_applied_income_transfers` for the ledger mirror.
                         self.nation_gold[from_nation] = available - transfer
                         if to_nation in self.nation_gold:
                             self.nation_gold[to_nation] += transfer
@@ -13348,6 +13460,12 @@ class WorldState:
                                               (enemy.nation, ac_def_cas)):
                         _bill = int(_m_cas * MATERIEL_RATE)
                         if _bill > 0 and _m_nation:
+                            # IQ1-2 (3): NOT in `Spent`, permanently. Read the
+                            # expression, not the function name — this is the
+                            # SAME EC-W3 Butcher's Bill as the combat pipeline's
+                            # (`_m_cas * MATERIEL_RATE`), charged for the
+                            # auto-resolved charge, and it tallies into
+                            # `materiel_spent_this_turn` three lines below.
                             self.nation_gold[_m_nation] = int(
                                 self.nation_gold.get(_m_nation, 0) - _bill)
                             _tally = getattr(

@@ -1,0 +1,163 @@
+[
+  {
+    "id": "IQ15-01 item (i) stops requiring the spend to be the LARGEST term",
+    "file": "tests/test_iq1_iq1_5_the_exit.py",
+    "old": "        if spend > 0 and spend > residual and after[\"provinces\"] >= before[\"provinces\"]:",
+    "new": "        if spend > 0 and after[\"provinces\"] >= before[\"provinces\"]:",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemOne"
+  },
+  {
+    "id": "IQ15-02 item (i) stops requiring the board to hold",
+    "file": "tests/test_iq1_iq1_5_the_exit.py",
+    "old": "        if spend > 0 and spend > residual and after[\"provinces\"] >= before[\"provinces\"]:",
+    "new": "        if spend > 0 and spend > residual:",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemOne"
+  },
+  {
+    "id": "IQ15-03 item (i) counts a rise as a fall",
+    "file": "tests/test_iq1_iq1_5_the_exit.py",
+    "old": "        if delta >= 0:\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemOne"
+  },
+  {
+    "id": "IQ15-04 the archive under-records what the player spent on a qualifying turn",
+    "file": "docs/audits/playtest_digests/iq13-spender-cmd-historical/digest.jsonl",
+    "old": "\"spent\": 11786",
+    "new": "\"spent\": 1",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemOne"
+  },
+  {
+    "id": "IQ15-05 upkeep stops billing on the corps' ACTUAL fielded strength",
+    "file": "backend/models/world_state.py",
+    "old": "                billed = marshal.strength",
+    "new": "                billed = 40000",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo"
+  },
+  {
+    "id": "IQ15-06 the corps stranded on ceded soil are never lost",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "    removed = world.destroy_marshal(marshal, cause=\"interned\", victor=host)",
+    "new": "    return None\n    removed = world.destroy_marshal(marshal, cause=\"interned\", victor=host)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo"
+  },
+  {
+    "id": "IQ15-07 item (ii) builds the board the FLATTERING way again",
+    "file": "tests/test_iq1_iq1_5_the_exit.py",
+    "old": "        beaten = _beaten(_boot(5_000))      # losses FIRST...\n        _hold_at_peace(beaten)              # ...then the peace",
+    "new": "        beaten = _boot(5_000)\n        _hold_at_peace(beaten)\n        _beaten(beaten)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo"
+  },
+  {
+    "id": "IQ15-08 the beaten board stops being beaten (the fixture is the control)",
+    "file": "tests/test_iq1_iq1_5_the_exit.py",
+    "old": "            marshal.strength = int(marshal.strength * 0.5)\n            marshal.morale = 40",
+    "new": "            marshal.strength = int(marshal.strength * 1.0)\n            marshal.morale = 40",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo"
+  },
+  {
+    "id": "IQ15-09 a Net component is re-signed",
+    "file": "backend/game_logic/ledger.py",
+    "old": "\"vassal_tribute\": +1",
+    "new": "\"vassal_tribute\": -1",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemThree"
+  },
+  {
+    "id": "IQ15-10 a fifth site starts moving the purse",
+    "file": "backend/models/world_state.py",
+    "old": "        self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)\n\n        # NOTE: Bankruptcy check moved to _advance_turn_internal()",
+    "new": "        self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)\n        self._iq15_extra_charge(nation)\n\n        # NOTE: Bankruptcy check moved to _advance_turn_internal()",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemThree::test_only_four_production_sites_move_the_purse"
+  },
+  {
+    "id": "IQ15-11 the standing obligation stops charging",
+    "file": "backend/models/world_state.py",
+    "old": "            tactical_events.extend(process_instruments(self))",
+    "new": "            pass",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemThree::test_the_standing_obligation_is_the_one_unnamed_stream"
+  },
+  {
+    "id": "IQ15-12 trade and blockade stop netting into one write",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            world.nation_gold[nation] += int(net_income)",
+    "new": "            world.nation_gold[nation] += int(net_income) + 1",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemThree::test_trade_and_blockade_arrive_as_one_net_write_and_both_are_named"
+  },
+  {
+    "id": "IQ15-13 IQ1-5-1 is 'fixed' at the real seam — the income path quotes tomorrow's rate",
+    "file": "backend/models/world_state.py",
+    "old": "            state_charges = self.calculate_state_charges(\n                nation, rate=charges_rate[\"rate\"])",
+    "new": "            state_charges = self.calculate_state_charges(\n                nation, rate=max(0, int(charges_rate[\"rate\"]) - 8))",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
+  },
+  {
+    "id": "IQ15-14 the war-exhaustion term stops ticking",
+    "file": "backend/models/world_state.py",
+    "old": "\"key\": \"war_exhaustion\"",
+    "new": "\"key\": \"war_exhaustion_renamed\"",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
+  },
+  {
+    "id": "IQ15-15 the charge stops scaling with the chest above the floor",
+    "file": "backend/models/world_state.py",
+    "old": "        return int(gold * rate // WAR_EFFORT_DIVISOR)",
+    "new": "        return int(rate)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
+  },
+  {
+    "id": "IQ15-16 the exit's own struck claim is quietly dropped from the record",
+    "file": "docs/IMPROVEMENT_QUEUE_SPEC.md",
+    "old": "**ahead by +534 on turn 0**. It\ndoes not reproduce.",
+    "new": "**ahead by +534 on turn 0**.",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestTheExitIsRecorded"
+  },
+  {
+    "id": "IQ15-17 the record loses its score",
+    "file": "docs/IMPROVEMENT_QUEUE_SPEC.md",
+    "old": "#### The pillar re-score — economy **6.0 → 6.5**",
+    "new": "#### The pillar re-score",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestTheExitIsRecorded"
+  },
+  {
+    "id": "IQ15-18 the unclosed item stops naming its owner",
+    "file": "docs/IMPROVEMENT_QUEUE_SPEC.md",
+    "old": "IQ1-5 records the item as **measured-open and handed off** rather than\nclosing it",
+    "new": "IQ1-5 records the item rather than\nclosing it",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestTheExitIsRecorded"
+  },
+  {
+    "id": "IQ15-19 the new finding is filed without its cause",
+    "file": "docs/BUG_FIXES.md",
+    "old": "`WorldState.get_state_charges_rate` carries a `war_exhaustion` term that ticks",
+    "new": "`WorldState.get_state_charges_rate` carries a term that ticks",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestTheExitIsRecorded::test_the_new_finding_is_filed_with_its_cause"
+  },
+  {
+    "id": "IQ15-20 item (iii)'s named-site set silently admits a new member",
+    "file": "tests/test_iq1_iq1_5_the_exit.py",
+    "old": "NAMED_SITES = {\"process_income_phase\", \"process_trade_income\",\n               \"process_vassal_tribute\"}",
+    "new": "NAMED_SITES = {\"process_income_phase\", \"process_trade_income\",\n               \"process_vassal_tribute\", \"process_instruments\"}",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemThree"
+  },
+  {
+    "id": "IQ15-21 the internment stops naming its cause",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "removed = world.destroy_marshal(marshal, cause=\"interned\", victor=host)",
+    "new": "removed = world.destroy_marshal(marshal, cause=\"attrition\", victor=host)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo::test_the_engine_names_the_mechanism_internment"
+  },
+  {
+    "id": "IQ15-22 the corps are interned without ever being warned",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "\"type\": \"evacuation_lapsing\"",
+    "new": "\"type\": \"evacuation_lapsing_silent\"",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo::test_the_engine_names_the_mechanism_internment"
+  },
+  {
+    "id": "IQ15-23 the victor of an internment is lost",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "removed = world.destroy_marshal(marshal, cause=\"interned\", victor=host)",
+    "new": "removed = world.destroy_marshal(marshal, cause=\"interned\", victor=None)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo::test_the_engine_names_the_mechanism_internment"
+  }
+]

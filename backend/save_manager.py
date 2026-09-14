@@ -244,8 +244,27 @@ def load_game(filepath: Path) -> Dict:
         #     wipe was not cosmetic — a mid-turn save/load let a marshal who
         #     had already raised a mild concern raise it again. That is the
         #     WO-23 budget-refresh shape exactly.
-        #   * `gold_spent_this_turn` is read by the recruit pricing and is
-        #     saved/restored around post-objection.
+        #   * `gold_spent_this_turn` is SNAPSHOT (one-way, `.copy()`) inside the
+        #     end-turn banner builders, and it is DISPLAY ONLY.
+        #     ⚠ SYNTHESIS-ROUND CORRECTION: this clause used to read "is
+        #     saved/restored around post-objection", which is false twice over
+        #     and contradicted the correction four lines below it. There is no
+        #     RESTORE — the only writers are `world_state.from_dict` and
+        #     `_advance_turn_internal`'s clear, and all four `saved_gold_spent`
+        #     sites (`executor.py` x2, `meta_executor.py` x2) are one-way
+        #     `.copy()` then `.get(nation, 0)`, never assigned back. And the
+        #     siting is TURN ADVANCE, not post-objection: the enclosing
+        #     functions are `_execute_one`'s auto-end-turn block and
+        #     `_execute_end_turn`, and `handle_objection_response`'s own PT-F5
+        #     comment records that that path never re-enters
+        #     `CommandExecutor.execute`. Inherited verbatim from slice 16c.
+        #     ⚠ IQ1-2 CORRECTION: this used to say it "is read by the recruit
+        #     pricing". It is not, and the same claim was in IQ-1 SW-0's own
+        #     commit body. An AST census of its readers: `ledger._build_economy`,
+        #     `economy_executor`'s typed economy report, and the two end-turn
+        #     banner snapshots. `_calculate_recruit_cost` does NOT read it —
+        #     which is what makes it display-only, and is the basis for IQ1-2
+        #     being byte-identical to the series by construction.
         #   * `threat_sources_this_turn` is the coalition's own record of WHY
         #     the alarm rose. Measured: 4 sources live, 4 after `from_dict`,
         #     **0 after `load_game`** — and the diplomatic ledger's "why" rows

@@ -133,6 +133,9 @@ class NavalExecutor:
                 f"holds {treasury}g.")}
 
         world.nation_gold[actor] = int(treasury - naval.SHIP_COST)
+        # IQ1-2 (3): laying down a keel is a player purchase, so it belongs
+        # in the turn's `Spent` line. GR5 — the actor may be an AI court.
+        world.record_gold_spent(actor, int(naval.SHIP_COST))
         outcome = naval.lay_down_ship(world, actor)
         rec = naval.get_fleet(world, actor) or {}
         yards = naval.controlled_dockyards(world, actor)
