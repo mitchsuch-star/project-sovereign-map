@@ -46,23 +46,46 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **▶ OWNING SPEC FOR ROW IQ = `docs/IMPROVEMENT_QUEUE_SPEC.md`** (opened
 > September 13, 2026 by IQ1-2 — the row had run two slices with no doc record).
-> **IQ-1 has FOUR slices landed: IQ1-0 the instrument, IQ1-1 the substitute
-> market, IQ1-2 the chest tells the truth, IQ1-3 "The Granary and the Alarm" —
-> which OVERTURNED §0.6's recommended retainer on a measurement (the whole
-> diplomacy-instrument channel is worth 4,824 gold one-shot, and its payoff has
-> no consumer) and instead opened the levy's own-soil gate to the engine's own
-> `ALLY_SUPPLY_STATES`, suppressed the ally-capital discount, mirrored the
-> training-ground and Shorncliffe rungs at the substitute premium, and priced
-> the levy by Europe's alarm: receipts **18,852 → 75,486 gold = 4.00×, 85.2% of
-> the surplus**, with the board ending BETTER (26 provinces against 24).
-> NEXT = **IQ1-5 "The Exit"** — no production code, the four completion items
-> measured and the pillar re-scored.** The crux (the August 7 blessing vs the September 12 brief) is
+> **✅ ROW IQ-1 IS CLOSED (September 14, 2026) — four slices landed and the exit
+> held: IQ1-0 the instrument, IQ1-1 the substitute market, IQ1-2 the chest tells
+> the truth, IQ1-3 "The Granary and the Alarm" — which OVERTURNED §0.6's
+> recommended retainer on a measurement (the whole diplomacy-instrument channel
+> is worth 4,824 gold one-shot, and its payoff has no consumer) and instead
+> opened the levy's own-soil gate to the engine's own `ALLY_SUPPLY_STATES`,
+> suppressed the ally-capital discount, mirrored the training-ground and
+> Shorncliffe rungs at the substitute premium, and priced the levy by Europe's
+> alarm: receipts **18,852 → 75,486 gold = 4.00×, 85.2% of the surplus** — then
+> **IQ1-5 "The Exit"** (spec §0.6b, ZERO production code), which measured all
+> four completion items on committed archives: **(i) MET** (10 qualifying
+> treasury falls against 0 on both other arms; the predicate throws out the two
+> turns the arm lost ground, so a collapse is unscoreable as a sink) · **(ii)
+> measured FALSE and worse than filed — a RATCHET**: the whole France leads
+> turns 0–4 by a shrinking 266 → 48, then the beaten one's army bleeds a
+> further 25,000, its upkeep falls again and the gap **inverts and widens** to
+> **+731 g/turn** by turn 8, the victor's Net decaying 784 → 538 while the
+> loser's grows 518 → 1,269; handed to question (c)'s gate. ⛔ The exit struck
+> its own **+534 at turn 0** here before publishing — construction-dependent ·
+> **(iii) MET for 18 of 19 gold streams** — four production sites move France's
+> purse and three are named; `process_instruments` moves the chest 200 and Net
+> **exactly 0**, IQ1-3a′'s gap measured at face value · **(iv) MET and
+> mutation-proven**. **Economy pillar 6.0 → 6.5 — RULED, FOR USER
+> CONFIRMATION**: up for a convertible chest and a readable one, held below 7
+> because a France that simply does not buy reproduces the disease board exactly
+> (the control arm ends on the same **88,556 gold** the row opened on, with zero
+> treasury falls in forty turns) and because (c) is measured widening. §0.8's
+> re-open condition does NOT fire; its dissent stands unretracted, carried by
+> IQ1-3e and the (c) gate. **One new finding, filed not fixed: IQ1-5-1** — the
+> Charges of Empire are quoted **one war-effort tick stale** (every other ledger
+> term exact to the gold; `war_exhaustion` ticks +8/turn at war while the tab is
+> a forward projection by CA9-N11 contract — quoted 1,216, paid 1,337; 121
+> g/turn at a 40,000 chest, 277 at 88,556). **NEXT = IQ-2 "The Collapse Is
+> Legible".** The crux (the August 7 blessing vs the September 12 brief) is
 > RULED in spec §0.2 — the blessed rate stands and the fix is somewhere for the
 > gold to GO — and question (c) is ROUTED OUT to its own design gate by user
 > ruling. Three figures in the row's own contract did not reproduce and are
 > corrected (457× → **590×**, the upkeep floor, and two mixed boards).
 >
-> **▶ THE IMPROVEMENT QUEUE (row IQ) IS THE LIVE ROUTING AUTHORITY — opened September 12, 2026 by user direction** (*"improve everything but win conditions one by one — let the agents make decisions on how; start with a comprehensive econ fix that finally makes it work better"*). **The queue lives in `docs/STATUS.md` ▶ NEXT UP and is authoritative for what is built next.** Ten rows, taken one at a time, each opened by a read-only decision fleet whose rulings become the build contract: **IQ-1 the economy that bites** (▶ in progress — absorbs the DECLINED FA-S17-D2 gold-sink ruling, re-opened here by direction, plus IGR-X9 and the live half of `ECONOMY_REVISIT_SPEC.md` Track 3) → IQ-2 the collapse is legible (PR-X1) → IQ-3 the coalition is rare (PR-D1) → IQ-4 the cabinet is visible (PR-D2/D3) → IQ-5 both sides of the butcher's bill (PR-X2/X3) → IQ-6 Europe speaks its mind (PR-X4) → IQ-7 the satellites have a position (FA-S17-D7's owner) → IQ-8 the harness tells the truth (PR-X5, PR-D4) → IQ-9 the keyless parser gate → **IQ-10 the client pass, ⚠ BLOCKED ON ENVIRONMENT** (no Godot binary in this container). **⛔ WIN CONDITIONS ARE EXCLUDED BY DIRECTION** — `sandbox_mode` suppresses victory AND defeat on every Europe world and that stays owned by the Victory & Objectives Pass, ROADMAP positions 12–13; no IQ row builds it or half-builds it, and IQ-2's scope note states in writing that making the collapse legible does not make it terminal.
+> **▶ THE IMPROVEMENT QUEUE (row IQ) IS THE LIVE ROUTING AUTHORITY — opened September 12, 2026 by user direction** (*"improve everything but win conditions one by one — let the agents make decisions on how; start with a comprehensive econ fix that finally makes it work better"*). **The queue lives in `docs/STATUS.md` ▶ NEXT UP and is authoritative for what is built next.** Ten rows, taken one at a time, each opened by a read-only decision fleet whose rulings become the build contract: ~~**IQ-1 the economy that bites**~~ (✅ **CLOSED Sept 14, 2026** — absorbed the DECLINED FA-S17-D2 gold-sink ruling, re-opened here by direction, plus IGR-X9 and the live half of `ECONOMY_REVISIT_SPEC.md` Track 3) → **▶ IQ-2 the collapse is legible** (PR-X1) → IQ-3 the coalition is rare (PR-D1) → IQ-4 the cabinet is visible (PR-D2/D3) → IQ-5 both sides of the butcher's bill (PR-X2/X3) → IQ-6 Europe speaks its mind (PR-X4) → IQ-7 the satellites have a position (FA-S17-D7's owner) → IQ-8 the harness tells the truth (PR-X5, PR-D4) → IQ-9 the keyless parser gate → **IQ-10 the client pass, ⚠ BLOCKED ON ENVIRONMENT** (no Godot binary in this container). **⛔ WIN CONDITIONS ARE EXCLUDED BY DIRECTION** — `sandbox_mode` suppresses victory AND defeat on every Europe world and that stays owned by the Victory & Objectives Pass, ROADMAP positions 12–13; no IQ row builds it or half-builds it, and IQ-2's scope note states in writing that making the collapse legible does not make it terminal.
 >
 > **▶ THE POST-AUDIT PLAYTEST AND RE-SCORE — ✅ HELD September 12, 2026. Memo of record = `docs/audits/PLAYTEST_RESCORE_2026_09_12.md`, authoritative where it amends the September 11 re-score.** Sixteen seeded driver runs (five 40-turn ambient seeds · the COMMANDED arm on three seeds with `--diplomacy accept` · `--diplomacy propose` · scripted-aggressive · the naval Descent · the tutorial · both fixtures · a reload arm · a `--declare-war proceed` control · a repeat-determinism control), then **twelve re-run after the fixes** so every claim about a change is a before/after on the same seed. **Directional ≈6.9 → ≈7.0** — diplomacy 6.0 → **6.5**, marshal drama 7.0 → **7.5**, seven pillars hold on named evidence. **⚠ `--llm anthropic` (no API key) and the Mode-C client pass (no Godot binary) could NOT run and are recorded as NOT RUN, not as passes — UI/UX is not re-scored and its prior 7.5 stands; zero `.gd` changed.** Landing record = the boxed **Playtest Re-Score (PR / MS)** block in `BUG_FIXES.md`; design rows = `DESIGN_REFINEMENT.md` §Playtest Re-Score (PR-D1..D4); routed defects PR-X1..X5. Suite **21,590/4**, sweep **29 killed / 0 INERT**, `BASELINE_SERIES` + M1–M7 byte-identical **with the reason measured**, ruff clean.
 >

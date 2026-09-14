@@ -47,8 +47,8 @@
 >
 > | # | row | what it fixes | evidence | state |
 > |---|---|---|---|---|
-> | 1 | **IQ-1 THE ECONOMY THAT BITES** | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ▶ **IN PROGRESS** — IQ1-0/1/2/3 LANDED; **85.2% of the surplus now converts**; next = **IQ1-5** the exit |
-> | 2 | **IQ-2 THE COLLAPSE IS LEGIBLE** | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | queued |
+> | 1 | ~~**IQ-1 THE ECONOMY THAT BITES**~~ | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ✅ **CLOSED September 14, 2026** — IQ1-0/1/2/3 landed, **IQ1-5 the exit held**; 85.2% of the surplus converts; pillar **6.0 → 6.5**; (c) routed out, (ii) measured-open |
+> | 2 | **IQ-2 THE COLLAPSE IS LEGIBLE** | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | ▶ **NEXT** |
 > | 3 | **IQ-3 THE COALITION IS RARE** | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | queued |
 > | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | queued |
 > | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | queued |
@@ -60,7 +60,7 @@
 >
 > ---
 >
-> ### IQ-1 — THE ECONOMY THAT BITES  ▶ IN PROGRESS — four slices landed
+> ### IQ-1 — THE ECONOMY THAT BITES  ✅ CLOSED — four slices landed, the exit held
 >
 > **⚠ OWNING SPEC: `docs/IMPROVEMENT_QUEUE_SPEC.md` (opened by IQ1-2; it is
 > authoritative for the landing records, the crux ruling, the dissent, the
@@ -254,6 +254,124 @@
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
 
+> ## ▶ IQ1-5 "THE EXIT" — HELD September 14, 2026. **ROW IQ-1 IS CLOSED.**
+>
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §0.6b, authoritative.**
+> **ZERO production code**, as the slice defines itself. Four completion items
+> measured against the re-stated predicates of §0.7 on committed archived arms;
+> the (iv) acceptance test verified in both directions; the pillar re-scored;
+> §0.8's re-open condition resolved. Re-run sweeps at the restart came back
+> **IQ1-2 40/40 and IQ1-3 35/35, 0 INERT, 0 BROKEN**, tree clean.
+>
+> **(i) MET — and the predicate throws out the arm's own bad turns.** *A fall
+> whose largest single term is a player spend, with provinces non-decreasing:*
+> spender **10 qualifying of 12 falls** (turns 6, 12, 15, 18, 21, 24, 27, 30,
+> 36, 39) · control **0 falls in forty turns** · ambient **23 falls, 0
+> qualifying**. The two it rejected are exactly the two turns the spender lost
+> ground (9: 29→28, 33: 29→27) — so §0.6's ⛔ *"do not score a collapse as a
+> sink"* is honoured **by the predicate**, not by excluding the arm.
+>
+> **(ii) measured FALSE — and it is a RATCHET, not the fixed handicap the row
+> filed.** Two boards, army allowed to fall, engine recovery ticks running,
+> **both held at PEACE before every tick** so the gap is upkeep and not a war
+> rate. The whole France (189,000 men, 28 provinces) leads turns 0–4 by a
+> shrinking 266 → 48; then at turn **5** the beaten one's army falls a further
+> 25,000 (94,500 → 69,500), its upkeep falls *again*, and the gap **inverts and
+> widens every turn after**: **+634 / +670 / +706 / +731**. **The mechanism is
+> worse than "the army is smaller": the peace ceded the ground two corps were
+> standing on** — Ney and Davout both at Rhineland, 12,000 + 13,000 = the whole
+> 25,000 — warned three times and then interned. **Losing territory cuts the
+> loser's bill twice**, once for the men lost fighting and again for the corps
+> left on the ground it gave away. ⚠ That mechanism was named by an INERT
+> mutation, not by me: the first pin blamed supply attrition and disabling
+> attrition outright changed nothing. Underneath it the
+> shapes are opposite — **the victor's Net decays 784 → 538 while the beaten
+> one's grows 518 → 1,269** — so it never closes on its own. **Every further
+> defeat makes the loser richer.** ⛔ **And the exit struck a claim of its own
+> here before publishing it:** the first measurement made peace BEFORE applying
+> the losses and reported the loser ahead by **+534 at turn 0**; that does not
+> reproduce, because the war-end cleanup hands occupied territory back and
+> leaves France a *richer* 23 provinces (gross 2,056 vs 1,256). Built the other
+> way the winner leads turn 0 by 266. The two orders agree to within **ten gold
+> a turn** on the late arm, so only the late arm is pinned. Question (c) was
+> **ROUTED OUT to its own design gate by user ruling, September 13**, so the
+> row records this **measured-open and handed off** rather than fudging its own
+> grade.
+>
+> **(iii) MET for 18 of 19 gold streams; the nineteenth measured, not argued.**
+> Tracing **every** write to France's purse across ten real turns, four
+> production sites move it: `process_income_phase` (−11,430; its 14 terms are
+> all declared Net components), `process_vassal_tribute` (+9,370),
+> `process_trade_income` (+1,750, delivering `trade_income − blockade` as ONE
+> net write) — and **`process_instruments` at −2,000 which moves Net by exactly
+> 0**. That is IQ1-3a′'s gap at face value: a standing 200 g/turn sponsorship
+> costs 200 and is named nowhere. Net **==** the signed sum of its 18 declared
+> components, every one rendered in `.gd`, stays pinned.
+>
+> **(iv) MET and mutation-proven.** `the_chest_is_convertible` — control
+> (88,556 banked, 0 converted) **False**, HEAD-after-IQ1-1 (conversion 0.150)
+> **False**, the slice (hoard 8.1 turns, conversion 0.783) **True** — with the
+> negative control failing in both directions at the pre-row values. 63 tests
+> green; IQ13-33/34/35 killed.
+>
+> **▶ NEW FINDING — IQ1-5-1, filed in `BUG_FIXES.md` §Improvement Queue (P3,
+> not fixed here).** The Charges of Empire are **quoted one war-effort tick
+> stale**. Every other ledger term is exact to the gold; the whole miss is
+> `state_charges`, because `get_state_charges_rate` carries a `war_exhaustion`
+> term that ticks **+8/turn at war** (measured 0 → 8 → 16 → 24 → 32) while the
+> economy tab is a forward projection by contract (CA9-N11). Quoted 1,216 /
+> paid 1,337; quoted 1,355 / paid 1,478; quoted 1,492 / paid 1,616. Magnitude
+> `(treasury − 2000) × 8 // 2500` — **121 g/turn at a 40,000 chest, 277 at the
+> control arm's 88,556** — on the ledger's largest discretionary term, whose
+> docstring claims *"shown = applied"*.
+>
+> **⚠ The exit's own claims were wrong twice before they were right.**
+> `advance_turn` calls `process_income_phase` internally, so a probe that calls
+> both charges the nation twice; the first two item-(iii) probes did exactly
+> that and read their own double charge as a phantom unnamed residual growing
+> 590 → 1,061 gold/turn. It does not exist. Recorded because the row's rule is
+> to reproduce before filing and the first two reproductions were the thing
+> being measured.
+>
+> **PILLAR RE-SCORE — economy 6.0 → 6.5. ⚠ RULED — FOR USER CONFIRMATION.**
+> **Up** because the chest is convertible on the arm that engages with it
+> (85.2% of the surplus, receipts 4.00×, hoard 21.9 → 8.1 turns of gross), the
+> treasury stops being monotonic for the *right* reason for the first time, and
+> the player can finally read what they are charged. **Held below 7** because a
+> France that simply does not buy reproduces the September 12 disease board
+> exactly — the control arm ends on **88,556 gold, 29 provinces, 81,453 men and
+> zero treasury falls**, the same 88,556 the row opened on — and because **(c)
+> is not merely unbuilt but measured widening**. A user who reads the control
+> arm as the governing case would hold it at 6.0.
+>
+> **§0.8's re-open condition does NOT fire** (the pillar moved off 6.0), so the
+> stability ratchet is not re-opened — but **the dissent stands unretracted**
+> and is now carried by IQ1-3e and the (c) gate: a sink a winning player may
+> decline leaves a winning game easy, which is what the control arm shows.
+>
+> **Limits, stated rather than implied:** no new arm was driven (the exit grades
+> committed archives, as specified) · **no `--llm anthropic` arm and no Godot
+> client pass** — no API key and no Godot binary here, so IQ1-3's region-panel
+> levy chip is **unverified on screen** and carries **IQ-10**'s sign-off · the
+> AI substitute rung remains measured unreachable on the shipped board (18 of 20
+> nations boot holding a pool ≥ 10,000), which is why `BASELINE_SERIES` needs no
+> re-record — a fact about the board, not evidence the rung works.
+>
+> **Pins.** `tests/test_iq1_iq1_5_the_exit.py` (**24**) — the grade made
+> falsifiable — and sweep `tools/_sweep_iq1_iq1_5.json` (**23**) **23 killed /
+> 0 INERT / 0 BROKEN** at close, after four rounds. ⚠ Lessons kept on the
+> record: item (i)'s "largest term" clause was unpinned; **both record pins
+> were a bare `in` over a whole file** and were satisfied by a different
+> occurrence (`6.0 → 6.5` occurs 3× in the spec, `war_exhaustion` 6× in
+> BUG_FIXES); **three of my own mutations were invalid, all the same shape —
+> weakening an assertion cannot make a test fail**; and one DETONATED (renaming
+> `NET_GOLD_COMPONENTS` breaks every importer at collection time, so no pin is
+> evaluated).
+>
+> **▶ NEXT = IQ-2 "THE COLLAPSE IS LEGIBLE"** (PR-X1). ⛔ Its scope note stands:
+> making the collapse legible does **not** make it terminal — win *and* defeat
+> conditions stay with the Victory & Objectives Pass, ROADMAP positions 12–13.
+
 > ## ▶ IQ1-3 "THE GRANARY AND THE ALARM" — LANDED September 14, 2026
 >
 > **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §0.6a, authoritative.**
@@ -356,10 +474,9 @@
 > 590× behind a census pin; and the wrong receipt figure 18,537 is corrected to
 > **18,852** in all eight surviving sites.
 >
-> **▶ NEXT = IQ1-5 "The Exit"** — no production code: the four completion items
-> measured on the committed arms, then the economy pillar re-scored. ⚠ If it
-> does not move off 6.0, §0.8's re-open condition is the ceiling's SHAPE, not
-> the price.
+> ~~**▶ NEXT = IQ1-5 "The Exit"**~~ ✅ **HELD September 14, 2026 — see the top
+> entry.** The pillar moved **6.0 → 6.5**, so §0.8's re-open condition does not
+> fire.
 
 > ## ▶ ROW IQ-1, THREE SLICES LANDED — September 12–13, 2026
 >

@@ -106,6 +106,73 @@
 ---
 
 
+## Improvement Queue (IQ) — filed September 14, 2026 at the IQ1-5 exit
+
+> **Owning spec = `docs/IMPROVEMENT_QUEUE_SPEC.md`.** Row IQ-1 is CLOSED
+> (§0.6b). These are the rows its exit measured but did not build — IQ1-5
+> ships no production code by definition.
+
+### IQ1-5-1 — the Charges of Empire are quoted one war-effort tick stale (**OPEN**, P3)
+
+**Measured, September 14, 2026**, while reconciling completion item (iii) on
+the 1805 boot at a 40,000-gold chest:
+
+| term | ledger quote | charged | moved |
+|---|---|---|---|
+| income | 3,400 | 3,400 | 0 |
+| admin_bonus | 50 | 50 | 0 |
+| admiralty | 90 | 90 | 0 |
+| upkeep_base / surcharge | 1,512 / 1,118 | 1,512 / 1,118 | 0 |
+| **state_charges** | **1,216** | **1,337** | **+121** |
+
+Every other term is exact. The whole miss is `state_charges`, and the cause is
+confirmed by reading the rate on both sides of the advance:
+`WorldState.get_state_charges_rate` carries a `war_exhaustion` term that ticks
+**+8 per turn at war** (measured 0 → 8 → 16 → 24 → 32 over four turns), while
+the Strategic Ledger's economy tab is a **forward projection by contract**
+(CA9-N11, stated in `ledger._build_economy`'s own docstring: *"a caller
+projecting forward … passes nothing"*). So the tab prices the charge at
+**today's** war effort and `process_income_phase` levies it at **tomorrow's**.
+Three consecutive turns: quoted 1,216 / paid 1,337 · quoted 1,355 / paid 1,478
+· quoted 1,492 / paid 1,616.
+
+**Magnitude** = `(treasury − CHARGES_HOARD_FLOOR) × 8 // WAR_EFFORT_DIVISOR`,
+so it scales with the chest: **121 gold/turn at 40,000**, **277 at the control
+arm's 88,556**. It sits on the ledger's single largest discretionary term —
+whose own docstring claims *"the SINGLE source for the income phase, the
+treasury report and the ledger (shown = applied)"*, which is true of the
+formula and not of the rate fed to it.
+
+⚠ **Reproduce before fixing, and mind this trap:** `advance_turn` calls
+`process_income_phase` internally, so a probe that calls BOTH charges the
+nation twice and shows a phantom residual growing 590 → 1,061 gold/turn. Two
+of the exit's own probes did exactly that. Drive `advance_turn` alone and read
+the applied record out of `world._income_phase_results`.
+
+**Fix shape (not built):** the projection should price the rate the charge will
+actually be levied at. The war-exhaustion tick is deterministic and monotone,
+so this is arithmetic, not a guess — but check whether the tick fires for every
+belligerent before assuming +8, and whether a nation at peace on the quote turn
+can be at war on the charge turn. **Do not** make `_build_economy` read the
+applied cache to paper over it: CA9-N11 chose the projection deliberately and
+the prefer-applied path already exists for callers describing a turn that ran.
+
+### IQ1-3a′ — a standing sponsorship moves the chest and not the Net (**OPEN**, owned by IQ1-3a′ in the spec)
+
+Not new — but now **measured at face value instead of argued**. Tracing every
+write to France's purse across ten real turns, four production sites move it
+and three are named on the ledger (`process_income_phase`'s 14 declared terms,
+`process_vassal_tribute`, and `process_trade_income` delivering
+`trade_income − blockade` as one net write). The fourth,
+`instruments.process_instruments`, moved **−2,000 over ten turns** — a standing
+200 g/turn `directed_sponsorship` — and moved Net by **exactly 0**, every turn,
+for as long as it stands. See `IMPROVEMENT_QUEUE_SPEC.md` §0.6b and §0.6's
+IQ1-3a′ brief, which already carries the `_applied_income_transfers` idiom this
+must use on **both** sides and the R7 label collision it must avoid.
+
+---
+
+
 ## Playtest Re-Score (PR / MS) — filed September 12, 2026 (**✅ ALL P1/P2 FIXED same session; 5 rows ROUTED**)
 
 > ### ✅ THE SLICE IS LANDED — September 12, 2026
