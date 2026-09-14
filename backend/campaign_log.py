@@ -902,7 +902,23 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           # where our intel reaches (region PARTIAL+)
                           "dotation_granted", "estate_lost",
                           # W6-8: same rule for conquered-estate resolutions
-                          "estate_confiscated", "estate_respected"):
+                          "estate_confiscated", "estate_respected",
+                          # IQ-1 IQ1-3D rider 2: a court BUYING substitutes is
+                          # an economy event under exactly this rule, and it was
+                          # absent from the tuple — so every non-player purchase
+                          # fell through the loop and was dropped, while twelve
+                          # `len(CAMPAIGN_LOG_TYPES) == 163` pin comments
+                          # asserted the row existed "because an AI nation
+                          # buying 30,000 men had no persistent surface".
+                          #
+                          # ⚠ The decision fleet reported this as "the filter
+                          # has NO economy branch and no default arm". Half
+                          # right, and the correction is the smaller fix: the
+                          # branch has been here since Session 8 — the TYPE was
+                          # missing from it. The producer also emitted no
+                          # `region` key, so the "region PARTIAL+" rule below
+                          # had nothing to read; it does now.
+                          "substitutes_purchased"):
             # Try to get a region for the event
             econ_region = event.get("region") or event.get("location") or ""
             if econ_region:

@@ -136,7 +136,7 @@ Commit `c3d74fa`. The first purchase in the game bounded by **gold**.
 > *"58,992 gold at turn 40 against a baseline 88,556, i.e. 29,564 absorbed — a
 > THIRD of the surplus"* is a **cross-script difference, not a spending
 > measurement**. Read off the archived spender digest:
-> * **6 of 13** scripted buys succeeded, for **18,537 gold**
+> * **6 of 13** scripted buys succeeded, for **18,852 gold**
 >   (7,257 + 2,400 + 2,400 + 2,040 + 2,400 + 2,040);
 > * **6 were refused** — *"We do not hold Munich / Piedmont ×4 / Franconia,
 >   Sire"* — on an own-soil gate, and 1 on price;
@@ -288,7 +288,7 @@ way.
 
 **(5) `spent` and `army_strength_total` reach the digest row.** `spent`
 rendered on **ZERO** rows of all three archived IQ-1 digests — including the
-spender arm that bought 18,537 gold — because `_advance_turn_internal` clears
+spender arm that bought 18,852 gold — because `_advance_turn_internal` clears
 `gold_spent_this_turn` and the driver's only two `/ledger` reads were the turn
 header and post-end-turn. A **third** read now sits in the turn loop, after
 the turn's commands and before `POST /command {end turn}`, behind a new
@@ -661,13 +661,237 @@ it needs a counterweight the player can pay for, e.g. drill restoring the
 morale it costs (the EB-era "drill restores morale" mechanic already ships).
 
 **FINDING 2 — THE OWN-SOIL GATE AND THE FIELD CAP BOTH BITE HARD.** Of 13
-scripted purchases: **3 refused** *"We do not hold Munich / Piedmont, Sire.
+scripted purchases: **SIX refused** *"We do not hold Munich / Piedmont, Sire.
 Substitutes are received at our own depots"*, **1 refused on price** early
 (*"The treasury holds 3,850"* — correct and good), and **every success
 delivered 9,000 men against the 30,000 asked**, because the field batch cap
 binds. So the dearest purchase on this board is ~2,400–7,572 gold, not the
 24,840 the design's own worked example quotes. **Both are IQ1-3's to rule on**,
 and the own-soil gate still stands against `ALLY_SUPPLY_STATES` (§0.4).
+
+### §0.6a LANDING RECORD — IQ1-3 "The Granary and the Alarm"
+
+**⛔ THIS IS NOT §0.6's RETAINER, and the recommendation is overturned on a
+measurement, not on taste.** The decision fleet drove the entire
+diplomacy-instrument channel through the real `_execute_buy_off_design` on the
+1805 boot at a 1,000,000-gold chest: Denmark 600 + Ottoman 600 + Prussia 1,008
++ Sardinia 1,248 + Sweden 1,368 = **4,824 gold, one-shot, for every buyable
+design in Europe** (three courts refuse on "We are at WAR"). That is **5.4% of
+the disease chest** for a 15-turn term — **322 g/turn**. And after the sweep,
+`coalition.get_qualifying_nations` returns `['Ottoman','Sweden','Naples',
+'Hanover','Sardinia']` **identically**: `qualifies_for_coalition` reads relation
+< −10, not-a-vassal, not-already-at-war and PR-1's fresh-peace floor, and
+**nothing monetary at all**.
+
+Three more things killed the shape, each read off a symbol:
+
+* **Its payoff has no consumer.** `intent._derive_weight` reads
+  `diplomatic_guarantees` and `has_renege_grievance` and **never**
+  `directed_sponsorships`. The nearest consumer is shut by construction —
+  `war_council`'s design coercion is `AI-vs-AI only` by its own comment, so a
+  retainer on a France-aimed design **can never open**.
+* **§0.6's "cancel verb" does not exist.** A grep for
+  cancel/revoke/withdraw/release/rescind/terminate over `instruments.py`
+  returns only the guarantee's `abandoned` renege path. A minted compact runs
+  its full term; the only player exits route through `_renege` and cost −25
+  relation plus a grievance.
+* **A retainer is dominated 8–10× by a verb that already ships.**
+  `_execute_buy_off_design` has NO `aim == player` refusal — only its
+  `_execute_sponsor_design` sibling twelve lines away does — and its own
+  docstring reads "buy off a design aimed at France('s sphere)". It buys the
+  STRONGER product (full suspension, honoured at `agendas.py`'s chokepoint).
+
+**So §0.8's DISSENT is MOOT, not overruled** — "paying Europe to stay quiet
+makes a winning game easier rather than a losing game more expensive" was an
+argument against a mechanic that no longer ships. Recorded rather than left
+standing.
+
+#### What IS built
+
+| arm (cumulative) | ok | RECEIPTS | men | treasury@40 | prov | army |
+|---|---|---|---|---|---|---|
+| control (no buy orders) | — | 0 | 0 | 88,556 | 29 | 81,453 |
+| HEAD | 6/13 | **18,852** | 54,000 | 54,443 | 24 | 118,735 |
+| + A the granary | 12/13 | **65,916** | 129,000 | 23,937 | **26** | 161,830 |
+| + A2 the host's price | 12/13 | **67,572** | 129,000 | 23,412 | 26 | 161,830 |
+| + C the alarm | 12/13 | **75,486** | 129,000 | 19,577 | 26 | 161,830 |
+
+**18,852 → 75,486 = 4.00×, and 85.2% of the 88,556-gold surplus** — with the
+board ending BETTER, not worse, and the one surviving refusal on PRICE, which is
+the market working. Every figure is a **receipt read at the executor**, never a
+difference between two boards (§0.5.1's rule, and this row has broken it twice).
+Re-measured at HEAD by me after the build: **75,486 in 12 purchases**, 19,577 at
+turn 40, 26 provinces, army 161,830 — the fleet's arithmetic to the gold. Both
+arms archived at `docs/audits/playtest_digests/iq13-{control,spender}-cmd-historical/`,
+with their jsonl.
+
+**A — THE GRANARY OF AN ALLY.** `_execute_purchase_levy` refused on OWNERSHIP
+while the engine's own supply DECISION — `world_state._supply_multiplier`,
+landed as PC15-D2 "The Ally's Table" — already feeds a guest army on
+ALLIANCE / DEFENSIVE_ALLIANCE / VASSAL soil at `HOME_SUPPLY_MULTIPLIER`, and
+`dispatch.py`'s depot-remedy arm says so out loud on the identical fact. Two
+seams, one question, opposite answers — and **all six** own-soil refusals on
+the archived arm (Munich ×1, Piedmont ×4, Franconia ×1) were on soil PC15-D2
+feeds. Now ONE extracted predicate, `economy_executor.region_feeds_nation`,
+read by the levy, the AI rung and (as its origin) the supply multiplier.
+NON_AGGRESSION and OPEN_BORDERS hosts still refuse — the Ansbach line, for free
+and by construction, because neither state is in `ALLY_SUPPLY_STATES`.
+
+⚠ **PIN BERNADOTTE AT FRANCONIA, NOT MASSENA AT MILAN.** §0.4's own example is
+wrong twice: Milan has no depot (the map holds **zero** in all 126 provinces) —
+it is `region_type == "capital"` — and at boot, *with the gate open*, a purchase
+there is STILL refused, by the establishment: 195,000 ceiling − 189,000 standing
+= **6,000 of room** against the 10,000 a capital batch needs. A pin on Milan
+would red while the fix works. Franconia (Bavaria/ALLIANCE/major_city → a 3,000
+field batch) succeeds, and that is the pin.
+
+**A2 — THE HOST'S PRICE.** The moment the gate opened,
+`_calculate_recruit_cost`'s 25% capital discount became newly REACHABLE on an
+ALLY's capital, because that function never read `region.controller`. Measured
+at Munich: a full batch for 4,959 gold = **165 g per 1,000 men** against the
+same arm's dearest at 1,074. A host's magazines feed your battalion; its
+treasury does not subsidise your recruiting. Suppressed via a **default-off**
+`foreign_soil` kwarg, so all nine existing call sites are byte-identical by
+construction — measured cost, +1,656 gold of absorption for identical men.
+
+**B — THE BOUGHT MEN ARE NOT PUNISHED TWICE.** The designed premium is
+`LEVY_MORALE_PREMIUM` = 15 points below a draft. But the purchase path wrote a
+FLAT `LEVY_MORALE_BASE` while the draft path reads `training_ground` (an
+absolute 70) and Moore's Shorncliffe System (a floor of 60) — so the real gap
+was **45 and 35** at those rungs, and **the one counterweight a player can
+already BUY was void for substitutes**. `substitute_arrival_morale` mirrors the
+draft's RUNG at the premium: **25 / 55 / 45**, the bare rung byte-identical to
+what shipped. ⚠ Deliberately NOT one shared ABSOLUTE arrival function, which
+two candidate designs prescribed and which would hand a substitute the draft's
+70 — *better* than a bare draft's 40 — destroying the premium it exists to
+protect. Plus the missing rout-line warning: `LEVY_MORALE_BASE`,
+`FORCED_RETREAT_THRESHOLD` and the global rout threshold are all 25, so a big
+batch into a tired corps leaves it one reverse from breaking and the receipt
+said nothing. It is per-marshal, through `get_rout_threshold` (Charles sits at
+15).
+
+**C — THE ALARM PRICES THE LEVY.** §0.2's own words — "priced by the threat the
+player's own success creates" — and it is question (b), answered on the levy.
+`1 + max(0, threat − LEVY_ALARM_ANCHOR)/100` on `levy_substitute_price`. A
+frightened continent does not sell its sons cheaply to the power frightening it.
+**Boot-dormant on every seed BY CONSTRUCTION**, not by one measurement: the
+authored `threat_level_band` is [65, 75] and the anchor is **75**, so the
+multiplier is exactly ×1.00 at both endpoints — pinned, along with a pin that
+reds if the authored band ever reaches past the anchor. `max(0, …)` also means
+an absent threat slot is ×1.00 and never a DISCOUNT. ⚠ It prices SUBSTITUTES
+only: putting the term in `_calculate_recruit_cost` would move every recruit
+price in the game and red blessed pins, so a France that ignores the substitute
+market pays no alarm — deliberate, and left on the row as an honest question for
+the econ owner.
+
+**D — THE RIDERS.** All three of §0.6's, plus a fourth of the same kind.
+(1) `get_levy_status` gains a `substitutes` sub-dict — price, amount, batch cap,
+ceiling, room, alarm premium, arrival morale, open — so the ledger, the map
+summary and the region panel inherit the market's terms from ONE source; and a
+region-panel **chip** that names the marshal, quotes the per-province
+per-marshal price, and is **present-but-dimmed with its reason** when gated,
+never absent. ⚠ The chip quotes a NEW `substitute_price_here`, not
+`recruit_price_here`: the latter passes no `marshal=` and is Intendance-blind
+while the charge is not, so reusing it would quote a figure the executor does
+not charge — the Aug-30 lesson, one verb over. (2) `substitutes_purchased`
+reaches the campaign log for non-player courts. ⚠ **The fleet reported the
+filter as having "NO economy branch and no default arm"; half right, and the
+correction is the smaller fix** — the branch has been there since Session 8 and
+the TYPE was missing from it, while the producer emitted no `region` key for the
+"region PARTIAL+" rule to read. Both fixed, so the twelve
+`len(CAMPAIGN_LOG_TYPES) == 163` pin comments stop being green about something
+that cannot happen. (3) The three shipped instrument verbs — buy off, sponsor /
+licence, guarantee — are **named in the help text** for the first time, the
+identical hole IQ1-2 closed for `purchase_levy`, and every phrasing taught is a
+pinned golden-corpus row. (4) `--archive` now carries the **jsonl**: `purses`
+and `net_residual` live only there, so every archived arm had been losing the
+only instrument that makes a GR5 economy claim falsifiable.
+
+#### The rulings §0.4, §0.5.1 and §0.6 handed to this row
+
+| question | ruling |
+|---|---|
+| the morale dilution | **CORRECT PRICE, STANDS.** §0.5.1 FINDING 1's causal sentence is STRUCK — see below. What is built is the second penalty nobody designed. |
+| the own-soil gate | **OPENED** to `ALLY_SUPPLY_STATES`. The single largest measured gain in the row, 3.50×. |
+| the ally CAPITAL | full BATCH granted (PC15-D2's granary); the 25% DISCOUNT suppressed. |
+| the 9,000-of-30,000 batch cap | **KEPT, UNTOUCHED** — and §0.5.1's framing is half wrong. `gold_cost = per_batch × batches` with `batches` capped at 3 either way, so the gold per admin action is identical (8,280); the cap is a MEN cap that makes men 3.33× dearer, and RAISING it would SHRINK lifetime absorption, because `levy_purchase_ceiling` bounds purchases by men rather than gold. What ships instead is copy. |
+| the IQ-3 boundary | **DISCHARGED.** IQ1-3 touches ZERO coalition symbols, so the boundary is a fact and not a promise, and §0.6's "the two rows must land together" no longer holds. |
+
+**⛔ §0.5.1 FINDING 1's CAUSAL SENTENCE IS STRUCK — the third occurrence of the
+error this row has already struck twice.** "A player in a good position who
+spends gold gets a bigger, weaker army and loses ground" was a **cross-board
+difference presented as a mechanism**. Measured: 18 of 19 French battles are
+byte-identical across the arms and all five province losses were unopposed
+marches; a bigger-greener corps measures **stronger** (54.9% vs 47.9%
+defensive win rate); and with **3.5× more** substitutes the board ends on **26**
+provinces, not 22. The arithmetic: effective strength is `S × (0.5 + m/100)`, so
+adding `n` men at quality `q` changes it by `n × (0.5 + q/100)` — positive, and
+independent of the corps' own size and morale.
+
+**The method rule this extends, and it is the useful part: A PROVINCE COUNT IS A
+BOARD DIFFERENCE TOO. Paired arms stop being an isolation at the first AI
+decision that reads the board.** ⚠ And a pin written on the multiplier alone
+reproduces the same confusion — my own first cut compared
+`get_combat_effectiveness()` values (1.5 → 1.29) and red, which is the
+multiplier correctly FALLING while the product rises.
+
+#### Completion item (iv) — the 590× ratio is RETIRED
+
+Replaced by two clauses in ONE predicate, `the_chest_is_convertible(gross, rate,
+chest, receipts, turns)`, shared by every arm AND by the negative control (the
+IGR-E pattern):
+
+* the unconverted hoard in **turns of the empire's entire gross income**, ceiling
+  **12** — control **21.9**, HEAD 17.3, the positive arm **8.1**;
+* the share of lifetime gross actually **converted**, floor **0.40** — control
+  0.000, HEAD 0.150, the positive arm **0.783**.
+
+⚠ **NOT §0.7's obligation-based fixed point**, which three candidate contracts
+proposed: `state_charges_ceiling` returns 0 for `net <= 0` and `_build_economy`
+renders that as `CEILING_NO_SURPLUS` — the state IQ1-2's review round
+deliberately repainted in an ERROR colour — so a predicate treating that 0 as a
+PASS scores **over-commitment as success** and is satisfiable by any obligation
+large enough. This slice's sink is `Spent`, not Net, so no obligation term is
+needed. ⚠ And not the ratio itself: the same pricer returns 150 at the capital
+at peace and 654 at the boot (a 4.4× ambiguity in the denominator), while the
+modal DELIVERED purchase across every archive is 3,000 men for 200 gold.
+
+**A rump is excluded, not scored.** `GROSS_FLOOR = 1842` (the boot's own gross)
+plus the growing-chest guard decline to grade a collapsed France — which is what
+the newly archived ambient baseline is FOR: it ends on **5 provinces and 2,593
+gold with 23 treasury falls**, non-monotonic for the wrong reason.
+
+**Series.** `BASELINE_SERIES` and M1–M7 **byte-identical without re-record**,
+and the reason is measured: the AI substitute rung is unreachable on the shipped
+board — 18 of 20 nations hold an infantry pool ≥ 10,000 at boot, and
+`_find_weakest_marshal_for_admin` skips a marshal whose pool covers a draft — so
+the granary changes no AI decision there. ⚠ M1–M7's greenness is worth nothing
+here regardless (zero references to gold, income, stability, upkeep or turn
+advance).
+
+**Tests** `tests/test_iq1_iq1_3_the_granary.py` (**63** at close); sweep
+`tools/_sweep_iq1_iq1_3.json` (**35** mutations) **35 killed / 0 INERT /
+0 BROKEN**. ⚠ **Five came back INERT first and every one was a real coverage
+gap** — nothing DROVE a purchase in a training-ground province (so the seam
+consuming the morale helper was unpinned while the helper was pinned), nothing
+drove a purchase onto the rout line, the archive pin matched the guard line one
+above the copy it meant to check, and neither clause of item (iv) was isolated
+on an arm where only it bites. A sixth lesson landed with them: **the
+`GROSS_FLOOR` guard's real case is a collapsed rump that spent its last coin** —
+tiny gross, tiny chest, conversion 1.00 — which PASSES without it.
+
+**⚠ NO GODOT BINARY IN THIS CONTAINER**, so the parse harness and the boot smoke
+**DID NOT RUN** on `region_panel.gd`. Recorded as NOT RUN, not as a pass; the
+chip carries **IQ-10**'s visual sign-off with it.
+
+**Deferred with owners, GR9-clean:** **IQ1-3a′** the recurring-obligation Net
+line (re-scoped — this slice ships no new per-turn producer and its sink is
+`Spent`-recorded, so item (iv) does not depend on it; the measured urgency it
+does have is that a player using the shipped 200 g/turn sponsor chip moves
+`net` by 0 while the chest drains); **IQ1-3e** the (b) residual, economy-wide —
+IQ1-3 answers (b) **on the levy** and says so in writing.
+
+---
 
 ### §0.6 THE REMAINING SLICES
 

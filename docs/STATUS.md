@@ -47,7 +47,7 @@
 >
 > | # | row | what it fixes | evidence | state |
 > |---|---|---|---|---|
-> | 1 | **IQ-1 THE ECONOMY THAT BITES** | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ▶ **IN PROGRESS** — IQ1-0/1/2 LANDED; next = **IQ1-3** the recurring obligation |
+> | 1 | **IQ-1 THE ECONOMY THAT BITES** | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ▶ **IN PROGRESS** — IQ1-0/1/2/3 LANDED; **85.2% of the surplus now converts**; next = **IQ1-5** the exit |
 > | 2 | **IQ-2 THE COLLAPSE IS LEGIBLE** | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | queued |
 > | 3 | **IQ-3 THE COALITION IS RARE** | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | queued |
 > | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | queued |
@@ -60,7 +60,7 @@
 >
 > ---
 >
-> ### IQ-1 — THE ECONOMY THAT BITES  ▶ IN PROGRESS — three slices landed
+> ### IQ-1 — THE ECONOMY THAT BITES  ▶ IN PROGRESS — four slices landed
 >
 > **⚠ OWNING SPEC: `docs/IMPROVEMENT_QUEUE_SPEC.md` (opened by IQ1-2; it is
 > authoritative for the landing records, the crux ruling, the dissent, the
@@ -95,6 +95,12 @@
 >   capital at peace and 654 at the boot, and the modal DELIVERED purchase
 >   across all archived digests is 3,000 men for 200 gold — so item (iv)'s
 >   replacement is re-specified in the owning spec §0.7.)*
+>   *(⚠ **AND THE THIRD SITE — the COMPLETION CRITERION at :131 — was still
+>   wrong until IQ1-3.** IQ1-2's own correction note said "this read 457× in
+>   three places"; two were fixed and the one that GRADES THE ROW was not.
+>   That is §0.5.3's lesson a third time: a completeness statement over a
+>   multi-site correction must come from a census, not from memory. A census
+>   pin now derives it — `test_the_retired_ratio_is_gone_from_the_contract`.)*
 > * **Threat FALLS 68 → 44** on the `--diplomacy propose` arm while France holds
 >   26 of 28 provinces, so there is no counter-pressure either. *(⚠ **CORRECTED
 >   by IQ1-2**: 88,556 is the **commanded** arm, whose threat goes **76 → 77**
@@ -128,7 +134,7 @@
 > commanded arm, (ii) a losing France's per-turn Net is **worse** than a
 > winning France's at the same army size, (iii) every gold component the
 > player is charged appears as a signed line in the Strategic Ledger and sums
-> to the Net shown, and (iv) an acceptance test states the 457× ratio's
+> to the Net shown, and (iv) an acceptance test states the 590× ratio's
 > replacement as falsifiable arithmetic in both directions. **Exit:** the
 > economy pillar is re-measured on the same instrument; if it does not move off
 > 6.0, the row's dissent is read and its re-open condition taken.
@@ -248,6 +254,113 @@
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
 
+> ## ▶ IQ1-3 "THE GRANARY AND THE ALARM" — LANDED September 14, 2026
+>
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §0.6a, authoritative.**
+> Suite **21,830 / 4 skipped / 0 failed**, sweep `_sweep_iq1_iq1_3.json` **35 killed / 0 INERT /
+> 0 BROKEN**, ruff clean, `BASELINE_SERIES` + M1–M7 byte-identical without
+> re-record with the reason measured.
+>
+> **⛔ THIS IS NOT §0.6's RETAINER, and the recommendation was overturned on a
+> measurement.** A 17-agent decision fleet drove the entire
+> diplomacy-instrument channel through the real executor at a 1,000,000-gold
+> chest: **4,824 gold, one-shot, for every buyable design in Europe** — 5.4% of
+> the disease chest — and afterwards `get_qualifying_nations` is
+> **byte-identical**, because `qualifies_for_coalition` reads relation,
+> vassalage, at-war and PR-1's fresh-peace floor and **nothing monetary**. Three
+> more symbols killed it: the retainer's payoff **has no consumer**
+> (`intent._derive_weight` never reads `directed_sponsorships`, and
+> `war_council`'s design coercion is AI-vs-AI only by its own comment, so a
+> retainer on a France-aimed design can never open); §0.6's **"cancel verb"
+> does not exist**; and a retainer is **dominated 8–10×** by
+> `_execute_buy_off_design`, which already ships and has no `aim == player`
+> refusal. **§0.8's dissent is therefore MOOT, not overruled.**
+>
+> **WHAT DOES ABSORB IS THE SINK THE ROW ALREADY LANDED.** Receipts read at the
+> executor, never a difference between boards: **18,852 → 75,486 gold = 4.00×,
+> and 85.2% of the 88,556 surplus** — with the board ending **BETTER**, 26
+> provinces against 24, and the one surviving refusal on PRICE.
+>
+> **A — THE GRANARY.** The levy refused on OWNERSHIP while the engine's own
+> supply decision (PC15-D2 "The Ally's Table") already feeds a guest army on
+> ALLIANCE / DEFENSIVE_ALLIANCE / VASSAL soil, and `dispatch.py` says so out
+> loud on the identical fact. All **six** archived refusals were on soil PC15-D2
+> feeds. ONE extracted predicate now, read by the levy, the AI rung and its own
+> origin; a passage right is still not a granary (the Ansbach line, free by
+> construction). ⚠ **§0.4's own example is wrong twice** — Milan has no depot
+> (the map holds zero in 126 provinces) and is refused at boot even with the
+> gate open, by the establishment's 6,000 of room against a capital batch's
+> 10,000. **Pin Franconia.**
+>
+> **A2 — THE HOST'S PRICE.** Opening the gate made the 25% capital discount
+> newly reachable on an ALLY's capital: measured at Munich, a full batch for
+> 4,959 gold = **165 g per 1,000 men** against the same arm's dearest at 1,074.
+> Suppressed via a default-off kwarg, so nine existing call sites are
+> byte-identical by construction.
+>
+> **B — NOT PUNISHED TWICE.** The designed premium is 15 below a draft; the
+> purchase path wrote a FLAT base while the draft path reads `training_ground`
+> (an absolute 70) and Shorncliffe (a floor of 60) — so the real gap was **45
+> and 35**, and **the one counterweight a player can already buy was void for
+> substitutes**. Now 25 / 55 / 45, the bare rung byte-identical. Plus the
+> missing rout-line warning (base, `FORCED_RETREAT_THRESHOLD` and the rout line
+> are all 25).
+>
+> **C — THE ALARM.** §0.2's own words: a frightened continent does not sell its
+> sons cheaply to the power frightening it. `1 + max(0, threat − 75)/100`,
+> **boot-dormant on every seed by construction** (the authored band is [65, 75]
+> and the anchor is its ceiling), and `max(0, …)` means an absent slot is never
+> a discount. ⚠ **RULED — FOR USER CONFIRMATION**: a new multiplier on a blessed
+> price.
+>
+> **D — THE RIDERS**, all three of §0.6's plus a fourth: the `get_levy_status`
+> `substitutes` block + a region-panel chip that names the marshal and is
+> dimmed-with-its-reason rather than absent; `substitutes_purchased` reaching
+> the campaign log for non-player courts (⚠ the fleet said the filter has "no
+> economy branch" — it has had one since Session 8; the TYPE was missing from
+> it, and the producer emitted no `region` for the fog rule to read); the three
+> shipped instrument verbs **named in the help for the first time**; and
+> `--archive` finally carrying the **jsonl**, where `purses` and `net_residual`
+> live.
+>
+> **⛔ §0.5.1 FINDING 1's CAUSAL SENTENCE IS STRUCK — the third occurrence of
+> the error this row has already struck twice.** "A bigger, weaker army and
+> loses ground" was a cross-board difference presented as a mechanism: 18 of 19
+> French battles are byte-identical across the arms, all five province losses
+> were unopposed marches, a bigger-greener corps measures **stronger**, and with
+> 3.5× more substitutes the board ends on **26** provinces. **The method rule
+> this extends: A PROVINCE COUNT IS A BOARD DIFFERENCE TOO** — paired arms stop
+> being an isolation at the first AI decision that reads the board.
+>
+> **Completion item (iv): the 590× ratio is RETIRED**, replaced by the
+> unconverted hoard in turns of gross income (ceiling 12 — control **21.9**,
+> HEAD 17.3, positive **8.1**) plus a conversion floor (0.40 — control 0.000,
+> HEAD 0.150, positive **0.783**), in one function shared with its own negative
+> control. ⚠ NOT §0.7's obligation fixed point, which is satisfiable by
+> **over-commitment**. **And the ambient baseline the row had been missing is
+> archived** — 5 provinces, 2,593 gold, 23 treasury falls that are *collapse,
+> not spending*, which is what item (i) was re-stated for.
+>
+> **⚠ Five sweep mutations came back INERT first and every one was a real
+> coverage gap** — nothing DROVE a purchase in a training-ground province, or
+> onto the rout line; the archive pin matched the guard line above the copy it
+> meant to check; and neither clause of item (iv) was isolated on an arm where
+> only it bites. Two of my own pins were then wrong about their subject: one
+> compared combat-effectiveness MULTIPLIERS (1.5 → 1.29) and red, which is the
+> multiplier correctly falling while the product rises — the very confusion
+> FINDING 1 made — and one claimed HEAD fails only the conversion clause when
+> its hoard is 17.3, above the ceiling.
+>
+> **Housekeeping cleared:** the **third** 457× site — the completion criterion
+> that grades the row, which IQ1-2's own "three places" note missed — now reads
+> 590× behind a census pin; and the wrong receipt figure 18,537 is corrected to
+> **18,852** in all eight surviving sites.
+>
+> **▶ NEXT = IQ1-5 "The Exit"** — no production code: the four completion items
+> measured on the committed arms, then the economy pillar re-scored. ⚠ If it
+> does not move off 6.0, §0.8's re-open condition is the ceiling's SHAPE, not
+> the price.
+
 > ## ▶ ROW IQ-1, THREE SLICES LANDED — September 12–13, 2026
 >
 > **Owning spec = `docs/IMPROVEMENT_QUEUE_SPEC.md`, authoritative** (opened by
@@ -288,7 +401,7 @@
 > `admin_bonus` missing, so the printed NET sub-line under-counted by **exactly
 > 50 on 40 of 40 rows** of both archived arms — and `spent` rendered on **ZERO**
 > rows of all three archived digests, including the spender arm that bought
-> 18,537 gold, because the engine clears the tally inside `advance_turn`.
+> 18,852 gold, because the engine clears the tally inside `advance_turn`.
 > All three fixed; the ledger is now the single source (`NET_GOLD_COMPONENTS`)
 > and both the reconciliation test and the driver import it.
 >
@@ -301,7 +414,7 @@
 >
 > **⛔ IQ1-1's OWN HEADLINE FIGURE IS WRONG AND IS CORRECTED.** "Absorbs 29,564
 > — a THIRD of the surplus" is a **cross-script difference**: 6 of 13 buys
-> succeeded for 18,537 gold, 6 were refused on an own-soil gate the commit says
+> succeeded for 18,852 gold, 6 were refused on an own-soil gate the commit says
 > it removed, and the arm ends on **24 provinces against the baseline's 29**.
 > The arm is **repaired** (the buy is now additive, so it differs from its
 > parent by the purchase and nothing else) and both arms are archived. On the

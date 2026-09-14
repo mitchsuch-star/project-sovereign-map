@@ -2539,7 +2539,7 @@ def run(args):
         # clears `gold_spent_this_turn`, and the driver's only two `/ledger`
         # reads were the turn header and post-end-turn — so `spent` rendered on
         # ZERO rows of all three archived IQ-1 digests, INCLUDING the spender
-        # arm that bought 18,537 gold of substitutes. A sink the instrument
+        # arm that bought 18,852 gold of substitutes. A sink the instrument
         # cannot see cannot be measured, and this row is the whole point of
         # IQ-1. Cheap: one GET, and only what the turn actually spent is kept.
         _pre = transport.get("/ledger")
@@ -2705,6 +2705,15 @@ def run(args):
         archive_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(digest.md_path, archive_dir / "digest.md")
         shutil.copy2(digest.meta_path, archive_dir / "meta.json")
+        # IQ-1 IQ1-3D: the JSONL too. It was left out for a defensible reason
+        # (the markdown is the readable record), and the reason stopped holding
+        # the moment row IQ-1 started grading itself on machine keys: SW-0's
+        # per-nation `purses` — the only instrument that makes a GR5 economy
+        # claim falsifiable from an archive — and IQ1-2's `net_residual` and
+        # `turn_spend` rows are jsonl-only, so every archived arm lost them and
+        # the IQ1-2 pair had to be copied by hand.
+        if digest.jsonl_path.exists():
+            shutil.copy2(digest.jsonl_path, archive_dir / "digest.jsonl")
         print(f"[driver] archived: {archive_dir}")
 
     if digest.unknown_blockers and args.strict:

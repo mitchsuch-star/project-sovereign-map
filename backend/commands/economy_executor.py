@@ -12,7 +12,7 @@ from backend.models.world_state import (
     INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE, ARTILLERY_RECRUIT_GOLD_COST_BASE,
     INFANTRY_BASE_REGEN,
     LEVY_SUBSTITUTE_MULT, LEVY_SCARCITY_FLOOR, LEVY_SCARCITY_MULT,
-    LEVY_MORALE_BASE, LEVY_MAX_BATCH, severe_band_threshold,
+    LEVY_MORALE_BASE, LEVY_MORALE_PREMIUM, LEVY_MAX_BATCH, severe_band_threshold,
 )
 
 
@@ -52,6 +52,135 @@ def region_has_friendly_supply(region) -> bool:
 THE_SUBSTITUTE_MARKET_IS_OPEN = True
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# IQ-1 IQ1-3 "The Granary and the Alarm" — flip levers
+# ═══════════════════════════════════════════════════════════════════════
+
+# IQ1-3A: substitutes are received on soil that FEEDS us, not only on soil
+# we own. False restores the bare `region.controller != acting_nation` at
+# both seams, byte-identical.
+#
+# WHY: `_execute_purchase_levy` refused on ownership while
+# `world_state._supply_multiplier` — the engine's own supply DECISION, landed
+# as PC15-D2 "The Ally's Table" — already feeds a guest army on
+# ALLIANCE / DEFENSIVE_ALLIANCE / VASSAL soil at HOME_SUPPLY_MULTIPLIER, and
+# `dispatch.py`'s depot-remedy arm says so out loud on the very same fact
+# ("the host's magazines already feed us as our own"). Two seams, one fact,
+# opposite answers.
+#
+# MEASURED on the archived spender arm (`commanded_spender40.json`, seed
+# historical, --diplomacy accept, 40 turns), reading RECEIPTS at the executor
+# and never a difference between two boards: all SIX own-soil refusals
+# (Munich ×1, Piedmont ×4, Franconia ×1) were on soil PC15-D2 feeds at 1.5×.
+# Opening the gate takes receipts 18,852 → 65,916 gold (3.50×) in 12 of 13
+# orders, and the board ends BETTER — 26 provinces against 24, army 161,830
+# against 118,735.
+#
+# NON_AGGRESSION and OPEN_BORDERS hosts still refuse, for free and by
+# construction: neither state is in ALLY_SUPPLY_STATES. That is the Ansbach
+# line PC15-D2's own comment draws.
+LEVY_FEEDS_ON_ALLY_SOIL = True
+
+# IQ1-3A2: a host's magazines feed your battalion; its TREASURY does not
+# subsidise your recruiting. False restores the foreign capital discount.
+#
+# `_calculate_recruit_cost` never read `region.controller`, so its 25%
+# `region_type == "capital"` discount became newly REACHABLE on an ally's
+# capital the moment IQ1-3A opened the gate. Measured at Munich: a full
+# batch for 4,959 gold = 165 g per 1,000 men, against the same arm's dearest
+# at 1,074. Suppressing it moved receipts 65,916 → 67,572 for identical men.
+LEVY_PAYS_THE_HOSTS_PRICE = True
+
+# IQ1-3B: bought men are not punished twice. False writes the bare
+# LEVY_MORALE_BASE and prints no warning; every existing levy pin is
+# byte-identical.
+#
+# The DESIGNED premium is `LEVY_MORALE_PREMIUM` — 15 points below a draft.
+# But the purchase path wrote a FLAT LEVY_MORALE_BASE while the draft path
+# reads `training_ground` (an absolute 70) and Moore's Shorncliffe System (a
+# floor of 60), so the real gap was 45 and 35 at those rungs: the one
+# counterweight a player can already BUY was silently void for substitutes.
+# The rungs are mirrored at the premium, never at an absolute — see
+# `substitute_arrival_morale`.
+THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE = True
+
+# IQ1-3C: the alarm prices the levy — §0.2's own words, "priced by the threat
+# the player's own success creates". False = the bare `levy_substitute_price`,
+# byte-identical on every board.
+#
+# ⚠ RULED — FOR USER CONFIRMATION: a new multiplier on a blessed price.
+# Boot-DORMANT by construction on every seed, not by one measurement: the
+# authored `threat_level_band` is [65, 75] and the anchor is 75, so the
+# multiplier is exactly ×1.00 at every seeded boot. Across the disease arm
+# (threat 76 → 90 → 77) it runs ×1.01–×1.15 and moves absorption
+# 67,572 → 75,486 (+11.7%) for identical men, provinces and army.
+#
+# It prices SUBSTITUTES only. `levy_substitute_price` has two callers; the
+# term is deliberately NOT in `_calculate_recruit_cost`, which would move
+# every recruit price in the game and red blessed pins. So a France that
+# ignores the substitute market pays no alarm — deliberate for this slice,
+# and an honest question left on the row for the econ owner.
+THE_ALARM_PRICES_THE_LEVY = True
+
+# The threat at which the alarm begins. The authored band's own ceiling, so
+# a seeded boot is always exactly ×1.00.
+LEVY_ALARM_ANCHOR = 75
+
+# IQ1-3D rider 1: the levy states its terms on every surface that reads it.
+THE_LEVY_STATES_ITS_TERMS = True
+
+
+def region_feeds_nation(world, nation: str, region) -> bool:
+    """Does `region` FEED an army of `nation` — its own soil, or a host's?
+
+    THE SINGLE SOURCE for a question three places were answering
+    separately. Extracted verbatim from the `is_fed` computation inside
+    `world_state._supply_multiplier`, which is the engine's own supply
+    DECISION (PC15-D2 "The Ally's Table"): own soil, or a host at
+    ALLIANCE / DEFENSIVE_ALLIANCE / VASSAL.
+
+    NON_AGGRESSION and OPEN_BORDERS are deliberately NOT fed — the Ansbach
+    line. A passage right is not a granary.
+    """
+    if region is None:
+        return False
+    if region.controller == nation:
+        return True
+    if not LEVY_FEEDS_ON_ALLY_SOIL:
+        return False
+    if not region.controller:
+        return False
+    return (world.get_diplomatic_state(nation, region.controller)
+            in world.ALLY_SUPPLY_STATES)
+
+
+def substitute_arrival_morale(executor, region, marshal) -> int:
+    """The morale bought men arrive at — the DRAFT's rung, less the premium.
+
+    IQ1-3B. The premium is the design (`LEVY_MORALE_PREMIUM`); the RUNG is
+    whatever the province and the marshal earn. So:
+
+        bare province          40 − 15 = 25   (byte-identical to pre-IQ1-3)
+        training_ground        70 − 15 = 55
+        Moore's Shorncliffe    60 − 15 = 45
+
+    ⚠ NOT a shared ABSOLUTE arrival function, which two candidate designs
+    prescribed and which would return 70 or 60 for a substitute — BETTER
+    than a bare draft's 40 — destroying the premium this exists to protect.
+    The mirror is of the rung, at the premium.
+    """
+    if not THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE:
+        return int(LEVY_MORALE_BASE)
+    rung = int(executor.RECRUIT_MORALE_BASE)
+    if region is not None and region.has_building("training_ground"):
+        rung = int(executor.RECRUIT_MORALE_TRAINED)
+    if (marshal is not None and hasattr(marshal, "ability")
+            and (marshal.ability or {}).get("name") == "Shorncliffe System"
+            and rung < 60):
+        rung = 60
+    return max(0, rung - int(LEVY_MORALE_PREMIUM))
+
+
 def levy_substitute_price(world, nation: str) -> int:
     """The BASE cost of one substitute batch, before composition.
 
@@ -75,7 +204,29 @@ def levy_substitute_price(world, nation: str) -> int:
     floor = max(1, int(LEVY_SCARCITY_FLOOR))
     scarcity = 1.0 - min(1.0, pool / floor)
     return int(INFANTRY_RECRUIT_GOLD_COST_BASE * LEVY_SUBSTITUTE_MULT
-               * (1.0 + LEVY_SCARCITY_MULT * scarcity))
+               * (1.0 + LEVY_SCARCITY_MULT * scarcity)
+               * levy_alarm_multiplier(world, nation))
+
+
+def levy_alarm_multiplier(world, nation: str) -> float:
+    """IQ1-3C: what the rest of Europe's alarm adds to the price of a man.
+
+    `1 + max(0, threat − LEVY_ALARM_ANCHOR) / 100`. A frightened continent
+    does not sell its sons cheaply to the power frightening it — §0.2's
+    "priced by the threat the player's own success creates", read off the
+    measure the engine already keeps per target.
+
+    Boot-dormant on EVERY seed by construction: the authored
+    `threat_level_band` is [65, 75] and the anchor is 75, so `max(0, …)` is
+    0 at every seeded boot. `max(0, …)` also means an absent slot is ×1.00
+    and never a DISCOUNT.
+
+    Reads one dict slot (GR8).
+    """
+    if not THE_ALARM_PRICES_THE_LEVY:
+        return 1.0
+    threat = int((getattr(world, "threat_by_target", None) or {}).get(nation, 0))
+    return 1.0 + max(0, threat - int(LEVY_ALARM_ANCHOR)) / 100.0
 
 
 def levy_purchase_ceiling(world, nation: str) -> int:
@@ -442,7 +593,8 @@ class EconomyExecutor:
     WAR_RECRUIT_COST_MULT = 3
 
     def _calculate_recruit_cost(self, region, world, base_cost: int = 200,
-                                nation: str = None, marshal=None) -> int:
+                                nation: str = None, marshal=None,
+                                foreign_soil: bool = False) -> int:
         """Calculate recruitment gold cost based on region properties.
 
         Priority: Capital discount wins over settling premium.
@@ -459,8 +611,19 @@ class EconomyExecutor:
         source). Composes LAST, on the full nation-priced cost; scoped
         inside the same Europe block for the same N1 reason.
         """
+        # IQ1-3A2: a host's magazines feed your battalion; its TREASURY does
+        # not subsidise your recruiting. This function never read
+        # `region.controller`, so the capital discount became newly REACHABLE
+        # on an ALLY's capital the moment IQ1-3A opened the levy's gate —
+        # measured at Munich, a full batch for 4,959 gold = 165 g per 1,000
+        # men against the same arm's dearest at 1,074. `foreign_soil` defaults
+        # False, so all nine existing call sites are byte-identical by
+        # construction; only the levy's ally-soil arm passes True.
+        _capital_discount = (region.region_type == "capital"
+                             and not (foreign_soil
+                                      and LEVY_PAYS_THE_HOSTS_PRICE))
         # Capital discount: 25% off (checked first — always wins)
-        if region.region_type == "capital":
+        if _capital_discount:
             cost = int(base_cost * 0.75)
         # Settling stability premium: 50% more (stability 51-75)
         elif 51 <= region.stability <= 75:
@@ -1012,10 +1175,15 @@ class EconomyExecutor:
         if region is None:
             return {"success": False, "message": (
                 f"Unknown region: {marshal.location}")}
-        if region.controller != acting_nation:
+        # IQ1-3A: the gate is the engine's own SUPPLY decision, not ownership.
+        # Every one of the six refusals this used to produce on the archived
+        # arm was on soil PC15-D2 feeds at HOME_SUPPLY_MULTIPLIER.
+        if not region_feeds_nation(world, acting_nation, region):
+            held_by = region.controller or "no one"
             return {"success": False, "message": (
-                f"We do not hold {region.name}, Sire. Substitutes are "
-                f"received at our own depots.")}
+                f"We do not hold {region.name}, Sire, and {held_by} does not "
+                f"feed our battalions. Substitutes are received on ground we "
+                f"hold or a host's whose magazines are open to us.")}
 
         # CO-4's rule, applied IDENTICALLY to a draft rather than
         # reinterpreted: a corps away from a capital or supply depot cannot
@@ -1080,9 +1248,12 @@ class EconomyExecutor:
                 men = batches * per_batch_men
 
         base = levy_substitute_price(world, acting_nation)
+        # IQ1-3A2: on a HOST's soil the capital discount is suppressed — the
+        # granary is open, the treasury is not.
         per_batch = self._calculate_recruit_cost(
             region, world, base_cost=base, nation=acting_nation,
-            marshal=marshal)
+            marshal=marshal,
+            foreign_soil=(region.controller != acting_nation))
         gold_cost = int(per_batch * batches)
 
         treasury = int(world.nation_gold.get(acting_nation, 0))
@@ -1110,7 +1281,8 @@ class EconomyExecutor:
 
         old_strength = int(marshal.strength)
         old_morale = int(marshal.morale)
-        new_morale = int((old_strength * old_morale + men * LEVY_MORALE_BASE)
+        arrival_morale = substitute_arrival_morale(self, region, marshal)
+        new_morale = int((old_strength * old_morale + men * arrival_morale)
                          / (old_strength + men)) if (old_strength + men) else old_morale
         marshal.morale = new_morale
         marshal.add_troops(men)
@@ -1134,10 +1306,29 @@ class EconomyExecutor:
                           f"— there is no depot at {region.name} to muster a "
                           f"full battalion.")
 
+        # IQ1-3B: the staff SAYS when a purchase has walked the corps onto its
+        # own rout line. LEVY_MORALE_BASE, FORCED_RETREAT_THRESHOLD and the
+        # global rout threshold are all 25, so a big enough batch into a
+        # tired corps can leave it one lost battle from breaking — and the
+        # receipt said nothing about it. `get_rout_threshold` is the single
+        # source both forced-retreat copies decide through (Charles sits at 15,
+        # so the warning is per-marshal, not a global constant).
+        rout_note = ""
+        if THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE:
+            from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
+            rout_line = int(marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD))
+            if new_morale <= rout_line:
+                rout_note = (
+                    f" ⚠ Berthier: \"At {new_morale}% he stands ON his own "
+                    f"breaking line ({rout_line}%), Sire — one reverse and the "
+                    f"corps routs. Drill them before you march.\"")
         world.log_event({
             "type": "substitutes_purchased",
             "turn": int(world.current_turn),
             "nation": acting_nation,
+            # IQ1-3D rider 2: the log row is fog-filtered by REGION, and
+            # without one every non-player court's purchase was dropped.
+            "region": region.name,
             "marshal": marshal.name,
             "men": int(men),
             "gold": int(gold_cost),
@@ -1149,8 +1340,8 @@ class EconomyExecutor:
                 f"{marshal.name} takes {men:,} substitutes into the line at "
                 f"{region.name} — {gold_cost:,} gold, and not a man off the "
                 f"rolls. Morale {old_morale}% -> {new_morale}% (bought men "
-                f"muster at {int(LEVY_MORALE_BASE)}%)."
-                f"{field_note}{scarcity_note}"),
+                f"muster at {int(arrival_morale)}%)."
+                f"{field_note}{scarcity_note}{rout_note}"),
             "events": [{
                 "type": "substitutes_purchased",
                 "marshal": marshal.name,
@@ -2251,4 +2442,40 @@ def get_levy_status(world, nation: str = None) -> dict:
         "open": bool(limit and headroom >= INFANTRY_RECRUIT_AMOUNT
                      and pool >= INFANTRY_RECRUIT_AMOUNT
                      and recipient),
+        # ══════════════════════════════════════════════════════════════════
+        # IQ-1 IQ1-3D rider 1: THE SUBSTITUTE MARKET STATES ITS TERMS.
+        #
+        # §0.5-7's lesson, applied to the verb that lesson was about. Until
+        # IQ1-2 `purchase_levy` had ZERO mentions on any unprompted surface;
+        # the help text closed that, and this closes the rest — the ledger,
+        # the map summary and the region panel all read THIS dict, so one
+        # sub-dict reaches every one of them from a single source rather than
+        # three renderers each deciding what the market costs.
+        #
+        # `ceiling` is the establishment past which no substitute may be
+        # bought; `room` is what is left under it, which is what makes this a
+        # REPLACEMENT market. `price` is the batch price AT THE CAPITAL, the
+        # same convention `infantry_price` already uses on the row above, and
+        # `alarm` states the IQ1-3C multiplier so a player can see WHY the
+        # price moved without reading the threat number.
+        # ══════════════════════════════════════════════════════════════════
+        "substitutes": ({
+            "price": int(_levy_pricer()._calculate_recruit_cost(
+                region, world, base_cost=levy_substitute_price(world, nation),
+                nation=nation)) if region is not None else 0,
+            "amount": int(INFANTRY_RECRUIT_AMOUNT),
+            "max_batches": int(LEVY_MAX_BATCH),
+            "ceiling": int(levy_purchase_ceiling(world, nation)),
+            "room": int(max(0, levy_purchase_ceiling(world, nation) - total)),
+            # GR2: ints to Godot — the existing `test_no_floats_in_ledger`
+            # caught the first cut publishing the raw multiplier as a float.
+            # The premium in PERCENTAGE POINTS is the same fact, is exactly
+            # `max(0, threat - anchor)` by construction, and reads better in
+            # copy ("+15% while Europe is alarmed") than a bare ×1.15.
+            "alarm_premium_pct": int(round(
+                (levy_alarm_multiplier(world, nation) - 1.0) * 100)),
+            "arrival_morale": int(LEVY_MORALE_BASE),
+            "open": bool(levy_purchase_ceiling(world, nation) - total
+                         >= AI_CORPS_REGEN_CAP),
+        } if THE_LEVY_STATES_ITS_TERMS else None),
     }

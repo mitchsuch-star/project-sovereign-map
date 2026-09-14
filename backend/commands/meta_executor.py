@@ -714,6 +714,23 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
                ceding conquered land is in the Cabinet's court page.
   war terms  - open the war banner on the left and press
                [Request Terms] to make the enemy name a price.
+  THE COMPACTS - three instruments that shipped and were never
+               named here, so no player could learn they exist:
+  buy off    - "buy off Prussia" - a court aims a grievance at us;
+               gold buys its SLEEP for a term. The price is stated
+               before you offer (D4 - diplomacy has no fog), and it
+               is read off how badly they want the thing.
+  sponsor    - "sponsor Prussia against Austria, 200 gold" - arm
+               somebody else's grievance, per turn, for a term.
+               "license Prussia against Austria" at no gold sells
+               permission instead: the same bond, a cheaper coin.
+               Talleyrand refuses to aim a design at ourselves.
+  guarantee  - "guarantee Saxony" - pledge to defend a border.
+               Coveters read the pledge and want it less; abandon
+               it and the grievance is ours to answer for.
+  NOTE: a standing compact runs its TERM. There is no cancelling
+        it - war on the court, or a pledge that contradicts it,
+        is a RENEGE, and Europe remembers who broke a word.
 
   Press D for the Diplomatic Ledger - all twenty nations of Europe,
   treaties, wars, and the Balance of Europe.

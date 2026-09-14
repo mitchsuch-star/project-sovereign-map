@@ -1,0 +1,247 @@
+[
+ {
+  "id": "IQ13-1 the granary closes \u2014 the gate reverts to ownership",
+  "file": "backend/commands/economy_executor.py",
+  "old": "    if not LEVY_FEEDS_ON_ALLY_SOIL:\n        return False",
+  "new": "    if True:\n        return False",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheGranaryOfAnAlly tests/test_iq1_iq1_3_the_granary.py::TestWhatTheGranaryActuallyBuys"
+ },
+ {
+  "id": "IQ13-2 a passage right becomes a granary",
+  "file": "backend/commands/economy_executor.py",
+  "old": "    return (world.get_diplomatic_state(nation, region.controller)\n            in world.ALLY_SUPPLY_STATES)",
+  "new": "    return True",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheGranaryOfAnAlly"
+ },
+ {
+  "id": "IQ13-3 the levy stops reading the shared predicate",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        if not region_feeds_nation(world, acting_nation, region):",
+  "new": "        if region.controller != acting_nation:",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheGranaryOfAnAlly tests/test_iq1_iq1_3_the_granary.py::TestWhatTheGranaryActuallyBuys"
+ },
+ {
+  "id": "IQ13-4 the AI rung stops reading it (GR5)",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if region is None or not region_feeds_nation(world, nation, region):",
+  "new": "        if region is None or region.controller != nation:",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheGranaryOfAnAlly"
+ },
+ {
+  "id": "IQ13-5 the refusal stops naming who holds the ground",
+  "file": "backend/commands/economy_executor.py",
+  "old": "                f\"We do not hold {region.name}, Sire, and {held_by} does not \"",
+  "new": "                f\"We do not hold it, Sire, and someone else does not \"",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestWhatTheGranaryActuallyBuys"
+ },
+ {
+  "id": "IQ13-6 the host's capital discounts our recruiting again",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        _capital_discount = (region.region_type == \"capital\"\n                             and not (foreign_soil\n                                      and LEVY_PAYS_THE_HOSTS_PRICE))",
+  "new": "        _capital_discount = (region.region_type == \"capital\")",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheHostsPriceIsNotDiscounted"
+ },
+ {
+  "id": "IQ13-7 the levy stops passing foreign_soil",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            foreign_soil=(region.controller != acting_nation))",
+  "new": "            foreign_soil=False)",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheGranaryOfAnAlly"
+ },
+ {
+  "id": "IQ13-8 foreign_soil defaults ON, moving nine existing call sites",
+  "file": "backend/commands/economy_executor.py",
+  "old": "                                foreign_soil: bool = False) -> int:",
+  "new": "                                foreign_soil: bool = True) -> int:",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheHostsPriceIsNotDiscounted tests/test_economy_es3_upkeep.py"
+ },
+ {
+  "id": "IQ13-9 the substitute is punished twice again (flat base)",
+  "file": "backend/commands/economy_executor.py",
+  "old": "    rung = int(executor.RECRUIT_MORALE_BASE)",
+  "new": "    return int(LEVY_MORALE_BASE)",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheSubstituteIsNotPunishedTwice"
+ },
+ {
+  "id": "IQ13-10 the training ground stops reaching a substitute",
+  "file": "backend/commands/economy_executor.py",
+  "old": "    if region is not None and region.has_building(\"training_ground\"):\n        rung = int(executor.RECRUIT_MORALE_TRAINED)",
+  "new": "    if False:\n        rung = int(executor.RECRUIT_MORALE_TRAINED)",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheSubstituteIsNotPunishedTwice"
+ },
+ {
+  "id": "IQ13-11 Shorncliffe stops reaching a substitute",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            and (marshal.ability or {}).get(\"name\") == \"Shorncliffe System\"",
+  "new": "            and (marshal.ability or {}).get(\"name\") == \"Never\"",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheSubstituteIsNotPunishedTwice"
+ },
+ {
+  "id": "IQ13-12 the premium becomes an ABSOLUTE \u2014 the trap two designs prescribed",
+  "file": "backend/commands/economy_executor.py",
+  "old": "    return max(0, rung - int(LEVY_MORALE_PREMIUM))",
+  "new": "    return max(0, rung)",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheSubstituteIsNotPunishedTwice"
+ },
+ {
+  "id": "IQ13-13 the arrival morale stops reaching the dilution",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        arrival_morale = substitute_arrival_morale(self, region, marshal)",
+  "new": "        arrival_morale = int(LEVY_MORALE_BASE)",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheSubstituteIsNotPunishedTwice"
+ },
+ {
+  "id": "IQ13-14 the alarm stops pricing the levy",
+  "file": "backend/commands/economy_executor.py",
+  "old": "               * levy_alarm_multiplier(world, nation))",
+  "new": "               * 1.0)",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheAlarmPricesTheLevy"
+ },
+ {
+  "id": "IQ13-15 the alarm loses its max(0) and becomes a DISCOUNT",
+  "file": "backend/commands/economy_executor.py",
+  "old": "    return 1.0 + max(0, threat - int(LEVY_ALARM_ANCHOR)) / 100.0",
+  "new": "    return 1.0 + (threat - int(LEVY_ALARM_ANCHOR)) / 100.0",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheAlarmPricesTheLevy"
+ },
+ {
+  "id": "IQ13-16 the anchor drops into the authored band",
+  "file": "backend/commands/economy_executor.py",
+  "old": "LEVY_ALARM_ANCHOR = 75",
+  "new": "LEVY_ALARM_ANCHOR = 60",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheAlarmPricesTheLevy"
+ },
+ {
+  "id": "IQ13-17 the alarm reaches the DRAFT's pricer",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        # IQ1-3A2: a host's magazines feed your battalion; its TREASURY does",
+  "new": "        base_cost = int(base_cost * levy_alarm_multiplier(world, nation or 'France'))\n        # IQ1-3A2: a host's magazines feed your battalion; its TREASURY does",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheAlarmPricesTheLevy"
+ },
+ {
+  "id": "IQ13-18 the substitutes block disappears from the levy status",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        } if THE_LEVY_STATES_ITS_TERMS else None),",
+  "new": "        } if False else None),",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheLevyStatesItsTerms"
+ },
+ {
+  "id": "IQ13-19 the block answers for the player on every query",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            \"ceiling\": int(levy_purchase_ceiling(world, nation)),",
+  "new": "            \"ceiling\": int(levy_purchase_ceiling(world, world.player_nation)),",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheLevyStatesItsTerms"
+ },
+ {
+  "id": "IQ13-20 the alarm premium is published as a FLOAT again (GR2)",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            \"alarm_premium_pct\": int(round(\n                (levy_alarm_multiplier(world, nation) - 1.0) * 100)),",
+  "new": "            \"alarm_premium_pct\": levy_alarm_multiplier(world, nation) - 1.0,",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheLevyStatesItsTerms tests/test_ledger.py"
+ },
+ {
+  "id": "IQ13-21 the per-region price stops reading the marshal (Intendance-blind)",
+  "file": "backend/models/world_state.py",
+  "old": "                nation=nation, marshal=marshal,\n                foreign_soil=(region.controller != nation)))",
+  "new": "                nation=nation,\n                foreign_soil=(region.controller != nation)))",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheRegionPanelChip"
+ },
+ {
+  "id": "IQ13-22 the per-region price stops gating on the granary",
+  "file": "backend/models/world_state.py",
+  "old": "            if not region_feeds_nation(self, nation, region):\n                return 0",
+  "new": "            if False:\n                return 0",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheRegionPanelChip"
+ },
+ {
+  "id": "IQ13-23 the chip sends a bare verb with no marshal",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "+ Utils.bb_button_chip(\"do:buy substitutes for \" + sub_marshal, \\",
+  "new": "+ Utils.bb_button_chip(\"do:buy substitutes\", \\",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheRegionPanelChip"
+ },
+ {
+  "id": "IQ13-24 the gated chip vanishes instead of dimming",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "\t\t\t\t\t+ Utils.bb_chip_disabled(\"Buy Substitutes\") \\",
+  "new": "\t\t\t\t\t+ \"\" \\",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheRegionPanelChip"
+ },
+ {
+  "id": "IQ13-25 the chip quotes the capital's rate, not this province's",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "\t\t\tvar _here = int(data.get(\"substitute_price_here\", 0))",
+  "new": "\t\t\tvar _here = 0",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheRegionPanelChip"
+ },
+ {
+  "id": "IQ13-26 a court's purchase leaves the campaign log again",
+  "file": "backend/campaign_log.py",
+  "old": "                          \"substitutes_purchased\"):",
+  "new": "                          \"desertion\"):",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheCourtsPurchasesAreLogged"
+ },
+ {
+  "id": "IQ13-27 the producer stops emitting the region the filter reads",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            \"region\": region.name,\n            \"marshal\": marshal.name,",
+  "new": "            \"marshal\": marshal.name,",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheCourtsPurchasesAreLogged"
+ },
+ {
+  "id": "IQ13-28 the rout warning goes silent",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            if new_morale <= rout_line:",
+  "new": "            if False:",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheSubstituteIsNotPunishedTwice"
+ },
+ {
+  "id": "IQ13-29 the help drops the compacts block",
+  "file": "backend/commands/meta_executor.py",
+  "old": "  THE COMPACTS - three instruments that shipped and were never",
+  "new": "  (nothing here) - three instruments that shipped and were never",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestThePlayerCanLearnTheCompactsExist"
+ },
+ {
+  "id": "IQ13-30 the help teaches a phrasing no corpus row pins",
+  "file": "backend/commands/meta_executor.py",
+  "old": "  buy off    - \"buy off Prussia\" - a court aims a grievance at us;",
+  "new": "  buy off    - \"buy off the Swedish design\" - a court aims a grievance at us;",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestThePlayerCanLearnTheCompactsExist"
+ },
+ {
+  "id": "IQ13-31 the help stops saying a compact cannot be cancelled",
+  "file": "backend/commands/meta_executor.py",
+  "old": "  NOTE: a standing compact runs its TERM. There is no cancelling",
+  "new": "  NOTE: a standing compact may be ended at will, by cancelling",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestThePlayerCanLearnTheCompactsExist"
+ },
+ {
+  "id": "IQ13-32 --archive stops carrying the jsonl",
+  "file": "tools/playtest_driver.py",
+  "old": "            shutil.copy2(digest.jsonl_path, archive_dir / \"digest.jsonl\")",
+  "new": "            pass",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestTheArchiveCarriesTheInstrument"
+ },
+ {
+  "id": "IQ13-33 item (iv)'s hoard ceiling is relaxed until the disease passes",
+  "file": "tests/test_iq1_iq1_3_the_granary.py",
+  "old": "HOARD_TURNS = 12",
+  "new": "HOARD_TURNS = 25",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestCompletionItemFour"
+ },
+ {
+  "id": "IQ13-34 item (iv)'s conversion floor is relaxed until HEAD passes",
+  "file": "tests/test_iq1_iq1_3_the_granary.py",
+  "old": "CONVERSION_FLOOR = 0.40",
+  "new": "CONVERSION_FLOOR = 0.10",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestCompletionItemFour"
+ },
+ {
+  "id": "IQ13-35 item (iv) stops excluding a collapsing arm",
+  "file": "tests/test_iq1_iq1_3_the_granary.py",
+  "old": "    if gross < GROSS_FLOOR or rate <= 0:\n        return False",
+  "new": "    if False:\n        return False",
+  "tests": "tests/test_iq1_iq1_3_the_granary.py::TestCompletionItemFour"
+ }
+]

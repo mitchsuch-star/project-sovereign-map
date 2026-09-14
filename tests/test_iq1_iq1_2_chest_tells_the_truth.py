@@ -37,7 +37,7 @@ three separate ways that a reader of the Strategic Ledger would have believed.
    had drifted: `admin_bonus` was missing, leaving a residual of exactly
    +50 on 40 of 40 LEDGER rows of both archived IQ-1 arms. And `spent`
    rendered on ZERO rows of all three archived digests — including the
-   spender arm that bought 18,537 gold of substitutes — because the engine
+   spender arm that bought 18,852 gold of substitutes — because the engine
    clears `gold_spent_this_turn` inside `advance_turn` and the driver's only
    two `/ledger` reads were the turn header and post-end-turn.
 
@@ -772,7 +772,7 @@ class TestTheDigestCanSeeTheSink:
     def test_there_is_a_read_before_the_turn_ends(self):
         """`spent` is cleared by `advance_turn`, so a post-end-turn read is
         structurally always zero — which is why it rendered on 0 of 117
-        archived rows including the arm that bought 18,537 gold."""
+        archived rows including the arm that bought 18,852 gold."""
         src = DRIVER.read_text(encoding="utf-8")
         idx_read = src.index("digest.observe_spend(_pre_econ)")
         idx_end = src.index('transport.post("/command", {"command": "end turn"})')
@@ -1184,7 +1184,7 @@ class TestThePlayerCanLearnItExists:
     def test_it_names_the_gates_that_actually_refuse(self):
         """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT, and because the help
         was measured wrong: it named the TREASURY as the limit while the
-        board's own archive shows 3 of 13 scripted purchases refused on the
+        board's own archive shows 6 of 13 scripted purchases refused on the
         own-soil gate and every success capped at 9,000 of 30,000 men asked."""
         src = (REPO / "backend/commands/meta_executor.py").read_text(
             encoding="utf-8")

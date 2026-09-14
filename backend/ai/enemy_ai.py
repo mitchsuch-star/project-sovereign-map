@@ -5971,7 +5971,10 @@ class EnemyAI:
             return None
 
         region = world.get_region(weakest.location)
-        if region is None or region.controller != nation:
+        # IQ1-3A (GR5): the decision layer reads the SAME predicate as the
+        # executor, or the AI is refused on soil the player is granted.
+        from backend.commands.economy_executor import region_feeds_nation
+        if region is None or not region_feeds_nation(world, nation, region):
             return None
         if not region_has_friendly_supply(region):
             return None

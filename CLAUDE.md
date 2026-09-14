@@ -46,9 +46,17 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **▶ OWNING SPEC FOR ROW IQ = `docs/IMPROVEMENT_QUEUE_SPEC.md`** (opened
 > September 13, 2026 by IQ1-2 — the row had run two slices with no doc record).
-> **IQ-1 has three slices landed: IQ1-0 the instrument, IQ1-1 the substitute
-> market, IQ1-2 the chest tells the truth. NEXT = IQ1-3 "The Recurring
-> Obligation".** The crux (the August 7 blessing vs the September 12 brief) is
+> **IQ-1 has FOUR slices landed: IQ1-0 the instrument, IQ1-1 the substitute
+> market, IQ1-2 the chest tells the truth, IQ1-3 "The Granary and the Alarm" —
+> which OVERTURNED §0.6's recommended retainer on a measurement (the whole
+> diplomacy-instrument channel is worth 4,824 gold one-shot, and its payoff has
+> no consumer) and instead opened the levy's own-soil gate to the engine's own
+> `ALLY_SUPPLY_STATES`, suppressed the ally-capital discount, mirrored the
+> training-ground and Shorncliffe rungs at the substitute premium, and priced
+> the levy by Europe's alarm: receipts **18,852 → 75,486 gold = 4.00×, 85.2% of
+> the surplus**, with the board ending BETTER (26 provinces against 24).
+> NEXT = **IQ1-5 "The Exit"** — no production code, the four completion items
+> measured and the pillar re-scored.** The crux (the August 7 blessing vs the September 12 brief) is
 > RULED in spec §0.2 — the blessed rate stands and the fix is somewhere for the
 > gold to GO — and question (c) is ROUTED OUT to its own design gate by user
 > ruling. Three figures in the row's own contract did not reproduce and are

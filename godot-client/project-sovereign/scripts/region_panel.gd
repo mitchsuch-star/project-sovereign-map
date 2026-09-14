@@ -286,6 +286,47 @@ func _render() -> void:
 					+ " foot here[/color]"
 		action_rows.append("  Recruit: " + recruit_chips + levy_note)
 
+		# IQ-1 IQ1-3D rider 1: THE SUBSTITUTE MARKET, where the choice is made.
+		# Until IQ1-2 the row's headline gold sink had zero mentions on any
+		# unprompted surface; the help text closed that, and this closes the
+		# rest. The chip is present-but-DIMMED with the reason when it is
+		# gated — never absent — which is this project's honest-availability
+		# idiom, and it renders on ALLY soil too because the granary is open
+		# there (IQ1-3A).
+		# The marshal standing here is the one the substitutes join, and the
+		# one the backend priced (Intendance is per-marshal), so the chip
+		# names him rather than sending a bare verb the parser must guess at.
+		var sub_marshal = ""
+		if marshals is Array:
+			for om in marshals:
+				if str(om.get("nation", "")) == _PLAYER_NATION:
+					sub_marshal = str(om.get("name", ""))
+					break
+		var subs = levy.get("substitutes", null) if levy is Dictionary else null
+		if subs is Dictionary and sub_marshal != "":
+			var _here = int(data.get("substitute_price_here", 0))
+			if _here <= 0:
+				_here = int(subs.get("price", 0))
+			var _room = int(subs.get("room", 0))
+			var _alarm = int(subs.get("alarm_premium_pct", 0))
+			var _terms = Utils.format_number(_here) + "g per " \
+				+ Utils.format_number(int(subs.get("amount", 0))) + " — no men off the rolls"
+			if _alarm > 0:
+				_terms += ", +" + str(_alarm) + "% while Europe is alarmed"
+			if bool(subs.get("open", false)) and _here > 0:
+				action_rows.append("  Substitutes: " \
+					+ Utils.bb_button_chip("do:buy substitutes for " + sub_marshal, \
+						"Buy Substitutes", Utils.COLOR_GOLD, _CHIP_BG) \
+					+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _terms \
+					+ "  (" + Utils.format_number(_room) + " under the establishment)[/color]")
+			else:
+				var _why = "no room under the establishment — the market buys back only what you have lost"
+				if _here <= 0:
+					_why = "this ground does not feed our battalions"
+				action_rows.append("  Substitutes: " \
+					+ Utils.bb_chip_disabled("Buy Substitutes") \
+					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + _why + "[/color]")
+
 		# Build — every missing building while a slot is free (slot math from
 		# the fog-filtered payload; towns/rural report 0 slots so the row
 		# hides itself). Watchtowers ride their own field, slot-exempt.
