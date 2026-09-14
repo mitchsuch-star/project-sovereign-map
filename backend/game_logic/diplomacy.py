@@ -2813,7 +2813,11 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
                     is_coalition_member, remove_coalition_member,
                 )
                 if is_coalition_member(_counterpart, world):
-                    remove_coalition_member(_counterpart, world)
+                    # IQ-3: this arm is the ONLY treaty road out of a
+                    # league, so it alone marks the removal as a treaty's —
+                    # a dissolution it causes spends the league's alarm
+                    # (coalition.THE_LEAGUE_SPENDS_ITS_ALARM gates it there).
+                    remove_coalition_member(_counterpart, world, by_treaty=True)
 
     # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.1). Sited HERE and not
     # in `cleanup_war_end` for exactly PT-J1's reason: typed conquest-
@@ -8198,6 +8202,14 @@ def _append_war_entry(
 # WAR DECLARATION & CASCADE
 # ═══════════════════════════════════════════════════════
 
+def declaration_alarm(casus_belli: bool = False) -> int:
+    """The alarm a declaration of war adds to the DECLARER's own slot (§2a,
+    S5c) — halved with a casus belli. Single source (IQ-3): `declare_war`
+    applies it and Talleyrand's projection quotes it, so the figure he names
+    is the figure the declaration adds."""
+    return 10 if casus_belli else 20
+
+
 def declare_war(
     world,
     aggressor: str,
@@ -8332,7 +8344,7 @@ def declare_war(
     # own slot accrues; France's slot sees exactly the same events.
     if aggressor:
         from backend.game_logic.coalition import add_threat
-        threat = 10 if casus_belli else 20
+        threat = declaration_alarm(casus_belli)
         add_threat(world, threat, "war_declaration", target=aggressor)
 
     # Authority changes for AI nations

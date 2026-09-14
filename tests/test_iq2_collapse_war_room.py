@@ -322,6 +322,13 @@ class TestLedgerUnderTheCollapse:
         assert boe["headline_case"] == "COOLDOWN"
         assert boe["headline_note"] == "Austria, Britain and Russia remain at war with us."
         monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
+        # IQ-3 (Sept 14, 2026) — CONSCIOUSLY FLIPPED: this arm asserts the
+        # pre-IQ-2 payload, but IQ-3's own lever now names the 60 gate on any
+        # COOLDOWN board below it (headline_note). The pre-both payload is
+        # IQ-2's lever AND IQ-3's lever down; IQ-3's arm is pinned in
+        # tests/test_iq3_the_league_is_spent.py.
+        from backend.game_logic import coalition as _coal
+        monkeypatch.setattr(_coal, "THE_LEAGUE_SPENDS_ITS_ALARM", False)
         down = L._build_balance_of_europe(collapsed)
         assert "collapse_line" not in down and "headline_note" not in down
         assert "collapse_line" not in down["threat_projection"]

@@ -132,6 +132,8 @@ _THREAT_SOURCE_LABELS = {
     # `grudge_label` (and for any pre-NA-6d serialized threat row).
     "formation_grudge": "Nations raised from their lands",
     "schemer_peace_rejection": "Scorned a peace overture",
+    # IQ-3: the alarm a treaty-dissolved league leaves behind is spent
+    "league_spent": "The last coalition made its peace",
 }
 
 
@@ -1137,8 +1139,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
             "combined_strength_display": combined_strength_display,
         }
 
-    # Threat projection
-    next_war_projection = int(min(100, threat_level + 20))
+    # Threat projection (IQ-3: the declaration's alarm from its single source)
+    from backend.game_logic.diplomacy import declaration_alarm
+    next_war_projection = int(min(100, threat_level + declaration_alarm()))
     wars_until_brewing = (
         int(max(0, (60 - threat_level + 19) // 20)) if threat_level < 60 else 0
     )
@@ -1195,6 +1198,20 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
             clause = remain_at_war_clause(world, courts)
             headline_note = f"{clause[0].upper()}{clause[1:]}."
 
+    # IQ-3: after a spent league the COOLDOWN headline ("the courts are
+    # recovering") says nothing of the gate — the alarm sits below 60 and no
+    # league gathers until an act of ours carries it back. Rendered by the
+    # client's existing COOLDOWN note arm. Not under the collapse: there the
+    # alarm is low because nobody fears a landless realm, and the collapse
+    # line already says so (the IQ-2 note stays exact).
+    from backend.game_logic import coalition as _coal
+    if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM and headline_case == "COOLDOWN"
+            and _collapse is None
+            and int(threat_level) < _coal.THREAT_BREWING_MIN):
+        _gate = (f"Europe's alarm stands at {int(threat_level)}; no new "
+                 f"coalition gathers below {_coal.THREAT_BREWING_MIN}.")
+        headline_note = f"{headline_note} {_gate}".strip()
+
     result = {
         "headline_case": headline_case,
         "hegemon": hegemon,
@@ -1245,6 +1262,8 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     }
     if _collapse is not None:
         result["collapse_line"] = collapse_line
+        result["headline_note"] = headline_note
+    elif headline_note:
         result["headline_note"] = headline_note
     return result
 

@@ -2375,17 +2375,7 @@ def run(args):
         shutil.rmtree(out_dir)
     (out_dir / "saves").mkdir(parents=True, exist_ok=True)
 
-    policy = POLICY_DEFAULTS | (script.get("policy") or {})
-    if args.objection:
-        policy["objection"] = args.objection
-    if args.diplomacy:
-        policy["diplomacy"] = args.diplomacy
-    # FA slice 17 part f: the new dials, flag over script key over default.
-    for key in ("redemption", "petition", "paradox", "rebellion", "sabotage",
-                "reward", "last_stand", "contact"):
-        value = getattr(args, key, "")
-        if value:
-            policy[key] = value
+    policy = resolve_policy(args, script)
 
     if args.http:
         transport = make_http_transport(args)
@@ -2719,6 +2709,31 @@ def run(args):
     if digest.unknown_blockers and args.strict:
         return 3
     return 0
+
+
+# Every decision dial a CLI flag may set, flag over script key over default.
+# IQ-3 (Sept 14, 2026): `declare_war` was missing. FA-S17-D6 added the
+# `--declare-war` flag and the policy key but never this row, so the flag
+# was parsed and dropped — every run passing `--declare-war proceed` ran
+# `cancel`, and its meta.json said so. (The default was cancel anyway, so
+# runs that left the flag alone measured what they claimed.)
+POLICY_FLAG_KEYS = ("redemption", "petition", "paradox", "rebellion",
+                    "sabotage", "reward", "last_stand", "contact",
+                    "declare_war")
+
+
+def resolve_policy(args, script: dict) -> dict:
+    """The run's decision policy: flag over script key over default."""
+    policy = POLICY_DEFAULTS | (script.get("policy") or {})
+    if getattr(args, "objection", ""):
+        policy["objection"] = args.objection
+    if getattr(args, "diplomacy", ""):
+        policy["diplomacy"] = args.diplomacy
+    for key in POLICY_FLAG_KEYS:
+        value = getattr(args, key, "")
+        if value:
+            policy[key] = value
+    return policy
 
 
 def main():

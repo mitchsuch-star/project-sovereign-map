@@ -817,6 +817,23 @@ def _assess_situation(world) -> Dict:
         lines.append(
             f"  No coalition stands against us. Europe's alarm reads "
             f"{threat} ({tier}).")
+        # IQ-3: the 60 gate, named. After a spent league the alarm sits in
+        # the forties and "No coalition stands against us" read as permanent
+        # when one declaration would end it.
+        from backend.game_logic import coalition as _coal
+        if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM
+                and threat < _coal.THREAT_BREWING_MIN
+                and not getattr(world, "coalition_brewing", None)):
+            _courts = _coal.get_qualifying_nations(world, target=_player)
+            if _courts:
+                from backend.game_logic.diplomacy import declaration_alarm
+                from backend.game_logic.diplomatic_ledger import courts_display
+                _projection = int(min(100, threat + declaration_alarm()))
+                lines.append(
+                    f"  {courts_display(world, _courts)} would join a league, "
+                    f"but none gathers below {_coal.THREAT_BREWING_MIN} — a "
+                    f"declaration of war would carry the alarm to "
+                    f"{_projection}.")
 
     # ── What alarmed Europe this turn (top 3, already itemized) ──
     # Stage D review fix [r1]: this list explains FRANCE's alarm delta —

@@ -51,6 +51,37 @@ DISSOLUTION_THREAT_THRESHOLD = 20
 # Post-dissolution cooldown (§7c)
 COALITION_COOLDOWN_TURNS = 5
 
+# IQ-3 "The League Is Spent" (Sept 14, 2026) flip lever. False = the
+# pre-IQ-3 game byte-for-byte. Measured on commanded_full40 --diplomacy
+# accept: a coalition dissolved for insufficient_members at France alarm
+# 90-94, its 5-turn cooldown was CANCELLED by the >=90 override, and the
+# minor courts formed the next league on the very next tick — six to eight
+# coalitions in forty turns, a major/minor alternation every four. The
+# alarm never fell because a peace that breaks a league changed no threat.
+# Now it does: a TREATY that dissolves the league spends Europe's alarm, so
+# the next coalition must be earned by a fresh act of the target's (a
+# declaration, a conquest) that carries the alarm back to the 60 gate.
+# Derived — it reads and writes only the existing `threat_by_target` slot
+# through `reduce_threat`; no timer, no new serialized field.
+THE_LEAGUE_SPENDS_ITS_ALARM = True
+# ⚠ FOR USER CONFIRMATION (in-band). Structural invariant, pinned:
+# 100 // LEAGUE_SPENT_DIVISOR < THREAT_BREWING_MIN, so the tick after a
+# spend can neither brew nor fire the >=90 cooldown override on its own.
+LEAGUE_SPENT_DIVISOR = 2
+# The treaty's own alarm is never forgiven by the peace that carries it:
+# a settlement adds its annexation / vassalization alarm BEFORE its pair
+# transitions eject the members, so without this exemption a dissolving
+# peace would make conquest-by-treaty half free.
+LEAGUE_SPEND_EXEMPT_SOURCES = (
+    "treaty_annex", "treaty_vassalization", "conquest_vassalization",
+    "forced_alliance",
+)
+# IQ-3 rider: Talleyrand's declare-war objection read only `threat > 50`,
+# so after a spend (alarm 41-48) he fell silent exactly when a declaration
+# would bring on the next coalition. He now reads the projection too.
+# False = the >50 arm alone, byte-for-byte.
+TALLEYRAND_READS_THE_PROJECTION = True
+
 # Brewing countdown (§3c)
 BREWING_COUNTDOWN = 3
 
@@ -1887,8 +1918,79 @@ def _dissolution_reason_display(reason: str) -> str:
     return template.format(threshold=int(DISSOLUTION_THREAT_THRESHOLD))
 
 
-def dissolve_coalition(world, reason: str) -> List[Dict]:
+def league_spent_alarm(world, target: str) -> Dict[str, int]:
+    """IQ-3: the alarm a treaty-dissolved league leaves behind its target.
+
+    Returns ``{"from": before, "to": after}``. The treaty's own alarm this
+    turn (``LEAGUE_SPEND_EXEMPT_SOURCES`` rows on `add_threat`'s mechanical
+    record, cleared per turn) is kept whole; the rest is divided by
+    ``LEAGUE_SPENT_DIVISOR``. Pure — the caller applies the difference.
+    """
+    before = int(world.threat_by_target.get(target, 0) or 0)
+    exempt = 0
+    for row in getattr(world, "threat_sources_this_turn", None) or []:
+        if (row.get("target") or world.player_nation) != target:
+            continue
+        if row.get("source") not in LEAGUE_SPEND_EXEMPT_SOURCES:
+            continue
+        amount = int(row.get("amount", 0) or 0)
+        if amount > 0:
+            exempt += amount
+    kept = min(before, exempt)
+    after = (before - kept) // LEAGUE_SPENT_DIVISOR + kept
+    return {"from": int(before), "to": int(after)}
+
+
+def league_spent_clause(world, target: str, spent: Dict[str, int]) -> str:
+    """The one sentence every surface uses for a spent league."""
+    frm, to = int(spent.get("from", 0)), int(spent.get("to", 0))
+    if target == world.player_nation:
+        whose = "Europe's alarm"
+    else:
+        from backend.display_names import humanize_entity_name
+        whose = f"Europe's alarm against {humanize_entity_name(target)}"
+    moved = f"{whose} falls from {frm} to {to}" if frm > to else f"{whose} stands at {to}"
+    if to < THREAT_BREWING_MIN:
+        return (f"The league is spent — {moved}; no new coalition gathers "
+                f"below {THREAT_BREWING_MIN}.")
+    return (f"The league is spent — {moved}, but the peace's own terms keep "
+            f"it at the {THREAT_BREWING_MIN} at which a coalition gathers.")
+
+
+def declaration_would_gather_a_league(world, aggressor: str,
+                                      casus_belli: bool = False) -> Optional[Dict]:
+    """IQ-3 rider: the projection Talleyrand reads before a declaration.
+
+    Returns ``{"from", "to", "courts"}`` when no league stands, the alarm is
+    below the 60 gate, the declaration's own alarm (the single source
+    `diplomacy.declaration_alarm`, the figure `declare_war` applies) would
+    carry it to 60 or more, and some court would join. Otherwise None —
+    and always None with ``TALLEYRAND_READS_THE_PROJECTION`` down.
+    """
+    if not TALLEYRAND_READS_THE_PROJECTION:
+        return None
+    if getattr(world, "active_coalition", None):
+        return None
+    from backend.game_logic.diplomacy import declaration_alarm
+    before = int(world.threat_by_target.get(aggressor, 0) or 0)
+    after = int(min(100, before + declaration_alarm(casus_belli)))
+    if before >= THREAT_BREWING_MIN or after < THREAT_BREWING_MIN:
+        return None
+    courts = get_qualifying_nations(world, target=aggressor)
+    if not courts:
+        return None
+    return {"from": before, "to": after, "courts": list(courts)}
+
+
+def dissolve_coalition(world, reason: str,
+                       spent_by_treaty: bool = False) -> List[Dict]:
     """Dissolve the active coalition (§7b).
+
+    IQ-3: ``spent_by_treaty`` marks a dissolution a peace treaty caused
+    (the `set_diplomatic_state` ejection arm, through
+    `remove_coalition_member`). With ``THE_LEAGUE_SPENDS_ITS_ALARM`` up it
+    spends the target's alarm (`league_spent_alarm`). The low-threat tick,
+    the greater-danger pivot and elimination never pass it.
 
     Returns list of tactical events.
     """
@@ -1911,6 +2013,17 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
 
     # Start cooldown (§7c)
     world.coalition_cooldown = COALITION_COOLDOWN_TURNS
+
+    # IQ-3 "The League Is Spent": a treaty that breaks the league spends
+    # Europe's alarm against its target (read above, before the league was
+    # cleared). `reduce_threat` is the only write, so the ledger's source
+    # list and Talleyrand's "what stirred Europe" name it.
+    alarm_spent: Optional[Dict[str, int]] = None
+    if THE_LEAGUE_SPENDS_ITS_ALARM and spent_by_treaty:
+        alarm_spent = league_spent_alarm(world, _dissolve_target)
+        if alarm_spent["from"] > alarm_spent["to"]:
+            reduce_threat(world, alarm_spent["from"] - alarm_spent["to"],
+                          "league_spent", target=_dissolve_target)
 
     # IQ-2: the wars the league leaves behind. Read AFTER the league is
     # cleared (it changes no war) and only for a player-targeted league —
@@ -1936,6 +2049,20 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
                           f"same.")
                 event_message = notice
 
+    if alarm_spent is not None:
+        # The spend arm's copy. The IQ-2 read above runs MID-ratification:
+        # a settlement ejects its members one pair at a time, so the courts
+        # it names are about to sign in this same action (measured: Russia
+        # at t4, Sardinia at t8/16/28/36, Austria at t12/20 — all at PEACE
+        # once the action completed). The war panel names any court still
+        # fighting afterwards; this sentence claims only what is true at
+        # every point of the ratification.
+        courts_at_war = []
+        notice = (f"{name} has dissolved — the peace has taken too many of "
+                  f"its courts out of the war. "
+                  f"{league_spent_clause(world, _dissolve_target, alarm_spent)}")
+        event_message = notice
+
     # Notification
     world.notifications.add(create_notification(
         COALITION_DISSOLVED,
@@ -1954,6 +2081,8 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
     }
     if THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN:
         log_entry["courts_at_war"] = list(courts_at_war)
+    if alarm_spent is not None:
+        log_entry["alarm_spent"] = dict(alarm_spent)
     world.log_event(log_entry)
 
     event = {
@@ -1964,6 +2093,8 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
     }
     if THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN:
         event["courts_at_war"] = list(courts_at_war)
+    if alarm_spent is not None:
+        event["alarm_spent"] = dict(alarm_spent)
     events.append(event)
 
     # R83: Dispatch event for coalition dissolution (target-aware — the
@@ -1980,10 +2111,14 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
     return events
 
 
-def remove_coalition_member(nation: str, world) -> List[Dict]:
+def remove_coalition_member(nation: str, world,
+                            by_treaty: bool = False) -> List[Dict]:
     """Remove a nation from the active coalition (e.g., separate peace).
 
-    Handles leader transition (§4b) and dissolution check.
+    Handles leader transition (§4b) and dissolution check. IQ-3:
+    ``by_treaty`` is passed ONLY by the `set_diplomatic_state` ejection arm
+    (a formal PEACE or VASSAL ending a war or truce); a dissolution it
+    causes for ``insufficient_members`` spends the league's alarm.
     Returns list of tactical events.
     """
     events = []
@@ -2046,7 +2181,9 @@ def remove_coalition_member(nation: str, world) -> List[Dict]:
     # Check dissolution
     reason = check_dissolution(world)
     if reason:
-        events.extend(dissolve_coalition(world, reason))
+        events.extend(dissolve_coalition(
+            world, reason,
+            spent_by_treaty=bool(by_treaty and reason == "insufficient_members")))
 
     return events
 
@@ -2339,11 +2476,20 @@ def process_coalition_turn(world) -> List[Dict]:
     if world.coalition_cooldown > 0:
         world.coalition_cooldown -= 1
         if world.coalition_cooldown == 0:
+            _cooldown_copy = "A new coalition may form if threat remains high."
+            # IQ-3: after a spent league the alarm sits below the gate, and
+            # "if threat remains high" read as if a league were imminent.
+            _alarm = int(world.threat_by_target.get(world.player_nation, 0) or 0)
+            if THE_LEAGUE_SPENDS_ITS_ALARM and _alarm < THREAT_BREWING_MIN:
+                _cooldown_copy = (
+                    f"The courts' cooldown is over, but Europe's alarm stands "
+                    f"at {_alarm}; a new coalition gathers only at "
+                    f"{THREAT_BREWING_MIN}.")
             world.notifications.add(create_notification(
                 COALITION_COOLDOWN_ENDED,
                 NotificationPriority.NORMAL,
                 "Coalition Cooldown Ended",
-                "A new coalition may form if threat remains high.",
+                _cooldown_copy,
                 int(world.current_turn),
             ))
 

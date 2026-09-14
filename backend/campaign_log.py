@@ -2449,8 +2449,20 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "coalition_dissolved":
         target = event.get("target_nation") or "France"
+        # IQ-3: a treaty-dissolved league stamps `alarm_spent`; the entry
+        # says the league is spent and by how much. No key = as before.
+        spent = event.get("alarm_spent") or None
         if target != "France":
+            if spent:
+                return (f"Coalition against {display_nation(target)} has "
+                        f"dissolved — the league is spent.")
             return f"Coalition against {display_nation(target)} has dissolved."
+        if spent:
+            frm, to = int(spent.get("from", 0)), int(spent.get("to", 0))
+            moved = (f"Europe's alarm falls from {frm} to {to}" if frm > to
+                     else f"Europe's alarm stands at {to}")
+            return (f"Coalition against France has dissolved — the league "
+                    f"is spent; {moved}.")
         # IQ-2: the league lapses on low threat and ends no war — the entry
         # now carries the courts still fighting France (`courts_at_war`,
         # stamped by coalition.dissolve_coalition behind its own lever).

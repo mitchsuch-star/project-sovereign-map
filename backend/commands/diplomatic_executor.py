@@ -2369,15 +2369,49 @@ class DiplomaticExecutor:
 
         # Talleyrand STRONG objection if target is neutral and threat is high
         threat_level = getattr(world, 'threat_level', 0)
-        if current_state != "WAR" and threat_level > 50 and not confirmed_objection:
+        _objects = current_state != "WAR" and threat_level > 50 and not confirmed_objection
+        _objection_text = (f"Sire, I must strongly advise against declaring war on {target_nation}. "
+                           f"Our threat level stands at {int(threat_level)} — the courts of Europe "
+                           f"already whisper of coalition. Another war will only hasten their union against us.")
+        # IQ-3 rider: after a spent league the alarm sits in the forties and
+        # the >50 arm above falls silent exactly when this declaration would
+        # carry it back through the 60 gate. He reads the projection — the
+        # figure `declare_war` itself applies (diplomacy.declaration_alarm).
+        if not _objects and current_state != "WAR" and not confirmed_objection:
+            from backend.game_logic.coalition import (
+                THREAT_BREWING_MIN, declaration_would_gather_a_league,
+            )
+            _projection = declaration_would_gather_a_league(
+                world, player,
+                casus_belli=bool(world.casus_belli.get(
+                    world._make_diplo_key(player, target_nation), False)))
+            if _projection:
+                from backend.game_logic.formations import formed_display_name
+                _names = [formed_display_name(world, c)
+                          for c in _projection["courts"]]
+                if len(_names) > 4:
+                    _others = len(_names) - 3
+                    _courts = f"{', '.join(_names[:3])} and {_others} other courts"
+                elif len(_names) > 1:
+                    _courts = f"{', '.join(_names[:-1])} and {_names[-1]}"
+                else:
+                    _courts = _names[0]
+                _objects = True
+                _objection_text = (
+                    f"Sire, Europe's alarm stands at {_projection['from']} — "
+                    f"low enough that no league stands against us. A "
+                    f"declaration on {target_nation} would carry it to "
+                    f"{_projection['to']}, past the {THREAT_BREWING_MIN} at "
+                    f"which a coalition gathers, and {_courts} would join it. "
+                    f"The last league was spent at the peace table; I should "
+                    f"not care to pay for the next.")
+        if _objects:
             # Check if objection already pending (don't double-fire)
             if not world.diplomatic_objection_popup:
                 world.diplomatic_objection_popup = {
                     "type": "talleyrand_objection",
                     "concern_level": "STRONG",
-                    "objection_text": (f"Sire, I must strongly advise against declaring war on {target_nation}. "
-                                       f"Our threat level stands at {int(threat_level)} — the courts of Europe "
-                                       f"already whisper of coalition. Another war will only hasten their union against us."),
+                    "objection_text": _objection_text,
                     "defiance_risk": "High",
                     "proposal_summary": f"Declare war on {target_nation}",
                     "action": "diplomatic_declare_war",

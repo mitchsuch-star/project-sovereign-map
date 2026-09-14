@@ -1,0 +1,122 @@
+[
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if THE_LEAGUE_SPENDS_ITS_ALARM and spent_by_treaty:",
+  "new": "    if False:",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    after = (before - kept) // LEAGUE_SPENT_DIVISOR + kept",
+  "new": "    after = before // LEAGUE_SPENT_DIVISOR",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if (row.get(\"target\") or world.player_nation) != target:\n            continue\n        if row.get(\"source\") not in LEAGUE_SPEND_EXEMPT_SOURCES:",
+  "new": "        if row.get(\"source\") not in LEAGUE_SPEND_EXEMPT_SOURCES:",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "            spent_by_treaty=bool(by_treaty and reason == \"insufficient_members\")))",
+  "new": "            spent_by_treaty=bool(reason == \"insufficient_members\")))",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "            spent_by_treaty=bool(by_treaty and reason == \"insufficient_members\")))",
+  "new": "            spent_by_treaty=bool(by_treaty)))",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "                    remove_coalition_member(_counterpart, world, by_treaty=True)",
+  "new": "                    remove_coalition_member(_counterpart, world)",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "        courts_at_war = []\n        notice = (f\"{name} has dissolved — the peace has taken too many of \"",
+  "new": "        notice = (f\"{name} has dissolved — the peace has taken too many of \"",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if to < THREAT_BREWING_MIN:\n        return (f\"The league is spent — {moved}; no new coalition gathers \"",
+  "new": "    if False:\n        return (f\"The league is spent — {moved}; no new coalition gathers \"",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "            if THE_LEAGUE_SPENDS_ITS_ALARM and _alarm < THREAT_BREWING_MIN:",
+  "new": "            if False:",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if before >= THREAT_BREWING_MIN or after < THREAT_BREWING_MIN:\n        return None",
+  "new": "    if before >= THREAT_BREWING_MIN:\n        return None",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    courts = get_qualifying_nations(world, target=aggressor)\n    if not courts:\n        return None",
+  "new": "    courts = get_qualifying_nations(world, target=aggressor) or [\"Prussia\"]",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if getattr(world, \"active_coalition\", None):\n        return None\n    from backend.game_logic.diplomacy import declaration_alarm",
+  "new": "    from backend.game_logic.diplomacy import declaration_alarm",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    return 10 if casus_belli else 20",
+  "new": "    return 10 if casus_belli else 25",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            if _projection:\n                from backend.game_logic.formations import formed_display_name",
+  "new": "            if False:\n                from backend.game_logic.formations import formed_display_name",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    elif headline_note:\n        result[\"headline_note\"] = headline_note",
+  "new": "    elif False:\n        result[\"headline_note\"] = headline_note",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "            and _collapse is None\n            and int(threat_level) < _coal.THREAT_BREWING_MIN):",
+  "new": "            and int(threat_level) < _coal.THREAT_BREWING_MIN):",
+  "tests": "tests/test_iq2_collapse_war_room.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    \"league_spent\": \"The last coalition made its peace\",",
+  "new": "",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "            if _courts:\n                from backend.game_logic.diplomacy import declaration_alarm",
+  "new": "            if False:\n                from backend.game_logic.diplomacy import declaration_alarm",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/campaign_log.py",
+  "old": "        if spent:\n            frm, to = int(spent.get(\"from\", 0)), int(spent.get(\"to\", 0))",
+  "new": "        if False:\n            frm, to = int(spent.get(\"from\", 0)), int(spent.get(\"to\", 0))",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "tools/playtest_driver.py",
+  "old": "                    \"sabotage\", \"reward\", \"last_stand\", \"contact\",\n                    \"declare_war\")",
+  "new": "                    \"sabotage\", \"reward\", \"last_stand\", \"contact\")",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ }
+]
