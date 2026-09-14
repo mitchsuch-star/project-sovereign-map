@@ -900,8 +900,10 @@ func _render_manpower():
 			bbcode += " (" + str(turns_full) + " turns to full)\n"
 
 		# IQ-2: when the capital's depot is shut (enemy-held, or in unrest)
-		# the executor refuses the recruit — so no price is quoted for it;
-		# the backend's cost_note names why. Absent key = the old line.
+		# the executor refuses the DEFAULT (capital) recruit, so the capital
+		# price is not quoted; the backend's cost_note names why, and names
+		# the marshal's field levy while one is possible. Absent key = the
+		# old line.
 		var depot_closed = pool.get("depot_closed", false)
 		if typeof(depot_closed) == TYPE_BOOL and depot_closed and cost_note != "":
 			bbcode += "  Recruit: " + _format_number(recruit_amt) + " troops — " + cost_note

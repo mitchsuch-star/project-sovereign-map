@@ -5018,3 +5018,53 @@ docstring; rewriting the code tuple to `("x1","x2")` left it green.
 turn loop" is an AST predicate with a synthetic hoisted fixture that must be
 REJECTED — a textual "appears before `finish`" is satisfied by the very
 regression it names.
+
+---
+
+## 41. The collapse is legible (IQ-2, landed September 14, 2026)
+
+**The rule.** A realm reduced to `COLLAPSE_PROVINCE_CEILING` (1) province or
+fewer has COLLAPSED, and every surface that speaks of it reads ONE source:
+`backend/game_logic/collapse.py::get_collapse_state(world, nation=None)`. It
+returns None off-sandbox (the legacy world keeps its own terminal rules), when
+the realm stands, and when the lever `THE_COLLAPSE_IS_LEGIBLE` is False;
+otherwise `{tier: "fallen"|"last_province", provinces_held, provinces, capital,
+capital_held, capital_holder, standing, standing_men, prisoners, sovereign,
+sovereign_captor}`. Surfaces compose from its phrase builders
+(`realm_sentence`, `capital_clause`, `forces_clause`, `sovereign_clause`,
+`summary_line`) so the same fact is worded the same way everywhere. **Never
+add a second collapse predicate.**
+
+**Legible, never terminal.** The module is a READER. Nothing built on it may
+end, block or shorten the campaign, and no sentence may say or imply "the
+campaign ends", "game over", defeat as an outcome, or the player
+"eliminated". Where the player needs to know the game continues, one sentence
+says so: `CAMPAIGN_CONTINUES`. What a collapse MEANS mechanically belongs to
+the Victory & Objectives Pass.
+
+**The player never leaves the roster.** `world_state.get_active_nations()`
+keeps the player even at 0 provinces (`PLAYER_NEVER_LEAVES_THE_ROSTER`) — the
+player is never eliminated (`_eliminate_nation` returns early for her), so a
+landless France is still billed upkeep, still goes bankrupt and deserts, still
+regenerates manpower, and still pays and receives recurring settlement gold.
+
+**Who reads it.**
+
+| surface | where | what it says |
+|---|---|---|
+| headline `empire_reduced` | `dispatch._build_headline` (weight 100, standing, identity = class) | the summary line; at one province the soil alarm is folded in and its own candidate dropped |
+| Berthier's close | `dispatch._pick_berthier_note` — answers the `empire_reduced` headline; on the PC-7 hand-back a rung BELOW broken / bankrupt / bleeding and above the rest | tier-, forces- and treasury-aware; says "it pays" only when the province is not disrupted, and promises no treasury in deficit |
+| Talleyrand | `dispatch._build_talleyrand_report` | only what the score measures (*"Sire, {court} would treat with us now."* — no cause it does not measure); the idle nudge names the open question |
+| defeat warning | `turn_manager.get_defeat_imminent_state` sandbox arm | heading *THE EMPIRE IN EXTREMIS*; rail titles *The Empire Without Soil* / *One Province Remains* |
+| end turn | `meta_executor.collapse_turn_end_fields` (both paths) | one banner line; `collapse_line` + `provinces_held` on the `turn_end` event |
+| war room | `diplomatic_advisory._assess_situation` and siblings | *Our own state* first; honest alarm, no-war, rung-4, fallback, overview, Tilsit arms |
+| diplomatic ledger | Balance of Europe `collapse_line` / `headline_note`, exposure, the France mirror | the alarm fell because France threatens no one; the courts still at war |
+| strategic ledger / status | `ledger.collapse_note`, `intel_report` STATE OF THE EMPIRE | the summary line + `CAMPAIGN_CONTINUES` |
+| Le Moniteur | `gazette._collapse_lead`, realm-reduced special edition (97) | the fact, in the period voice |
+| chronicle | `WorldState.log_event` stamps `holdings_left`/`holdings_realm` on the player's own losses | *"— France holds no province"* |
+
+**Client keys.** `turn_end.collapse_line`, `defeat_imminent_warning.heading`,
+`situation.no_field_army`, `collapse_note`, `levy.closed_reason`,
+`depot_closed`, `settlement_tier_side`, `captured_from` on conquest events,
+Balance `collapse_line`/`headline_note`, marshal-card `status_note`. Every
+read falls back to the pre-IQ-2 render when the key is absent.

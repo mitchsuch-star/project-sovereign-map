@@ -306,7 +306,7 @@ class TestD3aCollapseLead:
         lead = G._press_lead(w, [])
         assert lead.startswith("Paris is in Austria's hands and France holds "
                                "no province of her own;"), lead
-        assert "the Moniteur counsels patience and the army." in lead
+        assert "the Moniteur counsels patience and trust in the army." in lead
         assert "salons go on" not in lead and "capital watches" not in lead
 
     def test_the_last_province_away_from_paris(self):

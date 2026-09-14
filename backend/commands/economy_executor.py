@@ -2058,19 +2058,16 @@ def get_levy_status(world, nation: str = None) -> dict:
         reason = ""
         if gate is not None:
             reason = depot_closed_reason(world, capital or "the capital", region, gate)
-        elif not status["open"]:
-            # Display order: the depot first (no march reopens it), then the
-            # executor's own recipient and pool terms, then the ordinance.
-            amount = int(INFANTRY_RECRUIT_AMOUNT)
-            if not recipient:
-                reason = (f"No corps stands within reach of the depot at "
-                          f"{capital} to receive the recruits.")
-            elif pool < amount:
-                reason = f"The infantry pool holds {pool:,} — a levy is {amount:,}."
-            elif total > limit:
-                reason = f"The establishment stands {int(total - limit):,} over the ordinance."
-            else:
-                reason = (f"Only {int(headroom):,} men of room remain under "
-                          f"the ordinance — a levy is {amount:,}.")
+        elif not status["open"] and not recipient:
+            # IQ-2 review round: ONLY the gates the executor enforces on the
+            # default capital path are named — the depot (above) and a
+            # missing recipient. The pool / ordinance / headroom terms are the
+            # headline's own "worth announcing" bar, not refusals: measured,
+            # "The infantry pool holds 0" beside a CAVALRY levy the executor
+            # granted, and "59,000 over the ordinance" beside a levy it priced
+            # and granted (the force limit prices the overage, it never
+            # refuses). The Establishment line already shows over/under.
+            reason = (f"No corps stands within reach of the depot at "
+                      f"{capital} to receive the recruits.")
         status["closed_reason"] = reason
     return status

@@ -179,10 +179,15 @@ class TestB1LevyReadsTheDepot:
         assert calls.count("Paris") >= 2
 
     def test_the_other_terms_are_named_in_the_executors_order(self, europe):
+        """IQ-2 review round — CONSCIOUSLY RE-PINNED: only gates the executor
+        ENFORCES are named. An empty infantry pool is not a refusal (measured:
+        the executor granted a CAVALRY levy to Murat beside "The infantry
+        pool holds 0"), so it names nothing; a missing recipient is."""
         _maul(europe)
         europe.manpower_pools["France"]["infantry"] = 0
-        assert get_levy_status(europe)["closed_reason"] == (
-            "The infantry pool holds 0 — a levy is 10,000.")
+        status = get_levy_status(europe)
+        assert status["open"] is False
+        assert status["closed_reason"] == ""
         for m in europe.marshals.values():
             if m.nation == "France":
                 m.location = "Naples"
@@ -191,10 +196,15 @@ class TestB1LevyReadsTheDepot:
             "the recruits.")
 
     def test_the_boot_names_the_ordinance(self, europe):
+        """IQ-2 review round — CONSCIOUSLY RE-PINNED: the force limit PRICES
+        the overage and never refuses (measured: Soult levied 10,000 at the
+        quoted 654g beside "59,000 over the ordinance"). The Establishment
+        line above already shows over/under, so no refusal is claimed."""
         next(m for m in europe.marshals.values()
              if m.nation == "France" and m.strength > 0).location = "Paris"
-        assert get_levy_status(europe)["closed_reason"] == (
-            "The establishment stands 59,000 over the ordinance.")
+        status = get_levy_status(europe)
+        assert status["open"] is False and status["over_by"] > 0
+        assert status["closed_reason"] == ""
 
     def test_the_legacy_levy_dict_is_byte_identical(self, monkeypatch):
         legacy = _quiet(WorldState, player_nation="France")
@@ -286,8 +296,12 @@ class TestB3Ledger:
         europe.regions["Paris"].controller = "Austria"
         manpower = build_strategic_ledger(europe)["manpower"]
         for arm in ("infantry", "cavalry", "artillery"):
+            # IQ-2 review round: the closed depot is the DEFAULT path only;
+            # while France holds soil the note names the marshal's levy too.
             assert manpower[arm]["cost_note"] == (
-                "The depot at Paris is closed — Paris is in Austria's hands.")
+                "The depot at Paris is closed — Paris is in Austria's hands. "
+                "A marshal may still levy where he stands, on our own "
+                "settled soil.")
             assert manpower[arm]["depot_closed"] is True
         monkeypatch.setattr(L, "THE_MANPOWER_TAB_READS_THE_DEPOT", False)
         manpower = build_strategic_ledger(europe)["manpower"]

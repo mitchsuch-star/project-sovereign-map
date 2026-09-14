@@ -4401,6 +4401,15 @@ def build_war_context_snapshot(
     tier = get_settlement_tier(war_score)
     snapshot["settlement_tier"] = tier
     snapshot["settlement_tier_display"] = SETTLEMENT_TIER_DISPLAY.get(tier, tier)
+    # IQ-2 review round: the proposal-confirm and incoming-offer popups read
+    # this snapshot, and the tier is direction-blind — a losing France saw
+    # the enemy's leverage as a gold prize where she signs. The war HUD's own
+    # rule (`war_status._tier_side`), sandbox-scoped so the legacy snapshot
+    # is byte-identical. `war_score` is the player's perspective (above).
+    from backend.game_logic import war_status as _war_status
+    if (_war_status.THE_TIER_NAMES_ITS_SIDE
+            and getattr(world, "sandbox_mode", False)):
+        snapshot["settlement_tier_side"] = _war_status._tier_side(war_score)
     snapshot["tier_mismatch_warnings"] = get_tier_mismatch_warnings(war_score, effective_terms)
 
     # Armistice-specific fields

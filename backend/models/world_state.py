@@ -64,6 +64,14 @@ ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 # never eliminated, so the player never leaves the roster — the carve-out
 # `_process_dp_regen` already made for DP. Flip lever: False restores the
 # region-only test for the player too.
+#
+# Deliberately GENERAL, recorded after the review round measured both edges:
+# (a) the legacy 19-region world's defeat turn now bills the landless player
+# on its final advance (the banner there had printed an upkeep never charged,
+# the same lie), and (b) a landless France with satellites is back in the
+# bloc arithmetic, so the court-relative hegemon and Britain's paymaster read
+# her as they already did at ONE province — the change removes a cliff at
+# exactly zero, it adds no new AI geometry. BASELINE_SERIES never reaches 0.
 PLAYER_NEVER_LEAVES_THE_ROSTER = True
 
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
@@ -13213,8 +13221,24 @@ class WorldState:
                             self.record_campaign_capture(
                                 cap_region.controller, marshal.nation,
                                 auto_charge_battle_region)
+                            _charge_from = cap_region.controller or ""
                             cap_region.controller = marshal.nation
                             self.invalidate_active_nations_cache()
+                            # IQ-2 review round: the one conquest in the game
+                            # that logged NO region_captured row — so an AI
+                            # reckless charge that took a French province left
+                            # no chronicle line, no holdings stamp and no
+                            # realm-reduced edition while every live surface
+                            # already reported the collapse. Display only
+                            # (GR6): no AI logic reads region_captured off
+                            # the event log.
+                            self.log_event({
+                                "type": "region_captured",
+                                "region": auto_charge_battle_region,
+                                "captured_by": marshal.nation,
+                                "captured_from": _charge_from,
+                                "method": "charge",
+                            })
                             conquered = True
                             conquest_msg = f" {auto_charge_battle_region} captured by {marshal.nation}!"
 

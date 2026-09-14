@@ -3,7 +3,13 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: **August 30, 2026 — the whole-systems review (row REV):**
+> Last Updated: **September 14, 2026 — IQ-2 "The Collapse Is Legible"**
+> landed; see §Collapse Legibility (IQ-2) below, which is authoritative.
+> A landless France fell off the roster and fielded a FREE army while every
+> surface narrated an ordinary campaign; she is now billed and every surface
+> names the collapse — none ends the campaign.
+>
+> Previously: **August 30, 2026 — the whole-systems review (row REV):**
 > a 14-finder / 2-refuter-per-finding fleet at `e206869` confirmed 45 defects
 > across every system and all 45 are fixed; see §Whole-Systems Review below,
 > which is authoritative. One PRE-EXISTING harness defect is filed there
@@ -105,6 +111,116 @@
 
 ---
 
+
+## Collapse Legibility (IQ-2) — "The Collapse Is Legible", landed September 14, 2026
+
+> **The row's contract is the user's own description** (the IQ list is not
+> recorded in the repo): *an annihilated France told the winds favour it,
+> holding zero provinces from turn 37 and playing four more turns.* **Scope
+> note, binding:** making the collapse legible does not make it terminal —
+> win and defeat conditions stay with the Victory & Objectives Pass (ROADMAP
+> 12–13). No copy authored here says or implies the campaign ends; where the
+> player needs to know it continues, the one sentence
+> `collapse.CAMPAIGN_CONTINUES` says so.
+>
+> **Evidence.** The Phase-3 re-score's own digests: ambient-marengo printed
+> *"Sire, I believe {court} may be ready to discuss improved relations. The
+> diplomatic winds favor us."* seven times over France's last provinces with
+> threat 0; the headline at ONE province read *"the enemy has stood on our
+> ground 9 turns. Every turn of it is worth a province to their recruiting
+> sergeants"*; Berthier closed *"Your armies stand ready, Sire. The initiative
+> is ours."* at 0 and at 1 province (measured); and
+> `turn_manager.get_defeat_imminent_state` — the only collapse warning in the
+> game — returned None on every Europe world (EC-6a), because its copy
+> promised "the campaign ends".
+>
+> **Method.** A 7-agent census (six surface-family readers + one live
+> reproduction of France at 1, 0, and 0-with-the-Emperor-captured) mapped ~60
+> surfaces and found **one mechanical P1 underneath the copy**. One read-only
+> source was then written first (`backend/game_logic/collapse.py`), five
+> builders landed disjoint file families in parallel against it, and the
+> integration seams were closed by hand. Commit `87f5459a`, suite 21,747 / 4.
+
+| id | P | defect (measured) | fix · lever |
+|---|---|---|---|
+| IQ-2.1 | **P1** | **A landless France fell OFF THE ROSTER.** `get_active_nations()` read "0 regions" as eliminated for the player too, while `_eliminate_nation` refuses to tear her down — so she was half-eliminated: alive to her marshals and wars, absent from every economy loop. Measured: a 60,000-man France with no province paid **no upkeep, surcharge, Admiralty, Charges or rentes**, her treasury **rose** (800 → 1,282 → 1,544 → 2,123), bankruptcy froze, desertion never fired, recurring settlement gold was cancelled as *"payer_eliminated"*, and the banner printed an upkeep bill never charged (absorbed by a +4,280 "Other"). Retaking ONE province switched ~2,900g/turn back on in a turn. | The player never leaves the roster (the carve-out `_process_dp_regen` already made). `world_state.PLAYER_NEVER_LEAVES_THE_ROSTER`. Two DLF-11 pins flipped/re-sited consciously. |
+| IQ-2.2 | P2 | No surface said the realm had collapsed; the one warning was off in sandbox. | `collapse.get_collapse_state` (sandbox, ≤ `COLLAPSE_PROVINCE_CEILING` = 1 province, lever `THE_COLLAPSE_IS_LEGIBLE`) read by: a standing headline class `empire_reduced` (weight 100, leads a same-turn `capital_lost`, folds the soil alarm at one province and drops its "recruiting sergeants" escalation); a Berthier collapse rung above the whole ladder (catches the PC-7 hand-back); the sandbox arm of `get_defeat_imminent_state` (heading *"THE EMPIRE IN EXTREMIS"*, rail titles *"The Empire Without Soil"* / *"One Province Remains"*); the end-turn banner + `turn_end` event (`collapse_line`, `provinces_held`); the war room's *"Our own state"* line; the strategic ledger's `collapse_note`; the status report's STATE OF THE EMPIRE; Le Moniteur's lead and a realm-reduced special edition (weight 97); the chronicle's own-loss rows (*"— France holds no province"*). |
+| IQ-2.3 | P2 | Talleyrand's *"winds favor us"* is a LEVEL check whose only moving term is `hegemony_target_mod` — it falls away as France collapses, so every court at peace gains +5 together. | Under the collapse the line names the TRUE cause (*"would treat with us now — not because the winds favour us, but because no court fears France any longer"*), shown only when that court's own component is 0. The same trigger offered an ALLY (Bavaria, turn 1) a non-aggression "upgrade" → `dispatch.TALLEYRAND_OFFERS_NO_DOWNGRADE`. |
+| IQ-2.4 | P2 | The levy headline, the ledger's "depots are open" and the region panel advertised recruits at an ENEMY-HELD capital the executor refuses. | `get_levy_status` asks the executor's own gate (`economy_executor.recruit_location_gate`, extracted — one rule) and names `closed_reason`; the manpower tab stops quoting a price at a closed depot. `LEVY_READS_THE_DEPOT_GATE`, `ledger.THE_MANPOWER_TAB_READS_THE_DEPOT`. No AI reads the levy (pinned). |
+| IQ-2.5 | P2 | France's own losses fogged out of her own chronicle — measured 27 → 5 rows in two turns (28 → 3 at 0 provinces), and Le Moniteur reads the same filter. | `campaign_log.PLAYER_LOSSES_ARE_PLAYER_EVENTS` (a `region_captured` whose `captured_from` is the player is the player's event). One pin flipped consciously. |
+| IQ-2.6 | P3 | Commission named the gold before the decisive refusal (no home soil). | `recruitment.COMMISSION_ASKS_FOR_HOME_SOIL_FIRST`. |
+| IQ-2.7 | P3 | War purpose printed `[HELD]` for 1 of 28; the settlement tier was direction-blind (a France losing at −85 read *"Total Victory"* in gold). | `WAR_PURPOSE_COUNTS_WHAT_IS_HELD` (*"[1 of 28 held]"*), `THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS` (*"— theirs to impose"*), `war_status.THE_TIER_NAMES_ITS_SIDE` (`settlement_tier_side`, rendered by both war surfaces). |
+| IQ-2.8 | P3 | A coalition dissolving on low threat read as relief; it ends no war. | `THE_LAPSED_LEAGUE_NAMES_THE_WAR` (dispatch), `coalition.THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN` (notification + `courts_at_war` stamp), the chronicle line reads it. |
+| IQ-2.9 | P3 | The captive Emperor, held at his captor's capital, made Europe *"think he is coming for Austria"*; *"go as far as indifferent"*. | `intent.THE_MIRROR_COUNTS_ONLY_STANDING_CORPS` (the one AI-read change — `sell_neutrality` reads it; BASELINE_SERIES unmoved), `INDIFFERENT_READS_AS_A_SENTENCE`; mirror reads *"A broken power"* under the collapse. |
+| IQ-2.10 | P3 | War room: France's OWN strength went through the fog helper (invented 30,000 men); invest counsel quoted +10 loyalty where the executor applies +4 in a grip spiral; the Tilsit counsel told an army-less France to win one more engagement; `threat_level` left for Godot as a nation key when a design was in check (GR2). | `THE_PLAYER_READS_HIS_OWN_STRENGTH_RAW`, `THE_INVEST_COUNSEL_QUOTES_THE_EXECUTOR` (one reader shared with the Vassals tab), `THE_TILSIT_COUNSEL_NEEDS_AN_ARMY`; the rebinding renamed. Plus the collapse arms (lapsed league, no-war line, rung 4, fallback, overview). |
+| IQ-2.11 | P3 | The status report dropped captured marshals silently; the captured Emperor's card said *"The Empire is his estate."*; the prisoner note printed the raw nation key; the client never rendered it. | `intel_report.THE_REPORT_NAMES_ITS_PRISONERS`, `marshal_overview.THE_CAPTIVE_EMPEROR_IS_NAMED`, `THE_PRISONER_NOTE_NAMES_THE_COURT`, client `PRISONER_NOTE_ON_THE_CARD`. |
+| IQ-2.12 | P3 | Le Moniteur datelined "Paris" and wrote *"the capital watches"* with Paris enemy-held; *"the funds are steady"* in deficit. | `gazette.THE_MONITEUR_SEES_THE_CAPITAL_LOST`, `THE_BOURSE_READS_THE_DEFICIT`. |
+| IQ-2.13 | P3 | France losing her capital rendered in the enemy-phase dialog's victory green. | client `OUR_LOSS_READS_AS_LOSS`; field-battle and charge conquests now stamp `captured_from` (WO-9 had stamped only the other two producers). |
+| IQ-2.14 | P4 | The Talleyrand tab's authority colour arms matched a vocabulary the backend never emits; the situation printed the 999% divide-by-zero sentinel; *"The marshals await only your word"* with none free; a lost homeland invited the player to name a defensive purpose. | client `AUTHORITY_ARMS_READ_THE_BACKEND`; `THE_SITUATION_NAMES_THE_EMPTY_FIELD` (`no_field_army`); `THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS`; `war_status.THE_HINT_KNOWS_THE_HOMELAND_IS_LOST`. |
+
+**Corrected by measurement.** The census's *"Napoleon cannot reach Paris from
+Vienna!"* for an order to the captive Emperor was measured by driving the
+executor directly; on the typed path `main._addressed_lost_marshal_refusal`
+refuses him by name (*"is a prisoner of Austria"*) before any parse — now
+pinned (`test_iq2_collapse_integration.py`).
+
+**Mutation sweep: 13 of 13 killed after one repair.** The first sweep found
+ONE inert pin — the Talleyrand cause line was asserted on its tail alone, so
+deleting the "not" turned the true cause back into the lie (in British
+spelling) and both assertions still passed; the pin now asserts the whole
+clause. The five builders' own lever-down and in-memory sweeps are recorded in
+their test files.
+
+**Pins flipped consciously (4):** `test_dlf11…::test_player_nation_eliminated`,
+`test_manpower_pools…::test_nation_zero_regions_skips_regen` (re-sited to an
+eliminated court; the player's own arm pinned beside it),
+`test_economy_ec6_sandbox…::test_no_defeat_imminent_warning`,
+`test_campaign_log…::test_enemy_region_captured_hidden_stale`.
+
+**Byte-identity — a fact about the harness, not evidence.** `BASELINE_SERIES`
+and M1–M7 are byte-identical because France never reaches 0 provinces on the
+ambient 40-turn board, where the roster change is inert by construction; the
+change is measured directly instead (the treasury/bankruptcy pins in
+`test_iq2_collapse_economy_status.py`). The collapse display is sandbox-only,
+so the legacy 19-region world is byte-identical apart from the deliberately
+general fixes, each of which flips back with its lever.
+
+**Not built, with owners.** A collapse is still not a terminal state and still
+has no win condition to lose — the Victory & Objectives Pass (ROADMAP 12–13)
+owns that, and owns widening `COLLAPSE_PROVINCE_CEILING` if a collapse ever
+MEANS something mechanically.
+
+### Review round (same day) — seven lenses at `87f5459a`, two refuters per finding
+
+Finders read a `git archive` SNAPSHOT of the commit, so a mutation sweep could
+run on the live tree at the same time. **Fifteen findings; the fixes below
+landed in the review-round commit.** Headlines, and where the review was wrong:
+
+| finding | verdict | what changed |
+|---|---|---|
+| Berthier's last-province note promised *"a treasury behind it"* on 4 of 4 bankrupt pages, and the collapse rung — placed above rungs 1–3 — froze the PC-7 hand-back on one sentence (8 of 8 pages) | **survived** (P2) | the note reads the chest (negative or a bankruptcy counter) before promising one; the collapse rung now sits BELOW broken / bankrupt / bleeding |
+| Talleyrand's *"because no court fears France any longer"* named a cause it never measures (Hesse scored 52 WITH the hegemony charge at boot; the alarm read 70 on the same page) | **survived** (P2→P3) | the collapse line says only what the score measures: *"Sire, {court} would treat with us now."* |
+| The Balance tab's *"France no longer threatens anyone"* beside the mirror's *"he will go as far as war (alarm 70)"* | **survived** (P3) | states only the realm, the alarm and its tier, and the courts at war; no *"because"* |
+| The tier side was missing from the proposal-confirm and incoming-offer popups (the surfaces where the peace is signed) | **survived** (P3) | `settlement_tier_side` stamped on `build_war_context_snapshot` (sandbox) and rendered by both popups |
+| A −10 **white peace** read *"theirs to impose"* on the HUD while the dispatch's copy of the rule excluded it | **survived** (P3/P4) | `war_status._tier_side` returns no side for a white peace, and the dispatch now READS it — one rule |
+| The levy's `closed_reason` named non-refusals (*"the infantry pool holds 0"* beside a cavalry levy the executor granted; *"59,000 over the ordinance"* beside a levy it priced and granted) | **survived** (P3/P4) | only executor-enforced gates are named — the depot and a missing recipient |
+| The collapse line restated the Emperor's capture and the capital's fall on the page that carries them as beats | partly refuted (its turn-late half is a probe artefact — `log_event` stamps the pre-increment turn) | the clause yields to a same-page `capital_lost` / `sovereign_captured` beat |
+| The realm-reduced edition was keyed by the province, so a genuine SECOND fall was filtered as a repeat | **survived** (P4) | keyed by province @ turn |
+| An AI reckless cavalry charge conquest logged **no `region_captured` at all** (pre-existing; the commit's own census missed it) | **survived** | the charge now logs its row with `captured_from` + `method: "charge"`; the WO slice-4 producer census flipped 8 → 9 consciously |
+| The Tilsit collapse arm quoted the PAIR score and claimed a level ledger while the war-level score read −60 | refuted as a production path (the pair score is recalculated each turn) | kept anyway: the collapse arm now quotes no score |
+| The manpower tab hid a price while a marshal-addressed levy still worked | **refuted** (the tab has always described the capital levy) | one true sentence added: *"A marshal may still levy where he stands, on our own settled soil."* |
+| *"the Moniteur counsels patience and the army"* | **refuted** (transitive "counsel" is grammatical) | reworded anyway — *"patience and trust in the army"* |
+| The roster change flips the hegemon/paymaster for a landless France; it also bills the legacy defeat turn | **refuted twice each** — it removes a 0↔1 cliff (a one-province France already had the same AI geometry) | recorded as deliberately general on the lever |
+
+**Review-round mutation sweep: 15 of 15 killed, 0 inert** — every fix above
+has a pin that fails when its line is reverted (including re-inserting the
+collapse rung above the money rungs, restoring the unmeasured Talleyrand
+cause, and dropping the turn from the edition key).
+
+**Pins moved consciously (review round):** four Berthier pins re-sited to a
+solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
+pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
+pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 
 ## Verification-Pass Findings (FA-N) — filed September 2, 2026
 

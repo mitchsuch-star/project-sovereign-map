@@ -1333,7 +1333,14 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 
 	var tier_display = str(snapshot.get("settlement_tier_display", ""))
 	if tier_display:
-		bbcode += "Settlement: [color=#e0c070]%s[/color]\n" % tier_display
+		# IQ-2 review round: the tier is direction-blind — a losing France
+		# read the enemy's leverage as a gold prize on the very popup where
+		# she signs. Absent key = the old line.
+		var tier_side = snapshot.get("settlement_tier_side", "")
+		if tier_side is String and tier_side == "theirs":
+			bbcode += "Settlement (theirs to impose): [color=#" + Utils.COLOR_ERROR + "]%s[/color]\n" % tier_display
+		else:
+			bbcode += "Settlement: [color=#e0c070]%s[/color]\n" % tier_display
 	var objective = snapshot.get("war_objective", {})
 	if objective is Dictionary and not objective.is_empty():
 		var objective_type = str(objective.get("type", "")).replace("_", " ").capitalize()

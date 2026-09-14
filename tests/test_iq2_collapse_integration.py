@@ -255,3 +255,137 @@ class TestTheCaptiveEmperorIsRefusedByName:
         msg = str(d.get("message", ""))
         assert "prisoner" in msg.lower() and "Austria" in msg
         assert "cannot reach" not in msg
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Review round (Sept 14, 2026)
+# ─────────────────────────────────────────────────────────────────────────
+
+def _collapsed(keep=("Brittany",)):
+    w = _boot()
+    for name, r in w.regions.items():
+        if r.controller == "France" and name not in keep:
+            r.controller = "Austria"
+    w.invalidate_active_nations_cache()
+    return w
+
+
+class TestReviewRoundTheCollapseLineDoesNotRestateItsBeats:
+    def test_the_capital_clause_yields_to_the_capital_lost_beat(self):
+        import backend.game_logic.dispatch as D
+        w = _collapsed(keep=())
+        w.log_event({"type": "region_captured", "region": "Paris",
+                     "captured_by": "Austria", "captured_from": "France"})
+        h = D._build_headline(w, "France")
+        assert h["class"] == "empire_reduced"
+        assert "Paris is in Austria's hands" not in h["text"]
+        assert any("Paris HAS FALLEN" in b for b in h["sub_beats"])
+
+    def test_without_the_beat_the_capital_clause_stands(self):
+        import backend.game_logic.dispatch as D
+        h = D._build_headline(_collapsed(keep=()), "France")
+        assert h["class"] == "empire_reduced"
+        assert "Paris is in Austria's hands" in h["text"]
+
+    def test_the_sovereign_clause_yields_to_the_emperor_taken_beat(self):
+        import backend.game_logic.dispatch as D
+        w = _collapsed(keep=())
+        with contextlib.redirect_stdout(io.StringIO()):
+            w.capture_marshal(w.marshals["Napoleon"], "Austria")
+        h = D._build_headline(w, "France")
+        assert h["class"] == "sovereign_captured"
+        reduced = [b for b in h["sub_beats"] if "holds no province" in b]
+        assert reduced, h
+        assert "prisoner" not in reduced[0]
+
+
+class TestReviewRoundBerthierPromisesNoTreasuryInDeficit:
+    def _note(self, w):
+        import backend.game_logic.dispatch as D
+        return D._pick_berthier_note(w, "France", [], {}, headline_class="")
+
+    def test_a_bankrupt_last_province_is_not_a_treasury(self):
+        w = _collapsed()
+        w.nation_gold["France"] = -500
+        note = self._note(w)
+        assert "already in deficit" in note
+        assert "still has a treasury behind it" not in note
+
+    def test_a_solvent_last_province_keeps_the_treasury_line(self):
+        w = _collapsed()
+        w.nation_gold["France"] = 5000
+        w.nation_bankruptcy_turns["France"] = 0
+        assert "still has a treasury behind it" in self._note(w)
+
+
+class TestReviewRoundTheAutoChargeConquestIsLogged:
+    def test_a_reckless_charge_that_takes_a_french_province_is_chronicled(self):
+        """The one conquest that logged no `region_captured` row: an AI
+        reckless cavalryman's turn-start charge. The row now carries the
+        holdings stamp every other own-loss row carries."""
+        w = _collapsed(keep=("Normandy", "Brittany"))
+        mack = w.marshals["Mack"]
+        mack.cavalry = True
+        mack.personality = "aggressive"
+        mack.recklessness = 5
+        mack.location = "Paris"
+        mack.strength = 60000
+        for m in w.marshals.values():
+            if m.nation == "France" and m.name != "Ney":
+                m.location = "Brittany"
+        ney = w.marshals["Ney"]
+        ney.location = "Normandy"
+        ney.strength = 40
+        before = len(list(w.event_log))
+        random.seed(7)
+        with contextlib.redirect_stdout(io.StringIO()):
+            w._process_reckless_cavalry_turn_start()
+        assert w.regions["Normandy"].controller == "Austria"
+        rows = [e for e in list(w.event_log)[before:]
+                if e.get("type") == "region_captured" and e.get("region") == "Normandy"]
+        assert len(rows) == 1
+        assert rows[0]["captured_from"] == "France"
+        assert rows[0]["method"] == "charge"
+        assert rows[0]["holdings_left"] == 1
+        assert format_event_oneliner(rows[0]).endswith(
+            "— France holds a single province")
+
+
+class TestReviewRoundASecondFallIsANewEdition:
+    def test_the_realm_reduced_key_carries_the_turn(self):
+        import backend.game_logic.gazette as G
+        w = _collapsed()
+        ev = {"type": "region_captured", "region": "Normandy",
+              "captured_by": "Austria", "captured_from": "France",
+              "holdings_left": 1, "turn": 11}
+
+        def keys(e):
+            return [c[2] for c in G._special_candidates(w, [e])
+                    if c[1] == G.REALM_REDUCED_TO_ONE]
+
+        assert keys(ev) == [f"{G.REALM_REDUCED_TO_ONE}|Normandy@11"]
+        assert keys(dict(ev, turn=12)) == [f"{G.REALM_REDUCED_TO_ONE}|Normandy@12"]
+
+
+class TestReviewRoundTheSnapshotNamesWhoseTerms:
+    def test_a_collapsed_war_snapshot_carries_the_side(self):
+        from backend.game_logic import war_status as WS
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+        w = _collapsed(keep=())
+        snap = build_war_context_snapshot(w, "France", "Austria", "peace")
+        assert snap["settlement_tier_side"] == "theirs"
+        assert snap["settlement_tier_side"] == WS._tier_side(int(snap["war_score"]))
+
+    def test_the_legacy_snapshot_is_byte_identical(self):
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+        legacy = WorldState(player_nation="France")
+        snap = build_war_context_snapshot(legacy, "France", "Austria", "peace")
+        assert "settlement_tier_side" not in snap
+
+    def test_both_proposal_popups_read_the_side(self):
+        for name in ("proposal_confirm_popup.gd", "incoming_proposal_popup.gd"):
+            code = _code_lines(SCRIPTS / name)
+            assert 'snapshot.get("settlement_tier_side", "")' in code, name
+            assert "Settlement (theirs to impose): " in code, name
+            # The old gold line survives as the fallback.
+            assert 'bbcode += "Settlement: [color=#e0c070]%s[/color]\\n" % tier_display' in code, name

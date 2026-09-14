@@ -746,6 +746,13 @@ def _build_manpower(world, player: str) -> dict:
         depot_note = depot_closed_reason(
             world, capital, capital_region,
             recruit_location_gate(capital_region, player))
+        # IQ-2 review round: the capital's depot is the DEFAULT recruit path
+        # only. A marshal-addressed recruit levies where he stands, through
+        # the same location gate (our own soil, stability above 50) — so
+        # while France holds any province the note says which path is shut.
+        if depot_note and world.get_nation_regions(player):
+            depot_note += (" A marshal may still levy where he stands, on "
+                           "our own settled soil.")
 
     result = {}
     for pool_type, config in pool_configs.items():

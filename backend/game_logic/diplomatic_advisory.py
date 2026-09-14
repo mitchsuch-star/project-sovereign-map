@@ -1316,24 +1316,32 @@ def _recommend_action(target_nation: str, world) -> Dict:
             # seek terms now, not a promise that a battle would improve them.
             no_army = _no_field_army(world, player_nation, force=True)
             if collapse is not None:
+                # IQ-2 review round: this arm quoted the PAIR score — 0 for a
+                # court that took nothing — and told a collapsed France "the
+                # ledger stands level" while the war-level score the HUD and
+                # the war room read was −60. The collapse is the fact; no
+                # score is quoted here and no level ledger is claimed.
                 from backend.game_logic.collapse import summary_line
-                opening = (f"Sire, on the ledger the war with {target_nation} "
-                           f"hangs in the balance — war score "
-                           f"{int(player_war_score)} — but the ledger is not "
-                           f"the field. {summary_line(world, collapse)}\n\n")
+                opening = f"Sire, {summary_line(world, collapse)}\n\n"
+                closing = ("A battle we cannot fight will not improve the "
+                           "terms; seek them now."
+                           if no_army else
+                           "One engagement will not restore that. Seek terms "
+                           "now, and keep the corps we have in being.")
+                recommendation = "Seek terms now."
             else:
                 opening = (f"Sire, the war with {target_nation} hangs in the "
                            f"balance — war score {int(player_war_score)} — "
                            f"but we have no army in the field to win the "
                            f"engagement the Tilsit model needs.\n\n")
-            closing = ("Seek terms while the score still stands level; a "
-                       "battle we cannot fight will not improve them."
-                       if no_army else
-                       "One engagement will not restore that. Seek terms "
-                       "while the score still stands level, and keep the "
-                       "corps we have in being.")
+                closing = ("Seek terms while the score still stands level; a "
+                           "battle we cannot fight will not improve them."
+                           if no_army else
+                           "One engagement will not restore that. Seek terms "
+                           "while the score still stands level, and keep the "
+                           "corps we have in being.")
+                recommendation = "Seek terms while the score stands level."
             text = opening + closing
-            recommendation = "Seek terms while the score stands level."
             hints = [
                 f"Propose peace with {target_nation}",
                 f"Propose armistice with {target_nation}",

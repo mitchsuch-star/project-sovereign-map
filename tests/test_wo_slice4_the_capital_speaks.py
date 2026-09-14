@@ -439,7 +439,13 @@ class TestTheWoundStillFiresWhenItIsReal:
         # attack (combat_executor) and by completed occupation
         # (world_state), both stamping `captured_from` and `method:
         # "liberated"` — the mirror of the wound this file's slice built.
-        assert len(producers) == 8, [p for p, _ in producers]
+        # Pin flipped consciously 8 -> 9 (IQ-2 review round, Sept 14 2026):
+        # the AI reckless cavalry's turn-start charge (world_state) was the
+        # one conquest that logged NO region_captured row at all — a French
+        # province taken that way left no chronicle line, no holdings stamp
+        # and no realm-reduced edition. It now logs one, stamping
+        # `captured_from` like every producer here.
+        assert len(producers) == 9, [p for p, _ in producers]
 
 
 # ════════════════════════════════════════════════════════════════════════

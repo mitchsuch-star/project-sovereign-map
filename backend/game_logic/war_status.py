@@ -29,7 +29,15 @@ THE_HINT_KNOWS_THE_HOMELAND_IS_LOST = True
 
 def _tier_side(score: int) -> str:
     """Whose table the settlement tier is: the enemy's below 0, ours above,
-    nobody's at a level score (`get_settlement_tier` is direction-blind)."""
+    nobody's at a level score (`get_settlement_tier` is direction-blind).
+
+    IQ-2 review round: nobody's at a WHITE PEACE either — the HUD and the
+    war-detail popup called a −10 white peace "theirs to impose" while the
+    dispatch's copy of this rule excluded it. One rule now: the dispatch
+    reads this function."""
+    from backend.game_logic.diplomacy import get_settlement_tier
+    if get_settlement_tier(score) == "white_peace":
+        return ""
     if score < 0:
         return "theirs"
     if score > 0:

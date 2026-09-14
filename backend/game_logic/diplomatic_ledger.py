@@ -1176,12 +1176,19 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
                       f"us: {courts_display(world, courts)}")
         else:
             at_war = "no court remains at war with us"
+        # IQ-2 review round: state only what is MEASURED — the realm, the
+        # alarm and its tier, the courts still at war. "France no longer
+        # threatens anyone" was asserted beside the mirror's own "the courts
+        # believe he will go as far as war (alarm 70)" in the same payload;
+        # and the alarm also falls by plain decay, so no "because" is claimed.
+        from backend.game_logic.collapse import realm_sentence
+        held = realm_sentence(world, _collapse).rstrip(".")
         if threat_tier == "LOW":
-            collapse_line = (f"Europe's alarm has fallen because {realm} no "
-                             f"longer threatens anyone — {at_war}.")
+            collapse_line = (f"{held}, and Europe's alarm has fallen to "
+                             f"{threat_level} — {at_war}.")
         else:
-            collapse_line = (f"{realm} no longer threatens anyone, but "
-                             f"Europe's alarm has not fallen with her — "
+            collapse_line = (f"{held}, yet Europe's alarm stands at "
+                             f"{threat_level} ({threat_tier.title()}) — "
                              f"{at_war}.")
         threat_projection["collapse_line"] = collapse_line
         if headline_case == "COOLDOWN" and courts:

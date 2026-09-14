@@ -188,8 +188,14 @@ class TestCounselUnderTheCollapse:
         assert int(A.get_war_score_for(collapsed, "France", "Austria")) == 0
         out = A._recommend_action("Austria", collapsed)
         assert "Tilsit" not in out["talleyrand_text"]
-        assert "the ledger is not the field" in out["talleyrand_text"]
-        assert out["context"]["recommendation"] == "Seek terms while the score stands level."
+        # IQ-2 review round — CONSCIOUSLY RE-PINNED: the arm quoted the PAIR
+        # score and claimed a level ledger while the war-level score the HUD
+        # reads was −60. It now states the collapse and quotes no score.
+        assert out["talleyrand_text"].startswith(
+            "Sire, " + C.summary_line(collapsed, C.get_collapse_state(collapsed)))
+        assert "stands level" not in out["talleyrand_text"]
+        assert "ledger" not in out["talleyrand_text"]
+        assert out["context"]["recommendation"] == "Seek terms now."
         monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
         assert "Tilsit model" in A._recommend_action("Austria", collapsed)["talleyrand_text"]
 
@@ -306,9 +312,11 @@ class TestLedgerUnderTheCollapse:
         collapsed.coalition_cooldown = 3
         collapsed.threat_level = 10
         boe = L._build_balance_of_europe(collapsed)
-        want = ("Europe's alarm has fallen because France no longer threatens "
-                "anyone — 3 courts remain at war with us: Austria, Britain and "
-                "Russia.")
+        # IQ-2 review round — CONSCIOUSLY RE-PINNED: only what is measured
+        # (the realm, the alarm, the courts at war); no "because".
+        held = C.realm_sentence(collapsed, C.get_collapse_state(collapsed)).rstrip(".")
+        want = (f"{held}, and Europe's alarm has fallen to 10 — 3 courts "
+                f"remain at war with us: Austria, Britain and Russia.")
         assert boe["collapse_line"] == want
         assert boe["threat_projection"]["collapse_line"] == want
         assert boe["headline_case"] == "COOLDOWN"
@@ -320,8 +328,10 @@ class TestLedgerUnderTheCollapse:
 
     def test_a_high_alarm_is_not_said_to_have_fallen(self, collapsed):
         line = L._build_balance_of_europe(collapsed)["collapse_line"]
-        assert line.startswith("France no longer threatens anyone, but Europe's "
-                               "alarm has not fallen with her")
+        # IQ-2 review round: "France no longer threatens anyone" stood beside
+        # the mirror's own "he will go as far as war (alarm 70)".
+        assert f"yet Europe's alarm stands at {int(collapsed.threat_level)} (" in line
+        assert "no longer threatens" not in line
 
     def test_a_standing_realm_payload_carries_no_collapse_keys(self):
         boe = L._build_balance_of_europe(_boot())
@@ -481,9 +491,16 @@ class TestDissolutionCopy:
 
 class TestWarRows:
     def test_tier_side_unit(self):
-        assert WS._tier_side(-1) == "theirs"
-        assert WS._tier_side(1) == "ours"
+        """IQ-2 review round — CONSCIOUSLY RE-PINNED: a white peace is imposed
+        by nobody (the dispatch's copy of the rule already excluded it; the
+        dispatch now reads this function)."""
+        from backend.game_logic.diplomacy import get_settlement_tier
+        assert WS._tier_side(-60) == "theirs"
+        assert WS._tier_side(60) == "ours"
         assert WS._tier_side(0) == ""
+        for score in (-10, -1, 1, 10):
+            if get_settlement_tier(score) == "white_peace":
+                assert WS._tier_side(score) == "", score
 
     def test_every_player_row_names_whose_table_it_is(self, collapsed, monkeypatch):
         key = collapsed._make_diplo_key("France", "Denmark")

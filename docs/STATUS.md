@@ -4,6 +4,60 @@
 
 ## ▶ NEXT UP
 
+> ## ▶ IQ-2 "THE COLLAPSE IS LEGIBLE" — LANDED September 14, 2026
+>
+> The user's row — *an annihilated France told the winds favour it, holding
+> zero provinces from turn 37 and playing four more turns* — with its scope
+> note binding: **legible, never terminal** (win and defeat stay with the
+> Victory & Objectives Pass). ⚠ The IQ list itself is NOT in the repo; this
+> row's contract is the user's description, and the landing record says so.
+> Landing record = `BUG_FIXES.md` §Collapse Legibility (IQ-2), authoritative;
+> rules = `SYSTEMS_REFERENCE.md` §41.
+>
+> **A mechanical P1 sat under the copy.** At 0 provinces France fell OFF
+> `get_active_nations()` while `_eliminate_nation` refused to tear her down,
+> so a landless France fielded a FREE army — no upkeep, no bankruptcy, no
+> desertion, recurring settlement gold cancelled as "payer_eliminated", and a
+> banner printing a bill never charged (treasury measured RISING 800 → 2,123).
+> `PLAYER_NEVER_LEAVES_THE_ROSTER` closes it.
+>
+> **One read-only source, every surface.** `backend/game_logic/collapse.py`
+> (sandbox, ≤ 1 province) feeds a standing headline class `empire_reduced`,
+> a Berthier collapse rung (no more *"The initiative is ours"*), Talleyrand
+> naming the TRUE cause of his "opening", the sandbox arm of the defeat
+> warning (*"THE EMPIRE IN EXTREMIS"* + rail notice), the end-turn banner,
+> the war room, both ledgers, the status report, Le Moniteur and the
+> chronicle — none of it promises an ending. Plus ~20 general legibility
+> defects the census found, each behind its own lever (the levy advertising
+> an enemy-held capital, own losses fogging out of the player's own
+> chronicle 27 → 5 rows, `[HELD]` for 1 of 28, direction-blind settlement
+> tiers, the captive Emperor "coming for" his captor, +10 loyalty quoted
+> where +4 applies, GR2 `threat_level`, R7 prisoner note, and more).
+>
+> Commit `87f5459a` — suite 21,747 / 4, ruff clean, Godot parse harness
+> EXIT=0, boot smoke 0 SCRIPT ERROR; six new test files; 4 pins flipped
+> consciously; `BASELINE_SERIES` + M1–M7 byte-identical (France never reaches
+> 0 provinces on the ambient board — a fact about the harness; the roster
+> change is measured directly). Mutation sweep 13/13 after one inert pin was
+> repaired.
+>
+> **Review round, same day** (seven lenses at `87f5459a`, two refuters per
+> finding, reading a `git archive` snapshot so a sweep could run beside it):
+> fifteen findings, the survivors fixed — Berthier promised "a treasury
+> behind it" to a bankrupt France and froze the hand-back (the collapse rung
+> now sits below the money rungs); Talleyrand and the Balance tab named
+> causes they never measure (now only measured facts); the tier side was
+> missing where the peace is SIGNED (both proposal popups) and called a white
+> peace "theirs"; the levy named non-refusals; a second fall of the same
+> province was swallowed by the edition key; and an AI reckless-charge
+> conquest logged no `region_captured` row at all (pre-existing). The roster
+> change's hegemon/paymaster and legacy edges were refuted twice each and are
+> recorded on the lever as deliberate. Record = `BUG_FIXES.md` §Collapse
+> Legibility (IQ-2) → Review round.
+>
+> **▶ NEXT = ROADMAP position 10, the shippable build** — and whatever IQ
+> rows the user holds beyond IQ-2 (not recorded here).
+
 > ## ▶ FA SLICE 17 — "FINISH THE AUDIT" — IN PROGRESS, September 11, 2026
 >
 > The user's brief: land ALL 38 open defect rows (parts 0, d, e, f, g, h), run

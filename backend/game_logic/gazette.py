@@ -273,7 +273,7 @@ def _special_candidates(world, turn_events: List[Dict]):
                     _left = None
                 if (_left is not None and _left <= _ceiling
                         and (reduced is None or _left < reduced[0])):
-                    reduced = (_left, region)
+                    reduced = (_left, region, event.get("turn"))
             # Aug 30, 2026 review: "the capital of whoever held it" misses the
             # case slice 4's own review widened the DISPATCH for — an ALLY
             # holding a liberated Paris loses it, so `prev` is Bavaria and
@@ -324,10 +324,16 @@ def _special_candidates(world, turn_events: List[Dict]):
                 _add("a marshal of France lost",
                      str(event.get("marshal") or ""))
     if reduced is not None:
-        # Keyed by the province whose loss did it, so WO-44's identity dedupe
-        # never prints the same fall twice off a tail-stamped row.
+        # Keyed by the EVENT — the province and the turn its loss was
+        # stamped — so WO-44's identity dedupe never prints the same fall
+        # twice off a tail-stamped row, and (IQ-2 review round) a genuine
+        # SECOND fall of the same province is a new edition: keyed on the
+        # province alone, a re-taken-then-re-lost Normandy was filtered as a
+        # repeat and the paper's last word on it was "liberated".
         _add(REALM_WITHOUT_A_PROVINCE if reduced[0] == 0
-             else REALM_REDUCED_TO_ONE, reduced[1])
+             else REALM_REDUCED_TO_ONE,
+             f"{reduced[1]}@{reduced[2]}" if reduced[2] is not None
+             else reduced[1])
     return found
 
 
@@ -372,7 +378,9 @@ def _collapse_lead(world, state: Dict, triumph: Optional[Dict]) -> str:
         where = _capital_in_hands_phrase(
             world, capital, state.get("capital_holder") or "")
     # "and the army" only while a corps still stands under arms.
-    counsel = ("the Moniteur counsels patience and the army"
+    # IQ-2 review round: "counsels patience and the army" made the army a
+    # piece of advice.
+    counsel = ("the Moniteur counsels patience and trust in the army"
                if state.get("standing") else "the Moniteur counsels patience")
     if state["tier"] == _collapse.TIER_FALLEN:
         lead = f"{realm} holds no province of her own; {counsel}."

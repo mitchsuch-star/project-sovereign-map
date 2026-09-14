@@ -223,20 +223,47 @@ KEEP_PARIS = ("Paris is all France holds, Sire. Keep it, and the army in "
               "the field still has a treasury behind it.")
 
 
+def _solvent_note(world, headline_class=""):
+    """The ladder with the money rungs quiet (IQ-2 review round: the collapse
+    rung now sits BELOW broken / bankrupt / bleeding, so a pin on the
+    collapse rung itself needs a chest that is not bleeding)."""
+    return D._pick_berthier_note(
+        world, "France", D._build_marshal_status(world, "France"),
+        {"treasury_delta": 0, "bankrupt": False}, headline_class=headline_class)
+
+
 class TestBerthierCloses:
     def test_the_collapse_rung_catches_the_hand_back(self, world):
         _reduce(world)
-        assert _note(world) == KEEP_PARIS
+        assert _solvent_note(world) == KEEP_PARIS
         with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            assert _note(world) != KEEP_PARIS
+            assert _solvent_note(world) != KEEP_PARIS
+
+    def test_the_money_rungs_speak_before_the_collapse_rung(self, world):
+        """IQ-2 review round: the hand-back exists to say something the
+        headline did not — measured, it repeated the collapse note on 8 of 8
+        pages while France was bankrupt. The true money rungs speak first."""
+        _reduce(world)
+        assert _note(world).startswith("Our finances strain, Sire.")
+        bankrupt = D._pick_berthier_note(
+            world, "France", D._build_marshal_status(world, "France"),
+            {"treasury_delta": -500, "bankrupt": True}, headline_class="")
+        assert bankrupt == "Our finances are dire, Sire. The treasury is exhausted."
 
     def test_the_hand_back_through_the_built_dispatch(self, world):
+        """IQ-2 review round — CONSCIOUSLY RE-PINNED: the collapsed France is
+        bleeding, so the handed-back note is the bleeding rung (true, and
+        news), never the frozen collapse note or "the initiative is ours"."""
         _reduce(world)
         world.headline_lead_memory = {
             "class": "empire_reduced", "identity": "empire_reduced",
             "streak": 6, "runs": {"empire_reduced": 6}}
         d = D.build_morning_dispatch(world)
-        assert d["berthier_note"] == KEEP_PARIS
+        delta = int(d["situation"]["treasury_delta"])
+        assert delta < 0
+        assert d["berthier_note"] == (
+            f"Our finances strain, Sire. The treasury bleeds {abs(delta)}g this turn.")
+        assert "initiative is ours" not in d["berthier_note"]
 
     def test_the_headline_class_gets_the_forces_aware_note(self, world):
         _reduce(world)
@@ -245,7 +272,7 @@ class TestBerthierCloses:
 
     def test_fallen_with_a_corps_standing(self, world):
         _reduce(world, keep=())
-        assert _note(world) == (
+        assert _solvent_note(world) == (
             "France holds no province, Sire. The army in the field is the "
             "Empire now — every province it retakes pays again.")
 
@@ -262,7 +289,7 @@ class TestBerthierCloses:
         _reduce(world)
         _put_mack_on(world, "Paris")
         assert "Paris" in world.get_disrupted_regions()
-        note = _note(world)
+        note = _solvent_note(world)
         assert "while an enemy army stands on it, it pays us nothing" in note
         assert note != KEEP_PARIS
 
@@ -304,14 +331,21 @@ def _quiet_all_but(world, keep=()):
 
 class TestTalleyrand:
     def test_the_collapse_names_the_true_cause(self, world):
+        """IQ-2 review round — CONSCIOUSLY RE-PINNED: the first cut named a
+        CAUSE ("because no court fears France any longer") the code never
+        measures — Hesse scored 52 WITH the hegemony charge at boot, and the
+        same page read the alarm at 70. The line now states only what the
+        score measures, whole-sentence pinned (a tail-only pin was proven
+        inert by the sweep)."""
         _reduce(world)
         world.proactive_suggestion_cooldowns = {}
         report = D._build_talleyrand_report(world, "France")
         acc = [o for o in report if o["trigger_type"] == "acceptance_crossed"]
         assert acc, report
         for o in acc:
-            assert "no court fears France any longer" in o["message"]
-            assert "winds favor us" not in o["message"]
+            court = D.formed_display_name(world, o["target_nation"])
+            assert o["message"] == f"Sire, {court} would treat with us now."
+            assert "winds" not in o["message"] and "fears" not in o["message"]
         world.proactive_suggestion_cooldowns = {}
         with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
             report = D._build_talleyrand_report(world, "France")
