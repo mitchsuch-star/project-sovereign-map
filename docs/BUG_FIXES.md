@@ -211,6 +211,14 @@ landed in the review-round commit.** Headlines, and where the review was wrong:
 | The manpower tab hid a price while a marshal-addressed levy still worked | **refuted** (the tab has always described the capital levy) | one true sentence added: *"A marshal may still levy where he stands, on our own settled soil."* |
 | *"the Moniteur counsels patience and the army"* | **refuted** (transitive "counsel" is grammatical) | reworded anyway — *"patience and trust in the army"* |
 | The roster change flips the hegemon/paymaster for a landless France; it also bills the legacy defeat turn | **refuted twice each** — it removes a 0↔1 cliff (a one-province France already had the same AI geometry) | recorded as deliberately general on the lever |
+| The commit made BOTH pre-existing enemy-capture fog pins inert: their fixtures took the province FROM France, which the widened own-loss rule admits before the fog arm runs — dropping PARTIAL or admitting STALE (an R5 leak) stayed green | **survived** (P3, test-only) | the two pins re-sited to a THIRD court's capture (PARTIAL shows, STALE hides) and the own-loss case pinned on its own |
+| The client census pins stayed green when the battle render line went back to victory green, the march loss colour was swapped out, or the no-army branch was guarded `if false and …` | **survived** (P3, test-only) | the pins now bind the lines that do the work (the render expression, the guarded `line_color = COLOR_ERROR`, the whole guard line anchored in both renderers) |
+| `THE_MIRROR_COUNTS_ONLY_STANDING_CORPS`'s zero-strength arm is unpinned | refuted — an equivalent mutant (both administrative-role seams null the location, so no uncaptured strength-0 marshal reaches the clause) | none |
+
+**Lens-7 sweep: 7 of 7 killed** after one honest correction. The first
+"admits STALE" mutation referenced a name `campaign_log.py` does not import, so
+its kill was a NameError detonating inside the test, not the pin catching a
+leak; re-run with the literal `"stale"`, it is killed by the assertion.
 
 **Review-round mutation sweep: 15 of 15 killed, 0 inert** — every fix above
 has a pin that fails when its line is reverted (including re-inserting the

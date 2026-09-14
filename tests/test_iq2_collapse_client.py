@@ -71,7 +71,11 @@ class TestMainGd:
     def test_dispatch_names_no_field_army_and_keeps_the_ratio_otherwise(self):
         body = _func_body(_code_only("main.gd"), "func _display_morning_dispatch(")
         assert 'situation.get("no_field_army", false)' in body
-        assert "typeof(no_field_army) == TYPE_BOOL and no_field_army" in body
+        # IQ-2 review round: anchored on the WHOLE guard line — a substring
+        # pin stayed green under `if false and typeof(no_field_army) ...`,
+        # which kills the branch.
+        assert re.search(r"(?m)^\s*if typeof\(no_field_army\) == TYPE_BOOL and no_field_army:\s*$",
+                         body), body
         assert "France has no army in the field." in body
         assert "Estimated enemy strength: " in body, "the pre-IQ-2 sentence stays the else-arm"
 
@@ -91,6 +95,8 @@ class TestDispatchView:
     def test_no_field_army_mirror(self):
         src = _code_only("dispatch_view.gd")
         assert 'situation.get("no_field_army", false)' in src
+        assert re.search(r"(?m)^\s*if typeof\(no_field_army\) == TYPE_BOOL and no_field_army:\s*$",
+                         src), "the guard line, whole (IQ-2 review round)"
         assert "France has no army in the field." in src
         assert "Estimated enemy strength: " in src
 
@@ -185,14 +191,25 @@ class TestEnemyPhaseCaptures:
 
     def test_march_capture_of_our_province_reads_as_a_loss(self):
         body = _func_body(_code_only("enemy_phase_dialog.gd"), "func _format_action(")
-        assert "taken_from == _PLAYER_NATION" in body
+        # IQ-2 review round: the line that DOES the work, not a neighbour —
+        # swapping it for `Utils.COLOR_TEXT` left the old pins green.
+        assert re.search(
+            r"if OUR_LOSS_READS_AS_LOSS and taken_from == _PLAYER_NATION:\n\s*line_color = COLOR_ERROR\b",
+            body), body
         assert '"[color=#" + line_color + "]- " + action_str' in body
         assert "var line_color = Utils.COLOR_TEXT" in body, "neutral stays the default"
 
     def test_battle_capture_arm_reads_the_same_helper(self):
         body = _func_body(_code_only("enemy_phase_dialog.gd"), "func _format_battle(")
-        assert "_taken_from_player(event)" in body
-        assert "Utils.COLOR_CONQUEST" in body, "an enemy's own gain keeps its colour"
+        assert re.search(
+            r"battle_capture_color = COLOR_ERROR if _taken_from_player\(event\) else Utils\.COLOR_CONQUEST",
+            body), body
+        # IQ-2 review round: the RENDER line must use it — reverting only the
+        # render to the old always-green colour left the helper pin green.
+        # (Since the review round the backend stamps `captured_from` on the
+        # field-battle event, so this arm now fires for real.)
+        assert '"[color=#" + battle_capture_color + "]    " + region + " CAPTURED!"' in body
+        assert 'Utils.COLOR_CONQUEST + "]    " + region + " CAPTURED!"' not in body
 
     def test_the_transport_keeps_captured_from_through_the_fog_filter(self):
         """Behavioural: the stamp the dialog reads must reach it. A conquest

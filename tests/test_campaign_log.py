@@ -261,11 +261,16 @@ class TestFogFiltering:
         assert len(result) == 0
 
     def test_enemy_region_captured_shown_partial(self):
-        """Enemy region captures should be shown in PARTIAL+ regions."""
+        """Enemy region captures should be shown in PARTIAL+ regions.
+
+        IQ-2 review round — RE-SITED: the fixture took the province FROM
+        France, which `PLAYER_LOSSES_ARE_PLAYER_EVENTS` now admits before the
+        fog arm ever runs, so this pin stopped testing the arm. A THIRD
+        court's capture exercises it again."""
         world = _make_world_with_visibility({"Waterloo": PARTIAL})
         events = [
             {"type": "region_captured", "turn": 1, "region": "Waterloo",
-             "captured_by": "Britain", "captured_from": "France"},
+             "captured_by": "Britain", "captured_from": "Prussia"},
         ]
         result = filter_campaign_log(events, world)
         assert len(result) == 1
@@ -273,13 +278,24 @@ class TestFogFiltering:
     def test_enemy_region_captured_hidden_stale(self):
         """Enemy region captures should be hidden in STALE regions.
 
-        IQ-2 (Sept 14, 2026) — CONSCIOUSLY FLIPPED: this event is a province
-        taken FROM the player (`captured_from: France`), and hiding it once
-        the lost province's intel went stale was the D1 defect — measured, 27
-        of 27 own-loss rows fell to 5 within two end turns. A loss of our own
-        soil is our own event now (`PLAYER_LOSSES_ARE_PLAYER_EVENTS`). A third
-        party's capture is still fog-gated — pinned in
-        test_iq2_collapse_chronicle::TestD1OwnLossesStayInTheChronicle."""
+        IQ-2 (Sept 14, 2026) — flipped 0 -> 1 when this fixture's
+        `captured_from: France` became the player's own event; the review
+        round then found the flip had left the STALE half of the fog arm
+        unpinned (admitting STALE — an R5 leak — stayed green). RE-SITED to a
+        third court's capture, which the fog arm must still hide; the
+        own-loss behaviour is pinned separately below."""
+        world = _make_world_with_visibility({"Waterloo": STALE})
+        events = [
+            {"type": "region_captured", "turn": 1, "region": "Waterloo",
+             "captured_by": "Britain", "captured_from": "Prussia"},
+        ]
+        result = filter_campaign_log(events, world)
+        assert len(result) == 0
+
+    def test_our_own_loss_survives_stale_intel(self):
+        """IQ-2 D1: a province taken FROM the player stays in her chronicle
+        whatever the fog (measured before the fix: 27 own-loss rows fell to
+        5 within two end turns)."""
         world = _make_world_with_visibility({"Waterloo": STALE})
         events = [
             {"type": "region_captured", "turn": 1, "region": "Waterloo",
