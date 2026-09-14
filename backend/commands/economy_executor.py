@@ -57,6 +57,16 @@ def region_has_friendly_supply(region) -> bool:
 # gate and the pre-IQ-2 dict (no `capital_held` / `closed_reason` keys).
 LEVY_READS_THE_DEPOT_GATE = True
 
+# IQ-2 review round (economy lens — pre-existing, found beside the fix): the
+# status prices an INFANTRY levy ("10,000 foot for 450g") but `_execute_recruit`
+# levies the RECIPIENT's own arm — whichever strong corps stands nearest the
+# depot. With Murat nearest Paris and the cavalry pool empty the status read
+# OPEN while the executor refused ("our cavalry reserves are insufficient");
+# with the pool full it would have raised 5,000 horse at the cavalry price.
+# The status is open only when the levy it describes is the one the executor
+# would make. Flip lever: False = the arm-blind gate.
+LEVY_NAMES_ITS_RECIPIENT_ARM = True
+
 RECRUIT_GATE_NOT_CONTROLLED = "not_controlled"
 RECRUIT_GATE_UNREST = "unrest"
 
@@ -2550,4 +2560,21 @@ def get_levy_status(world, nation: str = None) -> dict:
             reason = (f"No corps stands within reach of the depot at "
                       f"{capital} to receive the recruits.")
         status["closed_reason"] = reason
+    # LEVY_NAMES_ITS_RECIPIENT_ARM: the recipient decides the arm the executor
+    # levies (`_execute_recruit`'s own artillery → cavalry → infantry order),
+    # and this status describes foot. A cavalry or artillery recipient is not
+    # the levy on offer, so the status does not call it open.
+    if LEVY_NAMES_ITS_RECIPIENT_ARM and limit and recipient:
+        _rm = recipient[0]
+        _arm_word = (("artillery", "guns") if getattr(_rm, "artillery", False)
+                     else ("cavalry", "horse") if getattr(_rm, "cavalry", False)
+                     else None)
+        if _arm_word is not None:
+            status["open"] = False
+            if "closed_reason" in status and not status["closed_reason"]:
+                from backend.display_names import humanize_entity_name
+                status["closed_reason"] = (
+                    f"The corps nearest the depot at {capital} is "
+                    f"{humanize_entity_name(_rm.name)}'s {_arm_word[0]} — a levy "
+                    f"there raises {_arm_word[1]}, not foot.")
     return status

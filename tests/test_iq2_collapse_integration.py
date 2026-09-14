@@ -465,3 +465,68 @@ class TestTheIQ2CompletionDefinition:
         body = ledger.get("ledger") or ledger
         assert body.get("territories") in ([], None) or not body.get("territories")
         assert "holds no province of her own" in (body.get("collapse_note") or "")
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Review round (economy lens, pre-existing): the levy names its recipient's arm
+# ─────────────────────────────────────────────────────────────────────────
+
+def _levy_board(recipient_name):
+    """A sandbox 1805 board with room under the ordinance and ONE strong
+    corps in reach of Paris — `recipient_name` — every other French corps
+    small and far away."""
+    w = _boot()
+    far = max((n for n, r in w.regions.items() if r.controller == "France"),
+              key=lambda n: (w.get_distance("Paris", n), n))
+    for m in w.marshals.values():
+        if m.nation != "France":
+            continue
+        if m.name == recipient_name:
+            m.location = "Paris"
+            m.strength = 20000
+        else:
+            m.location = far
+            m.strength = 2000
+    w.regions["Paris"].stability = 90
+    return w
+
+
+class TestTheLevyNamesItsRecipientArm:
+    def test_a_cavalry_recipient_is_not_the_foot_levy_on_offer(self):
+        from backend.commands.economy_executor import get_levy_status
+        w = _levy_board("Murat")
+        assert w.marshals["Murat"].cavalry
+        w.manpower_pools["France"]["cavalry"] = 0
+        status = get_levy_status(w)
+        assert status["headroom"] >= 10000 and status["infantry_pool"] >= 10000
+        assert status["open"] is False
+        assert status["closed_reason"] == (
+            "The corps nearest the depot at Paris is Murat's cavalry — a levy "
+            "there raises horse, not foot.")
+
+    def test_the_executor_agrees_it_is_not_a_foot_levy(self):
+        """Shown = applied: the default recruit path levies the RECIPIENT's
+        arm, and with the cavalry pool empty it refuses."""
+        from backend.commands.executor import CommandExecutor
+        w = _levy_board("Murat")
+        w.manpower_pools["France"]["cavalry"] = 0
+        w.nation_gold["France"] = 50000
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = CommandExecutor().execute(
+                {"success": True, "command": {"action": "recruit"}}, {"world": w})
+        assert result.get("success") is False, result.get("message")
+        assert "cavalry" in str(result.get("message", "")).lower()
+
+    def test_lever_down_restores_the_arm_blind_gate(self, monkeypatch):
+        import backend.commands.economy_executor as EE
+        monkeypatch.setattr(EE, "LEVY_NAMES_ITS_RECIPIENT_ARM", False)
+        w = _levy_board("Murat")
+        w.manpower_pools["France"]["cavalry"] = 0
+        assert EE.get_levy_status(w)["open"] is True
+
+    def test_an_infantry_recipient_keeps_the_open_levy(self):
+        from backend.commands.economy_executor import get_levy_status
+        w = _levy_board("Soult")
+        assert not w.marshals["Soult"].cavalry
+        status = get_levy_status(w)
+        assert status["open"] is True and status["closed_reason"] == ""
