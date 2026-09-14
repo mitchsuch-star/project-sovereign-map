@@ -389,7 +389,13 @@ func _render_war_detail(w: Dictionary):
 
 	var tier_display = str(w.get("settlement_tier_display", ""))
 	if tier_display:
-		bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
+		# IQ-2 (Sept 14, 2026): the tier rendered in gold — a prize — on a war
+		# France was losing to one province. When the backend says the table
+		# is the enemy's, it says whose, in this popup's loss colour.
+		if str(w.get("settlement_tier_side", "")) == "theirs":
+			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]\n"
+		else:
+			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
 
 	# PF-2 (D4/UX-1): make the Back Out "Settlement draft kept" promise
 	# visible where the player reopens — the badge appears iff a same-turn

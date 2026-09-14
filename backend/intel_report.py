@@ -17,6 +17,15 @@ from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
 )
 
+# IQ-2 (Sept 14, 2026): YOUR FORCES filters on strength > 0, and a captured
+# marshal is held at strength 0 in the captor's capital — so a captured
+# Emperor simply vanished from Berthier's report, with no word that he was
+# taken or by whom. A PRISONERS section now names each captured marshal of
+# ours and his captor (a prisoner is not a force, so he leaves YOUR FORCES).
+# Our own men are ours to name — fog governs the enemy (R5). Flip lever:
+# False restores the silent report byte-for-byte.
+THE_REPORT_NAMES_ITS_PRISONERS = True
+
 
 def generate_intel_report(world) -> Dict[str, Any]:
     """
@@ -39,7 +48,19 @@ def generate_intel_report(world) -> Dict[str, Any]:
 
     # ── YOUR FORCES (always full detail) ──
     your_forces = []
+    prisoners = []
     for name, marshal in world.marshals.items():
+        if (THE_REPORT_NAMES_ITS_PRISONERS and marshal.nation == player_nation
+                and getattr(marshal, "captured_by", "")):
+            from backend.game_logic.formations import formed_display_name
+            prisoners.append({
+                "name": marshal.name,
+                "captor": marshal.captured_by,
+                "captor_display": formed_display_name(world, marshal.captured_by),
+                "location": marshal.location or "",
+                "captured_turn": int(getattr(marshal, "captured_turn", 0) or 0),
+            })
+            continue
         if marshal.nation == player_nation and marshal.strength > 0:
             stance_val = marshal.stance.value if hasattr(marshal.stance, 'value') else str(marshal.stance)
             your_forces.append({
@@ -126,6 +147,17 @@ def generate_intel_report(world) -> Dict[str, Any]:
     # ── Build formatted text for terminal display ──
     lines = ["=== BERTHIER'S INTELLIGENCE REPORT ===", ""]
 
+    # IQ-2: a collapsed realm is the first thing the report states — the
+    # one source's summary, and the scope note beside it (legible, never
+    # terminal). None off-sandbox and while the realm stands.
+    from backend.game_logic import collapse as _collapse
+    collapse_state = _collapse.get_collapse_state(world)
+    if collapse_state is not None:
+        lines.append("STATE OF THE EMPIRE:")
+        lines.append(f"  {_collapse.summary_line(world, collapse_state)}")
+        lines.append(f"  {_collapse.CAMPAIGN_CONTINUES}")
+        lines.append("")
+
     # Your Forces
     lines.append("YOUR FORCES:")
     if your_forces:
@@ -144,6 +176,16 @@ def generate_intel_report(world) -> Dict[str, Any]:
     else:
         lines.append("  No marshals available.")
     lines.append("")
+
+    # IQ-2: our captured marshals, named with their captor.
+    if prisoners:
+        lines.append("PRISONERS:")
+        for p in prisoners:
+            since = f" since T{p['captured_turn']}" if p["captured_turn"] else ""
+            cell = f" at {p['location']}" if p["location"] else ""
+            lines.append(f"  {humanize_entity_name(p['name'])}: held by "
+                         f"{p['captor_display']}{cell}{since}.")
+        lines.append("")
 
     # Confirmed (FULL)
     if confirmed:
@@ -202,7 +244,7 @@ def generate_intel_report(world) -> Dict[str, Any]:
 
     report_text = "\n".join(lines)
 
-    return {
+    report = {
         "report_text": report_text,
         "your_forces": your_forces,
         "confirmed": confirmed,
@@ -212,3 +254,10 @@ def generate_intel_report(world) -> Dict[str, Any]:
         "no_intelligence_summary": no_intel_summary,
         "turn": int(world.current_turn),
     }
+    # IQ-2: new keys only where they carry something, so a standing realm's
+    # payload (and the lever-down report) is unchanged.
+    if THE_REPORT_NAMES_ITS_PRISONERS and prisoners:
+        report["prisoners"] = prisoners
+    if collapse_state is not None:
+        report["collapse_line"] = _collapse.summary_line(world, collapse_state)
+    return report

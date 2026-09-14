@@ -568,6 +568,20 @@ CATEGORY_MAP = {
 }
 
 
+# IQ-2 (Sept 14, 2026) flip lever — D1. `_is_player_event` read
+# `captured_by` and never `captured_from`, so a province WE lost fell to the
+# fog arm below, and the fog arm reads the province's CURRENT intel. A
+# province that is no longer ours decays (`decay_intel`) the moment no French
+# eye stands on it, so the chronicle un-wrote our own losses: measured in the
+# played 40-turn campaign, 27 of 27 own-loss rows fell to 5 within two end
+# turns (28 -> 3 once France held no province), and Le Moniteur reads the
+# same filter. A loss is our own event — fog-safe, it names nothing the map
+# does not already show us. All eight production producers stamp
+# `captured_from` (census: test_wo_slice4_the_capital_speaks). False = the
+# pre-IQ-2 filter byte-for-byte.
+PLAYER_LOSSES_ARE_PLAYER_EVENTS = True
+
+
 def _is_player_event(event: dict, player_nation: str) -> bool:
     """Check if an event belongs to the player (always shown regardless of fog)."""
     # Direct nation match
@@ -583,6 +597,11 @@ def _is_player_event(event: dict, player_nation: str) -> bool:
         return True
     # captured_by for region_captured
     if event.get("captured_by") == player_nation:
+        return True
+    # IQ-2 D1: ...and captured_from — the province taken FROM us.
+    if (PLAYER_LOSSES_ARE_PLAYER_EVENTS
+            and event.get("type") == "region_captured"
+            and event.get("captured_from") == player_nation):
         return True
     # SC-33 recurring settlement payments — the player is a party as payer
     # or recipient (G4F smoke follow-up).
@@ -1357,6 +1376,28 @@ def _name_tag(name: str, nation: str) -> str:
     return display
 
 
+def _holdings_left_clause(event: dict) -> str:
+    """IQ-2 D2: what a loss of our own soil left us, when it left us almost
+    nothing. `WorldState.log_event` stamps `holdings_left` (read AFTER the
+    controller change) and `holdings_realm` (the formed display name) on a
+    province taken from the player on a sandbox world; an event without the
+    key — every pre-IQ-2 row, every other court's loss — renders
+    byte-identically. Speaks only at the collapse ceiling: 0 and 1."""
+    if "holdings_left" not in event:
+        return ""
+    try:
+        left = int(event.get("holdings_left"))
+    except (TypeError, ValueError):
+        return ""
+    realm = (event.get("holdings_realm")
+             or display_nation(event.get("captured_from") or ""))
+    if left == 0:
+        return f" — {realm} holds no province"
+    if left == 1:
+        return f" — {realm} holds a single province"
+    return ""
+
+
 def format_event_oneliner(event: dict) -> str:
     """
     Produce a human-readable one-liner for a campaign log event.
@@ -1518,8 +1559,9 @@ def format_event_oneliner(event: dict) -> str:
         region = event.get("region", "unknown region")
         method = event.get("method", "")
         if method:
-            return f"{region} captured by {captured_by} ({method})"
-        return f"{region} captured by {captured_by}"
+            return (f"{region} captured by {captured_by} ({method})"
+                    + _holdings_left_clause(event))
+        return f"{region} captured by {captured_by}" + _holdings_left_clause(event)
 
     if event_type == "recruitment":
         marshal = event.get("marshal", "Unknown")
@@ -2360,6 +2402,17 @@ def format_event_oneliner(event: dict) -> str:
         target = event.get("target_nation") or "France"
         if target != "France":
             return f"Coalition against {display_nation(target)} has dissolved."
+        # IQ-2: the league lapses on low threat and ends no war — the entry
+        # now carries the courts still fighting France (`courts_at_war`,
+        # stamped by coalition.dissolve_coalition behind its own lever).
+        # An entry without the key renders exactly as before.
+        still_at_war = [display_nation(c) for c in (event.get("courts_at_war") or []) if c]
+        if still_at_war:
+            joined = (still_at_war[0] if len(still_at_war) == 1
+                      else ", ".join(still_at_war[:-1]) + f" and {still_at_war[-1]}")
+            verb = "remains" if len(still_at_war) == 1 else "remain"
+            return (f"Coalition against France has dissolved — {joined} "
+                    f"{verb} at war with us.")
         return "Coalition against France has dissolved."
 
     # V3 Session 8: new event types

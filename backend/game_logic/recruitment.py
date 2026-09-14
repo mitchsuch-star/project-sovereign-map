@@ -154,12 +154,35 @@ def commission_counsel_need(world, nation: str) -> bool:
     return False
 
 
+# IQ-2 (Sept 14, 2026): the gold gate was asked before the spawn gate, so a
+# landless France was told "Commissioning Mortier costs 4000g — the treasury
+# holds 800g" — a sentence that says saving gold unlocks the commission —
+# when the decisive refusal is that no home soil remains to raise a corps on.
+# The home-soil gate now answers first (it is the one no gold or manpower
+# can clear). Flip lever: False restores gold -> pool -> soil.
+COMMISSION_ASKS_FOR_HOME_SOIL_FIRST = True
+
+
+def _no_home_soil(name: str) -> str:
+    # WO-D10's copy half (WO slice 12): `find_spawn_region` considers
+    # the capital and the HOME provinces only, so an exiled court
+    # holding a dozen rich conquests was told "no soil remains" on the
+    # map it was looking at. Name the actual gate. (The mechanic —
+    # spawn at the richest held province — is carried to the Victory &
+    # Objectives Pass, DESIGN_REFINEMENT §WO-D7..D11.)
+    return (f"No HOME soil remains on which {name} could raise his "
+            f"corps — a marshal is commissioned at the capital or on a "
+            f"home province, and we hold neither.")
+
+
 def check_commission(world, nation: str, candidate: Dict) -> Optional[str]:
     """Refusal reason for commissioning this candidate, or None when clear.
     Player-facing copy; the AI rung reads the same gate (GR5)."""
     name = candidate.get("name", "?")
     if name in world.marshals:
         return f"Marshal {name} already serves."
+    if COMMISSION_ASKS_FOR_HOME_SOIL_FIRST and find_spawn_region(world, nation) is None:
+        return _no_home_soil(name)
     cost = int(candidate.get("cost", 0))
     if world.nation_gold.get(nation, 0) < cost:
         return (f"Commissioning {name} costs {cost}g — the treasury holds "
@@ -170,16 +193,8 @@ def check_commission(world, nation: str, candidate: Dict) -> Optional[str]:
     if have < size:
         return (f"Raising {name}'s corps needs {size:,} men from the "
                 f"{arm} pool — only {have:,} remain.")
-    if find_spawn_region(world, nation) is None:
-        # WO-D10's copy half (WO slice 12): `find_spawn_region` considers
-        # the capital and the HOME provinces only, so an exiled court
-        # holding a dozen rich conquests was told "no soil remains" on the
-        # map it was looking at. Name the actual gate. (The mechanic —
-        # spawn at the richest held province — is carried to the Victory &
-        # Objectives Pass, DESIGN_REFINEMENT §WO-D7..D11.)
-        return (f"No HOME soil remains on which {name} could raise his "
-                f"corps — a marshal is commissioned at the capital or on a "
-                f"home province, and we hold neither.")
+    if not COMMISSION_ASKS_FOR_HOME_SOIL_FIRST and find_spawn_region(world, nation) is None:
+        return _no_home_soil(name)
     return None
 
 

@@ -35,6 +35,23 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  "build_fleet"}
 
 
+def collapse_turn_end_fields(world) -> Dict:
+    """IQ-2: the collapse keys BOTH end-turn paths stamp on the `turn_end`
+    event (this one and the executor.py auto-advance twin) — one helper, so
+    the two banners cannot disagree. `collapse_line` is the one source's
+    summary ("" while the realm stands); `provinces_held` is the realm's
+    count. Sandbox worlds only, and absent with the collapse lever down, so
+    the legacy event dict stays byte-identical."""
+    from backend.game_logic import collapse
+    if not collapse.THE_COLLAPSE_IS_LEGIBLE or not getattr(world, "sandbox_mode", False):
+        return {}
+    state = collapse.get_collapse_state(world)
+    return {
+        "collapse_line": collapse.summary_line(world, state) if state else "",
+        "provinces_held": int(len(world.get_nation_regions(world.player_nation) or [])),
+    }
+
+
 def _filter_tactical_events_by_fog(events: list, world) -> list:
     """Filter tactical events by fog of war (P3-2 consolidated).
 
@@ -387,6 +404,12 @@ class MetaExecutor:
             "treasury": int(treasury),
             "bankruptcy_turns": bk_turns,
         }
+        # IQ-2: a collapsed realm gets ONE line under the finances, and the
+        # event carries the same fact for the client (shared with auto-advance).
+        collapse_fields = collapse_turn_end_fields(world)
+        turn_end_event.update(collapse_fields)
+        if collapse_fields.get("collapse_line"):
+            message += f"\n{collapse_fields['collapse_line']}"
         # Fog-filter the response `events` array too — it was rebuilt from the RAW
         # turn result, so it shipped enemy fortify/drill/retreat state for fogged
         # provinces even though the sibling `tactical_events` key was filtered.

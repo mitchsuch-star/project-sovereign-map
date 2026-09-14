@@ -1739,6 +1739,33 @@ def check_dissolution(world) -> Optional[str]:
     return None
 
 
+# IQ-2 (Sept 14, 2026) flip lever — COPY ONLY, the dissolution mechanics
+# are untouched. Measured on the collapsed campaign: the league dissolved on
+# low threat (France held one province, so nobody feared her) while Austria,
+# Britain and Russia stayed at war with her, and the rail read "The Third
+# Coalition has dissolved. Low Threat." — a raw reason key title-cased, in
+# the register of relief, on a day that ended no war. The notification and
+# the tactical event now state the true cause and name the courts still at
+# war; the log event carries `courts_at_war` beside its unchanged TYPE (the
+# campaign-log type count is pinned in 12 files). False = the pre-IQ-2 copy
+# byte-for-byte.
+THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN = True
+
+# The two reasons `check_dissolution` can return, in words. Anything else
+# (fixtures pass free strings) keeps the old humanised fallback.
+_DISSOLUTION_REASON_DISPLAY = {
+    "low_threat": "Europe's alarm has fallen below {threshold}",
+    "insufficient_members": "Too few of its members remain at war",
+}
+
+
+def _dissolution_reason_display(reason: str) -> str:
+    template = _DISSOLUTION_REASON_DISPLAY.get(reason)
+    if template is None:
+        return reason.replace('_', ' ').capitalize()
+    return template.format(threshold=int(DISSOLUTION_THREAT_THRESHOLD))
+
+
 def dissolve_coalition(world, reason: str) -> List[Dict]:
     """Dissolve the active coalition (§7b).
 
@@ -1764,29 +1791,59 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
     # Start cooldown (§7c)
     world.coalition_cooldown = COALITION_COOLDOWN_TURNS
 
+    # IQ-2: the wars the league leaves behind. Read AFTER the league is
+    # cleared (it changes no war) and only for a player-targeted league —
+    # an eclipse coalition's copy is Europe's business, not ours.
+    courts_at_war: List[str] = []
+    notice = f"{name} has dissolved. {reason.replace('_', ' ').title()}."
+    event_message = f"{name} has dissolved."
+    if THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN:
+        notice = f"{name} has dissolved. {_dissolution_reason_display(reason)}."
+        if _dissolve_target == world.player_nation:
+            from backend.game_logic.diplomatic_ledger import (
+                courts_at_war_with, remain_at_war_clause,
+            )
+            from backend.game_logic.formations import formed_display_name
+            courts_at_war = courts_at_war_with(world, _dissolve_target)
+            if reason == "low_threat" and courts_at_war:
+                realm = formed_display_name(world, _dissolve_target)
+                clause = remain_at_war_clause(world, courts_at_war)
+                notice = (f"{name} has dissolved as a league: Europe's alarm "
+                          f"has fallen below {int(DISSOLUTION_THREAT_THRESHOLD)} "
+                          f"and no court fears {realm} enough to hold it "
+                          f"together. {clause[0].upper()}{clause[1:]} all the "
+                          f"same.")
+                event_message = notice
+
     # Notification
     world.notifications.add(create_notification(
         COALITION_DISSOLVED,
         NotificationPriority.NORMAL,
         "Coalition Dissolved",
-        f"{name} has dissolved. {reason.replace('_', ' ').title()}.",
+        notice,
         int(world.current_turn),
     ))
 
     # Log event
-    world.log_event({
+    log_entry = {
         "type": "coalition_dissolved",
         "coalition_name": name,
         "reason": reason,
         "target_nation": _dissolve_target,
-    })
+    }
+    if THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN:
+        log_entry["courts_at_war"] = list(courts_at_war)
+    world.log_event(log_entry)
 
-    events.append({
+    event = {
         "type": "coalition_dissolved",
-        "message": f"{name} has dissolved.",
+        "message": event_message,
         "reason": reason,
         "target_nation": _dissolve_target,
-    })
+    }
+    if THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN:
+        event["courts_at_war"] = list(courts_at_war)
+    events.append(event)
 
     # R83: Dispatch event for coalition dissolution (target-aware — the
     # anti-France template keeps its exact legacy copy).

@@ -29,6 +29,10 @@ signal order_command(command: String)
 # File-specific colors (not in Utils)
 const COLOR_DIM = "666670"
 const COLOR_DEVOTED = "ffd700"
+# IQ-2 (Sept 14, 2026) flip lever — true: a captured marshal's card renders
+# the backend's `status_note` ("PRISONER of Austria since T37.") at the head
+# of its status block. false = the pre-IQ-2 card byte-for-byte.
+const PRISONER_NOTE_ON_THE_CARD := true
 
 # Inline graphical stat bars (skill + glory rows): the CC0 Kenney RPG frame+fill
 # baked to assets/ui/bars/bar_<0..10>.png (grayscale, tinted per value via
@@ -575,6 +579,14 @@ func _render_card(m: Dictionary, index: int) -> String:
 			+ "  [color=#" + COLOR_DIM + "]victories raise his expectation — then endow a conquered province (a Duchy) or grant a rente (gold/turn)[/color]\n"
 
 	# ═══════ CURRENT STATUS ═══════
+	# IQ-2 (Sept 14, 2026): W6-7 put a prisoner's fate on the card payload —
+	# "PRISONER of Austria since T37." — and no line of this renderer read it,
+	# so the card of a marshal in an enemy cell (the Emperor's, in the played
+	# collapse campaigns) showed Location/Stance as if he stood in the field.
+	var status_note = m.get("status_note", "")
+	if (PRISONER_NOTE_ON_THE_CARD and m.get("captured", false)
+			and status_note is String and status_note != ""):
+		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]" + Utils.humanize_nation_keys_in_text(status_note) + "[/color]\n"
 	var location = str(m.get("location", "?"))
 	var stance = str(m.get("stance", "neutral"))
 

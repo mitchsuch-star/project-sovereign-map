@@ -40,6 +40,11 @@ signal assess_requested
 # File-specific colors (not in Utils)
 const COLOR_AMBER = "d9a520"
 const COLOR_RED = "cd5c5c"
+# IQ-2 (Sept 14, 2026) flip lever — true: the Talleyrand tab's authority
+# colour arms test the vocabulary the backend actually emits
+# (`AuthorityTracker.get_authority_label`). false = the pre-IQ-2 arms, which
+# never matched, byte-for-byte.
+const AUTHORITY_ARMS_READ_THE_BACKEND := true
 
 # State
 var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains, 5=vassals
@@ -785,6 +790,11 @@ func _render_balance_of_europe():
 			bbcode += "[color=#" + Utils.COLOR_GREY + "]The courts are recovering from the last coalition."
 			if cooldown > 0:
 				bbcode += " Cooldown: " + str(cooldown) + " turns."
+			# IQ-2: under the collapse the league lapsed on low threat and
+			# ended no war — the backend names the courts still fighting us.
+			var cooldown_note = boe.get("headline_note", "")
+			if cooldown_note is String and cooldown_note != "":
+				bbcode += " " + cooldown_note
 			bbcode += "[/color]\n\n"
 		"HEGEMON_NO_COALITION":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + label + " holds " + str(share_pct) + "% of active European bloc power.[/color]\n"
@@ -844,7 +854,12 @@ func _render_balance_of_europe():
 	# FA-D11 (slice 17, Phase 2): the one number a player plans around — the
 	# backend computed it all along and no renderer read it.
 	var projection = boe.get("threat_projection", {})
-	if projection is Dictionary and projection.size() > 0:
+	# IQ-2: a collapsed France is planning no war of conquest — the backend
+	# sends the true reading of the alarm instead of the projection.
+	var projection_collapse = projection.get("collapse_line", "") if projection is Dictionary else ""
+	if projection_collapse is String and projection_collapse != "":
+		bbcode += "[color=#" + Utils.COLOR_ERROR + "]" + projection_collapse + "[/color]\n"
+	elif projection is Dictionary and projection.size() > 0:
 		var nxt = int(projection.get("after_next_war", threat_level))
 		var brewing = int(projection.get("brewing_threshold", 60))
 		var instant = int(projection.get("instant_threshold", 80))
@@ -989,17 +1004,33 @@ func _render_talleyrand():
 
 	# Authority label color (PL-23: trust → authority)
 	var authority_color = Utils.COLOR_INFO
-	match authority_label:
-		"Absolute":
-			authority_color = Utils.COLOR_SUCCESS
-		"Strong":
-			authority_color = Utils.COLOR_SUCCESS
-		"Stable":
-			authority_color = Utils.COLOR_INFO
-		"Shaky":
-			authority_color = Utils.COLOR_ORANGE
-		"Crumbling":
-			authority_color = Utils.COLOR_ERROR
+	if AUTHORITY_ARMS_READ_THE_BACKEND:
+		# IQ-2 (Sept 14, 2026): the arms below the `else` tested a vocabulary
+		# the backend never emits — `AuthorityTracker.get_authority_label`
+		# says "Divine Right / Commanding / Respected / Questionable / Emperor
+		# in Name Only" — so no arm ever fired and "Emperor in Name Only"
+		# rendered in the same neutral grey as "Divine Right".
+		match authority_label:
+			"Divine Right", "Commanding":
+				authority_color = Utils.COLOR_SUCCESS
+			"Respected":
+				authority_color = Utils.COLOR_INFO
+			"Questionable":
+				authority_color = Utils.COLOR_ORANGE
+			"Emperor in Name Only":
+				authority_color = Utils.COLOR_ERROR
+	else:
+		match authority_label:
+			"Absolute":
+				authority_color = Utils.COLOR_SUCCESS
+			"Strong":
+				authority_color = Utils.COLOR_SUCCESS
+			"Stable":
+				authority_color = Utils.COLOR_INFO
+			"Shaky":
+				authority_color = Utils.COLOR_ORANGE
+			"Crumbling":
+				authority_color = Utils.COLOR_ERROR
 
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND[/color] — [color=#" + authority_color + "]" + authority_label + "[/color]\n"
 	bbcode += "Authority: [color=#" + authority_color + "]" + str(authority) + "[/color]/100"

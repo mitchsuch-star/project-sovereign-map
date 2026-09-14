@@ -35,7 +35,34 @@ def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
     # promise. Gated here at the single source so the dispatch reader
     # and its DEFEAT_IMMINENT_WARNING notification go quiet together.
     if world.sandbox_mode:
-        return None
+        # IQ-2 (Sept 14, 2026) — the SANDBOX ARM. Going quiet was the
+        # defect: measured in played 40-turn campaigns, a France reduced to
+        # one province and then to none (Paris lost, the Emperor taken) got
+        # no warning at all, because this was the only one the game owned
+        # and it was switched off on every Europe world. The warning comes
+        # back with honest copy — what the realm holds, what still stands,
+        # where the sovereign is — composed from the ONE collapse source so
+        # it cannot disagree with the headline or the ledgers, and it never
+        # promises an end (the scope note: legible, not terminal). The
+        # lever lives in collapse.py; with it down this returns None, as
+        # before.
+        from backend.game_logic import collapse
+        state = collapse.get_collapse_state(world)
+        if state is None:
+            return None
+        fallen = state["tier"] == collapse.TIER_FALLEN
+        return {
+            "message": (f"{collapse.summary_line(world, state)} "
+                        f"{collapse.CAMPAIGN_CONTINUES}"),
+            "severity": "critical" if fallen else "warning",
+            "notification_title": ("The Empire Without Soil" if fallen
+                                   else "One Province Remains"),
+            "heading": "THE EMPIRE IN EXTREMIS",
+            "living_marshal_count": int(len(state["standing"])),
+            "living_marshals": list(state["standing"]),
+            "controlled_region_count": int(state["provinces_held"]),
+            "controlled_regions": list(state["provinces"]),
+        }
 
     player_regions = list(world.get_player_regions())
     living_marshals = [

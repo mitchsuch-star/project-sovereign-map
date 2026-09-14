@@ -506,9 +506,11 @@ class TestTheGazetteCaption:
 
     def test_the_caption_survives_the_fog_filter(self, world):
         """The Gazette feeds `_special_reason` from
-        `filter_campaign_log`, and the loss of our OWN capital is not a
-        `_is_player_event` exemption (that helper matches `captured_by`,
-        never `captured_from`) — it survives on retained intel. A caption
+        `filter_campaign_log`, and the loss of our OWN capital must survive
+        it. (IQ-2, Sept 14 2026: `_is_player_event` now matches a
+        `region_captured` whose `captured_from` is the player, so it no
+        longer depends on retained intel — before IQ-2 it did, and every
+        other lost province fogged out of the chronicle.) A caption
         that the filter always ate would be unreachable copy, so this
         proves the whole chain, not just the arm."""
         from backend.campaign_log import filter_campaign_log

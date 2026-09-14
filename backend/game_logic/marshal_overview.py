@@ -12,6 +12,18 @@ from typing import Dict, Any, List
 
 from backend.models.marshal import Marshal
 from backend.display_names import PERSONALITY_DISPLAY, STANCE_DISPLAY
+from backend.game_logic.formations import formed_display_name
+
+# IQ-2 (Sept 14, 2026): the captured sovereign's card kept the apex note "The
+# Empire is his estate." while he sat at strength 0 in the captor's capital —
+# measured on the played 40-turn campaigns, beside a status line that said
+# PRISONER. Flip lever: False restores the unconditional note.
+THE_CAPTIVE_EMPEROR_IS_NAMED = True
+
+# IQ-2 (found in passing, Sept 14, 2026): the prisoner status note
+# interpolated the RAW nation key ("PRISONER of KingdomOfItaly") — R7. The
+# court's display name reads through the formation chokepoint. Flip lever.
+THE_PRISONER_NOTE_NAMES_THE_COURT = True
 
 # Relationship value → display label
 _RELATIONSHIP_LABELS = {
@@ -133,13 +145,22 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
         if getattr(marshal, "is_sovereign", False):
             card["sovereign"] = True
             card["sovereign_note"] = "The Empire is his estate."
+            # IQ-2: the captured Emperor's card went on saying "The Empire
+            # is his estate." from a cell in the captor's capital.
+            if THE_CAPTIVE_EMPEROR_IS_NAMED and getattr(marshal, "captured_by", ""):
+                captor = formed_display_name(world, marshal.captured_by)
+                card["sovereign_note"] = (
+                    f"A prisoner of {captor} — the Empire is governed from a cell.")
         # W6-7: a captured marshal's card names his fate front and center.
         if getattr(marshal, "captured_by", ""):
             card["captured"] = True
             card["captured_by"] = marshal.captured_by
             card["status"] = "captured"
+            _captor_shown = (formed_display_name(world, marshal.captured_by)
+                             if THE_PRISONER_NOTE_NAMES_THE_COURT
+                             else marshal.captured_by)
             card["status_note"] = (
-                f"PRISONER of {marshal.captured_by} since "
+                f"PRISONER of {_captor_shown} since "
                 f"T{int(marshal.captured_turn)}."
             )
         result.append(card)

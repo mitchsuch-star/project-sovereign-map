@@ -7190,6 +7190,11 @@ class CombatExecutor:
         conquest_msg = ""
         movement_msg = ""
         capture_result = None  # IGR-X8: read by the event-parity block below
+        # IQ-2: who held the field before the capture — the battle event
+        # stamps it so the enemy-phase dialog can read a French province
+        # lost in a field battle as a LOSS (it rendered in victory green;
+        # WO-9 stamped the other two conquest producers, not this one).
+        conquest_from = ""
 
         # Check if defender retreated/fled (even in stalemate, empty territory = advance)
         defender_fled = (
@@ -7313,6 +7318,7 @@ class CombatExecutor:
                         f"or let the province stand.")
             # If no defenders left, attempt capture (may start occupation if fortified)
             elif not remaining_defenders:
+                conquest_from = target_region.controller or ""
                 capture_result = self._attempt_region_capture(
                     marshal, target_location, world, game_state, had_garrison=True)
                 if capture_result["captured"]:
@@ -7435,6 +7441,10 @@ class CombatExecutor:
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,
                 "region_conquered": conquered,
+                # IQ-2: present only for a real transfer (the client's
+                # `_taken_from_player` reads it; absent = the old render).
+                **({"captured_from": conquest_from}
+                   if conquered and conquest_from else {}),
                 # PC-1 (quiet-France played campaign, Aug 3 2026): this was
                 # `resolved_target`, which is only a REGION when the attacker
                 # named a region. `resolved_target` is reassigned to a region
@@ -8440,6 +8450,7 @@ class CombatExecutor:
         conquered = False
         conquest_msg = ""
         capture_result = None  # IGR-X8: read by the event-parity block below
+        charge_conquest_from = ""  # IQ-2: the previous holder, for the event
         staged_war_purpose = None  # CA9-F6: delivered on charge_result below
         # WO-24: a frontier-halted charge still reaches this block so the
         # player's war choice can be staged (parity with `_execute_attack`);
@@ -8475,6 +8486,7 @@ class CombatExecutor:
                             f"{pursuit_block['owner']} — choose our purpose, "
                             f"or let the province stand.")
                 elif not remaining_defenders and marshal.location == charge_battle_region:
+                    charge_conquest_from = target_region.controller or ""
                     capture_result = self._attempt_region_capture(
                         marshal, charge_battle_region, world, game_state, had_garrison=True
                     )
@@ -8554,6 +8566,8 @@ class CombatExecutor:
         if conquered:
             charge_event["region_conquered"] = True
             charge_event["region_name"] = charge_battle_region
+            if charge_conquest_from:
+                charge_event["captured_from"] = charge_conquest_from  # IQ-2
             if capture_result and capture_result.get("capture_choice"):
                 charge_event["capture_choice"] = capture_result["capture_choice"]
 

@@ -142,6 +142,32 @@ def _player_sovereign_taken(world, turn_events: List[Dict]) -> bool:
     )
 
 
+# IQ-2 (Sept 14, 2026) D3(d): the two captions for a loss that leaves the
+# realm at the collapse ceiling (`collapse.COLLAPSE_PROVINCE_CEILING`). Our
+# own catastrophe shouts, like the capital's. They state the holdings and
+# promise nothing about what follows — the campaign goes on (EC-6a).
+REALM_REDUCED_TO_ONE = "THE REALM REDUCED TO A SINGLE PROVINCE"
+REALM_WITHOUT_A_PROVINCE = "THE REALM WITHOUT A PROVINCE"
+
+# IQ-2 (Sept 14, 2026) flip lever — D3(c). The masthead read "LE MONITEUR —
+# Paris, <date>" and the quiet leads "the capital watches" / "commerce and
+# the salons go on" whoever held Paris, so in the played campaign every
+# issue after Austria took Paris was still dated from it. When the
+# player's capital is in other hands the paper is dated from the Imperial
+# Headquarters and the quiet lead says whose hands. Not keyed on the
+# collapse — a France of ten provinces without Paris is the same lie.
+# False = the pre-IQ-2 masthead and quiet leads byte-for-byte.
+THE_MONITEUR_SEES_THE_CAPITAL_LOST = True
+
+# IQ-2 (Sept 14, 2026) flip lever — D3(b). The Bourse line said "the funds
+# are steady" whatever the treasury's sign — a negative treasury printed as
+# "-N francs; the funds are steady." on a bankrupt France. A negative
+# treasury, or a standing bankruptcy counter (the engine's own reading —
+# `calculate_turn_upkeep`'s mercy keys on `nation_bankruptcy_turns >= 1`),
+# is a deficit and the rentes fall. False = the pre-IQ-2 line byte-for-byte.
+THE_BOURSE_READS_THE_DEFICIT = True
+
+
 # WO-43 (WO slice 12): the special-edition captions RANKED BY GRAVITY.
 # Every arm of `_special_reason` used to return on the first matching
 # event inside `for event in turn_events`, so the masthead was decided by
@@ -156,6 +182,13 @@ def _player_sovereign_taken(world, turn_events: List[Dict]) -> bool:
 # ranked by log order.
 _SPECIAL_WEIGHTS = {
     "THE EMPEROR TAKEN": 100,
+    # IQ-2 D3(d): the loss that leaves the realm at the collapse ceiling. One
+    # caption per tier; they cannot both fire (the candidate pass keeps only
+    # the lowest `holdings_left` on the page). Between the Emperor taken and
+    # the capital: a realm reduced to nothing is graver than any one city,
+    # and on the turn Paris is the last province to go it IS both.
+    REALM_REDUCED_TO_ONE: 97,
+    REALM_WITHOUT_A_PROVINCE: 97,
     "THE CAPITAL HAS FALLEN": 95,
     "a crown struck from the map": 90,
     "a nation proclaimed": 85,
@@ -190,6 +223,17 @@ def _special_candidates(world, turn_events: List[Dict]):
     def _add(reason: str, key: str) -> None:
         found.append((_SPECIAL_WEIGHTS[reason], reason, f"{reason}|{key}"))
 
+    # IQ-2 D3(d): the realm-reduced edition reads the `holdings_left` that
+    # `WorldState.log_event` stamps on a province taken from us — the count
+    # AFTER the loss, frozen on the row, so the paper never recomputes it
+    # from a later map. Keeps the LOWEST on the page (1 then 0 on one turn is
+    # one edition, about the 0). Behind the collapse lever like every
+    # collapse surface.
+    from backend.game_logic import collapse as _collapse
+    _ceiling = (_collapse.COLLAPSE_PROVINCE_CEILING
+                if _collapse.THE_COLLAPSE_IS_LEGIBLE else None)
+    reduced = None  # (holdings_left, region)
+
     for event in turn_events:
         etype = str(event.get("type", ""))
         if etype == "nation_eliminated":
@@ -221,6 +265,15 @@ def _special_candidates(world, turn_events: List[Dict]):
                        or event.get("previous_controller")
                        or event.get("old_controller") or "")
             region = str(event.get("region") or "")
+            if (_ceiling is not None and "holdings_left" in event
+                    and str(event.get("captured_from") or "") == player):
+                try:
+                    _left = int(event.get("holdings_left"))
+                except (TypeError, ValueError):
+                    _left = None
+                if (_left is not None and _left <= _ceiling
+                        and (reduced is None or _left < reduced[0])):
+                    reduced = (_left, region)
             # Aug 30, 2026 review: "the capital of whoever held it" misses the
             # case slice 4's own review widened the DISPATCH for — an ALLY
             # holding a liberated Paris loses it, so `prev` is Bavaria and
@@ -270,7 +323,75 @@ def _special_candidates(world, turn_events: List[Dict]):
             if str(event.get("nation") or "") == player:
                 _add("a marshal of France lost",
                      str(event.get("marshal") or ""))
+    if reduced is not None:
+        # Keyed by the province whose loss did it, so WO-44's identity dedupe
+        # never prints the same fall twice off a tail-stamped row.
+        _add(REALM_WITHOUT_A_PROVINCE if reduced[0] == 0
+             else REALM_REDUCED_TO_ONE, reduced[1])
     return found
+
+
+def _capital_in_other_hands(world):
+    """(capital, holder) when the player's capital is not held by the
+    player, else None. The player's own map — fog-safe. `holder` is "" when
+    nobody holds it."""
+    player = getattr(world, "player_nation", "France")
+    get_capital = getattr(world, "get_nation_capital", None)
+    capital = get_capital(player) if callable(get_capital) else ""
+    if not capital:
+        return None
+    region = (getattr(world, "regions", {}) or {}).get(capital)
+    if region is None:
+        return None
+    holder = getattr(region, "controller", "") or ""
+    if holder == player:
+        return None
+    return capital, holder
+
+
+def _capital_in_hands_phrase(world, capital: str, holder: str) -> str:
+    """"Paris is in Austria's hands" — worded as `collapse.capital_clause`
+    words it, so the paper and the briefing name the same fact alike."""
+    if holder:
+        from backend.game_logic.formations import formed_display_name
+        return f"{capital} is in {formed_display_name(world, holder)}'s hands"
+    return f"{capital} is lost to us"
+
+
+def _collapse_lead(world, state: Dict, triumph: Optional[Dict]) -> str:
+    """IQ-2 D3(a): the front page of a collapsed realm. The period press's
+    register — the Government's euphemisms, the Moniteur's counsel — but the
+    FACT stated: what the realm holds, whose hands the capital is in, where
+    the Emperor is. Promises nothing about what follows."""
+    from backend.game_logic import collapse as _collapse
+    from backend.game_logic.formations import formed_display_name
+    realm = formed_display_name(world, state["nation"])
+    capital = state.get("capital") or ""
+    where = ""
+    if capital and not state.get("capital_held"):
+        where = _capital_in_hands_phrase(
+            world, capital, state.get("capital_holder") or "")
+    # "and the army" only while a corps still stands under arms.
+    counsel = ("the Moniteur counsels patience and the army"
+               if state.get("standing") else "the Moniteur counsels patience")
+    if state["tier"] == _collapse.TIER_FALLEN:
+        lead = f"{realm} holds no province of her own; {counsel}."
+        if where:
+            lead = f"{where} and {lead}"
+    else:
+        province = state["provinces"][0]
+        if where:
+            lead = (f"{where}; the Government speaks of a temporary "
+                    f"misfortune. {realm} holds a single province: "
+                    f"{province}; {counsel}.")
+        else:
+            lead = (f"{realm} holds a single province: {province}; the "
+                    f"capital stands, and {counsel}.")
+    lead += _collapse.sovereign_clause(world, state)
+    if triumph is not None:
+        location = str(triumph.get("location") or "the field")
+        lead += f" At {location}, the eagles still carry the day."
+    return lead
 
 
 def _press_lead(world, war_rows: List[Dict]) -> str:
@@ -301,6 +422,14 @@ def _press_lead(world, war_rows: List[Dict]) -> str:
             triumph = event
         elif lost and reverse is None:
             reverse = event
+    # IQ-2 D3(a): the collapse leads the page BEFORE the triumph and reverse
+    # arms — measured, a France holding nothing read "The armies of Europe are
+    # in motion; the capital watches." while Austria stood in Paris. A
+    # victory that same issue is still reported, after the fact.
+    from backend.game_logic.collapse import get_collapse_state
+    _state = get_collapse_state(world)
+    if _state is not None:
+        return _collapse_lead(world, _state, triumph)
     if triumph is not None:
         location = str(triumph.get("location") or "the field")
         # NP-5 (NAPOLEON_SPEC §9): the standing lead credits "the
@@ -320,6 +449,16 @@ def _press_lead(world, war_rows: List[Dict]) -> str:
         location = str(reverse.get("location") or "the frontier")
         return (f"From {location}, the army executes a manoeuvre of "
                 f"the greatest delicacy; the situation develops.")
+    # IQ-2 D3(c): the quiet leads name whose hands the capital is in rather
+    # than have it "watch" from under an enemy flag.
+    _lost = (_capital_in_other_hands(world)
+             if THE_MONITEUR_SEES_THE_CAPITAL_LOST else None)
+    if _lost is not None:
+        _fact = (f"{_capital_in_hands_phrase(world, *_lost)}, and the "
+                 f"Government speaks of a temporary misfortune.")
+        if war_rows:
+            return f"The armies of Europe are in motion; {_fact}"
+        return f"The continent holds its breath; {_fact}"
     if war_rows:
         return "The armies of Europe are in motion; the capital watches."
     return "The continent holds its breath; commerce and the salons go on."
@@ -337,6 +476,24 @@ def _bourse_line(world) -> str:
         blockaded = is_blockaded(world, player)
     except Exception:
         blockaded = False
+    # IQ-2 D3(b): a deficit is printed as one — never "steady".
+    in_deficit = False
+    if THE_BOURSE_READS_THE_DEFICIT:
+        _bankrupt_turns = int((getattr(world, "nation_bankruptcy_turns", {})
+                               or {}).get(player, 0) or 0)
+        in_deficit = treasury < 0 or _bankrupt_turns >= 1
+    if in_deficit:
+        # A negative chest names its deficit; a bankruptcy counter still
+        # standing over a chest back above zero says the State is in arrears.
+        state_of_it = (f"the Treasury stands at a deficit of "
+                       f"{abs(treasury):,} francs and the rentes fall"
+                       if treasury < 0 else
+                       f"the Treasury stands at {treasury:,} francs, the "
+                       f"State in deficit, and the rentes fall")
+        if blockaded:
+            return (f"THE BOURSE — The English squadrons press our trade; "
+                    f"{state_of_it}.")
+        return f"THE BOURSE — {state_of_it[0].upper()}{state_of_it[1:]}."
     if blockaded:
         return (f"THE BOURSE — The English squadrons press our trade; "
                 f"the Treasury stands at {treasury:,} francs and the "
@@ -379,6 +536,11 @@ def compose_issue(world, since_turn: int,
     if callable(get_label):
         label = str(get_label() or "")
     dateline = label or f"Turn {int(world.current_turn)}"
+    # IQ-2 D3(c): an honest dateline — the paper is not published from a
+    # Paris in another court's hands.
+    seat = "Paris"
+    if THE_MONITEUR_SEES_THE_CAPITAL_LOST and _capital_in_other_hands(world):
+        seat = "Imperial Headquarters"
 
     def _section(rows: List[Dict], key: str) -> List[str]:
         lines = [format_event_oneliner(e) for e in rows]
@@ -391,7 +553,7 @@ def compose_issue(world, since_turn: int,
         "number": int(number),
         "turn": int(world.current_turn),
         "dateline": dateline,
-        "masthead": f"LE MONITEUR — Paris, {dateline}",
+        "masthead": f"LE MONITEUR — {seat}, {dateline}",
         "special": bool(special_reason),
         "special_reason": str(special_reason or ""),
         "lead": _press_lead(world, war_rows),

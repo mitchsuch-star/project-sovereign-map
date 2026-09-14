@@ -189,6 +189,17 @@ func _dated_line() -> String:
 	return "[color=#" + Utils.COLOR_DIMMED + "]" + cal + "[/color]\n"
 
 
+func _collapse_note_line() -> String:
+	# IQ-2 (Sept 14, 2026): a France reduced to one province — then none —
+	# opened this ledger on "No territories controlled." and a muster that
+	# read as ordinary. The backend's `collapse_note` states the collapse
+	# (sent only while it holds; absent = the pre-IQ-2 ledger exactly).
+	var note = cached_data.get("collapse_note", "")
+	if not (note is String) or note == "":
+		return ""
+	return "[color=#" + Utils.COLOR_ERROR + "]" + note + "[/color]\n\n"
+
+
 func _render_current_tab():
 	if cached_data.is_empty():
 		return
@@ -220,6 +231,7 @@ func _render_forces():
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1-7 turn the ledger's books; press T to close it.[/color]\n\n"
+	bbcode += _collapse_note_line()
 
 	# Authority — global player stat (V2b)
 	var authority = int(cached_data.get("authority", 100))
@@ -322,6 +334,7 @@ func _render_territories():
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ TERRITORIES ═══[/color]\n"
 	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
+	bbcode += _collapse_note_line()
 
 	if territories.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No territories controlled.[/color]\n"
@@ -539,7 +552,14 @@ func _render_economy():
 			bbcode += "  [color=#" + Utils.COLOR_WARNING + "](" + _format_number(l_over) + " over the ordinance)[/color]\n"
 		else:
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "](" + _format_number(l_room) + " under)[/color]\n"
-		if bool(levy.get("open", false)):
+		# IQ-2 (Sept 14, 2026): when the levy is shut for a reason the
+		# headroom arithmetic cannot show (no capital to raise men at, no
+		# corps in reach of the depot), the backend names it — rendered in
+		# place of the depots-open line. Absent/"" = the pre-IQ-2 block.
+		var closed_reason = levy.get("closed_reason", "")
+		if closed_reason is String and closed_reason != "":
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]" + closed_reason + "[/color]\n"
+		elif bool(levy.get("open", false)):
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]The depots are open: " \
 				+ _format_number(int(levy.get("infantry_amount", 0))) + " foot for " \
 				+ str(int(levy.get("infantry_price", 0))) + "g" \
@@ -879,9 +899,16 @@ func _render_manpower():
 		else:
 			bbcode += " (" + str(turns_full) + " turns to full)\n"
 
-		bbcode += "  Recruit: " + _format_number(recruit_amt) + " troops for " + str(recruit_cost) + "g"
-		if cost_note != "":
-			bbcode += " — " + cost_note
+		# IQ-2: when the capital's depot is shut (enemy-held, or in unrest)
+		# the executor refuses the recruit — so no price is quoted for it;
+		# the backend's cost_note names why. Absent key = the old line.
+		var depot_closed = pool.get("depot_closed", false)
+		if typeof(depot_closed) == TYPE_BOOL and depot_closed and cost_note != "":
+			bbcode += "  Recruit: " + _format_number(recruit_amt) + " troops — " + cost_note
+		else:
+			bbcode += "  Recruit: " + _format_number(recruit_amt) + " troops for " + str(recruit_cost) + "g"
+			if cost_note != "":
+				bbcode += " — " + cost_note
 		bbcode += "\n\n"
 
 	content_area.text = bbcode

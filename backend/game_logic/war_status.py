@@ -8,6 +8,34 @@ from backend.game_logic.formations import formed_display_name
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 ARMISTICE_AUTO_PEACE_RELATION = -60  # Must match diplomacy.py (G4F-17)
 
+# IQ-2 (Sept 14, 2026) flip lever. `get_settlement_tier` reads |score|, so
+# the war row printed "Harsh Peace" in the popup's prize gold on a war France
+# was losing with one province left — the tier never said WHOSE table it
+# was. Each player war row now carries `settlement_tier_side` ("theirs" /
+# "ours" / "" at 0) off the same score the tier was computed from, and the
+# war HUD and detail popup colour and label by it. False = no key, the row
+# byte-for-byte.
+THE_TIER_NAMES_ITS_SIDE = True
+
+# IQ-2 (Sept 14, 2026) flip lever. The FA-D4 hint told a France holding no
+# province of her homeland "A defensive purpose only (hold the homeland)"
+# and invited her to name a purpose of her own — measured on the collapsed
+# campaign, beside a war score the enemy was cashing. Keyed on the homeland
+# (authority._homeland_held_fraction, the grip's own reader), not on the
+# collapse: a France holding foreign conquests but none of her own soil is
+# in the same position. False = the FA-D4 hint byte-for-byte.
+THE_HINT_KNOWS_THE_HOMELAND_IS_LOST = True
+
+
+def _tier_side(score: int) -> str:
+    """Whose table the settlement tier is: the enemy's below 0, ours above,
+    nobody's at a level score (`get_settlement_tier` is direction-blind)."""
+    if score < 0:
+        return "theirs"
+    if score > 0:
+        return "ours"
+    return ""
+
 
 def build_active_wars(world) -> Dict[str, Any]:
     """Build active wars data for the war status panel.
@@ -235,7 +263,7 @@ def build_active_wars(world) -> Dict[str, Any]:
             world, contribution.get("war_id", ""),
         )
 
-        wars.append({
+        row = {
             "opponent": opponent,
             "war_score": score,
             "breakdown": breakdown,
@@ -259,7 +287,7 @@ def build_active_wars(world) -> Dict[str, Any]:
             "enemy_objective": enemy_objective_info,
             # FA-D4 (slice 17, Phase 2): the verb that sets a purpose had no
             # UI home — the popup says it where the objective block stands.
-            "objective_hint": _objective_hint(objective_info, opponent),
+            "objective_hint": _objective_hint(objective_info, opponent, world),
             "settlement_tier": tier,
             "settlement_tier_display": SETTLEMENT_TIER_DISPLAY.get(tier, tier),
             "contribution_share": contribution.get("rows", []),
@@ -286,7 +314,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             "settlement_disabled_reason_display": settlement_eligibility.get(
                 "disabled_reason_display", ""
             ) if not settlement_available else "",
-        })
+        }
+        if THE_TIER_NAMES_ITS_SIDE:
+            row["settlement_tier_side"] = _tier_side(score)
+        wars.append(row)
 
     wars = _collapse_shared_war_instance_rows(world, france, wars)
 
@@ -727,6 +758,11 @@ def _collapse_shared_war_instance_rows(
         combined["settlement_tier"] = side_tier
         combined["settlement_tier_display"] = SETTLEMENT_TIER_DISPLAY.get(
             side_tier, side_tier)
+        # IQ-2: the side follows the WAR-level score the tier now reads —
+        # `dict(representative)` would otherwise carry the leader pair's.
+        if THE_TIER_NAMES_ITS_SIDE:
+            combined["settlement_tier_side"] = _tier_side(
+                int(combined["war_score"]))
         combined["started_turn"] = int(
             int(world.current_turn) - combined["duration"])
         # Trend on the same ±2 rule the pair rows use, over the SUM of
@@ -765,13 +801,34 @@ def _leader_first(nations: List[str], leader: str) -> List[str]:
 THE_COALITION_ROW_READS_EVERY_PAIR = True
 
 
-def _objective_hint(objective_info, opponent: str) -> str:
+def _objective_hint(objective_info, opponent: str, world=None) -> str:
     """FA-D4: what the popup says under (or instead of) the objective block —
     the verb that names a purpose, and that a defensive one is only the
-    default a declaration hands out."""
+    default a declaration hands out.
+
+    IQ-2: with no province of the homeland left, the defensive purpose has
+    nothing to hold and the invitation is dropped. Deliberately NOT replaced
+    by a promise either way: the executor (`_set_war_purpose_inner`) still
+    accepts a named Conquest / Forced Alliance / Subjugation, but each ticks
+    only while France holds the enemy's capital, and the defense objective
+    keeps ticking as the claim on soil this pair's court holds — so the
+    hint states the one fact that is true on every such board and invites
+    nothing it cannot keep."""
     from backend.models.world_state import THE_SPINE_WAR_HAS_A_PURPOSE
     if not THE_SPINE_WAR_HAS_A_PURPOSE:
         return ""
+    if (THE_HINT_KNOWS_THE_HOMELAND_IS_LOST and world is not None
+            and (not objective_info
+                 or str(objective_info.get("type") or "") == "defense")):
+        from backend.models.authority import _homeland_held_fraction
+        held, total = _homeland_held_fraction(
+            world, getattr(world, "player_nation", "France"))
+        if total > 0 and held == 0:
+            if not objective_info:
+                return ("No war purpose set — and the homeland is lost, so "
+                        "no defensive purpose has anything left to hold.")
+            return ("The homeland is lost — the defensive purpose has "
+                    "nothing left to hold.")
     if not objective_info:
         return (f"No war purpose set — 'set war purpose against {opponent}' names one; "
                 f"until then the war ticks toward nothing.")

@@ -271,14 +271,22 @@ class TestFogFiltering:
         assert len(result) == 1
 
     def test_enemy_region_captured_hidden_stale(self):
-        """Enemy region captures should be hidden in STALE regions."""
+        """Enemy region captures should be hidden in STALE regions.
+
+        IQ-2 (Sept 14, 2026) — CONSCIOUSLY FLIPPED: this event is a province
+        taken FROM the player (`captured_from: France`), and hiding it once
+        the lost province's intel went stale was the D1 defect — measured, 27
+        of 27 own-loss rows fell to 5 within two end turns. A loss of our own
+        soil is our own event now (`PLAYER_LOSSES_ARE_PLAYER_EVENTS`). A third
+        party's capture is still fog-gated — pinned in
+        test_iq2_collapse_chronicle::TestD1OwnLossesStayInTheChronicle."""
         world = _make_world_with_visibility({"Waterloo": STALE})
         events = [
             {"type": "region_captured", "turn": 1, "region": "Waterloo",
              "captured_by": "Britain", "captured_from": "France"},
         ]
         result = filter_campaign_log(events, world)
-        assert len(result) == 0
+        assert len(result) == 1
 
     def test_player_capture_always_shown(self):
         """Player captures should always be shown regardless of fog."""

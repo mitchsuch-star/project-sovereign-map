@@ -49,6 +49,23 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # leads to it was unreachable in ordinary play before slice 9. Flip lever.
 ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 
+# IQ-2 "The Collapse Is Legible" (September 14, 2026): a France holding NO
+# province dropped out of `get_active_nations()` — the roster reads "0
+# regions" as eliminated — while `_eliminate_nation` refuses to tear the
+# player down (sandbox: nothing ends the campaign). She was half-eliminated:
+# alive to her marshals, her wars and the map, and ABSENT from every per-turn
+# economy loop keyed on the roster. Measured on the 1805 board: a landless
+# France fielding 60,000 men paid no upkeep, no surcharge, no Admiralty, no
+# Charges of Empire and no rentes; her treasury ROSE (800 -> 1,282 -> 1,544
+# -> 2,123), her bankruptcy counter froze, desertion never fired, recurring
+# settlement gold was cancelled as "payer_eliminated", and the end-turn
+# banner printed an upkeep bill that was never charged. Retaking ONE province
+# switched the whole bill back on in a single turn (~2,900g). The player is
+# never eliminated, so the player never leaves the roster — the carve-out
+# `_process_dp_regen` already made for DP. Flip lever: False restores the
+# region-only test for the player too.
+PLAYER_NEVER_LEAVES_THE_ROSTER = True
+
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     "mode": "direct_only",
     "qualifying_treaty_states": {
@@ -2486,7 +2503,12 @@ class WorldState:
         from backend.game_logic.diplomacy import _is_nation_eliminated
         vassals = set(getattr(self, 'vassals', {}).keys())
         all_nations = [self.player_nation] + list(getattr(self, 'enemy_nations', []))
-        result = [n for n in all_nations if n in vassals or not _is_nation_eliminated(self, n)]
+        # IQ-2: the player is never eliminated (`_eliminate_nation` returns
+        # early for her), so she never leaves the roster either.
+        _player = self.player_nation if PLAYER_NEVER_LEAVES_THE_ROSTER else None
+        result = [n for n in all_nations
+                  if n == _player or n in vassals
+                  or not _is_nation_eliminated(self, n)]
         self._active_nations_cache = result
         self._active_nations_cache_turn = self.current_turn
         return list(result)
@@ -2726,6 +2748,28 @@ class WorldState:
         Rolling cap prevents unbounded growth.
         """
         event["turn"] = self.current_turn
+        # IQ-2 (Sept 14, 2026) D2: a province taken FROM the player carries
+        # what it left him — `holdings_left`, read here, at the ONE chokepoint
+        # every `region_captured` producer passes through. All eight log
+        # AFTER the controller change (the two `capture_region` callers,
+        # combat_executor._attempt_region_capture and
+        # _apply_occupation_capture_effects, mutate first and log in every
+        # branch; the capture_executor answer arms log a turn later still),
+        # and `capture_region` invalidates the per-turn region cache, so the
+        # count is the realm AFTER the loss. Sandbox worlds only (the legacy
+        # world keeps its terminal rules and its rows byte-identical) and
+        # behind the collapse lever. Never overwrites a stamped key.
+        if (event.get("type") == "region_captured"
+                and "holdings_left" not in event
+                and getattr(self, "sandbox_mode", False)
+                and event.get("captured_from")
+                and event.get("captured_from") == self.player_nation):
+            from backend.game_logic import collapse as _collapse
+            if _collapse.THE_COLLAPSE_IS_LEGIBLE:
+                from backend.game_logic.formations import formed_display_name
+                _lost_by = self.player_nation
+                event["holdings_left"] = int(len(self.get_nation_regions(_lost_by)))
+                event["holdings_realm"] = formed_display_name(self, _lost_by)
         self.event_log.append(event)
         if len(self.event_log) > self.MAX_EVENT_LOG_SIZE:
             self.event_log = self.event_log[-self.MAX_EVENT_LOG_SIZE:]

@@ -23,6 +23,16 @@ signal view_field_requested(payload: Dictionary)
 # Utils.NATION_COLORS (single source, all 20 nations) — see _get_nation_color.
 const COLOR_ERROR = "cd5c5c"
 
+# IQ-2 (Sept 14, 2026) flip lever — true: a province taken FROM the player
+# renders as a loss. Measured in the played collapse campaigns: France losing
+# her own capital printed "Region captured: Paris" in COLOR_CONQUEST — the
+# success green — because every capture line was coloured as a victory,
+# whoever lost it. false = the pre-IQ-2 colours byte-for-byte.
+const OUR_LOSS_READS_AS_LOSS := true
+# The player's court on every shipped world — the same fact
+# `_victor_is_player` below compares against.
+const _PLAYER_NATION := "France"
+
 # BD: tableau payloads for this phase's battles, indexed by the meta link.
 var _diorama_payloads: Array = []
 
@@ -149,6 +159,8 @@ func _format_action(action: Dictionary) -> String:
 
 	# Detect bombardment (AI sends action="attack" but result has bombardment_result)
 	var is_bombardment = action.has("bombardment_result")
+	# IQ-2: the action line's colour — a march that takes OUR province is a loss.
+	var line_color = Utils.COLOR_TEXT
 
 	match action_type:
 		"attack":
@@ -185,6 +197,8 @@ func _format_action(action: Dictionary) -> String:
 				fate = str(mv.get("capture_choice", ""))
 				break
 			if taken_from != "":
+				if OUR_LOSS_READS_AS_LOSS and taken_from == _PLAYER_NATION:
+					line_color = COLOR_ERROR
 				action_str += " — " + target + " falls"
 				action_str += " (was " + Utils.display_nation_name(taken_from) + ")"
 				if fate == "plunder":
@@ -273,7 +287,7 @@ func _format_action(action: Dictionary) -> String:
 			if target:
 				action_str += " " + target
 
-	result += "[color=#" + Utils.COLOR_TEXT + "]- " + action_str + "[/color]\n"
+	result += "[color=#" + line_color + "]- " + action_str + "[/color]\n"
 
 	# Check for battle events
 	var events = action.get("events", [])
@@ -322,7 +336,10 @@ func _format_action(action: Dictionary) -> String:
 				choice_str = " (plundered)"
 			elif capture_choice == "secure":
 				choice_str = " (secured)"
-			result += "[color=#" + Utils.COLOR_CONQUEST + "]    Region captured: " + region + choice_str + "[/color]\n"
+			# IQ-2: both conquest producers stamp `captured_from` (WO-9) — a
+			# province taken from us is a loss, not a victory in green.
+			var conquest_color = COLOR_ERROR if _taken_from_player(event) else Utils.COLOR_CONQUEST
+			result += "[color=#" + conquest_color + "]    Region captured: " + region + choice_str + "[/color]\n"
 
 	# Berthier's After-Action Report (if battle occurred)
 	if action.has("battle_report"):
@@ -416,7 +433,10 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 			battle_choice_str = " (plundered)"
 		elif battle_capture_choice == "secure":
 			battle_choice_str = " (secured)"
-		result += "[color=#" + Utils.COLOR_CONQUEST + "]    " + region + " CAPTURED!" + battle_choice_str + "[/color]\n"
+		# IQ-2: the same rule when the battle event carries `captured_from`
+		# (absent today on the field-battle event — then unchanged).
+		var battle_capture_color = COLOR_ERROR if _taken_from_player(event) else Utils.COLOR_CONQUEST
+		result += "[color=#" + battle_capture_color + "]    " + region + " CAPTURED!" + battle_choice_str + "[/color]\n"
 
 	# Check for forced retreat
 	if attacker.get("forced_retreat", false):
@@ -641,6 +661,15 @@ func _get_nation_color(nation: String) -> String:
 	if lum < 0.45:
 		c = c.lightened(clampf(0.55 - lum, 0.0, 0.6))
 	return c.to_html(false)
+
+func _taken_from_player(event: Dictionary) -> bool:
+	"""IQ-2: true when this capture took a province FROM the player — read off
+	the event's own `captured_from` stamp, never guessed from the battle's
+	sides (a French corps can fall on an ally's soil). Lever-gated."""
+	if not OUR_LOSS_READS_AS_LOSS:
+		return false
+	var taken = event.get("captured_from", "")
+	return taken is String and taken == _PLAYER_NATION
 
 func _victor_is_player(event: Dictionary, victor: String) -> bool:
 	"""True when the battle's victor fought for France. Side nations ride the

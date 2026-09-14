@@ -44,6 +44,50 @@ def region_has_friendly_supply(region) -> bool:
         return False
 
 
+# IQ-2 (Sept 14, 2026): `get_levy_status` called the levy OPEN without asking
+# the two location gates `_execute_recruit` asks at the depot — who holds it,
+# and will its people answer. `get_nation_capital` returns the AUTHORED
+# capital whoever holds it, so with Austria in Paris the dispatch headline,
+# the ledger's "The depots are open" line and the region panel advertised
+# "10,000 foot cost 450 gold at Paris" while the executor answered "We do not
+# control Paris, Your Majesty. Recruitment is impossible there." One predicate
+# now, read by both. Flip lever: False restores the headroom/pool/recipient
+# gate and the pre-IQ-2 dict (no `capital_held` / `closed_reason` keys).
+LEVY_READS_THE_DEPOT_GATE = True
+
+RECRUIT_GATE_NOT_CONTROLLED = "not_controlled"
+RECRUIT_GATE_UNREST = "unrest"
+
+
+def recruit_location_gate(region, acting_nation: str) -> Optional[str]:
+    """The recruit executor's LOCATION gates, in its own order — None when
+    the depot will levy, else `not_controlled` / `unrest`. The single source
+    `_execute_recruit` refuses on and `get_levy_status` opens on."""
+    if region.controller != acting_nation:
+        return RECRUIT_GATE_NOT_CONTROLLED
+    # Stability gate: block entire Unrest tier (stability <= 50).
+    if region.stability <= 50:
+        return RECRUIT_GATE_UNREST
+    return None
+
+
+def depot_closed_reason(world, region_name: str, region, gate: Optional[str]) -> str:
+    """Display: why the depot at `region_name` will not levy ('' when it
+    will). One phrasing for the levy status and the ledger's MANPOWER tab."""
+    if gate == RECRUIT_GATE_NOT_CONTROLLED:
+        holder = (getattr(region, "controller", "") or "") if region is not None else ""
+        if holder:
+            from backend.game_logic.formations import formed_display_name
+            return (f"The depot at {region_name} is closed — {region_name} is in "
+                    f"{formed_display_name(world, holder)}'s hands.")
+        return f"The depot at {region_name} is closed — {region_name} is lost to us."
+    if gate == RECRUIT_GATE_UNREST:
+        return (f"The depot at {region_name} is closed — {region_name} is in "
+                f"{region.get_stability_label()} (stability {int(region.stability)}/100); "
+                f"the populace will not answer the call until stability exceeds 50.")
+    return ""
+
+
 def _recruit_block_reason(world) -> str:
     """Why no marshal could take the recruits — CA8-11.
 
@@ -609,14 +653,17 @@ class EconomyExecutor:
         acting_nation = world.player_nation
         if recruit_marshal:
             acting_nation = recruit_marshal.nation
-        if region.controller != acting_nation:
+        # IQ-2: the location gates live in `recruit_location_gate` so the levy
+        # status cannot advertise a depot this refuses (messages unchanged).
+        location_gate = recruit_location_gate(region, acting_nation)
+        if location_gate == RECRUIT_GATE_NOT_CONTROLLED:
             return {
                 "success": False,
                 "message": f"Berthier frowns. 'We do not control {recruitment_location}, Your Majesty. Recruitment is impossible there.'"
             }
 
         # Stability gate: block entire Unrest tier (stability <= 50).
-        if region.stability <= 50:
+        if location_gate == RECRUIT_GATE_UNREST:
             label = region.get_stability_label()
             return {
                 "success": False,
@@ -1980,7 +2027,10 @@ def get_levy_status(world, nation: str = None) -> dict:
     recipient = None
     if capital and nation == world.player_nation:
         recipient = world.find_nearest_marshal_to_region(capital)
-    return {
+    is_open = bool(limit and headroom >= INFANTRY_RECRUIT_AMOUNT
+                   and pool >= INFANTRY_RECRUIT_AMOUNT
+                   and recipient)
+    status = {
         "recipient_in_range": bool(recipient),
         "force_limit": int(limit),
         "army_strength": int(total),
@@ -1995,7 +2045,32 @@ def get_levy_status(world, nation: str = None) -> dict:
         # depots can actually fill it. Both halves matter: the played
         # campaign had headroom from turn 12 and a full pool, and was told
         # about neither.
-        "open": bool(limit and headroom >= INFANTRY_RECRUIT_AMOUNT
-                     and pool >= INFANTRY_RECRUIT_AMOUNT
-                     and recipient),
+        "open": is_open,
     }
+    # IQ-2: the depot's own gates (see LEVY_READS_THE_DEPOT_GATE). Europe
+    # only — `force_limit` 0 is the legacy "do not render" sentinel, and its
+    # dict stays byte-identical.
+    if LEVY_READS_THE_DEPOT_GATE and limit:
+        gate = (recruit_location_gate(region, nation) if region is not None
+                else RECRUIT_GATE_NOT_CONTROLLED)
+        status["open"] = bool(is_open and gate is None)
+        status["capital_held"] = bool(region is not None and region.controller == nation)
+        reason = ""
+        if gate is not None:
+            reason = depot_closed_reason(world, capital or "the capital", region, gate)
+        elif not status["open"]:
+            # Display order: the depot first (no march reopens it), then the
+            # executor's own recipient and pool terms, then the ordinance.
+            amount = int(INFANTRY_RECRUIT_AMOUNT)
+            if not recipient:
+                reason = (f"No corps stands within reach of the depot at "
+                          f"{capital} to receive the recruits.")
+            elif pool < amount:
+                reason = f"The infantry pool holds {pool:,} — a levy is {amount:,}."
+            elif total > limit:
+                reason = f"The establishment stands {int(total - limit):,} over the ordinance."
+            else:
+                reason = (f"Only {int(headroom):,} men of room remain under "
+                          f"the ordinance — a levy is {amount:,}.")
+        status["closed_reason"] = reason
+    return status

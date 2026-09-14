@@ -13,7 +13,9 @@ Pins (the S4 completion definition, spec §0.6.3):
   region-scan (GR8 — ×2 per end_turn on 126 provinces) never runs.
 - DISPLAY READERS gated with enforcement (never one without the other):
   `dispatch._build_turn_limit_warning` → None; `get_defeat_imminent_state`
-  → None ("the campaign ends" would be a false promise); `get_turn_summary`
+  never says "the campaign ends" (a false promise) — since IQ-2 (Sept 14,
+  2026) its SANDBOX arm returns honest, non-terminal collapse copy at one
+  province or none; `get_turn_summary`
   omits the countdown keys; `get_action_summary` sends the max_turns=0
   open-ended sentinel and main.gd renders a bare turn number for it.
 - AUTO-ADVANCE CONSISTENCY: `end_turn` past turn 60 keeps playing —
@@ -188,13 +190,26 @@ class TestSandboxDisplayReaders:
 
     def test_no_defeat_imminent_warning(self, europe):
         """'If it falls, the campaign ends' is a false promise in sandbox —
-        gated at the single source (get_defeat_imminent_state)."""
+        gated at the single source (get_defeat_imminent_state).
+
+        IQ-2 (Sept 14, 2026) — CONSCIOUSLY FLIPPED: this pinned the warning
+        SILENT, and silence was the measured defect — a France at one
+        province and then none played on while no surface said so. The
+        sandbox arm now returns an honest dict; what this pin still guards is
+        the original promise: the copy never says the campaign ends, never
+        calls it a defeat, never calls France eliminated."""
         # One-region France = the pre-S4 'One Region Remains' trigger.
         _give_all_regions(europe, "Austria")
         first = next(iter(europe.regions.values()))
         first.controller = "France"
         europe.invalidate_active_nations_cache()
-        assert get_defeat_imminent_state(europe) is None
+        warning = get_defeat_imminent_state(europe)
+        assert warning is not None
+        assert warning["controlled_regions"] == [first.name]
+        for field in ("message", "notification_title", "heading"):
+            text = str(warning.get(field, "")).lower()
+            for forbidden in ("campaign ends", "defeat", "eliminated"):
+                assert forbidden not in text, (field, forbidden, warning[field])
 
     def test_turn_summary_omits_countdown_keys(self, europe):
         europe.current_turn = europe.max_turns  # would read '0 remaining'

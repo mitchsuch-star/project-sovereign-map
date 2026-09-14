@@ -340,16 +340,53 @@ class TestManpowerRegen:
         assert regen_after < regen_before
 
     def test_nation_zero_regions_skips_regen(self):
-        """DLF-11: Eliminated nation (0 regions) gets NO regen."""
+        """DLF-11: Eliminated nation (0 regions) gets NO regen.
+
+        IQ-2 (Sept 14, 2026) — CONSCIOUSLY RE-SITED. The fixture used to
+        strip FRANCE, but the player is never eliminated (`_eliminate_nation`
+        returns early for her) and so, since IQ-2, never leaves the roster
+        (`PLAYER_NEVER_LEAVES_THE_ROSTER`). DLF-11's claim is about an
+        ELIMINATED court, so it now strips one; the player's own arm is
+        pinned below.
+        """
+        world = fresh_world()
+        victim = next(n for n in world.enemy_nations
+                      if n in world.manpower_pools
+                      and world.get_nation_regions(n)
+                      and n not in getattr(world, "vassals", {}))
+        for r in world.regions.values():
+            if r.controller == victim:
+                r.controller = "Britain" if victim != "Britain" else "Austria"
+        world.invalidate_active_nations_cache()
+        world.manpower_pools[victim]["cavalry"] = 0
+        world.manpower_pools[victim]["infantry"] = 0
+        world._process_manpower_regen()
+        assert world.manpower_pools[victim]["cavalry"] == 0
+        assert world.manpower_pools[victim]["infantry"] == 0
+
+    def test_landless_player_still_regenerates(self):
+        """IQ-2: a France holding no province is still a court in the war —
+        her depots' base infantry regen is territory-independent, and the
+        processor now reaches her. Lever down restores the old skip."""
+        import backend.models.world_state as ws
         world = fresh_world()
         for r in world.regions.values():
             if r.controller == "France":
                 r.controller = "Britain"
-        world.manpower_pools["France"]["cavalry"] = 0
+        world.invalidate_active_nations_cache()
         world.manpower_pools["France"]["infantry"] = 0
         world._process_manpower_regen()
-        assert world.manpower_pools["France"]["cavalry"] == 0
-        assert world.manpower_pools["France"]["infantry"] == 0
+        assert world.manpower_pools["France"]["infantry"] > 0
+        saved = ws.PLAYER_NEVER_LEAVES_THE_ROSTER
+        ws.PLAYER_NEVER_LEAVES_THE_ROSTER = False
+        try:
+            world.invalidate_active_nations_cache()
+            world.manpower_pools["France"]["infantry"] = 0
+            world._process_manpower_regen()
+            assert world.manpower_pools["France"]["infantry"] == 0
+        finally:
+            ws.PLAYER_NEVER_LEAVES_THE_ROSTER = saved
+            world.invalidate_active_nations_cache()
 
     def test_get_cavalry_regen_rate_matches_regen(self):
         """get_cavalry_regen_rate returns same value as _process_manpower_regen computes."""

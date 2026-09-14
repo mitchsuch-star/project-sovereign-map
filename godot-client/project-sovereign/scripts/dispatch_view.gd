@@ -117,7 +117,14 @@ func _on_dispatch_received(response):
 		# WO-10 (WO slice 12): the estimate says how good it is.
 		var strength_note = str(situation.get("enemy_strength_note", ""))
 		var note_suffix = "" if strength_note == "" else " " + strength_note
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]\n"
+		# IQ-2 (Sept 14, 2026): with no French corps under arms the ratio has
+		# no denominator — it printed "Estimated enemy strength: 0% of French
+		# forces" over an annihilated army. The backend says so instead.
+		var no_field_army = situation.get("no_field_army", false)
+		if typeof(no_field_army) == TYPE_BOOL and no_field_army:
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. [/color][color=#" + Utils.COLOR_ERROR + "]France has no army in the field.[/color]\n"
+		else:
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]\n"
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
@@ -429,7 +436,13 @@ func _on_dispatch_received(response):
 		var diw_sev = str(defeat_imminent_warning.get("severity", "warning"))
 		if diw_msg != "":
 			var diw_color = Utils.COLOR_ERROR if diw_sev == "critical" else Utils.COLOR_BATTLE
-			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]DEFEAT WARNING[/color]\n"
+			# IQ-2 (Sept 14, 2026): the sandbox arm of this warning may not
+			# promise an ending (the 1805 campaign is open-ended), so it names
+			# its own heading; the legacy arm sends none and keeps the literal.
+			var diw_heading = defeat_imminent_warning.get("heading", "")
+			if not (diw_heading is String) or diw_heading == "":
+				diw_heading = "DEFEAT WARNING"
+			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]" + diw_heading + "[/color]\n"
 			bbcode += "[color=#" + diw_color + "]  " + diw_msg + "[/color]\n\n"
 
 	# ═══ BERTHIER'S NOTE ═══

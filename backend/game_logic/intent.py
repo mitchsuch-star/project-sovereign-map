@@ -61,6 +61,25 @@ PRICE_DISPLAY = {
     "fight": "War",
 }
 
+# IQ-2 (Sept 14, 2026) flip lever. Every price sentence splices the rung's
+# LABEL into "go as far as {x}", and the bottom rung's label is an adjective:
+# measured on the mirror of a collapsed France, "The courts believe he will
+# go as far as indifferent (alarm 3)"; the same splice reaches the intent
+# summary, Talleyrand's design counsel and the eases dispatch ("indifferent
+# is now the length of its tether"). The bottom rung now gets a sentence of
+# its own. False = the spliced adjective, byte-for-byte.
+INDIFFERENT_READS_AS_A_SENTENCE = True
+
+
+def price_reach_phrase(price: str) -> str:
+    """'prepared to go as far as war' — the ONE composition of a court's
+    price for the "Their price:" / "Their court is …" sentences, so the
+    bottom rung cannot be spliced in as an adjective at one site and fixed
+    at another."""
+    if INDIFFERENT_READS_AS_A_SENTENCE and price == "indifferent":
+        return "not yet prepared to act on it"
+    return f"prepared to go as far as {PRICE_DISPLAY.get(price, price).lower()}"
+
 # Blessed weight-derivation constants (in-band tunable; shape escalates).
 WEIGHT_BASE_BY_TYPE = {
     "acquire_regions": 55,
@@ -441,13 +460,12 @@ def build_intent_payload(nation: str, world) -> Optional[dict]:
     against_display = (formed_display_name(world, view.against)
                        if view.against else None)
     price_display = PRICE_DISPLAY.get(view.price, view.price)
+    reach = price_reach_phrase(view.price)
     if view.against:
-        summary = (f"prepared to go as far as "
-                   f"{price_display.lower()} — {against_display} "
+        summary = (f"{reach} — {against_display} "
                    f"stands in the way (weight {view.weight})")
     else:
-        summary = (f"prepared to go as far as "
-                   f"{price_display.lower()} (weight {view.weight})")
+        summary = f"{reach} (weight {view.weight})"
     return {
         "want_id": view.want_id,
         "want_title": view.want_title,
@@ -580,10 +598,16 @@ def process_intent_movements(world) -> List[Dict]:
         view = movement["view"]
         nation_display = _live_nation_name(world, movement["nation"])
         price_display = PRICE_DISPLAY.get(view.price, view.price)
+        price_word = price_display.lower()
+        # IQ-2: the eases template reads "{price} is now the length of its
+        # tether" — the noun, not the adjective, for the bottom rung (a
+        # court only EASES onto it; hardening can never land there).
+        if INDIFFERENT_READS_AS_A_SENTENCE and view.price == "indifferent":
+            price_word = "indifference"
         vars_ = {
             "nation": nation_display,
             "want": view.want_title or "its design",
-            "price": price_display.lower(),
+            "price": price_word,
         }
         event_type = ("intent_hardens" if movement["climbed"]
                       else "intent_eases")
@@ -645,6 +669,17 @@ def get_france_perceived_intent(world) -> Tuple[str, int, Optional[str]]:
     return price, max(0, min(100, threat)), _perceived_target(world)
 
 
+# IQ-2 (Sept 14, 2026) flip lever. The mirror credited EVERY French
+# marshal with no captured_by / strength filter, and a captive is moved to
+# his captor's capital — so a captured Emperor in Vienna made Europe "think
+# he is coming for Austria" while France held one province. A prisoner and
+# a destroyed corps stand against nobody's soil. The AI twin reads this too
+# (ai_diplomacy's sell-neutrality arm asks whether the court is France's
+# perceived target), which is why it is a flip and not a comment. False =
+# every marshal credited, byte-for-byte.
+THE_MIRROR_COUNTS_ONLY_STANDING_CORPS = True
+
+
 def _perceived_target(world) -> Optional[str]:
     """Who Europe thinks Napoleon is coming for: the non-vassal court with
     the most French corps standing on or against its soil. A defensive
@@ -668,6 +703,10 @@ def _perceived_target(world) -> Optional[str]:
 
     for marshal in world.marshals.values():
         if getattr(marshal, "nation", None) != player:
+            continue
+        if THE_MIRROR_COUNTS_ONLY_STANDING_CORPS and (
+                getattr(marshal, "captured_by", "")
+                or int(getattr(marshal, "strength", 0) or 0) <= 0):
             continue
         location = getattr(marshal, "location", None)
         region = world.regions.get(location) if location else None
@@ -693,8 +732,19 @@ def build_france_mirror_payload(world) -> Optional[dict]:
     if getattr(world, "sovereign_map", "legacy") != "europe":
         return None
     price, weight, target = get_france_perceived_intent(world)
+    from backend.game_logic.collapse import get_collapse_state
     from backend.game_logic.formations import formed_display_name
-    if hegemon == player:
+    # IQ-2: a France holding one province or none is read as what she is —
+    # "a great power in Austria's shadow" was the mirror's reading of a
+    # realm the map had already emptied. The share arms stand otherwise.
+    collapse = get_collapse_state(world, player)
+    if collapse is not None:
+        realm = formed_display_name(world, player)
+        held = ("no province of her own"
+                if int(collapse["provinces_held"]) == 0
+                else "a single province")
+        read_as = f"A broken power — {realm} holds {held}"
+    elif hegemon == player:
         read_as = (f"The hegemon of Europe — "
                    f"{share:.0%} of the continent's weight")
     elif hegemon:
@@ -703,10 +753,15 @@ def build_france_mirror_payload(world) -> Optional[dict]:
     else:
         read_as = "A power among powers"
     price_display = PRICE_DISPLAY.get(price, price)
+    if INDIFFERENT_READS_AS_A_SENTENCE and price == "indifferent":
+        price_line = (f"The courts believe he will act against no one "
+                      f"(alarm {weight}).")
+    else:
+        price_line = (f"The courts believe he will go as far as "
+                      f"{price_display.lower()} (alarm {weight}).")
     lines = [
         f"Read as: {read_as}.",
-        (f"The courts believe he will go as far as "
-         f"{price_display.lower()} (alarm {weight})."),
+        price_line,
     ]
     if target:
         lines.append(

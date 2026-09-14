@@ -63,6 +63,30 @@ _DIPLOMAT_DESCRIPTORS = {
 # State display names — single source in display_names.py (R7)
 from backend.display_names import STATE_NARRATIVE_DISPLAY as _STATE_DISPLAY
 
+# IQ-2 (Sept 14, 2026) flip levers — the GENERAL fixes this row found in the
+# war room. The collapse arms need none of their own: they read
+# `collapse.get_collapse_state`, which the collapse lever already gates.
+#
+# `_compare_threats` read the player's OWN army through `_get_fogged_strength`
+# — a fog helper for foreign courts, which returns a 30,000-man "mid-range
+# assumption" for a nation with no strength-positive marshal. Measured: a
+# France with no corps standing was weighed as 30,000 men here while
+# `_get_military_advantage`, on the same screen, read her true 0. Our own
+# army is never fogged (R5 governs the enemy). False = the fogged read.
+THE_PLAYER_READS_HIS_OWN_STRENGTH_RAW = True
+# Counsel rung 3 hard-coded "1 DP + 200 gold; +10 loyalty." while
+# `invest_in_vassal` multiplies the gain by `get_authority_lever_multiplier`
+# — measured +4 in a grip spiral, the exact case in which the counsel fires
+# (a vassal drifting toward revolt). The description is now priced by
+# `diplomatic_ledger.invest_terms`, the reader the Vassals tab's chips use.
+# False = the hard-coded description.
+THE_INVEST_COUNSEL_QUOTES_THE_EXECUTOR = True
+# `_recommend_action`'s balanced-war arm counselled "the Tilsit model — win
+# one more engagement, then propose generous peace" to a France with no army
+# in the field (`war_council.get_free_strength` 0). A battle that cannot be
+# fought is not counsel. False = the Tilsit counsel on every balanced war.
+THE_TILSIT_COUNSEL_NEEDS_AN_ARMY = True
+
 
 # ═══════════════════════════════════════════════════════
 # PUBLIC API
@@ -449,9 +473,13 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
             intent_payload = build_intent_payload(opponent, world)
             price_clause = ""
             if intent_payload:
+                # IQ-2: one composition of the price sentence (intent's own),
+                # so the bottom rung never splices in as "as far as
+                # indifferent".
+                from backend.game_logic.intent import price_reach_phrase
                 price_clause = (
-                    f" Their court is prepared to go as far as "
-                    f"{intent_payload['price_display'].lower()}.")
+                    f" Their court is "
+                    f"{price_reach_phrase(intent_payload['price'])}.")
             terms_state = (row.get("request_terms_state") or {}).get("state", "")
             # The terms route belongs to the row's leader; other members
             # get the proposal menu (expand_options is always reachable).
@@ -508,11 +536,23 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
         if record.get("lord") != player:
             continue
         if int(record.get("loyalty", 100)) < 40:
+            description = "1 DP + 200 gold; +10 loyalty."
+            if THE_INVEST_COUNSEL_QUOTES_THE_EXECUTOR:
+                # Shown = applied: the executor's own multiplier, through
+                # the one reader the Vassals tab shares. The blunted clause
+                # is the executor's own phrase (UI-6's pinned wording).
+                from backend.game_logic.diplomatic_ledger import invest_terms
+                terms = invest_terms(world, player)
+                description = (f"{terms['dp_cost']} DP + {terms['gold_cost']} "
+                               f"gold; +{terms['gain']} loyalty.")
+                if terms["blunted"]:
+                    description += (" The Emperor's faltering grip blunts "
+                                    "the gesture.")
             return {
                 "kind": "invest_vassal",
                 "target": name,
                 "label": f"Invest in {name}",
-                "description": "1 DP + 200 gold; +10 loyalty.",
+                "description": description,
                 "text": (f"{name} drifts toward revolt — a little gold now "
                          f"is cheaper than a garrison later."),
             }
@@ -561,14 +601,28 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
         if best is None or rel > best[1]:
             best = (nation, rel)
     if best:
+        text = (f"{best[0]} is neither friend nor enemy (relations "
+                f"{best[1]:+d}) — the ripest court in Europe for an "
+                f"approach.")
+        # IQ-2: measured, the morning opened "Denmark may be ready to discuss
+        # improved relations" to a France holding one province. The opening
+        # may still be real — the scorer's band says so — but it is spoken
+        # after the fact it sits beside, never instead of it.
+        from backend.game_logic.collapse import (
+            get_collapse_state, realm_sentence,
+        )
+        collapse = get_collapse_state(world, player)
+        if collapse is not None:
+            text = (f"mark it plainly — {realm_sentence(world, collapse)} "
+                    f"Even so, {formed_display_name(world, best[0])} is "
+                    f"neither friend nor enemy (relations {best[1]:+d}) — "
+                    f"the ripest court in Europe for an approach.")
         return {
             "kind": "open_proposal",
             "target_nation": best[0],
             "label": f"Approach {best[0]}",
             "description": "Open a proposal — the ripest diplomatic opening.",
-            "text": (f"{best[0]} is neither friend nor enemy (relations "
-                     f"{best[1]:+d}) — the ripest court in Europe for an "
-                     f"approach."),
+            "text": text,
         }
     return None
 
@@ -603,6 +657,20 @@ def _assess_situation(world) -> Dict:
     coalition_info = wars_data.get("coalition")
 
     lines: List[str] = ["Sire — the state of Europe, plainly told.", ""]
+    # IQ-2: the war room never mentioned France's OWN province count, capital
+    # or captive Emperor — measured, a France at one province heard of
+    # Denmark's openness before it heard of itself. Under the collapse our
+    # own state leads, and the scope note is said once, out loud: the
+    # collapse is legible, never terminal.
+    from backend.game_logic.collapse import (
+        CAMPAIGN_CONTINUES, get_collapse_state, summary_line,
+    )
+    from backend.game_logic.formations import formed_display_name as _realm_name
+    collapse = get_collapse_state(world, player)
+    if collapse is not None:
+        lines.append(f"  Our own state: {summary_line(world, collapse)}")
+        lines.append(f"  {CAMPAIGN_CONTINUES}")
+        lines.append("")
 
     # ── The wars ──
     wars_context: List[Dict] = []
@@ -680,6 +748,12 @@ def _assess_situation(world) -> Dict:
                                  "war_score": score, "trend": trend,
                                  "agendas": agenda_payloads,
                                  "intents": intent_payloads})
+    elif collapse is not None:
+        # IQ-2: "a rare and precious quiet" was the copy for a peace worth
+        # having; after the collapse it is a quiet nobody won.
+        lines.append(f"  {_realm_name(world, player)} wages no war now — "
+                     f"but the quiet comes after the collapse of the realm, "
+                     f"not after a victory.")
     else:
         lines.append("  France wages no war — a rare and precious quiet.")
     for row in armistice_rows:
@@ -710,6 +784,33 @@ def _assess_situation(world) -> Dict:
         lines.append(
             f"  {name} stands against us, led by {leader} — its posture "
             f"is {posture.upper()}. (Threat {threat}, {tier}.)")
+    elif collapse is not None:
+        # IQ-2: measured on the collapsed campaign — the league dissolved on
+        # low threat and ended no war, and this line read "No coalition
+        # stands against us. Europe's alarm reads 0 (Calm)." while three
+        # courts were still at war with us. The alarm is low because no
+        # court fears a France this size; the wars are what remain. The
+        # 'Calm' label is never attached here.
+        from backend.game_logic.diplomatic_ledger import (
+            courts_at_war_with, remain_at_war_clause,
+        )
+        posture = str(get_coalition_posture(world))
+        lines.append("")
+        at_war = courts_at_war_with(world, player)
+        calm = tier == "Calm"
+        alarm = (f"Europe's alarm reads {threat}" if calm
+                 else f"Europe's alarm reads {threat}, {tier}")
+        if at_war:
+            lead = ("The coalition has lapsed as a league"
+                    if int(getattr(world, "coalition_cooldown", 0) or 0) > 0
+                    else "No coalition stands against us")
+            fear = (f" — no court fears {_realm_name(world, player)} now —"
+                    if calm else ",")
+            lines.append(f"  {lead}{fear} but "
+                         f"{remain_at_war_clause(world, at_war)}. ({alarm}.)")
+        else:
+            lines.append(f"  No coalition stands against us, and no court is "
+                         f"at war with us. {alarm}.")
     else:
         posture = str(get_coalition_posture(world))
         lines.append("")
@@ -769,11 +870,15 @@ def _assess_situation(world) -> Dict:
             continue
         if _restraint_block_reason(world, court, court_view.against) != "exposed":
             continue
-        threat = get_exposure_view(world, court).get("worst_threat")
+        # IQ-2 (found in passing): this loop used to assign `threat`, the
+        # SAME name as the int alarm read above — so whenever a design was
+        # in check the context's "threat_level" left for Godot as a nation
+        # key or None (Golden Rule 2).
+        worst_threat = get_exposure_view(world, court).get("worst_threat")
         checked_designs.append({
             "nation": court,
             "against": court_view.against,
-            "threat": threat,
+            "threat": worst_threat,
             "want_title": court_view.want_title,
         })
     if checked_designs:
@@ -847,6 +952,16 @@ def _assess_situation(world) -> Dict:
                 "action": "execute_suggestion",
                 "terms": {"suggestion": dict(recommendation)},
             })
+    elif collapse is not None:
+        # IQ-2: "hold our course" is counsel for a realm with a course. The
+        # collapse fallback states what we still have and promises nothing —
+        # least of all an end.
+        from backend.game_logic.collapse import forces_clause, sovereign_clause
+        lines.append("")
+        lines.append(f"My counsel, Sire: Europe offers no opening today, and "
+                     f"I will not dress one up. {forces_clause(world, collapse)}"
+                     f"{sovereign_clause(world, collapse)} We work with what "
+                     f"stands under arms and with what the table will hear.")
     else:
         lines.append("")
         lines.append("My counsel, Sire: hold our course — Europe offers "
@@ -1019,7 +1134,9 @@ def _compare_threats(world) -> Dict:
     """Compare all nations as threats to France. Deterministic ranking."""
     threat_entries: List[Dict] = []
     player_nation = get_player_nation(world)
-    player_strength = _get_fogged_strength(player_nation, world)
+    player_strength = (_get_nation_total_strength(player_nation, world)
+                       if THE_PLAYER_READS_HIS_OWN_STRENGTH_RAW
+                       else _get_fogged_strength(player_nation, world))
     active = set(world.get_active_nations())  # DLF-11
     active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for nation in sorted(get_known_nations(world)):
@@ -1164,6 +1281,8 @@ def _recommend_action(target_nation: str, world) -> Dict:
     advantage = _get_military_advantage(target_nation, world)
 
     player_war_score = get_war_score_for(world, player_nation, target_nation)
+    from backend.game_logic.collapse import get_collapse_state
+    collapse = get_collapse_state(world, player_nation)
 
     if state == "WAR":
         if player_war_score > 20:
@@ -1190,6 +1309,36 @@ def _recommend_action(target_nation: str, world) -> Dict:
             recommendation = "Seek armistice immediately."
             hints = [f"Propose armistice with {target_nation}", "Reinforce the front lines"]
             confidence = "high"
+        elif collapse is not None or _no_field_army(world, player_nation):
+            # IQ-2: the Tilsit model needs the engagement it names. A France
+            # at one province — or with no army free in the field — was told
+            # to "win one more engagement"; the level score is a reason to
+            # seek terms now, not a promise that a battle would improve them.
+            no_army = _no_field_army(world, player_nation, force=True)
+            if collapse is not None:
+                from backend.game_logic.collapse import summary_line
+                opening = (f"Sire, on the ledger the war with {target_nation} "
+                           f"hangs in the balance — war score "
+                           f"{int(player_war_score)} — but the ledger is not "
+                           f"the field. {summary_line(world, collapse)}\n\n")
+            else:
+                opening = (f"Sire, the war with {target_nation} hangs in the "
+                           f"balance — war score {int(player_war_score)} — "
+                           f"but we have no army in the field to win the "
+                           f"engagement the Tilsit model needs.\n\n")
+            closing = ("Seek terms while the score still stands level; a "
+                       "battle we cannot fight will not improve them."
+                       if no_army else
+                       "One engagement will not restore that. Seek terms "
+                       "while the score still stands level, and keep the "
+                       "corps we have in being.")
+            text = opening + closing
+            recommendation = "Seek terms while the score stands level."
+            hints = [
+                f"Propose peace with {target_nation}",
+                f"Propose armistice with {target_nation}",
+            ]
+            confidence = "medium"
         else:
             text = (
                 f"Sire, the war with {target_nation} hangs in the balance. "
@@ -1214,6 +1363,18 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 f"I recommend pursuing a formal alliance. The diplomatic cost "
                 f"is modest and the strategic benefit immense."
             )
+            if collapse is not None:
+                # IQ-2: "the strategic benefit immense" — of an alliance
+                # with a realm that holds one province. The goodwill is real;
+                # what France brings to it is stated, not flattered.
+                from backend.game_logic.collapse import realm_sentence
+                text = (
+                    f"Sire, {target_nation} is well-disposed toward us — "
+                    f"relations stand at {relation}.\n\n"
+                    f"An alliance is worth asking for — but mark it plainly: "
+                    f"{realm_sentence(world, collapse)} Their court will weigh "
+                    f"what we can still bring to the bargain."
+                )
             recommendation = f"Pursue alliance with {target_nation}."
             hints = [f"Propose alliance with {target_nation}", "Improve relations further"]
             confidence = "high"
@@ -1291,6 +1452,13 @@ def _recommend_action_overview(world) -> Dict:
 def _diplomatic_overview(world) -> Dict:
     """Generate a full diplomatic overview across all nations."""
     lines = ["An overview, Sire:\n"]
+    # IQ-2: an overview of every court but our own read as an ordinary
+    # campaign at one province. Our own state comes first.
+    from backend.game_logic.collapse import get_collapse_state, summary_line
+    _collapse = get_collapse_state(world, get_player_nation(world))
+    if _collapse is not None:
+        lines = [f"An overview, Sire — and first, our own state: "
+                 f"{summary_line(world, _collapse)}\n"]
     most_urgent_nation = None
     most_urgent_score = -999
     player_nation = get_player_nation(world)
@@ -1383,6 +1551,17 @@ def _diplomatic_overview(world) -> Dict:
 # ═══════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════
+
+def _no_field_army(world, nation: str, force: bool = False) -> bool:
+    """True when `nation` has no free field strength — the war council's own
+    `get_free_strength` (standing minus the rear reserve), never a second
+    copy of the exposure calculus. `force` reads it regardless of the
+    THE_TILSIT_COUNSEL_NEEDS_AN_ARMY lever (the collapse arm's wording)."""
+    if not (force or THE_TILSIT_COUNSEL_NEEDS_AN_ARMY):
+        return False
+    from backend.game_logic.war_council import get_free_strength
+    return get_free_strength(world, nation) <= 0
+
 
 def _get_nation_total_strength(nation: str, world) -> int:
     """Sum total troop strength across all marshals of a nation."""

@@ -30,6 +30,63 @@ def _build_instruments_line(nation: str, world):
     """Thin adapter keeping the nations-tab call site tidy."""
     return build_instruments_line(world, nation)
 
+
+# ============================================================================
+# IQ-2 (Sept 14, 2026) — shared pieces for the collapse copy and the counsel
+# ============================================================================
+
+def courts_at_war_with(world, nation: str) -> List[str]:
+    """The live courts still at war with `nation`, in display order.
+
+    One reader for every IQ-2 surface that says "… remain at war with us"
+    (the war room, the Balance of Europe tab, France's exposure row, the
+    dissolution notice), so they name the same courts. Reads the war map
+    (`diplomatic_states`), never the region map (GR8); the DLF-11 active
+    set drops a court that no longer exists."""
+    from backend.game_logic.formations import formed_display_name
+    active = set(world.get_active_nations())
+    courts = {n for n in world.get_nations_at_war_with(nation)
+              if n != nation and n in active}
+    return sorted(courts, key=lambda n: (formed_display_name(world, n), n))
+
+
+def courts_display(world, courts: List[str]) -> str:
+    """'Austria, Britain and Russia' — formed names, the collapse module's
+    own join, so every surface lists the same courts the same way."""
+    from backend.game_logic.collapse import _join
+    from backend.game_logic.formations import formed_display_name
+    return _join([formed_display_name(world, n) for n in courts])
+
+
+def remain_at_war_clause(world, courts: List[str]) -> str:
+    """'Austria, Britain and Russia remain at war with us' — no terminal
+    stop, the verb agreeing with the count; '' with no court."""
+    if not courts:
+        return ""
+    verb = "remains" if len(courts) == 1 else "remain"
+    return f"{courts_display(world, courts)} {verb} at war with us"
+
+
+def invest_terms(world, lord: str) -> Dict[str, Any]:
+    """The invest verb's terms priced EXACTLY as `vassal.invest_in_vassal`
+    applies them: `int(INVEST_LOYALTY_GAIN * get_authority_lever_multiplier)`
+    — +10 at healthy grip, +4 in the VS-R spiral band. The Vassals tab's
+    chips and Talleyrand's rung-3 counsel both read this, so neither can
+    promise a gain the executor blunts (IQ-2: the counsel hard-coded "+10
+    loyalty" while the tab two clicks away said "+4")."""
+    from backend.game_logic.vassal import (
+        INVEST_DP_COST, INVEST_GOLD_COST, INVEST_LOYALTY_GAIN,
+    )
+    from backend.models.authority import get_authority_lever_multiplier
+    mult = get_authority_lever_multiplier(world, lord)
+    return {
+        "multiplier": mult,
+        "gain": int(INVEST_LOYALTY_GAIN * mult),
+        "dp_cost": int(INVEST_DP_COST),
+        "gold_cost": int(INVEST_GOLD_COST),
+        "blunted": mult < 1.0,
+    }
+
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 
 # TH3: Human-readable threat source labels (module-level to avoid re-creation per call)
@@ -525,8 +582,26 @@ def _build_france_exposure(world):
     view = get_exposure_view(world, player)
     if view["standing"] <= 0:
         return None
+    from backend.game_logic.collapse import TIER_FALLEN, get_collapse_state
     from backend.game_logic.formations import formed_display_name
-    if view["reserve"] > 0 and view["worst_threat"]:
+    # IQ-2: at no province at all, `get_neighbouring_nations` (controller
+    # adjacency) finds no neighbour, and the row read "no armed neighbour
+    # compels a reserve" — true of the arithmetic, false of the war: there
+    # is no frontier left to hold, and every court at war with us can reach
+    # the army in the field.
+    collapse = get_collapse_state(world, player)
+    if collapse is not None and collapse["tier"] == TIER_FALLEN:
+        realm = formed_display_name(world, player)
+        courts = courts_at_war_with(world, player)
+        if courts:
+            tail = (f"; every court at war with us may strike the army in "
+                    f"the field ({courts_display(world, courts)}).")
+        else:
+            tail = ", and no court is at war with us."
+        line = (f"Free field army: the whole {view['standing']:,} — "
+                f"{realm} holds no frontier, so there is no reserve to "
+                f"keep{tail}")
+    elif view["reserve"] > 0 and view["worst_threat"]:
         threat_display = formed_display_name(world, view["worst_threat"])
         line = (f"Free field army: {view['free']:,} of "
                 f"{view['standing']:,} — prudence holds the rest against "
@@ -602,11 +677,9 @@ def _build_vassals(world) -> Dict[str, Any]:
         AUTONOMY_NAMES,
         CONTRIBUTION_DISAFFECTED_BELOW,
         CONTRIBUTION_LOYAL_MIN,
-        INVEST_LOYALTY_GAIN,
         forecast_vassal_loyalty,
         recovery_hint_for_grip,
     )
-    from backend.models.authority import get_authority_lever_multiplier
 
     player = getattr(world, "player_nation", "France")
     vassal_records = getattr(world, "vassals", {}) or {}
@@ -620,8 +693,11 @@ def _build_vassals(world) -> Dict[str, Any]:
     # fields mirror the executor math EXACTLY (invest_in_vassal /
     # change_vassal_autonomy: int(gain * mult)) so the chips' terms copy can
     # never promise a +10 the executor blunts to +4 in the spiral band.
-    lever_mult = get_authority_lever_multiplier(world, player)
-    invest_gain = int(INVEST_LOYALTY_GAIN * lever_mult)
+    # IQ-2: the invest figure now comes from `invest_terms`, the one reader
+    # Talleyrand's counsel shares — same arithmetic, byte-identical values.
+    _invest = invest_terms(world, player)
+    lever_mult = _invest["multiplier"]
+    invest_gain = _invest["gain"]
     autonomy_up_gain = int(10 * lever_mult)
     gains_blunted = lever_mult < 1.0
 
@@ -1078,7 +1154,41 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "wars_until_instant": int(wars_until_instant),
     }
 
-    return {
+    # IQ-2: under the collapse the projection line ("Next war of conquest:
+    # 0 → 20 · brews at 60 …") describes a France about to wage wars of
+    # conquest, and the COOLDOWN headline ("The courts are recovering from
+    # the last coalition") reads as relief while three courts are still at
+    # war with her. Both get the true line as data; the client renders it
+    # in place of / beside its own copy. Keys ride only under the collapse,
+    # so every other board's payload is byte-identical.
+    from backend.game_logic.collapse import get_collapse_state
+    from backend.game_logic.formations import formed_display_name
+    collapse_line = ""
+    headline_note = ""
+    _collapse = get_collapse_state(world, _player)
+    if _collapse is not None:
+        realm = formed_display_name(world, _player)
+        courts = courts_at_war_with(world, _player)
+        count = len(courts)
+        if courts:
+            at_war = (f"{count} court{'s' if count != 1 else ''} "
+                      f"{'remain' if count != 1 else 'remains'} at war with "
+                      f"us: {courts_display(world, courts)}")
+        else:
+            at_war = "no court remains at war with us"
+        if threat_tier == "LOW":
+            collapse_line = (f"Europe's alarm has fallen because {realm} no "
+                             f"longer threatens anyone — {at_war}.")
+        else:
+            collapse_line = (f"{realm} no longer threatens anyone, but "
+                             f"Europe's alarm has not fallen with her — "
+                             f"{at_war}.")
+        threat_projection["collapse_line"] = collapse_line
+        if headline_case == "COOLDOWN" and courts:
+            clause = remain_at_war_clause(world, courts)
+            headline_note = f"{clause[0].upper()}{clause[1:]}."
+
+    result = {
         "headline_case": headline_case,
         "hegemon": hegemon,
         "hegemon_share": round(float(share), 2),
@@ -1126,6 +1236,10 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         # payer, client, amount, and the counterplay line. None omits.
         "paymaster_subsidy": build_subsidy_payload(world),
     }
+    if _collapse is not None:
+        result["collapse_line"] = collapse_line
+        result["headline_note"] = headline_note
+    return result
 
 # ============================================================================
 # TAB 4: TALLEYRAND

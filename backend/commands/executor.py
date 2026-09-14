@@ -2979,6 +2979,13 @@ class CommandExecutor:
             result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
+            # IQ-2: the same collapse line + event keys as _execute_end_turn
+            # (one shared helper — the auto-advance banner must not diverge).
+            from backend.commands.meta_executor import collapse_turn_end_fields
+            _collapse_fields = collapse_turn_end_fields(world)
+            turn_end_event.update(_collapse_fields)
+            if _collapse_fields.get("collapse_line"):
+                result["message"] += f"\n{_collapse_fields['collapse_line']}"
 
             # Phase 6.2.F: Occupation may complete during turn resolution
             if world.pending_capture_choice:

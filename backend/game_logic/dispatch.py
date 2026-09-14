@@ -32,6 +32,12 @@ from backend.game_logic.settlement_presentation import (
     settlement_priority,
 )
 from backend.game_logic.formations import formed_display_name
+# IQ-2 (Sept 14, 2026): the ONE collapse source — every collapse-keyed arm
+# in this file reads it, so the briefing cannot disagree with the ledgers,
+# the war room or the defeat-imminent warning about whether France has
+# fallen. It returns None off-sandbox and above one province, so the legacy
+# world and a standing realm are byte-identical by construction.
+from backend.game_logic import collapse as realm_collapse
 
 
 # ============================================================================
@@ -66,6 +72,17 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # fallen homeland province — the Empire is a PERSON, and the person is
     # in an enemy cell (the Malet coup ran on a rumor of less).
     "sovereign_captured": 101,
+    # ── IQ-2 (Sept 14, 2026): "The Collapse Is Legible" ─────────────────
+    # A realm reduced to one province or none. Measured in played 40-turn
+    # campaigns: France at ONE province led with "the enemy has stood on our
+    # ground 9 turns. Every turn of it is worth a province to their
+    # recruiting sergeants.", and at NONE the page read like any other
+    # morning. EQUAL to `capital_lost` and one below `sovereign_captured`
+    # (NP-4's ruling stands: the Empire is a person before it is a place).
+    # The candidate is ADDED FIRST in `_build_headline`, and Python's sort is
+    # stable, so it leads a same-turn `capital_lost` — the capital is one
+    # line of the collapse, not the other way round.
+    "empire_reduced": 100,
     # ── WO-D6 (row WO slice 4, Aug 22 2026): "The Capital Speaks" ───────
     # The fall of the player's OWN capital was narrated with the template
     # Limousin gets three turns later. Measured on the 1805 board, four
@@ -234,8 +251,12 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
 # re-manufactures its candidate every turn until the player moves it, so
 # without the cooldown the famine simply replaces the household nag as the
 # stuck record — fixing the symptom by swapping which sentence repeats.
+# IQ-2: `empire_reduced` is a STATE predicate too — it re-manufactures its
+# candidate every turn the realm stays at one province or none — so it rides
+# the same cooldown and escalation ladder rather than leading forever.
 STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil",
-                                       "levy_open", "supply_strain"})
+                                       "levy_open", "supply_strain",
+                                       "empire_reduced"})
 
 # Consecutive turns a standing class may hold the lead before it must yield
 # to any other candidate. Blessed default, display-only, tunable in band.
@@ -301,6 +322,15 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
         "Sire — {who} {have} been {turns} turns over what {region} can "
         "feed. {losses}. The country will ask where the army went. {remedy}",
     ],
+    # IQ-2: the realm's standing fact rides {line} (the producer composes it
+    # from the collapse phrases), so every variant re-states it whole. The
+    # count is the honest run — turns the collapse has been on the page —
+    # and no variant says or implies that anything ends.
+    "empire_reduced": [
+        "Sire — {turns} turns now the Empire has stood reduced. {line}",
+        "Sire — the Empire has stood reduced {turns} turns, and every "
+        "province retaken would pay again. {line}",
+    ],
     "levy_open": [
         "Sire — {turns} turns now with the establishment under the ordinance "
         "and the depots standing full. {headroom} men at {capital}, and "
@@ -317,6 +347,10 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # reach — the style holds (the campaign log's chronicle rule is
     # untouched; this is the staff's own dispatch).
     "sovereign_captured": "Sire — the Emperor himself is TAKEN. {captor} holds him, and the Empire holds its breath.",
+    # IQ-2: composed backend-side from `collapse.summary_line` (plus, at one
+    # province, the enemy standing on it) — the same words every collapse
+    # surface uses for the same fact.
+    "empire_reduced": "Sire — {line}",
     # WO-D6 (slice 4): the one sentence the game owed the player. Nation-
     # neutral by construction — the class is keyed on the world's own
     # capital map, so a modded scenario's Prussia reads it about Berlin.
@@ -488,6 +522,11 @@ def _crisis_cause_headline(cause: str) -> str:
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # NP-4: the Brétigny counsel — the fastest road home is the table.
     "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
+    # IQ-2: the census fallback. `_pick_berthier_note` answers this class
+    # with the tier- and forces-aware collapse note; this entry is what
+    # stays true for EVERY instance — with or without a corps standing, with
+    # or without a province — which is the rule this table keeps.
+    "empire_reduced": "What the Empire keeps now, Sire, it keeps by what it can retake and what it can sign. Every province retaken pays again.",
     # WO-D6 (slice 4): the lookup is guarded, so a class with no note is
     # SILENT rather than broken — which is exactly how CA8-22's two new
     # classes ended six of twelve briefings with Berthier saying nothing.
@@ -998,6 +1037,13 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 "white_peace": "A white peace — the map stands as it was.",
                 "stalemate": "Terms on both sides; the war ends in a stalemate.",
             }.get(_outcome, "The war is over.")
+            # IQ-2: "the map stands as it was" read as reassurance while it
+            # ratified a France holding nothing. Under collapse the line
+            # says what the map it keeps actually is.
+            _realm_now = realm_collapse.get_collapse_state(world, player_nation)
+            if _outcome == "white_peace" and _realm_now is not None:
+                _line = ("A white peace — the map stands as it was: "
+                         f"{realm_collapse.realm_sentence(world, _realm_now)}")
             if _other and not any(c["identity"].startswith("road_home:") and _other in c["identity"]
                                   for c in candidates):
                 _add("peace_signed", f"peace_signed:{_other}",
@@ -1396,6 +1442,41 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                              if c.get("identity") not in _absorbed]
         _add("marshal_reversal", identity=f"marshal_reversal:{_name}",
              line=_arc["reversal_line"])
+
+    # ── IQ-2 (Sept 14, 2026): the collapse leads ────────────────────────
+    # A state predicate, read from the ONE source. Class-level identity,
+    # never per-province: FA-12 measured a province-keyed alarm restarting
+    # its run every time the map moved, and the collapse is one fact however
+    # the last province changes hands.
+    #
+    # At ONE province with an enemy army standing on it, the soil alarm is
+    # folded in and DROPPED. Its producer's own detection is reused (the
+    # candidate built above, fog-legal off our own intel), so the enemy is
+    # named exactly as that line would name him — but its escalation ("worth
+    # a province to their recruiting sergeants") is absurd when the province
+    # IS the realm, and the two lines would state one fact twice.
+    _realm = realm_collapse.get_collapse_state(world, player_nation)
+    if _realm is not None:
+        _collapse_text = realm_collapse.summary_line(world, _realm)
+        if _realm["tier"] == realm_collapse.TIER_LAST_PROVINCE:
+            _kept = _realm["provinces"][0]
+            _soil = next((c for c in candidates
+                          if c["class"] == "enemy_on_our_soil"
+                          and (c.get("fields") or {}).get("region") == _kept),
+                         None)
+            if _soil is not None:
+                _sf = _soil["fields"]
+                _collapse_text = (
+                    f"{realm_collapse.realm_sentence(world, _realm)} "
+                    f"{_sf['enemy']} stands on it. {_sf['defenders_line']}"
+                    f"{realm_collapse.capital_clause(world, _realm)} "
+                    f"{realm_collapse.forces_clause(world, _realm)}"
+                    f"{realm_collapse.sovereign_clause(world, _realm)}")
+                candidates[:] = [c for c in candidates if c is not _soil]
+        _add("empire_reduced", identity="empire_reduced", line=_collapse_text)
+        # FIRST, so the stable weight sort puts it ahead of a same-turn
+        # `capital_lost` at the same weight.
+        candidates.insert(0, candidates.pop())
 
     if not candidates:
         return None
@@ -2002,6 +2083,90 @@ THE_WAVERING_LINE_NAMES_THE_DRILL = True
 # headline class. False = the peace leads only through `road_home`.
 THE_PEACE_LEADS_THE_BRIEFING = True
 
+# ── IQ-2 (Sept 14, 2026) "The Collapse Is Legible" — general-fix levers ──
+# The collapse-keyed arms need no lever of their own (they read
+# `collapse.get_collapse_state`, which its own lever gates). These five are
+# defects the collapse playtests measured that fire on ANY board, so each
+# carries its own switch; False reproduces the pre-IQ-2 output byte-for-byte.
+# All six are Europe-scoped (N1, `_sandbox_board`): the 19-region legacy
+# fixture world keeps its pins byte-identical, as every EC/ES slice did.
+#
+# The situation block gains `no_field_army` + `collapse`. Measured: with no
+# unbroken French strength the ratio sentence printed the 999 divide-by-zero
+# sentinel as "999% of French forces"; the client needs a flag to say
+# "no field army" instead, and the collapse state so it can say why.
+THE_SITUATION_NAMES_THE_EMPTY_FIELD = True
+# Berthier's `enemy_on_our_soil` note — "The marshals await only your
+# word." — printed when not one French corps stood free (every marshal a
+# prisoner or at strength 0). The note gets a true variant.
+THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS = True
+# Talleyrand's `acceptance_crossed` trigger mapped every state with no
+# upgrade (ALLIANCE, VASSAL, anything not in its UPGRADE_MAP) to a
+# `non_aggression` "upgrade" that is really a downgrade — measured at turn
+# 1, it offered Bavaria, an ALLY, a non-aggression pact. Such states skip.
+TALLEYRAND_OFFERS_NO_DOWNGRADE = True
+# The war-purpose line printed "[HELD]" on `bool(held_regions)`, so 1 of 28
+# defended provinces read HELD. Some-but-not-all now reads "[N of M held]".
+WAR_PURPOSE_COUNTS_WHAT_IS_HELD = True
+# `get_settlement_tier` takes abs(score), so the label is direction-blind: a
+# France LOSING at -65 read "Settlement: Harsh Peace", at -85 "Total
+# Victory". A negative score now says whose terms they are.
+THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS = True
+# "The coalition against France has dissolved." read as the war's end. The
+# league lapses on low threat and changes no diplomatic state, so the courts
+# still at war with France are named on the same line.
+THE_LAPSED_LEAGUE_NAMES_THE_WAR = True
+
+
+def _sandbox_board(world) -> bool:
+    """N1 scope for the IQ-2 general fixes: the Europe sandbox only."""
+    return bool(getattr(world, "sandbox_mode", False))
+
+
+def _player_has_a_free_corps(world, player_nation: str) -> bool:
+    """Any corps of ours under arms and not a prisoner — the same standing
+    test `collapse.get_collapse_state` applies, over the roster (GR8)."""
+    return any(
+        m.nation == player_nation
+        and int(getattr(m, "strength", 0) or 0) > 0
+        and not getattr(m, "captured_by", "")
+        for m in world.marshals.values())
+
+
+def _collapse_berthier_note(world, state: Dict[str, Any]) -> str:
+    """IQ-2: Berthier's close on a collapsed realm — tier- and forces-aware,
+    and never a promise that anything ends.
+
+    "It pays" is the executor's own predicate, not a guess: a province with
+    a hostile army standing on it yields nothing that turn (EC-W1's
+    `get_disrupted_regions`, the set the income phase reads), so the note
+    says so rather than promising a treasury the province is not filling.
+    """
+    realm = formed_display_name(world, state["nation"])
+    standing = bool(state.get("standing"))
+    if state["tier"] == realm_collapse.TIER_FALLEN:
+        if standing:
+            return (f"{realm} holds no province, Sire. The army in the field "
+                    f"is the Empire now — every province it retakes pays "
+                    f"again.")
+        return (f"{realm} holds no province and no corps stands free, Sire. "
+                f"What is decided now will be decided at a table.")
+    region = state["provinces"][0]
+    if region in world.get_disrupted_regions():
+        if standing:
+            return (f"{region} is all {realm} holds, Sire, and while an enemy "
+                    f"army stands on it, it pays us nothing. Clear it, and "
+                    f"the army in the field has a treasury behind it again.")
+        return (f"{region} is all {realm} holds, Sire, and while an enemy "
+                f"army stands on it, it pays us nothing. No corps stands free "
+                f"to clear it — what is decided now will be decided at a "
+                f"table.")
+    if standing:
+        return (f"{region} is all {realm} holds, Sire. Keep it, and the army "
+                f"in the field still has a treasury behind it.")
+    return (f"{region} is all {realm} holds and no corps stands free, Sire. "
+            f"It still pays; what is decided now will be decided at a table.")
+
 
 def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
     """The clause after "{region} has fallen": who stands there (fog-legal,
@@ -2011,6 +2176,12 @@ def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
     `MARCH_HALTS_AT_GARRISON` men of any garrison; a corps standing there
     forces a battle (the AI's P4 must fight it)."""
     if not THE_FALLEN_PROVINCE_NAMES_THE_COUNTER:
+        return ""
+    # IQ-2: a France holding NO province has none left to garrison — the
+    # garrison executor refuses on soil we do not control — so the counter
+    # this clause prices is not one the player can play. Silence, not advice.
+    _realm = realm_collapse.get_collapse_state(world, player_nation)
+    if _realm is not None and _realm["tier"] == realm_collapse.TIER_FALLEN:
         return ""
     from backend.commands.economy_executor import EconomyExecutor
     from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
@@ -2738,7 +2909,7 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     else:
         authority_label = "Weak"
 
-    return {
+    situation = {
         "player_regions": int(player_regions),
         "enemy_regions": int(enemy_regions),
         "treasury": treasury,
@@ -2785,6 +2956,14 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "authority": int(authority),
         "authority_label": authority_label,
     }
+    if THE_SITUATION_NAMES_THE_EMPTY_FIELD and _sandbox_board(world):
+        # IQ-2: `strength_ratio_pct` keeps its 999 sentinel for compatibility;
+        # this flag is what lets a renderer say "no field army" instead of
+        # "999% of French forces". Same unbroken-strength sum the ratio uses.
+        situation["no_field_army"] = bool(french_strength == 0)
+        _realm = realm_collapse.get_collapse_state(world, player_nation)
+        situation["collapse"] = dict(_realm) if _realm is not None else None
+    return situation
 
 
 def _get_nation_total_strength(world, nation: str) -> int:
@@ -3443,7 +3622,25 @@ def _pick_berthier_note(
     shadowed by any live grievance, which is spec §5's deliberate ordering
     and not something this row changes. Widening either belongs at a gate.
     """
+    # IQ-2: read once; None off-sandbox and for any standing realm.
+    _realm = realm_collapse.get_collapse_state(world, player_nation)
     if headline_class and headline_class in _HEADLINE_BERTHIER_NOTES:
+        # IQ-2: the collapse headline is answered by the tier- and
+        # forces-aware note (the table entry is only its census fallback).
+        if headline_class == "empire_reduced" and _realm is not None:
+            return _collapse_berthier_note(world, _realm)
+        # IQ-2: "The army knows it is winning" is false of a realm holding
+        # one province or none — the field was won, the war was not.
+        if headline_class == "victory_won" and _realm is not None:
+            return "The field is ours today, Sire — hold what it bought."
+        # IQ-2 general fix: "The marshals await only your word." with no
+        # marshal free to take it.
+        if (headline_class == "enemy_on_our_soil"
+                and THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS
+                and _sandbox_board(world)
+                and not _player_has_a_free_corps(world, player_nation)):
+            return ("They are on our soil, Sire, and no corps of ours stands "
+                    "free to meet them.")
         # PT-J4 "The Bench Speaks": when the headline is OUR marshal taken
         # and the executor's own commission gate would grant a replacement
         # RIGHT NOW, Berthier's answer names the bench and a price — the
@@ -3468,6 +3665,13 @@ def _pick_berthier_note(
                     f"{int(bench.get('cost', 0)):,}g."
                 )
         return _HEADLINE_BERTHIER_NOTES[headline_class]
+    # IQ-2 COLLAPSE RUNG — above every other rung, below the headline arm.
+    # It also catches PC-7's hand-back: a standing `empire_reduced` past its
+    # cooldown clears the headline class, and the ladder used to fall all the
+    # way to rung 5 — "Your armies stand ready, Sire. The initiative is
+    # ours." — on a France holding nothing.
+    if _realm is not None:
+        return _collapse_berthier_note(world, _realm)
     # 1. Broken marshal — pick strongest broken one
     broken = [m for m in marshals_data if m["status"] == "broken"]
     if broken:
@@ -3705,7 +3909,7 @@ def _build_defeat_imminent_warning(world, player_nation: str) -> Optional[Dict[s
         },
     ))
 
-    return {
+    result = {
         "message": warning["message"],
         "severity": warning["severity"],
         "living_marshal_count": int(warning["living_marshal_count"]),
@@ -3713,6 +3917,13 @@ def _build_defeat_imminent_warning(world, player_nation: str) -> Optional[Dict[s
         "controlled_region_count": int(warning["controlled_region_count"]),
         "controlled_regions": list(warning["controlled_regions"]),
     }
+    # IQ-2: the sandbox arm names its own heading ("THE EMPIRE IN
+    # EXTREMIS") because the client's hard-coded "DEFEAT WARNING" would call
+    # a non-terminal state a defeat. The legacy arm carries none, so its
+    # dict is byte-identical.
+    if warning.get("heading"):
+        result["heading"] = str(warning["heading"])
+    return result
 
 
 # ============================================================================
@@ -3770,6 +3981,9 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
     from backend.game_logic.diplomatic_dialogue import get_known_nations
     active = set(world.get_active_nations())  # DLF-11
     known_nations = sorted(n for n in get_known_nations(world) if n in active)
+    # IQ-2: the collapse, read once (None for any standing realm).
+    _realm = realm_collapse.get_collapse_state(world, player_nation)
+    _realm_name = formed_display_name(world, player_nation)
 
     for nation in known_nations:
         if len(observations) >= 2:
@@ -3780,7 +3994,10 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         relation = world.nation_relations.get(diplo_key, 0)
 
         # ── Trigger 1: Acceptance crossed 50 (diplomatic opportunity) ──
-        if not _on_cooldown(nation, "acceptance_crossed") and state != "WAR":
+        if (not _on_cooldown(nation, "acceptance_crossed") and state != "WAR"
+                and (state in UPGRADE_MAP
+                     or not (TALLEYRAND_OFFERS_NO_DOWNGRADE
+                             and _sandbox_board(world)))):
             try:
                 from backend.game_logic.diplomacy import calculate_acceptance
                 upgrade_type = UPGRADE_MAP.get(state, "non_aggression")
@@ -3794,11 +4011,31 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                 }
                 result = calculate_acceptance(hypothetical, world)
                 if result["score"] >= 50:
+                    _message = (
+                        f"Sire, I believe {nation} may be ready to discuss "
+                        f"improved relations. The diplomatic winds favor us."
+                    )
+                    if _realm is not None:
+                        # IQ-2: the winds do not favour a France holding one
+                        # province or none. Measured: `calculate_acceptance`'s
+                        # only power term is `hegemony_target_mod`, which
+                        # charges France only while her bloc is the largest;
+                        # once she collapses it vanishes and every court at
+                        # peace gains at once. The cause is named when it is
+                        # the cause — read off this court's own component,
+                        # never assumed.
+                        _court = formed_display_name(world, nation)
+                        if int((result.get("components") or {})
+                               .get("hegemony_target_mod", 0) or 0) == 0:
+                            _message = (
+                                f"Sire, {_court} would treat with us now — "
+                                f"not because the winds favour us, but "
+                                f"because no court fears {_realm_name} any "
+                                f"longer.")
+                        else:
+                            _message = f"Sire, {_court} would treat with us now."
                     observations.append({
-                        "message": (
-                            f"Sire, I believe {nation} may be ready to discuss "
-                            f"improved relations. The diplomatic winds favor us."
-                        ),
+                        "message": _message,
                         "trigger_type": "acceptance_crossed",
                         "target_nation": nation,
                         "priority": 2,
@@ -3911,11 +4148,27 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
             # Check if player has taken any diplomatic action recently
             # (Simple heuristic: Talleyrand is idle = no recent action)
             if world.current_turn >= 4:  # Don't nag on early turns
+                _nudge = (
+                    "Sire, the diplomatic front has been quiet. Perhaps too quiet. "
+                    "Shall I assess our options?"
+                )
+                if _realm is not None:
+                    # IQ-2: "perhaps too quiet" is not the question a
+                    # collapsed realm is asking. The gate above is exactly "no
+                    # envoy of ours is abroad", so that is what is said —
+                    # with the holding, in the shared collapse words.
+                    _holder = _realm.get("capital_holder") or ""
+                    _opening = (
+                        f"Sire, no envoy of ours is abroad while "
+                        f"{formed_display_name(world, _holder)} holds "
+                        f"{_realm['capital']}."
+                        if _holder else "Sire, no envoy of ours is abroad.")
+                    _nudge = (
+                        f"{_opening} "
+                        f"{realm_collapse.realm_sentence(world, _realm)} "
+                        f"Shall I sound out what terms the courts would grant?")
                 observations.append({
-                    "message": (
-                        "Sire, the diplomatic front has been quiet. Perhaps too quiet. "
-                        "Shall I assess our options?"
-                    ),
+                    "message": _nudge,
                     "trigger_type": "idle_nudge",
                     "target_nation": "",
                     "priority": 5,
@@ -4071,6 +4324,11 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
 
         region_str = ", ".join(target_regions) if target_regions else "unknown"
         held_str = "HELD" if held_regions else "not held"
+        if (WAR_PURPOSE_COUNTS_WHAT_IS_HELD and _sandbox_board(world)
+                and held_regions
+                and len(held_regions) < len(target_regions)):
+            # IQ-2: one of twenty-eight is not HELD.
+            held_str = f"{len(held_regions)} of {len(target_regions)} held"
         tick_str = f"+{rate}/turn" if rate > 0 else ""
 
         line_text = f"War Purpose: {type_display} vs {target_nation} — {region_str} [{held_str}]"
@@ -4080,6 +4338,12 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
         score = int(get_war_score_for(world, player_nation, target_nation))
         tier = get_settlement_tier(score)
         tier_display = SETTLEMENT_TIER_DISPLAY.get(tier, tier)
+        if (THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS and _sandbox_board(world)
+                and score < 0
+                and tier != "white_peace"):
+            # IQ-2: the tier is read off abs(score); a losing France must be
+            # told the terms are the enemy's to impose, not ours.
+            tier_display = f"{tier_display} — theirs to impose"
         line_text += f"  |  Settlement: {tier_display} ({score:+d})"
 
         lines.append({
@@ -4920,6 +5184,21 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             text = str(event.get("message") or "").strip()
             if not text:
                 continue
+        if (event_type == "diplomatic_coalition_dissolved"
+                and THE_LAPSED_LEAGUE_NAMES_THE_WAR
+                and _sandbox_board(world)):
+            # IQ-2: the league lapses on low threat and changes no
+            # diplomatic state, so the wars it fought go on. The world's own
+            # at-war query, read when the page is built (live courts only —
+            # DLF-11's filter, the one Talleyrand's report uses).
+            _active = set(world.get_active_nations())
+            _still = sorted(n for n in world.get_nations_at_war_with(player_nation)
+                            if n in _active)
+            if _still:
+                _courts = _join_place_names(
+                    [formed_display_name(world, n) for n in _still])
+                _verb = "remains" if len(_still) == 1 else "remain"
+                text = f"{text.rstrip('.')} — but {_courts} {_verb} at war with us."
         if event_type in COMMITMENTS_ROUTES:
             priority = commitments_priority(event_type, template_vars)
         else:

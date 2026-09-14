@@ -50,7 +50,21 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     from backend.game_logic.naval import build_admiralty_report
     admiralty_report = build_admiralty_report(world)
 
+    # IQ-2: the standing fact of a collapsed realm, from the one source every
+    # surface reads (`collapse.get_collapse_state`), and the scope note spoken
+    # beside it — the ledger states the collapse, it never ends anything.
+    # Sandbox worlds only (the legacy payload stays byte-identical); "" when
+    # the realm stands.
+    from backend.game_logic import collapse as _collapse
+    collapse_fields = {}
+    if _collapse.THE_COLLAPSE_IS_LEGIBLE and getattr(world, "sandbox_mode", False):
+        _state = _collapse.get_collapse_state(world)
+        collapse_fields["collapse_note"] = (
+            f"{_collapse.summary_line(world, _state)} {_collapse.CAMPAIGN_CONTINUES}"
+            if _state else "")
+
     return {
+        **collapse_fields,
         "forces": _build_forces(world, player),
         "territories": _build_territories(world, player),
         "economy": _build_economy(world, player),
@@ -289,6 +303,13 @@ def _levy_block(world) -> dict:
     from backend.commands.economy_executor import get_levy_status
     return get_levy_status(world)
 
+
+# IQ-2 (Sept 14, 2026): the MANPOWER tab priced every arm "at the capital"
+# while the capital was enemy-held — measured with Austria in Paris, "Live
+# price at the capital" beside a figure `_execute_recruit` refuses. The note
+# now asks the executor's own depot gate (`recruit_location_gate`) and names
+# the closed depot. Flip lever: False = the pre-IQ-2 note on every board.
+THE_MANPOWER_TAB_READS_THE_DEPOT = True
 
 # FA-D26 (slice 17, Phase 2) flip lever: the economy tab carries the Materiel
 # bill as an informational line (charged at the battle, not in Net). False =
@@ -713,9 +734,18 @@ def _build_manpower(world, player: str) -> dict:
     # the quoted figure. Price each arm through the executor's OWN
     # _calculate_recruit_cost at the capital (the levy-headline idiom), so
     # this panel and the charge agree.
-    from backend.commands.economy_executor import _levy_pricer
+    from backend.commands.economy_executor import (
+        _levy_pricer, depot_closed_reason, recruit_location_gate)
     capital = world.get_nation_capital(player)
     capital_region = world.get_region(capital) if capital else None
+    # IQ-2: the tab priced the levy "at the capital" with Austria in Paris —
+    # a figure `_execute_recruit` refuses ("We do not control Paris…").
+    # Ask the executor's own depot gate and say the depot is closed instead.
+    depot_note = ""
+    if THE_MANPOWER_TAB_READS_THE_DEPOT and capital_region is not None:
+        depot_note = depot_closed_reason(
+            world, capital, capital_region,
+            recruit_location_gate(capital_region, player))
 
     result = {}
     for pool_type, config in pool_configs.items():
@@ -751,6 +781,11 @@ def _build_manpower(world, player: str) -> dict:
                 "and the recruiting marshal all move it"),
             "turns_until_full": int(turns_until_full),
         }
+        if depot_note:
+            # IQ-2: the note names the closed depot; `depot_closed` lets the
+            # client drop the refused figure (the key is absent while open).
+            result[pool_type]["cost_note"] = depot_note
+            result[pool_type]["depot_closed"] = True
 
     return result
 

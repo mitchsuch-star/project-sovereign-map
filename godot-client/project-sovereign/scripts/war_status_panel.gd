@@ -305,7 +305,14 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 		lines.append("Shared war: " + Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(str(war_data.get("opponent", "?")))))))
 	var tier = str(war_data.get("settlement_tier_display", ""))
 	if tier:
-		lines.append("Settlement: " + tier)
+		# IQ-2 (Sept 14, 2026): the tier read as OURS to claim — "Settlement:
+		# Harsh Peace" — on a war France was losing to one province. When the
+		# backend says the table is the enemy's, say whose. (A tooltip is
+		# plain text; the war-detail popup carries the colour.)
+		if str(war_data.get("settlement_tier_side", "")) == "theirs":
+			lines.append("Settlement (theirs to impose): " + tier)
+		else:
+			lines.append("Settlement: " + tier)
 	var objective = war_data.get("objective", null)
 	if objective != null and objective is Dictionary:
 		var targets = objective.get("target_regions", [])

@@ -61,11 +61,26 @@ class TestGetActiveNations:
         assert "Saxony" in active
 
     def test_player_nation_eliminated(self):
-        """Even player nation excluded if eliminated (edge case)."""
+        """IQ-2 (Sept 14, 2026) — CONSCIOUSLY FLIPPED. This pin asserted the
+        defect: a France holding no province left the roster, and with it
+        every per-turn economy loop (upkeep, bankruptcy, desertion, rentes,
+        recurring settlement gold) while `_eliminate_nation` refused to tear
+        her down — half-eliminated, her army free. The player is never
+        eliminated, so she never leaves the roster. The lever-down arm
+        restores the old region-only reading, which keeps the pin falsifiable.
+        """
+        import backend.models.world_state as ws
         world = _make_world()
         _eliminate_nation(world, world.player_nation)
-        active = world.get_active_nations()
-        assert world.player_nation not in active
+        assert world.player_nation in world.get_active_nations()
+        saved = ws.PLAYER_NEVER_LEAVES_THE_ROSTER
+        ws.PLAYER_NEVER_LEAVES_THE_ROSTER = False
+        try:
+            world.invalidate_active_nations_cache()
+            assert world.player_nation not in world.get_active_nations()
+        finally:
+            ws.PLAYER_NEVER_LEAVES_THE_ROSTER = saved
+            world.invalidate_active_nations_cache()
 
 
 class TestEliminatedNationSkippedInManpower:
