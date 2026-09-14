@@ -743,6 +743,21 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 		status_l.size = Vector2(text_w, 14.0)
 		status_l.horizontal_alignment = text_align
 
+	# IQ-5 / PR-X3 (R11): a man whose faith in you is spent brought less
+	# than his whole weight to this field. The optional `faith` caption says
+	# so, in the voice and colour of the shelf's `grudge` caption. The
+	# `committed` figure above is deliberately left as it is — the caption
+	# explains it, it does not restate it. Absent key → nothing drawn.
+	var faith_v = c.get("faith", null)
+	var faith := str(faith_v) if faith_v is String else ""
+	if faith != "":
+		var faith_l := _mk_label(block, faith, 10,
+				Color(0.66, 0.42, 0.40, 1.0), _font_voice)
+		faith_l.position = Vector2(text_x, -124.0 if status_l == null else -110.0)
+		faith_l.size = Vector2(text_w, 14.0)
+		faith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		faith_l.horizontal_alignment = text_align
+
 	return {
 		"node": block, "data": c, "figures": figures,
 		"falling": falling, "standing": standing,
@@ -844,6 +859,19 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 			g.add_theme_color_override("font_color",
 					Color(0.66, 0.42, 0.40, 1.0))
 			text_box.add_child(g)
+		# IQ-5 / PR-X3 (R11): the `faith` caption, beside the grudge it
+		# mirrors — drawn wherever the contingent is, the line or the shelf.
+		var faith_v = c.get("faith", null)
+		var faith := str(faith_v) if faith_v is String else ""
+		if faith != "":
+			var fl := Label.new()
+			fl.text = faith
+			if _font_voice != null:
+				fl.add_theme_font_override("font", _font_voice)
+			fl.add_theme_font_size_override("font_size", 12)
+			fl.add_theme_color_override("font_color",
+					Color(0.66, 0.42, 0.40, 1.0))
+			text_box.add_child(fl)
 
 
 func _nameplate_layout() -> void:

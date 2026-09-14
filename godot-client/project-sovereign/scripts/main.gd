@@ -2940,7 +2940,8 @@ func _display_result(response):
 			_show_action_cost(action_info)
 
 	# Reinforcement inline-dramatic display (Session 66) — before Berthier report
-	if response.has("reinforcement_messages"):
+	# IQ-5: the handler is typed Array — a present-but-null key must not reach it.
+	if response.get("reinforcement_messages") is Array and not response.reinforcement_messages.is_empty():
 		_display_reinforcement_messages(response.reinforcement_messages)
 
 	# Berthier's After-Action Report — shown after any combat event type
@@ -3156,6 +3157,15 @@ func _display_berthier_report(report: Dictionary):
 	if jl_note != "":
 		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + jl_note + "[/color]")
 
+	# IQ-5 / PR-X3 (FA-D23): when trust halved a marshal's weight on this
+	# field, the report names trust and the figure, on either side of it.
+	# Backend-composed (`battle_report["trust_note"]`, display-only, GR6);
+	# absent when nobody's faith was spent. `is String` guards the
+	# present-but-null payload, which `str()` would print as "<null>".
+	var tr_note = report.get("trust_note", "")
+	if tr_note is String and tr_note != "":
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + tr_note + "[/color]")
+
 	# Modifier breakdown
 	var breakdown = report.get("modifier_breakdown", {})
 
@@ -3193,10 +3203,21 @@ func _display_berthier_report(report: Dictionary):
 	# are right, and a player seeing two casualty figures for one battle
 	# stops trusting every number in the game. The backend says whose
 	# losses these are, and only when it differs.
-	var atk_scope = str(casualty.get("attacker_casualties_scope", ""))
+	var atk_scope = casualty.get("attacker_casualties_scope", "")
+	if not (atk_scope is String):
+		atk_scope = ""  # present-but-null must never print "Ney's <null>"
 	var atk_label = atk_name if atk_scope == "" else atk_name + "'s " + atk_scope
+	# IQ-5 / PR-X2: the defender mirror. A reinforced DEFENDER's figure here
+	# is his lead corps' share while the description above prints his army's
+	# total — PT-D5's two-figures-one-label shape, fixed for the attacker
+	# only. The backend leaves the key "" for a side that fought alone, so a
+	# solo battle's line is byte-identical.
+	var def_scope = casualty.get("defender_casualties_scope", "")
+	if not (def_scope is String):
+		def_scope = ""
+	var def_label = def_name if def_scope == "" else def_name + "'s " + def_scope
 	# Format with thousands separators
-	add_output("[color=#" + COLOR_REPORT + "]  Casualties: " + atk_label + " " + _format_number(atk_cas) + " | " + def_name + " " + _format_number(def_cas) + "[/color]")
+	add_output("[color=#" + COLOR_REPORT + "]  Casualties: " + atk_label + " " + _format_number(atk_cas) + " | " + def_label + " " + _format_number(def_cas) + "[/color]")
 	add_output("[color=#" + COLOR_REPORT + "]  Strength: " + atk_name + " " + _format_number(atk_orig) + " -> " + _format_number(atk_rem) + " | " + def_name + " " + _format_number(def_orig) + " -> " + _format_number(def_rem) + "[/color]")
 
 	# Berthier's observation
@@ -3217,17 +3238,37 @@ func _display_reinforcement_messages(messages: Array):
 	var COLOR_REINF_BORDER = "d9c08c"   # Gold border
 	var COLOR_REINF_ARRIVE = "90d890"   # Green for arrivals
 	var COLOR_REINF_FAIL = "cd6b6b"     # Red for failures
+	var COLOR_REINF_INFO = "CCCCCC"     # Report grey: the mass and the ally-loss lines
+
+	# IQ-5 (R6): three kinds of line, not two. Only a reinforcer who did not
+	# come is a failure. The massed-strength line and the ally-loss line are
+	# the REPORT of a fight that happened, and the old rule ("arrived" or
+	# red) painted every one of them in the failure colour. The markers are
+	# read off the producer strings in combat_executor.py `_execute_attack`
+	# (the not-arrived reasons); enemy_phase_dialog.gd carries the same list.
+	var failure_markers = ["did not march", "fate intervened",
+		"halted at the frontier", "took his time", "could not reach"]
 
 	for msg in messages:
 		var text = str(msg)
 		var is_arrival = text.find("arrived") >= 0
+		var is_failure = false
+		if not is_arrival:
+			for marker in failure_markers:
+				if text.findn(marker) >= 0:
+					is_failure = true
+					break
 		if is_arrival:
 			add_output("[color=#" + COLOR_REINF_BORDER + "]┌─── REINFORCEMENT ───┐[/color]")
 			add_output("[color=#" + COLOR_REINF_ARRIVE + "]  " + text + "[/color]")
 			add_output("[color=#" + COLOR_REINF_BORDER + "]└─────────────────────┘[/color]")
-		else:
+		elif is_failure:
 			add_output("[color=#" + COLOR_REINF_BORDER + "]┌─── REINFORCEMENT ───┐[/color]")
 			add_output("[color=#" + COLOR_REINF_FAIL + "]  " + text + "[/color]")
+			add_output("[color=#" + COLOR_REINF_BORDER + "]└─────────────────────┘[/color]")
+		else:
+			add_output("[color=#" + COLOR_REINF_BORDER + "]┌─── REINFORCEMENT ───┐[/color]")
+			add_output("[color=#" + COLOR_REINF_INFO + "]  " + text + "[/color]")
 			add_output("[color=#" + COLOR_REINF_BORDER + "]└─────────────────────┘[/color]")
 
 func _display_coordination_tutorial(tutorial: Dictionary):

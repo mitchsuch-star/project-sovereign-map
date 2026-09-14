@@ -352,9 +352,27 @@ func _format_action(action: Dictionary) -> String:
 	# Session 66: Reinforcement messages (from coordinated battles)
 	if action.has("reinforcement_messages"):
 		var reinf_msgs = action.get("reinforcement_messages", [])
+		if not (reinf_msgs is Array):
+			reinf_msgs = []
+		# IQ-5 (R6): three kinds of line, not two. Only a reinforcer who did
+		# not come is a failure. The massed-strength line and the ally-loss
+		# line are the REPORT of a fight that happened, and the old rule
+		# ("arrived" or red) painted every one of them in the failure colour.
+		# The markers are read off the producer strings in
+		# combat_executor.py `_execute_attack` (the not-arrived reasons);
+		# main.gd `_display_reinforcement_messages` carries the same list.
+		var failure_markers = ["did not march", "fate intervened",
+			"halted at the frontier", "took his time", "could not reach"]
 		for msg in reinf_msgs:
 			var msg_text = str(msg)
-			var reinf_color = Utils.COLOR_SUCCESS if msg_text.find("arrived") >= 0 else COLOR_ERROR
+			var reinf_color = Utils.COLOR_INFO
+			if msg_text.find("arrived") >= 0:
+				reinf_color = Utils.COLOR_SUCCESS
+			else:
+				for marker in failure_markers:
+					if msg_text.findn(marker) >= 0:
+						reinf_color = COLOR_ERROR
+						break
 			result += "[color=#" + reinf_color + "]    " + msg_text + "[/color]\n"
 
 	return result
@@ -396,13 +414,40 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 		result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + " attacks " + defender_name + "[/color]\n"
 
 	# Casualties
-	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + ": "
-	result += _format_number(attacker_casualties) + " casualties, "
-	result += _format_number(attacker_remaining) + " remaining[/color]\n"
+	# IQ-5 / PR-X2: on a reinforced side `casualties` is the whole ARMY's
+	# loss while `remaining` is the lead corps' own survivors — two scopes
+	# printed under one name, on the surface where the player defends. The
+	# backend stamps `casualties_scope: "army"` on exactly that side (never
+	# on a side that fought alone) and `lead_remaining` beside `remaining`,
+	# so each figure is named for whose it is. Absent → today's line.
+	var atk_is_army = str(attacker.get("casualties_scope", "")) == "army"
+	var def_is_army = str(defender.get("casualties_scope", "")) == "army"
+	var atk_lead_rem = attacker.get("lead_remaining", null)
+	if atk_is_army and (atk_lead_rem is int or atk_lead_rem is float):
+		attacker_remaining = atk_lead_rem
+	var def_lead_rem = defender.get("lead_remaining", null)
+	if def_is_army and (def_lead_rem is int or def_lead_rem is float):
+		defender_remaining = def_lead_rem
 
-	result += "[color=#" + Utils.COLOR_INFO + "]    " + defender_name + ": "
-	result += _format_number(defender_casualties) + " casualties, "
-	result += _format_number(defender_remaining) + " remaining[/color]\n"
+	if atk_is_army:
+		result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + "'s army: "
+		result += _format_number(attacker_casualties) + " casualties — "
+		result += attacker_name + "'s own corps: "
+		result += _format_number(attacker_remaining) + " remaining[/color]\n"
+	else:
+		result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + ": "
+		result += _format_number(attacker_casualties) + " casualties, "
+		result += _format_number(attacker_remaining) + " remaining[/color]\n"
+
+	if def_is_army:
+		result += "[color=#" + Utils.COLOR_INFO + "]    " + defender_name + "'s army: "
+		result += _format_number(defender_casualties) + " casualties — "
+		result += defender_name + "'s own corps: "
+		result += _format_number(defender_remaining) + " remaining[/color]\n"
+	else:
+		result += "[color=#" + Utils.COLOR_INFO + "]    " + defender_name + ": "
+		result += _format_number(defender_casualties) + " casualties, "
+		result += _format_number(defender_remaining) + " remaining[/color]\n"
 
 	# Outcome — colored by WHO WON: green only when the victor fought for
 	# France. (The old check colored on "defender is a player marshal" against
@@ -496,6 +541,32 @@ func _format_berthier_report(report: Dictionary) -> String:
 			parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
 		result += "[color=#" + COLOR_RPT + "]    Defense: " + def_name + " (" + ", ".join(PackedStringArray(parts)) + ")[/color]\n"
 
+	# IQ-5 / PR-X2: the Casualties line main.gd prints, with BOTH scope
+	# labels. This whitelist printed no casualty line at all, so on defence —
+	# where the player fights most of his battles — the lead corps' own loss
+	# never reached him. Placed after the modifiers exactly as main.gd places
+	# it. Rendered ONLY when a side carries a scope: a solo battle's figures
+	# are already printed whole by `_format_battle`, and repeating them here
+	# would add a line the absent key never produced.
+	var atk_scope = casualty.get("attacker_casualties_scope", "")
+	if not (atk_scope is String):
+		atk_scope = ""
+	var def_scope = casualty.get("defender_casualties_scope", "")
+	if not (def_scope is String):
+		def_scope = ""
+	if atk_scope != "" or def_scope != "":
+		var atk_label = atk_name if atk_scope == "" else atk_name + "'s " + atk_scope
+		var def_label = def_name if def_scope == "" else def_name + "'s " + def_scope
+		var atk_cas = casualty.get("attacker_casualties", 0)
+		if not (atk_cas is int or atk_cas is float):
+			atk_cas = 0
+		var def_cas = casualty.get("defender_casualties", 0)
+		if not (def_cas is int or def_cas is float):
+			def_cas = 0
+		result += ("[color=#" + COLOR_RPT + "]    Casualties: " + atk_label + " "
+			+ _format_number(atk_cas) + " | " + def_label + " "
+			+ _format_number(def_cas) + "[/color]\n")
+
 	# --------------------------------------------------------------
 	# CA8-7 (creative audit, Aug 4 2026): the enemy commander speaks.
 	#
@@ -542,6 +613,18 @@ func _format_berthier_report(report: Dictionary) -> String:
 		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
 			+ Utils.humanize_nation_keys_in_text(jl_note) + "[/color]
 ")
+
+	# IQ-5 / PR-X3 (FA-D23): trust's price, named where it was paid. The
+	# defender case only ever arrives through this dialog (the enemy attacks,
+	# a disaffected reinforcer brings half his weight), so this whitelist is
+	# where the note must be read — UX23-R8's lesson is that whitelists drop
+	# keys. Mirrors main.gd's order (jealousy_note -> trust_note). The
+	# enemy-side copy names a court, hence the humaniser. `is String` guards
+	# the present-but-null payload.
+	var tr_note = report.get("trust_note", "")
+	if tr_note is String and tr_note != "":
+		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
+			+ Utils.humanize_nation_keys_in_text(tr_note) + "[/color]\n")
 
 	# UX23-R8: the same whitelist gap, two more keys. `expectation_note`
 	# (ES-7 §0.6.8 item 4c) and `campaign_cost_note` (HC-2) are produced by the

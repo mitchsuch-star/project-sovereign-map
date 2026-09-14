@@ -2093,6 +2093,23 @@ def _standing_cost_detail(marshal, target) -> str:
     else:
         weight = (f"he brings about half the weight of his {men:,} men to "
                   f"any battle {target.name} leads")
+        # IQ-5 R10 (PR-X3): the card said it "reads _pair_contribution_scale's
+        # two thresholds" and was trust-blind — a jealous cautious marshal at
+        # trust 20 brings a QUARTER (0.5 grievance x 0.5 FA-D23), and the
+        # card said "about half". It reads the real breakdown now. At trust
+        # >= 30 the factor is 1.0 and the sentence is the old one, byte for
+        # byte. (Lazy import: combat_executor imports this module.)
+        from backend.commands.combat_executor import (
+            CombatExecutor, pair_contribution_breakdown, weight_phrase,
+        )
+        if CombatExecutor.TRUST_NAMES_ITS_PRICE:
+            _bd = pair_contribution_breakdown(target, marshal)
+            if (_bd["scale"] > 0.0 and _bd["trust_factor"] < 1.0
+                    and _bd["trust"] is not None):
+                weight = (f"he brings {weight_phrase(_bd['scale'])} the "
+                          f"weight of his {men:,} men to any battle "
+                          f"{target.name} leads, for his faith in you is "
+                          f"spent (trust {int(_bd['trust'])})")
     return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
             f"{weight}, and the quarrel may harden further.")
 

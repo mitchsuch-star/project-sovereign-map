@@ -1532,8 +1532,20 @@ def format_event_oneliner(event: dict) -> str:
         # which derives from the surviving strength, printed 15,437.
         # Clamp the RENDER; the mechanical figure is untouched by design
         # (it feeds exhaustion, the out-bled predicate and the score).
-        _atk_before = event.get("attacker_strength_before")
-        _def_before = event.get("defender_strength_before")
+        #
+        # IQ-5 R4 (PR-X2): bounded by the FIELD, not the lead. A reinforced
+        # side's `*_casualties` is the whole army's loss while
+        # `*_strength_before` is the lead corps alone — so the clamp shrank
+        # a 12,866-man loss to "500" (the lead's stub). The executor's
+        # coordinated branch stamps `*_field_before` (every participant's
+        # strength at resolve); read it first. Absent — a solo battle, the
+        # IQ-5 lever down, an old save — and the lead's figure stands.
+        _atk_before = event.get("attacker_field_before")
+        if _atk_before is None:
+            _atk_before = event.get("attacker_strength_before")
+        _def_before = event.get("defender_field_before")
+        if _def_before is None:
+            _def_before = event.get("defender_strength_before")
         if _atk_before is not None:
             atk_cas = min(int(atk_cas), int(_atk_before))
         if _def_before is not None:

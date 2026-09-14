@@ -5267,3 +5267,56 @@ new serialized fields.
   - The wizard's cancel row reads `mission_status`.
   - A blowback row falls back to NORMAL on the next standing turn.
   - Chip and rail echoes are humanised.
+
+## 44. Both sides of the butcher's bill (IQ-5, landed September 14, 2026)
+
+**One figure, one name.** In a coordinated battle the report's casualty figure
+for a side is the LEAD's own share, and the army's total rides the event. The
+two are never shown under one name:
+- `casualty_summary["attacker_casualties_scope"]` / `["defender_casualties_scope"]`
+  are "own corps" when the figure is the lead's while others on that side bled.
+- The event side dicts (`battle_result["attacker"|"defender"]`, which reach the
+  enemy-phase action) carry `casualties_scope: "army"` and `lead_remaining`.
+- The predicate is the casualty DISTRIBUTION, not `raw != share`: a side that
+  fought alone is never labelled, even when the overkill cap or the rubble rule
+  makes the two figures differ.
+- `CombatExecutor._reconcile_report_survivors(..., atk_distribution=None,
+  def_distribution=None)` falls back to `raw != share` for a legacy call.
+
+**Every surface speaks it.**
+- The terminal Berthier line: "Casualties: Moore 4,688 | Ney's own corps 2,725".
+- The enemy-phase dialog: "Ney's army: 6,814 casualties — Ney's own corps:
+  17,275 remaining", and a Casualties line in its Berthier report.
+- Co-located stacks are named: "Ney fought with Davout beside him — massed
+  effective strength: …", with the ally-loss line.
+- The campaign log is bounded by the field (`*_field_before`), not the lead.
+- The morning dispatch's `own_mauled` names the man who bled
+  (`*_participant_losses`).
+- The playtest digest prints both scopes.
+- Reinforcement lines are coloured green for arrival, red for a real no-show
+  marker, and report grey otherwise.
+
+**Trust names its price** (FA-D23's copy).
+- `pair_contribution_breakdown(lead, ally)` returns `{scale,
+  relationship_scale, trust_factor, grievance, relationship, trust}`. It is the
+  single source: `_pair_contribution_scale` returns its `scale`,
+  arithmetic-identical, drift-pinned over 1,000 cells.
+- The muster row is branched on cause:
+  - the relationship alone keeps "…are at odds; expect about half his weight"
+    verbatim;
+  - trust alone gives "…his faith in you is spent (trust N); expect half the
+    weight he would otherwise bring";
+  - both give "…a quarter of his weight".
+- The trust number is printed, never the word "Broken" (the card's labels
+  disagree between trust 21 and 29).
+- `battle_report["trust_note"]` names the man and his committed figures, on
+  either side of the field. The enemy's variant carries no number and appears
+  only where the player fought.
+- The diorama shows a `faith` caption.
+- The jealousy card reads the breakdown.
+- The coordination percentage stays trust-blind.
+
+**Levers:** `CombatExecutor.BOTH_SIDES_NAME_THEIR_SCOPE` and
+`TRUST_NAMES_ITS_PRICE`. Both are display-only (GR6): no mechanical figure
+moves. **Routed:** IQ5-R1, splitting the pool by committed bodies
+(`BUG_FIXES.md`).

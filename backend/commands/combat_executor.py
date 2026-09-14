@@ -29,6 +29,102 @@ from backend.commands.objection_v2 import REGION_FORTIFICATION_DEFENSE_BONUS
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# IQ-5 R7 (PR-X3): ONE source for a reinforcer's contribution and its CAUSE.
+#
+# `_pair_contribution_scale` multiplied three causes into one number — the
+# relationship, a live grievance, and (FA-D23) a Broken marshal's trust —
+# and every surface that spoke of the number could only guess which cause
+# was at work. Measured: the muster row printed "he and Ney are at odds;
+# expect about half his weight" for SEVEN states, including devoted friends
+# at trust 20, and "half" where the truth was a quarter.
+#
+# The factors are returned WITH the product, so a sentence cannot drift
+# from the arithmetic. Module level so `jealousy._standing_cost_detail`
+# reads the real figure without an executor instance.
+# ════════════════════════════════════════════════════════════════════════════
+
+def pair_contribution_breakdown(lead, ally, owner=None) -> dict:
+    """How much of `ally`'s weight reaches a battle `lead` leads, and why.
+
+    Returns ``{scale, relationship_scale, trust_factor, grievance,
+    relationship, trust}``:
+
+    - ``scale`` — the product every mechanical reader multiplies by
+      (arithmetic-identical to the pre-IQ-5 `_pair_contribution_scale`);
+    - ``relationship_scale`` — the scale before trust (the MC-3 relationship,
+      or the grievance override);
+    - ``trust_factor`` — ``BROKEN_TRUST_CONTRIBUTION`` when FA-D23 applied,
+      else ``1.0``;
+    - ``grievance`` — ``""`` none, ``"aggressive"`` (a hard zero),
+      ``"withheld"`` (the worse direction of the pair);
+    - ``relationship`` — the relationship value the scale was read off;
+    - ``trust`` — the ally's trust value (int) or None.
+
+    `owner` carries the levers (`_RELATIONSHIP_SCALING`,
+    `TRUST_REACHES_THE_FIELD`, `BROKEN_TRUST_CONTRIBUTION`); None = the
+    `CombatExecutor` class. Pure read — no RNG, no state written.
+    """
+    if owner is None:
+        owner = CombatExecutor
+    scaling = owner._RELATIONSHIP_SCALING
+    _trust = getattr(getattr(ally, "trust", None), "value", None)
+    trust = int(_trust) if _trust is not None else None
+    relationship = lead.get_relationship(ally.name)
+    scale = scaling.get(relationship, 1.0)
+    grievance = ""
+    lead_jealous = getattr(lead, "jealous_of", None) == ally.name
+    ally_jealous = getattr(ally, "jealous_of", None) == lead.name
+    if lead_jealous or ally_jealous:
+        jealous_one = lead if lead_jealous else ally
+        if jealous_one.personality == "aggressive":
+            return {"scale": 0.0, "relationship_scale": 0.0,
+                    "trust_factor": 1.0, "grievance": "aggressive",
+                    "relationship": relationship, "trust": trust}
+        pair_rel = min(lead.get_relationship(ally.name),
+                       ally.get_relationship(lead.name))
+        relationship = pair_rel
+        scale = scaling.get(pair_rel, 1.0)
+        grievance = "withheld"
+    relationship_scale = scale
+    trust_factor = 1.0
+    if owner.TRUST_REACHES_THE_FIELD and scale > 0.0:
+        # FA-D23: a Broken marshal brings less — the AI's rentes buy
+        # something real, and the player can read enemy disaffection
+        # off the same rule.
+        from backend.commands.objection_v2 import TrustTier, get_trust_tier
+        if _trust is not None and get_trust_tier(int(_trust)) == TrustTier.HOSTILE:
+            trust_factor = owner.BROKEN_TRUST_CONTRIBUTION
+            scale *= owner.BROKEN_TRUST_CONTRIBUTION
+    return {"scale": scale, "relationship_scale": relationship_scale,
+            "trust_factor": trust_factor, "grievance": grievance,
+            "relationship": relationship, "trust": trust}
+
+
+def weight_phrase(fraction: float) -> str:
+    """IQ-5 R8: a fraction of a man's weight, in words that are TRUE.
+
+    "a quarter of" / "half" / "three-quarters of", else "about N% of" — the
+    muster row used to say "half" for 0.25, 0.625 and 0.75 alike. Each form
+    reads before "his weight" / "the weight …"."""
+    f = float(fraction)
+    if abs(f - 0.25) < 1e-9:
+        return "a quarter of"
+    if abs(f - 0.5) < 1e-9:
+        return "half"
+    if abs(f - 0.75) < 1e-9:
+        return "three-quarters of"
+    return f"about {int(round(f * 100))}% of"
+
+
+def _join_names(names) -> str:
+    """"A", "A and B", "A, B and C" — prose, for the co-located stack line."""
+    names = [str(n) for n in names]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # ESP-EV-4 guessed-target guard (July 11, 2026; hoisted + re-surfaced July 18,
 # 2026)
 #
@@ -422,6 +518,26 @@ class CombatExecutor:
     # side. Blessed, in-band tunable. False = trust reaches no field.
     TRUST_REACHES_THE_FIELD = True
     BROKEN_TRUST_CONTRIBUTION = 0.5
+    # IQ-5 "Both Sides of the Butcher's Bill" (PR-X2): every surface that
+    # shows a REINFORCED side's losses says whose losses they are — the
+    # defender's report scope, the event side's `casualties_scope` /
+    # `lead_remaining`, the co-located stack's mass and loss lines, the
+    # campaign log bounded by the whole field, and the dispatch's per-man
+    # "mauled" beat. Display only (GR6): no mechanical figure moves.
+    # False = the pre-IQ-5 surfaces, byte for byte.
+    BOTH_SIDES_NAME_THEIR_SCOPE = True
+    # IQ-5 (PR-X3): trust's price is named where it is paid — the muster
+    # row branched on cause, `battle_report["trust_note"]`, the jealousy
+    # card's true fraction, the diorama's `faith` caption. Display only;
+    # keys off the trust factor actually APPLIED, so TRUST_REACHES_THE_FIELD
+    # False yields no copy either. False = the pre-IQ-5 strings.
+    TRUST_NAMES_ITS_PRICE = True
+
+    def _pair_contribution_breakdown(self, lead, ally) -> dict:
+        """IQ-5 R7: the ONE source for the contribution arithmetic AND the
+        copy that names its cause — see module `pair_contribution_breakdown`.
+        `self` is the lever owner, so an instance-level flip still reaches."""
+        return pair_contribution_breakdown(lead, ally, owner=self)
 
     def _pair_contribution_scale(self, lead, ally) -> float:
         """How much of `ally`'s weight actually reaches a battle `lead` leads.
@@ -441,27 +557,159 @@ class CombatExecutor:
         withholding, which mirrors `_calculate_per_ally_coordination`: an
         aggressive grievance is a hard 0.0, a non-aggressive one reads the
         worse direction of the pair.
+
+        IQ-5 R7: the body moved into `pair_contribution_breakdown`, which
+        returns the same product together with its factors, so the copy that
+        names the cause (trust vs the relationship) reads the very numbers
+        the arithmetic multiplied. This returns its `["scale"]` — the
+        arithmetic is identical, pinned by a drift census.
         """
-        scale = self._RELATIONSHIP_SCALING.get(
-            lead.get_relationship(ally.name), 1.0)
-        lead_jealous = getattr(lead, "jealous_of", None) == ally.name
-        ally_jealous = getattr(ally, "jealous_of", None) == lead.name
-        if lead_jealous or ally_jealous:
-            jealous_one = lead if lead_jealous else ally
-            if jealous_one.personality == "aggressive":
-                return 0.0
-            pair_rel = min(lead.get_relationship(ally.name),
-                           ally.get_relationship(lead.name))
-            scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
-        if self.TRUST_REACHES_THE_FIELD and scale > 0.0:
-            # FA-D23: a Broken marshal brings less — the AI's rentes buy
-            # something real, and the player can read enemy disaffection
-            # off the same rule.
-            from backend.commands.objection_v2 import TrustTier, get_trust_tier
-            _trust = getattr(getattr(ally, "trust", None), "value", None)
-            if _trust is not None and get_trust_tier(int(_trust)) == TrustTier.HOSTILE:
-                scale *= self.BROKEN_TRUST_CONTRIBUTION
-        return scale
+        return self._pair_contribution_breakdown(lead, ally)["scale"]
+
+    def _committed_share(self, lead, r, scale: float) -> float:
+        """IQ-5 R7: one reinforcer's committed term at `scale` — the per-man
+        body of `_committed_reinforcement_strength`, extracted so the trust
+        note can quote "committed N where he would have brought M" off the
+        SAME arithmetic (evaluated in the same order, so the sum is
+        float-identical). Reads only: `consume=False` spends nothing."""
+        eff = r.get_combat_effectiveness()
+        atk_mult = r.get_attack_modifier(1.0, consume=False)
+        return self.COMMITTED_ALPHA * r.strength * eff * atk_mult * scale
+
+    def _half_weight_clause(self, lead, ally) -> str:
+        """IQ-5 R8: the muster row's `0 < scale < 1` arm, branched on CAUSE.
+
+        One sentence used to cover seven states — "he and {lead} are at
+        odds; expect about half his weight" — including friendly and devoted
+        pairs whose only trouble was the ally's broken faith in the Emperor,
+        and 0.25 printed as "half". Now:
+
+        - relationship only: the old string, verbatim;
+        - trust only: his faith is spent (the trust NUMBER — never the word
+          "Broken": the card's label says "Strained" from 21 to 29 while
+          the halving applies below 30), and the fraction is of the weight
+          he would OTHERWISE bring — i.e. the trust factor itself, so a
+          +1 friend reads "half" of his (larger) weight, which is true,
+          rather than "about 62%" of it, which is not;
+        - both: at odds AND faith spent, the true total fraction.
+
+        `will_join` is untouched — it feeds the odds band."""
+        old = (f"— but he and {lead.name} are at odds; expect "
+               f"about half his weight")
+        if not self.TRUST_NAMES_ITS_PRICE:
+            return old
+        bd = self._pair_contribution_breakdown(lead, ally)
+        if bd["trust_factor"] >= 1.0 or bd["trust"] is None:
+            return old
+        t = int(bd["trust"])
+        if bd["relationship_scale"] >= 1.0:
+            return (f"— but his faith in you is spent (trust {t}); expect "
+                    f"{weight_phrase(bd['trust_factor'])} the weight he "
+                    f"would otherwise bring")
+        return (f"— but he and {lead.name} are at odds, and his faith in "
+                f"you is spent (trust {t}); expect "
+                f"{weight_phrase(bd['scale'])} his weight")
+
+    def _faith_records(self, attacker, defender, atk_participants,
+                       def_participants) -> list:
+        """IQ-5 R9: every non-lead participant whose trust factor APPLIED,
+        with what he committed and what he would have brought — read BEFORE
+        resolve_battle, off the same `_committed_share` the resolver sums
+        (strength, morale and modifiers are the resolve-time ones). Pure
+        reads; empty when the lever is down or FA-D23 never fired."""
+        records = []
+        if not self.TRUST_NAMES_ITS_PRICE:
+            return records
+        for lead, parts, side in ((attacker, atk_participants, "attacker"),
+                                  (defender, def_participants, "defender")):
+            for p in parts:
+                if p is lead or p.name == lead.name:
+                    continue
+                if getattr(p, "strength", 0) <= 0:
+                    continue
+                bd = self._pair_contribution_breakdown(lead, p)
+                if bd["scale"] <= 0.0 or bd["trust_factor"] >= 1.0:
+                    continue
+                records.append({
+                    "marshal": p,
+                    "side": side,
+                    "trust": bd["trust"],
+                    "trust_factor": float(bd["trust_factor"]),
+                    "committed": int(self._committed_share(lead, p, bd["scale"])),
+                    "full": int(self._committed_share(
+                        lead, p, bd["relationship_scale"])),
+                })
+        return records
+
+    @staticmethod
+    def _faith_visible(world, attacker, defender, record) -> Optional[str]:
+        """Whose copy a faith record gets: "player" for the player's own
+        marshal, "enemy" for a foreign one ONLY when the player fought (the
+        diorama's fog contract — the battle is the intel), else None."""
+        player_nation = getattr(world, "player_nation", "France")
+        p = record["marshal"]
+        if getattr(p, "nation", None) == player_nation:
+            return "player"
+        if (getattr(attacker, "nation", None) == player_nation
+                or getattr(defender, "nation", None) == player_nation):
+            return "enemy"
+        return None
+
+    def _compose_trust_note(self, world, attacker, defender, records) -> str:
+        """IQ-5 R9 — `battle_report["trust_note"]`, display-only (GR6).
+
+        FA-D23 halves a Broken marshal's weight on BOTH sides of the field
+        and no surface after any battle named it: the massed line printed
+        "+ 11,700 committed (Davout)" where 23,400 had been, identical to a
+        relationship halving, and a co-located man printed nothing at all.
+        One sentence per man. The player's own marshal gets his trust
+        NUMBER and both figures; an enemy's disaffection reads without a
+        number (the ruling's own promise: the player can read it off the
+        same rule). Not a `reinforcement_messages` line (both clients
+        colour those by the word "arrived") and not an observation rung
+        (the rotation would move unrelated battles)."""
+        from backend.display_names import humanize_entity_name
+        lines = []
+        for rec in records:
+            who = self._faith_visible(world, attacker, defender, rec)
+            if who is None:
+                continue
+            p = rec["marshal"]
+            name = humanize_entity_name(p.name)
+            if who == "player":
+                lines.append(
+                    f"{name}'s faith in you is spent (trust {int(rec['trust'])})"
+                    f" — he committed {int(rec['committed']):,} to the fight "
+                    f"where he would have brought {int(rec['full']):,}.")
+            else:
+                court = formed_display_name(world, p.nation)
+                lines.append(
+                    f"{name} fought for {court} without conviction — "
+                    f"{weight_phrase(1.0 - rec['trust_factor'])} his weight "
+                    f"never reached the field.")
+        return " ".join(lines)
+
+    def _faith_captions(self, world, attacker, defender, records) -> dict:
+        """IQ-5 R11: the diorama's optional `faith` caption per contingent
+        name (rendered like `grudge`). The contingent's `committed` figure is
+        left alone — `total_engaged` and the significance predicates read
+        its neighbours."""
+        captions = {}
+        for rec in records:
+            who = self._faith_visible(world, attacker, defender, rec)
+            if who is None:
+                continue
+            tf = float(rec["trust_factor"])
+            if who == "player":
+                captions[rec["marshal"].name] = (
+                    f"His faith in you is spent (trust {int(rec['trust'])}) — "
+                    f"{weight_phrase(tf)} his weight reached the field.")
+            else:
+                captions[rec["marshal"].name] = (
+                    f"He fought without conviction — "
+                    f"{weight_phrase(1.0 - tf)} his weight never reached "
+                    f"the field.")
+        return captions
 
     def _committed_bodies(self, lead, participants) -> int:
         """FA-D29 (slice 17, Phase 2): the men actually ENGAGED on a side —
@@ -545,9 +793,7 @@ class CombatExecutor:
                 if scale <= 0.0:
                     continue
 
-            eff = r.get_combat_effectiveness()
-            atk_mult = r.get_attack_modifier(1.0, consume=False)
-            total += self.COMMITTED_ALPHA * r.strength * eff * atk_mult * scale
+            total += self._committed_share(lead, r, scale)
 
         return total
 
@@ -1206,9 +1452,7 @@ class CombatExecutor:
                             f"— but he and {marshal.name} are openly at "
                             f"odds; he will bring NOTHING to the fighting")
                 elif _scale < 1.0:
-                    row["withholds"] = (
-                        f"— but he and {marshal.name} are at odds; expect "
-                        f"about half his weight")
+                    row["withholds"] = self._half_weight_clause(marshal, m)
             rows.append(row)
 
         # CO-2: the odds band reflects the TOTAL committed force (lead + the
@@ -2123,7 +2367,26 @@ class CombatExecutor:
         return shares
 
     @staticmethod
-    def _reconcile_report_survivors(battle_result, lead, defender) -> None:
+    def _side_fought_as_army(distribution, lead, raw: int, share: int) -> bool:
+        """IQ-5 R1: is this side's casualty figure an ARMY's, not one man's?
+
+        The predicate is the DISTRIBUTION, not the arithmetic: the side is
+        an army when any OTHER participant bore casualties above 0. The old
+        `raw != share` test labelled a LONE corps whenever the overkill cap
+        (`_distribute_casualties` capping 1,534 at 1,500) or the `< 50 → 0`
+        rubble rule in `take_casualties` separated the two numbers —
+        measured 2 of 6 seeds on a lone Mack. `distribution is None` (the
+        legacy 3-argument callers) falls back to the arithmetic."""
+        if distribution is None:
+            return int(raw) != int(share)
+        lead_name = getattr(lead, "name", None)
+        return any(int(v or 0) > 0 for name, v in distribution.items()
+                   if name != lead_name)
+
+    @staticmethod
+    def _reconcile_report_survivors(battle_result, lead, defender,
+                                    atk_distribution=None,
+                                    def_distribution=None) -> None:
         """CO-5 (Combat Overhaul Phase 1): single-source the survivor count.
 
         In a coordinated battle resolve_battle builds the battle report from the
@@ -2170,8 +2433,36 @@ class CombatExecutor:
         # ══════════════════════════════════════════════════════════════
         _raw_atk = int((battle_result.get("attacker") or {}).get(
             "casualties", cs["attacker_casualties"]))
-        cs["attacker_casualties_scope"] = (
-            "own corps" if _raw_atk != cs["attacker_casualties"] else "")
+        if not CombatExecutor.BOTH_SIDES_NAME_THEIR_SCOPE:
+            cs["attacker_casualties_scope"] = (
+                "own corps" if _raw_atk != cs["attacker_casualties"] else "")
+            return
+        # ══════════════════════════════════════════════════════════════
+        # IQ-5 R1 (PR-X2) — BOTH SIDES, AND ONLY ARMIES.
+        #
+        # PT-D5 labelled the ATTACKER alone; the defender — the side the
+        # player is on in every enemy-phase battle — printed "Casualties:
+        # Ney 132" two lines below "Ney's army 12,866" (a 97x disagreement
+        # under one word). The mirror is keyed on the distribution, not
+        # `raw != share`, so a corps that fought alone is never labelled.
+        #
+        # The same predicate stamps `casualties_scope: "army"` on the event
+        # side dicts — the SAME objects the enemy-phase event carries — so
+        # the dialog can say whose losses it prints. Keys added only; the
+        # mechanical `casualties` figure is untouched (R2).
+        # ══════════════════════════════════════════════════════════════
+        _raw_def = int((battle_result.get("defender") or {}).get(
+            "casualties", cs["defender_casualties"]))
+        _atk_army = CombatExecutor._side_fought_as_army(
+            atk_distribution, lead, _raw_atk, cs["attacker_casualties"])
+        _def_army = CombatExecutor._side_fought_as_army(
+            def_distribution, defender, _raw_def, cs["defender_casualties"])
+        cs["attacker_casualties_scope"] = "own corps" if _atk_army else ""
+        cs["defender_casualties_scope"] = "own corps" if _def_army else ""
+        for _side, _army in (("attacker", _atk_army), ("defender", _def_army)):
+            _side_dict = battle_result.get(_side)
+            if _army and isinstance(_side_dict, dict):
+                _side_dict["casualties_scope"] = "army"
 
     @staticmethod
     def _rewrite_primary_casualties(description, atk_name, atk_raw, atk_share,
@@ -6367,6 +6658,16 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
         def_distribution = {}  # BD: initialized both paths — the diorama builder reads it
+        # IQ-5 (display only, both paths): the co-located contributors each
+        # side's mass line names (R3), every participant's resolve-time
+        # strength for the log's field bound and the dispatch's per-man
+        # beat (R4/R5), and the Broken-faith records (R9/R11). Empty on the
+        # solo path and with the levers down.
+        _iq5_atk_contrib = []
+        _iq5_def_contrib = []
+        _iq5_atk_pre = []
+        _iq5_def_pre = []
+        _iq5_faith = []
         if is_coordinated_battle:
             # CO-1/CO-1b: committed reinforcement strength adds to the clash,
             # personality- & relationship-scaled (single source, GR1-safe read).
@@ -6375,6 +6676,24 @@ class CombatExecutor:
                 marshal, atk_participants, world)
             committed_defender = self._committed_reinforcement_strength(
                 enemy_marshal, def_participants, world)
+            # IQ-5: snapshots taken with the same reads the committed sums
+            # just made, BEFORE resolve_battle mutates anyone. Pure reads —
+            # no RNG, no state (the BASELINE_SERIES board runs this path).
+            if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+                for _lead, _parts, _contrib, _pre in (
+                        (marshal, atk_participants, _iq5_atk_contrib, _iq5_atk_pre),
+                        (enemy_marshal, def_participants, _iq5_def_contrib,
+                         _iq5_def_pre)):
+                    for _p in _parts:
+                        _pre.append((_p.name, int(getattr(_p, "strength", 0))))
+                        if _p is _lead or _p.name == _lead.name:
+                            continue
+                        if getattr(_p, "strength", 0) <= 0:
+                            continue
+                        if self._pair_contribution_scale(_lead, _p) > 0.0:
+                            _contrib.append(_p.name)
+            _iq5_faith = self._faith_records(
+                marshal, enemy_marshal, atk_participants, def_participants)
             # CO-6 (Combat Overhaul Phase 2): capture the pre-battle lead
             # strength and the committed sum for the reinforcement legibility
             # line (built with reinforcement_messages below). marshal.strength
@@ -6489,7 +6808,8 @@ class CombatExecutor:
             # the event carries (the "two-truths" fix, M4). Runs before the
             # pursuit block, which then adds pursuit to BOTH surfaces.
             self._reconcile_report_survivors(
-                battle_result, marshal, enemy_marshal)
+                battle_result, marshal, enemy_marshal,
+                atk_distribution, def_distribution)
 
             # Set forced_retreat flags per-primary for _handle_forced_retreat
             # Uses module-level FORCED_RETREAT_THRESHOLD from combat.py (Bug 7 fix)
@@ -6617,6 +6937,39 @@ class CombatExecutor:
                         cs["defender_casualties"] = int(cs.get("defender_casualties", 0)) + int(pursuit_damage)
                         cs["defender_remaining"] = max(
                             0, int(cs.get("defender_remaining", 0)) - int(pursuit_damage))
+
+            # ════════════════════════════════════════════════════════════
+            # IQ-5 (PR-X2) R1 + R4 + R5 — display-only keys, added AFTER the
+            # pursuit block so every figure is final. Nothing mechanical is
+            # rewritten (R2): `casualties` and the log's `*_casualties`
+            # stand as they were.
+            #
+            # `lead_remaining` — the lead corps' own survivors, beside the
+            #   event's `remaining`, so the enemy-phase dialog never pairs
+            #   the army's losses with the lead's remainder unlabelled.
+            # `*_field_before` — the side's participant strength at resolve:
+            #   the campaign log's PT-D6 clamp was bounding a 12,866-man
+            #   army loss by the 500-man lead ("3,191 / 500 casualties").
+            # `*_participant_losses` — per man, so the dispatch mauls the man
+            #   who bled (it called the army's losses "his corps" and named a
+            #   stub who lost 132 while the reinforcer who lost 12,734 was
+            #   named nowhere).
+            # ════════════════════════════════════════════════════════════
+            if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+                battle_result["attacker"]["lead_remaining"] = int(marshal.strength)
+                battle_result["defender"]["lead_remaining"] = int(enemy_marshal.strength)
+                _iq5_log = battle_result.get("log_battle_event")
+                if isinstance(_iq5_log, dict):
+                    for _side, _pre, _dist in (
+                            ("attacker", _iq5_atk_pre, atk_distribution),
+                            ("defender", _iq5_def_pre, def_distribution)):
+                        _iq5_log[f"{_side}_field_before"] = int(
+                            sum(_s for _n, _s in _pre))
+                        _iq5_log[f"{_side}_participant_losses"] = [
+                            {"marshal": _n,
+                             "casualties": int(_dist.get(_n, 0) or 0),
+                             "strength_before": int(_s)}
+                            for _n, _s in _pre]
 
             # Store distribution info for event logging
             battle_result["casualty_distribution"] = {
@@ -7486,6 +7839,9 @@ class CombatExecutor:
         # own command response, whitelisted in main.py) and the battle
         # event (the enemy-phase transport, filtered with the action).
         # ════════════════════════════════════════════════════════════
+        _iq5_faith_captions = (
+            self._faith_captions(world, marshal, enemy_marshal, _iq5_faith)
+            if (_iq5_faith and self.TRUST_NAMES_ITS_PRICE) else None)
         _bd_payload = build_battle_diorama(
             world=world, attacker=marshal, defender=enemy_marshal,
             battle_result=battle_result, battle_region=battle_region_name,
@@ -7501,6 +7857,9 @@ class CombatExecutor:
             # PT-D2 muster-promise parity: every WILL JOIN name renders
             # with SOME status even when the resolve ladder dropped him.
             muster_rows=(muster_preview or {}).get("rows"),
+            # IQ-5 R11: the optional `faith` caption — passed only when
+            # there is one, so the call is unchanged otherwise.
+            **({"faith": _iq5_faith_captions} if _iq5_faith_captions else {}),
         )
         if _bd_payload:
             result["battle_diorama"] = _bd_payload
@@ -7619,6 +7978,18 @@ class CombatExecutor:
         _jealousy.emit_unreported_resolutions(
             world, _jl_resolutions, _jl_reported)
 
+        # IQ-5 R9 (PR-X3): trust's price named where it is paid — composed
+        # here for EVERY caller of this seam (player, AI, strategic,
+        # autonomous; attacker or defender), from the resolve-time records
+        # of non-lead participants whose trust factor applied. Absent when
+        # empty (GR6 display-only).
+        if (_iq5_faith and self.TRUST_NAMES_ITS_PRICE
+                and isinstance(result.get("battle_report"), dict)):
+            _trust_note = self._compose_trust_note(
+                world, marshal, enemy_marshal, _iq5_faith)
+            if _trust_note:
+                result["battle_report"]["trust_note"] = _trust_note
+
         # Auto-bombardment data (Session 68): pass through for Godot display
         if auto_bombardment_results:
             result["auto_bombardment"] = True
@@ -7664,8 +8035,12 @@ class CombatExecutor:
         arrived_names = []
         for r in attacker_reinforcements:
             if r.get("arrived"):
+                # IQ-5 (R7): the arrival names the men, never the roster key
+                # ("ArchdukeJohn"); one-word names are byte-identical.
+                from backend.display_names import humanize_entity_name as _hen
                 reinf_messages.append(
-                    f"{r['marshal']}'s forces arrived to reinforce {marshal.name}!")
+                    f"{_hen(r['marshal'])}'s forces arrived to reinforce "
+                    f"{_hen(marshal.name)}!")
                 arrived_names.append(r["marshal"])
             else:
                 reason = r.get("reason", "unknown")
@@ -7711,21 +8086,43 @@ class CombatExecutor:
         # committed effective strength so the player SEES that massing corps
         # adds weight to the clash (the CO-1 additive model, previously
         # invisible). Only when reinforcers actually arrived and contributed.
+        #
+        # IQ-5 R3 (PR-X2): the names key off CONTRIBUTING participants as
+        # well as arrivals. A corps standing on the field beside its lead —
+        # the ordinary way to mass a defence, and the case CA8-1's own
+        # comment names — never rolls for arrival, so it printed no mass
+        # line and its dead appeared only in the diorama. Arrivals first
+        # (byte-identical when there is no co-located man), then the
+        # co-located contributors (scale > 0, the committed sum's own
+        # filter); the loss line names whoever bore a share.
+        # The names IQ-5 adds are humanised (a raw key read "ArchdukeJohn");
+        # arrival names keep their pre-IQ-5 form, byte for byte.
+        from backend.display_names import humanize_entity_name as _iq5_hn
+        _atk_named = list(arrived_names)
+        _atk_loss_names = list(arrived_names)
+        if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+            for _n in _iq5_atk_contrib:
+                if _n not in arrived_names and _iq5_hn(_n) not in _atk_named:
+                    _atk_named.append(_iq5_hn(_n))
+            for _p in atk_participants:
+                if (_p.name != marshal.name and _p.name not in _atk_loss_names
+                        and int(atk_distribution.get(_p.name, 0) or 0) > 0):
+                    _atk_loss_names.append(_p.name)
         _co6_committed = int(locals().get("_co6_committed_attacker", 0) or 0)
-        if arrived_names and _co6_committed > 0:
+        if _atk_named and _co6_committed > 0:
             _co6_lead = int(locals().get("_co6_lead_pre_strength", 0) or 0)
             _co6_total = _co6_lead + _co6_committed
-            joined = ", ".join(arrived_names)
+            joined = ", ".join(_atk_named)
             reinf_messages.append(
                 f"Massed effective strength: {_co6_lead:,} (lead) + "
                 f"{_co6_committed:,} committed ({joined}) = {_co6_total:,}.")
 
         # Aggregate ally casualties (Session 66)
-        if arrived_names and atk_distribution:
+        if _atk_loss_names and atk_distribution:
             ally_casualties = sum(
-                atk_distribution.get(name, 0) for name in arrived_names)
+                atk_distribution.get(name, 0) for name in _atk_loss_names)
             if ally_casualties > 0:
-                if len(arrived_names) == 1:
+                if len(_atk_loss_names) == 1:
                     reinf_messages.append(
                         f"His supporting ally lost {int(ally_casualties):,} men.")
                 else:
@@ -7746,20 +8143,42 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════════
         def_arrived = [r["marshal"] for r in defender_reinforcements
                        if r.get("arrived")]
+        # IQ-5 R3: the defender's co-located stack, mirrored.
+        _def_named = list(def_arrived)
+        _def_loss_names = list(def_arrived)
+        if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+            for _n in _iq5_def_contrib:
+                if _n not in def_arrived and _iq5_hn(_n) not in _def_named:
+                    _def_named.append(_iq5_hn(_n))
+            for _p in def_participants:
+                if (_p.name != enemy_marshal.name
+                        and _p.name not in _def_loss_names
+                        and int(def_distribution.get(_p.name, 0) or 0) > 0):
+                    _def_loss_names.append(_p.name)
         _co6_committed_def = int(locals().get("_co6_committed_defender", 0) or 0)
-        if def_arrived and _co6_committed_def > 0:
+        if _def_named and _co6_committed_def > 0:
             _co6_lead_def = int(locals().get("_co6_lead_pre_strength_def", 0) or 0)
-            joined_def = ", ".join(def_arrived)
-            reinf_messages.append(
-                f"{enemy_marshal.name} was reinforced — massed effective "
-                f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
-                f"committed ({joined_def}) = "
-                f"{_co6_lead_def + _co6_committed_def:,}.")
-        if def_arrived and def_distribution:
+            joined_def = ", ".join(_def_named)
+            if def_arrived:
+                reinf_messages.append(
+                    f"{enemy_marshal.name} was reinforced — massed effective "
+                    f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
+                    f"committed ({joined_def}) = "
+                    f"{_co6_lead_def + _co6_committed_def:,}.")
+            else:
+                # Nobody marched in: the stack stood there already. "Was
+                # reinforced" would be false, so the co-located wording.
+                reinf_messages.append(
+                    f"{_iq5_hn(enemy_marshal.name)} fought with "
+                    f"{_join_names(_def_named)} beside him — massed effective "
+                    f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
+                    f"committed ({joined_def}) = "
+                    f"{_co6_lead_def + _co6_committed_def:,}.")
+        if _def_loss_names and def_distribution:
             def_ally_casualties = sum(
-                def_distribution.get(name, 0) for name in def_arrived)
+                def_distribution.get(name, 0) for name in _def_loss_names)
             if def_ally_casualties > 0:
-                _plural = "allies" if len(def_arrived) > 1 else "ally"
+                _plural = "allies" if len(_def_loss_names) > 1 else "ally"
                 reinf_messages.append(
                     f"{enemy_marshal.name}'s supporting {_plural} lost "
                     f"{int(def_ally_casualties):,} men.")

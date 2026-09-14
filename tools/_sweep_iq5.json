@@ -1,0 +1,485 @@
+[
+ {
+  "id": "R1 predicate reverted to the naive raw-vs-share mirror",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        return any(int(v or 0) > 0 for name, v in distribution.items()\n                   if name != lead_name)",
+  "new": "        return int(raw) != int(share)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSideIsNeverLabelled"
+ },
+ {
+  "id": "R1 predicate counts the lead's own losses as an ally's",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                   if name != lead_name)",
+  "new": "                   if True)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSideIsNeverLabelled"
+ },
+ {
+  "id": "R1 legacy 3-argument fallback dropped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if distribution is None:\n            return int(raw) != int(share)",
+  "new": "        if distribution is None:\n            return False",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheReconcilePredicate"
+ },
+ {
+  "id": "R1 defender scope never written",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        cs[\"defender_casualties_scope\"] = \"own corps\" if _def_army else \"\"",
+  "new": "        cs[\"defender_casualties_scope\"] = \"\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderCarriesTheLabel"
+ },
+ {
+  "id": "R1 event side never stamped army",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                _side_dict[\"casualties_scope\"] = \"army\"",
+  "new": "                _side_dict[\"casualties_scope_x\"] = \"army\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderCarriesTheLabel"
+ },
+ {
+  "id": "R13 lever-down attacker label no longer the old arithmetic",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                \"own corps\" if _raw_atk != cs[\"attacker_casualties\"] else \"\")\n            return",
+  "new": "                \"\")\n            return",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderCarriesTheLabel tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheReconcilePredicate"
+ },
+ {
+  "id": "R1 call site stops passing the distributions",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                battle_result, marshal, enemy_marshal,\n                atk_distribution, def_distribution)",
+  "new": "                battle_result, marshal, enemy_marshal)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSideIsNeverLabelled"
+ },
+ {
+  "id": "R1 lead_remaining is not the lead's survivors",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                battle_result[\"defender\"][\"lead_remaining\"] = int(enemy_marshal.strength)",
+  "new": "                battle_result[\"defender\"][\"lead_remaining\"] = int(enemy_marshal.strength) + 1",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderCarriesTheLabel"
+ },
+ {
+  "id": "R13 stamping block ignores the scope lever",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if self.BOTH_SIDES_NAME_THEIR_SCOPE:\n                battle_result[\"attacker\"][\"lead_remaining\"]",
+  "new": "            if True:\n                battle_result[\"attacker\"][\"lead_remaining\"]",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderCarriesTheLabel tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheLogIsBoundedByTheField"
+ },
+ {
+  "id": "R4 field bound is the smallest man, not the field",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                            sum(_s for _n, _s in _pre))",
+  "new": "                            min(_s for _n, _s in _pre))",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheLogIsBoundedByTheField"
+ },
+ {
+  "id": "R5 per-man losses stamped as zero",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                             \"casualties\": int(_dist.get(_n, 0) or 0),",
+  "new": "                             \"casualties\": 0,",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDispatchMaulsTheManWhoBled"
+ },
+ {
+  "id": "R3 co-located contributors never collected",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        if self._pair_contribution_scale(_lead, _p) > 0.0:\n                            _contrib.append(_p.name)",
+  "new": "                        if False:\n                            _contrib.append(_p.name)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R3 co-located defender told he was reinforced",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_iq5_hn(enemy_marshal.name)} fought with \"",
+  "new": "                    f\"{_iq5_hn(enemy_marshal.name)} was reinforced by \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R3 defender's co-located dead never counted",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        and int(def_distribution.get(_p.name, 0) or 0) > 0):",
+  "new": "                        and int(def_distribution.get(_p.name, 0) or 0) > 10 ** 9):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R3 attacker's co-located dead never counted",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        and int(atk_distribution.get(_p.name, 0) or 0) > 0):",
+  "new": "                        and int(atk_distribution.get(_p.name, 0) or 0) > 10 ** 9):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R3 attacker's co-located names never added",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            for _n in _iq5_atk_contrib:",
+  "new": "            for _n in []:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R13 attacker message block ignores the scope lever",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if self.BOTH_SIDES_NAME_THEIR_SCOPE:\n            for _n in _iq5_atk_contrib:",
+  "new": "        if True:\n            for _n in _iq5_atk_contrib:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R13 defender message block ignores the scope lever",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if self.BOTH_SIDES_NAME_THEIR_SCOPE:\n            for _n in _iq5_def_contrib:",
+  "new": "        if True:\n            for _n in _iq5_def_contrib:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "R4 the log reads the defender's lead, not his field",
+  "file": "backend/campaign_log.py",
+  "old": "        _def_before = event.get(\"defender_field_before\")",
+  "new": "        _def_before = None",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheLogIsBoundedByTheField"
+ },
+ {
+  "id": "R4 the log reads the attacker's lead, not his field",
+  "file": "backend/campaign_log.py",
+  "old": "        _atk_before = event.get(\"attacker_field_before\")",
+  "new": "        _atk_before = None",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheLogIsBoundedByTheField"
+ },
+ {
+  "id": "R5 per-man threshold moved off a quarter",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                        if (_ppre > 0 and _pcas >= 0.25 * _ppre",
+  "new": "                        if (_ppre > 0 and _pcas >= 0.30 * _ppre",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDispatchMaulsTheManWhoBled"
+ },
+ {
+  "id": "R5 per-man beat loses WO-16's absolute floor",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                                and _pcas >= OWN_MAULED_MIN_CASUALTIES):\n                            _add(\"own_mauled\", f\"own_mauled:{_pname}\",",
+  "new": "                                and True):\n                            _add(\"own_mauled\", f\"own_mauled:{_pname}\",",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDispatchMaulsTheManWhoBled"
+ },
+ {
+  "id": "R5 per-man path falls through to the lead-only beat",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                                 proportion=_mauled_proportion(_pcas, _ppre))\n                    continue",
+  "new": "                                 proportion=_mauled_proportion(_pcas, _ppre))\n                    pass",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDispatchMaulsTheManWhoBled"
+ },
+ {
+  "id": "R5 per-man beat mauls a man no longer on the roster",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                        if (not _pname or _pcas <= 0\n                                or world.get_marshal(_pname) is None):",
+  "new": "                        if (not _pname or _pcas <= 0):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDispatchMaulsTheManWhoBled"
+ },
+ {
+  "id": "R7 breakdown reports no trust factor while halving",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            trust_factor = owner.BROKEN_TRUST_CONTRIBUTION\n",
+  "new": "            trust_factor = 1.0\n",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneSourceForTheArithmetic tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R7 breakdown stops halving (arithmetic drift)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            scale *= owner.BROKEN_TRUST_CONTRIBUTION",
+  "new": "            scale *= 1.0",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneSourceForTheArithmetic"
+ },
+ {
+  "id": "R7 relationship_scale is not the pre-trust scale",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    relationship_scale = scale\n",
+  "new": "    relationship_scale = 1.0\n",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneSourceForTheArithmetic tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R7 aggressive grievance no longer a hard zero",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            return {\"scale\": 0.0, \"relationship_scale\": 0.0,",
+  "new": "            return {\"scale\": 1.0, \"relationship_scale\": 0.0,",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneSourceForTheArithmetic"
+ },
+ {
+  "id": "R7 withheld grievance reads the better direction",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        pair_rel = min(lead.get_relationship(ally.name),\n                       ally.get_relationship(lead.name))\n        relationship = pair_rel",
+  "new": "        pair_rel = max(lead.get_relationship(ally.name),\n                       ally.get_relationship(lead.name))\n        relationship = pair_rel",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneSourceForTheArithmetic"
+ },
+ {
+  "id": "R8 weight phrase says 25% for a quarter",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        return \"a quarter of\"",
+  "new": "        return \"about 25% of\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneSourceForTheArithmetic tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R8 a plain pair with broken trust is sent to the both arm",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if bd[\"relationship_scale\"] >= 1.0:",
+  "new": "        if bd[\"relationship_scale\"] > 1.0:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R8 both arm says half for a quarter",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                f\"{weight_phrase(bd['scale'])} his weight\")",
+  "new": "                f\"{weight_phrase(bd['trust_factor'])} his weight\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R8 trust-only arm quotes the total, not what trust took",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{weight_phrase(bd['trust_factor'])} the weight he \"",
+  "new": "                    f\"{weight_phrase(bd['scale'])} the weight he \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R13 muster row ignores the trust lever",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if not self.TRUST_NAMES_ITS_PRICE:\n            return old",
+  "new": "        if False:\n            return old",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R8 relationship arm no longer verbatim at healthy trust",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if bd[\"trust_factor\"] >= 1.0 or bd[\"trust\"] is None:\n            return old",
+  "new": "        if bd[\"trust\"] is None:\n            return old",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMusterRowIsBranchedOnCause"
+ },
+ {
+  "id": "R9 a relationship halving is recorded as broken faith",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if bd[\"scale\"] <= 0.0 or bd[\"trust_factor\"] >= 1.0:\n                    continue",
+  "new": "                if bd[\"scale\"] <= 0.0:\n                    continue",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R9 the committed figure is the full one",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    \"committed\": int(self._committed_share(lead, p, bd[\"scale\"])),",
+  "new": "                    \"committed\": int(self._committed_share(lead, p, bd[\"relationship_scale\"])),",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R9 the enemy's disaffection is never shown",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            return \"enemy\"",
+  "new": "            return None",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R9 enemy disaffection shown on a field the player never fought",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if (getattr(attacker, \"nation\", None) == player_nation\n                or getattr(defender, \"nation\", None) == player_nation):",
+  "new": "        if True:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R9 enemy copy quotes the kept fraction as the lost one",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{weight_phrase(1.0 - rec['trust_factor'])} his weight \"",
+  "new": "                    f\"{weight_phrase(rec['trust_factor'])} his weight \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R9 player copy quotes the full figure as committed",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\" — he committed {int(rec['committed']):,} to the fight \"",
+  "new": "                    f\" — he committed {int(rec['full']):,} to the fight \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R9 the note is composed and never delivered",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if _trust_note:\n                result[\"battle_report\"][\"trust_note\"] = _trust_note",
+  "new": "            if False:\n                result[\"battle_report\"][\"trust_note\"] = _trust_note",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "R10 card rewrites the healthy-trust sentence",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            if (_bd[\"scale\"] > 0.0 and _bd[\"trust_factor\"] < 1.0",
+  "new": "            if (_bd[\"scale\"] > 0.0 and _bd[\"trust_factor\"] <= 1.0",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+ },
+ {
+  "id": "R10 card quotes the trust factor, not the true fraction",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                weight = (f\"he brings {weight_phrase(_bd['scale'])} the \"",
+  "new": "                weight = (f\"he brings {weight_phrase(_bd['trust_factor'])} the \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+ },
+ {
+  "id": "R10 card reads the lead's trust, not the jealous man's",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            _bd = pair_contribution_breakdown(target, marshal)",
+  "new": "            _bd = pair_contribution_breakdown(marshal, target)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+ },
+ {
+  "id": "R13 card ignores the trust lever",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if CombatExecutor.TRUST_NAMES_ITS_PRICE:\n            _bd",
+  "new": "        if True:\n            _bd",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+ },
+ {
+  "id": "R11 the no-show shelf is captioned",
+  "file": "backend/game_logic/battle_diorama.py",
+  "old": "                if _caption and _c.get(\"status\") not in ABSENT_STATUSES:",
+  "new": "                if _caption:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaCaption"
+ },
+ {
+  "id": "R11 caption written under the wrong key",
+  "file": "backend/game_logic/battle_diorama.py",
+  "old": "                    _c[\"faith\"] = str(_caption)",
+  "new": "                    _c[\"faith_x\"] = str(_caption)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaCaption"
+ },
+ {
+  "id": "R11 player caption says his whole weight came",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{weight_phrase(tf)} his weight reached the field.\")",
+  "new": "                    f\"all his weight reached the field.\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaCaption"
+ },
+ {
+  "id": "R11 captions never handed to the diorama",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            **({\"faith\": _iq5_faith_captions} if _iq5_faith_captions else {}),",
+  "new": "            **({}),",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaCaption"
+ },
+ {
+  "id": "client main.gd defender label never built",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar def_label = def_name if def_scope == \"\" else def_name + \"'s \" + def_scope\n\t# Format with thousands separators",
+  "new": "\tvar def_label = def_name\n\t# Format with thousands separators",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalReadsBothScopes"
+ },
+ {
+  "id": "client main.gd Casualties line prints the bare name",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\" | \" + def_label + \" \" + _format_number(def_cas) + \"[/color]\")\n\tadd_output(\"[color=#\" + COLOR_REPORT + \"]  Strength: ",
+  "new": "\" | \" + def_name + \" \" + _format_number(def_cas) + \"[/color]\")\n\tadd_output(\"[color=#\" + COLOR_REPORT + \"]  Strength: ",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalReadsBothScopes"
+ },
+ {
+  "id": "client main.gd defender scope read without the null guard",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif not (def_scope is String):\n\t\tdef_scope = \"\"\n\tvar def_label = def_name if def_scope == \"\" else def_name + \"'s \" + def_scope\n\t# Format",
+  "new": "\tvar def_label = def_name if def_scope == \"\" else def_name + \"'s \" + def_scope\n\t# Format",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalReadsBothScopes"
+ },
+ {
+  "id": "client main.gd attacker scope read without the null guard",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif not (atk_scope is String):\n\t\tatk_scope = \"\"  # present-but-null must never print \"Ney's <null>\"\n",
+  "new": "",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalReadsBothScopes"
+ },
+ {
+  "id": "client main.gd trust note read under the wrong key",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar tr_note = report.get(\"trust_note\", \"\")\n\tif tr_note is String and tr_note != \"\":\n\t\tadd_output(",
+  "new": "\tvar tr_note = report.get(\"trust_notes\", \"\")\n\tif tr_note is String and tr_note != \"\":\n\t\tadd_output(",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalReadsBothScopes"
+ },
+ {
+  "id": "client main.gd mass/loss lines painted red again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\tadd_output(\"[color=#\" + COLOR_REINF_INFO + \"]  \" + text + \"[/color]\")",
+  "new": "\t\t\tadd_output(\"[color=#\" + COLOR_REINF_FAIL + \"]  \" + text + \"[/color]\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMassAndLossLinesAreNotFailures"
+ },
+ {
+  "id": "client main.gd loses a failure marker",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\"halted at the frontier\", \"took his time\", \"could not reach\"]\n\n\tfor msg in messages:",
+  "new": "\"halted at the frontier\", \"could not reach\"]\n\n\tfor msg in messages:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMassAndLossLinesAreNotFailures"
+ },
+ {
+  "id": "client enemy dialog paints report lines red by default",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\tvar reinf_color = Utils.COLOR_INFO",
+  "new": "\t\t\tvar reinf_color = COLOR_ERROR",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheMassAndLossLinesAreNotFailures"
+ },
+ {
+  "id": "client enemy dialog never reads the defender's army scope",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tvar def_is_army = str(defender.get(\"casualties_scope\", \"\")) == \"army\"",
+  "new": "\tvar def_is_army = false",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
+ },
+ {
+  "id": "client enemy dialog pairs army losses with the army remainder",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tvar def_lead_rem = defender.get(\"lead_remaining\", null)",
+  "new": "\tvar def_lead_rem = defender.get(\"remaining\", null)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
+ },
+ {
+  "id": "client enemy Berthier reads the attacker's scope for the defender",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tvar def_scope = casualty.get(\"defender_casualties_scope\", \"\")\n\tif not (def_scope is String):",
+  "new": "\tvar def_scope = casualty.get(\"attacker_casualties_scope\", \"\")\n\tif not (def_scope is String):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
+ },
+ {
+  "id": "client enemy Berthier Casualties line prints the bare name",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\t+ _format_number(atk_cas) + \" | \" + def_label + \" \"",
+  "new": "\t\t\t+ _format_number(atk_cas) + \" | \" + def_name + \" \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
+ },
+ {
+  "id": "client enemy Berthier trust note read under the wrong key",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tvar tr_note = report.get(\"trust_note\", \"\")\n\tif tr_note is String and tr_note != \"\":\n\t\tresult +=",
+  "new": "\tvar tr_note = report.get(\"trust_notes\", \"\")\n\tif tr_note is String and tr_note != \"\":\n\t\tresult +=",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
+ },
+ {
+  "id": "client enemy Berthier trust note prints a raw court tag",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "Utils.humanize_nation_keys_in_text(tr_note)",
+  "new": "tr_note",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
+ },
+ {
+  "id": "client diorama block caption not null-safe",
+  "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+  "old": "\tvar faith_v = c.get(\"faith\", null)\n\tvar faith := str(faith_v) if faith_v is String else \"\"",
+  "new": "\tvar faith_v = c.get(\"faith\", null)\n\tvar faith := str(c.get(\"faith\"))",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaDrawsTheCaption"
+ },
+ {
+  "id": "client diorama shelf caption read under the wrong key",
+  "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+  "old": "\t\tvar faith_v = c.get(\"faith\", null)",
+  "new": "\t\tvar faith_v = c.get(\"faith_x\", null)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaDrawsTheCaption"
+ },
+ {
+  "id": "harness digest drops the defender scope",
+  "file": "tools/playtest_driver.py",
+  "old": "            _def_scope = str(summary.get(\"defender_casualties_scope\") or \"\")",
+  "new": "            _def_scope = \"\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDigest"
+ },
+ {
+  "id": "harness digest reads the trust note under the wrong key",
+  "file": "tools/playtest_driver.py",
+  "old": "            _trust_note = report.get(\"trust_note\")",
+  "new": "            _trust_note = report.get(\"trust_notes\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDigest"
+ },
+ {
+  "id": "harness digest lets a multi-line note break the line",
+  "file": "tools/playtest_driver.py",
+  "old": "                head += f\" — {' '.join(_trust_note.split())}\"",
+  "new": "                head += f\" — {_trust_note}\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDigest"
+ }
+]

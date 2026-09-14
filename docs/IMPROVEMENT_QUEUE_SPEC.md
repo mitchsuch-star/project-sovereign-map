@@ -1635,6 +1635,62 @@ writer, then integrated by the lead.
   - **The counsel census holds after the fixes:** COURT is faster on 44 of 84
     rungs, and the counsel mix is IMPROVE 100 / COURT 11.
 
+### §1.4 LANDING RECORD — IQ-5 "Both Sides of the Butcher's Bill" (✅ September 14, 2026)
+
+**Authoritative for this row.** The rules are in `docs/SYSTEMS_REFERENCE.md`
+§44 and the defects in `docs/BUG_FIXES.md` §Both Sides of the Butcher's Bill
+(IQ-5). Two read-only recon agents measured both routed defects on the shipped
+board, through the real `_execute_attack`. The lead ruled on their reports.
+Builders then worked on disjoint files (backend; clients and harness), followed
+by a test writer.
+
+- **The completion item is MET, and re-stated because the row was too
+  narrow.** The row asked that "each of the two rulings can be observed by a
+  player from the battle report alone, and a pin asserts the label on the
+  defender's side". It is re-stated as (i) and (ii) below.
+  - The completion pin is the D-ADJ board, seed 3: the defender's figure
+    reads "own corps" (2,725), and the army's figure (6,814) is labelled on
+    the event.
+  - **(i) Both sides report their scope on every surface that shows a
+    casualty figure:**
+    - the terminal Berthier line;
+    - the enemy-phase dialog, where the player defends — it had no casualty
+      line at all;
+    - the campaign log, which printed a 12,866-man loss as "/ 500";
+    - the morning dispatch, which mauled the lead with the army's losses and
+      never named the man who bled;
+    - the digest.
+    - A side that fought alone is never labelled. A naive mirror of the
+      attacker label would have labelled one on 3 of 8 seeds, and the
+      sensitivity pin fails under it.
+  - **(ii) Trust names its price where it is paid, on both sides of the
+    field.** The muster row stops saying "at odds" for a cause that is not the
+    relationship, and "half" for a quarter.
+- **What else the recon found:**
+  - Co-located stacks, the ordinary way to mass a defence, were named on no
+    surface.
+  - Reinforcement lines were painted in the failure red.
+  - The diorama showed a half-weight man's full strength with no caption.
+  - The jealousy card said "half" for a quarter.
+  - The FA-D23 row named a test file that was never written (corrected in
+    `DESIGN_REFINEMENT.md`).
+  - PR-X3's `git log` attribution disagrees with the in-code provenance.
+- **Found while integrating:** the arrival line printed the raw key
+  ("ArchdukeJohn"), and the client passed a possibly-null list into an
+  `Array`-typed handler. Both are fixed.
+- **Ruled not to build:** IQ5-R1, splitting the casualty pool by committed
+  bodies. It is a mechanical change and this row changes display only. It is
+  routed with an owner, a completion and a named test.
+- **Gates:**
+  - M1–M7 and `BASELINE_SERIES` are byte-identical. That is evidence here: no
+    mechanical figure is touched, and the new attack-path code only reads and
+    draws no RNG.
+  - The Godot parse harness exited 0, and the boot smoke logged 0
+    `SCRIPT ERROR`.
+  - Both levers, set False, are byte-identical.
+  - The drift census has 1,000 cells.
+  - The sweep killed 69 of 69 mutations.
+
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that
 belongs to the Victory & Objectives Pass, ROADMAP positions 12–13. No IQ row

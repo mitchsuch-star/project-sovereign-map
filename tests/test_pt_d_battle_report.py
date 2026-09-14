@@ -101,8 +101,11 @@ class TestTheWithholdRowNamesTheRightMan:
         assert "openly at odds" in row
 
     def test_the_half_weight_arm_is_untouched(self, field):
-        """Already symmetric, and numerically exact: −1 → 0.50 is the only
-        non-zero sub-1.0 value on the scale."""
+        """Already symmetric. The relationship-only arm (−1 → 0.50, trust
+        above the FA-D23 line) keeps this string verbatim. IQ-5 corrected the
+        old claim that −1 is the only sub-1.0 value: since FA-D23 a Broken
+        marshal's trust halves the scale too (0.25 / 0.625 / 0.75), and those
+        arms name trust instead — `test_iq5_both_sides_of_the_butchers_bill`."""
         field.marshals["Ney"].modify_relationship("Bernadotte", -1)
         field.marshals["Bernadotte"].modify_relationship("Ney", -1)
         row = _withholds(field).get("Ney", "")

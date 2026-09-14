@@ -312,10 +312,16 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
                          defender_reinforcements: list,
                          region_conquered: bool,
                          total_engaged: int,
-                         muster_rows: Optional[list] = None) -> Optional[dict]:
+                         muster_rows: Optional[list] = None,
+                         faith: Optional[Dict[str, str]] = None
+                         ) -> Optional[dict]:
     """Assemble the Battle Diorama payload, or None when fog says the player
     may not see this field. Display-only; every figure is either already on
-    the battle event surface or derived from it."""
+    the battle event surface or derived from it.
+
+    IQ-5 R11: `faith` maps a contingent name to its optional caption (a
+    Broken marshal's weight, FA-D23), rendered like `grudge`. The caller
+    composes the text and applies the fog rule; `committed` is untouched."""
     player_nation = getattr(world, "player_nation", "France")
     atk_nation = getattr(attacker, "nation", "")
     def_nation = getattr(defender, "nation", "")
@@ -348,6 +354,14 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
         battle_result.get("defender", {}) or {},
         defender_reinforcements, pre_strengths, player_involved))
     defender_side["nation"] = def_nation
+    if faith:
+        # Only a man who stood on the field brought (part of) his weight —
+        # the no-show shelf committed nothing, so it carries no caption.
+        for _side in (attacker_side, defender_side):
+            for _c in _side["contingents"]:
+                _caption = faith.get(_c.get("name", ""))
+                if _caption and _c.get("status") not in ABSENT_STATUSES:
+                    _c["faith"] = str(_caption)
 
     great_battle = bool(
         int(total_engaged) >= int(getattr(world, "GREAT_BATTLE_THRESHOLD",

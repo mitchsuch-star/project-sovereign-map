@@ -51,8 +51,8 @@
 > | 2 | ~~**IQ-2 THE COLLAPSE IS LEGIBLE**~~ | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | ✅ **CLOSED September 14, 2026** — PR-X1 fixed; completion item pinned on a staged zero-province board; a P1 underneath closed (a landless France fielded a FREE army); record `BUG_FIXES.md` §Collapse Legibility (IQ-2) + spec §1.1 |
 > | 3 | ~~**IQ-3 THE COALITION IS RARE**~~ | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | ✅ **CLOSED September 14, 2026** — "The League Is Spent": a treaty that dissolves the league halves Europe's alarm; commanded arm **6–8 → 1** coalitions, completion board **2 / 1 / 2** on three seeds; record `IMPROVEMENT_QUEUE_SPEC.md` §1.2 |
 > | 4 | ~~**IQ-4 THE CABINET IS VISIBLE**~~ | missions are mechanically live and invisible | PR-D2, PR-D3 | ✅ **CLOSED September 14, 2026**. One source for every mission surface (Cabinet, rail, log, help, tutorial). "The Court's Favour" ⚠ FOR USER CONFIRMATION. The counsel arm ticks **3 / 3 / 4** types on three seeds, the control 0. A P1 closed underneath (Talleyrand stranded IN_TRANSIT). Record `IMPROVEMENT_QUEUE_SPEC.md` §1.3 |
-> | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ▶ **NEXT** |
-> | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | queued |
+> | 5 | ~~**IQ-5 BOTH SIDES OF THE BUTCHER'S BILL**~~ | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ✅ **CLOSED September 14, 2026**. Both sides report their scope on every surface: the enemy-phase dialog, campaign log and dispatch were wrong too. Trust is named where it is paid, on both sides. IQ5-R1 routed. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.4 |
+> | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | ▶ **NEXT**. Recon done: the narration's zero is an INSTRUMENT defect (the digest drops MEDIUM/LOW rows); the volte-face's is real (the window is too short for the game's own courting lever) |
 > | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | queued |
 > | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | queued |
 > | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
@@ -207,7 +207,13 @@
 >
 > ---
 >
-> ### IQ-5 — BOTH SIDES OF THE BUTCHER'S BILL
+> ### IQ-5 — BOTH SIDES OF THE BUTCHER'S BILL  ✅ CLOSED September 14, 2026
+>
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §1.4** (authoritative).
+> The completion item is MET: the defender carries the label (D-ADJ,
+> seed 3), and every surface names its figure's scope. **Routed:** IQ5-R1,
+> splitting the casualty pool by committed bodies. Owner: the next
+> combat-mechanics row. Test named in `BUG_FIXES.md`.
 >
 > **Evidence (PR-X2):** there is no `defender_casualties_scope` anywhere in the
 > backend, so FA-S17-1's own case — a reinforced side bleeding by the men it
@@ -279,6 +285,49 @@
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
 
+> ## ▶ IQ-5 "BOTH SIDES OF THE BUTCHER'S BILL" — LANDED September 14, 2026. **ROW IQ-5 IS CLOSED.**
+>
+> Row IQ-5 (PR-X2, PR-X3). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.4,
+> authoritative; rules = `SYSTEMS_REFERENCE.md` §44; defects = `BUG_FIXES.md`
+> §Both Sides of the Butcher's Bill (IQ5-1..11, IQ5-R1 routed).
+>
+> **The row was too narrow.** The Berthier line's missing defender label was
+> the least of it.
+> - **The enemy-phase dialog**, where the player defends, printed the army's
+>   losses beside the lead's remainder, unlabelled on both sides, and had no
+>   casualty line in its report.
+> - **The campaign log** capped a reinforced side at the lead's strength: a
+>   12,866-man loss printed as "/ 500".
+> - **The morning dispatch** mauled the lead with the army's losses and never
+>   named the man who bled.
+> - **Co-located stacks** were named on no surface.
+> - **Trust's halving** was named nowhere after a battle. The one line that
+>   fired said "at odds" for seven states, including devoted friends, and
+>   "half" for a quarter.
+>
+> **What shipped:**
+> - Both sides carry their scope. The predicate is the casualty distribution,
+>   so a side that fought alone is never labelled; a naive mirror would have
+>   labelled one on 3 of 8 seeds.
+> - Every surface names its figure.
+> - Trust is named where it is paid, on either side of the field:
+>   `trust_note`, the diorama's `faith`, and the muster row branched on cause.
+> - The breakdown is the single source for the arithmetic and the copy
+>   (a 1,000-cell drift census).
+>
+> **Gates:**
+> - Display only: no mechanical casualty figure moved, and M1–M7 and
+>   `BASELINE_SERIES` are byte-identical.
+> - Parse harness EXIT=0, and the boot smoke logged 0 SCRIPT ERROR.
+> - 96 new tests; sweep 69 of 69 killed.
+>
+> **Routed:** IQ5-R1. `_distribute_casualties` splits the pool by FULL
+> strength, so a half-committed man bleeds a full share. That is a mechanical
+> change, owned by the next combat-mechanics row.
+>
+> **▶ NEXT = IQ-6 "EUROPE SPEAKS ITS MIND"** (PR-X4). Its recon and build
+> contract are ready.
+
 > ## ▶ IQ-4 "THE CABINET IS VISIBLE" — LANDED September 14, 2026. **ROW IQ-4 IS CLOSED.**
 >
 > Row IQ-4 (PR-D2, PR-D3). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.3,
@@ -324,7 +373,26 @@
 > cannot pay for (3 DP against 4–6), so it never spoke. Both are recorded in
 > the landing record.
 >
-> **▶ NEXT = IQ-5 "BOTH SIDES OF THE BUTCHER'S BILL"** (PR-X2, PR-X3).
+> **Review round, commit `720597da`, suite 22,428 / 4.** Four read-only
+> lenses read a snapshot of `4413c834`, with one refuter per top finding. They
+> raised 21 findings, and every survivor is fixed (`BUG_FIXES.md` IQ4-R1..R15).
+>
+> **What it fixed:**
+> - **The counsel's forecast double-rounded every odd relation.** At the
+>   shipped skill it named the wrong mission in 39 cells. It now matches the
+>   real ticks in 674 of 674 checks.
+> - **The Undermine note promised a break after 5 turns.** An alliance first
+>   falls to a defensive alliance, so the break takes about 10. The note now
+>   says so, and the mission no longer bills a turn after the break.
+> - **A courting mission at war said "+10 holds".** It now reads suspended,
+>   and deliberately never advises a recall.
+> - **Nine P3 legibility fixes and five pin repairs.**
+>
+> Four of the fix shapes first proposed would each have shipped a new defect,
+> and were rejected. Sweep 33 of 33 killed.
+>
+> ~~**▶ NEXT = IQ-5 "BOTH SIDES OF THE BUTCHER'S BILL"** (PR-X2, PR-X3).~~ ✅
+> **LANDED September 14, 2026 — see the IQ-5 entry above.**
 
 > ## ▶ IQ-3 "THE COALITION IS RARE" — LANDED September 14, 2026. **ROW IQ-3 IS CLOSED.**
 >

@@ -995,6 +995,41 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                                   ("defender", "defender_casualties")):
                 if e.get(f"{side}_nation") != player_nation:
                     continue
+                # ────────────────────────────────────────────────────────
+                # IQ-5 R5 (PR-X2): the dispatch mauls the man who BLED.
+                #
+                # A reinforced side's `*_casualties` is the whole army's
+                # loss, and this used to divide it by the LEAD's strength
+                # and call it "his corps": measured, "Ney was mauled at
+                # Paris: three-quarters of his corps — 12,866 men" when
+                # Ney's corps was 500 men and Davout, who lost 12,734, was
+                # named nowhere. The executor's coordinated branch now
+                # stamps each participant's own loss and resolve-time
+                # strength; read them per man. Absent (a solo battle, a
+                # bombardment, an old save, the IQ-5 lever down) — the
+                # lead-only path below, byte for byte.
+                # ────────────────────────────────────────────────────────
+                _per_man = e.get(f"{side}_participant_losses")
+                if isinstance(_per_man, list) and _per_man:
+                    for _row in _per_man:
+                        if not isinstance(_row, dict):
+                            continue
+                        _pname = str(_row.get("marshal") or "")
+                        _pcas = int(_row.get("casualties") or 0)
+                        _ppre = int(_row.get("strength_before") or 0)
+                        if (not _pname or _pcas <= 0
+                                or world.get_marshal(_pname) is None):
+                            continue
+                        if (_ppre > 0 and _pcas >= 0.25 * _ppre
+                                and _pcas >= OWN_MAULED_MIN_CASUALTIES):
+                            _add("own_mauled", f"own_mauled:{_pname}",
+                                 marshal=humanize_entity_name(_pname),
+                                 region=(e.get("location")
+                                         or e.get(f"{side}_location")
+                                         or "the field"),
+                                 casualties=f"{_pcas:,}",
+                                 proportion=_mauled_proportion(_pcas, _ppre))
+                    continue
                 name = e.get(side, "")
                 casualties = int(e.get(cas_key, 0) or 0)
                 m = world.get_marshal(name)

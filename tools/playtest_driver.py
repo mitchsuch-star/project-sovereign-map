@@ -851,15 +851,30 @@ class Digest:
             # does not have — 14 of 14 compared pairs in the Phase-3 evidence.
             # The row is NARROWED to this line.
             _atk_scope = str(summary.get("attacker_casualties_scope") or "")
+            # IQ-5 / PR-X2: the defender mirror. A reinforced DEFENDER's
+            # figure is his lead corps' share too, and the digest printed it
+            # bare — the harness was blind to the very case (FA-S17-1's) the
+            # FA-D29 ruling was about. The game leaves the key "" for a side
+            # that fought alone, so a solo line is byte-identical.
+            _def_scope = str(summary.get("defender_casualties_scope") or "")
             _atk_lost = (f"{summary.get('attacker_casualties', '?')}"
                          + (f", {_atk_scope}" if _atk_scope else ""))
+            _def_lost = (f"{summary.get('defender_casualties', '?')}"
+                         + (f", {_def_scope}" if _def_scope else ""))
             head = (f"{summary['attacker_name']} (lost "
                     f"{_atk_lost}) vs "
                     f"{summary.get('defender_name', '?')} (lost "
-                    f"{summary.get('defender_casualties', '?')})")
+                    f"{_def_lost})")
             observation = first_line(dig(report, "observation"), 120)
             if observation:
                 head += f" — {observation}"
+            # IQ-5 / PR-X3 (FA-D23): trust's price, named where it was paid.
+            # Read off the report itself (never `dig`, which would wander
+            # into nested payloads), whitespace-flattened so a note naming
+            # several men stays on the one digest line. Absent → unchanged.
+            _trust_note = report.get("trust_note")
+            if isinstance(_trust_note, str) and _trust_note.strip():
+                head += f" — {' '.join(_trust_note.split())}"
         else:
             head = (first_line(dig(report, "headline", "summary", "outcome",
                                    "observation", "message"))
