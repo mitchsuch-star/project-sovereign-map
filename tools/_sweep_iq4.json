@@ -1,0 +1,134 @@
+[
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if (_reached and MISSION_COMPLETES_AT_THE_CLAMP\n                and mission_type == \"COURT_NATION\" and COURT_FAVOUR_ACTIVE):\n            _reached = False",
+  "new": "        if False:\n            _reached = False",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            _reached = ((scaled > 0 and _after >= RELATION_CLAMP)",
+  "new": "            _reached = ((scaled > 0 and _after > RELATION_CLAMP)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if not target or mission.get(\"target\") != target:\n        return 0\n    if proposal.get(\"proposer_nation\", player) != player:\n        return 0",
+  "new": "    if not target or mission.get(\"target\") != target:\n        return 0",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if str(proposal.get(\"type\") or \"\").lower() not in COURT_FAVOUR_PROPOSAL_TYPES:",
+  "new": "    if str(proposal.get(\"type\") or \"\") not in COURT_FAVOUR_PROPOSAL_TYPES:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if world.get_diplomatic_state(player, target) == \"WAR\":\n        return 0\n    return int(min(COURT_FAVOUR_CAP,",
+  "new": "    return int(min(COURT_FAVOUR_CAP,",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    return int(min(COURT_FAVOUR_CAP,\n                   COURT_FAVOUR_PER_TURN",
+  "new": "    return int(max(COURT_FAVOUR_CAP,\n                   COURT_FAVOUR_PER_TURN",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        exempt = ((\"pair\", player, target_nation) if COURT_EXEMPTION_IS_THE_COURTED_PAIR",
+  "new": "        exempt = (None if COURT_EXEMPTION_IS_THE_COURTED_PAIR",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        favour = min(COURT_FAVOUR_CAP, COURT_FAVOUR_PER_TURN * n) if holds else 0",
+  "new": "        favour = 0",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            \"best\": min(roads)[2] if roads else None,",
+  "new": "            \"best\": max(roads)[2] if roads else None,",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "               if best_score < ACCEPT_SCORE else None)",
+  "new": "               if best_score < 0 else None)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "                        and counsel[\"court\"][0] < counsel[\"improve\"][0]):",
+  "new": "                        and counsel[\"court\"][0] > counsel[\"improve\"][0]):",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if counsel[\"improve\"] is None:",
+  "new": "        if counsel[\"improve\"] is not None:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if not REASSURE_ONLY_AT_ALLIANCE:\n            actions.append(_mission_action(\"mission_reassure\"",
+  "new": "        if True:\n            actions.append(_mission_action(\"mission_reassure\"",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    if beat not in _ENDED_BEATS and beat != \"paused_transit\" and live:",
+  "new": "    if beat not in _ENDED_BEATS and live:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        \"recall_command\": (\"\" if pause_reason == \"transit\"",
+  "new": "        \"recall_command\": (\"\" if False",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        if favour_ticks == 0:",
+  "new": "        if favour_ticks < 0:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        if expiry is not None:\n            entry[\"expiry\"] = int(expiry)",
+  "new": "        if False:\n            entry[\"expiry\"] = int(expiry)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    name = _dn(target_nation)",
+  "new": "    name = target_nation",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            if _replaced:\n                _prior_end(world, _replaced, \"replaced\")",
+  "new": "            if False:\n                _prior_end(world, _replaced, \"replaced\")",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/models/world_state.py",
+  "old": "        if outcome != \"COUNTER_OFFER\" or COUNTER_OFFER_RETURN_RESTORES_HIM:",
+  "new": "        if outcome != \"COUNTER_OFFER\":",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/campaign_log.py",
+  "old": "    if reason == \"replaced\":\n        return \"replaced by a new mission\"",
+  "new": "    if False:\n        return \"replaced by a new mission\"",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/settlement_reactions.py",
+  "old": "    if (GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE\n            and str(proposal_type or \"\").upper() in _GRATITUDE_ALLIANCE_FAMILY):",
+  "new": "    if (False\n            and str(proposal_type or \"\").upper() in _GRATITUDE_ALLIANCE_FAMILY):",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ }
+]

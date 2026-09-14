@@ -74,6 +74,12 @@ ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 # exactly zero, it adds no new AI geometry. BASELINE_SERIES never reaches 0.
 PLAYER_NEVER_LEAVES_THE_ROSTER = True
 
+# IQ-4 (probe-found, pre-existing): `_process_proposal_in_transit` restores
+# Talleyrand after a COUNTER_OFFER too — a live mission resumes, and a failed
+# counter no longer strands him IN_TRANSIT with nothing in transit.
+# False = the prior rule (every COUNTER_OFFER skipped the restore).
+COUNTER_OFFER_RETURN_RESTORES_HIM = True
+
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     "mode": "direct_only",
     "qualifying_treaty_states": {
@@ -10234,6 +10240,26 @@ class WorldState:
         self._process_manpower_regen()
 
         # ════════════════════════════════════════════════════════════
+        # IQ-4 "The Cabinet Is Visible" — the running mission's notice-rail
+        # row, restated once per advance (refresh in place, no bell; a
+        # change of state re-issues). Sited HERE, after
+        # `process_coalition_turn`, because its voided-proposal branch also
+        # resumes a paused mission: restating any earlier left the rail
+        # saying "paused" for a turn while the mission ran again (contract
+        # A5). A no-op with no live mission, so an ending row raised inside
+        # the tick survives. It never breaks the advance.
+        # ════════════════════════════════════════════════════════════
+        try:
+            from backend.game_logic.diplomatic_dialogue import (
+                restate_mission_notice,
+            )
+            restate_mission_notice(self)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "IQ-4: the mission rail restate failed", exc_info=True)
+
+        # ════════════════════════════════════════════════════════════
         # PT-J4 "The Bench Speaks" — the FIRST time the treasury covers a
         # commission the executor's own gate would grant, ONE notification
         # says so, then the latch closes for the campaign. Sited after
@@ -10794,8 +10820,16 @@ class WorldState:
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
 
-        # Restore Talleyrand state (Fix 5: skip restore if counter-offer — state already set to IDLE)
-        if outcome != "COUNTER_OFFER":
+        # Restore Talleyrand state. Fix 5 skipped this for EVERY counter-offer
+        # because the viable-counter arm had already set him IDLE — which left
+        # a live mission paused (IQ-4 probe: the rail read it as STARVED,
+        # "collapses in 3 turns", with the DP in hand), while the failed-
+        # counter arm set nothing at all: he stayed IN_TRANSIT with nothing in
+        # transit, every diplomatic order was refused "en route", and the
+        # paused mission could never resume or be recalled, for the rest of
+        # the campaign. Answering a counter needs no particular state; the
+        # transit gate refuses only IN_TRANSIT.
+        if outcome != "COUNTER_OFFER" or COUNTER_OFFER_RETURN_RESTORES_HIM:
             mission = getattr(self, 'active_diplomatic_mission', None)
             if mission and not mission.get("completed"):
                 self.talleyrand_state = "ON_MISSION"

@@ -149,6 +149,47 @@ def _resolve_cheat_name(raw_name: str, valid_names) -> str | None:
     return None
 
 
+# ── IQ-4 "The Cabinet Is Visible" — the help names the missions ──
+# Flip lever: False = the help without the missions entry (master 7bbf82b8).
+# The entry teaches the DOOR (F1, a court, its mission row) and never a typed
+# mission verb: `main.gd` `_redirect_diplomatic_command` sends those to the
+# Cabinet, so teaching them would teach a dead route. Every figure is read
+# at call time from the tick's own helpers (`mission_effect_text`,
+# `MISSION_DP_COSTS`), so a skill-5 diplomat reads +4 where Talleyrand's 10
+# reads +8.
+MISSION_HELP_BLOCK = True
+_MISSIONS_HELP_ANCHOR = "[Request Terms] to make the enemy name a price.\n"
+_MISSIONS_HELP_ORDER = ("IMPROVE_RELATIONS", "COURT_NATION", "REASSURE_ALLY",
+                        "UNDERMINE_ALLIANCE", "GATHER_INTEL")
+
+
+def _missions_help_block(world) -> str:
+    """The `missions` entry of the help's Cabinet block (IQ-4 §3.3)."""
+    from backend.display_names import MISSION_ROW_DISPLAY
+    from backend.game_logic.diplomatic_dialogue import (
+        MISSION_DP_COSTS, mission_effect_text,
+    )
+    lines = [
+        "  missions   - F1, a court, then its mission row. Talleyrand goes in",
+        "               person and works every turn you can pay him; one",
+        "               mission at a time.",
+    ]
+    for mission_type in _MISSIONS_HELP_ORDER:
+        name = MISSION_ROW_DISPLAY.get(mission_type, mission_type)
+        dp = int(MISSION_DP_COSTS.get(mission_type, 1))
+        qualifier = " (allies only)" if mission_type == "REASSURE_ALLY" else ""
+        lines.append(f"                 {name} - {dp} DP a turn{qualifier}")
+        lines.append(f"                   {mission_effect_text(world, mission_type, short=True)}")
+    lines += [
+        "               Relations drift 1 a turn toward the calm band beside",
+        "               any mission. Sending a proposal takes him away: the",
+        "               mission costs nothing and earns nothing until he",
+        "               returns. Watch it in the Strategic Ledger's Orders tab",
+        "               (T) or on its notice; recall him from either, free.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 class MetaExecutor:
     """Handles meta-game actions: end_turn, status, help, debug, cheat, objection responses."""
 
@@ -807,6 +848,15 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
   ALLOWED: move, recruit, defend, wait, change stance
 
 ═══════════════════════════════════════"""
+
+        # IQ-4 S3g: the missions, spliced after the `war terms` entry of the
+        # Cabinet block — every figure the tick's own, read at call time.
+        if MISSION_HELP_BLOCK:
+            _world = game_state.get("world") if isinstance(game_state, dict) else None
+            if _world is not None:
+                help_text = help_text.replace(
+                    _MISSIONS_HELP_ANCHOR,
+                    _MISSIONS_HELP_ANCHOR + _missions_help_block(_world), 1)
 
         return {
             "success": True,

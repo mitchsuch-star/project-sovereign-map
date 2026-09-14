@@ -1522,6 +1522,102 @@ competing designs and a judge — whose verdict became the build contract.
   48, and no league forms. A turn-boundary rule only moves the seam, which the
   refuter measured. Closing it needs threat rows attributed to their victim.
 
+### §1.3 LANDING RECORD — IQ-4 "The Cabinet Is Visible" (✅ September 14, 2026)
+
+**Authoritative for this row.** Rules = `docs/SYSTEMS_REFERENCE.md` §43;
+defects = `docs/BUG_FIXES.md` §The Cabinet Is Visible (IQ-4). The build
+contract came from a read-only decision fleet on master `7bbf82b8`: a census,
+a measurer, two designers (A, visibility; B, PR-D3 and the mission mix) and a
+judge. It was built by two builders on disjoint file families and a test
+writer, then integrated by the lead.
+
+- **The completion item was re-stated by the fleet, and is MET.** "Not one
+  type" measured whatever chooses the missions, and nothing did: 0 launches in
+  360 driven turns. It became two parts:
+  - **(i) Game side (T15):** each offered type is the unique best choice in a
+    reachable cell, by the rule "fewest DP, ties to fewer turns".
+    - IMPROVE is best for Saxony's alliance.
+    - COURT is best on the rungs where it is no dearer. Denmark's open
+      borders at relation 10: 1 turn / 2 DP against 2 / 2. Prussia's at 10:
+      2 / 4 against 4 / 4.
+    - REASSURE is the only relation row an allied court is offered.
+    - GATHER and UNDERMINE alone do their work.
+  - **(ii) A harness arm that follows the game's own counsel**
+    (`--missions advisor`). It chooses only rows the Cabinet marks available
+    and types the wizard's own command text. Counts come from the live
+    producers, over 40 turns on each of three seeds:
+
+    | arm | historical | austerlitz | ulm |
+    |---|---|---|---|
+    | M0 control (`--diplomacy decline`) | 0 launches | 0 | 0 |
+    | **M1 counsel** (`--missions advisor --diplomacy decline`) — **binding ≥2** | **3 types** (COURT, IMPROVE, REASSURE) | **3** (COURT, IMPROVE, REASSURE) | **4** (+ GATHER) |
+    | M2 counsel + peace (`--diplomacy propose`) | 2 | 2 | 2 |
+
+    M1 signed 3 / 2 / 2 treaties, each prepared by the mission. Courting won
+    the Papal States' or Denmark's open borders in ONE turn on every seed, and
+    Denmark's non-aggression pact next. The fold's re-open condition (a
+    Franco-Prussian ALLIANCE by turn 10 on 2 of 3 seeds) did not fire.
+- **What shipped (the contract):**
+  - **The visibility spine, one source** (`diplomatic_dialogue.mission_status`):
+    the Strategic Ledger's Cabinet block, one rail row per mission with a
+    Recall, `diplomatic_mission_ended` (163 → 164 log types), the help block,
+    tutorial step XIV ("Five more instruments"), the Talleyrand tab and the top
+    bar reading Idle.
+  - **MS-9b:** the ceiling fix never fired for IMPROVE or REASSURE.
+  - **COURT's decay exemption narrowed** to the courted pair, and only while
+    the mission is live.
+  - **PR-D3 B1, "The Court's Favour"** (⚠ **RULED, FOR USER CONFIRMATION**).
+  - **REASSURE only at ALLIANCE.**
+  - **The launch is not a rejection; the recall is read by name.**
+  - **The driver's `--missions advisor` dial.**
+- **The lead's integration findings** (the test writer reported 7 of 135 red,
+  and none was a test bug):
+  1. **COURT completing at the ceiling threw away the favour** it existed to
+     build (56 ACCEPT → 48 on the completing tick). It now **holds** the court
+     until recalled, paid and said so. This supersedes the build's own
+     amendment, which completed it once the favour was full.
+  2. **The counsel's only cell was unpayable**, so it never spoke. That cell
+     was Prussia's alliance leap past relation's cap: 48 at relation 60 and
+     above. A courting France holds 3 DP and the leap costs 4–6; measured
+     through the typed road, "costs 4 DP, but we only have 3".
+     - A census of the offered rungs found COURT to be the **faster** road on
+       44 of 84, saving 1–2 turns at twice the DP a turn. The design's own
+       rationale was always a time-versus-DP trade (§1.3 of the contract).
+     - The counsel is re-grounded there. `forecast_mission_to_accept` steps
+       the tick's arithmetic on `acceptance_relation_term`, now the single
+       source for the formula's relation term, and matches real ticks 168 of
+       168. Across the census cells the counsel names IMPROVE in 100 and
+       COURT in 11, and says nothing where a treaty already carries.
+  3. **A pre-existing P1.** A counter-offer with no viable terms stranded
+     Talleyrand IN_TRANSIT for the rest of the campaign. A viable one left the
+     mission paused and read as starved. Both are closed by one restore.
+  4. **Smaller defects.** The confirm printed "PapalStates". The rail's Recall
+     on the transit row was refused by the transit gate. A replaced mission
+     ended without a log row.
+  5. **R2 confirmed and fixed.** Settlement gratitude had never reached a real
+     alliance offer: 0 → 5.
+- **Rulings awaiting user confirmation:**
+  - **B1, "The Court's Favour":** `COURT_FAVOUR_PER_TURN = 2`,
+    `COURT_FAVOUR_CAP = 10`, in-band.
+  - **The hold at the ceiling:** 2 DP a turn buys a standing +10, stated on
+    the rail and the Cabinet; the recall ends it.
+- **Recorded limits.**
+  - The advisor on M2 never reaches a prepared ACCEPT. The peace arm ends the
+    wars by turn 4 and the minors' rungs are low; recorded, not a target.
+  - The visual sign-off on the new client surfaces rides IQ-10 (contract
+    §7 R3).
+  - `BASELINE_SERIES` and M1–M7 are unchanged. That is a fact about the
+    harness, since no ambient producer launches a mission. The one change for
+    which byte-identity is real evidence is the `relation_drift_step`
+    extraction, because decay runs on every pair every turn.
+- **Pins.**
+  - `tests/test_iq4_cabinet_visible.py` (T1–T17, the R2 pin and the
+    integration pins).
+  - `tests/test_iq4_driver_missions.py`.
+  - `tools/_sweep_iq4.json`.
+  - Pins flipped consciously: `len(CAMPAIGN_LOG_TYPES)` 163 → 164 in twelve
+    files; `test_diplomacy_button`'s DEFENSIVE_ALLIANCE REASSURE row.
+
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that
 belongs to the Victory & Objectives Pass, ROADMAP positions 12–13. No IQ row

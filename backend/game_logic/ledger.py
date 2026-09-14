@@ -63,8 +63,17 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
             f"{_collapse.summary_line(world, _state)} {_collapse.CAMPAIGN_CONTINUES}"
             if _state else "")
 
+    # IQ-4 S3a: THE CABINET — Talleyrand's mission, from the one source every
+    # surface reads (`diplomatic_dialogue.mission_status`). Its own key, never
+    # a row in `orders` (tests key those on `o["marshal"]`); absent with the
+    # lever down, so the payload is byte-identical.
+    cabinet_fields = {}
+    if MISSION_LEDGER_BLOCK:
+        cabinet_fields["cabinet"] = build_cabinet(world)
+
     return {
         **collapse_fields,
+        **cabinet_fields,
         "forces": _build_forces(world, player),
         "territories": _build_territories(world, player),
         "economy": _build_economy(world, player),
@@ -81,6 +90,79 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         # be replayed or reported against (docs/AI_INTENT_SPEC.md §3.8.1).
         "campaign_seed": str(getattr(world, "campaign_seed", "historical")),
     }
+
+
+# ============================================================================
+# THE CABINET (IQ-4 "The Cabinet Is Visible")
+# ============================================================================
+
+# Flip lever: False drops the `cabinet` key (master 7bbf82b8 payload).
+MISSION_LEDGER_BLOCK = True
+
+
+def _completed_mission_reason(mission: Dict[str, Any]) -> str:
+    """How a KEPT completed record ended, derived from the record itself.
+
+    GATHER_INTEL completes on its duration; UNDERMINE_ALLIANCE only when the
+    alliance it worked on breaks; the relation missions at the clamp. No
+    recalled or starved mission is ever kept — both paths clear the dict.
+    """
+    mission_type = str(mission.get("type", "") or "")
+    if mission_type == "GATHER_INTEL":
+        return "duration"
+    if mission_type == "UNDERMINE_ALLIANCE":
+        return "alliance_broken"
+    return "ceiling"
+
+
+def last_mission_record(world) -> Any:
+    """The "Last mission" line's data, or None — from the completed record
+    MS-1 keeps on `active_diplomatic_mission`. All ints and strings (GR2)."""
+    mission = getattr(world, "active_diplomatic_mission", None)
+    if not isinstance(mission, dict) or not mission.get("completed"):
+        return None
+    from backend.campaign_log import mission_reason_phrase
+    from backend.display_names import MISSION_TYPE_DISPLAY, display_nation
+    mission_type = str(mission.get("type", "") or "")
+    target = str(mission.get("target", "") or "")
+    reason = _completed_mission_reason(mission)
+    last = {
+        "type_display": MISSION_TYPE_DISPLAY.get(
+            mission_type, mission_type.replace("_", " ").title()),
+        "target_display": display_nation(target) if target else "",
+        "reason": reason,
+    }
+    regions = expiry = None
+    if reason == "duration" and target:
+        # The grant stands on the target's provinces (`intel_grants`, region
+        # -> expiry turn); the cached helper, never a region scan (GR8).
+        grants = getattr(world, "intel_grants", {}) or {}
+        now = int(getattr(world, "current_turn", 0) or 0)
+        standing = []
+        for region in world.get_nation_regions(target) or []:
+            name = getattr(region, "name", region)
+            until = grants.get(name)
+            if until is not None and int(until) >= now:
+                standing.append(int(until))
+        if standing:
+            regions, expiry = len(standing), max(standing)
+            last["regions"] = int(regions)
+            last["expiry"] = int(expiry)
+    last["reason_phrase"] = mission_reason_phrase(reason, regions, expiry)
+    return last
+
+
+def build_cabinet(world) -> Dict[str, Any]:
+    """The Strategic Ledger's Cabinet block: the live mission, or the last."""
+    from backend.game_logic.diplomatic_dialogue import mission_status
+    status = mission_status(world)
+    if status is not None:
+        return {"live": True, **status}
+    out: Dict[str, Any] = {"live": False}
+    last = last_mission_record(world)
+    if last:
+        out["last"] = last
+    return out
 
 
 # ============================================================================

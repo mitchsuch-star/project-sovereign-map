@@ -46,6 +46,9 @@ Usage
   # path, exercised instead of assumed:
   python tools/playtest_driver.py --turns 20 --diplomacy propose
 
+  # Talleyrand goes on the missions the game's own counsel names (IQ-4):
+  python tools/playtest_driver.py --turns 40 --missions advisor --diplomacy decline
+
 Outputs (under --out, default tools/playtest_runs/<name>/ — gitignored):
   digest.md      the human read — one block per turn
   digest.jsonl   the machine read — one record per event
@@ -265,6 +268,14 @@ DIALOGUE_TYPE_ANSWERS = {
     "sabotage_confrontation": "sabotage",
     # FA-S17-D6 (Phase 4): own dial, above the generic diplomacy read.
     "force_declare_war_confirmation": "declare_war",
+    # IQ-4 S4: Talleyrand's mission confirm ("Begin mission" / "Not now",
+    # and the cancel form "Confirm cancel" / "Continue mission"). Its own
+    # key, `missions` — which DEFAULTS TO MIRRORING `--diplomacy`: with the
+    # dial off the answer falls through to the generic diplomacy read below,
+    # exactly the answer it got before it had a row here (`decline` takes
+    # "Not now", `accept` takes "Begin mission"), so every existing arm is
+    # byte-identical. `--missions advisor` answers the advisor's own intent.
+    "mission": "missions",
 }
 
 # FA-N35: the popup keys of those three decisions. Since slice 0 each
@@ -1388,6 +1399,53 @@ class Digest:
             self._md(f"  - TURN EVENTS {len(turn_events)}")
             self.record("turn_events", count=len(turn_events))
 
+    def mission_line(self, cabinet, beat=None):
+        """IQ-4 S4: Talleyrand's mission, one line per turn, off `GET /ledger`
+        `cabinet` (the one-source `mission_status`). Printed only while a
+        mission is LIVE, and once on the turn its end record first appears —
+        an idle desk prints nothing, so a run that launches no mission (every
+        pre-IQ-4 arm) has a byte-identical digest.
+
+        `beat` is the notice rail's last beat for the mission (the end-turn
+        response's `diplomatic_mission` row), when the caller found one."""
+        if not isinstance(cabinet, dict):
+            return
+        if cabinet.get("live"):
+            try:
+                net = int(cabinet.get("net_per_turn") or 0)
+            except (TypeError, ValueError):
+                net = 0
+            line = (f"- MISSION {cabinet.get('type_display', '?')} — "
+                    f"{cabinet.get('target_display', '?')} · net {net:+d} a turn"
+                    f" · {cabinet.get('remaining_note', '')}")
+            if beat:
+                line += f" · beat {beat}"
+            self._md(line)
+            self.record("mission", live=True, type=cabinet.get("type"),
+                        target=cabinet.get("target"), net=net,
+                        remaining_kind=cabinet.get("remaining_kind"),
+                        remaining_turns=cabinet.get("remaining_turns"),
+                        remaining_note=cabinet.get("remaining_note"),
+                        paused=bool(cabinet.get("paused")), beat=beat)
+            return
+        last = cabinet.get("last")
+        if not isinstance(last, dict) or not last:
+            return
+        # Deduped for the whole run: the end record stands on every idle
+        # turn until the next mission, and it is news once.
+        key = (str(last.get("type_display", "")), str(last.get("target_display", "")),
+               str(last.get("reason", "")), str(last.get("expiry", "")))
+        seen = _seen(self, "_seen_mission_ends")
+        if key in seen:
+            return
+        seen.add(key)
+        phrase = last.get("reason_phrase") or last.get("reason") or ""
+        self._md(f"- MISSION ended: {last.get('type_display', '?')} — "
+                 f"{last.get('target_display', '?')}, {phrase}")
+        self.record("mission", live=False, type_display=last.get("type_display"),
+                    target_display=last.get("target_display"),
+                    reason=last.get("reason"), beat=beat)
+
     def unknown_blocker(self, key, payload):
         self.unknown_blockers.append(key)
         self._md(f"  - ⚠ UNKNOWN BLOCKER `{key}` — answered nothing; "
@@ -1513,6 +1571,10 @@ class Answerer:
         self._petition_rotation = {}
         # FA-90 (ii): reward notifications already typed, by id.
         self._rewarded_ids = set()
+        # IQ-4 S4: what the `--missions advisor` hook meant by the command it
+        # just sent ({"kind": "begin"|"recall", "ally": ...}) — read by the
+        # mission-confirm answer, cleared by the advisor after the drain.
+        self.mission_intent = None
 
     def begin_post(self):
         """Start a fresh answer chain (called by drain()).
@@ -2216,6 +2278,13 @@ class Answerer:
                 if answer == "defy":
                     return find("defy", "refuse") or ("defy" if any_enabled else None)
                 return answer
+            # IQ-4 S4: Talleyrand's mission confirm. `advisor` answers the
+            # advisor's own intent; with the dial off it FALLS THROUGH to the
+            # diplomacy read below — the answer it always got (mirror).
+            if policy_key == "missions" and missions_mode(self.policy) == "advisor":
+                picked = self._advisor_mission_choice(dialogue, options, find)
+                if picked is not None:
+                    return picked
 
         mode = self.policy["diplomacy"]
         if mode in ("accept", "propose"):
@@ -2230,11 +2299,45 @@ class Answerer:
             picked = find("decline", "reject", "refuse")
         if picked is None and options:
             picked = _option_id(options[-1] if mode == "decline" else options[0])
-        if picked is None and dtype in DIALOGUE_TYPE_ANSWERS and any_enabled:
+        # IQ-4: `mission` is kept OUT of this fallback. Before it had a row in
+        # the table it never reached this line, and the mirror promise is
+        # that the dial off answers it exactly as it was answered then.
+        if (picked is None and dtype in DIALOGUE_TYPE_ANSWERS
+                and DIALOGUE_TYPE_ANSWERS[dtype] != "missions" and any_enabled):
             # Known-answerable family with no options list: the endpoint
             # accepts a keyword — "decline" is the family's safe word.
             picked = "decline" if self.policy["diplomacy"] == "decline" else "1"
         return picked
+
+    def _advisor_mission_choice(self, dialogue, options, find):
+        """IQ-4 S4 `--missions advisor`: answer Talleyrand's mission confirm
+        by the advisor's stated intent (`self.mission_intent`, set just
+        before it sends its own command, cleared after the drain).
+
+        * recall → "Confirm cancel" (`cancel_mission`);
+        * begin with a preferred ally (UNDERMINE) → the 1-based INDEX of the
+          `start_mission` option naming that ally — every ally option shares
+          the id `start_mission`, and the endpoint resolves an index exactly;
+        * anything else — including a SCRIPT's own typed mission under
+          advisor — "Begin mission" (`start_mission`).
+
+        Returns None when the dialogue offers nothing the intent can press
+        (the Dismiss-only refusals), and the caller falls back to the
+        diplomacy read. Enabled options only (`options` is pre-filtered)."""
+        intent = getattr(self, "mission_intent", None) or {}
+        if intent.get("kind") == "recall":
+            return find("cancel")
+        ally = intent.get("ally")
+        if ally:
+            all_options = dialogue.get("options") or []
+            for index, option in enumerate(all_options):
+                if not (isinstance(option, dict) and _enabled(option)):
+                    continue
+                terms = option.get("terms") if isinstance(option.get("terms"), dict) else {}
+                if (_option_id(option) == "start_mission"
+                        and str(terms.get("target_ally", "")) == str(ally)):
+                    return str(index + 1)
+        return find("start")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -2447,6 +2550,7 @@ def run(args):
 
     status = "completed"
     expeditions = ExpeditionTracker()          # FA-85
+    advisor = MissionAdvisor()                 # IQ-4 S4 (`--missions advisor`)
     reload_every = int(getattr(args, "reload_every", 0) or 0)
     for turn_index in range(1, args.turns + 1):
         # NB: `status` is the run's finish state — this one is the payload.
@@ -2498,6 +2602,15 @@ def run(args):
             drain(transport, digest, answerer, response, args.strict)
             for reply in answerer.reward_from_rail(response):   # FA-90 (ii)
                 drain(transport, digest, answerer, reply, args.strict)
+
+        # IQ-4 S4: the Cabinet advisor — AFTER the script's own orders (a
+        # script's typed diplomacy must never be refused for want of points or
+        # an envoy the harness just spent; the WO slice 5 lesson) and BEFORE
+        # the peace overture, because an overture takes Talleyrand abroad and
+        # every mission row reads "Talleyrand in transit" until he returns.
+        # Off by default; a no-op on every run that does not pass it.
+        if missions_mode(policy) == "advisor":
+            advisor.turn(transport, digest, answerer, current_turn, args.strict)
 
         # WO slice 5: the active peace arm, drained like any other command
         # so the settlement dialogue it raises is answered by the same
@@ -2629,6 +2742,11 @@ def run(args):
                            purses=_all_purses(transport),
                            army=((body or {}).get("economy") or {}).get(
                                "army_strength_total"))
+        # IQ-4 S4: Talleyrand's mission beside the chest — the cross-check on
+        # the advisor's counts, read off the ledger the driver already holds.
+        # Prints nothing while the desk is idle (every pre-IQ-4 arm).
+        digest.mission_line((body or {}).get("cabinet") if isinstance(body, dict) else None,
+                            beat=_mission_beat(response))
         try:
             digest.dispatch(dig(morning, "text", "content", "message",
                                 default=""),
@@ -2711,15 +2829,327 @@ def run(args):
     return 0
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# IQ-4 S4 — `--missions advisor`: a France that follows the game's own
+# counsel at the Cabinet (build contract §5.2). The completion item asks
+# whether the mission MIX is alive when something chooses missions; before
+# this arm nothing did (0 launches in 360 driven turns), so "not one type"
+# measured the harness, not the game.
+# ═══════════════════════════════════════════════════════════════════════
+
+MISSIONS_MODES = ("off", "advisor")
+
+
+def missions_mode(policy) -> str:
+    """The run's mission dial. The key is ABSENT from the policy unless it
+    was set (flag or script key), because the digest header prints the
+    policy verbatim and every pre-IQ-4 arm must stay byte-identical. Absent
+    reads as `off`, which MIRRORS `--diplomacy`: a mission confirm falls
+    through to the diplomacy read, the answer it always got."""
+    mode = str((policy or {}).get("missions") or "off")
+    return mode if mode in MISSIONS_MODES else "off"
+
+
+# The wizard's OWN command text (`diplomacy_wizard.gd` `_action_to_command`):
+# the advisor types exactly what the F1 row sends — the Cabinet redirect lives
+# client-side, and POST /command is the surface under test. Drift-pinned
+# against the .gd source by tests/test_iq4_driver_missions.py.
+WIZARD_COMMANDS = {
+    "mission_improve_relations": "improve relations with {nation}",
+    "mission_court": "court {nation}",
+    "mission_gather_intel": "gather intel on {nation}",
+    "mission_reassure": "reassure {nation}",
+    "mission_undermine": "undermine {nation}",
+    "cancel_mission": "Talleyrand, cancel mission with {nation}",
+    "propose_open_borders": "propose open borders with {nation}",
+    "propose_non_aggression": "propose non aggression with {nation}",
+    "propose_defensive_alliance": "propose defensive alliance with {nation}",
+    "propose_alliance": "propose alliance with {nation}",
+}
+# The treaties a mission "prepares": the four the Court's Favour prices
+# (diplomacy.COURT_FAVOUR_PROPOSAL_TYPES), as the wizard's rows.
+PREPARED_TREATY_ROWS = ("propose_non_aggression", "propose_open_borders",
+                        "propose_defensive_alliance", "propose_alliance")
+# The counsel's machine key (`/diplomatic_preview` `recommended_mission`,
+# display-only on the backend) → the Cabinet row it names.
+COUNSEL_ROWS = {"COURT_NATION": "mission_court",
+                "IMPROVE_RELATIONS": "mission_improve_relations"}
+ADVISOR_BRANCHES = {1: "reassure an ally", 2: "follow the counsel",
+                    3: "gather intelligence", 4: "undermine an alliance"}
+ADVISOR_DESK_LIMIT = 12       # §5.2: no branch holds the desk longer
+ADVISOR_INTEL_GAP = 8         # §5.2 branch 3: no intel mission in 8 turns
+ADVISOR_REASSURE_BELOW = 50   # §5.2 branch 1: an ALLIANCE court below this
+# ACCEPT, as the counsel arm reads it: [40, 50) is a counter-offer and 50 is
+# where a courted treaty turns (`diplomacy.ACCEPT_SCORE`, which `_mission_counsel` prices both roads to).
+ADVISOR_ACCEPT_SCORE = 50
+_ALLIED_STATES = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+
+
+def wizard_command(action_id, nation) -> str:
+    template = WIZARD_COMMANDS.get(str(action_id))
+    return template.format(nation=nation) if template else ""
+
+
+def _preview_row(preview, action_id):
+    for row in (preview or {}).get("actions") or []:
+        if isinstance(row, dict) and row.get("action") == action_id:
+            return row
+    return None
+
+
+def _row_available(preview, action_id) -> bool:
+    row = _preview_row(preview, action_id)
+    return bool(row) and row.get("available") is True
+
+
+def _mission_beat(response):
+    """The notice rail's last beat for the mission, off a response's
+    `notifications` (display-only; the digest's cross-check)."""
+    for row in (response or {}).get("notifications") or []:
+        if isinstance(row, dict) and row.get("type") == "diplomatic_mission":
+            details = row.get("details") if isinstance(row.get("details"), dict) else {}
+            return details.get("beat")
+    return None
+
+
+class MissionAdvisor:
+    """`--missions advisor` (IQ-4 contract §5.2). When Talleyrand is idle it
+    takes the FIRST branch that applies, choosing ONLY among Cabinet rows
+    `GET /diplomatic_preview?nation=X` marks available, and types the
+    wizard's own command:
+
+      1. REASSURE an ALLIANCE-state court whose relation is below 50;
+      2. FOLLOW THE COUNSEL — a court whose preview carries
+         `recommended_mission` (COURT or IMPROVE); smallest ACCEPT gap first,
+         so the COURT/IMPROVE choice is the game's own, not the harness's;
+      3. GATHER_INTEL on the at-war enemy holding the most provinces, when
+         no intel mission was launched in the last 8 turns;
+      4. UNDERMINE an allied pair of France's enemies.
+
+    Limits: no branch holds the desk more than 12 consecutive turns (a recall
+    benches that branch for the next pick); when the treaty a mission
+    prepared reads ACCEPT, the advisor sends it — and recalls Talleyrand once
+    he is HOME, never while he carries it (a recall in transit forfeits the
+    Court's Favour the send snapshot is priced on). It never touches a
+    mission it did not send.
+
+    ⚠ The previews it reads are not RNG-free: the peace-class snapshot jitters
+    suggested gold on the module RNG, so an advisor arm's dice diverge from
+    the control arm's. Still deterministic seed-for-seed (Mode A)."""
+
+    def __init__(self):
+        self.desk = None             # the advisor's own mission, while live
+        self.last_intel_turn = None
+        self.benched = None          # a branch skipped on the next pick
+        self.blind_noted = False
+
+    # -- the choice: pure over its inputs, pinned with canned payloads -----
+    def pick(self, categories, preview_of, nation_rows, world_turn):
+        """Return {"branch", "action", "nation", "ally", "prepared"} or None."""
+        categories = categories if isinstance(categories, dict) else {}
+        benched, self.benched = self.benched, None
+
+        def names(*keys):
+            return sorted({str(e.get("name")) for key in keys
+                           for e in categories.get(key) or []
+                           if isinstance(e, dict) and e.get("name")})
+
+        at_war = set(names("at_war"))
+
+        if benched != 1:
+            allies = sorted(
+                (e for e in categories.get("treaties") or []
+                 if isinstance(e, dict) and e.get("name")
+                 and e.get("state") == "ALLIANCE"
+                 and int(e.get("relation") or 0) < ADVISOR_REASSURE_BELOW),
+                key=lambda e: (int(e.get("relation") or 0), str(e.get("name"))))
+            for entry in allies:
+                name = str(entry.get("name"))
+                if _row_available(preview_of(name), "mission_reassure"):
+                    return {"branch": 1, "action": "mission_reassure",
+                            "nation": name, "ally": None, "prepared": None}
+
+        if benched != 2:
+            best = None
+            for name in names("at_war", "treaties", "neutral"):
+                preview = preview_of(name)
+                row_id = COUNSEL_ROWS.get(str(preview.get("recommended_mission") or ""))
+                if not row_id or not _row_available(preview, row_id):
+                    continue
+                score, prepared = self._best_proposal(preview)
+                gap = ADVISOR_ACCEPT_SCORE - score
+                if best is None or (gap, name) < (best["gap"], best["nation"]):
+                    best = {"branch": 2, "action": row_id, "nation": name,
+                            "ally": None, "prepared": prepared, "gap": gap}
+            if best is not None:
+                return best
+
+        if benched != 3 and (self.last_intel_turn is None
+                             or world_turn - self.last_intel_turn >= ADVISOR_INTEL_GAP):
+            enemies = sorted(
+                (r for r in nation_rows or []
+                 if isinstance(r, dict) and str(r.get("name")) in at_war),
+                key=lambda r: (-int(r.get("regions_controlled") or 0), str(r.get("name"))))
+            for row in enemies:
+                name = str(row.get("name"))
+                if _row_available(preview_of(name), "mission_gather_intel"):
+                    return {"branch": 3, "action": "mission_gather_intel",
+                            "nation": name, "ally": None, "prepared": None}
+
+        if benched != 4:
+            for row in sorted((r for r in nation_rows or [] if isinstance(r, dict)),
+                              key=lambda r: str(r.get("name"))):
+                name = str(row.get("name"))
+                if name not in at_war:
+                    continue
+                partners = sorted(
+                    str(x.get("nation")) for x in row.get("ai_relations") or []
+                    if isinstance(x, dict) and x.get("state") in _ALLIED_STATES
+                    and str(x.get("nation")) in at_war)
+                if partners and _row_available(preview_of(name), "mission_undermine"):
+                    return {"branch": 4, "action": "mission_undermine",
+                            "nation": name, "ally": partners[0], "prepared": None}
+        return None
+
+    @staticmethod
+    def _best_proposal(preview):
+        """(the best available proposal's score — the counsel's own reading,
+        -999 when none — and the best available prepared-treaty row)."""
+        score, prepared, prepared_score = -999, None, None
+        for row in (preview or {}).get("actions") or []:
+            if not isinstance(row, dict) or row.get("available") is not True:
+                continue
+            action = str(row.get("action") or "")
+            if not action.startswith("propose_"):
+                continue
+            value = int(row.get("likelihood_score") or 0)
+            score = max(score, value)
+            if action in PREPARED_TREATY_ROWS and (prepared_score is None
+                                                   or value > prepared_score):
+                prepared, prepared_score = action, value
+        return score, prepared
+
+    # -- the turn ------------------------------------------------------------
+    @staticmethod
+    def _cabinet(transport):
+        ledger = transport.get("/ledger")
+        body = ledger.get("ledger") if isinstance(ledger, dict) else None
+        cabinet = body.get("cabinet") if isinstance(body, dict) else None
+        return cabinet if isinstance(cabinet, dict) else None
+
+    def turn(self, transport, digest, answerer, world_turn, strict):
+        cabinet = self._cabinet(transport)
+        if cabinet is None:
+            if not self.blind_noted:
+                self.blind_noted = True
+                digest.note("⚠ MISSION ADVISOR blind — `GET /ledger` carries no "
+                            "`cabinet` (the IQ-4 ledger lever is down); it "
+                            "sends nothing")
+            return
+        previews = {}
+
+        def preview_of(name):
+            if name not in previews:
+                reply = transport.get(f"/diplomatic_preview?nation={name}")
+                previews[name] = (reply if isinstance(reply, dict)
+                                  and reply.get("success", True) is not False else {})
+            return previews[name]
+
+        if cabinet.get("live"):
+            self._tend(cabinet, transport, digest, answerer, world_turn, strict,
+                       preview_of)
+            return
+        self.desk = None
+        listing = transport.get("/diplomatic_preview") or {}
+        dledger = transport.get("/diplomatic_ledger") or {}
+        rows = ((dledger.get("ledger") or {}).get("nations") or []
+                if isinstance(dledger, dict) else [])
+        choice = self.pick(listing.get("categories") if isinstance(listing, dict) else {},
+                           preview_of, rows, world_turn)
+        if choice is None:
+            return
+        command = wizard_command(choice["action"], choice["nation"])
+        digest.note(f"MISSION ADVISOR branch {choice['branch']} "
+                    f"({ADVISOR_BRANCHES[choice['branch']]}) → `{command}`")
+        self._send(command, {"kind": "begin", "ally": choice.get("ally")},
+                   transport, digest, answerer, strict)
+        after = self._cabinet(transport)
+        if after and after.get("live") and str(after.get("target")) == choice["nation"]:
+            self.desk = {"branch": choice["branch"], "type": after.get("type"),
+                         "target": choice["nation"], "prepared": choice.get("prepared"),
+                         "sent": False}
+            if choice["action"] == "mission_gather_intel":
+                self.last_intel_turn = world_turn
+
+    def _tend(self, cabinet, transport, digest, answerer, world_turn, strict,
+              preview_of):
+        desk = self.desk
+        target = str(cabinet.get("target") or "")
+        if not desk or desk["target"] != target or desk["type"] != cabinet.get("type"):
+            return      # a mission the advisor did not send is never its to end
+        if desk.get("sent"):
+            if cabinet.get("pause_reason") != "transit":
+                self._recall(cabinet, "the treaty it prepared has been answered",
+                             transport, digest, answerer, strict)
+            return
+        prepared = desk.get("prepared")
+        if prepared:
+            row = _preview_row(preview_of(target), prepared)
+            score = int((row or {}).get("likelihood_score") or 0)
+            if row and row.get("available") is True and score >= ADVISOR_ACCEPT_SCORE:
+                command = wizard_command(prepared, target)
+                digest.note(f"MISSION ADVISOR: the treaty the mission prepared "
+                            f"reads ACCEPT ({score}) → `{command}`; Talleyrand is "
+                            f"recalled once he is home")
+                self._send(command, None, transport, digest, answerer, strict)
+                after = self._cabinet(transport) or {}
+                if after.get("pause_reason") == "transit":
+                    desk["sent"] = True
+                else:
+                    # Refused or never sent (cooldown, DP, a declined confirm):
+                    # say so once and let the mission run on to its own end.
+                    digest.note("MISSION ADVISOR: the treaty did not go out — "
+                                "the mission runs on")
+                    desk["prepared"] = None
+                return
+        held = world_turn - int(cabinet.get("started_turn") or world_turn)
+        if held >= ADVISOR_DESK_LIMIT:
+            self.benched = desk["branch"]
+            self._recall(cabinet, f"branch {desk['branch']} has held the desk "
+                                  f"{held} turns (limit {ADVISOR_DESK_LIMIT})",
+                         transport, digest, answerer, strict)
+
+    def _recall(self, cabinet, why, transport, digest, answerer, strict):
+        command = str(cabinet.get("recall_command") or "")
+        self.desk = None
+        if not command:
+            return
+        digest.note(f"MISSION ADVISOR: recalling Talleyrand — {why}")
+        self._send(command, {"kind": "recall"}, transport, digest, answerer, strict)
+
+    @staticmethod
+    def _send(command, intent, transport, digest, answerer, strict):
+        answerer.mission_intent = intent
+        try:
+            response = transport.post("/command", {"command": command})
+            digest.command(command, response)
+            drain(transport, digest, answerer, response, strict)
+        finally:
+            answerer.mission_intent = None
+        return response
+
+
 # Every decision dial a CLI flag may set, flag over script key over default.
 # IQ-3 (Sept 14, 2026): `declare_war` was missing. FA-S17-D6 added the
 # `--declare-war` flag and the policy key but never this row, so the flag
 # was parsed and dropped — every run passing `--declare-war proceed` ran
 # `cancel`, and its meta.json said so. (The default was cancel anyway, so
 # runs that left the flag alone measured what they claimed.)
+# IQ-4: `missions` — set in the policy ONLY when passed, so the header of
+# every run that does not pass it is unchanged (see `missions_mode`).
 POLICY_FLAG_KEYS = ("redemption", "petition", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
-                    "declare_war")
+                    "declare_war", "missions")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -2792,6 +3222,11 @@ def main():
                     choices=["", "first", "fight", "breakout"])
     ap.add_argument("--contact", default="",
                     choices=["", "first", "attack", "around", "hold", "cancel"])
+    ap.add_argument("--missions", default="", choices=["", *MISSIONS_MODES],
+                    help="IQ-4: advisor = send Talleyrand on the missions the "
+                         "game's own counsel names (Cabinet rows marked "
+                         "available only); off (default) answers a mission "
+                         "confirm as --diplomacy does")
     ap.add_argument("--reload-every", dest="reload_every", type=int, default=0,
                     help="FA-102: save+load every N turns at the turn boundary "
                          "(Mode A only); the re-raised questions are digested")

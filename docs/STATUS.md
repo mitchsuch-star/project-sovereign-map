@@ -50,13 +50,13 @@
 > | 1 | ~~**IQ-1 THE ECONOMY THAT BITES**~~ | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ✅ **CLOSED September 14, 2026** — IQ1-0/1/2/3 landed, **IQ1-5 the exit held**; 85.2% of the surplus converts; pillar **6.0 → 6.5**; (c) routed out, (ii) measured-open |
 > | 2 | ~~**IQ-2 THE COLLAPSE IS LEGIBLE**~~ | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | ✅ **CLOSED September 14, 2026** — PR-X1 fixed; completion item pinned on a staged zero-province board; a P1 underneath closed (a landless France fielded a FREE army); record `BUG_FIXES.md` §Collapse Legibility (IQ-2) + spec §1.1 |
 > | 3 | ~~**IQ-3 THE COALITION IS RARE**~~ | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | ✅ **CLOSED September 14, 2026** — "The League Is Spent": a treaty that dissolves the league halves Europe's alarm; commanded arm **6–8 → 1** coalitions, completion board **2 / 1 / 2** on three seeds; record `IMPROVEMENT_QUEUE_SPEC.md` §1.2 |
-> | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | ▶ **NEXT** |
-> | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | queued |
+> | 4 | ~~**IQ-4 THE CABINET IS VISIBLE**~~ | missions are mechanically live and invisible | PR-D2, PR-D3 | ✅ **CLOSED September 14, 2026**. One source for every mission surface (Cabinet, rail, log, help, tutorial). "The Court's Favour" ⚠ FOR USER CONFIRMATION. The counsel arm ticks **3 / 3 / 4** types on three seeds, the control 0. A P1 closed underneath (Talleyrand stranded IN_TRANSIT). Record `IMPROVEMENT_QUEUE_SPEC.md` §1.3 |
+> | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ▶ **NEXT** |
 > | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | queued |
 > | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | queued |
 > | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | queued |
 > | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
-> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ **BLOCKED ON ENVIRONMENT** — no Godot binary in this container | blocked |
+> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
 >
 > ---
 >
@@ -185,13 +185,22 @@
 >
 > ---
 >
-> ### IQ-4 — THE CABINET IS VISIBLE
+> ### IQ-4 — THE CABINET IS VISIBLE  ✅ CLOSED September 14, 2026
+>
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §1.3** (authoritative).
+> The completion item was re-stated by the decision fleet and is MET: the
+> counsel-following arm ticks 3 / 3 / 4 distinct mission types on historical /
+> austerlitz / ulm, the control arm launches none, and every offered type is
+> the unique best choice somewhere on the board (T15).
 >
 > **Evidence (PR-D2, PR-D3):** the diplomatic mission system is mechanically
 > live after the September 12 fixes — and absent from the Strategic Ledger, the
 > notification rail, the campaign log, the tutorial and the help text. A player
-> can finish a campaign without knowing it exists. PR-D3: `COURT_NATION`
-> dominates the mission mix. **Completion:** a live mission is visible on at
+> can finish a campaign without knowing it exists. PR-D3: ~~`COURT_NATION`
+> dominates the mission mix~~ — **a mis-transcription, corrected by IQ-4:**
+> PR-D3 says COURT is *strictly dominated*, and nothing chose any mission (0
+> launches in 360 driven turns; no AI producer, and the only counsel named
+> IMPROVE). **Completion:** a live mission is visible on at
 > least the ledger and the rail with its applied figure and its remaining
 > turns, the help text names the verbs, and the mission mix on a 40-turn run is
 > not one type.
@@ -270,6 +279,53 @@
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
 
+> ## ▶ IQ-4 "THE CABINET IS VISIBLE" — LANDED September 14, 2026. **ROW IQ-4 IS CLOSED.**
+>
+> Row IQ-4 (PR-D2, PR-D3). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.3,
+> authoritative; rules = `SYSTEMS_REFERENCE.md` §43; defects = `BUG_FIXES.md`
+> §The Cabinet Is Visible (IQ-4). Suite 22,332 / 4 at integration; parse
+> harness EXIT=0 (46 scripts); boot smoke 0 SCRIPT ERROR.
+>
+> **The row, measured first.** The census found that no producer ever
+> launched a mission (0 in 360 driven turns) and that STATUS's "COURT
+> dominates the mix" was a mis-transcription: PR-D3 says COURT is *strictly
+> dominated*. It also found that the MS-9 ceiling fix had never fired for
+> IMPROVE or REASSURE, which parked at 99 and were charged forever. So the
+> completion item was re-stated in two parts: a game-side dominance census,
+> and a harness arm that follows the game's own counsel.
+>
+> **What shipped.**
+> - **One source for every mission surface**
+>   (`diplomatic_dialogue.mission_status`): the Strategic Ledger's Cabinet
+>   block, one rail row per mission with a Recall, `diplomatic_mission_ended`
+>   (log types 163 → 164), the help block, tutorial step XIV and the
+>   Talleyrand tab.
+> - **"The Court's Favour"** (⚠ **FOR USER CONFIRMATION**): +2 a funded turn,
+>   cap +10, on the player's cooperative offers to the courted court. COURT
+>   becomes the quicker, dearer road, and holds the court at the ceiling
+>   because the favour ends with the mission.
+> - **Talleyrand's counsel prices both relation missions**, from the
+>   acceptance formula's own relation term.
+> - **Other fixes:** MS-9b; COURT's decay exemption narrowed to the courted
+>   pair; REASSURE offered only at ALLIANCE; the launch no longer reads
+>   "Rejected"; the recall is read by name; settlement gratitude reaches
+>   alliance offers again (it scored 0 on every one).
+> - **A pre-existing P1:** a counter-offer with no viable terms stranded
+>   Talleyrand IN_TRANSIT for the rest of the campaign.
+>
+> **Measured.** Over 40 turns on three seeds, the counsel arm (`--missions
+> advisor`) ticks **3 / 3 / 4** distinct types and signs **3 / 2 / 2**
+> treaties the missions prepared; courting won open borders in one turn on
+> every seed. The control arm launches **0**.
+>
+> **Integration corrected the build twice.** The first COURT completed once
+> its favour filled, which threw the favour away on the completing tick (56
+> ACCEPT became 48). The counsel's cell was an alliance leap a courting France
+> cannot pay for (3 DP against 4–6), so it never spoke. Both are recorded in
+> the landing record.
+>
+> **▶ NEXT = IQ-5 "BOTH SIDES OF THE BUTCHER'S BILL"** (PR-X2, PR-X3).
+
 > ## ▶ IQ-3 "THE COALITION IS RARE" — LANDED September 14, 2026. **ROW IQ-3 IS CLOSED.**
 >
 > Row IQ-3 (PR-D1). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.2,
@@ -327,7 +383,8 @@
 > gaps. Routed: **PR-D1c** — declarations stacked on courts outside the league
 > before signing are halved too.
 >
-> **▶ NEXT = IQ-4 "THE CABINET IS VISIBLE"** (PR-D2, PR-D3).
+> ~~**▶ NEXT = IQ-4 "THE CABINET IS VISIBLE"** (PR-D2, PR-D3).~~ ✅ **LANDED
+> September 14, 2026 — see the IQ-4 entry above.**
 
 > ## ▶ IQ-2 "THE COLLAPSE IS LEGIBLE" — LANDED September 14, 2026. **ROW IQ-2 IS CLOSED.**
 >

@@ -141,6 +141,11 @@ GAZETTE_PUBLISHED = "gazette_published"              # NORMAL: new issue
 # NORMAL, deliberately: it is a recurring economic beat, and NORMAL is the
 # only priority the cap will evict — a HIGH spray would starve the tray.
 BUILDINGS_DAMAGED = "buildings_damaged"              # NORMAL: works wrecked
+# IQ-4 "The Cabinet Is Visible": ONE row per mission (at most one of this
+# type at any time), re-stated in place while it runs and re-issued on a
+# change of state (begun, paused, blowback, completed, recalled, collapsed).
+# Producer: diplomatic_dialogue.restate_mission_notice.
+DIPLOMATIC_MISSION = "diplomatic_mission"            # NORMAL/HIGH: mission
 # REV-V3 (Aug 31, 2026): three types the game has always emitted as bare
 # string literals at the producer, so the constant list above under-reported
 # what a player can actually receive by three rows — and the rail census that

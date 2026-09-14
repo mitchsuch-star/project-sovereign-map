@@ -57,6 +57,9 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 
 Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
 `--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose` · `--declare-war cancel|proceed`
+· `--missions off|advisor` (IQ-4: `advisor` sends Talleyrand on the missions the
+game's own counsel names; `off`, the default, mirrors `--diplomacy` — see
+[the Cabinet arm](#--missions-advisor--the-cabinet-arm-iq-4-september-14-2026))
 (there is no `--ultimatum` flag — `defy` is the policy default, stamped into
 every run's `meta.json`)
 · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
@@ -416,6 +419,58 @@ Determinism is unaffected: two `propose` runs at the same seed produce
 byte-identical digests, and a default-policy digest is byte-identical
 across the slice's driver edits.
 
+### `--missions advisor` — the Cabinet arm (IQ-4, September 14, 2026)
+
+Before IQ-4 nothing in the harness ever chose a Talleyrand mission — **0
+launches in 360 driven turns** (nine arms × 40) — so a digest could not say
+whether the mission mix was dead or merely unasked. `--missions off|advisor`
+(default `off`) is the dial that asks.
+
+* **`off` MIRRORS `--diplomacy`.** Talleyrand's mission confirm ("Begin
+  mission" / "Not now", and the cancel form "Confirm cancel" / "Continue
+  mission") has its own row in the answer table, `mission → missions`, and
+  with the dial off it falls through to the diplomacy read — exactly the
+  answer it got before the row existed (`decline` takes "Not now", `accept`
+  takes "Begin mission"). The `missions` key is written into the policy
+  **only when it is set** (flag or a script's `"policy": {"missions": …}`),
+  because the digest header prints the policy verbatim: every run that does
+  not pass it keeps a byte-identical header.
+* **`advisor` follows the game's own counsel** (IQ-4 contract §5.2). It runs
+  after the script's orders and BEFORE the `--diplomacy propose` overture (an
+  overture takes Talleyrand abroad, which shuts every mission row). When
+  Talleyrand is idle it takes the first branch that applies, choosing ONLY
+  among Cabinet rows `GET /diplomatic_preview?nation=X` marks `available`,
+  and types the wizard's own command (`diplomacy_wizard.gd`
+  `_action_to_command`, drift-pinned):
+  1. **reassure** an ALLIANCE-state court whose relation is below 50;
+  2. **follow the counsel** — a court whose preview carries
+     `recommended_mission` (COURT or IMPROVE), smallest ACCEPT gap first, so
+     the COURT/IMPROVE choice is the game's, not the harness's;
+  3. **gather intel** on the at-war enemy holding the most provinces, if no
+     intel mission was launched in the last 8 turns;
+  4. **undermine** an allied pair of France's enemies (the confirm answers
+     the option naming the ally that is also at war with France).
+
+  Limits: no branch holds the desk more than **12** consecutive turns (it
+  recalls through the Cabinet's own `recall_command` and that branch sits out
+  the next pick); when the treaty a mission prepared (the best of
+  non-aggression / open borders / defensive alliance / alliance on the court
+  it chose) reads **ACCEPT (score ≥ 50)** it sends it — and recalls
+  Talleyrand only once he is home, because a recall in transit forfeits the
+  Court's Favour the treaty was priced on. It never ends a mission it did
+  not send. If `/ledger` carries no `cabinet` (the IQ-4 ledger lever down)
+  it notes `⚠ MISSION ADVISOR blind` once and sends nothing.
+
+  ⚠ **The advisor arm's dice are not the control arm's.** The previews it
+  reads jitter the suggested peace gold on the module RNG, so an advisor run
+  diverges from a `--missions off` run at the same seed from its first read.
+  It is still deterministic seed-for-seed.
+
+The binding measurement (IQ-4 §5): `--missions advisor --diplomacy decline`,
+40 turns, seeds `historical`, `austerlitz`, `ulm` — **≥ 2 distinct mission
+types with an applied tick on every seed**; the control arm (no
+`--missions`) must still launch **0**.
+
 ### Reading a run
 
 - `digest.md` — the read. One block per turn: commands with one-line
@@ -428,9 +483,20 @@ across the slice's driver edits.
   treasury/net/**threat**/**`provinces N (+d)`**, the dispatch headline,
   its `RAIL` notices and `LOG` rows for the AI-vs-AI beats no other
   surface carries.
+- `MISSION` (IQ-4) — one line per turn **while a Talleyrand mission is
+  live**, read off `GET /ledger` `cabinet` (the one-source
+  `mission_status`): `- MISSION Courting — Prussia · net +7 a turn ·
+  ≈5 turns to +100 at the present rate, barring blowback · beat running`
+  (type, court, net relation a turn, the remaining note, and the notice
+  rail's last beat when the end-turn response carries the row). The turn a
+  mission's end record first appears prints `- MISSION ended: Courting —
+  Prussia, relations reached +100` once. An idle desk prints nothing, so a
+  run that launches no mission has a byte-identical digest. The advisor's
+  own choices print as `MISSION ADVISOR …` notes above the command they
+  send.
 - `digest.jsonl` — the query surface (one record per event; `kind` =
   turn/command/battle/popup/enemy_phase/order_progress/ledger/dispatch/
-  rail/campaign_log/note).
+  rail/campaign_log/mission/note).
 
   > ⚠ **The `enemy_phase` record is the FOGGED view, not the full action
   > list.** An earlier version of this page said otherwise and it was wrong

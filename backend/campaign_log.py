@@ -56,6 +56,43 @@ def _display_defiance_action(action: str) -> str:
 # predicate keys on — is untouched. False = the prior label.
 THE_LOG_NAMES_WHAT_WAS_PROPOSED = True
 
+# IQ-4 "The Cabinet Is Visible" flip lever: the `diplomatic_mission_started`
+# one-liner printed the raw type key with its underscores swapped for spaces
+# ("Talleyrand dispatched on COURT NATION to PapalStates") — an R7 leak at
+# both halves. It now names the mission and the court through the display
+# chokepoints. False = the prior one-liner, byte-identical.
+THE_LOG_NAMES_THE_MISSION = True
+
+
+def mission_reason_phrase(reason: str, regions=None, expiry=None) -> str:
+    """How a diplomatic mission ended, in the player's words (IQ-4 §3.1).
+
+    The ONE phrase table: the Strategic Ledger's "Last mission" line, the
+    Diplomatic Ledger's Talleyrand tab and the campaign log's
+    `diplomatic_mission_ended` one-liner all read it.
+    """
+    if reason == "ceiling":
+        return "relations reached +100"
+    if reason == "duration":
+        if regions is None:
+            return "done"        # the grant has lapsed, or was never counted
+        k = int(regions or 0)
+        text = f"done — {k} province{'' if k == 1 else 's'} open to us"
+        if expiry:
+            text += f" until turn {int(expiry)}"
+        return text
+    if reason == "alliance_broken":
+        return "their alliance broke"
+    if reason == "recalled":
+        return "recalled"
+    if reason == "replaced":
+        return "replaced by a new mission"
+    if reason == "starved":
+        return "collapsed for want of DP"
+    if reason == "eliminated":
+        return "the court no longer exists"
+    return str(reason or "ended").replace("_", " ")
+
 
 def _proposal_label(event: dict) -> str:
     """Player-facing label for an event's proposal_type. Never the raw key.
@@ -210,6 +247,11 @@ CAMPAIGN_LOG_TYPES = {
     "diplomatic_discrepancy",
     "diplomatic_downgrade",
     "diplomatic_mission_cancelled_eliminated",
+    # IQ-4 "The Cabinet Is Visible": the log recorded a mission's start and
+    # never how it ended (ceiling, duration, alliance broken, recalled,
+    # starved). Registered unconditionally; `MISSION_LOG_ENDS` gates the
+    # producer (`diplomatic_dialogue.record_mission_end`).
+    "diplomatic_mission_ended",
     "diplomatic_mission_started",
     "diplomatic_proposal_sent",
     "garrison_placed",
@@ -504,6 +546,7 @@ CATEGORY_MAP = {
     "diplomatic_discrepancy": "diplomacy",
     "diplomatic_downgrade": "diplomacy",
     "diplomatic_mission_cancelled_eliminated": "diplomacy",
+    "diplomatic_mission_ended": "diplomacy",
     "diplomatic_mission_started": "diplomacy",
     "diplomatic_proposal_sent": "diplomacy",
     "garrison_placed": "territory",
@@ -1056,6 +1099,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
         # Player-generated diplomacy events: always show
         if event_type in ("diplomatic_proposal_sent", "diplomatic_mission_started",
+                          "diplomatic_mission_ended",
                           "diplomatic_discrepancy", "counter_offer_accepted",
                           "counter_offer_rejected"):
             filtered.append(event)
@@ -2621,9 +2665,35 @@ def format_event_oneliner(event: dict) -> str:
         return f"Diplomatic mission to {target} cancelled — nation eliminated"
 
     if event_type == "diplomatic_mission_started":
+        if THE_LOG_NAMES_THE_MISSION:
+            # IQ-4 §3.8: the mission and the court through the display
+            # chokepoints — never "COURT NATION", never "PapalStates".
+            from backend.display_names import MISSION_TYPE_DISPLAY
+            raw_type = str(event.get("mission_type") or "")
+            type_display = MISSION_TYPE_DISPLAY.get(
+                raw_type, raw_type.replace("_", " ").title() or "a mission")
+            return (f"Talleyrand sent to "
+                    f"{display_nation(event.get('target') or 'Unknown')}: "
+                    f"{type_display}.")
         target = event.get("target", "Unknown")
         mission_type = (event.get("mission_type") or "diplomatic mission").replace("_", " ")
         return f"Talleyrand dispatched on {mission_type} to {target}"
+
+    if event_type == "diplomatic_mission_ended":
+        # IQ-4 §3.8: how a mission ended — the log had only its start.
+        turns = int(event.get("turns_active") or 0)
+        dp_spent = int(event.get("dp_spent") or 0)
+        expiry = event.get("expiry")
+        if expiry is None and event.get("reason") == "duration" and event.get("turn"):
+            # The intel grant runs five turns from the completing tick
+            # (`_process_mission_effects`: `current_turn + 5`).
+            expiry = int(event.get("turn")) + 5
+        phrase = mission_reason_phrase(
+            str(event.get("reason") or ""), event.get("regions_revealed"), expiry)
+        return (f"Talleyrand's mission to "
+                f"{display_nation(event.get('target') or 'Unknown')} ended: "
+                f"{phrase} ({turns} turn{'' if turns == 1 else 's'}, "
+                f"{dp_spent} DP).")
 
     if event_type == "diplomatic_proposal_sent":
         target = event.get("target", "Unknown")

@@ -382,6 +382,7 @@ mock-parse-verified against the tutorial roster in
 > pair "will come west"), and `tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py`
 > pins the turn-2 first contact so the claim can never drift back.
 | 10+ | The instruments | *(hotkeys)* | T / G / D / R — the R159 lines name each screen's mechanic. **HC-5:** step XIV also names THE ADMIRALTY (ledger book 7), the F1 wizard + its Formable Nations button, the Generals card's Reward chip, and the ledger's Design rows — honest pointers, no new lessons (the R159 self-teaching screens carry the depth) |
+| 10+ | The instruments — the Cabinet (**IQ-4**, "The Cabinet Is Visible") | *(none)* | Step XIV now counts **Five** instruments: the fifth is Talleyrand's missions, sent from **F1** (warm a court, reassure an ally, spy, or pry two allies apart) — they cost diplomatic points every turn they run and stand in the Strategic Ledger's Orders book (the THE CABINET block, with a free Recall link) and on the notice rail until done. The card quotes **no figures** (a `.gd` constant cannot quote an applied number; the help text's missions block carries the live ones) and there is **no chip**: typed mission verbs are caught by the Cabinet redirect (`main.gd` `_redirect_diplomatic_command`), so a chip would teach a dead route |
 | 12 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
 
 **Design rules (pinned):** the tutorial steers the player into REAL system

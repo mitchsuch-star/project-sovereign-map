@@ -381,7 +381,9 @@ func update_diplomatic_fields(data: Dictionary):
 
 	# Talleyrand status
 	var mission_summary = str(data.get("talleyrand_mission_summary", "Idle"))
-	if mission_summary == "" or mission_summary == "null":
+	# IQ-4: the backend says "None" when no mission is live (three pins hold
+	# that string), and the bar printed "Talleyrand: None" — read it as Idle.
+	if mission_summary == "" or mission_summary == "null" or mission_summary == "None":
 		mission_summary = "Idle"
 	_set_talleyrand_summary(mission_summary)
 
@@ -396,7 +398,8 @@ func get_envoy_count() -> int:
 func _set_talleyrand_summary(mission_summary: String):
 	"""Keep the mission line compact without hiding the full text."""
 	var clean_summary = mission_summary.strip_edges()
-	if clean_summary == "":
+	# IQ-4: "None" is the backend's idle word — both entry points read it so.
+	if clean_summary == "" or clean_summary == "None":
 		clean_summary = "Idle"
 	var full_text = "Talleyrand: " + Utils.humanize_nation_keys_in_text(clean_summary)
 	talleyrand_label.tooltip_text = full_text

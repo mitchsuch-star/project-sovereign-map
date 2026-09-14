@@ -1271,6 +1271,12 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
 # TAB 4: TALLEYRAND
 # ============================================================================
 
+# IQ-4 "The Cabinet Is Visible" flip lever: False drops the tab's new
+# mission keys (`type_display`, `net_per_turn`, `remaining_note`,
+# `remaining_kind`) and the idle `last_mission` line — master 7bbf82b8.
+TALLEYRAND_TAB_READS_THE_CABINET = True
+
+
 def _build_talleyrand(world) -> Dict[str, Any]:
     """Build Talleyrand status tab."""
     player = world.player_nation
@@ -1333,19 +1339,14 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         # multiplier. These five strings were the raw table constants, so on
         # the shipped board (Talleyrand skill 10, x1.5 always) the Talleyrand
         # tab advertised "+5 relation per turn" beside a tick paying +8.
-        def _mag(mt, key="relation_change"):
-            return mission_effect_magnitude(world, mt, key)
-
+        # IQ-4 S2b: one effect-text builder for every surface. The name stays
+        # (the table's long form moved to `mission_effect_text`, including
+        # MS-3b's "3 turns to complete, then full intel for 5").
+        from backend.game_logic.diplomatic_dialogue import mission_effect_text
         _MISSION_EFFECT_TEXT = {
-            "IMPROVE_RELATIONS": f"{_mag('IMPROVE_RELATIONS'):+d} relation per turn",
-            "COURT_NATION": (f"{_mag('COURT_NATION'):+d} relation per turn, "
-                             "20% blowback risk"),
-            # MS-3b (review round): the mission RUNS 3 turns and grants 5.
-            "GATHER_INTEL": "3 turns to complete, then full intel for 5",
-            "UNDERMINE_ALLIANCE": (
-                f"{_mag('UNDERMINE_ALLIANCE', 'target_pair_relation_change'):+d} "
-                "relation between targets per turn"),
-            "REASSURE_ALLY": f"{_mag('REASSURE_ALLY'):+d} relation per turn",
+            _mt: mission_effect_text(world, _mt)
+            for _mt in ("IMPROVE_RELATIONS", "COURT_NATION", "GATHER_INTEL",
+                        "UNDERMINE_ALLIANCE", "REASSURE_ALLY")
         }
         effect_text = _MISSION_EFFECT_TEXT.get(mission_type, "")
         dp_cost_per_turn = int(MISSION_DP_COSTS.get(mission_type, 1))
@@ -1406,6 +1407,29 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         # DLF-2: Show target_ally for UNDERMINE_ALLIANCE
         if mission_type == "UNDERMINE_ALLIANCE":
             active_mission["target_ally"] = mission.get("target_ally", "")
+        # IQ-4 S3j: the Talleyrand tab reads the same derived figures as the
+        # Strategic Ledger's Cabinet block — "Ongoing" becomes the net a turn
+        # and what stands between the mission and its end.
+        if TALLEYRAND_TAB_READS_THE_CABINET:
+            from backend.game_logic.diplomatic_dialogue import mission_status
+            _status = mission_status(world) or {}
+            active_mission["type_display"] = str(_status.get("type_display", ""))
+            active_mission["net_per_turn"] = int(_status.get("net_per_turn", 0) or 0)
+            active_mission["remaining_note"] = str(_status.get("remaining_note", ""))
+            active_mission["remaining_kind"] = str(_status.get("remaining_kind", ""))
+
+    # IQ-4: no mission running, but the last one is kept as a record — say
+    # how it ended (the Strategic Ledger's "Last mission" line, one source).
+    last_mission = None
+    if TALLEYRAND_TAB_READS_THE_CABINET and active_mission is None:
+        from backend.game_logic.ledger import last_mission_record
+        _last = last_mission_record(world)
+        if _last:
+            last_mission = {
+                "type_display": _last["type_display"],
+                "target_display": _last["target_display"],
+                "reason_phrase": _last["reason_phrase"],
+            }
 
     # Proposal in transit
     proposal_in_transit = None
@@ -1461,6 +1485,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     player_reliability = int(reliability.get(player, 0))
 
     return {
+        # IQ-4: present only when idle with a kept completed record.
+        **({"last_mission": last_mission} if last_mission else {}),
         "authority": int(authority),
         "authority_label": authority_label,
         "skill": skill,

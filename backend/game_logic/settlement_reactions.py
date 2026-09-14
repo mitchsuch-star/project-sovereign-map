@@ -230,6 +230,18 @@ _GRATITUDE_HOOK_TREATY_TYPES: frozenset = frozenset(
     {"DEFENSIVE_ALLIANCE", "ALLIANCE", "war_entry", "war_bargain", "ally_entry"}
 )
 
+# IQ-4 §7 R2 flip lever (September 14, 2026). The hook's treaty types are the
+# diplomatic-STATE spelling ("ALLIANCE"), but `calculate_acceptance` passes
+# `proposal.get("type")` — the PROPOSAL spelling, lowercase for the alliance
+# family (`diplomacy._DEEP_TREATY_TYPES`; the typed and wizard paths both
+# produce "alliance"). Reproduced: France with a live `settlement_gratitude`
+# memory toward Prussia, a bare alliance offer scored the term 0, while the
+# uppercase call the unit pins make scored 5 — the gratitude never reached
+# a real alliance or defensive-alliance offer. The alliance family is now
+# read in either case. False = the case-sensitive gate.
+GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE = True
+_GRATITUDE_ALLIANCE_FAMILY: frozenset = frozenset({"DEFENSIVE_ALLIANCE", "ALLIANCE"})
+
 
 def settlement_gratitude_mod(
     world: Any, asker: str, target: str, proposal_type: str,
@@ -243,6 +255,9 @@ def settlement_gratitude_mod(
     1482. Returns ``0`` otherwise. Single-component upside; spec line
     1482 says it stays outside the political-subtotal clamp.
     """
+    if (GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE
+            and str(proposal_type or "").upper() in _GRATITUDE_ALLIANCE_FAMILY):
+        proposal_type = str(proposal_type).upper()
     if proposal_type not in _GRATITUDE_HOOK_TREATY_TYPES:
         return 0
     current_turn = int(getattr(world, "current_turn", 0) or 0)

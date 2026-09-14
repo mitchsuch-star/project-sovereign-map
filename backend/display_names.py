@@ -456,6 +456,28 @@ STATE_NARRATIVE_DISPLAY = {
 }
 
 # ============================================================================
+# MISSION DISPLAY (IQ-4 "The Cabinet Is Visible") — the R7 chokepoint for the
+# diplomatic mission type keys. MISSION_TYPE_DISPLAY names a running mission
+# ("Courting"); MISSION_ROW_DISPLAY names the Cabinet row that starts one.
+# ============================================================================
+
+MISSION_TYPE_DISPLAY = {
+    "IMPROVE_RELATIONS": "Improving Relations",
+    "COURT_NATION": "Courting",
+    "GATHER_INTEL": "Gathering Intel",
+    "UNDERMINE_ALLIANCE": "Undermining Alliance",
+    "REASSURE_ALLY": "Reassuring Ally",
+}
+
+MISSION_ROW_DISPLAY = {
+    "IMPROVE_RELATIONS": "Improve Relations",
+    "COURT_NATION": "Court",
+    "GATHER_INTEL": "Gather Intel",
+    "UNDERMINE_ALLIANCE": "Undermine Alliance",
+    "REASSURE_ALLY": "Reassure Ally",
+}
+
+# ============================================================================
 # FEEDBACK STRINGS — acceptance formula factor explanations
 # Source: diplomacy.py FEEDBACK_STRINGS
 # ============================================================================
@@ -520,6 +542,13 @@ FEEDBACK_STRINGS = {
     "respected_estate_mod": {
         "negative": "no honored titles between our courts",
         "positive": "the marshal's title we chose to respect",
+    },
+    # IQ-4 (PR-D3) — the Court's Favour: turns Talleyrand has spent courting
+    # the target. Never negative; the negative text exists for the
+    # component-key completeness pin.
+    "court_favour_mod": {
+        "negative": "no courtship at their court",
+        "positive": "the months Talleyrand has spent at their court",
     },
     # NA-2 (Nation Agendas §5.2) — the offer advanced or entrenched the
     # denial of the target court's active national design.

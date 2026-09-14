@@ -142,6 +142,10 @@ const TYPE_ICONS = {
 	"ally_settlement_petition": "PET",
 	"settlement_summary": "STL",
 	"armistice_expired": "ARM",
+
+	# IQ-4 "The Cabinet Is Visible": Talleyrand's running mission — one row
+	# per mission, refreshed while it runs, re-issued on each change of state.
+	"diplomatic_mission": "MSN",
 }
 
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
@@ -244,6 +248,9 @@ const TYPE_ICON_SVGS = {
 	"ally_settlement_petition": "flag-banner",
 	"settlement_summary": "check",
 	"armistice_expired": "hourglass",
+
+	# IQ-4: Talleyrand's mission — his book of instructions.
+	"diplomatic_mission": "book-open",
 }
 
 const ROUTE_ICON_SVGS = {

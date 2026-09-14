@@ -237,6 +237,28 @@ solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
 pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
 pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 
+## The Cabinet Is Visible (IQ-4) — landed September 14, 2026 (**✅ ALL FIXED**)
+
+> Row IQ-4 (PR-D2, PR-D3). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.3;
+> rules = `SYSTEMS_REFERENCE.md` §43; pins = `tests/test_iq4_cabinet_visible.py`,
+> `tests/test_iq4_driver_missions.py`; sweep = `tools/_sweep_iq4.json`. Every
+> fix sits behind a flip lever whose False arm reproduces master `7bbf82b8`.
+
+| id | P | defect | fix |
+|---|---|---|---|
+| MS-9b | P2 | IMPROVE and REASSURE parked at 99 and were charged DP every tick at the ceiling. Step 4c's decay returned the clamped 100 to 99 in the same turn, so MS-9's `_before == _after` never held. MS-9's pin never ran decay. | A mission completes on the tick its write lands on the clamp, in the work's direction (`MISSION_COMPLETES_AT_THE_CLAMP`). |
+| IQ4-1 | P2 | COURT's decay exemption read only the mission type. It froze every pair containing the courted court, AI against AI included, and outlived the mission: Prussia\|Russia stood at 30 for 8 of 8 ticks, 6 of them after completion. | Only the courted pair, and only while the mission is live (`COURT_EXEMPTION_IS_THE_COURTED_PAIR`). |
+| IQ4-2 | **P1** (pre-existing) | A COUNTER_OFFER with no viable counter-terms cleared the proposal but skipped the Talleyrand restore. He stayed IN_TRANSIT with nothing in transit for the rest of the campaign: every diplomatic order was refused "en route", and the paused mission could never resume or be recalled. The PL-9 tolerance band forces the same outcome. | The restore runs after a counter-offer too (`world_state.COUNTER_OFFER_RETURN_RESTORES_HIM`). Answering a counter needs no particular state. |
+| IQ4-3 | P2 | A viable counter set Talleyrand IDLE and left the live mission paused. The rail read it as starved ("collapses in 3 turns", HIGH) with the DP in hand, then rang a second time when it resumed. | Same fix. |
+| IQ4-4 | P2 | **Settlement gratitude never reached a real alliance offer** (the contract's R2). `_GRATITUDE_HOOK_TREATY_TYPES` is uppercase, but the typed and wizard paths send `alliance` / `defensive_alliance`, so the term scored 0 on both. | The alliance family is upper-cased at the hook (`settlement_reactions.GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE`): 0 → 5. |
+| IQ4-5 | P2 | COURT completing at the ceiling threw away the favour it had built. The favour is read off a live mission: from relation 60, Prussia's alliance read 56 ACCEPT on the fourth funded tick and 48 COUNTER_OFFER on the fifth, the tick it "completed". | COURT never completes at the ceiling. It holds the court until recalled, and the Cabinet and the rail say so. |
+| IQ4-6 | P2 | The counsel meant to make the Court's Favour discoverable never fired on the 1805 board. Its cell was an alliance leap past relation's cap, which costs 4–6 DP while a courting France holds 3. | Re-grounded: `_mission_counsel` prices both relation missions on the best offered cooperative rung, via `forecast_mission_to_accept` (168 of 168 forecasts match real ticks). |
+| IQ4-7 | P3 | Launching a mission raised a "Diplomatic Action Rejected" popup (the PL-14 net built it from a message with no outcome). | `suppress_proposal_result_popup` on the start and cancel arms (`MISSION_START_IS_NOT_A_REJECTION`). |
+| IQ4-8 | P3 | "Cancel mission with Austria" during a Prussia mission cancelled the Prussia mission, and cancelling a completed record "succeeded". | Refused by name (`MISSION_CANCEL_READS_THE_NAME`). |
+| IQ4-9 | P3 | The rail's Recall button on the `paused_transit` row was refused by the EC-Q transit gate. | No button while he carries a proposal. `mission_status` blanks `recall_command` then. |
+| IQ4-10 | P3 | R7: the mission confirm, the replace note, the start message and the mission messages printed the tag ("PapalStates"). | `display_nation` throughout. |
+| IQ4-11 | P3 | A live mission replaced by a new one ended with no log row. | `record_mission_end(..., "replaced")` before the new mission's `started` row. |
+
 ## Improvement Queue (IQ) — filed September 14, 2026 at the IQ1-5 exit
 
 > **Owning spec = `docs/IMPROVEMENT_QUEUE_SPEC.md`.** Row IQ-1 is CLOSED
@@ -573,7 +595,7 @@ must use on **both** sides and the R7 label collision it must avoid.
 | MS-3 | P2 | Every displayed mission figure is the unscaled table constant; the tick pays ×1.5 | **FIXED** — `MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE` |
 | MS-5 | P2 | The undermine mission's per-turn line prints its own template braces | **FIXED** — `MISSION_UNDERMINE_LINE_RENDERS` |
 | MS-7 | P2 | The mission progress readout tracks the pair the mission does not move | **FIXED** — `MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES` |
-| MS-9 | P2 | A mission at the relation ceiling charges DP forever for a measured effect of zero | **FIXED** — `MISSION_AT_THE_CEILING_IS_FINISHED` |
+| MS-9 | P2 | A mission at the relation ceiling charges DP forever for a measured effect of zero | **FIXED** — `MISSION_AT_THE_CEILING_IS_FINISHED`. ⚠ **MS-9b (IQ-4, September 14):** the fix never fired for IMPROVE or REASSURE. Decay returned 100 to 99 in the same turn, so `_before == _after` never held (measured: 99 for 8 of 8 ticks, charged every tick). MS-9's pin never ran decay. **FIXED**: `MISSION_COMPLETES_AT_THE_CLAMP` (§The Cabinet Is Visible) |
 | MS-10 | P3 | The transit pause is undone by the next tick; both pause writes are inert | **FIXED** — `MISSION_PAUSE_SURVIVES_TRANSIT` |
 | MS-6 | P3 | The undermine row is the only diplomacy row that does not state its gate | **FIXED** — `MISSION_UNDERMINE_ROW_IS_HONEST` |
 | MS-4 | P4 | "begin efforts to improve relations Austria" | **FIXED** |

@@ -152,7 +152,7 @@ class TestFAN52TheMoniteurReadsLiveTypes:
 
     def test_the_log_type_count_moved_once_and_on_purpose(self):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
-        assert len(CAMPAIGN_LOG_TYPES) == 163  # 162->163 flipped consciously: IQ-1 SW-1 adds `substitutes_purchased` — the substitute market is the first purchase in the game limited by gold alone, and an AI nation buying 30,000 men had no persistent surface to appear on
+        assert len(CAMPAIGN_LOG_TYPES) == 164  # 162->163 flipped consciously: IQ-1 SW-1 adds `substitutes_purchased` — the substitute market is the first purchase in the game limited by gold alone, and an AI nation buying 30,000 men had no persistent surface to appear on  # 163->164 flipped consciously: IQ-4: diplomatic_mission_ended -- the log never recorded how a mission ended
         src = (REPO_ROOT / "tests" / "test_campaign_log.py").read_text(encoding="utf-8")
         assert "161->162 flipped consciously: FA-N52" in src
 

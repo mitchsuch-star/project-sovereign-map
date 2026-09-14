@@ -5144,3 +5144,98 @@ byte-for-byte.
   (`diplomacy.declaration_relation_penalties`). It returns None while a league
   against the aggressor stands or brews (an eclipse league does not silence
   it), and it needs a qualifying court besides the declaration's target.
+
+## 43. The Cabinet is visible (IQ-4, landed September 14, 2026)
+
+**One source.** `diplomatic_dialogue.mission_status(world)` is the only reader
+of a running mission. It returns the type and target display names;
+`effect_per_turn`, the skill-scaled figure the tick writes; `drift_per_turn`,
+from `diplomacy.relation_drift_step`, the decay's own step; `net_per_turn`; the
+relation and its descriptor; the pause state and its reason; and
+`remaining_kind`/`remaining_turns`/`remaining_note` from
+`project_mission_turns`. It also returns `dp_spent`, `recall_command` and, for
+COURT, `favour_now`/`favour_cap`. It returns None unless `mission_is_live`.
+
+Every surface reads it or `mission_effect_text`, and none computes a figure of
+its own:
+- the Strategic Ledger's `cabinet` block (`ledger.build_cabinet`), which
+  renders above the Orders tab's rows and never as a row in `orders`;
+- the notice rail;
+- the help block;
+- the Talleyrand tab;
+- the wizard's effect text.
+
+**Endings.** A mission ends in one of these ways:
+- A relation mission completes on the tick its write lands on the ±100 clamp
+  (MS-9b). `_before == _after` never held, because step 4c's decay returned
+  100 to 99 in the same turn.
+- GATHER completes when its duration runs out.
+- UNDERMINE completes when the alliance breaks.
+- Any mission can be recalled (free), replaced by a new one, or collapse after
+  three starved turns.
+
+Each end calls `record_mission_end` exactly once. That writes a
+`diplomatic_mission_ended` log row (reason ∈ ceiling, duration,
+alliance_broken, recalled, replaced, starved; GATHER's row carries
+`regions_revealed` and `expiry`) and rings the rail's ending beat.
+Elimination keeps its own `…_cancelled_eliminated` row. Campaign-log types go
+163 → 164.
+
+**The Court's Favour** (PR-D3, ⚠ **RULED, FOR USER CONFIRMATION**).
+`court_favour_mod(world, proposal)` adds +2 per funded turn Talleyrand has
+spent at the target's court, capped at +10. Conditions:
+- The offer is the player's own non-aggression, open-borders,
+  defensive-alliance or alliance offer to that court. The type is lowercased
+  at the gate.
+- The mission is live, and the two courts are not at war.
+
+It is a standalone term outside the composite floor, labelled "Talleyrand's
+courting". Because the favour ends with the mission, COURT never completes at
+the ceiling: it holds the court until recalled, and the Cabinet and the rail
+say so ("the favour stands at +10 and holds while he stays"). COURT's decay
+exemption freezes only the courted pair, and only while the mission is live.
+
+**The counsel** (`_recommendation_and_mission`). When no proposal would be
+accepted today:
+1. `_mission_counsel` prices the two relation missions against each other on
+   the best *offered* cooperative treaty still below ACCEPT.
+2. The price comes from `forecast_mission_to_accept`, which steps the tick's
+   own arithmetic on `acceptance_relation_term` (the acceptance formula's
+   relation term, single source). The courted pair is exempt from drift and
+   the favour is added. It is a forecast ("≈"): measured against real ticks,
+   168 of 168 match on the 1805 board.
+3. The rule picks the road with the fewest DP, ties going to fewer turns.
+
+When COURT wins, Talleyrand recommends it with both roads' turns and DP, or
+says "Relations with X can do no more for this treaty" when improving never
+gets there. Otherwise the Improve counsel stands, and names the quicker Court
+road beside it. `get_diplomatic_preview` carries the named mission as
+`recommended_mission` (display-only, GR6).
+
+The original cell was an alliance leap past relation's cap. It is unpayable in
+play: a courting France holds 3 DP, and the leap costs 4–6.
+
+**Rail.** There is at most one `diplomatic_mission` row:
+- An event beat (begun, paused_transit, blowback, completed, recalled,
+  collapsed, eliminated) re-issues the row, so it gets a new id and one bell.
+- A standing turn refreshes it in place.
+- A resume after a starved pause re-issues it, so its HIGH priority can fall.
+
+The Recall button (`action_command`) rides every live beat except
+`paused_transit`. The EC-Q transit gate refuses mission orders while
+Talleyrand carries a proposal, so `mission_status` blanks `recall_command`
+then, and the Cabinet's [Recall] hides.
+
+**Also:**
+- REASSURE_ALLY is offered only at ALLIANCE; at DEFENSIVE_ALLIANCE, IMPROVE
+  (+8 at the same 1 DP) strictly dominated it.
+- A counter-offer return restores Talleyrand
+  (`world_state.COUNTER_OFFER_RETURN_RESTORES_HIM`). The live mission resumes,
+  and a failed counter no longer strands him IN_TRANSIT.
+- A launch never raises "Diplomatic Action Rejected".
+- A mismatched or completed recall is refused by name.
+- The confirm and messages name the court (R7).
+- Settlement gratitude reads the offer's type in either case.
+
+Every lever, set False, reproduces master `7bbf82b8` on its own surface. Zero
+new serialized fields.

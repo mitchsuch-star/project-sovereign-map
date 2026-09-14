@@ -307,14 +307,10 @@ def _get_talleyrand_state_label(w) -> str:
     return w.authority_tracker.get_authority_label()
 
 
-_MISSION_TYPE_DISPLAY = {
-    "IMPROVE_RELATIONS": "Improving Relations",
-    "COURT_NATION": "Courting",
-    "GATHER_INTEL": "Gathering Intel",
-    "UNDERMINE_ALLIANCE": "Undermining Alliance",
-    "REASSURE_ALLY": "Reassuring Ally",
-    # MS-8: "CONTINENTAL_SYSTEM" removed — see MISSION_DP_COSTS.
-}
+# IQ-4 (R7): an alias of the ONE chokepoint in display_names — the name
+# stays because tests read it. Same five keys it always held.
+# MS-8: "CONTINENTAL_SYSTEM" removed — see MISSION_DP_COSTS.
+from backend.display_names import MISSION_TYPE_DISPLAY as _MISSION_TYPE_DISPLAY  # noqa: E402
 
 
 def _get_talleyrand_mission_summary(w) -> str:

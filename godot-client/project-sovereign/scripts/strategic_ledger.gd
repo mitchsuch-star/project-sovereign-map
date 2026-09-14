@@ -974,6 +974,79 @@ func _render_orders():
 	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]Orders that march without you — each executes itself at dawn until done, or cancelled here.[/color]\n\n"
 
+	# IQ-4 S3b — THE CABINET: Talleyrand's mission, read from the ledger's
+	# `cabinet` block (built from diplomatic_dialogue.mission_status — ONE
+	# source; nothing here computes a figure of its own). Rendered BEFORE the
+	# empty-roster return below — a France with no marshal row still has a
+	# Cabinet — and never as a row in `orders`. An absent key (the backend
+	# lever down) renders nothing, so the tab is unchanged.
+	# [Recall] rides the existing `do:` arm → naval_command →
+	# main._on_naval_command — the typed pipeline, with its in-flight latch,
+	# echo and history, which bypasses the Cabinet redirect. The recall is
+	# FREE (no DP, no action point), so it is never gated on `can_cancel`.
+	var cabinet = cached_data.get("cabinet")
+	if cabinet is Dictionary:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CABINET ═══[/color]\n"
+		if not cabinet.get("live", false):
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Talleyrand is at the Cabinet. Press F1, choose a court, and send him on a mission.[/color]\n"
+			var last = cabinet.get("last")
+			if last is Dictionary and not last.is_empty():
+				var last_phrase = _cabinet_str(last, "reason_phrase")
+				if last_phrase == "":
+					last_phrase = _cabinet_str(last, "reason")
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]Last mission: " + _cabinet_str(last, "type_display") + " — " + _cabinet_str(last, "target_display") + ", " + last_phrase + ".[/color]\n"
+		else:
+			var paused = false
+			if cabinet.get("paused", false):
+				paused = true
+			var target_display = _cabinet_str(cabinet, "target_display")
+			var ally_display = _cabinet_str(cabinet, "target_ally_display")
+
+			# Line 1 — who, what, and the turn's arithmetic (effect, drift, net).
+			var head = "  Talleyrand → [color=#" + Utils.COLOR_GOLD + "]" + target_display + "[/color] │ "
+			head += _cabinet_str(cabinet, "type_display").to_upper() + "  "
+			if _cabinet_str(cabinet, "type") == "GATHER_INTEL":
+				# No relation work — the effect text states what he is doing.
+				head += _cabinet_str(cabinet, "effect_text")
+			else:
+				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn, drift "
+				head += _cabinet_signed(_cabinet_int(cabinet, "drift_per_turn")) + ", net "
+				head += _cabinet_signed(_cabinet_int(cabinet, "net_per_turn"))
+
+			# Line 2 — where it stands, when it ends, what it costs.
+			var standing = "    "
+			if ally_display != "":
+				# UNDERMINE moves the target↔ally pair, not France's own relation.
+				standing += target_display + " and " + ally_display + " at " + str(_cabinet_int(cabinet, "current_relation"))
+			else:
+				standing += "Relations " + str(_cabinet_int(cabinet, "current_relation"))
+			var descriptor = _cabinet_str(cabinet, "relation_descriptor")
+			if descriptor == "":
+				descriptor = _cabinet_str(cabinet, "current_descriptor")
+			if descriptor != "":
+				standing += " (" + descriptor + ")"
+			var remaining_note = _cabinet_str(cabinet, "remaining_note")
+			if remaining_note != "":
+				standing += " · " + remaining_note
+			standing += " · " + str(_cabinet_int(cabinet, "dp_per_turn")) + " DP a turn"
+
+			if paused:
+				bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + head + "[/color]\n"
+				bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + standing + "[/color]"
+			else:
+				bbcode += head + "\n"
+				bbcode += standing
+			var recall = _cabinet_str(cabinet, "recall_command")
+			if recall != "":
+				bbcode += "   [url=do:" + recall + "][color=#" + Utils.COLOR_ERROR + "][Recall][/color][/url]"
+			bbcode += "\n"
+
+			# COURT only: the favour his courting has earned our proposals.
+			if cabinet.has("favour_cap"):
+				bbcode += "    Our proposals to " + target_display + ": +" + str(_cabinet_int(cabinet, "favour_now"))
+				bbcode += " of +" + str(_cabinet_int(cabinet, "favour_cap")) + " for his courting\n"
+		bbcode += "\n"
+
 	if orders.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]\n"
 		content_area.text = bbcode
@@ -1047,6 +1120,28 @@ func _render_orders():
 		bbcode += "[/color]\n"
 
 	content_area.text = bbcode
+
+
+func _cabinet_int(d: Dictionary, key: String) -> int:
+	"""A figure off the cabinet payload — 0 unless it is a number. A key
+	present with a null value survives `.get()`'s default, and `int(null)`
+	is a hard error (the TUT-F1 trap)."""
+	var v = d.get(key, 0)
+	if v is int or v is float:
+		return int(v)
+	return 0
+
+
+func _cabinet_str(d: Dictionary, key: String) -> String:
+	"""A string off the cabinet payload — "" for a missing or null key."""
+	var v = d.get(key, "")
+	if v == null:
+		return ""
+	return str(v)
+
+
+func _cabinet_signed(n: int) -> String:
+	return ("+" if n >= 0 else "") + str(n)
 
 
 func _on_meta_clicked(meta):

@@ -4590,15 +4590,17 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_vassal_transferred": "{vassal} passes from {from_lord}'s suzerainty to {to_lord}'s.",
     "diplomatic_vassal_defected": "THE DEFECTION: {briber}'s gold turns {vassal} against {lord}.",
     "diplomatic_ai_proposal": "An envoy from {nation_display} has arrived with a proposal.",
-    "diplomatic_mission_progress": "Talleyrand's efforts in {nation} continue. Relations now at {value}.",
+    # IQ-4 (R7): the three mission templates name the court through the
+    # PR-2 fill site's `_display` suffix, never the raw tag ("PapalStates").
+    "diplomatic_mission_progress": "Talleyrand's efforts in {nation_display} continue. Relations now at {value}.",
     # MS-5: the undermine tick moves the TARGET PAIR, not our own relation,
     # and sends `ally`/`delta` — keys the sibling template does not name.
     "diplomatic_mission_undermine_progress": (
         "Talleyrand works to part {nation_display} from {ally_display}: "
         "{delta:+d} between them (now {value})."),
-    "diplomatic_mission_completed": "Talleyrand has completed his mission in {nation}.",
+    "diplomatic_mission_completed": "Talleyrand has completed his mission in {nation_display}.",
     "diplomatic_mission_paused": "Talleyrand's diplomatic efforts curtailed — insufficient resources.",
-    "diplomatic_mission_cancelled": "Talleyrand's efforts in {nation} have collapsed.",
+    "diplomatic_mission_cancelled": "Talleyrand's efforts in {nation_display} have collapsed.",
     "diplomatic_feasibility_report": "Talleyrand assesses: {difficulty_tier}. {hint}",
     "diplomatic_alliance_cascade": "{nation} enters the war via alliance with {ally}.",
     "diplomatic_offensive_cascade": "{nation} has joined {aggressor}'s war against {target}, honoring their alliance.",

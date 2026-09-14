@@ -138,6 +138,24 @@ TRANSIT_GATED_WIZARD_ACTIONS = frozenset({
 })
 TRANSIT_DISABLED_REASON = "Talleyrand in transit"
 
+# ── IQ-4 "The Cabinet Is Visible" flip levers. False reproduces master
+#    7bbf82b8 on that surface. ──
+# S3d: a mission's start (and the dialogue cancel) concluded a dialogue with
+# no outcome word, so the PL-14 safety net in `_respond_to_dialogue_sync`
+# built its popup from the message and `_derive_proposal_result_outcome` fell
+# through to "REJECT" — every launch arrived titled "Diplomatic Action
+# Rejected". The rail's `begun` / `recalled` beats say what happened instead.
+MISSION_START_IS_NOT_A_REJECTION = True
+# S3e: the typed recall. The CANCEL check sat BELOW the not-target
+# short-circuit, so the bare "Talleyrand, cancel mission" (a golden-corpus
+# row) fell into a Dismiss-only "where shall I direct my efforts?" dialogue;
+# it "cancelled" a COMPLETED record successfully; and it cleared whatever
+# mission was running whichever court the order named. A recall is free.
+# (The EC-Q transit gate still refuses a typed recall while a proposal is
+# away — FA-N81 pins that the executor refuses exactly what the wizard
+# greys; `_recall_mission` keeps IN_TRANSIT intact for any other caller.)
+MISSION_CANCEL_READS_THE_NAME = True
+
 
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
@@ -839,6 +857,11 @@ class DiplomaticExecutor:
         target_nation = diplomatic_data.get("target_nation")
         mission_type = diplomatic_data.get("mission_type")
 
+        # IQ-4 S3e: the recall is read BEFORE the not-target short-circuit,
+        # so a bare "Talleyrand, cancel mission" recalls the live mission.
+        if MISSION_CANCEL_READS_THE_NAME and mission_type == "CANCEL":
+            return self._recall_mission(target_nation, world)
+
         if not target_nation or not mission_type:
             dialogue = generate_mission_dialogue(diplomatic_data, world)
             # Aug 23, 2026: `preempt`, not `replace` — a player-initiated
@@ -854,13 +877,19 @@ class DiplomaticExecutor:
                 "diplomatic_dialogue": dialogue,
             }
 
-        # Cancel mission
+        # Cancel mission (the pre-IQ-4 recall — lever down)
         if mission_type == "CANCEL":
             existing = getattr(world, 'active_diplomatic_mission', None)
             if not existing:
                 return {"success": False, "message": "There is no active diplomatic mission to cancel."}
+            from backend.game_logic.diplomatic_dialogue import (
+                mission_is_live as _live, record_mission_end as _record_end,
+            )
+            _was_live = _live(world)
             world.active_diplomatic_mission = None
             world.talleyrand_state = "IDLE"
+            if _was_live:   # IQ-4: the log's end row + the rail's recalled beat
+                _record_end(world, dict(existing), "recalled")
             return {
                 "success": True,
                 "message": f"Talleyrand's mission to {existing.get('target', 'unknown')} has been cancelled.",
@@ -898,6 +927,48 @@ class DiplomaticExecutor:
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),
             "diplomatic_dialogue": dialogue,
+        }
+
+    def _recall_mission(self, target_nation: Optional[str], world) -> Dict:
+        """IQ-4 S3e: recall Talleyrand — free, and honest about which court.
+
+        A bare recall ends the live mission. A named court that is not the
+        mission's own is refused, naming the real one (the old path cleared
+        whatever ran). A completed mission is a RECORD (`mission_is_live`),
+        not something to recall. In transit he keeps carrying the proposal:
+        only the mission ends.
+        """
+        from backend.display_names import display_nation
+        from backend.game_logic.diplomatic_dialogue import (
+            mission_is_live, record_mission_end,
+        )
+        existing = getattr(world, 'active_diplomatic_mission', None)
+        if not existing:
+            return {"success": False,
+                    "message": "There is no active diplomatic mission to cancel."}
+        real = str(existing.get("target", "") or "")
+        real_display = display_nation(real) if real else "an unknown court"
+        if not mission_is_live(world):
+            return {
+                "success": False,
+                "message": (f"Talleyrand has no mission running — his last, in "
+                            f"{real_display}, is already done."),
+            }
+        if target_nation and target_nation != real:
+            return {
+                "success": False,
+                "message": (f"Talleyrand is in {real_display}, not "
+                            f"{display_nation(target_nation)}. Recall him from "
+                            f"{real_display}, or leave him to his work."),
+            }
+        snapshot = dict(existing)
+        world.active_diplomatic_mission = None
+        if getattr(world, 'talleyrand_state', '') != "IN_TRANSIT":
+            world.talleyrand_state = "IDLE"
+        record_mission_end(world, snapshot, "recalled")
+        return {
+            "success": True,
+            "message": f"Talleyrand's mission to {real_display} has been cancelled.",
         }
 
     # ════════════════════════════════════════════════════════════════════════════════
@@ -4154,10 +4225,20 @@ class DiplomaticExecutor:
             # Set Talleyrand in transit
             # Pause mission if active
             mission = getattr(world, 'active_diplomatic_mission', None)
+            _mission_paused_now = False
             if mission and not mission.get("paused"):
                 mission["paused"] = True
+                _mission_paused_now = True
 
             world.talleyrand_state = "IN_TRANSIT"
+            if _mission_paused_now:
+                # IQ-4: the rail's `paused_transit` beat (after the state is
+                # IN_TRANSIT — the status reads it to name the pause).
+                from backend.game_logic.diplomatic_dialogue import (
+                    mission_is_live as _live, restate_mission_notice as _restate,
+                )
+                if _live(world):
+                    _restate(world, beat="paused_transit")
             turn_sent = int(world.current_turn)
             # Fix 13: "stalled" sabotage adds delivery delay
             sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
@@ -5231,36 +5312,84 @@ class DiplomaticExecutor:
                         world.nation_relations.get(
                             world._make_diplo_key(mission_target, target_ally),
                             0) or 0)
+            # IQ-4: a live mission replaced by this one ENDS here — it gets
+            # its `diplomatic_mission_ended` row like every other end, before
+            # the new one's `started` row (it used to vanish without one).
+            from backend.game_logic.diplomatic_dialogue import (
+                mission_is_live as _prior_live, record_mission_end as _prior_end,
+            )
+            _replaced = (dict(world.active_diplomatic_mission)
+                         if _prior_live(world) else None)
             world.active_diplomatic_mission = mission_dict
             world.talleyrand_state = "ON_MISSION"
 
             description = MISSION_DESCRIPTIONS.get(mission_type, "conduct diplomacy with")
+            if _replaced:
+                _prior_end(world, _replaced, "replaced")
 
             world.log_event({
                 "type": "diplomatic_mission_started",
                 "mission_type": mission_type,
                 "target": mission_target,
             })
+            # IQ-4: the rail's `begun` beat — the mission's one row is born
+            # (re-issued: a mission elsewhere is replaced, one bell).
+            from backend.game_logic.diplomatic_dialogue import (
+                restate_mission_notice as _restate_mission,
+            )
+            _restate_mission(world, beat="begun")
 
             world.dialogue_manager.pop()
-            return {
+            _start_result = {
                 "success": True,
                 "message": f"Talleyrand begins efforts to {description} {mission_target}. ({int(cost)} DP/turn)",
             }
+            if MISSION_START_IS_NOT_A_REJECTION:
+                # IQ-4 S3d: never "Diplomatic Action Rejected" for a launch —
+                # and the line names the court, never the tag (R7).
+                from backend.display_names import display_nation as _dn
+                _start_result["message"] = (
+                    f"Talleyrand begins efforts to {description} "
+                    f"{_dn(mission_target)}. ({int(cost)} DP/turn)")
+                _start_result["suppress_proposal_result_popup"] = True
+            return _start_result
 
         elif action == "cancel_mission":
             existing = getattr(world, 'active_diplomatic_mission', None)
             if not existing:
                 world.dialogue_manager.pop()
                 return {"success": False, "message": "No active mission to cancel."}
+            from backend.game_logic.diplomatic_dialogue import (
+                mission_is_live as _live, record_mission_end as _record_end,
+            )
+            _was_live = _live(world)
+            if MISSION_CANCEL_READS_THE_NAME and not _was_live:
+                # IQ-4 §3.5: a completed mission is a record, not a recall.
+                from backend.display_names import display_nation as _dn
+                world.dialogue_manager.pop()
+                return {
+                    "success": False,
+                    "message": (f"Talleyrand has no mission running — his last, "
+                                f"in {_dn(existing.get('target', '') or '')}, is "
+                                "already done."),
+                }
             old_target = existing.get("target", "unknown")
+            _snapshot = dict(existing)
             world.active_diplomatic_mission = None
-            world.talleyrand_state = "IDLE"
+            if not (MISSION_CANCEL_READS_THE_NAME
+                    and getattr(world, 'talleyrand_state', '') == "IN_TRANSIT"):
+                world.talleyrand_state = "IDLE"
             world.dialogue_manager.pop()
-            return {
+            if _was_live:   # IQ-4: the log's end row + the rail's recalled beat
+                _record_end(world, _snapshot, "recalled")
+            _cancel_result = {
                 "success": True,
                 "message": f"Talleyrand's mission to {old_target} has been cancelled.",
             }
+            if MISSION_START_IS_NOT_A_REJECTION:
+                # IQ-4 S3d: a recall is not a rejected proposal either.
+                _cancel_result["suppress_proposal_result_popup"] = True
+            return _cancel_result
 
         elif action == "accept_ai_proposal":
             return self._handle_accept_ai_proposal(dialogue, world)
@@ -5582,10 +5711,19 @@ class DiplomaticExecutor:
 
             # Set Talleyrand in transit
             mission = getattr(world, 'active_diplomatic_mission', None)
+            _mission_paused_now = False
             if mission and not mission.get("paused"):
                 mission["paused"] = True
+                _mission_paused_now = True
 
             world.talleyrand_state = "IN_TRANSIT"
+            if _mission_paused_now:
+                # IQ-4: the rail's `paused_transit` beat (see the sibling site).
+                from backend.game_logic.diplomatic_dialogue import (
+                    mission_is_live as _live, restate_mission_notice as _restate,
+                )
+                if _live(world):
+                    _restate(world, beat="paused_transit")
             turn_sent = int(world.current_turn)
             # Fix 13: "stalled" sabotage adds delivery delay
             sabotage = getattr(world, 'pending_talleyrand_sabotage', None)

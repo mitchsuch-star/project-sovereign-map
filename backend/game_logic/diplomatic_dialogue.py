@@ -216,6 +216,420 @@ def mission_effect_magnitude(world, mission_type: str, key: str) -> int:
 MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE = True
 
 
+# ═══════ IQ-4 "The Cabinet Is Visible" — ONE source for a running mission ═══════
+# The mission system was mechanically live and on no surface a player reads:
+# not the Strategic Ledger, not the notice rail, not the campaign log's end,
+# not the help. Every surface now reads these helpers, and every figure in
+# them is the tick's own (`mission_effect_magnitude`, `relation_drift_step`).
+# Flip levers: False reproduces master 7bbf82b8 on that surface.
+MISSION_RAIL_NOTICE = True
+MISSION_LOG_ENDS = True
+
+MISSION_RECALL_LABEL = "Recall Talleyrand"
+MISSION_RECALL_DETAIL = (
+    "Free — no DP, no action point. He comes home; relations keep what he "
+    "has won.")
+
+
+def _court_favour_now(world) -> int:
+    """The favour a live COURT mission adds to an alliance offer right now."""
+    mission = getattr(world, "active_diplomatic_mission", None)
+    if not mission_is_live(world) or mission.get("type") != "COURT_NATION":
+        return 0
+    from backend.game_logic.diplomacy import court_favour_mod
+    return int(court_favour_mod(world, {
+        "type": "alliance",
+        "proposer_nation": getattr(world, "player_nation", "France"),
+        "target_nation": mission.get("target", ""),
+    }))
+
+
+def mission_effect_text(world, mission_type: str, short: bool = False) -> str:
+    """The one effect-text builder. `short` = the Cabinet row; long = ledgers.
+
+    Every figure is the applied one. With the Court's Favour lever down the
+    strings are byte-identical to the two tables this replaces (the wizard's
+    `_MISSION_EFFECT_SHORT`, the Talleyrand tab's `_MISSION_EFFECT_TEXT`).
+    """
+    def _m(key: str = "relation_change") -> int:
+        return mission_effect_magnitude(world, mission_type, key)
+
+    if mission_type in ("IMPROVE_RELATIONS", "REASSURE_ALLY"):
+        return f"{_m():+d} relation/turn" if short else f"{_m():+d} relation per turn"
+    if mission_type == "COURT_NATION":
+        from backend.game_logic import diplomacy as _d
+        if _d.COURT_FAVOUR_ACTIVE:
+            per, cap = int(_d.COURT_FAVOUR_PER_TURN), int(_d.COURT_FAVOUR_CAP)
+            _eff = MISSION_EFFECTS.get("COURT_NATION", {})
+            chance = int(round(float(_eff.get("undermine_chance", 0)) * 100))
+            loss = int(_eff.get("undermine_amount", 0))
+            if short:
+                return (f"{_m():+d} relation/turn, proposals +{per}/turn courted "
+                        f"(max +{cap}), {chance}% blowback")
+            return (f"{_m():+d} relation per turn; our proposals to them "
+                    f"+{per} per turn courted (max +{cap}, now "
+                    f"+{_court_favour_now(world)}); {chance}% chance of {loss:+d}")
+        return (f"{_m():+d} relation/turn, 20% blowback" if short
+                else f"{_m():+d} relation per turn, 20% blowback risk")
+    if mission_type == "GATHER_INTEL":
+        return ("3 turns, then full intel for 5" if short
+                else "3 turns to complete, then full intel for 5")
+    if mission_type == "UNDERMINE_ALLIANCE":
+        value = _m("target_pair_relation_change")
+        return (f"{value:+d} relation between targets/turn" if short
+                else f"{value:+d} relation between targets per turn")
+    return ""
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
+def project_mission_turns(world, status: dict) -> tuple:
+    """(kind, turns, note) — what stands between a mission and its end.
+
+    Pure: at most 40 arithmetic steps and no region scan (GR8). A relation
+    forecast steps the tick's own arithmetic — the clamped effect, the MS-9b
+    completion test, then `relation_drift_step` — and is labelled "≈": battles,
+    treaties and envoys also move relations, so it is a forecast, never an
+    applied figure. `turns == -1` whenever the answer is not a count.
+    """
+    from backend.game_logic import diplomacy as _d
+    mission_type = status["type"]
+    target_display = status["target_display"]
+    dp = int(status["dp_per_turn"])
+    if status["paused"]:
+        if status["pause_reason"] == "transit":
+            return ("transit", -1, "paused: he is carrying your proposal — costs "
+                                   "nothing, earns nothing until he returns")
+        left = max(0, 3 - int(status.get("paused_turns", 0)))
+        return ("starved", left, f"paused: {dp} DP needed — collapses in "
+                                 f"{_plural(left, 'turn')} without it")
+    if mission_type == "GATHER_INTEL":
+        duration = int(MISSION_EFFECTS.get("GATHER_INTEL", {}).get("duration", 3))
+        left = max(0, duration - int(status["turns_active"]))
+        target = status["target"]
+        provinces = len(world.get_nation_regions(target)) if target else 0
+        return ("duration", left, f"{_plural(left, 'turn')} left, then "
+                                  f"{_plural(provinces, 'province')} of "
+                                  f"{target_display} open to us for 5 turns")
+    if mission_type == "UNDERMINE_ALLIANCE":
+        target, ally = status["target"], status.get("target_ally", "")
+        state = world.diplomatic_states.get(world._make_diplo_key(target, ally), "PEACE")
+        floor = int(_d.STATE_RELATION_THRESHOLDS.get(state, 0) or 0) - 30
+        counted = int((getattr(world, "turns_below_threshold", {}) or {}).get(
+            world._make_diplo_key(target, ally), 0) or 0)
+        return ("alliance", -1, f"their alliance breaks after 5 turns at {floor} "
+                                f"or below — now {status['current_relation']}, "
+                                f"{counted} of 5 counted")
+    # The relation missions: step the tick's own arithmetic.
+    effect = int(status["effect_per_turn"])
+    player = getattr(world, "player_nation", "France")
+    target = status["target"]
+    relation = int(status["current_relation"])
+    # COURT never completes at the ceiling (`_process_mission_effects`): its
+    # work is the favour, which lasts only while he stays. Its end is the
+    # player's recall, so the note counts the funded turns to the full favour
+    # and then says it holds — never a completion that is not coming.
+    if mission_type == "COURT_NATION" and _d.COURT_FAVOUR_ACTIVE:
+        cap = int(_d.COURT_FAVOUR_CAP)
+        per = max(1, int(_d.COURT_FAVOUR_PER_TURN))
+        owed = cap - per * int(status["turns_active"])
+        favour_ticks = max(0, -(-owed // per))
+        if favour_ticks == 0:
+            return ("holding", -1, f"the favour stands at +{cap} and holds while "
+                                   "he stays — recall him once the treaty is signed")
+        return ("favour", favour_ticks,
+                f"{_plural(favour_ticks, 'funded turn')} to the full +{cap}; "
+                "the favour holds while he stays")
+    for step in range(1, 41):
+        relation = max(-_d.RELATION_CLAMP, min(_d.RELATION_CLAMP, relation + effect))
+        if effect > 0 and relation >= _d.RELATION_CLAMP:
+            tail = ", barring blowback" if mission_type == "COURT_NATION" else ""
+            return ("ceiling", step, f"≈{_plural(step, 'turn')} to "
+                                     f"{_d.RELATION_CLAMP:+d} at the present rate{tail}")
+        relation += _d.relation_drift_step(world, player, target, relation=relation)
+    return ("open", -1, "no end in sight at the present rate — recall him or "
+                        "change course")
+
+
+def mission_recall_command(world) -> str:
+    """The recall order — the Cabinet row's own spelling
+    (`diplomacy_wizard.gd`, the `cancel_mission` arm), so the two never
+    drift apart. Free: `diplomatic_mission` is a free action."""
+    mission = getattr(world, "active_diplomatic_mission", None) or {}
+    return f"Talleyrand, cancel mission with {mission.get('target', '')}"
+
+
+def mission_status(world) -> Optional[dict]:
+    """Everything a surface may say about the running mission — or None.
+
+    One dict, all ints and strings (GR2). The ledger, the notice rail, the
+    help and the Talleyrand tab read it; none of them computes a figure of
+    its own.
+    """
+    if not mission_is_live(world):
+        return None
+    from backend.display_names import MISSION_TYPE_DISPLAY, display_nation
+    from backend.game_logic import diplomacy as _d
+    mission = world.active_diplomatic_mission
+    mission_type = str(mission.get("type", "") or "")
+    target = str(mission.get("target", "") or "")
+    ally = str(mission.get("target_ally", "") or "")
+    player = getattr(world, "player_nation", "France")
+    dp = int(MISSION_DP_COSTS.get(mission_type, 1))
+    if mission_type == "UNDERMINE_ALLIANCE" and ally:
+        pair = (target, ally)
+        effect = mission_effect_magnitude(world, mission_type, "target_pair_relation_change")
+        baseline = mission.get("initial_pair_relation")
+    else:
+        pair = (player, target)
+        effect = mission_effect_magnitude(world, mission_type, "relation_change")
+        baseline = mission.get("initial_relation")
+    current = int(world.nation_relations.get(world._make_diplo_key(*pair), 0) or 0) \
+        if pair[1] else 0
+    initial = int(baseline) if baseline is not None else current
+    drift = int(_d.relation_drift_step(world, pair[0], pair[1])) if pair[1] else 0
+    paused = bool(mission.get("paused"))
+    if paused:
+        pause_reason = ("transit" if getattr(world, "talleyrand_state", "") == "IN_TRANSIT"
+                        else "starved")
+    else:
+        pause_reason = ""
+    turns_active = int(mission.get("turns_active", 0) or 0)
+    status = {
+        "type": mission_type,
+        "type_display": MISSION_TYPE_DISPLAY.get(mission_type,
+                                                 mission_type.replace("_", " ").title()),
+        "target": target,
+        "target_display": display_nation(target) if target else "",
+        "target_ally": ally,
+        "target_ally_display": display_nation(ally) if ally else "",
+        "dp_per_turn": dp,
+        "effect_per_turn": int(effect),
+        "drift_per_turn": drift,
+        "net_per_turn": int(effect) + drift,
+        "current_relation": current,
+        "initial_relation": initial,
+        "relation_delta": current - initial,
+        "paused": paused,
+        "pause_reason": pause_reason,
+        "paused_turns": int(mission.get("paused_turns", 0) or 0),
+        "turns_active": turns_active,
+        "started_turn": int(mission.get("started_turn", 0) or 0),
+        "dp_spent": turns_active * dp,
+        "effect_text": mission_effect_text(world, mission_type),
+        # No recall while he carries a proposal: the EC-Q transit gate
+        # refuses it, so the Cabinet's [Recall] (hidden on "") and the rail's
+        # button stay away until he is home — the note says he resumes then.
+        "recall_command": ("" if pause_reason == "transit"
+                           else mission_recall_command(world)),
+        "relation_descriptor": _d.get_relation_descriptor(current),
+    }
+    if mission_type == "COURT_NATION" and _d.COURT_FAVOUR_ACTIVE:
+        status["favour_now"] = _court_favour_now(world)
+        status["favour_cap"] = int(_d.COURT_FAVOUR_CAP)
+    kind, turns, note = project_mission_turns(world, status)
+    status["remaining_kind"] = kind
+    status["remaining_turns"] = int(turns)
+    status["remaining_note"] = note
+    return status
+
+
+# ── The notice rail: ONE row per mission ──
+_EVENT_BEATS = frozenset({"begun", "paused_transit", "blowback", "completed",
+                          "recalled", "collapsed", "eliminated"})
+_HIGH_BEATS = frozenset({"paused_starved", "blowback", "collapsed", "eliminated"})
+_ENDED_BEATS = frozenset({"completed", "recalled", "collapsed", "eliminated"})
+
+
+def _mission_row(notes):
+    from backend.notifications import DIPLOMATIC_MISSION
+    for row in getattr(notes, "_pending", []) or []:
+        if row.get("type") == DIPLOMATIC_MISSION:
+            return row
+    return None
+
+
+def _mission_message(world, beat: str, status: Optional[dict], snap: dict,
+                     extra: dict) -> str:
+    from backend.display_names import display_nation
+    T = display_nation(snap.get("target", "")) if snap.get("target") else "the court"
+    A = display_nation(snap.get("target_ally", "")) if snap.get("target_ally") else ""
+    dp = int(MISSION_DP_COSTS.get(snap.get("type", ""), 1))
+    if beat == "begun" and status:
+        return (f"Talleyrand has gone to {T}. {status['effect_text'][:1].upper()}"
+                f"{status['effect_text'][1:]}. {dp} DP a turn. "
+                f"{status['remaining_note'][:1].upper()}{status['remaining_note'][1:]}.")
+    if beat == "running" and status:
+        note = status["remaining_note"][:1].upper() + status["remaining_note"][1:]
+        if status["type"] == "UNDERMINE_ALLIANCE":
+            return (f"{T} and {A} at {status['current_relation']}, "
+                    f"{status['effect_per_turn']:+d} a turn from him. {note}.")
+        if status["type"] == "GATHER_INTEL":
+            return f"{note}."
+        return (f"Relations with {T} {status['current_relation']}, net "
+                f"{status['net_per_turn']:+d} a turn. {note}. {dp} DP a turn.")
+    if beat == "paused_transit":
+        return (f"Talleyrand has left {T} to carry your proposal. While he "
+                "travels the mission costs nothing and earns nothing; it resumes "
+                "when he returns.")
+    if beat == "paused_starved":
+        left = int(status["remaining_turns"]) if status else 0
+        return (f"Talleyrand's mission to {T} is stalled: it needs {dp} DP a turn. "
+                f"It collapses in {_plural(left, 'turn')} without it.")
+    if beat == "blowback":
+        return (f"{T} caught Talleyrand at his courting: relations "
+                f"{int(extra.get('delta', 0)):+d} (now {int(extra.get('current', 0))}). "
+                "The mission continues.")
+    if beat == "completed":
+        reason = extra.get("reason", "")
+        if reason == "duration":
+            return (f"Talleyrand is back from {T}: "
+                    f"{_plural(int(extra.get('regions') or 0), 'province')} lie open "
+                    f"to us until turn {int(extra.get('expiry') or 0)}.")
+        if reason == "alliance_broken":
+            return (f"The alliance between {T} and {A} has broken. "
+                    "Talleyrand's mission is done.")
+        end = int(extra.get("end", 0))
+        return (f"Relations with {T} stand at {end:+d}. Talleyrand's mission is "
+                f"done and he is home — {_plural(int(extra.get('turns', 0)), 'turn')}, "
+                f"{int(extra.get('dp_spent', 0))} DP ({int(extra.get('start', 0)):+d} "
+                f"to {end:+d}).")
+    if beat == "recalled":
+        return (f"Talleyrand is recalled from {T}. Relations keep what he won: "
+                f"{int(extra.get('start', 0)):+d} to {int(extra.get('end', 0)):+d}.")
+    if beat == "collapsed":
+        return (f"Talleyrand's mission to {T} has collapsed: three turns without "
+                f"the {dp} DP it needs.")
+    if beat == "eliminated":
+        return f"Talleyrand's mission to {T} has ended — {T} no longer exists."
+    return ""
+
+
+def restate_mission_notice(world, beat: Optional[str] = None,
+                           snapshot: Optional[dict] = None,
+                           extra: Optional[dict] = None) -> None:
+    """The rail row for the mission — at most ONE of its type at any time.
+
+    ``beat`` names an event (begun, paused_transit, blowback, completed,
+    recalled, collapsed, eliminated): the row is RE-ISSUED — a new id, so one
+    bell per change of state. With no beat (the end-of-advance seam) the
+    running row is REFRESHED in place (same id, no bell) — except a resume
+    after a starved pause, re-issued so its HIGH priority can fall to NORMAL —
+    and a no-op when no mission is live, so an ended row survives. An event
+    beat raised inside the tick (blowback) is kept for that turn.
+    O(1); literal-typed; no `enabled` key (the IGR-2 lesson).
+    """
+    if not MISSION_RAIL_NOTICE:
+        return
+    notes = getattr(world, "notifications", None)
+    if notes is None:
+        return
+    from backend.display_names import MISSION_TYPE_DISPLAY, display_nation
+    from backend.notifications import (
+        DIPLOMATIC_MISSION, NotificationPriority, create_notification,
+    )
+    extra = dict(extra or {})
+    live = mission_is_live(world)
+    existing = _mission_row(notes)
+    if beat is None:
+        if not live:
+            return
+        if existing and (existing.get("details") or {}).get("fresh"):
+            existing["details"]["fresh"] = False     # shown for one turn
+            return
+        status = mission_status(world)
+        prev = (existing.get("details") or {}).get("beat") if existing else None
+        if status["paused"]:
+            beat = ("paused_transit" if status["pause_reason"] == "transit"
+                    else "paused_starved")
+        else:
+            beat = "running"
+        reissue = (existing is None
+                   or (beat == "paused_starved" and prev != "paused_starved")
+                   or (beat == "running" and prev == "paused_starved"))
+    else:
+        status = mission_status(world) if live else None
+        reissue = True
+    snap = dict(snapshot or (world.active_diplomatic_mission or {}))
+    mission_type = str(snap.get("type", "") or "")
+    target = str(snap.get("target", "") or "")
+    if not target:
+        return
+    title = (f"Talleyrand: {MISSION_TYPE_DISPLAY.get(mission_type, mission_type)} - "
+             f"{display_nation(target)}")
+    details = {"target_nation": target, "mission_type": mission_type, "beat": beat,
+               "fresh": bool(beat == "blowback")}
+    # No Recall on the transit row: the EC-Q transit gate refuses every
+    # mission order while he carries a proposal (and the wizard greys the
+    # row, FA-N81). A button on the rail must do what it says, or not be
+    # there — the row says he resumes when he returns.
+    if beat not in _ENDED_BEATS and beat != "paused_transit" and live:
+        details["action_command"] = mission_recall_command(world)
+        details["action_label"] = MISSION_RECALL_LABEL
+        details["action_detail"] = MISSION_RECALL_DETAIL
+    priority = (NotificationPriority.HIGH if beat in _HIGH_BEATS
+                else NotificationPriority.NORMAL)
+    row = create_notification(
+        DIPLOMATIC_MISSION, priority, title,
+        _mission_message(world, beat, status, snap, extra),
+        int(getattr(world, "current_turn", 0) or 0), details)
+    if reissue:
+        notes.dismiss_by_type(DIPLOMATIC_MISSION)
+        notes.add(row)
+    else:
+        notes.refresh(row)
+
+
+def record_mission_end(world, mission: Optional[dict], reason: str,
+                       relation_end: Optional[int] = None,
+                       regions_revealed: Optional[int] = None,
+                       expiry: Optional[int] = None) -> None:
+    """One call at every place a mission ends: the campaign-log row
+    (`diplomatic_mission_ended`) and the rail's ending beat.
+
+    ``reason`` ∈ ceiling, duration, alliance_broken, recalled, starved,
+    eliminated (the last keeps its own `…_cancelled_eliminated` log row and
+    only rings the rail). ``mission`` is the dict, or a snapshot taken before
+    a path clears it.
+    """
+    if not mission:
+        return
+    mission_type = str(mission.get("type", "") or "")
+    target = str(mission.get("target", "") or "")
+    player = getattr(world, "player_nation", "France")
+    turns = int(mission.get("turns_active", 0) or 0)
+    dp_spent = turns * int(MISSION_DP_COSTS.get(mission_type, 1))
+    start = int(mission.get("initial_relation") or 0)
+    if relation_end is None:
+        relation_end = (int(world.nation_relations.get(
+            world._make_diplo_key(player, target), 0) or 0) if target else 0)
+    if MISSION_LOG_ENDS and reason != "eliminated":
+        entry = {
+            "type": "diplomatic_mission_ended",
+            "target": target,
+            "mission_type": mission_type,
+            "reason": reason,
+            "turns_active": turns,
+            "dp_spent": dp_spent,
+            "relation_start": start,
+            "relation_end": int(relation_end),
+        }
+        if regions_revealed is not None:
+            entry["regions_revealed"] = int(regions_revealed)
+        if expiry is not None:
+            entry["expiry"] = int(expiry)
+        world.log_event(entry)
+    beat = {"recalled": "recalled", "replaced": "recalled", "starved": "collapsed",
+            "eliminated": "eliminated"}.get(reason, "completed")
+    restate_mission_notice(world, beat=beat, snapshot=mission, extra={
+        "reason": reason, "turns": turns, "dp_spent": dp_spent,
+        "start": start, "end": int(relation_end),
+        "regions": regions_revealed, "expiry": expiry,
+    })
+
+
 _ROSTER_NATION_PATTERNS: Optional[list] = None
 
 
@@ -1402,6 +1816,11 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
     description = MISSION_DESCRIPTIONS.get(mission_type, "conduct diplomacy with")
     dp_cost = MISSION_DP_COSTS.get(mission_type, 1)
 
+    # The confirm is the player's first sight of the mission: it names the
+    # court, never the tag (R7 — "PapalStates" read here until IQ-4).
+    from backend.display_names import display_nation as _dn
+    name = _dn(target_nation)
+
     # Check for existing mission
     existing = getattr(world, 'active_diplomatic_mission', None)
     existing_text = ""
@@ -1409,7 +1828,7 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
         existing_text = (
             f" Note: this will replace my current mission to "
             f"{MISSION_DESCRIPTIONS.get(existing['type'], 'conduct diplomacy with')} "
-            f"{existing['target']}."
+            f"{_dn(existing['target'])}."
         )
 
     # DLF-2: UNDERMINE_ALLIANCE requires ally selection
@@ -1423,7 +1842,7 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
             return {
                 "type": "mission",
                 "target_nation": target_nation,
-                "talleyrand_text": f"Sire, {target_nation} has no alliances to undermine.",
+                "talleyrand_text": f"Sire, {name} has no alliances to undermine.",
                 "options": [
                     {"label": "Dismiss", "description": "Never mind.", "action": "dismiss"},
                 ],
@@ -1436,7 +1855,7 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
             ally = allies[0]
             text = (
                 f"Sire, I shall work to undermine the alliance between "
-                f"{target_nation} and {ally}. "
+                f"{name} and {_dn(ally)}. "
                 f"This will cost {int(dp_cost)} DP per turn.{existing_text}"
             )
             return {
@@ -1446,7 +1865,7 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
                 "options": [
                     {
                         "label": "Begin mission",
-                        "description": f"Undermine {target_nation}-{ally} alliance.",
+                        "description": f"Undermine {name}-{_dn(ally)} alliance.",
                         "action": "start_mission",
                         "terms": {
                             "mission_type": mission_type,
@@ -1462,13 +1881,13 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
             }
         # Multiple allies — present selection
         text = (
-            f"Sire, {target_nation} has multiple alliances. "
+            f"Sire, {name} has multiple alliances. "
             f"Which alliance shall I undermine? ({int(dp_cost)} DP/turn){existing_text}"
         )
         options = [
             {
-                "label": f"{ally}",
-                "description": f"Undermine {target_nation}-{ally} alliance.",
+                "label": f"{_dn(ally)}",
+                "description": f"Undermine {name}-{_dn(ally)} alliance.",
                 "action": "start_mission",
                 "terms": {
                     "mission_type": mission_type,
@@ -1490,7 +1909,7 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
         }
 
     text = (
-        f"Sire, I shall begin efforts to {description} {target_nation}. "
+        f"Sire, I shall begin efforts to {description} {name}. "
         f"This will cost {int(dp_cost)} DP per turn.{existing_text}"
     )
 
@@ -1501,7 +1920,7 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
         "options": [
             {
                 "label": "Begin mission",
-                "description": f"Start {description} {target_nation}.",
+                "description": f"Start {description} {name}.",
                 "action": "start_mission",
                 "terms": {
                     "mission_type": mission_type,
@@ -1513,6 +1932,8 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
         "context": {
             "dp_cost_per_turn": int(dp_cost),
         },
+        # IQ-4: the top-level key `proposal_confirm_popup.gd` reads.
+        "dp_cost": int(dp_cost),
         "turn_created": int(world.current_turn),
         "blocking": False,
     }

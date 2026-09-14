@@ -1072,6 +1072,11 @@ func _render_talleyrand():
 	var mission = t.get("active_mission")
 	if mission == null or not (mission is Dictionary):
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]Idle — no active diplomatic mission.[/color]\n"
+		# IQ-4: how his last mission ended, when the ledger carries it.
+		var last_mission = t.get("last_mission")
+		if last_mission is Dictionary and not last_mission.is_empty():
+			var last_phrase = str(last_mission.get("reason_phrase", last_mission.get("reason", "")))
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Last mission: " + str(last_mission.get("type_display", "?")) + " — " + str(last_mission.get("target_display", "?")) + ", " + last_phrase + ".[/color]\n"
 	else:
 		var m_type = str(mission.get("type", "?"))
 		var m_target = Utils.display_nation_name(str(mission.get("target", "?")))
@@ -1080,7 +1085,12 @@ func _render_talleyrand():
 		var status = "Active"
 		if m_paused:
 			status = "Paused"
-		bbcode += "  " + m_type.replace("_", " ").capitalize() + " → " + m_target + "\n"
+		# IQ-4: the backend's display name (display_names.MISSION_TYPE_DISPLAY)
+		# when present — never the raw key with its underscores swapped.
+		var m_type_display = str(mission.get("type_display", ""))
+		if m_type_display == "":
+			m_type_display = m_type.replace("_", " ").capitalize()
+		bbcode += "  " + m_type_display + " → " + m_target + "\n"
 
 		# DPF-2: Descriptor-based progress
 		var initial_desc = str(mission.get("initial_descriptor", ""))
@@ -1110,12 +1120,22 @@ func _render_talleyrand():
 		if effect_text:
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Effect: " + effect_text + "[/color]\n"
 
-		# TA5: Remaining turns
-		var remaining = mission.get("remaining_turns")
-		if remaining != null:
-			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Completes in " + str(int(remaining)) + " turn(s)[/color]\n"
+		# IQ-4: the one-source forecast (mission_status.remaining_note, with its
+		# net per turn) replaces both the old count and "Ongoing" when present.
+		var remaining_note = str(mission.get("remaining_note", ""))
+		if remaining_note != "" and remaining_note != "<null>":
+			var net_clause = ""
+			if mission.has("net_per_turn") and m_type != "GATHER_INTEL":
+				var mission_net = int(mission.get("net_per_turn", 0))
+				net_clause = "Net " + ("+" if mission_net >= 0 else "") + str(mission_net) + " a turn · "
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + net_clause + remaining_note + "[/color]\n"
 		else:
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ongoing[/color]\n"
+			# TA5: Remaining turns (the pre-IQ-4 render, kept for an absent key)
+			var remaining = mission.get("remaining_turns")
+			if remaining != null:
+				bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Completes in " + str(int(remaining)) + " turn(s)[/color]\n"
+			else:
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ongoing[/color]\n"
 	bbcode += "\n"
 
 	# Proposal in transit
