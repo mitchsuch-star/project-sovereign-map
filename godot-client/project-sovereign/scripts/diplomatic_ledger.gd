@@ -1125,7 +1125,9 @@ func _render_talleyrand():
 		var remaining_note = str(mission.get("remaining_note", ""))
 		if remaining_note != "" and remaining_note != "<null>":
 			var net_clause = ""
-			if mission.has("net_per_turn") and m_type != "GATHER_INTEL":
+			# IQ-4 review: UNDERMINE's pair is moved by other courts too, so
+			# its figure is not a net — the note carries its terms instead.
+			if mission.has("net_per_turn") and m_type != "GATHER_INTEL" and m_type != "UNDERMINE_ALLIANCE":
 				var mission_net = int(mission.get("net_per_turn", 0))
 				net_clause = "Net " + ("+" if mission_net >= 0 else "") + str(mission_net) + " a turn · "
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + net_clause + remaining_note + "[/color]\n"

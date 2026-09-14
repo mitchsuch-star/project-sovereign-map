@@ -1585,8 +1585,9 @@ writer, then integrated by the lead.
        rationale was always a time-versus-DP trade (§1.3 of the contract).
      - The counsel is re-grounded there. `forecast_mission_to_accept` steps
        the tick's arithmetic on `acceptance_relation_term`, now the single
-       source for the formula's relation term, and matches real ticks 168 of
-       168. Across the census cells the counsel names IMPROVE in 100 and
+       source for the formula's relation term, and matches real ticks 674 of
+       674 after the review round's fix (IQ4-R1; the first cut's "168 of 168"
+       was measured on even relations only). Across the census cells the counsel names IMPROVE in 100 and
        COURT in 11, and says nothing where a treaty already carries.
   3. **A pre-existing P1.** A counter-offer with no viable terms stranded
      Talleyrand IN_TRANSIT for the rest of the campaign. A viable one left the
@@ -1617,6 +1618,22 @@ writer, then integrated by the lead.
   - `tools/_sweep_iq4.json`.
   - Pins flipped consciously: `len(CAMPAIGN_LOG_TYPES)` 163 → 164 in twelve
     files; `test_diplomacy_button`'s DEFENSIVE_ALLIANCE REASSURE row.
+- **Review round.** Four read-only lenses read a snapshot of `4413c834`, with
+  one refuter per top finding; the record is `BUG_FIXES.md` §The Cabinet Is
+  Visible, review round. They raised 21 findings, and every survivor is fixed
+  (IQ4-R1..R15).
+  - **The forecast double-rounded every odd relation:** 75 mismatched cells
+    and 39 wrong mission picks at the shipped skill. It is now exact, 674 of
+    674.
+  - **The Undermine note promised a break that the downgrade ladder takes
+    twice as long to deliver**, and the mission billed one turn after the
+    break.
+  - **Four proposed fix shapes were rejected** because each would have
+    shipped a new defect: a recall at war, ties broken toward the
+    deterministic road, COURT removed from the truce rows, and a non-allied
+    pair read as ended.
+  - **The counsel census holds after the fixes:** COURT is faster on 44 of 84
+    rungs, and the counsel mix is IMPROVE 100 / COURT 11.
 
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that

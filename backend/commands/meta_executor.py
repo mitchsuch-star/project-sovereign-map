@@ -177,12 +177,17 @@ def _missions_help_block(world) -> str:
     for mission_type in _MISSIONS_HELP_ORDER:
         name = MISSION_ROW_DISPLAY.get(mission_type, mission_type)
         dp = int(MISSION_DP_COSTS.get(mission_type, 1))
-        qualifier = " (allies only)" if mission_type == "REASSURE_ALLY" else ""
+        qualifier = ""
+        if mission_type == "REASSURE_ALLY":
+            from backend.game_logic.diplomacy import REASSURE_ONLY_AT_ALLIANCE
+            qualifier = (" (a full alliance only)" if REASSURE_ONLY_AT_ALLIANCE
+                         else " (allies only)")
         lines.append(f"                 {name} - {dp} DP a turn{qualifier}")
         lines.append(f"                   {mission_effect_text(world, mission_type, short=True)}")
     lines += [
-        "               Relations drift 1 a turn toward the calm band beside",
-        "               any mission. Sending a proposal takes him away: the",
+        "               Relations drift 1 a turn toward the calm band (a truce",
+        "               thaws faster); the court he courts does not cool while",
+        "               he is there. Sending a proposal takes him away: the",
         "               mission costs nothing and earns nothing until he",
         "               returns. Watch it in the Strategic Ledger's Orders tab",
         "               (T) or on its notice; recall him from either, free.",

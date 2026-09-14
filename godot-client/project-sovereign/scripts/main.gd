@@ -1543,7 +1543,7 @@ func _execute_command():
 
 	# Display player command with prompt styling
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 	# The order leaves the Emperor's pen (Music & Sound Core, §2 command flow).
 	AudioManager.play("quill_flick")
 
@@ -6094,7 +6094,7 @@ func _on_wizard_command_selected(command: String):
 
 	# Display the command in terminal
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 
 	# Disable input while processing
 	set_input_enabled(false)
@@ -6182,7 +6182,7 @@ func _on_reward_command(command: String):
 	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 	set_input_enabled(false)
 	api_client.send_command(command, _on_reward_command_result)
 
@@ -6225,7 +6225,7 @@ func _on_vassal_command(command: String):
 	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 	set_input_enabled(false)
 	api_client.send_command(command, _on_vassal_command_result)
 
@@ -6248,7 +6248,7 @@ func _on_naval_command(command: String):
 	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 	set_input_enabled(false)
 	api_client.send_command(command, _on_naval_command_result)
 
@@ -6329,7 +6329,7 @@ func _on_region_panel_command(command: String):
 	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 	set_input_enabled(false)
 	api_client.send_command(command, _on_region_panel_command_result)
 
@@ -6379,7 +6379,7 @@ func _on_wizard_structured_command_selected(command: String, data: Dictionary):
 	_add_to_history(command)
 
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 
 	set_input_enabled(false)
 

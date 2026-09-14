@@ -1008,6 +1008,10 @@ func _render_orders():
 			if _cabinet_str(cabinet, "type") == "GATHER_INTEL":
 				# No relation work — the effect text states what he is doing.
 				head += _cabinet_str(cabinet, "effect_text")
+			elif _cabinet_str(cabinet, "type") == "UNDERMINE_ALLIANCE":
+				# IQ-4 review: other courts' friction and subsidies move this
+				# pair too, so his own work is named — never called a net.
+				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn from him"
 			else:
 				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn, drift "
 				head += _cabinet_signed(_cabinet_int(cabinet, "drift_per_turn")) + ", net "

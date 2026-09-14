@@ -1,0 +1,200 @@
+[
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if relation_free_score is not None:\n        others = int(relation_free_score) - favour_now",
+  "new": "    if False:\n        others = int(relation_free_score) - favour_now",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        if court_state == \"WAR\":",
+  "new": "        if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "            if court_state == \"ALLIANCE\":",
+  "new": "            if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        net = (stepped - current) + drift",
+  "new": "        net = int(effect) + drift",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        drift = int(_d.relation_drift_step(world, pair[0], pair[1], relation=stepped))",
+  "new": "        drift = int(_d.relation_drift_step(world, pair[0], pair[1], relation=current))",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if MISSION_PROGRESS_READS_AFTER_DRIFT:\n            # Step 4c decays",
+  "new": "        if False:\n            # Step 4c decays",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if UNDERMINE_ENDS_ON_THE_BREAK:\n        events.extend(_complete_undermine_if_broken(world))",
+  "new": "    if False:\n        events.extend(_complete_undermine_if_broken(world))",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        if state == \"ALLIANCE\":\n            next_floor",
+  "new": "        if False:\n            next_floor",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        if ally and not world.are_allies(target, ally):",
+  "new": "        if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if IDLE_NUDGE_READS_THE_LIVE_MISSION:",
+  "new": "        if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        start = int(base) if base is not None else pair_now",
+  "new": "        start = int(base) if base is not None else int(mission.get(\"initial_relation\") or 0)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    if mission_type == \"UNDERMINE_ALLIANCE\" and ally and target:",
+  "new": "    if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "        if snap.get(\"type\") == \"UNDERMINE_ALLIANCE\" and A:",
+  "new": "        if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            if not COURT_EXEMPTION_KEEPS_THE_THAW:\n                return 0",
+  "new": "            if True:\n                return 0",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        return 0 if courted else -step",
+  "new": "        return -step",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    return f\" Courting risks blowback — a {chance}% chance a turn of {loss:+d}.\"",
+  "new": "    return \"\"",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            posture = _hard_reject_counsel(world, target_nation, actions)",
+  "new": "            posture = None",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if after[0] == 0:",
+  "new": "    if after[0] < 0:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if improve_open:",
+  "new": "    if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        status = _ms(world) or {}",
+  "new": "        status = {}",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if mission_type_raw == \"UNDERMINE_ALLIANCE\" and status.get(\"target_ally_display\"):",
+  "new": "        if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "                   or (beat == \"running\" and prev in _HIGH_BEATS))",
+  "new": "                   or False)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\"]► \" + Utils.humanize_nation_keys_in_text(command) + \"[/color]\")\n\tset_input_enabled(false)\n\tapi_client.send_command(command, _on_reward_command_result)",
+  "new": "\"]► \" + command + \"[/color]\")\n\tset_input_enabled(false)\n\tapi_client.send_command(command, _on_reward_command_result)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\"]► \" + Utils.humanize_nation_keys_in_text(command) + \"[/color]\")\n\tset_input_enabled(false)\n\tapi_client.send_command(command, _on_naval_command_result)",
+  "new": "\"]► \" + command + \"[/color]\")\n\tset_input_enabled(false)\n\tapi_client.send_command(command, _on_naval_command_result)",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/commands/meta_executor.py",
+  "old": "            qualifier = (\" (a full alliance only)\" if REASSURE_ONLY_AT_ALLIANCE",
+  "new": "            qualifier = (\" (allies only)\" if REASSURE_ONLY_AT_ALLIANCE",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/commands/meta_executor.py",
+  "old": "        \"               thaws faster); the court he courts does not cool while\",",
+  "new": "        \"               thaws faster); the court he courts cools while\",",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "        if TALLEYRAND_TAB_READS_THE_CABINET:\n            from backend.game_logic.diplomatic_dialogue import mission_status",
+  "new": "        if False:\n            from backend.game_logic.diplomatic_dialogue import mission_status",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    if TALLEYRAND_TAB_READS_THE_CABINET and active_mission is None:",
+  "new": "    if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+  "old": "bbcode += \"[color=#\" + Utils.COLOR_WARNING + \"]\" + head + \"[/color]\\n\"",
+  "new": "bbcode += \"[color=#\" + Utils.COLOR_GREY + \"]\" + head + \"[/color]\\n\"",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "godot-client/project-sovereign/scripts/top_bar.gd",
+  "old": " or mission_summary == \"None\":",
+  "new": ":",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "godot-client/project-sovereign/scripts/top_bar.gd",
+  "old": " or clean_summary == \"None\":",
+  "new": ":",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "godot-client/project-sovereign/scripts/diplomatic_ledger.gd",
+  "old": "var remaining_note = str(mission.get(\"remaining_note\", \"\"))",
+  "new": "var remaining_note = \"\"",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ },
+ {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if counsel[\"improve\"] is None:",
+  "new": "        if False:",
+  "tests": "tests/test_iq4_cabinet_visible.py"
+ }
+]

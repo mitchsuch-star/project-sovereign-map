@@ -5202,8 +5202,11 @@ accepted today:
 2. The price comes from `forecast_mission_to_accept`, which steps the tick's
    own arithmetic on `acceptance_relation_term` (the acceptance formula's
    relation term, single source). The courted pair is exempt from drift and
-   the favour is added. It is a forecast ("≈"): measured against real ticks,
-   168 of 168 match on the 1805 board.
+   the favour is added. It is a forecast ("≈"). Its constant terms are the
+   formula's own `relation_free_score`, rounded ONCE per step as the formula
+   rounds. Measured against real ticks, 674 of 674 match, over odd and even
+   relations at skills 10 and 5. (The first cut double-rounded every odd
+   relation.)
 3. The rule picks the road with the fewest DP, ties going to fewer turns.
 
 When COURT wins, Talleyrand recommends it with both roads' turns and DP, or
@@ -5239,3 +5242,28 @@ then, and the Cabinet's [Recall] hides.
 
 Every lever, set False, reproduces master `7bbf82b8` on its own surface. Zero
 new serialized fields.
+
+**Review-round amendments (September 14, 2026).**
+- **COURT.** At WAR it is *suspended*: no favour, the relation work goes on,
+  and the favour returns at the peace. The note never advises a recall. At
+  ALLIANCE it says the alliance is signed. The courted pair is spared decay
+  only; below −10 it still thaws (`COURT_EXEMPTION_KEEPS_THE_THAW`).
+- **Net per turn** = the clamped effect plus the drift at the relation the
+  effect leaves. The morning progress line reads after the same tick's decay
+  (`MISSION_PROGRESS_READS_AFTER_DRIFT`).
+- **UNDERMINE.** The note states the downgrade ladder: an ALLIANCE falls to a
+  defensive alliance, still allied, and the break needs a second run of five.
+  The mission ends on the turn step 13 breaks the pair
+  (`UNDERMINE_ENDS_ON_THE_BREAK`, `_complete_undermine_if_broken`). Its end
+  record and recall line read the target↔ally pair. The Cabinet names his own
+  work "a turn from him", never a net.
+- **The counsel.** Its COURT sentences state the blowback. Under a hard-reject
+  posture it names the posture and when it lifts, and prescribes Improve only
+  while relations would still fall short once it lapses
+  (`_hard_reject_counsel`).
+- **Other surfaces.**
+  - A completed record no longer silences Talleyrand's idle nudge
+    (`dispatch.IDLE_NUDGE_READS_THE_LIVE_MISSION`).
+  - The wizard's cancel row reads `mission_status`.
+  - A blowback row falls back to NORMAL on the next standing turn.
+  - Chip and rail echoes are humanised.

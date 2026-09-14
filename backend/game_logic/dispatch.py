@@ -66,6 +66,7 @@ SOIL_ALARM_IS_ONE_RUN = True          # FA-12
 SOIL_ALARM_IS_HOME_SOIL_ONLY = True   # FA-N14
 THE_SHELLING_IS_BRIEFED = True        # FA-25
 A_LOST_SATELLITE_CAN_LEAD = True      # FA-38
+IDLE_NUDGE_READS_THE_LIVE_MISSION = True   # IQ-4 review: a completed mission record no longer silences Talleyrand's idle nudge
 
 HEADLINE_WEIGHTS: Dict[str, int] = {
     # NP-4 (NAPOLEON_SPEC §7.2): the Eagle in Chains outranks even a
@@ -4194,6 +4195,12 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         transit = getattr(world, 'proposal_in_transit', None)
         talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
 
+        if IDLE_NUDGE_READS_THE_LIVE_MISSION:
+            # IQ-4 review: a COMPLETED mission is kept as a record (MS-1), so
+            # the raw dict silenced this nudge for the rest of the campaign
+            # after the first finished mission.
+            from backend.game_logic.diplomatic_dialogue import mission_is_live
+            mission = mission_is_live(world)
         if talleyrand_state == "IDLE" and not mission and not transit:
             # Check if player has taken any diplomatic action recently
             # (Simple heuristic: Talleyrand is idle = no recent action)

@@ -47,8 +47,10 @@ with contextlib.redirect_stdout(io.StringIO()):
     from backend.game_logic import diplomacy as D
     from backend.game_logic import diplomatic_dialogue as DD
     from backend.game_logic import diplomatic_ledger as DL
+    from backend.game_logic import dispatch as DI
     from backend.game_logic import ledger as L
     from backend.game_logic import settlement_reactions as SR
+    from backend.models import world_state as WS
     from backend.models.world_state import WorldState
     from backend.notifications import DIPLOMATIC_MISSION, NotificationPriority
 
@@ -75,6 +77,12 @@ _LEVERS = (
     (ME, "MISSION_HELP_BLOCK"),
     (CL, "THE_LOG_NAMES_THE_MISSION"),
     (SR, "GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE"),
+    # the review round's levers
+    (WS, "COUNTER_OFFER_RETURN_RESTORES_HIM"),
+    (D, "COURT_EXEMPTION_KEEPS_THE_THAW"),
+    (D, "UNDERMINE_ENDS_ON_THE_BREAK"),
+    (D, "MISSION_PROGRESS_READS_AFTER_DRIFT"),
+    (DI, "IDLE_NUDGE_READS_THE_LIVE_MISSION"),
 )
 
 _MISSION_ROW = {
@@ -282,6 +290,15 @@ def _gd_func(path, name):
     m = re.search(r"^func " + re.escape(name) + r"\(.*?(?=^func |\Z)", src, re.S | re.M)
     assert m, f"func {name} not found in {path.name}"
     return m.group(0)
+
+
+def _gd_code(path, name):
+    """A GDScript function body with its docstring and `#` comment lines
+    stripped — so a pin reads CODE, never the comment that explains it (the
+    review found three client pins satisfied by their own comments)."""
+    body = re.sub(r'"""(.*?)"""', "", _gd_func(path, name), flags=re.S)
+    return "\n".join(line for line in body.splitlines()
+                     if not line.lstrip().startswith("#"))
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -507,6 +524,51 @@ class TestTheDriftStepIsTheDecay:
         assert sum(1 for (_a, _b, s) in expected.values() if s) > 10, "vacuous"
 
 
+# (pair, state or None to keep the board's, relation, courted, step) — LITERAL
+# steps, never computed with `relation_drift_step` (review P4 c: the table
+# above is circular by construction, so a mis-transcribed step passed it).
+_DRIFT_TABLE = [
+    (("France", "Prussia"), "PEACE", 11, False, -1),
+    (("France", "Prussia"), "PEACE", 10, False, 0),
+    (("France", "Prussia"), "PEACE", -10, False, 0),
+    (("France", "Prussia"), "PEACE", -11, False, 1),
+    (("France", "Prussia"), "ARMISTICE", 50, False, -3),
+    (("France", "Prussia"), "ARMISTICE", -50, False, 3),
+    (("France", "Prussia"), "ARMISTICE", 10, False, 0),
+    (("France", "Prussia"), "ARMISTICE", -11, False, 3),
+    (("France", "Austria"), "WAR", 50, False, 0),
+    (("France", "Austria"), "WAR", -50, False, 0),
+    (("Prussia", "Russia"), "PEACE", 30, False, -1),
+    (("Prussia", "Russia"), "PEACE", -30, False, 1),
+    (("Prussia", "Russia"), "PEACE", 10, False, 0),
+    (("France", "Holland"), None, 60, False, 0),
+    (("France", "Holland"), None, -60, False, 0),
+    (("France", "Saxony"), "PEACE", 50, True, 0),
+    (("France", "Saxony"), "PEACE", -50, True, 1),
+    (("France", "Saxony"), "ARMISTICE", 50, True, 0),
+    (("France", "Saxony"), "ARMISTICE", -50, True, 3),
+]
+
+
+class TestTheDriftStepAgainstLiterals:
+
+    @pytest.mark.parametrize("pair,state,relation,courted,step", _DRIFT_TABLE)
+    def test_the_step_and_the_decay_are_the_literal(self, pair, state, relation, courted, step):
+        w = _europe()
+        a, b = pair
+        if state is not None:
+            _set_state(w, a, b, state)
+        else:
+            assert w.vassals[b]["lord"] == a, "the vassal-lord pair moved"
+        _set_rel(w, a, b, relation)
+        if courted:
+            _stage(w, "COURT_NATION", b)
+        assert D.relation_drift_step(w, a, b) == step
+        with _quiet():
+            D._process_relation_decay(w)
+        assert _rel(w, a, b) - relation == step
+
+
 # ════════════════════════════════════════════════════════════════════
 # T4 — the Court's Favour (⚠ FOR USER CONFIRMATION)
 # ════════════════════════════════════════════════════════════════════
@@ -635,19 +697,32 @@ class TestTheCourtsFavour:
         assert seen[0]["components"]["court_favour_mod"] == 6
         assert int(seen[0]["score"]) == snapshot
 
-    def test_a_recall_in_transit_takes_the_favour_back(self, http, monkeypatch):
+    def test_a_typed_recall_in_transit_is_refused_and_the_send_keeps_its_favour(
+            self, http, monkeypatch):
+        """Review P4 (d): the rail and the Cabinet withhold Recall while he
+        carries a proposal, and the EC-Q transit gate refuses every typed
+        spelling of it — the old pin drove `_recall_mission` by hand, a state
+        no player road reaches. The reachable contract: refused, the mission
+        kept, and the arrival scored with the favour it was sent with."""
         w, client = self._court_non_aggression(http)
         assert _send_http(client, "propose defensive alliance with Prussia").get("success")
-        with _quiet():
-            res = CommandExecutor()._diplomatic._recall_mission(None, w)
-        assert res["success"], res
-        assert w.active_diplomatic_mission is None
-        assert w.talleyrand_state == "IN_TRANSIT", "he still carries the proposal"
+        snapshot = int(w.proposal_in_transit["acceptance_snapshot"])
+        assert w.talleyrand_state == "IN_TRANSIT"
+        for text in ("Talleyrand, cancel mission with Prussia", "Talleyrand, cancel mission",
+                     "recall Talleyrand"):
+            r = _cmd(client, text)
+            assert r.get("success") is False, (text, r.get("message"))
+            assert DD.mission_is_live(w), text
+            assert w.active_diplomatic_mission["target"] == "Prussia"
+            assert w.active_diplomatic_mission["turns_active"] == 3
+            assert w.talleyrand_state == "IN_TRANSIT"
         seen = self._spy_arrival(monkeypatch)
         w.current_turn += 1
         with _quiet():
             w._process_proposal_in_transit()
-        assert seen and seen[0]["components"]["court_favour_mod"] == 0
+        assert seen, "the arrival was never scored"
+        assert seen[0]["components"]["court_favour_mod"] == 6
+        assert int(seen[0]["score"]) == snapshot
 
     def test_the_wizard_row_rises_by_exactly_the_favour(self):
         w = _europe()
@@ -705,8 +780,10 @@ class TestTheCourtsFavour:
 
 # type -> (target, ally, France<->target relation, court whose wizard row
 # carries the type)
+# IMPROVE is staged INSIDE the ±10 calm band (review S2): +8 carries it to 14,
+# where the same tick's decay takes 1 — net +7, not effect + today's drift.
 _TYPED = {
-    "IMPROVE_RELATIONS": ("Prussia", None, 30, "Prussia"),
+    "IMPROVE_RELATIONS": ("Prussia", None, 6, "Prussia"),
     "COURT_NATION": ("Prussia", None, 30, "Prussia"),
     "REASSURE_ALLY": ("Bavaria", None, 60, "Bavaria"),
     "GATHER_INTEL": ("Prussia", None, -10, "Prussia"),
@@ -1044,6 +1121,26 @@ class TestTheRailHasOneRowPerMission:
             f"mission paused={w.active_diplomatic_mission.get('paused')}, "
             f"DP={w.diplomatic_points}: {row['message']}")
         assert row["priority"] == int(NotificationPriority.NORMAL)
+
+    def test_lever_down_a_counter_offer_return_reads_as_starved(self, http):
+        """The DOWN arm (review P4 e): with the restore skipped for a
+        counter-offer, he is left IDLE with the mission paused, and the rail
+        reads the false starvation the fix removed."""
+        WS.COUNTER_OFFER_RETURN_RESTORES_HIM = False
+        w, client = http
+        assert _start_http(client, "court Prussia").get("success")
+        _advance(w)
+        _advance(w)
+        w.diplomatic_points = 10
+        assert _send_http(client, "propose open borders with Prussia").get("success")
+        _advance(w)
+        assert w.proposal_in_transit is None
+        dm = w.dialogue_manager
+        dtypes = [d.get("type") for d in [dm.peek(), *dm.iter_queue()] if d]
+        assert "counter_offer_response" in dtypes, dtypes
+        assert w.talleyrand_state != "ON_MISSION"
+        assert w.active_diplomatic_mission.get("paused")
+        assert _row(w)["details"]["beat"] == "paused_starved"
 
     def test_a_failed_counter_offer_does_not_strand_him_in_transit(self, http, monkeypatch):
         """Probe-found (pre-existing, `world_state._process_proposal_in_transit`):
@@ -1522,18 +1619,25 @@ class TestTheSchoolNamesTheCabinet:
 class TestTheClientReadsIt:
 
     def test_the_orders_tab_renders_the_cabinet_first(self):
-        body = _gd_func(SCRIPTS / "strategic_ledger.gd", "_render_orders")
-        assert '"cabinet"' in body
+        """Code only (review P4 b): comments stripped, and the warning colour
+        read inside the Cabinet block's `paused` branch — the FA-N36 idle
+        line below it already used COLOR_WARNING."""
+        body = _gd_code(SCRIPTS / "strategic_ledger.gd", "_render_orders")
+        assert 'cached_data.get("cabinet")' in body
         assert "[url=do:" in body
         assert body.index('cached_data.get("cabinet")') < body.index("if orders.size() == 0")
-        assert "COLOR_WARNING" in body
+        cabinet = body[body.index("var cabinet ="):body.index("if orders.size() == 0")]
+        assert re.search(r'if paused:\s*\n\s*bbcode \+= "\[color=#" \+ Utils\.COLOR_WARNING'
+                         r' \+ "\]" \+ head', cabinet), "the paused Cabinet is not a warning"
         assert "═══ THE CABINET ═══" in body
         assert ("Talleyrand is at the Cabinet. Press F1, choose a court, and send him "
                 "on a mission.") in body
 
-    @pytest.mark.parametrize("func", ["update_diplomatic_fields", "_set_talleyrand_summary"])
-    def test_the_top_bar_reads_none_as_idle(self, func):
-        assert '"None"' in _gd_func(SCRIPTS / "top_bar.gd", func)
+    @pytest.mark.parametrize("func,var", [("update_diplomatic_fields", "mission_summary"),
+                                          ("_set_talleyrand_summary", "clean_summary")])
+    def test_the_top_bar_reads_none_as_idle(self, func, var):
+        code = _gd_code(SCRIPTS / "top_bar.gd", func)
+        assert re.search(r"if [^\n]*\b" + var + r' == "None"', code), code
 
     def test_the_rail_maps_the_type(self):
         src = (SCRIPTS / "notification_bar.gd").read_text(encoding="utf-8")
@@ -1545,9 +1649,10 @@ class TestTheClientReadsIt:
                 / "phosphor" / "book-open.svg").exists()
 
     def test_the_talleyrand_tab_renders_the_note(self):
-        body = _gd_func(SCRIPTS / "diplomatic_ledger.gd", "_render_talleyrand")
-        assert "remaining_note" in body
-        assert "last_mission" in body
+        code = _gd_code(SCRIPTS / "diplomatic_ledger.gd", "_render_talleyrand")
+        assert 'mission.get("remaining_note"' in code
+        assert 't.get("last_mission")' in code
+        assert 'last_mission.get("reason_phrase"' in code
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -1697,13 +1802,30 @@ class TestCounselNamesTheCourt:
         assert out == (_COURT_COUNSEL, "COURT_NATION")
 
     def test_the_cheaper_road_is_counselled_and_the_quicker_one_named(self):
-        """25 at relation 0: improving takes 7 turns / 7 DP, courting 5 / 10.
-        T15's rule picks IMPROVE; the counsel names the Court beside it."""
-        out = D._recommendation_and_mission(
-            self._world(0), "Prussia", _staged_actions(25), 10, False, {})
-        assert out == (_IMPROVE_COUNSEL + " Courting Prussia would be quicker — "
-                       "≈5 turns against ≈7 turns, but 10 DP to 7.",
-                       "IMPROVE_RELATIONS")
+        """Review repair: the forecast now reads the formula's own
+        relation-free sum, so a staged `likelihood_score` no longer drives it
+        — the pin reads a REAL row. Prussia at PEACE, relation -15 (odd): Open
+        Borders short of ACCEPT; improving is cheaper, courting quicker, and
+        the quoted figures are the real ticks'."""
+        w = self._world(-15)
+        w.diplomatic_points = 10
+        assert w.get_diplomatic_state("France", "Prussia") == "PEACE"
+        actions = D.get_available_diplomatic_actions(w, "Prussia")
+        rows = {a["action"]: a for a in actions}
+        assert rows["propose_open_borders"]["available"]
+        assert rows["propose_open_borders"]["likelihood_score"] < D.ACCEPT_SCORE
+        c_dp, c_turns = _dp_to_accept(_hesse_like("Prussia", -15), "COURT_NATION",
+                                      "Prussia", "open_borders")
+        i_dp, i_turns = _dp_to_accept(_hesse_like("Prussia", -15), "IMPROVE_RELATIONS",
+                                      "Prussia", "open_borders")
+        assert i_dp < c_dp and c_turns < i_turns, ((c_dp, c_turns), (i_dp, i_turns))
+        text, mission = D._recommendation_and_mission(w, "Prussia", actions, 10, False, {})
+        assert mission == "IMPROVE_RELATIONS"
+        assert text.startswith(_IMPROVE_COUNSEL)
+        assert "Courting Prussia would be quicker" in text
+        assert text == (_IMPROVE_COUNSEL + f" Courting Prussia would be quicker — "
+                        f"≈{D._turns_phrase(c_turns)} against ≈{D._turns_phrase(i_turns)}, "
+                        f"but {c_dp} DP to {i_dp}.")
 
     def test_court_is_counselled_where_it_is_no_dearer(self):
         """Denmark at PEACE, relation 10: Open Borders at 45. Courting 1 turn
@@ -1729,10 +1851,15 @@ class TestCounselNamesTheCourt:
         assert preview["recommended_mission"] == "IMPROVE_RELATIONS"
 
     @pytest.mark.parametrize("court,relation", [("Prussia", -10), ("Denmark", 10),
-                                                ("Ottoman", -10)])
+                                                ("Ottoman", -10),
+                                                # odd relations (review S1): the
+                                                # double rounding lived here
+                                                ("Prussia", 25), ("Prussia", -5),
+                                                ("Prussia", 11), ("Denmark", 11)])
     def test_the_forecast_is_the_tick(self, court, relation):
-        """The counsel's figures are the real ticks' (quiet world) — checked
-        here on three cells; 168 of 168 matched across the board census."""
+        """The counsel's figures are the real ticks' (quiet world), on both
+        parities — every even cell matched before the review, and every odd
+        cell was a turn out."""
         w = _europe()
         w.diplomatic_points = 10
         _set_rel(w, "France", court, relation)
@@ -1906,3 +2033,698 @@ class TestIntegrationPins:
                 w, "Prussia", "defensive_alliance", score, mission)
             assert forecast == _dp_to_accept(real, mission, "Prussia",
                                              "defensive_alliance")[::-1]
+
+
+# ════════════════════════════════════════════════════════════════════
+# The IQ-4 review round — each fix pinned, with its lever's DOWN arm
+# ════════════════════════════════════════════════════════════════════
+
+_WAR_NOTE = ("no favour while we are at war — his courting still warms relations, "
+             "and the favour returns at the peace")
+_HOLD_NOTE = ("the favour stands at +10 and holds while he stays — recall him once "
+              "the treaty is signed")
+_BLOWBACK = " Courting risks blowback — a 20% chance a turn of -3."
+_NO_MORE_BRITAIN = ("Relations with Britain can do no more for this treaty. "
+                    "Talleyrand recommends: Court Britain — every turn at their court "
+                    "adds 2 to our proposals, up to 10.")
+
+
+def _fund_advance(w, n=1):
+    for _ in range(n):
+        w.diplomatic_points = max(int(w.diplomatic_points), 10)
+        _advance(w)
+
+
+def _floor(state):
+    return int(D.STATE_RELATION_THRESHOLDS[state]) - 30
+
+
+class TestReviewTheForecastRoundsOnce:
+    """S1: the forecast rebuilt its constant terms from the ROUNDED score and
+    rounded again, so every odd relation (relation/2 is x.5 under
+    round-half-even) put it a turn out — 75 cells at skill 10, and 39 counsel
+    picks flipped. It now adds back the formula's own relation-free sum."""
+
+    @pytest.mark.parametrize("skill", [10, 5])
+    @pytest.mark.parametrize("court,state,relation,ptype", [
+        ("Prussia", "PEACE", 25, "open_borders"),
+        ("Prussia", "PEACE", 24, "open_borders"),
+        ("Prussia", "PEACE", -5, "open_borders"),
+        ("Russia", "PEACE", -5, "open_borders"),
+        ("Russia", "PEACE", -4, "open_borders"),
+        ("Britain", "OPEN_BORDERS", 11, "non_aggression"),
+        ("Britain", "OPEN_BORDERS", 10, "non_aggression"),
+    ])
+    def test_the_forecast_is_the_tick_on_both_parities(self, court, state, relation,
+                                                        ptype, skill):
+        def world():
+            w = _europe()
+            w.diplomatic_points = 10
+            w.diplomats["France"].skill = skill       # 5: staged, an authored skill
+            if w.get_diplomatic_state("France", court) != state:
+                _set_state(w, "France", court, state)
+            _set_rel(w, "France", court, relation)
+            return w
+        w = world()
+        row = {a["action"]: a for a in D.get_available_diplomatic_actions(w, court)}[
+            f"propose_{ptype}"]
+        assert row["available"] and 0 < row["likelihood_score"] < D.ACCEPT_SCORE
+        for mission in ("COURT_NATION", "IMPROVE_RELATIONS"):
+            forecast = D.forecast_mission_to_accept(w, court, ptype, row["likelihood_score"],
+                                                    mission)
+            real = _dp_to_accept(world(), mission, court, ptype)
+            assert forecast == (real[::-1] if real else None), (mission, forecast, real)
+
+    def test_the_reviews_headline_cells(self):
+        """Russia at -5: improving takes 3 turns / 3 DP (the forecast said 4 / 4
+        and counselled the dearer road). Britain at OPEN_BORDERS, 11: 6 / 6
+        (it said 5 / 5 and told the player improving saved a DP)."""
+        w = _europe()
+        w.diplomatic_points = 10
+        _set_state(w, "France", "Russia", "PEACE")      # Russia boots at war with France
+        _set_rel(w, "France", "Russia", -5)
+        with _quiet():
+            preview = D.get_diplomatic_preview(w, "Russia")
+        assert preview["recommended_mission"] == "IMPROVE_RELATIONS"
+        assert "would be quicker — ≈2 turns against ≈3 turns, but 4 DP to 3." in \
+            preview["recommendation"]
+        w = _europe()
+        w.diplomatic_points = 10
+        _set_state(w, "France", "Britain", "OPEN_BORDERS")
+        _set_rel(w, "France", "Britain", 11)
+        with _quiet():
+            preview = D.get_diplomatic_preview(w, "Britain")
+        assert preview["recommended_mission"] == "COURT_NATION"
+        assert preview["recommendation"] == (
+            "Talleyrand recommends: Court Britain — ≈3 turns and 6 DP to carry "
+            "Non-Aggression Pact; improving relations would take ≈6 turns and 6 DP.")
+
+    def test_a_census_of_both_parities(self):
+        checked = 0
+        for court in ("Prussia", "Russia", "Britain"):
+            for relation in range(-25, 36, 3):
+                def world():
+                    w = _europe()
+                    w.diplomatic_points = 10
+                    _set_rel(w, "France", court, relation)
+                    return w
+                w = world()
+                if w.get_diplomatic_state("France", court) != "PEACE":
+                    _set_state(w, "France", court, "PEACE")
+                row = {a["action"]: a for a in D.get_available_diplomatic_actions(w, court)}.get(
+                    "propose_open_borders")
+                if not row or not row["available"] or \
+                        not 0 < row["likelihood_score"] < D.ACCEPT_SCORE:
+                    continue
+                for mission in ("COURT_NATION", "IMPROVE_RELATIONS"):
+                    real_world = world()
+                    if real_world.get_diplomatic_state("France", court) != "PEACE":
+                        _set_state(real_world, "France", court, "PEACE")
+                    forecast = D.forecast_mission_to_accept(
+                        w, court, "open_borders", row["likelihood_score"], mission)
+                    real = _dp_to_accept(real_world, mission, court, "open_borders")
+                    assert forecast == (real[::-1] if real else None), (
+                        court, relation, mission, forecast, real)
+                    checked += 1
+        assert checked >= 60, checked
+
+    def test_the_relation_free_sum_is_exact_and_lever_gated(self):
+        for relation in (-7, 0, 13, 25, 40):
+            w = _europe()
+            _set_rel(w, "France", "Prussia", relation)
+            result = _score(w, _proposal(ptype="open_borders"))
+            free = result["relation_free_score"]
+            assert isinstance(free, int)
+            assert result["score"] == int(round(free + D.acceptance_relation_term(relation,
+                                                                                  False)))
+            assert D.acceptance_relation_free_score(w, "Prussia", "open_borders") == free
+        D.COUNSEL_NAMES_THE_COURT = False
+        w = _europe()
+        assert "relation_free_score" not in _score(w, _proposal(ptype="open_borders"))
+        assert D.acceptance_relation_free_score(w, "Prussia", "open_borders") is None
+
+
+class TestReviewTheCourtAtWar:
+    """S0/S11: at war the favour is suspended (0), not lost — and the note
+    said "stands at +10 and holds" beside "(now +0)"."""
+
+    def _courted(self):
+        w = _europe()
+        assert _start_exec(w, "COURT_NATION", "Prussia")["success"]
+        _fund_advance(w, 6)
+        status = DD.mission_status(w)
+        assert (status["remaining_kind"], status["favour_now"]) == ("holding", 10)
+        assert status["remaining_note"] == _HOLD_NOTE
+        return w
+
+    @pytest.mark.parametrize("aggressor,victim", [("France", "Prussia"), ("Prussia", "France")])
+    def test_at_war_every_surface_says_suspended(self, aggressor, victim):
+        w = self._courted()
+        with _quiet():
+            result = D.declare_war(w, aggressor, victim)
+        assert result.get("success"), result
+        assert w.get_diplomatic_state("France", "Prussia") == "WAR"
+        status = DD.mission_status(w)
+        assert (status["remaining_kind"], status["remaining_turns"]) == ("suspended", -1)
+        assert status["remaining_note"] == _WAR_NOTE
+        assert status["favour_now"] == 0
+        _fund_advance(w)
+        assert DD.mission_is_live(w), "the war does not end his courting"
+        status = DD.mission_status(w)
+        assert status["remaining_note"] == _WAR_NOTE
+        row = _row(w)
+        assert row["details"]["beat"] == "running"
+        assert row["message"] == (
+            f"Relations with Prussia {status['current_relation']}, net "
+            f"{status['net_per_turn']:+d} a turn. {_WAR_NOTE[:1].upper()}{_WAR_NOTE[1:]}. "
+            "2 DP a turn.")
+        assert "stands at +10" not in row["message"]
+        with _quiet():
+            assert L.build_cabinet(w)["remaining_note"] == _WAR_NOTE
+        assert DL.build_diplomatic_ledger(w)["talleyrand"]["active_mission"][
+            "remaining_note"] == _WAR_NOTE
+
+    def test_the_favour_returns_at_the_peace(self):
+        w = self._courted()
+        with _quiet():
+            assert D.declare_war(w, "France", "Prussia").get("success")
+        _fund_advance(w)
+        assert D.court_favour_mod(w, _proposal()) == 0
+        _set_state(w, "France", "Prussia", "PEACE")
+        assert D.court_favour_mod(w, _proposal()) == D.COURT_FAVOUR_CAP
+        assert D.court_favour_mod(w, _proposal(ptype="non_aggression")) == D.COURT_FAVOUR_CAP
+        status = DD.mission_status(w)
+        assert (status["remaining_kind"], status["favour_now"]) == ("holding", 10)
+        assert status["remaining_note"] == _HOLD_NOTE
+
+    def test_at_the_alliance_the_note_says_recall(self):
+        w = self._courted()
+        _set_state(w, "France", "Prussia", "ALLIANCE")
+        status = DD.mission_status(w)
+        assert status["remaining_kind"] == "holding"
+        assert status["remaining_note"] == (
+            "the alliance is signed — his +10 has no treaty left to carry; recall him")
+
+
+class TestReviewTheNetIsTheTick:
+    """S2: the net read today's drift BEFORE the effect landed and ignored the
+    clamp — "+8" inside the calm band where the tick leaves +7, and "+8" for a
+    court holding at +100 where it leaves 0."""
+
+    @pytest.mark.parametrize("mission_type,court,relation,turns,net", [
+        ("IMPROVE_RELATIONS", "Prussia", 6, 0, 7),
+        ("IMPROVE_RELATIONS", "Portugal", 6, 0, 7),
+        ("IMPROVE_RELATIONS", "Ottoman", -11, 0, 8),
+        ("IMPROVE_RELATIONS", "Prussia", 94, 0, 5),
+        ("COURT_NATION", "Denmark", 100, 6, 0),
+    ])
+    def test_the_net_is_what_the_tick_leaves(self, mission_type, court, relation, turns, net):
+        w = _europe()
+        _set_rel(w, "France", court, relation)
+        _stage(w, mission_type, court, turns_active=turns)
+        status = DD.mission_status(w)
+        assert status["effect_per_turn"] == 8, "the effect stays the tick's raw write"
+        DD.restate_mission_notice(w)
+        assert _row(w)["message"].startswith(
+            f"Relations with {DD.mission_status(w)['target_display']} {relation}, "
+            f"net {net:+d} a turn.")
+        before = _rel(w, "France", court)
+        _tick(w)
+        assert _rel(w, "France", court) - before == status["net_per_turn"] == net
+
+    @pytest.mark.parametrize("lever", [True, False])
+    def test_the_morning_progress_reads_after_the_decay(self, lever):
+        D.MISSION_PROGRESS_READS_AFTER_DRIFT = lever
+        w = _europe()
+        _set_rel(w, "France", "Prussia", 6)
+        _stage(w, "IMPROVE_RELATIONS", "Prussia")
+        w.pending_dispatch_events = []
+        _tick(w)
+        (event,) = [e for e in w.pending_dispatch_events
+                    if e.get("type") == "diplomatic_mission_progress"]
+        after = _rel(w, "France", "Prussia")
+        assert after == 13
+        assert event["template_vars"]["value"] == (after if lever else after + 1)
+
+
+class TestReviewTheUndermineRoad:
+    """S3/S4: the auto-downgrade steps ONE rung, so an ALLIANCE falls to a
+    defensive alliance (still allied) and the count restarts — and the mission
+    billed a turn after the break."""
+
+    def test_the_note_states_the_ladder(self):
+        w = _typed_world("UNDERMINE_ALLIANCE")
+        w.turns_below_threshold[_key(w, "Austria", "Russia")] = 2
+        first, second = _floor("ALLIANCE"), _floor("DEFENSIVE_ALLIANCE")
+        assert DD.mission_status(w)["remaining_note"] == (
+            f"their alliance falls to a defensive alliance after 5 turns at {first} or "
+            f"below — now 60, 2 of 5 counted; breaking it needs a further 5 turns at "
+            f"{second} or below")
+        _set_state(w, "Austria", "Russia", "DEFENSIVE_ALLIANCE")
+        assert DD.mission_status(w)["remaining_note"] == (
+            f"their alliance breaks after 5 turns at {second} or below — now 60, "
+            "2 of 5 counted")
+        _set_state(w, "Austria", "Russia", "NON_AGGRESSION")
+        status = DD.mission_status(w)
+        assert (status["remaining_kind"], status["remaining_turns"]) == ("alliance", -1)
+        assert status["remaining_note"] == "their alliance is broken — he reports home"
+
+    def _drive(self):
+        w = _europe()
+        assert w.get_diplomatic_state("Austria", "Russia") == "ALLIANCE"
+        _set_rel(w, "Austria", "Russia", 8)       # shortens the road; the ladder is the same
+        assert _start_exec(w, "UNDERMINE_ALLIANCE", "Austria", "Russia")["success"]
+        turns = []
+        for _ in range(20):
+            if not DD.mission_is_live(w):
+                break
+            state = w.diplomatic_states.get(_key(w, "Austria", "Russia"))
+            note = DD.mission_status(w)["remaining_note"]
+            _fund_advance(w)
+            turns.append({"state": state, "note": note,
+                          "allied": w.are_allies("Austria", "Russia"),
+                          "live": DD.mission_is_live(w)})
+        return w, turns
+
+    @pytest.mark.parametrize("lever", [True, False])
+    def test_the_real_road_ends_on_the_turn_of_the_break(self, lever):
+        D.UNDERMINE_ENDS_ON_THE_BREAK = lever
+        w, turns = self._drive()
+        downs = [(e["from_state"], e["to_state"]) for e in w.event_log
+                 if e.get("type") == "auto_downgrade"
+                 and {e.get("nation_a"), e.get("nation_b")} == {"Austria", "Russia"}]
+        assert downs == [("ALLIANCE", "DEFENSIVE_ALLIANCE"),
+                         ("DEFENSIVE_ALLIANCE", "NON_AGGRESSION")]
+        first, second = _floor("ALLIANCE"), _floor("DEFENSIVE_ALLIANCE")
+        by_state = {t["state"] for t in turns}
+        assert {"ALLIANCE", "DEFENSIVE_ALLIANCE"} <= by_state, turns
+        for t in turns:
+            if t["state"] == "ALLIANCE":
+                assert t["note"].startswith(
+                    f"their alliance falls to a defensive alliance after 5 turns at {first} "
+                    "or below")
+                assert t["note"].endswith(f"breaking it needs a further 5 turns at {second} "
+                                          "or below")
+            elif t["state"] == "DEFENSIVE_ALLIANCE":
+                assert t["note"].startswith(f"their alliance breaks after 5 turns at {second} "
+                                            "or below")
+        tails = [t for t in turns if not t["allied"] and t["live"]]
+        (ended,) = _ended(w)
+        assert ended["reason"] == "alliance_broken"
+        assert ended["relation_start"] == 8, "the pair's own baseline"
+        if lever:
+            assert tails == [], "he stayed a turn after the alliance broke"
+            assert (ended["turns_active"], ended["dp_spent"]) == (10, 20)
+        else:
+            assert len(tails) == 1, turns
+            assert (ended["turns_active"], ended["dp_spent"]) == (11, 22)
+            assert turns[-1]["note"] == "their alliance is broken — he reports home"
+        ta = w.active_diplomatic_mission["turns_active"]
+        _fund_advance(w)
+        assert w.active_diplomatic_mission["turns_active"] == ta, "billed after the end"
+        assert len(_ended(w)) == 1
+        before = _rel(w, "Austria", "Russia")
+        assert before < -10
+        charged, _ = _tick(w)
+        assert charged == 0
+        assert _rel(w, "Austria", "Russia") - before == 1, "drift alone — no -4"
+
+
+def _decline_incoming(w):
+    """An unanswered incoming proposal suppresses Talleyrand's whole report."""
+    for _ in range(6):
+        top = w.pending_diplomatic_dialogue
+        if not top or top.get("type") != "incoming_proposal":
+            return
+        actions = [o.get("action") for o in top.get("options", [])]
+        assert "reject_ai_proposal" in actions, actions
+        with _quiet():
+            CommandExecutor()._diplomatic.handle_diplomatic_dialogue_response(
+                actions.index("reject_ai_proposal") + 1, {"world": w})
+
+
+def _nudges(w, turns=8):
+    fired = []
+    for _ in range(turns):
+        _advance(w)
+        _decline_incoming(w)
+        observations = DI._build_talleyrand_report(w, w.player_nation)
+        if "idle_nudge" in [o.get("trigger_type") for o in observations]:
+            fired.append(int(w.current_turn))
+    return fired
+
+
+class TestReviewTheIdleNudgeReadsTheLiveMission:
+    """S5: a COMPLETED mission is kept as a record (MS-1), and the raw dict
+    silenced the idle nudge for the rest of the campaign."""
+
+    def _gathered(self):
+        w = _europe()
+        assert _start_exec(w, "GATHER_INTEL", "Denmark")["success"]
+        _fund_advance(w, 3)
+        assert w.active_diplomatic_mission.get("completed") is True
+        assert not DD.mission_is_live(w) and w.talleyrand_state == "IDLE"
+        return w
+
+    def test_a_completed_record_does_not_silence_him(self):
+        assert _nudges(_europe()), "vacuous: the nudge never fires on the shipped board"
+        fired = _nudges(self._gathered())
+        assert fired, "a completed record silenced the idle nudge"
+
+    def test_lever_down_the_record_silences_him(self):
+        DI.IDLE_NUDGE_READS_THE_LIVE_MISSION = False
+        assert _nudges(self._gathered()) == []
+
+
+class TestReviewTheUndermineRecord:
+    """S6: the end record and the recall beat read France↔target — a relation
+    an undermining never touches — instead of the pair he moved."""
+
+    def test_a_typed_recall_logs_and_rings_the_pair(self, http):
+        w, client = http
+        france_britain = _rel(w, "France", "Britain")
+        assert _start_exec(w, "UNDERMINE_ALLIANCE", "Britain", "Russia")["success"]
+        start = int(w.active_diplomatic_mission["initial_pair_relation"])
+        _fund_advance(w, 3)
+        pair = _rel(w, "Britain", "Russia")
+        assert pair < start, "vacuous: the pair never moved"
+        assert _rel(w, "France", "Britain") == france_britain
+        r = _cmd(client, "Talleyrand, cancel mission with Britain")
+        assert r.get("success"), r.get("message")
+        (row,) = _ended(w)
+        assert (row["reason"], row["relation_start"], row["relation_end"]) == (
+            "recalled", start, pair)
+        assert _row(w)["message"] == (
+            f"Talleyrand is recalled from Britain. Britain and Russia stand at {pair:+d} "
+            f"(from {start:+d}).")
+
+    def test_an_old_save_without_the_baseline_reads_todays_pair(self):
+        w = _europe()
+        _stage(w, "UNDERMINE_ALLIANCE", "Britain", target_ally="Russia")
+        france_britain = w.active_diplomatic_mission["initial_relation"]
+        assert "initial_pair_relation" not in w.active_diplomatic_mission
+        _tick(w)
+        _tick(w)
+        pair = _rel(w, "Britain", "Russia")
+        assert pair != france_britain
+        with _quiet():
+            assert CommandExecutor()._diplomatic._recall_mission(None, w)["success"]
+        (row,) = _ended(w)
+        assert (row["relation_start"], row["relation_end"]) == (pair, pair)
+
+
+class TestReviewTheCourtedPairKeepsItsThaw:
+    """S7: the exemption protects his gains from DECAY; it froze the thaw a
+    hostile court would have had as well."""
+
+    @pytest.mark.parametrize("lever", [True, False])
+    @pytest.mark.parametrize("state,relation,thaw", [
+        ("PEACE", -50, 1), ("ARMISTICE", -50, 3), ("PEACE", 60, 0), ("ARMISTICE", 60, 0),
+    ])
+    def test_the_courted_pair(self, lever, state, relation, thaw):
+        D.COURT_EXEMPTION_KEEPS_THE_THAW = lever
+        w = _europe()
+        _set_state(w, "France", "Prussia", state)
+        _set_rel(w, "France", "Prussia", relation)
+        _stage(w, "COURT_NATION", "Prussia")
+        step = thaw if lever else 0
+        assert D.relation_drift_step(w, "France", "Prussia") == step
+        with _quiet():
+            D._process_relation_decay(w)
+        assert _rel(w, "France", "Prussia") - relation == step
+
+    @pytest.mark.parametrize("lever,net,end", [(True, 9, -23), (False, 8, -26)])
+    def test_a_hostile_court_over_three_ticks(self, lever, net, end):
+        D.COURT_EXEMPTION_KEEPS_THE_THAW = lever
+        w = _europe()
+        _set_rel(w, "France", "Prussia", -50)
+        _stage(w, "COURT_NATION", "Prussia")
+        assert DD.mission_status(w)["net_per_turn"] == net
+        for _ in range(3):
+            _tick(w)
+        assert _rel(w, "France", "Prussia") == end
+
+
+class TestReviewTheCounselStatesTheBlowback:
+    """S8: the counsel's DP figures are the quiet-world forecast; COURT's
+    blowback is not in them, so it is stated beside them."""
+
+    def _previews(self):
+        w = _europe()
+        w.diplomatic_points = 10
+        _set_rel(w, "France", "Denmark", 10)
+        with _quiet():
+            denmark = D.get_diplomatic_preview(w, "Denmark")
+        w = _europe()
+        w.diplomatic_points = 10
+        with _quiet():
+            prussia = D.get_diplomatic_preview(w, "Prussia")
+        return denmark, prussia
+
+    def test_at_the_shipped_chance_both_arms_say_it(self, monkeypatch):
+        monkeypatch.setitem(DD.MISSION_EFFECTS["COURT_NATION"], "undermine_chance", 0.20)
+        denmark, prussia = self._previews()
+        assert denmark["recommended_mission"] == "COURT_NATION"
+        assert denmark["recommendation"].endswith(
+            "improving relations would take ≈2 turns and 2 DP." + _BLOWBACK)
+        assert prussia["recommended_mission"] == "IMPROVE_RELATIONS"
+        assert prussia["recommendation"].endswith("but 8 DP to 6." + _BLOWBACK)
+
+    def test_with_no_blowback_it_is_absent(self):
+        for preview in self._previews():
+            assert "blowback" not in preview["recommendation"]
+        assert D._court_blowback_sentence() == ""
+
+
+def _betrayed(court, state, relation, severity):
+    """Three live betrayal strikes France→court, no shared enemy: the
+    hard-reject posture clamps every deep treaty to 0."""
+    w = _europe()
+    _set_state(w, "France", court, state)
+    w.diplomatic_points = 10
+    key = D._betrayal_key("France", court)
+    w.betrayal_history = dict(getattr(w, "betrayal_history", {}) or {})
+    record = dict(w.betrayal_history.get(key, {}) or {})
+    record["strikes"] = [{"severity": severity, "turn": 1, "episode_id": f"iq4-review-{i}",
+                          "decays_on_turn": int(w.current_turn) + 6 + i} for i in range(3)]
+    w.betrayal_history[key] = record
+    _set_rel(w, "France", court, relation)
+    assert D.has_hard_reject_posture(w, "France", court)
+    assert not D._shared_enemy_exists(w, "France", court)
+    return w
+
+
+class TestReviewTheCounselNamesThePosture:
+    """S9: on a posture-clamped treaty the counsel said "Improve Relations"
+    even at +100, where the mission completes on its first tick."""
+
+    _HEAD = ("{name} will not bind itself to us after repeated betrayals — the "
+             "grievance fades in 6 turns.")
+
+    def _preview(self, w, court):
+        with _quiet():
+            return D.get_diplomatic_preview(w, court)
+
+    def test_at_one_hundred_no_mission_is_prescribed(self):
+        w = _betrayed("Prussia", "NON_AGGRESSION", 100, "major")
+        row = {a["action"]: a for a in D.get_available_diplomatic_actions(w, "Prussia")}[
+            "propose_defensive_alliance"]
+        assert (row["available"], row["likelihood_score"]) == (True, 0), "the clamp"
+        preview = self._preview(w, "Prussia")
+        assert preview["recommendation"].startswith(self._HEAD.format(name="Prussia"))
+        assert "Improve Relations" not in preview["recommendation"]
+        assert not preview.get("recommended_mission")
+
+    @pytest.mark.parametrize("relation,mission,tail", [
+        (30, "IMPROVE_RELATIONS", " Talleyrand recommends: Improve Relations meanwhile, "
+                                  "so the treaty carries when it does."),
+        (100, "", " Relations already carry the treaty once it does — wait it out."),
+    ])
+    def test_improve_only_while_relations_would_still_fall_short(self, relation, mission,
+                                                                  tail):
+        w = _betrayed("Saxony", "NON_AGGRESSION", relation, "moderate")
+        preview = self._preview(w, "Saxony")
+        assert preview["recommendation"] == self._HEAD.format(name="Saxony") + tail
+        assert (preview.get("recommended_mission") or "") == mission
+
+    def test_lever_down_the_counsel_is_todays(self):
+        D.COUNSEL_NAMES_THE_COURT = False
+        preview = self._preview(_betrayed("Saxony", "NON_AGGRESSION", 100, "moderate"),
+                                "Saxony")
+        assert preview["recommendation"] == _IMPROVE_COUNSEL
+        assert "recommended_mission" not in preview
+
+
+class TestReviewTheCancelRowReadsTheCabinet:
+    """S10: the wizard's Cancel row computed its own progress, and for an
+    undermining read France's frozen standing with the target."""
+
+    def _cancel(self, w, court):
+        return {a["action"]: a for a in D.get_available_diplomatic_actions(w, court)}[
+            "cancel_mission"]
+
+    def _delta(self, text):
+        m = re.search(r"\(([+-]?\d+)(?:,| over) (\d+) turns\)", text)
+        assert m, text
+        return int(m.group(1)), int(m.group(2))
+
+    def test_undermine_reads_the_pair(self):
+        w = _europe()
+        france_britain = _rel(w, "France", "Britain")
+        assert _start_exec(w, "UNDERMINE_ALLIANCE", "Britain", "Russia")["success"]
+        _fund_advance(w, 3)
+        status = DD.mission_status(w)
+        assert status["relation_delta"] < 0, "vacuous: the pair never moved"
+        row = self._cancel(w, "Britain")
+        assert row["effect_text"].startswith("Britain–Russia: ")
+        assert self._delta(row["effect_text"]) == (status["relation_delta"],
+                                                   status["turns_active"])
+        assert _rel(w, "France", "Britain") == france_britain
+
+    def test_improve_is_unchanged(self):
+        w = _europe()
+        _set_rel(w, "France", "Prussia", 0)
+        assert _start_exec(w, "IMPROVE_RELATIONS", "Prussia")["success"]
+        _fund_advance(w, 3)
+        status = DD.mission_status(w)
+        row = self._cancel(w, "Prussia")
+        assert row["display_name"] == "Cancel: Improve Relations"
+        assert "–" not in row["effect_text"]
+        assert re.fullmatch(r"\w+( → \w+)? \(\+\d+(,| over) \d+ turns\)", row["effect_text"]), \
+            row["effect_text"]
+        assert self._delta(row["effect_text"]) == (status["relation_delta"],
+                                                   status["turns_active"])
+
+
+class TestReviewABlowbackRowFalls:
+    """L1: `refresh` keeps the max priority, so after one blowback a routine
+    running row stayed HIGH for the rest of the mission."""
+
+    def test_the_next_standing_turn_reissues_at_normal(self, monkeypatch):
+        monkeypatch.setitem(DD.MISSION_EFFECTS["COURT_NATION"], "undermine_chance", 1.0)
+        w = _europe()
+        assert _start_exec(w, "COURT_NATION", "Prussia")["success"]
+        _advance(w)
+        hot = _row(w)
+        assert hot["details"]["beat"] == "blowback"
+        assert hot["priority"] == int(NotificationPriority.HIGH)
+        monkeypatch.setitem(DD.MISSION_EFFECTS["COURT_NATION"], "undermine_chance", 0.0)
+        _advance(w)
+        cool = _row(w)
+        assert cool["details"]["beat"] == "running"
+        assert cool["priority"] == int(NotificationPriority.NORMAL)
+        assert cool["id"] != hot["id"]
+        _advance(w)
+        assert _row(w)["id"] == cool["id"], "then it refreshes in place again"
+
+
+class TestReviewTheChipEchoIsHumanised:
+    """L2 (R7): the Recall buttons spell the court by its KEY (amendment 2),
+    and the chip/rail echo printed it raw — "cancel mission with PapalStates"."""
+
+    @pytest.mark.parametrize("func", ["_on_reward_command", "_on_naval_command"])
+    def test_the_echo_line_humanises_the_command(self, func):
+        code = _gd_code(SCRIPTS / "main.gd", func)
+        echoes = [line for line in code.splitlines() if "add_output(" in line and "►" in line]
+        assert echoes, "vacuous: the echo line moved"
+        for line in echoes:
+            assert "Utils.humanize_nation_keys_in_text(command)" in line, line
+        assert not re.search(r'"\]► " \+ command\b', code)
+
+
+class TestReviewTheHelpStatesTheRules:
+    """L3: "(allies only)" — a defensive ally is not offered Reassure; and the
+    drift sentence named neither the truce thaw nor the courted court."""
+
+    def _block(self):
+        return " ".join(ME._missions_help_block(_europe()).split())
+
+    def test_reassure_is_a_full_alliance_only(self):
+        block = self._block()
+        assert "Reassure Ally - 1 DP a turn (a full alliance only)" in block
+        assert "(allies only)" not in block
+
+    def test_lever_down_reassure_is_allies_only(self):
+        D.REASSURE_ONLY_AT_ALLIANCE = False
+        assert "Reassure Ally - 1 DP a turn (allies only)" in self._block()
+
+    def test_the_drift_sentence_names_the_truce_and_the_court(self):
+        block = self._block()
+        assert ("Relations drift 1 a turn toward the calm band (a truce thaws faster); "
+                "the court he courts does not cool while he is there.") in block
+        assert "beside any mission" not in block
+
+
+class TestReviewTheTalleyrandTabReadsTheCabinet:
+    """P4 (a): TALLEYRAND_TAB_READS_THE_CABINET had no pin at all — flipping it
+    turned nothing red."""
+
+    @pytest.mark.parametrize("mission_type", list(_TYPED))
+    def test_up_the_tab_is_the_cabinet(self, mission_type):
+        w = _typed_world(mission_type)
+        status = DD.mission_status(w)
+        tab = DL.build_diplomatic_ledger(w)["talleyrand"]
+        for k in ("type_display", "net_per_turn", "remaining_note", "remaining_kind"):
+            assert tab["active_mission"][k] == status[k], k
+        assert "last_mission" not in tab
+
+    def _gathered(self):
+        w = _europe()
+        _stage(w, "GATHER_INTEL", "Prussia")
+        for _ in range(3):
+            _tick(w)
+        assert w.active_diplomatic_mission.get("completed")
+        return w
+
+    def test_up_an_idle_desk_names_the_last_mission(self):
+        w = self._gathered()
+        tab = DL.build_diplomatic_ledger(w)["talleyrand"]
+        assert tab["active_mission"] is None
+        record = L.last_mission_record(w)
+        assert record["reason_phrase"].startswith("done — ")
+        assert tab["last_mission"] == {"type_display": "Gathering Intel",
+                                       "target_display": "Prussia",
+                                       "reason_phrase": record["reason_phrase"]}
+
+    def test_lever_down_the_keys_are_absent(self):
+        DL.TALLEYRAND_TAB_READS_THE_CABINET = False
+        active = DL.build_diplomatic_ledger(_typed_world("COURT_NATION"))["talleyrand"][
+            "active_mission"]
+        for k in ("type_display", "net_per_turn", "remaining_note", "remaining_kind"):
+            assert k not in active, k
+        assert "last_mission" not in DL.build_diplomatic_ledger(self._gathered())["talleyrand"]
+
+
+class TestReviewCanDoNoMoreOnARealBoard:
+    """P4 (f): the "relations can do no more" branch never fires at skill 10;
+    its old pin fed a list the Cabinet never offers. At an authored skill of 5
+    it fires on real rows: Britain at OPEN_BORDERS, relation 10, the pact."""
+
+    def _world(self):
+        w = _europe()
+        w.diplomatic_points = 10
+        w.diplomats["France"].skill = 5        # staged: an authored diplomat skill
+        _set_state(w, "France", "Britain", "OPEN_BORDERS")
+        _set_rel(w, "France", "Britain", 10)
+        return w
+
+    def test_the_branch_fires_on_real_rows(self):
+        w = self._world()
+        actions = D.get_available_diplomatic_actions(w, "Britain")
+        rows = {a["action"]: a for a in actions}
+        for action in ("mission_court", "mission_improve_relations", "propose_non_aggression"):
+            assert rows[action]["available"], (action, rows[action].get("disabled_reason"))
+        assert rows["propose_non_aggression"]["likelihood_score"] < D.ACCEPT_SCORE
+        assert _dp_to_accept(self._world(), "IMPROVE_RELATIONS", "Britain",
+                             "non_aggression") is None
+        assert _dp_to_accept(self._world(), "COURT_NATION", "Britain",
+                             "non_aggression") == (20, 10)
+        out = D._recommendation_and_mission(w, "Britain", actions, 10, False, w.vassals)
+        assert out == (_NO_MORE_BRITAIN, "COURT_NATION")
+
+    def test_with_the_shipped_blowback_it_says_so(self, monkeypatch):
+        monkeypatch.setitem(DD.MISSION_EFFECTS["COURT_NATION"], "undermine_chance", 0.20)
+        w = self._world()
+        actions = D.get_available_diplomatic_actions(w, "Britain")
+        assert D._recommendation_and_mission(w, "Britain", actions, 10, False, w.vassals) == (
+            _NO_MORE_BRITAIN + _BLOWBACK, "COURT_NATION")

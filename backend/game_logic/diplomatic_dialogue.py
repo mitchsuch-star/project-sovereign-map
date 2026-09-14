@@ -319,6 +319,19 @@ def project_mission_turns(world, status: dict) -> tuple:
         floor = int(_d.STATE_RELATION_THRESHOLDS.get(state, 0) or 0) - 30
         counted = int((getattr(world, "turns_below_threshold", {}) or {}).get(
             world._make_diplo_key(target, ally), 0) or 0)
+        # IQ-4 review: the auto-downgrade steps ONE rung — an ALLIANCE falls to
+        # a defensive alliance (still allied) and the count restarts at the
+        # next floor, so the break takes two runs of five, not one.
+        if ally and not world.are_allies(target, ally):
+            return ("alliance", -1, "their alliance is broken — he reports home")
+        if state == "ALLIANCE":
+            next_floor = int(_d.STATE_RELATION_THRESHOLDS.get(
+                "DEFENSIVE_ALLIANCE", 0) or 0) - 30
+            return ("alliance", -1, f"their alliance falls to a defensive alliance "
+                                    f"after 5 turns at {floor} or below — now "
+                                    f"{status['current_relation']}, {counted} of 5 "
+                                    f"counted; breaking it needs a further 5 turns "
+                                    f"at {next_floor} or below")
         return ("alliance", -1, f"their alliance breaks after 5 turns at {floor} "
                                 f"or below — now {status['current_relation']}, "
                                 f"{counted} of 5 counted")
@@ -336,7 +349,21 @@ def project_mission_turns(world, status: dict) -> tuple:
         per = max(1, int(_d.COURT_FAVOUR_PER_TURN))
         owed = cap - per * int(status["turns_active"])
         favour_ticks = max(0, -(-owed // per))
+        court_state = world.get_diplomatic_state(
+            getattr(world, "player_nation", "France"), status["target"])
+        if court_state == "WAR":
+            # IQ-4 review: at war the favour is SUSPENDED, not lost — it
+            # returns at the peace (turns_active is kept), and his courting
+            # still warms the relation the peace terms read. Never advise a
+            # recall here: it would throw both away, and COURT cannot be
+            # restarted until the peace.
+            return ("suspended", -1, "no favour while we are at war — his courting "
+                                     "still warms relations, and the favour returns "
+                                     "at the peace")
         if favour_ticks == 0:
+            if court_state == "ALLIANCE":
+                return ("holding", -1, f"the alliance is signed — his +{cap} has no "
+                                       "treaty left to carry; recall him")
             return ("holding", -1, f"the favour stands at +{cap} and holds while "
                                    "he stays — recall him once the treaty is signed")
         return ("favour", favour_ticks,
@@ -389,7 +416,16 @@ def mission_status(world) -> Optional[dict]:
     current = int(world.nation_relations.get(world._make_diplo_key(*pair), 0) or 0) \
         if pair[1] else 0
     initial = int(baseline) if baseline is not None else current
-    drift = int(_d.relation_drift_step(world, pair[0], pair[1])) if pair[1] else 0
+    if pair[1]:
+        # IQ-4 review: the tick writes the clamped effect first and decays at
+        # the relation that leaves — so the net is read the same way. Effect
+        # plus today's drift read +8 at a ceiling that pays 0, and the wrong
+        # drift whenever the effect crossed the ±10 band.
+        stepped = max(-_d.RELATION_CLAMP, min(_d.RELATION_CLAMP, current + int(effect)))
+        drift = int(_d.relation_drift_step(world, pair[0], pair[1], relation=stepped))
+        net = (stepped - current) + drift
+    else:
+        drift, net = 0, 0
     paused = bool(mission.get("paused"))
     if paused:
         pause_reason = ("transit" if getattr(world, "talleyrand_state", "") == "IN_TRANSIT"
@@ -408,7 +444,7 @@ def mission_status(world) -> Optional[dict]:
         "dp_per_turn": dp,
         "effect_per_turn": int(effect),
         "drift_per_turn": drift,
-        "net_per_turn": int(effect) + drift,
+        "net_per_turn": int(net),
         "current_relation": current,
         "initial_relation": initial,
         "relation_delta": current - initial,
@@ -497,6 +533,10 @@ def _mission_message(world, beat: str, status: Optional[dict], snap: dict,
                 f"{int(extra.get('dp_spent', 0))} DP ({int(extra.get('start', 0)):+d} "
                 f"to {end:+d}).")
     if beat == "recalled":
+        if snap.get("type") == "UNDERMINE_ALLIANCE" and A:
+            return (f"Talleyrand is recalled from {T}. {T} and {A} stand at "
+                    f"{int(extra.get('end', 0)):+d} (from "
+                    f"{int(extra.get('start', 0)):+d}).")
         return (f"Talleyrand is recalled from {T}. Relations keep what he won: "
                 f"{int(extra.get('start', 0)):+d} to {int(extra.get('end', 0)):+d}.")
     if beat == "collapsed":
@@ -548,7 +588,9 @@ def restate_mission_notice(world, beat: Optional[str] = None,
             beat = "running"
         reissue = (existing is None
                    or (beat == "paused_starved" and prev != "paused_starved")
-                   or (beat == "running" and prev == "paused_starved"))
+                   # IQ-4 review: a blowback row too — `refresh` keeps the max
+                   # priority, so a routine running row stayed HIGH for good.
+                   or (beat == "running" and prev in _HIGH_BEATS))
     else:
         status = mission_status(world) if live else None
         reissue = True
@@ -601,10 +643,22 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
     player = getattr(world, "player_nation", "France")
     turns = int(mission.get("turns_active", 0) or 0)
     dp_spent = turns * int(MISSION_DP_COSTS.get(mission_type, 1))
-    start = int(mission.get("initial_relation") or 0)
-    if relation_end is None:
-        relation_end = (int(world.nation_relations.get(
-            world._make_diplo_key(player, target), 0) or 0) if target else 0)
+    ally = str(mission.get("target_ally", "") or "")
+    if mission_type == "UNDERMINE_ALLIANCE" and ally and target:
+        # IQ-4 review: the record is of the pair he moved, never France's own
+        # standing with the target (MS-7b's class). An old save without the
+        # baseline falls back to today's PAIR value, never initial_relation.
+        pair_now = int(world.nation_relations.get(
+            world._make_diplo_key(target, ally), 0) or 0)
+        base = mission.get("initial_pair_relation")
+        start = int(base) if base is not None else pair_now
+        if relation_end is None:
+            relation_end = pair_now
+    else:
+        start = int(mission.get("initial_relation") or 0)
+        if relation_end is None:
+            relation_end = (int(world.nation_relations.get(
+                world._make_diplo_key(player, target), 0) or 0) if target else 0)
     if MISSION_LOG_ENDS and reason != "eliminated":
         entry = {
             "type": "diplomatic_mission_ended",
