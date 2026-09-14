@@ -1,5 +1,77 @@
 [
  {
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "                        by_treaty=(reason not in UNILATERAL_PEACE_REASONS))",
+  "new": "                        by_treaty=True)",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    relation = _get_relation(world, tgt, nation) + int(relation_shift)",
+  "new": "    relation = _get_relation(world, tgt, nation)",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if brewing and (brewing.get(\"target_nation\") or world.player_nation) == aggressor:\n        # A league is already gathering",
+  "new": "    if False:\n        # A league is already gathering",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if standing and (standing.get(\"target_nation\") or world.player_nation) == aggressor:\n        return None",
+  "new": "    if standing:\n        return None",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "            courts_at_war = [c for c in courts_at_war_with(world, _dissolve_target)\n                             if c not in _signing]",
+  "new": "            courts_at_war = list(courts_at_war_with(world, _dissolve_target))",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/models/world_state.py",
+  "old": "        remove_coalition_member(nation, self, by_treaty=by_treaty)",
+  "new": "        remove_coalition_member(nation, self)",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "                        world._eliminate_nation(nation, by_treaty=True)",
+  "new": "                        world._eliminate_nation(nation)",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    with treaty_in_flight(world, plan_courts(plan)):",
+  "new": "    with treaty_in_flight(world, ()):",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "            applied += int(row.get(\"applied\", amount) or 0)",
+  "new": "            applied += amount",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if _applied != int(amount):\n        _row[\"applied\"] = _applied",
+  "new": "    if False:\n        _row[\"applied\"] = _applied",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/campaign_log.py",
+  "old": "            if still:\n                joined = (still[0] if len(still) == 1",
+  "new": "            if False:\n                joined = (still[0] if len(still) == 1",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                target=target_nation)",
+  "new": "                target=None)",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
   "file": "backend/game_logic/coalition.py",
   "old": "    if THE_LEAGUE_SPENDS_ITS_ALARM and spent_by_treaty:",
   "new": "    if False:",
@@ -7,7 +79,7 @@
  },
  {
   "file": "backend/game_logic/coalition.py",
-  "old": "    after = (before - kept) // LEAGUE_SPENT_DIVISOR + kept",
+  "old": "    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested)",
   "new": "    after = before // LEAGUE_SPENT_DIVISOR",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
@@ -31,14 +103,8 @@
  },
  {
   "file": "backend/game_logic/diplomacy.py",
-  "old": "                    remove_coalition_member(_counterpart, world, by_treaty=True)",
+  "old": "                    remove_coalition_member(\n                        _counterpart, world,\n                        by_treaty=(reason not in UNILATERAL_PEACE_REASONS))",
   "new": "                    remove_coalition_member(_counterpart, world)",
-  "tests": "tests/test_iq3_the_league_is_spent.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
-  "old": "        courts_at_war = []\n        notice = (f\"{name} has dissolved — the peace has taken too many of \"",
-  "new": "        notice = (f\"{name} has dissolved — the peace has taken too many of \"",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
  {
@@ -61,14 +127,14 @@
  },
  {
   "file": "backend/game_logic/coalition.py",
-  "old": "    courts = get_qualifying_nations(world, target=aggressor)\n    if not courts:\n        return None",
-  "new": "    courts = get_qualifying_nations(world, target=aggressor) or [\"Prussia\"]",
+  "old": "    if not courts:\n        return None\n    # The post-dissolution cooldown",
+  "new": "    if not courts:\n        courts = [\"Prussia\"]\n    # The post-dissolution cooldown",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
  {
   "file": "backend/game_logic/coalition.py",
-  "old": "    if getattr(world, \"active_coalition\", None):\n        return None\n    from backend.game_logic.diplomacy import declaration_alarm",
-  "new": "    from backend.game_logic.diplomacy import declaration_alarm",
+  "old": "    if standing and (standing.get(\"target_nation\") or world.player_nation) == aggressor:\n        return None",
+  "new": "    if False:\n        return None",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
  {
@@ -81,6 +147,12 @@
   "file": "backend/commands/diplomatic_executor.py",
   "old": "            if _projection:\n                from backend.game_logic.formations import formed_display_name",
   "new": "            if False:\n                from backend.game_logic.formations import formed_display_name",
+  "tests": "tests/test_iq3_the_league_is_spent.py"
+ },
+ {
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if _cooldown > 0:\n                    _gathers = (",
+  "new": "                if False:\n                    _gathers = (",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
  {
@@ -103,8 +175,8 @@
  },
  {
   "file": "backend/game_logic/diplomatic_advisory.py",
-  "old": "            if _courts:\n                from backend.game_logic.diplomacy import declaration_alarm",
-  "new": "            if False:\n                from backend.game_logic.diplomacy import declaration_alarm",
+  "old": "            if _courts:\n                from backend.game_logic.diplomatic_ledger import courts_display",
+  "new": "            if False:\n                from backend.game_logic.diplomatic_ledger import courts_display",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
  {

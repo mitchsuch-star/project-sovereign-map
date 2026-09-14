@@ -1169,7 +1169,9 @@ def apply_create_client_clause(world, term: Mapping[str, Any]) -> Optional[Dict]
             and cc_from != getattr(world, "player_nation", None)
             and cc_from in cc_prior_controllers
             and not world.get_nation_regions(cc_from)):
-        world._eliminate_nation(cc_from)
+        # IQ-3 review: a carve is a treaty clause — a league its elimination
+        # dissolves is spent (coalition.THE_LEAGUE_SPENDS_ITS_ALARM).
+        world._eliminate_nation(cc_from, by_treaty=True)
     return clause
 
 

@@ -1411,6 +1411,117 @@ this row, and the two were reconciled at the merge.
 binary in this container — and carries every open visual sign-off with it,
 including IQ1-2's `strategic_ledger.gd` render arm.
 
+### §1.2 LANDING RECORD — IQ-3 "The Coalition Is Rare" (✅ September 14, 2026)
+
+**Authoritative for this row.** Measurements =
+`docs/audits/IQ3_COALITION_CADENCE_2026_09_14.md`; rules =
+`docs/SYSTEMS_REFERENCE.md` §42; build commit `0dce5cfb`. Taken from `STATUS.md`
+▶ NEXT UP under the queue's standing grant, and opened by a read-only decision
+fleet — three measurers on historical / austerlitz / ulm, a seam census, three
+competing designs and a judge — whose verdict became the build contract.
+
+- **The completion item is MET.** The stated expectation: *a 40-turn campaign
+  sees 1 coalition, plus one for each time the target's own conduct carries a
+  spent alarm back to 60 — band 1–3, historical centre 2* (Late September 1805
+  to May 1807 saw exactly the Third and the Fourth, and the Fourth was provoked
+  by French acts, not a timer). The completion board — the commanded arm
+  answering its own declaration confirm (`--diplomacy accept --declare-war
+  proceed`) — produces **2 / 1 / 2**, with the rarity DERIVED from the threat
+  slot a treaty spends. The austerlitz 1 is measured and explained: its one
+  declaration fell inside the courts' existing cooldown and decayed below 60
+  before the cooldown lapsed.
+- **The mechanism of the disease** (census): every commanded-arm dissolution was
+  `insufficient_members`, reached through the `set_diplomatic_state` treaty
+  ejection as France ratified the league's own offer. A peace that breaks a
+  league changed no threat, so the alarm sat at 90–94; the ≥90 override
+  cancelled the cooldown; the PR-1 floor exempted the majors, so the minors
+  formed the next league on the next tick. Levers down, the build reproduces it
+  exactly: 8 / 4 / 5 coalitions, "The Tenth Austrian".
+- **The rule.** `coalition.THE_LEAGUE_SPENDS_ITS_ALARM` (flip lever; False =
+  byte-identical); `LEAGUE_SPENT_DIVISOR = 2` (⚠ **FOR USER CONFIRMATION**,
+  in-band; the pinned invariant is `100 // divisor < 60`);
+  `LEAGUE_SPEND_EXEMPT_SOURCES` (treaty annexation, vassalization, forced
+  alliance — a peace that carries its own conquest never forgives it; the
+  settlement ratifier adds that alarm BEFORE its pair transitions eject the
+  members). It spends only on a treaty dissolution: never the low-threat tick,
+  the greater-danger pivot, elimination, a truce, or a separate peace that
+  leaves two members standing. GR5 on the league's own `target_nation`; GR8
+  O(1); zero new serialized fields.
+- **Rejected on measurement:** a 20-turn league memory (it formed on turn 27 on
+  all three seeds whatever the alarm — a cooldown with a memory label) and
+  gating the AI settlement offer (it made leagues longer, not rarer, flipped 10
+  pins and reversed AUD-c). The latter is routed as **PR-D1b** with its owner
+  and completion (`DESIGN_REFINEMENT.md`).
+- **Rider — Talleyrand reads the projection** (`TALLEYRAND_READS_THE_PROJECTION`).
+  After a spend the alarm sits in the forties, and the >50 objection fell silent
+  exactly when a declaration would carry it back through 60. He now objects
+  when the declaration's own alarm (`diplomacy.declaration_alarm`, the figure
+  `declare_war` applies) would gather a league that courts stand ready to join,
+  and speaks conditionally while the courts' cooldown still runs. The >50 arm
+  is byte-identical.
+- **Legibility.** The dissolution notice, event and chronicle state the spend
+  and the 60 gate. The IQ-2 `courts_at_war` read runs mid-ratification and
+  named courts signing in the same action, so the spend arm names none. Also
+  landed: the `league_spent` threat label ("The last coalition made its
+  peace"); the cooldown-ended notice no longer promises a league below 60; the
+  Balance-of-Europe COOLDOWN note and the war room name the gate. Zero `.gd`.
+- **Found on the way — the harness.** `--declare-war` had been dead since
+  FA-S17-D6: it was parsed but never copied into the policy, so
+  `PLAYTESTING.md`'s "INERT on this arm" was measured through a dead flag.
+  `resolve_policy` now carries every dial, and the claim is struck with the
+  measured difference.
+- **Pins.** `tests/test_iq3_the_league_is_spent.py`; one IQ-2 lever-down arm
+  flipped consciously (the pre-both payload lowers both levers).
+  `BASELINE_SERIES` and M1–M7 are unchanged — the ambient board signs no peace,
+  so no treaty ever dissolves its league. That is a fact about the harness; the
+  rule is measured on the commanded arms. ⚠ **The FA-D27 owner must re-read
+  its re-open condition**: a peaceful, accepting France now sees no coalition
+  war for 36 turns (arm B) and holds 29 provinces.
+- **Review round.** Four read-only lenses read a `git archive` snapshot, with
+  one refuter per finding: 13 findings, the top ten refuted, and the three P4s
+  cut by the cap built anyway. **Every survivor is fixed:**
+  - **[P1, confirmed] Breaking a truce bought the spend.** `break_treaty` maps
+    a broken ARMISTICE to PEACE. So repudiating a truce with one member of a
+    two-court league dissolved it and halved the alarm (85 → 42 at the boot
+    alarm) — an exit a good-faith player waiting out the truce could not get.
+    Now `diplomacy.UNILATERAL_PEACE_REASONS` (`treaty_break`): the ejection
+    still fires, the spend does not.
+  - **[P1 → P2] A treaty that annexed a member whole dissolved a two-court
+    league unspent,** and at 90+ the override re-formed a league on the next
+    tick. The settlement ratifier's elimination removed the member without the
+    treaty flag. `_eliminate_nation(by_treaty=)` now carries it from the three
+    treaty sites (settlement cession, carve, bilateral cession), and never
+    from a battlefield capture.
+  - **[P3, confirmed; P2-grade beside an annex] The cap made the spend depend
+    on pair order.** A vassalization at alarm 90 recorded its requested +25
+    while only +10 reached the slot. `add_threat` now stamps `applied` when the
+    cap clips, and the spend halves the alarm that stood before the treaty's
+    own adds: 70 in either order.
+  - **[P2 → P3] Talleyrand counted the courts before his master's own
+    declaration.** The declaration's −15 relation cost carries the marginal
+    courts past −10: on the post-peace board he named 8 courts and the league
+    that formed had 13. Now `qualifies_for_coalition(relation_shift=)`, with
+    `diplomacy.declaration_relation_penalties` as the single source, read by
+    both the objection and the war room.
+  - **[P3] Copy.**
+    - He no longer objects while a league already brews, and is no longer
+      silenced by an eclipse league.
+    - He no longer claims "the last league was spent", which the gate never
+      measured.
+    - The spend arm names a court genuinely still at war (Russia, on the
+      separate-peace road) and leaves out only the courts signing in the same
+      ratification (`coalition.treaty_in_flight`, opened by both settlement
+      ratifiers).
+  - **[P4, confirmed] Pins.** The `confirmed_objection` guard (without it,
+    Proceed re-staged the objection forever — the July-25 soft-lock class),
+    the casus-belli argument, every sentence arm, every `< 60` gate at 65, and
+    the spend's arithmetic guards.
+- **Routed, not fixed — PR-D1c** (`DESIGN_REFINEMENT.md`). The spend halves
+  every non-treaty increment in the slot, so declarations France stacks on
+  courts OUTSIDE the league before signing are forgiven too: 70 → 100 → about
+  48, and no league forms. A turn-boundary rule only moves the seam, which the
+  refuter measured. Closing it needs threat rows attributed to their victim.
+
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that
 belongs to the Victory & Objectives Pass, ROADMAP positions 12–13. No IQ row

@@ -2461,8 +2461,17 @@ def format_event_oneliner(event: dict) -> str:
             frm, to = int(spent.get("from", 0)), int(spent.get("to", 0))
             moved = (f"Europe's alarm falls from {frm} to {to}" if frm > to
                      else f"Europe's alarm stands at {to}")
-            return (f"Coalition against France has dissolved — the league "
-                    f"is spent; {moved}.")
+            line = (f"Coalition against France has dissolved — the league "
+                    f"is spent; {moved}")
+            # IQ-3 review: a court genuinely still at war (the separate-peace
+            # road) is named; courts signing in the same action never are.
+            still = [display_nation(c) for c in (event.get("courts_at_war") or []) if c]
+            if still:
+                joined = (still[0] if len(still) == 1
+                          else ", ".join(still[:-1]) + f" and {still[-1]}")
+                verb = "remains" if len(still) == 1 else "remain"
+                line += f"; {joined} {verb} at war with us"
+            return line + "."
         # IQ-2: the league lapses on low threat and ends no war — the entry
         # now carries the courts still fighting France (`courts_at_war`,
         # stamped by coalition.dissolve_coalition behind its own lever).

@@ -289,11 +289,15 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     )
     if not plan:
         return None
-    applied_clauses = settlement_ratify._apply_settlement_terms(
-        world, settlement_terms=terms, war_id=war_id,
-        settlement_route_id=f"third_party:{war_id}:{turn}",
-    )
-    settlement_ratify._resolve_pair_state_transitions(world, plan, terms)
+    # IQ-3 review: the courts signing here are named, so a league this
+    # ratification dissolves reports only courts genuinely still at war.
+    from backend.game_logic.coalition import treaty_in_flight
+    with treaty_in_flight(world, settlement_ratify.plan_courts(plan)):
+        applied_clauses = settlement_ratify._apply_settlement_terms(
+            world, settlement_terms=terms, war_id=war_id,
+            settlement_route_id=f"third_party:{war_id}:{turn}",
+        )
+        settlement_ratify._resolve_pair_state_transitions(world, plan, terms)
     settlement_ratify._record_common_peace_treaties(
         world, plan=plan, settlement_terms=terms)
     # AI-5b(i) (§3.6): an AI-dictated peace that strips the loser leaves

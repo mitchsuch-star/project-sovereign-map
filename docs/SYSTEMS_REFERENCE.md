@@ -5068,3 +5068,79 @@ regenerates manpower, and still pays and receives recurring settlement gold.
 `depot_closed`, `settlement_tier_side`, `captured_from` on conquest events,
 Balance `collapse_line`/`headline_note`, marshal-card `status_note`. Every
 read falls back to the pre-IQ-2 render when the key is absent.
+
+## 42. The league is spent (IQ-3, landed September 14, 2026)
+
+**The rule.** When a coalition dissolves for `insufficient_members` and the
+dissolution was caused by a TREATY — the `set_diplomatic_state` ejection arm
+(PEACE or VASSAL from WAR or ARMISTICE, `reason != "nation_eliminated"`),
+which alone passes `remove_coalition_member(..., by_treaty=True)` —
+`dissolve_coalition(world, reason, spent_by_treaty=True)` spends the alarm
+against the league's `target_nation`:
+
+```
+before = threat_by_target[target]
+kept   = min(before, this turn's positive LEAGUE_SPEND_EXEMPT_SOURCES rows for target)
+after  = (before - kept) // LEAGUE_SPENT_DIVISOR + kept
+reduce_threat(world, before - after, "league_spent", target=target)
+```
+
+`league_spent_alarm(world, target)` is the pure computation; the dissolution
+applies it. The exempt sources are the treaty's own alarm (`treaty_annex`,
+`treaty_vassalization`, `conquest_vassalization`, `forced_alliance`), read from
+`threat_sources_this_turn` — `add_threat`'s own record, cleared per turn.
+Settlement ratification adds that alarm BEFORE its pair transitions eject the
+members; the bilateral ratifier adds it after the state write, where it is not
+halved in the first place. Either way the peace never forgives its own
+conquest, and the result does not depend on the order in which pairs resolve.
+
+**What never spends:** the low-threat tick, the greater-danger pivot,
+elimination (`_eliminate_nation` removes without the flag and its teardown
+carries `nation_eliminated`), a truce (ARMISTICE keeps membership), a separate
+peace that leaves two or more members standing, and every direct call without
+the flag.
+
+**Invariant.** `100 // LEAGUE_SPENT_DIVISOR < THREAT_BREWING_MIN`, so the tick
+after a spend can neither brew nor fire the ≥90 cooldown override from the
+halved alarm alone. No timer is added. The window lasts until the target's own
+conduct carries the alarm back to 60.
+
+**Talleyrand reads the projection.** `declaration_would_gather_a_league(world,
+aggressor, casus_belli)` returns `{from, to, courts, cooldown}` when no league
+stands, the alarm is below 60, the declaration's own alarm
+(`diplomacy.declaration_alarm` — the single source `declare_war` applies)
+would carry it to 60 or more, and some court qualifies. The declare-war
+objection fires on it below the old >50 arm, and speaks conditionally while
+the courts' cooldown runs.
+
+**Surfaces.** The dissolution notice and event (`league_spent_clause`); the
+`coalition_dissolved` log dict carries `alarm_spent: {from, to}`, and in the
+spend arm `courts_at_war` is `[]` (the IQ-2 read runs mid-ratification); the
+campaign-log one-liner; the threat label `league_spent`; the cooldown-ended
+notice below 60; the Balance-of-Europe COOLDOWN `headline_note` (not under the
+collapse); the war-room gate line. Levers: `THE_LEAGUE_SPENDS_ITS_ALARM`,
+`TALLEYRAND_READS_THE_PROJECTION` — both False reproduce the pre-IQ-3 game
+byte-for-byte.
+
+**Review-round amendments (September 14, 2026).**
+- `diplomacy.UNILATERAL_PEACE_REASONS` (`treaty_break`): a war or truce ended
+  without a signature still ejects the member (PT-J1) but never spends.
+  `break_treaty` maps a broken ARMISTICE to PEACE, and a repudiation must not
+  buy half of Europe's alarm.
+- `WorldState._eliminate_nation(nation, by_treaty=False)`: the settlement
+  cession, the carve and the bilateral cession pass `True`; the battlefield
+  capture never does.
+- `add_threat` stamps `applied` on a row when the 100 cap clipped it.
+  `league_spent_alarm` halves `before − applied` and adds the requested amounts
+  back: `after = min(before, pre // D + requested)`. The result is the same in
+  every pair order.
+- `coalition.treaty_in_flight(world, courts)` is a transient context manager,
+  never serialized, that names the courts signing in a ratification. Both
+  settlement ratifiers open it, and the spend arm's `courts_at_war` leaves out
+  only those courts.
+- `qualifies_for_coalition(..., relation_shift=0)` /
+  `get_qualifying_nations(..., relation_shift=0)`: the projection counts courts
+  after the declaration's own indirect relation cost
+  (`diplomacy.declaration_relation_penalties`). It returns None while a league
+  against the aggressor stands or brews (an eclipse league does not silence
+  it), and it needs a qualifying court besides the declaration's target.

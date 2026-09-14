@@ -2384,7 +2384,8 @@ class DiplomaticExecutor:
             _projection = declaration_would_gather_a_league(
                 world, player,
                 casus_belli=bool(world.casus_belli.get(
-                    world._make_diplo_key(player, target_nation), False)))
+                    world._make_diplo_key(player, target_nation), False)),
+                target=target_nation)
             if _projection:
                 from backend.game_logic.formations import formed_display_name
                 _names = [formed_display_name(world, c)
@@ -2397,14 +2398,33 @@ class DiplomaticExecutor:
                 else:
                     _courts = _names[0]
                 _objects = True
+                # Measured on the austerlitz commanded arm: a declaration the
+                # turn after a spend reached 65 inside the courts' 5-turn
+                # cooldown, decayed below 60 before it lapsed, and no league
+                # gathered — "a coalition gathers" would have been a promise.
+                _cooldown = int(_projection.get("cooldown", 0) or 0)
+                if _cooldown > 0:
+                    _gathers = (
+                        f"past the {THREAT_BREWING_MIN} at which a coalition "
+                        f"gathers. The courts are still recovering from the "
+                        f"last league — {_cooldown} "
+                        f"turn{'s' if _cooldown != 1 else ''} yet — but if the "
+                        f"alarm still stands at {THREAT_BREWING_MIN} when they "
+                        f"have, one gathers, and {_courts} would join it.")
+                else:
+                    _gathers = (
+                        f"past the {THREAT_BREWING_MIN} at which a coalition "
+                        f"gathers, and {_courts} would join it.")
+                # IQ-3 review: no claim about the LAST league — the gate never
+                # asks whether one was spent, and the alarm also falls by plain
+                # decay. He says only what the projection measures.
                 _objection_text = (
                     f"Sire, Europe's alarm stands at {_projection['from']} — "
                     f"low enough that no league stands against us. A "
-                    f"declaration on {target_nation} would carry it to "
-                    f"{_projection['to']}, past the {THREAT_BREWING_MIN} at "
-                    f"which a coalition gathers, and {_courts} would join it. "
-                    f"The last league was spent at the peace table; I should "
-                    f"not care to pay for the next.")
+                    f"declaration on {formed_display_name(world, target_nation)} "
+                    f"would carry it to {_projection['to']}, {_gathers} "
+                    f"Europe keeps the accounts; I should not care to hand it "
+                    f"the next league.")
         if _objects:
             # Check if objection already pending (don't double-fire)
             if not world.diplomatic_objection_popup:

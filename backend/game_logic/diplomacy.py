@@ -2817,7 +2817,14 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
                     # league, so it alone marks the removal as a treaty's —
                     # a dissolution it causes spends the league's alarm
                     # (coalition.THE_LEAGUE_SPENDS_ITS_ALARM gates it there).
-                    remove_coalition_member(_counterpart, world, by_treaty=True)
+                    # IQ-3 review [P1, confirmed]: `break_treaty` maps a
+                    # broken TRUCE to PEACE (post_break_map), so repudiating an
+                    # armistice with one member dissolved a two-court league
+                    # and halved Europe's alarm for +15 — a unilateral break is
+                    # not a peace anyone signed, and never spends.
+                    remove_coalition_member(
+                        _counterpart, world,
+                        by_treaty=(reason not in UNILATERAL_PEACE_REASONS))
 
     # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.1). Sited HERE and not
     # in `cleanup_war_end` for exactly PT-J1's reason: typed conquest-
@@ -8202,6 +8209,23 @@ def _append_war_entry(
 # WAR DECLARATION & CASCADE
 # ═══════════════════════════════════════════════════════
 
+# IQ-3 review: `set_diplomatic_state` reasons that end a war or truce
+# WITHOUT anyone signing a peace. The coalition ejection still fires for them
+# (PT-J1), but a league they dissolve is not "spent" — `break_treaty` maps a
+# broken ARMISTICE to PEACE, and repudiating a truce must not buy half of
+# Europe's alarm.
+UNILATERAL_PEACE_REASONS = frozenset({"treaty_break"})
+
+
+def declaration_relation_penalties(casus_belli: bool = False) -> tuple:
+    """(direct, indirect): the relation a declaration costs the declarer with
+    its target and with every other court — halved with a casus belli.
+    Single source (IQ-3 review): `declare_war` applies it and Talleyrand's
+    projection counts the courts it would carry past the −10 line."""
+    factor = 0.5 if casus_belli else 1.0
+    return int(-30 * factor), int(-15 * factor)
+
+
 def declaration_alarm(casus_belli: bool = False) -> int:
     """The alarm a declaration of war adds to the DECLARER's own slot (§2a,
     S5c) — halved with a casus belli. Single source (IQ-3): `declare_war`
@@ -8327,12 +8351,12 @@ def declare_war(
     # Penalties (halved with casus belli from rejected ultimatum)
     penalty_factor = 0.5 if casus_belli else 1.0
     relation_changes = []
-    direct_penalty = int(-30 * penalty_factor)
+    direct_penalty, indirect_penalty = declaration_relation_penalties(casus_belli)
     world.modify_nation_relation(aggressor, target, direct_penalty)
     relation_changes.append({"nations": (aggressor, target), "delta": direct_penalty})
 
-    # Penalty with ALL other nations (also halved with casus belli)
-    indirect_penalty = int(-15 * penalty_factor)
+    # Penalty with ALL other nations (also halved with casus belli) —
+    # `indirect_penalty` from `declaration_relation_penalties` above.
     all_nations = world.get_active_nations()  # DLF-11
     for nation in all_nations:
         if nation != aggressor and nation != target:

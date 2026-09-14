@@ -49,8 +49,8 @@
 > |---|---|---|---|---|
 > | 1 | ~~**IQ-1 THE ECONOMY THAT BITES**~~ | the gold sink, and the three things around it | 82,524g at turn 30 · 88,556g at turn 40 · a 150g levy = **590×** | ✅ **CLOSED September 14, 2026** — IQ1-0/1/2/3 landed, **IQ1-5 the exit held**; 85.2% of the surplus converts; pillar **6.0 → 6.5**; (c) routed out, (ii) measured-open |
 > | 2 | ~~**IQ-2 THE COLLAPSE IS LEGIBLE**~~ | an annihilated France is told the winds favour it | ambient-marengo holds **0 provinces** from turn 37 and plays four more | ✅ **CLOSED September 14, 2026** — PR-X1 fixed; completion item pinned on a staged zero-province board; a P1 underneath closed (a landless France fielded a FREE army); record `BUG_FIXES.md` §Collapse Legibility (IQ-2) + spec §1.1 |
-> | 3 | **IQ-3 THE COALITION IS RARE** | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | ▶ **NEXT** |
-> | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | queued |
+> | 3 | ~~**IQ-3 THE COALITION IS RARE**~~ | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | ✅ **CLOSED September 14, 2026** — "The League Is Spent": a treaty that dissolves the league halves Europe's alarm; commanded arm **6–8 → 1** coalitions, completion board **2 / 1 / 2** on three seeds; record `IMPROVEMENT_QUEUE_SPEC.md` §1.2 |
+> | 4 | **IQ-4 THE CABINET IS VISIBLE** | missions are mechanically live and invisible | PR-D2, PR-D3 | ▶ **NEXT** |
 > | 5 | **IQ-5 BOTH SIDES OF THE BUTCHER'S BILL** | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | queued |
 > | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | queued |
 > | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | queued |
@@ -164,7 +164,15 @@
 >
 > ---
 >
-> ### IQ-3 — THE COALITION IS RARE
+> ### IQ-3 — THE COALITION IS RARE  ✅ CLOSED September 14, 2026
+>
+> **Landing record = `docs/IMPROVEMENT_QUEUE_SPEC.md` §1.2** (authoritative;
+> measurements `docs/audits/IQ3_COALITION_CADENCE_2026_09_14.md`). The
+> completion item is MET: the stated expectation is **1 coalition plus one per
+> time French conduct carries a spent alarm back to 60 — band 1–3, historical
+> centre 2** — and the completion board (the commanded arm answering its own
+> declaration confirm) produces **2 / 1 / 2** on historical / austerlitz / ulm,
+> with the rarity DERIVED from the threat slot a treaty spends, not a timer.
 >
 > **Evidence (PR-D1):** up to **ten coalitions in forty turns**, each forming
 > and dissolving as members peace out. PR-1 stopped a ratified peace being
@@ -262,6 +270,65 @@
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
 
+> ## ▶ IQ-3 "THE COALITION IS RARE" — LANDED September 14, 2026. **ROW IQ-3 IS CLOSED.**
+>
+> Row IQ-3 (PR-D1). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.2,
+> authoritative; measurement memo =
+> `docs/audits/IQ3_COALITION_CADENCE_2026_09_14.md`; rules =
+> `SYSTEMS_REFERENCE.md` §42. Build commit `0dce5cfb` (suite 22,117 / 4).
+>
+> **The disease, measured on three seeds by a read-only decision fleet:** six
+> to eight coalitions in forty turns on the commanded arm, the ordinal reaching
+> *"The Tenth Austrian Coalition"*. Every one dissolved when France ratified
+> the coalition's own peace offer; the alarm never fell (a peace that breaks a
+> league changed no threat); the ≥90 override cancelled the five-turn
+> cooldown; and the minor courts formed the next league on the next tick — a
+> major/minor alternation every four turns.
+>
+> **The rule — "The League Is Spent".** A TREATY that dissolves the league
+> halves Europe's alarm against its target (`coalition.THE_LEAGUE_SPENDS_ITS_ALARM`;
+> `LEAGUE_SPENT_DIVISOR = 2` ⚠ **FOR USER CONFIRMATION**, in-band), keeping
+> the treaty's own annexation / vassalization / forced-alliance alarm whole, so
+> the next league must be earned by a new act of the target's that carries the
+> alarm back to 60. Derived, no timer, zero new serialized fields, GR5 (keyed
+> on the league's own target). Two designs were rejected on measurement: a
+> 20-turn league memory (a cooldown with a memory label — it formed on turn 27
+> on every seed whatever the alarm) and gating the AI settlement offer (it made
+> leagues longer, not rarer — routed to its own row, below).
+>
+> **Measured** (arms: A ambient · B commanded, accepts every peace · C B +
+> `--declare-war proceed`, the completion board · D C + declarations at loops
+> 10/20/30 · E C with both levers DOWN): **1·1·1 / 1·1·1 / 2·1·2 / 3·2·2 /
+> 8·4·5.** Every post-spend league traces to a French declaration; France holds
+> 29 / 27 / 27 provinces at turn 40 on C (E: 27 / 7 / 19).
+>
+> **With it:** Talleyrand's declare-war objection reads the projection below
+> 50 (he fell silent exactly when a declaration would bring on the next
+> league) and speaks conditionally while the courts' cooldown runs; the
+> dissolution notice, chronicle, cooldown-ended notice, Balance-of-Europe
+> COOLDOWN note and the war room name the spend and the 60 gate. **Found on
+> the way: the driver's `--declare-war` flag had been DEAD since FA-S17-D6**
+> (parsed, never copied into the policy), and `PLAYTESTING.md`'s *"INERT on
+> this arm"* was measured through it — struck and corrected. **Routed, not
+> absorbed: PR-D1b "The League Treats When Spent"** (the AI's settlement offer
+> fires at war-age 2 with no exhaustion gate, so every coalition war is three
+> turns long) → `DESIGN_REFINEMENT.md`, with its owner and completion.
+>
+> **Review round** (four read-only lenses on a snapshot, one refuter per
+> finding): 13 findings, every survivor fixed. The headline is **[P1,
+> confirmed] breaking a truce bought the spend**: `break_treaty` maps a broken
+> ARMISTICE to PEACE, so a unilateral repudiation dissolved a two-court league
+> and halved the alarm. It never spends now (`UNILATERAL_PEACE_REASONS`).
+> Also fixed: a treaty that annexed one court of a two-court league whole
+> dissolved it unspent (the elimination now carries the treaty flag); the 100
+> cap made the spend depend on pair order (`add_threat` stamps `applied` when
+> it clips); Talleyrand counted the courts before his master's own −15
+> (single-sourced `declaration_relation_penalties`); and the copy and pin
+> gaps. Routed: **PR-D1c** — declarations stacked on courts outside the league
+> before signing are halved too.
+>
+> **▶ NEXT = IQ-4 "THE CABINET IS VISIBLE"** (PR-D2, PR-D3).
+
 > ## ▶ IQ-2 "THE COLLAPSE IS LEGIBLE" — LANDED September 14, 2026. **ROW IQ-2 IS CLOSED.**
 >
 > Row IQ-2 (PR-X1) with its scope note binding: **legible, never terminal**
@@ -308,7 +375,8 @@
 > roster change is measured directly. Godot parse harness EXIT=0; ⚠ the
 > eyes-on pass on the IQ-2 client surfaces rides IQ-10.
 >
-> **▶ NEXT = IQ-3 "THE COALITION IS RARE"** (PR-D1).
+> ~~**▶ NEXT = IQ-3 "THE COALITION IS RARE"** (PR-D1).~~ ✅ **LANDED September
+> 14, 2026 — see the IQ-3 entry above.**
 
 > ## ▶ IQ1-5 "THE EXIT" — HELD September 14, 2026. **ROW IQ-1 IS CLOSED.**
 >

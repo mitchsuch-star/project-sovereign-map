@@ -13,6 +13,7 @@ All coalition logic lives in this file. Functions are called from:
   - enemy_ai.py (convergence bias, friction, is_coalition_member)
 """
 
+import contextlib
 from typing import Dict, List, Optional, Tuple
 
 from backend.notifications import (
@@ -874,13 +875,22 @@ def add_threat(world, amount: int, source_key: str, target: str = None) -> int:
     tgt = target or world.player_nation
     if amount <= 0:
         return int(world.threat_by_target.get(tgt, 0))
-    world.threat_by_target[tgt] = int(
-        min(100, max(0, world.threat_by_target.get(tgt, 0) + amount)))
-    world.threat_sources_this_turn.append({
+    _prev = int(world.threat_by_target.get(tgt, 0) or 0)
+    world.threat_by_target[tgt] = int(min(100, max(0, _prev + amount)))
+    _row = {
         "source": source_key,
         "amount": int(amount),
         "target": tgt,
-    })
+    }
+    # IQ-3 review: when the 100 cap clips an add, the row also records what
+    # actually reached the slot, so the league spend can recover the alarm
+    # that stood before a treaty's own add and halve THAT — the same result
+    # in every pair order. Only written when it differs (row shape otherwise
+    # unchanged, and the displayed `amount` stays the act's own figure).
+    _applied = int(world.threat_by_target[tgt]) - _prev
+    if _applied != int(amount):
+        _row["applied"] = _applied
+    world.threat_sources_this_turn.append(_row)
     # B-Hegemony: transient per-turn flag backing the
     # `residual_pressure_active` anti-spam gate. Set True on any positive
     # threat increment; cleared at end-of-turn / ledger evaluation.
@@ -1164,17 +1174,22 @@ def peace_with_target_is_fresh(nation: str, world, target: str) -> bool:
     return False
 
 
-def qualifies_for_coalition(nation: str, world, target: Optional[str] = None) -> bool:
+def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
+                            relation_shift: int = 0) -> bool:
     """Check if a nation qualifies for coalition membership (§3b).
 
     Qualifies if: relation < -10, not vassal, not already at war with the
     coalition's target (default: the player — §4.4b anchor work), and — PR-1
     — has not just concluded a peace with that target.
+
+    IQ-3 review: ``relation_shift`` asks "would it qualify after this much
+    relation moved" — the projection of a declaration, which itself costs the
+    declarer relation with every court. 0 = the live question, byte-identical.
     """
     tgt = target or world.player_nation
     if nation == tgt:
         return False
-    relation = _get_relation(world, tgt, nation)
+    relation = _get_relation(world, tgt, nation) + int(relation_shift)
     is_vassal = nation in getattr(world, 'vassals', {})
     already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
     if relation >= -10 or is_vassal or already_at_war:
@@ -1183,10 +1198,12 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None) ->
     return not peace_with_target_is_fresh(nation, world, tgt)
 
 
-def get_qualifying_nations(world, target: Optional[str] = None) -> List[str]:
+def get_qualifying_nations(world, target: Optional[str] = None,
+                           relation_shift: int = 0) -> List[str]:
     """Get all nations that qualify for coalition membership."""
     return [n for n in _get_all_nations(world)
-            if qualifies_for_coalition(n, world, target=target)]
+            if qualifies_for_coalition(n, world, target=target,
+                                       relation_shift=relation_shift)]
 
 
 def get_nations_at_war_with_target(world, target: str) -> List[str]:
@@ -1918,6 +1935,30 @@ def _dissolution_reason_display(reason: str) -> str:
     return template.format(threshold=int(DISSOLUTION_THREAT_THRESHOLD))
 
 
+@contextlib.contextmanager
+def treaty_in_flight(world, courts=()):
+    """IQ-3 review: mark a ratification in progress and name the courts
+    SIGNING in it. A league the treaty dissolves reports the courts still at
+    war with its target, and a settlement ejects its members one pair at a
+    time, so without this the report named courts about to sign in the same
+    action. Transient (never serialized), nests, and always restores."""
+    prev = world.__dict__.get("_treaty_courts_in_flight")
+    merged = set(prev or ()) | {str(c) for c in courts if c}
+    world._treaty_courts_in_flight = merged
+    try:
+        yield merged
+    finally:
+        if prev is None:
+            world.__dict__.pop("_treaty_courts_in_flight", None)
+        else:
+            world._treaty_courts_in_flight = prev
+
+
+def courts_in_flight(world) -> set:
+    """The courts signing in the ratification now running (empty outside one)."""
+    return set(getattr(world, "_treaty_courts_in_flight", None) or ())
+
+
 def league_spent_alarm(world, target: str) -> Dict[str, int]:
     """IQ-3: the alarm a treaty-dissolved league leaves behind its target.
 
@@ -1927,7 +1968,8 @@ def league_spent_alarm(world, target: str) -> Dict[str, int]:
     ``LEAGUE_SPENT_DIVISOR``. Pure — the caller applies the difference.
     """
     before = int(world.threat_by_target.get(target, 0) or 0)
-    exempt = 0
+    requested = 0
+    applied = 0
     for row in getattr(world, "threat_sources_this_turn", None) or []:
         if (row.get("target") or world.player_nation) != target:
             continue
@@ -1935,9 +1977,16 @@ def league_spent_alarm(world, target: str) -> Dict[str, int]:
             continue
         amount = int(row.get("amount", 0) or 0)
         if amount > 0:
-            exempt += amount
-    kept = min(before, exempt)
-    after = (before - kept) // LEAGUE_SPENT_DIVISOR + kept
+            requested += amount
+            applied += int(row.get("applied", amount) or 0)
+    # The alarm that stood before the treaty's own adds is halved, and those
+    # adds land whole on top — exactly what the spend-then-add order gives.
+    # Without the cap `applied == requested` and this is (before-t)//D + t;
+    # with it (the review round's vassalization-at-90 case) the clipped add
+    # no longer makes the result depend on which pair the plan resolved
+    # first. Never raises the slot.
+    pre_treaty = max(0, before - applied)
+    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested)
     return {"from": int(before), "to": int(after)}
 
 
@@ -1958,28 +2007,50 @@ def league_spent_clause(world, target: str, spent: Dict[str, int]) -> str:
 
 
 def declaration_would_gather_a_league(world, aggressor: str,
-                                      casus_belli: bool = False) -> Optional[Dict]:
+                                      casus_belli: bool = False,
+                                      target: Optional[str] = None) -> Optional[Dict]:
     """IQ-3 rider: the projection Talleyrand reads before a declaration.
 
-    Returns ``{"from", "to", "courts"}`` when no league stands, the alarm is
-    below the 60 gate, the declaration's own alarm (the single source
-    `diplomacy.declaration_alarm`, the figure `declare_war` applies) would
-    carry it to 60 or more, and some court would join. Otherwise None —
+    Returns ``{"from", "to", "courts", "cooldown"}`` when no league against
+    the aggressor stands or brews, the alarm is below the 60 gate, the
+    declaration's own alarm (the single source `diplomacy.declaration_alarm`,
+    the figure `declare_war` applies) would carry it to 60 or more, and some
+    court other than the declaration's ``target`` would join. Otherwise None —
     and always None with ``TALLEYRAND_READS_THE_PROJECTION`` down.
+
+    The courts are counted AFTER the declaration's own relation cost
+    (`diplomacy.declaration_relation_penalties`): the review round measured a
+    board where no court qualified before the declaration and the declaration
+    itself carried them past −10 — he stayed silent while it gathered a league.
     """
     if not TALLEYRAND_READS_THE_PROJECTION:
         return None
-    if getattr(world, "active_coalition", None):
+    standing = getattr(world, "active_coalition", None)
+    if standing and (standing.get("target_nation") or world.player_nation) == aggressor:
         return None
-    from backend.game_logic.diplomacy import declaration_alarm
+    brewing = getattr(world, "coalition_brewing", None)
+    if brewing and (brewing.get("target_nation") or world.player_nation) == aggressor:
+        # A league is already gathering; its own notice counts the turns.
+        return None
+    from backend.game_logic.diplomacy import (
+        declaration_alarm, declaration_relation_penalties,
+    )
     before = int(world.threat_by_target.get(aggressor, 0) or 0)
     after = int(min(100, before + declaration_alarm(casus_belli)))
     if before >= THREAT_BREWING_MIN or after < THREAT_BREWING_MIN:
         return None
-    courts = get_qualifying_nations(world, target=aggressor)
+    _direct, indirect = declaration_relation_penalties(casus_belli)
+    courts = [c for c in get_qualifying_nations(world, target=aggressor,
+                                                relation_shift=indirect)
+              if c != target]
     if not courts:
         return None
-    return {"from": before, "to": after, "courts": list(courts)}
+    # The post-dissolution cooldown still running: no league gathers until it
+    # lapses (a sub-60 alarm plus one declaration cannot reach the >=90
+    # override), so the objection must say "if it still stands at 60 then".
+    cooldown = int(getattr(world, "coalition_cooldown", 0) or 0)
+    return {"from": before, "to": after, "courts": list(courts),
+            "cooldown": cooldown}
 
 
 def dissolve_coalition(world, reason: str,
@@ -2052,15 +2123,27 @@ def dissolve_coalition(world, reason: str,
     if alarm_spent is not None:
         # The spend arm's copy. The IQ-2 read above runs MID-ratification:
         # a settlement ejects its members one pair at a time, so the courts
-        # it names are about to sign in this same action (measured: Russia
+        # it named were about to sign in this same action (measured: Russia
         # at t4, Sardinia at t8/16/28/36, Austria at t12/20 — all at PEACE
-        # once the action completed). The war panel names any court still
-        # fighting afterwards; this sentence claims only what is true at
-        # every point of the ratification.
+        # once the action completed). The ratifier names the courts signing
+        # (`treaty_in_flight`) and they are left out; a court genuinely still
+        # fighting — the separate-peace road, where Russia stays at war after
+        # Britain and Austria sign — is still named (IQ-3 review round).
         courts_at_war = []
+        if (THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN
+                and _dissolve_target == world.player_nation):
+            from backend.game_logic.diplomatic_ledger import (
+                courts_at_war_with, remain_at_war_clause,
+            )
+            _signing = courts_in_flight(world)
+            courts_at_war = [c for c in courts_at_war_with(world, _dissolve_target)
+                             if c not in _signing]
         notice = (f"{name} has dissolved — the peace has taken too many of "
                   f"its courts out of the war. "
                   f"{league_spent_clause(world, _dissolve_target, alarm_spent)}")
+        if courts_at_war:
+            _clause = remain_at_war_clause(world, courts_at_war)
+            notice += f" {_clause[0].upper()}{_clause[1:]} all the same."
         event_message = notice
 
     # Notification

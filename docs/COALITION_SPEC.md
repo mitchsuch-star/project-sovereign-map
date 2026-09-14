@@ -493,7 +493,7 @@ When a coalition dissolves:
 
 1. **Coalition coordination bonuses end.** P4.77 reverts to same-nation-only adjacency scoring.
 2. **Convergence bias ends.** AI returns to individual nation priorities.
-3. **Threat does NOT reset.** It continues to decay naturally per §2b.
+3. **Threat does NOT reset.** It continues to decay naturally per §2b — **except when a TREATY dissolves the league** (IQ-3, September 14, 2026). A dissolution for too few members caused by a formal peace or vassalage spends the alarm: the target's slot is halved, and the treaty's own annexation / vassalization alarm is kept whole (`coalition.THE_LEAGUE_SPENDS_ITS_ALARM`; `SYSTEMS_REFERENCE.md` §42). The next coalition then needs a fresh act of the target's that carries the alarm back to 60.
 4. **Relations persist.** All war/peace states from the coalition remain. Nations at war with France are still at war — they just lose coalition coordination.
 5. **"Coalition dissolved" notification.** One-time notification + Morning Dispatch entry.
 
@@ -502,6 +502,8 @@ When a coalition dissolves:
 After a coalition dissolves, a **5-turn cooldown** begins before a new coalition can form. This prevents:
 - Instant re-coalition after peacing out members.
 - Cheese where the player peace-then-war cycles to keep resetting the coalition.
+
+**IQ-3 (September 14, 2026): the cooldown is no longer the only brake.** Measured on the commanded arm, a treaty-dissolved league left the alarm at 90–94, so the 90+ exception below cancelled this cooldown and the next league formed on the next tick — six to eight in forty turns. After a treaty spend the alarm is at most 50 plus the treaty's own alarm, so the exception cannot fire on the tick after it; the cooldown still runs, and the notification that ends it names the 60 gate when the alarm stands below it.
 
 Track `coalition_cooldown` on WorldState. Decrement each turn. New brewing cannot start while cooldown > 0.
 

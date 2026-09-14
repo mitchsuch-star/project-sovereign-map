@@ -824,16 +824,22 @@ def _assess_situation(world) -> Dict:
         if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM
                 and threat < _coal.THREAT_BREWING_MIN
                 and not getattr(world, "coalition_brewing", None)):
-            _courts = _coal.get_qualifying_nations(world, target=_player)
+            from backend.game_logic.diplomacy import (
+                declaration_alarm, declaration_relation_penalties,
+            )
+            # Counted AFTER a declaration's own relation cost (IQ-3 review) —
+            # the courts a declaration of war would carry past −10.
+            _courts = _coal.get_qualifying_nations(
+                world, target=_player,
+                relation_shift=declaration_relation_penalties()[1])
             if _courts:
-                from backend.game_logic.diplomacy import declaration_alarm
                 from backend.game_logic.diplomatic_ledger import courts_display
                 _projection = int(min(100, threat + declaration_alarm()))
                 lines.append(
-                    f"  {courts_display(world, _courts)} would join a league, "
-                    f"but none gathers below {_coal.THREAT_BREWING_MIN} — a "
+                    f"  No league gathers below {_coal.THREAT_BREWING_MIN}; a "
                     f"declaration of war would carry the alarm to "
-                    f"{_projection}.")
+                    f"{_projection}, and {courts_display(world, _courts)} "
+                    f"would stand ready to join one.")
 
     # ── What alarmed Europe this turn (top 3, already itemized) ──
     # Stage D review fix [r1]: this list explains FRANCE's alarm delta —

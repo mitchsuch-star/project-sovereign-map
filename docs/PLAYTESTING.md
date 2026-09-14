@@ -275,7 +275,11 @@ re-open condition could not be read on them. Two things changed:
   treaty France had just signed.** An unattended camera does not take an
   irreversible diplomatic act the script never named, so the default is
   `cancel`; **`proceed` reproduces every pre-Phase-4 archived digest**, which is
-  the arm to pass when re-generating one.
+  the arm to pass when re-generating one. ⚠ **Until IQ-3 (September 14, 2026)
+  the flag was DEAD**: it was parsed but never copied into the policy
+  (`resolve_policy` now carries every dial, pinned), so every run that passed
+  `--declare-war proceed` ran `cancel` — and its `meta.json` said so. A
+  script's own `"policy": {"declare_war": "proceed"}` did work.
 
 Measured on the commanded arm, three seeds, boot 28 provinces each:
 
@@ -309,10 +313,13 @@ orders on dead men and measure a smaller France than the script intends.
 **`Fr@30` is the sounder read on this arm**; a script that re-commissions from
 the Marshalate bench would fix it and does not exist yet.
 
-⚠ **`--declare-war` is INERT on this arm.** `cancel` and `proceed` produce
-identical outcomes here (23 provinces, 81,593 gold either way) because the
-script deliberately never orders an attack on a court France has just signed
-with. It is not inert in general — see the measurement above it.
+~~⚠ `--declare-war` is INERT on this arm.~~ **STRUCK September 14, 2026
+(IQ-3): the identical outcomes were the dead flag, not the script.** With the
+flag working, `proceed` answers the confirm when the script's attack orders
+run into a court France has just signed with, and France re-declares on
+Austria at turn 4–5 on all three seeds (arms B vs C of
+`docs/audits/IQ3_COALITION_CADENCE_2026_09_14.md`). `--declare-war proceed`
+on this arm is IQ-3's completion board.
 
 ### `--diplomacy propose` — the arm that asks (WO slice 5)
 

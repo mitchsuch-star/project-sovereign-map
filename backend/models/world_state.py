@@ -4241,7 +4241,7 @@ class WorldState:
 
         return True
 
-    def _eliminate_nation(self, nation: str) -> None:
+    def _eliminate_nation(self, nation: str, by_treaty: bool = False) -> None:
         """Remove all marshals and clean up state for an eliminated nation.
 
         R81: 0 regions = eliminated. Removes marshals, treaties, vassal relationships.
@@ -4416,7 +4416,11 @@ class WorldState:
 
         # Remove from coalition if member
         from backend.game_logic.coalition import remove_coalition_member
-        remove_coalition_member(nation, self)
+        # IQ-3 review: a TREATY that cedes a member's last province takes it
+        # out of the league as surely as its signature would — the treaty
+        # ratifiers pass `by_treaty`, so a league that elimination dissolves
+        # is spent. A battlefield capture never passes it.
+        remove_coalition_member(nation, self, by_treaty=by_treaty)
 
         # Notification + dispatch + log
         from backend.notifications import (
@@ -11421,7 +11425,7 @@ class WorldState:
                     ceded_from.add(fn)
         for nation in ceded_from:
             if not self.get_nation_regions(nation):
-                self._eliminate_nation(nation)
+                self._eliminate_nation(nation, by_treaty=True)
 
         # War-end cleanup (shared — for both player and AI-AI).
         # WPS-A: ARMISTICE pauses objectives; PEACE concludes them.

@@ -366,7 +366,7 @@ def _apply_settlement_terms(
                         and hasattr(world, "get_nation_regions")
                         and not world.get_nation_regions(nation)
                     ):
-                        world._eliminate_nation(nation)
+                        world._eliminate_nation(nation, by_treaty=True)
         elif ttype in ("gold_lump", "gold_indemnity"):
             amount = abs(int(term.get("amount", 0) or 0))
             nation_gold = getattr(world, "nation_gold", {}) or {}
@@ -970,6 +970,13 @@ def _blocked_ratify_reattach(
     return payload
 
 
+def plan_courts(plan) -> set:
+    """Every court party to a ratification plan (both sides of each pair)."""
+    return {str(entry.get(key) or "")
+            for entry in (plan or [])
+            for key in ("proposer_member", "covered_enemy")} - {""}
+
+
 def ratify_settlement_confirm(
     world: Any,
     dialogue: Mapping[str, Any],
@@ -1400,15 +1407,19 @@ def ratify_settlement_confirm(
     )
     pre_cleanup_attacker_leader = str(war_instance.get("attacker_leader") or "")
     pre_cleanup_defender_leader = str(war_instance.get("defender_leader") or "")
-    applied_clauses = _apply_settlement_terms(
-        world,
-        settlement_terms=settlement_terms,
-        war_id=war_id,
-        settlement_route_id=str(dialogue.get("route_id") or ""),
-    )
-    resolved_pairs, fa_applied = _resolve_pair_state_transitions(
-        world, plan, settlement_terms,
-    )
+    # IQ-3 review: the courts signing in this ratification, so a league it
+    # dissolves does not report them as still at war (coalition.treaty_in_flight).
+    from backend.game_logic.coalition import treaty_in_flight
+    with treaty_in_flight(world, plan_courts(plan)):
+        applied_clauses = _apply_settlement_terms(
+            world,
+            settlement_terms=settlement_terms,
+            war_id=war_id,
+            settlement_route_id=str(dialogue.get("route_id") or ""),
+        )
+        resolved_pairs, fa_applied = _resolve_pair_state_transitions(
+            world, plan, settlement_terms,
+        )
     applied_clauses.extend(fa_applied)
     _record_common_peace_treaties(
         world, plan=plan, settlement_terms=settlement_terms,
