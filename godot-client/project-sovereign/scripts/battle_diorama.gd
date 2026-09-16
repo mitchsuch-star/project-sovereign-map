@@ -36,6 +36,14 @@ const STAGE_TOP := 52.0
 const STAGE_H := 380.0
 const SHELF_H := 66.0
 const FIGURE_PX := 58.0
+# IQ-5 review (B): the `faith` caption sits UNDER a corps' figures, outboard
+# (away from the clash line), wrapped in this block-local width. Measured
+# headless on the real tableau (both columns, depths 1-2, reinforced and
+# co-located): nothing else is drawn there. Y is below the feet (y = 0) and
+# clear of a fallen figure's ink (+22 still grazed one by 1px).
+const FAITH_CAPTION_W := 150.0
+const FAITH_CAPTION_Y := 30.0
+const FAITH_CAPTION_INBOARD := 20.0
 const SHELF_FIGURE_PX := 44.0
 
 # PT-D2: the backend's absence family (battle_diorama.py ABSENT_STATUSES)
@@ -748,15 +756,32 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	# so, in the voice and colour of the shelf's `grudge` caption. The
 	# `committed` figure above is deliberately left as it is — the caption
 	# explains it, it does not restate it. Absent key → nothing drawn.
+	#
+	# IQ-5 review (B): sited UNDER the corps' figures, outboard, wrapped. It
+	# used to be a fourth row of the text stack, and the stack has room for
+	# three: the lead block stands 66px lower and 118px toward the clash, so
+	# a reinforcer's fourth row landed on the LEAD's locket and name (measured
+	# headless on the real tableau: 38x7 and 36x5 px) and, because `size` was
+	# set before `autowrap_mode`, it never wrapped at all — one ~420px line
+	# into the opposing half. Below the feet and away from the clash line,
+	# the caption meets nothing at depth 1 or 2 on either side (the sweep's
+	# y=+22 still grazed a fallen figure by 1px; +30 is clear). Autowrap is
+	# set FIRST and the width is a minimum, so the label wraps inside it.
 	var faith_v = c.get("faith", null)
 	var faith := str(faith_v) if faith_v is String else ""
 	if faith != "":
 		var faith_l := _mk_label(block, faith, 10,
 				Color(0.66, 0.42, 0.40, 1.0), _font_voice)
-		faith_l.position = Vector2(text_x, -124.0 if status_l == null else -110.0)
-		faith_l.size = Vector2(text_w, 14.0)
 		faith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		faith_l.horizontal_alignment = text_align
+		faith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)
+		faith_l.size = Vector2(FAITH_CAPTION_W, 14.0)
+		if is_left:
+			faith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			faith_l.position = Vector2(FAITH_CAPTION_INBOARD - FAITH_CAPTION_W,
+					FAITH_CAPTION_Y)
+		else:
+			faith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			faith_l.position = Vector2(-FAITH_CAPTION_INBOARD, FAITH_CAPTION_Y)
 
 	return {
 		"node": block, "data": c, "figures": figures,
@@ -859,19 +884,12 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 			g.add_theme_color_override("font_color",
 					Color(0.66, 0.42, 0.40, 1.0))
 			text_box.add_child(g)
-		# IQ-5 / PR-X3 (R11): the `faith` caption, beside the grudge it
-		# mirrors — drawn wherever the contingent is, the line or the shelf.
-		var faith_v = c.get("faith", null)
-		var faith := str(faith_v) if faith_v is String else ""
-		if faith != "":
-			var fl := Label.new()
-			fl.text = faith
-			if _font_voice != null:
-				fl.add_theme_font_override("font", _font_voice)
-			fl.add_theme_font_size_override("font_size", 12)
-			fl.add_theme_color_override("font_color",
-					Color(0.66, 0.42, 0.40, 1.0))
-			text_box.add_child(fl)
+		# IQ-5 review (B): no `faith` caption here. The shelf holds only the
+		# ABSENT statuses, and the backend attaches `faith` only to a man
+		# who stood on the field (`status not in ABSENT_STATUSES`) — a man
+		# who never came brought none of his weight. The arm that read it
+		# here was unreachable, and its comment ("drawn wherever the
+		# contingent is, the line or the shelf") was false.
 
 
 func _nameplate_layout() -> void:

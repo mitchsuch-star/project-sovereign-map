@@ -451,6 +451,25 @@ def derive_metrics(digest: dict) -> dict:
                 by_stamp[stamp] = by_stamp.get(stamp, 0) + 1
         routine_per_turn.append(max(by_stamp.values()) if by_stamp else 0)
 
+    # IQ-6 N2 (PR-X4, September 14, 2026): the FLOOR beside that ceiling.
+    # `routine_intent_lines_max_per_turn` only ever asserted `<= 2`, so it
+    # stayed green whether the producer fired eight times or never — which
+    # is how the rescore memo could record the lines as "0 in twelve runs"
+    # while the engine was emitting them on every board (the zero was the
+    # playtest digest's priority filter). Counted UNIQUE, because the queue
+    # is snapshotted without draining and an entry queued inside
+    # advance_turn survives into the next snapshot (the carry-over described
+    # above): a line is its type + producing turn + vars. Measured on the
+    # ambient historical run: 8.
+    routine_lines_seen = set()
+    for row in turns:
+        for e in row["dispatch_queue"]:
+            if e["type"] in ROUTINE_INTENT_TYPES:
+                routine_lines_seen.add((
+                    e["type"], e.get("queued_turn"),
+                    json.dumps(e.get("vars"), sort_keys=True, default=str)))
+    routine_intent_lines_total = len(routine_lines_seen)
+
     # Soap-opera measurement (§5 pin 13): share of the dispatch-queue
     # column-inches (the diplomatic stream the player reads) spent on
     # events France was not party to. Reported, never "felt".
@@ -563,6 +582,7 @@ def derive_metrics(digest: dict) -> dict:
         "beats": beats,
         "routine_intent_lines_max_per_turn": (
             max(routine_per_turn) if routine_per_turn else 0),
+        "routine_intent_lines_total": routine_intent_lines_total,
         "soap_opera_share": soap_opera_share,
         "soap_opera_lines": [non_france_lines, total_lines],
         "recruit_turns": recruit_turns,

@@ -192,6 +192,13 @@ class TestTheDefenderCarriesTheLabel:
         assert "casualties_scope" not in _side(res, "attacker")
 
     def test_the_lead_remainder_is_named_beside_the_army_losses(self):
+        """IQ-5 review (#20): `lead_remaining` EQUALS the event's `remaining`
+        by construction — both are the lead's post-battle strength, and the
+        pursuit block updates both together; nothing else moves either. The
+        fix IQ5-2 made is the LABEL ("'s own corps"), not a corrected number.
+        So no pin can stage the two apart (a fixture that did would be
+        fabricated), and the sweep row that swapped one for the other was
+        behaviour-neutral and is deleted."""
         w, res, _logs, _ = _battle(D_ADJ, "Moore", "Ney")
         d = _side(res, "defender")
         assert d["lead_remaining"] == int(w.marshals["Ney"].strength) == 17275
@@ -368,13 +375,83 @@ class TestCoLocatedStacksAreNamed:
             "Ney's supporting ally lost 4,424 men.",
         ]
 
-    def test_a_co_located_attacker_uses_the_existing_lines(self):
+    def test_a_co_located_attacker_names_his_lead(self):
+        """FLIPPED CONSCIOUSLY (IQ-5 review D). This pinned the old
+        subject-less pair ("Massed effective strength: …", "His supporting
+        ally lost …"), which only read right under an arrival line naming
+        the lead. With nobody arriving, nothing named whose mass it was —
+        in the enemy phase "His" sat above the player's own marshal's lines.
+        The co-located attacker is named now, mirroring the defender."""
         _w, res, _logs, losses = _battle(A_SAME, "Ney", "Mack")
         assert losses["Davout"] == 2195
         assert res["reinforcement_messages"] == [
-            "Massed effective strength: 30,000 (lead) + 19,312 committed (Davout) = 49,312.",
-            "His supporting ally lost 2,195 men.",
+            "Ney fought with Davout beside him — massed effective strength: "
+            "30,000 (lead) + 19,312 committed (Davout) = 49,312.",
+            "Ney's supporting ally lost 2,195 men.",
         ]
+
+    def test_the_enemy_attacker_is_named_above_the_players_lines(self):
+        """The finding's own geometry: Mack + Archduke John attack Ney +
+        Davout, all at Swabia. Before, the first loss line was "His
+        supporting ally lost 1,368 men" directly above Ney's own lines."""
+        _w, res, _logs, losses = _battle(
+            {"Mack": ("Swabia", 40000), "ArchdukeJohn": ("Swabia", 20000),
+             "Ney": ("Swabia", 20000), "Davout": ("Swabia", 15000)}, "Mack", "Ney")
+        msgs = res["reinforcement_messages"]
+        assert msgs[0].startswith("Mack fought with Archduke John beside him — ")
+        assert msgs[1] == f"Mack's supporting ally lost {losses['ArchdukeJohn']:,} men."
+        assert msgs[2].startswith("Ney fought with Davout beside him — ")
+        assert not any(m.startswith("His ") for m in msgs)
+
+    def test_a_multi_word_attacking_lead_is_prose_in_both_lines(self):
+        """IQ-5 review sweep, row 88 came back INERT: reverting `_rn(marshal.name)`
+        to the raw key on the co-located ATTACKER's line left every pin green,
+        because every attacking lead staged here was one word. Archduke
+        Charles leads the stack now — both of his lines must carry the prose
+        form, on the lead AND the man beside him, with no roster key anywhere."""
+        _w, res, _logs, losses = _battle(
+            {"ArchdukeCharles": ("Swabia", 40000), "ArchdukeJohn": ("Swabia", 20000),
+             "Ney": ("Swabia", 20000)}, "ArchdukeCharles", "Ney")
+        msgs = res["reinforcement_messages"]
+        assert msgs[0].startswith(
+            "Archduke Charles fought with Archduke John beside him — massed effective strength: ")
+        assert msgs[1] == (f"Archduke Charles's supporting ally lost "
+                           f"{losses['ArchdukeJohn']:,} men.")
+        assert not any(_CAMEL.search(m) for m in msgs), msgs
+
+    def test_a_mixed_attacker_stack_keeps_the_arrival_wording(self):
+        """One man marched in AND one stood beside the lead: the arrival line
+        names the lead, so the literal CO-6 / Session-66 strings stand (the
+        CA8 source census pins them). Ney and Lannes stand on the field at
+        Swabia; Davout marches in from Rhineland (which borders it)."""
+        _w, res, _logs, _ = _battle(
+            {"Ney": ("Swabia", 30000), "Lannes": ("Swabia", 20000),
+             "Davout": ("Rhineland", 25000), "Mack": ("Swabia", 40000)}, "Ney", "Mack")
+        msgs = res["reinforcement_messages"]
+        assert msgs[0] == "Davout's forces arrived to reinforce Ney!"
+        assert msgs[1].startswith("Massed effective strength: 30,000 (lead) + ")
+        assert "(Davout, Lannes)" in msgs[1]
+        assert msgs[2].startswith("His supporting allies lost ")
+
+    def test_a_multi_word_co_located_attacker_lead_is_prose(self, monkeypatch):
+        """The sweep's own finding: every co-located-ATTACKER pin above used
+        a one-word lead, for which `_rn` is the identity, so dropping the
+        display function from the attacker's two named lines changed
+        nothing. Archduke Charles leads with Archduke John (+1) beside him
+        against Ney, all at Swabia: both lines are prose, and with the
+        lever down the pre-IQ-5 surface has no co-located lines at all."""
+        placements = {"ArchdukeCharles": ("Swabia", 40000), "ArchdukeJohn": ("Swabia", 20000),
+                      "Ney": ("Swabia", 30000)}
+        _w, res, _logs, losses = _battle(placements, "ArchdukeCharles", "Ney")
+        assert losses["ArchdukeJohn"] == 1034
+        assert res["reinforcement_messages"] == [
+            "Archduke Charles fought with Archduke John beside him — massed effective "
+            "strength: 40,000 (lead) + 19,453 committed (Archduke John) = 59,453.",
+            "Archduke Charles's supporting ally lost 1,034 men.",
+        ]
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+        _w, res, _logs, _ = _battle(placements, "ArchdukeCharles", "Ney")
+        assert "reinforcement_messages" not in res
 
     def test_an_enemy_stack_is_named_in_prose_not_by_key(self):
         _w, res, _logs, losses = _battle(ENEMY_CO, "Ney", "Mack")
@@ -837,23 +914,31 @@ class TestTheTrustNoteOnBothSides:
 
     def test_the_enemys_disaffection_is_readable(self):
         """FA-D23's own promise: the player can read enemy disaffection off the
-        same rule. No trust number for a foreign court's marshal."""
+        same rule. No trust number for a foreign court's marshal.
+
+        FLIPPED CONSCIOUSLY (IQ-5 review A): the sentence was the absolute
+        "half his weight never reached the field", false for every
+        non-neutral pair; it is relative now (`_faith_share_clause`)."""
         _w, res, _logs, _ = _battle(ENEMY_CO, "Ney", "Mack", trusts={"ArchdukeJohn": 5})
         note = res["battle_report"]["trust_note"]
-        assert note == ("Archduke John fought for Austria without conviction — half his "
-                        "weight never reached the field.")
+        assert note == ("Archduke John fought for Austria without conviction — he brought "
+                        "half what he otherwise would.")
         assert "trust" not in note and "ArchdukeJohn" not in note
+        assert "his weight" not in note        # the absolute form is gone
         _w, res, _logs, _ = _battle(ENEMY_CO, "Ney", "Mack", trusts={"ArchdukeJohn": 65})
         assert "trust_note" not in res["battle_report"]
 
-    def test_the_enemys_lost_fraction_is_one_minus_the_factor(self, monkeypatch):
+    def test_the_enemys_fraction_is_the_trust_factor_itself(self, monkeypatch):
         """At the blessed 0.5 the kept and the lost fractions are both "half",
-        so this is the only arm that can tell them apart."""
+        so a non-0.5 factor is the only arm that tells a relative clause from
+        its complement. FLIPPED CONSCIOUSLY (review A): it used to pin the
+        complement ("three-quarters … never reached"); the relative clause
+        quotes the factor ("a quarter of what he otherwise would")."""
         monkeypatch.setattr(CE, "BROKEN_TRUST_CONTRIBUTION", 0.25)
         _w, res, _logs, _ = _battle(ENEMY_CO, "Ney", "Mack", trusts={"ArchdukeJohn": 5})
         assert res["battle_report"]["trust_note"] == (
-            "Archduke John fought for Austria without conviction — three-quarters of "
-            "his weight never reached the field.")
+            "Archduke John fought for Austria without conviction — he brought a "
+            "quarter of what he otherwise would.")
 
     def test_a_battle_the_player_did_not_fight_says_nothing(self):
         _w, res, _logs, _ = _battle(AI_V_AI, "Castanos", "Mack", trusts={"ArchdukeJohn": 5})
@@ -890,18 +975,21 @@ def _contingent(res, side, name):
 
 class TestTheDioramaCaption:
     def test_the_players_marshal(self):
+        """FLIPPED CONSCIOUSLY (review A): the absolute "half his weight
+        reached the field" became the relative clause."""
         _w, res, _logs, _ = _battle(D_CO, "Moore", "Ney", trusts={"Davout": 10})
         dav = _contingent(res, "defender", "Davout")
-        assert dav["faith"] == ("His faith in you is spent (trust 10) — half his weight "
-                                "reached the field.")
+        assert dav["faith"] == ("Faith spent (trust 10): he brought half what he "
+                                "otherwise would.")
         assert dav["committed"] == 30000          # the figure is left alone
         assert "faith" not in _contingent(res, "defender", "Ney")
 
     def test_the_enemys_marshal(self):
+        """FLIPPED CONSCIOUSLY (review A)."""
         _w, res, _logs, _ = _battle(ENEMY_CO, "Ney", "Mack", trusts={"ArchdukeJohn": 5})
         john = _contingent(res, "defender", "ArchdukeJohn")
-        assert john["faith"] == ("He fought without conviction — half his weight never "
-                                 "reached the field.")
+        assert john["faith"] == ("Without conviction: he brought half what he otherwise "
+                                 "would.")
 
     def test_a_healthy_field_has_no_caption(self):
         _w, res, _logs, _ = _battle(D_CO, "Moore", "Ney")
@@ -933,7 +1021,8 @@ class TestTheDioramaCaption:
         assert soult["status"] == "refused"
         assert "faith" not in soult
         assert davout["status"] == "engaged"
-        assert davout["faith"].startswith("His faith in you is spent (trust 10)")
+        # FLIPPED CONSCIOUSLY (review A): the caption's new, shorter prefix.
+        assert davout["faith"].startswith("Faith spent (trust 10):")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1127,10 +1216,15 @@ class TestTheMassAndLossLinesAreNotFailures:
         assert "text.findn(marker) >= 0" in code
 
     def test_the_enemy_phase_has_three_colours_not_two(self):
+        """FLIPPED CONSCIOUSLY (IQ-5 review G): the arrival / no-show colours
+        are no longer the literals COLOR_SUCCESS / COLOR_ERROR but the SIDE's
+        (`arrive_color` / `noshow_color`, set from `_reinforcement_side`).
+        The three-kinds rule this pinned still holds — report lines stay
+        COLOR_INFO — and is asserted in full below."""
         code = _body("enemy_phase_dialog.gd", "_format_action")
         assert "var reinf_color = Utils.COLOR_INFO" in code
-        assert 'if msg_text.find("arrived") >= 0:\n\t\t\t\treinf_color = Utils.COLOR_SUCCESS' in code
-        assert "if msg_text.findn(marker) >= 0:\n\t\t\t\t\t\treinf_color = COLOR_ERROR" in code
+        assert 'if msg_text.find("arrived") >= 0:\n\t\t\t\treinf_color = arrive_color' in code
+        assert "if msg_text.findn(marker) >= 0:\n\t\t\t\t\t\treinf_color = noshow_color" in code
         assert 'Utils.COLOR_SUCCESS if msg_text.find("arrived") >= 0 else COLOR_ERROR' not in code
         assert "if not (reinf_msgs is Array):" in code
 
@@ -1201,10 +1295,895 @@ class TestTheEnemyPhaseDialogReadsTheKeys:
 
 
 class TestTheDioramaDrawsTheCaption:
-    @pytest.mark.parametrize("func", ["_make_block", "_populate_shelf"])
-    def test_the_caption_is_read_null_safe(self, func):
-        code = _body("battle_diorama.gd", func)
+    def test_the_caption_is_read_null_safe(self):
+        code = _body("battle_diorama.gd", "_make_block")
         assert 'var faith_v = c.get("faith", null)' in code
         assert 'var faith := str(faith_v) if faith_v is String else ""' in code
         assert 'if faith != "":' in code
         assert 'str(c.get("faith"' not in code
+
+    def test_the_shelf_never_reads_the_caption(self):
+        """FLIPPED CONSCIOUSLY (IQ-5 review B): this used to pin a null-safe
+        read in `_populate_shelf` — an arm the backend can never reach (it
+        attaches `faith` only to a man who stood on the field, and the shelf
+        holds only the absent). Deleted; its comment was false."""
+        code = _body("battle_diorama.gd", "_populate_shelf")
+        assert 'c.get("faith"' not in code
+        assert "faith" not in code.replace("# ", "")  # no code names it
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# IQ-5 REVIEW ROUND — pins for rulings A..H (each finding's own geometry)
+# ═══════════════════════════════════════════════════════════════════════
+
+_CAMEL = re.compile(r"[a-z][A-Z]")
+_GD_TEXT = lambda f: (GD / f).read_text(encoding="utf-8")  # noqa: E731
+
+
+def _staged_battle(placements, attacker, target, seed=3, trusts=None, lead=None,
+                   ally=None):
+    """`_battle`, but also returns the pair breakdown read BEFORE the fight
+    (the engine's own `scale`), so a pin can show the geometry is one where
+    an absolute fraction and the relative clause disagree."""
+    w = _stage(_boot(), placements)
+    for name, value in (trusts or {}).items():
+        _trust(w.marshals[name], value)
+    bd = (pair_contribution_breakdown(w.marshals[lead], w.marshals[ally])
+          if lead and ally else None)
+    res, logs = _fight(w, attacker, target, seed)
+    return w, res, logs, bd
+
+
+class TestTheFaithCopyIsRelative:
+    """Ruling A (#3 #4 #7 #12). The caption and the enemy note quoted an
+    ABSOLUTE fraction built from the trust factor alone — false on every
+    Rival (0.25 total) and Friendly (0.625) pair. They read the shared
+    relative clause now. Each pin is on a geometry where the absolute form
+    WOULD have lied: the engine's total scale differs from the factor."""
+
+    REL = "he brought half what he otherwise would"
+
+    def test_the_player_rival(self):
+        """Ney–Bernadotte, the shipped Rival pair (−1 both ways)."""
+        _w, res, _logs, bd = _staged_battle(
+            {"Ney": ("Paris", 20000), "Bernadotte": ("Paris", 30000),
+             "Moore": ("Artois", 60000)}, "Moore", "Ney",
+            trusts={"Bernadotte": 20}, lead="Ney", ally="Bernadotte")
+        assert bd["relationship"] == -1 and bd["scale"] == 0.25
+        assert bd["trust_factor"] == 0.5
+        cap = _contingent(res, "defender", "Bernadotte")["faith"]
+        assert cap == f"Faith spent (trust 20): {self.REL}."
+        assert "his weight" not in cap          # the absolute form is gone
+        # the note's two figures are the same ratio the caption states
+        assert res["battle_report"]["trust_note"] == (
+            "Bernadotte's faith in you is spent (trust 20) — he committed 5,709 to "
+            "the fight where he would have brought 11,418.")
+
+    def test_the_player_friend(self):
+        """Ney–Lannes (+1): 0.625 of his base weight reached — "half his
+        weight" was false; half of what he would otherwise bring is true."""
+        _w, res, _logs, bd = _staged_battle(
+            {"Ney": ("Paris", 20000), "Lannes": ("Paris", 30000),
+             "Moore": ("Artois", 60000)}, "Moore", "Ney",
+            trusts={"Lannes": 20}, lead="Ney", ally="Lannes")
+        assert bd["relationship"] == 1 and bd["scale"] == 0.625
+        assert _contingent(res, "defender", "Lannes")["faith"] == (
+            f"Faith spent (trust 20): {self.REL}.")
+        assert res["battle_report"]["trust_note"] == (
+            "Lannes's faith in you is spent (trust 20) — he committed 16,778 to the "
+            "fight where he would have brought 33,556.")
+
+    def test_the_enemy_rival(self):
+        """Kutuzov–Buxhowden (−1): three-quarters never reached; the old
+        note said half."""
+        _w, res, _logs, bd = _staged_battle(
+            {"Ney": ("Franconia", 40000), "Kutuzov": ("Swabia", 30000),
+             "Buxhowden": ("Swabia", 20000)}, "Ney", "Kutuzov",
+            trusts={"Buxhowden": 20}, lead="Kutuzov", ally="Buxhowden")
+        assert bd["relationship"] == -1 and bd["scale"] == 0.25
+        assert res["battle_report"]["trust_note"] == (
+            f"Buxhowden fought for Russia without conviction — {self.REL}.")
+        assert _contingent(res, "defender", "Buxhowden")["faith"] == (
+            f"Without conviction: {self.REL}.")
+
+    def test_the_enemy_friend(self):
+        """Archduke Charles–Archduke John (+1): 62.5% reached, the old note
+        said half never did."""
+        _w, res, _logs, bd = _staged_battle(
+            {"Ney": ("Franconia", 40000), "ArchdukeCharles": ("Swabia", 30000),
+             "ArchdukeJohn": ("Swabia", 20000)}, "Ney", "ArchdukeCharles",
+            trusts={"ArchdukeJohn": 5}, lead="ArchdukeCharles", ally="ArchdukeJohn")
+        assert bd["relationship"] == 1 and bd["scale"] == 0.625
+        assert res["battle_report"]["trust_note"] == (
+            f"Archduke John fought for Austria without conviction — {self.REL}.")
+        assert _contingent(res, "defender", "ArchdukeJohn")["faith"] == (
+            f"Without conviction: {self.REL}.")
+
+    def test_one_source_for_the_three_sentences(self):
+        from backend.commands import combat_executor as cex
+        assert cex._faith_share_clause(0.5) == self.REL
+        assert cex._faith_share_clause(0.25) == "he brought a quarter of what he otherwise would"
+        src = inspect.getsource(cex.CombatExecutor._faith_captions)
+        assert src.count("_faith_share_clause(") == 2
+        assert "weight_phrase" not in src
+        note = inspect.getsource(cex.CombatExecutor._compose_trust_note)
+        assert note.count("_faith_share_clause(") == 1
+        assert "1.0 - " not in note
+
+
+def _rm(placements, attacker, target, seed=3, trusts=None):
+    return _battle(placements, attacker, target, seed=seed, trusts=trusts)[1].get(
+        "reinforcement_messages")
+
+
+# The geometries ruling C names.
+LEAD_JOHN_CO = {"Ney": ("Franconia", 40000), "ArchdukeJohn": ("Swabia", 20000),
+                "Mack": ("Swabia", 30000)}
+JOHN_ARRIVES_ATK = {"Mack": ("Swabia", 40000), "Ney": ("Franconia", 20000),
+                    "ArchdukeJohn": ("Bohemia", 30000)}
+
+
+class TestEveryReinforcementNameIsProse:
+    """Ruling C (#1 #6 #9 #13 #15 #17). The first cut humanised the arrival
+    line alone; the massed parenthesis, every no-show arm and a multi-word
+    lead's loss line still printed roster keys (R7)."""
+
+    def test_a_multi_word_lead_is_named_in_both_lines(self):
+        """The pin that should have caught it used Mack, a one-word lead."""
+        assert _rm(LEAD_JOHN_CO, "Ney", "ArchdukeJohn") == [
+            "Archduke John fought with Mack beside him — massed effective strength: "
+            "20,000 (lead) + 23,175 committed (Mack) = 43,175.",
+            "Archduke John's supporting ally lost 4,268 men.",
+        ]
+
+    def test_a_multi_word_arrival_on_the_attacker_side(self):
+        assert _rm(JOHN_ARRIVES_ATK, "Mack", "Ney", seed=1) == [
+            "Archduke John's forces arrived to reinforce Mack!",
+            "Massed effective strength: 40,000 (lead) + 22,500 committed "
+            "(Archduke John) = 62,500.",
+            "His supporting ally lost 1,355 men.",
+        ]
+
+    def test_the_no_show_seeds_are_prose_too(self):
+        """Seeds 2 and 6 are no-shows: "ArchdukeJohn could not reach…"."""
+        for seed in (2, 6):
+            assert _rm(JOHN_ARRIVES_ATK, "Mack", "Ney", seed=seed) == [
+                "Archduke John could not reach the battlefield in time."]
+
+    @pytest.mark.parametrize("seed", range(1, 9))
+    def test_no_roster_key_on_any_seed(self, seed):
+        for placements, a, t in ((JOHN_ARRIVES_ATK, "Mack", "Ney"),
+                                 (LEAD_JOHN_CO, "Ney", "ArchdukeJohn"),
+                                 (ENEMY_CO, "Ney", "Mack")):
+            for m in _rm(placements, a, t, seed=seed) or []:
+                assert not _CAMEL.search(m), (seed, m)
+
+    def test_lever_down_is_720597da_literally(self, monkeypatch):
+        """Compared with the LITERAL pre-IQ-5 strings, not with lever-up (the
+        first pin compared lever-up to lever-down on one-word Davout, so it
+        could see neither IQ5-10's unconditional rename nor the prior form)."""
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+        assert _rm(JOHN_ARRIVES_ATK, "Mack", "Ney", seed=1) == [
+            "ArchdukeJohn's forces arrived to reinforce Mack!",
+            "Massed effective strength: 40,000 (lead) + 22,500 committed "
+            "(ArchdukeJohn) = 62,500.",
+            "His supporting ally lost 1,355 men.",
+        ]
+        assert _rm(JOHN_ARRIVES_ATK, "Mack", "Ney", seed=2) == [
+            "ArchdukeJohn could not reach the battlefield in time."]
+
+    def test_the_display_function_is_the_lever(self, monkeypatch):
+        ce = CommandExecutor()._combat
+        assert ce._reinf_name("ArchdukeJohn") == "Archduke John"
+        assert ce._reinf_name("Ney") == "Ney"
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+        assert ce._reinf_name("ArchdukeJohn") == "ArchdukeJohn"
+
+    def test_every_no_show_reason_names_through_the_display_function(self):
+        """AST census: no `friendly_reason` interpolates the raw
+        `r['marshal']` / `marshal.name` — only `_who` / `_rn(...)`."""
+        tree = ast.parse(textwrap.dedent(inspect.getsource(CE._execute_attack)))
+        reasons = [n.value for n in ast.walk(tree)
+                   if isinstance(n, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id == "friendly_reason"
+                           for t in n.targets)]
+        assert len(reasons) >= 7
+        for node in reasons:
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.FormattedValue):
+                    src = ast.unparse(sub.value)
+                    assert src == "_who" or src.startswith("_rn("), src
+
+
+# E: a 90-man Davout stands beside Ney at Paris; the rubble rule takes him.
+D_CO_RUBBLE = {"Ney": ("Paris", 20000), "Davout": ("Paris", 90),
+               "Moore": ("Artois", 100000)}
+
+
+class TestTheRubbleIsReported:
+    """Ruling E (#2). A co-located man wiped out by `take_casualties`'
+    `< 50 -> 0` rule was reported with his distributed share ("lost 48
+    men" for a 90-man corps that was gone)."""
+
+    def test_the_loss_line_rows_and_diorama_say_ninety(self):
+        _w, res, logs, losses = _battle(D_CO_RUBBLE, "Moore", "Ney", seed=1)
+        assert losses["Davout"] == 90
+        assert res["reinforcement_messages"][1] == "Ney's supporting ally lost 90 men."
+        rows = {r["marshal"]: r for r in logs[0]["defender_participant_losses"]}
+        assert rows["Davout"] == {"marshal": "Davout", "casualties": 90,
+                                  "strength_before": 90}
+        dav = _contingent(res, "defender", "Davout")
+        assert (dav["casualties"], dav["remaining"], dav["status"]) == (90, 0, "destroyed")
+
+    def test_the_army_figure_stays_mechanical(self):
+        """R2: the event and the log keep the distributed sum (10,778), not
+        the realised 10,820 — they feed record_battle, the war score, the
+        decisive test and the campaign ledger."""
+        _w, res, logs, losses = _battle(D_CO_RUBBLE, "Moore", "Ney", seed=1)
+        assert _side(res, "defender")["casualties"] == 10778
+        assert logs[0]["defender_casualties"] == 10778
+        assert losses["Ney"] + losses["Davout"] == 10820
+
+    def test_a_man_who_survives_the_battle_is_not_read_as_rubble(self):
+        """Seed 2: Davout loses 38 and keeps 52 — above the rubble line. He is
+        not reported as lost whole (the hazard's capture trap: the figure is
+        read BEFORE capture or retreat move anyone)."""
+        _w, res, logs, _losses = _battle(D_CO_RUBBLE, "Moore", "Ney", seed=2)
+        assert res["reinforcement_messages"][1] == "Ney's supporting ally lost 38 men."
+        rows = {r["marshal"]: r for r in logs[0]["defender_participant_losses"]}
+        assert rows["Davout"]["casualties"] == 38
+        assert _contingent(res, "defender", "Davout")["remaining"] == 52
+
+    def test_it_is_display_only(self, monkeypatch):
+        w, res, logs, _ = _battle(D_CO_RUBBLE, "Moore", "Ney", seed=1)
+        up = _mechanics(w, res, logs)
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+        w, res, logs, _ = _battle(D_CO_RUBBLE, "Moore", "Ney", seed=1)
+        assert _mechanics(w, res, logs) == up
+
+
+LONE_NEY_CO = {"Ney": ("Franconia", 60), "Mack": ("Swabia", 70000),
+               "ArchdukeJohn": ("Swabia", 40000)}
+LONE_NEY_SOLO = {"Ney": ("Franconia", 60), "Mack": ("Swabia", 70000)}
+
+
+class TestALoneSidesLossIsOneFigure:
+    """Ruling F (#8). A LONE side destroyed by the rubble rule (or the
+    overkill cap) printed its raw figure under a bare name while the report
+    printed the applied loss — on both battle paths."""
+
+    def test_the_coordinated_path(self):
+        _w, res, logs, _ = _battle(LONE_NEY_CO, "Mack", "Ney", seed=1)
+        d = _side(res, "defender")
+        assert d["casualties"] == 28              # the mechanical raw figure stands
+        assert d["applied_casualties"] == 60
+        assert type(d["applied_casualties"]) is int
+        assert "applied_casualties" not in _side(res, "attacker")   # an army side
+        assert _cs(res)["defender_casualties"] == 60
+        assert logs[0]["defender_casualties"] == 28
+        assert logs[0]["defender_applied_casualties"] == 60
+        assert "(9 / 60 casualties)" in format_event_oneliner(logs[0])
+        assert "Ney 60" in res["message"] and "Ney 28" not in res["message"]
+        assert _contingent(res, "defender", "Ney")["casualties"] == 60
+
+    def test_the_solo_path(self):
+        """The solo report derived "60 -> 31" for a destroyed corps."""
+        _w, res, logs, _ = _battle(LONE_NEY_SOLO, "Mack", "Ney", seed=1)
+        d = _side(res, "defender")
+        assert (d["casualties"], d["applied_casualties"], d["remaining"]) == (29, 60, 0)
+        cs = _cs(res)
+        assert (cs["defender_casualties"], cs["defender_remaining"]) == (60, 0)
+        assert "(8 / 60 casualties)" in format_event_oneliner(logs[0])
+        assert _contingent(res, "defender", "Ney")["casualties"] == 60
+        assert "applied_casualties" not in _side(res, "attacker")
+
+    def test_the_overkill_cap_on_a_lone_corps(self):
+        _w, res, logs, _ = _battle(LONE_DEF, "Ney", "Mack", seed=5)
+        d = _side(res, "defender")
+        assert (d["casualties"], d["applied_casualties"]) == (1499, 1500)
+        assert "Mack 1,500" in res["message"] and "Mack 1,499" not in res["message"]
+        assert "(198 / 1,500 casualties)" in format_event_oneliner(logs[0])
+
+    def test_the_description_rewrite_is_bounded(self):
+        rw = CE._rewrite_lone_casualties
+        assert rw("Casualties: Mack 9, Ney 25.", "Ney", 25, 60) == "Casualties: Mack 9, Ney 60."
+        assert rw("Ney 250 and Ney 25,000", "Ney", 25, 60) == "Ney 250 and Ney 25,000"
+        assert rw("ArchdukeJohn 25", "John", 25, 60) == "ArchdukeJohn 25"
+        assert rw("Ney suffered 25 casualties.", "Ney", 25, 60) == "Ney suffered 60 casualties."
+
+    def test_lever_down_is_the_pre_iq5_surface(self, monkeypatch):
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+        _w, res, logs, _ = _battle(LONE_NEY_SOLO, "Mack", "Ney", seed=1)
+        assert "applied_casualties" not in _side(res, "defender")
+        assert (_cs(res)["defender_casualties"], _cs(res)["defender_remaining"]) == (29, 31)
+        assert "defender_applied_casualties" not in logs[0]
+        assert "(8 / 29 casualties)" in format_event_oneliner(logs[0])
+
+    def test_it_is_display_only(self, monkeypatch):
+        for placements in (LONE_NEY_CO, LONE_NEY_SOLO):
+            w, res, logs, _ = _battle(placements, "Mack", "Ney", seed=1)
+            up = _mechanics(w, res, logs)
+            monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+            w, res, logs, _ = _battle(placements, "Mack", "Ney", seed=1)
+            assert _mechanics(w, res, logs) == up
+            monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", True)
+
+    def test_the_log_prefers_the_applied_figure(self):
+        ev = {"type": "battle", "turn": 4, "location": "Franconia",
+              "attacker": "Mack", "attacker_nation": "Austria",
+              "defender": "Ney", "defender_nation": "France",
+              "outcome": "attacker_tactical_victory",
+              "attacker_casualties": 9, "defender_casualties": 28,
+              "attacker_strength_before": 70000, "defender_strength_before": 60}
+        assert "(9 / 28 casualties)" in format_event_oneliner(ev)
+        ev["defender_applied_casualties"] = 60
+        assert "(9 / 60 casualties)" in format_event_oneliner(ev)
+
+    def test_the_enemy_phase_transport_carries_it(self):
+        import backend.main as M
+        w, res, _logs, _ = _battle(LONE_NEY_CO, "Mack", "Ney", seed=1)
+        phase = {"total_actions": 1,
+                 "nations": {"Austria": {"actions": [res], "action_count": 1}}}
+        with _quiet():
+            visible = M._build_visible_enemy_phase(phase, w)
+        (action,) = visible["nations"]["Austria"]["actions"]
+        assert action["events"][0]["defender"]["applied_casualties"] == 60
+
+    def test_the_dialog_prefers_it_on_a_lone_side_only(self):
+        code = _body("enemy_phase_dialog.gd", "_format_battle")
+        for side, name in (("atk", "attacker"), ("def", "defender")):
+            assert (f'\tvar {side}_applied = {name}.get("applied_casualties", null)\n'
+                    f'\tif not {side}_is_army and ({side}_applied is int or '
+                    f'{side}_applied is float):\n'
+                    f'\t\t{name}_casualties = {side}_applied') in code
+        # read before the lines that print the figure
+        assert code.index("def_applied") < code.index("if def_is_army:")
+
+
+class TestTheColoursBelongToASide:
+    """Ruling G (#11). Census pins — the suite must not need the Godot
+    binary. The colour keys on the battle's ATTACKER nation, never on text."""
+
+    def test_the_lever_exists_and_is_up(self):
+        assert "const IQ5_COLOUR_BY_SIDE := true" in _GD_TEXT("enemy_phase_dialog.gd")
+
+    def test_the_side_decides_the_two_colours(self):
+        code = _body("enemy_phase_dialog.gd", "_format_action")
+        assert "var reinf_side = _reinforcement_side(action)" in code
+        assert ('\t\tvar arrive_color = Utils.COLOR_SUCCESS\n'
+                '\t\tvar noshow_color = COLOR_ERROR\n'
+                '\t\tif reinf_side == "enemy":\n'
+                '\t\t\tarrive_color = COLOR_ERROR\n'
+                '\t\t\tnoshow_color = Utils.COLOR_SUCCESS\n'
+                '\t\telif reinf_side == "third":\n'
+                '\t\t\tarrive_color = Utils.COLOR_INFO\n'
+                '\t\t\tnoshow_color = Utils.COLOR_INFO') in code
+
+    def test_the_side_is_the_battles_attacker(self):
+        code = _body("enemy_phase_dialog.gd", "_reinforcement_side")
+        assert 'if not IQ5_COLOUR_BY_SIDE:\n\t\treturn "player"' in code
+        assert 'var an = ev.get("attacker_nation", "")' in code
+        assert 'var dn = ev.get("defender_nation", "")' in code
+        assert 'var nat = action.get("nation", "")' in code
+        assert ('\tif atk_nation == _PLAYER_NATION:\n\t\treturn "player"\n'
+                '\tif def_nation == _PLAYER_NATION:\n\t\treturn "enemy"\n'
+                '\treturn "third"') in code
+        assert "msg_text" not in code and "find(" not in code   # never the prose
+
+    def test_our_army_destroyed_is_a_loss(self):
+        code = _body("enemy_phase_dialog.gd", "_format_battle")
+        assert ('\t\tvar destroyed_color = Utils.COLOR_CONQUEST\n'
+                '\t\tif IQ5_COLOUR_BY_SIDE and str(event.get("defender_nation", "")) '
+                '== _PLAYER_NATION:\n'
+                '\t\t\tdestroyed_color = COLOR_ERROR\n'
+                '\t\tresult += "[color=#" + destroyed_color + "]    ARMY DESTROYED!') in code
+
+    def test_main_gd_is_left_alone(self):
+        """main.gd only ever shows a French attack — its colours stay."""
+        code = _body("main.gd", "_display_reinforcement_messages")
+        assert "_reinforcement_side" not in code and "IQ5_COLOUR_BY_SIDE" not in code
+
+
+class TestTheEnemyPhasePrintsTheFigure:
+    """H #16: the pins checked that keys were READ, never the branch that
+    prints them or the figure printed (or→and, `if false:`, a def/atk swap
+    all stayed green)."""
+
+    def test_the_casualties_gate_is_or(self):
+        code = _body("enemy_phase_dialog.gd", "_format_berthier_report")
+        assert '\tif atk_scope != "" or def_scope != "":\n' in code
+
+    def test_each_army_branch_prints_its_own_figure(self):
+        code = _body("enemy_phase_dialog.gd", "_format_battle")
+        for flag, name in (("atk_is_army", "attacker"), ("def_is_army", "defender")):
+            assert (f'\tif {flag}:\n'
+                    f'\t\tresult += "[color=#" + Utils.COLOR_INFO + "]    " + '
+                    f'{name}_name + "\'s army: "\n'
+                    f'\t\tresult += _format_number({name}_casualties) + " casualties — "\n'
+                    f'\t\tresult += {name}_name + "\'s own corps: "\n'
+                    f'\t\tresult += _format_number({name}_remaining) + " remaining') in code
+
+    def test_the_berthier_line_reads_each_side_from_its_own_key(self):
+        code = _body("enemy_phase_dialog.gd", "_format_berthier_report")
+        assert '\t\tvar def_cas = casualty.get("defender_casualties", 0)' in code
+        assert '\t\tvar atk_cas = casualty.get("attacker_casualties", 0)' in code
+        assert ('\t\tresult += ("[color=#" + COLOR_RPT + "]    Casualties: " + atk_label + " "\n'
+                '\t\t\t+ _format_number(atk_cas) + " | " + def_label + " "\n'
+                '\t\t\t+ _format_number(def_cas) + "[/color]\\n")') in code
+
+
+class TestTheTerminalFlagsANoShow:
+    """H #18: a marker match must SET is_failure (flip it, drop the loop or
+    start it true and every no-show renders report grey)."""
+
+    def test_the_marker_match_sets_the_failure(self):
+        code = _body("main.gd", "_display_reinforcement_messages")
+        assert "\t\tvar is_failure = false\n" in code
+        assert ("\t\tif not is_arrival:\n"
+                "\t\t\tfor marker in failure_markers:\n"
+                "\t\t\t\tif text.findn(marker) >= 0:\n"
+                "\t\t\t\t\tis_failure = true\n") in code
+
+
+def _raw_func(file: str, func: str) -> str:
+    """The raw text of `func <func>(` up to the next `\\nfunc ` — never a
+    fixed-length scrape (the NA-6 dead-name-pin failure)."""
+    src = _GD_TEXT(file)
+    start = src.index(f"\nfunc {func}(")
+    end = src.find("\nfunc ", start + 1)
+    return src[start:end if end != -1 else len(src)]
+
+
+class TestTheNullGuardIsPinned:
+    """H #19: IQ5-11's present-but-null guard had no pin."""
+
+    def test_the_guard_is_the_is_array_form(self):
+        body = _raw_func("main.gd", "_display_result")
+        assert ('\n\tif response.get("reinforcement_messages") is Array and not '
+                'response.reinforcement_messages.is_empty():\n'
+                '\t\t_display_reinforcement_messages(response.reinforcement_messages)') in body
+        assert 'response.has("reinforcement_messages")' not in body
+
+    def test_the_slice_is_the_function(self):
+        body = _raw_func("main.gd", "_display_result")
+        assert body.count("\nfunc ") == 1          # only its own header
+        assert "typeof(reinf) == TYPE_ARRAY" not in body   # the sibling elsewhere
+
+
+class TestOneJoinNames:
+    """H #21: the executor carried a duplicate `_join_names`; a pin on one
+    could not see the other. One source now."""
+
+    def test_the_executor_holds_no_copy(self):
+        from backend.commands import combat_executor as cex
+        assert not hasattr(cex, "_join_names")
+        assert "def _join_names" not in inspect.getsource(cex)
+
+    @pytest.mark.parametrize("names,prose", [
+        (["Davout"], "Davout"),
+        (["Davout", "Lannes"], "Davout and Lannes"),
+        (["Davout", "Lannes", "Soult"], "Davout, Lannes and Soult"),
+        (["Archduke John", "Mack", "Davout", "Lannes"], "Archduke John, Mack, Davout and Lannes")])
+    def test_the_battle_report_copy_is_identical_for_the_call_site(self, names, prose):
+        from backend.game_logic.battle_report import _join_names
+        old = "".join(names) if len(names) <= 1 else ", ".join(names[:-1]) + " and " + names[-1]
+        assert _join_names(names) == old == prose
+
+    def test_two_co_located_men(self):
+        """The hazard's working geometry: Davout AND Lannes stand with Ney."""
+        msgs = _rm({"Ney": ("Paris", 20000), "Davout": ("Paris", 30000),
+                    "Lannes": ("Paris", 25000), "Moore": ("Artois", 100000)},
+                   "Moore", "Ney")
+        assert msgs[0].startswith("Ney fought with Davout and Lannes beside him — ")
+        assert "committed (Davout, Lannes)" in msgs[0]
+
+    def test_three_co_located_men(self):
+        """The "A, B and C" branch — a third man (Soult, Rival to Ney, still
+        brings half) joins the stack. Order is the participant order."""
+        msgs = _rm({"Ney": ("Paris", 20000), "Davout": ("Paris", 30000),
+                    "Lannes": ("Paris", 25000), "Soult": ("Paris", 22000),
+                    "Moore": ("Artois", 120000)}, "Moore", "Ney")
+        assert msgs == [
+            "Ney fought with Davout, Soult and Lannes beside him — massed effective "
+            "strength: 20,000 (lead) + 62,974 committed (Davout, Soult, Lannes) = 82,974.",
+            "Ney's supporting allies lost 10,238 men.",
+        ]
+
+
+class TestAnEnemyCourtIsNamedInProse:
+    """H #21 (RM9): the enemy trust note's court was only ever pinned on
+    Austria, whose tag IS its display form. A stub on the one tag != display
+    court (the Ottoman marshal is alone, so no end-to-end battle can reach
+    it — the same-nation filter would drop a re-flagged man)."""
+
+    def _note(self, nation, name="Abdurrahman"):
+        w = _boot()
+        ce = CommandExecutor()._combat
+        stub = SimpleNamespace(name=name, nation=nation)
+        rec = {"marshal": stub, "side": "defender", "trust": 5, "trust_factor": 0.5,
+               "committed": 1, "full": 2}
+        return ce._compose_trust_note(
+            w, SimpleNamespace(nation="France"), SimpleNamespace(nation=nation), [rec])
+
+    def test_the_ottoman_court(self):
+        assert self._note("Ottoman") == (
+            "Abdurrahman fought for the Ottoman Empire without conviction — he brought "
+            "half what he otherwise would.")
+
+    def test_a_plain_court_takes_no_article(self):
+        assert self._note("Austria", "Mack").startswith("Mack fought for Austria without")
+
+
+# C: the geometries probe 2 measured.
+CHARLES_REINFORCED = {"Ney": ("Swabia", 40000), "ArchdukeCharles": ("Franconia", 30000),
+                      "ArchdukeJohn": ("Bohemia", 25000)}
+
+
+def _sulking(w, who, at):
+    w.marshals[who].jealous_of = at
+    w.marshals[who].jealousy_turns_remaining = 3
+
+
+class TestTheDefenderAndTheNoShowsAreProse:
+    def test_a_multi_word_defender_arrival(self):
+        """Bohemia borders Franconia: Archduke John marches in to defend."""
+        assert _rm(CHARLES_REINFORCED, "Ney", "ArchdukeCharles", seed=1) == [
+            "Archduke Charles was reinforced — massed effective strength: 30,000 "
+            "(lead) + 24,316 committed (Archduke John) = 54,316.",
+            "Archduke Charles's supporting ally lost 2,077 men.",
+        ]
+
+    def test_lever_down_defender_arrival_is_720597da(self, monkeypatch):
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", False)
+        assert _rm(CHARLES_REINFORCED, "Ney", "ArchdukeCharles", seed=1) == [
+            "ArchdukeCharles was reinforced — massed effective strength: 30,000 "
+            "(lead) + 24,316 committed (ArchdukeJohn) = 54,316.",
+            "ArchdukeCharles's supporting ally lost 2,077 men.",
+        ]
+
+    @pytest.mark.parametrize("seed", range(1, 9))
+    def test_no_roster_key_on_the_defender_arrival(self, seed):
+        for m in _rm(CHARLES_REINFORCED, "Ney", "ArchdukeCharles", seed=seed) or []:
+            assert not _CAMEL.search(m), (seed, m)
+
+    def _sulk(self, placements, attacker, target, who, at, lever, monkeypatch, seed=1):
+        monkeypatch.setattr(CE, "BOTH_SIDES_NAME_THEIR_SCOPE", lever)
+        w = _stage(_boot(), placements)
+        _sulking(w, who, at)
+        res, _ = _fight(w, attacker, target, seed)
+        return res.get("reinforcement_messages")
+
+    def test_the_grievance_arm(self, monkeypatch):
+        assert self._sulk(JOHN_ARRIVES_ATK, "Mack", "Ney", "ArchdukeJohn", "Mack",
+                          True, monkeypatch) == [
+            "Archduke John did not march. His quarrel with Mack kept him where he stood."]
+        assert self._sulk(JOHN_ARRIVES_ATK, "Mack", "Ney", "ArchdukeJohn", "Mack",
+                          False, monkeypatch) == [
+            "ArchdukeJohn did not march. His quarrel with Mack kept him where he stood."]
+
+    def test_the_grievance_arm_names_a_multi_word_lead(self, monkeypatch):
+        """`marshal.name` in the arm goes through the display function too.
+
+        Seed-robust: Archduke Charles–Archduke John are an authored +1 pair,
+        so the derived −1 leaves the grievance at 0 and John's arrival roll
+        still PASSES on most seeds (`grievance_withheld` is the reason only
+        when he FAILS it). Seeds 1..12 are searched, at least one no-show
+        is required (2, 6 and 10 at the time of writing), and every no-show
+        must be the exact grievance line; an arrival is the exact prose
+        arrival line, never a roster key."""
+        placements = {"ArchdukeCharles": ("Swabia", 40000), "Ney": ("Franconia", 20000),
+                      "ArchdukeJohn": ("Bohemia", 30000)}
+        no_shows = 0
+        for seed in range(1, 13):
+            msgs = self._sulk(placements, "ArchdukeCharles", "Ney", "ArchdukeJohn",
+                              "ArchdukeCharles", True, monkeypatch, seed=seed)
+            assert not any(_CAMEL.search(m) for m in msgs), (seed, msgs)
+            if any("arrived" in m for m in msgs):
+                assert msgs[0] == ("Archduke John's forces arrived to reinforce "
+                                   "Archduke Charles!"), seed
+                assert msgs[1].startswith("Massed effective strength: 40,000 (lead) + "), seed
+                continue
+            no_shows += 1
+            assert msgs == ["Archduke John did not march. His quarrel with Archduke "
+                            "Charles kept him where he stood."], seed
+        assert no_shows >= 1
+
+
+class TestTheRubbleOnTheAttackerSide:
+    """Ruling E, the attacker mirror: a 55-man Davout beside Ney attacking.
+    The seed that rubbles him is FOUND, not assumed; at least one must."""
+
+    def test_the_attacker_side_too(self):
+        placements = {"Ney": ("Swabia", 30000), "Davout": ("Swabia", 55),
+                      "Mack": ("Swabia", 60000)}
+        hit = 0
+        for seed in range(1, 13):
+            _w, res, logs, losses = _battle(placements, "Ney", "Mack", seed=seed)
+            if losses["Davout"] != 55:
+                continue
+            hit += 1
+            assert "Ney's supporting ally lost 55 men." in res["reinforcement_messages"]
+            rows = {r["marshal"]: r for r in logs[0]["attacker_participant_losses"]}
+            assert rows["Davout"]["casualties"] == 55
+            assert _contingent(res, "attacker", "Davout")["casualties"] == 55
+        assert hit >= 1
+
+    def test_the_log_prefers_the_attackers_applied_figure(self):
+        ev = {"type": "battle", "turn": 4, "location": "Swabia",
+              "attacker": "Ney", "attacker_nation": "France",
+              "defender": "Mack", "defender_nation": "Austria",
+              "outcome": "defender_victory",
+              "attacker_casualties": 27, "defender_casualties": 9,
+              "attacker_strength_before": 60, "defender_strength_before": 70000}
+        assert "(27 / 9 casualties)" in format_event_oneliner(ev)
+        ev["attacker_applied_casualties"] = 60
+        assert "(60 / 9 casualties)" in format_event_oneliner(ev)
+
+
+class TestTheCaptionSitsUnderTheCorps:
+    """Ruling B (#10). Structural only — the suite must not need Godot.
+
+    Measured headless on the real tableau (show_diorama, settled frame,
+    visible-pixel sprite bounds; the probe is in the review scratchpad):
+    the shipped caption was a FOURTH text row, and in the reinforced case
+    (a "marched to the guns" status row present) it landed on the lead's
+    locket (38x7 px) and name label (36x5 px) on both columns; set before
+    `autowrap_mode`, its size never wrapped (one ~420px line into the
+    opposing half, per the review). Under the figures, outboard, 150 wide
+    at y=+30: no collision at depth 1 or 2, either column, reinforced or
+    co-located (y=+22 still grazed a fallen figure by 1 px)."""
+
+    def test_autowrap_is_set_before_the_size(self):
+        code = _body("battle_diorama.gd", "_make_block")
+        a = code.index("faith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART")
+        m = code.index("faith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)")
+        s = code.index("faith_l.size = Vector2(FAITH_CAPTION_W, 14.0)")
+        assert a < m < s
+
+    def test_it_sits_under_the_feet_outboard(self):
+        code = _body("battle_diorama.gd", "_make_block")
+        assert ("\t\t\tfaith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT\n"
+                "\t\t\tfaith_l.position = Vector2(FAITH_CAPTION_INBOARD - FAITH_CAPTION_W,\n"
+                "\t\t\t\t\tFAITH_CAPTION_Y)") in code
+        assert ("\t\t\tfaith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT\n"
+                "\t\t\tfaith_l.position = Vector2(-FAITH_CAPTION_INBOARD, FAITH_CAPTION_Y)") in code
+        assert "faith_l.position = Vector2(text_x" not in code
+
+    def test_the_measured_constants(self):
+        src = _GD_TEXT("battle_diorama.gd")
+        const = {k: float(re.search(rf"const {k} := ([-\d.]+)", src).group(1))
+                 for k in ("FAITH_CAPTION_W", "FAITH_CAPTION_Y", "FAITH_CAPTION_INBOARD")}
+        assert const["FAITH_CAPTION_Y"] >= 30.0      # below the feet and a fallen figure
+        assert const["FAITH_CAPTION_W"] <= 150.0     # clear of the next block inboard
+        assert const["FAITH_CAPTION_INBOARD"] <= 20.0
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# IQ-5 REVIEW ROUND — ruling J (#5): the card prices the grievance's INCREMENT
+# ═══════════════════════════════════════════════════════════════════════
+
+OLD_CARD = ("Free, and it fixes nothing. For 3 more turns he brings about half the weight "
+            "of his {men:,} men to any battle {lead} leads, and the quarrel may harden further.")
+
+
+def _let_it_stand(who, at, trust=None, rels=None):
+    """Fire the §6 confrontation for `who` (jealous of `at`) on the shipped
+    boot through the real producer, `queue_confrontation_petition`, and read
+    the "Let it stand" option's `detail` off `world.pending_marshal_petition`
+    — the surface the player reads, not the helper. Returns (detail, world,
+    the engine's own breakdown, its counterfactual)."""
+    w = _boot()
+    m, t = w.marshals[who], w.marshals[at]
+    for (a, b), value in (rels or {}).items():
+        w.marshals[a].relationships[b] = value
+    if trust is not None:
+        _trust(m, trust)
+    m.jealous_of = at
+    m.jealousy_turns_remaining = 3
+    assert w.pending_marshal_petition is None
+    with _quiet():
+        assert J.queue_confrontation_petition(w, m, t) == J.PETITION_QUEUED
+    pet = w.pending_marshal_petition
+    assert pet["kind"] == "jealousy_confrontation" and pet["speaker"] == who
+    (opt,) = [o for o in pet["options"] if o["id"] == "acknowledge"]
+    assert opt["label"] == "Let it stand" and opt["cost_note"] == "Free"
+    return (opt["detail"], w, pair_contribution_breakdown(t, m),
+            pair_contribution_breakdown(t, m, without_grievance=True))
+
+
+class TestTheCardPricesTheIncrement:
+    """Ruling J (#5, P2, confirmed by two refuters). `_standing_cost_detail`
+    read the breakdown and used it only when `scale > 0 and trust_factor <
+    1`, so on the ordinary board — Bernadotte (cautious) Rival to Ney, the
+    derived −1 driving the pair to −2 and the engine applying 0.0 — the
+    "Let it stand" card still priced "about half the weight of his 17,000
+    men". The card prices the grievance's INCREMENT now: the engine's scale
+    against the same source's counterfactual without the grievance
+    (`pair_contribution_breakdown(..., without_grievance=True)`), behind
+    `TRUST_NAMES_ITS_PRICE`. Every pin reads the petition the player reads,
+    on the authored pairs; relationships are hand-set only to reach an arm
+    the boot cannot."""
+
+    NONE_NEY = ("Free, and it fixes nothing. For 3 more turns he brings NONE of his "
+                "17,000 men to any battle Ney leads, and the quarrel may harden further.")
+
+    def test_bernadotte_jealous_of_ney_brings_none(self):
+        detail, w, bd, cf = _let_it_stand("Bernadotte", "Ney")
+        b = w.marshals["Bernadotte"]
+        assert (b.personality, b.trust.value, b.strength) == ("cautious", 40, 17000)
+        assert b.relationships["Ney"] == -1 == w.marshals["Ney"].relationships["Bernadotte"]
+        assert (bd["scale"], bd["relationship"], bd["grievance"], bd["trust_factor"]) == (
+            0.0, -2, "withheld", 1.0)
+        assert (cf["scale"], cf["relationship"], cf["grievance"]) == (0.5, -1, "")
+        assert detail == self.NONE_NEY
+        assert "half" not in detail
+
+    def test_at_trust_25_it_is_still_none_never_a_quarter(self):
+        """The finding's second cell: the new branch had the true figure in
+        hand and still said half. Trust has nothing left to halve."""
+        detail, _w, bd, cf = _let_it_stand("Bernadotte", "Ney", trust=25)
+        assert (bd["scale"], bd["trust_factor"]) == (0.0, 1.0)
+        assert (cf["scale"], cf["trust_factor"]) == (0.25, 0.5)
+        assert detail == self.NONE_NEY
+        assert "quarter" not in detail and "faith" not in detail
+
+    def test_the_card_agrees_with_the_muster_row(self):
+        """The finding's contradiction, closed: the muster row for the same
+        pair refuses him outright (a −2 read is `hostile_refuses`), and the
+        card no longer prices "about half" for a man who will not come."""
+        detail, w, _bd, _cf = _let_it_stand("Bernadotte", "Ney")
+        ce = CommandExecutor()._combat
+        with _quiet():
+            pv = ce._build_muster_preview(w.marshals["Ney"], w.marshals["Mack"], w, {"world": w})
+        row = next(r for r in pv["rows"] if r["marshal"] == "Bernadotte")
+        assert row["will_join"] is False and row["reason"] == "hostile_refuses"
+        assert "he brings NONE of his 17,000 men" in detail
+
+    def test_an_already_hostile_pair_costs_no_weight(self):
+        """Hazard 1: Bernadotte–Davout is authored −2 both ways. The engine
+        applies 0.0 with the grievance AND without it, so "NONE for 3 more
+        turns" would promise a return that never comes."""
+        detail, w, bd, cf = _let_it_stand("Bernadotte", "Davout")
+        assert w.marshals["Bernadotte"].relationships["Davout"] == -2
+        assert w.marshals["Davout"].relationships["Bernadotte"] == -2
+        assert bd["scale"] == cf["scale"] == 0.0 and cf["relationship"] == -2
+        assert detail == ("Free, and it fixes nothing. For 3 more turns he brings NONE of his "
+                          "17,000 men to any battle Davout leads, quarrel or no quarrel — they are "
+                          "openly at odds already, and the quarrel may harden further.")
+
+    def test_a_friend_loses_his_goodwill(self):
+        """Hazard 2: Soult–Massena is the authored +1 pair. The grievance
+        costs the friendship's ×1.25 — a real price "no weight penalty"
+        would have hidden; and never `weight_phrase(1.0)` ("about 100% of")."""
+        detail, w, bd, cf = _let_it_stand("Soult", "Massena")
+        assert w.marshals["Soult"].personality == "literal"
+        assert (w.marshals["Soult"].relationships["Massena"],
+                w.marshals["Massena"].relationships["Soult"]) == (1, 1)
+        assert (bd["scale"], bd["relationship"]) == (1.0, 0)
+        assert (cf["scale"], cf["relationship"]) == (1.25, 1)
+        assert detail == ("Free, and it fixes nothing. For 3 more turns he brings his 30,000 men to "
+                          "any battle Massena leads, but no more — the goodwill that made him worth "
+                          "a quarter more is gone, and the quarrel may harden further.")
+        assert "half" not in detail and "100%" not in detail
+
+    def test_the_lost_goodwill_is_derived_from_the_table(self, monkeypatch):
+        """Never a hardcoded quarter. A devoted (+2) pair — none is authored,
+        so hand-set to reach the arm — falls 1.5 -> 1.25 ("about 20%"); and
+        a re-tuned +1 of 1.5 reads "half"."""
+        detail, _w, bd, cf = _let_it_stand(
+            "Soult", "Massena", rels={("Soult", "Massena"): 2, ("Massena", "Soult"): 2})
+        assert (bd["scale"], cf["scale"]) == (1.25, 1.5)
+        assert detail == ("Free, and it fixes nothing. For 3 more turns he brings about 125% of the "
+                          "weight of his 30,000 men to any battle Massena leads, but less than he "
+                          "would — the goodwill that made him worth about 20% more is gone, and the "
+                          "quarrel may harden further.")
+        monkeypatch.setattr(CE, "_RELATIONSHIP_SCALING", {**CE._RELATIONSHIP_SCALING, 1: 1.5})
+        detail, _w, bd, cf = _let_it_stand("Soult", "Massena")
+        assert (bd["scale"], cf["scale"]) == (1.0, 1.5)
+        assert detail == ("Free, and it fixes nothing. For 3 more turns he brings his 30,000 men to "
+                          "any battle Massena leads, but no more — the goodwill that made him worth "
+                          "half more is gone, and the quarrel may harden further.")
+
+    def test_the_more_phrase_drops_the_trailing_of(self):
+        assert J._more_phrase(0.25) == "a quarter"
+        assert J._more_phrase(0.5) == "half"
+        assert J._more_phrase(0.75) == "three-quarters"
+        assert J._more_phrase(0.2) == "about 20%"
+        assert J._more_phrase(1.0) == "about 100%"
+        assert J._more_phrase(1.5) == "about 150%"
+
+    def test_a_quarrel_that_costs_no_weight_says_so(self):
+        """An asymmetric pair the web never authors (the Win/Loss formula moves
+        ORDERED pairs, so a campaign can reach it): Ney reads Davout at −1,
+        Davout reads Ney at +1. The grievance's −1 lands on Davout's side and
+        the pair's worse direction is −1 either way — half with the quarrel,
+        half without. Hand-set to prove the arm the boot cannot reach."""
+        detail, _w, bd, cf = _let_it_stand(
+            "Davout", "Ney", rels={("Ney", "Davout"): -1, ("Davout", "Ney"): 1})
+        assert bd["scale"] == cf["scale"] == 0.5
+        assert detail == ("Free, and it fixes nothing. For 3 more turns the quarrel costs no weight "
+                          "— he already brings half his 26,000 men to any battle Ney leads, and the "
+                          "quarrel may harden further.")
+        detail, _w, bd, cf = _let_it_stand(
+            "Davout", "Ney", rels={("Ney", "Davout"): 0, ("Davout", "Ney"): 1})
+        assert bd["scale"] == cf["scale"] == 1.0
+        assert detail == ("Free, and it fixes nothing. For 3 more turns the quarrel costs no weight "
+                          "— he already brings his full weight to any battle Ney leads, and the "
+                          "quarrel may harden further.")
+        assert "100%" not in detail
+
+    def test_the_faith_arm_and_the_byte_identity_stand(self):
+        """Davout→Ney (0 authored, −1 derived): the R10 arm's own geometry,
+        through the petition surface — `TestTheJealousyCard` pins the same
+        through the helper, unmodified."""
+        detail, w, bd, cf = _let_it_stand("Davout", "Ney")
+        assert (bd["scale"], cf["scale"]) == (0.5, 1.0)
+        assert detail == OLD_CARD.format(men=w.marshals["Davout"].strength, lead="Ney")
+        detail, _w, bd, _cf = _let_it_stand("Davout", "Ney", trust=20)
+        assert (bd["scale"], bd["trust_factor"]) == (0.25, 0.5)
+        assert detail == ("Free, and it fixes nothing. For 3 more turns he brings a quarter of the "
+                          "weight of his 26,000 men to any battle Ney leads, for his faith in you is "
+                          "spent (trust 20), and the quarrel may harden further.")
+
+    def test_the_aggressive_arm_is_untouched(self):
+        detail, _w, bd, cf = _let_it_stand("Murat", "Ney")
+        assert (bd["grievance"], bd["scale"], cf["scale"]) == ("aggressive", 0.0, 0.5)
+        assert detail == ("Free, and it fixes nothing. For 3 more turns he brings NONE of his "
+                          "22,000 men to any battle Ney leads, and the quarrel may harden further.")
+
+    @pytest.mark.parametrize("who,at", [("Bernadotte", "Ney"), ("Bernadotte", "Davout"),
+                                        ("Soult", "Massena"), ("Davout", "Ney")])
+    def test_lever_down_is_the_old_card(self, monkeypatch, who, at):
+        monkeypatch.setattr(CE, "TRUST_NAMES_ITS_PRICE", False)
+        detail, w, _bd, _cf = _let_it_stand(who, at)
+        assert detail == OLD_CARD.format(men=w.marshals[who].strength, lead=at)
+
+    def test_the_counterfactual_is_a_pure_read_off_the_one_source(self):
+        """`without_grievance=True` is the jealousy block skipped and nothing
+        else: the relationship is the lead's own read (a lead's derived −1
+        stays), the trust factor applies as usual, nothing is written, and
+        the default call is the default call."""
+        w = _boot()
+        lead, ally = w.marshals["Ney"], w.marshals["Davout"]
+        cells = 0
+        for rel_la in (-2, -1, 0, 1, 2):
+            for rel_al in (-2, -1, 0, 1, 2):
+                for trust in (85, 20):
+                    for grievance in GRIEVANCES:
+                        lead.relationships[ally.name] = rel_la
+                        ally.relationships[lead.name] = rel_al
+                        _trust(ally, trust)
+                        _set_grievance(lead, ally, grievance)
+                        before = (lead.jealous_of, ally.jealous_of)
+                        bd = pair_contribution_breakdown(lead, ally)
+                        cf = pair_contribution_breakdown(lead, ally, without_grievance=True)
+                        assert (lead.jealous_of, ally.jealous_of) == before
+                        assert pair_contribution_breakdown(lead, ally, without_grievance=False) == bd
+                        assert set(cf) == set(bd)
+                        assert cf["grievance"] == ""
+                        assert cf["relationship"] == lead.get_relationship(ally.name)
+                        assert cf["relationship_scale"] == CE._RELATIONSHIP_SCALING.get(
+                            cf["relationship"], 1.0)
+                        assert cf["scale"] == cf["relationship_scale"] * cf["trust_factor"]
+                        assert cf["trust"] == trust
+                        if grievance == "none":
+                            assert cf == bd
+                        elif grievance.startswith("ally_"):
+                            saved, ally.jealous_of = ally.jealous_of, None
+                            assert cf == pair_contribution_breakdown(lead, ally)
+                            ally.jealous_of = saved
+                        cells += 1
+        assert cells == 25 * 2 * 5
+
+    def test_only_the_card_asks_for_the_counterfactual(self):
+        """AST census over backend/: exactly one call passes the keyword, and
+        it is `_standing_cost_detail`'s — no mechanical reader does."""
+        calls = []
+        for path in sorted((ROOT / "backend").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and any(
+                        k.arg == "without_grievance" for k in node.keywords):
+                    calls.append(path.name)
+        assert calls == ["jealousy.py"]
+        assert inspect.getsource(J._standing_cost_detail).count("without_grievance=True)") == 1

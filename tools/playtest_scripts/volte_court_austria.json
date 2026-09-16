@@ -1,0 +1,289 @@
+{
+ "name": "volte-court-austria",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_d6": "FA-S17-D6 (Phase 4, September 12 2026): the COMMANDED arm. Every prior 'fighting France' script spends 9-22 of 160 action points over 40 turns and stops issuing orders at loop 22-30, so Fr@30 and Fr@40 on those arms measure a France that has STOPPED being played — which is why the FA-D27 re-open condition could not be read on them. This script runs the full forty loops and spends all four military actions every turn: it defends the homeland, keeps its corps concentrated, recruits when it can, and answers the table (pair it with --diplomacy accept). It deliberately does NOT attack a court France has just signed with, because the driver answers force_declare_war_confirmation with its first option and would re-declare the war — the second half of the same ruling.",
+ "turns": {
+  "1": [
+   "status",
+   "Ney, attack Mack",
+   "Davout, move to Swabia",
+   "Lannes, move to Rhineland"
+  ],
+  "2": [
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Soult, move to Alsace",
+   "Murat, move to Franche-Comte"
+  ],
+  "3": [
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Lannes, move to Swabia",
+   "recruit 10000 infantry with Soult"
+  ],
+  "4": [
+   "Ney, attack Mack",
+   "Davout, fortify",
+   "Massena, move to Tyrol",
+   "status"
+  ],
+  "5": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, attack Archduke Charles",
+   "Lannes, attack Mack",
+   "Soult, move to Swabia",
+   "Murat, move to Swabia"
+  ],
+  "6": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, drill",
+   "Davout, unfortify",
+   "Lannes, fortify",
+   "recruit 10000 infantry with Soult"
+  ],
+  "7": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, attack Archduke Charles",
+   "Davout, move to Bohemia",
+   "Murat, attack Archduke Charles",
+   "status"
+  ],
+  "8": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, attack Archduke Charles",
+   "Ney, fortify",
+   "Soult, drill",
+   "Massena, move to Milan"
+  ],
+  "9": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, unfortify",
+   "Lannes, move to Bohemia",
+   "Murat, drill",
+   "recruit 10000 cavalry with Murat"
+  ],
+  "10": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, move to Franconia",
+   "Davout, fortify",
+   "Soult, move to Bavaria"
+  ],
+  "11": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, attack Archduke John",
+   "Lannes, attack Archduke John",
+   "Murat, move to Franconia",
+   "Massena, fortify"
+  ],
+  "12": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, drill",
+   "Davout, unfortify",
+   "Soult, fortify",
+   "recruit 10000 infantry with Lannes"
+  ],
+  "13": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, attack Archduke John",
+   "Murat, attack Archduke John",
+   "Davout, move to Franconia",
+   "status"
+  ],
+  "14": [
+   "Talleyrand, improve relations with Austria",
+   "Lannes, fortify",
+   "Soult, drill",
+   "Ney, fortify",
+   "Massena, move to Tyrol"
+  ],
+  "15": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, unfortify",
+   "Davout, drill",
+   "recruit 10000 infantry with Soult"
+  ],
+  "16": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, move to Bohemia",
+   "Lannes, unfortify",
+   "Murat, fortify",
+   "Soult, move to Franconia"
+  ],
+  "17": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, fortify",
+   "Davout, fortify",
+   "Lannes, drill",
+   "Massena, fortify"
+  ],
+  "18": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Soult, drill",
+   "Murat, unfortify",
+   "recruit 10000 infantry with Davout"
+  ],
+  "19": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, unfortify",
+   "Davout, unfortify",
+   "Lannes, move to Franconia",
+   "Murat, drill"
+  ],
+  "20": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, drill",
+   "Soult, fortify",
+   "Massena, drill"
+  ],
+  "21": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, fortify",
+   "Davout, drill",
+   "Lannes, fortify",
+   "recruit 10000 infantry with Murat"
+  ],
+  "22": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Soult, unfortify",
+   "Murat, fortify",
+   "Massena, unfortify"
+  ],
+  "23": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, unfortify",
+   "Davout, fortify",
+   "Lannes, unfortify",
+   "Soult, drill"
+  ],
+  "24": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Murat, drill",
+   "Massena, fortify",
+   "recruit 10000 infantry with Soult"
+  ],
+  "25": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, drill",
+   "Davout, unfortify",
+   "Lannes, drill",
+   "Soult, fortify"
+  ],
+  "26": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Murat, unfortify",
+   "Massena, drill",
+   "Ney, fortify"
+  ],
+  "27": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, drill",
+   "Lannes, fortify",
+   "Soult, unfortify",
+   "recruit 10000 infantry with Lannes"
+  ],
+  "28": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, unfortify",
+   "Murat, fortify",
+   "Massena, unfortify"
+  ],
+  "29": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, fortify",
+   "Lannes, unfortify",
+   "Soult, drill",
+   "Ney, drill"
+  ],
+  "30": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Murat, drill",
+   "Massena, fortify",
+   "recruit 10000 infantry with Davout"
+  ],
+  "31": [
+   "Talleyrand, improve relations with Austria",
+   "Ney, fortify",
+   "Davout, unfortify",
+   "Lannes, drill",
+   "Soult, fortify"
+  ],
+  "32": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Murat, unfortify",
+   "Massena, drill",
+   "Ney, unfortify"
+  ],
+  "33": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, drill",
+   "Lannes, fortify",
+   "Soult, unfortify",
+   "recruit 10000 infantry with Murat"
+  ],
+  "34": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Murat, fortify",
+   "Massena, unfortify",
+   "Ney, drill"
+  ],
+  "35": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, fortify",
+   "Lannes, unfortify",
+   "Soult, drill",
+   "Murat, drill"
+  ],
+  "36": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, fortify",
+   "Massena, fortify",
+   "recruit 10000 infantry with Soult"
+  ],
+  "37": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, unfortify",
+   "Lannes, drill",
+   "Soult, fortify",
+   "Murat, unfortify"
+  ],
+  "38": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, unfortify",
+   "Massena, drill",
+   "Lannes, fortify"
+  ],
+  "39": [
+   "Talleyrand, improve relations with Austria",
+   "Davout, drill",
+   "Soult, unfortify",
+   "Murat, fortify",
+   "recruit 10000 infantry with Lannes"
+  ],
+  "40": [
+   "Talleyrand, improve relations with Austria",
+   "status",
+   "Ney, drill",
+   "Massena, fortify",
+   "Davout, fortify"
+  ]
+ },
+ "policy": {
+  "objection": "trust",
+  "diplomacy": "accept"
+ },
+ "_note_iq6": "IQ-6 V1-V4 (September 14, 2026): the COMMANDED arm (commanded_full40.json, unchanged loop for loop) plus 'Talleyrand, improve relations with Austria' at the head of every loop from 5 on - re-issued each loop, a live mission refuses the duplicate harmlessly. Pair it with --diplomacy accept. On the historical seed Britain's war_1 settlement is ratified on world turn 4 and Austria's homeland stays in France's bloc's hands, so the beaten-then-courted Austria reaches the courted floor inside the widened window and takes France's hand: the digest carries volte_face exactly once. The plain commanded arm (no courting) carries it 0 times. Pinned by tests/test_iq6_volte_face.py (slow)."
+}

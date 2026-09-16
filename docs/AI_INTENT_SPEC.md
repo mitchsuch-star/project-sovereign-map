@@ -554,6 +554,28 @@ gives the player no reason to consider. It routes through the existing settlemen
 the reversed power's `contain_hegemon` design so its deck advances — "aimed at a third party" needs
 an object to aim at, and §12.2 authors the design Russia advances to.)*
 
+*(IQ-6 "Europe Speaks Its Mind", September 14, 2026 — one promise STRUCK, three amendments; landing
+record `IMPROVEMENT_QUEUE_SPEC.md` §1.5.)* ~~The generous-white-peace case: a beaten power courted after
+a peace that left no soil mark, still receptive because its wrecked army's war exhaustion showed the
+defeat ("Friedland's mark on Russia was the army, not the map").~~ **Retired under GR9** — the ordinary
+route could never keep it. R49 (`diplomacy.cleanup_war_end`) zeroes a court's exhaustion at the peace
+that ends its last war, and the coalition tick decays it 5 a turn at peace, so a mark of ~70 is under
+the 40 bar within ~6 turns while the courtship the predicate also demands takes 14+ turns: the two
+clauses could never hold together. Only the AI-V scripted arm ever satisfied it, by writing the
+exhaustion and a +125 relation jump by hand. The defeat now shows **on the map only** — homeland soil
+in the hegemon's bloc's hands (`emergent_designs.THE_DEFEAT_IS_THE_SOIL`). **Re-open condition:** a
+future row that records the war's OUTCOME on the war instance, under a user ruling on this section's
+zero-new-serialized-fields contract (the predicate today cannot even read who won). The amendments,
+each behind its own flip lever: the window **15 → 20** (`THE_WINDOW_FITS_THE_COURTSHIP` — from the
+boot war relations the game's best courting lever reaches the courted floor at best 16 turns after the
+peace, so a perfect player stood at 29 when the old window closed; ceiling pinned at 25, the turn a
+routine ladder alliance landed); **a separate peace ends the war** for the predicate
+(`THE_SEPARATE_PEACE_ENDS_THE_WAR` — the pair's `resolved_turn` answers first, so Pressburg's own
+geometry, a court at peace with France while still at war with her allies, is "beaten"); the courier
+skips the routine NATION ask cooldown (`ai_diplomacy.THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN`);
+and the open door is **spoken** — Talleyrand's per-court counsel and the war room name it when every
+clause but COURTED holds, with the turns left and the relation needed (`VOLTE_FACE_SPEAKS_ITS_MIND`).
+
 *What is never hidden:* a nation's want, its target, its current rung (D4), its stated war reason
 (§5 pin 4), or the fact that a war is coming (§4.6 fore-warning). Fog lives in **agreements and
 timing** — never in dispositions.
@@ -2911,10 +2933,14 @@ rides an existing transport — pin 20's live pass stays with Stage F, as sited)
 
 - **`volte_face_receptive(world, power, hegemon)`** — §3.6-4's eligibility as five per-turn
   readings of serialized state, no latch: major tier · at peace with the hegemon · BEATEN
-  (war with the hegemon ended within `VOLTE_FACE_WINDOW` 15, per-nation end read off
-  `war_instances` + the archive, and the defeat still shows — `war_exhaustion >= 40` or
-  homeland soil in the hegemon's bloc's hands, because a generous white peace leaves no soil
-  mark: Friedland's mark on Russia was the army, not the map) · **NOT HUMILIATED** (a punitive
+  (war with the hegemon ended within `VOLTE_FACE_WINDOW` ~~15~~ **20 since IQ-6**, per-nation end
+  read off `war_instances` + the archive — **IQ-6: the pair's own `resolved_turn` first** — and
+  the defeat still shows — ~~`war_exhaustion >= 40` or~~ homeland soil in the hegemon's bloc's
+  hands~~, because a generous white peace leaves no soil mark: Friedland's mark on Russia was
+  the army, not the map~~) · *(IQ-6, September 14, 2026: the exhaustion arm is RETIRED under GR9
+  — R49 zeroes exhaustion at the peace that ends a court's last war and the tick decays it 5 a
+  turn, so it could never overlap a 14+ turn courtship; re-open condition and the three
+  lever-gated amendments in §3.6-4's dated note)* · **NOT HUMILIATED** (a punitive
   memory authored by the hegemon forecloses FOREVER — durable record, generosity is the whole
   doctrine — and so does a sworn revanche charged to them) · COURTED (relations >=
   `VOLTE_FACE_RELATION_FLOOR` 40 — deliberately equal to the ALLIANCE ratify requirement, so

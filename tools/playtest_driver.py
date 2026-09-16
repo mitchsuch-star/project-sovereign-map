@@ -467,6 +467,38 @@ MAX_RAIL_ROWS = 6
 # court and measured 9-10 on every fogged turn of the ambient board.
 MAX_FOG_ROWS = 4
 
+# The rail's filter: the priorities it prints. The single source for the
+# rail itself AND for IQ-6's split below, so the two cannot disagree about
+# which rows the rail already showed.
+RAIL_PRIORITIES = ("HIGH", "CRITICAL")
+
+# IQ-6 N1 (PR-X4, September 14, 2026) — THE DIGEST READS THE WHOLE DISPATCH.
+# The rail keeps HIGH and CRITICAL only, so every MEDIUM and LOW row of the
+# morning dispatch was invisible to every digest ever written: measured on
+# the commanded historical arm, 30 of 122 diplomatic rows printed (all 42
+# MEDIUM and all 50 LOW dropped), 39 of 148 on ulm. The AI-6 routine intent
+# lines (`intent_hardens` MEDIUM, `intent_eases` / `intent_movement_tail`
+# LOW) were among them, which is the whole reason the rescore memo recorded
+# them as "0 in twelve runs" while the engine fired them on every board.
+# With the lever up the digest:
+#   (a) records EVERY `diplomatic_events` row to the jsonl as `dispatch_row`
+#       (type, priority, full text), outside the rail cap;
+#   (b) prints the Stage-F rows on their own `- COURTS: <text>` line — the
+#       engine already caps them at INTENT_DISPATCH_CAP lines plus one tail
+#       a dispatch, so no cap is needed here, and the prefix never contains
+#       "RAIL" (the rail pins read that substring and stay as they are);
+#   (c) prints one `- DIPLO +N medium/low (<types>)` line for the MEDIUM/LOW
+#       rows it did not print, and keeps a per-type `dispatch_type_counts`
+#       (every row, every priority) in meta.json.
+# False = the pre-IQ-6 digest, byte for byte (digest.md, digest.jsonl and
+# meta.json). The lines are purely additive and follow every existing line
+# of the dispatch block, so a lever-up digest minus them IS the lever-down
+# digest.
+THE_DIGEST_READS_THE_WHOLE_DISPATCH = True
+# The AI-6 routine intent narration (`intent.process_intent_movements`).
+COURTS_DISPATCH_TYPES = ("intent_hardens", "intent_eases",
+                         "intent_movement_tail")
+
 
 def fog_sentences(phase):
     """The "there is something you cannot see" sentences the CLIENT renders
@@ -503,6 +535,13 @@ def fog_sentences(phase):
 def _seen(digest, name):
     """A dedupe set that exists on any object, stub or real."""
     return digest.__dict__.setdefault(name, set())
+
+
+def _dispatch_type_counts(digest):
+    """IQ-6 N1 (c): the run's per-type dispatch-row tally, created lazily on
+    any object, stub or real (the `_seen` idiom — a borrowed `dispatch` must
+    not reach for eagerly-created state)."""
+    return digest.__dict__.setdefault("_dispatch_type_counts", {})
 
 
 def first_line(text, limit=170):
@@ -776,9 +815,19 @@ class Digest:
         self._write_meta()
 
     def _write_meta(self):
+        # IQ-6 N1 (c): the per-type tally of every diplomatic row the run's
+        # dispatches carried, so a memo counts from data instead of grepping.
+        # Present (possibly `{}`) whenever the lever is up, so "measured zero"
+        # is distinguishable from "not measured"; ABSENT with the lever down,
+        # so that meta.json is the pre-IQ-6 file byte for byte.
+        extra = {}
+        if THE_DIGEST_READS_THE_WHOLE_DISPATCH:
+            extra["dispatch_type_counts"] = dict(
+                sorted(_dispatch_type_counts(self).items()))
         self.meta_path.write_text(
             json.dumps(self.meta | {"counters": self.counters,
-                                    "unknown_blockers": self.unknown_blockers},
+                                    "unknown_blockers": self.unknown_blockers}
+                       | extra,
                        indent=2),
             encoding="utf-8")
 
@@ -1400,7 +1449,7 @@ class Digest:
         # surface — the cap is six.
         rows = [e for e in (events or [])
                 if isinstance(e, dict)
-                and str(e.get("priority")) in ("HIGH", "CRITICAL")]
+                and str(e.get("priority")) in RAIL_PRIORITIES]
         rows.sort(key=lambda e: str(e.get("priority")) != "CRITICAL")
         for event in rows[:MAX_RAIL_ROWS]:
             _seen(self, "_seen_rail_types").add(str(event.get("type") or ""))
@@ -1413,6 +1462,33 @@ class Digest:
         if turn_events:
             self._md(f"  - TURN EVENTS {len(turn_events)}")
             self.record("turn_events", count=len(turn_events))
+        # IQ-6 N1: the rest of the dispatch (see the lever's comment). AFTER
+        # every pre-IQ-6 line and record, so lever-up minus these lines is
+        # lever-down exactly.
+        if not THE_DIGEST_READS_THE_WHOLE_DISPATCH:
+            return
+        tally = _dispatch_type_counts(self)
+        unprinted = {}                     # type -> count, first-seen order
+        for event in (events or []):
+            if not isinstance(event, dict):
+                continue
+            dtype = str(event.get("type") or "?")
+            tally[dtype] = tally.get(dtype, 0) + 1
+            # (a) EVERY row, whatever its priority and outside the rail cap.
+            self.record("dispatch_row", dtype=event.get("type"),
+                        priority=event.get("priority"), text=event.get("text"))
+            if str(event.get("priority")) in RAIL_PRIORITIES:
+                continue                   # the rail's, printed or tallied
+            if dtype in COURTS_DISPATCH_TYPES:
+                # (b) Europe's temperature, on its own prefix. Never "RAIL".
+                self._md(f"- COURTS: {first_line(event.get('text'), 200) or dtype}")
+            else:
+                unprinted[dtype] = unprinted.get(dtype, 0) + 1
+        if unprinted:
+            # (c) one tally line a turn: the MEDIUM/LOW rows not printed.
+            kinds = ", ".join(dtype if count == 1 else f"{dtype} ×{count}"
+                              for dtype, count in unprinted.items())
+            self._md(f"- DIPLO +{sum(unprinted.values())} medium/low ({kinds})")
 
     def mission_line(self, cabinet, beat=None):
         """IQ-4 S4: Talleyrand's mission, one line per turn, off `GET /ledger`

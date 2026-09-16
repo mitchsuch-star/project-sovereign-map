@@ -914,6 +914,36 @@ def _assess_situation(world) -> Dict:
                 f"— while {threat_display} stands armed at their back, "
                 f"{row['want_title'] or 'their design'} stays a grievance.")
 
+    # ── IQ-6 V4: the open door (a beaten great power we may yet court) ──
+    # The volte-face window was on no surface a player reads (the AI-V
+    # memo: a real player would need Talleyrand to find it). One sentence
+    # per court whose every clause but COURTED holds — the same line the
+    # per-court counsel prints (`emergent_designs.volte_face_counsel_line`,
+    # the single source). Majors only: the tier clause fails first for
+    # everyone else. Display only (GR6); ints in the context (GR2).
+    from backend.game_logic.emergent_designs import (
+        volte_face_counsel_line, volte_face_courtship,
+    )
+    volte_openings: List[Dict] = []
+    for court in sorted(world.get_active_nations()):
+        if court == player or world.get_power_tier(court) != "major":
+            continue
+        view = volte_face_courtship(world, court, player)
+        if view is None:
+            continue
+        volte_openings.append({
+            "nation": court,
+            "relation": int(view["relation"]),
+            "floor": int(view["floor"]),
+            "turns_left": int(view["turns_left"]),
+            "last_signing_turn": int(view["last_signing_turn"]),
+            "text": volte_face_counsel_line(world, court, player),
+        })
+    if volte_openings:
+        lines.append("")
+        for opening in volte_openings:
+            lines.append(f"  {opening['text']}")
+
     # ── The vassals (loyalty, drift, cause) ──
     vassal_context: List[Dict] = []
     own_vassals = sorted(
@@ -992,12 +1022,18 @@ def _assess_situation(world) -> Dict:
     options.append({"label": "Thank you", "description": "Dismiss.",
                     "action": "dismiss"})
 
+    context_extra: Dict = {}
+    if volte_openings:
+        # IQ-6 V4: only when a door is open — with the lever down (or no
+        # door) the payload is the pre-IQ-6 one key for key.
+        context_extra["volte_openings"] = volte_openings
     return {
         "type": "advisory",
         "target_nation": "",
         "talleyrand_text": "\n".join(lines),
         "options": options,
         "context": {
+            **context_extra,
             "advisory_type": "assess_situation",
             "situation_summary": "The war room assessment.",
             "wars": wars_context,

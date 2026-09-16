@@ -237,16 +237,29 @@ solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
 pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
 pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 
-## Both Sides of the Butcher's Bill (IQ-5) — landed September 14, 2026 (**✅ ALL FIXED; 1 ROUTED**)
+## Europe Speaks Its Mind (IQ-6) — landed September 16, 2026 (**1 ROUTED**)
+
+> Row IQ-6 (PR-X4). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.5; rules =
+> `SYSTEMS_REFERENCE.md` §45. The row's own defect, PR-X4, is closed on its
+> row in the Playtest Re-Score table (an instrument defect). One thing found
+> while pinning the build is routed here.
+
+| id | P | defect | disposition |
+|---|---|---|---|
+| **IQ6-X1** | P4 | **Berthier's after-battle rotation is a PROCESS-global counter.** FA-D24's `battle_report._OBSERVATION_COUNTS` walks each commander pair's bank per battle "in the process" and is never reset, so a SECOND campaign driven in the same process continues the count: two identical in-process drives printed different observation lines at turn 1 (Charles vs Massena — *"Stalemate … glare at each other across the field"* against *"An inconclusive affair"*, casualties identical), and the IQ-6 T7 pin's cross-process comparison failed once inside the full pre-commit suite after thousands of earlier battles had advanced the counter. Display only (GR6); a fresh process is deterministic, as FA-D24 promised. | **ROUTED to IQ-8 "The Harness Tells the Truth"** (the owner of "an in-process run equals a fresh one"): hang the counter on the run (the driver's `run()` or `/new_game`), or reset it at world creation, so an in-process drive starts where a fresh process does; the IQ-6 T7 control resets it explicitly meanwhile (`tests/test_iq6_europe_speaks_its_mind.py::_drive`). Completion: two consecutive in-process drives of one script are byte-identical without the test-side reset, pinned in `tests/test_iq8_the_harness_tells_the_truth.py`. |
+
+## Both Sides of the Butcher's Bill (IQ-5) — landed September 14, 2026; review round September 16 (**✅ ALL FIXED; 1 ROUTED**)
 
 > Row IQ-5 (PR-X2, PR-X3).
 > - **Landing record:** `IMPROVEMENT_QUEUE_SPEC.md` §1.4.
 > - **Rules:** `SYSTEMS_REFERENCE.md` §44.
-> - **Pins:** `tests/test_iq5_both_sides_of_the_butchers_bill.py`, 96 tests.
-> - **Sweep:** `tools/_sweep_iq5.json`, 69 of 69 killed.
+> - **Pins:** `tests/test_iq5_both_sides_of_the_butchers_bill.py`, 96 tests at landing, 185 after the review round.
+> - **Sweep:** `tools/_sweep_iq5.json`, 69 of 69 killed at landing; 140 of 140 killed after the review round (one landing row deleted as behaviour-neutral — see IQ5-RV9).
 > - **Levers:** `CombatExecutor.BOTH_SIDES_NAME_THEIR_SCOPE` and
 >   `CombatExecutor.TRUST_NAMES_ITS_PRICE`. Each, set False, reproduces
 >   `720597da` byte-for-byte on its surface.
+>   ⚠ Corrected by the review round: at landing IQ5-10's arrival rename
+>   was NOT behind the lever; it is now (IQ5-RV3).
 > - **Guarantees:** no mechanical casualty figure is changed, so M1–M7 and
 >   `BASELINE_SERIES` are byte-identical.
 >
@@ -268,6 +281,69 @@ pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 | IQ5-10 | P3 | **R7:** the arrival line printed the raw key ("ArchdukeJohn's forces arrived to reinforce Mack!"). Pre-existing. | Both names are humanised. One-word names are byte-identical. |
 | IQ5-11 | P4 | **`main.gd`** passed `response.reinforcement_messages` into an `Array`-typed handler with no type check. A present-but-null key would error. | Guarded (`is Array` and non-empty). |
 | **IQ5-R1** | P3 | **ROUTED.** `_distribute_casualties` splits the FA-D29-sized pool by FULL strength. A half-committed man therefore bleeds a full share of a pool sized by committed bodies: Davout lost 3,547 at scale 0.5 against 3,533 at 1.0 on the same seed. This is a mechanical completion of FA-S17-1, and IQ-5 ships no mechanics. | **Owner:** the next combat-mechanics row, tracked on STATUS ▶ NEXT UP. **Completion:** the pool splits by committed bodies, measured with a flip arm on `BASELINE_SERIES`. **Test:** `tests/test_iq5_r1_bleed_by_the_men_committed.py`. |
+
+> ### THE IQ-5 REVIEW ROUND — five lenses at `e38be000`, each finding attacked by refuters (September 16, 2026; the fixes were built September 14 and finished September 16 after a usage-limit interruption)
+>
+> Five read-only lenses (the scope predicate and its data · trust names its
+> price · the Godot surfaces · fog and R7 across every new line · do the pins
+> bind) filed 21 findings on a `git archive` snapshot of the landed commit;
+> every P1/P2 got two independent refuters, every P3/P4 one. **20 survived**
+> (one refuted as filed, its residue confirmed and taken). Four were P2, all
+> the same shape: **a sentence built from ONE factor of a product** — the
+> diorama caption and the enemy trust note quoted `trust_factor` alone
+> ("half his weight reached the field") while the engine also applied the
+> relationship's halving, so a Rival pair printed "half" for a quarter and a
+> Friendly pair "half" for five-eighths; and the jealousy card, which the row
+> had just taught to read the breakdown, discarded the breakdown's own ZERO
+> and still priced "Let it stand" at "about half" for a man the engine lets
+> bring nothing. The rest: the R7 leak the row's own IQ5-10 said it had
+> closed persisted one line down (the massed parentheses, every no-show arm,
+> the "was reinforced" and ally-loss leads — a co-located Archduke read
+> "Archduke Charles fought with…" then "ArchdukeCharles's supporting ally
+> lost…"); the co-located ATTACKER's lines had no subject, so in the enemy
+> phase "His supporting ally lost 1,368 men" sat directly above the player's
+> own marshal's lines; the enemy-phase dialog painted an ENEMY arrival in
+> France's success green; a corps the rubble rule destroyed was reported as
+> losing only its distributed share; and a LONE corps under ~125 men printed
+> two figures under one bare name (the raw figure the resolver composed and
+> the applied loss the report derived). **Six of the row's 96 pins did not
+> bind** — the enemy-phase branches were census-pinned on their key READS,
+> `main.gd`'s red for a real no-show could be flipped green, IQ5-10 and
+> IQ5-11 had no pin at all, one sweep row swapped a number for its equal
+> (`lead_remaining == remaining` by construction — the label was the fix),
+> and `_join_names` existed twice.
+>
+> **Every ruling built** (`IQ5-RV1..RV9` below), behind the row's own two
+> levers; lever-down stays `720597da` byte for byte — which also moves
+> IQ5-10's arrival rename BEHIND the lever, where the landing record had
+> claimed it was. The fix shapes the refuters warned against were not
+> built: `weight_phrase(scale)` under a trust-only sentence would have
+> blamed trust for the quarrel's halving (the wrong-reason defect PR-X3 was
+> landed to kill, moved one surface over), so every faith sentence is now
+> RELATIVE through one clause — *he brought half what he otherwise would* —
+> true for every relationship and grievance state by construction
+> (`trust_factor = scale / relationship_scale`); the "scale ≥ 1 → no weight
+> penalty" arm would have hidden a Friendly pair's lost goodwill; and
+> humanising the raw name lists would have broken the distribution lookups
+> and dedupes they key (the prose lists are built BESIDE them). Tests 96 →
+> 184; sweep 69 → 140 of 140 killed, 0 INERT; parse harness
+> EXIT=0; boot smoke 0 SCRIPT ERROR; M1–M7 + `BASELINE_SERIES` byte-identical
+> (display only — the realised-loss map and the applied-loss stamp are read
+> after `take_casualties` and written to display keys; the mechanical
+> `casualties` feeding `record_battle`, the war score, the decisive test and
+> the campaign ledger are untouched).
+
+| id | P | defect | fix |
+|---|---|---|---|
+| **IQ5-RV1** | P2 | **The faith copy stated an ABSOLUTE fraction built from the trust factor alone.** The diorama caption ("half his weight reached the field") and the enemy trust note ("half his weight never reached the field") ignored the relationship's own scaling: Ney–Bernadotte (Rival, −1) applies 0.25 while the caption said half, and the muster row printed for the same pair said "a quarter"; Kutuzov–Buxhowden the same on the enemy side; Charles–John (+1) applies 0.625. Every pin used a rel-0 geometry where the absolute and relative readings coincide. | ONE clause, `combat_executor._faith_share_clause(trust_factor)` — "he brought {half} what he otherwise would" — read by both arms of `_faith_captions` and the enemy arm of `_compose_trust_note`. Relative, so true for every relationship and grievance state; blames trust for trust's own share only; reveals no number the massed line does not already print. The player's own note ("committed X where he would have brought Y") was already relative and is untouched. Pins on the Rival (−1) and Friendly (+1) geometries on BOTH sides, plus rel 0. |
+| **IQ5-RV2** | P2 | **The jealousy card discarded the breakdown's zero.** `_standing_cost_detail` read `pair_contribution_breakdown` (IQ5-8) but used it only when `scale > 0 and trust_factor < 1`; a non-aggressive marshal jealous of his Rival or Hostile — Bernadotte, the board's ordinary case — reads a derived −1 that drives the pair to −2 and the engine applies 0.0, while "Let it stand" still said "he brings about half the weight of his 17,000 men". At trust 25 the true figure was in hand and skipped. | The card prices the grievance's INCREMENT: `pair_contribution_breakdown(..., without_grievance=True)` reads the counterfactual off the same single source, and the arm branches — the scale falls to 0 → the NONE sentence; unchanged (an already-Hostile pair) → "quarrel or no quarrel"; a Friendly pair's 1.25 → 1.0 → the lost goodwill named; else the R10 arm (weight_phrase + the faith clause), which keeps the rel-only 0.5 pair byte-identical. Behind `TRUST_NAMES_ITS_PRICE`; pinned through `queue_confrontation_petition` on the authored pairs (Bernadotte→Ney at trust 40 and 25, Bernadotte→Davout, Soult→Massena). |
+| **IQ5-RV3** | P3 | **Raw roster keys in the reinforcement block, one line below the humanised one.** IQ5-10 humanised the arrival sentence only, UNCONDITIONALLY: "Archduke John's forces arrived…" then "committed (ArchdukeJohn)"; every no-show arm, the "was reinforced" lead and the ally-loss lead ("ArchdukeCharles's supporting ally lost 2,007 men." — a line R3 had just made reachable) still interpolated the key; and with the lever DOWN the arrival line no longer matched `720597da`, which the landing record had claimed. The pins used one-word names (Mack, Davout) and could see none of it. | ONE display function `CombatExecutor._reinf_name` — `humanize_entity_name` with `BOTH_SIDES_NAME_THEIR_SCOPE` up, the identity down — over every name in the block on both sides; the prose lists (`_atk_named`, `_def_named`) are built BESIDE the raw lists that key the distribution lookups and dedupes, never from them. Pins: a multi-word LEAD with a co-located man, a multi-word ARRIVAL on each side, no camelCase key on seeds 1–8 including the no-show seeds, and a lever-down arm against the literal pre-IQ-5 strings. |
+| **IQ5-RV4** | P3 | **The co-located attacker's lines had no subject.** With nobody arriving, "Massed effective strength: …" / "His supporting ally lost N men" named nobody; in the enemy phase the pronoun sat directly above the player's own marshal's lines and read as Ney while the men were Austrian (PR-4's no-antecedent shape). | With the lever up and no attacker arrival, the lead is named, mirroring the defender: "Mack fought with Archduke John beside him — massed effective strength: …" / "Mack's supporting ally lost N men." The arrival arm keeps its literal strings (the CA8 census pins them); a mixed stack keeps the arrival wording. `test_a_co_located_attacker_uses_the_existing_lines` flipped consciously. |
+| **IQ5-RV5** | P4 | **A reinforcer the rubble rule destroyed was reported as losing his distributed share.** `take_casualties` zeroes a remainder under 50, so a 90-man co-located Davout read "lost 48 men" while he was gone; R3 extended the arrival-era behaviour to co-located men. | ONE per-participant realised-loss map, read right after the `take_casualties` loops and before pursuit, capture or retreat (a man captured later with 52 men is not "lost 90" in battle): share + the rubble. It feeds the ally-loss line, the `*_participant_losses` rows and the diorama contingents together, so no two surfaces disagree. The event's and log's `casualties` stay mechanical. |
+| **IQ5-RV6** | P3 | **A LONE side printed two figures under one bare name.** The raw figure the resolver composed ("Ney: 28 casualties, 0 remaining", "Casualties: Ney 25") and the applied loss the report derived ("Ney 60") for a corps under ~125 men that the rubble rule or the overkill cap destroyed — on the enemy-phase dialog IQ-5 had just given a Berthier casualty line, and in the terminal. The solo path was worse: it reported "60 → 31" for a corps at 0. | Handled at the rubble seam on BOTH paths: the executor stamps display-only `applied_casualties` on the lone side's event dict (and `<side>_applied_casualties` on the log event), rewrites the description's casualty phrase (bounded — "Ney 25" never rewrites "Ney 250") and makes the report agree; `enemy_phase_dialog._format_battle`, the terminal description and the log one-liner prefer it on a LONE side only. Mechanical figures untouched; lever-gated. |
+| **IQ5-RV7** | P3 | **The enemy-phase reinforcement colours were side-blind** (pre-existing, on IQ-5's own surface): an ENEMY arrival against the player was painted success green under a red enemy victory, an enemy no-show failure red; and "ARMY DESTROYED!" was conquest green when the destroyed defender was OURS. | `IQ5_COLOUR_BY_SIDE` in `enemy_phase_dialog.gd`: the colour follows the battle's ATTACKER nation (every arrival/no-show line is the attacker's reinforcements — read off `events[0].attacker_nation` / `action.nation`, never by matching names in prose): the player keeps green/red, an enemy attacking the player inverts, a fog-visible third party is neutral; "ARMY DESTROYED!" is red when `defender_nation` is France. `main.gd` is left alone — its two callers are always the French side. |
+| **IQ5-RV8** | P3 | **The diorama's faith caption never wrapped** (`size` was set before `autowrap_mode`) and drew one ~420 px line into the opposing half; the `_populate_shelf` faith arm was unreachable (the backend attaches `faith` only to men who stood on the field) under a false comment. Refuted as filed (the wrap is inert, not the harm); the residue measured headless: a reinforcer's fourth text row landed on the LEAD's locket and name. | The caption sits UNDER the corps' figures, outboard of the clash line, wrapped inside a 150 px block-local width (`FAITH_CAPTION_W/Y/INBOARD`, measured on the real tableau in both columns, reinforced and co-located — nothing else is drawn there); autowrap set FIRST. The dead shelf arm is deleted with its comment. Structural pins only; the suite never needs the Godot binary. |
+| **IQ5-RV9** | P3/P4 | **Six pins that did not bind:** the enemy-phase branches were pinned on their key reads, not the printing branch or the figure (`or`→`and`, `if def_is_army:`→`if false:`, `def_cas` read from the attacker's key all stayed green); `main.gd`'s marker match could set `is_failure = false`; IQ5-11's `is Array` guard and IQ5-10 had no pin; a sweep row swapped `lead_remaining` for its equal; `_join_names` existed twice, so a pin on one copy could never see the other. | The exact gate line, the adjacent-line sequences and the per-side reads are pinned; `main.gd`'s three assertions (initial value, marker loop, arm) checked against the unmutated file at the right tab depth; the `is Array` guard pinned inside `_display_result`'s own body with a negative arm; the redundant row deleted and `lead_remaining == remaining` by construction stated in the test; the executor's `_join_names` deleted in favour of `battle_report`'s, the "A, B and C" branch pinned through Moore attacking Ney at Paris with Davout AND Lannes co-located, and `_compose_trust_note` unit-pinned on a stub Ottoman marshal ("fought for the Ottoman Empire" — the court takes its article). |
 
 ## The Cabinet Is Visible (IQ-4) — landed September 14, 2026 (**✅ ALL FIXED**)
 
@@ -657,7 +733,7 @@ must use on **both** sides and the R7 label collision it must avoid.
 | **PR-X1** | **P2** | **A France at zero provinces is told "the diplomatic winds favor us", and its war-purpose line lists twenty provinces it no longer holds.** Measured: ambient-marengo holds 0 provinces from turn 37 and plays four more turns. The *absence of a defeat condition* is owned by the Victory & Objectives pass (`sandbox_mode` suppresses victory AND defeat on every Europe world) — **the LEGIBILITY of the collapse is not owned there and is this row.** Completion: a France with no territory gets a dispatch that says so, and the war-purpose line does not advertise lost provinces as an objective. Owner: the next narration slice. | ✅ **FIXED September 14, 2026 by row IQ-2** (§Collapse Legibility (IQ-2) above; `87f5459a` → `f586484f` → `5c41532d` + the merge). The dispatch leads with the standing collapse headline `empire_reduced`; Talleyrand no longer says the winds favour us; a Defence war-purpose line names only what is HELD, or *"the homeland is lost"* (`WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD`). Pinned by `test_iq2_collapse_integration.py::TestTheIQ2CompletionDefinition` on a staged zero-province board through a real `end turn`. |
 | **PR-X2** | **P3** | **`defender_casualties_scope` does not exist anywhere in the backend.** `attacker_casualties_scope = "own corps"` is stamped for the attacker only (`combat_executor._reconcile_report_survivors`), so a reinforced DEFENDER's figure is his own corps and carries no label — which is FA-S17-1's own case. Completion: both sides carry a scope label, or the label is retired and one figure means one thing. Owner: the next combat-legibility slice. | ✅ **FIXED by IQ-5** (September 14, 2026). Both sides carry a scope, and a side that fought alone is never labelled. The row was too narrow; see §Both Sides of the Butcher's Bill (IQ-5) for the five surfaces it missed. |
 | **PR-X3** | **P3** | **FA-D23 ships no copy of its own.** A Broken marshal's halved contribution is reported by slice 4's pre-existing *"he and {lead} are at odds; expect about half his weight"*, which is the RELATIONSHIP vocabulary — so when the cause is trust, the player is told the wrong reason. Verified: `git log -S` puts that string in slice 4 (`d2ca022`), and the FA-D23 commit adds only the arithmetic. Completion: a trust-caused halving names trust. Owner: the FA-D23 confirmation. | ✅ **FIXED by IQ-5** (September 14, 2026). Trust is named where it is paid, on both sides of the field, and the muster row is branched on cause (§Both Sides of the Butcher's Bill (IQ-5)). ⚠ Correction: the line's in-code provenance is CA9 row 3 A5, restructured by PT-D2, not slice 4 `d2ca022`. The recon could not re-run `git log -S`. |
-| **PR-X4** | **P3** | **The Stage-F intent narration never fires.** `intent_hardens` / `intent_eases` produced **zero** lines across twelve 40-turn runs on five seeds. Either the producer's weight × proximity cap is unreachable on the shipped board or the beats are exempting everything. Completion: a probe that says which, then either a reachable cap or the row retired. Owner: AI Intent. | OPEN |
+| **PR-X4** | **P3** | **The Stage-F intent narration never fires.** `intent_hardens` / `intent_eases` produced **zero** lines across twelve 40-turn runs on five seeds. Either the producer's weight × proximity cap is unreachable on the shipped board or the beats are exempting everything. Completion: a probe that says which, then either a reachable cap or the row retired. Owner: AI Intent. | ✅ **FIXED by IQ-6** (September 16, 2026; built September 14) — **an instrument defect, not the engine.** The producer fires on every board (8 unique routine lines on the ambient historical run, never more than 2 a dispatch) and the client prints every row; the driver's digest dropped every MEDIUM/LOW diplomatic row (30 of 122 printed on the commanded historical arm). The digest now reads the whole dispatch (`COURTS`/`DIPLO` lines, `dispatch_row` records, `dispatch_type_counts`; `PLAYTESTING.md` warns that no digest dated before Sept 14 shows a MEDIUM/LOW row), and the engine floor is pinned in `test_ai_intent_assurance.py`. The row's sibling zero — `volte_face` — WAS real (the window was too short for the game's own courting lever, and a bilateral peace never counted as a defeat) and is fixed in the same row: `SYSTEMS_REFERENCE.md` §45, `IMPROVEMENT_QUEUE_SPEC.md` §1.5. |
 | **PR-X5** | **P4** | **`meta.json` records the scenario REQUEST, not the resolved board.** A default run records `"scenario": ""`, which a reader cannot tell from unset — the gap FA-N89 existed to close. `WorldState.scenario_name` is already serialized and display-only. Completion: the driver records the resolved name. Owner: the harness. | OPEN |
 
 ---

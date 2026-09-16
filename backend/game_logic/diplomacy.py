@@ -12231,6 +12231,43 @@ def forecast_mission_to_accept(world, target_nation: str, proposal_type: str,
     return None
 
 
+def forecast_relation_to(world, target_nation: str, floor: int,
+                         mission_type: str = "IMPROVE_RELATIONS",
+                         limit: int = MISSION_FORECAST_LIMIT):
+    """IQ-6 V4: (turns, dp) for a quiet-world relation mission to carry the
+    player's relation with ``target_nation`` to ``floor`` — or None.
+
+    The relation half of `forecast_mission_to_accept`, stepped in the tick's
+    own order: the skill-scaled effect (`mission_effect_magnitude`), the
+    clamp, then the drift step (`relation_drift_step`; the courted pair is
+    exempt while he courts). A FORECAST — no world write, no region scan.
+    Read by the volte-face counsel line (`emergent_designs`).
+    """
+    from backend.game_logic.diplomatic_dialogue import (
+        MISSION_DP_COSTS, mission_effect_magnitude,
+    )
+    player = getattr(world, "player_nation", "France")
+    key = world._make_diplo_key(player, target_nation)
+    if world.diplomatic_states.get(key, "PEACE") == "WAR":
+        return None     # a war term
+    relation = int(world.nation_relations.get(key, 0) or 0)
+    effect = int(mission_effect_magnitude(world, mission_type, "relation_change"))
+    if effect <= 0:
+        return None
+    cost = int(MISSION_DP_COSTS.get(mission_type, 1))
+    exempt = None
+    if mission_type == "COURT_NATION":
+        exempt = (("pair", player, target_nation) if COURT_EXEMPTION_IS_THE_COURTED_PAIR
+                  else ("any", target_nation))
+    for n in range(int(limit) + 1):
+        if relation >= int(floor):
+            return (n, n * cost)
+        relation = max(-RELATION_CLAMP, min(RELATION_CLAMP, relation + effect))
+        relation += relation_drift_step(world, player, target_nation,
+                                        relation=relation, _court=exempt)
+    return None
+
+
 def _mission_counsel(world, target_nation: str, actions: List[Dict]):
     """IQ-4 S3i, re-grounded on measurement: the two relation missions' roads
     to the best OFFERED cooperative treaty that is still short of ACCEPT.
@@ -12354,7 +12391,28 @@ def _hard_reject_counsel(world, target_nation: str, actions: List[Dict]):
 
 def _recommendation_and_mission(world, target_nation: str, actions: List[Dict],
                                 dp: int, is_vassal: bool, vassals: dict) -> tuple:
-    """Talleyrand's recommendation and the mission it names ("" for none)."""
+    """Talleyrand's recommendation and the mission it names ("" for none).
+
+    IQ-6 V4 "It speaks its mind": when the court is a beaten great power
+    whose every volte-face clause but COURTED holds, the counsel says so —
+    the turns left and the relation needed — AFTER its own recommendation.
+    Display only (GR6): the mission it names is untouched, and with
+    `emergent_designs.VOLTE_FACE_SPEAKS_ITS_MIND` down the line is "" and
+    the counsel is the pre-IQ-6 one byte-for-byte.
+    """
+    text, mission = _base_recommendation_and_mission(
+        world, target_nation, actions, dp, is_vassal, vassals)
+    from backend.game_logic.emergent_designs import volte_face_counsel_line
+    line = volte_face_counsel_line(
+        world, target_nation, getattr(world, "player_nation", "France"))
+    if line:
+        text = f"{text} {line}"
+    return (text, mission)
+
+
+def _base_recommendation_and_mission(world, target_nation: str, actions: List[Dict],
+                                     dp: int, is_vassal: bool, vassals: dict) -> tuple:
+    """The counsel's own recommendation and mission (pre-IQ-6 body)."""
     if dp <= 0:
         return ("Our diplomatic reserves are spent. We must wait.", "")
 

@@ -1525,6 +1525,18 @@ def format_event_oneliner(event: dict) -> str:
         outcome = event.get("outcome", "")
         atk_cas = event.get("attacker_casualties", 0)
         def_cas = event.get("defender_casualties", 0)
+        # IQ-5 review (F): a LONE side the rubble rule (or the overkill cap)
+        # destroyed lost its whole corps — "Ney 25" for a 60-man corps that
+        # went to 0 was the raw figure, not the loss. The executor stamps a
+        # display-only `*_applied_casualties` on exactly that side (never an
+        # army side, never with BOTH_SIDES_NAME_THEIR_SCOPE down); prefer
+        # it. The mechanical `*_casualties` above is untouched (R2).
+        _atk_applied = event.get("attacker_applied_casualties")
+        if _atk_applied is not None:
+            atk_cas = _atk_applied
+        _def_applied = event.get("defender_applied_casualties")
+        if _def_applied is not None:
+            def_cas = _def_applied
         # PT-D6: an army cannot lose more men than it had. Casualties are
         # computed uncapped and `take_casualties` clamps the strength
         # rather than the number, so an annihilation printed the overkill

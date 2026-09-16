@@ -43,7 +43,8 @@ from backend.commands.objection_v2 import REGION_FORTIFICATION_DEFENSE_BONUS
 # reads the real figure without an executor instance.
 # ════════════════════════════════════════════════════════════════════════════
 
-def pair_contribution_breakdown(lead, ally, owner=None) -> dict:
+def pair_contribution_breakdown(lead, ally, owner=None, *,
+                                without_grievance=False) -> dict:
     """How much of `ally`'s weight reaches a battle `lead` leads, and why.
 
     Returns ``{scale, relationship_scale, trust_factor, grievance,
@@ -63,6 +64,14 @@ def pair_contribution_breakdown(lead, ally, owner=None) -> dict:
     `owner` carries the levers (`_RELATIONSHIP_SCALING`,
     `TRUST_REACHES_THE_FIELD`, `BROKEN_TRUST_CONTRIBUTION`); None = the
     `CombatExecutor` class. Pure read — no RNG, no state written.
+
+    IQ-5 review (J, finding #5): `without_grievance=True` skips the
+    jealousy block, so the COUNTERFACTUAL — this pair with the grievance
+    lifted, everything else (the trust factor, a lead's own derived −1)
+    exactly as it stands — is read off the same single source, and the
+    jealousy card prices the grievance's INCREMENT as the difference.
+    Keyword-only, default False: the default path is byte-identical and
+    no mechanical reader passes it (pinned by census).
     """
     if owner is None:
         owner = CombatExecutor
@@ -74,7 +83,7 @@ def pair_contribution_breakdown(lead, ally, owner=None) -> dict:
     grievance = ""
     lead_jealous = getattr(lead, "jealous_of", None) == ally.name
     ally_jealous = getattr(ally, "jealous_of", None) == lead.name
-    if lead_jealous or ally_jealous:
+    if (lead_jealous or ally_jealous) and not without_grievance:
         jealous_one = lead if lead_jealous else ally
         if jealous_one.personality == "aggressive":
             return {"scale": 0.0, "relationship_scale": 0.0,
@@ -116,12 +125,31 @@ def weight_phrase(fraction: float) -> str:
     return f"about {int(round(f * 100))}% of"
 
 
-def _join_names(names) -> str:
-    """"A", "A and B", "A, B and C" — prose, for the co-located stack line."""
-    names = [str(n) for n in names]
-    if len(names) <= 1:
-        return "".join(names)
-    return ", ".join(names[:-1]) + " and " + names[-1]
+def _faith_share_clause(trust_factor: float) -> str:
+    """IQ-5 review (A): trust's share of a man's weight — RELATIVE, never
+    absolute.
+
+    The first cut captioned "half his weight reached the field" off the
+    trust factor alone, which is false the moment the relationship or a
+    grievance also scales him (Ney–Bernadotte, Rival: the engine applies a
+    QUARTER while the caption said half; Charles–John, +1: 62.5% reached
+    while the enemy note said half never did). The factor is the ratio of
+    what he committed to what he would have committed with his faith
+    intact, so "he brought half what he otherwise would" is true for every
+    relationship and grievance state, blames trust for trust's own share
+    only, and reveals no number the player cannot already read.
+
+    ONE source for the three sentences that quote it: both arms of
+    `_faith_captions` and the enemy arm of `_compose_trust_note`. (The
+    player's own note is already relative — "committed X where he would
+    have brought Y" — and is left alone.)"""
+    return f"he brought {weight_phrase(trust_factor)} what he otherwise would"
+
+
+# IQ-5 review (#21): the co-located stack line used a SECOND `_join_names`,
+# a duplicate of `battle_report._join_names` (which the muster preview
+# already imports), so a pin on one could never see a regression in the
+# other. There is one now: `backend.game_logic.battle_report._join_names`.
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -682,18 +710,29 @@ class CombatExecutor:
                     f" — he committed {int(rec['committed']):,} to the fight "
                     f"where he would have brought {int(rec['full']):,}.")
             else:
-                court = formed_display_name(world, p.nation)
+                # IQ-5 review (A): relative, like the player's note — the
+                # absolute "half his weight never reached the field" was
+                # false for every non-neutral pair (Kutuzov–Buxhowden, Rival:
+                # three-quarters never reached). The court takes its article
+                # ("fought for the Ottoman Empire", never "for Ottoman
+                # Empire"); a plain-named court is unchanged.
+                from backend.display_names import with_definite_article
+                court = with_definite_article(formed_display_name(world, p.nation))
                 lines.append(
                     f"{name} fought for {court} without conviction — "
-                    f"{weight_phrase(1.0 - rec['trust_factor'])} his weight "
-                    f"never reached the field.")
+                    f"{_faith_share_clause(rec['trust_factor'])}.")
         return " ".join(lines)
 
     def _faith_captions(self, world, attacker, defender, records) -> dict:
         """IQ-5 R11: the diorama's optional `faith` caption per contingent
         name (rendered like `grudge`). The contingent's `committed` figure is
         left alone — `total_engaged` and the significance predicates read
-        its neighbours."""
+        its neighbours.
+
+        IQ-5 review (A): both arms read `_faith_share_clause` — relative to
+        what he would otherwise have brought, so the caption agrees with the
+        muster row and the massed line on a Rival or Friendly pair. Short,
+        too: the diorama draws it on one line (review B)."""
         captions = {}
         for rec in records:
             who = self._faith_visible(world, attacker, defender, rec)
@@ -702,14 +741,28 @@ class CombatExecutor:
             tf = float(rec["trust_factor"])
             if who == "player":
                 captions[rec["marshal"].name] = (
-                    f"His faith in you is spent (trust {int(rec['trust'])}) — "
-                    f"{weight_phrase(tf)} his weight reached the field.")
+                    f"Faith spent (trust {int(rec['trust'])}): "
+                    f"{_faith_share_clause(tf)}.")
             else:
                 captions[rec["marshal"].name] = (
-                    f"He fought without conviction — "
-                    f"{weight_phrase(1.0 - tf)} his weight never reached "
-                    f"the field.")
+                    f"Without conviction: {_faith_share_clause(tf)}.")
         return captions
+
+    def _reinf_name(self, name) -> str:
+        """IQ-5 review (C): the ONE display function for every marshal name
+        interpolated into `reinforcement_messages` — the arrival line, every
+        no-show reason, the massed parentheses, the "was reinforced" /
+        "fought with" leads and the ally-loss leads, on both sides.
+
+        With BOTH_SIDES_NAME_THEIR_SCOPE up it humanises the roster key
+        ("ArchdukeJohn" -> "Archduke John"; a one-word name is unchanged);
+        down, it is the identity, so the block is 720597da's byte for byte.
+        Display only: the raw lists that key the distribution lookups and
+        the dedupes are never passed through it."""
+        if not self.BOTH_SIDES_NAME_THEIR_SCOPE:
+            return name
+        from backend.display_names import humanize_entity_name
+        return humanize_entity_name(name)
 
     def _committed_bodies(self, lead, participants) -> int:
         """FA-D29 (slice 17, Phase 2): the men actually ENGAGED on a side —
@@ -2513,6 +2566,58 @@ class CombatExecutor:
                 f"{name} suffered {raw:,} casualties",
                 f"{name}'s army suffered {raw:,} casualties")
         return description
+
+    @staticmethod
+    def _rewrite_lone_casualties(description, name, raw, applied):
+        """IQ-5 review (F): a LONE side's printed figure, raw -> applied.
+
+        The casualty phrases resolve_battle composes — "{name} suffered N
+        casualties" and "{name} N" (the tactical / stalemate lists) — carry
+        the raw figure. Bounded on both sides so "Ney 25" never rewrites
+        "Ney 250" or "Ney 25,000", and a name that ends another name is not
+        matched inside it."""
+        if not description:
+            return description
+        old = re.escape(f"{int(raw):,}")
+        new = f"{int(applied):,}"
+        who = re.escape(str(name))
+        description = re.sub(
+            rf"(?<![A-Za-z]){who} suffered {old} casualties",
+            lambda _m: f"{name} suffered {new} casualties", description)
+        description = re.sub(
+            rf"(?<![A-Za-z]){who} {old}(?!\d)(?!,\d)",
+            lambda _m: f"{name} {new}", description)
+        return description
+
+    def _stamp_lone_applied(self, battle_result, side, name, raw, applied,
+                            remaining) -> None:
+        """IQ-5 review (F): one figure for a LONE side the rubble rule or
+        the overkill cap destroyed — on every surface that prints it.
+
+        R1 made the scope predicate the distribution, so a corps that fought
+        alone is never labelled. But the raw figure resolve_battle computed
+        (a 60-man corps "lost 28") still reached the event, the description
+        and the log, while the report printed the applied loss (60) and the
+        strength went to 0 — two figures under one bare name. This stamps
+        the applied loss as DISPLAY keys (`applied_casualties` on the event
+        side dict, `<side>_applied_casualties` on the log event), rewrites
+        the description's casualty phrase, and makes the report agree (the
+        coordinated reconcile already did; the solo report derived "60 ->
+        31" for a destroyed corps). The mechanical `casualties` and the
+        log's `<side>_casualties` are never touched (R2)."""
+        applied = int(applied)
+        sd = battle_result.get(side)
+        if isinstance(sd, dict):
+            sd["applied_casualties"] = applied
+        log = battle_result.get("log_battle_event")
+        if isinstance(log, dict):
+            log[f"{side}_applied_casualties"] = applied
+        battle_result["description"] = self._rewrite_lone_casualties(
+            battle_result.get("description", ""), name, raw, applied)
+        cs = (battle_result.get("battle_report") or {}).get("casualty_summary")
+        if isinstance(cs, dict):
+            cs[f"{side}_casualties"] = applied
+            cs[f"{side}_remaining"] = int(remaining)
 
     def _apply_battle_effects_to_region(
         self,
@@ -6668,6 +6773,13 @@ class CombatExecutor:
         _iq5_atk_pre = []
         _iq5_def_pre = []
         _iq5_faith = []
+        # IQ-5 review (E): the rubble `take_casualties` zeroed per man (his
+        # realised battle loss = share + this), read before pursuit, capture
+        # or retreat. (F): a LONE side's applied loss on the solo path, for
+        # the diorama. Display only; empty with the lever down.
+        _iq5_atk_rubble = {}
+        _iq5_def_rubble = {}
+        _iq5_solo_applied = {}
         if is_coordinated_battle:
             # CO-1/CO-1b: committed reinforcement strength adds to the clash,
             # personality- & relationship-scaled (single source, GR1-safe read).
@@ -6772,6 +6884,28 @@ class CombatExecutor:
                     p.battles_won += 1
                 elif atk_won or outcome == "mutual_destruction":
                     p.battles_lost += 1
+
+            # IQ-5 review (E): each man's REALISED battle loss is his share
+            # plus the rubble `take_casualties` zeroed (the `< 50 -> 0` rule):
+            # a 90-man co-located Davout was reported "lost 48 men" while he
+            # was gone. Read HERE — right after the loops and before pursuit,
+            # capture or retreat move anyone (a man captured later with 52
+            # men is not "lost 90" in battle). Display only: the event's and
+            # the log's `casualties` stay the mechanical figure they feed
+            # (record_battle, the war score, the decisive test, the ledger).
+            if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+                for _pre, _dist, _rub, _parts in (
+                        (_iq5_atk_pre, atk_distribution, _iq5_atk_rubble,
+                         atk_participants),
+                        (_iq5_def_pre, def_distribution, _iq5_def_rubble,
+                         def_participants)):
+                    _now = {_p.name: int(getattr(_p, "strength", 0) or 0)
+                            for _p in _parts}
+                    for _n, _s in _pre:
+                        if int(_s) > 0 and _now.get(_n, -1) == 0:
+                            _extra = int(_s) - int(_dist.get(_n, 0) or 0)
+                            if _extra > 0:
+                                _rub[_n] = _extra
 
             # ── PRIMARY-ONLY EFFECTS ──
 
@@ -6960,16 +7094,39 @@ class CombatExecutor:
                 battle_result["defender"]["lead_remaining"] = int(enemy_marshal.strength)
                 _iq5_log = battle_result.get("log_battle_event")
                 if isinstance(_iq5_log, dict):
-                    for _side, _pre, _dist in (
-                            ("attacker", _iq5_atk_pre, atk_distribution),
-                            ("defender", _iq5_def_pre, def_distribution)):
+                    for _side, _pre, _dist, _rub in (
+                            ("attacker", _iq5_atk_pre, atk_distribution,
+                             _iq5_atk_rubble),
+                            ("defender", _iq5_def_pre, def_distribution,
+                             _iq5_def_rubble)):
                         _iq5_log[f"{_side}_field_before"] = int(
                             sum(_s for _n, _s in _pre))
+                        # Review (E): the realised loss — share + rubble —
+                        # the same figure the ally-loss line and the
+                        # diorama read, so no two surfaces disagree.
                         _iq5_log[f"{_side}_participant_losses"] = [
                             {"marshal": _n,
-                             "casualties": int(_dist.get(_n, 0) or 0),
+                             "casualties": (int(_dist.get(_n, 0) or 0)
+                                            + int(_rub.get(_n, 0))),
                              "strength_before": int(_s)}
                             for _n, _s in _pre]
+                # IQ-5 review (F): a LONE side destroyed by the rubble rule
+                # or the overkill cap carries its applied loss beside the
+                # raw figure (the report already prints the applied one).
+                _iq5_cs = ((battle_result.get("battle_report") or {})
+                           .get("casualty_summary") or {})
+                for _side, _lead in (("attacker", marshal),
+                                     ("defender", enemy_marshal)):
+                    _sd = battle_result.get(_side)
+                    if (not isinstance(_sd, dict)
+                            or _sd.get("casualties_scope") == "army"
+                            or int(getattr(_lead, "strength", 0) or 0) != 0):
+                        continue
+                    _raw = int(_sd.get("casualties", 0) or 0)
+                    _applied = int(_iq5_cs.get(f"{_side}_casualties", _raw) or 0)
+                    if _applied != _raw:
+                        self._stamp_lone_applied(
+                            battle_result, _side, _lead.name, _raw, _applied, 0)
 
             # Store distribution info for event logging
             battle_result["casualty_distribution"] = {
@@ -6987,6 +7144,27 @@ class CombatExecutor:
                 flanking_message=flanking_message,
                 fortification_bonus=fort_bonus,
             )
+            # IQ-5 review (F), the solo path: both sides fought alone, and a
+            # corps the rubble rule (or the overkill cap) destroyed had its
+            # RAW figure printed everywhere — "Casualties: Ney 29" and a
+            # report "60 -> 31" for a corps that went to 0. Read at the seam,
+            # before anything else moves a strength: when the lead stands at
+            # 0 and the raw figure is not his whole corps, stamp the applied
+            # loss (display only — the mechanical figures stand).
+            if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+                for _side, _lead in (("attacker", marshal),
+                                     ("defender", enemy_marshal)):
+                    _sd = battle_result.get(_side)
+                    if not isinstance(_sd, dict):
+                        continue
+                    _raw = int(_sd.get("casualties", 0) or 0)
+                    _orig = int(battle_result.get(
+                        f"{_side}_original_strength", 0) or 0)
+                    if (_orig > 0 and _raw != _orig
+                            and int(getattr(_lead, "strength", 0) or 0) == 0):
+                        self._stamp_lone_applied(
+                            battle_result, _side, _lead.name, _raw, _orig, 0)
+                        _iq5_solo_applied[_lead.name] = _orig
 
         # ════════════════════════════════════════════════════════════
         # COORDINATION CONTEXT FOR BATTLE REPORT (Session 65)
@@ -7842,14 +8020,34 @@ class CombatExecutor:
         _iq5_faith_captions = (
             self._faith_captions(world, marshal, enemy_marshal, _iq5_faith)
             if (_iq5_faith and self.TRUST_NAMES_ITS_PRICE) else None)
+        # IQ-5 review (E + F): the diorama's contingents read each man's
+        # REALISED loss — share + rubble on the coordinated path, a lone
+        # destroyed corps' applied loss on the solo path — the figures the
+        # ally-loss line, the participant rows and the report print. Copies:
+        # `atk_distribution` / `def_distribution` themselves are not touched.
+        _bd_atk_dist, _bd_def_dist = atk_distribution, def_distribution
+        if self.BOTH_SIDES_NAME_THEIR_SCOPE:
+            if _iq5_atk_rubble:
+                _bd_atk_dist = dict(atk_distribution)
+                for _n, _x in _iq5_atk_rubble.items():
+                    _bd_atk_dist[_n] = int(_bd_atk_dist.get(_n, 0) or 0) + int(_x)
+            if _iq5_def_rubble:
+                _bd_def_dist = dict(def_distribution)
+                for _n, _x in _iq5_def_rubble.items():
+                    _bd_def_dist[_n] = int(_bd_def_dist.get(_n, 0) or 0) + int(_x)
+            if not atk_distribution and marshal.name in _iq5_solo_applied:
+                _bd_atk_dist = {marshal.name: int(_iq5_solo_applied[marshal.name])}
+            if not def_distribution and enemy_marshal.name in _iq5_solo_applied:
+                _bd_def_dist = {enemy_marshal.name:
+                                int(_iq5_solo_applied[enemy_marshal.name])}
         _bd_payload = build_battle_diorama(
             world=world, attacker=marshal, defender=enemy_marshal,
             battle_result=battle_result, battle_region=battle_region_name,
             atk_participants=atk_participants,
             def_participants=def_participants,
             pre_strengths=_bd_pre_strengths,
-            atk_distribution=atk_distribution,
-            def_distribution=def_distribution,
+            atk_distribution=_bd_atk_dist,
+            def_distribution=_bd_def_dist,
             attacker_reinforcements=attacker_reinforcements,
             defender_reinforcements=defender_reinforcements,
             region_conquered=conquered,
@@ -8031,27 +8229,39 @@ class CombatExecutor:
             }
 
         # Reinforcement notification messages (Session 65/66)
+        #
+        # IQ-5 review (C): every NAME in this block goes through `_rn` —
+        # humanised with BOTH_SIDES_NAME_THEIR_SCOPE up, the identity with it
+        # down (so the lever-down block is 720597da's, byte for byte). The
+        # first cut humanised the arrival line alone, so the next line said
+        # "committed (ArchdukeJohn)", every no-show arm said "ArchdukeJohn
+        # could not reach…", and a co-located Archduke's loss line read
+        # "ArchdukeCharles's supporting ally lost…" (R7). The RAW lists —
+        # `arrived_names`, `def_arrived`, `_atk_loss_names`, `_def_loss_names`
+        # — key the distribution lookups and the dedupes and never pass
+        # through `_rn`; the prose lists (`_atk_named`, `_def_named`) are
+        # built beside them.
+        from backend.game_logic.battle_report import _join_names
+        _rn = self._reinf_name
         reinf_messages = []
         arrived_names = []
         for r in attacker_reinforcements:
             if r.get("arrived"):
-                # IQ-5 (R7): the arrival names the men, never the roster key
-                # ("ArchdukeJohn"); one-word names are byte-identical.
-                from backend.display_names import humanize_entity_name as _hen
                 reinf_messages.append(
-                    f"{_hen(r['marshal'])}'s forces arrived to reinforce "
-                    f"{_hen(marshal.name)}!")
+                    f"{_rn(r['marshal'])}'s forces arrived to reinforce "
+                    f"{_rn(marshal.name)}!")
                 arrived_names.append(r["marshal"])
             else:
                 reason = r.get("reason", "unknown")
+                _who = _rn(r["marshal"])
                 if reason == "literal_personality":
-                    friendly_reason = f"{r['marshal']} awaits explicit orders and did not march to the sound of the guns."
+                    friendly_reason = f"{_who} awaits explicit orders and did not march to the sound of the guns."
                 elif reason == "fate_intervened":
-                    friendly_reason = f"{r['marshal']} was nearly in position, but fate intervened at the crucial moment."
+                    friendly_reason = f"{_who} was nearly in position, but fate intervened at the crucial moment."
                 elif reason == "eyes_on_a_crown":
                     # MC-1: the post-battle copy must match the muster
                     # preview's honest arm — ambition, not the roads.
-                    friendly_reason = (f"{r['marshal']} hesitated — the I Corps weighed "
+                    friendly_reason = (f"{_who} hesitated — the I Corps weighed "
                                        f"its own ambitions and did not march.")
                 elif reason == "neutral_soil":
                     # CA9 review round: he did not fail to arrive — he was
@@ -8059,7 +8269,7 @@ class CombatExecutor:
                     # the battlefield in time" of a marshal the engine
                     # turned back is the CA9 through-line in new prose.
                     friendly_reason = (
-                        f"{r['marshal']} halted at the frontier — the "
+                        f"{_who} halted at the frontier — the "
                         f"field lies on soil we are not at war with, and "
                         f"no order could send him there.")
                 elif reason == "grievance_withheld":
@@ -8068,18 +8278,18 @@ class CombatExecutor:
                     # system's largest consequence was, measurably, its
                     # least visible.
                     friendly_reason = (
-                        f"{r['marshal']} did not march. His quarrel with "
-                        f"{marshal.name} kept him where he stood.")
+                        f"{_who} did not march. His quarrel with "
+                        f"{_rn(marshal.name)} kept him where he stood.")
                 elif reason == "hostility_withheld":
                     # PT-D3: he was ordered, and he is openly hostile to
                     # the man he was ordered to save. That is a −20 on his
                     # arrival roll, not weather.
                     friendly_reason = (
-                        f"{r['marshal']} took his time. He and "
-                        f"{marshal.name} are openly at odds, and it "
+                        f"{_who} took his time. He and "
+                        f"{_rn(marshal.name)} are openly at odds, and it "
                         f"showed on the march.")
                 else:
-                    friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
+                    friendly_reason = f"{_who} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)
 
         # CO-6 (Combat Overhaul Phase 2): reinforcement legibility — name the
@@ -8095,15 +8305,16 @@ class CombatExecutor:
         # (byte-identical when there is no co-located man), then the
         # co-located contributors (scale > 0, the committed sum's own
         # filter); the loss line names whoever bore a share.
-        # The names IQ-5 adds are humanised (a raw key read "ArchdukeJohn");
-        # arrival names keep their pre-IQ-5 form, byte for byte.
-        from backend.display_names import humanize_entity_name as _iq5_hn
-        _atk_named = list(arrived_names)
+        # Every name in these lines is a PROSE name (`_rn`, review C): the
+        # display list `_atk_named` is built beside the raw `arrived_names`,
+        # never from it, so the distribution lookups below still key on the
+        # roster key (a humanised "Archduke John" finds no share).
+        _atk_named = [_rn(_n) for _n in arrived_names]
         _atk_loss_names = list(arrived_names)
         if self.BOTH_SIDES_NAME_THEIR_SCOPE:
             for _n in _iq5_atk_contrib:
-                if _n not in arrived_names and _iq5_hn(_n) not in _atk_named:
-                    _atk_named.append(_iq5_hn(_n))
+                if _n not in arrived_names and _rn(_n) not in _atk_named:
+                    _atk_named.append(_rn(_n))
             for _p in atk_participants:
                 if (_p.name != marshal.name and _p.name not in _atk_loss_names
                         and int(atk_distribution.get(_p.name, 0) or 0) > 0):
@@ -8113,16 +8324,45 @@ class CombatExecutor:
             _co6_lead = int(locals().get("_co6_lead_pre_strength", 0) or 0)
             _co6_total = _co6_lead + _co6_committed
             joined = ", ".join(_atk_named)
-            reinf_messages.append(
-                f"Massed effective strength: {_co6_lead:,} (lead) + "
-                f"{_co6_committed:,} committed ({joined}) = {_co6_total:,}.")
+            if arrived_names:
+                # The arrival line above names the lead, so the CO-6 line
+                # keeps its literal, subject-less form (the CA8 census pins
+                # it).
+                reinf_messages.append(
+                    f"Massed effective strength: {_co6_lead:,} (lead) + "
+                    f"{_co6_committed:,} committed ({joined}) = {_co6_total:,}.")
+            else:
+                # IQ-5 review (D): nobody marched in — the stack stood on
+                # the field already, and nothing above names whose mass this
+                # is. In the enemy phase "His supporting ally lost 1,368
+                # men" sat directly above the player's own marshal's lines,
+                # so "His" read as Ney while the men were Austrian. Named,
+                # mirroring the defender's co-located arm. (Reachable only
+                # with BOTH_SIDES_NAME_THEIR_SCOPE up: without it
+                # `_atk_named` is the arrivals alone.)
+                reinf_messages.append(
+                    f"{_rn(marshal.name)} fought with "
+                    f"{_join_names(_atk_named)} beside him — massed effective "
+                    f"strength: {_co6_lead:,} (lead) + {_co6_committed:,} "
+                    f"committed ({joined}) = {_co6_total:,}.")
 
         # Aggregate ally casualties (Session 66)
+        # IQ-5 review (E): each man's realised battle loss — his distributed
+        # share plus the rubble `take_casualties` zeroed (empty with the
+        # lever down, so the sum is the pre-IQ-5 share sum).
         if _atk_loss_names and atk_distribution:
             ally_casualties = sum(
-                atk_distribution.get(name, 0) for name in _atk_loss_names)
+                int(atk_distribution.get(name, 0) or 0)
+                + int(_iq5_atk_rubble.get(name, 0))
+                for name in _atk_loss_names)
             if ally_casualties > 0:
-                if len(_atk_loss_names) == 1:
+                if not arrived_names:
+                    # IQ-5 review (D): the co-located attacker, named.
+                    _atk_plural = "allies" if len(_atk_loss_names) > 1 else "ally"
+                    reinf_messages.append(
+                        f"{_rn(marshal.name)}'s supporting {_atk_plural} lost "
+                        f"{int(ally_casualties):,} men.")
+                elif len(_atk_loss_names) == 1:
                     reinf_messages.append(
                         f"His supporting ally lost {int(ally_casualties):,} men.")
                 else:
@@ -8143,13 +8383,16 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════════
         def_arrived = [r["marshal"] for r in defender_reinforcements
                        if r.get("arrived")]
-        # IQ-5 R3: the defender's co-located stack, mirrored.
-        _def_named = list(def_arrived)
+        # IQ-5 R3: the defender's co-located stack, mirrored. Review (C):
+        # the prose list is built beside the raw `def_arrived`, and the lead
+        # is `_rn`-named in BOTH his lines — "Archduke Charles fought with…"
+        # is no longer followed by "ArchdukeCharles's supporting ally lost".
+        _def_named = [_rn(_n) for _n in def_arrived]
         _def_loss_names = list(def_arrived)
         if self.BOTH_SIDES_NAME_THEIR_SCOPE:
             for _n in _iq5_def_contrib:
-                if _n not in def_arrived and _iq5_hn(_n) not in _def_named:
-                    _def_named.append(_iq5_hn(_n))
+                if _n not in def_arrived and _rn(_n) not in _def_named:
+                    _def_named.append(_rn(_n))
             for _p in def_participants:
                 if (_p.name != enemy_marshal.name
                         and _p.name not in _def_loss_names
@@ -8161,7 +8404,7 @@ class CombatExecutor:
             joined_def = ", ".join(_def_named)
             if def_arrived:
                 reinf_messages.append(
-                    f"{enemy_marshal.name} was reinforced — massed effective "
+                    f"{_rn(enemy_marshal.name)} was reinforced — massed effective "
                     f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
                     f"committed ({joined_def}) = "
                     f"{_co6_lead_def + _co6_committed_def:,}.")
@@ -8169,18 +8412,21 @@ class CombatExecutor:
                 # Nobody marched in: the stack stood there already. "Was
                 # reinforced" would be false, so the co-located wording.
                 reinf_messages.append(
-                    f"{_iq5_hn(enemy_marshal.name)} fought with "
+                    f"{_rn(enemy_marshal.name)} fought with "
                     f"{_join_names(_def_named)} beside him — massed effective "
                     f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
                     f"committed ({joined_def}) = "
                     f"{_co6_lead_def + _co6_committed_def:,}.")
         if _def_loss_names and def_distribution:
+            # IQ-5 review (E): share + rubble, as the attacker side.
             def_ally_casualties = sum(
-                def_distribution.get(name, 0) for name in _def_loss_names)
+                int(def_distribution.get(name, 0) or 0)
+                + int(_iq5_def_rubble.get(name, 0))
+                for name in _def_loss_names)
             if def_ally_casualties > 0:
                 _plural = "allies" if len(_def_loss_names) > 1 else "ally"
                 reinf_messages.append(
-                    f"{enemy_marshal.name}'s supporting {_plural} lost "
+                    f"{_rn(enemy_marshal.name)}'s supporting {_plural} lost "
                     f"{int(def_ally_casualties):,} men.")
 
         if reinf_messages:

@@ -1,0 +1,142 @@
+[
+ {
+  "id": "IQ6-V1 lever down (the window back to 15)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "THE_WINDOW_FITS_THE_COURTSHIP = True",
+  "new": "THE_WINDOW_FITS_THE_COURTSHIP = False",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V1 the blessed number reverted",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "VOLTE_FACE_WINDOW = 20\n",
+  "new": "VOLTE_FACE_WINDOW = 15\n",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V1 the ceiling loosened",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "VOLTE_FACE_WINDOW_CEILING = 25",
+  "new": "VOLTE_FACE_WINDOW_CEILING = 30",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V1b lever down (the participant read only)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "THE_SEPARATE_PEACE_ENDS_THE_WAR = True",
+  "new": "THE_SEPARATE_PEACE_ENDS_THE_WAR = False",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V1b the pair's resolution turn misread",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "                    yield int(resolved)\n",
+  "new": "                    yield int(resolved) - 30\n",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V2 lever down (the routine cooldown holds the courier)",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = True",
+  "new": "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = False",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V2 the skip flag ignored",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if not skip_nation_cooldown and cooldowns.get(nation_key, 0) > 0:",
+  "new": "    if cooldowns.get(nation_key, 0) > 0:",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V3 lever down (the exhaustion arm back)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "THE_DEFEAT_IS_THE_SOIL = True",
+  "new": "THE_DEFEAT_IS_THE_SOIL = False",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V3 the soil-only branch reads exhaustion again",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        # V3: the mark is the map. The exhaustion arm is retired (the\n        # constant block above says why).\n        marked = any(",
+  "new": "        # V3: the mark is the map. The exhaustion arm is retired (the\n        # constant block above says why).\n        marked = int((getattr(world, \"war_exhaustion\", {}) or {}).get(power, 0) or 0) >= VOLTE_FACE_WE_MARK or any(",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V3 the lever-down branch drops the exhaustion arm (identity)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        marked = exhausted or soil_marked",
+  "new": "        marked = soil_marked",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-refactor the window read off by one (identity)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    return any(turn - end < window\n",
+  "new": "    return any(turn - end <= window\n",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-refactor the courted floor off by one (identity)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if relation < VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
+  "new": "    if relation <= VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 lever down (silent)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "VOLTE_FACE_SPEAKS_ITS_MIND = True",
+  "new": "VOLTE_FACE_SPEAKS_ITS_MIND = False",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 it speaks when the court is already courted",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if volte_face_failing_clauses(world, power, hegemon) != [\n            VOLTE_CLAUSE_NOT_COURTED]:",
+  "new": "    if volte_face_failing_clauses(world, power, hegemon) not in (\n            [VOLTE_CLAUSE_NOT_COURTED], []):",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 turns left off by one",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        \"turns_left\": int(max(0, end + window - 2 - turn)),",
+  "new": "        \"turns_left\": int(max(0, end + window - 1 - turn)),",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 the reachable branch never taken",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if road is not None and road[0] <= left:",
+  "new": "    if road is not None and road[0] <= left - 50:",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 the counsel drops the line",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if line:\n        text = f\"{text} {line}\"\n    return (text, mission)",
+  "new": "    return (text, mission)",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 the forecast forgets the drift step",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        relation = max(-RELATION_CLAMP, min(RELATION_CLAMP, relation + effect))\n        relation += relation_drift_step(world, player, target_nation,\n                                        relation=relation, _court=exempt)\n    return None\n\n\ndef _mission_counsel",
+  "new": "        relation = max(-RELATION_CLAMP, min(RELATION_CLAMP, relation + effect))\n    return None\n\n\ndef _mission_counsel",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 the war room drops the line",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "        for opening in volte_openings:\n            lines.append(f\"  {opening['text']}\")",
+  "new": "        for opening in volte_openings:\n            pass",
+  "tests": "tests/test_iq6_volte_face.py"
+ },
+ {
+  "id": "IQ6-V4 the war-room context key leaks with the lever down",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "    context_extra: Dict = {}\n    if volte_openings:",
+  "new": "    context_extra: Dict = {}\n    if True:",
+  "tests": "tests/test_iq6_volte_face.py"
+ }
+]

@@ -114,6 +114,17 @@ OFFER_VASSALAGE_COOLDOWN_TURNS = 12   # per-nation, set at ISSUE (lapse-safe)
 # The volte-face courier (AI-5b(ii)): the beaten-then-courted great power
 # proposes the reversal itself, naming the design it would advance to.
 VOLTE_FACE_OFFER_COOLDOWN_TURNS = 12  # per-nation, set at ISSUE
+# IQ-6 V2 (September 14, 2026): the courier skips the NATION-level ask
+# cooldown (`{nation}|nation`) — measured, France accepting the court's
+# own routine open-borders ask during turn 20 set it, and it ate the only
+# receptive turn at window 17 and two of four at window 20. The rarest
+# beat in the phase is not a routine ask. It KEEPS the `alliance` type
+# cooldown, its own 12-turn `{nation}|volte_face` cooldown and the
+# pending-proposal dedupe. (The nation key is shared by the acceptance
+# AND rejection cooldowns, so a rejected ROUTINE ask no longer holds the
+# courier either; a rejected alliance still does, through its type key.)
+# False reproduces the pre-IQ-6 gate.
+THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = True
 # The Arbiter's Offer (AI-5c, §12.5): armed mediation of a French war by
 # a non-belligerent contain/arbiter court, above an exhaustion floor.
 MEDIATION_WE_FLOOR = 60           # either belligerent this weary invites offices
@@ -324,18 +335,22 @@ def _cooldown_keys(nation: str, proposal_type: str, world,
 
 
 def _is_on_cooldown(nation: str, proposal_type: str, world,
-                    war_score: int = 0, recipient: str = None) -> bool:
+                    war_score: int = 0, recipient: str = None,
+                    skip_nation_cooldown: bool = False) -> bool:
     """Check if a nation or proposal type is on cooldown.
 
     R126: If war_score is provided and situation is urgent (war score dropped
     by 20+ since last proposal), bypass the nation cooldown. Type cooldown
     still applies.
+
+    IQ-6 V2: `skip_nation_cooldown` reads the TYPE half only (the volte-face
+    courier's gate); the default is the pre-IQ-6 check byte-for-byte.
     """
     cooldowns = _get_cooldowns(world)
     nation_key, type_key = _cooldown_keys(nation, proposal_type, world,
                                           recipient)
 
-    if cooldowns.get(nation_key, 0) > 0:
+    if not skip_nation_cooldown and cooldowns.get(nation_key, 0) > 0:
         # R126: Bypass nation cooldown if situation is urgent
         # AI-2 §4.2c: the OPPORTUNISM valve — §3.2's marquee promise is
         # that willingness rises precisely when the design's obstacle is
@@ -1542,8 +1557,10 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 and world.get_diplomatic_state(nation, player) != "ALLIANCE"
                 and cooldowns.get(f"{nation}|volte_face", 0) <= 0
                 and volte_face_receptive(world, nation, player)
-                and not _is_on_cooldown(nation, "alliance", world,
-                                        war_score)):
+                and not _is_on_cooldown(
+                    nation, "alliance", world, war_score,
+                    skip_nation_cooldown=(
+                        THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN))):
             terms = _build_proposal_terms(nation, "alliance", 0, world,
                                           gold_mult=gold_mult)
             proposal = _make_proposal(nation, "alliance", 8, terms, world)

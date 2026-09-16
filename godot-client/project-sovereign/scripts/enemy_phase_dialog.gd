@@ -32,6 +32,11 @@ const OUR_LOSS_READS_AS_LOSS := true
 # The player's court on every shipped world — the same fact
 # `_victor_is_player` below compares against.
 const _PLAYER_NATION := "France"
+# IQ-5 review (G): the reinforcement lines and the "ARMY DESTROYED!" line are
+# coloured by the SIDE they are about (the battle's attacker for the former,
+# the destroyed defender for the latter) — never by matching names in the
+# prose. False = the side-blind colours, as IQ-5 first shipped them.
+const IQ5_COLOUR_BY_SIDE := true
 
 # BD: tableau payloads for this phase's battles, indexed by the meta link.
 var _diorama_payloads: Array = []
@@ -363,15 +368,31 @@ func _format_action(action: Dictionary) -> String:
 		# main.gd `_display_reinforcement_messages` carries the same list.
 		var failure_markers = ["did not march", "fate intervened",
 			"halted at the frontier", "took his time", "could not reach"]
+		# IQ-5 review (G): the colour belongs to the SIDE the line is about.
+		# Every "arrived" and no-show line comes from the ATTACKER's
+		# reinforcements (a defender who marched in reads "was reinforced",
+		# report grey), so the side is the battle's attacker — read off the
+		# event's `attacker_nation` / the action's `nation`, never guessed
+		# from the prose. An enemy arriving against us is bad news, and an
+		# enemy failing to come is good news; a third party's is neither.
+		var reinf_side = _reinforcement_side(action)
+		var arrive_color = Utils.COLOR_SUCCESS
+		var noshow_color = COLOR_ERROR
+		if reinf_side == "enemy":
+			arrive_color = COLOR_ERROR
+			noshow_color = Utils.COLOR_SUCCESS
+		elif reinf_side == "third":
+			arrive_color = Utils.COLOR_INFO
+			noshow_color = Utils.COLOR_INFO
 		for msg in reinf_msgs:
 			var msg_text = str(msg)
 			var reinf_color = Utils.COLOR_INFO
 			if msg_text.find("arrived") >= 0:
-				reinf_color = Utils.COLOR_SUCCESS
+				reinf_color = arrive_color
 			else:
 				for marker in failure_markers:
 					if msg_text.findn(marker) >= 0:
-						reinf_color = COLOR_ERROR
+						reinf_color = noshow_color
 						break
 			result += "[color=#" + reinf_color + "]    " + msg_text + "[/color]\n"
 
@@ -428,6 +449,18 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	var def_lead_rem = defender.get("lead_remaining", null)
 	if def_is_army and (def_lead_rem is int or def_lead_rem is float):
 		defender_remaining = def_lead_rem
+	# IQ-5 review (F): a LONE side the rubble rule (or the overkill cap)
+	# destroyed lost its whole corps, not the raw figure resolve_battle
+	# computed — "Ney: 28 casualties, 0 remaining" for a 60-man corps sat
+	# above Berthier's "Ney 60". The backend stamps `applied_casualties` on
+	# exactly that side (never on an army side, never with its lever down),
+	# so prefer it. Absent -> the raw figure, as before.
+	var atk_applied = attacker.get("applied_casualties", null)
+	if not atk_is_army and (atk_applied is int or atk_applied is float):
+		attacker_casualties = atk_applied
+	var def_applied = defender.get("applied_casualties", null)
+	if not def_is_army and (def_applied is int or def_applied is float):
+		defender_casualties = def_applied
 
 	if atk_is_army:
 		result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + "'s army: "
@@ -465,7 +498,14 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 
 	# Check for enemy destroyed
 	if event.get("enemy_destroyed", false):
-		result += "[color=#" + Utils.COLOR_CONQUEST + "]    ARMY DESTROYED![/color]\n"
+		# IQ-5 review (G): `enemy_destroyed` flags the DEFENDER destroyed
+		# (`enemy_marshal.strength <= 0` in `_execute_attack`). When that
+		# defender was ours, "ARMY DESTROYED!" in conquest green read our
+		# loss as a victory — the IQ-2 conquest-line fix, one line over.
+		var destroyed_color = Utils.COLOR_CONQUEST
+		if IQ5_COLOUR_BY_SIDE and str(event.get("defender_nation", "")) == _PLAYER_NATION:
+			destroyed_color = COLOR_ERROR
+		result += "[color=#" + destroyed_color + "]    ARMY DESTROYED![/color]\n"
 
 	# Check for region conquered
 	if event.get("region_conquered", false):
@@ -753,6 +793,37 @@ func _taken_from_player(event: Dictionary) -> bool:
 		return false
 	var taken = event.get("captured_from", "")
 	return taken is String and taken == _PLAYER_NATION
+
+func _reinforcement_side(action: Dictionary) -> String:
+	"""IQ-5 review (G): whose reinforcements the lines describe — "player",
+	"enemy" or "third". Every "arrived" and no-show line is about the
+	ATTACKER's reinforcements, so read the first battle event's
+	`attacker_nation` (else the action's `nation`). The player attacking ->
+	"player" (arrivals green, no-shows red); attacking the player ->
+	"enemy" (inverted); a third-party battle the fog let through -> "third"
+	(neutral — one foreign court's arrival is not France's defeat). Lever
+	down -> "player", the side-blind colours."""
+	if not IQ5_COLOUR_BY_SIDE:
+		return "player"
+	var atk_nation := ""
+	var def_nation := ""
+	var evs = action.get("events", [])
+	if evs is Array:
+		for ev in evs:
+			if typeof(ev) == TYPE_DICTIONARY and str(ev.get("type", "")) == "battle":
+				var an = ev.get("attacker_nation", "")
+				var dn = ev.get("defender_nation", "")
+				atk_nation = an if an is String else ""
+				def_nation = dn if dn is String else ""
+				break
+	if atk_nation == "":
+		var nat = action.get("nation", "")
+		atk_nation = nat if nat is String else ""
+	if atk_nation == _PLAYER_NATION:
+		return "player"
+	if def_nation == _PLAYER_NATION:
+		return "enemy"
+	return "third"
 
 func _victor_is_player(event: Dictionary, victor: String) -> bool:
 	"""True when the battle's victor fought for France. Side nations ride the

@@ -1691,6 +1691,100 @@ by a test writer.
   - The drift census has 1,000 cells.
   - The sweep killed 69 of 69 mutations.
 
+**§1.4.1 THE REVIEW ROUND (September 16, 2026).** Five read-only lenses at
+`e38be000` (a `git archive` snapshot, so the IQ-6 build could run in the live
+tree at the same time), two refuters per P1/P2 and one per P3/P4: 21 filed,
+20 survived, all taken — IQ5-RV1..RV9 in `BUG_FIXES.md`. **The four P2s were
+one shape: a sentence built from ONE factor of a product.** The caption and
+the enemy note quoted the trust factor alone, false on every non-neutral pair
+(the pins were all rel 0, where the two readings coincide); the jealousy card
+read the breakdown and discarded its zero. **The fix shapes the refuters
+warned against were not built**, and the record says which: quoting the
+total `scale` under a trust-only sentence (the wrong-reason defect one
+surface over), a "no weight penalty" arm that hides a Friendly pair's lost
+goodwill, humanising the raw name lists that key the lookups. **Two claims
+of the landing record were false and are corrected here:** "each lever, set
+False, reproduces `720597da` byte-for-byte on its surface" — IQ5-10's arrival
+rename was unconditional (now behind the lever); and "the sweep killed 69 of
+69" counted one row that swapped `lead_remaining` for its equal (deleted;
+`lead_remaining == remaining` by construction). Tests 96 → 185;
+sweep 140 of 140 killed, 0 INERT; parse harness EXIT=0; boot smoke 0
+SCRIPT ERROR; M1–M7 + `BASELINE_SERIES` byte-identical (the realised-loss map
+and the applied-loss stamp are read after `take_casualties` and written to
+display keys only). The build was interrupted by a usage limit with 166 of
+167 pins green and finished September 16.
+
+### §1.5 LANDING RECORD — IQ-6 "Europe Speaks Its Mind" (✅ September 16, 2026; built September 14)
+
+**Authoritative for this row.** The rules are in `docs/SYSTEMS_REFERENCE.md`
+§45; the defect row is PR-X4 in `docs/BUG_FIXES.md`. Two read-only recon
+agents measured the row's two zeros (the narration; the volte-face); the lead
+ruled N1–N4 and V1–V5; two builders worked on disjoint files (the engine and
+its counsel; the instrument), then a test writer. The build was interrupted by
+a usage limit after the builders and the test writer's file; it resumed on
+September 16, and the sweeps were run on a private copy at integration.
+
+- **The completion item is MET, with two different answers for the two zeros.**
+  The row asked that "the producer's gate is measured, the reason it never
+  opens is stated, and either the gate is corrected or the feature is retired
+  under GR9".
+  - **The narration (PR-X4): the gate was never shut.** The producer fires on
+    every board — 8 unique routine lines on the ambient historical run, at most
+    2 a dispatch — and the client prints every row. The driver's digest dropped
+    every MEDIUM/LOW diplomatic row (30 of 122 printed on the commanded
+    historical arm). An instrument defect, fixed in the instrument (N1–N3);
+    **no backend change**, so the series is identical by construction. Records
+    corrected (N4): the rescore memo's three "0 in twelve runs" claims are
+    struck, and `PLAYTESTING.md` warns that no digest dated before September 14
+    shows a MEDIUM/LOW diplomatic row.
+  - **The volte-face: real, and the window was the reason.** The predicate
+    demanded a courtship to 40 inside 15 turns of the peace; from the boot
+    relations the game's own best lever reaches 40 at best 16 turns after it,
+    and the exhaustion arm could never overlap the courtship at all (R49 +
+    the decay). Fixed as V1–V4, each behind its own lever; the exhaustion arm
+    retired under GR9 with its promise struck from `AI_INTENT_SPEC.md`
+    §3.6-4/§18 and a re-open condition named.
+- **Measured on the real board** (the ordinary geometry, through
+  `_ratify_treaty` with R49 running, one Austrian province held by France's
+  bloc, courted through the executor each turn): receptive exactly at the
+  forecast turn; the courier proposes that turn; the alliance ratifies through
+  the conflict confirm with exactly one `volte_face` event and one dispatch.
+  Negatives: uncourted never; window 15 never. Under the driver,
+  `volte_court_austria.json` carries `volte_face` once at turn 21
+  (`dispatch_type_counts["volte_face"] == 1`); the plain commanded arm 0.
+- **Found while building (V1b):** a BILATERAL peace never satisfied "recently
+  beaten" — the pair-level `resolved_turn` now answers first
+  (`THE_SEPARATE_PEACE_ENDS_THE_WAR`). Pressburg's own geometry.
+- **The recon was wrong in one place, corrected by the builder:** re-issuing
+  the courting order is not refused; it replaces the live mission with an
+  identical one, and the gain holds at +9/+8/+7 a turn.
+- **Ruled not to build (V3 option a):** stamping the exit exhaustion into
+  `participant_meta` would change the serialized shape of every war instance,
+  against this section's zero-new-fields contract; the promise is retired
+  instead.
+- **Gates:** `BASELINE_SERIES` + M1–M7 byte-identical with the reason stated;
+  ruff clean; zero `.gd`, so no parse harness; tests
+  `tests/test_iq6_europe_speaks_its_mind.py` (42) +
+  `tests/test_iq6_volte_face.py` (22, including a 1,152-cell identity grid of
+  the refactored predicate against a verbatim copy of the old one) + the N2
+  floor pin in `tests/test_ai_intent_assurance.py`; sweeps
+  `tools/_sweep_iq6.json` (37 of 37 killed) and `tools/_sweep_iq6_volte.json`
+  (20 of 20 killed), 0 INERT at close.
+- **Pins flipped consciously:** the five `test_ai_intent_emergent_designs.py`
+  fixtures that staged the defeat through exhaustion alone now stage soil; the
+  AI-V scripted pin is re-worded to assert the retired arm no longer fires,
+  with the measurement in its docstring.
+- **Found while pinning, routed (`BUG_FIXES.md` IQ6-X1 → IQ-8):** FA-D24's
+  Berthier rotation is a process-global counter, so a second in-process
+  campaign prints different observation lines; the T7 control resets it.
+- **Routed (Golden Rule 9), each with an owner in `DESIGN_REFINEMENT.md`:**
+  IQ6-D1 Austria has no follow-on design after the volte-face; IQ6-D2 the
+  foreclosure hole (a partition by the hegemon's client, with the revanche
+  charged to Bavaria, does not foreclose the door); IQ6-D3 no hysteresis in
+  the intent narration and the tail names no courts; IQ6-D4 the AI-V scripted
+  arm's scene-4 positive rests on the retired arm and wants a soil mark at
+  `_turn_11`.
+
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that
 belongs to the Victory & Objectives Pass, ROADMAP positions 12–13. No IQ row

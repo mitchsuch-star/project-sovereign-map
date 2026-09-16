@@ -2073,6 +2073,22 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
     return petition
 
 
+def _more_phrase(fraction: float) -> str:
+    """IQ-5 review (J): "the goodwill that made him worth {this} more" — the
+    weight a Friendly pair's grievance costs, DERIVED from the two scales
+    the card already holds (never a hardcoded "quarter": the table's +1 is
+    1.25 today and in-band tunable). `weight_phrase` for 0 < f < 1 with its
+    trailing "of" dropped — "a quarter", "half", "three-quarters", "about
+    30%" — and "about N%" from 1 up (unreachable from the shipped table,
+    whose top is 1.5 against a floor of 1.0)."""
+    from backend.commands.combat_executor import weight_phrase
+    f = float(fraction)
+    if 0.0 < f < 1.0:
+        phrase = weight_phrase(f)
+        return phrase[:-3] if phrase.endswith(" of") else phrase
+    return f"about {int(round(f * 100))}%"
+
+
 def _standing_cost_detail(marshal, target) -> str:
     """§3 (CA9 row 3): what letting the grievance stand actually costs, in
     men and turns rather than in adjectives.
@@ -2083,33 +2099,81 @@ def _standing_cost_detail(marshal, target) -> str:
     resolves on. (`CombatExecutor._pair_contribution_scale` owns the rule;
     this reads its two thresholds, which are personality-only and need no
     executor instance.)
+
+    IQ-5 review (J, finding #5): the non-aggressive arm prices the
+    grievance's INCREMENT — the engine's scale WITH the grievance against
+    the same source's counterfactual WITHOUT it (`without_grievance=True`)
+    — because "about half" was false on the ordinary board: Bernadotte
+    (cautious) is Rival to Ney and Hostile to Davout, the derived −1 drives
+    a Rival pair to −2 and the engine applies 0.0, while the muster row for
+    the same pair said "will bring NOTHING". Four arms:
+
+      (a) 0 with the grievance, > 0 without -> the NONE sentence (the
+          aggressive arm's own wording);
+      (b) the same scale either way        -> the quarrel costs no
+          weight: an already-Hostile pair says so ("quarrel or no
+          quarrel"), any other says what he already brings;
+      (c) a Friendly pair fallen to 1.0    -> he brings his men but no
+          more, the goodwill (derived, never a hardcoded quarter) gone;
+      (d) 0 < scale < 1                    -> the R10 arm: the true
+          fraction naming his spent faith when trust took a share, else
+          the old "about half" sentence byte for byte (the only value the
+          table yields there is 0.5, so it is true).
+
+    Lever down (`TRUST_NAMES_ITS_PRICE`) = the old sentence, byte for byte.
     """
     turns = int(getattr(marshal, "jealousy_turns_remaining", 0) or 0)
     plural = "s" if turns != 1 else ""
     men = int(getattr(marshal, "strength", 0) or 0)
+    leads = f"his {men:,} men to any battle {target.name} leads"
     if getattr(marshal, "personality", "") == "aggressive":
-        weight = (f"he brings NONE of his {men:,} men to any battle "
-                  f"{target.name} leads")
+        weight = f"he brings NONE of {leads}"
     else:
-        weight = (f"he brings about half the weight of his {men:,} men to "
-                  f"any battle {target.name} leads")
+        weight = f"he brings about half the weight of {leads}"
         # IQ-5 R10 (PR-X3): the card said it "reads _pair_contribution_scale's
         # two thresholds" and was trust-blind — a jealous cautious marshal at
         # trust 20 brings a QUARTER (0.5 grievance x 0.5 FA-D23), and the
-        # card said "about half". It reads the real breakdown now. At trust
-        # >= 30 the factor is 1.0 and the sentence is the old one, byte for
-        # byte. (Lazy import: combat_executor imports this module.)
+        # card said "about half". It reads the real breakdown now, and
+        # (review J) its counterfactual. (Lazy import: combat_executor
+        # imports this module.)
         from backend.commands.combat_executor import (
             CombatExecutor, pair_contribution_breakdown, weight_phrase,
         )
         if CombatExecutor.TRUST_NAMES_ITS_PRICE:
             _bd = pair_contribution_breakdown(target, marshal)
-            if (_bd["scale"] > 0.0 and _bd["trust_factor"] < 1.0
+            _cf = pair_contribution_breakdown(target, marshal,
+                                              without_grievance=True)
+            _scale, _cf_scale = float(_bd["scale"]), float(_cf["scale"])
+            if _scale <= 0.0 and _cf_scale > 0.0:
+                # (a) the grievance takes everything he would have brought.
+                weight = f"he brings NONE of {leads}"
+            elif _scale == _cf_scale:
+                # (b) the grievance costs no weight at all.
+                if _cf_scale <= 0.0:
+                    weight = (f"he brings NONE of {leads}, quarrel or no "
+                              f"quarrel — they are openly at odds already")
+                else:
+                    _already = ("his full weight" if _cf_scale >= 1.0
+                                else f"{weight_phrase(_cf_scale)} his {men:,} men")
+                    weight = (f"the quarrel costs no weight — he already "
+                              f"brings {_already} to any battle "
+                              f"{target.name} leads")
+            elif _cf_scale > 1.0 and _scale >= 1.0:
+                # (c) a friend: the goodwill's bonus is what the quarrel costs.
+                _more = _more_phrase((_cf_scale - _scale) / _scale)
+                if _scale == 1.0:
+                    weight = (f"he brings {leads}, but no more — the goodwill "
+                              f"that made him worth {_more} more is gone")
+                else:
+                    weight = (f"he brings {weight_phrase(_scale)} the weight of {leads}, "
+                              f"but less than he would — the goodwill that "
+                              f"made him worth {_more} more is gone")
+            elif (_scale > 0.0 and _bd["trust_factor"] < 1.0
                     and _bd["trust"] is not None):
-                weight = (f"he brings {weight_phrase(_bd['scale'])} the "
-                          f"weight of his {men:,} men to any battle "
-                          f"{target.name} leads, for his faith in you is "
-                          f"spent (trust {int(_bd['trust'])})")
+                # (d) R10: the true fraction, naming the faith that took a share.
+                weight = (f"he brings {weight_phrase(_scale)} the weight of "
+                          f"{leads}, for his faith in you is spent "
+                          f"(trust {int(_bd['trust'])})")
     return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
             f"{weight}, and the quarrel may harden further.")
 

@@ -1746,6 +1746,17 @@ docstring says why it has none.
 
 ---
 
+## IQ-6 "Europe Speaks Its Mind" — routed, not built (filed September 16, 2026)
+
+> Filed by row IQ-6 (landing record `IMPROVEMENT_QUEUE_SPEC.md` §1.5; rules `SYSTEMS_REFERENCE.md` §45). Each item was found while making the volte-face fire on the ordinary route, and each names an owner and a completion (Golden Rule 9).
+
+| id | item | why it is not this row's | owner | completion |
+|---|---|---|---|---|
+| **IQ6-D1** | **Austria has no follow-on design.** After the volte-face the beat reads "looks abroad for a new design", and her design stays `redeem_italy` — her deck has no `contain_hegemon` entry, so a reversed Austria stays aimed at France's own bloc. | An authoring gap in `europe_1805.json`'s decks, not a mechanism: the deck-advance is free once a third-party design exists (Russia's `gulf_and_straits` is the model). | the next nation-agendas authoring pass (`NATION_AGENDAS_SPEC.md` §4 decks) | Austria carries a post-volte-face design aimed at a third party, and `tests/test_iq6_volte_face.py` gains a pin that the volte-face beat names it. |
+| **IQ6-D2** | **The foreclosure hole.** A partition of the beaten court by the hegemon's CLIENT, with the revanche charged to the client (Bavaria), does not foreclose the volte-face door: the punitive memory names the client as author, and the predicate asks only for the hegemon's. | Needs a ruling — whether a client's partition is the hegemon's act (it was sponsored) or the client's (it was signed). | a diplomacy gate beside FA-S17-D3 (the WO-D8 neighbourhood) | The ruling recorded, the predicate reading it, and a pin on the Bavaria-charged partition. |
+| **IQ6-D3** | **No hysteresis in the intent narration**, and the tail line names no courts. Measured: Austria went eases → hardens → eases on consecutive turns; "And 3 other courts stir at their own designs" tells the player nothing they can act on. | Narration polish (P4); the cap is the producer's and a band would be a new blessed number. | Stage F's owner (`AI_INTENT_SPEC.md` §19, the narration cap) | A dead band on the weight before a line flips direction, and the tail naming its courts; pinned in `test_ai_intent_narration.py`. |
+| **IQ6-D4** | **The AI-V scripted arm's scene-4 positive rests on the retired arm.** `tools/ai_v_sweep.py` `_turn_11` stages the Tilsit reversal through hand-written exhaustion and a +125 relation jump, which V3 retires; the assurance pin was re-worded to assert the retired arm no longer fires, so `AI_V_SWEEP_2026_08_01.md` §7a scene 4 has no in-run positive today. | A harness edit, not an engine one — the scripted arm needs a SOIL mark at turn 11 (hand Lithuania's controller to France, for example) so the door opens on the map. | IQ-8 "The Harness Tells the Truth" (the instrument row) | The soil mark staged, the old positive pin restored beside the negative one, and §7a scene 4 re-verified in a run. |
+
 ## Source Documents (Archived Reference)
 
 | Document | Items Moved Here |

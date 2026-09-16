@@ -52,8 +52,8 @@
 > | 3 | ~~**IQ-3 THE COALITION IS RARE**~~ | ten coalitions in forty turns | PR-D1; each one costs the settlement system its meaning | ✅ **CLOSED September 14, 2026** — "The League Is Spent": a treaty that dissolves the league halves Europe's alarm; commanded arm **6–8 → 1** coalitions, completion board **2 / 1 / 2** on three seeds; record `IMPROVEMENT_QUEUE_SPEC.md` §1.2 |
 > | 4 | ~~**IQ-4 THE CABINET IS VISIBLE**~~ | missions are mechanically live and invisible | PR-D2, PR-D3 | ✅ **CLOSED September 14, 2026**. One source for every mission surface (Cabinet, rail, log, help, tutorial). "The Court's Favour" ⚠ FOR USER CONFIRMATION. The counsel arm ticks **3 / 3 / 4** types on three seeds, the control 0. A P1 closed underneath (Talleyrand stranded IN_TRANSIT). Record `IMPROVEMENT_QUEUE_SPEC.md` §1.3 |
 > | 5 | ~~**IQ-5 BOTH SIDES OF THE BUTCHER'S BILL**~~ | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ✅ **CLOSED September 14, 2026**. Both sides report their scope on every surface: the enemy-phase dialog, campaign log and dispatch were wrong too. Trust is named where it is paid, on both sides. IQ5-R1 routed. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.4 |
-> | 6 | **IQ-6 EUROPE SPEAKS ITS MIND** | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | ▶ **NEXT**. Recon done: the narration's zero is an INSTRUMENT defect (the digest drops MEDIUM/LOW rows); the volte-face's is real (the window is too short for the game's own courting lever) |
-> | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | queued |
+> | 6 | ~~**IQ-6 EUROPE SPEAKS ITS MIND**~~ | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | ✅ **CLOSED September 16, 2026** (built September 14). The narration's zero was the INSTRUMENT (the digest dropped every MEDIUM/LOW row; the producer fires 8 lines on the ambient run); the volte-face's was real — the 15-turn window could not fit the game's own courtship, and a bilateral peace never counted as a defeat. Window 15 → 20, the separate peace counts, the courier skips the routine cooldown, the exhaustion arm retired under GR9, and Talleyrand names the open door. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.5 |
+> | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ▶ **NEXT**. Recon done (Sept 14) and the contract ruled: **the row's premise flipped at HEAD** — a commanded France at peace from turn 5 to 29 (IQ-3's doing) now loses **2 / 3 / 3** of its three satellites to the −2 drift alone by turns 30–33 (6 rebellions + 2 VS-6 defections; the IQ-3 lever off gives 0 / 0 / 0), and the only vassal decision it ever sees is the rebellion modal 0–2 turns before the break. Ruling = **"The Client's Petition"**: a LOYAL satellite (≥60) petitions the Emperor for a province or eight turns' tribute relief while it is still loyal; granting binds it (relation +20, capped 40 — two grants cancel the drift), refusing or ignoring it spends its standing; GR5 for an AI lord. Riders: the wavering line stops promising regiments the satellites do not have, a lord's ALLIES stop courting its satellites (Spain did), the Garrison option says what it does, the digest gains a `vassals` bit. Routed: the Contingent (VD-C), the Suitor (declined with a re-open condition), Holland's unpayable design |
 > | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | queued |
 > | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
 > | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
@@ -227,7 +227,7 @@
 >
 > ---
 >
-> ### IQ-6 — EUROPE SPEAKS ITS MIND
+> ### IQ-6 — EUROPE SPEAKS ITS MIND ✅ CLOSED September 16, 2026 (record `IMPROVEMENT_QUEUE_SPEC.md` §1.5)
 >
 > **Evidence (PR-X4):** `intent_hardens` / `intent_eases` — the whole Stage-F
 > narration cap and its producer — fired **0 times in twelve 40-turn runs**.
@@ -285,6 +285,54 @@
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
 
+> ## ▶ IQ-6 "EUROPE SPEAKS ITS MIND" — LANDED September 16, 2026 (built September 14). **ROW IQ-6 IS CLOSED.**
+>
+> Row IQ-6 (PR-X4). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.5,
+> authoritative; rules = `SYSTEMS_REFERENCE.md` §45; the build was interrupted
+> by a usage limit after the builders and resumed September 16.
+>
+> **Two zeros, two answers.**
+> - **The narration's zero was the INSTRUMENT.** The Stage-F lines are
+>   MEDIUM/LOW dispatch rows and the driver's digest printed HIGH/CRITICAL
+>   only — 30 of 122 diplomatic rows on the commanded historical arm reached
+>   it. The producer fires on every board (8 unique routine lines on the
+>   ambient run; never more than 2 a dispatch) and the client prints every
+>   row. The digest now reads the whole dispatch (`COURTS` / `DIPLO` lines,
+>   `dispatch_row` records, `dispatch_type_counts` in `meta.json`; lever
+>   `THE_DIGEST_READS_THE_WHOLE_DISPATCH`, False = byte-identical). No
+>   backend change. The rescore memo's three "0 in twelve runs" claims are
+>   struck.
+> - **The volte-face's zero was REAL.** The predicate asked for a courtship
+>   to 40 inside 15 turns of the peace; from the boot relations the game's own
+>   best lever reaches 40 at best 16 turns after it, and the exhaustion arm
+>   could never overlap the courtship (R49 zeroes it at the peace, the tick
+>   decays it). Four rulings, each behind a lever: the window 15 → 20 (ceiling
+>   25, pinned); a separate peace counts as the war's end for the predicate
+>   (found while building — a bilateral peace never stamped `exited_turn`, so
+>   Pressburg's own geometry was "not beaten" forever); the courier skips the
+>   routine ask cooldown; the exhaustion arm RETIRED under GR9 with its promise
+>   struck from `AI_INTENT_SPEC.md`; and Talleyrand's per-court counsel and the
+>   war room now NAME the open door with the turns left and the relation
+>   needed.
+>
+> **Measured:** bilateral peace through the real `_ratify_treaty` → receptive
+> at the forecast turn, the courier proposes that turn, the alliance signs with
+> exactly one `volte_face` event; uncourted never; window 15 never. The
+> committed courting script `tools/playtest_scripts/volte_court_austria.json`
+> carries `volte_face` once (turn 21); the plain commanded arm 0.
+>
+> **Gates:** `BASELINE_SERIES` + M1–M7 byte-identical with the reason measured
+> (no France–great-power peace on the ambient board); zero `.gd`; 64 new tests
+> + the N2 floor pin; sweeps `_sweep_iq6.json` (37 of 37 killed) +
+> `_sweep_iq6_volte.json` (20 of 20 killed), 0 INERT. Two pin families
+> flipped consciously (the emergent-designs fixtures stage soil; the AI-V
+> scripted pin asserts the retired arm no longer fires).
+>
+> **Routed:** IQ6-D1..D4 (`DESIGN_REFINEMENT.md`).
+>
+> **▶ NEXT = IQ-7 "THE SATELLITES HAVE A POSITION"** — recon done and the
+> contract ruled ("The Client's Petition"; see the queue table).
+
 > ## ▶ IQ-5 "BOTH SIDES OF THE BUTCHER'S BILL" — LANDED September 14, 2026. **ROW IQ-5 IS CLOSED.**
 >
 > Row IQ-5 (PR-X2, PR-X3). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.4,
@@ -325,8 +373,25 @@
 > strength, so a half-committed man bleeds a full share. That is a mechanical
 > change, owned by the next combat-mechanics row.
 >
-> **▶ NEXT = IQ-6 "EUROPE SPEAKS ITS MIND"** (PR-X4). Its recon and build
-> contract are ready.
+>
+> **The review round (September 16, 2026; five lenses + refuters at
+> `e38be000`, 21 filed / 20 survived, ALL FIXED — `BUG_FIXES.md` IQ5-RV1..RV9).**
+> Four P2s of one shape: a sentence built from one factor of a product — the
+> diorama caption and the enemy trust note quoted the trust factor alone
+> ("half" for a quarter on every Rival pair, "half" for five-eighths on every
+> Friendly one; every pin was rel 0), and the jealousy card read the breakdown
+> and discarded its ZERO ("about half" for a man the engine lets bring
+> nothing). Every faith sentence is now RELATIVE through one clause, and the
+> card prices the grievance's increment off the same single source. Also: the
+> R7 leak IQ5-10 claimed closed persisted one line down (and its rename was
+> not behind the lever — the record's byte-identity claim was false); the
+> co-located attacker's lines had no subject; the enemy phase painted an
+> enemy arrival in France's green; a rubbled reinforcer reported his share
+> not his loss; a lone sub-125-man corps printed two figures under one name;
+> six pins did not bind. Tests 96 → 185, sweep 140 of 140 / 0
+> INERT, parse EXIT=0, boot 0 SCRIPT ERROR, series + M1–M7 byte-identical.
+>
+> IQ-6 followed (above).
 
 > ## ▶ IQ-4 "THE CABINET IS VISIBLE" — LANDED September 14, 2026. **ROW IQ-4 IS CLOSED.**
 >

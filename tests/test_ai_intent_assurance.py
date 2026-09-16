@@ -234,6 +234,27 @@ class TestArmAAmbientDoD:
         dispatch, every turn of the run (the tail rides its own type)."""
         assert hist1["derived"]["routine_intent_lines_max_per_turn"] <= 2
 
+    def test_routine_intent_lines_fire_in_the_wild(self, hist1):
+        """IQ-6 N2 (PR-X4, September 14, 2026): the FLOOR beside the ceiling
+        above. That pin only ever asserted `<= 2`, so it stayed green whether
+        the producer fired or never did — which is how the rescore memo
+        could record the routine intent lines as "0 in twelve runs" while
+        the engine emitted them on every board (the zero was the playtest
+        digest's priority filter, fixed by IQ-6 N1). Measured on this very
+        ambient historical run when landed: 8 unique lines.
+
+        Counted UNIQUE (type + producing turn + vars), because the queue is
+        snapshotted without draining and a line queued inside advance_turn
+        rides into the next snapshot too — the second assertion holds the
+        dedupe to that: on this board the raw snapshot count is larger."""
+        derived = hist1["derived"]
+        total = derived["routine_intent_lines_total"]
+        assert total >= 1, "the Stage-F producer never fired in 40 turns"
+        assert total >= derived["routine_intent_lines_max_per_turn"]
+        raw = sum(1 for row in hist1["turns"] for e in row["dispatch_queue"]
+                  if e["type"] in sweep.ROUTINE_INTENT_TYPES)
+        assert total < raw, (total, raw)
+
     def test_mirror_drifts_down_for_a_passive_france(self, hist1):
         """§3.5 (arm (a) half): a France that does nothing drifts DOWN the
         perceived ladder.
@@ -497,26 +518,47 @@ class TestArmBScriptedFrance:
                                       "sponsorship_reneged")]
         assert renege_events
 
-    def test_volte_face_signed_and_aimed_at_a_third_party(self, scripted):
-        """Scene 4 end-to-end IN A RUN: the beaten-then-courted power
-        proposed the alliance itself (decision_reason=volte_face), the
-        conflict confirm signed it, beat 5 fired, and the §12.2 deck
-        advance aims the reversed power at a third party."""
+    def test_staged_exhaustion_tilsit_no_longer_reverses(self, scripted):
+        """IQ-6 V3 (September 14, 2026) — CONSCIOUSLY RE-WORDED from
+        `test_volte_face_signed_and_aimed_at_a_third_party`.
+
+        The scripted arm stages scene 4 at turn 11 by hand: Russia
+        separate-peaced OUT, war exhaustion WRITTEN to 80, relation WRITTEN
+        to 45 (a +125 jump), and NO Russian soil lost. Its defeat showed
+        through the exhaustion arm alone — exactly the white-peace promise
+        IQ-6 retires under GR9 (`emergent_designs.THE_DEFEAT_IS_THE_SOIL`):
+        on the ordinary route R49 zeroes that exhaustion at the peace and
+        the tick decays it 5 a turn, so it can never overlap a courtship.
+        Measured on this very arm: lever DOWN, Russia is receptive at t11
+        and the volte-face fires at t12 aimed at `gulf_and_straits`; lever
+        UP, Russia is never receptive over t11–t17 and nothing fires. So the
+        old positive pin was pinning the retired promise, and it now pins
+        the retirement holding IN A RUN.
+
+        Scene 4's positive half moved, it did not vanish: the ordinary
+        geometry (a beaten Austria with her soil held, courted through the
+        executor, the courier inside the widened window, the ratify beat)
+        is tests/test_iq6_volte_face.py, and the §12.2 deck advance to
+        `gulf_and_straits` stays pinned by
+        test_ai_intent_emergent_designs.py::TestVolteFaceBeat (re-staged on
+        soil). Restoring an IN-RUN positive needs the harness to stage a
+        soil mark at turn 11 (tools/ai_v_sweep.py `_turn_11`) — routed.
+
+        (The old pin's last clause was vacuous: Russia's late intent reads
+        `gulf_and_straits` aimed at Sweden on the lever-up arm too, with no
+        alliance signed.)"""
         volte_proposals = [
             p for p in scripted["derived"]["proposals_to_france"]
             if p["decision_reason"] == "volte_face"]
-        assert volte_proposals and volte_proposals[0]["proposer"] == "Russia"
-        volte_events = scripted["derived"]["volte_faces"]
-        assert volte_events
-        event = volte_events[0]
-        assert event.get("nation") == "Russia"
-        assert event.get("partner") == "France"
-        assert event.get("next_design") == "gulf_and_straits"
-        late_intents = [row["intents"].get("Russia")
-                       for row in scripted["turns"][-5:]]
-        assert any(view and view[0] == "gulf_and_straits"
-                   and view[1] not in (None, "France")
-                   for view in late_intents)
+        assert not volte_proposals, volte_proposals
+        assert not scripted["derived"]["volte_faces"], (
+            scripted["derived"]["volte_faces"])
+        watches = [entry for entry in scripted["script_log"]
+                   if entry.get("step") == "volte watch"]
+        assert watches, "the staging ran and the watch recorded it"
+        assert all("receptive=False" in str(entry.get("note", ""))
+                   and "we=80" in str(watches[0].get("note", ""))
+                   for entry in watches), watches
 
     def test_mirror_moves_upward_for_an_acting_france(self, scripted, hist1):
         """§3.5's upward half: the renege war RAISES Europe's reading of

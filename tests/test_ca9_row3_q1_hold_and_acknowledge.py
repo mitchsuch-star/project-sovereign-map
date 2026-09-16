@@ -279,8 +279,20 @@ class TestAcknowledgeBecomesLetItStand:
         assert "NONE" in self._arm(world, murat, davout)["detail"]
 
     def test_a_cautious_marshal_withholds_half(self, pair):
+        """FLIPPED CONSCIOUSLY (IQ-5 review round, ruling J — September 16,
+        2026). The card now prices the grievance's INCREMENT off
+        `pair_contribution_breakdown` (with and without the grievance), so
+        it is only meaningful for the man it is built for in production: a
+        JEALOUS one (`queue_confrontation_petition` is called from the
+        jealousy trigger alone). This pin used to build it for a Murat with
+        NO grievance — a geometry production never reaches — and passed only
+        because the old sentence read the personality alone. He is jealous
+        of Davout here now, as the sibling combat-rule pin already stages;
+        the derived −1 on a neutral pair makes him worth half, and the card
+        says so."""
         world, murat, davout = pair
         murat.personality = "cautious"
+        murat.jealous_of = "Davout"
         assert "half" in self._arm(world, murat, davout)["detail"]
 
     def test_the_two_arms_match_the_combat_rule(self, pair):

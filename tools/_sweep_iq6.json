@@ -1,0 +1,261 @@
+[
+ {
+  "id": "IQ6-N1 lever down (the digest reads the rail only)",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_DIGEST_READS_THE_WHOLE_DISPATCH = True",
+  "new": "THE_DIGEST_READS_THE_WHOLE_DISPATCH = False",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1 the dispatch gate ignores the lever",
+  "file": "tools/playtest_driver.py",
+  "old": "        if not THE_DIGEST_READS_THE_WHOLE_DISPATCH:\n            return\n",
+  "new": "        if False:\n            return\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch::test_lever_down_is_the_pre_iq6_digest_and_the_new_lines_only_follow"
+ },
+ {
+  "id": "IQ6-N1(a) no dispatch_row record",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.record(\"dispatch_row\", dtype=event.get(\"type\"),\n                        priority=event.get(\"priority\"), text=event.get(\"text\"))\n",
+  "new": "            pass\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(b) the COURTS prefix wears RAIL",
+  "file": "tools/playtest_driver.py",
+  "old": "self._md(f\"- COURTS: {first_line(event.get('text'), 200) or dtype}\")",
+  "new": "self._md(f\"  - RAIL {dtype}: {first_line(event.get('text'), 150)}\")",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(b) the tail line loses its prefix",
+  "file": "tools/playtest_driver.py",
+  "old": "COURTS_DISPATCH_TYPES = (\"intent_hardens\", \"intent_eases\",\n                         \"intent_movement_tail\")",
+  "new": "COURTS_DISPATCH_TYPES = (\"intent_hardens\", \"intent_eases\")",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1 a HIGH row prints twice",
+  "file": "tools/playtest_driver.py",
+  "old": "            if str(event.get(\"priority\")) in RAIL_PRIORITIES:\n                continue                   # the rail's, printed or tallied\n",
+  "new": "            pass\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(c) the tally counts kinds, not rows",
+  "file": "tools/playtest_driver.py",
+  "old": "self._md(f\"- DIPLO +{sum(unprinted.values())} medium/low ({kinds})\")",
+  "new": "self._md(f\"- DIPLO +{len(unprinted)} medium/low ({kinds})\")",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(c) the tally drops the per-type multiplier",
+  "file": "tools/playtest_driver.py",
+  "old": "            kinds = \", \".join(dtype if count == 1 else f\"{dtype} ×{count}\"",
+  "new": "            kinds = \", \".join(dtype if True else f\"{dtype} ×{count}\"",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(c) a tally line for nothing",
+  "file": "tools/playtest_driver.py",
+  "old": "        if unprinted:\n            # (c) one tally line a turn",
+  "new": "        if True:\n            # (c) one tally line a turn",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(c) the per-type count does not accumulate",
+  "file": "tools/playtest_driver.py",
+  "old": "            tally[dtype] = tally.get(dtype, 0) + 1\n",
+  "new": "            tally[dtype] = 1\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(c) meta writes an empty tally",
+  "file": "tools/playtest_driver.py",
+  "old": "            extra[\"dispatch_type_counts\"] = dict(\n                sorted(_dispatch_type_counts(self).items()))",
+  "new": "            extra[\"dispatch_type_counts\"] = {}",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch"
+ },
+ {
+  "id": "IQ6-N1(c) meta ignores the lever",
+  "file": "tools/playtest_driver.py",
+  "old": "        if THE_DIGEST_READS_THE_WHOLE_DISPATCH:\n            extra[\"dispatch_type_counts\"]",
+  "new": "        if True:\n            extra[\"dispatch_type_counts\"]",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT6TheDigestReadsTheWholeDispatch::test_lever_down_meta_has_no_key"
+ },
+ {
+  "id": "IQ6-N2 the floor metric reads zero",
+  "file": "tools/ai_v_sweep.py",
+  "old": "    routine_intent_lines_total = len(routine_lines_seen)",
+  "new": "    routine_intent_lines_total = 0",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmAAmbientDoD::test_routine_intent_lines_fire_in_the_wild"
+ },
+ {
+  "id": "IQ6-N2 the floor metric counts snapshots, not lines",
+  "file": "tools/ai_v_sweep.py",
+  "old": "                    json.dumps(e.get(\"vars\"), sort_keys=True, default=str)))",
+  "new": "                    json.dumps(e.get(\"vars\"), sort_keys=True, default=str), id(e)))",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmAAmbientDoD::test_routine_intent_lines_fire_in_the_wild"
+ },
+ {
+  "id": "IQ6-V1 lever down (the window back to 15)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "THE_WINDOW_FITS_THE_COURTSHIP = True",
+  "new": "THE_WINDOW_FITS_THE_COURTSHIP = False",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT2TheOrdinaryGeometry::test_the_courier_proposes_inside_the_window"
+ },
+ {
+  "id": "IQ6-V1 the blessed number reverted",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "VOLTE_FACE_WINDOW = 20\n",
+  "new": "VOLTE_FACE_WINDOW = 15\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT1TheWindowFitsTheCourtship::test_the_arithmetic_lands_inside_twenty_and_not_fifteen"
+ },
+ {
+  "id": "IQ6-V1 the ceiling loosened",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "VOLTE_FACE_WINDOW_CEILING = 25",
+  "new": "VOLTE_FACE_WINDOW_CEILING = 26",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT1TheWindowFitsTheCourtship::test_the_ceiling_is_the_ladder_alliance_on_the_real_board"
+ },
+ {
+  "id": "IQ6-V1 the window read off by one",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    return any(turn - end < window\n",
+  "new": "    return any(turn - end <= window\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT1TheWindowFitsTheCourtship::test_the_ceiling_is_the_ladder_alliance_on_the_real_board"
+ },
+ {
+  "id": "IQ6-V1b lever down (the participant read only)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "THE_SEPARATE_PEACE_ENDS_THE_WAR = True",
+  "new": "THE_SEPARATE_PEACE_ENDS_THE_WAR = False",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestV1bTheSeparatePeace::test_a_bilateral_peace_needs_it"
+ },
+ {
+  "id": "IQ6-V1b the pair's resolution turn misread",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "                    yield int(resolved)\n",
+  "new": "                    yield int(resolved) - 30\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestV1bTheSeparatePeace::test_a_bilateral_peace_needs_it"
+ },
+ {
+  "id": "IQ6-V2 lever down (the routine cooldown holds the courier)",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = True",
+  "new": "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = False",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT3TheCourierSkipsTheRoutineCooldown::test_the_real_courier_turn_carried_a_routine_cooldown"
+ },
+ {
+  "id": "IQ6-V2 the skip flag ignored",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if not skip_nation_cooldown and cooldowns.get(nation_key, 0) > 0:",
+  "new": "    if cooldowns.get(nation_key, 0) > 0:",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT3TheCourierSkipsTheRoutineCooldown::test_lever_down_the_same_turn_is_held"
+ },
+ {
+  "id": "IQ6-V3 lever down (the exhaustion arm back)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "THE_DEFEAT_IS_THE_SOIL = True",
+  "new": "THE_DEFEAT_IS_THE_SOIL = False",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT4TheDefeatIsTheSoil::test_exhaustion_without_soil_is_no_longer_a_defeat"
+ },
+ {
+  "id": "IQ6-V3 the soil-only branch reads exhaustion again",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        # V3: the mark is the map. The exhaustion arm is retired (the\n        # constant block above says why).\n        marked = any(",
+  "new": "        # V3: the mark is the map. The exhaustion arm is retired (the\n        # constant block above says why).\n        marked = int((getattr(world, \"war_exhaustion\", {}) or {}).get(power, 0) or 0) >= VOLTE_FACE_WE_MARK or any(",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT4TheDefeatIsTheSoil::test_exhaustion_without_soil_is_no_longer_a_defeat"
+ },
+ {
+  "id": "IQ6-V3 the lever-down branch drops the exhaustion arm",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        marked = exhausted or soil_marked",
+  "new": "        marked = soil_marked",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT4TheDefeatIsTheSoil::test_exhaustion_without_soil_is_no_longer_a_defeat"
+ },
+ {
+  "id": "IQ6 the courted floor off by one",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if relation < VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
+  "new": "    if relation <= VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT4TheDefeatIsTheSoil::test_exhaustion_without_soil_is_no_longer_a_defeat"
+ },
+ {
+  "id": "IQ6-V4 lever down (silent)",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "VOLTE_FACE_SPEAKS_ITS_MIND = True",
+  "new": "VOLTE_FACE_SPEAKS_ITS_MIND = False",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_uncourted_door_is_named_every_turn_with_its_turns_left"
+ },
+ {
+  "id": "IQ6-V4 it speaks when the court is already courted",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if volte_face_failing_clauses(world, power, hegemon) != [\n            VOLTE_CLAUSE_NOT_COURTED]:",
+  "new": "    if volte_face_failing_clauses(world, power, hegemon) not in (\n            [VOLTE_CLAUSE_NOT_COURTED], []):",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_silent_once_courted_and_once_signed"
+ },
+ {
+  "id": "IQ6-V4 turns left off by one",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        \"turns_left\": int(max(0, end + window - 2 - turn)),",
+  "new": "        \"turns_left\": int(max(0, end + window - 1 - turn)),",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_uncourted_door_is_named_every_turn_with_its_turns_left"
+ },
+ {
+  "id": "IQ6-V4 the last signing turn off by one",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        \"last_signing_turn\": int(end + window - 1),",
+  "new": "        \"last_signing_turn\": int(end + window),",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_uncourted_door_is_named_every_turn_with_its_turns_left"
+ },
+ {
+  "id": "IQ6-V4 the reachable branch never taken",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if road is not None and road[0] <= left:",
+  "new": "    if road is not None and road[0] < left:",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_uncourted_door_is_named_every_turn_with_its_turns_left"
+ },
+ {
+  "id": "IQ6-V4 the closed-door branch misses the last turn",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "    if left <= 0:\n        return (f\"{name} was beaten, not broken — but her door closes",
+  "new": "    if left < 0:\n        return (f\"{name} was beaten, not broken — but her door closes",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_uncourted_door_is_named_every_turn_with_its_turns_left"
+ },
+ {
+  "id": "IQ6-V4 the counsel drops the line",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if line:\n        text = f\"{text} {line}\"\n    return (text, mission)",
+  "new": "    return (text, mission)",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_preview_counsel_says_it"
+ },
+ {
+  "id": "IQ6-V4 the forecast forgets the drift step",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        relation = max(-RELATION_CLAMP, min(RELATION_CLAMP, relation + effect))\n        relation += relation_drift_step(world, player, target_nation,\n                                        relation=relation, _court=exempt)\n    return None\n\n\ndef _mission_counsel",
+  "new": "        relation = max(-RELATION_CLAMP, min(RELATION_CLAMP, relation + effect))\n    return None\n\n\ndef _mission_counsel",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_forecast_is_what_the_courtship_does"
+ },
+ {
+  "id": "IQ6-V4 the war room drops the line",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "        for opening in volte_openings:\n            lines.append(f\"  {opening['text']}\")",
+  "new": "        for opening in volte_openings:\n            pass",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_war_room_says_it"
+ },
+ {
+  "id": "IQ6-V4 the war-room context key leaks with the lever down",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "    context_extra: Dict = {}\n    if volte_openings:",
+  "new": "    context_extra: Dict = {}\n    if True:",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_war_room_says_it"
+ },
+ {
+  "id": "IQ6-V4 the war room names a court whose door has opened",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "        view = volte_face_courtship(world, court, player)\n        if view is None:\n            continue",
+  "new": "        view = volte_face_courtship(world, court, player) or {\"relation\": 0, \"floor\": 40, \"turns_left\": 0, \"last_signing_turn\": 0}\n        if False:\n            continue",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_war_room_is_silent_when_the_door_has_opened"
+ }
+]

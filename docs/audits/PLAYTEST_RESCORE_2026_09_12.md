@@ -349,10 +349,10 @@ says so.
 | command & parsing | 7.5 | **7.5** | golden corpus **681/681** mock; every refusal names its reason AND a remedy (*"Region 'Alsace' not found. From Lorraine the roads lead to: Swabia, Rhineland, Franche-Comte, Orleanais."*, *"Mack is our prisoner at Paris, Sire — he leads no army. Hold him for the peace table."*). ⚠ the live-parser arm could not run |
 | marshal drama | 7.0 | **7.5** | 113 marshal petitions across twelve runs in three kinds — six named marshals' `jealousy_confrontation`, the `fontainebleau` collective, `rivalry_confrontation`; 29 last-stand questions reaching the player; reinforcement observations that name who came and who did not. The Sept-11 drop was attributed to a harness defect (the driver never read `deferred_marshal_petition`) fixed in Phase 3; with the fix the channel is the densest source of drama on the board |
 | combat legibility | 7.0 | **7.0** | battle lines carry committed-strength attribution and a named reinforcement sentence; 31 diorama popups. Held down by the attacker-only `own corps` label — there is no `defender_casualties_scope` anywhere in the backend |
-| narration | 7.0 | **7.0** | held, not raised: the pillar's measured defects this session (nine raw-tag producers, the dangling-pronoun headline, the coalition naming) were **fixed in session** and re-measured on fresh digests. Residual: an annihilated France is told *"the diplomatic winds favor us"*, and `intent_hardens` / `intent_eases` fired **0 times in twelve runs** |
+| narration | 7.0 | **7.0** | held, not raised: the pillar's measured defects this session (nine raw-tag producers, the dangling-pronoun headline, the coalition naming) were **fixed in session** and re-measured on fresh digests. Residual: an annihilated France is told *"the diplomatic winds favor us"*, and ~~`intent_hardens` / `intent_eases` fired **0 times in twelve runs**~~ *(STRUCK by IQ-6, Sept 16, 2026: the digest dropped every MEDIUM/LOW diplomatic row — the producer fires on every board, 8 unique lines on the ambient run; PR-X4 was an instrument defect)* |
 | economy | 6.0 | **6.0** | see FA-S17-D2 above. The arithmetic is sound and the brake is real; the sink is not |
 | diplomacy | 6.0 | **6.5** | PR-1: a ratified settlement now survives instead of being annulled inside the same `end turn`; 232 enrolments blocked on the commanded board. Held down by coalition churn (up to ten in forty turns) and by the settlement machinery's own frequency |
-| AI aliveness | 7.5 | **7.5** | 48 third-party peace beats (*"THE CONGRESS: Spain and Switzerland make peace without France"*), 52 `design_promoted` (Stage E emergent designs), AI expeditions landing at Lisbon and Munster unprompted. ⚠ `volte_face` 0 and the Stage-F intent lines 0 in twelve runs |
+| AI aliveness | 7.5 | **7.5** | 48 third-party peace beats (*"THE CONGRESS: Spain and Switzerland make peace without France"*), 52 `design_promoted` (Stage E emergent designs), AI expeditions landing at Lisbon and Munster unprompted. ~~⚠ `volte_face` 0 and the Stage-F intent lines 0 in twelve runs~~ *(STRUCK by IQ-6, Sept 16, 2026: the intent lines' zero was the digest's blindness to MEDIUM/LOW rows; the volte-face's zero was real — its 15-turn window could not fit the game's own courtship — and is fixed; `IMPROVEMENT_QUEUE_SPEC.md` §1.5)* |
 | vassals | 6.5 | **6.5** | 10 rebellion events on the unattended arms, 0 on the commanded arms — the FA-S17-D7 shape reproduced |
 | naval | 7.0 | **7.0** | one TRAFALGAR (*"Nelson's line has shattered the French fleet — 23 sail lost in a decisive action"*), 35 expedition landings, and a Grand Diversion that quotes its own odds AND its own trap: *"even a success leaves London-Normandy shut — 41 effective against 50, and 45 is the least that opens it"* |
 | UI/UX | 7.5 | **not reached** | no Godot binary in this environment. Prior score stands untouched; no `.gd` file was changed |
@@ -440,8 +440,12 @@ Design → `DESIGN_REFINEMENT.md` §Playtest Re-Score (**PR-D1..PR-D4**).
 4. **FA-D23 has no copy of its own** — a Broken marshal's halved contribution is
    reported as the pair being "at odds", which is the relationship vocabulary,
    not trust (PR-X3).
-5. **The Stage-F intent narration never fires** — `intent_hardens` /
-   `intent_eases` produced zero lines in twelve 40-turn runs (PR-X4).
+5. ~~**The Stage-F intent narration never fires** — `intent_hardens` /
+   `intent_eases` produced zero lines in twelve 40-turn runs (PR-X4).~~
+   *(STRUCK by IQ-6, Sept 16, 2026 — the claim was the INSTRUMENT's: the
+   driver's digest printed HIGH/CRITICAL rows only and the Stage-F lines are
+   MEDIUM/LOW; measured 8 unique routine lines on the ambient historical run.
+   PR-X4 is FIXED as an instrument defect; `IMPROVEMENT_QUEUE_SPEC.md` §1.5.)*
 
 ---
 

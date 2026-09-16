@@ -72,7 +72,7 @@
  {
   "id": "R5 per-man losses stamped as zero",
   "file": "backend/commands/combat_executor.py",
-  "old": "                             \"casualties\": int(_dist.get(_n, 0) or 0),",
+  "old": "                             \"casualties\": (int(_dist.get(_n, 0) or 0)\n                                            + int(_rub.get(_n, 0))),",
   "new": "                             \"casualties\": 0,",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDispatchMaulsTheManWhoBled"
  },
@@ -86,8 +86,8 @@
  {
   "id": "R3 co-located defender told he was reinforced",
   "file": "backend/commands/combat_executor.py",
-  "old": "                    f\"{_iq5_hn(enemy_marshal.name)} fought with \"",
-  "new": "                    f\"{_iq5_hn(enemy_marshal.name)} was reinforced by \"",
+  "old": "                    f\"{_rn(enemy_marshal.name)} fought with \"",
+  "new": "                    f\"{_rn(enemy_marshal.name)} was reinforced by \"",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
  },
  {
@@ -275,8 +275,8 @@
  {
   "id": "R9 enemy copy quotes the kept fraction as the lost one",
   "file": "backend/commands/combat_executor.py",
-  "old": "                    f\"{weight_phrase(1.0 - rec['trust_factor'])} his weight \"",
-  "new": "                    f\"{weight_phrase(rec['trust_factor'])} his weight \"",
+  "old": "                    f\"{_faith_share_clause(rec['trust_factor'])}.\")",
+  "new": "                    f\"{_faith_share_clause(1.0 - rec['trust_factor'])}.\")",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
  },
  {
@@ -296,15 +296,15 @@
  {
   "id": "R10 card rewrites the healthy-trust sentence",
   "file": "backend/game_logic/jealousy.py",
-  "old": "            if (_bd[\"scale\"] > 0.0 and _bd[\"trust_factor\"] < 1.0",
-  "new": "            if (_bd[\"scale\"] > 0.0 and _bd[\"trust_factor\"] <= 1.0",
+  "old": "            elif (_scale > 0.0 and _bd[\"trust_factor\"] < 1.0",
+  "new": "            elif (_scale > 0.0 and _bd[\"trust_factor\"] <= 1.0",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
  },
  {
   "id": "R10 card quotes the trust factor, not the true fraction",
   "file": "backend/game_logic/jealousy.py",
-  "old": "                weight = (f\"he brings {weight_phrase(_bd['scale'])} the \"",
-  "new": "                weight = (f\"he brings {weight_phrase(_bd['trust_factor'])} the \"",
+  "old": "                weight = (f\"he brings {weight_phrase(_scale)} the weight of \"\n                          f\"{leads}, for his faith",
+  "new": "                weight = (f\"he brings {weight_phrase(_bd['trust_factor'])} the weight of \"\n                          f\"{leads}, for his faith",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
  },
  {
@@ -312,14 +312,14 @@
   "file": "backend/game_logic/jealousy.py",
   "old": "            _bd = pair_contribution_breakdown(target, marshal)",
   "new": "            _bd = pair_contribution_breakdown(marshal, target)",
-  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
  },
  {
   "id": "R13 card ignores the trust lever",
   "file": "backend/game_logic/jealousy.py",
   "old": "        if CombatExecutor.TRUST_NAMES_ITS_PRICE:\n            _bd",
   "new": "        if True:\n            _bd",
-  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
  },
  {
   "id": "R11 the no-show shelf is captioned",
@@ -338,8 +338,8 @@
  {
   "id": "R11 player caption says his whole weight came",
   "file": "backend/commands/combat_executor.py",
-  "old": "                    f\"{weight_phrase(tf)} his weight reached the field.\")",
-  "new": "                    f\"all his weight reached the field.\")",
+  "old": "                    f\"{_faith_share_clause(tf)}.\")",
+  "new": "                    f\"he brought all his weight.\")",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaCaption"
  },
  {
@@ -413,13 +413,6 @@
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
  },
  {
-  "id": "client enemy dialog pairs army losses with the army remainder",
-  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
-  "old": "\tvar def_lead_rem = defender.get(\"lead_remaining\", null)",
-  "new": "\tvar def_lead_rem = defender.get(\"remaining\", null)",
-  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhaseDialogReadsTheKeys"
- },
- {
   "id": "client enemy Berthier reads the attacker's scope for the defender",
   "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
   "old": "\tvar def_scope = casualty.get(\"defender_casualties_scope\", \"\")\n\tif not (def_scope is String):",
@@ -455,13 +448,6 @@
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaDrawsTheCaption"
  },
  {
-  "id": "client diorama shelf caption read under the wrong key",
-  "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
-  "old": "\t\tvar faith_v = c.get(\"faith\", null)",
-  "new": "\t\tvar faith_v = c.get(\"faith_x\", null)",
-  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDioramaDrawsTheCaption"
- },
- {
   "id": "harness digest drops the defender scope",
   "file": "tools/playtest_driver.py",
   "old": "            _def_scope = str(summary.get(\"defender_casualties_scope\") or \"\")",
@@ -481,5 +467,516 @@
   "old": "                head += f\" — {' '.join(_trust_note.split())}\"",
   "new": "                head += f\" — {_trust_note}\"",
   "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDigest"
+ },
+ {
+  "id": "A shared clause goes absolute (weight_phrase + 'his weight reached')",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    return f\"he brought {weight_phrase(trust_factor)} what he otherwise would\"",
+  "new": "    return f\"{weight_phrase(trust_factor)} his weight reached the field\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheFaithCopyIsRelative"
+ },
+ {
+  "id": "A player caption reverts to the absolute trust-only fraction",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"Faith spent (trust {int(rec['trust'])}): \"\n                    f\"{_faith_share_clause(tf)}.\")",
+  "new": "                    f\"Faith spent (trust {int(rec['trust'])}): \"\n                    f\"{weight_phrase(tf)} his weight reached the field.\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheFaithCopyIsRelative"
+ },
+ {
+  "id": "A enemy caption reverts to the absolute complement",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"Without conviction: {_faith_share_clause(tf)}.\")",
+  "new": "                    f\"Without conviction: {weight_phrase(1.0 - tf)} his weight never reached the field.\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheFaithCopyIsRelative"
+ },
+ {
+  "id": "A enemy note reverts to the absolute complement",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_faith_share_clause(rec['trust_factor'])}.\")",
+  "new": "                    f\"{weight_phrase(1.0 - rec['trust_factor'])} his weight never reached the field.\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheFaithCopyIsRelative tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTrustNoteOnBothSides"
+ },
+ {
+  "id": "#21 RM9 enemy note prints the raw court tag",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                court = with_definite_article(formed_display_name(world, p.nation))",
+  "new": "                court = p.nation",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestAnEnemyCourtIsNamedInProse"
+ },
+ {
+  "id": "#21 enemy note drops the court's article",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                court = with_definite_article(formed_display_name(world, p.nation))",
+  "new": "                court = formed_display_name(world, p.nation)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestAnEnemyCourtIsNamedInProse"
+ },
+ {
+  "id": "C display function ignores the lever (#17: unconditional rename)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if not self.BOTH_SIDES_NAME_THEIR_SCOPE:\n            return name\n        from backend.display_names import humanize_entity_name\n        return humanize_entity_name(name)",
+  "new": "        from backend.display_names import humanize_entity_name\n        return humanize_entity_name(name)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderAndTheNoShowsAreProse"
+ },
+ {
+  "id": "C display function never humanises (lever up prints keys)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if not self.BOTH_SIDES_NAME_THEIR_SCOPE:\n            return name\n        from backend.display_names import humanize_entity_name\n        return humanize_entity_name(name)",
+  "new": "        return name",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse"
+ },
+ {
+  "id": "C arrival line prints the raw arrival key",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_rn(r['marshal'])}'s forces arrived to reinforce \"",
+  "new": "                    f\"{r['marshal']}'s forces arrived to reinforce \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse"
+ },
+ {
+  "id": "C no-show arms print the raw key",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                _who = _rn(r[\"marshal\"])",
+  "new": "                _who = r[\"marshal\"]",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderAndTheNoShowsAreProse"
+ },
+ {
+  "id": "C grievance arm prints the raw lead key",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        f\"{_rn(marshal.name)} kept him where he stood.\")",
+  "new": "                        f\"{marshal.name} kept him where he stood.\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderAndTheNoShowsAreProse"
+ },
+ {
+  "id": "C attacker mass parenthesis joins raw arrival keys (#9)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        _atk_named = [_rn(_n) for _n in arrived_names]",
+  "new": "        _atk_named = list(arrived_names)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse"
+ },
+ {
+  "id": "C hazard #9 trap: loss names seeded from the prose list",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        _atk_loss_names = list(arrived_names)\n        if self.BOTH_SIDES_NAME_THEIR_SCOPE:\n            for _n in _iq5_atk_contrib:",
+  "new": "        _atk_loss_names = list(_atk_named)\n        if self.BOTH_SIDES_NAME_THEIR_SCOPE:\n            for _n in _iq5_atk_contrib:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse"
+ },
+ {
+  "id": "C defender mass parenthesis joins raw arrival keys",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        _def_named = [_rn(_n) for _n in def_arrived]",
+  "new": "        _def_named = list(def_arrived)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderAndTheNoShowsAreProse"
+ },
+ {
+  "id": "C 'was reinforced' lead prints the raw key",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_rn(enemy_marshal.name)} was reinforced — massed effective \"",
+  "new": "                    f\"{enemy_marshal.name} was reinforced — massed effective \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderAndTheNoShowsAreProse"
+ },
+ {
+  "id": "C defender loss line prints the raw lead key (#6/#13/#15)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_rn(enemy_marshal.name)}'s supporting {_plural} lost \"",
+  "new": "                    f\"{enemy_marshal.name}'s supporting {_plural} lost \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheDefenderAndTheNoShowsAreProse"
+ },
+ {
+  "id": "C defender co-located lead prints the raw key (RM8)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_rn(enemy_marshal.name)} fought with \"",
+  "new": "                    f\"{enemy_marshal.name} fought with \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestEveryReinforcementNameIsProse"
+ },
+ {
+  "id": "D co-located attacker falls back to the subject-less mass line",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if arrived_names:\n                # The arrival line above names the lead",
+  "new": "            if True:\n                # The arrival line above names the lead",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "D co-located attacker falls back to 'His supporting ally'",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if not arrived_names:\n                    # IQ-5 review (D): the co-located attacker, named.",
+  "new": "                if False:\n                    # IQ-5 review (D): the co-located attacker, named.",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "D mixed stack drops the arrival wording",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if arrived_names:\n                # The arrival line above names the lead",
+  "new": "            if not arrived_names:\n                # The arrival line above names the lead",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "D attacker co-located lead prints the raw key",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_rn(marshal.name)} fought with \"",
+  "new": "                    f\"{marshal.name} fought with \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "D attacker co-located loss line prints the raw lead key",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_rn(marshal.name)}'s supporting {_atk_plural} lost \"",
+  "new": "                    f\"{marshal.name}'s supporting {_atk_plural} lost \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestCoLocatedStacksAreNamed"
+ },
+ {
+  "id": "E rubble never recorded",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                            if _extra > 0:\n                                _rub[_n] = _extra",
+  "new": "                            if False:\n                                _rub[_n] = _extra",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleIsReported tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleOnTheAttackerSide"
+ },
+ {
+  "id": "E rubble read for a man who survived (post-strength guard dropped)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        if int(_s) > 0 and _now.get(_n, -1) == 0:",
+  "new": "                        if int(_s) > 0:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleIsReported"
+ },
+ {
+  "id": "E participant rows ignore the rubble",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                             \"casualties\": (int(_dist.get(_n, 0) or 0)\n                                            + int(_rub.get(_n, 0))),",
+  "new": "                             \"casualties\": (int(_dist.get(_n, 0) or 0)),",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleIsReported tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleOnTheAttackerSide"
+ },
+ {
+  "id": "E attacker ally-loss line ignores the rubble",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                + int(_iq5_atk_rubble.get(name, 0))\n",
+  "new": "\n",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleOnTheAttackerSide"
+ },
+ {
+  "id": "E defender ally-loss line ignores the rubble",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                + int(_iq5_def_rubble.get(name, 0))\n",
+  "new": "\n",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleIsReported"
+ },
+ {
+  "id": "E diorama (attacker) ignores the rubble",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if _iq5_atk_rubble:\n                _bd_atk_dist = dict(atk_distribution)",
+  "new": "            if False:\n                _bd_atk_dist = dict(atk_distribution)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleOnTheAttackerSide"
+ },
+ {
+  "id": "E diorama (defender) ignores the rubble",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if _iq5_def_rubble:\n                _bd_def_dist = dict(def_distribution)",
+  "new": "            if False:\n                _bd_def_dist = dict(def_distribution)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleIsReported"
+ },
+ {
+  "id": "E+F diorama receives the raw distributions",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            atk_distribution=_bd_atk_dist,\n            def_distribution=_bd_def_dist,",
+  "new": "            atk_distribution=atk_distribution,\n            def_distribution=def_distribution,",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleIsReported tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F coordinated lone side never stamped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if _applied != _raw:\n                        self._stamp_lone_applied(",
+  "new": "                    if False:\n                        self._stamp_lone_applied(",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F solo lone side never stamped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if (_orig > 0 and _raw != _orig\n                            and int(getattr(_lead, \"strength\", 0) or 0) == 0):",
+  "new": "                    if (False and _raw != _orig\n                            and int(getattr(_lead, \"strength\", 0) or 0) == 0):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F solo stamps a corps that was not destroyed",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if (_orig > 0 and _raw != _orig\n                            and int(getattr(_lead, \"strength\", 0) or 0) == 0):",
+  "new": "                    if (_orig > 0 and _raw != _orig):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F helper never stamps the event side",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            sd[\"applied_casualties\"] = applied",
+  "new": "            sd[\"applied_casualties_x\"] = applied",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F helper never stamps the log event",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            log[f\"{side}_applied_casualties\"] = applied",
+  "new": "            log[f\"{side}_applied_casualties_x\"] = applied",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F helper leaves the description raw",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        battle_result[\"description\"] = self._rewrite_lone_casualties(\n            battle_result.get(\"description\", \"\"), name, raw, applied)",
+  "new": "        battle_result[\"description\"] = battle_result.get(\"description\", \"\")",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F helper leaves the solo report at '60 -> 31'",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            cs[f\"{side}_casualties\"] = applied\n            cs[f\"{side}_remaining\"] = int(remaining)",
+  "new": "            pass",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F description rewrite loses its numeric bound",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            rf\"(?<![A-Za-z]){who} {old}(?!\\d)(?!,\\d)\",",
+  "new": "            rf\"{who} {old}\",",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F description rewrite misses the 'suffered' template",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            rf\"(?<![A-Za-z]){who} suffered {old} casualties\",",
+  "new": "            rf\"(?<![A-Za-z]){who} suffered {old} casualtiesXX\",",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F solo diorama keeps the raw figure",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if not def_distribution and enemy_marshal.name in _iq5_solo_applied:",
+  "new": "            if False:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F solo applied never recorded for the diorama",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        _iq5_solo_applied[_lead.name] = _orig",
+  "new": "                        pass",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F log ignores the defender's applied figure",
+  "file": "backend/campaign_log.py",
+  "old": "        if _def_applied is not None:\n            def_cas = _def_applied",
+  "new": "        if False:\n            def_cas = _def_applied",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F log ignores the attacker's applied figure",
+  "file": "backend/campaign_log.py",
+  "old": "        if _atk_applied is not None:\n            atk_cas = _atk_applied",
+  "new": "        if False:\n            atk_cas = _atk_applied",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheRubbleOnTheAttackerSide"
+ },
+ {
+  "id": "F dialog never substitutes the applied figure",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\tdefender_casualties = def_applied",
+  "new": "\t\tpass",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "F dialog substitutes it on an ARMY side too",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tif not def_is_army and (def_applied is int or def_applied is float):",
+  "new": "\tif (def_applied is int or def_applied is float):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestALoneSidesLossIsOneFigure"
+ },
+ {
+  "id": "G enemy side not inverted",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\tarrive_color = COLOR_ERROR\n\t\t\tnoshow_color = Utils.COLOR_SUCCESS",
+  "new": "\t\t\tarrive_color = Utils.COLOR_SUCCESS\n\t\t\tnoshow_color = COLOR_ERROR",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheColoursBelongToASide"
+ },
+ {
+  "id": "G side never read (always the player's)",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\tvar reinf_side = _reinforcement_side(action)",
+  "new": "\t\tvar reinf_side = \"player\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheColoursBelongToASide"
+ },
+ {
+  "id": "G attacking the player reads as a third party",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tif def_nation == _PLAYER_NATION:\n\t\treturn \"enemy\"",
+  "new": "\tif def_nation == _PLAYER_NATION:\n\t\treturn \"third\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheColoursBelongToASide"
+ },
+ {
+  "id": "G our army destroyed stays conquest green",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\tdestroyed_color = COLOR_ERROR",
+  "new": "\t\t\tdestroyed_color = Utils.COLOR_CONQUEST",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheColoursBelongToASide"
+ },
+ {
+  "id": "G lever down",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "const IQ5_COLOUR_BY_SIDE := true",
+  "new": "const IQ5_COLOUR_BY_SIDE := false",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheColoursBelongToASide"
+ },
+ {
+  "id": "H16 RM1 Casualties gate or->and",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tif atk_scope != \"\" or def_scope != \"\":",
+  "new": "\tif atk_scope != \"\" and def_scope != \"\":",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhasePrintsTheFigure"
+ },
+ {
+  "id": "H16 RM2 defender army branch switched off",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tif def_is_army:\n\t\tresult += \"[color=#\" + Utils.COLOR_INFO + \"]    \" + defender_name + \"'s army: \"",
+  "new": "\tif false:\n\t\tresult += \"[color=#\" + Utils.COLOR_INFO + \"]    \" + defender_name + \"'s army: \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhasePrintsTheFigure"
+ },
+ {
+  "id": "H16 RM3 Berthier defender figure read from the attacker key",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\tvar def_cas = casualty.get(\"defender_casualties\", 0)",
+  "new": "\t\tvar def_cas = casualty.get(\"attacker_casualties\", 0)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhasePrintsTheFigure"
+ },
+ {
+  "id": "H16 RM4 defender army line prints the attacker's figure",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\tresult += _format_number(defender_casualties) + \" casualties — \"",
+  "new": "\t\tresult += _format_number(attacker_casualties) + \" casualties — \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheEnemyPhasePrintsTheFigure"
+ },
+ {
+  "id": "H18 RM6 a marker match never sets the failure",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\t\t\tis_failure = true",
+  "new": "\t\t\t\t\tis_failure = false",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalFlagsANoShow"
+ },
+ {
+  "id": "H18 RM6c every line starts as a failure",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\tvar is_failure = false",
+  "new": "\t\tvar is_failure = true",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheTerminalFlagsANoShow"
+ },
+ {
+  "id": "H19 RM5 the present-but-null guard reverted",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif response.get(\"reinforcement_messages\") is Array and not response.reinforcement_messages.is_empty():",
+  "new": "\tif response.has(\"reinforcement_messages\"):",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheNullGuardIsPinned"
+ },
+ {
+  "id": "H21 co-located line joins with commas only",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    f\"{_join_names(_def_named)} beside him — massed effective \"",
+  "new": "                    f\"{', '.join(_def_named)} beside him — massed effective \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneJoinNames"
+ },
+ {
+  "id": "H21 RM7 the three-name branch loses its 'and'",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    return \", \".join(clean[:-1]) + f\" and {clean[-1]}\"",
+  "new": "    return \", \".join(clean)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestOneJoinNames"
+ },
+ {
+  "id": "B size set before autowrap (the caption never wraps)",
+  "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+  "old": "\t\tfaith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART\n\t\tfaith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)\n\t\tfaith_l.size = Vector2(FAITH_CAPTION_W, 14.0)",
+  "new": "\t\tfaith_l.size = Vector2(FAITH_CAPTION_W, 14.0)\n\t\tfaith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)\n\t\tfaith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCaptionSitsUnderTheCorps"
+ },
+ {
+  "id": "B caption back in the text stack (onto the lead's locket)",
+  "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+  "old": "\t\t\tfaith_l.position = Vector2(FAITH_CAPTION_INBOARD - FAITH_CAPTION_W,\n\t\t\t\t\tFAITH_CAPTION_Y)",
+  "new": "\t\t\tfaith_l.position = Vector2(text_x, -110.0)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCaptionSitsUnderTheCorps"
+ },
+ {
+  "id": "B caption lifted above the feet",
+  "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+  "old": "const FAITH_CAPTION_Y := 30.0",
+  "new": "const FAITH_CAPTION_Y := 22.0",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCaptionSitsUnderTheCorps"
+ },
+ {
+  "id": "J the counterfactual keyword never skips the block",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    if (lead_jealous or ally_jealous) and not without_grievance:",
+  "new": "    if lead_jealous or ally_jealous:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheJealousyCard"
+ },
+ {
+  "id": "J the card's counterfactual reads the jealous man as lead",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            _cf = pair_contribution_breakdown(target, marshal,\n                                              without_grievance=True)",
+  "new": "            _cf = pair_contribution_breakdown(marshal, target,\n                                              without_grievance=True)",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the card reads the counterfactual as the engine's scale",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            _scale, _cf_scale = float(_bd[\"scale\"]), float(_cf[\"scale\"])",
+  "new": "            _scale, _cf_scale = float(_cf[\"scale\"]), float(_cf[\"scale\"])",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the NONE arm dropped",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            if _scale <= 0.0 and _cf_scale > 0.0:",
+  "new": "            if False:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the NONE arm fires for an already-Hostile pair",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                if _cf_scale <= 0.0:\n                    weight = (f\"he brings NONE of {leads}, quarrel or no \"",
+  "new": "                if False:\n                    weight = (f\"he brings NONE of {leads}, quarrel or no \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the no-cost arm dropped",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            elif _scale == _cf_scale:",
+  "new": "            elif False:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the full-weight wording replaced by weight_phrase(1.0)",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                    _already = (\"his full weight\" if _cf_scale >= 1.0",
+  "new": "                    _already = (\"his full weight\" if False",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the lost-goodwill arm dropped",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "            elif _cf_scale > 1.0 and _scale >= 1.0:",
+  "new": "            elif False:",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the goodwill fraction hardcoded to a quarter",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                _more = _more_phrase((_cf_scale - _scale) / _scale)",
+  "new": "                _more = \"a quarter\"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J the lost-goodwill arm loses its 'but no more'",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                    weight = (f\"he brings {leads}, but no more — the goodwill \"",
+  "new": "                    weight = (f\"he brings {leads} — the goodwill \"",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
+ },
+ {
+  "id": "J _more_phrase keeps weight_phrase's trailing 'of'",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        return phrase[:-3] if phrase.endswith(\" of\") else phrase",
+  "new": "        return phrase",
+  "tests": "tests/test_iq5_both_sides_of_the_butchers_bill.py::TestTheCardPricesTheIncrement"
  }
 ]

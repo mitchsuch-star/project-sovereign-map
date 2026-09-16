@@ -5320,3 +5320,136 @@ two are never shown under one name:
 `TRUST_NAMES_ITS_PRICE`. Both are display-only (GR6): no mechanical figure
 moves. **Routed:** IQ5-R1, splitting the pool by committed bodies
 (`BUG_FIXES.md`).
+
+**Review round (September 16, 2026; `BUG_FIXES.md` §Both Sides of the Butcher's Bill → THE IQ-5 REVIEW ROUND, IQ5-RV1..RV9).**
+- **Every faith sentence is RELATIVE.** `_faith_share_clause(trust_factor)` —
+  "he brought half what he otherwise would" — is the one clause behind both
+  diorama captions and the enemy trust note; `trust_factor` is the ratio of
+  what he committed to what he would have committed with his faith intact, so
+  it is true whatever the relationship or grievance also did. Never
+  `weight_phrase(scale)` under a trust-only sentence: that blames trust for
+  the quarrel's halving.
+- **The jealousy card prices the grievance's increment.**
+  `pair_contribution_breakdown(lead, ally, without_grievance=True)` reads the
+  pair without the grievance off the same single source; `_standing_cost_detail`
+  branches on the difference — NONE when the scale falls to 0, "quarrel or no
+  quarrel" when an already-Hostile pair is unchanged, the lost goodwill when
+  a Friendly pair drops from 1.25 to 1.0, else the IQ5-8 arm.
+- **One display function for every reinforcement name.**
+  `CombatExecutor._reinf_name` humanises with `BOTH_SIDES_NAME_THEIR_SCOPE`
+  up and is the identity down (IQ5-10's arrival rename now sits behind the
+  lever). The prose lists are built beside the raw lists that key the
+  distribution lookups and dedupes.
+- **The co-located ATTACKER is named** when nobody arrived ("Mack fought with
+  Archduke John beside him — …", "Mack's supporting ally lost …"); the arrival
+  arm keeps the literal CO-6 / Session-66 strings.
+- **The realised loss is one map.** Share + the rubble `take_casualties`
+  zeroed, read after the loops and before pursuit/capture/retreat, feeds the
+  ally-loss line, `*_participant_losses` and the diorama together.
+- **A lone side carries one figure.** When the rubble rule or the overkill
+  cap destroys a corps that fought alone, the executor stamps display-only
+  `applied_casualties` on its event dict (`<side>_applied_casualties` on the
+  log event), rewrites the description's phrase and reconciles the report;
+  the dialog, the terminal and the log one-liner prefer it on a LONE side
+  only. The mechanical `casualties` never move.
+- **The enemy-phase colours follow the side** (`IQ5_COLOUR_BY_SIDE`): keyed
+  on the battle's attacker nation, never on prose; "ARMY DESTROYED!" is red
+  when the destroyed defender is France's.
+- **The diorama's faith caption sits under the corps**, outboard, wrapped in
+  a 150 px block-local width; the shelf never reads it.
+- **`lead_remaining == remaining` by construction** (both are the lead's
+  post-battle strength; pursuit updates both) — IQ5-2's fix was the label.
+- **One `_join_names`**: `backend.game_logic.battle_report._join_names`.
+
+## 45. Europe speaks its mind (IQ-6, landed September 16, 2026; built September 14)
+
+**The narration was never silent — the instrument was deaf (PR-X4).** The
+Stage-F routine intent lines (`intent_hardens` MEDIUM, `intent_eases` and
+`intent_movement_tail` LOW) are ordinary dispatch rows. The driver's rail
+printed HIGH and CRITICAL only, and nothing else of `diplomatic_events` reached
+`digest.md` or `digest.jsonl` — 30 of 122 diplomatic rows on the commanded
+historical arm, 39 of 148 on ulm. The producer fires on every board: 8 unique
+routine lines on the ambient historical run (the floor pin), never more than 2
+a dispatch (the ceiling pin that already stood).
+- `tools/playtest_driver.py`, lever `THE_DIGEST_READS_THE_WHOLE_DISPATCH`:
+  every row is recorded in the jsonl as `dispatch_row` (`dtype`, `priority`,
+  full `text`), outside the rail cap; the three Stage-F types print as
+  `- COURTS: <text>`; one `- DIPLO +N medium/low (<types>)` tally a turn
+  counts the MEDIUM/LOW rows not printed; `meta.json` carries
+  `dispatch_type_counts`. Lever False = the pre-IQ-6 digest, byte for byte.
+- `tools/ai_v_sweep.py` `derive_metrics` returns `routine_intent_lines_total`
+  (deduplicated on type, `queued_turn` and vars).
+- No backend change: `BASELINE_SERIES` and M1–M7 are identical by
+  construction.
+
+**The volte-face fires on the ordinary route.** §3.6-4's predicate demanded a
+courtship to relation 40 inside 15 turns of the peace. From the boot relations
+(−80) the game's own best lever — Improve Relations at Talleyrand's ×1.5, plus
+the thaw — reaches 40 at best 16 turns after the peace, so a perfect player
+stood at 29 when the door closed; and the "defeat still shows" clause's
+exhaustion arm could never overlap the courtship (R49 zeroes a court's
+exhaustion at the peace that ends its last war, and the coalition tick decays
+it 5 a turn at peace, so a mark of ~70 is under 40 within ~6 turns). Four
+rulings in `backend/game_logic/emergent_designs.py` and `ai_diplomacy.py`,
+each behind its own lever (False = the prior predicate, byte for byte):
+- **V1 `THE_WINDOW_FITS_THE_COURTSHIP`** — `VOLTE_FACE_WINDOW` 15 → **20**
+  (`VOLTE_FACE_WINDOW_BEFORE_IQ6 = 15`; ceiling `VOLTE_FACE_WINDOW_CEILING =
+  25`, pinned: Austria's routine ladder alliance landed 25 turns after the
+  war, and a window of 26+ would announce it as a volte-face).
+- **V1b `THE_SEPARATE_PEACE_ENDS_THE_WAR`** (found while building) — a
+  BILATERAL peace never counted as a defeat: `exited_turn` is stamped only
+  when a court leaves the whole war, and after Pressburg Austria stays at war
+  with Bavaria and the Kingdom of Italy, so `_war_with_ended_recently` read
+  "not recently beaten" forever. `_war_end_turns` now asks the pair's own
+  `diplo_key_meta[pair]["resolved_turn"]` first.
+- **V2 `THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN`** — P-VolteFace passes
+  `skip_nation_cooldown=True` to `_is_on_cooldown`; the alliance TYPE
+  cooldown, the 12-turn `{nation}|volte_face` cooldown and
+  `_has_pending_proposal_from` still hold. (The nation key is shared by the
+  acceptance and rejection cooldowns, so a rejected routine ask no longer
+  holds the courier either; a rejected alliance still does, through its type
+  key.)
+- **V3 `THE_DEFEAT_IS_THE_SOIL`** — the exhaustion arm is RETIRED under GR9;
+  the defeat shows on the map only (homeland soil in the hegemon's bloc's
+  hands). The promise is struck from `AI_INTENT_SPEC.md` §3.6-4 and §18 with
+  a dated note. Re-open condition: a row that records the war's OUTCOME on
+  the war instance, under a user ruling on the zero-new-serialized-fields
+  contract.
+- **V4 `VOLTE_FACE_SPEAKS_ITS_MIND`** — `volte_face_failing_clauses(world,
+  power, hegemon, *, exhaustive=False)` is the single source (it stops at
+  the first failure in the old read order, so `volte_face_receptive`'s
+  boolean is byte-identical — pinned on a 1,152-cell identity grid);
+  `volte_face_courtship` gives an ints-only view (relation, floor,
+  `last_signing_turn`, `turns_left = end + window − 2 − turn`: the
+  diplomatic phase runs before `advance_turn` and a court's letter is
+  answered the turn after it is written, so it counts the courting ticks
+  that still land in time); `volte_face_counsel_line` is the one sentence
+  both surfaces print — Talleyrand's per-court counsel
+  (`diplomacy._recommendation_and_mission`, priced by the new
+  `forecast_relation_to`, the relation half of `forecast_mission_to_accept`)
+  and the war room (`diplomatic_advisory._assess_situation`'s "open door"
+  block, majors only; `context["volte_openings"]` exists only when a door
+  is open, so the lever-down payload is key-for-key the old one). When the
+  relation cannot reach 40 in time the line says so rather than promising it.
+
+**Measured.** Bilateral peace through the real `_ratify_treaty`: receptive
+exactly at the forecast turn; the courier proposes that turn (V2 down: held two
+turns by the routine cooldown); the alliance signs through the conflict confirm
+with exactly one `volte_face` event and one dispatch. Uncourted: never. Window
+15: never (relation 35 when it closes). The committed courting script
+`tools/playtest_scripts/volte_court_austria.json` (`commanded_full40.json` plus
+"Talleyrand, improve relations with Austria" from loop 5 — re-issuing the order
+is not refused, it replaces the live mission with an identical one) carries
+`volte_face` exactly once, turn 21, on every surface; the plain commanded arm 0.
+
+**Gates.** `BASELINE_SERIES` and M1–M7 byte-identical without re-record, with
+the reason measured: the ambient board has no France–great-power peace, so the
+courier and the ratify hook never reach a changed read, and the counsel is
+display only. Zero `.gd`. Pins flipped consciously: five
+`test_ai_intent_emergent_designs.py` fixtures now stage the defeat on soil
+(they staged it through exhaustion alone; all 43 pass unchanged with V3 down),
+and `test_ai_intent_assurance.py::test_volte_face_signed_and_aimed_at_a_third_party`
+became `test_staged_exhaustion_tilsit_no_longer_reverses` — the scripted
+Russia qualified only through the retired arm (lever down: receptive at t11,
+fires at t12; lever up: never). **Routed:** IQ6-D1..D4 in
+`DESIGN_REFINEMENT.md`.

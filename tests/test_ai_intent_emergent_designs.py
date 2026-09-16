@@ -436,10 +436,27 @@ class TestGrudgeGeneralisation:
 
 
 def _beat_and_court(world, power="Russia", hegemon="France",
-                    relation=None, exhausted=True):
+                    relation=None, exhausted=True, soil=True):
     """Arrange the Tilsit state: the war ended recently, the defeat still
-    shows (war exhaustion), no punitive record, relations courted up to
-    the alliance floor."""
+    shows, no punitive record, relations courted up to the alliance floor.
+
+    IQ-6 V3 (September 14, 2026) — CONSCIOUS RE-STAGE: this helper used to
+    show the defeat through war exhaustion ALONE. That arm is retired under
+    GR9 (`emergent_designs.THE_DEFEAT_IS_THE_SOIL`): R49 zeroes exhaustion
+    at the peace that ends a court's last war and the coalition tick decays
+    it 5 a turn, so it could never overlap a 14+ turn courtship on the
+    ordinary route. The defeat now shows on the MAP — one non-capital
+    homeland province held by the hegemon (never two: that is a partition,
+    and never the capital: both would trip the survival override and the
+    emergent-design bar). The exhaustion is still staged so each pin keeps
+    the state it was written against; the lever-down arm is pinned in
+    tests/test_iq6_volte_face.py."""
+    if soil:
+        capital = world.get_nation_capital(power)
+        for region_name in world.nation_starting_regions.get(power, []):
+            if region_name != capital:
+                world.regions[region_name].controller = hegemon
+                break
     for other in list(world.get_active_nations()):
         key = world._make_diplo_key(power, other)
         if world.diplomatic_states.get(key) in ("WAR", "ARMISTICE"):
@@ -507,7 +524,8 @@ class TestVolteFaceEligibility:
         assert volte_face_receptive(world, "Russia", "France") is False
 
     def test_defeat_must_still_show(self, world):
-        _beat_and_court(world, exhausted=False)
+        # IQ-6 V3: the defeat shows on the map — no soil held, no mark.
+        _beat_and_court(world, exhausted=False, soil=False)
         world.war_exhaustion["Russia"] = 0
         assert volte_face_receptive(world, "Russia", "France") is False
 

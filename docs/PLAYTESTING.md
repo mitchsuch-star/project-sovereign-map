@@ -135,6 +135,24 @@ both had degraded **every earlier** unattended evaluation:
   invocations. **No pre-Aug-21 digest is a reproducible measurement**; its
   numbers are one draw, not the value.
 
+**One more was found by row IQ-6 and fixed Sept 14, 2026 (PR-X4 — every
+digest dated before Sept 14 carries it):**
+
+- **The digest never showed a MEDIUM or LOW diplomatic row.** The
+  dispatch rail keeps HIGH and CRITICAL only, and nothing else of the
+  morning dispatch's `diplomatic_events` reached `digest.md` **or**
+  `digest.jsonl`. Measured on the commanded historical arm: 30 of 122
+  diplomatic rows printed (all 42 MEDIUM and all 50 LOW dropped); 39 of
+  148 on ulm — about three rows in four. Among the dropped types: the
+  AI-6 routine intent lines (`intent_hardens` MEDIUM, `intent_eases` and
+  `intent_movement_tail` LOW) and `agenda_shift` (MEDIUM, 4–10 a run).
+  **The rescore memo's "Stage-F intent lines fired 0 times in twelve
+  runs" was this blindness, not the engine** — the producer fires on
+  every board and the client prints every row. A pre-Sept-14 digest's
+  silence about a MEDIUM/LOW type is not evidence it never fired; since
+  IQ-6 the `COURTS` / `DIPLO` lines and the `dispatch_row` records carry
+  them (see *Reading a run*).
+
 A further one is a *reading* trap rather than a defect: a run can finish
 `blocked` because the answer policy went in circles, not because the
 engine locked. `drain()` now stops on the second identical answer to one
@@ -494,9 +512,36 @@ types with an applied tick on every seed**; the control arm (no
   run that launches no mission has a byte-identical digest. The advisor's
   own choices print as `MISSION ADVISOR …` notes above the command they
   send.
+- `COURTS` and `DIPLO` (IQ-6, Sept 14, 2026) — the rest of the morning
+  dispatch, after its `RAIL` and `TURN EVENTS` lines. The rail prints HIGH
+  and CRITICAL only; before IQ-6 nothing else of `diplomatic_events` reached
+  any digest (see *Known-bad digests*). Now:
+  - `- COURTS: <text>` — the AI-6 routine intent narration
+    (`intent_hardens`, `intent_eases`, `intent_movement_tail`), one line per
+    row, e.g. (measured, commanded historical arm, turn 5) `- COURTS: The
+    court of Russia eases over Arbiter of Europe — an ultimatum is now the
+    length of its tether.` and the tail `- COURTS: And 3 other courts stir
+    at their own designs.` The engine caps these at 2 lines plus one tail a
+    dispatch, so there is no cap here.
+    Read them as Europe's temperature: which courts are moving, and which
+    way.
+  - `- DIPLO +N medium/low (<types>)` — one tally a turn of the MEDIUM/LOW
+    rows the digest did NOT print (a type seen more than once reads
+    `agenda_shift ×2`). Printed only when N > 0. The rows themselves are in
+    the jsonl as `dispatch_row`.
+  - Every row, of every priority and outside every cap, is in the jsonl as
+    `kind: "dispatch_row"` (`dtype`, `priority`, full `text`), and meta.json
+    carries the run's per-type total as `dispatch_type_counts`. Count from
+    those, never by grepping the markdown.
+  - The switch is `THE_DIGEST_READS_THE_WHOLE_DISPATCH` in the driver;
+    False reproduces the pre-IQ-6 digest byte for byte.
+  - The beat-5 (volte-face) arm is `tools/playtest_scripts/
+    volte_court_austria.json`: the commanded arm plus Talleyrand courting
+    Austria from loop 5 — run it `--turns 40` (its policy already answers
+    the table with `accept`); its digest carries `volte_face` once.
 - `digest.jsonl` — the query surface (one record per event; `kind` =
   turn/command/battle/popup/enemy_phase/order_progress/ledger/dispatch/
-  rail/campaign_log/mission/note).
+  rail/dispatch_row/campaign_log/mission/note).
 
   > ⚠ **The `enemy_phase` record is the FOGGED view, not the full action
   > list.** An earlier version of this page said otherwise and it was wrong
@@ -514,7 +559,9 @@ types with an applied tick on every seed**; the control arm (no
 - `meta.json` — args, policy, counters, `unknown_blockers`, finish
   status (`completed` / `blocked` / `game-over`), and the run's WORLD:
   `scenario`, `script`, `cheats`, `strict` (added by FA-N89 — 52 archived
-  runs record none of them, so their board cannot be reconstructed).
+  runs record none of them, so their board cannot be reconstructed), and
+  `dispatch_type_counts` — every diplomatic row the run's dispatches
+  carried, by type, all priorities (IQ-6; absent from every earlier run).
 
 > **`provinces` is the conquest scoreboard** and the first thing to read
 > in any campaign that is trying to gain ground. It is the player's own
