@@ -11,7 +11,12 @@ is not allowed to be):
                       turn-0 dispositions and in at least one of
                       {AI-initiated war count, the turns wars begin, which
                       courts reach `fight`}. Holding K makes the difference
-                      attributable to the seed, not to combat noise.
+                      attributable to the seed, not to combat noise. Since
+                      IQ-7 (Sept 16, 2026) the compared signature is that
+                      triple WIDENED by the turn each court first reaches
+                      `fight` and the eliminations with their turns — see
+                      `_variance_signature`, the one definition the suite's
+                      pin and this sweep both read.
   Arm C — acceptance. N runs with BOTH the seed and the ambient RNG
                       varying — the distribution production actually
                       produces. Reported as a distribution.
@@ -408,6 +413,34 @@ def derive_metrics(digest: dict) -> dict:
     courts_at_fight = sorted({
         nation for row in turns
         for nation, view in row["intents"].items() if view[3] == "fight"})
+    # IQ-7 (September 16, 2026): the two components the Arm-B signature was
+    # widened by (see `_variance_signature`). Both are read-only projections
+    # of what this runner already captured, on the digest's ONE clock — the
+    # row turn, the reading taken after that `end_turn`, the same clock
+    # `opened_turn` and `threat_series` use.
+    #
+    # `first_fight_turn` — {court: the FIRST row turn its intent view stands
+    # on the `fight` rung}, by exactly the predicate `courts_at_fight` uses,
+    # so its key set IS `courts_at_fight` (the suite asserts that) and the
+    # value adds only WHEN.
+    first_fight_turn = {}
+    for row in turns:
+        for nation, view in row["intents"].items():
+            if view[3] == "fight" and nation not in first_fight_turn:
+                first_fight_turn[nation] = row["turn"]
+    # `eliminations` — sorted [row turn, nation] for every
+    # `nation_eliminated` event drained into that row. The event's own
+    # `turn` stamp is one LOWER when the elimination lands in the enemy
+    # phase (logged before `advance_turn` increments), so it is not used:
+    # one clock per signature. Duplicates are not collapsed: the list is
+    # the drained record as it stands. Today the engine logs at most one
+    # elimination per tag per session (`_eliminated_teardown_done` is
+    # never cleared), so a repeated entry would itself be a defect, and
+    # a signature that differs on it is the right answer.
+    eliminations = sorted(
+        [row["turn"], str(event.get("nation", "") or "")]
+        for row in turns for event in row["events"]
+        if str(event.get("type", "")) == "nation_eliminated")
     courts_at_coerce_plus = sorted({
         nation for row in turns
         for nation, view in row["intents"].items()
@@ -578,6 +611,8 @@ def derive_metrics(digest: dict) -> dict:
         "pair_peaces": pair_peaces,
         "commissions": commissions,
         "courts_at_fight": courts_at_fight,
+        "first_fight_turn": first_fight_turn,
+        "eliminations": eliminations,
         "courts_at_coerce_plus": courts_at_coerce_plus,
         "beats": beats,
         "routine_intent_lines_max_per_turn": (
@@ -962,9 +997,11 @@ def run_one(seed: str, ambient_base: int, turns: int,
 # Orchestration (subprocess per run — process-fresh determinism)
 # ═══════════════════════════════════════════════════════════════════════
 
-def spawn_run(seed: str, ambient_base: int, turns: int,
-              script: str = "", json_out: Path = None,
-              timeout: int = 600) -> dict:
+def child_env(seed: str) -> dict:
+    """The environment every sweep child runs under — ONE definition, read
+    by `spawn_run` and by the suite's seed-variance-disabled control child
+    (`tests/test_ai_intent_assurance.py`), so the control cannot drift onto
+    a different hash seed, parser or scenario than the runs it controls."""
     env = dict(os.environ)
     env["PYTHONHASHSEED"] = "0"
     env["PYTHONPATH"] = str(REPO_ROOT)
@@ -981,6 +1018,24 @@ def spawn_run(seed: str, ambient_base: int, turns: int,
     # full suite stays green. The seed the caller ASKED for now goes into the
     # child's environment too, so the child cannot read a stale ambient one.
     env["SOVEREIGN_SEED"] = str(seed)
+    return env
+
+
+def payload_from(proc, label: str) -> dict:
+    """Parse a finished sweep child's `PAYLOAD=<json>` line (the last one),
+    dying loudly with the child's output tail if it failed."""
+    if proc.returncode != 0:
+        _die(f"run {label} failed:\n"
+             f"{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
+    payload_line = [ln for ln in proc.stdout.splitlines()
+                    if ln.startswith("PAYLOAD=")][-1]
+    return json.loads(payload_line[len("PAYLOAD="):])
+
+
+def spawn_run(seed: str, ambient_base: int, turns: int,
+              script: str = "", json_out: Path = None,
+              timeout: int = 600) -> dict:
+    env = child_env(seed)
     args = [sys.executable, str(Path(__file__).resolve()), "--run",
             "--seed", seed, "--ambient-base", str(ambient_base),
             "--turns", str(turns), "--emit"]
@@ -988,12 +1043,8 @@ def spawn_run(seed: str, ambient_base: int, turns: int,
         args += ["--script", script]
     proc = subprocess.run(args, env=env, cwd=str(REPO_ROOT),
                           capture_output=True, text=True, timeout=timeout)
-    if proc.returncode != 0:
-        _die(f"run {seed}/{ambient_base}/{script or 'ambient'} failed:\n"
-             f"{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
-    payload_line = [ln for ln in proc.stdout.splitlines()
-                    if ln.startswith("PAYLOAD=")][-1]
-    digest = json.loads(payload_line[len("PAYLOAD="):])
+    digest = payload_from(
+        proc, f"{seed}/{ambient_base}/{script or 'ambient'}")
     if json_out is not None:
         json_out.parent.mkdir(parents=True, exist_ok=True)
         json_out.write_text(json.dumps(digest, indent=1),
@@ -1009,6 +1060,61 @@ def _control_view(digest: dict) -> dict:
 
 
 def _variance_signature(digest: dict) -> dict:
+    """The Arm-B signature — THE one definition. `run_all`'s Arm B compares
+    it against `historical`, and `tests/test_ai_intent_assurance.py`'s
+    `test_the_spec_triple_differs` compares it for `historical` vs `ulm`;
+    neither composes its own.
+
+    The first three keys are §4.7's literal triple and are unchanged:
+    `ai_war_count`, `war_turns` (the row turns wars begin, every channel),
+    `courts_at_fight`.
+
+    WIDENED by IQ-7 "The Satellites Have a Position" (September 16, 2026)
+    with two derived keys (see `derive_metrics`):
+
+    * `first_fight_turn` — {court: the first row turn it stands on `fight`}.
+      Its key set equals `courts_at_fight` exactly.
+    * `eliminations` — sorted [row turn, nation] for every
+      `nation_eliminated`.
+
+    Why. Measured on this tree (ambient K=10000, all ten `SWEEP_SEEDS`):
+    the literal triple is EQUAL for historical and ulm — `{0, [21], Austria,
+    Bavaria, Britain, Russia, Spain, Sweden}` on both — and for ulm vs
+    historical AND austerlitz vs historical in this sweep's own Arm B. The
+    unattended board's one war is Switzerland breaking free of France, and
+    with nobody answering its relief petitions the lapse cadence (fixed
+    constants, not seeded) now puts that break at turn 21 on nine of ten
+    seeds (23 on eylau). The runs are not the same campaign: on ulm
+    Austria's seeded Germany-first opening beats Bavaria, which reaches
+    `fight` at row 3 (4 on historical) and is eliminated at row 4, while on
+    historical Bavaria survives and Switzerland is eliminated at row 22, the
+    Kingdom of Italy at row 27 (row 5 on ulm). The triple can see none of
+    that; the widened signature separates the two on BOTH new keys, so the
+    green no longer rests on Bavaria's one-turn fight shadow alone.
+
+    Honestly stated: a strictly finer signature compared with `!=` is a
+    logically EASIER assertion than the triple's inequality — every pair the
+    triple separated it still separates, and it separates pairs the triple
+    did not. Its teeth are therefore proven by controls a widening cannot
+    fake, pinned in the suite: the same seed run twice compares EQUAL, and
+    ulm with seed variance disabled (`campaign_variance.is_historical`
+    forced True in the child) compares EQUAL to historical. The narrowed
+    war calendar itself is real and routed to `DESIGN_REFINEMENT.md`
+    IQ7-D4; this widening does not answer it.
+
+    Deliberately NOT included: the majors' opening design ids. They do
+    differ (Austria `redeem_italy` vs `primacy_germany`, splitting the ten
+    seeds in two — {ulm, austerlitz, marengo, lodi} against the rest,
+    which is whether Bavaria falls; eylau is a third elimination class
+    the openings do not see), but they are a TURN-0
+    disposition — `test_turn0_dispositions_differ` already compares the
+    whole boot, decks and intents included — and §4.7 requires a
+    difference in the run IN ADDITION to the boot. Putting a boot fact
+    here would let a converged 40-turn run pass on its deck order alone.
+
+    Reads `derived` directly: a digest written before IQ-7 has no
+    `first_fight_turn`/`eliminations` and raises KeyError here — re-apply
+    `derive_metrics` to it (it reads only `meta` and `turns`)."""
     derived = digest["derived"]
     return {
         "ai_war_count": len(derived["ai_initiated_wars"]),
@@ -1016,7 +1122,43 @@ def _variance_signature(digest: dict) -> dict:
             w["opened_turn"] for w in derived["ai_initiated_wars"]
             + derived["seam_ai_ai_wars"] + derived["france_wars_opened"]),
         "courts_at_fight": derived["courts_at_fight"],
+        "first_fight_turn": derived["first_fight_turn"],
+        "eliminations": derived["eliminations"],
     }
+
+
+def run_arm_b(baseline: dict, turns: int, out_dir: Path = None) -> dict:
+    """Arm B — variance: each `ARM_B_SEEDS[1:]` seed at the same K as
+    `baseline` (the historical Arm-A run), compared on the boot and on
+    `_variance_signature`. Callable on its own (IQ-7), so the Arm-B verdict
+    can be re-measured without the whole `--all` sweep."""
+    arm_b = {}
+    baseline_sig = _variance_signature(baseline)
+    baseline_boot = baseline["boot"]
+    for seed in ARM_B_SEEDS[1:]:
+        digest = spawn_run(
+            seed, AMBIENT_K, turns,
+            json_out=(out_dir / f"armB_{seed}.json") if out_dir else None)
+        sig = _variance_signature(digest)
+        boot_differs = digest["boot"] != baseline_boot
+        sig_differs = sig != baseline_sig
+        # IQ-7: WHICH keys carry the difference, so a green that rests on a
+        # single datum is visible in the memo rather than hidden in a bool.
+        differs_on = sorted(k for k in sig if sig[k] != baseline_sig.get(k))
+        weight_series_differ = any(
+            row_a["intents"] != row_b["intents"]
+            for row_a, row_b in zip(baseline["turns"], digest["turns"]))
+        arm_b[seed] = {
+            "boot_differs": boot_differs,
+            "signature": sig,
+            "signature_differs": sig_differs,
+            "differs_on": differs_on,
+            "weight_series_differ": weight_series_differ,
+        }
+        print(f"ARM B {seed}: boot_differs={boot_differs} "
+              f"sig_differs={sig_differs} differs_on={differs_on} "
+              f"weights_differ={weight_series_differ}")
+    return {"baseline_signature": baseline_sig, "seeds": arm_b}
 
 
 def run_all(out_dir: Path, turns: int, acceptance_n: int) -> dict:
@@ -1036,28 +1178,7 @@ def run_all(out_dir: Path, turns: int, acceptance_n: int) -> dict:
         print("ARM A RED — nothing else in this sweep means anything.")
 
     # Arm B — variance: different seed, same K.
-    arm_b = {}
-    baseline_sig = _variance_signature(a1)
-    baseline_boot = a1["boot"]
-    for seed in ARM_B_SEEDS[1:]:
-        digest = spawn_run(seed, AMBIENT_K, turns,
-                           json_out=out_dir / f"armB_{seed}.json")
-        sig = _variance_signature(digest)
-        boot_differs = digest["boot"] != baseline_boot
-        sig_differs = sig != baseline_sig
-        weight_series_differ = any(
-            row_a["intents"] != row_b["intents"]
-            for row_a, row_b in zip(a1["turns"], digest["turns"]))
-        arm_b[seed] = {
-            "boot_differs": boot_differs,
-            "signature": sig,
-            "signature_differs": sig_differs,
-            "weight_series_differ": weight_series_differ,
-        }
-        print(f"ARM B {seed}: boot_differs={boot_differs} "
-              f"sig_differs={sig_differs} "
-              f"weights_differ={weight_series_differ}")
-    summary["arm_b"] = {"baseline_signature": baseline_sig, "seeds": arm_b}
+    summary["arm_b"] = run_arm_b(a1, turns, out_dir)
 
     # Arm C — acceptance: N runs, seed AND ambient K varying.
     arm_c = {}

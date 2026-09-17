@@ -237,6 +237,27 @@ solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
 pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
 pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 
+## The Satellites Have a Position (IQ-7) — landed September 16, 2026 (**2 FIXED; 4 ROUTED**)
+
+> Row IQ-7 (FA-S17-D7's owner). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.6;
+> rules = `SYSTEMS_REFERENCE.md` §46; pins = `tests/test_iq7_satellites_have_a_position.py`
+> (81 tests); sweep = `tools/_sweep_iq7.json` (55 of 55 killed). Levers
+> `vassal.THE_CLIENT_PETITIONS` / `AN_UNANSWERED_PETITION_IS_REFUSED` /
+> `COURTING_SPARES_THE_LORDS_ALLIES` / `THE_WAVERING_LINE_IS_HONEST` and the driver's
+> `THE_DIGEST_SEES_THE_WEB`; each, set False, reproduces `e1cb33a5` on its surface (the
+> lever-down 40-turn digest is byte-identical to the §1.0 re-baseline except the four
+> rail lines IQ7-X6 corrected). **`BASELINE_SERIES` re-recorded ONCE**, four-arm
+> attributed (arm 0 byte-identical; the lapse lever is the sole mover).
+
+| id | P | defect | disposition |
+|---|---|---|---|
+| **IQ7-X1** | P3 | **GR5 gap:** `attempt_vassal_courting` and `check_defection_cascade` are player-lord-only, so an AI lord's satellite is never courted or cascaded. | **ROUTED to VD-C** (`VASSAL_DEEPENING_SPEC.md` §9) — it needs an AI-lord-satellite board anyway. Completion: both walk every lord; `tests/test_vassal_contingent.py::TestAILordThreats`. |
+| **IQ7-X2** | P4 | **Dead code:** `vassal.get_vassal_warnings` has no production caller (imported by `tests/test_audit_part2.py` and `tests/test_session5_diplomacy.py` only) and `VASSAL_LOYALTY_CRITICAL` is read by nothing. | **ROUTED to VD-C.** Completion: deleted together with the tests that import them. |
+| **IQ7-X3** | P3 | **The per-tick recovery hint repeats** — *"Invest in them, grant them autonomy, garrison their capital, or cede them a province"* on 67–89 lines per 40-turn arm. | **ROUTED to VD-C.** Completion: the hint rides the FA-S17-D8 crossing ticks and the first falling tick after a rise, not every falling tick. Measure first — IQ-7's grants already cut the falling ticks on the commanded board. |
+| **IQ7-X4** | P2 | **The PL-14 safety net mislabelled a delivered result.** `main._respond_to_dialogue_sync` minted a fallback `proposal_result` — `proposal_type "Diplomatic Action"`, outcome DERIVED from the message text — whenever the handler's own popup had already been delivered by the first response build (which pops it and clears `world.proposal_result_popup`), so "the slot is empty" read as "the handler forgot". A GRANTED client petition read **REJECT**; `offer_vassalage` measured the same fallback on the wire, and `broker_peace` and both ultimatum arms share the shape. Found by Builder B, who masked it for the petition with `suppress_proposal_result_popup`. | ✅ **FIXED** (September 16, 2026, the lead, while integrating): the mint is guarded on `response.get("proposal_result") is None` — a delivered result is final, for every handler. Pinned through the endpoint with the mask stripped (`TestThePL14SafetyNetKeepsADeliveredResult`) and a source pin; sweep row. The petition's flag stays as belt and braces. |
+| **IQ7-X5** | P3 | **A letter activated from the mailbox is echoed once as `(stale passthrough — #N already answered)`** on the answer's response: the delivery-time `incoming_proposal_popup` cache survives the return-only `/mailbox/activate` and drains on the next response; in the client that re-shows a dead popup once. Pre-existing; seam = `deliver_ai_proposal`'s cache vs `PopupQueue`. Found by Builder B driving the petition through the mailbox. | **ROUTED to IQ-10 "The Client Pass"** (the row that carries every client-observed issue). Completion: activating a letter from the mailbox and answering it produces no stale passthrough on any response; pinned through `/mailbox/activate` + `/respond_to_diplomatic_dialogue` in `tests/test_iq10_client_pass.py`. |
+| **IQ7-X6** | P3 | **R7:** the rail notices for a vassal rebellion, both break-free exits and a VS-6 defection printed the RAW tag — *"KingdomOfItaly has rebelled against France. It is war."*, *"Switzerland's gold turns KingdomOfItaly against France."* — while the dispatch line beside them said "Kingdom of Italy". The rail text is a `_DIPLOMATIC_EVENT_TEMPLATES` template filled at the dispatch fill site, so the producer alone could not fix it (the fog rules read the raw `nation` key). Found in the §1.0 re-baseline digests. | ✅ **FIXED** (Builder A, in passing): the five templates use the PR-2 `_display` suffix ("Sire — the Kingdom of Italy has rebelled against France."); the vassal.py notifications (REBELLED!/Critical!/breaks free/Courts/Tempts/DEFECTS! and both DEFECTION messages) go through `display_nation`; `details` keys stay raw for the PC-9 dedupe. |
+
 ## Europe Speaks Its Mind (IQ-6) — landed September 16, 2026 (**1 ROUTED**)
 
 > Row IQ-6 (PR-X4). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.5; rules =

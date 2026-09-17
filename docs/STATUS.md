@@ -53,8 +53,9 @@
 > | 4 | ~~**IQ-4 THE CABINET IS VISIBLE**~~ | missions are mechanically live and invisible | PR-D2, PR-D3 | ✅ **CLOSED September 14, 2026**. One source for every mission surface (Cabinet, rail, log, help, tutorial). "The Court's Favour" ⚠ FOR USER CONFIRMATION. The counsel arm ticks **3 / 3 / 4** types on three seeds, the control 0. A P1 closed underneath (Talleyrand stranded IN_TRANSIT). Record `IMPROVEMENT_QUEUE_SPEC.md` §1.3 |
 > | 5 | ~~**IQ-5 BOTH SIDES OF THE BUTCHER'S BILL**~~ | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ✅ **CLOSED September 14, 2026**. Both sides report their scope on every surface: the enemy-phase dialog, campaign log and dispatch were wrong too. Trust is named where it is paid, on both sides. IQ5-R1 routed. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.4 |
 > | 6 | ~~**IQ-6 EUROPE SPEAKS ITS MIND**~~ | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | ✅ **CLOSED September 16, 2026** (built September 14). The narration's zero was the INSTRUMENT (the digest dropped every MEDIUM/LOW row; the producer fires 8 lines on the ambient run); the volte-face's was real — the 15-turn window could not fit the game's own courtship, and a bilateral peace never counted as a defeat. Window 15 → 20, the separate peace counts, the courier skips the routine cooldown, the exhaustion arm retired under GR9, and Talleyrand names the open door. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.5 |
-> | 7 | **IQ-7 THE SATELLITES HAVE A POSITION** | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ▶ **NEXT**. Recon done (Sept 14) and the contract ruled: **the row's premise flipped at HEAD** — a commanded France at peace from turn 5 to 29 (IQ-3's doing) now loses **2 / 3 / 3** of its three satellites to the −2 drift alone by turns 30–33 (6 rebellions + 2 VS-6 defections; the IQ-3 lever off gives 0 / 0 / 0), and the only vassal decision it ever sees is the rebellion modal 0–2 turns before the break. Ruling = **"The Client's Petition"**: a LOYAL satellite (≥60) petitions the Emperor for a province or eight turns' tribute relief while it is still loyal; granting binds it (relation +20, capped 40 — two grants cancel the drift), refusing or ignoring it spends its standing; GR5 for an AI lord. Riders: the wavering line stops promising regiments the satellites do not have, a lord's ALLIES stop courting its satellites (Spain did), the Garrison option says what it does, the digest gains a `vassals` bit. Routed: the Contingent (VD-C), the Suitor (declined with a re-open condition), Holland's unpayable design |
-> | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | queued |
+> | 7 | ~~**IQ-7 THE SATELLITES HAVE A POSITION**~~ | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ✅ **CLOSED September 16, 2026**. The premise had FLIPPED: after IQ-3 a commanded France at peace lost **2 / 3 / 3** satellites to the −2 drift. "The Client's Petition": a loyal satellite petitions for a province or tribute relief while it is still loyal; granting binds it, refusing spends its standing. GRANT holds **3 / 3 / 3** at turn 40 with 0 rebellion modals, REFUSE **0 / 0 / 0** by turns 21–23. Pillar vassals 6.5 → 7.0 ⚠ FOR USER CONFIRMATION. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.6 |
+> | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | ▶ **NEXT**. Recon done (Sept 14) and the contract ruled: the hash seed does NOT move the board (the one order-dependent site is a naval display walk); PR-D4's 20 / 24 / 22 has no archive and closes as unrecoverable; PR-X5 is wider than filed (a default run records `scenario: ""`, a from-save run with `--seed` is a hybrid of two seeds, the `.env` refills the variables the driver pops, `driver_revision` hashes raw line endings, and "160 of 160 AP" was the script's line count). Also owns IQ6-X1 (the process-global Berthier rotation) and IQ6-D4 (the AI-V scene-4 soil mark) |
+> | — | **VD-C THE CONTINGENT** (`VASSAL_DEEPENING_SPEC.md` §9) | a loyal satellite fields no men; VS-4's "its regiments hold back" has nothing to withhold | IQ-7's design 2, routed | the first vassal slice after row IQ closes — taken at the IQ exit review |
 > | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
 > | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
 >
@@ -239,7 +240,7 @@
 >
 > ---
 >
-> ### IQ-7 — THE SATELLITES HAVE A POSITION
+> ### IQ-7 — THE SATELLITES HAVE A POSITION ✅ CLOSED September 16, 2026 (record `IMPROVEMENT_QUEUE_SPEC.md` §1.6)
 >
 > **Evidence:** vassals hold at **6.5**, the lowest live pillar after economy.
 > The FA-S17-D7 shape reproduced exactly: **10 rebellion events on the five
@@ -284,6 +285,58 @@
 > one — and carries every open visual sign-off with it. **Completion:** a Mode
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
+
+> ## ▶ IQ-7 "THE SATELLITES HAVE A POSITION" — LANDED September 16, 2026. **ROW IQ-7 IS CLOSED.**
+>
+> Row IQ-7 (FA-S17-D7's owner). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.6,
+> authoritative; rules = `SYSTEMS_REFERENCE.md` §46; measurement =
+> `docs/audits/IQ7_SATELLITES_2026_09_16.md` (digests archived under
+> `docs/audits/playtest_digests/iq7-*`); defects = `BUG_FIXES.md` §The Satellites Have a
+> Position (IQ-7); the routed design = `VASSAL_DEEPENING_SPEC.md` §9 (VD-C).
+>
+> **The premise flipped.** The row was filed on "10 rebellions unattended, 0 commanded".
+> At HEAD a COMMANDED France loses **2 / 3 / 3** of its three satellites by turns 30–33 —
+> IQ-3 keeps it at peace from turn 5 to 29, and at peace the only live loyalty term is
+> the −2 drift. The only vassal decision it ever saw was the rebellion modal 0–2 turns
+> before the break.
+>
+> **"The Client's Petition."** A LOYAL satellite (≥ 60) petitions the Emperor — for a
+> province through the VS-3 grant, or for eight collections of tribute relief — while it
+> still has the standing to ask. Granting binds it (relation +20, capped 40: two honoured
+> petitions cancel the drift); refusing or ignoring it spends that standing (−10 loyalty,
+> −20 relation). An AI lord answers by the same rule (GR5). Two vassal-row keys only; one
+> tribute source `vassal_tribute_owed` for all four readers; riders R1 (the wavering line
+> stops promising regiments the satellites do not have), R2 (a lord's ALLIES stop courting
+> its satellites — Spain did), R3 (the Garrison option says what it does), R4 (the digest's
+> `vassals` bit + `--client-petition`). The stated expectation of what a loyal vassal is FOR
+> is the boxed sentence at the head of §46.
+>
+> **Measured (memo §2, all four completion items hold):** GRANT holds **3 / 3 / 3**
+> satellites at turn 40 with **0** rebellion modals (5 / 6 / 6 petitions granted while
+> loyal); REFUSE loses **0 / 0 / 0 by turns 21–23**; HEAD held 1 / 0 / 0. The lever-down
+> control is byte-identical to the re-baseline except the four rail lines whose raw tags
+> were fixed. Honest limit: granting dominates economically on the scripted board.
+>
+> **Found and fixed while integrating:** the PL-14 safety net mislabelled a DELIVERED
+> result (a granted petition read REJECT under "Diplomatic Action"; `offer_vassalage` the
+> same on the wire — IQ7-X4, every handler); the rail notices printed raw tags (IQ7-X6);
+> the IQ-6 fixture answered a queued letter through a handler that pops the current one.
+>
+> **Gates:** 81 new tests; sweep 55 of 55 killed, 0 INERT; parse harness EXIT=0;
+> boot 0 SCRIPT ERROR; M1–M7 byte-identical by construction; **`BASELINE_SERIES`
+> re-recorded ONCE** (arm 0 byte-identical; R and P identical; PL diverges at [20] — the
+> lapse lever is the sole mover: the harness never answers, so Switzerland's turn-6 relief
+> petition lapses and counts as a refusal; on the series board Switzerland's relief petition lapses twice (turns 6 and 14), capped courting takes it to 0 by turn 20, and it rebels at turn 21 — the `vassal_rebellion` −10 at [20] — where it had been lost to Britain's VS-6 bribe at turn 29); France 9 at turn
+> 40 in every arm; 13 campaign-log count pins flipped 164 → 165.
+>
+> **Routed:** VD-C the Contingent (gate-ready, `VASSAL_DEEPENING_SPEC.md` §9 — the first
+> vassal slice after row IQ closes), IQ7-D2 the Suitor (DECLINED, re-open condition),
+> IQ7-D3 Holland's unpayable design, IQ7-D4 the unattended war calendar narrowed (a satellite's unanswered petitions lapse on a fixed cadence, so Switzerland breaks at turn 21 on 9 of 10 sweep seeds — owner: the user's confirmation of the petition constants, landed by VD-C), IQ7-X1..X3 → VD-C, IQ7-X5 → IQ-10. **Pillar: vassals
+> 6.5 → 7.0 ⚠ FOR USER CONFIRMATION.**
+>
+> **▶ NEXT = IQ-8 "THE HARNESS TELLS THE TRUTH"** — recon done (the hash seed does not move
+> the board; PR-D4's archives never existed; PR-X5 is wider than filed: the `.env` refill,
+> the from-save seed hybrid, the line-ending hash) and the contract ruled.
 
 > ## ▶ IQ-6 "EUROPE SPEAKS ITS MIND" — LANDED September 16, 2026 (built September 14). **ROW IQ-6 IS CLOSED.**
 >
@@ -330,8 +383,7 @@
 >
 > **Routed:** IQ6-D1..D4 (`DESIGN_REFINEMENT.md`).
 >
-> **▶ NEXT = IQ-7 "THE SATELLITES HAVE A POSITION"** — recon done and the
-> contract ruled ("The Client's Petition"; see the queue table).
+> IQ-7 followed (above).
 
 > ## ▶ IQ-5 "BOTH SIDES OF THE BUTCHER'S BILL" — LANDED September 14, 2026. **ROW IQ-5 IS CLOSED.**
 >

@@ -611,6 +611,64 @@ transfer and VS-4's "wavering → withholding" precursor. Blessed defaults remai
 tunable; each landing record lists its structural deviations (all grounded in the July 16
 seam verification).
 
+## 9. IQ-7 — The Client's Petition (landed September 16, 2026) + the VD-C row
+
+**Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.6; rules = `SYSTEMS_REFERENCE.md` §46.**
+Row IQ-7 of the improvement queue re-opened FA-S17-D7 ("vassal drama exists only for a
+France that is losing") as its owner and found the premise had FLIPPED at HEAD: after IQ-3
+a commanded France is at peace from turn 5 to 29, and at peace the satellite web's only live
+loyalty term is the −2 drift — a well-played France lost **2 / 3 / 3** of its three
+satellites by turns 30–33 on three seeds (6 rebellions + 2 VS-6 defections; the IQ-3 lever off
+gives 0 / 0 / 0), and the only vassal decision it ever saw was the rebellion modal 0–2 turns
+before the break. The stated expectation of what a loyal vassal is FOR is the boxed sentence at
+the head of `SYSTEMS_REFERENCE.md` §46. Built: the petition (a loyal client asks for a province
+through VS-3, or for eight collections of tribute relief; granting binds it — relation +20,
+capped 40, two grants cancel the drift; refusing or ignoring spends its standing), GR5 for an AI
+lord, riders R1–R4, the R7 rail fix. `tests/test_iq7_satellites_have_a_position.py`,
+`tools/_sweep_iq7.json`.
+
+### VD-C — "The Contingent" (gate-ready; the first vassal slice after row IQ closes)
+
+**What.** A loyal satellite is FOR men: in a shared war it raises an income-and-loyalty-scaled
+contingent that marches under a French host, bleeds loyalty by its dead, comes home crowned or
+decimated, and walks out on a break. This answers the census's M1/M2 gaps (the boot satellites
+field no marshal, so VS-4's "wavering → its regiments hold back" clause is a promise about men
+that do not exist — R1 removed the promise; VD-C makes it true).
+
+**Prototype evidence (IQ-7 design 2, `scratchpad/iq7/design/proto_contingent.py`, September
+14, 2026 — the scratchpad is not durable; the summary is the record):** on the commanded arm
+the contingent offered 2–3 decisions per seed (the call, the return, the crown), auto-accepted
+at the tick in the prototype, so its delivery on the real transport is UNVERIFIED; peace-time
+drift was untouched, so the web's fate was unchanged (rebellions within ±1 turn of HEAD) —
+which is why IQ-7 built the petition first: it is the decision that changes the outcome on the
+board that failed. VD-C is the decision that gives the bonded client a job.
+
+**Seams (verified in the recon):** `vassal_military_contribution` (VS-4 tiers 60/35) is the
+call gate; the executor's `recruit_marshal` shape (`recruitment.py`) is the corps-minting idiom
+(a 5,000-man corps from a pool, capital spawn, symmetric relationship seeds); `assimilate` /
+`original_nation` is the marshal's flag; `_check_interrupts` + `strategic_order` MOVE_TO home is
+the return road (WIN-D3's corridor); the loyalty write is `process_vassal_loyalty`'s battle term.
+Four exits need recall hooks: peace, release, transfer, rebellion (the VS-5 `transfer_vassal`
+helper and slice 11's `complete_vassal_break` are the seams).
+
+**Completion:** a commanded 3-seed run in which a loyal satellite's contingent is CALLED in a
+shared war and MARCHES HOME, **and** the VS-4 regiments clause becomes true for the boot
+satellites (R1's conditional clause fires). Behaviour test: `tests/test_vassal_contingent.py`.
+
+**Also owned by VD-C (Golden Rule 9), from IQ-7's routed list:**
+- **IQ7-X1** `attempt_vassal_courting` and `check_defection_cascade` are player-lord-only
+  (GR5 gap) — completion: both walk every lord, staged AI-lord test
+  `tests/test_vassal_contingent.py::TestAILordThreats`.
+- **IQ7-X2** dead code: `vassal.get_vassal_warnings` (no production caller; imported by
+  `tests/test_audit_part2.py` and `tests/test_session5_diplomacy.py`) and the unused
+  `VASSAL_LOYALTY_CRITICAL` — completion: deleted with the tests that import them.
+- **IQ7-X3** the per-tick recovery hint repeats on 67–89 lines per arm — completion: the hint
+  rides the FA-S17-D8 crossing ticks and the first falling tick after a rise. Measure first:
+  IQ-7's grants already cut the falling ticks on the commanded board.
+
+**STATUS tracking line:** `docs/STATUS.md` ▶ NEXT UP carries "VD-C The Contingent — the first
+vassal slice after row IQ closes, taken at the IQ exit review."
+
 ---
 
 *Prepared July 14, 2026; VS-4/VS-5/VS-6 + build sequence added July 15, 2026 (user design direction).

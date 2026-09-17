@@ -922,7 +922,14 @@ def test_slice8_hot_paths_ride_cached_region_index():
     pins = [
         # (callable, must-contain, must-not-contain)
         (WorldState.get_manpower_regen_rates, "get_nation_regions", ".regions.values()"),
-        (vassal.process_vassal_tribute, "get_nation_regions", ".regions.items()"),
+        # IQ-7 (Sept 16, 2026): the tribute derivation moved into the ONE
+        # source `vassal_tribute_owed` — process_vassal_tribute, the
+        # strategic ledger, the Vassals tab and the wizard preview all call
+        # it. The pin follows the derivation (the WO slice-6 lesson below:
+        # left on the consumer it would have kept the NAME green while
+        # binding nothing), and the consumer is pinned to CALL the source.
+        (vassal.vassal_tribute_owed, "get_nation_regions", ".regions.items()"),
+        (vassal.process_vassal_tribute, "vassal_tribute_owed(", ".regions.items()"),
         (war_status.build_active_wars, "get_nation_regions(opponent)", None),
         (EnemyAI._get_strategic_enemy_regions, "get_active_nations", ".regions.items()"),
         (EnemyAI._find_best_stables_region, "get_nation_regions", ".regions.items()"),
@@ -956,10 +963,23 @@ def test_s3_ledger_tribute_rides_cached_region_index():
     hardcoded 50g/region instead of effective income."""
     import inspect
 
-    from backend.game_logic import diplomacy, ledger
+    from backend.game_logic import diplomacy, ledger, vassal
+
+    # IQ-7 (Sept 16, 2026): both consumers now read the ONE tribute source,
+    # `vassal_tribute_owed`, which is where the cached-index routing lives —
+    # so the source carries the GR8 pin and each consumer is pinned to CALL
+    # it (a consumer that re-inlined a raw scan would red both halves).
+    source_src = inspect.getsource(vassal.vassal_tribute_owed)
+    assert "get_nation_regions(vassal_name)" in source_src, (
+        "vassal_tribute_owed lost its cached-index tribute derivation"
+    )
+    assert "regions.values()" not in source_src, (
+        "vassal_tribute_owed regressed to a raw region scan"
+    )
+    assert ".regions.items()" not in source_src
 
     ledger_src = inspect.getsource(ledger._build_economy)
-    assert "get_nation_regions(vassal_name)" in ledger_src, (
+    assert "vassal_tribute_owed(world, vassal_name)" in ledger_src, (
         "_build_economy lost its cached-index tribute derivation"
     )
     assert ledger_src.count("world.regions.values()") <= 2, (
@@ -967,14 +987,20 @@ def test_s3_ledger_tribute_rides_cached_region_index():
     )
 
     preview_src = inspect.getsource(diplomacy.get_diplomatic_preview)
-    assert "get_nation_regions(target_nation)" in preview_src, (
+    assert "vassal_tribute_owed(world, target_nation)" in preview_src, (
         "get_diplomatic_preview lost its cached-index tribute derivation"
     )
     assert "regions.values()" not in preview_src, (
         "get_diplomatic_preview regressed to a raw region scan"
     )
-    assert "get_effective_income" in preview_src, (
-        "the preview tribute estimate regressed to a flat per-region value"
+    # The "not a flat 50g/region" guard follows the derivation into the
+    # single source as well; the preview is pinned never to grow its own
+    # per-region figure back.
+    assert "get_effective_income" in source_src, (
+        "the tribute estimate regressed to a flat per-region value"
+    )
+    assert "50 *" not in preview_src and "* 50" not in preview_src, (
+        "get_diplomatic_preview regrew a flat per-region tribute estimate"
     )
 
 

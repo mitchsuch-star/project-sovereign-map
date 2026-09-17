@@ -11,7 +11,13 @@ The phase-closing pin set, run against the committed sweep driver
   Arm B  — variance: a different seed at the SAME K differs in turn-0
            dispositions and in the spec's own triple {AI-initiated war
            count, the turns wars begin, which courts reach `fight`}
-           (evaluated as at-least-one, per §4.7).
+           (evaluated as at-least-one, per §4.7) — since IQ-7 (Sept 16,
+           2026) compared through the tool's WIDENED signature (the triple
+           plus the turn each court first reaches `fight` and the
+           eliminations with their turns), whose teeth are three controls a
+           widening cannot fake: the same seed twice and ulm with seed
+           variance disabled both sign EQUAL, and ulm's boot grafted onto
+           historical's run does not move it (see the pin's docstring).
   Arm (a) — the 40-turn ambient acceptance digest carries the DoD
            assertions a passive France can honestly measure: the D1
            channel discrimination and alarm, the Q3 economy shapes, the
@@ -32,7 +38,8 @@ The phase-closing pin set, run against the committed sweep driver
 
 The full N-seed acceptance distribution (Arm C) and the scored creative
 pass live in the sweep memo (docs/audits/AI_V_SWEEP_2026_08_01.md); this
-file pins what must never regress, at suite cost (~4 subprocess runs).
+file pins what must never regress, at suite cost (~5 subprocess runs; the
+fifth, IQ-7's seed-variance-off control, is defined beside Arm B).
 
 NOTE: the Arm-A threat anchor imports BASELINE_SERIES from
 test_ai_intent_threat_migration — a conscious re-record there flows here
@@ -41,6 +48,9 @@ automatically (one constant, two consumers).
 
 import importlib.util
 import json
+import subprocess
+import sys
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -147,6 +157,86 @@ class TestArmAControl:
 # Arm B — variance
 # ═══════════════════════════════════════════════════════════════════════
 
+def _synthetic_digest(fight_from: dict, eliminated: list,
+                      turns: int = 6) -> dict:
+    """A minimal digest carrying every key `sweep.derive_metrics` reads, so
+    the Arm-B signature's semantics are pinned through the tool's REAL
+    derivation rather than a test-side copy of it.
+
+    `fight_from` maps a court to the row turns on which its intent view
+    stands on `fight` (any other row it reads `coerce`); `eliminated` is
+    [(row turn, nation, the event's own `turn` stamp)]."""
+    rows = []
+    for t in range(1, turns + 1):
+        events = [{"type": "nation_eliminated", "nation": nation,
+                   "turn": stamp}
+                  for row_turn, nation, stamp in eliminated if row_turn == t]
+        # a non-elimination exit in the same drain must never be counted
+        events.append({"type": "vassal_broke_free", "nation": "Switzerland",
+                       "turn": t})
+        rows.append({
+            "turn": t, "threat": 50, "mirror": ["ask", 0, None],
+            "intents": {
+                nation: [None, None, 0,
+                         "fight" if t in fighting else "coerce"]
+                for nation, fighting in fight_from.items()},
+            "wars_opened": [], "wars_ended": [], "events": events,
+            "dispatch_queue": [], "incoming_proposals": [],
+            "exhaustion": {}, "gold": {}, "strength": {},
+        })
+    digest = {"meta": {"player": "France", "france_needles": ["france"]},
+              "turns": rows}
+    digest["derived"] = sweep.derive_metrics(digest)
+    return digest
+
+
+_SEED_VARIANCE_OFF_CHILD = textwrap.dedent("""
+    import importlib.util
+    import json
+    import sys
+
+    tool_path, seed = sys.argv[1], sys.argv[2]
+    ambient_base, turns = int(sys.argv[3]), int(sys.argv[4])
+
+    # The authored bands, jitter, tie-breaks and permutations consult ONE
+    # predicate at call time. Forced True here, a non-historical seed boots on
+    # the authored centres and takes their neutral arm while `campaign_seed`
+    # still reads `seed`. NOT every seeded draw consults it: naval
+    # `_pct_roll` (expedition slip, diversion), the fleet-action jitter and
+    # jealousy's expression pick call `seeded_int` on `campaign_seed`
+    # directly and still roll on this seed. Measured September 16, 2026: 14
+    # such draws a run — one slip roll (57 on historical, 47 here) against
+    # odds of 88 that both pass, the rest text the digest does not carry.
+    # So control 2's equality holds on THIS board, not by construction: a
+    # naval roll whose odds fell between the two draws would turn it red
+    # with no loss of variance. Read such a red as that, not as a defect.
+    import backend.game_logic.campaign_variance as campaign_variance
+    campaign_variance.is_historical = lambda _seed: True
+
+    spec = importlib.util.spec_from_file_location(
+        "ai_v_sweep_seed_variance_off", tool_path)
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    print("PAYLOAD=" + json.dumps(tool.run_one(seed, ambient_base, turns)))
+""")
+
+
+@pytest.fixture(scope="module")
+def ulm_seed_variance_off():
+    """IQ-7 (Sept 16, 2026): the ulm run with seed variance disabled in the
+    child — the control that proves the widened Arm-B signature separates
+    seeds by what the SEED did, not by anything that merely differs between
+    two runs. The fifth subprocess run in this file (~2.3 s measured; a
+    40-turn run is dominated by its boot)."""
+    proc = subprocess.run(
+        [sys.executable, "-c", _SEED_VARIANCE_OFF_CHILD,
+         str(REPO_ROOT / "tools" / "ai_v_sweep.py"), "ulm",
+         str(sweep.AMBIENT_K), "40"],
+        env=sweep.child_env("ulm"), cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=600)
+    return sweep.payload_from(proc, "ulm/seed-variance-off")
+
+
 class TestArmBVariance:
     def test_turn0_dispositions_differ(self, hist1, ulm):
         """D7/§3.8: a different seed opens a different 1805 — within the
@@ -159,12 +249,200 @@ class TestArmBVariance:
         """§4.7 Arm B: at the SAME ambient K the runs differ in at least
         one of {AI-initiated war count, the turns wars begin, which
         courts reach fight} — attributable to the seed, not to combat
-        noise."""
+        noise.
+
+        WIDENED — IQ-7 "The Satellites Have a Position" (September 16,
+        2026). The comparison is `tools/ai_v_sweep.py::_variance_signature`,
+        the ONE definition the offline sweep's Arm B also reads; nothing is
+        composed here. It is §4.7's literal triple, unchanged, plus
+        `first_fight_turn` (the row turn each court first stands on
+        `fight`) and `eliminations` (sorted [row turn, nation]).
+
+        Why. Measured on this tree (ambient K=10000, all ten
+        `SWEEP_SEEDS`): the literal triple is EQUAL for historical and ulm
+        — both `{ai_war_count: 0, war_turns: [21], courts_at_fight:
+        [Austria, Bavaria, Britain, Russia, Spain, Sweden]}`. The
+        unattended board's one war is Switzerland breaking free of France.
+        Nobody answers its relief petitions, the lapse cadence
+        (PETITION_GRACE_TURNS / PETITION_INTERVAL_TURNS) is a pair of
+        constants the seed does not perturb, and the break now falls at
+        turn 21 on nine of ten seeds (23 on eylau). Before IQ-7 it was a
+        rebellion at 24, 25 or 32, or a defection to Britain at row 30
+        (event stamp 29) with no war at all. The two campaigns are still different ones: ulm's
+        seeded Germany-first Austria beats Bavaria, which reaches `fight`
+        at row 3 (row 4 on historical) and is eliminated at row 4, while
+        historical keeps Bavaria and loses Switzerland at row 22 and the
+        Kingdom of Italy at row 27 (row 5 on ulm). The widened signature
+        separates them on BOTH new keys, so the green does not rest on
+        Bavaria's one-turn fight shadow alone.
+
+        What that costs, stated plainly. A strictly finer signature
+        compared with `!=` is a logically EASIER assertion than the
+        triple's inequality: every pair the triple separated it still
+        separates, and it separates pairs the triple could not. So this
+        pin does not carry the teeth. The three controls below do, because
+        a widening cannot fake them: the same seed run twice signs EQUAL
+        (`test_the_same_seed_twice_signs_alike`), ulm with seed variance
+        disabled signs EQUAL to historical
+        (`test_seed_variance_off_signs_as_historical`), and ulm's boot
+        grafted onto historical's run does not move the signature
+        (`test_the_signature_reads_the_run_not_the_boot`). Across the ten
+        seeds the widened signature forms 4 classes where the triple forms
+        3: {historical, friedland, rivoli} · {ulm, austerlitz, marengo,
+        lodi} · {jena, wagram} · {eylau}. It does not restore the
+        pre-IQ-7 resolution: on that tree both formed 5, with jena and
+        wagram apart (wagram had no war) — part of what IQ7-D4 owns.
+
+        The narrowing of the unattended war calendar is real, is NOT
+        answered by this widening, and is routed to
+        `DESIGN_REFINEMENT.md` IQ7-D4.
+        """
         sig_h = sweep._variance_signature(hist1)
         sig_u = sweep._variance_signature(ulm)
+        for sig in (sig_h, sig_u):
+            assert sorted(sig["first_fight_turn"]) == sig["courts_at_fight"], (
+                "the first-fight map must refine courts_at_fight exactly")
         assert sig_h != sig_u, (
-            "two seeds produced identical war counts, war turns AND "
-            "fight-rung courts — the variance slice failed (§4.7)")
+            "two seeds produced identical war counts, war turns, "
+            "fight-rung courts, first-fight turns AND eliminations — the "
+            "variance slice failed (§4.7)")
+
+    def test_the_same_seed_twice_signs_alike(self, hist1, hist2):
+        """Teeth, control 1 (IQ-7). The widened signature must not be
+        trivially distinct: two separate processes on the SAME seed and K
+        sign identically. Killed by any key that reads something a run
+        carries but the seed does not determine (a wall-clock stamp, a
+        process id, an address). No extra run — Arm A's two digests. The
+        weakest of the three: for any key derived from the digest it is
+        already implied by Arm A's byte-identity, so the real teeth are
+        controls 2 and 3."""
+        assert sweep._variance_signature(hist1) == sweep._variance_signature(
+            hist2)
+
+    def test_seed_variance_off_signs_as_historical(self, hist1, ulm,
+                                                   ulm_seed_variance_off):
+        """Teeth, control 2 (IQ-7). ulm with the seed-variance layer
+        disabled in the child (`campaign_variance.is_historical` forced
+        True — bands collapse to their centres, jitter and tie-breaks take
+        their neutral arm) must sign EQUAL to historical, while the real
+        ulm run signs differently. So what `test_the_spec_triple_differs`
+        separates is what the SEED did. Killed by a signature key that
+        reads the seed's name, the boot, or any other label rather than
+        the campaign's outcome (the seed string survives this control:
+        `campaign_seed` still reads `ulm`)."""
+        off = ulm_seed_variance_off
+        assert off["meta"]["seed"] == "ulm", off["meta"]
+        assert off["boot"]["campaign_seed"] == "ulm", (
+            "the control must run ON the ulm seed, or its equality is "
+            "vacuous")
+        assert off["boot"]["relations"] == hist1["boot"]["relations"], (
+            "the disable did not reach the child's boot — the bands still "
+            "resolved off their centres")
+        assert (sweep._variance_signature(off)
+                == sweep._variance_signature(hist1))
+        assert (sweep._variance_signature(ulm)
+                != sweep._variance_signature(off))
+
+    def test_the_signature_reads_the_run_not_the_boot(self, hist1, ulm):
+        """Teeth, control 3 (IQ-7). §4.7 asks for a difference in turn-0
+        dispositions AND in the run, and `test_turn0_dispositions_differ`
+        owns the first. The run clause must not be satisfiable by a boot
+        fact, or a converged 40-turn run would pass on its deck order
+        alone: graft ulm's boot and meta onto historical's per-turn record,
+        re-derive through the tool's real `derive_metrics`, and the
+        signature must not move. Killed by widening the signature with the
+        majors' opening design ids, the boot relations, or the seed's name.
+        The seed-variance-off control catches the seed's name but cannot
+        see a boot disposition — with variance off, ulm boots on
+        historical's own centres — which is why this graft exists. Its
+        reach, stated: it catches a read SOURCED from the boot. The same
+        disposition re-read from the run's first row (a row's intent
+        views, say) is a run fact to this graft and passes it; no
+        signature key reads a row's intents except the turn a court
+        first stands on `fight`."""
+        grafted = {"meta": ulm["meta"], "boot": ulm["boot"],
+                   "turns": hist1["turns"], "final": hist1["final"]}
+        grafted["derived"] = sweep.derive_metrics(grafted)
+        assert ulm["boot"] != hist1["boot"], "the graft must carry a change"
+        assert (sweep._variance_signature(grafted)
+                == sweep._variance_signature(hist1))
+
+    def test_first_fight_refinement_reads_the_turn(self):
+        """The IQ-7 `first_fight_turn` semantics, pinned on synthetic
+        digests through the tool's REAL `derive_metrics`, so a derivation
+        that drops the turn, keeps the LAST turn, or reads another rung
+        cannot pass: same courts at `fight` on different first turns → the
+        literal triple is equal and the signature is not; same first turns
+        → both equal."""
+        def digest(bavaria_first):
+            return _synthetic_digest(
+                {"Bavaria": set(range(bavaria_first, 7)),
+                 "Austria": set(range(1, 7)),
+                 "Holland": set()},
+                eliminated=[])
+
+        def triple(d):
+            sig = sweep._variance_signature(d)
+            return {k: sig[k] for k in ("ai_war_count", "war_turns",
+                                        "courts_at_fight")}
+
+        early, late, early_again = digest(3), digest(4), digest(3)
+        assert (sweep._variance_signature(early)["first_fight_turn"]
+                == {"Austria": 1, "Bavaria": 3})
+        assert (sweep._variance_signature(late)["first_fight_turn"]
+                == {"Austria": 1, "Bavaria": 4})
+        assert triple(early) == triple(late)
+        assert sweep._variance_signature(early) != sweep._variance_signature(
+            late)
+        assert sweep._variance_signature(early) == sweep._variance_signature(
+            early_again)
+        # FIRST, not last: a court that stands down and re-enters `fight`
+        # keeps its first turn.
+        relapse = _synthetic_digest({"Bavaria": {2, 5, 6}}, eliminated=[])
+        assert (sweep._variance_signature(relapse)["first_fight_turn"]
+                == {"Bavaria": 2})
+
+    def test_eliminations_read_who_falls_and_when(self):
+        """The IQ-7 `eliminations` semantics, through the tool's REAL
+        `derive_metrics`: sorted [row turn, nation]; WHO falls and WHEN
+        both separate signatures; other exits in the same drain are not
+        eliminations; the clock is the digest's row turn (the one
+        `war_turns` and `first_fight_turn` use), not the event's own stamp,
+        which is one lower for an enemy-phase elimination."""
+        fight = {"Austria": set(range(1, 7))}
+        bavaria_4 = _synthetic_digest(fight, [(4, "Bavaria", 3)])
+        bavaria_5 = _synthetic_digest(fight, [(5, "Bavaria", 4)])
+        swiss_4 = _synthetic_digest(fight, [(4, "Switzerland", 3)])
+        two = _synthetic_digest(fight, [(5, "KingdomOfItaly", 4),
+                                        (4, "Bavaria", 3)])
+        none = _synthetic_digest(fight, [])
+
+        assert (sweep._variance_signature(bavaria_4)["eliminations"]
+                == [[4, "Bavaria"]])
+        assert (sweep._variance_signature(two)["eliminations"]
+                == [[4, "Bavaria"], [5, "KingdomOfItaly"]])
+        assert sweep._variance_signature(none)["eliminations"] == []
+        # repeated entries are not collapsed — neither across rows nor
+        # within one drain (the engine's latch makes either a defect today,
+        # and a signature that differs on a defect is the right answer)
+        twice = _synthetic_digest(fight, [(4, "Bavaria", 3),
+                                          (6, "Bavaria", 5)])
+        assert (sweep._variance_signature(twice)["eliminations"]
+                == [[4, "Bavaria"], [6, "Bavaria"]])
+        same_drain = _synthetic_digest(fight, [(4, "Bavaria", 3),
+                                               (4, "Bavaria", 3)])
+        assert (sweep._variance_signature(same_drain)["eliminations"]
+                == [[4, "Bavaria"], [4, "Bavaria"]])
+        assert (sweep._variance_signature(same_drain)
+                != sweep._variance_signature(bavaria_4))
+        sigs = [sweep._variance_signature(d)
+                for d in (bavaria_4, bavaria_5, swiss_4, two, none)]
+        for i, a in enumerate(sigs):
+            for b in sigs[i + 1:]:
+                assert a != b
+        assert (sweep._variance_signature(bavaria_4)
+                == sweep._variance_signature(
+                    _synthetic_digest(fight, [(4, "Bavaria", 3)])))
 
     def test_intent_weight_series_differ(self, hist1, ulm):
         """The bars move (weights/prices), never the character (both

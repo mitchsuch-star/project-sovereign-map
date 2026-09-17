@@ -319,6 +319,17 @@ measuring environment. **The ruling's conclusion survives every reading: 0 of 3
 seeds below 20 provinces at turn 40.** Cite the column whose platform you are
 on, and say which.
 
+**Re-dated by IQ-7 (September 16, 2026; Windows 11, CPython 3.13, `PYTHONHASHSEED=0`,
+the tree that lands IQ-7; archived `docs/audits/playtest_digests/iq7-*`).** The
+same arm now answers the satellites' petitions (`--client-petition` absent →
+mirrors `--diplomacy accept` = grant): **28 / 28 / 29** provinces at turn 40
+(Tyrol ceded to the Kingdom of Italy through a petition on two seeds) with all
+three satellites held. `--client-petition refuse` gives **29 / 29 / 29** with all
+three lost by turns 21–23. The four IQ-7 levers down (in-process) give the
+pre-IQ-7 board, **29** on historical, satellites lost at turns 29–31
+(`iq7-control`). Before IQ-7 on the post-IQ-3 tree: **29 / 29 / 29**, satellites
+lost 2 / 3 / 3 by turns 30–33.
+
 ⚠ **"four military actions every turn, 160 of 160 AP" is the SCRIPT'S LINE
 COUNT, not the campaign.** Measured from the three digests' own end-turn
 warnings: **81 / 77 / 75** of 160 action points actually spent, with an
@@ -539,6 +550,19 @@ types with an applied tick on every seed**; the control arm (no
     volte_court_austria.json`: the commanded arm plus Talleyrand courting
     Austria from loop 5 — run it `--turns 40` (its policy already answers
     the table with `accept`); its digest carries `volte_face` once.
+- `vassals` on every `LEDGER` row (IQ-7, Sept 16, 2026) — the satellite web as
+  the diplomatic ledger's Vassals tab reads it, e.g. `· vassals Holland 88 ·
+  Kingdom of Italy 84 · Switzerland 71` (`vassals none` once the web is gone;
+  driver lever `THE_DIGEST_SEES_THE_WEB`). Before IQ-7 the digest showed 0 of
+  67 loyalty ticks on a 40-turn commanded arm, which is how a row was filed
+  on "0 vassal drama" while three satellites drifted to rebellion.
+- `POPUP diplomatic_dialogue: <court>, client_petition #N → grant the petition`
+  (IQ-7) — a client's petition, answered by the `--client-petition
+  {grant,refuse}` dial (absent → mirrors `--diplomacy`: `accept`/`first`/
+  `propose` grant, `decline` refuses). The same petition is echoed once more
+  as `(stale passthrough — #N already answered this chain)` — the pre-existing
+  mailbox cache echo, IQ7-X5, not a second petition; count petitions by the
+  `#N →` lines or by `dispatch_type_counts["client_petition_answered"]`.
 - `digest.jsonl` — the query surface (one record per event; `kind` =
   turn/command/battle/popup/enemy_phase/order_progress/ledger/dispatch/
   rail/dispatch_row/campaign_log/mission/note).

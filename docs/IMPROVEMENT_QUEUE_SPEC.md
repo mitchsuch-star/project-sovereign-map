@@ -1785,6 +1785,83 @@ September 16, and the sweeps were run on a private copy at integration.
   arm's scene-4 positive rests on the retired arm and wants a soil mark at
   `_turn_11`.
 
+### §1.6 LANDING RECORD — IQ-7 "The Satellites Have a Position" (✅ September 16, 2026)
+
+**Authoritative for this row.** The rules are in `docs/SYSTEMS_REFERENCE.md` §46, the
+defects in `docs/BUG_FIXES.md` §The Satellites Have a Position (IQ-7), the measurement
+in `docs/audits/IQ7_SATELLITES_2026_09_16.md`, the routed design in
+`VASSAL_DEEPENING_SPEC.md` §9 (VD-C) and `DESIGN_REFINEMENT.md` §IQ-7. A decision fleet
+(a measurement agent, a substrate census, three designers, one judge) ruled; two
+builders worked on disjoint files (the domain and its data surfaces; the transport,
+the client and the harness), then a test writer; the lead ran the completion arms.
+
+> **A loyal satellite is the Empire's settled frontier: it pays its tribute, feeds and passes the Grande Armée, marches in France's wars, and holds for France the conquered provinces France hands it. Its loyalty is standing — only a loyal client (60 or more) may petition the Emperor — and a client whose petitions are honoured becomes a bonded one that holds its own position against the ordinary drift without further attention. Refused or ignored, it spends that standing until a rival court can buy it.**
+
+- **The row's premise FLIPPED at HEAD, and the measurement is the reason it was built
+  this way.** The row was filed on the September-12 re-score's "10 rebellions on five
+  unattended arms, 0 on three commanded". At `e38be000` the same commanded script loses
+  **2 / 3 / 3** of France's three satellites on historical / austerlitz / marengo, all
+  between turns 30 and 33 (6 rebellions + 2 VS-6 defections) — because IQ-3 keeps a
+  commanded France at PEACE from turn 5 to 29, and at peace the only live loyalty term is
+  the −2 drift (the +2 shared-enemy term dies with the war; grip is dormant above 30; the
+  relation term was 0 because nothing wrote a France–vassal relation). The IQ-3 lever off
+  gives 0 / 0 / 0. The only vassal decision the player ever saw was the rebellion modal
+  0–2 turns before the break; and pulling one lever once (a rotating invest, or one
+  autonomy grant) took the whole system out of the game for forty turns.
+- **The ruling: "The Client's Petition"** over "the Contingent" (owned as VD-C) and "the
+  Suitor at the Gate" (declined). A LOYAL satellite (≥ 60, five turns after creation, on
+  an eight-turn cadence) petitions for a province (the VS-3 grant, preferring its own
+  authored design) or for eight collections of tribute relief. Granting binds it
+  (relation +20, capped at 40, so two honoured petitions cancel the drift; the relief
+  is +10 loyalty and eight turns of 0 tribute), refusing or ignoring it spends its
+  standing (−10 loyalty, −20 relation, never an AI-3 ladder refusal). An AI lord
+  resolves in place at the same prices (GR5; latent on the boot, pinned on a staged
+  transfer). Two vassal-row keys only (`petitioned_turn`, `remission_left`); ONE tribute
+  source `vassal_tribute_owed` read by all four readers. Riders: the wavering line stops
+  promising regiments the satellites do not have (R1), a lord's allies stop courting its
+  satellites (R2 — Spain did), the Garrison option says what it does (R3), the digest
+  sees the web (R4: the `vassals` LEDGER bit and `--client-petition`).
+- **Completion, measured (memo §2 — all four hold):** GRANT holds **3 / 3 / 3** satellites
+  at turn 40 with **0** rebellion modals and 5 / 6 / 6 petitions granted while loyal
+  (the first at turn 5–6); REFUSE loses **0 / 0 / 0 by turns 21–23**; HEAD held 1 / 0 / 0
+  by 30–33. The stated expectation is verbatim in §46. The `vassals` bit is on 40 of 40
+  LEDGER rows of every arm; the memo quotes a popup and a card with no raw tag. The
+  lever-down control is byte-identical to the §1.0 re-baseline except the four rail
+  lines IQ7-X6 corrected. Honest limit: granting dominates economically on the scripted
+  board (+7–12k over the control); the felt trade-off is the province and the refusal.
+- **Deviations from the contract, each measured:** THE RELIEF requires a tribute > 0
+  (a landless client asks nothing); `refuse_petition` also withdraws when the row is
+  gone or answers to another lord (else a refusal after a VS-5 transfer would penalise
+  the new lord's vassal); `remission_left` is left at 0, not popped; the relief gain is
+  blunted at answer time like invest; the bond text states arithmetic ("a bond worth two
+  honoured petitions (standing 40)") because a carved client's 40 is `CARVE_PATRON_RELATION`,
+  not history; T2's first petition on the BOOT board is Switzerland's relief at turn 6
+  for 1,800 (Holland's forecast is 0 while the boot war with Britain lasts — the
+  contract's "Holland, 2,696" is the commanded arm's after the turn-4 peace); T5's
+  `in_design` is unreachable on the shipped board without staging the deck (IQ7-D3);
+  T9(f)'s remission gate is masked by construction on the relief ladder (pinned on a
+  province subject); the driver sends the option LABEL, so the digest reads
+  `→ grant the petition`.
+- **Found while integrating, fixed:** the PL-14 safety net mislabelled a delivered
+  result — a GRANTED petition read REJECT under "Diplomatic Action" (IQ7-X4, every
+  handler); the rail notices printed raw tags (IQ7-X6); the IQ-6 volte-face fixture
+  answered a QUEUED letter through a handler that pops the CURRENT dialogue (a client's
+  petition now sits in front of it) — it activates the letter first, as the client does.
+- **Gates:** `tests/test_iq7_satellites_have_a_position.py` (81, board pins
+  reseeded with the driver's own `seed_module_rng` — measured necessary: unseeded combat
+  jitter lost the Kingdom of Italy before turn 6 in ~1 of 10 processes); 13
+  `len(CAMPAIGN_LOG_TYPES)` pins flipped 164 → 165 with the dated reason; two
+  scale-readiness census pins followed the tribute derivation into its single source;
+  sweep `tools/_sweep_iq7.json` 55 of 55 killed on a private copy, 0 INERT; parse harness
+  EXIT=0 (46 scripts) and the headless boot 0 SCRIPT ERROR; M1–M7 byte-identical by
+  construction; **`BASELINE_SERIES` re-recorded ONCE**, four-arm attributed — arm 0
+  byte-identical, R and P identical, PL diverges at [20] (the lapse lever is the sole
+  mover; on the series board Switzerland's relief petition lapses twice (turns 6 and 14), capped courting takes it to 0 by turn 20, and it rebels at turn 21 — the `vassal_rebellion` −10 at [20] — where it had been lost to Britain's VS-6 bribe at turn 29); France 9 provinces at turn 40 in every arm.
+- **Routed (Golden Rule 9):** VD-C the Contingent (`VASSAL_DEEPENING_SPEC.md` §9, gate-ready,
+  owner of IQ7-X1..X3); IQ7-D2 the Suitor, DECLINED with a re-open condition; IQ7-D3
+  Holland's unpayable design; IQ7-X5 the mailbox stale echo → IQ-10.
+- **Pillar:** vassals 6.5 → **7.0**, ⚠ FOR USER CONFIRMATION (memo §5).
+
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that
 belongs to the Victory & Objectives Pass, ROADMAP positions 12–13. No IQ row

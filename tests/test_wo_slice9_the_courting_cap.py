@@ -938,11 +938,36 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
     recorded series, so the next board change makes this pin fail loudly
     at the right place instead of drifting: the rebellion is the largest
     single-turn fall the series contains.
+
+    ── AMENDED September 16, 2026 by IQ-7 ("The Satellites Have a Position")
+    The runner never answers Switzerland's relief petitions, so they lapse
+    at t6 and t14, and a lapse is a refusal. The satellite reaches the
+    courting line at t15 rather than t27, and both arms move:
+
+        uncapped  the t15 tick strips 47 -> 0; the rebellion is observable
+                  at current_turn 16
+        capped    Britain, Russia and Austria court it once a turn,
+                  t15-t20; the rebellion is observable at 21
+
+    The cap still delays and never saves, now by five turns, and the capped
+    rebellion is still the series' largest ordinary fall.
+
+    Attribution — a statement of what the lever moves, NOT a pass
+    condition: with the IQ-7 lapse lever down, `_rebellion_turn`'s own
+    flips measure the prior board's 28 / 30, and the series is
+    byte-identical to the prior record (arm P of the series attribution),
+    whose derived turn is 30. Against THIS file both tests therefore FAIL
+    with the lever down (28 != 16; 30 != the derived 21), which is what
+    proves the lever is the mover. On the prior board both exits were in
+    fact Britain's VS-6 bribe, not rebellions. On this board both are
+    VASSAL -> WAR rebellions.
     """
 
     def test_the_cap_delays_the_rebellion_it_does_not_prevent_it(self):
-        """Killed by: deleting the cap (both arms then rebel at 29), and
-        by any change that lets the satellite hold indefinitely."""
+        """Killed by: deleting the cap (both arms then leave France on the
+        uncapped arm's turn — measured 16 on this tree, September 16, 2026,
+        IQ-7; the 29 this line first carried belonged to an earlier board),
+        and by any change that lets the satellite hold indefinitely."""
         uncapped = _rebellion_turn(False)
         capped = _rebellion_turn(True)
         # Re-measured by FA slice 2 (September 4, 2026): the capped
@@ -984,8 +1009,28 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # contact list in MAP order (FA-S17-2) moves every seeded board from
         # the first battle — uncapped 28, capped 30. The cap buys two turns;
         # the contract holds.
-        assert uncapped == 28, uncapped
-        assert capped == 30, capped
+        # Re-measured by IQ-7 "The Satellites Have a Position" (September 16,
+        # 2026). This runner answers nothing, so Switzerland's relief
+        # petitions lapse at t6 and t14, and a lapse is a refusal: 86 → 76,
+        # 60 → 50, and the lord relation 0 → −40. That puts the satellite
+        # under the courting line at t15, TWELVE turns earlier than before.
+        # Uncapped 16, capped 21.
+        #   - Uncapped, the t15 tick strips 47 → 0 and it rebels at t16.
+        #   - Capped, Britain, Russia and Austria court it once a turn,
+        #     t15–t20 (47 → 0), and it rebels at t21.
+        # The cap buys FIVE turns; the contract holds.
+        # Attribution, measured through THIS runner's `flips`: with the four
+        # IQ-7 vassal levers down, or with only
+        # AN_UNANSWERED_PETITION_IS_REFUSED down, it reads 28 / 30 verbatim.
+        # A correction to the Phase 3 note, from a per-turn probe of that
+        # board: its 28 / 30 were not rebellions. Both were Britain's VS-6
+        # bribe transferring Switzerland — uncapped at t27 after the pile-on
+        # reached 0, capped at t29 at loyalty 30. `_rebellion_turn` reads the
+        # turn France|Switzerland stops being a VASSAL, which covers both. On
+        # this board both arms are true rebellions: VASSAL → WAR,
+        # `vassal_broke_free` with exit=vassal_rebellion.
+        assert uncapped == 16, uncapped
+        assert capped == 21, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1043,6 +1088,23 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # and excluded; the rebellion is the unique largest ORDINARY fall,
         # -12 (12 -> 0, the floor clamping -3 decay -10 rebellion) at index
         # 28 -> 29, turn 30. The general form of the pin is restored.
+        # IQ-7 (September 16, 2026). The re-recorded series keeps this pin's
+        # general form, and not one assertion is edited.
+        #   - The elimination is still -13 at step 25 (31 -> 18 became
+        #     21 -> 8: the Kingdom of Italy leaves France's web at world
+        #     turn 26 in both arms).
+        #   - The capped rebellion is the unique largest ORDINARY fall,
+        #     moved to index 19 -> 20, turn 21: -12 = 43 + 1 hegemony
+        #     - 3 decay - 10 `vassal_rebellion` = 31.
+        #   - `_rebellion_turn(True)` measures 21 = index + 1.
+        # It moved because Switzerland's two lapsed petitions (t6, t14)
+        # bring the courting forward twelve turns (see the test above and
+        # the attribution block in test_ai_intent_threat_migration.py).
+        # Corrected against a per-turn probe of the Phase 3 board: the -12
+        # recorded above as a "rebellion" was Britain's VS-6 bribe
+        # transferring Switzerland at t29 (`vassal_defection` -10, the
+        # decay clamped at the floor). The pin never depended on which exit
+        # it was, only on the fall.
         elimination_step = 25
         assert steps[elimination_step] == -13, steps
         ordinary = [s for i, s in enumerate(steps) if i != elimination_step]

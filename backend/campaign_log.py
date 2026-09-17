@@ -22,6 +22,7 @@ from backend.display_names import ally_entry_block_line
 from backend.display_names import diplomatic_decision_reason_display
 from backend.display_names import display_nation
 from backend.display_names import humanize_entity_name
+from backend.display_names import with_definite_article
 from backend.game_logic.commitments_routing import (
     COMMITMENTS_ROUTES,
     format_commitments_notice,
@@ -234,6 +235,12 @@ CAMPAIGN_LOG_TYPES = {
     "vassal_refuses_call",  # VS-4: disaffected vassal declines the call-to-arms
     "vassal_transferred",   # VS-5: peace-table lord re-homing
     "vassal_defected",      # VS-6: bribed coalition-flip (transfer or free+war)
+    # IQ-7 "The Client's Petition" (September 16, 2026): a loyal client's
+    # petition answered — granted, refused, or left to lapse. 164 -> 165
+    # flipped CONSCIOUSLY: the one non-rebellion decision the satellite web
+    # asks had no persistent surface, and (as at FA-R5) the only producerless
+    # types available to retire are all `diplomacy` half-pairs.
+    "client_petition_answered",
     "coalition_member_left",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted",
@@ -513,6 +520,7 @@ CATEGORY_MAP = {
     "vassal_refuses_call": "diplomacy",  # VS-4
     "vassal_transferred": "diplomacy",   # VS-5
     "vassal_defected": "diplomacy",      # VS-6
+    "client_petition_answered": "diplomacy",  # IQ-7
     "coalition_member_left": "diplomacy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
@@ -1073,10 +1081,11 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # Vassal auto-join / VS-4 refusal / VS-5 transfer / VS-6 defection:
-        # show if player involved or PARTIAL+
+        # Vassal auto-join / VS-4 refusal / VS-5 transfer / VS-6 defection /
+        # IQ-7 petition answered: show if player involved or PARTIAL+
         if event_type in ("vassal_auto_join_war", "vassal_refuses_call",
-                          "vassal_transferred", "vassal_defected"):
+                          "vassal_transferred", "vassal_defected",
+                          "client_petition_answered"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             vassal = event.get("vassal") or event.get("nation", "")
             overlord = (event.get("overlord") or event.get("lord")
@@ -2601,6 +2610,26 @@ def format_event_oneliner(event: dict) -> str:
                     f"from {lord} — it serves a new master.")
         return (f"THE DEFECTION: {briber}'s gold turns {vassal} against "
                 f"{lord} — the freed satellite takes the field.")
+
+    if event_type == "client_petition_answered":
+        # IQ-7: a client's petition — answered by its lord, or by silence.
+        # "The Kingdom of Italy's petition for Tyrol — granted."
+        vassal = with_definite_article(
+            display_nation(str(event.get("vassal") or "Unknown")),
+            capitalize=True)
+        subject = str(event.get("subject") or "")
+        region = str(event.get("region") or "")
+        outcome = str(event.get("outcome") or "")
+        ask = (f"for {region}" if subject == "province" and region
+               else "for relief from tribute")
+        if outcome == "granted":
+            verdict = "granted"
+        elif outcome == "unanswered":
+            verdict = ("left unanswered, refused"
+                       if event.get("penalty", True) else "left unanswered")
+        else:
+            verdict = "refused"
+        return f"{vassal}'s petition {ask} — {verdict}."
 
     if event_type == "coalition_member_left":
         nation = event.get("nation", "Unknown")

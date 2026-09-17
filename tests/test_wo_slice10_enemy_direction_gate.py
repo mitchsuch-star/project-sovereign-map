@@ -965,7 +965,36 @@ class TestTheAmbientBoard:
     AI prices the adjacent muster (FA-D29 a), so the board forks at turn 8
     and the UNGATED AI hits the collision THIRTY-THREE times — three
     `Leon -> Napoleon`, nine `Champagne -> Ney`, twenty-one `Gascony -> Ney`
-    (Maine is no longer pressed). The gated board still collapses never."""
+    (Maine is no longer pressed). The gated board still collapses never.
+
+    Re-measured by IQ-7 "The Satellites Have a Position" (September 16,
+    2026). The defect's shape reappears on a NEW province. This runner
+    never answers Switzerland's petitions, and the lapses bring its
+    rebellion forward, so on the UNGATED board France|Switzerland goes to
+    WAR at turn 24. With the IQ-7 levers down, Switzerland stays France's
+    vassal until turn 31 (the event stamp — the clock this docstring dates
+    the war and Bern's capture by; turn 32 is only the first reading after
+    it) and then transfers to Austria (`vassal_defected`, outcome transfer)
+    with no war at all. Bavaria joins the turn-24
+    war and orders Deroy, at Franche-Comte, to attack `Bern`. Switzerland fields
+    no marshal, so the enemy seam has no war-enemy to match and hands the
+    query to `_broad_fuzzy_diplomatic_check`. Ungated, that seam returns
+    Bernadotte, a French marshal Bavaria is at peace with. It is ONE order
+    recorded at BOTH seams, seven times (turns 24, 26 ... 36, every other
+    turn because of the 2-turn failed-action cooldown), and each one is
+    refused. Deroy never takes the canton, and Switzerland still holds Bern
+    at turn 40.
+    The absorber appears in this count for the first time: 21 + 7
+    `_fuzzy_match_enemy` and 7 `_broad_fuzzy_diplomatic_check`. The
+    original three pairs are unchanged (3 + 13 + 5).
+    Gated, Bavaria takes Bern at turn 21, the turn the war opens. The gated
+    board still collapses never.
+    Attribution was measured, not inferred, in a hash-pinned child with the
+    WO-13 levers AND the four `backend.game_logic.vassal` levers set there.
+    With the IQ-7 levers down, the ungated arm reproduces every figure
+    below as previously recorded: 21 hits, 3 + 13 + 5, the old series, and
+    21 cooldown writes. The only extra writes with them up are Deroy's
+    seven `attack` refusals."""
 
     @pytest.fixture(scope="class")
     def ungated(self):
@@ -982,7 +1011,13 @@ class TestTheAmbientBoard:
         seams = {}
         for name, _q, _m in ungated["hits"]:
             seams[name] = seams.get(name, 0) + 1
-        assert seams == {"_fuzzy_match_enemy": 21}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order)
+        # IQ-7 (September 16, 2026): `{"_fuzzy_match_enemy": 21}` ->
+        # 28 + 7 absorber hits, and every one of the fourteen new hits is
+        # Bavaria's Deroy ordering `attack Bern`, seven orders each recorded
+        # at both seams (see the class docstring). With the four IQ-7 vassal
+        # levers down, this arm reads exactly 21 and nothing else (measured).
+        assert seams == {"_fuzzy_match_enemy": 28,
+                         "_broad_fuzzy_diplomatic_check": 7}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -994,9 +1029,18 @@ class TestTheAmbientBoard:
         warning the next slice needs."""
         from collections import Counter
         pairs = Counter((q, m) for _s, q, m in ungated["hits"])
+        # IQ-7 (September 16, 2026): `Bern -> Bernadotte` joins, 14 = seven
+        # refused Bavarian orders on the canton, each counted at the enemy
+        # seam and at the absorber it delegates to. It is a province collapsing
+        # onto a marshal, the same defect on a fourth name: `Bern` was one of
+        # the twelve boot collisions the WO-13 record names ("`Bern` ->
+        # Bernadotte ... at a full 100"). The ambient board had not pressed
+        # it until IQ-7 put a war on Switzerland. The original three pairs
+        # are unchanged.
         assert dict(pairs) == {("Leon", "Napoleon"): 3,
                                ("Gascony", "Ney"): 13,
-                               ("Guyenne", "Ney"): 5}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 across FA slices 2, 2r, 4, 4r, 17, 17p3
+                               ("Guyenne", "Ney"): 5,
+                               ("Bern", "Bernadotte"): 14}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1059,8 +1103,24 @@ class TestTheAmbientBoard:
         process hash seed's order), which forks EVERY seeded arm at index
         [7], the first battle-affected reading; indices [0]-[6] are
         byte-identical to every prior record, and the gated arm below still
-        equals the standing BASELINE_SERIES exactly."""
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        equals the standing BASELINE_SERIES exactly.
+
+        Re-recorded again by IQ-7 "The Satellites Have a Position"
+        (September 16, 2026). The unanswered petitions (a lapse is a
+        refusal) bring Switzerland's rebellion forward on this arm too: it
+        goes VASSAL -> WAR at turn 24. With the IQ-7 levers down, it
+        transfers to Austria at turn 31 (event stamp) with no war. Its
+        `vassal_rebellion` -10 forks this list at index [23] (18 -> 8); the
+        tail then meets the floor at [26], three readings earlier.
+        Indices [0]-[22] are byte-identical to the Phase 3 record. With the
+        four IQ-7 vassal levers set down in a hash-pinned child, this arm
+        reproduces the Phase 3 list byte-for-byte (measured). The gated arm
+        below equals the re-recorded BASELINE_SERIES (the four-arm
+        attribution is in `test_ai_intent_threat_migration.py`)."""
+        # Phase 3 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
+        #  36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, ...]
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 36, 33, 30, 27, 24, 21, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1672,7 +1732,17 @@ class TestTheAiIsNotFrozenInstead:
         reads `fortified` now), and the ungated board's twenty-nine
         collapses each write one — the gap the gate buys is wide again.
 
-        Killed by: deleting the enemy-seam gate."""
+        Killed by: deleting the enemy-seam gate.
+
+        Coverage, measured by the IQ-7 verification (September 16, 2026):
+        this pin binds to the ENEMY-SEAM gate only. With that gate alone
+        deleted the gated arm writes 21, not 5 (red). With only the BROAD
+        diplomatic gate deleted it stays GREEN — that board forks at [11]
+        and never presses Bern, so the gated arm still writes 5, even
+        though the seven Bern writes the ungated count gained under IQ-7
+        need the broad gate down. The broad gate is caught instead by
+        `test_the_gated_board_collapses_never` and
+        `test_the_gated_arm_is_the_recorded_baseline`, both red under it."""
         # Re-measured by the slice-4 REVIEW ROUND (September 4, 2026): 37 vs 4.
         # The gated board's seven survivors were six drilling-corps refusals
         # and one cavalry re-park (R1-5 / R1-7, both fixed); the ungated
@@ -1687,8 +1757,21 @@ class TestTheAiIsNotFrozenInstead:
         # Re-measured by FA slice 17 Phase 3 (September 11, 2026): 21 vs 5,
         # the contact list in map order (FA-S17-2) — the ungated board's 21
         # collisions are again the whole ungated count.
-        assert cooldowns["ungated"] == 21, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 across slices
-        assert cooldowns["gated"] == 5, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 across slices
+        # Re-measured by IQ-7 (September 16, 2026): 28 vs 5.
+        #   - The gated count is unchanged.
+        #   - The ungated board gains exactly SEVEN writes, all of them
+        #     Bavaria's Deroy at Franche-Comte, `attack`, turns 24, 26 ... 36
+        #     (a per-write probe diffed against the IQ-7-levers-down arm,
+        #     which reads 21 with nothing missing). They are the seven Bern
+        #     orders the BROAD diplomatic check (`_broad_fuzzy_diplomatic_
+        #     check`) collapsed onto Bernadotte; `_fuzzy_match_enemy` only
+        #     relays the query to it, because Bavaria has no war-enemy
+        #     marshal to match (see TestTheAmbientBoard).
+        # So the gate's gap widens (23 against 16 before), and the defect
+        # again freezes an AI army, this time in front of a canton. Gated,
+        # Bavaria takes Bern at turn 21.
+        assert cooldowns["ungated"] == 28, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 across slices (IQ-7: +7 Deroy/Bern)
+        assert cooldowns["gated"] == 5, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 across slices (IQ-7: unchanged)
 
 
 _COOLDOWN_PROBE = r'''

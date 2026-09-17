@@ -675,12 +675,15 @@ def _build_vassals(world) -> Dict[str, Any]:
     tab is the player's own clients.
     """
     from backend.game_logic.diplomacy import get_available_diplomatic_actions
+    from backend.game_logic import vassal as _vassal
     from backend.game_logic.vassal import (
         AUTONOMY_NAMES,
         CONTRIBUTION_DISAFFECTED_BELOW,
         CONTRIBUTION_LOYAL_MIN,
         forecast_vassal_loyalty,
+        petition_standing_keys,
         recovery_hint_for_grip,
+        vassal_tribute_owed,
     )
 
     player = getattr(world, "player_nation", "France")
@@ -713,12 +716,9 @@ def _build_vassals(world) -> Dict[str, Any]:
         loyalty = int(record.get("loyalty", 50))
         autonomy = int(record.get("autonomy", 1))
         tribute_rate = float(record.get("tribute_rate", 0.75))
-        vassal_income = sum(
-            world.regions[r].get_effective_income()
-            for r in world.get_nation_regions(name)
-            if r in world.regions
-        )
-        tribute = int(vassal_income * tribute_rate)
+        # IQ-7: the ONE tribute source — what the engine collects, 0 under
+        # a relief remission, the EC-W1 disruption skip this tab omitted.
+        tribute = int(vassal_tribute_owed(world, name))
         total_tribute += tribute
 
         # Next-turn loyalty forecast — the shared steady-state helper
@@ -751,7 +751,7 @@ def _build_vassals(world) -> Dict[str, Any]:
         else:
             warning = ""
 
-        rows.append({
+        row: Dict[str, Any] = {
             "name": name,
             "loyalty": int(loyalty),
             "autonomy_level": int(autonomy),
@@ -780,7 +780,15 @@ def _build_vassals(world) -> Dict[str, Any]:
             "path": str(record.get("path", "treaty")),
             "created_turn": int(record.get("created_turn", 0) or 0),
             "actions": get_available_diplomatic_actions(world, name),
-        })
+        }
+        # IQ-7 "The Client's Petition" — display-only (GR6): the remission,
+        # the standing to petition, the turns until the next ask, and the
+        # bond the step-6 relation term is worth (shown nowhere before).
+        # Gated on the lever read at CALL time, so a flipped lever hides
+        # the keys and the pre-slice card is byte-identical.
+        if _vassal.THE_CLIENT_PETITIONS:
+            row.update(petition_standing_keys(world, name))
+        rows.append(row)
 
     return {
         "rows": rows,

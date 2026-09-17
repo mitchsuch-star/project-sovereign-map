@@ -1436,6 +1436,29 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			bbcode += "   [color=#" + Utils.COLOR_ERROR + "]Disaffected — refuses new calls to arms[/color]"
 	bbcode += "\n"
 
+	# ── IQ-7 The Client's Petition: standing, cadence, bond, remission ──
+	# Every key is display-only and present only when the backend's
+	# THE_CLIENT_PETITIONS lever is up (diplomatic_ledger._build_vassals),
+	# so a payload without them renders this card exactly as before.
+	if v.has("standing"):
+		var standing = str(v.get("standing", ""))
+		var standing_color = Utils.COLOR_SUCCESS if standing == "may petition" else COLOR_AMBER
+		bbcode += "  Standing: [color=#" + standing_color + "]" + standing + "[/color]"
+		if standing == "may petition" and v.has("next_petition_in"):
+			var next_in = int(v.get("next_petition_in", 0))
+			if next_in <= 0:
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· may petition now[/color]"
+			else:
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· next petition in " + str(next_in) + " turn" + ("s" if next_in != 1 else "") + "[/color]"
+		bbcode += "\n"
+	if v.has("bond"):
+		var bond_text = _vassal_bond_text(v)
+		if bond_text != "":
+			bbcode += "  Bond: [color=#" + Utils.COLOR_INFO + "]" + bond_text + "[/color]\n"
+	var remission_left = int(v.get("remission_left", 0))
+	if remission_left > 0:
+		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Tribute remitted: " + str(remission_left) + " collection" + ("s" if remission_left != 1 else "") + "[/color]\n"
+
 	# ── Garrison lever (VP-D1) ──
 	var capital = str(v.get("capital", ""))
 	if v.get("garrison_present", false):
@@ -1465,6 +1488,32 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		pass  # section-level notice already shown
 	bbcode += "\n"
 	return bbcode
+
+
+# IQ-7: the bond line. The backend's `bond` is the lord–client relation plus
+# the text its `relation // 20` term earns ("+2/turn — two petitions
+# honoured"); read whichever shape the row carries (a dict with
+# `relation`/`text`, a bare string, or the bare number beside
+# `relation_modifier`) so the card never prints a raw Dictionary.
+func _vassal_bond_text(v: Dictionary) -> String:
+	var bond = v.get("bond", null)
+	if bond is Dictionary:
+		var text = str(bond.get("text", ""))
+		var relation = bond.get("relation", null)
+		if relation != null and text != "":
+			return "relation " + str(int(relation)) + " · " + text
+		if relation != null:
+			return "relation " + str(int(relation))
+		return text
+	if bond is String:
+		return str(bond)
+	if bond is int or bond is float:
+		var line = "relation " + str(int(bond))
+		if v.has("relation_modifier"):
+			var mod = int(v.get("relation_modifier", 0))
+			line += " · " + ("+" if mod >= 0 else "") + str(mod) + "/turn"
+		return line
+	return ""
 
 
 # Compact chip labels per action id. All NUMBERS in the terms come from the

@@ -973,9 +973,76 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # rebellion at turn 30 with the decay, the floor clamping the rest; the rise
 # 44 → 51 at [12]–[15] is the surviving France's own accrual — see
 # test_wo_slice9_the_courting_cap for the anchor.
+# ── IQ-7 "The Satellites Have a Position" (September 16, 2026) ────────────
+# Re-recorded ONCE. Indices [0]–[19] are byte-identical; from [20] every
+# reading is 10 lower (41 → 31) until the floor meets both series at [29].
+# The tail 8 / 5 / 2 against 18 / 15 / 12 is the same offset.
+#
+# What moved and why. IQ-7 lets a satellite at loyalty 60 or more PETITION its
+# lord, and a petition left unanswered at the turn's end is a REFUSAL
+# (`AN_UNANSWERED_PETITION_IS_REFUSED`): loyalty −10 and the lord relation
+# −20, which the step-6 `relation // 20` term turns into −1 loyalty a turn.
+# This runner answers nothing, so every petition France receives lapses. The
+# threat reading cannot see a satellite's loyalty, only its LOSS, so nothing
+# moves until one is lost. The chain, read off a per-turn story probe (levers
+# set in the child, `log_event` wrapped so the 500-row cap cannot evict
+# anything) with the courting / petition / rebellion / capture links verified
+# by a targeted re-run that wrapped those four seams:
+#   t6   Switzerland (loyalty 86) petitions for relief from tribute; the
+#        petition lapses at the end of t6: loyalty 86 → 76, relation 0 → −20.
+#   t14  it petitions again at exactly 60 and lapses again: 60 → 50,
+#        relation −20 → −40 (now −2 a turn).
+#   t15  at 47 it is under the courting line (50). Britain, Russia and
+#        Austria court it once a turn under the WO-8 cap, t15–t20, 47 → 0.
+#   t21  = index [20]. `check_vassal_rebellion` reads 0 and France|Switzerland
+#        goes VASSAL → WAR. The `vassal_rebellion` source (−10) lands on the
+#        reading: 43 + 1 hegemony − 3 decay − 10 = 31. Holland and the Kingdom
+#        of Italy auto-join and take the cascade's −10 each (95 → 85). Bavaria
+#        takes Bern the same turn and Switzerland is eliminated (logged t21).
+# In arm 0 the same satellite is lost EIGHT turns later. No petition is
+# issued; its loyalty drifts to 49 by t27; it is courted t27–t29 (49 → 30);
+# and Britain's VS-6 bribe transfers it at t29. That `vassal_defection` −10 is
+# the [28] → [29] step (12 → 0, the floor clamping the decay).
+# So the offset from [20] to [28] is ONE satellite's −10 arriving at [20]
+# instead of [29]. The −13 at [25] → [26] is the Kingdom of Italy's
+# elimination out of France's web at world turn 26, in BOTH arms, unchanged.
+# (The Phase 3 block above calls the [29] step "Switzerland's rebellion at
+# turn 30". On this tree's arm 0 it is the VS-6 defection to Britain, logged
+# at t29, read off the probe. It is corrected here rather than rewritten
+# above.)
+#
+# Attribution: four hash-pinned `--emit-series` arms, with the four
+# `backend.game_logic.vassal` levers set IN THE CHILD (never a source edit):
+#   0.  all four False ....................... prior series, BYTE-FOR-BYTE
+#   R.  COURTING_SPARES_THE_LORDS_ALLIES + THE_WAVERING_LINE_IS_HONEST only
+#       .................................... prior series, BYTE-FOR-BYTE
+#       R1 is copy. R2 bites only when an ALLY of the lord courts, and the
+#       courtiers on this board are Britain, Russia and Austria.
+#   P.  THE_CLIENT_PETITIONS up, AN_UNANSWERED_PETITION_IS_REFUSED down
+#       .................................... prior series, BYTE-FOR-BYTE
+#       Petitions are issued and a lapse costs only the cadence stamp.
+#   PL. petitions + the lapse lever (shipped) .... the series below, first
+#       divergence [20]
+# So the lapse lever is the SOLE mover, and the first divergence is explained
+# by a vassal event at that index: the t21 rebellion, two lapses downstream.
+#
+# Passive-France guard: France holds 9 provinces at turn 40 in EVERY arm. The
+# end map differs in one row: in PL Bavaria has 3 (Bern included); in arm 0
+# Bavaria has 2 and Switzerland keeps its 1 as a British vassal.
+#
+# M1–M7 byte-identical by construction: the combat harness never ends a
+# turn, so neither the vassal tick nor the petition producer runs.
+#
+# The two WO pins that read this board move with it and are flipped in the
+# same commit, each with its own measurement:
+#   - test_wo_slice9_the_courting_cap: the rebellion is at 21 capped and 16
+#     uncapped.
+#   - test_wo_slice10_enemy_direction_gate: the ungated arm now collides on
+#     `Bern → Bernadotte`.
+# Memo of record: docs/audits/IQ7_SATELLITES_2026_09_16.md §4.
 BASELINE_SERIES = [
     70, 68, 66, 64, 62, 60, 58, 55, 52, 50, 48, 46, 44, 47, 50, 51, 49,
-    47, 45, 43, 41, 39, 37, 35, 33, 31, 18, 15, 12, 0, 0, 0, 0, 0, 0, 0,
+    47, 45, 43, 31, 29, 27, 25, 23, 21, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
 ]
 

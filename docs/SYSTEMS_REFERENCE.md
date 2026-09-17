@@ -3531,7 +3531,7 @@ Loyalty = 0 triggers: diplomatic state → WAR, assimilated marshals return to v
 
 ### Defection Cascade
 
-When lord's war_score < -30 AND vassal loyalty < 50: roll `random() < (50-loyalty)/100`. Fires AT MOST once per war pair (tracked in `cascade_triggered`). On success: -20 loyalty.
+When lord's war_score < -30 AND vassal loyalty < 50: roll `random() < (50-loyalty)/100`. Fires AT MOST once per war pair (tracked in `cascade_triggered`). On success: loyalty is set to **0** (`LOYALTY_MIN`). *(Corrected by IQ-7, Sept 16, 2026 — this line said "-20 loyalty"; the code has always set the floor.)*
 
 ### Investment
 
@@ -5453,3 +5453,112 @@ became `test_staged_exhaustion_tilsit_no_longer_reverses` — the scripted
 Russia qualified only through the retired arm (lever down: receptive at t11,
 fires at t12; lever up: never). **Routed:** IQ6-D1..D4 in
 `DESIGN_REFINEMENT.md`.
+
+## 46. The satellites have a position (IQ-7, landed September 16, 2026)
+
+> **A loyal satellite is the Empire's settled frontier: it pays its tribute, feeds and passes the Grande Armée, marches in France's wars, and holds for France the conquered provinces France hands it. Its loyalty is standing — only a loyal client (60 or more) may petition the Emperor — and a client whose petitions are honoured becomes a bonded one that holds its own position against the ordinary drift without further attention. Refused or ignored, it spends that standing until a rival court can buy it.**
+
+**Why the row moved.** After IQ-3 a commanded France is at PEACE from turn 5 to
+turn 29, and at peace a satellite's only live loyalty term is the −2 drift
+(the +2 shared-enemy term dies with the war, grip is dormant above 30, the
+relation term was 0 because nothing ever wrote a France–vassal relation). A
+well-played France therefore lost 2 / 3 / 3 of its three satellites by turns
+30–33 on three seeds, and the only vassal decision it ever saw was the
+rebellion modal 0–2 turns before the break.
+
+**The Client's Petition** (`backend/game_logic/vassal.py`).
+- **Standing.** A satellite may petition when loyalty ≥ `PETITION_LOYAL_MIN`
+  (= `CONTRIBUTION_LOYAL_MIN`, 60), `PETITION_GRACE_TURNS` (5) after its
+  `created_turn`, `PETITION_INTERVAL_TURNS` (8) after its last petition
+  (`petitioned_turn`, stamped at issue whatever the answer), with no province
+  disrupted, no remission running, and a lord who can pay `PETITION_DP_COST`
+  (1). At most one petition per LORD per turn, in sorted tag order.
+- **The ladder** (`petition_subject`): THE PROVINCE — a grantable province
+  (`list_grantable_regions`, `grant_cooldown` clear), preferring one in the
+  satellite's own authored `acquire_regions` deck (`in_design`, with a
+  `design_note`), else the richest; THE RELIEF — when
+  `forecast_vassal_loyalty` is negative, `REMISSION_COLLECTIONS` (8) tribute
+  collections forgone, priced at `vassal_tribute_owed × 8`. A landless or
+  wholly-disrupted client has nothing to be relieved of and asks nothing.
+- **Prices** (`petition_terms`, the single source the popup, the card and
+  the executor all read): GRANT — the province through
+  `grant_region_to_vassal` (its own 1 DP and worth-scaled gain), or the relief
+  (1 DP, `PETITION_RELIEF_LOYALTY` 10 × `get_authority_lever_multiplier`,
+  `remission_left = 8`); both add `PETITION_RELATION_STEP` (+20) to the
+  vassal→lord relation, capped at `PETITION_BOND_CAP` (40) — step 6's
+  `relation // 20` turns each step into +1 loyalty a turn, so two honoured
+  petitions cancel the satellite drift. REFUSE or LAPSE
+  (`AN_UNANSWERED_PETITION_IS_REFUSED`) — `PETITION_REFUSAL_LOYALTY` −10
+  (never blunted) and −20 relation; no DP; never an AI-3 ladder refusal
+  (`diplomatic_refusals`, the rejection cooldowns and the schemer record are
+  untouched). A petition whose row is gone, whose lord changed, whose province
+  is no longer grantable or whose lord cannot pay is WITHDRAWN at answer time:
+  no charge, no penalty (both arms).
+- **GR5.** `process_vassal_petitions` walks every lord; a player lord gets
+  the letter through `deliver_ai_proposal`; an AI lord resolves in place —
+  grants when it can pay and (for a province) the region is not in its own
+  active acquire design, else refuses at the same prices. Latent on the
+  shipped boot (no AI lord holds a satellite); pinned on a staged transfer.
+- **State:** two vassal-row keys only — `petitioned_turn`, `remission_left`
+  (consumed by `process_vassal_tribute` itself, so "8 collections" is exact).
+  `process_vassal_loyalty` writes neither. No model field.
+- **One tribute source.** `vassal_tribute_owed(world, vassal)` — effective
+  income over the vassal's undisrupted provinces × `tribute_rate`, 0 while a
+  remission runs — is read by the engine, the strategic ledger's projection,
+  `diplomatic_ledger._build_vassals` and `get_diplomatic_preview`'s
+  `vassal_tribute` mirror (which had omitted the EC-W1 disruption skip).
+- **Levers** (HOST_RULE_ACTIVE idiom): `THE_CLIENT_PETITIONS`,
+  `AN_UNANSWERED_PETITION_IS_REFUSED`, `COURTING_SPARES_THE_LORDS_ALLIES`,
+  `THE_WAVERING_LINE_IS_HONEST`. Down, no petition is issued and no display
+  key is stamped; a stored remission is still honoured and a pending petition
+  can still be answered after a load. The constants are ⚠ FOR USER
+  CONFIRMATION (in-band tunable).
+
+**The transport** (`ai_diplomacy._build_client_petition_dialogue`,
+`mailbox_payloads.client_petition_clauses`, `diplomatic_executor`). The
+petition rides the `incoming_proposal` dtype with exactly two options,
+"Grant the petition" / "Refuse the petition" (multi-word — a bare "Grant" would
+label-match `grant Ney a rente`), Counter refused free and left pending; the
+popup shows `is_petition` with the clause lines (design note, grant line,
+refuse line, lapse line) and no acceptance hints; `PROPOSAL_TYPE_DISPLAY`
+"A Client's Petition"; `deliver_ai_proposal` titles it "Petition from
+{court}". A petition still pending at `end_turn` lapses through
+`refuse_petition(how="unanswered")`. The campaign log gains
+`client_petition_answered` (164 → 165, conscious): *"The Kingdom of Italy's
+petition for Tyrol — granted."*, *"Switzerland's petition for relief from
+tribute — left unanswered, refused."* The Vassals ledger card shows standing,
+next petition, the bond and "Tribute remitted: N collections".
+
+**Riders.**
+- **R1** the "wavering" crossing line no longer promises regiments the
+  satellites do not have (no boot satellite has a marshal): it names what the
+  60 boundary costs NOW — the standing to petition — and appends the
+  regiments clause only when the lord fields a marshal whose
+  `original_nation` is the vassal (VS-4 Rule 1b is then real).
+- **R2** a lord's ALLIES stop courting its satellites
+  (`courtier_is_the_lords_ally`, beside the WO-8 guards — Spain courted
+  France's Switzerland at turn 29 on marengo).
+- **R3** the rebellion modal's Garrison option says what the handler does:
+  "2 AP → Loyalty +10 now. No corps moves: a corps standing in {capital} adds
+  +2 every turn."
+- **R4** the driver's LEDGER row carries `vassals Holland 88 · Kingdom of
+  Italy 84 · Switzerland 71` (`THE_DIGEST_SEES_THE_WEB`; the digest had shown
+  0 of 67 loyalty ticks), and `--client-petition {grant,refuse}` answers the
+  petition (absent → mirrors `--diplomacy`).
+- **R7, fixed in passing:** the rail notices for a rebellion, a break-free and
+  a VS-6 defection printed the raw tag ("KingdomOfItaly has rebelled"); the
+  dispatch templates now use the PR-2 `_display` suffix ("Sire — the Kingdom
+  of Italy has rebelled against France.").
+- **IQ7-X4, fixed while integrating:** `main._respond_to_dialogue_sync`'s
+  PL-14 safety net minted a fallback `proposal_result` ("Diplomatic Action",
+  outcome derived from the message — REJECT for a GRANTED petition) whenever
+  the handler's own popup had already been delivered by the first response
+  build; the mint is now guarded on the response's own `proposal_result`,
+  for every handler (`offer_vassalage` measured the same on the wire).
+
+**Correction to §17:** the defection cascade sets loyalty to **0** on
+success; the "−20 loyalty" there was wrong.
+
+**Routed (Golden Rule 9):** VD-C "The Contingent" (`VASSAL_DEEPENING_SPEC.md`
+§9), IQ7-D2 the Suitor (declined, re-open condition), IQ7-D3 Holland's
+unpayable design, IQ7-X1..X3, IQ7-X5 (`BUG_FIXES.md` §IQ-7).

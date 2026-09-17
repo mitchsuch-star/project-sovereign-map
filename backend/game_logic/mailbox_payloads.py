@@ -18,6 +18,69 @@ def build_proposal_popup_clauses(terms: Dict, *, include_base: bool = True) -> l
     return _build(terms, include_base=include_base)
 
 
+def terms_are_a_client_petition(terms: Optional[Dict]) -> bool:
+    """IQ-7: True when a terms dict is a client petition (a loyal satellite
+    asking its lord for a province or for relief from tribute).
+
+    Keyed on the terms TYPE, which for this family is the stable P-rule
+    label itself (`vassal.CLIENT_PETITION_TYPE`) — a petition's type is never
+    rewritten downstream the way `harsh_peace` → `peace` is. The dialogue-
+    level predicate is `vassal.is_client_petition`; this is its terms-level
+    sibling for the surfaces that hold terms and no dialogue.
+    """
+    if not isinstance(terms, dict):
+        return False
+    from backend.game_logic.vassal import CLIENT_PETITION_TYPE
+
+    return terms.get("type") == CLIENT_PETITION_TYPE
+
+
+def client_petition_clauses(terms: Dict) -> list[str]:
+    """IQ-7: the clause lines of a client petition — the ONE list the popup,
+    the mailbox row and the typed terminal all render.
+
+    Every line comes from `vassal.petition_terms` (the single source for what
+    the petition shows and applies): the design note first when the province
+    belongs to the satellite's own authored design, then the grant line, the
+    refuse line and the lapse rule. No acceptance formula applies (France
+    decides), so no hint line is composed here. Falls back to the generic
+    clause builder only if the petition carries no lines at all.
+    """
+    petition = terms.get("petition") if isinstance(terms, dict) else None
+    petition = petition if isinstance(petition, dict) else {}
+    lines = [
+        str(petition.get(key) or "").strip()
+        for key in ("design_note", "grant_line", "refuse_line", "lapse_line")
+    ]
+    lines = [line for line in lines if line]
+    if lines:
+        return lines
+    return build_proposal_popup_clauses(terms)
+
+
+def client_petition_assessment(terms: Dict) -> str:
+    """IQ-7: Talleyrand's one line on a client petition, in his register.
+
+    The PRICES live in the clauses (`client_petition_clauses`), so his line
+    speaks to what the petition MEANS — a client that asks still counts
+    itself ours, and the standing it spends to ask does not come back on a
+    refusal. Deterministic, display-only (GR6).
+    """
+    petition = terms.get("petition") if isinstance(terms, dict) else None
+    petition = petition if isinstance(petition, dict) else {}
+    if str(petition.get("subject") or "") == "province":
+        return (
+            "Talleyrand: \"A client that asks for land still counts itself "
+            "ours, Sire. Grant it and the bond deepens; refuse it and the "
+            "standing it spent to ask does not return.\""
+        )
+    return (
+        "Talleyrand: \"A client that asks for relief is naming its own drift, "
+        "Sire, while it still has the standing to ask. Grant it and the bond "
+        "deepens; refuse it and that standing is spent.\""
+    )
+
+
 def build_acceptance_hints(acceptance: Dict) -> Tuple[str, str]:
     """Translate acceptance components into Godot-friendly hint strings."""
     from backend.display_names import FEEDBACK_STRINGS
@@ -117,6 +180,31 @@ def build_pending_envoy_popup_from_terms(
         "decision_reason_display": diplomatic_decision_reason_display(decision_reason),
         "diplomat_line": diplomat_line,
     }
+
+    # IQ-7 "The Client's Petition": its own register on the popup. The
+    # clauses are the petition's own lines (grant / refuse / lapse / design
+    # note, from `vassal.petition_terms`), Talleyrand speaks to the meaning
+    # rather than repeating the prices, and the acceptance hints are
+    # SUPPRESSED — France decides, no acceptance formula applies, and the
+    # W6-10 diplomat line (composed for treaty asks) would voice a treaty
+    # motive the petition does not carry. `is_petition` is what
+    # incoming_proposal_popup.gd branches on (Counter hidden, the petition
+    # header) — the same shape `is_ultimatum` takes.
+    if terms_are_a_client_petition(terms):
+        payload["is_petition"] = True
+        payload["clauses"] = client_petition_clauses(terms)
+        payload["talleyrand_assessment"] = (
+            assessment or client_petition_assessment(terms))
+        payload["acceptance_hint"] = ""
+        payload["rejection_hint"] = ""
+        payload["diplomat_line"] = ""
+        # A vassal without a diplomat record would fall back to
+        # "the {tag} ambassador" above — the raw tag, which R7 forbids.
+        if diplomat is None:
+            from backend.game_logic.formations import formed_display_name
+            payload["diplomat_name"] = (
+                f"the envoy of {formed_display_name(world, nation)}")
+        return payload
 
     proposal_type = terms.get("type", "unknown")
     if proposal_type in _PEACE_PROPOSAL_TYPES:

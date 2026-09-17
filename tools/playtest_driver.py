@@ -49,6 +49,9 @@ Usage
   # Talleyrand goes on the missions the game's own counsel names (IQ-4):
   python tools/playtest_driver.py --turns 40 --missions advisor --diplomacy decline
 
+  # Refuse every client petition on an otherwise accepting arm (IQ-7):
+  python tools/playtest_driver.py --turns 40 --diplomacy accept --client-petition refuse
+
 Outputs (under --out, default tools/playtest_runs/<name>/ — gitignored):
   digest.md      the human read — one block per turn
   digest.jsonl   the machine read — one record per event
@@ -498,6 +501,16 @@ THE_DIGEST_READS_THE_WHOLE_DISPATCH = True
 # The AI-6 routine intent narration (`intent.process_intent_movements`).
 COURTS_DISPATCH_TYPES = ("intent_hardens", "intent_eases",
                          "intent_movement_tail")
+# IQ-7 R4 "the digest can finally see the web". The IQ-7 recon measured the
+# digest rendering 0 of 67 loyalty ticks, 0 of 3 tier crossings and 0 of 14
+# courting notices on the commanded arm — the first vassal line after the
+# turn-4 peace was the rebellion modal at turn 29. With this up, every LEDGER
+# row carries a `vassals` bit (`vassals Holland 88 · Kingdom of Italy 84 ·
+# Switzerland 71`, display names, from the Vassals tab's own rows) and the
+# jsonl `ledger` record a `vassals` map. False = the pre-IQ-7 LEDGER line and
+# record byte for byte, and no per-turn GET /diplomatic_ledger at all — the
+# bit is appended LAST, so a lever-up row minus it IS the lever-down row.
+THE_DIGEST_SEES_THE_WEB = True
 
 
 def fog_sentences(phase):
@@ -788,6 +801,33 @@ def _all_purses(transport):
         if not isinstance(gold, dict):
             return None
         return dict(gold)
+    except Exception:
+        return None
+
+
+def _vassal_loyalties(transport):
+    """IQ-7 R4: the web as the Vassals tab shows it — `[(display, loyalty)]`
+    for every satellite of the player, in the tab's own (sorted) order, or
+    None when the read fails.
+
+    Read off `GET /diplomatic_ledger` (a pure read: `build_diplomatic_ledger`
+    drains no popup queue and writes no world field), so it works under
+    `--http` as well as in-process, and it is PLAYER-SIDE data — France's own
+    clients' loyalty — so it may go to the markdown, unlike `_all_purses`.
+    Nation tags go through the R7 chokepoint; the tab's rows carry the tag.
+    `[]` is a real answer ("France holds no client states"), None is not.
+    """
+    try:
+        payload = transport.get("/diplomatic_ledger") or {}
+        ledger = payload.get("ledger") if isinstance(payload, dict) else None
+        section = (ledger or {}).get("vassals") if isinstance(ledger, dict) else None
+        rows = (section or {}).get("rows") if isinstance(section, dict) else None
+        if not isinstance(rows, list):
+            return None
+        from backend.display_names import display_nation
+        return [(display_nation(str(row.get("name"))), int(row.get("loyalty", 0) or 0))
+                for row in rows
+                if isinstance(row, dict) and row.get("name")]
     except Exception:
         return None
 
@@ -1317,7 +1357,7 @@ class Digest:
         self.record("turn_spend", spent=spent, treasury=treasury)
 
     def ledger_line(self, treasury, net, threat, provinces=None,
-                    economy=None, purses=None, army=None):
+                    economy=None, purses=None, army=None, vassals=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -1365,6 +1405,19 @@ class Digest:
         # the payload the driver already fetched.
         if army is not None:
             bits.append(f"army {army}")
+        # IQ-7 R4: the web, LAST — so a row without it is the pre-IQ-7 row
+        # exactly (see THE_DIGEST_SEES_THE_WEB). `[]` prints `vassals none`:
+        # a France that has lost every satellite must say so on every turn,
+        # not fall silent. The record key exists only when the bit does, so a
+        # lever-down jsonl is the pre-IQ-7 file byte for byte.
+        web_record = {}
+        if vassals is not None:
+            web = list(vassals)
+            bits.append("vassals " + (" · ".join(f"{name} {loyalty}"
+                                                 for name, loyalty in web)
+                                      if web else "none"))
+            web_record = {"vassals": {str(name): int(loyalty)
+                                      for name, loyalty in web}}
         if bits:
             self._md("- LEDGER " + " · ".join(bits))
             self.record("ledger", treasury=treasury, net=net, threat=threat,
@@ -1376,7 +1429,7 @@ class Digest:
                         # apart. The backend now says; record what it says.
                         ceiling_state=(economy.get("ceiling_state")
                                        if isinstance(economy, dict) else None),
-                        army=army)
+                        army=army, **web_record)
         # IQ-1 SW-0: the OTHER purses. The digest recorded the player's
         # treasury and no AI treasury at all, so no GR5 claim about the
         # economy was falsifiable from any archived digest — measured
@@ -2260,6 +2313,29 @@ class Answerer:
             self.last_standing_reason = str(first.get("description") or first.get("label") or "")
         keywords = [str(_option_id(o) or "").lower() for o in options]
 
+        # IQ-7: a client's petition answers from ITS OWN dial, before the
+        # ultimatum discriminator, the bare-shape arm and every diplomacy-
+        # mode reading of the options — an explicit branch keyed on the
+        # producer's own predicate, so the answer never depends on what the
+        # option labels happen to contain (`find("accept", …)` would grant
+        # by accident of label text, and a renamed label would flip it).
+        # A DISABLED grant/refuse arm is never pressed (FA-78): the digest
+        # says why and the petition is left standing.
+        if _is_client_petition_surface(dialogue):
+            mode = client_petition_mode(self.policy)
+            wanted = CLIENT_PETITION_ACTIONS[mode]
+            for option in all_options:
+                if str(_option_id(option) or "") != wanted:
+                    continue
+                if _enabled(option):
+                    return CLIENT_PETITION_LABELS[mode]
+                self.last_standing_reason = str(
+                    option.get("description") or option.get("label") or "")
+                return None
+            # The bare popup-payload shape carries no options list; the
+            # endpoint resolves the label against the real dialogue's.
+            return CLIENT_PETITION_LABELS[mode]
+
         # WO slice 5 REVIEW (August 22, 2026) — the ultimatum discriminator.
         # An `incoming_ultimatum` recovers through the SAME transport as a
         # proposal: `main.py`'s incoming_proposal safety valve and the popup
@@ -2832,7 +2908,11 @@ def run(args):
                            economy=(body or {}).get("economy"),
                            purses=_all_purses(transport),
                            army=((body or {}).get("economy") or {}).get(
-                               "army_strength_total"))
+                               "army_strength_total"),
+                           # IQ-7 R4: the web. The GET is gated too, so the
+                           # lever-down run makes exactly the pre-IQ-7 calls.
+                           vassals=(_vassal_loyalties(transport)
+                                    if THE_DIGEST_SEES_THE_WEB else None))
         # IQ-4 S4: Talleyrand's mission beside the chest — the cross-check on
         # the advisor's counts, read off the ledger the driver already holds.
         # Prints nothing while the desk is idle (every pre-IQ-4 arm).
@@ -2939,6 +3019,58 @@ def missions_mode(policy) -> str:
     through to the diplomacy read, the answer it always got."""
     mode = str((policy or {}).get("missions") or "off")
     return mode if mode in MISSIONS_MODES else "off"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# IQ-7 "The Satellites Have a Position" — `--client-petition`: a loyal
+# satellite's petition (a province or relief from tribute), GRANTED or
+# REFUSED. Same idiom as `--missions`: the key is absent unless passed (the
+# digest header prints the policy verbatim), and absent MIRRORS `--diplomacy`
+# — accept / first / propose grant, decline refuses.
+# ═══════════════════════════════════════════════════════════════════════
+
+CLIENT_PETITION_MODES = ("grant", "refuse")
+
+
+def client_petition_mode(policy) -> str:
+    """`grant` or `refuse`. Explicit dial when set; otherwise the diplomacy
+    dial's own direction (an accepting run grants, a declining run refuses),
+    so every pre-IQ-7 arm answers a petition the way it answered the letter
+    it rode in on."""
+    mode = str((policy or {}).get("client_petition") or "")
+    if mode in CLIENT_PETITION_MODES:
+        return mode
+    diplomacy = str((policy or {}).get("diplomacy") or "decline")
+    return "grant" if diplomacy in ACCEPTING_DIPLOMACY_MODES else "refuse"
+
+
+# The petition's own option labels (ai_diplomacy._build_client_petition_
+# dialogue): multi-word, never a bare verb. The driver SENDS the label — the
+# response endpoint resolves a full option label exactly as the typed
+# terminal does — so the digest reads `→ grant the petition`, the button's
+# own words, rather than an action id.
+CLIENT_PETITION_LABELS = {"grant": "grant the petition",
+                          "refuse": "refuse the petition"}
+CLIENT_PETITION_ACTIONS = {"grant": "accept_ai_proposal",
+                           "refuse": "reject_ai_proposal"}
+
+
+def _is_client_petition_surface(dialogue) -> bool:
+    """A client petition on EITHER shape the driver sees: the dialogue dict
+    (the producer's own predicate, `vassal.is_client_petition`, reads
+    `context.proposal_type` / `context.proposal.type`) or the popup payload
+    (`is_petition`, and `proposal_type` = the petition's terms type — which
+    for this family IS the stable label, never rewritten)."""
+    if not isinstance(dialogue, dict):
+        return False
+    if dialogue.get("is_petition"):
+        return True
+    from backend.game_logic.vassal import (
+        CLIENT_PETITION_TYPE, is_client_petition,
+    )
+    if str(dialogue.get("proposal_type") or "") == CLIENT_PETITION_TYPE:
+        return True
+    return bool(is_client_petition(dialogue))
 
 
 # The wizard's OWN command text (`diplomacy_wizard.gd` `_action_to_command`):
@@ -3238,9 +3370,10 @@ class MissionAdvisor:
 # runs that left the flag alone measured what they claimed.)
 # IQ-4: `missions` — set in the policy ONLY when passed, so the header of
 # every run that does not pass it is unchanged (see `missions_mode`).
+# IQ-7: `client_petition` — same rule as `missions` (absent unless passed).
 POLICY_FLAG_KEYS = ("redemption", "petition", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
-                    "declare_war", "missions")
+                    "declare_war", "missions", "client_petition")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -3318,6 +3451,12 @@ def main():
                          "game's own counsel names (Cabinet rows marked "
                          "available only); off (default) answers a mission "
                          "confirm as --diplomacy does")
+    ap.add_argument("--client-petition", dest="client_petition", default="",
+                    choices=["", *CLIENT_PETITION_MODES],
+                    help="IQ-7: answer a loyal satellite's petition (a "
+                         "province or relief from tribute). Absent mirrors "
+                         "--diplomacy: accept/first/propose grant, decline "
+                         "refuses")
     ap.add_argument("--reload-every", dest="reload_every", type=int, default=0,
                     help="FA-102: save+load every N turns at the turn boundary "
                          "(Mode A only); the re-raised questions are digested")

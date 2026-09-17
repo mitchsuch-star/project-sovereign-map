@@ -176,7 +176,49 @@ class TurnManager:
         # CURRENT-TURN OFFER LAPSE — before enemy phase / AI diplomacy
         # Offers that the player did not answer this turn auto-lapse.
         # ════════════════════════════════════════════════════════════
+        # IQ-7 "The Client's Petition": capture the petitions BEFORE the
+        # lapse. `lapse_pending_offers` returns only nation + type per lapsed
+        # dialogue, and `vassal.refuse_petition` needs the terms the dialogue
+        # carried (proposer, lord, the petition it quoted) — so the dialogues
+        # themselves are read off the manager first and the ones the lapse
+        # removed are resolved below. Keyed on the DATA (`is_client_petition`),
+        # never on the issuing lever: a petition pending in a save is still
+        # answered after a load with the lever down.
+        from backend.game_logic.vassal import is_client_petition
+        _dm = self.world.dialogue_manager
+        pending_petitions = [
+            d for d in ([_dm.peek()] + list(_dm.iter_queue()))
+            if isinstance(d, dict) and is_client_petition(d)
+        ]
         lapsed_offers = self.world.dialogue_manager.lapse_pending_offers()
+        if pending_petitions:
+            # An unanswered petition is a refusal (`AN_UNANSWERED_PETITION_IS_
+            # REFUSED`, read inside `refuse_petition`). The generic lapse
+            # cooldowns below still run for the vassal nation — benign (a
+            # satellite never proposes), and recorded here as such.
+            from backend.game_logic.vassal import refuse_petition
+            still_pending = {
+                id(d) for d in ([_dm.peek()] + list(_dm.iter_queue()))
+                if isinstance(d, dict)
+            }
+            for d in pending_petitions:
+                if id(d) in still_pending:
+                    continue
+                _ctx = d.get("context") or {}
+                _terms = _ctx.get("proposal") or {}
+                _vassal = str(_terms.get("proposer_nation")
+                              or _ctx.get("source_nation")
+                              or d.get("target_nation") or "")
+                _lord = str(_terms.get("target_nation")
+                            or self.world.player_nation)
+                if not _vassal:
+                    continue
+                refuse_petition(
+                    self.world, _vassal, _lord,
+                    _terms.get("petition")
+                    if isinstance(_terms.get("petition"), dict) else {},
+                    how="unanswered",
+                )
         if lapsed_offers:
             self.world.incoming_proposal_popup = None  # Clear paired popup cache
             from backend.notifications import DIPLOMATIC_PROPOSAL

@@ -6681,6 +6681,57 @@ class DiplomaticExecutor:
             }
             return {"success": True, "message": message}
 
+        # IQ-7 "The Client's Petition": GRANTING a loyal satellite's ask. No
+        # treaty is ratified and no acceptance cooldown applies — the grant
+        # goes through `vassal.grant_petition`, which re-validates at answer
+        # time (the row still exists and answers to this lord, the province
+        # is still grantable, the DP is still there) and applies the same
+        # prices the popup quoted (shown = applied). A failed re-validation
+        # WITHDRAWS the petition: nothing is charged and no refusal penalty
+        # falls. No dialogue survives; the outcome rides the result popup
+        # (the PL-14 rule).
+        from backend.game_logic.vassal import is_client_petition
+        if is_client_petition(dialogue):
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            from backend.display_names import proposal_display_name
+            from backend.game_logic.vassal import (
+                CLIENT_PETITION_TYPE, grant_petition,
+            )
+            lord = str(terms.get("target_nation") or world.player_nation)
+            vassal = str(terms.get("proposer_nation") or source_nation)
+            outcome = grant_petition(
+                world, vassal, lord,
+                terms.get("petition") if isinstance(terms.get("petition"), dict) else {},
+            )
+            granted = bool(outcome.get("success"))
+            message = str(outcome.get("message") or "")
+            if not message:
+                from backend.game_logic.formations import formed_display_name
+                court = formed_display_name(world, vassal)
+                message = (f"{court}'s petition is granted, Sire." if granted
+                           else f"{court}'s petition is withdrawn, Sire.")
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": proposal_display_name(CLIENT_PETITION_TYPE),
+                "outcome": "ACCEPT" if granted else "REJECT",
+                "message": message,
+                "feedback": str(outcome.get("feedback") or ""),
+            }
+            return {
+                "success": granted,
+                "message": message,
+                # "granted" or "withdrawn" — the executor's own word.
+                "decision_reason": str(outcome.get("outcome") or ""),
+                # The result popup above is THIS handler's. Without the flag
+                # the PL-14 safety net in `_respond_to_dialogue_sync`, seeing
+                # the popup already delivered, mints its generic fallback
+                # ("Diplomatic Action", outcome derived from the message —
+                # REJECT for a grant) and the rebuild keeps the fallback.
+                "suppress_proposal_result_popup": True,
+            }
+
         # Check for conflicting alliances (§5b.3) — only on first pass
         # (conflict_alert dialogue type means we already showed the warning)
         if (dialogue.get("type") != "conflict_alert"
@@ -6823,6 +6874,52 @@ class DiplomaticExecutor:
         from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
 
         context = dialogue.get("context", {})
+        # IQ-7 "The Client's Petition": REFUSING a loyal satellite's ask is
+        # not an AI-3 ladder refusal — the client is a court that answers to
+        # Paris, not a rival pressing a design. So this branch returns BEFORE
+        # `apply_rejection_cooldowns`, `record_schemer_peace_rejection`,
+        # `record_diplomatic_refusal` and the `ai_proposal_rejected` log
+        # (pinned: `world.diplomatic_refusals` unchanged). The refusal's own
+        # price (loyalty, the relation step) is `vassal.refuse_petition`'s,
+        # the same figure the popup quoted; no DP is charged.
+        from backend.game_logic.vassal import is_client_petition
+        if is_client_petition(dialogue):
+            terms = context.get("proposal", {}) or {}
+            source_nation = context.get("source_nation", "")
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            from backend.display_names import proposal_display_name
+            from backend.game_logic.vassal import (
+                CLIENT_PETITION_TYPE, refuse_petition,
+            )
+            lord = str(terms.get("target_nation") or world.player_nation)
+            vassal = str(terms.get("proposer_nation") or source_nation)
+            outcome = refuse_petition(
+                world, vassal, lord,
+                terms.get("petition") if isinstance(terms.get("petition"), dict) else {},
+                how="refused",
+            )
+            message = str(outcome.get("message") or "")
+            if not message:
+                from backend.game_logic.formations import formed_display_name
+                message = (f"{formed_display_name(world, vassal)}'s petition "
+                           f"is refused, Sire. Its court will remember.")
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": proposal_display_name(CLIENT_PETITION_TYPE),
+                "outcome": "REJECT",
+                "message": message,
+                "feedback": str(outcome.get("feedback") or ""),
+            }
+            # A moot petition (the row is gone, or answers to another lord
+            # now) comes back `success False` — mirror it, never mint one.
+            return {"success": bool(outcome.get("success", True)),
+                    "message": message,
+                    "decision_reason": str(outcome.get("outcome") or ""),
+                    # This handler's own popup stands (see the grant arm).
+                    "suppress_proposal_result_popup": True}
+
         terms = context.get("proposal", {})
         source_nation = context.get("source_nation", "")
         # Key the cooldown on the STABLE P-rule label (matches what the P8/P2
@@ -7045,6 +7142,18 @@ class DiplomaticExecutor:
         if not source_nation or not terms:
             world.dialogue_manager.pop()
             return {"success": False, "message": "Error: proposal data missing."}
+
+        # IQ-7 "The Client's Petition": a petition is granted or refused,
+        # never bargained. Refused BEFORE the DP charge, and the dialogue is
+        # left pending — the popup hides its Counter button, so this is the
+        # typed route's (and the driver's) honest answer.
+        from backend.game_logic.vassal import is_client_petition
+        if is_client_petition(dialogue):
+            return {
+                "success": False,
+                "message": ("A client's petition is granted or refused, Sire "
+                            "— not bargained."),
+            }
 
         # Counter-offer costs 1 DP
         if world.diplomatic_points < 1:

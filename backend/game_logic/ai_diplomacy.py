@@ -1997,11 +1997,99 @@ def _build_ai_ultimatum_dialogue(proposal: Dict, world) -> Dict:
     }
 
 
+def _build_client_petition_dialogue(proposal: Dict, world) -> Dict:
+    """IQ-7 "The Client's Petition": a loyal satellite's ask, on the
+    incoming-proposal transport (dtype `incoming_proposal`, so every mailbox,
+    popup, lapse and driver seam already carries it) with its own register.
+
+    Exactly two options, Grant / Refuse — a petition is answered, never
+    bargained (the counter handler refuses free). The labels are multi-word
+    and neither is a prefix of any verb phrase: a bare "Grant" would be
+    label-matched by a typed `grant Ney a rente` (the FA-N37 / UX23-B
+    lesson). Every price the options describe comes from
+    `vassal.petition_terms`, the single source the executor applies from,
+    so shown = applied; every nation name is a display name (R7).
+    """
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.mailbox_payloads import (
+        client_petition_assessment, client_petition_clauses,
+    )
+    from backend.game_logic.vassal import CLIENT_PETITION_TYPE
+
+    nation = proposal["source"]
+    terms = proposal["terms"]
+    petition = terms.get("petition") if isinstance(terms.get("petition"), dict) else {}
+    decision_reason = proposal.get("decision_reason", "")
+    court = formed_display_name(world, nation)
+
+    diplomats = getattr(world, 'diplomats', {})
+    diplomat = diplomats.get(nation)
+    diplomat_name = diplomat.name if diplomat else f"the envoy of {court}"
+
+    popup_payload = build_pending_envoy_popup_from_terms(
+        world,
+        nation=nation,
+        terms=terms,
+        assessment="",          # the payload arm supplies Talleyrand's line
+        decision_reason=decision_reason,
+    )
+    lines = client_petition_clauses(terms)
+    body = "\n".join(f"  {line}" for line in lines)
+    assessment = client_petition_assessment(terms)
+    subject = str(petition.get("subject") or "")
+    if subject == "province":
+        ask = f"{court} petitions the Emperor for a province."
+    elif subject == "relief":
+        ask = f"{court} petitions the Emperor for relief from its tribute."
+    else:
+        ask = f"{court} petitions the Emperor."
+
+    return {
+        "type": "incoming_proposal",
+        "target_nation": nation,
+        "talleyrand_text": (
+            f"Sire, {diplomat_name} brings a petition from {court}. {ask}"
+            f"\n\n{body}"
+            f"\n\n{assessment}"
+        ),
+        "options": [
+            {
+                "label": "Grant the petition",
+                "description": (str(petition.get("grant_line") or "")
+                                or f"Grant what {court} asks."),
+                "action": "accept_ai_proposal",
+            },
+            {
+                "label": "Refuse the petition",
+                "description": (str(petition.get("refuse_line") or "")
+                                or f"Refuse {court}. It will remember."),
+                "action": "reject_ai_proposal",
+            },
+        ],
+        "context": {
+            "proposal": terms,
+            "source_nation": nation,
+            "acceptance_score": 0,
+            "decision_reason": decision_reason,
+            # Stable P-rule label — what `vassal.is_client_petition` reads.
+            "proposal_type": CLIENT_PETITION_TYPE,
+        },
+        "turn_created": int(world.current_turn),
+        "blocking": False,
+        "popup_payload": popup_payload,
+    }
+
+
 def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     """Build a mailbox-aware incoming proposal dialogue without side effects."""
     # NA-5 §8: ultimatums ride the same transport under their own dtype.
     if proposal.get("proposal_type") == "ultimatum":
         return _build_ai_ultimatum_dialogue(proposal, world)
+    # IQ-7: a client's petition rides the incoming-proposal dtype with its
+    # own register (two options, no counter, no acceptance formula).
+    from backend.game_logic.vassal import CLIENT_PETITION_TYPE
+    if proposal.get("proposal_type") == CLIENT_PETITION_TYPE:
+        return _build_client_petition_dialogue(proposal, world)
     nation = proposal["source"]
     terms = proposal["terms"]
     assessment = proposal.get("talleyrand_assessment", "")
@@ -2124,6 +2212,7 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     # key failing _is_prose_safe_nation_key, which names "Holland" outright.
     from backend.game_logic.formations import formed_display_name
     sender = formed_display_name(world, nation)
+    from backend.game_logic.vassal import CLIENT_PETITION_TYPE
     if proposal.get("proposal_type") == "ultimatum":
         # NA-5 §8: an ultimatum announces itself as one.
         world.notifications.add(create_notification(
@@ -2132,6 +2221,17 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
             f"Ultimatum from {sender}",
             f"An envoy from {sender} has arrived with an ultimatum. "
             f"Yield, or defy them.",
+            int(world.current_turn),
+        ))
+    elif proposal.get("proposal_type") == CLIENT_PETITION_TYPE:
+        # IQ-7: a client's petition announces itself as one — it is an ask
+        # from a court that answers to Paris, not an envoy bearing terms.
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"Petition from {sender}",
+            f"An envoy from {sender} has arrived with a petition. "
+            f"Grant it, or refuse it — it lapses at the end of the turn.",
             int(world.current_turn),
         ))
     else:

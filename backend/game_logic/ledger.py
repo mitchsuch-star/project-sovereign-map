@@ -670,16 +670,14 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # The tribute engine recorded what it actually moved this turn.
         vassal_tribute = int(_transfers["vassal_tribute"].get(player, 0))
     elif world.vassals:
-        tribute_disrupted = world.get_disrupted_regions()
+        # IQ-7: the projection reads the ONE source the tribute engine
+        # collects from (`vassal_tribute_owed` — effective income, the EC-W1
+        # disruption skip, and 0 under a relief remission), so the projected
+        # figure equals the applied one on every turn of a remission.
+        from backend.game_logic.vassal import vassal_tribute_owed
         for vassal_name, state in world.vassals.items():
             if state.get("lord") == player:
-                tribute_rate = state.get("tribute_rate", 0.5)
-                v_income = sum(
-                    world.regions[name].get_effective_income()
-                    for name in world.get_nation_regions(vassal_name)
-                    if name not in tribute_disrupted
-                )
-                vassal_tribute += int(v_income * tribute_rate)
+                vassal_tribute += int(vassal_tribute_owed(world, vassal_name))
 
     # SC-33 recurring settlement streams (G4F smoke follow-up): the
     # ratified gold_per_turn obligations the income phase actually moves —

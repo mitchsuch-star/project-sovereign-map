@@ -9722,9 +9722,14 @@ def process_diplomacy_turn(world) -> List[Dict]:
             check_defection_cascade,
             check_vassal_rebellion,
             process_vassal_loyalty,
+            process_vassal_petitions,
         )
         events.extend(check_defection_cascade(world))
         events.extend(process_vassal_loyalty(world))
+        # IQ-7 "The Client's Petition": issued AFTER this turn's loyalty tick
+        # (a client petitions on the standing it has now) and BEFORE the
+        # rebellion check, where the prototype measured it. Lever-down = [].
+        events.extend(process_vassal_petitions(world))
         events.extend(check_vassal_rebellion(world))
 
     # ── 7b. Per-turn staying-power accrual (Slice B3, spec §9.2 line 612) ──
@@ -11964,6 +11969,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         from backend.game_logic.vassal import (
             AUTONOMY_NAMES,
             forecast_vassal_loyalty,
+            vassal_tribute_owed,
         )
         v = vassals[target_nation]
         loyalty = v.get("loyalty", 50)
@@ -11977,15 +11983,12 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         response["vassal_loyalty"] = int(loyalty)
         response["vassal_autonomy"] = AUTONOMY_NAMES.get(autonomy, "Satellite")
         response["vassal_loyalty_trend"] = fc["trend"]
-        tribute_rate = v.get("tribute_rate", 0.5)
-        # Golden Rule 8 + value fix: the estimate must mirror what
-        # process_vassal_tribute actually collects (effective income via the
-        # cached index) — the old flat 50g/region misreported on the real map.
-        vassal_income = sum(
-            world.regions[name].get_effective_income()
-            for name in world.get_nation_regions(target_nation)
-        )
-        response["vassal_tribute"] = int(vassal_income * tribute_rate)
+        # IQ-7: the ONE tribute source (`vassal_tribute_owed`) — what
+        # process_vassal_tribute actually collects, incl. the EC-W1
+        # disruption skip this mirror had silently omitted, and 0 under a
+        # relief remission. The old flat 50g/region misreported on the real
+        # map; this hand-copy misreported on a disrupted one.
+        response["vassal_tribute"] = int(vassal_tribute_owed(world, target_nation))
         response["section"] = "vassal_management"
     else:
         response["section"] = "foreign_affairs"

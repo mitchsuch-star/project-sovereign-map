@@ -4620,17 +4620,24 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # `_format_dispatch_event_text`, because the hint is optional and a
     # `.format()` with an unsupplied key emits the raw template.
     "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation}.",
-    "diplomatic_vassal_rebellion_imminent": "{nation} is on the verge of rebellion!",
-    "diplomatic_vassal_rebellion": "{nation} has rebelled against {lord}. It is war.",
+    # IQ-7 R7 fix in passing (Sept 16, 2026): the break family and the
+    # defection line carried the raw tag onto the rail — "KingdomOfItaly has
+    # rebelled against France. It is war." beside a dispatch line that said
+    # "Kingdom of Italy". The producers keep their raw keys (the fog rules
+    # read `nation`); the PR-2 `_display` suffix names the court at the fill
+    # site. "Sire —" keeps a multi-word name off the sentence head, where the
+    # derived article is lower-case ("the Kingdom of Italy").
+    "diplomatic_vassal_rebellion_imminent": "Sire — {nation_display} is on the verge of rebellion!",
+    "diplomatic_vassal_rebellion": "Sire — {nation_display} has rebelled against {lord_display}. It is war.",
     # FA-2 (slice 11): a satellite stops being one three ways, and the player
     # was told the same thing about all of them — that it had ceased to
     # exist. These are the other two exits, and on the shipped 1805 board the
     # PEACE one is the exit both big satellites actually take.
-    "diplomatic_vassal_broke_free_armistice": "{nation} breaks free of {lord}, but the armistice holds — no war is declared.",
-    "diplomatic_vassal_broke_free_peace": "{nation} breaks free of {lord} and stands alone — an independent power, and no war declared.",
+    "diplomatic_vassal_broke_free_armistice": "Sire — {nation_display} breaks free of {lord_display}, but the armistice holds — no war is declared.",
+    "diplomatic_vassal_broke_free_peace": "Sire — {nation_display} breaks free of {lord_display} and stands alone — an independent power, and no war declared.",
     "diplomatic_vassal_refuses_call": "{vassal} refuses {lord}'s call to arms against {enemy} — loyalty {loyalty}.",
     "diplomatic_vassal_transferred": "{vassal} passes from {from_lord}'s suzerainty to {to_lord}'s.",
-    "diplomatic_vassal_defected": "THE DEFECTION: {briber}'s gold turns {vassal} against {lord}.",
+    "diplomatic_vassal_defected": "THE DEFECTION: {briber_display}'s gold turns {vassal_display} against {lord_display}.",
     "diplomatic_ai_proposal": "An envoy from {nation_display} has arrived with a proposal.",
     # IQ-4 (R7): the three mission templates name the court through the
     # PR-2 fill site's `_display` suffix, never the raw tag ("PapalStates").

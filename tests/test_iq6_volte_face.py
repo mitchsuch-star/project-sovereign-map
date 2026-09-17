@@ -129,6 +129,15 @@ def _answer_mail(world, executor, court):
         if not bag:
             return
         letter = bag[0]
+        # IQ-7 (Sept 16, 2026): the handler answers the CURRENT dialogue, so a
+        # queued letter must be made current first — exactly what the client's
+        # /mailbox/activate does. Before IQ-7 the court's letter was always
+        # current here; a client's petition can now sit in front of it, and
+        # answering "the letter" would have granted the petition instead and
+        # left the letter to trip the per-nation pending dedupe a turn later.
+        manager = world.dialogue_manager
+        if manager.peek() is not letter and letter.get("mailbox_id") is not None:
+            manager.activate_mailbox_item(letter["mailbox_id"])
         with _quiet():
             executor._diplomatic._handle_accept_ai_proposal(letter, world)
         after = _court_mail(world, court)

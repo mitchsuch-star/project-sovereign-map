@@ -1383,6 +1383,18 @@ claimed. And the standing XR-1 rule rides every `.gd`-touching row: boot the eng
     dispositions and in at least one of {AI-initiated war count, the turns wars begin, which courts
     reach `fight`}. Holding K is what makes the difference *attributable to the seed* rather than to
     combat noise.
+    *(IQ-7 amendment, September 16, 2026.)* The literal three-fact triple is measured EQUAL for
+    `historical` vs `ulm` once IQ-7's client petitions ship: the unattended board's only war is a
+    satellite breaking free of France, and with nobody answering its petitions it now breaks at
+    turn 21 on nine of ten sweep seeds (it had broken at 24, 25, 30 or 32). The AI's own facts the
+    arm exists to guard did NOT converge — every court reaches `fight` on the same turn with IQ-7's
+    levers up and down, on all ten seeds, and `ulm`'s Germany-first Austria still eliminates
+    Bavaria at turn 4. So the signature is widened, in `tools/ai_v_sweep.py::_variance_signature`
+    and therefore in both the offline sweep and the suite: the triple kept whole, plus the turn
+    each court first reaches `fight` and the eliminations with their turns. A finer signature
+    compared with `!=` is a logically easier assertion; its teeth are proven by the controls a
+    widening cannot fake (the same seed twice, and seed jitter disabled, both compare EQUAL). The
+    narrowing of the unattended war calendar is real and routed: `DESIGN_REFINEMENT.md` IQ7-D4.
   - **Arm C — acceptance.** N runs (start at 10) with **both** the seed and the ambient RNG varying,
     because that is the distribution production actually produces. Freezing K here would reproduce §9
     row 13's own error on a different axis.
@@ -3333,7 +3345,7 @@ relations cooling a band, max-not-sum intact). **Full evidence = `docs/audits/AI
 ### The measured headlines
 
 - **Arm A GREEN** — byte-identical control across processes, anchored to the standing baseline.
-- **Arm B GREEN** — every seed differs in boot dispositions AND the spec triple at held K.
+- **Arm B GREEN** — every seed differs in boot dispositions AND the spec triple at held K. *(IQ-7, September 16, 2026: the triple alone no longer separates `historical` from `ulm` — both war turns [21]; Arm B is read on the widened signature, §4.7's dated amendment.)*
 - **Arm C (N=10, seed and K varying)**: council wars **0/10** (the AI-3r §8.2 predicate holds
   post-Stage-E — the emergent revanches exist on every seed but their bearers are beaten,
   broke or in survival and the exposure calculus refuses their wars); seam-channel wars 0–2;

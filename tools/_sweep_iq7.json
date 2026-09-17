@@ -1,0 +1,387 @@
+[
+ {
+  "id": "IQ7-L1 THE_CLIENT_PETITIONS down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "THE_CLIENT_PETITIONS = True\n",
+  "new": "THE_CLIENT_PETITIONS = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six"
+ },
+ {
+  "id": "IQ7-L2 AN_UNANSWERED_PETITION_IS_REFUSED down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "AN_UNANSWERED_PETITION_IS_REFUSED = True\n",
+  "new": "AN_UNANSWERED_PETITION_IS_REFUSED = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT7Lapse::test_an_unanswered_petition_lapses_as_a_refusal_through_the_real_end_turn"
+ },
+ {
+  "id": "IQ7-L3 COURTING_SPARES_THE_LORDS_ALLIES down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "COURTING_SPARES_THE_LORDS_ALLIES = True\n",
+  "new": "COURTING_SPARES_THE_LORDS_ALLIES = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_the_ally_courts_nothing_and_spends_nothing"
+ },
+ {
+  "id": "IQ7-L4 THE_WAVERING_LINE_IS_HONEST down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "THE_WAVERING_LINE_IS_HONEST = True\n",
+  "new": "THE_WAVERING_LINE_IS_HONEST = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_honest_line_without_regiments"
+ },
+ {
+  "id": "IQ7-L5 THE_DIGEST_SEES_THE_WEB down",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_DIGEST_SEES_THE_WEB = True\n",
+  "new": "THE_DIGEST_SEES_THE_WEB = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT20TheDriver::test_the_grant_run_prints_the_web_on_every_ledger_row_and_answers_the_petition"
+ },
+ {
+  "id": "IQ7-E(a) the standing gate never blocks",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if int(row.get(\"loyalty\", 0) or 0) < PETITION_LOYAL_MIN:\n            continue\n",
+  "new": "        if int(row.get(\"loyalty\", 0) or 0) < 0:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_a_loyalty_59_never_petitions_60_does"
+ },
+ {
+  "id": "IQ7-E(b) the grace never blocks",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if turn - int(row.get(\"created_turn\", 0) or 0) < PETITION_GRACE_TURNS:\n            continue\n",
+  "new": "        if turn - int(row.get(\"created_turn\", 0) or 0) < 0:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_b_the_grace_since_creation"
+ },
+ {
+  "id": "IQ7-E(c) the cadence never blocks",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if stamped is not None and turn - int(stamped) < PETITION_INTERVAL_TURNS:\n            continue\n",
+  "new": "        if stamped is not None and turn - int(stamped) < 0:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_c_the_cadence_since_the_last_petition"
+ },
+ {
+  "id": "IQ7-E(d) a disrupted province does not block",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if any(r in disrupted for r in world.get_nation_regions(vassal_name)):\n            continue\n",
+  "new": "        if False:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_d_a_disrupted_province_blocks"
+ },
+ {
+  "id": "IQ7-E(e) a penniless lord is asked",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if _dp_available(world, lord) < PETITION_DP_COST:\n            continue\n",
+  "new": "        if _dp_available(world, lord) < 0:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_e_a_lord_with_no_dp_is_not_asked tests/test_iq7_satellites_have_a_position.py::TestT12GR5TheAILord::test_a_penniless_ai_lord_is_not_asked"
+ },
+ {
+  "id": "IQ7-E(f) a standing remission does not block",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if int(row.get(\"remission_left\", 0) or 0) > 0:\n            continue\n",
+  "new": "        if int(row.get(\"remission_left\", 0) or 0) > 10 ** 9:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_f_a_standing_remission_blocks"
+ },
+ {
+  "id": "IQ7-E(g) more than one petition per lord per turn",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if not lord or lord in asked_lords:\n            continue\n",
+  "new": "        if not lord:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_at_most_one_petition_per_lord_per_turn_in_sorted_tag_order"
+ },
+ {
+  "id": "IQ7-E the cadence stamp is never written",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        row[\"petitioned_turn\"] = int(turn)\n        asked_lords.add(lord)\n",
+  "new": "        asked_lords.add(lord)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six tests/test_iq7_satellites_have_a_position.py::TestT9EligibilityGates::test_c_the_cadence_since_the_last_petition"
+ },
+ {
+  "id": "IQ7-E the ladder ignores the deck",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                key=lambda e: (e[\"region\"] not in design_regions,\n",
+  "new": "                key=lambda e: (False,\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT5TheDecksPrice::test_a_design_province_outranks_a_richer_one_and_carries_the_note"
+ },
+ {
+  "id": "IQ7-B the bond cap is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return max(0, min(PETITION_RELATION_STEP, PETITION_BOND_CAP - int(relation)))\n",
+  "new": "    return PETITION_RELATION_STEP\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT10TheBond::test_two_relief_grants_bond_the_client_and_end_the_relief tests/test_iq7_satellites_have_a_position.py::TestT10TheBond::test_a_province_grant_at_the_cap_leaves_the_relation_at_forty tests/test_iq7_satellites_have_a_position.py::TestT10TheBond::test_the_bond_step_arithmetic"
+ },
+ {
+  "id": "IQ7-R the remission never counts down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            state[\"remission_left\"] = int(remission_left - 1)\n",
+  "new": "            state[\"remission_left\"] = int(remission_left)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes tests/test_iq7_satellites_have_a_position.py::TestT1LeverDownSilence::test_lever_down_still_honours_a_stored_remission"
+ },
+ {
+  "id": "IQ7-R the single source ignores the remission",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if int(row.get(\"remission_left\", 0) or 0) > 0:\n        return 0\n",
+  "new": "",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes tests/test_iq7_satellites_have_a_position.py::TestT1LeverDownSilence::test_lever_down_still_honours_a_stored_remission"
+ },
+ {
+  "id": "IQ7-R the relief grant sets no remission",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        row[\"remission_left\"] = int(REMISSION_COLLECTIONS)\n",
+  "new": "        row[\"remission_left\"] = int(0)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes"
+ },
+ {
+  "id": "IQ7-R the relief grant charges no DP",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        charge = _charge_dp(world, lord, PETITION_DP_COST)\n",
+  "new": "        charge = {\"ok\": True}\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes tests/test_iq7_satellites_have_a_position.py::TestT12GR5TheAILord::test_the_relief_is_granted_in_place_with_no_dialogue_or_notification"
+ },
+ {
+  "id": "IQ7-P a refusal costs nothing",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    penalty = not (how == \"unanswered\" and not AN_UNANSWERED_PETITION_IS_REFUSED)\n",
+  "new": "    penalty = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT6Refuse::test_refusal_prices_the_client_and_never_touches_the_ai3_ladder tests/test_iq7_satellites_have_a_position.py::TestT7Lapse::test_an_unanswered_petition_lapses_as_a_refusal_through_the_real_end_turn"
+ },
+ {
+  "id": "IQ7-V the grant ignores a changed lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if str(row.get(\"lord\") or \"\") != lord:\n        return _withdrawn(f\"{vassal_display} no longer answers to \"\n",
+  "new": "    if False:\n        return _withdrawn(f\"{vassal_display} no longer answers to \"\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_b_a_vassal_transferred_to_prussia"
+ },
+ {
+  "id": "IQ7-V the grant ignores an ungrantable province",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if region not in grantable:\n            return _withdrawn(",
+  "new": "        if False:\n            return _withdrawn(",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_c_a_province_that_can_no_longer_be_ceded"
+ },
+ {
+  "id": "IQ7-G5 the AI lord cedes its own design",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                grant = False\n",
+  "new": "                grant = True\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT12GR5TheAILord::test_a_province_in_the_lords_own_active_design_is_refused_at_the_players_prices"
+ },
+ {
+  "id": "IQ7-R1 the regiments clause is always appended",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if lord_fields_the_vassals_regiments(world, lord, vassal_name):\n            line += _WAVERING_REGIMENTS_CLAUSE\n",
+  "new": "        if True:\n            line += _WAVERING_REGIMENTS_CLAUSE\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_honest_line_without_regiments tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_producer_passes_the_world"
+ },
+ {
+  "id": "IQ7-R1 the regiments clause is never appended",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if lord_fields_the_vassals_regiments(world, lord, vassal_name):\n            line += _WAVERING_REGIMENTS_CLAUSE\n",
+  "new": "        if False:\n            line += _WAVERING_REGIMENTS_CLAUSE\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_regiments_clause_when_the_lord_fields_the_vassals_marshal"
+ },
+ {
+  "id": "IQ7-R1 the producer drops the world",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            crossing = tier_crossing_line(vassal_name, int(old_loyalty),\n                                          int(new_loyalty), world=world,\n                                          lord=lord)\n",
+  "new": "            crossing = tier_crossing_line(vassal_name, int(old_loyalty),\n                                          int(new_loyalty))\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_producer_passes_the_world"
+ },
+ {
+  "id": "IQ7-R2 the ally predicate is always False",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return world.get_diplomatic_state(nation, lord) in (\n        \"ALLIANCE\", \"DEFENSIVE_ALLIANCE\")\n",
+  "new": "    return False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_the_ally_courts_nothing_and_spends_nothing tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_a_defensive_ally_is_spared_too_and_a_neutral_is_not"
+ },
+ {
+  "id": "IQ7-R2 the courting guard is skipped",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if (COURTING_SPARES_THE_LORDS_ALLIES\n                and courtier_is_the_lords_ally(world, nation, state)):\n            continue\n",
+  "new": "        if False:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_the_ally_courts_nothing_and_spends_nothing"
+ },
+ {
+  "id": "IQ7-R2 the design-stake loop yields to an allied stakeholder",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if (COURTING_SPARES_THE_LORDS_ALLIES\n                and courtier_is_the_lords_ally(world, rival, state)):\n            continue\n",
+  "new": "        if False:\n            continue\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_a_design_stake_holder_that_is_the_lords_ally_is_not_yielded_to"
+ },
+ {
+  "id": "IQ7-R3 the Garrison option promises a garrison again",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                f\"2 AP → Loyalty +10 now. No corps moves: a corps standing \"\n",
+  "new": "                f\"2 AP → Loyalty +10. Imperial garrison deployed to \"\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT17R3TheGarrisonOptionSaysWhatItDoes::test_the_modal_copy_names_no_corps_moves_and_the_capital"
+ },
+ {
+  "id": "IQ7-R7 the breaks-free notice names the tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        f\"{display_nation(vassal)} breaks free\",\n",
+  "new": "        f\"{vassal} breaks free\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_r7_the_rebellion_producers_name_the_court"
+ },
+ {
+  "id": "IQ7-R7 the Critical notice names the tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                f\"{display_nation(vassal_name)} Critical!\",\n",
+  "new": "                f\"{vassal_name} Critical!\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_r7_the_rebellion_producers_name_the_court"
+ },
+ {
+  "id": "IQ7-R7 the DEFECTS notice names the tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                f\"{display_nation(vassal_name)} DEFECTS!\",\n",
+  "new": "                f\"{vassal_name} DEFECTS!\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_r7_the_defection_producer_names_the_court"
+ },
+ {
+  "id": "IQ7-R7 the rebellion rail template names the tag",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"diplomatic_vassal_rebellion\": \"Sire — {nation_display} has rebelled against {lord_display}. It is war.\",\n",
+  "new": "    \"diplomatic_vassal_rebellion\": \"{nation} has rebelled against {lord}. It is war.\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_r7_the_rail_notices_name_the_court"
+ },
+ {
+  "id": "IQ7-R7 the defection rail template names the tag",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"diplomatic_vassal_defected\": \"THE DEFECTION: {briber_display}'s gold turns {vassal_display} against {lord_display}.\",\n",
+  "new": "    \"diplomatic_vassal_defected\": \"THE DEFECTION: {briber}'s gold turns {vassal} against {lord}.\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_r7_the_rail_notices_name_the_court"
+ },
+ {
+  "id": "IQ7-W the producer is not wired into the world tick",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        events.extend(process_vassal_petitions(world))\n",
+  "new": "        pass\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six"
+ },
+ {
+  "id": "IQ7-W the preview mirror keeps its old hand-copy",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        response[\"vassal_tribute\"] = int(vassal_tribute_owed(world, target_nation))\n",
+  "new": "        response[\"vassal_tribute\"] = int(sum(int(world.regions[r].get_effective_income()) for r in world.get_nation_regions(target_nation)) * float(v.get(\"tribute_rate\", 0.5)))\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes"
+ },
+ {
+  "id": "IQ7-W the ledger projection keeps its old hand-copy",
+  "file": "backend/game_logic/ledger.py",
+  "old": "                vassal_tribute += int(vassal_tribute_owed(world, vassal_name))\n",
+  "new": "                vassal_tribute += int(sum(int(world.regions[r].get_effective_income()) for r in world.get_nation_regions(vassal_name)) * float(state.get(\"tribute_rate\", 0.5)))\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes"
+ },
+ {
+  "id": "IQ7-W the Vassals tab keeps its old hand-copy",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "        tribute = int(vassal_tribute_owed(world, name))\n",
+  "new": "        tribute = int(sum(int(world.regions[r].get_effective_income()) for r in world.get_nation_regions(name)) * tribute_rate)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes"
+ },
+ {
+  "id": "IQ7-W the Vassals tab ignores the lever",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "        if _vassal.THE_CLIENT_PETITIONS:\n            row.update(petition_standing_keys(world, name))\n",
+  "new": "        if True:\n            row.update(petition_standing_keys(world, name))\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT1LeverDownSilence::test_lever_down_hides_the_display_keys_and_the_producer_returns_nothing"
+ },
+ {
+  "id": "IQ7-T the reject arm falls through to the AI-3 ladder",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        from backend.game_logic.vassal import is_client_petition\n        if is_client_petition(dialogue):\n            terms = context.get(\"proposal\", {}) or {}\n",
+  "new": "        from backend.game_logic.vassal import is_client_petition\n        if False:\n            terms = context.get(\"proposal\", {}) or {}\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT6Refuse::test_refusal_prices_the_client_and_never_touches_the_ai3_ladder"
+ },
+ {
+  "id": "IQ7-T the accept arm falls through to the treaty path",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        if is_client_petition(dialogue):\n            world.dialogue_manager.pop()\n            from backend.notifications import DIPLOMATIC_PROPOSAL\n",
+  "new": "        if False:\n            world.dialogue_manager.pop()\n            from backend.notifications import DIPLOMATIC_PROPOSAL\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes"
+ },
+ {
+  "id": "IQ7-T the counter guard is gone",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        if is_client_petition(dialogue):\n            return {\n                \"success\": False,\n                \"message\": (\"A client's petition is granted or refused, Sire \"\n",
+  "new": "        if False:\n            return {\n                \"success\": False,\n                \"message\": (\"A client's petition is granted or refused, Sire \"\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT8CounterIsRefusedFree::test_counter_at_the_executor_guard"
+ },
+ {
+  "id": "IQ7-T the lapse hook is gone",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        if pending_petitions:\n",
+  "new": "        if False:\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT7Lapse::test_an_unanswered_petition_lapses_as_a_refusal_through_the_real_end_turn tests/test_iq7_satellites_have_a_position.py::TestT7Lapse::test_lever_down_a_lapse_costs_nothing"
+ },
+ {
+  "id": "IQ7-T the payload loses its register",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "        payload[\"is_petition\"] = True\n",
+  "new": "        payload[\"is_petition\"] = False\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_the_clauses_state_every_price_and_equal_the_single_source"
+ },
+ {
+  "id": "IQ7-T the W6-10 diplomat line leaks onto the petition",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "        payload[\"diplomat_line\"] = \"\"\n",
+  "new": "        pass\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_the_clauses_state_every_price_and_equal_the_single_source"
+ },
+ {
+  "id": "IQ7-T a bare 'Grant' label",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "                \"label\": \"Grant the petition\",\n",
+  "new": "                \"label\": \"Grant\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT13TypedCommandSafety::test_the_labels_are_multi_word_and_no_prefix_of_a_verb_phrase tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six"
+ },
+ {
+  "id": "IQ7-T the notification calls it an envoy",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            f\"Petition from {sender}\",\n",
+  "new": "            f\"Envoy from {sender}\",\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_no_raw_tag_reaches_the_popup_or_the_dialogue"
+ },
+ {
+  "id": "IQ7-C the one-liner calls a grant a refusal",
+  "file": "backend/campaign_log.py",
+  "old": "        if outcome == \"granted\":\n            verdict = \"granted\"\n",
+  "new": "        if outcome == \"granted\":\n            verdict = \"refused\"\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT21CampaignLog::test_the_one_liners tests/test_iq7_satellites_have_a_position.py::TestT4TheProvinceSubject::test_the_petition_names_tyrol_and_the_grant_cedes_it"
+ },
+ {
+  "id": "IQ7-C the category moves",
+  "file": "backend/campaign_log.py",
+  "old": "    \"client_petition_answered\": \"diplomacy\",  # IQ-7\n",
+  "new": "    \"client_petition_answered\": \"vassal\",  # IQ-7\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT21CampaignLog::test_the_type_is_registered"
+ },
+ {
+  "id": "IQ7-C the fog arm forgets the type",
+  "file": "backend/campaign_log.py",
+  "old": "                          \"vassal_transferred\", \"vassal_defected\",\n                          \"client_petition_answered\"):\n",
+  "new": "                          \"vassal_transferred\", \"vassal_defected\"):\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT21CampaignLog::test_the_players_own_answer_passes_the_fog"
+ },
+ {
+  "id": "IQ7-D the dial never refuses",
+  "file": "tools/playtest_driver.py",
+  "old": "    return \"grant\" if diplomacy in ACCEPTING_DIPLOMACY_MODES else \"refuse\"\n",
+  "new": "    return \"grant\"\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT20TheDriver::test_the_dial_mirrors_the_diplomacy_policy_and_the_flag_wins"
+ },
+ {
+  "id": "IQ7-D the answerer's explicit branch is gone",
+  "file": "tools/playtest_driver.py",
+  "old": "        if _is_client_petition_surface(dialogue):\n            mode = client_petition_mode(self.policy)\n",
+  "new": "        if False:\n            mode = client_petition_mode(self.policy)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT20TheDriver::test_the_answerer_reads_the_producers_predicate_not_the_label_text"
+ },
+ {
+  "id": "IQ7-D the LEDGER row drops the web",
+  "file": "tools/playtest_driver.py",
+  "old": "        if vassals is not None:\n            web = list(vassals)\n",
+  "new": "        if False:\n            web = list(vassals)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT20TheDriver::test_the_ledger_line_appends_the_web_last"
+ },
+ {
+  "id": "IQ7-X4 the PL-14 safety net re-mints over a delivered result",
+  "file": "backend/main.py",
+  "old": "              and response.get(\"proposal_result\") is None\n",
+  "new": "              and True\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestThePL14SafetyNetKeepsADeliveredResult"
+ }
+]

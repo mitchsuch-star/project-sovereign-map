@@ -47,6 +47,12 @@ func show_proposal(data: Dictionary):
 	var is_counter = data.get("is_counter_offer", false)
 	# NA-5 §8: incoming AI ultimatum — its own register (never a counter)
 	var is_ultimatum = data.get("is_ultimatum", false)
+	# IQ-7: a client's petition — a loyal satellite asks its lord for a
+	# province or for relief from tribute. Its own register (the petition
+	# header, the clause lines as the terms, no Counter — a petition is
+	# granted or refused, never bargained); the same shape `is_ultimatum`
+	# takes. The producer's own field (mailbox_payloads).
+	var is_petition = data.get("is_petition", false)
 	var decision_reason_display = str(data.get("decision_reason_display", ""))
 	# W6-10: the diplomat's own spoken line (voices the motive in-register)
 	var diplomat_line = str(data.get("diplomat_line", ""))
@@ -61,6 +67,16 @@ func show_proposal(data: Dictionary):
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, ult_pers_str, from_display]
 		bbcode += "[b]Demands:[/b]\n"
 		panel_style.border_color = Color(0.878, 0.251, 0.251, 1.0)  # Crimson
+	elif is_petition:
+		# Petition: the client's own header; the clauses ARE the petition
+		# (design note, grant line, refuse line, lapse rule — every figure
+		# the backend applies, from one source). Gold border: a court that
+		# answers to Paris, not a rival's terms.
+		bbcode += "[center][color=#e0c060][b]A CLIENT'S PETITION[/b][/color][/center]\n"
+		var pet_pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, pet_pers_str, from_display]
+		bbcode += "[b]The petition:[/b]\n"
+		panel_style.border_color = _default_border_color
 	elif is_counter:
 		# Counter-offer: distinct header + context
 		bbcode += "[center][color=#7eb8da][b]COUNTER-OFFER[/b][/color][/center]\n"
@@ -108,6 +124,10 @@ func show_proposal(data: Dictionary):
 	# Lapse warning
 	if is_ultimatum:
 		bbcode += "\n[color=#e0c060][i]This demand will lapse at end of turn.[/i][/color]"
+	elif is_petition:
+		# What a lapse COSTS is the backend's lapse clause above (a lever
+		# governs it); the client states only that the petition lapses.
+		bbcode += "\n[color=#e0c060][i]This petition will lapse at end of turn.[/i][/color]"
 	elif is_counter:
 		bbcode += "\n[color=#e0c060][i]This response will lapse at end of turn.[/i][/color]"
 	else:
@@ -118,11 +138,12 @@ func show_proposal(data: Dictionary):
 	# multi-word nation keys — humanize once at the render chokepoint.
 	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
-	# Enable buttons — hide Counter for counter-offers (no counter-counter)
-	# and for ultimatums (an ultimatum is not a negotiation — NA-5 §8)
+	# Enable buttons — hide Counter for counter-offers (no counter-counter),
+	# for ultimatums (an ultimatum is not a negotiation — NA-5 §8) and for a
+	# client's petition (granted or refused, never bargained — IQ-7)
 	accept_btn.disabled = false
-	counter_btn.visible = not is_counter and not is_ultimatum
-	counter_btn.disabled = is_counter or is_ultimatum
+	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition
+	counter_btn.disabled = is_counter or is_ultimatum or is_petition
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
 	dismiss_btn.text = "Not Now"
@@ -130,6 +151,12 @@ func show_proposal(data: Dictionary):
 	if is_ultimatum:
 		accept_btn.text = "Yield"
 		reject_btn.text = "Defy"
+	elif is_petition:
+		# Captions only (the buttons emit the "accept"/"reject" keywords the
+		# router already owns); the typed route's option labels are the
+		# multi-word "Grant the petition" / "Refuse the petition".
+		accept_btn.text = "Grant"
+		reject_btn.text = "Refuse"
 	else:
 		accept_btn.text = "Accept Terms" if is_counter else "Accept"
 		reject_btn.text = "Reject Terms" if is_counter else "Reject"

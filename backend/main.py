@@ -3961,6 +3961,15 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
             response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
         elif (result.get("success")
               and world.proposal_result_popup is None
+              # IQ-7 (Sept 16, 2026): the first build above already POPPED
+              # the handler's own popup off the world and delivered it as
+              # `proposal_result` — so "the world slot is empty" no longer
+              # means "the handler forgot". Minting here then REPLACED a real
+              # result with a fallback labelled "Diplomatic Action" whose
+              # outcome was derived from the message (a GRANTED client
+              # petition read as REJECT; `offer_vassalage` measured the same
+              # on the wire). A delivered result is final.
+              and response.get("proposal_result") is None
               and not result.get("suppress_proposal_result_popup")
               and not suppress_result_popup):
             # PL-14 safety net: If dialogue concluded (no new dialogue pushed)

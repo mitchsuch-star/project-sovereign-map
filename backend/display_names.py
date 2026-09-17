@@ -332,6 +332,12 @@ PROPOSAL_TYPE_DISPLAY = {
     # AI-5 (§4.5): a bandwagoning minor offers its own crown — the
     # Confederation of the Rhine step, chosen rather than imposed.
     "offer_vassalage": "Offer of Submission",
+    # IQ-7 "The Client's Petition": a loyal satellite (loyalty ≥ 60) asks
+    # its lord for a province or for relief from tribute. Rides the
+    # incoming-proposal transport under the stable P-rule label
+    # `vassal.CLIENT_PETITION_TYPE`; never "petition" alone, which is the
+    # Jealousy channel's word.
+    "client_petition": "A Client's Petition",
 }
 
 # ============================================================================
