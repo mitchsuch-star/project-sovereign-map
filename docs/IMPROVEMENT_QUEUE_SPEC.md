@@ -1945,3 +1945,54 @@ limit and the second pass verified the first's claims by measurement rather than
   tree; the published table has no uncitable figure left unmarked; two processes on one
   board agree byte-for-byte across hash seeds. All three hold. **NEXT = IQ-9 "The
   Keyless Parser Gate"** (recon + contract ready).
+
+### §1.8 LANDING RECORD — IQ-9 "The Keyless Parser Gate" (✅ September 18, 2026)
+
+**Authoritative for this row.** The rules are in `docs/SYSTEMS_REFERENCE.md` §48; the
+technical record of the parse pipeline (the gate's tiers, the below-gate phrasing set it
+owns, the routed rows) is `docs/COMMAND_ROBUSTNESS_SPEC.md` §9; the operator's half
+(the key row, the two arms, "Recording parser cassettes") is `docs/PLAYTESTING.md`. The
+recon (September 16) prototyped the seam before it ruled (`scratchpad/iq9/proto`); the
+addendum's ten rulings were built as written except where measurement corrected them
+(below).
+
+> **The escalation path — the 0.7 gate's live arms, the SDK call, the typed-error ladder and everything the parser does with a live answer — is exercised deterministically, without a key and without a network, by replaying recorded or authored answers at the one seam where our code hands a body to the SDK. The suite is keyless by CONSTRUCTION, not by discipline.**
+
+- **The finding was wider than "no gate".** The escalation path's two production
+  functions were referenced by ZERO test files, and three test ids built env-derived
+  clients that escalated to the REAL API on any checkout whose `.env` said
+  `LLM_MODE=anthropic` (measured 3 of 3 before, 0 after). **T0 landed first**: the
+  module-level `LLM_MODE=mock` (an autouse fixture alone leaves `backend.main`'s
+  import-time parser singleton live) + the autouse pin + the network guard at conftest
+  import, loopback allowed — proven against the IQ-7 and IQ-8 driver pins, which spawn
+  subprocesses and bind loopback.
+- **ONE production seam** (`AnthropicProvider.bind_sdk_client`; `_client()` untouched),
+  ONE replay module, seventeen AUTHORED cassettes (the suite never records — the user
+  promotes them with the recorder in one ~17-call run), `parser_eval.run_corpus(parser=)`
+  + `--replay` (default byte-identical), and the two stale docstrings corrected. The
+  golden corpus is byte-identical; the STATUS count is corrected 681 → **686** (F5).
+- **Tiers** (`tests/test_iq9_keyless_parser_gate.py`, 112): T0 floor + a census
+  sensitivity arm · the seam (a miss is a `BaseException`; an `Exception` miss is proven
+  to be swallowed) · request invariants · the four `live_only` corpus rows × worlds
+  through `evaluate_entry` · the below-gate phrasing set, parse fields AND `POST /command`
+  dispatch · the CR-5 arms + the CR-5b register gate · sixteen response shapes · the nine
+  typed API errors, each with exactly-one-live-call · the CR-2 retry (fires exactly once;
+  cannot rescue the word-scan family — IQ9-X1) · Berthier's second call (2 calls,
+  tool-mode then text-mode) · transport over `httpx.MockTransport` through the REAL SDK
+  (a 429 retried once) · hygiene (every `live_only` row has a cassette; the manifest is
+  complete; drift acknowledged or fails; no test imports the recorder or constructs the
+  SDK client without injection — an AST census over `tests/` INCLUDING `tests/helpers/`,
+  which the first cut missed).
+- **Corrected by measurement:** the guard surfaces through the SDK as
+  `APIConnectionError` with the `RuntimeError` as `__cause__`; S3 (a string tool input)
+  is rejected by `Message.model_validate` and needs the SDK's own lenient `construct`;
+  "Zorglub, attack Mack" ends in the CR-2 `unknown_name` clarification, not "Which
+  marshal?"; sweep row 22 was inert by construction and deletes the guard PAIR now.
+- **Routed:** IQ9-X1 / IQ9-X2 (owner CR-6 proper, ROADMAP 15) and IQ9-X3 (found by this
+  build: a failure dict carries no `mode`, so `_PARSE_PROVENANCE` stamps "mock" on a
+  request that DID make a live call) — each pinned as CURRENT behaviour by name.
+- **Gates:** 112 passed; the six CR/parse files 1,049; sweep `tools/_sweep_iq9.json`
+  24 of 24 killed, 0 INERT on a private copy; `test_combat_sweep_metrics.py` untouched by
+  construction (the harness never enters the parse path); ruff clean; zero `.gd`, zero
+  new serialized fields. **NEXT = IQ-10 "The Client Pass"** (recon done September 17; the
+  Godot binary exists on this machine).

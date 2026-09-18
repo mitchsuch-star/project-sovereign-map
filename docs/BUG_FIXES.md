@@ -237,6 +237,20 @@ solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
 pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
 pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 
+## The Keyless Parser Gate (IQ-9) — landed September 18, 2026 (**3 ROUTED**)
+
+> Row IQ-9. Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.8; rules =
+> `SYSTEMS_REFERENCE.md` §48; the parse pipeline's technical record =
+> `COMMAND_ROBUSTNESS_SPEC.md` §9; pins = `tests/test_iq9_keyless_parser_gate.py` (112);
+> sweep `tools/_sweep_iq9.json` (24 of 24 killed, 0 INERT). Zero defects fixed in production —
+> the row is an instrument; the three defects it found are routed with their pins.
+
+| id | P | defect | disposition |
+|---|---|---|---|
+| **IQ9-X1** | P3 | **The CR-2 forced retry cannot rescue the word-scan family.** `hunt down mack` → the fast pass binds `down` → Davout at 0.9, the retry fires exactly once, the marshal-less live parse comes back — and is re-run through the fuzzy pass, whose word-scan re-reads `down` → Davout again; one live call, discarded, the original error stands. Pinned as CURRENT behaviour: `TestCR2Retry::test_retry_cannot_rescue_the_word_scan_family_today`. | **ROUTED to CR-6 proper** (ROADMAP position 15). Completion: the retried live parse is ADOPTED when it resolves the marshal the fast pass mis-bound; the pin above flips; new `tests/test_cr6_retry_rescues_the_word_scan.py`. |
+| **IQ9-X2** | P3 | **The fuzzy suggestion can name a FOGGED enemy** — `_extract_enemy_marshal_names` is omniscient (R5), so a near-miss refusal's "did you mean" can print a corps the player has never scouted. | **ROUTED to CR-6 proper.** Completion: the suggestion list reads the player's visible enemies (`get_visible_enemies`) while matching stays omniscient (the WO slice-10 shape); pinned in `tests/test_cr6_fuzzy_suggestions_are_fog_honest.py`. |
+| **IQ9-X3** | P4 | **A live-road failure stamps `parse_mode: "mock"`.** A parser failure dict carries no `mode`, so `main._PARSE_PROVENANCE` records "mock" on a request that DID make a live call (found by this build, pinned as current: `TestBelowGatePhrasings::test_a_live_road_failure_still_stamps_mock_provenance`). | **ROUTED to CR-6 proper** (the same provenance seam). Completion: the failure dict carries `mode` and the stamp reads it; the pin above flips. |
+
 ## The Satellites Have a Position (IQ-7) — landed September 16, 2026 (**2 FIXED; 4 ROUTED**)
 
 > Row IQ-7 (FA-S17-D7's owner). Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.6;

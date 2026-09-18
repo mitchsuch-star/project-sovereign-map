@@ -747,6 +747,55 @@ Rules:
 
 ---
 
+### Recording parser cassettes (IQ-9 — the only path that spends the key)
+
+The live-LLM escalation path is pinned KEYLESSLY by
+`tests/test_iq9_keyless_parser_gate.py`: a fake SDK client is bound through
+`AnthropicProvider.bind_sdk_client` and serves real `anthropic.types.Message`
+objects from `tests/data/parser_cassettes/<id>.json`, keyed on
+`(kind, utterance, world)` — never on the prompt hash (the prompt changes the
+moment one order is in `command_history`; hashes are stored as PROVENANCE).
+A cassette miss is a `BaseException` (both catch-alls on the path swallow
+`Exception` into a green fallback — measured), and **the suite never
+records**: `ReplayMessages.create` has exactly two outcomes, serve or raise,
+and an AST pin asserts no test module imports the recorder.
+
+**The committed set ships AUTHORED** (`provenance: "authored"` — hand-written
+shapes measured through the real pipeline in the IQ-9 recon; never a model's
+answer). To promote them to `recorded` in one run (~17 calls, ≈$0.11 at the
+CR-3 measured $0.0065/parse):
+
+```bash
+# keyless: list what would be recorded, with the field diff against each existing cassette
+.venv/Scripts/python.exe tools/record_parser_cassettes.py --dry-run --ids cr5-deleg-aggressive-ney-resolves-live cr5-deleg-cautious-davout-resolves-live cr5-deleg-literal-soult-asks fa73-live-cover-the-retreat-is-not-a-retreat fa73-live-fix-bayonets-is-not-a-repair --phrasings tests/data/parser_cassettes/phrasings.json
+# spends the key (reads .env for ANTHROPIC_API_KEY — the only place the gate does)
+.venv/Scripts/python.exe tools/record_parser_cassettes.py --record --ids ... --phrasings tests/data/parser_cassettes/phrasings.json --overwrite
+# after a prompt edit: re-record only what drifted
+.venv/Scripts/python.exe tools/record_parser_cassettes.py --record --refresh-drifted
+```
+
+The recorder refuses without `--record` AND a key; `--no-overwrite` is the
+default (an existing cassette is kept unless `--overwrite` or it was selected
+by `--refresh-drifted`); it prints the model pin, the SDK version and the cost
+before the first call, and a field diff (`action / marshals / target /
+stop_reason`) against each existing cassette. Two cassettes are written when
+one request also fires Berthier's text-mode recovery (`<id>.recovery`).
+
+**Drift policy** (`tests/data/parser_cassettes/MANIFEST.json`): a
+`recorded` cassette whose `prompt_sha256` no longer matches the live prompt
+FAILS `TestCassetteHygiene::test_drift_is_acknowledged_or_fails` until the
+developer either re-records it (`--refresh-drifted`, needs the key) or
+acknowledges it in the manifest (`"drift": {"acknowledged": "<date>", "by":
+"...", "note": "..."}` — keyless). Acknowledged drift still raises a
+`CassetteDriftWarning` every run so the summary counts it. `authored`
+cassettes are exempt: they pin OUR handling of a response shape, not a
+model's answer to a prompt. A drifted cassette proves handling of a
+PLAUSIBLE answer, not today's answer to today's prompt — the recorder is how
+that gap is closed.
+
+The same rows run from the CLI, keyless: `python -m backend.ai.parser_eval
+--replay` (the `live_only` corpus rows on the cassettes; exit 2 on a miss).
+
 ## Mode C — the full client (the visual pass)
 
 Use for visual sign-offs, popup rendering, map/piece checks — the things
@@ -792,7 +841,7 @@ only the screen can verify.
 | `SOVEREIGN_SMOKE_START` | settlement smoke presets — set to `""` by the driver | `""` |
 | `SOVEREIGN_MAP` | `legacy` = 19-region rollback — set to `europe` by the driver | `europe` |
 | `PYTHONHASHSEED` | `0` for byte-identity work (M1–M7/BASELINE_SERIES idiom) | `0` (the driver re-execs itself with it when unset; recorded in `meta.json`) |
-| `ANTHROPIC_API_KEY` | required by `--llm anthropic`; **without it that arm cannot run at all** and must be reported as NOT RUN rather than skipped | — |
+| `ANTHROPIC_API_KEY` | required by `--llm anthropic`; **without it that arm cannot run at all** and must be reported as NOT RUN rather than skipped. **The escalation path's HANDLING is gated keylessly by the replay gate** (`tests/test_iq9_keyless_parser_gate.py`, IQ-9 — the 0.7 gate's live arms, the SDK ladder, the `stop_reason` discard, validation, the CR-5 arms, the call count per request); `--llm anthropic` still owes the MODEL'S OWN ANSWERS. The suite itself pins `LLM_MODE=mock` and refuses every non-loopback connection (`tests/conftest.py` T0), so a key in `.env` can no longer make a test go live. | — |
 
 Never set `PYTHONIOENCODING` when running tests (fakes 6 subprocess-test
 errors — standing memory).
@@ -845,7 +894,18 @@ engine read them, after the import.
   needs a key; Mode C needs the Godot binary. A session that cannot run them
   must say so and leave the pillar they cover UNSCORED — the prior score
   stands. `unknown_blockers: []` is not coverage, and neither is a pillar
-  nobody looked at.
+  nobody looked at. **What the keyless gate DOES discharge (IQ-9):** how the
+  game HANDLES a live answer — the provider's typed-exception ladder, a
+  truncated or refused tool call, hallucinated marshals/actions/targets,
+  forbidden diplomatic fields, the strategic-verb remap, the CR-5
+  aggressive/cautious/literal arms and the CR-5b register gate, the CR-2
+  retry, Berthier's second call, and the NUMBER of live calls per request —
+  all replayed from committed cassettes with no key and no network. **What it
+  does NOT discharge:** whether today's Haiku answers a phrase the way the
+  cassette says (the cassettes ship AUTHORED; a recorded one is a witness of
+  one day's answer to one day's prompt), prompt quality, real network
+  behaviour, or token cost. `--llm anthropic` remains the only arm that
+  scores the MODEL.
 
 - The driver's policy plays a PASSIVE, honest France — it is a camera
   with reflexes, not a strategist. Campaign-quality evaluation still

@@ -5658,3 +5658,95 @@ re-worded negative stays); `run_all` runs both.
 resolution; hash a source file without normalising its line endings; walk a
 set in a display path that is serialized or printed; reset the rotation
 anywhere but the world's own creation.
+
+## 48. The keyless parser gate (IQ-9, landed September 18, 2026)
+
+> **The escalation path — the 0.7 gate's live arms, the SDK call, the typed-error ladder and everything the parser does with a live answer — is exercised deterministically, without a key and without a network, by replaying recorded or authored answers at the one seam where our code hands a body to the SDK. The suite is keyless by CONSTRUCTION, not by discipline: every test runs `LLM_MODE=mock` and behind a network guard, and a test that reaches the model anyway asserts the NUMBER of live calls it made.**
+
+**Why the row moved.** The `--llm anthropic` arm was the only check on the
+escalation path, it cannot run in CI or without a key, and it was recorded as
+NOT RUN by two re-scores. Measured first: `AnthropicProvider._make_parse_request`
+(the `stop_reason` truncation discard) and `_post_messages` (the typed-exception
+ladder the July-18 SDK migration added) were referenced by ZERO test files —
+every "live" test stubbed ABOVE them — and three test ids in two files built
+ENV-DERIVED clients that escalated to the real API on any checkout whose
+`.env` said `LLM_MODE=anthropic` (3 of 3 with `provider_name: anthropic`
+before the floor; 0 after).
+
+**The seam.** `AnthropicProvider.bind_sdk_client(client)` — the ONE production
+addition. `_client()` is unchanged and only reads the attribute the seam sets,
+so live behaviour cannot change; a fake client's `messages.create(**body)` is
+the last line of our code before the SDK, and exactly what the recorder
+wraps, so replay and record share one shape. Replay support =
+`tests/_parser_replay.py`; cassettes = `tests/data/parser_cassettes/`
+(17, ALL `provenance: "authored"` from the prototype's measured shapes, with
+`MANIFEST.json` and `phrasings.json`); the recorder =
+`tools/record_parser_cassettes.py` (opt-in `--record`, refuses without a key
+after its own `load_dotenv`, `--dry-run`, `--refresh-drifted`, field diff,
+no-overwrite default). **The suite never records; the user promotes cassettes
+to `recorded` in one run (~17 calls, ≈ $0.07).** `parser_eval.run_corpus(...,
+parser=None)` + `--replay` (default byte-identical) drive the four `live_only`
+corpus rows through the same tier.
+
+**The T0 floor** (`tests/conftest.py`): `LLM_MODE=mock` as a MODULE-LEVEL
+assignment (`backend.main` builds its parser singleton at import, before any
+fixture runs) plus an autouse per-test pin, and the network guard installed at
+conftest import — both `httpx` transports and `socket.socket.connect`, loopback
+ALLOWED (asyncio's Windows self-pipe, the TestClient, the IQ-8 driver's server),
+everything else refused. Through the SDK the guard surfaces as
+`APIConnectionError` with the `RuntimeError` as `__cause__` (the base client
+wraps transport exceptions after its retries), not a bare `RuntimeError`. The
+census instrument `tests/_escalation_census.py` (opt-in `-p`, never
+auto-registered) re-runs the env-derived ids under `LLM_MODE=anthropic` with
+the guard up and asserts every env-derived client is mock.
+
+**Rules (each measured):** a cassette miss is a `BaseException` — an
+`Exception` miss is swallowed by both catch-alls into a green
+`llm_error=True` fallback; the cassette key is `(kind, utterance, world)`,
+never the prompt hash (+355 chars the moment one order is in history); prompt
+drift is tallied against the manifest and must be acknowledged or fails; every
+pin that involves the model asserts the number of live calls; a request's
+invariants (forced tool, temperature 0, the model pin, `max_tokens`, no tools
+on the Berthier body) are checked on every replayed call.
+
+**What the gate covers, deterministically and keylessly:** the 0.7 gate's live
+arms; prompt/body assembly invariants (forced tool, temperature 0, model pin,
+max_tokens, no tools on the Berthier body); `_post_messages`'s typed-exception
+ladder and `to_dict`; the `stop_reason` truncation/refusal discard; tool_use
+extraction and the text fallback; the strategic-verb remap; every
+`validate_parse_result` arm on a real result; the parser's consumers of a live
+result (`mode`, `key_source`, `flavor` lift, `requested_type` derivation, the
+CR-2 retry chain, `llm_error` stamping on success and failure); CR-5
+`parse_resolved_to_action` + `route_arm` + both executed arms + the literal
+override; CR-5b `flavor_passes_register` on a live string and the
+modal-withholding rule; the Berthier `skip_llm` rule; **the number of live
+calls per request** on every branch; the SDK's retry count and typed-error
+construction (transport tier); the executor dispatch decision for each
+replayed row.
+
+**What it does not cover:** whether today's Haiku answers a phrase this way (a
+cassette is a witness of one day's answer, or an authored shape); what the
+model returns to a prompt that has DRIFTED since recording; prompt quality
+(few-shots, rubric wording — the `TestPromptModernization` pins keep those);
+the `groq` stub; real network behaviour (timeouts, DNS, TLS — the SDK's);
+token cost; the PARSE-NEG refusal arm (terminal BEFORE the provider, already
+pinned in mock); anything the mock corpus already covers at ≥ 0.7.
+
+**Measured corrections to the recon, recorded:** S3 (a string tool input) is
+REJECTED by `Message.model_validate`, so the prototype's S3 had gone through
+the catch-all — `message_from_wire` falls back to `Message.construct` and S3
+now measurably takes the no-parse road; "Zorglub, attack Mack" ends in the
+CR-2 `unknown_name` clarification (the deterministic addressed-token guard
+outranks the model's `marshals: []`), not "Which marshal?"; the recon's sweep
+row 22 was INERT BY CONSTRUCTION (the bad-odds modal sets `requires_input`
+AND `pending_interrupt`) and now deletes the pair.
+
+**Routed (GR9, `BUG_FIXES.md` §The Keyless Parser Gate):** IQ9-X1 the CR-2
+forced retry cannot rescue the word-scan family; IQ9-X2 the fuzzy suggestion
+can name a FOGGED enemy; IQ9-X3 a live-road failure stamps `parse_mode:
+"mock"`. All three pinned as CURRENT behaviour by name.
+
+**Never do:** record from the suite; key a cassette on the prompt hash; raise
+an `Exception` for a miss; ban loopback; put the `LLM_MODE` pin in a fixture
+alone (the import-time singleton escapes it); read the repo `.env` anywhere
+but the recorder.

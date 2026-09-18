@@ -1,0 +1,65 @@
+{
+  "id": "cr2-retry-hunt-down-mack",
+  "kind": "parse",
+  "utterance": "hunt down mack",
+  "world": "1805",
+  "history": [],
+  "provenance": "authored",
+  "response": {
+    "id": "msg_replay",
+    "content": [
+      {
+        "id": "toolu_replay",
+        "input": {
+          "matched": true,
+          "command_type": "strategic",
+          "marshals": [],
+          "action": "pursue",
+          "target": "Mack",
+          "target_stance": null,
+          "is_strategic": true,
+          "strategic_type": "PURSUE",
+          "strategic_condition": null,
+          "ambiguity": 30,
+          "strategic_score": 55,
+          "interpretation": "Pursue Mack",
+          "flavor": null,
+          "suggestion": null,
+          "diplomatic_data": null
+        },
+        "name": "submit_parsed_command",
+        "type": "tool_use"
+      }
+    ],
+    "model": "claude-haiku-4-5",
+    "role": "assistant",
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "input_tokens": 5000,
+      "output_tokens": 120
+    }
+  },
+  "request": {
+    "model": "claude-haiku-4-5",
+    "max_tokens": 1000,
+    "temperature": 0,
+    "tool_choice": {
+      "type": "tool",
+      "name": "submit_parsed_command"
+    },
+    "system_sha256": "16ba8e4443012b536e1254b3fb6825f642ef89465d27b59ef0483e58cea07f95",
+    "prompt_sha256": "9c198cc4295312fc033ac62f3a913541140eadc6986438b7f9e7493e144b1f57",
+    "prompt_chars": 16577,
+    "tool_schema_sha256": "9f77d1632dda3d9cab67312fdfb9451a45c5b91bb6f5a4d3d64f6ad353e5bb40"
+  },
+  "recorded": {
+    "at": "2026-09-18T18:07:41Z",
+    "sdk": null,
+    "request_id": null,
+    "corpus_version": 1,
+    "note": "authored from the recon prototype's measured shapes — never a model's answer; the recorder promotes it to provenance 'recorded'"
+  },
+  "notes": "Prototype case B: the CR-2 forced retry's one live call. Marshal-less, so the fuzzy pass's word-scan re-fires on 'down' and the retry cannot rescue (recon F2 → IQ9-X1, pinned as CURRENT behaviour)."
+}

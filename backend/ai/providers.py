@@ -17,8 +17,8 @@ This module implements the provider pattern for LLM integrations:
          +-- MockProvider: Keyword matching (free, instant, offline)
          |                 NOTE: Actual logic is in LLMClient._parse_with_mock()
          |
-         +-- AnthropicProvider: Claude API via raw HTTP
-         |                      Uses httpx for HTTP calls
+         +-- AnthropicProvider: Claude API via the official `anthropic` SDK
+         |                      (messages.create, forced tool use — CR-3)
          |                      Returns ParseResult or None on error
          |
          +-- GroqProvider: Groq API (OpenAI-compatible endpoint)
@@ -457,10 +457,11 @@ class AnthropicProvider(BaseProvider):
     """
     Anthropic Claude API provider.
 
-    Makes HTTP calls to the Anthropic Messages API to parse natural language
-    commands into structured game actions. The parse request forces a
-    tool call (CR-3) so the result arrives as structured JSON — no free-text
-    JSON extraction on the primary path.
+    Calls the Anthropic Messages API through the official SDK (`_client()`,
+    July 18, 2026) to parse natural language commands into structured game
+    actions. The parse request forces a tool call (CR-3) so the result
+    arrives as structured JSON — no free-text JSON extraction on the primary
+    path.
 
     API Documentation: https://docs.anthropic.com/en/api/messages
 
@@ -535,6 +536,12 @@ class AnthropicProvider(BaseProvider):
             )
         return self._sdk_client
 
+    def bind_sdk_client(self, client) -> None:
+        """Test/recording seam: use `client` (anything with .messages.create)
+        instead of building the SDK client. Production never calls this;
+        _client() only reads the attribute it sets."""
+        self._sdk_client = client
+
     def parse(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
         """
         Parse command using Claude API.
@@ -546,23 +553,27 @@ class AnthropicProvider(BaseProvider):
            - build_system_prompt() → military commander context
            - build_parse_prompt() → game state + command + examples
 
-        2. HTTP REQUEST
-           - POST to https://api.anthropic.com/v1/messages
-           - Headers: x-api-key, content-type, anthropic-version
-           - Body: model, max_tokens, system, messages
+        2. SDK REQUEST (July 18, 2026 — the official `anthropic` SDK, see
+           _client(); no hand-rolled HTTP)
+           - self._client().messages.create(**body) via _make_parse_request
+           - Body: model, max_tokens, temperature 0, system, messages,
+             tools=[PARSE_TOOL], tool_choice forced to PARSE_TOOL_NAME (CR-3)
+           - The SDK owns headers, URL, retries (MAX_RETRIES) and timeouts
 
         3. RESPONSE PARSING
-           - Extract: response["content"][0]["text"]
-           - Parse JSON from text (handles markdown blocks, etc.)
+           - stop_reason "max_tokens" / "refusal" → no-parse (partial tool
+             call discarded)
+           - Primary: the forced tool_use block's already-parsed "input" dict
+           - Fallback only: a text block carrying JSON (parse_llm_json_response)
            - Convert to ParseResult via json_to_parse_result()
 
-        4. ERROR HANDLING
-           - Timeout (5s): Log + return matched=False
-           - HTTP 401: Invalid key → Log + return matched=False
-           - HTTP 429: Rate limited → Log + return matched=False
-           - HTTP 5xx: Server error → Log + return matched=False
-           - JSON parse error: Log + return matched=False
-           - ALL errors result in matched=False, caller falls back to fast parser
+        4. ERROR HANDLING (the typed ladder in _post_messages)
+           - AuthenticationError / PermissionDeniedError / NotFoundError /
+             BadRequestError / RateLimitError / APITimeoutError /
+             APIConnectionError / APIStatusError / anything else
+           - ALL errors result in matched=False + llm_error=True; the caller
+             falls back to the fast parser and downstream recovery makes no
+             second blocking call
 
         LLM PIPELINE POSITION:
         ======================

@@ -1,0 +1,67 @@
+{
+  "id": "cr5-deleg-literal-soult-asks",
+  "kind": "parse",
+  "utterance": "Soult, deal with Mack",
+  "world": "1805",
+  "history": [],
+  "provenance": "authored",
+  "response": {
+    "id": "msg_replay",
+    "content": [
+      {
+        "id": "toolu_replay",
+        "input": {
+          "matched": true,
+          "command_type": "tactical",
+          "marshals": [
+            "Soult"
+          ],
+          "action": "scout",
+          "target": "Swabia",
+          "target_stance": null,
+          "is_strategic": false,
+          "strategic_type": null,
+          "strategic_condition": null,
+          "ambiguity": 40,
+          "strategic_score": 25,
+          "interpretation": "Soult observes Mack",
+          "flavor": "Soult inclines his head, Sire. Mack is noted.",
+          "suggestion": null,
+          "diplomatic_data": null
+        },
+        "name": "submit_parsed_command",
+        "type": "tool_use"
+      }
+    ],
+    "model": "claude-haiku-4-5",
+    "role": "assistant",
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "input_tokens": 5000,
+      "output_tokens": 120
+    }
+  },
+  "request": {
+    "model": "claude-haiku-4-5",
+    "max_tokens": 1000,
+    "temperature": 0,
+    "tool_choice": {
+      "type": "tool",
+      "name": "submit_parsed_command"
+    },
+    "system_sha256": "16ba8e4443012b536e1254b3fb6825f642ef89465d27b59ef0483e58cea07f95",
+    "prompt_sha256": "d95eedec415732e912d49eaf48d6ed5df9163493e81e84cde8304bdb21023616",
+    "prompt_chars": 16584,
+    "tool_schema_sha256": "9f77d1632dda3d9cab67312fdfb9451a45c5b91bb6f5a4d3d64f6ad353e5bb40"
+  },
+  "recorded": {
+    "at": "2026-09-18T18:07:41Z",
+    "sdk": null,
+    "request_id": null,
+    "corpus_version": 1,
+    "note": "authored from the recon prototype's measured shapes — never a model's answer; the recorder promotes it to provenance 'recorded'"
+  },
+  "notes": "The PC15-8 prompt asks the model NOT to resolve a literal delegation (measured compliance 2/3 unknown, 1/3 scout). Authored as the 1/3 RESOLVED arm on purpose: it is the stronger pin — the deterministic router must ASK even though the parse resolved."
+}

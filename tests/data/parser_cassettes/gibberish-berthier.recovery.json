@@ -1,0 +1,41 @@
+{
+  "id": "gibberish-berthier.recovery",
+  "kind": "berthier",
+  "utterance": "flurble the wibble",
+  "world": "1805",
+  "history": [],
+  "provenance": "authored",
+  "response": {
+    "id": "msg_replay_text",
+    "content": [
+      {
+        "text": "Berthier blinks at the dispatch. \"Sire, I cannot make that out at all. Might you mean an order such as \\\"Ney, attack Mack\\\"?\"",
+        "type": "text"
+      }
+    ],
+    "model": "claude-haiku-4-5",
+    "role": "assistant",
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "input_tokens": 500,
+      "output_tokens": 40
+    }
+  },
+  "request": {
+    "model": "claude-haiku-4-5",
+    "max_tokens": 1000,
+    "system_sha256": "f20daac6297d1381726fbf67920f2bb5996d164a6157dec232ca95f2abb4ee5c",
+    "prompt_sha256": "a8b06270519023485a9988f965d9a64caf162f2d0605e24e5f4261903144b5a9",
+    "prompt_chars": 1798
+  },
+  "recorded": {
+    "at": "2026-09-18T18:07:41Z",
+    "sdk": null,
+    "request_id": null,
+    "corpus_version": 1,
+    "note": "authored from the recon prototype's measured shapes — never a model's answer; the recorder promotes it to provenance 'recorded'"
+  },
+  "notes": "The Berthier text-mode recovery answer for the gibberish request — the SECOND cassette one request consumes."
+}

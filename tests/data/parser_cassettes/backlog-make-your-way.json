@@ -1,0 +1,67 @@
+{
+  "id": "backlog-make-your-way",
+  "kind": "parse",
+  "utterance": "Lannes, make your way to Swabia",
+  "world": "1805",
+  "history": [],
+  "provenance": "authored",
+  "response": {
+    "id": "msg_replay",
+    "content": [
+      {
+        "id": "toolu_replay",
+        "input": {
+          "matched": true,
+          "command_type": "strategic",
+          "marshals": [
+            "Lannes"
+          ],
+          "action": "march",
+          "target": "Swabia",
+          "target_stance": null,
+          "is_strategic": true,
+          "strategic_type": "MOVE_TO",
+          "strategic_condition": null,
+          "ambiguity": 15,
+          "strategic_score": 45,
+          "interpretation": "Lannes marches to Swabia",
+          "flavor": null,
+          "suggestion": null,
+          "diplomatic_data": null
+        },
+        "name": "submit_parsed_command",
+        "type": "tool_use"
+      }
+    ],
+    "model": "claude-haiku-4-5",
+    "role": "assistant",
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "input_tokens": 5000,
+      "output_tokens": 120
+    }
+  },
+  "request": {
+    "model": "claude-haiku-4-5",
+    "max_tokens": 1000,
+    "temperature": 0,
+    "tool_choice": {
+      "type": "tool",
+      "name": "submit_parsed_command"
+    },
+    "system_sha256": "16ba8e4443012b536e1254b3fb6825f642ef89465d27b59ef0483e58cea07f95",
+    "prompt_sha256": "0f645351f29e5bd98b8ca8f4b047f20abfca3fb3a9c3145eccd9897add57aa7c",
+    "prompt_chars": 16594,
+    "tool_schema_sha256": "9f77d1632dda3d9cab67312fdfb9451a45c5b91bb6f5a4d3d64f6ad353e5bb40"
+  },
+  "recorded": {
+    "at": "2026-09-18T18:07:41Z",
+    "sdk": null,
+    "request_id": null,
+    "corpus_version": 1,
+    "note": "authored from the recon prototype's measured shapes — never a model's answer; the recorder promotes it to provenance 'recorded'"
+  },
+  "notes": "A live_phrasing_backlog phrasing: `march` remaps to move and the deterministic detector owns the MOVE_TO upgrade from the raw text."
+}

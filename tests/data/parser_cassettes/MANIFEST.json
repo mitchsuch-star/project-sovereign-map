@@ -1,0 +1,142 @@
+{
+  "corpus_version": 1,
+  "description": "IQ-9 cassette manifest: every cassette id with its recorded prompt hash and an acknowledged-drift field (null = not acknowledged). Authored cassettes are exempt from drift failure.",
+  "cassettes": {
+    "cr5-deleg-aggressive-ney-resolves-live": {
+      "kind": "parse",
+      "utterance": "Ney, deal with Mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "ff874a815de73147f4d9daed90c20f50f014ca2487d7c03c07e9682b8a172c44",
+      "drift": null
+    },
+    "cr5-deleg-cautious-davout-resolves-live": {
+      "kind": "parse",
+      "utterance": "Davout, deal with Mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "9761f079f2dd0e9479913823f9cc64de4ecc3aa52e0d05ccf318395e6e47cc18",
+      "drift": null
+    },
+    "cr5-deleg-literal-soult-asks": {
+      "kind": "parse",
+      "utterance": "Soult, deal with Mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "d95eedec415732e912d49eaf48d6ed5df9163493e81e84cde8304bdb21023616",
+      "drift": null
+    },
+    "fa73-live-cover-the-retreat-is-not-a-retreat.1805": {
+      "kind": "parse",
+      "utterance": "Ney, cover the retreat",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "c429b720f580ffbdeae16cfa2e979611784bcd52e2ff79e8a37a280e75691b04",
+      "drift": null
+    },
+    "fa73-live-cover-the-retreat-is-not-a-retreat.legacy": {
+      "kind": "parse",
+      "utterance": "Ney, cover the retreat",
+      "world": "legacy",
+      "provenance": "authored",
+      "prompt_sha256": "4364a24931a2e14157af529c372a2da33357058414c8ac0ec54f5f71b8cb20e5",
+      "drift": null
+    },
+    "fa73-live-fix-bayonets-is-not-a-repair.1805": {
+      "kind": "parse",
+      "utterance": "Ney, fix bayonets",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "2c8428bb19d39d3140dcf262869f5d3ed8982dee92d37f7465ce2f773091170d",
+      "drift": null
+    },
+    "fa73-live-fix-bayonets-is-not-a-repair.legacy": {
+      "kind": "parse",
+      "utterance": "Ney, fix bayonets",
+      "world": "legacy",
+      "provenance": "authored",
+      "prompt_sha256": "1a671ccad122bdc42f32c3f57d9bd156575b4e069242289b7448f9d98ccb190b",
+      "drift": null
+    },
+    "cr2-retry-hunt-down-mack": {
+      "kind": "parse",
+      "utterance": "hunt down mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "9c198cc4295312fc033ac62f3a913541140eadc6986438b7f9e7493e144b1f57",
+      "drift": null
+    },
+    "below-gate-get-after": {
+      "kind": "parse",
+      "utterance": "Ney, get after Mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "0fb0f24b47f0b41f4db75347a950e1a035a20a176184f90d0e463048510230ce",
+      "drift": null
+    },
+    "below-gate-keep-an-eye": {
+      "kind": "parse",
+      "utterance": "Davout, keep an eye on Mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "b3a4443e9ee06895a63058ede93dd07618af29a581e3d031a459dace20c2d3f5",
+      "drift": null
+    },
+    "backlog-make-your-way": {
+      "kind": "parse",
+      "utterance": "Lannes, make your way to Swabia",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "0f645351f29e5bd98b8ca8f4b047f20abfca3fb3a9c3145eccd9897add57aa7c",
+      "drift": null
+    },
+    "diplomatic-ask-austria": {
+      "kind": "parse",
+      "utterance": "ask Austria what they want",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "833d65aee6287eafe2f2963285cee6afad2599929ac6a0b1a0c798ed68c6524a",
+      "drift": null
+    },
+    "cr2-unresolved-address": {
+      "kind": "parse",
+      "utterance": "Zorglub, attack Mack",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "4f1436da7c426dc2a029c661f385951b2c103ab1031fc15c0717e185f9e85358",
+      "drift": null
+    },
+    "demonym-harass": {
+      "kind": "parse",
+      "utterance": "Murat, harass the Austrians",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "8b926bfb7002a74b6dfc42ac1a0b89bccf812e5ac3f007302c199bb7a904e193",
+      "drift": null
+    },
+    "gibberish-berthier": {
+      "kind": "parse",
+      "utterance": "flurble the wibble",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "f787ef795fed14aa375bdf96835e58b6923c960e0ea3771cddaa9d1da4e0f42f",
+      "drift": null
+    },
+    "gibberish-berthier.recovery": {
+      "kind": "berthier",
+      "utterance": "flurble the wibble",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "a8b06270519023485a9988f965d9a64caf162f2d0605e24e5f4261903144b5a9",
+      "drift": null
+    },
+    "aggressive-plain": {
+      "kind": "parse",
+      "utterance": "Ney, hit the Prussians hard",
+      "world": "1805",
+      "provenance": "authored",
+      "prompt_sha256": "b3e7e4cd4a47a8b72743e5b67da9947b7ad308e66b61d7b4a246082f14391471",
+      "drift": null
+    }
+  }
+}

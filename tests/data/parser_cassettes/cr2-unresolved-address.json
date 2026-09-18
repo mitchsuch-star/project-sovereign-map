@@ -1,0 +1,65 @@
+{
+  "id": "cr2-unresolved-address",
+  "kind": "parse",
+  "utterance": "Zorglub, attack Mack",
+  "world": "1805",
+  "history": [],
+  "provenance": "authored",
+  "response": {
+    "id": "msg_replay",
+    "content": [
+      {
+        "id": "toolu_replay",
+        "input": {
+          "matched": true,
+          "command_type": "tactical",
+          "marshals": [],
+          "action": "attack",
+          "target": "Mack",
+          "target_stance": null,
+          "is_strategic": false,
+          "strategic_type": null,
+          "strategic_condition": null,
+          "ambiguity": 45,
+          "strategic_score": 15,
+          "interpretation": "Attack Mack; no such marshal",
+          "flavor": null,
+          "suggestion": null,
+          "diplomatic_data": null
+        },
+        "name": "submit_parsed_command",
+        "type": "tool_use"
+      }
+    ],
+    "model": "claude-haiku-4-5",
+    "role": "assistant",
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "input_tokens": 5000,
+      "output_tokens": 120
+    }
+  },
+  "request": {
+    "model": "claude-haiku-4-5",
+    "max_tokens": 1000,
+    "temperature": 0,
+    "tool_choice": {
+      "type": "tool",
+      "name": "submit_parsed_command"
+    },
+    "system_sha256": "16ba8e4443012b536e1254b3fb6825f642ef89465d27b59ef0483e58cea07f95",
+    "prompt_sha256": "4f1436da7c426dc2a029c661f385951b2c103ab1031fc15c0717e185f9e85358",
+    "prompt_chars": 16583,
+    "tool_schema_sha256": "9f77d1632dda3d9cab67312fdfb9451a45c5b91bb6f5a4d3d64f6ad353e5bb40"
+  },
+  "recorded": {
+    "at": "2026-09-18T18:07:41Z",
+    "sdk": null,
+    "request_id": null,
+    "corpus_version": 1,
+    "note": "authored from the recon prototype's measured shapes — never a model's answer; the recorder promotes it to provenance 'recorded'"
+  },
+  "notes": "CR-2's 0.55 demotion sends an unknown addressee to the model, which answers marshals=[] — the live road to 'Which marshal, Sire?'."
+}

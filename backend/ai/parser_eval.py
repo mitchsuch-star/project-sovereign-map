@@ -197,12 +197,22 @@ def evaluate_entry(parser, entry: Dict, world_key: str, world,
 def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
                only_world: Optional[str] = None,
                only_ids: Optional[List[str]] = None,
-               verbose: bool = False) -> Dict:
-    """Evaluate the whole corpus. Returns a summary dict with failures."""
+               verbose: bool = False, parser=None) -> Dict:
+    """Evaluate the whole corpus. Returns a summary dict with failures.
+
+    ``parser`` (IQ-9, September 18, 2026): an already-armed CommandParser to
+    evaluate WITH — the keyless replay CLI (`--replay`) and the cassette
+    recorder pass one whose LLM client is bound to a replay/recording SDK
+    client. ``None`` reproduces the pre-IQ-9 loop byte-for-byte
+    (`CommandParser(use_real_llm=use_real_llm)`), and the "refusing to
+    report a mock run as live" guard reads `parser.llm.provider_name` exactly
+    as before.
+    """
     from backend.commands.parser import CommandParser
 
     corpus = corpus or load_corpus()
-    parser = CommandParser(use_real_llm=use_real_llm)
+    if parser is None:
+        parser = CommandParser(use_real_llm=use_real_llm)
     if use_real_llm and parser.llm.provider_name == "mock":
         raise RuntimeError(
             "--live requested but the LLM provider resolved to MOCK "
@@ -259,6 +269,74 @@ def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
             "skipped_mock_only": skipped_mock_only, "failures": failures}
 
 
+def _run_replay(corpus: Dict, only_world: Optional[str] = None,
+                only_ids: Optional[List[str]] = None,
+                verbose: bool = False) -> Dict:
+    """IQ-9 `--replay`: the `live_only` rows through the SAME evaluate loop,
+    on a parser whose Anthropic client is bound to the committed cassettes.
+
+    Keyless and offline by construction: the replay client is the
+    `tests/_parser_replay.py` ReplayClient (BYOK fake key, network guard
+    up), and a cassette MISS raises a BaseException the loop does not
+    catch — surfaced here as exit 2 rather than a green fallback.
+    """
+    try:
+        from tests._parser_replay import (
+            CassetteMiss, armed_parser, install_network_guard,
+            load_all_cassettes, load_manifest)
+    except ImportError as exc:  # pragma: no cover — run from the repo root
+        raise RuntimeError(
+            "--replay needs the repo's tests/ tree on sys.path (run from the "
+            f"repository root): {exc}") from exc
+    install_network_guard()
+    cassettes = list(load_all_cassettes().values())
+    manifest = load_manifest()
+    live_only_ids = [e["id"] for e in corpus["entries"] if e.get("live_only")]
+    ids = [i for i in live_only_ids if not only_ids or i in only_ids]
+    if not ids:
+        raise RuntimeError("--replay: no live_only corpus rows selected")
+    # One armed parser per world (the replay client is keyed by world).
+    total = passed = 0
+    failures: List[Dict] = []
+    calls = 0
+    served = set()
+    drifted: Dict = {}
+    for world_key in WORLD_KEYS:
+        if only_world and world_key != only_world:
+            continue
+        parser, replay = armed_parser(cassettes, world_key, manifest)
+        world = build_world(world_key)
+        game_state = build_llm_game_state(world)
+        for entry in corpus["entries"]:
+            if entry["id"] not in ids or world_key not in worlds_for_entry(entry):
+                continue
+            total += 1
+            try:
+                mismatches = evaluate_entry(parser, entry, world_key, world,
+                                            game_state)
+            except CassetteMiss as miss:
+                raise RuntimeError(f"cassette miss on {entry['id']} "
+                                   f"[{world_key}]: {miss}") from None
+            if mismatches:
+                failures.append({"id": entry["id"], "world": world_key,
+                                 "utterance": entry["utterance"],
+                                 "mismatches": mismatches})
+                if verbose:
+                    print(f"FAIL [{world_key}] {entry['id']}")
+            else:
+                passed += 1
+                if verbose:
+                    print(f"ok   [{world_key}] {entry['id']}")
+        calls += len(replay.calls)
+        served.update(replay.served)
+        drifted.update(replay.drifted)
+    return {"total": total, "passed": passed, "failed": len(failures),
+            "skipped_live_only": 0, "skipped_mock_only": 0,
+            "failures": failures, "replay_calls": calls,
+            "replay_cassettes": len(served),
+            "replay_drifted": sorted(drifted)}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="CR-1 parser eval harness (golden corpus, both worlds)")
@@ -267,6 +345,10 @@ def main(argv=None) -> int:
     ap.add_argument("--live", action="store_true",
                     help="arm the live LLM provider fallback (needs LLM_MODE + key; "
                          "default is pure mock)")
+    ap.add_argument("--replay", action="store_true",
+                    help="IQ-9: run the live_only rows KEYLESSLY on the committed "
+                         "cassettes (tests/data/parser_cassettes); exit 2 on a "
+                         "cassette miss; no network")
     ap.add_argument("--world", choices=WORLD_KEYS, default=None,
                     help="restrict to one world")
     ap.add_argument("--id", action="append", dest="ids", default=None,
@@ -275,15 +357,27 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     corpus = load_corpus(args.corpus)
+    if args.replay and args.live:
+        print("ERROR: --replay and --live are exclusive (replay is keyless)")
+        return 2
     try:
-        summary = run_corpus(corpus, use_real_llm=args.live,
-                             only_world=args.world, only_ids=args.ids,
-                             verbose=args.verbose)
+        if args.replay:
+            summary = _run_replay(corpus, only_world=args.world,
+                                  only_ids=args.ids, verbose=args.verbose)
+        else:
+            summary = run_corpus(corpus, use_real_llm=args.live,
+                                 only_world=args.world, only_ids=args.ids,
+                                 verbose=args.verbose)
     except RuntimeError as exc:
         print(f"ERROR: {exc}")
         return 2
+    mode_label = "REPLAY" if args.replay else ("LIVE" if args.live else "mock")
     print(f"\nParser eval: {summary['passed']}/{summary['total']} passed "
-          f"({'LIVE' if args.live else 'mock'} mode)")
+          f"({mode_label} mode)")
+    if args.replay:
+        print(f"  (replayed {summary['replay_calls']} live call(s) from "
+              f"{summary['replay_cassettes']} cassette(s); "
+              f"drifted: {summary['replay_drifted'] or 'none'})")
     if summary.get("skipped_live_only"):
         print(f"  ({summary['skipped_live_only']} live_only entr"
               f"{'y' if summary['skipped_live_only'] == 1 else 'ies'} skipped -- "

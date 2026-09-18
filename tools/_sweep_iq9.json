@@ -1,0 +1,170 @@
+[
+ {
+  "id": "IQ9-1 providers: the max_tokens truncation discard deleted",
+  "file": "backend/ai/providers.py",
+  "old": "        if stop_reason == \"max_tokens\":\n",
+  "new": "        if False:\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s1_truncation_at_max_tokens_discards_the_partial_tool_call"
+ },
+ {
+  "id": "IQ9-2 providers: LLM_STRATEGIC_ACTION_REMAP emptied (pursue dead-ends)",
+  "file": "backend/ai/providers.py",
+  "old": "LLM_STRATEGIC_ACTION_REMAP = {\n    \"pursue\": \"attack\",\n    \"march\": \"move\",\n    \"support\": \"move\",\n    \"reinforce\": \"move\",\n}\n",
+  "new": "LLM_STRATEGIC_ACTION_REMAP = {}\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR5Arms::test_the_live_delegation_parse_resolves"
+ },
+ {
+  "id": "IQ9-3 providers: the forced tool_choice deleted from the parse body",
+  "file": "backend/ai/providers.py",
+  "old": "            \"tool_choice\": {\"type\": \"tool\", \"name\": PARSE_TOOL_NAME},\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestRequestInvariants::test_parse_body_is_forced_tool_temperature_zero_model_pin_max_tokens"
+ },
+ {
+  "id": "IQ9-4 providers: temperature 0 deleted from the parse body",
+  "file": "backend/ai/providers.py",
+  "old": "            \"temperature\": 0,\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestRequestInvariants::test_parse_body_is_forced_tool_temperature_zero_model_pin_max_tokens"
+ },
+ {
+  "id": "IQ9-5 providers: llm_error not set on the API-error result",
+  "file": "backend/ai/providers.py",
+  "old": "                llm_error=True,\n",
+  "new": "                llm_error=False,\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestTypedErrors::test_error_sets_llm_error_and_the_request_makes_exactly_one_live_call"
+ },
+ {
+  "id": "IQ9-6 providers: the RateLimitError arm deleted (falls to APIStatusError)",
+  "file": "backend/ai/providers.py",
+  "old": "        except anthropic.RateLimitError:\n            # Already retried with backoff by the SDK, honoring `retry-after`.\n            print(\"AnthropicProvider: ERROR 429 - Rate limited (retries exhausted)\")\n            return None, \"Rate limited - too many requests\"\n\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestTypedErrors::test_the_ladder_names_which_failure[rate_limit]"
+ },
+ {
+  "id": "IQ9-7 providers: _client() ignores the bound SDK client",
+  "file": "backend/ai/providers.py",
+  "old": "        if getattr(self, \"_sdk_client\", None) is None:\n",
+  "new": "        if True:\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestSeam::test_pre_set_sdk_client_short_circuits_client_build"
+ },
+ {
+  "id": "IQ9-8 llm_client: the 0.7 gate raised to 1.0 (confident parses escalate)",
+  "file": "backend/ai/llm_client.py",
+  "old": "LLM_FALLBACK_CONFIDENCE_THRESHOLD = 0.7\n",
+  "new": "LLM_FALLBACK_CONFIDENCE_THRESHOLD = 1.0\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestGateNeverReachesTheModel::test_a_confident_fast_parse_never_reaches_the_model"
+ },
+ {
+  "id": "IQ9-9 llm_client: the PARSE-NEG refusal guard deleted (a refusal escalates)",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if fast_result.refusal:\n            return False\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestGateNeverReachesTheModel::test_a_parse_neg_refusal_never_reaches_the_model"
+ },
+ {
+  "id": "IQ9-10 llm_client: the retry-after-error guard deleted",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if (fast_result_dict or {}).get(\"llm_error\"):\n            return None, False\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR2Retry::test_retry_is_skipped_when_the_parse_call_already_errored"
+ },
+ {
+  "id": "IQ9-11 llm_client: validate_parse_result bypassed (identity)",
+  "file": "backend/ai/llm_client.py",
+  "old": "            validated = validate_parse_result(\n                llm_result,\n                valid_marshals,\n                valid_regions,\n                valid_targets,\n                raw_text=command_text,\n            )\n",
+  "new": "            validated = llm_result\n            _unused = (\n                llm_result,\n                valid_marshals,\n                valid_regions,\n                valid_targets,\n                command_text,\n            )\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s4_action_null_fails_validation tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s6_hallucinated_marshal_fails_validation tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s11_forbidden_diplomatic_fields_are_stripped"
+ },
+ {
+  "id": "IQ9-12 llm_client: key_source not stamped on the live result",
+  "file": "backend/ai/llm_client.py",
+  "old": "            validated.key_source = self.key_source\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestBelowGatePhrasings::test_live_results_carry_live_provenance"
+ },
+ {
+  "id": "IQ9-13 llm_client: llm_error not carried onto the fallback",
+  "file": "backend/ai/llm_client.py",
+  "old": "                if llm_result.llm_error:\n                    fast_result.llm_error = True\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestTypedErrors::test_error_sets_llm_error_and_the_request_makes_exactly_one_live_call[timeout]"
+ },
+ {
+  "id": "IQ9-14 validation: the diplomatic field strip made an identity",
+  "file": "backend/ai/validation.py",
+  "old": "            result.diplomatic_data = {\n                k: v for k, v in result.diplomatic_data.items()\n                if k in DIPLOMATIC_DATA_ALLOWED_FIELDS\n            }\n",
+  "new": "            result.diplomatic_data = dict(result.diplomatic_data)\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s11_forbidden_diplomatic_fields_are_stripped"
+ },
+ {
+  "id": "IQ9-15 validation: the invented-marshal guard deleted",
+  "file": "backend/ai/validation.py",
+  "old": "    if (raw_text and result.marshals and len(result.marshals) == 1\n            and result.marshals[0] in marshal_set\n            and not _marshal_mentioned(raw_text, result.marshals[0])):\n",
+  "new": "    if False:\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s7_invented_marshal_is_cleared_and_the_text_rebinds_ney"
+ },
+ {
+  "id": "IQ9-16 validation: the movement-target passthrough emptied",
+  "file": "backend/ai/validation.py",
+  "old": "_TARGET_PASSTHROUGH_ACTIONS: Set[str] = {\"move\", \"scout\", \"naval_expedition\"}\n",
+  "new": "_TARGET_PASSTHROUGH_ACTIONS: Set[str] = set()\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestResponseShapes::test_s10_unknown_region_passes_through_for_the_executor_to_name"
+ },
+ {
+  "id": "IQ9-17 parser: the CR-5b flavor lift deleted",
+  "file": "backend/commands/parser.py",
+  "old": "                if llm_result.get(\"flavor\"):\n                    command_dict[\"flavor\"] = llm_result[\"flavor\"]\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR5Arms::test_the_live_delegation_parse_resolves tests/test_iq9_keyless_parser_gate.py::TestCR5Arms::test_aggressive_flavor_attaches_on_the_non_modal_success_path"
+ },
+ {
+  "id": "IQ9-18 parser: the CR-2 retry never fires",
+  "file": "backend/commands/parser.py",
+  "old": "                retried, retry_llm_error = self.llm.reparse_with_llm(\n                    effective_text, game_state, llm_result)\n",
+  "new": "                retried, retry_llm_error = None, False\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR2Retry::test_retry_fires_exactly_once_on_a_confident_fuzzy_error"
+ },
+ {
+  "id": "IQ9-19 parser: the fuzzy-failure llm_error stamp deleted",
+  "file": "backend/commands/parser.py",
+  "old": "                # failed at the API layer.\n                if llm_result.get(\"llm_error\"):\n                    failure[\"llm_error\"] = True\n",
+  "new": "                # failed at the API layer.\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR2Retry::test_retry_api_failure_reaches_the_failure_dict_and_silences_berthier"
+ },
+ {
+  "id": "IQ9-20 delegation: the CR-5 mode gate deleted (a mock parse counts as resolved)",
+  "file": "backend/commands/delegation.py",
+  "old": "    if (parsed.get(\"mode\") or \"\").lower() == \"mock\":\n        return False\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR5Arms::test_mock_mode_delegation_still_degrades_to_ask"
+ },
+ {
+  "id": "IQ9-21 main: Berthier's live arm no longer silenced after a failed parse call",
+  "file": "backend/main.py",
+  "old": "                        # don't stack a second blocking call on this request\n                        skip_llm=bool(parsed.get(\"llm_error\")),\n",
+  "new": "                        # don't stack a second blocking call on this request\n                        skip_llm=False,\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestTypedErrors::test_error_sets_llm_error_and_the_request_makes_exactly_one_live_call[timeout]"
+ },
+ {
+  "id": "IQ9-22 main: the aggressive-flavor attach guard ignores the bad-odds modal (requires_input + pending_interrupt co-guard it; the recon's single-clause form was measured INERT by construction)",
+  "file": "backend/main.py",
+  "old": "                and not result.get(\"requires_input\")\n                and not result.get(\"pending_interrupt\")\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestCR5Arms::test_aggressive_arm_creates_delegation_inferred_pursue_and_withholds_flavor_on_the_modal"
+ },
+ {
+  "id": "IQ9-23 conftest: the module-level LLM_MODE pin deleted",
+  "file": "tests/conftest.py",
+  "old": "os.environ[\"LLM_MODE\"] = \"mock\"\n",
+  "new": "",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestT0SuiteFloor::test_the_three_env_derived_tests_now_run_mock"
+ },
+ {
+  "id": "IQ9-24 replay: the network guard's host check allows everything",
+  "file": "tests/_parser_replay.py",
+  "old": "    host = str(host or \"\")\n    if host in LOOPBACK_HOSTS:\n        return True\n",
+  "new": "    host = str(host or \"\")\n    if True:\n        return True\n",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestT0SuiteFloor::test_network_guard_refuses_api_anthropic_com_through_the_sdk"
+ }
+]

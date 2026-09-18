@@ -21,11 +21,54 @@ Fixtures inject ONLY when explicitly requested as function parameters.
 Existing tests that don't use these parameter names are unaffected.
 """
 
+import os
+
 import pytest
-from backend.models.marshal import Marshal
-from backend.models.world_state import WorldState
-from backend.commands.executor import CommandExecutor
-from backend.game_logic.combat import CombatResolver
+
+# ════════════════════════════════════════════════════════════════════════════════
+# T0 — THE KEYLESS PARSER GATE'S SUITE FLOOR (IQ-9, September 18, 2026)
+# ════════════════════════════════════════════════════════════════════════════════
+#
+# The suite was keyless by per-test DISCIPLINE, not by construction: this file
+# pinned five environment variables and not `LLM_MODE`, while
+# `backend/ai/llm_client.py` and `backend/main.py` both call `load_dotenv()`
+# at import. A census over the whole suite (recon of September 16, 2026;
+# instrument = `tests/_escalation_census.py`) found three test ids in two
+# files whose ENV-DERIVED client would escalate to the LIVE API — real Haiku,
+# real tokens, nondeterministic, network-bound — on any checkout whose `.env`
+# says `LLM_MODE=anthropic`. Measured again on September 18 before this pin
+# landed: 3 of 3 escalated under `LLM_MODE=anthropic`; 0 of 3 after.
+#
+# Two mechanisms, both needed:
+#
+#   1. The MODULE-LEVEL assignment below. `backend.main` builds its parser
+#      singleton (`parser = CommandParser()`) at IMPORT, during collection,
+#      before any fixture runs — and `load_dotenv()` never overrides a
+#      variable that is already present. A fixture alone would leave that
+#      singleton live on an anthropic `.env`; the ca9 negation test drives
+#      exactly that object.
+#   2. The autouse fixture `_pin_llm_mode_mock`, so a test that writes
+#      `os.environ["LLM_MODE"]` directly cannot leak into its neighbours.
+#      Tests that set the mode themselves still win (their setenv runs after).
+#
+# And the NETWORK GUARD (`tests/_parser_replay.py`): every non-loopback
+# connection — the two httpx transports the SDK sends through and
+# `socket.socket.connect` under everything else — raises. Loopback stays
+# open because asyncio's Windows self-pipe is a loopback socketpair that
+# CONNECTS to 127.0.0.1, TestClient needs an event loop, and the IQ-8 driver
+# pins bind a real server on loopback (a blanket ban breaks all three;
+# measured). The guard is process-wide and idempotent; its sensitivity pins
+# live in tests/test_iq9_keyless_parser_gate.py::TestT0SuiteFloor.
+os.environ["LLM_MODE"] = "mock"
+
+from tests._parser_replay import install_network_guard  # noqa: E402
+
+install_network_guard()
+
+from backend.models.marshal import Marshal  # noqa: E402
+from backend.models.world_state import WorldState  # noqa: E402
+from backend.commands.executor import CommandExecutor  # noqa: E402
+from backend.game_logic.combat import CombatResolver  # noqa: E402
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -115,6 +158,21 @@ def _isolate_save_dir(monkeypatch, tmp_path_factory):
         else _isolate_save_dir._dir,
         raising=False)
     _isolate_save_dir._dir = save_manager.SAVE_DIR
+
+
+@pytest.fixture(autouse=True)
+def _pin_llm_mode_mock(monkeypatch):
+    """Pin LLM_MODE=mock for every test (IQ-9 T0 — see the module header).
+
+    The per-test half of the floor: pytest restores the value this fixture
+    saw ("mock", from the module-level pin) at teardown, so a test that
+    assigns `os.environ["LLM_MODE"]` directly cannot leak a live mode into
+    the tests after it. A test that WANTS a live-mode client sets the
+    variable itself (its own setenv runs after this one) and injects a fake
+    SDK client through `AnthropicProvider.bind_sdk_client` — the network
+    guard refuses anything else.
+    """
+    monkeypatch.setenv("LLM_MODE", "mock")
 
 
 @pytest.fixture(autouse=True)

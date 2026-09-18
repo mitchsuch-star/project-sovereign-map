@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "description": "IQ-9 Tier B: the below-gate phrasing set (recon §4.7 R7–R14). Each row names its cassette and the parse fields it expects, in the golden corpus's `expected` vocabulary; the executor-dispatch assertions live in tests/test_iq9_keyless_parser_gate.py::TestBelowGatePhrasings. The recorder's --phrasings flag records this set.",
+  "entries": [
+    {
+      "id": "below-gate-get-after",
+      "utterance": "Ney, get after Mack",
+      "world": "1805",
+      "cassette": "below-gate-get-after",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Mack",
+        "strategic_type": null
+      }
+    },
+    {
+      "id": "below-gate-keep-an-eye",
+      "utterance": "Davout, keep an eye on Mack",
+      "world": "1805",
+      "cassette": "below-gate-keep-an-eye",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "action": "scout",
+        "target": "Swabia"
+      }
+    },
+    {
+      "id": "backlog-make-your-way",
+      "utterance": "Lannes, make your way to Swabia",
+      "world": "1805",
+      "cassette": "backlog-make-your-way",
+      "expected": {
+        "success": true,
+        "marshal": "Lannes",
+        "action": "move",
+        "target": "Swabia",
+        "strategic_type": "MOVE_TO"
+      }
+    },
+    {
+      "id": "diplomatic-ask-austria",
+      "utterance": "ask Austria what they want",
+      "world": "1805",
+      "cassette": "diplomatic-ask-austria",
+      "expected": {
+        "success": true,
+        "action": "diplomatic_proposal",
+        "type": "diplomatic",
+        "diplo": {
+          "action": "diplomatic_proposal",
+          "target_nation": "Austria",
+          "proposal_type": "peace"
+        }
+      }
+    },
+    {
+      "id": "cr2-unresolved-address",
+      "utterance": "Zorglub, attack Mack",
+      "world": "1805",
+      "cassette": "cr2-unresolved-address",
+      "expected": {
+        "success": false,
+        "error_contains": "Zorglub"
+      },
+      "notes": "MEASURED: the model answers marshals=[] but the deterministic addressed-token guard outranks it — the live road ends in the CR-2 unknown_name clarification, the same question the mock road asks."
+    },
+    {
+      "id": "demonym-harass",
+      "utterance": "Murat, harass the Austrians",
+      "world": "1805",
+      "cassette": "demonym-harass",
+      "expected": {
+        "success": true,
+        "marshal": "Murat",
+        "action": "attack",
+        "target": null
+      }
+    },
+    {
+      "id": "gibberish-berthier",
+      "utterance": "flurble the wibble",
+      "world": "1805",
+      "cassette": "gibberish-berthier",
+      "expected": {
+        "success": false
+      }
+    },
+    {
+      "id": "aggressive-plain",
+      "utterance": "Ney, hit the Prussians hard",
+      "world": "1805",
+      "cassette": "aggressive-plain",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "attack",
+        "target": null
+      }
+    }
+  ]
+}

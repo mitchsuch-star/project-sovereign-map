@@ -56,8 +56,8 @@
 > | 7 | ~~**IQ-7 THE SATELLITES HAVE A POSITION**~~ | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ✅ **CLOSED September 16, 2026**. The premise had FLIPPED: after IQ-3 a commanded France at peace lost **2 / 3 / 3** satellites to the −2 drift. "The Client's Petition": a loyal satellite petitions for a province or tribute relief while it is still loyal; granting binds it, refusing spends its standing. GRANT holds **3 / 3 / 3** at turn 40 with 0 rebellion modals, REFUSE **0 / 0 / 0** by turns 21–23. Pillar vassals 6.5 → 7.0 ⚠ FOR USER CONFIRMATION. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.6 |
 > | 8 | ~~**IQ-8 THE HARNESS TELLS THE TRUTH**~~ | the instrument mis-records its own board | PR-X5, PR-D4 | ✅ **CLOSED September 18, 2026.** The hash seed does NOT move the board (the one order-dependent site was a naval display walk, now sorted — two processes at hash seeds 0 and 1 write byte-identical jsonl); PR-D4 closes as cause unrecoverable, its 20 / 24 / 22 row UNCITABLE under the new table rule; PR-X5 closed behind five driver levers — `meta.json` names what was REQUESTED and what was RESOLVED (seed, dice, scenario, map, env after import, platform, git commit + dirty + an LF-normalised content hash) and counts AP: **85 / 80 / 76 of 160 spent, France 28 / 28 / 29** on the IQ-8 archives. IQ6-X1 (the rotation resets at the world's creation) and IQ6-D4 (the `france_soil` arm restores the scene-4 positive) closed here. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.7; rules `SYSTEMS_REFERENCE.md` §47 |
 > | — | **VD-C THE CONTINGENT** (`VASSAL_DEEPENING_SPEC.md` §9) | a loyal satellite fields no men; VS-4's "its regiments hold back" has nothing to withhold | IQ-7's design 2, routed | the first vassal slice after row IQ closes — taken at the IQ exit review |
-> | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | ▶ **NEXT** — recon done and the contract ruled (September 16): replay at `messages.create` through the SDK-client seam, authored cassettes, the T0 suite floor (`LLM_MODE=mock` autouse + a loopback-only network guard) lands FIRST |
-> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
+> | 9 | ~~**IQ-9 THE KEYLESS PARSER GATE**~~ | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | ✅ **CLOSED September 18, 2026.** ONE seam (`AnthropicProvider.bind_sdk_client`), seventeen authored cassettes replayed at `messages.create`, the T0 floor (module-level `LLM_MODE=mock` + the loopback-only network guard — three test ids had been escalating to the REAL API on an anthropic `.env`), 112 keyless pins that each count live calls, `parser_eval --replay`. Routed IQ9-X1..X3 to CR-6 proper. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.8; rules `SYSTEMS_REFERENCE.md` §48 |
+> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ▶ **NEXT** (recon done September 17: ~45 owed renders, 24 IQ-row surfaces pinned to key + producer; a generic offscreen capture harness is the build) — ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
 >
 > ---
 >
@@ -269,7 +269,7 @@
 >
 > **Evidence:** the `--llm anthropic` arm is the only check on the escalation
 > path and it cannot run in CI or in a keyless environment; it could not run
-> this session and is recorded as NOT RUN. The golden corpus (681/681) covers
+> this session and is recorded as NOT RUN. The golden corpus (686/686 — the row's build measured the count; "681" was stale) covers
 > the fast parser only. **Completion:** a recorded-response replay gate that
 > exercises the escalation path deterministically without a key, wired into the
 > suite, with a stated list of what it does and does not cover.
@@ -285,6 +285,42 @@
 > one — and carries every open visual sign-off with it. **Completion:** a Mode
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
+
+> ## ▶ IQ-9 "THE KEYLESS PARSER GATE" — LANDED September 18, 2026. **ROW IQ-9 IS CLOSED.**
+>
+> Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.8, authoritative; rules =
+> `SYSTEMS_REFERENCE.md` §48; the parse pipeline's technical record =
+> `COMMAND_ROBUSTNESS_SPEC.md` §9; the operator's half = `docs/PLAYTESTING.md`
+> ("Recording parser cassettes").
+>
+> **The finding was wider than "no gate".** The two production functions of the
+> escalation path were referenced by ZERO test files, and **three test ids built
+> env-derived clients that escalated to the real API on any checkout whose `.env` said
+> `LLM_MODE=anthropic`** — the suite was keyless by discipline, not by construction
+> (measured 3 of 3 before, 0 after). The T0 floor landed FIRST: `LLM_MODE=mock` as a
+> MODULE-LEVEL assignment in `tests/conftest.py` (an autouse fixture alone leaves
+> `backend.main`'s import-time parser singleton live) plus the autouse pin, and a network
+> guard at conftest import that refuses everything but loopback.
+>
+> **Built:** ONE production seam, `AnthropicProvider.bind_sdk_client` (`_client()`
+> untouched); `tests/_parser_replay.py` (a miss is a `BaseException` — an `Exception`
+> miss is swallowed into a green fallback, proven; the key is `(kind, utterance, world)`,
+> never the prompt hash; every replayed call's invariants checked); seventeen AUTHORED
+> cassettes + manifest + the below-gate phrasing set; the opt-in recorder the USER runs
+> (~17 calls); `parser_eval --replay`. **112 keyless pins, each counting live calls**:
+> the four `live_only` corpus rows, the below-gate phrasings through parse AND
+> `POST /command`, the CR-5 arms, sixteen response shapes, nine typed API errors, the
+> CR-2 retry, Berthier's second call, the transport tier through the real SDK, hygiene
+> (an AST census over `tests/` including `tests/helpers/`, which the first cut missed).
+> Corrected by measurement: the guard surfaces as `APIConnectionError` with the
+> `RuntimeError` as `__cause__`; S3 needs the SDK's lenient `construct`; "Zorglub" ends
+> in the CR-2 clarification; sweep row 22 was inert by construction.
+>
+> **Routed (pinned as current behaviour by name):** IQ9-X1 the CR-2 retry cannot
+> rescue the word-scan family, IQ9-X2 the fuzzy suggestion names a fogged enemy, IQ9-X3
+> a live-road failure stamps `parse_mode: "mock"` — all to CR-6 proper. Corpus count
+> corrected 681 → 686. Sweep 24 of 24 killed, 0 INERT; the six CR/parse files 1,049; zero `.gd`, zero
+> new fields. **NEXT = IQ-10.**
 
 > ## ▶ IQ-8 "THE HARNESS TELLS THE TRUTH" — LANDED September 18, 2026. **ROW IQ-8 IS CLOSED.**
 >
