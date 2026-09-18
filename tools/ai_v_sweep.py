@@ -74,6 +74,9 @@ SWEEP_SEEDS = [
 ]
 ARM_B_SEEDS = ["historical", "ulm", "austerlitz", "jena"]
 SCRIPTED_SEEDS = ["historical", "ulm", "austerlitz"]
+# The scripted arms `--script` accepts ("" = ambient). IQ-8 item 9 (IQ6-D4):
+# `france_soil` is `france` plus the scene-4 SOIL mark at turn 11.
+SCRIPT_ARMS = ("", "france", "france_soil")
 
 # §4.6a beats + the Stage E pair (intent.NARRATION_EXEMPT_EVENT_TYPES is
 # the production copy; the sweep keeps its own list so a production edit
@@ -645,8 +648,25 @@ class FranceScript:
     documented fixture idioms; every step logs its honest result.
     """
 
-    def __init__(self):
+    # IQ-8 item 9 (IQ6-D4, September 18, 2026): the soil the scene-4
+    # staging hands to France's bloc at turn 11 — a NON-CAPITAL Russian
+    # homeland province (Vilna is the capital on this board; a lost capital
+    # would promote Revanche and shut the door through the REVANCHE clause).
+    # Lithuania is the example IQ6-D4 itself named; one province stays
+    # below EMERGENT_DESIGN_MIN_LOST so no emergent design promotes.
+    SOIL_MARK_REGION = "Lithuania"
+    SOIL_MARK_HOLDER = "France"
+
+    def __init__(self, stage_soil: bool = False):
         self.log = []
+        # `--script france_soil`: the SAME schedule plus the soil mark at
+        # turn 11, so the Tilsit volte-face fires on the ORDINARY predicate
+        # (IQ-6 V3 `THE_DEFEAT_IS_THE_SOIL`). `--script france` plays the
+        # SAME GAME it played before IQ-8 (its watch note merely gains a
+        # `soil=` reading): the assurance suite's re-worded negative
+        # (`test_staged_exhaustion_tilsit_no_longer_reverses`) pins that
+        # exhaustion alone never opens the door.
+        self.stage_soil = bool(stage_soil)
 
     def _record(self, turn, step, result):
         entry = {"turn": turn, "step": step}
@@ -679,14 +699,18 @@ class FranceScript:
                 _has_pending_proposal_from,
             )
             from backend.game_logic.emergent_designs import (
+                _lost_homeland,
                 volte_face_receptive,
             )
+            # IQ-8 item 9: the watch also reads the SOIL (the mark the
+            # ordinary predicate accepts), beside the retired WE figure.
             self._record(turn_index, "volte watch", (
                 f"receptive={volte_face_receptive(world, 'Russia', player)} "
                 f"pending={_has_pending_proposal_from('Russia', world)} "
                 f"state={world.get_diplomatic_state('Russia', player)} "
                 f"we={world.war_exhaustion.get('Russia')} "
-                f"rel={world.nation_relations.get(world._make_diplo_key(player, 'Russia'))}"))
+                f"rel={world.nation_relations.get(world._make_diplo_key(player, 'Russia'))} "
+                f"soil={_lost_homeland(world, 'Russia')}"))
 
     # -- schedule ------------------------------------------------------
     # Ambient facts that shape the clock (measured, sweep run 1): Austria
@@ -815,6 +839,23 @@ class FranceScript:
             world._make_diplo_key("France", "Russia")] = 45
         world.invalidate_bloc_members_cache()
         self._record(turn, "stage courted defeat (Russia)", "staged")
+        if self.stage_soil:
+            # IQ-8 item 9 (IQ6-D4): the defeat SHOWS ON THE MAP — one
+            # Russian homeland province in France's bloc's hands, the
+            # reading `emergent_designs._lost_homeland` makes and the only
+            # mark the ordinary predicate accepts since IQ-6 V3 retired the
+            # exhaustion arm. The WE 80 above is now inert by design (R49
+            # sheds it and the tick decays it; the watch shows both).
+            region = world.regions[self.SOIL_MARK_REGION]
+            prior = getattr(region, "controller", None)
+            region.controller = self.SOIL_MARK_HOLDER
+            # Region control changed: the active-nations invalidation
+            # chains into the bloc/agenda/intent caches.
+            world.invalidate_active_nations_cache()
+            from backend.game_logic.emergent_designs import _lost_homeland
+            self._record(turn, "stage soil mark (Russia)", (
+                f"{self.SOIL_MARK_REGION}: {prior} -> {self.SOIL_MARK_HOLDER}; "
+                f"lost_homeland={_lost_homeland(world, 'Russia')}"))
         self._install_phase_spy()
 
     def _install_phase_spy(self):
@@ -964,7 +1005,10 @@ def run_one(seed: str, ambient_base: int, turns: int,
     game_state = {"world": world, "executor": executor}
 
     capture = RunCapture(world)
-    france_script = FranceScript() if script == "france" else None
+    if script not in SCRIPT_ARMS:
+        _die(f"unknown --script {script!r}; one of {sorted(SCRIPT_ARMS)}")
+    france_script = (FranceScript(stage_soil=(script == "france_soil"))
+                     if script else None)
 
     digest = {
         "meta": {
@@ -1207,13 +1251,18 @@ def run_all(out_dir: Path, turns: int, acceptance_n: int) -> dict:
               f"{json.dumps(arm_c[f'{index:02d}_{seed}_k{k}'])[:200]}")
     summary["arm_c"] = arm_c
 
-    # Arm (b) — the scripted France.
+    # Arm (b) — the scripted France. IQ-8 item 9 (IQ6-D4): both scripted
+    # arms run — `france` (exhaustion alone; the door must stay shut) and
+    # `france_soil` (the soil mark; the door opens on the ordinary
+    # predicate) — keyed `<seed>` and `<seed>/soil`.
     arm_scripted = {}
-    for seed in SCRIPTED_SEEDS:
-        digest = spawn_run(seed, AMBIENT_K, turns, script="france",
-                           json_out=out_dir / f"armb_scripted_{seed}.json")
+    for seed, script in [(s, a) for s in SCRIPTED_SEEDS
+                         for a in ("france", "france_soil")]:
+        key = seed if script == "france" else f"{seed}/soil"
+        digest = spawn_run(seed, AMBIENT_K, turns, script=script,
+                           json_out=out_dir / f"armb_scripted_{key.replace('/', '_')}.json")
         derived = digest["derived"]
-        arm_scripted[seed] = {
+        arm_scripted[key] = {
             "script_log": digest.get("script_log", []),
             "beats": derived["beats"],
             "crisis_passed": derived["crisis_passed"],
@@ -1224,8 +1273,9 @@ def run_all(out_dir: Path, turns: int, acceptance_n: int) -> dict:
             "volte_faces": len(derived["volte_faces"]),
             "proposals_to_france": len(derived["proposals_to_france"]),
         }
-        print(f"ARM (b) {seed}: beats={derived['beats']} "
-              f"crisis_passed={len(derived['crisis_passed'])}")
+        print(f"ARM (b) {key}: beats={derived['beats']} "
+              f"crisis_passed={len(derived['crisis_passed'])} "
+              f"volte_faces={len(derived['volte_faces'])}")
     summary["arm_scripted"] = arm_scripted
 
     (out_dir / "summary.json").write_text(

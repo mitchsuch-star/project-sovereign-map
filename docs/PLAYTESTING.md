@@ -179,14 +179,81 @@ invocations of the same script at the same seed produce **byte-identical
 digests** (verified at landing). `meta.json` records the scheme and the
 hash seed under `"rng"`.
 
+**Byte-identical across hash seeds (IQ-8, September 17, 2026).** Until IQ-8
+the honest wording was *byte-identical at one hash seed; same board across
+seeds*: measured on 12- and 40-turn commanded runs and 20-turn ambient runs at
+`PYTHONHASHSEED` 0, 1, 7 and 12345, every treasury, province, threat and army
+figure was identical, and the only thing that moved was the ORDER of a
+`strait_open` rail row inside one turn — `naval._tracked_links_for` walked a
+frozenset, so the emission order of the strait flips (and the key order of the
+saved `fleets["__naval__"]["verdicts"]`) followed `str` hashing. The walk is
+sorted now, and `digest.jsonl` at hash seeds 0 and 1 is the same file (pinned:
+`tests/test_iq8_the_harness_tells_the_truth.py::TestCrossHashSeedSentinel`). The
+re-exec pin stays: a hash-order mechanic the sentinel has not met would still
+be pinned to one order, and the sentinel is what would find it.
+
 Scope: **Mode A only, mock parser only.** `--http` (Mode B) drives a
 separate server process whose RNG the driver cannot reach, and a
 `--llm anthropic` run varies with the live parser — both stamp a
 `NONDETERMINISTIC` banner in `meta.json`. Trust the banner.
 
+### Provenance — what a run asked for, what it played, and on what (IQ-8)
+
+PR-D4 (a published table that did not reproduce) could not be root-caused,
+because the run behind it had no archive and no `meta.json` of the day could
+have answered the question anyway. Since IQ-8 every run's `meta.json` carries
+four blocks, and the digest header prints the second and third:
+
+| block | what it holds |
+|---|---|
+| `requested` | `seed`, `scenario`, `from_save`, `llm` — what the flags, the script and the defaults ASKED for. On a `--from-save` run with no seed asked, `seed` is `""`: the save decides. |
+| `resolved` | what the world IS, read after `/new_game` or `/load` returned: `campaign_seed`, `scenario_name`, `sovereign_map`, `regions`, `player_nation`, `boot_turn`, `dice_label` (the label every module-RNG reseed uses), and `env` — the game-shaping variables read AFTER `import backend.main`. A default run requests scenario `""` and resolves `The Third Coalition, 1805`. |
+| `platform` | `python`, `implementation`, `os`, `machine`, `pythonhashseed`. |
+| `engine_revision` | `git_commit` + `dirty` (scoped to `backend/`, the driver and the map folder) when git can answer, else `"unknown"` / `null`; and always `content_hash` — sha256 over every `backend/**/*.py`, the map registry and the two scenario JSONs, line endings normalised to LF — which needs no git at all. |
+
+The header lines read `- played: board … · campaign seed … · dice …` and
+`- platform: CPython 3.13.12 · Windows-… · PYTHONHASHSEED 0 · engine … · content … · driver …`.
+
+Four more rules landed with it (each behind a flip lever in the driver):
+
+* **The save owns its seed.** A `--from-save` run plays the save's campaign
+  seed and its module dice follow it. An explicit seed (flag or script key)
+  that differs is honoured for the dice only, recorded as
+  `resolved.dice_label` beside `resolved.campaign_seed`, and the header carries
+  a `⚠ WARNING — two seeds` line naming both. Before IQ-8, `--from-save
+  fixture_t10 --seed austerlitz` recorded `"seed": "austerlitz"` while the
+  world played `historical`, and a flagless load of a `marengo` save rolled
+  `historical` dice — a silent hybrid either way.
+* **The driver SETS the board variables; it never pops them.**
+  `SOVEREIGN_SCENARIO=""`, `SOVEREIGN_SMOKE_START=""`, `SOVEREIGN_MAP=europe`
+  are set before the import. `load_dotenv()` fills every variable that is not
+  PRESENT, so the old pop was undone by any repo `.env` that named one; a
+  present variable is never overridden. `resolved.env` records what the engine
+  actually read.
+* **`driver_revision` is LF-normalised.** One commit used to stamp two values
+  (CRLF on Windows, LF on Linux). ⚠ **This changed every stamp once**: an
+  archive dated before September 17, 2026 carries the RAW-bytes hash. To
+  attribute one, hash a commit's driver in the line ending of the machine that
+  ran it — `cmd-*` / `fix-cmd-*` (Linux, LF) stamp `9f00997bc24a` = the driver
+  of `4094eb4a`; `iq7-*` (Windows, CRLF) stamp `edb714263e80` = the driver of
+  `7d10e20c`, which is `56e82b4305cd` normalised.
+* **Action points are counted.** `counters.ap_available` (each played turn's
+  `actions_remaining` when first seen), `ap_spent` (available − what was left
+  when the turn ended; a turn the engine auto-ended ended at 0) and
+  `cmd_refused` (orders the backend refused, as the jsonl records them). Fed by
+  the turn-start and pre-`end turn` `GET /ledger` reads the driver already
+  makes and by every POST response's `action_summary`. Admin actions are a
+  separate pool and are not counted.
+
+**The table rule (binding since IQ-8).** A measured table in this page, a memo
+or a spec carries, per row: **platform** (OS + CPython version), **engine
+commit** (+ dirty), **`PYTHONHASHSEED`**, **the flags beyond the script**, and
+**the archived digest names**. A figure with no archive is **UNCITABLE** — it
+may be quoted as history, never as a measurement.
+
 **The archive is the citable record.** `tools/playtest_runs/` is gitignored
 and overwritten — a digest there is a local artifact, not evidence. Run
-with `--archive` to copy `digest.md` + `meta.json` to
+with `--archive` to copy `digest.md` + `meta.json` (+ `digest.jsonl`) to
 `docs/audits/playtest_digests/<name>/` (committed). **A memo may only cite
 an archived digest** — a memo citing an unarchived digest is citing
 nothing (the WO memos' own lesson; their surviving digests were archived
@@ -273,7 +340,9 @@ for a reader of digests:
 * **`meta.driver_revision`** — a content hash of the driver that produced
   the run. The nine pre-slice `audit-*` digests were NOT re-archived; they
   stand as evidence of the driver they name, and this stamp is the
-  attribution going forward.
+  attribution going forward. ⚠ Since IQ-8 (September 17, 2026) the hash is
+  of the LF-normalised driver; older archives carry the raw-bytes hash (see
+  *Provenance* above for how to attribute one).
 
 ### The COMMANDED arm and `--declare-war` (FA-S17-D6, September 12, 2026)
 
@@ -284,7 +353,8 @@ measure a France that has **stopped being played** — which is why the FA-D27
 re-open condition could not be read on them. Two things changed:
 
 * **`tools/playtest_scripts/commanded_full40.json`** — the committed COMMANDED
-  arm. Forty loops, four military actions every turn, 160 of 160 AP: it fights
+  arm. Forty loops of four scripted lines (160 lines, 18 of them free
+  `status` reads — never "160 of 160 AP", see below): it fights
   the opening campaign, keeps its corps concentrated, recruits, and answers the
   table. Pair it with `--diplomacy accept`. It deliberately never orders an
   attack on a court France has just signed with.
@@ -302,48 +372,64 @@ re-open condition could not be read on them. Two things changed:
   `--declare-war proceed` ran `cancel` — and its `meta.json` said so. A
   script's own `"policy": {"declare_war": "proceed"}` did work.
 
-Measured on the commanded arm, three seeds, boot 28 provinces each:
+Measured on the commanded arm, three seeds, boot 28 provinces each — France's
+provinces at turn 40, **one row per measurement, every row carrying its
+provenance** (the IQ-8 table rule, *Provenance* above). All rows are forty loops
+of `commanded_full40.json`, mock parser, Mode A; "flags" are the flags beyond the
+script's own keys.
 
-| seed | Sept 12 (authoring platform) | Sept 12 re-measure (Linux, same commit) | after PR-1 |
-|---|---|---|---|
-| historical | 20 | **23** | **29** |
-| austerlitz | 24 | **24** | **20** |
-| marengo | 22 | **21** | **21** |
+| measurement | historical | austerlitz | marengo | platform | engine | `PYTHONHASHSEED` | flags | archive |
+|---|---|---|---|---|---|---|---|---|
+| Sept 12, published (FA-S17-D6) | 20 | 24 | 22 | unrecorded | unrecorded | unrecorded | unrecorded | **UNCITABLE — no archive** |
+| Sept 12 re-measure (playtest re-score) | 23 | 24 | 21 | Linux, CPython 3.11 | the driver of `4094eb4a` (stamp `9f00997bc24a`); engine commit unrecorded | `0` | `--diplomacy accept` | `cmd-historical`, `cmd-austerlitz`, `cmd-marengo` |
+| Sept 12, after PR-1 | 29 | 20 | 21 | Linux, CPython 3.11 | the same driver + the PR-1 fix, uncommitted at run time; engine commit unrecorded | `0` | `--diplomacy accept` | `fix-cmd-historical`, `fix-cmd-austerlitz`, `fix-cmd-marengo` |
+| Sept 16, IQ-7 grant (petitions granted) | 28 | 28 | 29 | Windows 11, CPython 3.13 | the tree landing IQ-7, `7d10e20c` (driver stamp `edb714263e80`, CRLF) | `0` | `--diplomacy accept` | `iq7-grant-historical`, `iq7-grant-austerlitz`, `iq7-grant-marengo` |
+| Sept 16, IQ-7 refuse | 29 | 29 | 29 | Windows 11, CPython 3.13 | as above | `0` | `--diplomacy accept --client-petition refuse` | `iq7-refuse-historical`, `iq7-refuse-austerlitz`, `iq7-refuse-marengo` |
+| **Sept 17, IQ-8** | **28** | **28** | **29** | Windows 11, CPython 3.13.12 | `7d10e20c` + the uncommitted IQ-8 tree (content `457e8f82bc61`, driver `641a9fcf2c43`) | `0` | `--diplomacy accept` | `iq8-cmd-historical`, `iq8-cmd-austerlitz`, `iq8-cmd-marengo` |
 
-⚠ **The middle column does not reproduce the first, and the cause is not
-isolated** (playtest re-score, September 12 2026 — `DESIGN_REFINEMENT.md`
-PR-D4). Mode A is deterministic on both platforms and `BASELINE_SERIES` passes
-byte-identically on Linux, so the ambient board is platform-stable and this is
-not a general engine divergence; the Windows arm could not be re-run from the
-measuring environment. **The ruling's conclusion survives every reading: 0 of 3
-seeds below 20 provinces at turn 40.** Cite the column whose platform you are
-on, and say which.
+⚠ **The first row is UNCITABLE, and PR-D4 is CLOSED as "cause unrecoverable, no
+archive"** (`DESIGN_REFINEMENT.md`, IQ-8). No digest, `meta.json` or driver stamp
+exists for it, and no `meta.json` of that day could have named its tree, platform or
+invocation. What IS measured: the hash seed does not move this board (12- and
+40-turn commanded runs at `PYTHONHASHSEED` 0, 1, 7 and 12345 carry identical
+figures; *Determinism* above), so the gap between rows 1 and 2 is not hash order.
+**The ruling's conclusion survives every row: 0 of 3 seeds below 20 provinces at
+turn 40.** Cite a row by its archive, and say which.
 
-**Re-dated by IQ-7 (September 16, 2026; Windows 11, CPython 3.13, `PYTHONHASHSEED=0`,
-the tree that lands IQ-7; archived `docs/audits/playtest_digests/iq7-*`).** The
-same arm now answers the satellites' petitions (`--client-petition` absent →
-mirrors `--diplomacy accept` = grant): **28 / 28 / 29** provinces at turn 40
-(Tyrol ceded to the Kingdom of Italy through a petition on two seeds) with all
-three satellites held. `--client-petition refuse` gives **29 / 29 / 29** with all
-three lost by turns 21–23. The four IQ-7 levers down (in-process) give the
-pre-IQ-7 board, **29** on historical, satellites lost at turns 29–31
-(`iq7-control`). Before IQ-7 on the post-IQ-3 tree: **29 / 29 / 29**, satellites
-lost 2 / 3 / 3 by turns 30–33.
+The IQ-7 rows answer the satellites' petitions (`--client-petition` absent →
+mirrors `--diplomacy accept` = grant): Tyrol ceded to the Kingdom of Italy through a
+petition on two seeds, all three satellites held; `refuse` loses all three by turns
+21–23. The four IQ-7 levers down (in-process) give **29** on historical, satellites
+lost at turns 29–31 (`iq7-control`, same platform and flags). The pre-IQ-7 figure the
+IQ-7 memo contrasts against — **29 / 29 / 29** on the post-IQ-3 tree, satellites lost
+2 / 3 / 3 by turns 30–33 — was measured and **not archived: UNCITABLE as a table
+row**. The IQ-8 row IS the IQ-7 grant board: each `iq8-cmd-*` jsonl holds exactly
+the lines of its `iq7-grant-*` twin (729 / 751 / 747, all 40 ledger records
+identical) and differs only in two `strait_open` rows — the rail line and its
+`dispatch_row` — swapping places inside one turn, which is the naval sort.
 
-⚠ **"four military actions every turn, 160 of 160 AP" is the SCRIPT'S LINE
-COUNT, not the campaign.** Measured from the three digests' own end-turn
-warnings: **81 / 77 / 75** of 160 action points actually spent, with an
-unused-action warning on **36 / 37 / 37** of 40 turns, because 35–38% of the
-orders are refused (stance locks, fortification state, a court France has just
-signed with). That is still a large improvement on the Phase-3 scripts' 9–22,
-and a France played at half strength still holds 20–29 provinces — which
-strengthens the ruling rather than weakening it. But do not quote 160/160.
+⚠ **"four military actions every turn, 160 of 160 AP" was the SCRIPT'S LINE COUNT,
+never a measurement** — the driver had no action-point counter until IQ-8, and the
+script's 160 lines include 18 free `status` reads. Since IQ-8, `meta.json` counts
+them: on the IQ-8 row, **85 / 80 / 76** of
+**160 / 160 / 160** action points spent, with
+**52 / 51 / 57** of 200 commands refused (`counters.ap_spent`,
+`ap_available`, `cmd_refused`). The Sept 12 figures — **81 / 77 / 75** spent — were
+hand-summed from the archived end-turn warnings (`cmd-*`) and reproduce exactly from
+them; they assume every turn starts at 4 AP, which the counter does not. Refusals
+are stance locks, fortification state and a court France has just signed with. A
+France played at half strength still holds 20–29 provinces, which strengthens the
+ruling rather than weakening it. Do not quote 160/160.
 
 ⚠ **Honest limit.** On the historical seed four French marshals are destroyed
 between turns 30 and 37, so the arm's last ten turns spend roughly half their
 orders on dead men and measure a smaller France than the script intends.
 **`Fr@30` is the sounder read on this arm**; a script that re-commissions from
-the Marshalate bench would fix it and does not exist yet.
+the Marshalate bench would fix it and does not exist yet. ⚠ **Dated by IQ-8:**
+this was read off the Sept 12 published run, which has no archive — none of the
+archived historical runs in the table (`cmd-historical`, `fix-cmd-historical`,
+`iq8-cmd-historical`) logs a destroyed French marshal, so the limit is UNCITABLE
+until a run that shows it is archived.
 
 ~~⚠ `--declare-war` is INERT on this arm.~~ **STRUCK September 14, 2026
 (IQ-3): the identical outcomes were the dead flag, not the script.** With the
@@ -601,10 +687,16 @@ types with an applied tick on every seed**; the control arm (no
 `tests/fixtures/playtest_saves/` — committed, loadable via
 `--from-save`:
 
-| file | state |
-|---|---|
-| `fixture_t10_ambient.json` | turn 10, seed `historical`, ambient France — the boot war developed on its own |
-| `fixture_t20_ambient.json` | turn 20, same run — late-war shape (blockade bite, exhaustion, offers) |
+| file | state | generated at |
+|---|---|---|
+| `fixture_t10_ambient.json` | turn 10, seed `historical`, ambient France — the boot war developed on its own | `1aa005a2` (Aug 15, 2026), `tools/gen_playtest_fixtures.py` |
+| `fixture_t20_ambient.json` | turn 20, same run — late-war shape (blockade bite, exhaustion, offers) | `1aa005a2` (Aug 15, 2026), same run |
+
+Not a measurement — a starting state. It is dated by the commit that
+generated it because a regeneration changes it: a fixture is the board of the
+engine that wrote it, played on by the engine that loads it. A `--from-save`
+run plays the save's own campaign seed (IQ-8); both fixtures carry
+`historical`.
 
 Regenerate (after a `FORMAT_VERSION` bump or a serialization change
 `from_dict` can't default — or to refresh to a new balance state):
@@ -691,19 +783,29 @@ only the screen can verify.
 
 | var | effect | driver default |
 |---|---|---|
-| `SOVEREIGN_SEED` | campaign seed (authored variance bands; `historical`/unset = the byte-pinned boot) | `historical` |
+| `SOVEREIGN_SEED` | campaign seed (authored variance bands; `historical`/unset = the byte-pinned boot) | `historical`; on `--from-save`, the save's own seed (IQ-8) |
 | `LLM_MODE` | `mock` (deterministic, free) / `anthropic` (live parse, needs key) | `mock` |
 | `SOVEREIGN_PORT` | backend port AND client origin (both read it) | — (in-process) |
 | `INK_IRON_SAVE_DIR` | where saves land — the driver sandboxes this per run | run dir |
 | `DEBUG_MODE` | `true` arms cheat commands (the shipped default is off) | `false` (`--cheats` flips) |
-| `SOVEREIGN_SCENARIO` | explicit scenario path / `none` = bare flag world — the driver POPS it (ambient leaks reshape the boot) | popped |
-| `SOVEREIGN_SMOKE_START` | settlement smoke presets — popped by the driver | popped |
-| `SOVEREIGN_MAP` | `legacy` = 19-region rollback — popped by the driver | popped |
+| `SOVEREIGN_SCENARIO` | explicit scenario path / `none` = bare flag world — the driver SETS it to `""` (the engine's no-op) before the import | `""` |
+| `SOVEREIGN_SMOKE_START` | settlement smoke presets — set to `""` by the driver | `""` |
+| `SOVEREIGN_MAP` | `legacy` = 19-region rollback — set to `europe` by the driver | `europe` |
 | `PYTHONHASHSEED` | `0` for byte-identity work (M1–M7/BASELINE_SERIES idiom) | `0` (the driver re-execs itself with it when unset; recorded in `meta.json`) |
 | `ANTHROPIC_API_KEY` | required by `--llm anthropic`; **without it that arm cannot run at all** and must be reported as NOT RUN rather than skipped | — |
 
 Never set `PYTHONIOENCODING` when running tests (fakes 6 subprocess-test
 errors — standing memory).
+
+⚠ **The driver SETS the three board variables; it never pops them (IQ-8,
+September 17, 2026).** `backend.main` calls `load_dotenv()` at import, and
+dotenv fills every variable that is not PRESENT — so the old pop was undone by
+any repo `.env` that named one (demonstrated: popped → `None`, imported →
+`settlement_losing`). A present variable is never overridden, `""` is the
+engine's own no-op for the scenario and smoke variables, and `europe` is the
+map default (an empty map value would print `[WARN] Unknown SOVEREIGN_MAP`
+on every boot). `meta.json` `resolved.env` records the six variables as the
+engine read them, after the import.
 
 ---
 

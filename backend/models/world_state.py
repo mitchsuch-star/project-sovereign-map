@@ -931,6 +931,16 @@ class WorldState:
                 (Slice 5); WorldState() itself still defaults to legacy so the
                 cutover is a reversible flag flip, not a code change.
         """
+        # IQ-8 item 8 (IQ6-X1): a campaign's creation — new, scenario or
+        # loaded — is where Berthier's after-battle rotation begins. This is
+        # the ONE chokepoint every world passes (`from_scenario` and
+        # `load_game` both reach `from_dict`, which calls `cls(...)`), so an
+        # in-process campaign starts where a fresh process does. Display
+        # only, never serialized (the rule is stated at the lever in
+        # battle_report.py); the reset spends no RNG draw, so M1–M7 and
+        # BASELINE_SERIES are untouched by construction.
+        from backend.game_logic.battle_report import reset_observation_rotation
+        reset_observation_rotation()
         self.player_nation = player_nation
         self.sovereign_map = sovereign_map
         europe = sovereign_map == "europe"

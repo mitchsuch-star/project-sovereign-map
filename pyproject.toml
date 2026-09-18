@@ -1,6 +1,9 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 cache_dir = "pytest_cache_local"
+markers = [
+    "slow: a multi-subprocess driver run (IQ-8's cross-hash-seed sentinel); runs in the default suite",
+]
 
 [tool.ruff.lint]
 # Legacy baseline for the existing backend/tests tree. Keep undefined names

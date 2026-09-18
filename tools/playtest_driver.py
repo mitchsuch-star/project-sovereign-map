@@ -56,6 +56,9 @@ Outputs (under --out, default tools/playtest_runs/<name>/ — gitignored):
   digest.md      the human read — one block per turn
   digest.jsonl   the machine read — one record per event
   meta.json      seed/mode/args/finish state + the RNG record (WO-H slice 1)
+                 + what was requested, what was resolved (the world's own
+                 seed, board and post-import env), the platform, the engine
+                 revision and the action-point counters (IQ-8)
   saves/         the sandboxed SAVE_DIR (autosave + --save-at snapshots)
 
 Determinism (WO-H slice 1, Aug 21 2026 — Mode A ONLY):
@@ -70,6 +73,11 @@ Determinism (WO-H slice 1, Aug 21 2026 — Mode A ONLY):
   * --http (Mode B) drives a SEPARATE server process whose RNG the driver
     cannot reach — Mode B digests carry a "NONDETERMINISTIC" banner in
     meta.json, as does any --llm anthropic run (live parses vary).
+  * IQ-8 (Sept 17 2026): the digest is byte-identical ACROSS hash seeds too
+    — the one hash-ordered walk (`naval._tracked_links_for`) is sorted, and
+    the pin above stays so a new one is still held to one order. A
+    --from-save run plays the SAVE's campaign seed; an explicitly requested
+    seed that differs drives the dice only, and the header says so.
 
 Archiving (WO-H slice 1): tools/playtest_runs/ is gitignored and
 overwritten, so a digest there is a local artifact, not evidence. The
@@ -123,6 +131,353 @@ def seed_module_rng(campaign_seed, world_turn):
     is pinned separately, but the derivation must not depend on it)."""
     digest = hashlib.sha256(f"{campaign_seed}:{world_turn}".encode()).hexdigest()
     random.seed(int(digest, 16) & 0xFFFFFFFF)
+
+# ═══════════════════════════════════════════════════════════════════════
+# Provenance (IQ-8 "The Harness Tells the Truth", September 17, 2026).
+#
+# PR-D4 could not be reproduced OR root-caused: the published commanded table
+# (20 / 24 / 22 provinces, "160 of 160 action points") had no archive, and even
+# an archived meta.json could not have answered the question, because it
+# recorded what a run ASKED for as though it were what the run PLAYED, named no
+# platform and no engine revision, hashed the driver's raw bytes (one commit
+# hashed two ways across a CRLF and an LF checkout), counted no action points,
+# and let a repo `.env` put back the board variables the driver had popped.
+# Each lever below closes one of those. False reproduces the pre-IQ-8 surface
+# byte for byte.
+# ═══════════════════════════════════════════════════════════════════════
+
+# `meta.json` gains `requested` / `resolved` / `platform` / `engine_revision`,
+# and the digest header prints what was played and on what. False = no new
+# keys and the pre-IQ-8 header.
+META_NAMES_WHAT_WAS_PLAYED = True
+# `--from-save` plays the SAVE's campaign seed, and the module dice follow it
+# unless a seed was explicitly requested (flag or script key), in which case
+# the header prints a WARNING naming both. Measured before: `--from-save
+# fixture_t10 --seed austerlitz` recorded `"seed": "austerlitz"` while the world
+# played `historical`, and a flagless load of a `marengo` save rolled
+# `historical` dice — a silent hybrid either way. False = the dice follow the
+# request-or-`historical` exactly as before.
+THE_SAVE_OWNS_ITS_SEED = True
+# The driver SETS the game-shaping variables to their no-op values instead of
+# popping them. `backend.main` runs `load_dotenv()` at import, and dotenv fills
+# every variable that is NOT PRESENT — so a pop was undone by any `.env` naming
+# one (demonstrated: popped → `None`, imported → `settlement_losing`). dotenv
+# never overrides a variable that is present, and the engine reads `""` as unset
+# for the scenario and smoke variables, so the boot is byte-identical. The map
+# is set to `europe`, not `""`: `_resolve_sovereign_map` warns on every boot for
+# an empty value. False = the three pops.
+THE_DRIVER_SETS_THE_BOARD_ENV = True
+# `driver_revision` hashes the driver with its line endings normalised to LF,
+# so a Windows (CRLF) and a Linux (LF) checkout of one commit stamp one value.
+# False = the raw-bytes hash.
+THE_REVISION_IGNORES_LINE_ENDINGS = True
+# `counters.ap_available` / `ap_spent` / `cmd_refused`. "160 of 160 AP" was the
+# script's LINE COUNT, never a measurement — the driver had no AP counter at
+# all. False = the four pre-IQ-8 counters only.
+THE_HARNESS_COUNTS_ACTION_POINTS = True
+
+# The variables that shape the board, recorded AFTER `import backend.main` (so
+# the record is what the engine read, `.env` included).
+BOARD_ENV_KEYS = ("SOVEREIGN_SCENARIO", "SOVEREIGN_SMOKE_START", "SOVEREIGN_MAP",
+                  "SOVEREIGN_SEED", "LLM_MODE", "DEBUG_MODE")
+# What THE_DRIVER_SETS_THE_BOARD_ENV sets. Each is the engine's own no-op:
+# `_resolve_scenario_path` / `_build_new_world` `.strip()` the scenario and the
+# smoke preset and read "" as unset; `europe` is `_resolve_sovereign_map`'s
+# default.
+BOARD_ENV_NO_OPS = (("SOVEREIGN_SCENARIO", ""), ("SOVEREIGN_SMOKE_START", ""),
+                    ("SOVEREIGN_MAP", "europe"))
+# The engine a run is attributed to: every backend module, plus the map
+# registry and the scenarios the driver can boot (`backend.main`'s default and
+# its `/new_game` allowlist). Paths are hashed with their contents, so a moved
+# or added file changes the hash as surely as an edited one.
+ENGINE_CONTENT_DIRS = ("backend",)
+ENGINE_CONTENT_FILES = (
+    "godot-client/project-sovereign/assets/maps/europe.json",
+    "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "godot-client/project-sovereign/assets/maps/tutorial_1805.json",
+)
+ENGINE_CONTENT_SCOPE = ("backend/**/*.py + the map registry + the 1805 and "
+                        "tutorial scenario JSON, line endings normalised to LF")
+# `git status` is scoped to what the engine and the harness are made of, so an
+# edited memo does not mark a run dirty.
+ENGINE_DIRTY_PATHS = ("backend", "tools/playtest_driver.py",
+                      "godot-client/project-sovereign/assets/maps")
+# `WorldState.from_dict`: `str(data.get("campaign_seed") or HISTORICAL_SEED)`.
+SAVE_DEFAULT_SEED = "historical"
+
+
+def lf_bytes(path) -> bytes:
+    """A file's bytes with CRLF normalised to LF — what a hash of a checked-in
+    text file must read, because `core.autocrlf` decides the working-tree
+    endings, not the commit."""
+    return Path(path).read_bytes().replace(b"\r\n", b"\n")
+
+
+def engine_revision() -> dict:
+    """The engine a run was played on: the git commit and a dirty flag when git
+    can answer, else `"unknown"` / `None`; and always a content hash that needs
+    no git at all (an exported snapshot, a zip, a container without `.git`).
+
+    Read-only git: `rev-parse` and a `--no-optional-locks` status, so a run
+    beside another process never takes the index lock."""
+    import subprocess
+    commit, dirty = "unknown", None
+    try:
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(REPO_ROOT),
+                              capture_output=True, text=True, timeout=60)
+        if head.returncode == 0 and head.stdout.strip():
+            commit = head.stdout.strip()
+            status = subprocess.run(
+                ["git", "--no-optional-locks", "status", "--porcelain", "--",
+                 *ENGINE_DIRTY_PATHS],
+                cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60)
+            if status.returncode == 0:
+                dirty = bool(status.stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        commit, dirty = "unknown", None
+    files = []
+    for rel_dir in ENGINE_CONTENT_DIRS:
+        root = REPO_ROOT / rel_dir
+        if root.is_dir():
+            files.extend(p for p in root.rglob("*.py")
+                         if "__pycache__" not in p.parts)
+    files.extend(REPO_ROOT / rel for rel in ENGINE_CONTENT_FILES
+                 if (REPO_ROOT / rel).is_file())
+    content = hashlib.sha256()
+    counted = 0
+    for path in sorted(files, key=lambda p: p.relative_to(REPO_ROOT).as_posix()):
+        content.update(path.relative_to(REPO_ROOT).as_posix().encode("utf-8"))
+        content.update(b"\0")
+        content.update(lf_bytes(path))
+        content.update(b"\0")
+        counted += 1
+    return {"git_commit": commit, "dirty": dirty,
+            "dirty_scope": list(ENGINE_DIRTY_PATHS),
+            "content_hash": content.hexdigest(), "content_files": counted,
+            "content_scope": ENGINE_CONTENT_SCOPE}
+
+
+def platform_block() -> dict:
+    """The interpreter a run was played on."""
+    import platform
+    return {"python": platform.python_version(),
+            "implementation": platform.python_implementation(),
+            "os": platform.platform(),
+            "machine": platform.machine(),
+            "pythonhashseed": os.environ.get("PYTHONHASHSEED", "(unset)")}
+
+
+def board_env_snapshot() -> dict:
+    """The game-shaping environment as the engine will read it. Called AFTER
+    `import backend.main`, so a value `.env` restored is recorded."""
+    return {key: os.environ.get(key) for key in BOARD_ENV_KEYS}
+
+
+def save_campaign_seed(save_path):
+    """The campaign seed a save will play, read off the file BEFORE the load
+    (the boot reseed happens before `/load`), with `WorldState.from_dict`'s own
+    default. None when the file cannot be read — the resolved read after the
+    load then names what was played, and the header warns on any mismatch."""
+    try:
+        data = json.loads(Path(save_path).read_text(encoding="utf-8"))
+        world = data.get("world_state") if isinstance(data, dict) else None
+        if not isinstance(world, dict):
+            world = data if isinstance(data, dict) else {}
+        return str(world.get("campaign_seed") or SAVE_DEFAULT_SEED)
+    except Exception:
+        return None
+
+
+def resolve_seed_plan(args, script: dict) -> dict:
+    """The run's three seeds, decided once, before the backend is imported.
+
+    `requested` — what was asked (flag over script key over the default; on a
+    `--from-save` run under THE_SAVE_OWNS_ITS_SEED the default is `""`, meaning
+    "the save decides"). `dice` — the label every `seed_module_rng` call uses.
+    `env` — the `SOVEREIGN_SEED` the in-process backend boots with."""
+    explicit = args.seed or script.get("seed") or ""
+    if THE_SAVE_OWNS_ITS_SEED and getattr(args, "from_save", ""):
+        save_seed = save_campaign_seed(args.from_save)
+        dice = explicit or save_seed or SAVE_DEFAULT_SEED
+        return {"requested": explicit, "dice": dice,
+                "env": save_seed or dice, "save": save_seed}
+    dice = explicit or "historical"
+    return {"requested": dice, "dice": dice, "env": dice, "save": None}
+
+
+def resolved_block(transport, boot, dice_label) -> dict:
+    """What the run PLAYED, read after `/new_game` or `/load` returned.
+
+    In process, off the world itself. Under `--http` (or a stub transport), off
+    the boot response and `GET /ledger`, which carry everything but the map
+    flag — recorded as None rather than guessed."""
+    out = {"source": None, "campaign_seed": None, "scenario_name": None,
+           "sovereign_map": None, "regions": None, "player_nation": None,
+           "boot_turn": None, "dice_label": dice_label, "env": None}
+    world = getattr(getattr(transport, "backend_main", None), "world", None)
+    if world is not None:
+        out.update({
+            "source": "world",
+            "campaign_seed": str(getattr(world, "campaign_seed", "")),
+            "scenario_name": str(getattr(world, "scenario_name", "")),
+            "sovereign_map": str(getattr(world, "sovereign_map", "")),
+            "regions": len(getattr(world, "regions", {}) or {}),
+            "player_nation": getattr(world, "player_nation", None),
+            "boot_turn": int(getattr(world, "current_turn", 0)),
+        })
+    else:
+        out["source"] = "response"
+        try:
+            state = (boot or {}).get("game_state") or {}
+            summary = (boot or {}).get("action_summary") or {}
+            out["scenario_name"] = state.get("scenario_name")
+            out["player_nation"] = state.get("player_nation")
+            out["regions"] = state.get("total_regions")
+            out["boot_turn"] = summary.get("turn", state.get("turn"))
+            body = (transport.get("/ledger") or {}).get("ledger") or {}
+            out["campaign_seed"] = body.get("campaign_seed")
+        except Exception:
+            pass
+    board_env = getattr(transport, "board_env", None)
+    if board_env is not None:
+        out["env"] = dict(board_env)
+    else:
+        out["env_note"] = ("not recorded: the backend is not this process "
+                           "(--http), so its environment is its own")
+    return out
+
+
+def seed_warning(meta) -> str:
+    """The one-line WARNING a two-seed run carries in its header, or ""."""
+    resolved = meta.get("resolved") or {}
+    world_seed = resolved.get("campaign_seed")
+    if not world_seed:
+        return ""
+    if meta.get("transport") != "in-process":
+        asked = (meta.get("requested") or {}).get("seed")
+        if asked and asked != world_seed:
+            return (f"⚠ WARNING — two seeds: the server plays campaign seed "
+                    f"`{world_seed}`; the requested seed `{asked}` reaches no "
+                    f"die (Mode B cannot seed the server's RNG).")
+        return ""
+    dice = resolved.get("dice_label")
+    if not dice or dice == world_seed:
+        return ""
+    whose = "the save's" if meta.get("from_save") else "the world's"
+    return (f"⚠ WARNING — two seeds: the world plays campaign seed "
+            f"`{world_seed}` ({whose}); the module dice follow `{dice}`. World "
+            f"jitter and tiebreaks follow the first and every die the driver "
+            f"reseeds follows the second — a hybrid, a replay of neither.")
+
+
+def provenance_lines(meta) -> list:
+    """The header lines that say what was played and on what."""
+    lines = []
+    resolved = meta.get("resolved") or {}
+    if resolved:
+        board = resolved.get("scenario_name") or "(an unnamed world)"
+        lines.append(
+            f"played: board `{board}` · map `{resolved.get('sovereign_map')}` "
+            f"({resolved.get('regions')} provinces) · "
+            f"{resolved.get('player_nation')} from turn "
+            f"{resolved.get('boot_turn')} · campaign seed "
+            f"`{resolved.get('campaign_seed')}` · dice "
+            f"`{resolved.get('dice_label')}`")
+    plat = meta.get("platform") or {}
+    rev = meta.get("engine_revision") or {}
+    if plat or rev:
+        commit = rev.get("git_commit") or "unknown"
+        short = commit if commit == "unknown" else commit[:12]
+        dirty = rev.get("dirty")
+        flag = (" (dirty)" if dirty is True else "" if dirty is False
+                else " (dirty: unknown)")
+        lines.append(
+            f"platform: {plat.get('implementation')} {plat.get('python')} · "
+            f"{plat.get('os')} ({plat.get('machine')}) · PYTHONHASHSEED "
+            f"`{plat.get('pythonhashseed')}` · engine `{short}`{flag} · "
+            f"content `{str(rev.get('content_hash') or '')[:12]}` · driver "
+            f"`{meta.get('driver_revision')}`")
+    warning = seed_warning(meta)
+    if warning:
+        lines.append(warning)
+    return lines
+
+
+class ActionPointMeter:
+    """What a run's turns actually had and actually spent, in action points.
+
+    Fed by every POST response (`action_summary` carries the world turn and
+    `actions_remaining` on every one, `build_base_response`) and by the two
+    `GET /ledger` reads the loop already makes — the turn-start read and the
+    read before `end turn`. A turn is counted when it ENDS, as
+    `start − unused`: `start` is its AP the first time it is seen, `unused` the
+    last reading before it ended. `/command` auto-ends a turn only when both AP
+    pools are empty (`WorldState.use_action`'s `should_end_turn`), so a turn the
+    engine advanced for us (`action_info.turn_advanced`) ended with 0 unused,
+    whatever the stale reading before the last order said.
+
+    A turn still open when the run finishes counts only if the loop PLAYED it
+    (a blocked run's last turn). The turn every completed run ends ON — opened
+    by the last `end turn` response and never played — does not.
+
+    Honest limit: a mid-turn refund or grant is netted into `spent`, and admin
+    actions (a separate pool) are not counted at all."""
+
+    def __init__(self):
+        self.available = 0
+        self.spent = 0
+        self.turn = None
+        self.start = 0
+        self.last = 0
+        self.played = False
+
+    @staticmethod
+    def _int(value):
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    def reading(self, turn, ap, auto_advanced=False):
+        turn, ap = self._int(turn), self._int(ap)
+        if turn is None or ap is None:
+            return
+        if self.turn is None:
+            self.turn, self.start, self.last, self.played = turn, ap, ap, False
+        elif turn != self.turn:
+            unused = 0 if auto_advanced else self.last
+            self.available += self.start
+            self.spent += self.start - unused
+            self.turn, self.start, self.last, self.played = turn, ap, ap, False
+        else:
+            self.last = ap
+
+    def turn_start(self, turn, ap):
+        """The loop's turn-start `/ledger` read: this turn is PLAYED."""
+        self.reading(turn, ap)
+        if self._int(turn) is not None and self._int(turn) == self.turn:
+            self.played = True
+
+    def before_end_turn(self, ap):
+        """The `/ledger` read taken just before `end turn` is posted."""
+        if self.turn is not None:
+            self.reading(self.turn, ap)
+
+    def observe(self, path, payload, response):
+        """A `Transport` observer: every POST response the run receives."""
+        if not isinstance(response, dict):
+            return
+        summary = response.get("action_summary")
+        if not isinstance(summary, dict):
+            return
+        info = response.get("action_info")
+        advanced = bool(info.get("turn_advanced")) if isinstance(info, dict) else False
+        self.reading(summary.get("turn"), summary.get("actions_remaining"),
+                     auto_advanced=advanced)
+
+    def snapshot(self) -> dict:
+        available, spent = self.available, self.spent
+        if self.turn is not None and self.played:
+            available += self.start
+            spent += self.start - self.last
+        return {"ap_available": available, "ap_spent": spent}
 
 # ═══════════════════════════════════════════════════════════════════════
 # Answer policy — every default is a DECISION a digest reader can audit.
@@ -644,8 +999,15 @@ def driver_revision() -> str:
     meta.json names. REPRO_L's "archive a fresh digest set" is NOT re-run for
     the nine old `audit-*` digests (they stay as historical evidence with the
     driver that produced them); attributability is met by stamping THIS —
-    a content hash of the driver, deterministic, no git dependency."""
+    a content hash of the driver, deterministic, no git dependency.
+
+    IQ-8: with THE_REVISION_IGNORES_LINE_ENDINGS the bytes are LF-normalised
+    first. Measured before: one commit stamped `45486d028708` on a CRLF
+    checkout and `2756127add4a` on an LF one, so the Linux archives' stamp could
+    never be matched against a Windows run of the same driver."""
     import hashlib
+    if THE_REVISION_IGNORES_LINE_ENDINGS:
+        return hashlib.sha256(lf_bytes(__file__)).hexdigest()[:12]
     return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
 
 
@@ -713,6 +1075,11 @@ class Transport:
         self.client = client
         self.label = label
         self.console_log = console_log
+        # IQ-8: read-only callbacks `(path, payload, response)` handed every
+        # POST response — the one chokepoint every answer, order and end turn
+        # passes through (the ActionPointMeter). An observer never changes a
+        # response and never stops a run.
+        self.observers = []
 
     def _call(self, fn):
         import contextlib
@@ -725,7 +1092,13 @@ class Transport:
     def post(self, path, payload=None):
         response = self._call(lambda: self.client.post(path, json=payload or {}))
         response.raise_for_status()
-        return response.json()
+        body = response.json()
+        for observer in list(getattr(self, "observers", None) or ()):
+            try:
+                observer(path, payload, body)
+            except Exception:
+                pass
+        return body
 
     def get(self, path):
         response = self._call(lambda: self.client.get(path))
@@ -744,13 +1117,21 @@ def make_inprocess_transport(args, out_dir):
     import contextlib
 
     os.environ["LLM_MODE"] = args.llm
-    os.environ["SOVEREIGN_SEED"] = args.seed
+    # IQ-8: on a `--from-save` run the save's own seed (`resolve_seed_plan`);
+    # it shapes only the world `import backend.main` boots and `/load` replaces.
+    os.environ["SOVEREIGN_SEED"] = getattr(args, "env_seed", None) or args.seed
     os.environ["INK_IRON_SAVE_DIR"] = str(out_dir / "saves")
     os.environ["DEBUG_MODE"] = "true" if args.cheats else "false"
     # Ambient leaks that would silently reshape the boot world:
-    os.environ.pop("SOVEREIGN_SCENARIO", None)
-    os.environ.pop("SOVEREIGN_SMOKE_START", None)
-    os.environ.pop("SOVEREIGN_MAP", None)
+    if THE_DRIVER_SETS_THE_BOARD_ENV:
+        # SET, never pop: a popped variable is exactly what `load_dotenv()`
+        # fills back in from a repo `.env` during the import below.
+        for key, value in BOARD_ENV_NO_OPS:
+            os.environ[key] = value
+    else:
+        os.environ.pop("SOVEREIGN_SCENARIO", None)
+        os.environ.pop("SOVEREIGN_SMOKE_START", None)
+        os.environ.pop("SOVEREIGN_MAP", None)
 
     console_log = None if args.verbose else out_dir / "server_console.log"
 
@@ -763,6 +1144,9 @@ def make_inprocess_transport(args, out_dir):
         import backend.main as backend_main
 
     tx = Transport(TestClient(backend_main.app), "in-process", console_log)
+    # IQ-8: the game-shaping environment AFTER the import — what the engine
+    # read, whatever a `.env` did during it.
+    tx.board_env = board_env_snapshot()
     # IQ-1 SW-0: the in-process transport can see the whole board. Used for
     # ONE thing — recording every nation's treasury to the jsonl so a GR5
     # economy claim is falsifiable from a digest. Never read for anything
@@ -846,10 +1230,20 @@ class Digest:
         # new surfaces dedupe rather than filter. Created LAZILY by `_seen`
         # so a stub Digest that borrows these methods still works.
         self.counters = {"commands": 0, "popups": 0, "battles": 0, "turns": 0}
+        # IQ-8: the action-point meter and the refused-order count. Created
+        # here, never by a borrowed method, so a stub Digest keeps its four
+        # counters exactly.
+        self.ap_meter = None
+        if THE_HARNESS_COUNTS_ACTION_POINTS:
+            self.counters.update({"ap_available": 0, "ap_spent": 0,
+                                  "cmd_refused": 0})
+            self.ap_meter = ActionPointMeter()
         header = (f"# Playtest digest — {meta['name']}\n\n"
                   f"seed `{meta['seed']}` · llm `{meta['llm']}` · "
                   f"transport {meta['transport']} · policy "
                   f"`{json.dumps(meta['policy'])}`\n")
+        # IQ-8: kept so `provenance` can splice the played-on lines under it.
+        self.header_text = header
         self.md_path.write_text(header, encoding="utf-8")
         self.jsonl_path.write_text("", encoding="utf-8")
         self._write_meta()
@@ -864,6 +1258,9 @@ class Digest:
         if THE_DIGEST_READS_THE_WHOLE_DISPATCH:
             extra["dispatch_type_counts"] = dict(
                 sorted(_dispatch_type_counts(self).items()))
+        meter = getattr(self, "ap_meter", None)
+        if meter is not None:
+            self.counters.update(meter.snapshot())
         self.meta_path.write_text(
             json.dumps(self.meta | {"counters": self.counters,
                                     "unknown_blockers": self.unknown_blockers}
@@ -874,6 +1271,24 @@ class Digest:
     def _md(self, line):
         with self.md_path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
+
+    def provenance(self, lines):
+        """IQ-8: splice what the run PLAYED, and on what, under the header.
+
+        Written once the boot has resolved (the header itself is written before
+        the backend exists). Markdown only — never the jsonl, which must stay
+        byte-identical across hash seeds and between a flagless `--from-save`
+        and the same load with `--seed <the save's seed>`."""
+        if not lines:
+            return
+        block = "".join(f"- {line}\n" for line in lines)
+        text = self.md_path.read_text(encoding="utf-8")
+        header = getattr(self, "header_text", None)
+        if header and text.startswith(header):
+            text = header + block + text[len(header):]
+        else:
+            text = text + block
+        self.md_path.write_text(text, encoding="utf-8")
 
     def record(self, kind, **fields):
         with self.jsonl_path.open("a", encoding="utf-8") as fh:
@@ -902,6 +1317,11 @@ class Digest:
 
     def command(self, text, response):
         self.counters["commands"] += 1
+        # IQ-8: a refused order, as the jsonl records it (`success is False`).
+        # Keyed on the counter's presence, so a stub that borrows this method
+        # is untouched.
+        if response.get("success") is False and "cmd_refused" in self.counters:
+            self.counters["cmd_refused"] += 1
         ok = "✓" if response.get("success", True) else "✗"
         # FA-39: WHICH PARSER answered. Nine archived runs used the live
         # parser and issued 334 commands between them, and no digest can say
@@ -2631,7 +3051,11 @@ def run(args):
     # original evidence digest. name/seed/llm default to None in argparse so
     # "explicitly passed" is distinguishable from "left at default".
     args.name = args.name or script.get("name") or "run"
-    args.seed = args.seed or script.get("seed") or "historical"
+    # IQ-8: `resolve_seed_plan` keeps that precedence and adds the from-save
+    # rule — the save's campaign seed is the default, never `historical`.
+    seed_plan = resolve_seed_plan(args, script)
+    args.seed = seed_plan["dice"]
+    args.env_seed = seed_plan["env"]
     args.llm = args.llm or script.get("llm") or "mock"
     # FA-40: a script that only makes sense on one scenario must be able to
     # SAY so. `scenario` was CLI-only, so `tutorial_lesson.json` could be run
@@ -2670,6 +3094,23 @@ def run(args):
                                     "run even with the module RNG pinned")
     rng_meta["pythonhashseed"] = os.environ.get("PYTHONHASHSEED", "(unset)")
 
+    # IQ-8: what was ASKED, on what interpreter, on which engine — known
+    # before the boot, so a run that fails to boot still records them.
+    # `resolved` is a placeholder until the boot answers (null = never
+    # resolved). The pre-IQ-8 flat keys below stay: `seed` is the dice label
+    # the driver rolls, the rest are the requests they always were.
+    provenance_meta = {}
+    if META_NAMES_WHAT_WAS_PLAYED:
+        provenance_meta = {
+            "requested": {"seed": seed_plan["requested"],
+                          "scenario": getattr(args, "scenario", None) or "",
+                          "from_save": args.from_save or "",
+                          "llm": args.llm},
+            "resolved": None,
+            "platform": platform_block(),
+            "engine_revision": engine_revision(),
+        }
+
     # FA-N89: `meta.json` recorded the run's DICE but not its WORLD. Measured
     # over the whole archive: 52 of 52 lack `scenario`, 52 of 52 lack
     # `script`. Slice 8's FA-40 then gave scripts their own `scenario` key,
@@ -2689,8 +3130,13 @@ def run(args):
         # the attribution REPRO_L's "archive a fresh set" step exists for.
         "driver_revision": driver_revision(),
         "reload_every": int(getattr(args, "reload_every", 0) or 0),
+        **provenance_meta,
     })
     answerer = Answerer(transport, digest, policy, args.strict)
+    # IQ-8: every POST response feeds the action-point meter.
+    meter = getattr(digest, "ap_meter", None)
+    if meter is not None and isinstance(getattr(transport, "observers", None), list):
+        transport.observers.append(meter.observe)
 
     # Boot ------------------------------------------------------------------
     if not args.http:
@@ -2709,6 +3155,19 @@ def run(args):
         digest.finish("boot-failed")
         print(f"[driver] boot failed: {boot.get('message')}", file=sys.stderr)
         return 2
+    if META_NAMES_WHAT_WAS_PLAYED:
+        # IQ-8: what the boot actually produced — read before the drain, so
+        # `boot_turn` is the turn the save or the new game handed us.
+        digest.meta["resolved"] = resolved_block(
+            transport, boot, None if args.http else args.seed)
+        digest.provenance(provenance_lines(digest.meta))
+        _warning = seed_warning(digest.meta)
+        if _warning:
+            # ASCII on the console: a Windows console's code page cannot print
+            # the warning sign, and the digest header carries the real line.
+            print("[driver] " + _warning.replace("⚠ ", "").replace("—", "--")
+                  .encode("ascii", "replace").decode("ascii"), file=sys.stderr)
+        digest._write_meta()
     drain(transport, digest, answerer, boot, args.strict)
 
     save_at = {int(x) for x in args.save_at.split(",") if x.strip()} \
@@ -2729,9 +3188,17 @@ def run(args):
         # all campaign long.
         if not args.http:
             seed_module_rng(args.seed, current_turn)
-        label = dig(transport.get("/ledger"), "calendar_label", "date_label",
+        _start_ledger = transport.get("/ledger")
+        label = dig(_start_ledger, "calendar_label", "date_label",
                     default="")
         digest.turn_header(current_turn, label)
+        if meter is not None:
+            # IQ-8: the turn-start read the driver already makes — this turn
+            # is PLAYED, and its allotment is what the ledger says it is.
+            _start_body = (_start_ledger.get("ledger")
+                           if isinstance(_start_ledger, dict) else None)
+            meter.turn_start(current_turn, (_start_body or {}).get(
+                "actions_remaining") if isinstance(_start_body, dict) else None)
 
         # WO-H slice 1 item 5: the letter-book, answered BEFORE the turn's
         # commands — unanswered letters lapse when the turn ends, and the
@@ -2827,6 +3294,8 @@ def run(args):
         # banner the digest already prints" — the digest prints only the first
         # line of the message, so it was a silent hole. It is closed.
         digest.observe_spend(_pre_econ)
+        if meter is not None and isinstance(_pre_body, dict):
+            meter.before_end_turn(_pre_body.get("actions_remaining"))
 
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)

@@ -1924,11 +1924,25 @@ def _actor_shore(world, actor: str) -> set:
 
 
 def _tracked_links_for(world, actor: str) -> List[frozenset]:
-    """Every sea link touching the ACTOR's provinces or armies."""
+    """Every sea link touching the ACTOR's provinces or armies, in
+    `_link_key` order.
+
+    IQ-8 "The Harness Tells the Truth": the walk is SORTED. The cache is a
+    frozenset of frozensets of province names, so its iteration order follows
+    `str` hashing and therefore PYTHONHASHSEED. Measured before the sort: every
+    reader downstream inherited that order — `link_verdicts_for`'s dict, the
+    EMISSION order of `_emit_verdict_flips` (so two links flipping in one turn
+    swapped their `strait_open` rail rows between hash seeds 0 and 1, the only
+    thing that moved across 40 commanded turns), and the key order of the
+    SERIALIZED `fleets["__naval__"]["verdicts"]`, so a save file's bytes varied
+    with the hash seed while the game did not. The board never moved: nothing
+    downstream reads this order for a decision. The order is display and
+    storage only, which is why this is a sort and not a lever."""
     if not actor:
         return []
     shore = _actor_shore(world, actor)
-    return [pair for pair in get_sea_link_pairs(world) if pair & shore]
+    return [pair for pair in sorted(get_sea_link_pairs(world), key=_link_key)
+            if pair & shore]
 
 
 def _tracked_links(world) -> List[frozenset]:

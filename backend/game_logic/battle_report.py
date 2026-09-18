@@ -638,6 +638,35 @@ def _our_side(battle_result: Dict, player_nation: str = "France") -> Dict:
 BERTHIER_ROTATES_HIS_OBSERVATIONS = True
 _OBSERVATION_COUNTS: Dict[tuple, int] = {}
 
+# IQ-8 "The Harness Tells the Truth" item 8 (IQ6-X1, September 18, 2026) flip
+# lever: the rotation BEGINS WITH THE CAMPAIGN. `_OBSERVATION_COUNTS` is
+# process-global and nothing reset it, so a SECOND campaign created in the
+# same process (a driver run, `/new_game`, a `/load`) continued the first
+# campaign's count and printed a different Berthier line for the same
+# battle — measured: turn 1, Charles vs Massena, "Stalemate … glare at each
+# other" against "An inconclusive affair", casualties identical. The counter
+# is emptied at the ONE chokepoint every world passes, `WorldState.__init__`
+# (`from_scenario` -> `from_dict` -> `cls(...)`, the bare constructor, and
+# `load_game` -> `from_dict`), so an in-process campaign starts where a
+# fresh process does.
+#
+# THE RULE FOR A LOADED CAMPAIGN, stated: it does NOT continue its own
+# rotation — it cannot, the counter is display-only and never serialized
+# (GR6, FA-D24's own contract) — it RESTARTS, exactly as loading that save in
+# a fresh process would. "In-process equals fresh" is the invariant, for a
+# new game and a load alike; "rotates within a campaign" still holds from
+# the campaign's creation onward. False = today's process-global counter,
+# byte-for-byte.
+THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = True
+
+
+def reset_observation_rotation() -> None:
+    """Empty the per-pair rotation counter (the lever up); a no-op with the
+    lever down. Called from `WorldState.__init__` — every campaign creation,
+    new or loaded, passes through it — and nowhere else in production."""
+    if THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN:
+        _OBSERVATION_COUNTS.clear()
+
 
 class _BankRotator:
     """A `choice()` that walks a bank instead of rolling it: index = (base +

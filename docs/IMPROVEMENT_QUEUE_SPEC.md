@@ -1777,13 +1777,20 @@ September 16, and the sweeps were run on a private copy at integration.
 - **Found while pinning, routed (`BUG_FIXES.md` IQ6-X1 → IQ-8):** FA-D24's
   Berthier rotation is a process-global counter, so a second in-process
   campaign prints different observation lines; the T7 control resets it.
+  *✅ FIXED by IQ-8 item 8 (September 18, 2026): the reset lives on the
+  campaign's creation (`WorldState.__init__`), the T7 test-side clear is
+  removed, and a loaded campaign restarts its rotation as a fresh process
+  would — `BUG_FIXES.md` IQ6-X1.*
 - **Routed (Golden Rule 9), each with an owner in `DESIGN_REFINEMENT.md`:**
   IQ6-D1 Austria has no follow-on design after the volte-face; IQ6-D2 the
   foreclosure hole (a partition by the hegemon's client, with the revanche
   charged to Bavaria, does not foreclose the door); IQ6-D3 no hysteresis in
   the intent narration and the tail names no courts; IQ6-D4 the AI-V scripted
   arm's scene-4 positive rests on the retired arm and wants a soil mark at
-  `_turn_11`.
+  `_turn_11` *(✅ CLOSED by IQ-8 item 9, September 18, 2026: the `france_soil`
+  arm hands Lithuania to France at t11 and the volte-face fires on the
+  ordinary predicate on 3 of 3 scripted seeds — `DESIGN_REFINEMENT.md`
+  IQ6-D4, memo §11)*.
 
 ### §1.6 LANDING RECORD — IQ-7 "The Satellites Have a Position" (✅ September 16, 2026)
 
@@ -1867,3 +1874,74 @@ the client and the harness), then a test writer; the lead ran the completion arm
 belongs to the Victory & Objectives Pass, ROADMAP positions 12–13. No IQ row
 builds it or half-builds it. IQ-2 makes the collapse *legible* without making
 it *terminal*, and its scope note says so in writing.
+
+### §1.7 LANDING RECORD — IQ-8 "The Harness Tells the Truth" (✅ September 18, 2026)
+
+**Authoritative for this row.** The rules are in `docs/SYSTEMS_REFERENCE.md` §47; the
+instrument's own contract is `docs/PLAYTESTING.md` (Provenance + the table rule); the
+defects closed are `BUG_FIXES.md` PR-X5 and IQ6-X1, the design rows `DESIGN_REFINEMENT.md`
+PR-D4 and IQ6-D4; the routed AI-V addendum is `docs/audits/AI_V_SWEEP_2026_08_01.md` §11.
+The recon (September 14) measured before it ruled; the pins were written and shown RED on
+`7d10e20c` (29 of 31) before a line of the fix existed; the build ran twice across a usage
+limit and the second pass verified the first's claims by measurement rather than rebuilding.
+
+> **A measurement that cannot name the tree, the platform, the seed and the board it ran on is not a measurement. The driver records what was REQUESTED and, separately, what was RESOLVED; a table may cite only an archived run whose record matches the row; and two processes on the same board write the same digest whatever their hash seed.**
+
+- **The recon overturned the row's premise.** The hash seed does NOT move the board:
+  commanded 12- and 40-turn runs and ambient 20-turn runs at `PYTHONHASHSEED` 0 / 1 /
+  12345 are the same game; the one order-dependent site was `naval._tracked_links_for`,
+  a display walk over a frozenset that moved one `strait_open` rail line within a turn.
+  PR-D4's 20 / 24 / 22 has no archive on either side and closes as **cause unrecoverable**
+  — the row's answer is to make provenance mandatory so the class cannot recur.
+- **PR-X5 was wider than filed** — four request values recorded as resolutions (the
+  scenario name empty on a default run; a `--from-save … --seed austerlitz` run stamped
+  `austerlitz` while the world played `historical`; the board variables the driver popped
+  and `load_dotenv()` refilled; "160 of 160 AP" the script's line count, 18 of them free
+  `status` reads). All four closed behind five driver levers (`META_NAMES_WHAT_WAS_PLAYED`,
+  `THE_SAVE_OWNS_ITS_SEED`, `THE_DRIVER_SETS_THE_BOARD_ENV`,
+  `THE_REVISION_IGNORES_LINE_ENDINGS`, `THE_HARNESS_COUNTS_ACTION_POINTS`); all five
+  down, the driver writes byte-identical `digest.jsonl` / `digest.md` / `meta.json`
+  (minus the run stamps) to the `7d10e20c` driver.
+- **What the record now says.** `requested` / `resolved` / `platform` /
+  `engine_revision` (git commit + a `dirty` flag scoped to `backend/`, the driver and the
+  maps, `"unknown"` without git; an LF-normalised `content_hash` over the engine sources
+  and the three map / scenario JSONs); the digest header prints `resolved` and
+  `platform`; the from-save seed rule (the save's campaign seed plays; an explicit
+  `--seed` is the dice only, recorded as `dice_label` and printed as a WARNING naming both);
+  `resolved.env` read AFTER the backend import; `ap_available` / `ap_spent` /
+  `cmd_refused` off the `/ledger` read the driver already made. Measured on the IQ-8
+  commanded archives: **85 / 80 / 76 of 160 AP spent, 52 / 51 / 57 of 200 commands
+  refused, France 28 / 28 / 29 at turn 40** (`docs/audits/playtest_digests/iq8-cmd-*`,
+  `commanded_full40 --diplomacy accept`, `PYTHONHASHSEED=0`, each archive the line
+  multiset of its `iq7-grant-*` twin up to the naval swap). The published 20 / 24 / 22 row
+  is marked UNCITABLE; the table rule is pinned (`TestTheTableRule`, with a sensitivity
+  arm over four doctored pages).
+- **Determinism is pinned at the layer that can see it:** the cross-hash-seed sentinel
+  (two commanded subprocesses at hash seeds 0 and 1, byte-identical jsonl — RED before
+  the sort, GREEN after) plus the naval walk's own pins at three seeds; the sort is
+  order-only (same 729-line multiset, identical ledgers and counters, France 28 both) and
+  is the row's one lever-less change, recorded as such.
+- **Routed items closed here.** IQ6-X1: FA-D24's process-global rotation counter is
+  emptied at `WorldState.__init__` (`battle_report.reset_observation_rotation`, lever
+  `THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN`); a LOADED campaign restarts its rotation
+  (display-only, never serialized — the other choice needs a field the row forbids);
+  the IQ-6 T7 test-side clear is removed so the control rides the production reset.
+  IQ6-D4: `tools/ai_v_sweep.py --script france_soil` stages the Lithuania soil mark at
+  `_turn_11` behind a second arm (the addendum's "stage the mark AND keep the negative"
+  cannot hold on one arm), and the scene-4 positive is restored beside the negative —
+  the volte-face signs and aims at `gulf_and_straits` on 3 of 3 scripted seeds.
+- **Pins flipped consciously:** `test_fa_slice17_f_the_instrument_answers_2026_09_11.py::
+  test_the_driver_revision_is_a_content_hash` pinned the RAW-bytes hash — the defect
+  itself — and now pins the LF-normalised one with a lever-down arm for the raw stamp.
+  `pyproject.toml` registers the `slow` marker (the sentinel runs in the default suite).
+- **Gates:** `tests/test_iq8_the_harness_tells_the_truth.py` (49); `tests/
+  test_ai_intent_assurance.py` 52 (the restored positive); `tools/_sweep_iq8.json` **52
+  of 52 killed, 0 INERT** on a private copy; `BASELINE_SERIES` + M1–M7 byte-identical
+  without re-record (the reset spends no RNG draw, the sort is display-only, the soil arm
+  is not the ambient series); ruff clean. The archives record `git_commit 7d10e20c,
+  dirty: true` — honest for runs taken on the uncommitted tree; the landing commit is
+  this one.
+- **Completion (STATUS row 8):** every `meta.json` names its board, seed, platform and
+  tree; the published table has no uncitable figure left unmarked; two processes on one
+  board agree byte-for-byte across hash seeds. All three hold. **NEXT = IQ-9 "The
+  Keyless Parser Gate"** (recon + contract ready).

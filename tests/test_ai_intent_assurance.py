@@ -116,6 +116,16 @@ def scripted():
 
 
 @pytest.fixture(scope="module")
+def scripted_soil():
+    """IQ-8 item 9 (IQ6-D4, September 18, 2026): the SAME scripted France
+    plus the scene-4 SOIL mark at turn 11 (`--script france_soil`) — the
+    Tilsit reversal staged on the ORDINARY predicate, the one IQ-6 V3 left
+    (`emergent_designs.THE_DEFEAT_IS_THE_SOIL`). The sixth suite run."""
+    return sweep.spawn_run("historical", sweep.AMBIENT_K, 24,
+                           script="france_soil")
+
+
+@pytest.fixture(scope="module")
 def world1805():
     return WorldState.from_scenario(str(SCENARIO_PATH))
 
@@ -819,8 +829,10 @@ class TestArmBScriptedFrance:
         is tests/test_iq6_volte_face.py, and the §12.2 deck advance to
         `gulf_and_straits` stays pinned by
         test_ai_intent_emergent_designs.py::TestVolteFaceBeat (re-staged on
-        soil). Restoring an IN-RUN positive needs the harness to stage a
-        soil mark at turn 11 (tools/ai_v_sweep.py `_turn_11`) — routed.
+        soil). The IN-RUN positive was restored by IQ-8 item 9 (IQ6-D4,
+        September 18, 2026) as the pin right below, on the `france_soil`
+        arm — the same schedule plus a soil mark at turn 11. This negative
+        STAYS on the `france` arm: exhaustion alone never opens the door.
 
         (The old pin's last clause was vacuous: Russia's late intent reads
         `gulf_and_straits` aimed at Sweden on the lever-up arm too, with no
@@ -837,6 +849,82 @@ class TestArmBScriptedFrance:
         assert all("receptive=False" in str(entry.get("note", ""))
                    and "we=80" in str(watches[0].get("note", ""))
                    for entry in watches), watches
+        # IQ-8: the watch now reads the soil too, and on THIS arm there is
+        # none — which is exactly why the door stays shut.
+        assert all("soil=[]" in str(entry.get("note", ""))
+                   for entry in watches), watches
+        assert not [e for e in scripted["script_log"]
+                    if e.get("step") == "stage soil mark (Russia)"]
+
+    def test_volte_face_signed_and_aimed_at_a_third_party(
+            self, scripted_soil, scripted):
+        """RESTORED by IQ-8 item 9 (IQ6-D4, September 18, 2026), beside the
+        negative above, on the `france_soil` arm: at turn 11 the harness
+        hands Lithuania — a non-capital Russian homeland province — to
+        France, so the defeat SHOWS ON THE MAP, the reading the ordinary
+        predicate makes (`emergent_designs._lost_homeland`, IQ-6 V3). Then
+        scene 4 runs end to end in the run: Russia is receptive at t11, the
+        volte courier fires at t12 (`decision_reason: volte_face`, an
+        alliance), the accept meets the §5b.3 conflict warning and the
+        CONFIRM signs it, and beat 5 fires at the ratify chokepoint aimed at
+        `gulf_and_straits` — the §12.2 deck advance to a THIRD party.
+
+        Measured at landing on all three scripted seeds (historical / ulm /
+        austerlitz): receptive t11, courier t12, `volte_face` t13, every
+        seed — where the retired WE staging had fired on historical alone
+        (the memo's own per-seed note). The third-party clause is read off
+        the GAME: the beat names the design, and Russia's derived intent
+        after the signing wants that design against a court that is not
+        France (Sweden). The `france` arm in the same session stays shut,
+        so the two arms differ by the soil mark and nothing else."""
+        log = scripted_soil["script_log"]
+        marks = [e for e in log if e.get("step") == "stage soil mark (Russia)"]
+        assert len(marks) == 1 and marks[0]["turn"] == 11, marks
+        assert "Lithuania: Russia -> France" in marks[0]["note"]
+        assert "lost_homeland=['Lithuania']" in marks[0]["note"]
+        watches = [e for e in log if e.get("step") == "volte watch"]
+        assert watches and watches[0]["turn"] == 11
+        t11 = str(watches[0]["note"])
+        assert "receptive=True" in t11 and "soil=['Lithuania']" in t11, t11
+        assert "state=PEACE" in t11 and "rel=45" in t11, t11
+        # The courier, once, from Russia, an alliance, for the volte-face.
+        volte_proposals = [
+            p for p in scripted_soil["derived"]["proposals_to_france"]
+            if p["decision_reason"] == "volte_face"]
+        assert len(volte_proposals) == 1, volte_proposals
+        assert volte_proposals[0]["proposer"] == "Russia"
+        assert volte_proposals[0]["ptype"] == "alliance"
+        # Signed through the conflict confirm: the warning, then the treaty.
+        accepts = [e for e in log
+                   if str(e.get("step", "")).startswith("accept volte-face")]
+        assert [e.get("success") for e in accepts] == [True, True], accepts
+        assert "conflict_alert" in accepts[1]["step"], accepts
+        assert "ALLIANCE with Russia" in accepts[1]["message"], accepts
+        # Beat 5, once, naming the reversed power, the partner and the design.
+        faces = scripted_soil["derived"]["volte_faces"]
+        assert len(faces) == 1, faces
+        face = faces[0]
+        assert face["nation"] == "Russia" and face["partner"] == "France"
+        assert face["next_design"] == "gulf_and_straits"
+        assert "The Gulf and the Straits" in face["message"]
+        assert scripted_soil["derived"]["beats"].get("volte_face") == 1
+        # Aimed at a third party: from the tick that carries beat 5 to the
+        # end of the run, the reversed power's derived intent wants the
+        # named design against a court that is not the partner it just
+        # took by the hand (a digest row is labelled with the turn the tick
+        # advanced INTO, so the row is found by its event, not its label).
+        rows = scripted_soil["turns"]
+        signed_at = next(i for i, row in enumerate(rows)
+                         if any(str(e.get("type")) == "volte_face"
+                                for e in row["events"]))
+        after = rows[signed_at:]
+        assert len(after) >= 8, len(after)
+        for row in after:
+            want, against = row["intents"]["Russia"][0], row["intents"]["Russia"][1]
+            assert want == "gulf_and_straits", row["intents"]["Russia"]
+            assert against not in ("France", ""), row["intents"]["Russia"]
+        # The control in the same session: the exhaustion-only arm is shut.
+        assert not scripted["derived"]["volte_faces"]
 
     def test_mirror_moves_upward_for_an_acting_france(self, scripted, hist1):
         """§3.5's upward half: the renege war RAISES Europe's reading of

@@ -64,7 +64,6 @@ from backend.game_logic import ai_diplomacy as AD
 from backend.game_logic import diplomacy as D
 from backend.game_logic import diplomatic_advisory as ADV
 from backend.game_logic import emergent_designs as ED
-from backend.game_logic import battle_report as BR
 from backend.game_logic.diplomatic_dialogue import (
     MISSION_EFFECTS,
     mission_effect_magnitude,
@@ -275,13 +274,17 @@ def _drive(script, turns, name, levers=(), hooks=True):
             drv.Transport.post = post
         os.environ["INK_IRON_SAVE_DIR"] = os.path.join(tmp, "saves")
         M.parser = CommandParser()      # LLM_MODE=mock is set above
-        # FA-D24's Berthier rotation is a PROCESS-global counter
-        # (`battle_report._OBSERVATION_COUNTS`): a second campaign in one
-        # process continues it, so two identical drives print different
-        # observation lines (measured: turn 1, Charles vs Massena). Reset
-        # it, so every in-process drive starts where a fresh process does.
-        # Display only (GR6); filed as IQ6-X1 for the harness row.
-        BR._OBSERVATION_COUNTS.clear()
+        # FA-D24's Berthier rotation was a PROCESS-global counter
+        # (`battle_report._OBSERVATION_COUNTS`) that nothing reset, so two
+        # identical in-process drives printed different observation lines
+        # (measured: turn 1, Charles vs Massena) and this helper cleared it
+        # by hand — filed as IQ6-X1. IQ-8 item 8 (September 18, 2026) hung
+        # the reset on the campaign's own creation (`WorldState.__init__`,
+        # lever `battle_report.THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN`), so
+        # the `/new_game` every drive posts starts the count where a fresh
+        # process does. The test-side clear is REMOVED, deliberately: T7's
+        # hooked-vs-unhooked control now rides the production reset, and
+        # would go red if that lever were ever flipped.
         ns = argparse.Namespace(
             name=name, turns=turns, seed="historical", llm="mock", scenario="",
             script=str(SCRIPTS / script), from_save="", http="",

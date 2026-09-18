@@ -5562,3 +5562,99 @@ success; the "−20 loyalty" there was wrong.
 **Routed (Golden Rule 9):** VD-C "The Contingent" (`VASSAL_DEEPENING_SPEC.md`
 §9), IQ7-D2 the Suitor (declined, re-open condition), IQ7-D3 Holland's
 unpayable design, IQ7-X1..X3, IQ7-X5 (`BUG_FIXES.md` §IQ-7).
+
+## 47. The harness tells the truth (IQ-8, landed September 18, 2026)
+
+> **A measurement that cannot name the tree, the platform, the seed and the board it ran on is not a measurement. The driver records what was REQUESTED and, separately, what was RESOLVED; a table may cite only an archived run whose record matches the row; and two processes on the same board write the same digest whatever their hash seed.**
+
+**Why the row moved.** PR-D4 (a published commanded-arm table of 20 / 24 / 22
+provinces that measured 23 / 24 / 21 on the next machine at "the same commit")
+could not be root-caused after the fact: no `meta.json`, no digest and no
+driver stamp existed for the published side, and the stamp the driver did
+write (`driver_revision`) hashed raw bytes, so one commit carried two stamps on
+a CRLF and an LF checkout. PR-X5 was wider than filed — the record wrote four
+REQUEST values as if they were resolved (`scenario` empty on a default run,
+`seed` on a `--from-save` run a hybrid of two seeds, the board environment the
+driver popped and `backend.main`'s `load_dotenv()` put back, "160 of 160 AP"
+the script's line count). Measured first: the hash seed does NOT move the board
+(commanded 12 and 40 turns and ambient 20 turns at `PYTHONHASHSEED` 0 / 1 /
+12345 are the same game; the one order-dependent site was a naval display
+walk).
+
+**Provenance** (`tools/playtest_driver.py`, lever `META_NAMES_WHAT_WAS_PLAYED`).
+`meta.json` carries four blocks: `requested` (the flags as typed), `resolved`
+(read off the booted world — campaign seed, `dice_label`, scenario name, map,
+region count, player nation, starting turn, and `env`, the six `SOVEREIGN_*`
+/ `LLM_MODE` / `DEBUG_MODE` values read AFTER `import backend.main`), `platform`
+(Python version, OS, `pythonhashseed`) and `engine_revision` (`git rev-parse
+HEAD` + a `dirty` flag scoped to `backend/`, the driver and the maps folder —
+`"unknown"` on a checkout without git — plus `content_hash`, an LF-normalised
+sha256 over `backend/**/*.py` and the three map / scenario JSONs). The digest
+header prints `resolved` and `platform`. `driver_revision` is LF-normalised
+(`THE_REVISION_IGNORES_LINE_ENDINGS`): `4094eb4a` = `9f00997bc24a` on either
+line ending; the `iq7-*` archives' `edb714263e80` is the CRLF stamp of a tree
+whose LF stamp is `56e82b4305cd`.
+
+**The from-save seed rule** (`THE_SAVE_OWNS_ITS_SEED`). A `--from-save` run
+plays the SAVE's campaign seed; `requested.seed` is `""` when no flag was
+given ("the save decides"); an explicit `--seed` on a from-save run drives the
+module dice only, is recorded as `resolved.dice_label` beside
+`resolved.campaign_seed`, and prints a WARNING naming both seeds in the digest
+header. No silent hybrid.
+
+**The board environment** (`THE_DRIVER_SETS_THE_BOARD_ENV`). The driver SETS
+`SOVEREIGN_SCENARIO=""`, `SOVEREIGN_SMOKE_START=""` and `SOVEREIGN_MAP=europe`
+(their no-op values) and boots `SOVEREIGN_SEED` from its own argument instead
+of popping them, so a repo `.env` cannot reshape the board through
+`load_dotenv()`; `resolved.env` records what the backend actually read. The
+`PYTHONHASHSEED` re-exec pin stays.
+
+**Action points** (`THE_HARNESS_COUNTS_ACTION_POINTS`, class
+`ActionPointMeter`). `counters.ap_available` / `ap_spent` are read off the
+`/ledger` `actions_remaining` field the driver already fetches at turn start,
+before `end turn` and after every POST; `cmd_refused` counts refused commands.
+Measured on the three IQ-8 commanded archives: **85 / 80 / 76 of 160** spent
+and **52 / 51 / 57 of 200** refused (the September-12 81 / 77 / 75 reproduce
+from the archived warning text).
+
+**Determinism across hash seeds.** `naval._tracked_links_for` walks
+`sorted(get_sea_link_pairs(world), key=_link_key)` — a pure ordering fix with
+no lever (the row's one exception, recorded): the walk had followed a
+frozenset's iteration order, so `link_verdicts_for`, `_emit_verdict_flips` and
+the serialized `fleets["__naval__"]["verdicts"]` varied with the hash seed and
+one `strait_open` rail line moved inside a turn. Two commanded subprocesses at
+`PYTHONHASHSEED` 0 and 1 now write byte-identical `digest.jsonl`
+(`TestCrossHashSeedSentinel`); the sort is order-only (a 40-turn run before and
+after holds the same 729-line multiset, France 28 both).
+
+**The table rule** (`docs/PLAYTESTING.md`, pinned by `TestTheTableRule`).
+Every measured table carries platform, commit, hash seed, flags and the
+archived digest names; a row whose archive's `meta.json` does not match it, or
+which has no archive, is marked **UNCITABLE**. PR-D4 closes as *cause
+unrecoverable, no archive* with the measured fact that the hash seed does not
+move the board; its 20 / 24 / 22 row is UNCITABLE and the IQ-8 row reads
+**28 / 28 / 29** (`docs/audits/playtest_digests/iq8-cmd-*`).
+
+**The rotation begins with the campaign** (IQ6-X1,
+`battle_report.THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN`). FA-D24's
+`_OBSERVATION_COUNTS` is emptied by `reset_observation_rotation()` at the ONE
+chokepoint every world passes, `WorldState.__init__` (a census pin says nothing
+else constructs a world), so an in-process second campaign prints what a fresh
+process prints. **A loaded campaign restarts its rotation** — the counter is
+display-only and never serialized (FA-D24's own contract) — exactly as loading
+that save in a fresh process would; "rotates within a campaign" holds from the
+creation onward.
+
+**The scene-4 positive** (IQ6-D4, `tools/ai_v_sweep.py --script france_soil`).
+The scripted arm gains a second schedule that hands Lithuania (a non-capital
+Russian homeland province; a lost capital would promote Revanche and shut the
+door) to France at `_turn_11`, the reading `emergent_designs._lost_homeland`
+makes, so the Tilsit volte-face fires on the ordinary predicate: receptive at
+t11, the courier at t12, `volte_face` at t13 aimed at `gulf_and_straits`, on
+all three scripted seeds. The `france` arm plays the game it did (the
+re-worded negative stays); `run_all` runs both.
+
+**Never do:** cite a figure with no archive; read a request value as a
+resolution; hash a source file without normalising its line endings; walk a
+set in a display path that is serialized or printed; reset the rotation
+anywhere but the world's own creation.

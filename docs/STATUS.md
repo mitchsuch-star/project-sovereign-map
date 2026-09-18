@@ -54,9 +54,9 @@
 > | 5 | ~~**IQ-5 BOTH SIDES OF THE BUTCHER'S BILL**~~ | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ✅ **CLOSED September 14, 2026**. Both sides report their scope on every surface: the enemy-phase dialog, campaign log and dispatch were wrong too. Trust is named where it is paid, on both sides. IQ5-R1 routed. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.4 |
 > | 6 | ~~**IQ-6 EUROPE SPEAKS ITS MIND**~~ | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | ✅ **CLOSED September 16, 2026** (built September 14). The narration's zero was the INSTRUMENT (the digest dropped every MEDIUM/LOW row; the producer fires 8 lines on the ambient run); the volte-face's was real — the 15-turn window could not fit the game's own courtship, and a bilateral peace never counted as a defeat. Window 15 → 20, the separate peace counts, the courier skips the routine cooldown, the exhaustion arm retired under GR9, and Talleyrand names the open door. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.5 |
 > | 7 | ~~**IQ-7 THE SATELLITES HAVE A POSITION**~~ | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ✅ **CLOSED September 16, 2026**. The premise had FLIPPED: after IQ-3 a commanded France at peace lost **2 / 3 / 3** satellites to the −2 drift. "The Client's Petition": a loyal satellite petitions for a province or tribute relief while it is still loyal; granting binds it, refusing spends its standing. GRANT holds **3 / 3 / 3** at turn 40 with 0 rebellion modals, REFUSE **0 / 0 / 0** by turns 21–23. Pillar vassals 6.5 → 7.0 ⚠ FOR USER CONFIRMATION. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.6 |
-> | 8 | **IQ-8 THE HARNESS TELLS THE TRUTH** | the instrument mis-records its own board | PR-X5, PR-D4 | ▶ **NEXT**. Recon done (Sept 14) and the contract ruled: the hash seed does NOT move the board (the one order-dependent site is a naval display walk); PR-D4's 20 / 24 / 22 has no archive and closes as unrecoverable; PR-X5 is wider than filed (a default run records `scenario: ""`, a from-save run with `--seed` is a hybrid of two seeds, the `.env` refills the variables the driver pops, `driver_revision` hashes raw line endings, and "160 of 160 AP" was the script's line count). Also owns IQ6-X1 (the process-global Berthier rotation) and IQ6-D4 (the AI-V scene-4 soil mark) |
+> | 8 | ~~**IQ-8 THE HARNESS TELLS THE TRUTH**~~ | the instrument mis-records its own board | PR-X5, PR-D4 | ✅ **CLOSED September 18, 2026.** The hash seed does NOT move the board (the one order-dependent site was a naval display walk, now sorted — two processes at hash seeds 0 and 1 write byte-identical jsonl); PR-D4 closes as cause unrecoverable, its 20 / 24 / 22 row UNCITABLE under the new table rule; PR-X5 closed behind five driver levers — `meta.json` names what was REQUESTED and what was RESOLVED (seed, dice, scenario, map, env after import, platform, git commit + dirty + an LF-normalised content hash) and counts AP: **85 / 80 / 76 of 160 spent, France 28 / 28 / 29** on the IQ-8 archives. IQ6-X1 (the rotation resets at the world's creation) and IQ6-D4 (the `france_soil` arm restores the scene-4 positive) closed here. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.7; rules `SYSTEMS_REFERENCE.md` §47 |
 > | — | **VD-C THE CONTINGENT** (`VASSAL_DEEPENING_SPEC.md` §9) | a loyal satellite fields no men; VS-4's "its regiments hold back" has nothing to withhold | IQ-7's design 2, routed | the first vassal slice after row IQ closes — taken at the IQ exit review |
-> | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | queued |
+> | 9 | **IQ-9 THE KEYLESS PARSER GATE** | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | ▶ **NEXT** — recon done and the contract ruled (September 16): replay at `messages.create` through the SDK-client seam, authored cassettes, the T0 suite floor (`LLM_MODE=mock` autouse + a loopback-only network guard) lands FIRST |
 > | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
 >
 > ---
@@ -285,6 +285,46 @@
 > one — and carries every open visual sign-off with it. **Completion:** a Mode
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
+
+> ## ▶ IQ-8 "THE HARNESS TELLS THE TRUTH" — LANDED September 18, 2026. **ROW IQ-8 IS CLOSED.**
+>
+> Row IQ-8 (PR-X5, PR-D4; also IQ6-X1 and IQ6-D4). Landing record =
+> `IMPROVEMENT_QUEUE_SPEC.md` §1.7, authoritative; rules = `SYSTEMS_REFERENCE.md` §47;
+> the instrument's contract = `docs/PLAYTESTING.md` (Provenance + the table rule);
+> archives `docs/audits/playtest_digests/iq8-cmd-{historical,austerlitz,marengo}`.
+>
+> **The recon overturned the premise.** The hash seed does not move the board — commanded
+> and ambient runs at `PYTHONHASHSEED` 0 / 1 / 12345 are the same game — and PR-D4's
+> 20 / 24 / 22 has no archive on either side, so it closes as cause unrecoverable and the
+> row makes provenance mandatory instead. PR-X5 was wider than filed: FOUR request values
+> were recorded as resolutions (an empty scenario name; a from-save `--seed` stamped while
+> the save's seed played; the board variables the driver popped and `load_dotenv()` put
+> back; "160 of 160 AP", the script's line count).
+>
+> **Built, five driver levers:** `meta.json` = `requested` + `resolved` + `platform` +
+> `engine_revision` (git commit, a scoped `dirty` flag, an LF-normalised content hash);
+> the from-save seed rule (the save's seed plays; an explicit `--seed` is the dice only,
+> recorded and WARNED); the driver SETS the board environment and records what the
+> backend read AFTER import; `driver_revision` LF-normalised (one commit, one stamp);
+> `ap_available` / `ap_spent` / `cmd_refused` off the `/ledger` read. **Measured on the
+> new archives: 85 / 80 / 76 of 160 AP spent, 52 / 51 / 57 of 200 refused, France
+> 28 / 28 / 29 at turn 40.** `naval._tracked_links_for` sorted by `_link_key` (the row's
+> one lever-less change): the cross-hash-seed sentinel is RED before it and GREEN after.
+> The published table carries platform / commit / hash seed / flags / archive on every
+> row and marks the un-archived figure UNCITABLE (`TestTheTableRule`).
+>
+> **Routed items closed:** IQ6-X1 — the Berthier rotation is emptied at
+> `WorldState.__init__`; a loaded campaign restarts it (display-only, never serialized);
+> the IQ-6 test-side clear is gone. IQ6-D4 — `tools/ai_v_sweep.py --script france_soil`
+> hands Lithuania to France at t11 and the scene-4 positive is restored beside the
+> negative (volte-face on 3 of 3 scripted seeds, aimed at `gulf_and_straits`).
+>
+> **Gates:** `tests/test_iq8_the_harness_tells_the_truth.py` 49 (29 of 31 pins shown RED
+> on `7d10e20c` first); sweep `tools/_sweep_iq8.json` **52 / 52, 0 INERT**;
+> `BASELINE_SERIES` + M1–M7 byte-identical without re-record; one pin flipped
+> consciously (the raw-bytes `driver_revision` pin was the defect). The archives record
+> `git_commit 7d10e20c, dirty: true` — the tree they ran on is that commit plus this diff.
+> **NEXT = IQ-9.**
 
 > ## ▶ IQ-7 "THE SATELLITES HAVE A POSITION" — LANDED September 16, 2026. **ROW IQ-7 IS CLOSED.**
 >

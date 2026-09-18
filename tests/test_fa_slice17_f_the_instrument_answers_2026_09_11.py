@@ -485,9 +485,22 @@ class TestTheRunSaysWhatItCouldNotDo:
         assert not [p for p in t.posts if p[0] == "/command"]
 
     def test_the_driver_revision_is_a_content_hash(self):
+        """⚠ FLIPPED CONSCIOUSLY by IQ-8 (September 17, 2026). This pinned the
+        RAW-bytes hash, and on a `core.autocrlf=true` Windows checkout the raw
+        bytes are CRLF — so one commit stamped one value here and another on
+        Linux (`45486d028708` vs `2756127add4a` measured on one snapshot), and
+        no Windows run could ever be matched against a Linux archive. The
+        revision is now the hash of the LF-normalised bytes; the raw-bytes arm
+        is the lever-down arm (`THE_REVISION_IGNORES_LINE_ENDINGS`), pinned both
+        ways below."""
         rev = driver.driver_revision()
         src = (REPO_ROOT / "tools" / "playtest_driver.py").read_bytes()
-        assert rev == hashlib.sha256(src).hexdigest()[:12]
+        assert rev == hashlib.sha256(src.replace(b"\r\n", b"\n")).hexdigest()[:12]
+
+    def test_the_driver_revision_lever_down_is_the_raw_hash(self, monkeypatch):
+        monkeypatch.setattr(driver, "THE_REVISION_IGNORES_LINE_ENDINGS", False)
+        src = (REPO_ROOT / "tools" / "playtest_driver.py").read_bytes()
+        assert driver.driver_revision() == hashlib.sha256(src).hexdigest()[:12]
 
     def test_reload_round_trip_saves_then_loads_and_says_so(self):
         gets = {}

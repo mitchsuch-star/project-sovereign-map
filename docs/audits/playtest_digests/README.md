@@ -3,7 +3,8 @@
 `tools/playtest_runs/` is gitignored and overwritten; a digest there is a
 local artifact, not evidence. **A memo may only cite a digest archived
 here** (`playtest_driver.py --archive`, WO-H slice 1, Aug 21 2026). Each
-directory holds `digest.md` + `meta.json` — never the raw jsonl.
+directory holds `digest.md` + `meta.json`, and since IQ1-3D (September
+13, 2026) `digest.jsonl` too.
 
 ## Provenance notes
 
@@ -28,3 +29,16 @@ directory holds `digest.md` + `meta.json` — never the raw jsonl.
   is derived from `wo_1b_results.json`. Mock (arm, seed) repeat-triples
   are byte-identical (the determinism proof), so one representative
   repeat per (arm, seed) is archived rather than all three.
+- **`iq8-cmd-historical`, `iq8-cmd-austerlitz`, `iq8-cmd-marengo`** (September
+  17, 2026) are the COMMANDED arm (`commanded_full40.json --diplomacy accept`,
+  40 turns, `PYTHONHASHSEED=0`) on the IQ-8 tree — the first archives whose
+  `meta.json` carries `requested` / `resolved` / `platform` /
+  `engine_revision` and the `ap_available` / `ap_spent` / `cmd_refused`
+  counters, and the row `docs/PLAYTESTING.md`'s commanded table cites.
+- ⚠ **Every archive dated before September 17, 2026 carries a RAW-bytes
+  `driver_revision`**; IQ-8 LF-normalised the stamp. Attribute an old one by
+  hashing a commit's driver in the line ending of the machine that ran it:
+  `cmd-*` / `fix-cmd-*` (Linux, LF) = the driver of `4094eb4a`; `iq7-*`
+  (Windows, CRLF) = the driver of `7d10e20c`. None of them records a
+  platform, an engine commit or what the world resolved — read the memo that
+  cites them for that, and treat a figure with no archive as UNCITABLE.

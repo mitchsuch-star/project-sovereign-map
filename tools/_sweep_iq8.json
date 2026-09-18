@@ -1,0 +1,366 @@
+[
+ {
+  "id": "IQ8-L1 META_NAMES_WHAT_WAS_PLAYED down",
+  "file": "tools/playtest_driver.py",
+  "old": "META_NAMES_WHAT_WAS_PLAYED = True\n",
+  "new": "META_NAMES_WHAT_WAS_PLAYED = False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_the_four_blocks_exist"
+ },
+ {
+  "id": "IQ8-L2 THE_SAVE_OWNS_ITS_SEED down",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_SAVE_OWNS_ITS_SEED = True\n",
+  "new": "THE_SAVE_OWNS_ITS_SEED = False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_without_a_seed_flag_the_dice_follow_the_save"
+ },
+ {
+  "id": "IQ8-L3 THE_DRIVER_SETS_THE_BOARD_ENV down",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_DRIVER_SETS_THE_BOARD_ENV = True\n",
+  "new": "THE_DRIVER_SETS_THE_BOARD_ENV = False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheDotenvHole::test_the_driver_still_boots_the_1805_board"
+ },
+ {
+  "id": "IQ8-L4 THE_REVISION_IGNORES_LINE_ENDINGS down",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_REVISION_IGNORES_LINE_ENDINGS = True\n",
+  "new": "THE_REVISION_IGNORES_LINE_ENDINGS = False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestDriverRevisionIgnoresLineEndings::test_one_file_two_line_endings_one_revision"
+ },
+ {
+  "id": "IQ8-L5 THE_HARNESS_COUNTS_ACTION_POINTS down",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_HARNESS_COUNTS_ACTION_POINTS = True\n",
+  "new": "THE_HARNESS_COUNTS_ACTION_POINTS = False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestActionPointCounters::test_the_counters_exist"
+ },
+ {
+  "id": "IQ8-N1 the naval walk reverted to the frozenset's order (direct pins)",
+  "file": "backend/game_logic/naval.py",
+  "old": "    return [pair for pair in sorted(get_sea_link_pairs(world), key=_link_key)\n            if pair & shore]\n",
+  "new": "    return [pair for pair in get_sea_link_pairs(world) if pair & shore]\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheNavalWalkIsOrdered"
+ },
+ {
+  "id": "IQ8-N2 the naval walk reverted to the frozenset's order (across hash seeds, incl. the serialized verdicts)",
+  "file": "backend/game_logic/naval.py",
+  "old": "    return [pair for pair in sorted(get_sea_link_pairs(world), key=_link_key)\n            if pair & shore]\n",
+  "new": "    return [pair for pair in get_sea_link_pairs(world) if pair & shore]\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheNavalWalkIsHashSeedFree"
+ },
+ {
+  "id": "IQ8-N3 the sort key made a no-op (a stable sort keeps the frozenset's order)",
+  "file": "backend/game_logic/naval.py",
+  "old": "sorted(get_sea_link_pairs(world), key=_link_key)",
+  "new": "sorted(get_sea_link_pairs(world), key=lambda _p: 0)",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheNavalWalkIsOrdered::test_tracked_links_come_back_in_link_key_order"
+ },
+ {
+  "id": "IQ8-P1 the map variable set to the empty string instead of europe",
+  "file": "tools/playtest_driver.py",
+  "old": "(\"SOVEREIGN_MAP\", \"europe\"))",
+  "new": "(\"SOVEREIGN_MAP\", \"\"))",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_resolved_env_names_the_game_shaping_variables"
+ },
+ {
+  "id": "IQ8-P2 lf_bytes stops normalising",
+  "file": "tools/playtest_driver.py",
+  "old": "    return Path(path).read_bytes().replace(b\"\\r\\n\", b\"\\n\")\n",
+  "new": "    return Path(path).read_bytes()\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestDriverRevisionIgnoresLineEndings::test_the_revision_is_the_lf_normalised_hash"
+ },
+ {
+  "id": "IQ8-P3 the no-git guard invents a commit",
+  "file": "tools/playtest_driver.py",
+  "old": "    except (OSError, subprocess.SubprocessError):\n        commit, dirty = \"unknown\", None\n",
+  "new": "    except (OSError, subprocess.SubprocessError):\n        commit, dirty = \"0\" * 40, False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_a_checkout_without_git_records_unknown"
+ },
+ {
+  "id": "IQ8-P4 the dirty flag never read",
+  "file": "tools/playtest_driver.py",
+  "old": "                dirty = bool(status.stdout.strip())\n",
+  "new": "                dirty = None\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_engine_revision_names_the_commit_and_the_content"
+ },
+ {
+  "id": "IQ8-P5 the content hash fed the file names only",
+  "file": "tools/playtest_driver.py",
+  "old": "        content.update(lf_bytes(path))\n",
+  "new": "        content.update(b\"\")\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_the_content_hash_covers_the_engine_sources"
+ },
+ {
+  "id": "IQ8-P6 the hash seed unrecorded on the platform block",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"pythonhashseed\": os.environ.get(\"PYTHONHASHSEED\", \"(unset)\")}\n",
+  "new": "            \"pythonhashseed\": \"(unset)\"}\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_platform_names_the_interpreter"
+ },
+ {
+  "id": "IQ8-S1 the save's seed read off the wrong key (falls to historical)",
+  "file": "tools/playtest_driver.py",
+  "old": "        return str(world.get(\"campaign_seed\") or SAVE_DEFAULT_SEED)\n",
+  "new": "        return str(world.get(\"campaign_seed_requested\") or SAVE_DEFAULT_SEED)\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_without_a_seed_flag_the_dice_follow_the_save"
+ },
+ {
+  "id": "IQ8-S2 the explicit seed no longer honoured for the dice on a from-save",
+  "file": "tools/playtest_driver.py",
+  "old": "        dice = explicit or save_seed or SAVE_DEFAULT_SEED\n",
+  "new": "        dice = save_seed or explicit or SAVE_DEFAULT_SEED\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_the_lead_case_plays_the_saves_seed_and_warns"
+ },
+ {
+  "id": "IQ8-S3 resolved.campaign_seed restates the dice label",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"campaign_seed\": str(getattr(world, \"campaign_seed\", \"\")),\n",
+  "new": "            \"campaign_seed\": str(dice_label),\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_a_staged_seed_is_read_off_the_save"
+ },
+ {
+  "id": "IQ8-S4 resolved.scenario_name restates the request",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"scenario_name\": str(getattr(world, \"scenario_name\", \"\")),\n",
+  "new": "            \"scenario_name\": \"\",\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_resolved_names_the_board_the_world_booted"
+ },
+ {
+  "id": "IQ8-S5 boot_turn restated as 1",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"boot_turn\": int(getattr(world, \"current_turn\", 0)),\n",
+  "new": "            \"boot_turn\": 1,\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_the_lead_case_plays_the_saves_seed_and_warns"
+ },
+ {
+  "id": "IQ8-S6 the two-seed WARNING silenced",
+  "file": "tools/playtest_driver.py",
+  "old": "    if not dice or dice == world_seed:\n",
+  "new": "    if True:\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_the_lead_case_plays_the_saves_seed_and_warns"
+ },
+ {
+  "id": "IQ8-H1 the played line dropped from the header",
+  "file": "tools/playtest_driver.py",
+  "old": "    if resolved:\n        board = resolved.get(\"scenario_name\") or \"(an unnamed world)\"\n",
+  "new": "    if False:\n        board = resolved.get(\"scenario_name\") or \"(an unnamed world)\"\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_the_header_prints_resolved_and_platform"
+ },
+ {
+  "id": "IQ8-H2 the platform line dropped from the header",
+  "file": "tools/playtest_driver.py",
+  "old": "    if plat or rev:\n",
+  "new": "    if False:\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_the_header_prints_resolved_and_platform"
+ },
+ {
+  "id": "IQ8-E1 resolved.env snapshotted as the driver's own intention rather than after the import",
+  "file": "tools/playtest_driver.py",
+  "old": "    tx.board_env = board_env_snapshot()\n",
+  "new": "    tx.board_env = {key: (\"false\" if key == \"DEBUG_MODE\" else os.environ.get(key)) for key in BOARD_ENV_KEYS}\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheDotenvHole::test_resolved_env_is_read_after_the_backend_import"
+ },
+ {
+  "id": "IQ8-A1 an auto-ended turn counted by its stale last reading",
+  "file": "tools/playtest_driver.py",
+  "old": "            unused = 0 if auto_advanced else self.last\n",
+  "new": "            unused = self.last\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheActionPointMeterArithmetic::test_an_auto_ended_turn_ended_at_zero_whatever_was_last_read"
+ },
+ {
+  "id": "IQ8-A2 spent ignores what the turn ended with",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.spent += self.start - unused\n",
+  "new": "            self.spent += self.start\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheActionPointMeterArithmetic::test_an_explicit_end_turn_counts_what_was_left"
+ },
+ {
+  "id": "IQ8-A3 the never-played final turn counted",
+  "file": "tools/playtest_driver.py",
+  "old": "        if self.turn is not None and self.played:\n",
+  "new": "        if self.turn is not None:\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheActionPointMeterArithmetic::test_the_turn_a_completed_run_ends_on_is_not_counted"
+ },
+ {
+  "id": "IQ8-A4 a bool reads as a turn number",
+  "file": "tools/playtest_driver.py",
+  "old": "        return value if isinstance(value, int) and not isinstance(value, bool) else None\n",
+  "new": "        return value if isinstance(value, int) else None\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheActionPointMeterArithmetic::test_a_response_without_a_summary_changes_nothing"
+ },
+ {
+  "id": "IQ8-A5 the meter never reaches meta.json",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.counters.update(meter.snapshot())\n",
+  "new": "            pass\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestActionPointCounters::test_available_is_the_turn_start_allotment"
+ },
+ {
+  "id": "IQ8-A6 refusals uncounted",
+  "file": "tools/playtest_driver.py",
+  "old": "        if response.get(\"success\") is False and \"cmd_refused\" in self.counters:\n",
+  "new": "        if response.get(\"success\") is None and \"cmd_refused\" in self.counters:\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestActionPointCounters::test_refused_counts_the_refused_commands"
+ },
+ {
+  "id": "IQ8-T1 the transport feeds no observer",
+  "file": "tools/playtest_driver.py",
+  "old": "        for observer in list(getattr(self, \"observers\", None) or ()):\n",
+  "new": "        for observer in ():\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheActionPointMeterArithmetic::test_the_transport_hands_every_post_to_its_observers"
+ },
+ {
+  "id": "IQ8-T2 an observer's error stops the run",
+  "file": "tools/playtest_driver.py",
+  "old": "            except Exception:\n                pass\n        return body\n",
+  "new": "            except ValueError:\n                pass\n        return body\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheActionPointMeterArithmetic::test_the_transport_hands_every_post_to_its_observers"
+ },
+ {
+  "id": "IQ8-J1 the provenance leaks into the jsonl (the sentinel sees the hash seed move)",
+  "file": "tools/playtest_driver.py",
+  "old": "        block = \"\".join(f\"- {line}\\n\" for line in lines)\n",
+  "new": "        block = \"\".join(f\"- {line}\\n\" for line in lines)\n        self.record(\"provenance\", lines=list(lines))\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestCrossHashSeedSentinel::test_two_hash_seeds_write_the_same_jsonl"
+ },
+ {
+  "id": "IQ8-I8-1 THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN down (the reset removed)",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = True\n",
+  "new": "THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = False\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_two_consecutive_in_process_drives_are_byte_identical tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_every_world_creation_empties_the_counter tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_a_loaded_campaign_restarts_its_rotation_as_a_fresh_process_would"
+ },
+ {
+  "id": "IQ8-I8-2 the reset's body emptied",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN:\n        _OBSERVATION_COUNTS.clear()\n",
+  "new": "    if THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN:\n        pass\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_two_consecutive_in_process_drives_are_byte_identical tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_a_loaded_campaign_restarts_its_rotation_as_a_fresh_process_would"
+ },
+ {
+  "id": "IQ8-I8-3 the world boot no longer calls the reset",
+  "file": "backend/models/world_state.py",
+  "old": "        reset_observation_rotation()\n        self.player_nation = player_nation\n",
+  "new": "        self.player_nation = player_nation\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_two_consecutive_in_process_drives_are_byte_identical tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_every_world_creation_empties_the_counter tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_the_world_boot_is_the_only_production_caller"
+ },
+ {
+  "id": "IQ8-I8-4 the reset moved off the boot onto from_dict alone (the bare constructor and from_scenario's own road lose it)",
+  "file": "backend/models/world_state.py",
+  "old": "        reset_observation_rotation()\n        self.player_nation = player_nation\n",
+  "new": "        self.player_nation = player_nation\n        if sovereign_map == \"never\":\n            reset_observation_rotation()\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_every_world_creation_empties_the_counter tests/test_iq8_the_harness_tells_the_truth.py::TestTheRotationBeginsWithTheCampaign::test_a_loaded_campaign_restarts_its_rotation_as_a_fresh_process_would"
+ },
+ {
+  "id": "IQ8-I8-5 THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN down vs the IQ-6 T7 control (which rides the production reset now)",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = True\n",
+  "new": "THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = False\n",
+  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT7TheCommittedScript::test_the_hooked_run_is_the_same_game"
+ },
+ {
+  "id": "IQ8-I9-1 the soil mark never hands the province over",
+  "file": "tools/ai_v_sweep.py",
+  "old": "            region.controller = self.SOIL_MARK_HOLDER\n",
+  "new": "            region.controller = prior\n",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmBScriptedFrance::test_volte_face_signed_and_aimed_at_a_third_party"
+ },
+ {
+  "id": "IQ8-I9-2 france_soil selects the plain arm",
+  "file": "tools/ai_v_sweep.py",
+  "old": "    france_script = (FranceScript(stage_soil=(script == \"france_soil\"))\n",
+  "new": "    france_script = (FranceScript(stage_soil=False)\n",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmBScriptedFrance::test_volte_face_signed_and_aimed_at_a_third_party"
+ },
+ {
+  "id": "IQ8-I9-3 the soil mark is the CAPITAL (a partition promotes Revanche and shuts the door)",
+  "file": "tools/ai_v_sweep.py",
+  "old": "    SOIL_MARK_REGION = \"Lithuania\"\n",
+  "new": "    SOIL_MARK_REGION = \"Vilna\"\n",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmBScriptedFrance::test_volte_face_signed_and_aimed_at_a_third_party"
+ },
+ {
+  "id": "IQ8-I9-4 the plain arm stages the soil too (the negative must see it)",
+  "file": "tools/ai_v_sweep.py",
+  "old": "    france_script = (FranceScript(stage_soil=(script == \"france_soil\"))\n",
+  "new": "    france_script = (FranceScript(stage_soil=bool(script))\n",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmBScriptedFrance::test_staged_exhaustion_tilsit_no_longer_reverses"
+ },
+ {
+  "id": "IQ8-I9-5 the watch stops reading the soil",
+  "file": "tools/ai_v_sweep.py",
+  "old": "                f\"soil={_lost_homeland(world, 'Russia')}\"))\n",
+  "new": "                f\"soil=[]\"))\n",
+  "tests": "tests/test_ai_intent_assurance.py::TestArmBScriptedFrance::test_volte_face_signed_and_aimed_at_a_third_party"
+ },
+ {
+  "id": "IQ8-M1 the `requested` block dropped from meta.json",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"requested\": {\"seed\": seed_plan[\"requested\"],\n                          \"scenario\": getattr(args, \"scenario\", None) or \"\",\n                          \"from_save\": args.from_save or \"\",\n                          \"llm\": args.llm},\n",
+  "new": "",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_requested_records_what_was_asked"
+ },
+ {
+  "id": "IQ8-M2 the `resolved` block dropped from meta.json (the boot's read discarded)",
+  "file": "tools/playtest_driver.py",
+  "old": "        digest.meta[\"resolved\"] = resolved_block(\n            transport, boot, None if args.http else args.seed)\n",
+  "new": "        digest.meta.pop(\"resolved\", None)\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_resolved_names_the_board_the_world_booted"
+ },
+ {
+  "id": "IQ8-M3 the `platform` block dropped from meta.json",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"platform\": platform_block(),\n",
+  "new": "",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_platform_names_the_interpreter"
+ },
+ {
+  "id": "IQ8-M4 the `engine_revision` block dropped from meta.json",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"engine_revision\": engine_revision(),\n",
+  "new": "",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestMetaCarriesProvenance::test_engine_revision_names_the_commit_and_the_content"
+ },
+ {
+  "id": "IQ8-P0 the env SET replaced by a pop (the .env hole re-opened with the lever up)",
+  "file": "tools/playtest_driver.py",
+  "old": "        for key, value in BOARD_ENV_NO_OPS:\n            os.environ[key] = value\n",
+  "new": "        for key, value in BOARD_ENV_NO_OPS:\n            os.environ.pop(key, None)\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheDotenvHole::test_the_driver_still_boots_the_1805_board"
+ },
+ {
+  "id": "IQ8-Z1 ap_available zeroed",
+  "file": "tools/playtest_driver.py",
+  "old": "        return {\"ap_available\": available, \"ap_spent\": spent}\n",
+  "new": "        return {\"ap_available\": 0, \"ap_spent\": spent}\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestActionPointCounters::test_available_is_the_turn_start_allotment"
+ },
+ {
+  "id": "IQ8-Z2 ap_spent zeroed",
+  "file": "tools/playtest_driver.py",
+  "old": "        return {\"ap_available\": available, \"ap_spent\": spent}\n",
+  "new": "        return {\"ap_available\": available, \"ap_spent\": 0}\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestActionPointCounters::test_spent_reconciles_with_the_end_turn_warnings"
+ },
+ {
+  "id": "IQ8-Z3 cmd_refused zeroed",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.counters[\"cmd_refused\"] += 1\n",
+  "new": "            self.counters[\"cmd_refused\"] += 0\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestActionPointCounters::test_refused_counts_the_refused_commands"
+ },
+ {
+  "id": "IQ8-X1 the PYTHONHASHSEED re-exec pin removed",
+  "file": "tools/playtest_driver.py",
+  "old": "    if os.environ.get(\"PYTHONHASHSEED\") is None:\n        import subprocess\n",
+  "new": "    if False:\n        import subprocess\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheReExecPin::test_an_unset_hash_seed_is_pinned_to_zero_and_recorded"
+ },
+ {
+  "id": "IQ8-S7 a flagless from-save restates the save's seed as the request",
+  "file": "tools/playtest_driver.py",
+  "old": "        return {\"requested\": explicit, \"dice\": dice,\n",
+  "new": "        return {\"requested\": dice, \"dice\": dice,\n",
+  "tests": "tests/test_iq8_the_harness_tells_the_truth.py::TestTheFromSaveSeedRule::test_without_a_seed_flag_the_dice_follow_the_save"
+ }
+]
