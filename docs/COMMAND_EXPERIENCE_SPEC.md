@@ -407,6 +407,62 @@ Tests: `tests/test_cx3_the_predictor.py`.
 
 ---
 
+### §3.4 CX-5 — "THE RETREAT IS SOMETIMES A NOUN" ✅ LANDED September 19, 2026
+
+The last gate-free defect the recon found, and the clearest instance of a
+shape this project keeps meeting: **a guard that understood its failure mode
+exactly and closed it with an allowlist.**
+
+`_mentions_screening_idiom` (July 18, 2026) exists because *"cover the
+retreat"* ordered the marshal to run. Its docstring states the mechanism
+perfectly — *"the retreat branch fired on the bare substring 'retreat' and
+stamped confidence 0.9, which is above the LLM-fallback gate, so live mode
+could never correct it"* — and it fixed the case with four verbs:
+`cover|screen|protect|shield`.
+
+**Measured on the 1805 boot through `POST /command`, seven more phrasings are
+the same defect one word over**, and every one marched the player's OWN
+marshal away — free, at 0 AP, with the retreat's −45% effectiveness penalty,
+at confidence 0.90:
+
+```
+Lannes, cut down the retreat      Lannes, exploit the retreat
+Lannes, cut off the retreat       Lannes, punish the retreat
+Lannes, press the retreat         Lannes, ride down the retreating Austrians
+Lannes, block the retreat
+```
+
+**The fix is the shape, not the verbs: "retreat" after a determiner is a
+NOUN — somebody else's retreat, acted upon — and not an order to run.** So
+the allowlist is INVERTED: instead of naming the verbs that mean *screen a
+withdrawal*, name the far smaller set that means *carry out the retreat*. The
+measurement supports the asymmetry — `sound`, `order`, `begin` and `call`
+"the retreat" all retreated correctly on the same board before the fix, and
+they are the whole set a player reaches for. Lever
+`llm_client.A_RETREAT_CAN_BE_A_NOUN`.
+
+Falling through to unknown is the right outcome for the rest, and it is
+**FA-73's own recorded ruling** for the pinned member. Since CX-2 the shrug
+answers with orders that would actually be carried out, so that fall-through
+is now useful rather than bare.
+
+⚠ **`_mentions_screening_idiom` is KEPT, not replaced** — FA-73 pins its
+exact wording, and `cover the rear / army / corps / flank` is its own idiom
+the noun rule does not reach.
+
+⛔ **A pin of this slice's own was caught by the mutation sweep.** It asserted
+the marshal MOVED; the sweep ran it on a tree where the retreat resolver kept
+him where he stood — which a retreat may legitimately do when there is
+nowhere better — and the sweep refused the red baseline rather than reporting
+a false KILLED. The pin now asserts the BEHAVIOUR, and a pin about *did he
+retreat* no longer depends on which province he lands in.
+
+Measured: **10 of 10 act-on-someone-else phrasings now refuse free; 8 of 8
+genuine retreat forms still retreat; `pursue the retreating enemy` still
+pursues and fights.** Golden corpus 0 rows moved.
+
+---
+
 ## §4 THE MODEL — RULED (CX's second question)
 
 **Measured, keyless, on the committed cassettes and the golden corpus:**
@@ -515,6 +571,7 @@ asked for it by name, so **it moves to CX** and CR-7's row is struck.
 | **CX-1** | A question never orders; an address needs no comma | ✅ **LANDED** — §3.1 |
 | **CX-2** | Berthier answers the board; ONE source for counsel; the shrug and the router stop dumping 12,717 characters | ✅ **LANDED** — §3.2 |
 | **CX-3** | The predictor, and the census that stops the game teaching what it cannot read | ✅ **LANDED** — §3.3 |
+| **CX-5** | The retreat is sometimes a noun | ✅ **LANDED** — §3.4 |
 | **CX-4** | The memo, the records, the typed-road playtest arm and the re-score | ✅ **LANDED** — `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md` |
 
 **⚠ The before/after playtest archives are byte-identical except the

@@ -76,6 +76,16 @@
 > marshal fogged at boot. **10 frames at both Interface Scales**,
 > `docs/audits/CX3_*_2026_09_19.png`.
 >
+> **AND ONE MORE, THE CLEAREST INSTANCE OF A SHAPE THIS PROJECT KEEPS
+> MEETING.** `Lannes, cut down the retreat` **marched the player's own
+> marshal away** — free, 0 AP, the retreat's −45% effectiveness penalty, at
+> confidence 0.90, *above* the escalation gate — and six more with it. The
+> guard that exists for exactly this failure stated the mechanism perfectly
+> in its own docstring and closed it with an **allowlist of four verbs**.
+> The fix is the shape: *"retreat" after a determiner is a NOUN*, so the
+> allowlist is INVERTED to the small set that means carry one out. **When a
+> guard names VERBS, ask what SHAPE it is really about.**
+>
 > **⛔ AND THE RULE THAT KEEPS IT HONEST: the game must not offer a sentence it
 > cannot read.** IQ10-6 generalised into a census over the completer's verb
 > table AND every phrasing the COMMAND REFERENCE quotes, driven through the
@@ -92,7 +102,7 @@
 > person does; on it, turns of questions spend **0 of 4 action points** and
 > three unbindable names are refused free.
 >
-> Suite **23,618 / 4**, sweep `tools/_sweep_cx.json` **31 rows, 31 killed, 0
+> Suite **23,618 / 4**, sweep `tools/_sweep_cx.json` **35 rows, 35 killed, 0
 > INERT** on a private copy (the first pass returned **10 INERT and every one
 > was a question** — three bad mutations, one redundant guard now DELETED, six
 > pins measured on the boot board where the guard has nothing to refuse, all

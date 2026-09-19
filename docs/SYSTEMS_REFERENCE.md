@@ -6015,3 +6015,19 @@ sentence the corpus says must be REFUSED; the deterministic chain carries
 the gate. **Keep escalation, re-aim it at open-ended questions — the only road
 with no deterministic answer — and keep the desk deterministic first**,
 because the shipped default is `LLM_MODE=mock`.
+
+### 50.10 The retreat is sometimes a NOUN
+
+`"retreat"` after a determiner is somebody ELSE'S retreat, acted upon — not
+an order to run. Only a small set of verbs (`sound` / `order` / `begin` /
+`call` / `signal` … *the retreat*) means carry one out, and that set is the
+allowlist; everything else falls through to Berthier, which is FA-73's own
+recorded ruling. Lever `llm_client.A_RETREAT_CAN_BE_A_NOUN`.
+
+⛔ **The general lesson, and this project keeps meeting it.** The guard this
+replaces stated its own failure mode perfectly and then closed it with four
+verbs. Seven more phrasings were the same defect one word over, and each
+marched a marshal away at confidence 0.90 — above the escalation gate, so no
+key in any mode could have corrected it. **When a guard names VERBS, ask what
+SHAPE it is really about; and when the shape has a small closed exception
+set, invert the allowlist.**

@@ -355,6 +355,7 @@ scales: `docs/audits/CX3_*_2026_09_19.png`.
 | **CX-2c** | P3 | A `reach` question was answered with the marshal's position: *"Marshal Ney stands at Rhineland with 24,000 men"* — true, and not the answer | CX-2 |
 | **CX-3a** | P3 | The help documents `"halt Ney"` and the cancel keyword list held every form of the word **except** that one | CX-3 |
 | **CX-3b** | P3 | The help teaches `"Davout, hold Ulm"`; it **parses** and the executor refuses *"Region 'Ulm' not found"* | CX-3 |
+| **CX-5** | **P2** | **`Lannes, cut down the retreat` marched the player's OWN marshal away** — free, 0 AP, the retreat's −45% effectiveness penalty, at confidence 0.90, ABOVE the escalation gate so no key could ever have corrected it. Six more with it (`cut off`, `press`, `block`, `exploit`, `punish`, `ride down the retreating Austrians`). The July-18 guard that exists for exactly this closed it with an **allowlist of four verbs** | **FIXED** — the allowlist is INVERTED: "retreat" after a determiner is a NOUN unless the verb means *carry out* one. 10 of 10 now refuse free; 8 of 8 genuine retreats still retreat |
 
 ### Routed, with owners (GR9)
 

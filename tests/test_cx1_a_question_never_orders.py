@@ -639,3 +639,103 @@ class TestEachArmOfTheGuardDirectly:
         assert CG.is_question("can Ney attack Mack", self.ROSTER) is True
         assert CG.is_question("can you attack Mack", self.ROSTER) is False
         assert CG.is_question("can Ney attack Mack") is False   # no roster
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CX-5 — "THE RETREAT IS SOMETIMES A NOUN"
+# ═══════════════════════════════════════════════════════════════════════════
+# `_mentions_screening_idiom` (July 18, 2026) understood this failure mode
+# exactly and closed it with an ALLOWLIST OF FOUR VERBS. Measured on the 1805
+# boot through POST /command, SEVEN more phrasings are the same defect one
+# word over, and every one marched the player's OWN marshal away — free, at
+# 0 AP, with the retreat's −45% effectiveness penalty, at confidence 0.90,
+# which is ABOVE the escalation gate, so no key in any mode could ever have
+# corrected it.
+#
+# The allowlist is INVERTED: "retreat" after a determiner is a NOUN, and only
+# a small set of verbs ("sound the retreat", "order the retreat") means carry
+# one out. The measurement supports the asymmetry — all four of those
+# correctly retreated on the same board before the fix and still do.
+
+class TestTheRetreatIsSometimesANoun:
+
+    SOMEBODY_ELSES = [
+        "Lannes, cut down the retreat",
+        "Lannes, cut off the retreat",
+        "Lannes, press the retreat",
+        "Lannes, block the retreat",
+        "Lannes, exploit the retreat",
+        "Lannes, punish the retreat",
+        "Lannes, ride down the retreating Austrians",
+        "Lannes, harry the retreat",
+        "Lannes, cover the retreat",
+        "Lannes, screen the withdrawal",
+    ]
+    HIS_OWN = [
+        "Lannes, retreat",
+        "Lannes, fall back",
+        "Lannes, pull back",
+        "Lannes, retire",
+        "Lannes, sound the retreat",
+        "Lannes, order the retreat",
+        "Lannes, begin the retreat",
+        "Lannes, call the retreat",
+    ]
+
+    @pytest.mark.parametrize("utterance", SOMEBODY_ELSES)
+    def test_he_does_not_march_away(self, utterance):
+        response, footprint = _drive(utterance)
+        _assert_inert(utterance, response, footprint)
+
+    @pytest.mark.parametrize("utterance", HIS_OWN)
+    def test_a_real_retreat_still_retreats(self, utterance):
+        """⚠ Asserted on the BEHAVIOUR, not on the geography. The first draft
+        asserted the marshal MOVED, and the mutation sweep caught it going red
+        on a tree where the retreat resolver kept him where he was — which a
+        retreat may legitimately do when there is nowhere better to stand.
+        A pin about "did he retreat" must not depend on which province he
+        lands in."""
+        response, footprint = _drive(utterance)
+        message = (response.get("message") or response.get("error") or "")
+        assert "retreat" in message.lower(), (utterance, message[:160])
+        assert "cannot parse" not in message, (utterance, message[:160])
+        assert "order of battle" not in message, (utterance, message[:160])
+
+    def test_the_pursuit_of_a_retreating_enemy_is_untouched(self):
+        """`pursue` wins the chain long before the retreat branch, and the
+        participle rule must not reach it: this is a real order that fights."""
+        _, footprint = _drive("Lannes, pursue the retreating enemy")
+        assert footprint["ap"][1] < footprint["ap"][0], footprint
+
+    def test_the_lever(self):
+        from backend.ai import llm_client as LC
+        assert LC.A_RETREAT_CAN_BE_A_NOUN is True
+        original = LC.A_RETREAT_CAN_BE_A_NOUN
+        try:
+            LC.A_RETREAT_CAN_BE_A_NOUN = False
+            response, _footprint = _drive("Lannes, cut down the retreat")
+            message = (response.get("message") or "")
+            assert "retreats from" in message, (
+                "lever off = the defect reproduces", message[:160])
+        finally:
+            LC.A_RETREAT_CAN_BE_A_NOUN = original
+
+    def test_the_four_screening_verbs_are_still_covered_by_their_own_guard(self):
+        """`_mentions_screening_idiom` is KEPT, not replaced: FA-73 pins its
+        exact wording, and `cover the rear / army / corps / flank` is its own
+        idiom that the noun rule does not reach."""
+        from backend.ai.llm_client import _mentions_screening_idiom
+        for text in ("cover the retreat", "screen the withdrawal",
+                     "protect the rear", "shield the army"):
+            assert _mentions_screening_idiom(text), text
+
+    def test_the_noun_rule_and_the_carry_out_set(self):
+        from backend.ai.llm_client import _retreat_is_a_noun
+        for text in ("cut down the retreat", "press the retreat",
+                     "ride down the retreating austrians",
+                     "block the enemy retreat", "exploit their withdrawal"):
+            assert _retreat_is_a_noun(text) is True, text
+        for text in ("retreat", "retreat to lorraine", "sound the retreat",
+                     "order a general retreat", "begin the retreat",
+                     "retreat the army"):
+            assert _retreat_is_a_noun(text) is False, text

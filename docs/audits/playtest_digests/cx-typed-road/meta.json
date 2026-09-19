@@ -25,7 +25,7 @@
     "clarification": "first"
   },
   "turns_requested": 8,
-  "started": "2026-09-19 11:53",
+  "started": "2026-09-19 12:47",
   "from_save": "",
   "scenario": "",
   "script": "tools/playtest_scripts/typed_road.json",
@@ -70,14 +70,14 @@
     "pythonhashseed": "0"
   },
   "engine_revision": {
-    "git_commit": "2c3535b574684a7086b30a2acb81942449183d64",
+    "git_commit": "704df816a8ae04e4c2b5fc1143104fecaf618631",
     "dirty": true,
     "dirty_scope": [
       "backend",
       "tools/playtest_driver.py",
       "godot-client/project-sovereign/assets/maps"
     ],
-    "content_hash": "fcf3d35f58eb85b3d7b285a2af74b37f80b37942e931657908e028c954b1b6c2",
+    "content_hash": "a4141b4072863236779e5b4a2242c1f7e57ff239c2019f87ca0c95f9d8a31fa3",
     "content_files": 127,
     "content_scope": "backend/**/*.py + the map registry + the 1805 and tutorial scenario JSON, line endings normalised to LF"
   },

@@ -708,11 +708,74 @@ def _mentions_screening_idiom(command_lower: str) -> bool:
     retreated, spending the AP. Falling through to unknown is the correct
     outcome (Berthier asks) — screening is not a modelled action.
 
-    Same shape as the _mentions_pension guard above (mock keyword order rule)."""
+    Same shape as the _mentions_pension guard above (mock keyword order rule).
+
+    ⚠ CX-5: this is an ALLOWLIST OF FOUR VERBS, and the defect it closed has
+    six more members. See `_retreat_is_a_noun` below, which generalises it;
+    this function is kept because FA-73 pins its exact wording and because
+    `cover the rear / army / corps / flank` is its own idiom."""
     return bool(re.search(
         r"\b(?:cover|screen|protect|shield)\s+(?:the|our|his|their|her)\s+"
         r"(?:retreat|withdrawal|rear|army|corps|flank)\b",
         command_lower))
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# CX-5 — "THE RETREAT IS SOMETIMES A NOUN"
+# ───────────────────────────────────────────────────────────────────────────
+# `_mentions_screening_idiom` understood the failure mode exactly and closed
+# it with four verbs. Measured on the 1805 boot through `POST /command`, SEVEN
+# more phrasings are the same defect one word over, and every one marched the
+# player's OWN marshal away — free, at 0 AP, with the retreat's -45%
+# effectiveness penalty, at confidence 0.90, which is ABOVE the escalation
+# gate, so no key in any mode could ever have corrected it:
+#
+#     Lannes, cut down the retreat      Lannes, exploit the retreat
+#     Lannes, cut off the retreat       Lannes, punish the retreat
+#     Lannes, press the retreat         Lannes, ride down the retreating Austrians
+#     Lannes, block the retreat
+#
+# The shape, rather than the verbs: **"retreat" after a determiner is a NOUN
+# — somebody else's retreat, acted upon — and not an order to run.**
+#
+# The allowlist is therefore INVERTED. Instead of naming the verbs that mean
+# "screen a withdrawal", name the far smaller set that means "carry out the
+# retreat" — and the measurement supports it: all four of `sound`, `order`,
+# `begin` and `call` "the retreat" correctly retreated on the same board, and
+# they are the whole set a player reaches for.
+#
+# Falling through to unknown is the right outcome for the rest, and it is
+# FA-73's own recorded ruling for the pinned member: *"Falling through to
+# unknown is the correct outcome (Berthier asks) — screening is not a
+# modelled action."* Since CX-2 the shrug answers with orders that would
+# actually be carried out, so the fall-through is now useful rather than bare.
+#
+# Flip lever: False restores the four-verb allowlist byte-for-byte.
+A_RETREAT_CAN_BE_A_NOUN = True
+
+# A determiner, an optional adjective, then the noun — plus the participle,
+# which is always adjectival ("the retreating Austrians").
+_RETREAT_NOUN_RE = re.compile(
+    r"\b(?:the|our|his|her|their|its|an?|enemy|enemy['’]s)\s+(?:\w+\s+)?"
+    r"(?:retreat|retreats|withdrawal|withdrawals)\b"
+    r"|\bretreating\b",
+    re.IGNORECASE)
+
+# …unless the verb in front of it means CARRY OUT the retreat.
+_ORDER_THE_RETREAT_RE = re.compile(
+    r"\b(?:sound|order|begin|start|commence|call|signal|blow|announce|make"
+    r"|continue|resume|execute)\s+(?:the|our|an?)\s+(?:\w+\s+)?"
+    r"(?:retreat|withdrawal)\b",
+    re.IGNORECASE)
+
+
+def _retreat_is_a_noun(command_lower: str) -> bool:
+    """True when the sentence acts on SOMEBODY ELSE'S retreat."""
+    if not A_RETREAT_CAN_BE_A_NOUN:
+        return False
+    if _ORDER_THE_RETREAT_RE.search(command_lower):
+        return False
+    return bool(_RETREAT_NOUN_RE.search(command_lower))
 
 
 # ═══════ Row WO slice 11 — the typed-route residue ═══════
@@ -2033,11 +2096,15 @@ class LLMClient:
         # ES-7 second pass (§0.6.8) review fix: "withdraw Ney's rente" is a
         # pension verb, not an army order — the rente family yields to the
         # pension branches further down the chain (mock keyword order rule).
-        elif (("retreat" in command_lower and not _mentions_screening_idiom(command_lower))
+        elif (("retreat" in command_lower
+               and not _mentions_screening_idiom(command_lower)
+               # CX-5: …and not somebody ELSE'S retreat, acted upon.
+               and not _retreat_is_a_noun(command_lower))
               or ("fall back" in command_lower and not _names_a_destination(command_lower))
               or ("withdraw" in command_lower and not _names_a_destination(command_lower)
                   and not _mentions_pension(command_lower)
-                  and not _mentions_screening_idiom(command_lower))
+                  and not _mentions_screening_idiom(command_lower)
+                  and not _retreat_is_a_noun(command_lower))
               # FA slice 7 (FA-80): "pull back" / "retire" without a
               # destination are the retreat verb.
               or (PLAIN_SPEECH_ACTIVE and _mentions_plain_retreat(command_lower))):

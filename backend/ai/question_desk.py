@@ -469,6 +469,18 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         r"|should|can|could)\s+(?:i|we|" + _HON
         + r"[\w'’-]+)\s+(?:attack|engage|assault|fight|beat)\s+"
         r"(?:the\s+)?(?P<name>.+?)" + _TAIL, re.IGNORECASE)),
+    # The MUSING forms — "why not attack Mack", "what about attacking Mack",
+    # "how about we attack Mack". These are the most natural thing a person
+    # types at a war table, they NAME the foe, and before CX-1 every one of
+    # them fought a real battle. Having stopped them, the desk should answer
+    # them: the muster is exactly the reply the player was reaching for, and
+    # it costs nothing.
+    ("what_if", re.compile(
+        _LEAD + r"(?:why\s+not|what\s+about|how\s+about|is\s+it\s+time\s+to)"
+        r"(?:\s+(?:i|we|" + _HON + r"[\w'’-]+))?"
+        r"\s+(?:attack|attacking|engage|engaging|assault|assaulting"
+        r"|fight|fighting)\s+(?:the\s+)?(?P<name>.+?)" + _TAIL,
+        re.IGNORECASE)),
     # "what can I build here" / "what can we build in Paris"
     ("can_build", re.compile(
         _LEAD + r"what\s+can\s+(?:i|we)\s+build"

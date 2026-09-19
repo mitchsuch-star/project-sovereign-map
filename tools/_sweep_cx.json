@@ -215,5 +215,33 @@
   "old": "const MAX_HISTORY = 50",
   "new": "const MAX_HISTORY = 10",
   "tests": "tests/test_cx3_the_predictor.py::TestTheHistoryWalk::test_the_window_was_raised_with_its_reason"
+ },
+ {
+  "id": "CX5-1 llm_client: the noun rule is dropped from the retreat branch",
+  "file": "backend/ai/llm_client.py",
+  "old": "               # CX-5: …and not somebody ELSE'S retreat, acted upon.\n               and not _retreat_is_a_noun(command_lower))",
+  "new": "               and True)",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_he_does_not_march_away"
+ },
+ {
+  "id": "CX5-2 llm_client: the carry-out set is emptied (a real retreat stops working)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    if _ORDER_THE_RETREAT_RE.search(command_lower):\n        return False",
+  "new": "    if False:\n        return False",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_a_real_retreat_still_retreats"
+ },
+ {
+  "id": "CX5-3 llm_client: the participle arm deleted (ride down the retreating Austrians)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    r\"|\\bretreating\\b\",",
+  "new": "    r\"|\\bzzznevermatchzzz\\b\",",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun"
+ },
+ {
+  "id": "CX5-4 llm_client: the screening idiom's own guard removed",
+  "file": "backend/ai/llm_client.py",
+  "old": "        r\"\\b(?:cover|screen|protect|shield)\\s+(?:the|our|his|their|her)\\s+\"\n        r\"(?:retreat|withdrawal|rear|army|corps|flank)\\b\",",
+  "new": "        r\"\\bzzznevermatchzzz\\b\",",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_the_four_screening_verbs_are_still_covered_by_their_own_guard"
  }
 ]
