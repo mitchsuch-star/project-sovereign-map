@@ -347,7 +347,7 @@ scales: `docs/audits/CX3_*_2026_09_19.png`.
 
 | id | sev | defect | where |
 |---|---|---|---|
-| **CX-1a** | **P1** | `why not attack Mack` **fought a real battle** — AP 4→3, six corps bled incl. the Emperor's Guard. `why not retreat` marched the **whole army**. `what about attack Mack`, `how about retreat`, `is it time to build a depot in Paris` (300 gold), `can/may/does/is Ney attacking Mack`, `is Swabia defended`, `retreat?` — a 684-case sweep went **30 executing → 9, all nine intended controls** | CX-1 |
+| **CX-1a** | **P1** | `why not attack Mack` **fought a real battle** — AP 4→3, six corps bled incl. the Emperor's Guard. `why not retreat` marched the **whole army**. `what about attack Mack`, `how about retreat`, `is it time to build a depot in Paris` (300 gold), `can/may/does/is Ney attacking Mack`, `is Swabia defended`, `retreat?` — one 684-case grid run under BOTH arms went **121 executing → 9**, all nine of them intended controls — 112 defects to zero | CX-1 |
 | **CX-1b** | **P1** | `Nay attack Mack` — one keystroke from `Nay, attack Mack` — sent **Soult, never named**, into a real battle. So did `Grouchy`, `Berthier`, `Wellington`, `Blucher` and `Zorglub`; `Wellington retreat` marched the entire army. The guard keyed on a **comma** | CX-1 |
 | **CX-1c** | P2 | `who holds Swabia` — the desk's own advertised kind — raised *"Which marshal shall hold Swabia, Sire?"*, one answer from an order | CX-1 |
 | **CX-2a** | P2 | **Ten of the user's twelve questions returned a 12,717-character manual** containing none of the answers. Now 41 of 41 answered | CX-2 |
@@ -398,7 +398,7 @@ drops a comma, it names a place the map does not have. Read on the archive
 | 8 | `flurble the wibble` | the shrug offers *"'Ney, march to Lorraine'"* — an order from the counsel — and names the Cabinet. Not a war on Prussia |
 
 **The three rules the brief asked to be proved, each with a pin:** a question
-never executes (684-case sweep, 30 → 9 and all nine are intended controls;
+never executes (one 684-case grid, both arms: 121 → 9, all nine intended controls;
 `TestTheQuestionsThatFought` asserts AP, gold, turn, every marshal's position
 and strength, and the absence of a battle report — not merely `success is
 False`, which a refusal AFTER a mutation satisfies); a question the game can
@@ -410,8 +410,9 @@ answer names the surface that holds it (`TestTheRouter`).
 
 **Command & parsing 7.5 → 8.0. ⚠ FOR USER CONFIRMATION.**
 
-Raised on named evidence: a question no longer executes an order (684-case
-sweep, 30 → 9 and all nine intended); a one-keystroke slip no longer fights a
+Raised on named evidence: a question no longer executes an order (one
+684-case grid measured under both arms: 121 → 9, and all nine are the
+intended controls); a one-keystroke slip no longer fights a
 battle; the game's own printed sentences are now a census rather than a hope;
 and the typed road answers 41 of 41 driven questions where it answered 2 of
 12. Held below 8.5 because **the diplomatic family is still closed to typing

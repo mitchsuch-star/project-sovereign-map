@@ -59,10 +59,19 @@ WHAT IS DELIBERATELY LEFT EXECUTING — stated, not overlooked
 
 MEASURED REACH
 ==============
-A 677-case sweep of (question lead × order verb) on a fresh 1805 board per
-case: **668 clean, 9 executing, and all nine are the controls above.** Before
-the slice the same sweep executed 30. The golden corpus moves **0 of 447
-entries** under either arm of the lever (`TestTheCorpusDoesNotMove`).
+ONE 684-case grid of (question lead × order verb), a fresh 1805 board per
+case, run under BOTH arms of the two levers this row adds:
+
+    BEFORE   121 executing — 112 defects plus the 9 intended controls
+    AFTER      9 executing — the 9 controls, and ZERO defects
+
+⚠ The row first published "30 executing → 9". That was two numbers from two
+different grids — the 30 from an earlier, smaller one, before the
+third-person modal leads and the copular set were added — and it UNDERSTATED
+the fix by nearly four times. Measured together, on one grid, it is 121 → 9.
+
+The golden corpus moves **0 of 447 entries** under either arm
+(`TestTheCorpusDoesNotMove`).
 """
 
 import io

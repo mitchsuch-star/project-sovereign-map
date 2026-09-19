@@ -47,7 +47,11 @@
 > **TWO P1s, found by driving rather than reading.** `why not attack Mack`
 > **fought a real battle** — an action point and six bled corps incl. the
 > Emperor's Guard — and `why not retreat` marched the **whole army**; a
-> 684-case sweep went **30 executing → 9, all nine intended controls**. And
+> 684-case grid, run under BOTH arms, went **121 executing → 9** — 112
+> defects to zero, and all nine survivors are the intended controls. ⚠ The
+> row first published "30 → 9", two numbers from two different grids, which
+> **understated its own fix by nearly four times**; corrected on the record.
+> And
 > `Nay attack Mack`, one keystroke from `Nay, attack Mack`, sent **Soult, never
 > named**, into a battle — as did `Grouchy`, `Berthier`, `Wellington`,
 > `Blucher` and `Zorglub`, while `Wellington retreat` marched the army; the

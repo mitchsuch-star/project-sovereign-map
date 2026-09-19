@@ -215,8 +215,16 @@ its absence did not, was itself the defect that rule exists to kill),
 `Ney, attack Mack?`, `can you attack Mack`, `would you have Ney attack Mack`,
 `do attack Mack`, `when ready then retreat`.
 
-**Measured reach: a 684-case sweep of (lead × verb) on a fresh board per case
-goes 30 executing → 9, and all nine are the controls above.** The golden corpus
+**Measured reach, both levers flipped over ONE case set: 684 cases, **121
+executing before** (112 defects plus the 9 intended controls) and **9 after**
+— every one of the nine a control, and **zero defects left**.**
+
+⚠ **This row first published "30 executing → 9", and that figure was wrong
+and UNDERSTATED the fix by nearly four times.** The 30 came from an earlier,
+smaller grid, before the third-person modal leads and the copular set were
+added to the sweep; the 9 came from the final one. Two numbers from two
+grids, presented as a before and an after. The figure above is one grid, both
+arms, measured together (`probes/sweep_both_arms.py`). The golden corpus
 moves **0 of 447 entries** under either arm of the lever.
 
 **Half two — "AN ADDRESS NEEDS NO COMMA".** `_unbound_addressee` keyed the
