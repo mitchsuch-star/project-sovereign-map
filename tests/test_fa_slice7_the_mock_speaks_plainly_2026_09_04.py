@@ -631,12 +631,37 @@ class TestTheQuestionDesk:
             r = post(client, text)
             assert "Swabia" in r["message"] and COMMAND_REFERENCE not in r["message"], text
 
-    def test_guidance_and_feasibility_keep_the_command_reference(self, board, client):
-        for text in ("how do I attack?", "can I attack Mack?", "should Ney attack Mack?",
-                     "how do I attack Mack?"):
+    def test_a_syntax_question_keeps_the_command_reference(self, board, client):
+        """"how do I attack?" is a question about the game's GRAMMAR, and the
+        reference is the honest answer to it. Unchanged by CX-2."""
+        for text in ("how do I attack?", "how do I attack Mack?",
+                     "how does recruiting work?"):
             r = post(client, text)
             assert COMMAND_REFERENCE in r["message"], text
             assert not r.get("battle_report"), text
+
+    def test_feasibility_now_gets_the_router_not_the_manual(self, board, client):
+        """⚠ CONSCIOUS PIN FLIP (CX-2), on ruling R7's OWN re-open condition:
+        *"A question-answering Berthier is CR-6's to build; when it exists, it
+        replaces the `help` route, not the guard."*
+
+        `can I attack Mack?` and `should Ney attack Mack?` used to return the
+        12,717-character COMMAND REFERENCE, which contains no answer to
+        either. They now get Berthier's short answer, the surface that holds
+        what they want, and the orders that would actually be carried out —
+        and the reference is still one word away, which the last line says.
+        The guard is untouched: neither fights a battle."""
+        for text in ("can I attack Mack?", "should Ney attack Mack?",
+                     "should we retreat?"):
+            r = post(client, text)
+            assert COMMAND_REFERENCE not in r["message"], text
+            assert not r.get("battle_report"), text
+            # Either Berthier's router, or — better — the real MUSTER for the
+            # attack the question names, which is what the two attack rows
+            # now get. Both are short; the manual is not.
+            assert ("cannot answer that" in r["message"]
+                    or "Nothing has been ordered" in r["message"]), text
+            assert len(r["message"]) < 2000, (text, len(r["message"]))
 
     def test_will_ney_attack_mack_is_a_question(self, board, client):
         """Measured: this sentence FOUGHT A BATTLE — gold −128, four corps

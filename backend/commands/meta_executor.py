@@ -605,8 +605,17 @@ class MetaExecutor:
         # falls through to the full report.
         question = command.get("question")
         if question:
-            from backend.ai.question_desk import answer_question
+            from backend.ai.question_desk import (answer_board_question,
+                                                  answer_question)
             answer = answer_question(world, question)
+            if not answer:
+                # CX-2: the board kinds — the treasury, the war score, a
+                # court's design, a march's reach, an attack's muster, what
+                # may be built and what it costs. `answer_question` owns the
+                # five FACT kinds and returns None for these, so the order is
+                # a fall-through rather than a branch and the older five can
+                # never be shadowed.
+                answer = answer_board_question(world, question)
             if not answer:
                 # Review round (R2-14): the report is not the answer to a
                 # question the desk classified and could not resolve.
@@ -626,6 +635,72 @@ class MetaExecutor:
             "intel_report": report,
         }
 
+
+    # ── CX-2: the router ──────────────────────────────────────────────────
+    # Which screen holds the answer to which kind of question. Deliberately
+    # a SMALL table of subject words rather than a classifier: a wrong
+    # pointer is worse than none, and the tail below is honest when no word
+    # matches.
+    _QUESTION_TOPICS = (
+        (("gold", "money", "treasury", "income", "revenue", "cost", "afford",
+          "upkeep", "charge", "pay", "budget", "finance", "rich", "poor",
+          "bankrupt"), "economy"),
+        (("build", "depot", "fort", "market", "stable", "training",
+          "watchtower", "repair", "damage"), "economy"),
+        (("marshal", "general", "trust", "loyal", "glory", "grievance",
+          "jealous", "rival", "estate", "rente", "reward", "commission",
+          "promote"), "marshals"),
+        (("war", "peace", "treaty", "ally", "alliance", "coalition",
+          "enemy", "envoy", "court", "diplomat", "talleyrand", "vassal",
+          "tribute", "autonomy", "design", "agenda"), "diplomacy"),
+        (("fleet", "ship", "navy", "naval", "blockade", "sail", "admiral",
+          "crossing", "strait", "landing", "expedition"), "admiralty"),
+        (("order", "standing", "march", "pursue", "cancel", "halt"),
+         "orders"),
+        (("supply", "manpower", "recruit", "levy", "pool", "conscript",
+          "reinforce"), "forces"),
+        (("happened", "last turn", "yesterday", "history", "chronicle",
+          "gazette", "moniteur", "news"), "gazette"),
+        (("fail", "failed", "refuse", "refused", "rejected", "why"), "log"),
+    )
+
+    def _route_unanswered_question(self, asked: str, game_state: Dict):
+        """Berthier's honest answer to a question the desk cannot take.
+
+        Three parts, and the second is the one that matters: *what he CAN
+        tell you*. The counsel is the same `ai/counsel.what_can_i_do` the
+        board desk's `options` kind and Berthier's own shrug read, so the
+        three surfaces can never propose an order one of them would refuse.
+        """
+        from backend.ai.counsel import (CABINET_LINE,
+                                        COUNSEL_IS_DERIVED_FROM_THE_BOARD,
+                                        surface_pointer, what_can_i_do)
+        if not COUNSEL_IS_DERIVED_FROM_THE_BOARD:
+            return None
+        world = (game_state or {}).get("world")
+        if world is None:
+            return None
+        lowered = (asked or "").lower()
+        pointer = None
+        for words, topic in self._QUESTION_TOPICS:
+            if any(word in lowered for word in words):
+                pointer = surface_pointer(topic)
+                break
+        lines = ["Berthier sets down his pen. \"I cannot answer that from the "
+                 "dispatches, Sire.\""]
+        if pointer:
+            lines.append(f"What you want is in {pointer}.")
+        orders = what_can_i_do(world, getattr(world, "player_nation", None),
+                               limit=4)
+        if orders:
+            lines.append("")
+            lines.append("What I CAN do today:")
+            lines.extend(f"  {order}" for order in orders)
+        lines.append("")
+        lines.append(CABINET_LINE)
+        lines.append("Type 'help' for the full command reference.")
+        return "\n".join(lines)
+
     def _execute_help(self, command: Dict, game_state: Dict) -> Dict:
         """
         Display help text with available commands and examples.
@@ -636,6 +711,19 @@ class MetaExecutor:
         - executor.py: _execute_* methods
         - personality.py: PERSONALITY_TRIGGERS (for objection info)
         """
+        # CX-2: a QUESTION the desk could not answer is answered in a sentence
+        # and pointed at the surface that holds it, not handed the manual.
+        # Ten of the twelve questions a player actually asks used to end here,
+        # and the manual answers none of them — measured, it contains the
+        # words `status`, `where is`, `who holds` and `how many men` zero
+        # times. `help` typed on purpose still prints the reference.
+        asked = (command or {}).get("question") or {}
+        if str(asked.get("kind") or "") == "unanswered":
+            routed = self._route_unanswered_question(
+                str(asked.get("asked") or ""), game_state)
+            if routed:
+                return {"success": True, "free_action": True,
+                        "message": routed, "question_answered": True}
         help_text = """═══════════════════════════════════════
            COMMAND REFERENCE
 ═══════════════════════════════════════

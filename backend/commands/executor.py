@@ -1029,8 +1029,13 @@ class CommandExecutor:
             if not verb:
                 return None
             head = raw[:verb.start()]
-            if not head.strip():
-                return None          # a genuinely bare order — untouched
+            # ⚠ There is deliberately NO empty-head early return here. The
+            # first draft had one, and the mutation sweep showed it INERT:
+            # an empty head falls through to `if not phrase` below, which is
+            # the SAME answer by the same rule. A guard no mutation can kill
+            # is a guard no pin can be about, so it is gone and the one
+            # below is the single source. `attack Mack` — head empty — is
+            # still untouched by construction, and pinned.
             if self._NOT_AN_ADDRESS_RE.search(head):
                 return None          # a collective, or grammar — not a name
         phrase = head.strip().strip("'\"").strip()

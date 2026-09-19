@@ -530,3 +530,112 @@ class TestAnAddressNeedsNoComma:
         response, footprint = _drive("Nay, attack Mack")
         _assert_inert("Nay, attack Mack", response, footprint)
         assert "order of battle" in (response.get("message") or "")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE SWEEP'S OWN FINDINGS — every arm pinned DIRECTLY on the predicate
+# ═══════════════════════════════════════════════════════════════════════════
+# The first mutation sweep returned ten INERT rows, and an INERT mutation is
+# a question. Four of these arms were inert because the SECOND guard this
+# slice added — `AN_ADDRESS_NEEDS_NO_COMMA` in the executor — catches the
+# same sentence one layer down, so deleting the clause-guard arm changed
+# nothing observable end to end. That is defence in depth working, and it is
+# also a pin that proves nothing.
+#
+# The project's own rule applies: darken the second road in the isolation
+# pin, never weaken the assertion. These pin `is_question` DIRECTLY, which no
+# executor guard can reach.
+
+class TestEachArmOfTheGuardDirectly:
+    """One pin per arm, on the predicate itself."""
+
+    ROSTER = ["Ney", "Davout", "Soult", "Mack", "Swabia", "Vienna"]
+
+    # ⚠ The arms OVERLAP, and the first draft of these pins did not allow for
+    # it: `whose corps is at Swabia` carries an auxiliary, so the pre-CX rule
+    # already called it a question, and `is Swabia defended` names a subject
+    # in the roster, so arm (d) already did. Darkening one arm and asserting
+    # False on a sentence another arm covers is an assertion about the wrong
+    # thing. Each list below is therefore split: what the arm must ANSWER,
+    # and the narrower set that ONLY it reaches.
+
+    ARM_A = ["why not attack Mack", "why not retreat", "who holds Swabia",
+             "whose corps is at Swabia", "whom shall we attack",
+             "why did Ney fall back"]
+    # No auxiliary anywhere, and a WH lead — so the subject arm is skipped by
+    # construction and the old auxiliary rule finds nothing.
+    ARM_A_ONLY = ["why not attack Mack", "why not retreat", "who holds Swabia"]
+
+    ARM_C = ["is Swabia defended", "are the Austrians at Swabia",
+             "was the battle won", "does Ney hold Swabia", "did Ney attack",
+             "has Vienna fallen", "had Ney attacked"]
+    # A copular or perfect lead whose SUBJECT is not in any roster, so arm (d)
+    # cannot reach it either.
+    ARM_C_ONLY = ["is the bridge held", "was the assault repulsed",
+                  "has the depot been built", "are the roads open",
+                  "did the levy arrive"]
+
+    @pytest.mark.parametrize("text", ARM_A)
+    def test_arm_a_answers_the_four_subject_wh_leads(self, text):
+        assert CG.is_question(text, self.ROSTER) is True, text
+
+    @pytest.mark.parametrize("text", ARM_A_ONLY)
+    def test_arm_a_is_the_only_thing_holding_these(self, text):
+        saved = CG._SUBJECT_WH_WORDS
+        try:
+            CG._SUBJECT_WH_WORDS = frozenset()
+            assert CG.is_question(text, self.ROSTER) is False, text
+        finally:
+            CG._SUBJECT_WH_WORDS = saved
+
+    @pytest.mark.parametrize("text", ARM_C)
+    def test_arm_c_answers_the_leads_with_no_imperative_form(self, text):
+        assert CG.is_question(text, self.ROSTER) is True, text
+
+    @pytest.mark.parametrize("text", ARM_C_ONLY)
+    def test_arm_c_is_the_only_thing_holding_these(self, text):
+        assert CG.is_question(text, self.ROSTER) is True, text
+        saved = CG._NEVER_IMPERATIVE_LEADS
+        try:
+            CG._NEVER_IMPERATIVE_LEADS = frozenset()
+            assert CG.is_question(text, self.ROSTER) is False, text
+        finally:
+            CG._NEVER_IMPERATIVE_LEADS = saved
+
+    def test_arm_c_stands_down_before_a_trailing_clause(self):
+        """An inverted conditional is not a question. `_TRAILING_CLAUSE_RE`
+        is what keeps "should Mack advance, fortify" — and its copular twin —
+        out of the arm and on the condition guard's refusal."""
+        assert CG.is_question("is Mack advancing, fortify", self.ROSTER) is False
+        assert CG.is_question("is Mack advancing", self.ROSTER) is True
+        assert CG.is_question("should Mack advance, fortify", self.ROSTER) is False
+        assert CG.is_question("should Mack advance", self.ROSTER) is True
+
+    def test_have_is_deliberately_not_a_lead(self):
+        """"have Ney attack Mack" is the CAUSATIVE IMPERATIVE and a real
+        order; "has"/"had" cannot open one. If `have` is ever added to the
+        lead set this pin goes red, which is the point."""
+        assert CG.is_question("have Ney attack Mack", self.ROSTER) is False
+        assert CG.is_question("has Ney attacked Mack", self.ROSTER) is True
+        assert CG.is_question("had Ney attacked Mack", self.ROSTER) is True
+
+    def test_the_causative_imperative_still_marches(self):
+        """…and end to end, so the predicate pin above is not the only
+        evidence."""
+        _, footprint = _drive("have Ney attack Mack")
+        assert footprint["ap"][1] < footprint["ap"][0], footprint
+
+    def test_arm_b_the_deliberative_openers(self):
+        for text in ("what about attack Mack", "how about retreat",
+                     "is it time to attack", "what say you to a march"):
+            assert CG.is_question(text, self.ROSTER) is True, text
+
+    def test_arm_e_the_unaddressed_question_mark(self):
+        assert CG.is_question("retreat?") is True
+        assert CG.is_question("Ney, attack Mack?") is False
+        assert CG.is_question("Marshal Ney, retreat?") is False
+
+    def test_arm_d_the_subject(self):
+        assert CG.is_question("can Ney attack Mack", self.ROSTER) is True
+        assert CG.is_question("can you attack Mack", self.ROSTER) is False
+        assert CG.is_question("can Ney attack Mack") is False   # no roster

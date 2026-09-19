@@ -559,6 +559,64 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
     names += list(_game_state_dict(game_state, "map_data"))
     return names
 
+# CX-2: the Cabinet named as a DOOR rather than as a sentence to type. Ruling
+# G1 retired the typed diplomatic verbs as a player surface; the recovery copy
+# had gone on teaching them for a year.
+_CABINET_DOOR = "For any matter of state, press F1 for the Cabinet."
+
+
+# CX-2: "how do I attack?" is a SYNTAX question, and the command reference is
+# the honest answer to it — FA slice 7 decided that and ruling R7 keeps advice
+# and feasibility with CR-8. The router is for questions about the BOARD, not
+# about the game's grammar, so these keep the manual.
+_SYNTAX_QUESTION_RE = re.compile(
+    r"^\s*(?:so\s+|and\s+|but\s+|ok(?:ay)?\s*,?\s*|well\s*,?\s*)?"
+    r"(?:how\s+(?:do|does|can|would|should)\s+(?:i|we|you|one)"
+    r"|how\s+do\s+i"
+    r"|what\s+(?:is|are)\s+the\s+(?:command|commands|order|orders|syntax)"
+    r"|how\s+does\s+\w+\s+work)\b",
+    re.IGNORECASE)
+
+
+def _routes_to_the_desk(text: str) -> bool:
+    """Whether an unanswered question should get the ROUTER rather than the
+    command reference. Gated on the desk's own levers, so turning the desk off
+    restores the pre-CX help route byte-for-byte."""
+    from .question_desk import (QUESTION_DESK_ACTIVE,
+                                THE_DESK_ANSWERS_THE_BOARD)
+    if not (QUESTION_DESK_ACTIVE and THE_DESK_ANSWERS_THE_BOARD):
+        return False
+    return not _SYNTAX_QUESTION_RE.match((text or "").strip())
+
+
+def _counsel_lines(game_state: Optional[Dict]) -> list:
+    """Orders that would actually be carried out on this board, from the ONE
+    source the board desk and the question router also read. Empty for a cold
+    parse with no world, which is why every caller keeps a fallback."""
+    world = (game_state or {}).get("world")
+    if world is None:
+        return []
+    try:
+        from backend.ai.counsel import what_can_i_do
+        return what_can_i_do(world, getattr(world, "player_nation", None),
+                             limit=4)
+    except Exception:
+        return []
+
+
+def _known_nation_names(game_state: Optional[Dict]) -> list:
+    """CX-2: the CANONICAL court keys the parser already knows, for the board
+    desk's nation-subject kinds ("am I at war with Prussia", "what does
+    Austria want").
+
+    Derived from `_extract_known_nations`, which builds its map from the enemy
+    marshals' nations plus the region controllers — the same two sources the
+    nation-keyword forms read — so the desk can never name a court the rest of
+    the parser does not know about.
+    """
+    return sorted(set(_extract_known_nations(game_state).values()))
+
+
 def _extract_known_nations(game_state: Optional[Dict]) -> Dict[str, str]:
     """Map of lowercase typed forms -> canonical nation key, from the LLM
     game_state (enemy marshal nations + region controllers). Includes
@@ -1249,18 +1307,37 @@ class LLMClient:
                  f"Berthier taps the map pointedly."),
             ]
         else:
+            # CX-2: the shrug used to name three courts BY HAND —
+            # 'propose peace with Prussia', 'Talleyrand, propose alliance with
+            # Austria', 'declare war on Prussia'. On the shipped 1805 boot
+            # France is at PEACE with Prussia, so the game's own recovery
+            # advice was an act of war against a neutral, fifty-two lines
+            # below `_hostile_first`, the guard FA-80(c) added to stop exactly
+            # that for the ATTACK templates and which the diplomatic ones
+            # never inherited. Worse, all three name a road the shipped client
+            # REDIRECTS: `main.gd::_redirect_diplomatic_command` intercepts
+            # the whole diplomatic family (ruling G1), so the recovery text
+            # taught a sentence that cannot be sent.
+            #
+            # The Cabinet is the door, and it is named as a door. The orders
+            # come from `ai/counsel.what_can_i_do` — the SAME source the board
+            # desk's `options` kind and the question router read — so nothing
+            # is proposed here that the executor would refuse.
+            _counsel = _counsel_lines(game_state)
+            _offer = (_counsel[0] if _counsel
+                      else f"{first_marshal}, attack {first_enemy}")
+            _second = (_counsel[1] if len(_counsel) > 1 else "end turn")
             templates = [
                 (f"Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret "
                  f"that order. Our marshals ({', '.join(marshal_names[:3]) or first_marshal}) "
-                 f"await clear commands — perhaps 'attack', 'move', 'defend', or 'scout'? "
-                 f"For diplomacy, address Talleyrand — e.g. 'propose peace with Prussia'.\""),
+                 f"await clear commands — '{_offer}', perhaps? "
+                 f"{_CABINET_DOOR}\""),
                 (f"\"Sire, I must confess this order eludes me,\" Berthier admits. "
                  f"\"Shall I relay an order to {first_marshal}? Valid actions include: "
-                 f"{actions_sample}. For diplomatic matters, try 'Talleyrand, propose alliance with Austria'.\""),
+                 f"{actions_sample}. {_CABINET_DOOR}\""),
                 (f"Berthier peers at the dispatch with concern. \"I cannot make sense of "
-                 f"this, Sire. A clear order might be: '{first_marshal}, attack "
-                 f"{first_enemy}' or 'end turn'. For diplomacy: 'declare war on Prussia' "
-                 f"or 'propose peace with Austria'.\""),
+                 f"this, Sire. A clear order might be: '{_offer}' or "
+                 f"'{_second}'. {_CABINET_DOOR}\""),
             ]
 
         return random.choice(templates)
@@ -1634,12 +1711,28 @@ class LLMClient:
             # advice, "how do I…" — keeps the COMMAND REFERENCE, which stays
             # CR-8's advisory desk to replace on its own gate.
             if QUESTION_DESK_ACTIVE:
-                from .question_desk import classify_question
+                from .question_desk import (classify_board_question,
+                                             classify_question)
+                _marshals = list(_game_state_dict(game_state, "marshals"))
+                _enemies = _askable_enemy_names(game_state)
+                _regions = list(_game_state_dict(game_state, "map_data"))
                 _question = classify_question(
                     original_text,
-                    marshals=list(_game_state_dict(game_state, "marshals")),
-                    enemies=_askable_enemy_names(game_state),
-                    regions=list(_game_state_dict(game_state, "map_data")))
+                    marshals=_marshals,
+                    enemies=_enemies,
+                    regions=_regions)
+                if _question is None:
+                    # CX-2: the BOARD questions — the treasury, the war score,
+                    # a court's design, whether a corps can reach a province,
+                    # what an attack would look like, what may be built and
+                    # what it costs. Sited AFTER the five fact kinds so those
+                    # keep precedence on every phrasing they already own.
+                    _question = classify_board_question(
+                        original_text,
+                        marshals=_marshals,
+                        enemies=_enemies,
+                        regions=_regions,
+                        nations=_known_nation_names(game_state))
                 if _question:
                     return ParseResult(
                         matched=True,
@@ -1657,6 +1750,13 @@ class LLMClient:
                         raw_command=original_text,
                         question=_question,
                     )
+            # CX-2: the question the desk cannot answer. The ACTION stays
+            # `help` — four corpus rows pin it and ruling R7 says a question
+            # routes there — but it carries a marker so the help executor can
+            # answer in a sentence and NAME the surface that holds the answer,
+            # instead of printing a 12,717-character manual that (measured)
+            # contains the words `status`, `where is`, `who holds` and `how
+            # many men` exactly zero times.
             return ParseResult(
                 matched=True,
                 command_type="tactical",
@@ -1665,11 +1765,14 @@ class LLMClient:
                 target=None,
                 ambiguity=5,
                 strategic_score=0,
-                interpretation="Question — showing the command reference",
+                interpretation="Question — the desk has no answer",
                 confidence=0.8,
                 mode="mock",
                 key_source=self.key_source,
                 raw_command=original_text,
+                question=({"kind": "unanswered", "subject": "",
+                           "subject_type": "none", "asked": original_text}
+                          if _routes_to_the_desk(original_text) else None),
             )
 
         # Extract marshal name - find the FIRST mentioned marshal

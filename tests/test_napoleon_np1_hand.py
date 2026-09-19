@@ -256,10 +256,23 @@ class TestParseIntegration:
                        "Ney, I want you to move to Lorraine")
         assert result["command"]["marshal"] == "Ney"
 
-    def test_question_stays_help(self, parser, sovereign_world):
+    def test_a_question_never_becomes_the_sovereign_s_order(
+            self, parser, sovereign_world):
+        """⚠ CONSCIOUS PIN FLIP (CX-2). The contract this pin exists for is
+        the FIRST line: a first-person question must not bind the sovereign
+        as its addressee. That is unchanged and still asserted.
+
+        The second line pinned `help` — the 12,717-character COMMAND
+        REFERENCE — as the answer to a feasibility question. CX-2 answers it
+        instead, with the real muster, on ruling R7's own re-open condition
+        ("when it exists, it replaces the `help` route, not the guard"). The
+        action is now `status`, which is still a FREE READ: `status` is in
+        `free_actions`, no battle is fought and no marshal is bound.
+        """
         result = parse(parser, sovereign_world, "Can I attack Wellington?")
         assert result["command"]["marshal"] != "Napoleon"
-        assert result["command"]["action"] in ("help", "unknown")
+        assert result["command"]["action"] in ("help", "unknown", "status")
+        assert not result["command"].get("target")
 
     def test_dormancy_no_sovereign_no_napoleon(self, parser, plain_world):
         result = parse(parser, plain_world, "I will march to Belgium")

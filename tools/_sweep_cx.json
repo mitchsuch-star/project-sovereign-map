@@ -1,0 +1,163 @@
+[
+ {
+  "id": "CX1-1 clause_guards: the four subject-WH leads stop being questions",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_SUBJECT_WH_WORDS = frozenset({\"who\", \"whom\", \"whose\", \"why\"})",
+  "new": "_SUBJECT_WH_WORDS = frozenset()",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestEachArmOfTheGuardDirectly::test_arm_a_answers_the_four_subject_wh_leads"
+ },
+ {
+  "id": "CX1-2 clause_guards: the deliberative openers deleted",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    r\"^(?:what|how)\\s+about\\b\"",
+  "new": "    r\"^(?!x)x\"",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheQuestionsThatFought"
+ },
+ {
+  "id": "CX1-3 clause_guards: the never-imperative leads stop asking",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_NEVER_IMPERATIVE_LEADS = frozenset({\n    \"is\", \"are\", \"was\", \"were\", \"am\", \"does\", \"did\", \"has\", \"had\"})",
+  "new": "_NEVER_IMPERATIVE_LEADS = frozenset()",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestEachArmOfTheGuardDirectly::test_arm_c_is_the_only_thing_holding_these"
+ },
+ {
+  "id": "CX1-4 clause_guards: the subject roster arm deleted",
+  "file": "backend/ai/clause_guards.py",
+  "old": "            if subjects and word in {str(s).lower() for s in subjects}:\n                return True",
+  "new": "            if False:\n                return True",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheLever::test_the_roster_arm_is_dormant_without_a_roster"
+ },
+ {
+  "id": "CX1-5 clause_guards: an unaddressed line ending in ? stops asking",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if (A_QUESTION_NEVER_ORDERS and text.endswith(\"?\")\n            and not _ADDRESSED_LINE_RE.match(text)\n            and not is_bare_end_turn(text)):\n        return True",
+  "new": "    if False:\n        return True",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheQuestionsThatFought"
+ },
+ {
+  "id": "CX1-6 clause_guards: the inverted-conditional stand-down deleted (a conditional becomes a question)",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS\n            and not _TRAILING_CLAUSE_RE.search(rest)):",
+  "new": "    if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS\n            and True):",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestEachArmOfTheGuardDirectly::test_arm_c_stands_down_before_a_trailing_clause"
+ },
+ {
+  "id": "CX1-7 clause_guards: `have` joins the leads, so the causative imperative asks",
+  "file": "backend/ai/clause_guards.py",
+  "old": "|may|might|has|had%s)\\b\"",
+  "new": "|may|might|has|had|have%s)\\b\"",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestEachArmOfTheGuardDirectly"
+ },
+ {
+  "id": "CX1-8 executor: the comma-less address arm deleted",
+  "file": "backend/commands/executor.py",
+  "old": "            if not self.AN_ADDRESS_NEEDS_NO_COMMA:\n                return None",
+  "new": "            if True:\n                return None",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestAnAddressNeedsNoComma::test_an_unbindable_name_is_refused_free"
+ },
+ {
+  "id": "CX1-9 executor: the function-word/collective guard deleted (a polite imperative is refused)",
+  "file": "backend/commands/executor.py",
+  "old": "            if self._NOT_AN_ADDRESS_RE.search(head):\n                return None",
+  "new": "            if False:\n                return None",
+  "tests": "tests/test_cx1_a_question_never_orders.py"
+ },
+ {
+  "id": "CX2-1 question_desk: the board kinds emptied",
+  "file": "backend/ai/question_desk.py",
+  "old": "_NATION_KINDS = frozenset({\"at_war\", \"wants\"})",
+  "new": "_NATION_KINDS = frozenset()",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheTwelveQuestions"
+ },
+ {
+  "id": "CX2-2 question_desk: the five-kind guard removed (a board question is answered by the fact half)",
+  "file": "backend/ai/question_desk.py",
+  "old": "    if kind not in {k for k, _pattern in _KINDS}:\n        return None",
+  "new": "    if False:\n        return None",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheTwelveQuestions::test_it_is_answered_and_not_walled"
+ },
+ {
+  "id": "CX2-3 question_desk: the muster answer stops using the attack's own renderer",
+  "file": "backend/ai/question_desk.py",
+  "old": "    text = combat._format_muster_lines(preview)",
+  "new": "    text = str(preview.get('odds_band') or '')",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestShownIsApplied::test_the_muster_is_the_attack_s_own_string"
+ },
+ {
+  "id": "CX2-4 question_desk: the build answer stops reading the build gate",
+  "file": "backend/ai/question_desk.py",
+  "old": "        verdict = can_build(world, region, key, player)",
+  "new": "        verdict = (True, '')",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheGuardsWhereTheyBite::test_the_build_gate_is_read_where_it_REFUSES"
+ },
+ {
+  "id": "CX2-5 question_desk: the reach answer ignores the movement law",
+  "file": "backend/ai/question_desk.py",
+  "old": "    lawful = world.find_path(marshal.location, place, passable_for=player)",
+  "new": "    lawful = world.find_path(marshal.location, place)",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestShownIsApplied::test_the_reach_answer_obeys_the_movement_law"
+ },
+ {
+  "id": "CX2-6 llm_client: the router marker never set (the manual comes back)",
+  "file": "backend/ai/llm_client.py",
+  "old": "                          if _routes_to_the_desk(original_text) else None),",
+  "new": "                          if False else None),",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheRouter"
+ },
+ {
+  "id": "CX2-7 llm_client: the syntax carve-out deleted (how-do-I loses the manual)",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return not _SYNTAX_QUESTION_RE.match((text or \"\").strip())",
+  "new": "    return True",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheRouter::test_a_syntax_question_keeps_the_manual"
+ },
+ {
+  "id": "CX2-8 llm_client: the shrug goes back to naming Prussia",
+  "file": "backend/ai/llm_client.py",
+  "old": "                 f\"'{_second}'. {_CABINET_DOOR}\\\"\"),",
+  "new": "                 f\"'{_second}'. For diplomacy: 'declare war on Prussia'.\\\"\"),",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheShrugTeachesWhatWorks"
+ },
+ {
+  "id": "CX2-9 counsel: the at-war filter on the proposed attack deleted",
+  "file": "backend/ai/counsel.py",
+  "old": "            if _at_war_with(world, nation, getattr(enemy, \"nation\", \"\")):",
+  "new": "            if True:",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheGuardsWhereTheyBite::test_the_counsel_refuses_a_visible_court_at_peace"
+ },
+ {
+  "id": "CX2-10 counsel: the move refusal probe is ignored",
+  "file": "backend/ai/counsel.py",
+  "old": "            if _move_would_be_refused(world, marshal, neighbour):\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheCounselIsHonest::test_it_never_proposes_a_march_the_executor_would_refuse"
+ },
+ {
+  "id": "CX2-11 counsel: the fog-honest enemy source swapped for the omniscient roster",
+  "file": "backend/ai/counsel.py",
+  "old": "        for enemy in world.get_visible_enemies(nation):",
+  "new": "        for enemy in world.get_enemies_of_nation(nation):",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheGuardsWhereTheyBite::test_the_counsel_reads_the_FOG_and_not_the_roster"
+ },
+ {
+  "id": "CX2-12 meta_executor: the router is never consulted",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        if str(asked.get(\"kind\") or \"\") == \"unanswered\":",
+  "new": "        if False:",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheRouter::test_an_unanswerable_question_is_short_and_names_a_surface"
+ },
+ {
+  "id": "CX2-13 meta_executor: the board answer is never reached",
+  "file": "backend/commands/meta_executor.py",
+  "old": "                answer = answer_board_question(world, question)",
+  "new": "                answer = None",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheTwelveQuestions::test_it_is_answered_and_not_walled"
+ },
+ {
+  "id": "CX2-14 counsel: the price is dropped from the levy line",
+  "file": "backend/ai/counsel.py",
+  "old": "    return (f\"recruit infantry in {region} — {price:,}g for \"\n            f\"{amount:,} men\")",
+  "new": "    return f\"recruit infantry in {region}\"",
+  "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheGuardsWhereTheyBite::test_the_levy_line_is_PRICED_where_the_levy_is_open"
+ }
+]

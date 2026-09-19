@@ -244,6 +244,82 @@ are real deferrals, carry no interrogative lead, and stay CR-6 proper's.
 
 Tests: `tests/test_cx1_a_question_never_orders.py`.
 
+### §3.2 CX-2 — "BERTHIER ANSWERS THE BOARD" ✅ LANDED September 19, 2026
+
+Asking a question is the one thing the typed road can do that **no chip can
+ever do**. It was the typed road's sole claim, and it was measured almost
+entirely broken.
+
+**The finding.** Against the twelve questions the user named, driven on the
+shipped board across 152 rows: **two were answered, ten were not, and eight of
+the ten were answered by nothing at all in any phrasing.** Every one of the
+ten returned the same **12,717-character COMMAND REFERENCE** — which contains
+the words `status`, `where is`, `who holds` and `how many men` **zero times**.
+The desk that could have answered four of them was unreachable from the only
+surface the game hands a lost player.
+
+**And the same blindness sat one layer out.** `_berthier_mock_response` — the
+copy the player reads at the exact moment the parser has failed them —
+hardcoded three courts by name: *"propose peace with Prussia"*,
+*"Talleyrand, propose alliance with Austria"*, *"declare war on Prussia"*.
+**On the shipped 1805 boot France is at PEACE with Prussia**, so the game's own
+recovery advice was an act of war against a neutral — fifty-two lines below
+`_hostile_first`, the guard FA-80(c) added to stop precisely that for the
+ATTACK templates and which the diplomatic ones never inherited. Worse, all
+three name a road the shipped client REDIRECTS (ruling G1), so the recovery
+text taught a sentence that **cannot be sent**.
+
+**What landed.**
+
+* **Nine board kinds** on the desk (`classify_board_question` /
+  `answer_board_question`, lever `THE_DESK_ANSWERS_THE_BOARD`): the treasury,
+  the war score, whether we are at war with a court, a court's design, whether
+  a corps can reach a province, what an attack would look like, what may be
+  built, what a thing costs, and what can be ordered at all. They are matched
+  in their own pass AFTER the five fact kinds, which keep precedence on every
+  phrasing they already own, and `answer_question` gained a guard limiting it
+  to its own five — without it a `reach` question fell into
+  `_answer_own_marshal` and was answered *"Marshal Ney stands at Rhineland
+  with 24,000 men"*, which is true and is not the answer.
+* **Every answer reads the seam the MECHANIC reads** — `_build_economy`,
+  `get_war_score_for`, `get_active_agenda`, `find_path(passable_for=…)`,
+  `_build_muster_preview` **and its own `_format_muster_lines` renderer**,
+  `region.can_build`, the levy pricer. So a quoted figure is the applied
+  figure, and *"what happens if I attack Mack"* prints the exact string the
+  order itself would print, for nothing. **This is §2's asymmetry closed: the
+  chips were priced and the typed verbs were blind.**
+* **`backend/ai/counsel.py`** — ONE board-derived source for *what can I do*,
+  read by the desk's `options` kind, by Berthier's shrug and by the router. It
+  asks `MovementExecutor.move_refusal_probe` before proposing a march and
+  `is_at_war` before proposing a battle, names no enemy outside
+  `get_visible_enemies`, and never proposes a diplomatic verb — it names the
+  Cabinet as a door instead.
+* **The router**: a question the desk cannot take gets a sentence, the surface
+  that holds the answer (*"the campaign log (press L)"*), and the orders that
+  would actually be carried out. Measured **370 characters against 12,717**.
+  A SYNTAX question (*"how do I attack?"*) still gets the manual, because
+  there the manual is the answer.
+
+**Measured: 41 of 41 driven questions answered, 0 walls.**
+
+**Pins flipped consciously, each with its reason on the row** — corpus
+`how-is-the-war-going` (`help` → `status`; the manual holds no war score) and
+`parseneg-can-i-attack-mack` / `i-question-still-help` (`help` → `status`,
+scoped to 1805 with legacy twins added), plus
+`test_fa_slice7…::test_guidance_and_feasibility_keep_the_command_reference`,
+split in two. All four rest on **ruling R7's own re-open condition**: *"A
+question-answering Berthier is CR-6's to build; when it exists, it replaces
+the `help` route, not the guard."* The guard is untouched — none of them
+fights a battle or spends an action.
+
+⚠ **A false paragraph was CORRECTED IN PLACE rather than deleted**:
+`question_desk`'s module docstring claimed *"feasibility and advice … stay on
+the COMMAND REFERENCE … the four corpus rows pinning `can I attack Mack?` ->
+help are untouched by construction."* CX-2 took feasibility; the docstring now
+says so, says why, and says what is still CR-8's.
+
+Tests: `tests/test_cx2_berthier_answers_the_board.py`.
+
 ---
 
 ## §4 THE MODEL — RULED (CX's second question)

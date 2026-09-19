@@ -237,10 +237,10 @@
       "world": "any",
       "expected": {
         "success": true,
-        "action": "help"
+        "action": "status"
       },
       "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_how_is_war_going_not_diplomatic",
-      "notes": "PARSE-NEG (Aug 3, 2026) - PIN FLIPPED CONSCIOUSLY. The original assertion was negative only (action != diplomatic_declare_war); the 'Unknown action' shape was incidental, a WH-question simply being unparseable so Berthier shrugged at it. The interrogative guard now routes it to `help`, which still satisfies the source test's real contract (bare 'war' in a question must not declare one) and answers the player instead of shrugging. The source test is unchanged and still green."
+      "notes": "PARSE-NEG (Aug 3, 2026) - PIN FLIPPED CONSCIOUSLY. The original assertion was negative only (action != diplomatic_declare_war); the 'Unknown action' shape was incidental, a WH-question simply being unparseable so Berthier shrugged at it. The interrogative guard then routed it to `help`, which still satisfies the source test's real contract (bare 'war' in a question must not declare one). CX-2 (Sept 19, 2026) - FLIPPED A SECOND TIME, CONSCIOUSLY, and for the same reason both ways: `help` was the 12,717-character COMMAND REFERENCE, which contains no war score and does not answer the question. The board desk now answers it as `status` with the real figures from `get_war_score_for` (\"War score, Sire - Austria +0 (evenly matched); ...\"). The source test's contract is unchanged and still green: `status` is not `diplomatic_declare_war`."
     },
     {
       "id": "break-treaty-with-austria",
@@ -3816,10 +3816,10 @@
       "world": "1805",
       "expected": {
         "success": true,
-        "action": "help"
+        "action": "status"
       },
       "source": "PARSE-NEG — found by the evaluation",
-      "notes": "Worse than the filed row: this one resolved the target too, so the question executed as a real assault on Mack at 0.90."
+      "notes": "Worse than the filed row: this one resolved the target too, so the question executed as a real assault on Mack at 0.90. | CX-2 (Sept 19, 2026) - PIN FLIPPED CONSCIOUSLY, on ruling R7's OWN re-open condition: \"A question-answering Berthier is CR-6's to build; when it exists, it replaces the `help` route, not the guard.\" The board desk now answers this feasibility question with the REAL muster preview - the same `_format_muster_lines` string the attack itself prints - so the player is told exactly what he would be told a moment later, and nothing is spent to learn it. The guard is untouched: no battle, no AP. Scoped to 1805 because the desk answers only about a foe it knows; on the legacy fixture Mack is not in the enemy roster, the question cannot be classified, and it keeps the help route - pinned by the sibling row."
     },
     {
       "id": "parseneg-should-i-attack",
@@ -4056,10 +4056,10 @@
       "world": "1805",
       "expected": {
         "success": true,
-        "action": "help"
+        "action": "status"
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
-      "notes": "Gate (c): the question detector runs FIRST, so an interrogative lead is never rewritten into an order."
+      "notes": "Gate (c): the question detector runs FIRST, so an interrogative lead is never rewritten into an order. | CX-2 (Sept 19, 2026) - PIN FLIPPED CONSCIOUSLY, on ruling R7's OWN re-open condition: \"A question-answering Berthier is CR-6's to build; when it exists, it replaces the `help` route, not the guard.\" The board desk now answers this feasibility question with the REAL muster preview - the same `_format_muster_lines` string the attack itself prints - so the player is told exactly what he would be told a moment later, and nothing is spent to learn it. The guard is untouched: no battle, no AP. Scoped to 1805 because the desk answers only about a foe it knows; on the legacy fixture Mack is not in the enemy roster, the question cannot be classified, and it keeps the help route - pinned by the sibling row."
     },
     {
       "id": "addressed-i-want-unchanged",
@@ -5453,6 +5453,28 @@
       },
       "source": "IQ-1 SW-1 \"The Substitute Market\" (the improvement queue, row IQ) — new-action corpus coverage (checklist step 12).",
       "notes": "NEGATIVE pin. `buy` collides with the AI-2b compensation instrument; the substitute branch excludes \"buy off\" explicitly rather than relying on ordering."
+    },
+    {
+      "id": "parseneg-can-i-attack-mack-legacy",
+      "utterance": "can I attack Mack?",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "source": "PARSE-NEG — found by the evaluation",
+      "notes": "Worse than the filed row: this one resolved the target too, so the question executed as a real assault on Mack at 0.90. | CX-2: the legacy twin, kept so the help route is still pinned where the desk cannot classify the foe."
+    },
+    {
+      "id": "i-question-still-help-legacy",
+      "utterance": "Can I attack Mack?",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
+      "notes": "Gate (c): the question detector runs FIRST, so an interrogative lead is never rewritten into an order. | CX-2: the legacy twin, kept so the help route is still pinned where the desk cannot classify the foe."
     }
   ]
 }
