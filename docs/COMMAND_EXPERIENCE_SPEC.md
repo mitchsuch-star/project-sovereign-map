@@ -463,6 +463,38 @@ pursues and fights.** Golden corpus 0 rows moved.
 
 ---
 
+
+### §3.5 CX-6 — THE REGRESSION THIS ROW SHIPPED, AND CAUGHT ✅ September 19, 2026
+
+Found by an adversarial pass over CX-1's OWN fix, after it had landed and
+after a green 23,618-test suite. The subject arm (§3.1 arm d) put the OBJECT
+pronouns in its third-person set, and `it` follows an imperative as its object
+far more often than it follows a modal as its subject:
+
+```
+"do it"        → a QUESTION
+"Ney, do it"   → a QUESTION
+```
+
+A plain affirmative and a plain order. **Nothing pinned either**, on either
+side of the change, which is why no test run could have found it — the probe
+that did was a hand-written pass asking *what would this fix break?* rather
+than *does this fix work?*
+
+Fixed by keeping only the true SUBJECT pronouns (`he`, `she`, `they`).
+`is it done` / `does it matter` / `did it work` are unaffected — `is`, `does`
+and `did` have no imperative form at all and are questions by arm (c) whatever
+follows. The one case it loses is `can it be done` without a question mark,
+which shrugs either way. Pinned both directions, and the sweep kills the
+restoration of the object pronouns.
+
+⛔ **The lesson, which is the row's own method stated once more:** *attacking
+the FIX found what a green suite could not.* The five arms were each
+reproduced, measured, swept and pinned — and the defect was in the one
+sentence nobody thought to type at them.
+
+---
+
 ## §4 THE MODEL — RULED (CX's second question)
 
 **Measured, keyless, on the committed cassettes and the golden corpus:**
@@ -572,6 +604,7 @@ asked for it by name, so **it moves to CX** and CR-7's row is struck.
 | **CX-2** | Berthier answers the board; ONE source for counsel; the shrug and the router stop dumping 12,717 characters | ✅ **LANDED** — §3.2 |
 | **CX-3** | The predictor, and the census that stops the game teaching what it cannot read | ✅ **LANDED** — §3.3 |
 | **CX-5** | The retreat is sometimes a noun | ✅ **LANDED** — §3.4 |
+| **CX-6** | The regression this row shipped, and caught | ✅ **LANDED** — §3.5 |
 | **CX-4** | The memo, the records, the typed-road playtest arm and the re-score | ✅ **LANDED** — `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md` |
 
 **⚠ The before/after playtest archives are byte-identical except the

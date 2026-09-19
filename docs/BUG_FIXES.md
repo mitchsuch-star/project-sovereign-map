@@ -12877,6 +12877,16 @@ be bundled with anything.
 | **CX-3b** | P3 | The help teaches `"Davout, hold Ulm"`. It **parses perfectly** and the executor answers *"Region 'Ulm' not found"* — the 126-province map has Swabia. A parser-level census calls this green, which is why the census runs at the EXECUTOR | **FIXED** — the help teaches `"Davout, hold Swabia"` |
 | **CX-5** | **P2** | **The retreat is sometimes a NOUN.** `Lannes, cut down the retreat` marched the player's own marshal away — free, 0 AP, the retreat's −45% effectiveness penalty, at confidence **0.90**, ABOVE the escalation gate, so no key in any mode could ever have corrected it. Six more with it: `cut off`, `press`, `block`, `exploit`, `punish`, `ride down the retreating Austrians`. `_mentions_screening_idiom` exists for exactly this failure and stated it perfectly in its own docstring — and closed it with an **allowlist of four verbs** | **FIXED** — the allowlist is INVERTED: `"retreat"` after a determiner is a noun unless the verb means CARRY OUT one (`sound` / `order` / `begin` / `call` — measured, all four worked before the fix and still do). Falling through to Berthier is FA-73's own recorded ruling. **10 of 10 refuse free; 8 of 8 genuine retreats still retreat; `pursue the retreating enemy` still fights.** ⛔ The sweep caught a pin of this slice asserting the marshal MOVED — a retreat may legitimately keep him where he stands; it asserts the behaviour now |
 
+
+**⛔ CX-6 — the regression this row shipped, and caught.** CX-1's subject arm
+put the OBJECT pronouns in its third-person set, so **`do it`** and **`Ney, do
+it`** became QUESTIONS — a plain affirmative and a plain order. The whole
+23,618-test suite was green about both, because nothing pinned either. Found
+by an adversarial pass over the fix AFTER it landed; fixed by keeping only the
+true subject pronouns (`he`, `she`, `they`), with `is it done` / `does it
+matter` / `did it work` unaffected because those leads have no imperative form
+at all. Pinned both directions.
+
 ### Routed, not fixed (GR9 — each with an owner, a landing slice and a completion definition)
 
 | id | sev | defect | owner |

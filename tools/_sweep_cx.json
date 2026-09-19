@@ -243,5 +243,12 @@
   "old": "        r\"\\b(?:cover|screen|protect|shield)\\s+(?:the|our|his|their|her)\\s+\"\n        r\"(?:retreat|withdrawal|rear|army|corps|flank)\\b\",",
   "new": "        r\"\\bzzznevermatchzzz\\b\",",
   "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_the_four_screening_verbs_are_still_covered_by_their_own_guard"
+ },
+ {
+  "id": "CX6-1 clause_guards: the object pronouns rejoin the subject set (do it becomes a question)",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_THIRD_PERSON_SUBJECTS = frozenset({\"he\", \"she\", \"they\"})",
+  "new": "_THIRD_PERSON_SUBJECTS = frozenset({\"he\", \"she\", \"they\", \"it\", \"him\", \"her\"})",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheObjectPronounIsNotASubject"
  }
 ]

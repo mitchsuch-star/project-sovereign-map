@@ -654,8 +654,19 @@ _DELIBERATIVE_OPENER_RE = re.compile(
 _SUBJECT_AFTER_LEAD_RE = re.compile(
     r"\s*(?:the\s+)?(?:" + HONORIFIC + r")?(?P<subj>[A-Za-z][\w'’-]*)",
     re.IGNORECASE)
-# Third-person pronouns need no roster: "is he attacking", "do they hold".
-_THIRD_PERSON_SUBJECTS = frozenset({"he", "she", "they", "it", "him", "her"})
+# Third-person SUBJECT pronouns need no roster: "is he attacking", "do they
+# hold".
+#
+# ⚠ THE OBJECT PRONOUNS ARE DELIBERATELY ABSENT, and the first draft had them.
+# `it`, `him`, `her` and `them` follow an imperative as its OBJECT far more
+# often than they follow a modal as its subject — measured, including `it`
+# turned **`do it`** and **`Ney, do it`** into questions, which is a plain
+# affirmative and a plain order. The whole suite was green about it, because
+# nothing pinned either. `is it done` and `does it matter` are unaffected:
+# `is` and `does` have no imperative form at all and are questions by arm (c)
+# whatever follows. The case this loses is `can it be done` without a question
+# mark, which shrugs either way.
+_THIRD_PERSON_SUBJECTS = frozenset({"he", "she", "they"})
 
 # ⚠ The subject rule is only NEEDED where the lead has an imperative form.
 # `can/could/may/might/will/would/shall/do/should` all do — "can you attack

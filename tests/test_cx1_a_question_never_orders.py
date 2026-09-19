@@ -739,3 +739,49 @@ class TestTheRetreatIsSometimesANoun:
                      "order a general retreat", "begin the retreat",
                      "retreat the army"):
             assert _retreat_is_a_noun(text) is False, text
+
+
+class TestTheObjectPronounIsNotASubject:
+    """⛔ A REGRESSION THIS ROW SHIPPED AND THEN CAUGHT, pinned so it cannot
+    come back. The subject arm's first draft put the OBJECT pronouns in its
+    third-person set, and `it` follows an imperative as its object far more
+    often than it follows a modal as its subject:
+
+        "do it"        → a QUESTION
+        "Ney, do it"   → a QUESTION
+
+    A plain affirmative and a plain order. **The whole 23,618-test suite was
+    green about both**, because nothing pinned either — which is why the
+    probe that found it was a hand-written adversarial pass over the fix
+    rather than a test run.
+    """
+
+    ROSTER = ["Ney", "Davout", "Mack", "Swabia"]
+
+    @pytest.mark.parametrize("utterance", [
+        "do it", "do it now", "Ney, do it", "do them", "do that", "do this",
+        "have it done", "do so",
+    ])
+    def test_an_imperative_with_an_object_pronoun_is_an_order(self, utterance):
+        assert CG.is_question(utterance, self.ROSTER) is False, utterance
+
+    @pytest.mark.parametrize("utterance", [
+        "is it done", "does it matter", "did it work", "has it fallen",
+    ])
+    def test_and_the_copular_leads_still_ask_about_it(self, utterance):
+        """Unaffected: `is` / `does` / `did` / `has` have no imperative form
+        at all, so arm (c) answers them whatever follows."""
+        assert CG.is_question(utterance, self.ROSTER) is True, utterance
+
+    @pytest.mark.parametrize("utterance", [
+        "is he attacking", "do they hold", "did she arrive",
+    ])
+    def test_the_true_subject_pronouns_still_ask(self, utterance):
+        assert CG.is_question(utterance, self.ROSTER) is True, utterance
+
+    def test_do_it_reaches_the_executor_as_an_order(self):
+        """End to end: it must not be answered as a question."""
+        response, _footprint = _drive("Ney, do it")
+        message = (response.get("message") or response.get("error") or "")
+        assert "cannot answer that" not in message, message
+        assert "COMMAND REFERENCE" not in message, message[:200]
