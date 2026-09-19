@@ -57,7 +57,7 @@
 > | 8 | ~~**IQ-8 THE HARNESS TELLS THE TRUTH**~~ | the instrument mis-records its own board | PR-X5, PR-D4 | ✅ **CLOSED September 18, 2026.** The hash seed does NOT move the board (the one order-dependent site was a naval display walk, now sorted — two processes at hash seeds 0 and 1 write byte-identical jsonl); PR-D4 closes as cause unrecoverable, its 20 / 24 / 22 row UNCITABLE under the new table rule; PR-X5 closed behind five driver levers — `meta.json` names what was REQUESTED and what was RESOLVED (seed, dice, scenario, map, env after import, platform, git commit + dirty + an LF-normalised content hash) and counts AP: **85 / 80 / 76 of 160 spent, France 28 / 28 / 29** on the IQ-8 archives. IQ6-X1 (the rotation resets at the world's creation) and IQ6-D4 (the `france_soil` arm restores the scene-4 positive) closed here. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.7; rules `SYSTEMS_REFERENCE.md` §47 |
 > | — | **VD-C THE CONTINGENT** (`VASSAL_DEEPENING_SPEC.md` §9) | a loyal satellite fields no men; VS-4's "its regiments hold back" has nothing to withhold | IQ-7's design 2, routed | the first vassal slice after row IQ closes — taken at the IQ exit review |
 > | 9 | ~~**IQ-9 THE KEYLESS PARSER GATE**~~ | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | ✅ **CLOSED September 18, 2026.** ONE seam (`AnthropicProvider.bind_sdk_client`), seventeen authored cassettes replayed at `messages.create`, the T0 floor (module-level `LLM_MODE=mock` + the loopback-only network guard — three test ids had been escalating to the REAL API on an anthropic `.env`), 112 keyless pins that each count live calls, `parser_eval --replay`. Routed IQ9-X1..X3 to CR-6 proper. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.8; rules `SYSTEMS_REFERENCE.md` §48 |
-> | 10 | **IQ-10 THE CLIENT PASS** | UI/UX is unmeasured since September 11 | ▶ **NEXT** (recon done September 17: ~45 owed renders, 24 IQ-row surfaces pinned to key + producer; a generic offscreen capture harness is the build) — ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
+> | 10 | ~~**IQ-10 THE CLIENT PASS**~~ | UI/UX is unmeasured since September 11 | ✅ **CLOSED September 19, 2026** — the instrument is committed (payload capture → one generic offscreen capture → the runner), 80 surfaces × 2 Interface Scales = 160 frames, 7 defects fixed + 2 routed, UI/UX 7.5 HELD ⚠ FOR USER CONFIRMATION. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.9, memo `docs/audits/IQ10_CLIENT_PASS_2026_09_19.md`. ~~▶ NEXT~~ (recon done September 17: ~45 owed renders, 24 IQ-row surfaces pinned to key + producer; a generic offscreen capture harness is the build) — ⚠ ~~**BLOCKED ON ENVIRONMENT** — no Godot binary in this container~~ **The premise is false on the user's machine** (IQ-4, contract §7 R1): Godot 4.4.1 is at `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`, and IQ-4 ran the parse harness (EXIT=0, 46 scripts) and the boot smoke with it. The Mode-C pass needs the running client and a human-visible session | unblocked on this machine |
 >
 > ---
 >
@@ -350,6 +350,40 @@
 > per-test sandbox — `tests/conftest.py` now sets `INK_IRON_SAVE_DIR` at import, RV29).
 > **Routed: IQ7-X7** — a deferred answer (`accept the offer later`) still signs an ORDINARY
 > letter; owner CR-6 proper; pinned as current behaviour and written to flip.
+
+> ## ▶ IQ-10 "THE CLIENT PASS" — LANDED September 19, 2026. **ROW IQ-10 IS CLOSED, AND WITH IT THE IMPROVEMENT QUEUE.**
+>
+> Memo of record = `docs/audits/IQ10_CLIENT_PASS_2026_09_19.md`; landing record =
+> `IMPROVEMENT_QUEUE_SPEC.md` §1.9; rules = `SYSTEMS_REFERENCE.md` §49; defects =
+> `BUG_FIXES.md` §The Client Pass (IQ-10); gates `tests/test_iq10_client_pass.py` (25).
+>
+> **UI/UX had gone unmeasured since September 11 for one reason: no instrument.** The
+> row builds one and leaves it committed — `tools/iq10_capture_payloads.py` (payloads
+> off STAGED boards, in-process) → `tools/iq10_surface_screenshot.gd` (ONE generic
+> offscreen capture: the real scene, its real entry method, `content_scale_factor`,
+> and a machine record of every visible string, every button outside the logical
+> viewport, every label taller than its box) → `tools/iq10_run_captures.py` (the
+> surface table and the index). Two commands re-shoot everything. **80 surfaces × two
+> Interface Scales = 160 committed frames**, Godot exit 0, 0 `SCRIPT ERROR`.
+>
+> **Seven defects fixed, two routed.** Headline **H1**, predicted by the recon and
+> proved by the capture: the region panel gated EVERY action row on `controller ==
+> _PLAYER_NATION` while the substitutes comment beside it said the market rendered on
+> ally soil — and the backend had been pricing that ground all along (**Amsterdam
+> 598g a battalion, 3,193g a substitute batch**, with Bernadotte standing on it). Two
+> more were one failure in two disguises — **a surface authored at a fixed size that
+> does not fit Interface Scale 2.0**: the EMPTY letter-book skipped the clamp (Close
+> at y=746 on a 450-high screen, the frame a flat colour) and the diorama's inner
+> `custom_minimum_size` floor defeated it (x=-100, width 1000, Replay and Close at
+> y=658). Also: a CAPTIVE Emperor's card advertised "The Presence … +10%" from a cell
+> (IQ10-1), "PRISONER of Kingdom of Italy" wanted its article (IQ10-2), and **the
+> game's own printed sentence was not typable** — `gather intelligence on Austria` got
+> Berthier's shrug while `gather intel on` worked (IQ10-6, now a drift pin).
+>
+> **⚠ UI/UX 7.5 → 7.5 (HELD), FOR USER CONFIRMATION** — held because the fixed-size
+> family is not closed (IQ10-X1, the top bar, is routed) and because a harness cannot
+> say whether a screen FEELS right. **The Aug-16 Napoleon saves and the Aug-15
+> flagship board, staged then and never captured, are captured here.**
 
 > ## ▶ IQ-9 "THE KEYLESS PARSER GATE" — LANDED September 18, 2026. **ROW IQ-9 IS CLOSED.**
 >

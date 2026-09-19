@@ -323,7 +323,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://scenes/map_connection_layer.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/iq10_surface_screenshot.gd"
     }
   ],
-  "timestamp": "2026-09-19T04:07:43Z"
+  "timestamp": "2026-09-19T06:28:08Z"
 }

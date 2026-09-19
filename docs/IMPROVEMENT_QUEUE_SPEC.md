@@ -2032,3 +2032,37 @@ addendum's ten rulings were built as written except where measurement corrected 
   construction (the harness never enters the parse path); ruff clean; zero `.gd`, zero
   new serialized fields. **NEXT = IQ-10 "The Client Pass"** (recon done September 17; the
   Godot binary exists on this machine).
+
+### §1.9 LANDING RECORD — IQ-10 "The Client Pass" (✅ September 19, 2026)
+
+**Memo of record = `docs/audits/IQ10_CLIENT_PASS_2026_09_19.md`** (the index of all
+160 frames, the defect table, the re-score); rules = `SYSTEMS_REFERENCE.md` §49;
+defects = `BUG_FIXES.md` §The Client Pass (IQ-10); gates
+`tests/test_iq10_client_pass.py` (25).
+
+**The row existed because UI/UX had no instrument.** It now has one, committed and
+documented as a two-command road: payloads off staged boards, then one generic
+offscreen capture that shoots the REAL scene at both Interface Scales and records,
+beside each PNG, every visible string, every button outside the logical viewport and
+every label taller than its box. **80 surfaces × 2 scales = 160 committed frames**;
+Godot exit 0, 0 `SCRIPT ERROR`.
+
+**Seven defects fixed, two routed** (the table is in `BUG_FIXES.md`). The headline is
+**H1**, the one the recon predicted and the capture proved: the region panel gated
+every action row on `controller == _PLAYER_NATION` while its own comment claimed the
+substitute market rendered on ally soil — and the backend had been pricing that ground
+all along (Amsterdam 598g/3,193g with Bernadotte standing on it). Two more were the
+SAME failure in different disguises — a surface authored at a fixed size that does not
+fit Interface Scale 2.0 — which is why the score is held rather than raised.
+
+**⚠ UI/UX 7.5 → 7.5 (HELD), FOR USER CONFIRMATION.** 160 frames carry no raw nation
+tag, no `<null>`, no snake_case verb and one piece of double punctuation (fixed), and
+honest availability is real where it is carried. It is held because the fixed-size
+family is not closed (IQ10-X1 is routed, not fixed) and because **what a harness
+cannot discharge is whether these screens FEEL right** — that half stays the user's.
+
+**The older sign-offs:** the three Aug-16 Napoleon saves and the Aug-15 flagship t12
+board were staged and never captured; they are captured here (and the captive's card
+was IQ10-1). The terminal flows (S17/S18/S22/S24) are Family B and still owe a played
+session.
+

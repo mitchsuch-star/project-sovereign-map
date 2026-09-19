@@ -237,6 +237,37 @@ solvent chest (plus a new pin that the money rungs speak first), the Talleyrand
 pin re-pinned to the neutral line, two levy pins, the manpower note, three war-room
 pins, the tier-side unit, and the WO slice-4 producer census (8 → 9).
 
+## The Client Pass (IQ-10) — landed September 19, 2026 (**7 FIXED; 2 ROUTED**)
+
+> **Memo of record = `docs/audits/IQ10_CLIENT_PASS_2026_09_19.md`, authoritative** —
+> it carries the index of all **160 committed frames** (80 surfaces × Interface Scale
+> 1.0 and 2.0), each with the sentence it is read against and the payload's own
+> measured facts. **The row's instrument is committed and is the deliverable**:
+> `tools/iq10_capture_payloads.py` (payloads off STAGED boards, in-process),
+> `tools/iq10_surface_screenshot.gd` (ONE generic offscreen capture — the real scene,
+> its real entry method, `content_scale_factor`, and a machine record of every visible
+> string, every button outside the logical viewport and every label taller than its
+> box) and `tools/iq10_run_captures.py` (the surface table and the index). Two commands
+> re-shoot everything. ⛔ **The machine record is why the pass found anything**: nobody
+> reading 160 frames by eye measures that a Close button sits at y=658 on a 450-high
+> screen. Godot exit 0, 0 `SCRIPT ERROR`; gates `tests/test_iq10_client_pass.py` (25).
+> ⚠ **UI/UX re-score 7.5 → 7.5 HELD, FOR USER CONFIRMATION** (memo §Re-score): two of
+> the seven defects are one failure — a surface authored at a fixed size that does not
+> fit the client's own maximum Interface Scale — and the third instance is routed.
+
+| id | P | defect | disposition |
+|---|---|---|---|
+| **H1** | P2 | **The levy and the substitute market never rendered on the soil that feeds France.** `region_panel.gd` gated every action row on `controller == _PLAYER_NATION` while the substitutes comment beside it said the market "renders on ALLY soil too because the granary is open there (IQ1-3A)". The backend prices that ground and always did — measured on the 1805 boot: Amsterdam (Holland's province, Bernadotte standing on it) **598g a battalion, 3,193g a substitute batch**; Milan 3,672g — so the one surface where the choice is made showed a French corps on friendly ground no way to feed itself. | ✅ **FIXED**: `var feeds_us` reads the ground the backend PRICED (it prices only where a French corps stands, so no second rule is needed); the levy and substitutes rows follow it, Build/Repair/garrison stay own-soil. `IQ10_REGION_AMSTERDAM_2026_09_19.png`; pinned three ways incl. a backend measurement of the price. |
+| **IQ10-1** | P3 | **A captive projected an aura.** On the Aug-16 `np_visual_captive` save (Napoleon taken T11, held at Vienna, strength 0) the Generals card advertised "The Presence — Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army…". Every combat seam reads a STANDING marshal (NP-4); NP-V §15.4 had made every OTHER aura surface decay-aware. | ✅ **FIXED** (`marshal_overview._build_ability`, lever `CAPTIVITY_SUSPENDS_THE_ABILITY`): named, not ACTIVE, no effect text, with a dormant note. `IQ10_GENERALS_NP_CAPTIVE_2026_09_19.png` beside `..._NP_SEAT_...` where it stands. |
+| **IQ10-2** | P4 | **"PRISONER of Kingdom of Italy since T1."** (R7 — the rule the IQ-7 review round applied to every vassal sentence, one surface over). | ✅ **FIXED** (`THE_PRISONER_NOTE_TAKES_THE_ARTICLE`): "of **the** Kingdom of Italy"; Austria and Switzerland unchanged. `IQ10_GENERALS_PRISONER_2026_09_19.png`. |
+| **IQ10-3** | P4 | **"…or refuse it.."** — the petition popup added a full stop to a reason that is already a sentence. The only double punctuation in 160 frames. | ✅ **FIXED** (`incoming_proposal_popup.gd`): the stop is added only when the reason lacks one; the IQ-7 pin follows the line. |
+| **IQ10-4** | P3 | **The EMPTY letter-book did not fit at Interface Scale 2.0.** `show_mailbox` returns early when there are no envoys — one line before `Utils.clamp_centered_panel` — so the authored 960×720 rect stood in an 800×450 logical viewport with Close at **y=746** and the visible middle a flat colour. With one row present the same panel already fitted (776×362). | ✅ **FIXED** (the early arm clamps too). Re-measured: **776×362, Close at y=342**. `IQ10_MAILBOX_BOOT_X2_2026_09_19.png`. |
+| **IQ10-5** | P3 | **The Battle Diorama did not fit at Interface Scale 2.0.** `_tray_inner.custom_minimum_size = Vector2(TRAY_W, TRAY_H)` is a hard floor, so the clamp shrank the height (362) and not the width: **x=-100, width 1000**, Replay and Close at **y=658**. ESC still closed it, so legibility, not a soft-lock. | ✅ **FIXED** (`_fit_tray_to_viewport`, lever `THE_TABLEAU_FITS_THE_SCREEN`): a tableau in design px with absolutely placed children fits by SCALING, not reflowing. Re-measured **548×362 at x=126**; scale 1.0 wherever it already fits, so ordinary frames are byte-unchanged. `IQ10_DIORAMA_DADJ_X2_2026_09_19.png`. |
+| **IQ10-6** | P3 | **The game's own sentence was not typable.** The confirmation prints "I shall begin efforts to **gather intelligence on** Austria" (`MISSION_DESCRIPTIONS["GATHER_INTEL"]`) and only `gather intel on` parsed — a player who echoed the game got Berthier's shrug. Found by the payload capture, whose own staging used the long form. | ✅ **FIXED** (`llm_client` mission keywords), pinned by a DRIFT test: the string the game prints must be one the parser knows. |
+| **IQ10-7** | P4 | **The payload harness invented a proposal type** (`propose trade agreement with Sweden`); `trade_agreement` is one line of suggested-terms copy offered by no wizard and no executor, so that staging could never have worked. | ✅ **FIXED in the tool.** ⚠ The dead `trade_agreement` copy row in `diplomatic_templates.py` is RECORDED, not deleted — it belongs to the suggested-terms table's owner. |
+| **IQ10-X1** | P3 | **The top bar overflows at Interface Scale 2.0**: `EventLogBtn` at **x=-26** (boot) and **x=-65.5** (a mission standing), off the left edge, while `MenuBtn` sits at x=798 of 800. The L hotkey still opens the log, so nothing is unreachable — the bar silently loses buttons as its content grows. | **ROUTED to the next UI slice** (a `top_bar.gd` layout decision: shed the "(L)" hints or scroll at narrow widths). Completion: no `BaseButton` of the bar lies outside the logical viewport at 2.0 on either board; the frames above are the before. |
+| **IQ10-X2** | P4 | **The petition popup's decisive line sits at the fold**: with Grant unavailable the crimson reason is the LAST line of a scrollable body and is cut mid-sentence at 1600×900. Nothing is lost (it scrolls; the same sentence is the button's tooltip), but the line explaining a dead button is the one the player must scroll for. | **ROUTED to the next UI slice.** Completion: the reason is visible without scrolling on a 1600×900 window at Interface Scale 1.0. |
+
 ## The Keyless Parser Gate (IQ-9) — landed September 18, 2026 (**3 ROUTED**)
 
 > Row IQ-9. Landing record = `IMPROVEMENT_QUEUE_SPEC.md` §1.8; rules =

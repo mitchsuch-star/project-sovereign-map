@@ -13,6 +13,7 @@ from typing import Dict, Any, List
 from backend.models.marshal import Marshal
 from backend.display_names import PERSONALITY_DISPLAY, STANCE_DISPLAY
 from backend.game_logic.formations import formed_display_name
+from backend.display_names import with_definite_article
 
 # IQ-2 (Sept 14, 2026): the captured sovereign's card kept the apex note "The
 # Empire is his estate." while he sat at strength 0 in the captor's capital —
@@ -156,9 +157,16 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
             card["captured"] = True
             card["captured_by"] = marshal.captured_by
             card["status"] = "captured"
+            # IQ-10 (Sept 19, 2026, IQ10-2): the court takes its article —
+            # "PRISONER of the Kingdom of Italy", never "of Kingdom of
+            # Italy" (R7, the rule the IQ-7 review round applied to every
+            # vassal sentence). Switzerland and Austria take none, so only
+            # a the-court board can see this.
             _captor_shown = (formed_display_name(world, marshal.captured_by)
                              if THE_PRISONER_NOTE_NAMES_THE_COURT
                              else marshal.captured_by)
+            if THE_PRISONER_NOTE_TAKES_THE_ARTICLE and THE_PRISONER_NOTE_NAMES_THE_COURT:
+                _captor_shown = with_definite_article(_captor_shown)
             card["status_note"] = (
                 f"PRISONER of {_captor_shown} since "
                 f"T{int(marshal.captured_turn)}."
@@ -234,6 +242,14 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
     }
 
 
+# IQ-10 (Sept 19, 2026): False restores "PRISONER of Kingdom of Italy".
+THE_PRISONER_NOTE_TAKES_THE_ARTICLE = True
+
+# IQ-10 (Sept 19, 2026): False restores the pre-pass card, which advertised a
+# captive's ability as ACTIVE with its full effect text.
+CAPTIVITY_SUSPENDS_THE_ABILITY = True
+
+
 def _build_ability(marshal: Marshal) -> Dict[str, Any]:
     """Signature ability section. Only includes ability data for wired abilities."""
     ability = marshal.ability or {}
@@ -244,6 +260,25 @@ def _build_ability(marshal: Marshal) -> Dict[str, Any]:
     # they must NOT report an active ability literally named "None". (The
     # underlying combat wiring keys off the ability name too, so False here
     # matches the mechanics: no name -> no effect.)
+    # IQ-10 "The Client Pass" (Sept 19, 2026, IQ10-1): a CAPTIVE projects
+    # nothing. Measured on the Aug-16 `np_visual_captive` save (Napoleon
+    # taken at T11, held at Vienna, strength 0): the card still printed
+    # "The Presence — Every French corps fighting in the Emperor's province
+    # gains +10% attack and defense. Enemy commanders will not attack his
+    # army at odds they would accept against any marshal." He has no
+    # province and no army; the combat seams all read a STANDING marshal
+    # (NP-4), so shown now matches applied. The card keeps naming the
+    # ability — `ability_name` survives for the dormant note the client
+    # draws — but it is no longer advertised as ACTIVE.
+    if CAPTIVITY_SUSPENDS_THE_ABILITY and getattr(marshal, "captured_by", ""):
+        return {
+            "ability_name": ability_name,
+            "ability_description": ability.get("description", ""),
+            "ability_trigger": ability.get("trigger", ""),
+            "ability_effect": "",
+            "ability_active": False,
+            "ability_dormant_note": "Suspended while he is a prisoner.",
+        }
     is_active = (marshal.name in _WIRED_ABILITY_MARSHALS
                  and ability_name not in ("", "None"))
     if is_active:

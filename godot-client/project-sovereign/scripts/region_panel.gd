@@ -251,7 +251,21 @@ func _render() -> void:
 
 	# ── Context actions ──
 	var action_rows = []
-	if controller == _PLAYER_NATION:
+	# IQ-10 "The Client Pass" (Sept 19, 2026): the levy and the substitute
+	# market are open on ALLY and VASSAL soil — IQ1-3 opened the granary to
+	# the engine's own `ALLY_SUPPLY_STATES` and the backend prices it there
+	# (measured on the 1805 boot: Amsterdam, Holland's province with
+	# Bernadotte standing on it, 598g a battalion and 3,193g a substitute
+	# batch; Milan 3,672g) — and the substitutes comment below SAID it
+	# rendered there. It did not: every row sat inside `controller ==
+	# _PLAYER_NATION`, so the one surface where the choice is made showed a
+	# French corps on friendly ground no way to feed itself. The ground that
+	# feeds us is the ground the backend PRICED (it prices only where a
+	# French corps stands, so this needs no second rule).
+	var feeds_us := controller == _PLAYER_NATION \
+		or int(data.get("recruit_price_here", 0)) > 0 \
+		or int(data.get("substitute_price_here", 0)) > 0
+	if feeds_us:
 		# Recruit — all three arms (the executor gates gold/pools/AP).
 		var recruit_chips = ""
 		for arm in ["infantry", "cavalry", "artillery"]:
@@ -327,6 +341,10 @@ func _render() -> void:
 					+ Utils.bb_chip_disabled("Buy Substitutes") \
 					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + _why + "[/color]")
 
+	# Everything below is OWN soil: a building, a repair and a garrison are
+	# the owner's to order, and the executors refuse them on a vassal's
+	# province, so the panel does not offer them there.
+	if controller == _PLAYER_NATION:
 		# Build — every missing building while a slot is free (slot math from
 		# the fog-filtered payload; towns/rural report 0 slots so the row
 		# hides itself). Watchtowers ride their own field, slot-exempt.

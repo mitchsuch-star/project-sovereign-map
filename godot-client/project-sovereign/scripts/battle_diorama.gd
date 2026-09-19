@@ -156,12 +156,53 @@ func show_diorama(data: Dictionary, cinematic := true) -> void:
 		else:
 			AudioManager.start_loop("battle_bed")
 	_populate(not cinematic)
-	Utils.clamp_centered_panel(_tray)
+	_fit_tray_to_viewport()
 	if cinematic:
 		_play_cinematic()
 	else:
 		_enter_final(false)
 
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fit (IQ-10 "The Client Pass", Sept 19, 2026)
+# ─────────────────────────────────────────────────────────────────────────────
+
+const FIT_MARGIN_X := 24.0
+const FIT_MARGIN_Y := 88.0          # the 36px top bar plus breathing room
+# False restores `Utils.clamp_centered_panel(_tray)`, under which the tableau
+# rendered 1000px wide inside an 800px logical viewport at Interface Scale 2.0
+# and put Replay and Close at y=658, off a 450-high screen.
+const THE_TABLEAU_FITS_THE_SCREEN := true
+
+
+func _fit_tray_to_viewport() -> void:
+	"""Shrink the WHOLE tableau to the live logical viewport, uniformly.
+
+	The tray is authored in design pixels (TRAY_W x TRAY_H) and its children
+	are placed absolutely, so the clamp helper's approach — rewrite the centre
+	offsets, then relax descendant height minimums — cannot apply here: the
+	inner's own `custom_minimum_size` is a hard floor on the width, and
+	reflowing the shelves would break the composition. Scaling about the
+	tray's centre keeps every relation intact and is a no-op (scale 1.0)
+	wherever the tableau already fits, which is every window at Interface
+	Scale 1.0 on a 1280x720 screen or larger."""
+	if _tray == null:
+		return
+	if not THE_TABLEAU_FITS_THE_SCREEN:
+		Utils.clamp_centered_panel(_tray)
+		return
+	var viewport := _tray.get_viewport()
+	if viewport == null:
+		return
+	var view: Vector2 = viewport.get_visible_rect().size
+	var fit := 1.0
+	if TRAY_W > 0.0 and TRAY_H > 0.0:
+		fit = minf(1.0, minf((view.x - FIT_MARGIN_X) / TRAY_W,
+				(view.y - FIT_MARGIN_Y) / TRAY_H))
+	fit = clampf(fit, 0.35, 1.0)
+	_tray.pivot_offset = Vector2(TRAY_W / 2.0, TRAY_H / 2.0)
+	_tray.scale = Vector2(fit, fit)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Chrome — built once

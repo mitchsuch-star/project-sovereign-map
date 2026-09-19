@@ -1565,7 +1565,13 @@ class LLMClient:
         # V2-62: "court" uses word boundary to prevent matching "court martial"
         _mission_keywords = [
             "improve relations with", "charm ",
-            "gather intel on", "spy on ", "undermine ",
+            # IQ-10 (Sept 19, 2026): the game says "gather intelligence on" in its
+            # own voice — `diplomatic_dialogue.MISSION_DESCRIPTIONS["GATHER_INTEL"]`,
+            # which is the sentence the confirmation prints — while only the
+            # abbreviation parsed, so a player who echoed the game got Berthier's
+            # shrug (found by the IQ-10 payload capture, whose own staging used the
+            # long form).
+            "gather intel on", "gather intelligence on", "spy on ", "undermine ",
             "reassure ", "send envoy to", "send diplomat to",
         ]
         if any(kw in command_lower for kw in _mission_keywords):

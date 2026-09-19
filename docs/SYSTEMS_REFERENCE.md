@@ -5839,3 +5839,53 @@ can name a FOGGED enemy; IQ9-X3 a live-road failure stamps `parse_mode:
 an `Exception` for a miss; ban loopback; put the `LLM_MODE` pin in a fixture
 alone (the import-time singleton escapes it); read the repo `.env` anywhere
 but the recorder.
+
+## 49. The client pass (IQ-10, landed September 19, 2026)
+
+> **A client surface is proven by a FRAME plus a machine record of that frame, shot
+> from the real scene against a payload captured off a staged board — and every
+> surface is proven twice, at Interface Scale 1.0 and at 2.0.**
+
+**The instrument** (committed; two commands re-shoot everything):
+
+```bash
+.venv/Scripts/python.exe tools/iq10_capture_payloads.py --out <dir>
+.venv/Scripts/python.exe tools/iq10_run_captures.py --payload-dir <dir>
+```
+
+- `tools/iq10_capture_payloads.py` — REAL endpoint payloads off STAGED boards,
+  in-process (TestClient, mock parser, sandboxed `INK_IRON_SAVE_DIR`). Each capture
+  records its staging sentence and its own measured FACTS, which the index carries
+  beside the frame so a reader can tell what the frame must show.
+- `tools/iq10_surface_screenshot.gd` — ONE generic offscreen capture. It instantiates
+  the real scene, calls its real entry method (`call` / `api_stub` for the five
+  self-fetching screens / `map_stub` for the region panel), sets
+  `root.content_scale_factor`, and saves the PNG **plus every visible string, every
+  `BaseButton` whose rect lies outside the logical viewport, and every RichTextLabel
+  taller than its box**. Windowed (a headless viewport returns no image) and parked
+  past the primary monitor; Dummy audio; `UiSettings` shimmed to an in-memory
+  `ConfigFile` so the player's own settings are never read or written.
+- `tools/iq10_run_captures.py` — the surface table (one row per shot: scene, entry,
+  payload, and the sentence the frame is read against), the launch, the
+  `SCRIPT ERROR` grep between the harness's own markers, and the index JSON.
+
+**The rules this pass established.**
+
+- **Interface Scale 2.0 is a first-class case, not an afterthought.** The logical
+  viewport HALVES (1600×900 → 800×450), and a surface authored at a fixed size does
+  not fit. Two of the row's seven defects were this, in two different disguises:
+  an early return that skipped `Utils.clamp_centered_panel` (the empty letter-book),
+  and a `custom_minimum_size` floor the clamp cannot cross (the diorama).
+- **A composed tableau fits by SCALING, never by reflowing.** `clamp_centered_panel`
+  rewrites centre offsets and relaxes child height minimums — right for a document,
+  wrong for a diorama whose children are placed absolutely in design pixels. The
+  diorama scales about its own centre (`_fit_tray_to_viewport`) and is a no-op at 1.0.
+- **The ground the backend PRICED is the honest predicate**, not the ground the
+  player owns (H1: the region panel now renders the levy wherever
+  `recruit_price_here` / `substitute_price_here` is set, which the backend sets only
+  where a French corps stands).
+- **A sentence the game PRINTS must be a sentence the parser knows** (IQ10-6), and it
+  is pinned as a drift test between the producer's copy and the parser's keywords.
+- **A payload is a fixture with a date**: re-capture after a backend change or the
+  frame renders the old copy.
+

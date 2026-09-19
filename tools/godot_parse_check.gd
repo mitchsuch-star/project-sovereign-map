@@ -123,6 +123,18 @@ const SCENE_INSTANTIATION_CHECKS = [
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
 
+# IQ-10 "The Client Pass": the capture harnesses are GDScript too, and they
+# live OUTSIDE res:// (tools/ at the repo root), so `ResourceLoader` — which
+# resolves inside the project — never saw one. A parse error in a harness
+# surfaced only when somebody tried to shoot a frame. They are compiled from
+# SOURCE here (`_check_tool_script`), with the project's global classes
+# (Utils / UiSettings / AudioManager) in scope because `--path` loaded them.
+# Every tools/iq10_*.gd must be named in this list (pinned by
+# tests/test_iq10_client_pass.py).
+const TOOL_SCRIPTS = [
+	"res://../../tools/iq10_surface_screenshot.gd",
+]
+
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"
 
 
@@ -142,6 +154,12 @@ func _init():
 		if not entry["parse_ok"] or not entry["load_ok"]:
 			any_failed = true
 			push_error("[godot_parse_check] %s failed: %s" % [script_path, entry["errors"]])
+	for tool_path in TOOL_SCRIPTS:
+		var tool_entry = _check_tool_script(tool_path)
+		report["scripts"].append(tool_entry)
+		if not tool_entry["parse_ok"] or not tool_entry["load_ok"]:
+			any_failed = true
+			push_error("[godot_parse_check] %s failed: %s" % [tool_path, tool_entry["errors"]])
 	for scene_path in SCENE_INSTANTIATION_CHECKS:
 		var scene_entry = _check_scene(scene_path)
 		report["scenes"].append(scene_entry)
@@ -186,6 +204,37 @@ func _check_script(path: String) -> Dictionary:
 	if reload_err != OK:
 		entry["errors"].append("reload_error_%d" % reload_err)
 		return entry
+	entry["load_ok"] = true
+	return entry
+
+
+func _check_tool_script(path: String) -> Dictionary:
+	# A tools/*.gd harness lives outside the project, so it is compiled from
+	# its SOURCE: `GDScript.reload()` runs the parser + analyzer + compiler and
+	# returns non-OK on any failure. It is never instantiated (a harness
+	# `extends SceneTree`), so nothing here opens a window.
+	var entry = {
+		"path": path,
+		"parse_ok": false,
+		"load_ok": false,
+		"errors": [],
+	}
+	var f = FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		entry["errors"].append("script_not_found")
+		return entry
+	var source = f.get_as_text()
+	f.close()
+	if source.strip_edges() == "":
+		entry["errors"].append("script_empty")
+		return entry
+	var script = GDScript.new()
+	script.source_code = source
+	var reload_err = script.reload()
+	if reload_err != OK:
+		entry["errors"].append("reload_error_%d" % reload_err)
+		return entry
+	entry["parse_ok"] = true
 	entry["load_ok"] = true
 	return entry
 

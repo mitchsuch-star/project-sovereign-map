@@ -1997,7 +1997,12 @@ class TestClientSourcePins:
         assert 'data.get("grant_enabled", true)' in gd
         assert 'opt.get("enabled", grant_enabled)' in gd
         assert "accept_btn.disabled = is_petition and not grant_enabled" in gd
-        assert "Grant unavailable: %s." in gd
+        # IQ-10 (Sept 19, 2026): the interpolation became a concatenation so a
+        # reason that already ends in a full stop does not get a second one
+        # (every reason the backend ships is a whole sentence). The pin
+        # follows the line, and the punctuation rule is pinned beside it.
+        assert '"]Grant unavailable: " + grant_reason' in gd
+        assert 'grant_reason.ends_with(".")' in gd
         assert "counter_btn.visible = not is_counter and not is_ultimatum and not is_petition" in gd
         assert "accept_btn.disabled = false" not in gd.split("var grant_enabled := true")[1].split("func ")[0]
 

@@ -138,7 +138,13 @@ func show_proposal(data: Dictionary):
 					if str(opt.get("reason", "")) != "":
 						grant_reason = str(opt.get("reason", ""))
 		if not grant_enabled and grant_reason != "":
-			bbcode += "\n[color=#" + Utils.COLOR_ERROR + "]Grant unavailable: %s.[/color]" % grant_reason
+			# IQ-10 (Sept 19, 2026): the backend's reasons are whole sentences and
+			# already end in a full stop, so the template's own added one read
+			# "...or refuse it..". The line keeps its stop when a reason lacks one.
+			var _tail := "" if grant_reason.ends_with(".") or grant_reason.ends_with("!") \
+				or grant_reason.ends_with("?") else "."
+			bbcode += "\n[color=#" + Utils.COLOR_ERROR + "]Grant unavailable: " + grant_reason \
+				+ _tail + "[/color]"
 
 	# Lapse warning
 	if is_ultimatum:

@@ -69,6 +69,13 @@ func show_mailbox(data: Dictionary):
 	if items.is_empty():
 		empty_state_label.visible = true
 		show()
+		# IQ-10 "The Client Pass" (Sept 19, 2026): the EMPTY book is fitted
+		# too. This early return used to skip the clamp below, so at
+		# Interface Scale 2.0 (logical viewport 800x450) the authored 960x720
+		# rect stood and carried the Close button to y=746 — off-screen, the
+		# modal undismissable by mouse, the visible area a flat colour. One
+		# row present and the clamp already fitted the same panel to 776x362.
+		Utils.clamp_centered_panel($PanelContainer)
 		return
 
 	empty_state_label.visible = false
