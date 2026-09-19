@@ -449,3 +449,132 @@ at all.
 If clicking wins for most of what players do — and by a count of intents it
 does, 22 to 9 — then the answer to *what should typing be FOR* is:
 **the army, and the question.** That is what was built.
+
+---
+
+## 9. THE REVIEW ROUND — what it took back
+
+**Held September 19, 2026, at `727cf88a`.** 63 agents: lenses to find,
+refuters to kill. Every refuter defaulted to REFUTED, wrote its own probes,
+and proved attribution against a tree extracted with `git archive b4a27a15^`
+rather than a lever flip — which matters, because CX-2, CX-3 and CX-5 all
+touched the mock parser and a lever restores one branch of one function.
+
+**It confirmed two defects this row had itself shipped, and the fix for them
+exposed a third.** Landing record: `COMMAND_EXPERIENCE_SPEC.md` §8. Rows:
+`BUG_FIXES.md` §Row CX. Rules: `SYSTEMS_REFERENCE.md` §50.11–§50.13.
+
+### 9.1 The row argued with itself
+
+CX-1 landed two rules about the same sentence in one commit. One half was
+titled **AN ADDRESS NEEDS NO COMMA** and existed *because a player does not
+type the comma*. The other half read a line as addressed **only** through a
+regex that requires one. So:
+
+    Ney, attack Mack?   →  Ney fights. 1 AP, 291 gold, four corps move.
+    Ney attack Mack?    →  "Berthier sets down his pen. I cannot answer
+                            that from the dispatches, Sire."
+
+Of 128 comma-free addressed orders, **86 acted before and are inert now**; 58
+changed real state, 28 raised an objection that now raises nothing. Nothing
+is spent and nothing is corrupted — which is what keeps it off P1 — and it is
+wide, silent, and on the road §2 of this memo calls *the road that wins the
+turn*.
+
+⚠ And the shrug it fell to **points somewhere else**: `Ney fortify?` was
+answered with the Economy tab, `Marshal Ney attack Mack?` with the Generals
+screen. The counsel prints its top two picks whatever was typed, so the
+player is told confidently that an order was a question and then sent to an
+unrelated surface.
+
+### 9.2 The blocklist failed open — 256 of 261 cells
+
+The other half asked *is this leading run NOT a name?* against a hand-written
+list of grammar words. English has more adverbs than that list will ever
+hold, so everything unlisted was claimed as somebody's name and the order
+refused. Filed at 23 shapes across 2 doors; **measured at 9 marshal-less doors
+× 29 natural leading runs, 256 newly refused** — `quickly attack Mack`,
+`cavalry attack Mack`, `ok retreat`, `Marshal attack Mack`, and the sharpest
+of them, `someone attack Mack`, which is the plain English for the very thing
+`auto_assign_attack` does.
+
+⚠ **The finding's own prescribed fix closes 0 of 23.** The refuter
+implemented it verbatim and measured it: every one of those heads is a
+CONTENT word, so a head-token test claims them exactly as the whole-run test
+does — and it adds one refusal (`quickly and at once attack Mack`). A builder
+following the report would have closed two findings, believed he closed a
+third, and shipped a new one. **This is the single most useful thing the
+review produced**, and it is why the fix is a different shape.
+
+### 9.3 What §8 actually built, and what the suite then found
+
+One predicate, asked the other way round, failing CLOSED, shared by both
+rules. Then the full suite — not the review — found the third defect: putting
+the singular title in the new class list made **`the Iron Marshal, attack
+Mack` send Soult**, FA-22's own flagship case, caught by FA-22's own pin.
+
+That forced the ruling that makes the whole thing coherent, and it was in the
+punctuation all along: **a comma is the player's own mark of address.** With
+one, the game answers for the run the player marked (FA-22, unchanged); with
+none, it claims a run only if it looks like a name (CX-7). Collectives and
+interjections stand down either way.
+
+Measured, both lever arms, end to end on a fresh 1805 board per cell:
+**221 of 261 refused → 9**, and the 9 belong to a different producer
+(CX7-X1).
+
+### 9.4 The instrument was built on the geometry of its own finding
+
+§6b of this memo was honest that `commanded_full40.json` is blind to row CX
+and said the new arm, `typed_road.json`, *"types the way a person does… it
+drops a comma."* The review read it: **it drops the comma only in front of a
+NAME** — never an adverb, an interjection, an arm noun or an indefinite
+pronoun. The arm built to catch this class could not see the 256-cell
+regression shipped beside it.
+
+That is this project's recorded lesson arriving on schedule — *the reviewers'
+first move is to change the one parameter the builder held constant* — and it
+is now four rows in a row. Turns 9–12 of the script type the runs a person
+actually puts in front of an order. Archived before/after on the same seed:
+
+| | unbound refusals | wrong |
+|---|---|---|
+| before | 15 | 12 |
+| after | 5 | 0 |
+
+⚠ **`cmd_refused` barely moves (23 → 25), and that is the honest number.**
+The twelve sentences are not refused less; they are refused **differently** —
+`quickly attack Mack` now returns *"Massena is fortified at Munich and cannot
+attack. Order 'unfortify' first to make the army mobile"*, a reason with a
+next step, instead of an insult. The two new refusals are `Zorglub`'s, and
+they are correct.
+
+### 9.5 A name the game prints must be a name the game reads
+
+Filed by the review as a false CLAIM in a docstring; measured here as a live
+defect. `can Archduke Charles attack Mack` **fought** while `can Mack attack
+Ney` asked, because the roster arm read one token after the lead **and** the
+roster held the scenario key (`ArchdukeCharles`) where the game prints
+`Archduke Charles`. The commanders the game shows the player were exactly the
+ones the guard could not match — the NPC-cluster through-line one layer out.
+Both halves fixed; the second through R7's own chokepoint.
+
+### 9.6 What the sweep found that no reviewer did
+
+Three rounds, **six INERT results, every one real**: two mutations that could
+not bite (one sited below the check it meant to delete; one written with `or`,
+where `frozenset() or X` is X), three pins about the wrong thing, and **one
+piece of genuinely dead code** — a longest-first sort I had written and
+commented, which cannot matter because the test is `startswith` and the answer
+is a boolean. Deleted, not pinned. Final: **27 mutations, 27 killed, 0
+INERT.**
+
+### 9.7 The gate ruling is unchanged, and the review strengthens it
+
+Nothing in §2 moves. But the round sharpens the one thing the user asked for
+most. Both shipped defects made the typed road **worse than it had been the
+day before** — one refused ordinary orders as unknown officers, the other
+silently dropped hesitant ones — and both shipped behind green pins, a green
+23,000-test suite, and a memo that measured the right things in the wrong
+places. The row's ruling was that typing wins the turn; **a row that makes
+typing win the turn owes its regressions a harder look than its features.**

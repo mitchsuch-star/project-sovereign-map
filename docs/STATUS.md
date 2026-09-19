@@ -4,6 +4,58 @@
 
 ## ▶ NEXT UP
 
+> **▶ CX-7 "THE NAME LOOKS LIKE A NAME" — the review round, LANDED
+> September 19, 2026** (landing record = `COMMAND_EXPERIENCE_SPEC.md` §8;
+> rows = `BUG_FIXES.md` §Row CX; rules = `SYSTEMS_REFERENCE.md` §50.11–50.13;
+> memo §9). A 63-agent adversarial review at `727cf88a` — refuters defaulting
+> to REFUTED, each writing its own probes against a tree extracted with
+> `git archive b4a27a15^` — confirmed **two defects row CX had itself
+> shipped, and they are the same mistake in opposite directions, in one
+> commit**: CX-1 landed a half titled **AN ADDRESS NEEDS NO COMMA** beside a
+> half that **required** one, so `Ney, attack Mack?` fought and `Ney attack
+> Mack?` was swallowed as a question — **86 of 128 comma-free addressed
+> orders inert, 58 of them state-changing, 28 objections that now raise
+> nothing**; and the other half asked *is this run NOT a name?* against a
+> hand-written blocklist that failed OPEN on **256 of 261 measured cells**
+> (`quickly attack Mack`, `cavalry attack Mack`, `ok retreat`, and sharpest,
+> `someone attack Mack` — the plain English for what `auto_assign_attack`
+> does). ⚠ **The filed fix closes 0 of 23 and widens the defect by one
+> shape**, measured by the refuter; it was not followed. The fix is ONE
+> predicate asked the other way round and failing CLOSED
+> (`clause_guards.looks_like_an_address` / `address_of`, read by both rules),
+> which is IQ-7's own review-round lesson one row later — *a rule built by
+> stripping what you recognise is only as safe as the list it strips* — with
+> the scope correction that a FREE refusal is cheap per occurrence and
+> ruinous in aggregate. **Then the full suite found a third defect the fix
+> introduced**: the singular title in the new class list made `the Iron
+> Marshal, attack Mack` **SEND SOULT**, FA-22's flagship case, caught by
+> FA-22's own pin — which forced the ruling that makes it coherent, and it
+> was in the punctuation all along: **a comma is the player's own mark of
+> address** (with one, the game answers for the marked run — FA-22 unchanged;
+> with none, only a name-shaped run is claimed), while collectives and
+> interjections stand down either way. Measured **221 of 261 → 9**, and the
+> 9 belong to a different producer (CX7-X1 → CR-6). Also closed: FA-22's
+> original defect still live (`Zorglub pull back` ran a WHOLE-ARMY retreat —
+> the verb list was hand-maintained and missing what the parser routes; the
+> remaining 27 of 40 are L2-1 → CR-6, to be DERIVED not widened);
+> **`can Archduke Charles attack Mack` FOUGHT** because the roster held the
+> scenario KEY where the game prints the display form, so the commanders the
+> game shows were exactly the ones the guard could not see; `kind` now
+> reaches the wire and the client forgets a command it could not READ,
+> closing **CX-3's own rule breached through CX-3's own history arm**; and
+> two lever pins re-sited off a probabilistic outcome. ⚠ **The instrument was
+> built on the geometry of its own finding** — `typed_road.json` dropped the
+> comma only in front of a NAME — so turns 9–12 now type the runs a person
+> puts in front of an order; archived before/after, unbound refusals
+> **15 → 5** with **12 of the 15 wrong before and 0 after**, while
+> `cmd_refused` barely moves (23 → 25) because the orders are now refused
+> **differently** — *"Massena is fortified at Munich and cannot attack. Order
+> 'unfortify' first"* instead of an insult. `test_cx7_the_name_looks_like_a_name.py`
+> **138**; sweep **27/27, 0 INERT after three rounds — six INERT found and
+> every one real**, including one piece of genuinely dead code I had written
+> and commented; suite **23,783/4**; corpus 688/688; M1–M7 + `BASELINE_SERIES`
+> byte-identical without re-record.
+>
 > **▶ ROW CX "THE HAND ON THE KEYBOARD" — LANDED September 19, 2026**
 > (user direction: *"Make the typed road worth taking, and answer in writing
 > whether it is"* … *"a text predictor would be great, or a way to make it more

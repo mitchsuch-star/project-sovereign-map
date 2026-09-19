@@ -717,17 +717,41 @@ class TestTheRetreatIsSometimesANoun:
         assert footprint["ap"][1] < footprint["ap"][0], footprint
 
     def test_the_lever(self):
+        """CX-7: pinned at the PARSE, not end to end.
+
+        The end-to-end form was order-dependent and the review round caught
+        it: an aggressive marshal's objection to a retreat is a probabilistic
+        roll, so "Lannes, cut down the retreat" sometimes came back
+        "Lannes respectfully raises concerns: 'Retreat? We can still
+        fight!'" — which is the defect reproducing, correctly, in a shape
+        the assertion could not recognise. The lever governs the PARSE, and
+        the parse is deterministic."""
         from backend.ai import llm_client as LC
+        from backend.commands.parser import CommandParser
         assert LC.A_RETREAT_CAN_BE_A_NOUN is True
+        world, _client = _fresh_board()
+        parser = CommandParser(use_real_llm=False)
+        utterance = "Ney, cut down the retreat"
+
+        def verb(result):
+            # a successful parse nests the verb under `command`; a refused
+            # one reports its reading as `partial_action`
+            return ((result.get("command") or {}).get("action")
+                    or result.get("action")
+                    or result.get("partial_action"))
+
         original = LC.A_RETREAT_CAN_BE_A_NOUN
         try:
+            with _quiet():
+                on = parser.parse(utterance, {"world": world})
             LC.A_RETREAT_CAN_BE_A_NOUN = False
-            response, _footprint = _drive("Lannes, cut down the retreat")
-            message = (response.get("message") or "")
-            assert "retreats from" in message, (
-                "lever off = the defect reproduces", message[:160])
+            with _quiet():
+                off = parser.parse(utterance, {"world": world})
         finally:
             LC.A_RETREAT_CAN_BE_A_NOUN = original
+        assert verb(off) == "retreat", (
+            "lever off = the defect reproduces", verb(off))
+        assert verb(on) != "retreat", verb(on)
 
     def test_the_four_screening_verbs_are_still_covered_by_their_own_guard(self):
         """`_mentions_screening_idiom` is KEPT, not replaced: FA-73 pins its

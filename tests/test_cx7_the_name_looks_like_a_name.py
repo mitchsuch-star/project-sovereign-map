@@ -546,6 +546,73 @@ class TestThePredicate:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# THE SUBJECT MAY HAVE TWO NAMES.
+# ═══════════════════════════════════════════════════════════════════════════
+# The review round filed this as a false CLAIM in `is_question`'s docstring —
+# the roster arm advertised a roster and read ONE token after the lead. It is
+# also a live defect on the typed road, so it is fixed rather than only
+# stated: the roster holds the PRINTED form of a name, so the commanders the
+# game shows the player are exactly the ones the arm could not see.
+class TestTheSubjectMayHaveTwoNames:
+
+    ROSTER = ["Ney", "Mack", "Davout", "Archduke Charles", "Prince Bagration"]
+
+    @pytest.mark.parametrize("utterance", [
+        "can Archduke Charles attack Mack",
+        "does Archduke Charles hold Vienna",
+        "will Prince Bagration attack",
+        "should Archduke Charles retreat",
+    ])
+    def test_a_two_word_subject_asks(self, utterance):
+        assert CG.is_question(utterance, self.ROSTER) is True, utterance
+
+    @pytest.mark.parametrize("utterance", [
+        "can Ney attack Mack", "does Mack hold Swabia",
+    ])
+    def test_the_one_word_subject_is_unchanged(self, utterance):
+        assert CG.is_question(utterance, self.ROSTER) is True, utterance
+
+    @pytest.mark.parametrize("utterance", [
+        "can you attack Mack", "would you have Ney attack Mack",
+    ])
+    def test_the_second_person_is_still_an_order(self, utterance):
+        assert CG.is_question(utterance, self.ROSTER) is False, utterance
+
+    def test_both_spellings_of_one_man_ask(self):
+        """A roster carrying the key AND the printed form — which is exactly
+        what `_question_subjects` now hands in — asks either way.
+
+        ⚠ It does NOT pin an ordering. The first draft sorted longest-first
+        "so a shorter name cannot shadow a longer one"; the sweep showed that
+        sort inert, because the test is `startswith` on the opening of the
+        run and the answer is a boolean. The sort is deleted, not pinned."""
+        roster = ["ArchdukeCharles", "Archduke Charles"]
+        for spelling in ("can Archduke Charles attack Mack",
+                         "can ArchdukeCharles attack Mack"):
+            assert CG.is_question(spelling, roster) is True, spelling
+
+    def test_the_lever(self):
+        assert CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES is True
+        original = CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES
+        try:
+            CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES = False
+            assert CG.is_question("can Archduke Charles attack Mack",
+                                  self.ROSTER) is False,                 "lever off = the defect reproduces"
+            assert CG.is_question("can Ney attack Mack", self.ROSTER) is True
+        finally:
+            CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES = original
+
+    def test_it_reaches_the_board_end_to_end(self):
+        """The shipped 1805 board prints "Archduke Charles"; driving him is
+        the row's own geometry, not a fixture's."""
+        response, footprint = _drive("can Archduke Charles attack Mack")
+        assert not footprint["battle"], footprint
+        assert not footprint["moved"], footprint
+        assert footprint["ap"][0] == footprint["ap"][1], footprint
+        del response
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # THE LEVERS — each False arm reproduces exactly what that caller shipped.
 # ═══════════════════════════════════════════════════════════════════════════
 class TestTheLevers:

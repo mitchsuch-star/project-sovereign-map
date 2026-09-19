@@ -6031,3 +6031,86 @@ marched a marshal away at confidence 0.90 — above the escalation gate, so no
 key in any mode could have corrected it. **When a guard names VERBS, ask what
 SHAPE it is really about; and when the shape has a small closed exception
 set, invert the allowlist.**
+
+### 50.11 Who was addressed — ONE source, and the comma is the mark
+
+`clause_guards.address_of(text, roster)` is the single source for *who did the
+player address*. Both the question guard's arm (e) and
+`executor._unbound_addressee` read it; nothing else decides it. Row CX shipped
+two rules about the same sentence in one commit and they disagreed — one half
+titled AN ADDRESS NEEDS NO COMMA while the other required one, so
+`Ney, attack Mack?` fought and `Ney attack Mack?` was swallowed as a question
+on 86 of 128 measured orders.
+
+**The rule, in two lines.**
+
+* **A comma or colon MARKS a run as an address.** The player said so; the game
+  answers for that run rather than sending somebody else. This is FA-22 and it
+  is unchanged.
+* **With nothing marked, a run is an address only if it LOOKS LIKE A NAME** —
+  after the article and the HONORIFIC come off, one to three tokens, none of
+  them a word that cannot be a name, and either a token capitalised as typed
+  or a token within one keystroke of a roster name.
+
+**Two things stand down on BOTH arms**, because on both the game has a better
+answer than a refusal: the **collective** (`all marshals`, `everyone`,
+`someone`, `whoever is closest`) — the marshal-less arm exists to serve it —
+and the **interjection** (`Well, attack Mack`, `Ok, retreat`), because a comma
+after one is ordinary punctuation and nobody commands an officer called Well.
+What may appear INSIDE an addressed noun phrase (`Prince of Moskowa`, `the
+Bravest of the Brave`) disqualifies a run on the bare arm only.
+
+The residue is stated, not discovered later: an all-lowercase INVENTED name
+(`zorglub attack mack`) is no longer claimed and reaches the marshal-less arm
+as it did before row CX. The near-miss that matters (`nay` → Ney) is still
+caught at any case.
+
+⛔ **The lesson, one row after IQ-7 wrote it.** CX-1 asked *is this run NOT a
+name?* against a hand-written list of grammar words, and English has more
+adverbs than that list will ever hold: measured, **256 of 261 cells** —
+`quickly attack Mack`, `cavalry attack Mack`, `ok retreat`, `someone attack
+Mack` — refused as unknown officers. IQ-7's review round had already written
+the rule: *a rule built by stripping what you recognise is only as safe as the
+list it strips.* It scoped itself to an irreversible priced answer; **the
+scope was too narrow.** A free refusal is cheap per occurrence and ruinous in
+aggregate, because it lands on the road the player uses most. **Ask the
+question in the direction that fails CLOSED, and where a class must be
+enumerated, enumerate a CLOSED class** — the `-ly` adverb is closed by
+morphology, not by listing, and that one rule covers the whole productive
+family.
+
+⚠ **And the same list under-refused in the other direction.** The verbs a head
+is measured against were hand-maintained too, and missing `pull back` and
+`recon`, so `Zorglub pull back` ran a whole-army retreat — FA-22's own defect,
+still live a year later. **One hand-written list, both signs.** The remaining
+27 of 40 belong to CR-6 proper, and the durable fix there is to derive the
+list from the parser's routing table rather than widen it again.
+
+### 50.12 A name the game PRINTS must be a name the game READS
+
+`_question_subjects` carries both the scenario key and the display form,
+composed through R7's own chokepoint (`display_names.humanize_entity_name`).
+Before CX-7 it carried the key alone, so `can Archduke Charles attack Mack`
+**fought** — AP 4→3, five corps moved — while `can Mack attack Ney`, one word
+shorter, asked. The commanders the game shows the player were exactly the ones
+the guard could not match.
+
+This is the NPC-cluster through-line — *the player names a thing the way the
+game printed it and the game acts on something else* — and it is worth
+stating as a standing rule: **any roster a guard matches the player's typing
+against must hold the form the player SEES, not the form the scenario file
+stores.** The display chokepoint already exists; call it.
+
+### 50.13 A pin on a probabilistic outcome is not a pin
+
+Two lever pins in row CX drove an order end to end and asserted on the
+footprint. An aggressive marshal's objection to a retreat is a **roll**, so
+one of them read a real order as inert whenever the marshal objected, and the
+other was green alone and red beside `test_parse_negation` — the review round
+found it before a CI run did.
+
+**Where a lever governs a PARSE or a PREDICATE, pin it there**, and keep the
+end-to-end arm for the verbs with no roll on them. And note the sibling trap
+that produced the first one: an end-to-end footprint can read a real order as
+inert for two more reasons — a retreat is free by design (FA-R3), so no AP
+moves, and the endpoint re-seats `world`, so a captured reference goes stale.

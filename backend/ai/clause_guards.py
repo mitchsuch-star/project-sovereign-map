@@ -949,6 +949,36 @@ _TRAILING_CLAUSE_RE = re.compile(r",\s*\S")
 
 
 
+# CX-7. The roster arm read ONE token after the lead, so a MULTI-WORD name
+# could not reach it: measured, `can Archduke Charles attack Mack` FOUGHT —
+# AP 4→3 — while `can Mack attack Ney`, one word shorter, asked. The roster
+# holds the printed form ("Archduke Charles", "Prince Bagration"), so the
+# names the game shows are exactly the ones the arm could not see. It reads
+# the whole opening run now.
+#
+# ⚠ There is deliberately NO longest-first ordering here. The first draft
+# sorted by length "so a name that contains another cannot be shadowed", and
+# the mutation sweep showed the sort INERT: the test is `startswith` on the
+# OPENING of the run and the answer is a boolean, so a shorter name matching
+# first returns the same True. A guard no mutation can kill is a guard no pin
+# can be about, so it is gone.
+THE_SUBJECT_MAY_HAVE_TWO_NAMES = True
+
+
+def _names_a_subject(rest: str, subjects) -> bool:
+    """Whether the run after the lead OPENS with a name on the roster."""
+    opening = rest.strip().lower()
+    for name in subjects:
+        low = name.strip().lower()
+        if not low:
+            continue
+        if not THE_SUBJECT_MAY_HAVE_TWO_NAMES and " " in low:
+            continue
+        if opening == low or opening.startswith(low + " "):
+            return True
+    return False
+
+
 def _line_is_addressed(text: str,
                        roster: "Optional[Iterable[str]]" = None) -> bool:
     """Arm (e)'s reader — CX-7.
@@ -983,6 +1013,12 @@ def is_question(command_text: str,
     about a third party rather than an order to the person addressed:
     "can Ney attack Mack" asks; "can you attack Mack" commands. Omitted, the
     arm is dormant.
+
+    ⚠ The arm read ONE token after the lead until CX-7, so a MULTI-WORD
+    name could not reach it and "can Archduke Charles attack Mack" FOUGHT
+    (measured, AP 4→3) while "can Mack attack Ney" asked — the names the
+    game PRINTS being exactly the ones it could not see. It reads the whole
+    opening run now.
     """
     text = (command_text or "").strip()
     # CX: an UNADDRESSED line ending in a question mark is a question.
@@ -1037,7 +1073,7 @@ def is_question(command_text: str,
             word = subj.group("subj").lower()
             if word in _THIRD_PERSON_SUBJECTS:
                 return True
-            if subjects and word in {str(s).lower() for s in subjects}:
+            if subjects and _names_a_subject(rest, subjects):
                 return True
     if A_QUESTION_NEVER_ORDERS and lead_word in _WH_WORDS:
         # "where's Ney" — the auxiliary is contracted onto the lead.

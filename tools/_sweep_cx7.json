@@ -159,5 +159,33 @@
   "old": "_NOT_A_NAME = _NEVER_AN_ADDRESS | frozenset((",
   "new": "_NEVER_AN_ADDRESS = _NEVER_AN_ADDRESS | frozenset((",
   "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsTheMark::test_a_marked_run_is_answered_for"
+ },
+ {
+  "id": "CX7-25 the subject arm reads one token again",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        if not THE_SUBJECT_MAY_HAVE_TWO_NAMES and \" \" in low:\n            continue",
+  "new": "        if \" \" in low:\n            continue",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheSubjectMayHaveTwoNames"
+ },
+ {
+  "id": "CX7-26 the subject arm matches ANY name, not the opening run",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        if opening == low or opening.startswith(low + \" \"):\n            return True",
+  "new": "        if low in opening:\n            return True",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheSubjectMayHaveTwoNames"
+ },
+ {
+  "id": "CX7-28 the roster stops carrying the PRINTED form",
+  "file": "backend/ai/llm_client.py",
+  "old": "    return names + shown",
+  "new": "    return names",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheSubjectMayHaveTwoNames::test_it_reaches_the_board_end_to_end"
+ },
+ {
+  "id": "CX7-29 the CX-5 lever pin stops reading the nested verb",
+  "file": "backend/ai/llm_client.py",
+  "old": "A_RETREAT_CAN_BE_A_NOUN = True",
+  "new": "A_RETREAT_CAN_BE_A_NOUN = False",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun"
  }
 ]

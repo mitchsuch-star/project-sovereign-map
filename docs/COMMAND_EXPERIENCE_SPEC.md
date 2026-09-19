@@ -249,11 +249,25 @@ With no comma the addressee is the leading run of words BEFORE the first order
 verb — empty for a genuinely bare order, so `attack Mack` is untouched by
 construction. Lever `CommandExecutor.AN_ADDRESS_NEEDS_NO_COMMA`.
 
+⚠ **Two corrections from the review round (§8), made here rather than
+footnoted.** (a) *"the first order verb"* named a hand-written list in
+`executor.py` that was missing verbs the mock parser routes — 27 of 40 by the
+review's count, of which `pull back` and `recon` were measured live. The list
+now lives in `clause_guards._ORDER_VERB_RE` beside the other sentence-shape
+rules and carries both; the rest is CR-6 proper's (L2-1), because the durable
+fix is to derive it from the parser's routing table rather than widen it
+again. (b) The rule for WHICH runs are claimed is no longer the one described
+below — a blocklist that failed open on 256 of 261 measured cells. It is
+`clause_guards.address_of`, and §8.2/§8.3 state it.
+
 ⛔ **The arm's own first draft shipped a regression and the pins caught it:**
 the leading run of `can you attack Mack` is `"can you"` and of `do attack Mack`
 is `"do"`, so both polite/emphatic imperatives were refused as an unknown
 marshal. The run must contain no function word and no collective (`all
-marshals attack` addresses the army, not a person).
+marshals attack` addresses the army, not a person). ⚠ **And the collective
+half was true of the comma-LESS arm only** — `all marshals, attack`, the same
+address one keystroke over, was refused as an officer of that name until §8.3
+made the stand-down apply to both.
 
 ⚠ **One filed claim corrected by measurement.** The recon listed `Davoust
 attack Mack` as unbindable; it is not — FA-80's typo repair binds it to DAVOUT
@@ -643,5 +657,228 @@ definition. Defect rows are in `BUG_FIXES.md` §Row CX; design rows in
 | **CX-D2** | Whether the model may answer a question the desk cannot classify | **the CR-6 gate** | the gate rules, with the constraint that an answer can never issue an order |
 | **CX-D3** | The completer's FEEL | **the user, in a played session** | a turn's orders typed with it on, and the verdict recorded |
 
+| **L2-1** | The addressee rule measures its head against a hand-written verb list missing 27 of 40 routed verbs (`pull back` and `recon` closed in §8; the rest stand) | **CR-6 proper** | the list is DERIVED from the parser's routing table, and a census pins the two in step |
+| **CX7-X1** | The parser's fuzzy near-miss guard answers `sure attack Mack` with *"Did you mean Soult?"* — a different producer, a different threshold | **CR-6 proper** | a leading run that is not a near-miss of any name is not offered as one |
+
 **Inherited and unchanged:** IQ9-X1, IQ9-X2, IQ9-X3, IQ10-X1, IQ10-X2, and
 the six real deferrals of IQ7-X7 (its question half closed here).
+
+**From the review round (§8):** the 57 verdicts produced CXR1-2..5,
+DESK-1..12, CX3-R1..R12, CX5-L5-F1..F7 and the CX-CLAIM rows. CX-7 fixes what
+row CX **shipped** — CXR1-1, L2-5 and the three defects the fix for those two
+exposed — and corrects in place the four claims the refuters CONFIRMED. The
+rest are filed as found in `BUG_FIXES.md` §Row CX with the owners above;
+**CX5-L5-F6 was measured NOT player-reachable** and is recorded rather than
+built.
+
+---
+
+## §8 THE REVIEW ROUND — CX-7 "THE NAME LOOKS LIKE A NAME"
+
+**Landing record, authoritative.** Commit follows `f52df77f`. A 63-agent
+adversarial review was run at `727cf88a` — lenses to find, refuters to kill,
+every refuter's default verdict REFUTED and its own probes written from
+scratch against a tree extracted with `git archive b4a27a15^` rather than a
+lever flip. It confirmed **two defects row CX had itself shipped**. Both are
+the same mistake in opposite directions, and both live in the pair of rules
+slice 1 landed in one commit.
+
+### §8.1 What was wrong
+
+**L2-5 — the blocklist failed OPEN.** `_unbound_addressee`'s comma-less arm
+asked *is this leading run NOT a name?* against a hand-written list of
+grammar words, so every word the list did not hold was claimed as somebody's
+name and the order refused. Filed as 23 shapes across 2 doors; **measured at
+9 marshal-less doors × 29 natural leading runs = 261 cells, 256 newly
+refused.**
+
+| typed | at `727cf88a` |
+|---|---|
+| `quickly attack Mack` | *"There is no 'quickly' in the order of battle, Sire. Whom did you intend?"* |
+| `cavalry attack Mack` | the same, for an arm of service |
+| `ok retreat` | the same, for assent |
+| `someone attack Mack` | the same — for the plain English of `auto_assign_attack`, whose own clarification asks *"Which marshal shall lead the attack, Sire?"* |
+
+And the same hand-written list **under-refused in the other direction**: the
+verb regex the head is measured against was missing two verbs the mock parser
+routes into the marshal-less family, so `Zorglub pull back` ran a WHOLE-ARMY
+RETREAT and `Zorglub recon Swabia` sent Soult — FA-22's own defect, still
+live. One root, both signs.
+
+**CXR1-1 — the row argued with itself.** Arm (e) of the question guard read a
+line as ADDRESSED only through `_ADDRESSED_LINE_RE`, which requires a comma or
+a colon — while the other half of the very same commit is titled AN ADDRESS
+NEEDS NO COMMA and exists *because a player does not type the comma*. So
+`Ney, attack Mack?` fought and `Ney attack Mack?` was swallowed. Of **128**
+comma-free addressed orders, **86 acted before and are inert now**; 58 changed
+real state and 28 raised a marshal's objection — a decision point that now
+raises nothing. Free and recoverable, which keeps it off P1; wide and silent
+on the road §2 calls *the road that wins the turn*, which keeps it off P3.
+
+### §8.2 The fix — one predicate, asked the other way round
+
+`clause_guards.looks_like_an_address` asks **does this run LOOK LIKE a name?**
+and fails CLOSED. `clause_guards.address_of` is the single source for *who was
+addressed*, comma or no comma, and BOTH rules read it — so the two halves of
+row CX cannot disagree again.
+
+A run is name-shaped when, after the article and the HONORIFIC come off, it is
+one to three tokens, none of them a word that cannot be a name, and **either** a
+token is capitalised as the player typed it (`Nay`, `Zorglub`) **or** a token is
+within one keystroke of a name on the roster handed in (`nay` → Ney), so an
+all-lowercase typist still gets the guard on a real near-miss.
+
+The words that cannot be a name are **closed classes**, not a sample — the
+collectives, the indefinite pronouns, assent, time, the polite and emphatic
+imperatives — plus the one PRODUCTIVE class, the `-ly` adverb, closed by
+morphology instead of enumeration. No marshal on any roster ends in `-ly`.
+
+This is IQ-7's own review-round lesson arriving one row later — *a rule built
+by stripping what you recognise is only as safe as the list it strips* — and
+the answer is the same one: write the allowlist out.
+
+⚠ **The filed fix was not followed.** The finding's own remediation was L2-4's
+head-token rule; the refuter implemented it verbatim and measured it closing
+**0 of 23** and WIDENING the defect by one shape (`quickly and at once attack
+Mack`). Pinned.
+
+### §8.3 THE COMMA IS THE PLAYER'S OWN MARK OF ADDRESS
+
+Found by running the full suite, not by the review. Applying the name rule to
+the **comma'd** arm too — which had never had one — redded four of FA-22's
+pins, because `the cavalry, attack Mack` and `the reserve, attack Mack` are
+addresses **by the player's own punctuation**, and FA-22 exists to stop the
+game answering them with somebody else. The resolution is not a third list but
+the separator itself:
+
+* **a comma** — the player MARKED a run as an address. Claim it and answer for
+  it. *(FA-22, unchanged.)*
+* **no comma** — nothing was marked, so claim it only if it is name-shaped.
+  *(CX-7.)*
+
+Two things stand down on **both** arms. A **collective** (`all marshals`,
+`everyone`, `someone`, `whoever is closest`), because the marshal-less arm
+exists precisely to serve it — and an **interjection** (`Well, attack Mack`,
+`Ok, retreat`), because a comma after one is ordinary punctuation and nobody
+commands an officer called Well. What is left — the connectives and articles
+that may appear INSIDE an addressed noun phrase (`Prince of Moskowa`, `the
+Bravest of the Brave`) — disqualifies a run on the bare arm only.
+
+The remaining asymmetry is deliberate and is **not** the split CXR1-1
+condemns: there the two forms carried the same NAME and disagreed anyway; here
+they carry different evidence of intent, and the comma is the evidence. Pinned
+as a property — *a name-shaped run behaves the same either way*.
+
+**Two more defects fell out of that ruling:**
+
+* the collective stand-down lived INSIDE the comma-less branch, so `all
+  marshals attack` was served and `all marshals, attack` refused as an officer
+  of that name. (The review had filed this as a false claim in §3.1; it is a
+  defect, and it is fixed.)
+* putting the singular title in the class list made `the Iron Marshal, attack
+  Mack` **SEND SOULT** — FA-22's flagship case. The title is the HONORIFIC's
+  business, and the honorific strip now takes a bare trailing title so
+  `Marshal` alone names nobody while `the Iron Marshal` stays a name. Caught by
+  FA-22's own pin on the full-suite run, not by any pin of mine.
+
+### §8.4 Measured
+
+The refuter's own 261-cell grid, both lever arms, driven end to end through
+`POST /command` on a fresh shipped 1805 board per cell:
+
+| | refused as unknown officers |
+|---|---|
+| lever OFF — reproduces HEAD | **221 of 261** |
+| lever ON — CX-7 | **9 of 261** |
+
+⚠ The surviving 9 are all `sure <door>` and are **not this row's**: they come
+from the parser's own fuzzy near-miss guard, a different producer with a
+different sentence (*"I do not find 'sure' in the order of battle, Sire. Did
+you mean Soult?"*). Filed **CX7-X1**, not fixed here.
+
+**The archives**, same seed, committed:
+`docs/audits/playtest_digests/cx7-{before,after}/typed-road/`.
+
+| | unbound refusals | of which wrong |
+|---|---|---|
+| before | 15 | 12 — `quickly` `immediately` `ok` `right` `well` `cavalry` `guards` `Marshal` `someone` `anyone` `whoever is closest` `all marshals` |
+| after | 5 | 0 — `Nay`, `Wellington`, and `Zorglub` ×3 (up from ×1: the mirror hole closed) |
+
+⚠ **`cmd_refused` barely moves (23 → 25) and that is honest, not a miss.** The
+twelve sentences are not refused *less*; they are refused *differently* —
+`quickly attack Mack` now returns *"Massena is fortified at Munich and cannot
+attack. Order 'unfortify' first to make the army mobile"*, a game reason with
+an actionable next step, instead of an insult. The two new refusals are
+`Zorglub`'s, which are correct.
+
+### §8.5 Also landed
+
+* **`kind` reaches the wire.** `_build_command_response` composes from named
+  fields and dropped it, so an unreadable refusal arrived as a bare sentence
+  with no structured handle. Display-only (GR6). This is the review's own
+  "minor but real for the client" correction, located precisely.
+* **The client forgets a command the game could not read** —
+  `_forget_unreadable_command`, called before any routing or early return.
+  This closes **CX-3's own rule, breached through CX-3's own history arm**:
+  `_add_to_history` runs ~50 lines before the send and takes no success flag,
+  so a refused sentence was recorded and never un-recorded, and the review
+  measured the completer handing it straight back 5 of 5. Deliberately narrow
+  — an ordinary refusal is a sentence the game READ, and stays.
+* **The instrument.** `typed_road.json` dropped the comma **only in front of a
+  name** — never an adverb, an interjection, an arm noun or an indefinite
+  pronoun — so it was built on the geometry of the finding it was chasing and
+  was structurally unable to see the regression beside it. Turns 9–12 now type
+  the runs a person actually puts in front of an order.
+
+### §8.6 Gates
+
+`tests/test_cx7_the_name_looks_like_a_name.py` **128** · sweep
+`tools/_sweep_cx7.json` **23/23 killed, 0 INERT** · suite **23,783 / 4** ·
+corpus **688/688** · ruff clean · Godot parse harness **EXIT=0** · M1–M7 and
+`BASELINE_SERIES` **byte-identical without re-record**.
+
+⛔ **The sweep's first round returned five INERT and every one was real** — two
+mutations that could not bite (one placed below the check it meant to delete;
+one written with `or` where `frozenset() or X` is X, a no-op by construction)
+and three pins that were about the wrong thing: a four-token bound tested with
+a run whose FIRST token was already a class word, an executor guard pinned end
+to end where no boot-board sentence can reach it, and a `.gd` census that a
+text mutation leaves standing. The second round returned one more — the class
+list's only unique job is a **capitalised** run, and every pin used lowercase.
+
+### §8.7 What this row did NOT take
+
+The review produced 57 verdicts. CX-7 fixes what row CX **shipped**; the rest
+are routed with owners in §7 and in `BUG_FIXES.md` §Row CX, unchanged in
+substance:
+
+* **L2-1** (P1, pre-existing) — the addressee rule reads a hand-written verb
+  list that misses 27 of 40 routed verbs, so `Zorglub <verb>` still reaches
+  some of them. CX-7 closed the two the review measured (`pull back`, `recon`)
+  and moved the list into `clause_guards` where the other sentence-shape rules
+  live; **closing the remaining gap is CR-6 proper's**, because the durable fix
+  is to derive the list from the parser's own routing table rather than to
+  widen it again.
+* **CX7-X1** — the parser's fuzzy near-miss guard answers `sure attack Mack`
+  with *"Did you mean Soult?"*. A different producer, a different threshold,
+  its own pins. **CR-6 proper.**
+* **CX5-L5-F6** (P4, shipped by CX-5, measured not player-reachable),
+  **CXR1-2..5**, **DESK-1..12**, **CX3-R1..R12** and the CX-CLAIM rows are
+  filed as found; the four CX-CLAIM verdicts the refuters CONFIRMED are
+  corrected in place rather than carried (§8.8).
+
+### §8.8 Claims corrected in place
+
+A review that measures its subject's prose is worth as much as one that
+measures its code. Corrected where they were written, not footnoted:
+
+* §3.1's *"the addressee is the leading run before the first order verb"* was
+  false for 28 of 36 verbs. The rule is now stated as it behaves, and the verb
+  list is one source in `clause_guards`.
+* `is_question`'s `subjects` docstring claimed a roster arm that a multi-word
+  name cannot reach.
+* `_MARSHAL_LESS_TYPES` was described as five types; it is five, and the sixth
+  the review named (`general_defensive`) is not in that tuple — the claim that
+  it was omitted is **refuted**, and the tuple is unchanged.
+* `_NOT_AN_ADDRESS_RE` contained `the`, tested before the article strip. The
+  article now comes off first, in `_strip_titles`, ahead of the honorific.

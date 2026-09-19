@@ -557,7 +557,24 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
     # The map already paints every province name, so this is public by the
     # same rule the question desk states for a province's holder.
     names += list(_game_state_dict(game_state, "map_data"))
-    return names
+    # CX-7. The roster held the KEY and the game prints the DISPLAY form, so
+    # the commanders the player can actually see named — "Archduke Charles",
+    # printed everywhere, keyed `ArchdukeCharles` — were exactly the ones the
+    # arm could not match. Measured before the fix: `can Archduke Charles
+    # attack Mack` FOUGHT (AP 4→3, five corps moved) while `can Mack attack
+    # Ney` asked. This is the NPC-cluster through-line one layer out — the
+    # player names a thing the way the game printed it — so both forms go in
+    # and R7's chokepoint supplies the second.
+    from backend.display_names import humanize_entity_name
+    shown = []
+    for name in names:
+        try:
+            pretty = humanize_entity_name(str(name))
+        except Exception:
+            continue
+        if pretty and pretty != name:
+            shown.append(pretty)
+    return names + shown
 
 # CX-2: the Cabinet named as a DOOR rather than as a sentence to type. Ruling
 # G1 retired the typed diplomatic verbs as a player surface; the recovery copy

@@ -479,6 +479,30 @@ escalation and re-aim it at open-ended questions — the one road with no
 deterministic answer — with the desk deterministic first because the shipped
 default is `LLM_MODE=mock`.** The re-open condition is on the spec's §4.
 
+### §10.1 The review round (CX-7) — the pipeline half
+
+**Landing record: `COMMAND_EXPERIENCE_SPEC.md` §8.** Two pipeline facts worth
+keeping here, because both are about where a rule LIVES rather than what it
+says.
+
+1. **`clause_guards` now owns "who was addressed".** `address_of` and
+   `looks_like_an_address` join the four sentence-shape predicates, and
+   `_ORDER_VERB_RE` — a hand-maintained list that had lived in `executor.py`
+   — moves in beside them. Both the question guard and the executor read the
+   one source. Row CX had shipped two rules about the same sentence in one
+   commit, disagreeing about whether a comma is required; a shared predicate
+   is the only thing that stops that recurring.
+2. **The roster a guard matches typing against must hold the PRINTED form.**
+   `_question_subjects` carried the scenario key alone, so
+   `can Archduke Charles attack Mack` fought while `can Mack attack Ney`
+   asked. It composes `display_names.humanize_entity_name` now. Any future
+   guard that matches the player's words against a roster inherits the same
+   obligation — see `SYSTEMS_REFERENCE.md` §50.12.
+
 **Still CR-6 proper's, unchanged:** conditional orders (§8 rule 5), IQ9-X1,
 IQ9-X2, IQ9-X3, the six real deferrals of IQ7-X7, and the three rows CX routed
-(CX3-X1, CX-X1 the wh-word Cabinet backdoor, CX-X2 the corpus's blind spot).
+(CX3-X1, CX-X1 the wh-word Cabinet backdoor, CX-X2 the corpus's blind spot) —
+**plus two from the review round: L2-1** (the verb list is 27 of 40 short and
+must be DERIVED from the parser's routing table, not widened a third time) and
+**CX7-X1** (the fuzzy near-miss guard offering `sure` → *"Did you mean
+Soult?"*).

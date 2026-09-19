@@ -983,6 +983,12 @@ class CommandExecutor:
     # first order verb — empty for a genuinely bare order, so `attack Mack`
     # is untouched by construction.
     #
+    # ⚠ CX-7: WHICH runs are claimed is no longer decided here. The rule
+    # below failed OPEN on 256 of 261 measured cells; the live rule is
+    # `clause_guards.address_of`, shared with the question guard so the two
+    # halves of row CX cannot disagree again, and the body below is what
+    # the lever's False arm reproduces.
+    #
     # Flip lever: False restores the comma-only rule byte-for-byte.
     AN_ADDRESS_NEEDS_NO_COMMA = True
 

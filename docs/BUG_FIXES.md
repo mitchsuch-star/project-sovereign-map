@@ -12864,6 +12864,51 @@ be bundled with anything.
 > `tools/playtest_scripts/typed_road.json` — types the way a person does, and
 > is the arm a regression here would show up on.
 
+> ---
+>
+> ### ⛔ THE REVIEW ROUND — CX-7 "THE NAME LOOKS LIKE A NAME" (September 19, 2026)
+>
+> **Landing record: `docs/COMMAND_EXPERIENCE_SPEC.md` §8, authoritative.**
+> Commit `3ccf6b69` and its follow-on. A 63-agent adversarial review at
+> `727cf88a` — lenses to find, refuters to kill, every refuter defaulting to
+> REFUTED and writing its own probes against a tree extracted with
+> `git archive b4a27a15^` rather than a lever flip — confirmed **two defects
+> row CX had itself shipped**, and the full suite then found a third that the
+> fix for those two introduced.
+>
+> ⛔ **Both shipped defects are the same mistake in opposite directions, and
+> both live in the pair of rules slice 1 landed in ONE commit.** One half was
+> titled AN ADDRESS NEEDS NO COMMA and the other half required a comma. That
+> is the lesson: a commit that lands two rules about the same sentence must
+> state, in writing, what each says about the other's cases.
+
+| id | sev | defect | fix |
+|---|---|---|---|
+| **CXR1-1** | **P2** | **The row argued with itself, and the orders lost.** Arm (e) read a line as ADDRESSED only through `_ADDRESSED_LINE_RE`, which requires a comma — while the other half of the same commit exists *because a player does not type the comma*. So `Ney, attack Mack?` fought and `Ney attack Mack?` came back *"Berthier sets down his pen. I cannot answer that from the dispatches, Sire."* Of **128** comma-free addressed orders, **86 acted before and are inert now**; **58 changed real state** and **28 raised a marshal's objection** that now raises nothing. Free and recoverable (AP 4→4, gold unmoved on all 86) — which is what keeps it off P1; wide and silent on the road the row's own gate calls *the road that wins the turn* — which is what keeps it off P3. ⚠ The counsel it fell to points at the wrong surface: `Ney fortify?` was answered with the Economy tab, `Marshal Ney attack Mack?` with the Generals screen | **FIXED** — `clause_guards.address_of` is now the single source for *who was addressed*, comma or no comma, read by BOTH rules. The pair is pinned together, with `retreat?` beside it, so the halves cannot diverge again |
+| **L2-5** | **P3** | **The blocklist failed OPEN: 256 of 261 measured cells.** `_unbound_addressee`'s comma-less arm asked *is this run NOT a name?* against a hand-written list, so every unlisted word was claimed as somebody's name and the order refused — `quickly attack Mack`, `cavalry attack Mack`, `ok retreat`, `tonight retreat`, `Marshal attack Mack`. **The sharpest family is the indefinite pronouns**: `someone attack Mack` is the plain English for *"send whoever is nearest"*, which is exactly what `auto_assign_attack` does and what the game's own clarification asks. Filed at 23 shapes across 2 doors; measured at **9 doors × 29 runs**. ⚠ **And the row's own prescribed fix closes 0 of 23** — the refuter implemented L2-4's head-token rule verbatim and every one of these heads is a CONTENT word, so it claims them exactly as today's rule does, and it WIDENS the defect by one shape (`quickly and at once attack Mack`) | **FIXED, and not as filed** — `clause_guards.looks_like_an_address` asks *does this run LOOK LIKE a name?* and fails CLOSED. Measured on the refuter's own grid, both lever arms, end to end: **221 of 261 → 9 of 261** |
+| **CX7-1** | **P2** | **A regression THIS slice shipped, caught by FA-22's own pin on the full-suite run.** Applying the name rule to the COMMA'D arm — which had never had one — put the singular title in the closed-class list, so Davout's epithet stopped being a name and **`the Iron Marshal, attack Mack` SENT SOULT**: the exact defect FA-22 exists for. Two of FA-22's other pins went with it (`the cavalry`, `the reserve`) | **FIXED** — the title is the HONORIFIC's business and the class list keeps only the plurals; the honorific strip takes a bare trailing title so `Marshal` alone names nobody while `the Iron Marshal` stays a name. And the underlying conflict is resolved by **the separator itself**: a comma MARKS a run as an address (FA-22, unchanged), and with nothing marked a run is claimed only if it is name-shaped (CX-7) |
+| **CX7-2** | P3 | **The collective stand-down lived inside the comma-LESS branch**, so `all marshals attack` was served by the marshal-less arm and `all marshals, attack` — the same address, one keystroke over — was refused as an officer of that name. Filed by the review as a false CLAIM in the spec; it is a defect | **FIXED** — a collective, and an interjection (`Well, attack Mack` is a player clearing his throat), stand down on BOTH arms |
+| **CX7-3** | P3 | **FA-22's original defect, still live.** The addressee rule measures the head against a hand-written verb list in `executor.py` that was missing verbs the mock parser routes into the marshal-less family — so `Zorglub pull back` ran a **WHOLE-ARMY RETREAT** and `Zorglub recon Swabia` sent Soult | **FIXED for the two measured** — the list moved to `clause_guards._ORDER_VERB_RE` beside the other sentence-shape rules and gained `pull back` / `recon`. ⚠ The review counts **27 of 40 routed verbs** still missing: that is **L2-1**, routed to CR-6 proper, because the durable fix is to DERIVE the list from the parser's routing table rather than widen it a third time |
+| **CX7-4** | P2 | **`can Archduke Charles attack Mack` FOUGHT** — AP 4→3, five corps moved — while `can Mack attack Ney`, one word shorter, asked. The roster arm read ONE token after the lead, and the roster held the scenario KEY (`ArchdukeCharles`) while the game PRINTS `Archduke Charles`. **The commanders the game shows the player were exactly the ones the arm could not see** — the NPC-cluster through-line one layer out. Filed by the review as a false CLAIM in a docstring | **FIXED** — the arm reads the whole opening run (`THE_SUBJECT_MAY_HAVE_TWO_NAMES`) and `_question_subjects` carries the printed form beside the key, through R7's own chokepoint |
+| **CX7-5** | P3 | **CX-3's own rule, breached through CX-3's own history arm.** `_add_to_history` runs ~50 lines before the send and takes no success flag, so a refused command was recorded and never un-recorded; the review measured the completer handing the refused sentence straight back **5 of 5**. CX-3's census is scoped to `_MARSHAL_VERBS` / `_BARE_COMMANDS` / the COMMAND REFERENCE, so it is structurally incapable of seeing it | **FIXED** — `kind` reaches the wire (`_build_command_response` composed from named fields and dropped it, the review's own "minor but real" correction, located precisely) and the client forgets a command the game could not READ. Deliberately narrow: an ordinary refusal is a sentence the game read, and stays |
+| **CX7-6** | P3 | **Two pins were flaky and one was order-dependent**, the second found by the review: an aggressive marshal's objection to a retreat is a probabilistic roll, so a lever pin driven end to end sometimes read a real order as inert (`TestTheRetreatIsSometimesANoun::test_the_lever`, green alone, red beside `test_parse_negation`) | **FIXED** — both re-pinned at the deterministic seam (`is_question` / the parse) rather than on a footprint. A lever pin that is green only in some orders is not binding |
+| **CX7-X1** | P4 | The parser's own fuzzy near-miss guard answers `sure attack Mack` with *"I do not find 'sure' in the order of battle, Sire. Did you mean Soult?"* — a different producer with a different threshold from the unbound-addressee refusal. These are the 9 cells the grid still shows | **ROUTED — CR-6 proper.** Not row CX's code; measured pre-existing on the true pre-row tree |
+
+**Method note, recorded because it keeps earning its keep.** The mutation
+sweep ran three rounds and returned **six INERT results, every one real**: two
+mutations that could not bite (one sited below the check it meant to delete;
+one written with `or`, where `frozenset() or X` is X — a no-op by
+construction), three pins about the wrong thing (a four-token bound tested
+with a run whose FIRST token was already a class word; an executor guard
+pinned end to end where no boot-board sentence reaches it; a `.gd` census a
+text mutation leaves standing), and **one piece of genuinely dead code** — a
+longest-first sort written "so a shorter name cannot shadow a longer one",
+which cannot matter because the test is `startswith` and the answer is a
+boolean. It was deleted, not pinned. Final: **27 mutations, 27 killed, 0
+INERT.**
+
+> ---
+
 | id | sev | defect | fix |
 |---|---|---|---|
 | **CX-1a** | **P1** | **A question fought a real battle.** `why not attack Mack` spent an action point and bled six French corps (Ney −946, Davout −1,025, Soult −1,980, Lannes −709, Murat −867, the Emperor's Guard −394). `why not retreat` marched the **whole army** back. The family is wide: `what about attack Mack`, `how about retreat`, `is it time to build a depot in Paris` (300 gold and an admin AP), `can` / `may` / `does` / `is Ney attacking Mack`, `is Swabia defended` (a whole-army defend at confidence 0.90), and bare `retreat?`. `is_question` required an interrogative lead **plus** a "?", a first person or an auxiliary, and none of these carries one | **FIXED** — five arms behind `clause_guards.A_QUESTION_NEVER_ORDERS`; one 684-case (lead × verb) grid run under BOTH arms goes **121 executing → 9**, and all nine are the intended controls — **112 defects to zero**. ⚠ The row first published "30 → 9", which was two numbers from two different grids and understated the fix by nearly 4×; corrected here. The golden corpus moves 0 of 447 rows under either arm |
