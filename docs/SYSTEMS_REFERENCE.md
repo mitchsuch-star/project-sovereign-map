@@ -6114,3 +6114,24 @@ end-to-end arm for the verbs with no roll on them. And note the sibling trap
 that produced the first one: an end-to-end footprint can read a real order as
 inert for two more reasons — a retreat is free by design (FA-R3), so no AP
 moves, and the endpoint re-seats `world`, so a captured reference goes stale.
+
+### 50.14 The client can be DRIVEN, and a census cannot see behaviour
+
+`tools/cx7_predictor_harness.gd` instantiates the real `main.tscn` under
+Godot headless, swaps an API stub in before `_ready` can fetch, and presses
+real `InputEventKey`s at it — IQ-10's shape, one phase per frame with a hard
+limit. `tests/test_cx7_predictor_driven.py` reads its JSON and **skips when
+the engine is absent**, so the suite stays green on a machine without Godot.
+
+It exists because CX-3 wrote, in a docstring, that *"there is no headless way
+to press Up in this project, and the alternative is no pin at all"* — and
+**four confirmed defects were living behind that belief**, with two source
+censuses on the very function that held them green about every one. A census
+can only see what is WRITTEN. Where a `.gd` behaviour is worth a rule, drive
+it; keep the census for the intent.
+
+⛔ **And make the harness faithful before convenient.** The first cut of this
+one answered the topology request synchronously, which flipped
+`_initial_map_bootstrapped` and handed the boot handler an arm it takes in no
+real boot — so a pin **passed with its own fix reverted**. The stub records
+that call and never answers it, which is what the real client does.

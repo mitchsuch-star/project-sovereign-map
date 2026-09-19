@@ -832,8 +832,9 @@ an actionable next step, instead of an insult. The two new refusals are
 
 ### §8.6 Gates
 
-`tests/test_cx7_the_name_looks_like_a_name.py` **128** · sweep
-`tools/_sweep_cx7.json` **23/23 killed, 0 INERT** · suite **23,783 / 4** ·
+`tests/test_cx7_the_name_looks_like_a_name.py` **138** +
+`tests/test_cx7_predictor_driven.py` **15** (driven, skips without the
+engine) · sweep `tools/_sweep_cx7.json` **27/27 killed, 0 INERT** ·
 corpus **688/688** · ruff clean · Godot parse harness **EXIT=0** · M1–M7 and
 `BASELINE_SERIES` **byte-identical without re-record**.
 
@@ -866,6 +867,47 @@ substance:
   **CXR1-2..5**, **DESK-1..12**, **CX3-R1..R12** and the CX-CLAIM rows are
   filed as found; the four CX-CLAIM verdicts the refuters CONFIRMED are
   corrected in place rather than carried (§8.8).
+
+### §8.9 THE PREDICTOR, DRIVEN — four more that row CX shipped
+
+CX-3 pinned its own client half by **reading the source**, and said so:
+
+> *"The client half, pinned by reading the source — there is no headless way
+> to press Up in this project, and the alternative is no pin at all."*
+
+**That is false, and the review round refuted it by doing it.** The same
+`Viewport.push_input(InputEventKey)` the row already used for Tab reaches
+`_on_command_input_gui_input`, where `KEY_UP` is handled four lines below
+`KEY_TAB`. Four confirmed defects were living behind the belief, and **the
+file's two source censuses on that very function are green about every one of
+them** — a census can only see what is written, not what happens.
+
+| row | what it did | measured |
+|---|---|---|
+| **CX3-R3** | **The completer's grammar half was DEAD on the ordinary boot path.** `_remember_game_state` was called only inside the `_initial_map_bootstrapped` TRUE arm, and that flag is false from frame 3 through frame 60 on a fresh scene — the topology request that flips it is issued four lines above. So after *"Return to the War Room"*, the default road off the main menu, `Ney, ` offered nothing until the player sent a real command | `r3_offers_after_boot` **[] → all five verbs**. The board was on the wire the whole time: `/test` serves the same fog-filtered builder `/command` does, and the handler already reads five other things out of it |
+| **CX3-R7** | **The completer went silent at exactly the keystroke it exists for.** `history_index` is cleared only by SENDING, so recalling a line with Up switched the list off for the rest of that line — and the ordinary thing a player does with a shell history is recall the last order and change its target | after `Up` + backspaces + `Bru`: **[] → `["Ney, attack Brunswick"]`**, one unambiguous completion |
+| **CX3-R1** | **The list drew five and delivered one.** Tab accepts the highlighted offer and then RE-DERIVES from the longer line, so the others are gone before any key can reach them | `r1_unreachable` **2 of 3 → 0 of 3**. Down walks the list now, as a SEPARATE `elif` above the Tab arm — editing the Tab line reds `test_tab_is_the_accept_key_and_was_free`, whose docstring is about nothing having been taken from the player |
+| **CX3-R8** | **The suggestion row was the largest text in the terminal.** It took no font override, so it inherited the theme's RichTextLabel 16 while the game's prose is 11 and the line it completes is 12 | `row_font_size` **16 → 12**, read off the live node. Measured capitals 21px against 14px and 16px |
+
+**The instrument is the deliverable, again.**
+`tools/cx7_predictor_harness.gd` instantiates the real `main.tscn` under Godot
+4.4.1 headless on IQ-10's proven shape — a `process_frame` tick with a hard
+frame limit, an in-memory `UiSettings` config, and an API stub swapped in
+before `_ready` can fetch — presses real keys, and writes one JSON object.
+`tests/test_cx7_predictor_driven.py` reads it and **skips when the engine is
+absent**, so the suite stays green without Godot; a skip is not a pass, which
+is why each assertion is also a row's completion definition.
+
+**Every pin was seen RED**, one fix reverted at a time on a private tree, and
+each revert moves exactly its own measurement and no other.
+
+⛔ **And the harness's own first cut was wrong in the way this row keeps
+meeting.** Its stub answered the topology request *synchronously*, which
+flipped `_initial_map_bootstrapped` and handed `_on_connection_test` the arm
+it takes in **no real boot** — so the CX3-R3 pin **passed with the fix
+reverted**. The stub records that call and never answers it now, which is the
+real client's timing, and the pin asserts the flag is still false when the
+handler runs. *A harness that is convenient is not a harness that is faithful.*
 
 ### §8.8 Claims corrected in place
 

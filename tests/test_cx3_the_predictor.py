@@ -307,9 +307,24 @@ class TestTheGameCanReadWhatItPrints:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheHistoryWalk:
-    """The client half, pinned by reading the source — there is no headless
-    way to press Up in this project, and the alternative is no pin at all.
-    Each assertion names the behaviour rather than a line number."""
+    """The client half, pinned by reading the source. Each assertion names
+    the behaviour rather than a line number.
+
+    ⛔ CX-7 CORRECTION. This docstring used to claim "there is no headless
+    way to press Up in this project, and the alternative is no pin at all",
+    and the review round refuted it by doing it: the same
+    `Viewport.push_input(InputEventKey)` the row already used for Tab reaches
+    `_on_command_input_gui_input`, where KEY_UP is handled four lines below
+    KEY_TAB. **FOUR confirmed defects were living behind that belief** — the
+    board dropped on the ordinary boot path, the completer silent after a
+    history recall, two of three offers unreachable by any key, and the row
+    rendering at half again the size of the game's prose — and the censuses
+    in this file are green about every one of them, because a census can
+    only see what is written, not what happens.
+
+    These stay: they are cheap, they run without an engine, and they pin the
+    INTENT. The behaviour is pinned by `test_cx7_predictor_driven.py`, which
+    drives the real scene with real keys."""
 
     def test_the_window_was_raised_with_its_reason(self):
         source = _gd_source()

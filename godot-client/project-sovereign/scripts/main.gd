@@ -350,6 +350,9 @@ var history_index: int = -1  # -1 means "new command mode"
 # CX-3: what the player had typed before reaching into history, so
 # walking back off the end gives the prefix back instead of a blank line.
 var _history_anchor: String = ""
+# CX3-R7: what the history WALK put on the line. Any other text means
+# the player has edited it, so the walk is over and the completer wakes.
+var _history_walk_text: String = ""
 # CX-3: raised from 10 BECAUSE the walk is prefix-filtered now. Measured,
 # lengthening an UNFILTERED walk makes the feature worse (16.3% at 50
 # against 14.8% at 10, because each Up press costs a keystroke); filtered,
@@ -740,6 +743,23 @@ func _on_connection_test(response):
 		_initial_topology_failed = false
 		api_client.get_map_topology(_on_map_topology_received)
 
+		# CX3-R3. The completer's grammar half was DEAD on the ordinary boot
+		# path. `_remember_game_state` was called only inside the
+		# `_initial_map_bootstrapped` TRUE arm below, and that flag is
+		# measurably false from frame 3 through frame 60 on a fresh scene —
+		# the topology request that flips it is issued four lines above — so
+		# on "Return to the War Room" the else-arm stored `map_data` and threw
+		# the board away. Measured: `Ney, ` offered NOTHING until the player
+		# issued a real command, while the same probe on the Begin path
+		# offered all five verbs. The data was on the wire the whole time:
+		# `/test` serves the same fog-filtered builder `/command` does, and
+		# this handler already reads five other things out of it.
+		#
+		# Sited at the HEAD of the block, covering both arms, so a later
+		# change that makes the true arm reachable cannot re-open the gap.
+		if response.has("game_state"):
+			_remember_game_state(response.game_state)
+
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
 			if DEBUG_VERBOSE:
@@ -917,7 +937,23 @@ func _on_send_button_pressed():
 func _on_command_text_changed(_text: String) -> void:
 	"""CX-3: re-derive the completion list as the player types. Reaching
 	into history leaves `history_index` set, and a walk must not re-open the
-	list under the line it just filled."""
+	list under the line it just filled.
+
+	CX3-R7. That guard never released. `history_index` is cleared only by
+	`_add_to_history`, i.e. by SENDING, so recalling a line with Up switched
+	the completer off for the rest of that line — and the ordinary thing a
+	player does with a shell history is recall the last order and change its
+	target. Measured on the real scene with real key events: after
+	`Up` then four backspaces then `Bru`, the shipped code offered nothing,
+	where a live completer had `Ney, attack Brunswick` — a single unambiguous
+	completion. The row is dead at exactly the keystroke it exists for.
+
+	The walk is over the moment the player EDITS, so the walk records what it
+	put on the line and any other text is the player's own."""
+	if history_index != -1 and _text != _history_walk_text:
+		history_index = -1
+		_history_anchor = ""
+		_history_walk_text = ""
 	if history_index == -1:
 		_refresh_suggestions()
 
@@ -965,6 +1001,19 @@ func _on_command_input_gui_input(event):
 			# The boot help advertises M, +/- and Home four lines before
 			# `set_input_enabled(true)` kills them.
 			command_input.accept_event()
+		elif (event.keycode == KEY_DOWN and not _suggestions.is_empty()
+			and _cycle_suggestion()):
+			# CX3-R1. Tab accepts the FIRST offer and then re-derives from the
+			# longer line, so an offer below the top one could not be reached by
+			# any sequence of keys — the list drew five and delivered one. Down
+			# walks them. It is free where Up is not: Up is the history walk, and
+			# Down only returns from it, which `_history_next` still does the
+			# moment the list is empty.
+			#
+			# A SEPARATE arm above the Tab one on purpose: editing the Tab line
+			# reds `test_tab_is_the_accept_key_and_was_free`, whose docstring is
+			# about nothing having been taken from the player.
+			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_TAB and _accept_suggestion():
 			# CX-3: Tab takes the highlighted completion, and Tab again walks
 			# the list. It never SENDS — the player still presses Enter, the
@@ -1091,6 +1140,7 @@ func _history_previous():
 	# else: already at oldest, stay there
 
 	command_input.text = str(pool[history_index])
+	_history_walk_text = command_input.text       # CX3-R7
 	command_input.caret_column = command_input.text.length()
 	_clear_suggestions()
 
@@ -1110,11 +1160,13 @@ func _history_next():
 		# Go forward in history
 		history_index += 1
 		command_input.text = str(pool[history_index])
+		_history_walk_text = command_input.text   # CX3-R7
 		command_input.caret_column = command_input.text.length()
 	else:
 		# At newest, return to new command mode
 		history_index = -1
 		command_input.text = _history_anchor
+		_history_walk_text = ""                   # CX3-R7
 		command_input.caret_column = command_input.text.length()
 		_history_anchor = ""
 
@@ -6939,6 +6991,9 @@ const _BARE_COMMANDS := [
 var _suggestion_row: RichTextLabel = null
 var _suggestions: Array = []
 var _suggestion_index := 0
+# CX3-R8: the size of the line the row completes (CommandInput), not
+# the theme's RichTextLabel default.
+const _COMPLETION_FONT_SIZE := 12
 var _last_game_state: Dictionary = {}
 
 
@@ -6967,6 +7022,13 @@ func _install_suggestion_row() -> void:
 	_suggestion_row.fit_content = true
 	_suggestion_row.scroll_active = false
 	_suggestion_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# CX3-R8. The row took no font override, so it inherited the theme's
+	# RichTextLabel 16 while the terminal's own prose is 11 and the line it
+	# completes is 12 — measured off the live nodes, capitals 21px against
+	# 14px and 16px, half again as tall as the game's prose. A suggestion is
+	# an aside, and it now matches the line it is completing.
+	_suggestion_row.add_theme_font_size_override(
+		"normal_font_size", _COMPLETION_FONT_SIZE)
 	_suggestion_row.visible = false
 	layout.add_child(_suggestion_row)
 	layout.move_child(_suggestion_row, input_row.get_index())
@@ -7133,9 +7195,19 @@ func _render_suggestions() -> void:
 			parts.append(Utils.bbcode_color("[" + line + "]", Utils.COLOR_GOLD))
 		else:
 			parts.append(Utils.bbcode_color(line, Utils.COLOR_DIMMED))
+	var hint := "(Tab)" if _suggestions.size() < 2 else "(Tab · ↓)"
 	_suggestion_row.text = ("  " + "   ".join(parts) + "  "
-		+ Utils.bbcode_color("(Tab)", Utils.COLOR_DIMMED))
+		+ Utils.bbcode_color(hint, Utils.COLOR_DIMMED))
 	_suggestion_row.visible = true
+
+
+func _cycle_suggestion() -> bool:
+	"""Move the highlight to the next offer. CX3-R1."""
+	if _suggestions.is_empty():
+		return false
+	_suggestion_index = (_suggestion_index + 1) % _suggestions.size()
+	_render_suggestions()
+	return true
 
 
 func _accept_suggestion() -> bool:

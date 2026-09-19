@@ -12894,6 +12894,12 @@ be bundled with anything.
 | **CX7-6** | P3 | **Two pins were flaky and one was order-dependent**, the second found by the review: an aggressive marshal's objection to a retreat is a probabilistic roll, so a lever pin driven end to end sometimes read a real order as inert (`TestTheRetreatIsSometimesANoun::test_the_lever`, green alone, red beside `test_parse_negation`) | **FIXED** — both re-pinned at the deterministic seam (`is_question` / the parse) rather than on a footprint. A lever pin that is green only in some orders is not binding |
 | **CX7-X1** | P4 | The parser's own fuzzy near-miss guard answers `sure attack Mack` with *"I do not find 'sure' in the order of battle, Sire. Did you mean Soult?"* — a different producer with a different threshold from the unbound-addressee refusal. These are the 9 cells the grid still shows | **ROUTED — CR-6 proper.** Not row CX's code; measured pre-existing on the true pre-row tree |
 
+| **CX3-R3** | **P3** | **The completer's grammar half was DEAD on the ordinary boot path.** `_remember_game_state` was called only inside the `_initial_map_bootstrapped` TRUE arm, and that flag is measurably false from frame 3 through frame 60 on a fresh scene — the topology request that flips it is issued four lines above. So after *"Return to the War Room"*, the DEFAULT road off the main menu, `Ney, ` offered **nothing** until the player sent a real command, while the same probe on the Begin path offered all five verbs. The board was on the wire the whole time: `/test` serves the same fog-filtered builder `/command` does, and the handler already reads five other things out of it | **FIXED** — called at the HEAD of the block, covering both arms, so a later change that makes the true arm reachable cannot re-open the gap |
+| **CX3-R7** | **P3** | **The completer went silent at exactly the keystroke it exists for.** `history_index` is cleared only by SENDING, so recalling a line with Up switched the list off for the rest of that line — and the ordinary thing a player does with a shell history is recall the last order and change its target. Measured on the real scene with real keys: after `Up` + four backspaces + `Bru`, nothing, where a live completer had `Ney, attack Brunswick` — a single unambiguous completion | **FIXED** — the walk records what it put on the line, and any other text is the player's own, so an EDIT ends the walk |
+| **CX3-R1** | **P2** | **The list drew five and delivered one.** Tab accepts the highlighted offer and then RE-DERIVES from the longer line, so the others are gone before any sequence of keys can place them. Measured on the shipped board: 2 of 3 drawn offers unreachable | **FIXED** — Down walks the list, as a SEPARATE `elif` above the Tab arm (editing the Tab line reds `test_tab_is_the_accept_key_and_was_free`, whose docstring is about nothing having been taken from the player). Down is free where Up is not: Up is the history walk, and `_history_next` still returns from it the moment the list is empty |
+| **CX3-R8** | P3 | **The suggestion row was the largest text in the terminal** — it took no font override, so it inherited the theme's RichTextLabel 16 while the game's prose is 11 and the line it completes is 12. Measured off the live nodes: capitals 21px against 14px and 16px | **FIXED** — it matches the line it completes |
+| **CX3-CLAIM** | — | **`test_cx3_the_predictor.py` justified its source censuses with *"there is no headless way to press Up in this project, and the alternative is no pin at all"*.** False — and **four confirmed defects were living behind it**, the four above, with both censuses on that very function green about every one | **CORRECTED IN PLACE**, and answered: `tools/cx7_predictor_harness.gd` drives the real `main.tscn` with real keys, read by `tests/test_cx7_predictor_driven.py`, which SKIPS without the engine. The censuses stay — cheap, engine-free, and they pin the INTENT |
+
 **Method note, recorded because it keeps earning its keep.** The mutation
 sweep ran three rounds and returned **six INERT results, every one real**: two
 mutations that could not bite (one sited below the check it meant to delete;
@@ -12906,6 +12912,16 @@ longest-first sort written "so a shorter name cannot shadow a longer one",
 which cannot matter because the test is `startswith` and the answer is a
 boolean. It was deleted, not pinned. Final: **27 mutations, 27 killed, 0
 INERT.**
+
+⛔ **And the client harness's own first cut repeated the lesson one level
+up.** Its API stub answered the topology request SYNCHRONOUSLY, which flipped
+`_initial_map_bootstrapped` and handed `_on_connection_test` the arm it takes
+in **no real boot** — so the CX3-R3 pin **passed with the fix reverted**. It
+records that call and never answers it now, which is the real client's
+timing. *A harness that is convenient is not a harness that is faithful*, and
+every one of the four predictor pins was then seen RED with its own fix
+reverted, one at a time, each revert moving exactly its own measurement and
+no other.
 
 > ---
 

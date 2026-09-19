@@ -4,6 +4,41 @@
 
 ## ▶ NEXT UP
 
+> **▶ CX-7 SLICE 3 — "THE PREDICTOR, DRIVEN" — LANDED September 19, 2026**
+> (landing record = `COMMAND_EXPERIENCE_SPEC.md` §8.9; rows = `BUG_FIXES.md`
+> §Row CX; rules = `SYSTEMS_REFERENCE.md` §50.14). CX-3 pinned its own client
+> half by READING THE SOURCE and said so in a docstring — *"there is no
+> headless way to press Up in this project, and the alternative is no pin at
+> all"* — and **that is false, and four confirmed defects were living behind
+> it**, with both source censuses on the very function that held them green
+> about every one. **CX3-R3: the completer's grammar half was DEAD on the
+> ordinary boot path** (`_remember_game_state` sat inside the
+> `_initial_map_bootstrapped` TRUE arm, and that flag is false from frame 3
+> through frame 60 on a fresh scene — so after *"Return to the War Room"*,
+> the DEFAULT road off the main menu, `Ney, ` offered nothing until the
+> player sent a real command, while the Begin path offered all five verbs;
+> the board was on the wire the whole time). **CX3-R7: the completer went
+> silent at exactly the keystroke it exists for** — `history_index` clears
+> only on SEND, so recalling a line with Up switched the list off for the
+> rest of it, and recall-then-retarget is what a shell history is FOR
+> (measured: nothing, where a live completer had one unambiguous
+> completion). **CX3-R1: the list drew five and delivered one** — Tab
+> re-derives from the longer line, so 2 of 3 offers could not be placed by
+> any key; Down walks them now, as a separate arm above Tab so
+> `test_tab_is_the_accept_key_and_was_free` keeps its meaning. **CX3-R8: the
+> suggestion row was the largest text in the terminal** (no override, so the
+> theme's 16 against the game's 11 and the command line's 12 — capitals
+> 21px). The answer is an instrument: `tools/cx7_predictor_harness.gd` drives
+> the real `main.tscn` under Godot headless on IQ-10's shape and presses real
+> keys; `tests/test_cx7_predictor_driven.py` (15) reads it and **skips
+> without the engine**, so a skip is never a pass. Every pin seen RED with
+> its own fix reverted, one at a time, each revert moving exactly its own
+> measurement. ⛔ **And the harness's own first cut repeated the lesson**: its
+> stub answered the topology request synchronously, flipping the flag and
+> handing the boot handler an arm it takes in no real boot, so the CX3-R3 pin
+> **passed with the fix reverted** — *a harness that is convenient is not a
+> harness that is faithful.*
+>
 > **▶ CX-7 "THE NAME LOOKS LIKE A NAME" — the review round, LANDED
 > September 19, 2026** (landing record = `COMMAND_EXPERIENCE_SPEC.md` §8;
 > rows = `BUG_FIXES.md` §Row CX; rules = `SYSTEMS_REFERENCE.md` §50.11–50.13;
