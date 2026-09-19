@@ -12841,3 +12841,54 @@ Filed in `DESIGN_REFINEMENT.md`.
 is the ONLY dotation constant that moves `BASELINE_SERIES` at a plausible
 magnitude (19 test failures + the sanctioned re-record ritual). It should not
 be bundled with anything.
+
+---
+
+## Row CX — "The Hand on the Keyboard" (September 19, 2026)
+
+> **Landing records:** `docs/COMMAND_EXPERIENCE_SPEC.md` §3.1–§3.3.
+> **Memo of record:** `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md`.
+> **Rules:** `docs/SYSTEMS_REFERENCE.md` §50.
+> **Parse-pipeline technical record:** `COMMAND_ROBUSTNESS_SPEC.md` §10.
+>
+> The row opened on a question the user asked in writing — *is typing fun
+> enough to justify not clicking?* — and the honest answer needed the typed
+> road measured on the shipped board rather than read. Driving it found two
+> P1s that no amount of reading would have.
+>
+> **⚠ The before/after playtest archives are byte-identical except the
+> provenance stamp, and that is a fact about the INSTRUMENT.** Measured: of
+> the 166 strings in `commanded_full40.json`, **0 are question-shaped and 0
+> omit the addressee comma**, so the committed harness structurally cannot
+> reach anything this row changed. A new arm —
+> `tools/playtest_scripts/typed_road.json` — types the way a person does, and
+> is the arm a regression here would show up on.
+
+| id | sev | defect | fix |
+|---|---|---|---|
+| **CX-1a** | **P1** | **A question fought a real battle.** `why not attack Mack` spent an action point and bled six French corps (Ney −946, Davout −1,025, Soult −1,980, Lannes −709, Murat −867, the Emperor's Guard −394). `why not retreat` marched the **whole army** back. The family is wide: `what about attack Mack`, `how about retreat`, `is it time to build a depot in Paris` (300 gold and an admin AP), `can` / `may` / `does` / `is Ney attacking Mack`, `is Swabia defended` (a whole-army defend at confidence 0.90), and bare `retreat?`. `is_question` required an interrogative lead **plus** a "?", a first person or an auxiliary, and none of these carries one | **FIXED** — five arms behind `clause_guards.A_QUESTION_NEVER_ORDERS`; a 684-case (lead × verb) sweep goes **30 executing → 9, and all nine are intended controls**. The golden corpus moves 0 of 447 rows under either arm |
+| **CX-1b** | **P1** | **A one-keystroke slip fought a battle.** `Nay, attack Mack` is refused free and NAMES the miss; `Nay attack Mack` sent **Soult — a marshal the player never named** — into a real battle: 1 AP, 265 gold, five corps relocated, no question asked. Wider than a typo: `Grouchy` (a commission candidate), `Berthier` (the chief of staff), `Wellington`, `Blucher` and `Zorglub` all sent Soult in, and `Wellington retreat` marched the entire army. `_unbound_addressee` keyed the whole rule on `raw.partition(",")` | **FIXED** — `CommandExecutor.AN_ADDRESS_NEEDS_NO_COMMA`: with no comma the addressee is the leading run before the first order verb, empty for a genuinely bare order. ⛔ The arm's first draft refused `can you attack Mack` and `do attack Mack` as an unknown marshal called "can you" and "do"; the run must carry no function word and no collective |
+| **CX-1c** | P2 | `who holds Swabia` — the question desk's own advertised kind — raised *"Which marshal shall hold Swabia, Sire?"*, one answer from an order, because the HOLD verb shadowed it | **FIXED** (arm a). Now *"Swabia is held by Bavaria."* |
+| **CX-1d** | P3 | `where's Ney` fell to Berthier's shrug while `where is Ney` answered — the auxiliary was contracted onto the lead and the auxiliary scan could never see it | **FIXED** (`_CONTRACTED_AUX_RE`) |
+| **CX-2a** | P2 | **Ten of the user's twelve questions returned a 12,717-character COMMAND REFERENCE** which contains the words `status`, `where is`, `who holds` and `how many men` **zero times**. Eight of the ten were answered by nothing at all, in any phrasing | **FIXED** — nine board kinds on the desk, each reading the seam the mechanic reads. **41 of 41 driven questions answered, 0 walls** |
+| **CX-2b** | P2 | **Berthier's shrug taught an act of war against a neutral.** Its third template hardcoded *"declare war on Prussia"* — and on the shipped 1805 boot France is at PEACE with Prussia — fifty-two lines below `_hostile_first`, the guard FA-80(c) added to stop exactly that for the ATTACK templates. All three of its diplomatic examples also name a road the client REDIRECTS (ruling G1), so the recovery text taught a sentence that cannot be sent | **FIXED** — the shrug reads `counsel.what_can_i_do`, the same source the desk's `options` kind and the router read, and names the Cabinet as a door |
+| **CX-2c** | P3 | A board question carrying a marshal or enemy subject fell into the FACT half and was answered with the wrong thing: `can Ney reach Vienna` → *"Marshal Ney stands at Rhineland with 24,000 men"* | **FIXED** — `answer_question` is guarded to its own five kinds |
+| **CX-3a** | P3 | The help documents `cancel — "cancel Ney" / "halt Ney"`, and the cancel keyword list held `"cancel "`, `"halt order"`, `"halt orders"`, `" halt"` and `", halt"` — **every form except the one the manual prints** | **FIXED**, and a census now covers every quoted phrasing in that body |
+| **CX-3b** | P3 | The help teaches `"Davout, hold Ulm"`. It **parses perfectly** and the executor answers *"Region 'Ulm' not found"* — the 126-province map has Swabia. A parser-level census calls this green, which is why the census runs at the EXECUTOR | **FIXED** — the help teaches `"Davout, hold Swabia"` |
+
+### Routed, not fixed (GR9 — each with an owner, a landing slice and a completion definition)
+
+| id | sev | defect | owner |
+|---|---|---|---|
+| **CX3-X1** | P3 | The campaign narrates in **Ulm, Austerlitz and Jena** and none is typable — the scenario's own text says Mack sits at Ulm, and the map has no Ulm. A region-vocabulary decision with its own blast radius | **CR-6 proper**, beside IQ9-X2. Done when `Ney, march to Ulm` reaches Swabia or refuses by naming it |
+| **CX-X1** | P2 | **The wh-word Cabinet backdoor.** `main.gd::_is_advisory_question` exempts any sentence opening `what/how/where/who/whom/why` from the diplomatic redirect, so `why not declare war on Prussia` is SENT and stages a war-purpose dialogue. Its own comment justifies this with *"A wh-word cannot begin an order, so only those exempt"* — measured false. Its sibling `DIPLO_NO_HOME_KEYWORDS` bails on a match **anywhere**, so `propose peace with Austria, then make amends with Russia` is sent too | **CR-6 proper.** Ruling R7 keeps the ADVISORY arms deliberately open, so the fix must distinguish an advisory arm from an ACTION arm, not close the door. Done when a question can reach `diplomatic_advisory` and cannot reach `diplomatic_declare_war` |
+| **CX-X2** | P3 | **111 of 447 corpus rows are client-blocked and the corpus does not say so**, and **14 of 46 chip templates have ZERO corpus coverage.** If the click road is a typed road, that coverage is its only regression net | **CR-6 proper.** Done when every chip template has a row and the blocked rows carry a `client_blocked` marker |
+| **CX-X3** | P2 | `vassalize Austria` / `Britain` / `Russia` on turn 1 — free, no AP, no confirm, no objection — subjugates three great powers and hands France six marshals. ⚠ **NARROWED: unreachable in the shipped client**, which intercepts `vassalize` (`main.gd:1778`); reachable over the API, by a driver, or after any change to that list | **the vassal/Cabinet owner** (`VASSAL_DEEPENING_SPEC`). Done when the backend gates it independently of the client |
+| **CX-X4** | P3 | The region panel is the one click surface that never calls `humanize_entity_name` — it renders `Attack ArchdukeCharles` — and its Cavalry/Artillery recruit chips are cosmetic where a single-arm corps holds the province (measured: identical result, 741 gold either way) | the next UI slice |
+
+### Partly closed here
+
+**IQ7-X7** — `is that a yes` is not a deferral, it is a QUESTION, and CX-1's
+copular arm closes it with no change to the dialogue layer. The six real
+deferrals (`accept it next turn`, `yes, later`, …) carry no interrogative lead
+and stay CR-6 proper's. The pin flipped on its own written instruction.

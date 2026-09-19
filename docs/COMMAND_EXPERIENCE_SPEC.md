@@ -66,17 +66,29 @@ a set the other owns:
 | **closed to it** | the whole diplomatic family — `main.gd::_redirect_diplomatic_command` intercepts 114 keyword forms on the typed path *and only there*, and when it fires **nothing is sent** | **movement**, and with it retreat / hold / support / garrison |
 | **sole road** | move, march, retreat, hold, support, garrison, set war purpose, cancel, and every question | propose peace, declare war, break a treaty, send an envoy, invest, autonomy, cede, request terms, read any ledger |
 
-**Zero chips emit move, march, retreat, hold, support, pursue, charge,
-bombard, form_square or recall**, and the map offers no substitute:
-`map_renderer_base.gd:2041-2055` maps left-click to `region_clicked` and
-nothing else; there is no select-then-click-a-destination gesture anywhere in
-the client.
+⚠ **CORRECTED BY A REFUTER, and the correction is narrower and stronger.** The
+first draft of this section said *"zero chips emit move, march, retreat, hold
+or support"*. They do: `main.gd:5563-5575` maps `MOVE_TO → "march to"`,
+`PURSUE`, `SUPPORT` and `HOLD` to literal strings, and `clarification.py:311`
+builds `"<Marshal>, move to <name>"` for up to six adjacent provinces, one
+button each. The census's grep looked for two **chip prefixes** and was blind
+to both by construction — *a census must count the thing, not a string in two
+files.*
+
+**The true statement:** the click road has no movement verb it can offer **on
+its own**. Every movement button in the client is raised by an ambiguous
+**typed** order, so a player who types nothing never sees one — and there is
+no marshal-selection gesture at all (`grep "selected_marshal\|marshal_selected"`
+over every `.gd` returns **zero hits**; left-click emits `region_clicked` and
+the only drag is a camera pan). The ruling below rests on the corrected
+version, not the original.
 
 ⚠ **And the corpus does not know about the client's own gate.**
 `_redirect_diplomatic_command` eats **111 of the 447 golden-corpus utterances
 (24.8%)** before the backend sees them. Those rows certify a backend that is
 correct and a road the player cannot take. That is not a defect — it is user
-ruling **G1**, recorded — but the instrument should say so. **CX-5 owns it.**
+ruling **G1**, recorded — but the instrument should say so. Routed as
+**CX-X2**, owner CR-6 proper (§7).
 
 ---
 
@@ -113,13 +125,22 @@ reactive.
 >
 > A player can complete an ordinary turn using only the typed road. A player
 > cannot complete a single ordinary turn using only the click road — **the
-> first `move` order ends the attempt.**
+> first `move` order ends the attempt**, because the only movement buttons in
+> the client are raised by an ambiguous TYPED order.
 >
 > So the honest answer to *"is typing fun enough to justify not clicking?"* is
 > not a yes or a no. It is: **the two roads are complements, not substitutes,
 > and the game has been treating them as substitutes.** Typing owns the army;
 > clicking owns the cabinet. Neither is going away, and the row's job is to
 > make each one good at its own work rather than to pick a winner.
+
+### Re-open condition
+
+**If a proactive movement affordance is ever added to the click road — a
+marshal selection and a destination click — this ruling is re-opened**, because
+its load-bearing fact is that the click road cannot START a march. Nothing
+else in it depends on a figure that can drift. The affordance itself is
+**CX-D1**, and it is the user's gate, not the row's.
 
 ### What typing is FOR — and the asymmetry that actually matters
 
@@ -392,7 +413,7 @@ Tests: `tests/test_cx3_the_predictor.py`.
 
 | measurement | value |
 |---|---|
-| escalation rate, golden corpus (447 entries × both worlds) | **45 / 692 = 6.5%** |
+| escalation rate, golden corpus (447 entries × both worlds) | **45 / 692 = 6.5%** — through the REAL `_should_fallback_to_llm`. ⚠ A hand-written re-implementation of the same predicate, run first, gave 50 / 692 = 7.2%; the real-predicate figure is the one cited, and the discrepancy is recorded rather than averaged |
 | escalation rate, the 1,416 committed playtest commands | **48 / 1,416 = 3.39%** |
 | escalation rate, the two 40-turn COMMANDED arms | **0 / 160 and 0 / 173 = 0.00%** |
 | escalation rate, the client's CHIP road | **0 / 22 = 0.00%** |
@@ -492,15 +513,37 @@ asked for it by name, so **it moves to CX** and CR-7's row is struck.
 | slice | what | state |
 |---|---|---|
 | **CX-1** | A question never orders; an address needs no comma | ✅ **LANDED** — §3.1 |
-| **CX-2** | Berthier answers: the desk grows, and the shrug routes instead of dumping 12,717 characters | ▶ next |
-| **CX-3** | The typed order states its terms — one vocabulary source for the help text, the desk, the predictor and the drift pin | |
-| **CX-4** | The predictor — prefix-filtered history, then the ranked list | |
-| **CX-5** | The routed backlog, the client's redirect drift, and the corpus's blind spot | |
-| **CX-6** | The memo, the re-score and the teaching drift pin | |
+| **CX-2** | Berthier answers the board; ONE source for counsel; the shrug and the router stop dumping 12,717 characters | ✅ **LANDED** — §3.2 |
+| **CX-3** | The predictor, and the census that stops the game teaching what it cannot read | ✅ **LANDED** — §3.3 |
+| **CX-4** | The memo, the records, the typed-road playtest arm and the re-score | ✅ **LANDED** — `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md` |
+
+**⚠ The before/after playtest archives are byte-identical except the
+provenance stamp, and that is a fact about the INSTRUMENT.** Measured: of the
+166 strings in `commanded_full40.json`, **0 are question-shaped and 0 omit the
+addressee comma** — the committed harness structurally cannot reach anything
+this row changed. `tools/playtest_scripts/typed_road.json` is the arm that
+can: on it, a turn of questions spends **0 of 4 action points**, three
+unbindable names are refused free, and `Ney, march to Swabland` answers *"Did
+you mean 'Swabia'?"*.
 
 ---
 
 ## §7 DEFERRED, WITH OWNERS (GR9)
 
-*(completed as the row lands — nothing may be left here without an owner row, a
-landing slice, a completion definition and a behaviour test.)*
+Nothing is left here without an owner, a landing slice and a completion
+definition. Defect rows are in `BUG_FIXES.md` §Row CX; design rows in
+`DESIGN_REFINEMENT.md` §Row CX.
+
+| id | what | owner · landing slice | done when |
+|---|---|---|---|
+| **CX3-X1** | The campaign narrates in Ulm, Austerlitz and Jena and none is typable | **CR-6 proper**, beside IQ9-X2 | `Ney, march to Ulm` reaches Swabia, or refuses by naming it |
+| **CX-X1** | The wh-word Cabinet backdoor, and its `DIPLO_NO_HOME_KEYWORDS` sibling | **CR-6 proper** | a question reaches `diplomatic_advisory` and cannot reach `diplomatic_declare_war` |
+| **CX-X2** | 111 of 447 corpus rows are client-blocked and unmarked; 14 of 46 chip templates have no coverage | **CR-6 proper** | every chip template has a row; blocked rows carry `client_blocked` |
+| **CX-X3** | `vassalize <great power>` is ungated at the backend (client-blocked today) | **the vassal/Cabinet owner**, `VASSAL_DEEPENING_SPEC` | the backend gates it independently of the client |
+| **CX-X4** | The region panel prints raw camelCase; its Cavalry/Artillery chips are cosmetic on a single-arm corps | the next UI slice | the panel humanises, and a cosmetic chip states its terms or goes |
+| **CX-D1** | A proactive movement affordance on the click road | **the user, at a gate** | it ships and this spec's §3 re-open condition fires, or the row is struck with its reason |
+| **CX-D2** | Whether the model may answer a question the desk cannot classify | **the CR-6 gate** | the gate rules, with the constraint that an answer can never issue an order |
+| **CX-D3** | The completer's FEEL | **the user, in a played session** | a turn's orders typed with it on, and the verdict recorded |
+
+**Inherited and unchanged:** IQ9-X1, IQ9-X2, IQ9-X3, IQ10-X1, IQ10-X2, and
+the six real deferrals of IQ7-X7 (its question half closed here).

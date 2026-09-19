@@ -1,0 +1,68 @@
+{
+ "name": "typed-road",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_cx": "Row CX, September 19 2026. Every other committed script types WELL-FORMED, comma-bearing, question-free orders: measured on commanded_full40, 0 of its 166 strings is question-shaped and 0 omits the addressee comma. So the harness could not see anything row CX changed, and the before/after archives came back byte-identical for a reason that is about the INSTRUMENT and not about the fix. This arm types the way a person does — it asks questions, muses aloud, misspells a name, drops a comma, and names a place the map does not have — and it exists so the typed road has an arm that can regress. Pair with --diplomacy accept. Read the digest for AP: a turn of questions must spend NONE.",
+ "turns": {
+  "1": [
+   "what can I do",
+   "where is Ney",
+   "who holds Swabia",
+   "how much is a battalion",
+   "status"
+  ],
+  "2": [
+   "what's my income",
+   "am I at war with Prussia",
+   "what does Austria want",
+   "can Ney reach Vienna",
+   "who is winning"
+  ],
+  "3": [
+   "what happens if I attack Mack",
+   "why not attack Mack",
+   "what about attack Mack",
+   "is it time to attack Mack",
+   "should I attack"
+  ],
+  "4": [
+   "Nay attack Mack",
+   "Zorglub attack Mack",
+   "Wellington retreat",
+   "Davoust, fortify",
+   "Ney, attack Mack"
+  ],
+  "5": [
+   "Davout, hold Ulm",
+   "Ney, march to Swabland",
+   "halt Ney",
+   "cancel Ney",
+   "Soult, fortify"
+  ],
+  "6": [
+   "retreat?",
+   "is Swabia defended",
+   "can Davout attack Mack",
+   "why did that fail",
+   "what can I build here"
+  ],
+  "7": [
+   "Murat, drill",
+   "Lannes, fortify",
+   "Bernadotte, scout Franconia",
+   "status",
+   "end turn"
+  ],
+  "8": [
+   "flurble the wibble",
+   "Ney, never attack Mack",
+   "Ney, attack if Davout supports",
+   "Massena, fortify",
+   "what now"
+  ]
+ },
+ "policy": {
+  "objection": "trust",
+  "diplomacy": "accept"
+ }
+}

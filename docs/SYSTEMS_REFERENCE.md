@@ -5889,3 +5889,129 @@ but the recorder.
 - **A payload is a fixture with a date**: re-capture after a backend change or the
   frame renders the old copy.
 
+---
+
+## 50. The hand on the keyboard (row CX, landed September 19, 2026)
+
+**Owning spec:** `docs/COMMAND_EXPERIENCE_SPEC.md` — the gate ruling, the
+model ruling, the predictor's measurements and the per-slice landing records.
+**Memo:** `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md`.
+**Technical record for the parse pipeline:** `COMMAND_ROBUSTNESS_SPEC.md` §10.
+
+### 50.1 The two roads are complements, not substitutes
+
+The chips ARE typed commands (`region_panel.gd` emits the literal string a
+player would type), so for most intents both roads converge at the fast
+parser — **and a chip removes naming risk, never gate risk.** But each road is
+CLOSED on a set the other owns:
+
+* the **typed** road cannot reach the diplomatic family at all — the client
+  intercepts 114 keyword forms on the typed path and only there (ruling G1);
+* the **click** road has no movement verb it can offer on its own. Every
+  movement button in the client is raised by an ambiguous TYPED order, and
+  there is no marshal-selection gesture (`grep "selected_marshal"` over every
+  `.gd` → zero).
+
+**Measured: 38 intents, TYPED 9 / CLICK 22 / PARITY 7 — and the 22 click wins
+are ~6% of issued commands.** A player can complete an ordinary turn typing
+only. A player cannot complete one clicking only: the first `move` ends it.
+
+> **The click road wins the catalogue; the typed road wins the turn.** Typing
+> owns the army and the question. Clicking owns the cabinet. Build each for
+> its own job.
+
+And the asymmetry that decides every close call: **the chips are priced and
+the typed verbs are blind.** Every CLICK WINS verdict was won on information —
+the levy's live price, the building's yield, the expedition's odds — not on
+clicks.
+
+### 50.2 A QUESTION NEVER ORDERS (`clause_guards.A_QUESTION_NEVER_ORDERS`)
+
+`is_question` is the only thing between a question and the imperative inside
+it. Five arms, and the reason for each is the sentence that executed:
+
+| arm | rule |
+|---|---|
+| (a) | `who` / `whom` / `whose` / `why` lead a question on their own — no English imperative opens with them. **Exactly four words**: the corpus pins `when ready then retreat` as a RETREAT |
+| (b) | the deliberative openers `what about …`, `how about …`, `is it time to …` |
+| (c) | the copular and perfect leads (`is are was were am does did has had`) have no imperative form at all. `have` is EXCLUDED — the causative imperative |
+| (d) | **the subject decides** for leads that DO have an imperative form. Stands down before a trailing clause (an inverted conditional) |
+| (e) | an UNADDRESSED line ending in `?`. An addressed one keeps its order |
+
+**Deliberately still executing, and stated:** `end turn?` (FA-R4 strips the
+`?` on purpose), `Ney, attack Mack?`, `can you attack Mack`, `do attack Mack`.
+
+### 50.3 AN ADDRESS NEEDS NO COMMA (`CommandExecutor.AN_ADDRESS_NEEDS_NO_COMMA`)
+
+With no comma the addressee is the leading run of words BEFORE the first order
+verb — empty for a genuinely bare order. The run must contain no function word
+and no collective (`can you attack Mack` is a polite imperative; `all marshals
+attack` addresses the army).
+
+### 50.4 The question desk answers the BOARD, from the seam the mechanic reads
+
+`question_desk.classify_board_question` / `answer_board_question`, lever
+`THE_DESK_ANSWERS_THE_BOARD`. Nine kinds beyond the five FACT kinds, matched
+AFTER them; `answer_question` is guarded to its own five.
+
+**The rule: every answer reads the seam the MECHANIC reads** —
+`_build_economy`, `get_war_score_for`, `get_active_agenda`,
+`find_path(passable_for=…)`, `_build_muster_preview` **and its own
+`_format_muster_lines` renderer**, `region.can_build`, the levy pricer. A
+quoted figure is the applied figure. *"What happens if I attack Mack"* prints
+the exact string the order would print, and spends nothing.
+
+### 50.5 ONE source for counsel (`backend/ai/counsel.py`)
+
+`what_can_i_do(world, nation)` is read by the desk's `options` kind, by
+Berthier's shrug and by the question router. **Never add a second.** It asks
+`MovementExecutor.move_refusal_probe` before proposing a march, reads
+`get_visible_enemies`, and never proposes a diplomatic verb — it names the
+Cabinet as a door. Before it, the shrug hardcoded `declare war on Prussia` at
+a France at PEACE with Prussia.
+
+### 50.6 A question the desk cannot take gets a ROUTER, not the manual
+
+Berthier's sentence, the surface that holds the answer (*"the campaign log
+(press L)"*) and the orders that would be carried out — 370 characters against
+12,717. A **syntax** question (`how do I attack?`) still gets the reference,
+because there it is the answer (`llm_client._SYNTAX_QUESTION_RE`).
+
+### 50.7 ⛔ THE GAME MUST NOT OFFER A SENTENCE IT CANNOT READ
+
+IQ10-6 was one instance. It is now a census
+(`tests/test_cx3_the_predictor.py`): every command-shaped string the game
+offers — the completer's verb table read out of the `.gd`, and every phrasing
+quoted in the COMMAND REFERENCE — is filled with real names from the shipped
+board and driven through the real parser **and the real executor**.
+
+**Run it at the EXECUTOR.** `"Davout, hold Ulm"` parses perfectly and is then
+refused *"Region 'Ulm' not found"*; a parser-level census calls that green.
+
+### 50.8 The predictor is client-side, session-only, and inside the terminal
+
+* Its only board source is the `/command` response's own `game_state`, whose
+  `enemies` dict the backend has already fog-filtered. **No endpoint, no new
+  fog surface.**
+* History is **never persisted**. 4.7% of archived commands name a marshal
+  fogged at boot, and those names execute — a `user://` history would carry
+  them into a campaign that never saw them.
+* It draws **inside the terminal's VBox**, never on a CanvasLayer, so it
+  inherits `content_scale_factor` rather than fighting the layer ladder. IQ-10's
+  two P3s were both fixed-size surfaces that failed at Interface Scale 2.0.
+* **It never sends.** Tab fills the line; the player presses Enter. The
+  tutorial's own rule.
+* `MAX_HISTORY` is 50 **because** the walk is prefix-filtered. Lengthening an
+  unfiltered walk makes the feature worse (16.3% vs 14.8%); filtered, the same
+  change is worth 12.6% → 21.4%. Never change one without the other.
+
+### 50.9 The model follows the question, not the order
+
+Measured: escalation fires on **3.39%** of real play, **0.00%** on a commanded
+campaign and **0.00%** on the chip road; **86%** of what it catches is a
+sentence the corpus says must be REFUSED; the deterministic chain carries
+**twelve times** its measured value (49 `mock_only` rows against 4
+`live_only`); and every confident-and-wrong defect sits at 0.90–0.95, above
+the gate. **Keep escalation, re-aim it at open-ended questions — the only road
+with no deterministic answer — and keep the desk deterministic first**,
+because the shipped default is `LLM_MODE=mock`.

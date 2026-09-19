@@ -419,3 +419,66 @@ call (`main.py` `_PARSE_PROVENANCE`; pinned as current behaviour by
 `_StubResolvingParser`'s mode omission (recon F4) is left in place — the CR-5
 file stays green on the replay tier and the stub still exercises the
 deterministic clamp offline.
+
+
+---
+
+## §10 ROW CX — the typed road measured, and the question made safe ✅ LANDED September 19, 2026
+
+**Owner record:** `docs/COMMAND_EXPERIENCE_SPEC.md` (the gate ruling, the model
+ruling, the predictor's measurements and the per-slice landing records) and
+`docs/SYSTEMS_REFERENCE.md` §50 (the rules). This section is the TECHNICAL
+record for the parse pipeline.
+
+**What CX adds to §8's inheritance, and must not be undone:**
+
+1. **`is_question` is no longer lead-plus-one-signal.** Five arms, one lever
+   `A_QUESTION_NEVER_ORDERS`, each grounded in a sentence that EXECUTED:
+   the four subject-WH leads (`who/whom/whose/why`), the deliberative openers
+   (`what about` / `how about` / `is it time to`), the leads with **no
+   imperative form in English** (`is are was were am does did has had` —
+   `have` deliberately excluded, the causative imperative), **the subject**
+   for the leads that do have one (FA slice 7's own will/would/shall rule,
+   extended and given the live roster), and an **unaddressed** line ending in
+   `?`. §8's rule 3 still holds: the guards remain subtractive and never pick
+   an action.
+2. **`is_question` takes an optional roster** (`subjects`). Omitted — every
+   caller outside the parse chain — the arm is dormant and the function is
+   byte-identical to before. It is fed by `llm_client._question_subjects`:
+   the player's marshals, `_askable_enemy_names` (deliberately omniscient
+   about NAMES; positions are the fogged half) and the province names.
+3. **`_unbound_addressee` no longer keys on the comma.** With none, the
+   addressee is the leading run before the first order verb — and that run
+   must contain no function word and no collective, or the polite and
+   emphatic imperatives (`can you attack Mack`, `do attack Mack`) are refused
+   as unknown marshals.
+4. **§8 rule 6 is DISCHARGED, on its own terms.** It read: *"A question routes
+   to `help`, after diplomatic routing … A question-answering Berthier is
+   CR-6's to build; when it exists, it replaces the `help` route, not the
+   guard."* It exists. `question_desk` answers the BOARD as well as the facts;
+   a question the desk cannot take gets a ROUTER (a sentence, the surface that
+   holds the answer, and the orders that would be carried out) instead of the
+   12,717-character reference; and a **syntax** question keeps the reference,
+   because there it is the answer (`_SYNTAX_QUESTION_RE`). The guard is
+   untouched, exactly as the rule required. Five pins flipped consciously,
+   each with its reason on its own row.
+5. **`halt Ney` parses.** The help documented it as the twin of `cancel Ney`
+   and the keyword list held every form of the word except that one.
+6. **THE GAME MUST NOT OFFER A SENTENCE IT CANNOT READ**, and it is a census
+   now (`tests/test_cx3_the_predictor.py`) over the completer's verb table AND
+   every phrasing quoted in the COMMAND REFERENCE, run through the real parser
+   **and the real executor** — because `"Davout, hold Ulm"` parses perfectly
+   and the executor refuses it.
+
+**Measured on the escalation gate, keyless:** it fires on **3.39%** of real
+play, **0.00%** on a commanded campaign and **0.00%** on the chip road; **86%**
+of what it catches is a sentence the corpus says must be REFUSED; **4
+`live_only` corpus rows against 49 `mock_only`**; and every confident-and-wrong
+defect that reproduces sits at 0.90–0.95, above the gate. **Ruling: keep
+escalation and re-aim it at open-ended questions — the one road with no
+deterministic answer — with the desk deterministic first because the shipped
+default is `LLM_MODE=mock`.** The re-open condition is on the spec's §4.
+
+**Still CR-6 proper's, unchanged:** conditional orders (§8 rule 5), IQ9-X1,
+IQ9-X2, IQ9-X3, the six real deferrals of IQ7-X7, and the three rows CX routed
+(CX3-X1, CX-X1 the wh-word Cabinet backdoor, CX-X2 the corpus's blind spot).

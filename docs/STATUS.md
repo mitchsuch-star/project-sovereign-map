@@ -4,6 +4,108 @@
 
 ## ▶ NEXT UP
 
+> **▶ ROW CX "THE HAND ON THE KEYBOARD" — LANDED September 19, 2026**
+> (user direction: *"Make the typed road worth taking, and answer in writing
+> whether it is"* … *"a text predictor would be great, or a way to make it more
+> efficient. is routing to llm worth it and how can we make it better"*).
+> **Owning spec = `docs/COMMAND_EXPERIENCE_SPEC.md`; memo of record =
+> `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md`; rules =
+> `SYSTEMS_REFERENCE.md` §50; parse-pipeline record = `COMMAND_ROBUSTNESS_SPEC.md`
+> §10; defects = `BUG_FIXES.md` §Row CX.** Three questions, all three answered
+> in writing.
+>
+> **⚖ THE GATE: the click road wins the catalogue; the typed road wins the
+> turn.** 38 intents measured on both roads, every click path read out of the
+> `.gd`: **TYPED 9 · CLICK 22 · PARITY 7** — and the 22 click wins are **~6% of
+> issued commands**, because only recruit and build are per-turn routine. A
+> player can complete an ordinary turn typing only; **a player cannot complete
+> one clicking only — the first `move` ends the attempt** (the client's
+> movement buttons exist but are raised only by an ambiguous TYPED order, and
+> there is no marshal-selection gesture in any `.gd`). So the two roads are
+> **complements, not substitutes**, and the game had been treating them as
+> substitutes. The asymmetry that decides every close call: **the chips are
+> priced and the typed verbs are blind** — every CLICK WINS verdict was won on
+> information, not on clicks. Where typing was strictly worse it was either
+> fixed or the chip was named as the road *and the game stopped teaching the
+> other one*. Re-open condition on the row.
+>
+> **⚖ THE MODEL: keep escalation, re-aim it.** Keyless, measured: it fires on
+> **3.39%** of real play, **0.00%** on a commanded campaign, **0.00%** on the
+> chip road; **86%** of what it catches is a sentence the corpus says must be
+> REFUSED; **4 `live_only` corpus rows against 49 `mock_only`** — the
+> deterministic chain carries twelve times its value; and every
+> confident-and-wrong defect sits at 0.90–0.95, above the gate (catching them
+> needs >0.90, which escalates 50.7% of commands). The model's unique value is
+> the road with no deterministic answer — **open-ended questions** — so it
+> follows the desk, not the order chain, and the desk is deterministic FIRST
+> because the shipped default is `LLM_MODE=mock`. Re-open condition adopted
+> verbatim. **Two documented claims corrected**: the monetization memo's "≤1
+> call per typed command" is **2**, its 25% routing assumption measures
+> **3.39%**, and 8 of the corpus's 18 "mock cannot parse" backlog rows parse
+> confidently today.
+>
+> **TWO P1s, found by driving rather than reading.** `why not attack Mack`
+> **fought a real battle** — an action point and six bled corps incl. the
+> Emperor's Guard — and `why not retreat` marched the **whole army**; a
+> 684-case sweep went **30 executing → 9, all nine intended controls**. And
+> `Nay attack Mack`, one keystroke from `Nay, attack Mack`, sent **Soult, never
+> named**, into a battle — as did `Grouchy`, `Berthier`, `Wellington`,
+> `Blucher` and `Zorglub`, while `Wellington retreat` marched the army; the
+> guard keyed on a **comma**.
+>
+> **THE QUESTION IS THE TYPED ROAD'S SOLE CLAIM AND IT WAS BROKEN.** Two of the
+> user's twelve questions were answered and ten returned a 12,717-character
+> manual containing the words `status`, `where is`, `who holds` and `how many
+> men` **zero times**. Now **41 of 41 answered, 0 walls**, each from the seam
+> the MECHANIC reads — so *"what happens if I attack Mack"* prints the exact
+> string the order would print, for nothing. ONE source for counsel
+> (`backend/ai/counsel.py`) feeds the desk, the shrug and the router, which is
+> what stopped Berthier **teaching an act of war against a neutral** (his
+> recovery copy hardcoded `declare war on Prussia` at a France at PEACE with
+> Prussia).
+>
+> **THE PREDICTOR, measured before it was built — and two measurements
+> overturned the instinct.** Inline ghost text is wrong **63.4%** of the time
+> at three characters, so a ranked list won; and raising `MAX_HISTORY` alone
+> makes the feature *worse*, while filtering makes lengthening free (12.6% →
+> **21.4%**), so CX-3 changes both. A grammar-aware completer (the slot the
+> prefix says you are in, the roster the verb chooses), Tab to accept, **never
+> sends**, drawn **inside the terminal's VBox** so it inherits
+> `content_scale_factor` rather than becoming IQ-10's third fixed-size casualty.
+> Session-only history, never persisted — 4.7% of archived commands name a
+> marshal fogged at boot. **10 frames at both Interface Scales**,
+> `docs/audits/CX3_*_2026_09_19.png`.
+>
+> **⛔ AND THE RULE THAT KEEPS IT HONEST: the game must not offer a sentence it
+> cannot read.** IQ10-6 generalised into a census over the completer's verb
+> table AND every phrasing the COMMAND REFERENCE quotes, driven through the
+> real parser **and the real executor** — which is how it caught `halt Ney`
+> (the manual's own word for cancel, absent from a keyword list holding every
+> other form) and `"Davout, hold Ulm"` (parses perfectly; *"Region 'Ulm' not
+> found"*). A parser-level census calls the second one green.
+>
+> **⚠ The before/after playtest archives are byte-identical except the
+> provenance stamp, and that is a fact about the INSTRUMENT** — measured, **0
+> of the 166 strings in `commanded_full40.json` is question-shaped and 0 omits
+> the addressee comma**, so the committed harness cannot reach anything this
+> row changed. New arm `tools/playtest_scripts/typed_road.json` types the way a
+> person does; on it, turns of questions spend **0 of 4 action points** and
+> three unbindable names are refused free.
+>
+> Suite **23,618 / 4**, sweep `tools/_sweep_cx.json` **31 rows, 31 killed, 0
+> INERT** on a private copy (the first pass returned **10 INERT and every one
+> was a question** — three bad mutations, one redundant guard now DELETED, six
+> pins measured on the boot board where the guard has nothing to refuse, all
+> six re-pinned on staged boards). M1–M7 and `BASELINE_SERIES` byte-identical
+> **without re-record**; ruff clean; Godot parse harness EXIT=0; headless boot
+> **0 SCRIPT ERROR**. **Command & parsing 7.5 → 8.0 ⚠ FOR USER CONFIRMATION**;
+> UI/UX deliberately NOT re-scored. Routed with owners: **CX3-X1** (Ulm and the
+> campaign's own place names are untypable), **CX-X1** (the wh-word Cabinet
+> backdoor), **CX-X2** (111 of 447 corpus rows are client-blocked and 14 of 46
+> chip templates have no coverage), **CX-X3** (`vassalize` is ungated at the
+> backend), **CX-X4**; design rows **CX-D1..D3**. **⚠ A played session is owed
+> on the completer's FEEL — the one thing a harness cannot measure.**
+>
 > ## ▶ THE IMPROVEMENT QUEUE — row IQ, opened September 12, 2026
 >
 > **User direction:** *"improve everything but win conditions one by one — let

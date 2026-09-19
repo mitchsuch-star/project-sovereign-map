@@ -1768,6 +1768,43 @@ docstring says why it has none.
 | **IQ7-D3** | **Holland's only authored design (Flanders) is French homeland, so its price is unpayable by its lord** — VS-3 excludes homeland, and the petition never names it. The test writer measured the general case: **on the shipped 1805 board no satellite's authored design province is ever grantable** (every risorgimento region is KoI-held, a capital or French homeland; Rome is a capital), so `in_design` is unreachable without staging the raw deck. | Deck authoring, not mechanism — consistent with IQ-7 (the petition asks for what can be given). | `NATION_AGENDAS_SPEC.md` §11 deck-authoring review (a note on the `the_seventeen_provinces` and `risorgimento` rows), decided by the user at the next NA deck review | A satellite deck carries at least one non-capital, non-homeland acquire province a lord can hold, and `TestT5TheDecksPrice` pins it without staging the deck. |
 | **IQ7-D4** | **The unattended war calendar narrowed.** With nobody answering, a satellite's petitions lapse on a fixed cadence (`PETITION_GRACE_TURNS` 5, `PETITION_INTERVAL_TURNS` 8), so Switzerland's break — the unattended board's only war — now falls at turn 21 on nine of ten AI-V sweep seeds (23 on eylau), where it had been a rebellion at 24, 25 or 32 or a defection to Britain at row 30 with no war (distinct war-turn signatures `[]` / `[24]` / `[25]` / `[32]` → `[21]` / `[23]`, 4 → 2; on the four Arm-B seeds 3 → 1; the widened Arm-B signature forms 4 classes where both it and the triple formed 5 before, jena and wagram now together). §3.8's failure clause ('every seed produces the same war count on the same turns') misses firing only because of eylau. The AI's own decisions did not converge (courts reach `fight` on identical turns with the levers up and down on all ten seeds), and a player who answers the petitions changes the outcome. | It is a France-party war on a board no player drives, and it depends on constants that already await the user's confirmation; a ±1 change to either constant separates the seeds again (measured: grace 4/6 or interval 7/9 give historical 20/25/20/25 against ulm 21). Building a seeded perturbation to satisfy a test is design driven by the harness. | the user's confirmation of IQ-7's petition constants, landed by **VD-C** (`VASSAL_DEEPENING_SPEC.md` §9) | Either a ruling that the unattended board's calendar is not a variance target (§3.8 amended to say so), or a seeded cadence — grace and interval jittered by the campaign seed through the existing sha256 helpers, `historical` jitter-free so `BASELINE_SERIES` does not move — measured to restore ≥ 4 distinct break turns across the ten seeds; pinned in `tests/test_iq7_satellites_have_a_position.py::TestTheCadenceIsSeeded`. |
 
+## Row CX "The Hand on the Keyboard" — routed, not built (filed September 19, 2026)
+
+Memo of record: `docs/audits/CX_THE_HAND_ON_THE_KEYBOARD_2026_09_19.md`.
+Owning spec `docs/COMMAND_EXPERIENCE_SPEC.md`; defect rows `BUG_FIXES.md`
+§Row CX. Each row below carries an owner, a landing slice and a completion
+definition, per GR9.
+
+**CX-D1 — a proactive movement affordance on the click road.** The gate
+ruling's load-bearing fact is that *a player cannot complete a single ordinary
+turn clicking only — the first `move` order ends the attempt*. The client DOES
+emit `march to` / `pursue` / `support` / `hold`, but only from a clarification
+popup raised by an **ambiguous typed order**, and there is no
+marshal-selection gesture anywhere (`grep "selected_marshal"` over every `.gd`
+→ zero hits). Building one is a real UI project — select a corps, click a
+province — and it is **not** obviously wanted: the typed road is the game's
+stated pillar and movement is where it earns that. **Owner: the user, at a
+gate.** Done when either (a) a movement affordance ships and the CX gate
+ruling is re-opened as its own re-open condition says, or (b) the row is
+struck with the reason recorded.
+
+**CX-D2 — what the escalation budget should buy.** CX ruled *keep escalation,
+re-aim it at open-ended questions*, and built the deterministic half. The
+model is now the natural fallback for a question the desk cannot classify —
+but wiring that is a GR6 boundary decision (a model composing an ANSWER is not
+a model parsing an ORDER, and PARSE-NEG's rule 4 is explicit that a refusal
+must never escalate). **Owner: the CR-6 gate.** Done when the gate rules on
+whether `_should_fallback_to_llm` may open for an unclassified QUESTION, with
+the constraint that the answer must never be able to issue an order.
+
+**CX-D3 — the completer's feel.** Its keystroke figures are simulations over
+driver archives. The one thing no harness can measure is whether a five-line
+ranked list is helpful or noisy at speed, and whether Tab lands where the hand
+expects it. **Owner: the user, in a played session.** Done when a turn's
+orders have been typed with the completer on and the verdict recorded — and
+the honest failure mode to watch for is a list that is *right* and still
+distracting, which is what killed the inline-ghost shape on measurement.
+
 ## Source Documents (Archived Reference)
 
 | Document | Items Moved Here |
