@@ -722,6 +722,13 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     )
     if feedback:
         response["feedback"] = feedback
+    # CX-7. The executor stamps `kind` on the refusals that mean *I could not
+    # read that sentence* and this builder, which composes from named fields,
+    # dropped it — so the player got a bare sentence with no structured
+    # handle and the client had no way to tell an unreadable command from an
+    # ordinary refusal. Display-only (GR6): nothing mechanical reads it.
+    if result.get("kind") is not None:
+        response["kind"] = result["kind"]
     return response
 
 

@@ -692,11 +692,281 @@ _NEVER_IMPERATIVE_LEADS = frozenset({
 # purpose (FA-R4), because the old behaviour — where a question mark saved you
 # from an accidental turn advance and its absence did not — was itself the
 # defect that rule was written to kill. It is left exactly as it is.
+# ─────────────────────────────────────────────────────────────────────
+# CX-7 — THE NAME LOOKS LIKE A NAME
+# ─────────────────────────────────────────────────────────────────────
+# CX slice 1 decided whether a comma-less leading run was somebody's name
+# by asking whether it was NOT grammar, against a hand-written blocklist.
+# English has more adverbs than that list will ever hold, and the review
+# round measured the cost on a 261-cell grid (9 marshal-less doors × 29
+# natural leading runs): 256 ordinary orders newly refused as unknown
+# officers — `quickly attack Mack`, `cavalry attack Mack`, `ok retreat`,
+# `tonight retreat` — and the sharpest family of all, the indefinite
+# pronouns (`someone attack Mack`, `whoever is closest attack Mack`),
+# which are the plain English for the very thing `auto_assign_attack`
+# exists to do, and whose own clarification asks "Which marshal shall
+# lead the attack, Sire?".
+#
+# The root is the DIRECTION of the question. Asked as "is this run NOT a
+# name?" the rule fails OPEN into a refusal on everything unlisted; asked
+# as "does this run LOOK LIKE a name?" it fails CLOSED, and its residue is
+# the pre-CX reading — which is what the player had the day before.
+# This is IQ-7's own review-round lesson arriving one row later — *a rule
+# built by stripping what you recognise is only as safe as the list it
+# strips* — and the answer is the same one: write the allowlist out.
+#
+# A run is an address when, after the article and the HONORIFIC come off,
+# it is one to three tokens, none of them a word that cannot be a name,
+# and EITHER
+#   * a token is capitalised as the player typed it (`Nay`, `Zorglub`), or
+#   * a token is within one keystroke of a name on the roster handed in
+#     (`nay` → Ney), so an all-lowercase typist still gets the guard on a
+#     real near-miss.
+#
+# The words that cannot be a name are CLOSED classes, not a sample: the
+# collectives and grammar CX-1's blocklist already held, the indefinite
+# pronouns, assent, time — plus the one PRODUCTIVE class, the `-ly`
+# adverb, closed by morphology instead of by enumeration. No marshal on
+# any roster in this game ends in `-ly`.
+#
+# Honest residue, measured and accepted: an all-lowercase INVENTED name
+# (`zorglub attack mack`) is no longer claimed, so it reaches the
+# marshal-less arm exactly as it did before row CX. That is the pre-row
+# behaviour, not a new loss, and the near-miss that matters (`nay`) is
+# still caught at any case by the keystroke arm.
+#
+# Flip lever: False restores CX-1's blocklist rule byte-for-byte.
+THE_ADDRESS_LOOKS_LIKE_A_NAME = True
+
+# TWO lists, because the comma means something. A player who writes a comma
+# has MARKED a run as an address — "the reserve, attack Mack" — and FA-22's
+# whole point is that the game must then answer for that run rather than send
+# somebody else. A player who writes no comma has marked nothing, so the run
+# is claimed only if it LOOKS like a name. Which is why these two differ:
+#
+#   _COLLECTIVE   stands down on BOTH arms. These address the army as a whole
+#                 or ask for whoever is nearest, and the game HAS a right
+#                 answer for them — the marshal-less arm exists for exactly
+#                 this — so refusing them is strictly worse than serving them.
+#                 (CX-7 correction: the collective test used to live inside
+#                 the comma-LESS branch, so "all marshals attack" fell through
+#                 and "all marshals, attack" — the same address, one keystroke
+#                 over — was refused as an officer of that name.)
+#
+#   _NOT_A_NAME   stands down on the BARE arm only. Grammar, assent, time and
+#                 the -ly adverb are not names, but they are not addresses
+#                 the game can serve either; with a comma in front of them the
+#                 player has still named something, and FA-22's refusal is the
+#                 honest answer.
+#
+# Arms of service — "cavalry attack Mack", "the reserve, attack Mack" — are
+# deliberately in NEITHER. Bare and lowercase they are not name-shaped, so
+# they fall through; marked with a comma they are claimed and refused, which
+# is FA-22's own ruling and the right one: auto-assigning an infantry marshal
+# to an order addressed to the cavalry is worse than asking whom.
+_COLLECTIVE = frozenset((
+    "all every everyone everybody each both any army armies corps troops "
+    "marshals generals commanders men soldiers forces everything "
+    # the indefinite pronouns — "someone attack Mack" IS the auto-assign, and
+    # the game's own clarification answers it with "Which marshal shall lead
+    # the attack, Sire?"
+    "someone somebody anyone anybody whoever whomever nobody noone none"
+).split())
+
+# Not a name, by class — the BARE arm's guard. Every group is CLOSED in
+# English, which is the whole difference between this list and the one it
+# replaces. It is cheap insurance for the player who capitalises the first
+# word of a sentence; lowercase runs fail the name test on their own.
+# Never an address, comma or no comma. None of these can head a NOUN PHRASE
+# in English, so a comma after one is ordinary punctuation and not a mark of
+# address: "Well, attack Mack" and "Ok, retreat" are a player clearing his
+# throat, and nobody commands an officer called Well. (Found by driving the
+# capitalised forms — the first cut applied this list to the bare arm only
+# and refused "Well, attack Mack" as an unknown officer.)
+_NEVER_AN_ADDRESS = frozenset((
+    # the polite imperative ("can you attack"), the emphatic one ("do
+    # attack"), and the pronouns that go with them
+    "can could may might will would shall should must do does did done "
+    "let lets please kindly you your we our us i my me "
+    # assent, hesitation, emphasis
+    "ok okay yes yeah yep no nope alright right well sure fine very "
+    "quick hurry urgent finally "
+    # time and sequence
+    "now then today tonight tomorrow morning evening soon later first "
+    "next also just still again immediate once"
+).split()) | _COLLECTIVE
+
+# ... and the BARE arm's list adds what may legitimately appear INSIDE an
+# addressed noun phrase — "Prince of Moskowa", "the Bravest of the Brave" —
+# so these disqualify a run only when nothing marked it as an address.
+_NOT_A_NAME = _NEVER_AN_ADDRESS | frozenset((
+    "he she they them his her their it its and but so if when while "
+    "the a an of to for"
+).split())
+
+# The one PRODUCTIVE class, closed by morphology rather than by listing:
+# `quickly`, `urgently`, `promptly`, `instantly`, `swiftly`, `hastily`.
+_ADVERB_LY_RE = re.compile(r"^\w{3,}ly$", re.IGNORECASE)
+_LEADING_ARTICLE_RE = re.compile(r"^(?:the|a|an)\s+", re.IGNORECASE)
+# Composed from HONORIFIC, never copied (FA slice 7's census), with the
+# trailing space made optional so a BARE title — "Marshal attack Mack",
+# "the Marshal" — is stripped to nothing and names nobody, while an epithet
+# that ENDS in a title ("the Iron Marshal") keeps it and stays a name.
+# Getting this wrong sent Soult in for Davout: FA-22's pin.
+_HONORIFIC_ONLY_RE = re.compile(
+    r"^(?:" + HONORIFIC.replace(r"\s+", r"(?:\s+|$)") + r")+",
+    re.IGNORECASE)
+_NAME_TOKEN_RE = re.compile(r"[A-Za-z\u00c0-\u00ff'\u2019-]+")
+
+
+def _strip_titles(run: str) -> str:
+    """The article first, then the honorific — in that order, or "the
+    Marshal" keeps a title the bare "Marshal" loses."""
+    phrase = (run or "").strip().strip("'\"").strip()
+    phrase = _LEADING_ARTICLE_RE.sub("", phrase).strip()
+    return _HONORIFIC_ONLY_RE.sub("", phrase).strip()
+
+
+def addresses_the_army(run: str) -> bool:
+    """The army as a whole, or whoever is nearest — served, never refused."""
+    tokens = _NAME_TOKEN_RE.findall(_strip_titles(run))
+    return any(tok.lower() in _COLLECTIVE for tok in tokens)
+
+
+def never_an_address(run: str) -> bool:
+    """A run no comma can turn into somebody's name."""
+    tokens = _NAME_TOKEN_RE.findall(_strip_titles(run))
+    if not tokens:
+        return True
+    return any(tok.lower() in _NEVER_AN_ADDRESS or _ADVERB_LY_RE.match(tok)
+               for tok in tokens)
+
+
+def looks_like_an_address(run: str,
+                          roster: Optional[Iterable[str]] = None) -> bool:
+    """True when `run` is plausibly the name of somebody being addressed.
+
+    Fails CLOSED: anything it cannot positively recognise as a name is not
+    an address, and the sentence keeps whatever reading it already had.
+    `roster` is any collection of known names — marshals, commanders — and
+    is consulted only for the one-keystroke arm, so the predicate is pure
+    and works with nothing handed in at all.
+    """
+    phrase = _strip_titles(run)
+    if not phrase or len(phrase) > 40:
+        return False
+    tokens = _NAME_TOKEN_RE.findall(phrase)
+    if not tokens or len(tokens) > 3:
+        return False
+    for tok in tokens:
+        low = tok.lower()
+        if low in _NOT_A_NAME or _ADVERB_LY_RE.match(tok):
+            return False
+    if any(tok[0].isupper() for tok in tokens):
+        return True
+    from backend.utils.fuzzy_matcher import osa_distance_at_most
+    for name in (roster or ()):
+        for part in _NAME_TOKEN_RE.findall(str(name)):
+            if len(part) < 3:
+                continue
+            for tok in tokens:
+                if osa_distance_at_most(tok.lower(), part.lower(), 1):
+                    return True
+    return False
+
+
+# The verbs a leading run is measured AGAINST. It lived in `executor.py` as
+# `_ADDRESSEE_IS_AN_ORDER_RE` and was hand-maintained there, which left two
+# holes the review round measured on the shipped board: `pull back` and
+# `recon` are routed by the mock parser into the marshal-less family and were
+# absent from the list, so `Zorglub pull back` ran a WHOLE-ARMY RETREAT and
+# `Zorglub recon Swabia` sent Soult — FA-22's own defect, still live. It is a
+# sentence-SHAPE question, so it belongs here beside the other four, read by
+# the executor and by is_question() alike rather than copied into each.
+_ORDER_VERB_RE = re.compile(
+    r"\b(?:attack|assault|engage|storm|charge|bombard|shell|retreat|withdraw"
+    r"|fall\s+back|pull\s+back|fall\s+in|move|march|advance|go|proceed"
+    r"|scout|reconnoitre|reconnoiter|recon|probe|observe|watch"
+    r"|hold|defend|fortify|entrench|dig\s+in|drill|train|wait|stand"
+    r"|halt|stop|cancel|abort|recruit|raise|levy|build|repair|garrison"
+    r"|blockade|guard|secure|pursue|chase|hunt|follow"
+    r"|support|reinforce|assist|help|cover|screen|declare|propose|demand"
+    r"|end|status|sortie|sally|rally|regroup|form)\b",
+    re.IGNORECASE,
+)
+
+
+def address_of(text: str,
+               roster: Optional[Iterable[str]] = None,
+               *, require_separator: bool = False) -> Optional[str]:
+    """The run the player ADDRESSED, comma or no comma — or None.
+
+    One source for the two rules row CX shipped in disagreement with each
+    other. CX slice 1's second half exists *because a player does not type
+    the comma*, and its first half then required one before it would read a
+    line as addressed — so `Ney, attack Mack?` fought and `Ney attack Mack?`
+    was swallowed as a question, on 86 of 128 ordinary orders measured.
+    Whatever answers one must answer the other.
+
+    Lever-free on purpose: each caller branches on its own
+    `THE_ADDRESS_LOOKS_LIKE_A_NAME` so that arm's False position reproduces
+    exactly what that caller shipped, rather than a blend of the two.
+    `require_separator` carries the executor's older, still-live
+    `AN_ADDRESS_NEEDS_NO_COMMA` down into the shared body, so CX-1's lever
+    keeps meaning what it says instead of being swallowed by CX-7's.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    head, sep, _tail = raw.partition(",")
+    if not sep:
+        head, sep, _tail = raw.partition(":")
+    if not sep:
+        if require_separator:
+            return None      # the executor's own AN_ADDRESS_NEEDS_NO_COMMA
+        verb = _ORDER_VERB_RE.search(raw)
+        if not verb:
+            return None
+        head = raw[:verb.start()]
+    phrase = head.strip().strip("'\"").strip()
+    if phrase.lower().startswith(("the ", "a ", "an ")):
+        # the refusal names what the player typed, minus the article —
+        # "no 'Iron Marshal' in the order of battle" (FA-22's own pin)
+        phrase = phrase.split(None, 1)[1].strip() if " " in phrase else phrase
+    if not phrase or _ORDER_VERB_RE.search(phrase):
+        return None
+    if never_an_address(phrase):
+        return None          # a collective, an interjection, an adverb
+    if not sep and not looks_like_an_address(phrase, roster):
+        return None          # nothing marked it, and it is not name-shaped
+    return phrase
+
+
 _ADDRESSED_LINE_RE = re.compile(
     r"^\s*(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*[,:]", re.IGNORECASE)
 # ", <at least one more word>" — the tail of an inverted conditional.
 _TRAILING_CLAUSE_RE = re.compile(r",\s*\S")
 
+
+
+def _line_is_addressed(text: str,
+                       roster: "Optional[Iterable[str]]" = None) -> bool:
+    """Arm (e)'s reader — CX-7.
+
+    CX-1 asked `_ADDRESSED_LINE_RE`, which requires a comma or a colon, so a
+    hesitant order typed the way people type (`Ney attack Mack?`) was read as
+    a question and silently dropped — while `Ney, attack Mack?`, one keystroke
+    away, fought. Measured on the shipped board: 86 of 128 comma-free
+    addressed orders inert, 58 of them state-changing. The comma requirement
+    was never stated as deliberate anywhere, and the same commit's other half
+    is titled AN ADDRESS NEEDS NO COMMA.
+
+    Flip lever False restores the comma-only reading byte-for-byte.
+    """
+    if not THE_ADDRESS_LOOKS_LIKE_A_NAME:
+        return bool(_ADDRESSED_LINE_RE.match(text))
+    return (bool(_ADDRESSED_LINE_RE.match(text))
+            or address_of(text, roster) is not None)
 
 def is_question(command_text: str,
                 subjects: Optional[Iterable[str]] = None) -> bool:
@@ -718,7 +988,7 @@ def is_question(command_text: str,
     # CX: an UNADDRESSED line ending in a question mark is a question.
     # `retreat?` marched eight corps; `Ney, attack Mack?` keeps its order.
     if (A_QUESTION_NEVER_ORDERS and text.endswith("?")
-            and not _ADDRESSED_LINE_RE.match(text)
+            and not _line_is_addressed(text, subjects)
             and not is_bare_end_turn(text)):
         return True
     _lead_re = (_INTERROGATIVE_LEAD_RE if MODAL_LEADS_ARE_QUESTIONS

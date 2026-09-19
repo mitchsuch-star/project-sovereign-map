@@ -355,6 +355,9 @@ def _display_candidates(world, from_nation: Optional[str],
     return [name for name in candidates if name.lower() in visible]
 
 
+from backend.ai import clause_guards
+
+
 class CommandExecutor:
     """
     Executes validated commands and returns results.
@@ -1021,6 +1024,17 @@ class CommandExecutor:
             return None
         raw = str(parsed_command.get("raw_input")
                   or command.get("raw_input") or "")
+        # CX-7. One source for "who was addressed", shared with the question
+        # guard so the two halves of row CX cannot disagree again. The old
+        # body is kept verbatim under the lever's False arm.
+        if clause_guards.THE_ADDRESS_LOOKS_LIKE_A_NAME:
+            phrase = clause_guards.address_of(
+                raw, self._roster_names(world),
+                require_separator=not self.AN_ADDRESS_NEEDS_NO_COMMA)
+            if not phrase:
+                return None
+            return None if self._names_a_player_marshal(phrase, world) \
+                else phrase
         head, sep, _tail = raw.partition(",")
         if not sep:
             if not self.AN_ADDRESS_NEEDS_NO_COMMA:
@@ -1045,17 +1059,30 @@ class CommandExecutor:
             return None
         if self._ADDRESSEE_IS_AN_ORDER_RE.search(phrase):
             return None
+        if self._names_a_player_marshal(phrase, world):
+            return None
+        return phrase
+
+    @staticmethod
+    def _roster_names(world) -> list:
+        """Every name the game knows, for CX-7's one-keystroke arm."""
+        return [n for n in (getattr(world, "marshals", {}) or {})]
+
+    @staticmethod
+    def _names_a_player_marshal(phrase: str, world) -> bool:
+        """Whether the addressed run names one of OUR marshals — in which
+        case the roster bound it after all and nothing is unbound."""
         words = {w.lower() for w in re.findall(r"[A-Za-z'-]+", phrase)}
         if not words:
-            return None
+            return True
         player = getattr(world, "player_nation", None)
         for name, marshal in (getattr(world, "marshals", {}) or {}).items():
             if getattr(marshal, "nation", None) != player:
                 continue
             if name.lower() in phrase.lower() or words & {
                     w.lower() for w in re.findall(r"[A-Za-z'-]+", name)}:
-                return None
-        return phrase
+                return True
+        return False
 
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command, and deliver the square-break notice exactly

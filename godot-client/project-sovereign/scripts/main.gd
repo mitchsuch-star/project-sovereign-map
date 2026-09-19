@@ -1138,6 +1138,39 @@ func _add_to_history(command: String):
 	_history_anchor = ""
 	_clear_suggestions()
 
+# CX-3's own rule is that the game must not offer a sentence it cannot read,
+# and CX-3's own history arm broke it: `_add_to_history` is called ~50 lines
+# BEFORE the command is sent and takes no success flag, so a refused command
+# is recorded and never un-recorded. Measured by the review round — type
+# `quickly attack Mack`, be refused, then type `qui`, and the completer hands
+# the refused sentence straight back, 5 of 5.
+#
+# CX-7 removes most of the supply by making those sentences READABLE again,
+# but the rule has to hold for the ones that stay refused (`Nay attack Mack`,
+# `Zorglub pull back`). So the history forgets a command the backend answered
+# with a kind that means *I could not read that*: it is the same structured
+# handle the executor has always stamped, now carried to the wire.
+#
+# Deliberately narrow. An ordinary refusal — "Cannot move into Swabia, enemy
+# forces present" — is a sentence the game read perfectly well and the player
+# may want it back, so it stays in history. Only unreadability is forgotten.
+const UNREADABLE_KINDS := {
+	"marshal_not_found": true,
+	"enemy_addressee": true,
+}
+
+func _forget_unreadable_command(response: Dictionary) -> void:
+	if response.get("success", false):
+		return
+	var kind := str(response.get("kind", ""))
+	if kind == "" or not UNREADABLE_KINDS.has(kind):
+		return
+	if command_history.is_empty():
+		return
+	command_history.pop_back()
+	history_index = -1
+	_history_anchor = ""
+
 func _on_end_turn_pressed():
 	"""Handle End Turn button click."""
 	_execute_end_turn()
@@ -2795,6 +2828,7 @@ func _on_command_result(response):
 	# the response here loses the moment permanently (the formation latch
 	# never re-fires it).
 	if typeof(response) == TYPE_DICTIONARY:
+		_forget_unreadable_command(response)  # CX-7
 		_stash_proclamation(response)
 		_stash_envoy_digest(response)
 		_stash_diorama(response)  # BD: same discipline — stash before routing

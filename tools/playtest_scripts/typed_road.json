@@ -59,10 +59,39 @@
    "Ney, attack if Davout supports",
    "Massena, fortify",
    "what now"
+  ],
+  "9": [
+   "quickly attack Mack",
+   "immediately attack Mack",
+   "ok retreat",
+   "tonight Ney, fortify",
+   "someone attack Mack"
+  ],
+  "10": [
+   "cavalry attack Mack",
+   "guards attack Mack",
+   "Marshal attack Mack",
+   "anyone scout Swabia",
+   "right, attack Mack"
+  ],
+  "11": [
+   "Zorglub pull back",
+   "Zorglub recon Swabia",
+   "all marshals, attack",
+   "whoever is closest attack Mack",
+   "well retreat"
+  ],
+  "12": [
+   "Ney attack Mack?",
+   "Davout fortify?",
+   "Soult scout Swabia?",
+   "Murat drill?",
+   "end turn"
   ]
  },
  "policy": {
   "objection": "trust",
   "diplomacy": "accept"
- }
+ },
+ "_note_cx7": "CX-7, the review round. The arm above drops the comma ONLY in front of a NAME — never in front of an adverb, an interjection, an arm of service or an indefinite pronoun — so it was built on the geometry of the finding it was chasing and could not see the 256-cell regression slice 1 shipped beside it. Turns 9-11 type the leading runs a person actually puts in front of an order, and turn 12 types the hesitant order without its comma. Every line here is an ORDER: a turn of these must SPEND action points, and a digest where it does not is the regression coming back."
 }

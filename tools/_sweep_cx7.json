@@ -1,0 +1,163 @@
+[
+ {
+  "id": "CX7-1 the predicate fails OPEN instead of closed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    for name in (roster or ()):\n        for part in _NAME_TOKEN_RE.findall(str(name)):\n            if len(part) < 3:\n                continue\n            for tok in tokens:\n                if osa_distance_at_most(tok.lower(), part.lower(), 1):\n                    return True\n    return False",
+  "new": "    for name in (roster or ()):\n        for part in _NAME_TOKEN_RE.findall(str(name)):\n            if len(part) < 3:\n                continue\n            for tok in tokens:\n                if osa_distance_at_most(tok.lower(), part.lower(), 1):\n                    return True\n    return True",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestThePredicate::test_it_fails_closed"
+ },
+ {
+  "id": "CX7-2 the allowlist inverts — nothing is ever a name",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if any(tok[0].isupper() for tok in tokens):\n        return True",
+  "new": "    if False:\n        return True",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheGuardStillBites"
+ },
+ {
+  "id": "CX7-3 the never-an-address class list is emptied",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_NEVER_AN_ADDRESS = frozenset((",
+  "new": "_NEVER_AN_ADDRESS = frozenset() and frozenset((",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestAnOrdinaryOrderIsNotAnUnknownOfficer"
+ },
+ {
+  "id": "CX7-4 the -ly morphology arm is deleted",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_ADVERB_LY_RE = re.compile(r\"^\\w{3,}ly$\", re.IGNORECASE)",
+  "new": "_ADVERB_LY_RE = re.compile(r\"^(?!x)x$\", re.IGNORECASE)",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestAnOrdinaryOrderIsNotAnUnknownOfficer::test_the_ly_adverb_is_closed_by_morphology_not_by_listing"
+ },
+ {
+  "id": "CX7-5 the one-keystroke arm is deleted",
+  "file": "backend/ai/clause_guards.py",
+  "old": "                if osa_distance_at_most(tok.lower(), part.lower(), 1):\n                    return True",
+  "new": "                if False:\n                    return True",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestThePredicate::test_one_keystroke_from_a_roster_name_is_the_other"
+ },
+ {
+  "id": "CX7-6 the honorific is no longer stripped",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return _HONORIFIC_ONLY_RE.sub(\"\", phrase).strip()",
+  "new": "    return phrase",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestAnOrdinaryOrderIsNotAnUnknownOfficer::test_the_bare_honorific_names_nobody"
+ },
+ {
+  "id": "CX7-7 the three-token bound is removed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not tokens or len(tokens) > 3:\n        return False",
+  "new": "    if not tokens:\n        return False",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestThePredicate::test_more_than_three_tokens_is_not_a_name"
+ },
+ {
+  "id": "CX7-8 arm (e) goes back to requiring a comma",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return (bool(_ADDRESSED_LINE_RE.match(text))\n            or address_of(text, roster) is not None)",
+  "new": "    return bool(_ADDRESSED_LINE_RE.match(text))",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsNotTheDifference"
+ },
+ {
+  "id": "CX7-9 arm (e) reads EVERY line as addressed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    return (bool(_ADDRESSED_LINE_RE.match(text))\n            or address_of(text, roster) is not None)",
+  "new": "    return True",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestArmEStillHoldsItsControls"
+ },
+ {
+  "id": "CX7-10 `pull back` / `recon` leave the verb list again",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    r\"|fall\\s+back|pull\\s+back|fall\\s+in|move|march|advance|go|proceed\"\n    r\"|scout|reconnoitre|reconnoiter|recon|probe|observe|watch\"",
+  "new": "    r\"|fall\\s+back|fall\\s+in|move|march|advance|go|proceed\"\n    r\"|scout|reconnoitre|reconnoiter|probe|observe|watch\"",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheGuardStillBites::test_the_mirror_hole_is_closed"
+ },
+ {
+  "id": "CX7-12 require_separator is ignored — CX-1's lever dies",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        if require_separator:\n            return None      # the executor's own AN_ADDRESS_NEEDS_NO_COMMA",
+  "new": "        if False:\n            return None",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestThePredicate::test_require_separator_carries_the_older_lever"
+ },
+ {
+  "id": "CX7-13 the executor stops reading the shared source",
+  "file": "backend/commands/executor.py",
+  "old": "        if clause_guards.THE_ADDRESS_LOOKS_LIKE_A_NAME:",
+  "new": "        if False:",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestAnOrdinaryOrderIsNotAnUnknownOfficer::test_the_indefinite_pronoun_reaches_the_auto_assign"
+ },
+ {
+  "id": "CX7-14 the executor stops checking our own roster",
+  "file": "backend/commands/executor.py",
+  "old": "            return None if self._names_a_player_marshal(phrase, world) \\\n                else phrase",
+  "new": "            return phrase",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestThePredicate::test_our_own_marshal_is_never_unbound"
+ },
+ {
+  "id": "CX7-15 `kind` stops reaching the wire",
+  "file": "backend/main.py",
+  "old": "    if result.get(\"kind\") is not None:\n        response[\"kind\"] = result[\"kind\"]",
+  "new": "    if False:\n        pass",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheGameDoesNotOfferWhatItCannotRead::test_kind_reaches_the_wire"
+ },
+ {
+  "id": "CX7-16 the client stops forgetting an unreadable command",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t_forget_unreadable_command(response)  # CX-7\n",
+  "new": "",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheGameDoesNotOfferWhatItCannotRead::test_the_client_forgets_an_unreadable_command"
+ },
+ {
+  "id": "CX7-17 the client forgets on EVERY refusal, not only unreadable",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif kind == \"\" or not UNREADABLE_KINDS.has(kind):\n\t\treturn",
+  "new": "\tif false:\n\t\treturn",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheGameDoesNotOfferWhatItCannotRead"
+ },
+ {
+  "id": "CX7-18 the collective list is emptied",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_COLLECTIVE = frozenset((",
+  "new": "_COLLECTIVE = frozenset() and frozenset((",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsTheMark::test_a_collective_stands_down_on_both_arms"
+ },
+ {
+  "id": "CX7-19 the both-arms class stand-down is removed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if never_an_address(phrase):\n        return None          # a collective, an interjection, an adverb",
+  "new": "    if False:\n        return None",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsTheMark::test_a_collective_stands_down_on_both_arms"
+ },
+ {
+  "id": "CX7-20 the separator stops deciding — the name rule binds both arms",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not sep and not looks_like_an_address(phrase, roster):",
+  "new": "    if not looks_like_an_address(phrase, roster):",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsTheMark::test_a_marked_run_is_answered_for"
+ },
+ {
+  "id": "CX7-21 the separator stops deciding — nothing is ever name-checked",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not sep and not looks_like_an_address(phrase, roster):",
+  "new": "    if False and not looks_like_an_address(phrase, roster):",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestAnOrdinaryOrderIsNotAnUnknownOfficer"
+ },
+ {
+  "id": "CX7-22 the article survives into the refusal",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        phrase = phrase.split(None, 1)[1].strip() if \" \" in phrase else phrase",
+  "new": "        pass",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsTheMark::test_a_marked_run_is_answered_for"
+ },
+ {
+  "id": "CX7-23 the article comes off AFTER the honorific again",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    phrase = _LEADING_ARTICLE_RE.sub(\"\", phrase).strip()\n    return _HONORIFIC_ONLY_RE.sub(\"\", phrase).strip()",
+  "new": "    phrase = _HONORIFIC_ONLY_RE.sub(\"\", phrase).strip()\n    return _LEADING_ARTICLE_RE.sub(\"\", phrase).strip()",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestThePredicate::test_the_article_and_the_honorific_come_off_first"
+ },
+ {
+  "id": "CX7-24 the bare-arm-only connectives leak onto the marked arm",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_NOT_A_NAME = _NEVER_AN_ADDRESS | frozenset((",
+  "new": "_NEVER_AN_ADDRESS = _NEVER_AN_ADDRESS | frozenset((",
+  "tests": "tests/test_cx7_the_name_looks_like_a_name.py::TestTheCommaIsTheMark::test_a_marked_run_is_answered_for"
+ }
+]
