@@ -336,8 +336,11 @@ PROPOSAL_TYPE_DISPLAY = {
     # its lord for a province or for relief from tribute. Rides the
     # incoming-proposal transport under the stable P-rule label
     # `vassal.CLIENT_PETITION_TYPE`; never "petition" alone, which is the
-    # Jealousy channel's word.
-    "client_petition": "A Client's Petition",
+    # Jealousy channel's word. IQ-7 review [14]/[23]/[31] (R10): NO article
+    # — this was the only row carrying one, and the shared templates add
+    # their own ("an a client's petition proposal", "Switzerland's a
+    # client's petition offer"). The popup header keeps its own string.
+    "client_petition": "Client's Petition",
 }
 
 # ============================================================================
@@ -830,6 +833,15 @@ DECISION_REASON_DISPLAY = {
     "no_valid_region": "no valid claim region",
     "participation_blocked": "participation blocked",
     "strength_insufficient": "insufficient strength",
+    # IQ-7 review [23] (R10): the petition's stamped reason and the four
+    # answer outcomes the executor hands the result popup — without rows
+    # the fallback title-cased the raw keys ("(Client Petition)").
+    "client_petition": "a client's petition",
+    "granted": "granted",
+    "refused": "refused",
+    "fulfilled": "already honoured",
+    "withdrawn": "withdrawn",
+    "stands": "the petition stands",
 }
 
 # ============================================================================

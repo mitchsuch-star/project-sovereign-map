@@ -1868,6 +1868,42 @@ the client and the harness), then a test writer; the lead ran the completion arm
   owner of IQ7-X1..X3); IQ7-D2 the Suitor, DECLINED with a re-open condition; IQ7-D3
   Holland's unpayable design; IQ7-X5 the mailbox stale echo → IQ-10.
 - **Pillar:** vassals 6.5 → **7.0**, ⚠ FOR USER CONFIRMATION (memo §5).
+- **The review round (September 18, 2026): 39 of 43 findings survived and every one is
+  built or recorded — `BUG_FIXES.md` IQ7-RV1..RV33 + IQ7-X7.** Two P1s, both the ORDINARY route the
+  build had not walked: the game's own `cede` verb honoured the exact ask and was charged
+  as a REFUSAL at the lapse (now `fulfilled` on both arms through ONE re-validation ladder,
+  `THE_DEED_HONOURS_THE_PETITION`); a typed `accept the petition` with a routine letter
+  current signed Portugal's treaty and let the petition lapse (the matter noun is now an
+  addressee at both routing seams). The P2s: the contract's own T11(d) was a dodge — spend
+  the DP, press Grant, escape the refusal price (a DP-short Grant now STANDS with honest
+  availability, `THE_LORD_PAYS_TO_GRANT`); a relief rode into the next lord's ledger
+  (`THE_TRANSFER_SHEDS_THE_REMISSION`); the popup re-served the price frozen at issue
+  while the grant applied the live one (ONE re-pricer on the fixed subject at every read
+  and before the grant); the province price was ~4× too high and wrong in SIGN on a fresh
+  conquest (the parts, with the sign, drift-pinned to the ledger's net); the refuse line
+  called the bond "its drift"; the card promised "may petition now" off three of seven
+  gates and counted one turn short; the lapse's price reached no surface the player was on
+  (priced aloud on every surface, display only — no mount over a settlement offer). Also:
+  the School of War issued petitions; a typed answer re-served the dead popup (IQ7-X5,
+  closed here); six pins could not fail. **Four rulings the refuters overturned in the
+  filed fixes** are recorded on the rows (controller alone is too wide a fulfilled test;
+  withdraw-on-ungrantable is a free refusal; re-quoting from the ladder swaps the subject;
+  keying the noun guard on the client predicate refuses the ally petition's own answer).
+  **⚠ FOR USER CONFIRMATION:** the seven-seed ambient re-read (RV15) breaches the ±1
+  passive-France band on eylau (3 vs 6 at turn 40); the row landed on the three-seed
+  reading. `BASELINE_SERIES` + M1–M7 byte-identical; the four new levers measured 12/12
+  against `7d10e20c`'s module; sweep `tools/_sweep_iq7_review.json` (312 rows) + `tools/_sweep_iq7.json` (55), swept WHOLE on a private copy of the final code: 365 killed and 2 INERT on the first run — both original IQ-7 rows that a second guard added by this round had made invisible (the ledger duplicated `petition_standing_keys`' own gate; pass 2's classified refusal withdrew a war-lost province without the arm the row mutates) — repaired (the duplicate guard removed, the pin re-pointed at the case only that arm decides) and re-run: **367 of 367 killed, 0 INERT, 0 BROKEN**; tests 476 + 95. **Passes 2–4 (same day):** the verifiers' twelve findings built (IQ7-RV17..RV23), then
+  a second verifier showed pass 2's strip-the-filler rule had itself created a P2 —
+  `grant them relief instead` at a PROVINCE petition ceded the province — so the typed
+  answer became a CLOSED literal grammar keyed to the petition's own subject that FAILS
+  CLOSED (`petition_plain_answer`), with an in-place re-prompt so nothing is mounted over a
+  current petition (IQ7-RV24, RV33); pass 4 closed the one hole the closed grammar itself
+  admitted — a `?`-less question made only of allowlist words — by STATEMENT ORDER for the
+  auxiliaries (RV30). Closed on the way: a QUESTION signed a treaty on every
+  family, incl. an inverted one that RATIFIED a settlement (`A_QUESTION_NEVER_ANSWERS`,
+  RV25 + RV32); the button route never read the court (RV26);
+  the suite overwrote the developer's Continue slot (the conftest save floor, RV29).
+  Routed: IQ7-X7, the deferral half on other families → CR-6 proper, pinned as current.
 
 **⛔ Win conditions are excluded from every row by user direction.**
 `sandbox_mode` suppresses victory *and* defeat on every Europe world, and that

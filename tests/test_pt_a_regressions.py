@@ -587,6 +587,21 @@ class TestTheHardStopRefusalThroughTheEndpoint:
         # per test ("let the province stand" → the fast-parser result anyway).
         monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
         assert M.parser.llm.use_real_api is False
+        # IQ-7 review pass 3 (R3-11, Sept 19, 2026) — THIS CLASS BUILDS ITS
+        # OWN WORLD. It used to push its hard stop onto whatever `M.world`
+        # the previous test file had left behind, and three of its tests
+        # failed whenever they ran after `tests/test_igr_f_envoy_digest.py`
+        # (reproduced on a clean `f245e486` snapshot, so it predates the
+        # round): that file installs worlds with `_set_active_world` and
+        # leaves ordinary letters MOUNTED, so the war-purpose hard stop
+        # queued BEHIND them, `is_hard_stop()` read False, and the order was
+        # refused by nobody. A fresh flag world (the `SOVEREIGN_SCENARIO=
+        # none` boot, the same world this class has always meant), installed
+        # through monkeypatch so the next file gets back what it had.
+        fresh = M._build_new_world()
+        monkeypatch.setattr(M, "world", fresh)
+        monkeypatch.setitem(M.game_state, "world", fresh)
+        assert fresh.dialogue_manager.peek() is None
         return TestClient(M.app), M
 
     def test_an_unrelated_order_is_refused_honestly(self, monkeypatch):

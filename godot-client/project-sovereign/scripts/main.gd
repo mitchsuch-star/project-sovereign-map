@@ -298,6 +298,9 @@ var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gat
 # warning claimed a loss that could not happen, and when a persistent offer
 # was the only item it produced a stop nothing could clear.
 var _current_lapsing_count: int = 0
+# IQ-7 review R8(d): the client PETITIONS among the lapsing envoys, each
+# with its price — the end-turn gate names them (a lapse is a refusal).
+var _current_lapsing_petitions: Array = []
 # FA-16 review round (Sept 4 2026): the cornered marshals whose last stand is
 # unanswered (backend `pending_marshal_decisions`) — the end-turn soft-stop
 # names them, because the enemy phase decides the question for him (FA-1).
@@ -1489,6 +1492,25 @@ func _show_lapse_confirmation():
 	var parts := PackedStringArray()
 	if _current_lapsing_count > 0:
 		parts.append("You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_lapsing_count)
+		# IQ-7 review R8(d): a petition among them is not a free lapse —
+		# name each with the price the backend quotes (lever-aware).
+		if not _current_lapsing_petitions.is_empty():
+			var named := PackedStringArray()
+			var refused := false
+			for pet in _current_lapsing_petitions:
+				if not (pet is Dictionary):
+					continue
+				# The backend's `price_line` names the court and the price
+				# ("Switzerland — −10 loyalty / −20 bond (a lapse is a
+				# refusal)"); the court alone is the fallback.
+				var price = str(pet.get("price_line", ""))
+				if price == "":
+					price = Utils.display_nation_name(str(pet.get("court", pet.get("vassal", "?"))))
+				named.append(price)
+				if bool(pet.get("refused", false)):
+					refused = true
+			var verb = "REFUSED" if refused else "left unanswered"
+			parts.append("%d petition(s) will be %s if you end the turn: %s." % [named.size(), verb, ", ".join(named)])
 	if not _current_decision_names.is_empty():
 		var names := ", ".join(PackedStringArray(_current_decision_names))
 		parts.append("%s await(s) your word — an unanswered last stand is decided for him when the enemy phase begins. Type 'fight to the last' or 'attempt a breakout'." % names)
@@ -3838,8 +3860,15 @@ func _display_morning_dispatch(data: Dictionary):
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]LAPSED ENVOYS[/color]")
 		for lapse in lapsed_offers:
 			var l_nation = str(lapse.get("nation", "?"))
+			# IQ-7 review R8(b): a lapsed PETITION prints the priced line the
+			# lapse hook kept (shown = applied), never "offer lapsed"; R7 —
+			# the court's display name, as dispatch_view.gd already did.
+			var l_line = str(lapse.get("line", ""))
+			if bool(lapse.get("is_petition", false)) and l_line != "":
+				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]")
+				continue
 			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
-			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_nation + "'s " + l_ptype + " offer lapsed unanswered[/color]")
+			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + Utils.display_nation_name(l_nation) + "'s " + l_ptype + " offer lapsed unanswered[/color]")
 		add_output("")
 
 	# ═══ ENVOYS AWAITING RESPONSE ═══
@@ -4135,12 +4164,17 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		# field and the client's READ, and neither could see the gap between.
 		diplo_data["pending_lapsing_count"] = response.get(
 			"pending_lapsing_count", 0)
+		# IQ-7 review R8(d): the same join, for the priced petitions.
+		diplo_data["pending_lapsing_petitions"] = response.get(
+			"pending_lapsing_petitions", [])
 		# FA-16 review round: the same join, for the marshal's question.
 		diplo_data["pending_marshal_decisions"] = response.get(
 			"pending_marshal_decisions", [])
 	if not diplo_data.is_empty():
 		_set_pending_envoy_count(int(diplo_data.get("pending_envoy_count", 0)))
 		_current_lapsing_count = int(diplo_data.get("pending_lapsing_count", 0))
+		var lapsing_petitions = diplo_data.get("pending_lapsing_petitions", [])
+		_current_lapsing_petitions = lapsing_petitions if lapsing_petitions is Array else []
 		_set_pending_decisions(diplo_data.get("pending_marshal_decisions", []))
 		top_bar.update_diplomatic_fields(diplo_data)
 

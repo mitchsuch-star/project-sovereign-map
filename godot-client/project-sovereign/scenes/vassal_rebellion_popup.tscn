@@ -81,7 +81,7 @@ text = "Invest (DP)"
 custom_minimum_size = Vector2(160, 45)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Send Garrison"
+text = "Show the Flag"
 
 [node name="AcceptButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(140, 45)

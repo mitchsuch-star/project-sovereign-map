@@ -1431,7 +1431,16 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		"loyal":
 			bbcode += "   [color=#" + Utils.COLOR_SUCCESS + "]Answers the call to arms[/color]"
 		"wavering":
-			bbcode += "   [color=#" + COLOR_AMBER + "]Wavering — their marshals drag their feet[/color]"
+			# IQ-7 review [22]: the regiments clause is a claim about VS-4
+			# Rule 1b, which only bites when the lord fields a corps of the
+			# vassal's own colours. The backend says whether it does
+			# (`wavering_regiments`, present only with THE_WAVERING_LINE_IS_
+			# HONEST up); an old payload without the key keeps the old line.
+			var drag = bool(v.get("wavering_regiments", true))
+			if drag:
+				bbcode += "   [color=#" + COLOR_AMBER + "]Wavering — their marshals drag their feet[/color]"
+			else:
+				bbcode += "   [color=#" + COLOR_AMBER + "]Wavering — no standing to petition[/color]"
 		"disaffected":
 			bbcode += "   [color=#" + Utils.COLOR_ERROR + "]Disaffected — refuses new calls to arms[/color]"
 	bbcode += "\n"
@@ -1441,13 +1450,21 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	# THE_CLIENT_PETITIONS lever is up (diplomatic_ledger._build_vassals),
 	# so a payload without them renders this card exactly as before.
 	if v.has("standing"):
+		# IQ-7 review R7 ([08]/[20]): `standing` reads "may petition" ONLY
+		# when every producer gate passes (the backend's ONE gate verdict);
+		# otherwise it carries the blocking reason ("bonded — asks no more",
+		# "nothing to ask for", "relief running, N collections", "N turns
+		# until it may ask"). Green means a petition really may come at the
+		# turn's end; the countdown suffix rides only the green form, and
+		# "now" is stated as what it is — at the turn's end.
 		var standing = str(v.get("standing", ""))
-		var standing_color = Utils.COLOR_SUCCESS if standing == "may petition" else COLOR_AMBER
+		var may_petition = standing == "may petition"
+		var standing_color = Utils.COLOR_SUCCESS if may_petition else COLOR_AMBER
 		bbcode += "  Standing: [color=#" + standing_color + "]" + standing + "[/color]"
-		if standing == "may petition" and v.has("next_petition_in"):
+		if may_petition and v.has("next_petition_in"):
 			var next_in = int(v.get("next_petition_in", 0))
 			if next_in <= 0:
-				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· may petition now[/color]"
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· may petition at the turn's end[/color]"
 			else:
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· next petition in " + str(next_in) + " turn" + ("s" if next_in != 1 else "") + "[/color]"
 		bbcode += "\n"

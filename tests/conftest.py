@@ -61,6 +61,25 @@ import pytest
 # live in tests/test_iq9_keyless_parser_gate.py::TestT0SuiteFloor.
 os.environ["LLM_MODE"] = "mock"
 
+# ═══════════════════════════════════════════════════════════════════════
+# THE SAVE FLOOR (IQ-7 review round, September 18, 2026)
+# ═══════════════════════════════════════════════════════════════════════
+# `_isolate_save_dir` below is FUNCTION-scoped, and pytest builds module- and
+# session-scoped fixtures BEFORE function-scoped autouse ones — so a
+# module-scoped fixture that plays real end turns (the IQ-7 turn-6 snapshot,
+# the fixtures that play a dozen turns), and every CHILD PROCESS a test spawns,
+# still autosaved into the developer's own `saves/autosave.json`. Measured
+# September 18: one full-suite run replaced the slot the main menu's Continue
+# reads with "Autosave - Turn 13" of a test campaign; both IQ-7 files rewrote
+# it on every run. `save_manager.SAVE_DIR` is resolved ONCE, at import, from
+# `INK_IRON_SAVE_DIR` — so the variable is set here, at conftest import, before
+# any backend module loads (the same reason the LLM floor above is
+# module-level), and a child process inherits it. Tests that set the variable
+# or patch `SAVE_DIR` themselves still win. Pin: tests/test_suite_save_floor.py.
+import tempfile  # noqa: E402
+
+os.environ["INK_IRON_SAVE_DIR"] = tempfile.mkdtemp(prefix="ink_iron_suite_saves_")
+
 from tests._parser_replay import install_network_guard  # noqa: E402
 
 install_network_guard()

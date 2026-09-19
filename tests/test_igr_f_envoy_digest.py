@@ -54,6 +54,24 @@ from backend.models.world_state import WorldState
 # HELPERS
 # ════════════════════════════════════════════════════════════════
 
+@pytest.fixture(autouse=True)
+def _hand_back_the_active_world():
+    """IQ-7 review pass 3 (R3-11, Sept 19, 2026): this file installs its own
+    worlds with `main._set_active_world` and used to leave the LAST one —
+    ordinary letters still mounted on its dialogue manager — as the process's
+    active world. The next file to touch `backend.main.world` inherited it:
+    `tests/test_pt_a_regressions.py::TestTheHardStopRefusalThroughTheEndpoint`
+    pushed a hard stop that queued BEHIND those letters and failed three
+    tests, in this order only. Whatever was active before each test is
+    active again after it."""
+    import backend.main as main_module
+
+    prior = (main_module.world, main_module.game_state.get("world"))
+    yield
+    main_module.world = prior[0]
+    main_module.game_state["world"] = prior[1]
+
+
 def _world():
     return WorldState(player_nation="France")
 

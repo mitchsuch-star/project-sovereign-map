@@ -86,7 +86,10 @@ SCENARIO = str(REPO / "godot-client" / "project-sovereign" / "assets" / "maps"
 DRIVER = REPO / "tools" / "playtest_driver.py"
 PLAYER = "France"
 LEVERS = ("THE_CLIENT_PETITIONS", "AN_UNANSWERED_PETITION_IS_REFUSED",
-          "COURTING_SPARES_THE_LORDS_ALLIES", "THE_WAVERING_LINE_IS_HONEST")
+          "COURTING_SPARES_THE_LORDS_ALLIES", "THE_WAVERING_LINE_IS_HONEST",
+          # the IQ-7 review round's four (Sept 18, 2026)
+          "THE_DEED_HONOURS_THE_PETITION", "THE_LORD_PAYS_TO_GRANT",
+          "THE_TRANSFER_SHEDS_THE_REMISSION", "A_RELIEF_OF_NOTHING_IS_WITHDRAWN")
 RAW_TAG = "KingdomOfItaly"
 
 
@@ -403,7 +406,7 @@ class TestT2IssuanceOnTheBootBoard:
                        for o in dlg["options"])
         payload = dlg["popup_payload"]
         assert payload.get("is_petition") is True
-        assert payload["proposal_type_display"] == "A Client's Petition"
+        assert payload["proposal_type_display"] == "Client's Petition"
         # the cadence stamp, at ISSUE, on the petitioner only
         assert w.vassals["Switzerland"]["petitioned_turn"] == 6
         for other in ("Holland", RAW_TAG):
@@ -445,7 +448,7 @@ class TestT3ReliefGrantShownEqualsApplied:
         r = _respond(client, "grant the petition", dlg["dialogue_id"])
         assert r.get("success") is True, r.get("message")
         assert r["proposal_result"]["outcome"] == "ACCEPT"
-        assert r["proposal_result"]["proposal_type"] == "A Client's Petition"
+        assert r["proposal_result"]["proposal_type"] == "Client's Petition"
         row = w.vassals["Switzerland"]
         assert row["loyalty"] == 85 + pet["loyalty_gain"] == 95
         assert _rel(w, "Switzerland", PLAYER) == rel0 + pet["relation_step"] == 20
@@ -498,6 +501,36 @@ class TestT3ReliefGrantShownEqualsApplied:
         assert res["success"] and res["loyalty_gain"] == terms["loyalty_gain"]
         assert w.vassals["Switzerland"]["loyalty"] == 60 + terms["loyalty_gain"]
 
+    @pytest.mark.parametrize("grip,mult", [(100, 1.0), (10, 0.4)])
+    def test_the_blunting_binds_at_a_spiral_grip_in_quote_and_grant_and_never_on_refusal(
+            self, monkeypatch, grip, mult):
+        """IQ-7 review [39] (R11, Sept 18, 2026): the pin above runs at the
+        boot grip of 100, where the multiplier is 1.0 and "blunted" cannot
+        be told from "not blunted". Staged at grip 10 (the spiral band) the
+        quote AND the grant are the blunted +4, the refusal and the lapse
+        still cost the full 10 (VS-R Q3: never blunted), and the healthy
+        arm is the control that the staging itself is what moves it."""
+        import backend.models.authority as AUTH
+        monkeypatch.setattr(AUTH, "get_imperial_grip", lambda world, nation: grip)
+        assert AUTH.get_authority_lever_multiplier(_europe(), PLAYER) == mult
+        expected = int(V.PETITION_RELIEF_LOYALTY * mult)
+        w = _europe()
+        w.vassals["Switzerland"]["loyalty"] = 60
+        terms = V.petition_terms(w, "Switzerland")
+        assert terms["loyalty_gain"] == expected and f"loyalty +{expected}" in terms["grant_line"]
+        assert V.reprice_petition(w, PLAYER, "Switzerland", terms)["loyalty_gain"] == expected
+        res = V.grant_petition(w, "Switzerland", PLAYER, terms)
+        assert res["loyalty_gain"] == expected and f"Loyalty +{expected} (60 → {60 + expected})" in res["message"]
+        assert w.vassals["Switzerland"]["loyalty"] == 60 + expected
+        for how in ("refused", "unanswered"):
+            w2 = _europe()
+            w2.vassals["Switzerland"]["loyalty"] = 60
+            t2 = V.petition_terms(w2, "Switzerland")
+            assert t2["refusal_loyalty_applied"] == V.PETITION_REFUSAL_LOYALTY == 10
+            r2 = V.refuse_petition(w2, "Switzerland", PLAYER, t2, how=how)
+            assert r2["penalty"] is True and w2.vassals["Switzerland"]["loyalty"] == 50, how
+            assert V.lapse_forecast(w2, "Switzerland", PLAYER, t2)["loyalty_loss"] == 10
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # T4 / T5 — THE PROVINCE, and the deck's price
@@ -505,8 +538,22 @@ class TestT3ReliefGrantShownEqualsApplied:
 
 class TestT4TheProvinceSubject:
     def test_the_petition_names_tyrol_and_the_grant_cedes_it(self, http):
+        """Flipped consciously, IQ-7 review round (Sept 18, 2026), R4/[04]:
+        the quoted `loyalty_gain` is CLAMPED to `LOYALTY_MAX − loyalty` (a
+        client at 100 is quoted +0 and told its loyalty is already full),
+        so the quote is now staged BELOW the ceiling (loyalty 80 before
+        issue, where it equals the raw worth) and the at-ceiling arm is
+        pinned separately; and R10: the court carries its article
+        ("ceded to the Kingdom of Italy")."""
         w, client = http
         _stage_tyrol_for_koi(w)
+        # the at-ceiling arm: boot loyalty 100 -> the quote says so
+        ceiling = V.petition_terms(w, RAW_TAG)
+        assert w.vassals[RAW_TAG]["loyalty"] == 100
+        assert ceiling["loyalty_gain"] == 0 and ceiling["loyalty_gain_raw"] == 10
+        assert ceiling["loyalty_full"] is True
+        assert "loyalty +0 (its loyalty is already full)" in ceiling["grant_line"]
+        w.vassals[RAW_TAG]["loyalty"] = 80
         terms = V.petition_terms(w, RAW_TAG)
         assert terms["subject"] == "province" and terms["region"] == "Tyrol"
         assert terms["in_design"] is False
@@ -519,7 +566,7 @@ class TestT4TheProvinceSubject:
         pet = pets[0]["context"]["proposal"]["petition"]
         assert pet["region"] == "Tyrol"
         loy0, dp0, rel0 = w.vassals[RAW_TAG]["loyalty"], w.diplomatic_points, _rel(w, RAW_TAG, PLAYER)
-        w.vassals[RAW_TAG]["loyalty"] = loy0 = 80
+        assert loy0 == 80
         r = _respond(client, "grant the petition", pets[0]["dialogue_id"])
         assert r.get("success") is True, r.get("message")
         row = w.vassals[RAW_TAG]
@@ -532,7 +579,7 @@ class TestT4TheProvinceSubject:
         log = _logged(w, "granted")
         assert len(log) == 1 and log[0]["region"] == "Tyrol" and log[0]["subject"] == "province"
         assert CL.format_event_oneliner(log[0]) == "The Kingdom of Italy's petition for Tyrol — granted."
-        assert "Tyrol is ceded to Kingdom of Italy" in r["message"]
+        assert "Tyrol is ceded to the Kingdom of Italy" in r["message"]
 
     def test_a_settling_grant_sends_the_ladder_past_the_province(self):
         w = _europe()
@@ -602,10 +649,13 @@ class TestT6Refuse:
         assert not any(e.get("type") == "ai_proposal_rejected" for e in w.event_log)
         log = _logged(w, "refused")
         assert len(log) == 1 and log[0]["penalty"] is True
-        assert CL.format_event_oneliner(log[0]) == "Switzerland's petition for relief from tribute — refused."
+        # IQ-7 review R8(e) (Sept 18, 2026): the one-liner carries the price.
+        assert CL.format_event_oneliner(log[0]) == (
+            "Switzerland's petition for relief from tribute — refused: "
+            f"loyalty 100 → 90, bond {rel0} → {rel0 - V.PETITION_RELATION_STEP}.")
         assert not _petitions(w)
         assert r["proposal_result"]["outcome"] == "REJECT"
-        assert r["proposal_result"]["proposal_type"] == "A Client's Petition"
+        assert r["proposal_result"]["proposal_type"] == "Client's Petition"
         assert "Nothing is charged" in r["message"]
 
     def test_the_bare_reject_keyword_reaches_the_same_arm(self, http):
@@ -630,8 +680,11 @@ class TestT7Lapse:
         assert row["loyalty_after"] == row["loyalty_before"] - V.PETITION_REFUSAL_LOYALTY
         assert row["relation_before"] == rel0
         assert row["relation_after"] == rel0 - V.PETITION_RELATION_STEP
-        assert CL.format_event_oneliner(row) == ("Switzerland's petition for relief from "
-                                                 "tribute — left unanswered, refused.")
+        # IQ-7 review R8(e) (Sept 18, 2026): the one-liner carries the price.
+        assert CL.format_event_oneliner(row) == (
+            "Switzerland's petition for relief from tribute — left unanswered, "
+            f"refused: loyalty {row['loyalty_before']} → {row['loyalty_after']}, "
+            f"bond {rel0} → {rel0 - V.PETITION_RELATION_STEP}.")
         assert not _petitions(w)
         assert not any(d.get("dialogue_id") == dlg["dialogue_id"] for d in _pending(w))
         # the generic lapse bookkeeping still ran for the vassal — benign, recorded
@@ -660,6 +713,94 @@ class TestT7Lapse:
         line = V.petition_terms(w, "Switzerland")["lapse_line"]
         assert "lapse is a refusal" not in line
         assert f"waits {V.PETITION_INTERVAL_TURNS} turns" in line
+
+    # ── IQ-7 review [38] (R11, Sept 18, 2026): the pins above hand-deliver
+    # the petition onto an EMPTY manager, where it is the current dialogue;
+    # on the shipped board it is always QUEUED (behind the boot coalition's
+    # settlement offer at turn 6), and the lapse hook's capture over
+    # `[peek()] + iter_queue()` is the branch real play uses. A peek-only
+    # capture left every ordinary lapse free with these pins green.
+
+    def test_the_queued_petition_on_the_ordinary_board_lapses_as_a_refusal(self, http):
+        w, client = http
+        for _ in range(5):
+            _end_turn(client)
+        assert w.current_turn == 6
+        pets = _petitions(w)
+        assert len(pets) == 1 and pets[0]["target_nation"] == "Switzerland"
+        head = w.dialogue_manager.peek()
+        assert head is not pets[0] and head.get("type") == "incoming_settlement_offer"
+        assert pets[0] in list(w.dialogue_manager.iter_queue())
+        rel0 = _rel(w, "Switzerland", PLAYER)
+        _end_turn(client)
+        log = _logged(w, "unanswered")
+        assert len(log) == 1 and log[0]["penalty"] is True
+        assert log[0]["loyalty_after"] == log[0]["loyalty_before"] - V.PETITION_REFUSAL_LOYALTY
+        assert _rel(w, "Switzerland", PLAYER) == rel0 - V.PETITION_RELATION_STEP
+        assert not _petitions(w)
+
+    def test_a_petition_queued_behind_a_letter_lapses_as_a_refusal(self, http):
+        """The deterministic twin: a routine letter delivered FIRST holds
+        the current slot, so the petition is queued whatever the board's
+        mail timing does."""
+        w, client = http
+        letter = {"source": "Prussia", "recipient": PLAYER, "proposal_type": "non_aggression",
+                  "priority": 1,
+                  "terms": {"type": "non_aggression", "proposer_nation": "Prussia",
+                            "target_nation": PLAYER, "clauses": ["non_aggression"],
+                            "sweeteners": [], "demands": []},
+                  "talleyrand_assessment": "", "decision_reason": "hegemony_pressure",
+                  "turn_generated": 1}
+        with _quiet():
+            head = deliver_ai_proposal(letter, w)
+        dlg = _deliver(w, "Switzerland")
+        assert w.dialogue_manager.peek() is head and dlg in list(w.dialogue_manager.iter_queue())
+        rel0 = _rel(w, "Switzerland", PLAYER)
+        _end_turn(client)
+        log = _logged(w, "unanswered")
+        assert len(log) == 1 and log[0]["penalty"] is True
+        assert _rel(w, "Switzerland", PLAYER) == rel0 - V.PETITION_RELATION_STEP
+        # both lapsed (the new turn's own mail may have arrived since)
+        assert not _petitions(w) and head not in _pending(w)
+
+    def test_lever_down_a_petition_pending_in_a_save_still_lapses_as_a_refusal(self, monkeypatch):
+        """Keyed on the DATA, never on the issuing lever (the hook's own
+        docstring): a save with a pending petition, loaded with
+        `THE_CLIENT_PETITIONS` down, still charges the lapse."""
+        w = _europe()
+        _deliver(w, "Switzerland")
+        with _quiet():
+            w2 = WorldState.from_dict(w.to_dict())
+        assert len(_petitions(w2)) == 1
+        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
+        monkeypatch.setattr(M, "world", w2)
+        monkeypatch.setattr(M, "parser", _PARSER)
+        monkeypatch.setitem(M.game_state, "world", w2)
+        client = TestClient(M.app)
+        rel0 = _rel(w2, "Switzerland", PLAYER)
+        _end_turn(client)
+        log = _logged(w2, "unanswered")
+        assert len(log) == 1 and log[0]["penalty"] is True
+        assert _rel(w2, "Switzerland", PLAYER) == rel0 - V.PETITION_RELATION_STEP
+
+    def test_the_mailbox_road_answers_the_queued_petition(self, http):
+        w, client = http
+        for _ in range(5):
+            _end_turn(client)
+        dlg = _petitions(w)[0]
+        assert w.dialogue_manager.peek() is not dlg
+        with _quiet():
+            act = client.post("/mailbox/activate", json={"mailbox_id": dlg["mailbox_id"]}).json()
+        assert act.get("success") is True and act["incoming_proposal"]["is_petition"] is True
+        assert w.dialogue_manager.peek() is dlg
+        r = _respond(client, "grant the petition", dlg["dialogue_id"])
+        assert r.get("success") is True, r.get("message")
+        # one popup a response: the re-queued settlement offer's may ride
+        # the answer's, and the verdict then the next
+        verdict = r.get("proposal_result") or _cmd(client, "status").get("proposal_result")
+        assert verdict["outcome"] == "ACCEPT" and verdict["proposal_type"] == "Client's Petition"
+        assert w.vassals["Switzerland"]["remission_left"] == V.REMISSION_COLLECTIONS
+        assert len(_logged(w, "granted")) == 1 and not _petitions(w)
 
 
 class TestT8CounterIsRefusedFree:
@@ -799,6 +940,29 @@ class TestT9EligibilityGates:
         assert "petitioned_turn" not in w.vassals[RAW_TAG]
         assert "petitioned_turn" not in w.vassals["Switzerland"]
 
+    def test_two_lords_each_get_one_petition_on_the_same_turn(self):
+        """IQ-7 review [40] (R11, Sept 18, 2026): the pin above puts every
+        satellite under France, so "one per LORD" could not be told from
+        "one per TURN, world-wide". Holland under Prussia (sorted first)
+        and Switzerland under France, both eligible on one turn: Prussia's
+        in-place answer AND France's dialogue, both stamps, the Kingdom of
+        Italy (no subject) unstamped."""
+        w = _holland_under_prussia()
+        w.current_turn = 6
+        for name in ("Holland", RAW_TAG, "Switzerland"):
+            w.vassals[name]["created_turn"] = 1
+        assert V.petition_subject(w, "Holland")["subject"] == "relief"
+        assert V.petition_subject(w, "Switzerland")["subject"] == "relief"
+        assert V.petition_subject(w, RAW_TAG) is None
+        pets = self._issue(w)
+        assert [d["target_nation"] for d in pets] == ["Switzerland"]
+        assert [(e["vassal"], e["lord"], e["subject"], e["outcome"])
+                for e in _logged(w)] == [("Holland", "Prussia", "relief", "granted")]
+        assert w.nation_dp["Prussia"] == 2
+        assert w.vassals["Holland"]["petitioned_turn"] == 6
+        assert w.vassals["Switzerland"]["petitioned_turn"] == 6
+        assert "petitioned_turn" not in w.vassals[RAW_TAG]
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # T10 — the bond
@@ -857,6 +1021,32 @@ class TestT10TheBond:
         assert V._bond_step(60) == 0
         assert V._standing(40) == 2 and V._standing(-20) == -1 and V._standing(19) == 0
 
+    def test_the_bond_holds_the_loyalty_through_the_real_tick(self):
+        """IQ-7 review [43] (R11, Sept 18, 2026): the pin above proves the
+        forecast (a second copy of step 6) and the relation, never the
+        LOYALTY the bond is for. Below the 100 ceiling (70 — above the
+        petition line, under the cap, so an over-delivery cannot clamp
+        into a pass) the bonded client holds its position through ten real
+        `advance_turn` ticks: the −2 drift is cancelled by the +2 bond, and
+        each tick's applied delta equals the forecast."""
+        w = _europe()
+        w.diplomatic_points = 10
+        for _ in range(2):
+            terms = V.petition_terms(w, "Switzerland")
+            assert V.grant_petition(w, "Switzerland", PLAYER, terms)["success"]
+            w.vassals["Switzerland"]["remission_left"] = 0
+        assert _rel(w, "Switzerland", PLAYER) == V.PETITION_BOND_CAP
+        w.vassals["Switzerland"]["loyalty"] = 70
+        assert V.forecast_vassal_loyalty(w, PLAYER, "Switzerland")["forecast"] == 0
+        with _quiet():
+            for _ in range(10):
+                before = w.vassals["Switzerland"]["loyalty"]
+                forecast = V.forecast_vassal_loyalty(w, PLAYER, "Switzerland")["forecast"]
+                w.advance_turn()
+                assert w.vassals["Switzerland"]["loyalty"] - before == forecast == 0
+        assert w.vassals["Switzerland"]["loyalty"] == 70
+        assert _rel(w, "Switzerland", PLAYER) == V.PETITION_BOND_CAP
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # T11 — re-validation at answer time
@@ -872,8 +1062,11 @@ class TestT11ReValidationAtAnswer:
         assert reason_fragment in str(r.get("message")), r.get("message")
         assert not _petitions(w)
         assert not _logged(w)
-        assert r["proposal_result"]["outcome"] == "REJECT"
-        assert r["proposal_result"]["proposal_type"] == "A Client's Petition"
+        # IQ-7 review [12]/[23] (R10, Sept 18, 2026): CONSCIOUS FLIP — a
+        # withdrawal is neither accepted nor rejected; the rail used to
+        # title it "Rejected" while the body said "withdrawn".
+        assert r["proposal_result"]["outcome"] == "WITHDRAWN"
+        assert r["proposal_result"]["proposal_type"] == "Client's Petition"
         assert "withdrawn" in r["proposal_result"]["message"]
 
     def test_a_released_vassal(self, http):
@@ -913,16 +1106,63 @@ class TestT11ReValidationAtAnswer:
         assert not w.vassals[RAW_TAG].get("granted_regions")
 
     def test_d_a_lord_who_can_no_longer_pay(self, http):
+        """IQ-7 review R2 ([03]/[35]/[12], September 18, 2026) — CONSCIOUS
+        FLIP of the contract's T11(d) ("set lord DP to 0 -> withdrawn, no
+        refusal penalty"). DP is the player's own pool, reset every turn, so
+        "spend it, then press Grant" was a free exit from the refusal price
+        that Refuse and the lapse both charge. A lord who cannot pay has NOT
+        answered: the Grant is refused WITHOUT consuming the petition (not
+        popped, the rail notice kept, nothing charged, nothing logged), the
+        response re-carries the question with Grant honestly disabled, and
+        the lapse then charges the refusal like any other. Lever
+        `THE_LORD_PAYS_TO_GRANT` False reproduces the withdrawal."""
         w, client = http
         dlg = _deliver_seen(w, client, "Switzerland")
         w.diplomatic_points = 0
         loy0, rel0 = w.vassals["Switzerland"]["loyalty"], _rel(w, "Switzerland", PLAYER)
         r = self._grant(client, dlg)
-        self._assert_withdrawn(w, r, "cannot spare the diplomatic point")
+        assert r.get("success") is False, r
+        assert "stands until the turn ends" in str(r.get("message")), r.get("message")
+        assert "cannot spare the diplomatic point" in str(r.get("message"))
+        assert _petitions(w) and _petitions(w)[0] is dlg          # not consumed
+        assert "Petition from Switzerland" in _titles(w)          # the rail notice kept
+        assert not _logged(w)
+        assert r.get("proposal_result") is None                   # no verdict was reached
+        assert r.get("diplomatic_dialogue") is not None           # the question re-carried
+        popup = r.get("incoming_proposal")
+        assert isinstance(popup, dict) and popup.get("is_petition") is True
+        assert popup.get("grant_enabled") is False and popup.get("grant_reason")
+        assert popup.get("dialogue_id") == dlg["dialogue_id"]
         assert w.diplomatic_points == 0
         assert w.vassals["Switzerland"]["loyalty"] == loy0
         assert _rel(w, "Switzerland", PLAYER) == rel0
         assert "remission_left" not in w.vassals["Switzerland"]
+        # the typed road refuses the same way and leaves it pending
+        r2 = _cmd(client, "grant the petition")
+        assert r2.get("success") is False and "stands until the turn ends" in str(r2.get("message"))
+        assert _petitions(w) and _petitions(w)[0] is dlg
+        # ...and the lapse charges the refusal price, as it always did
+        _end_turn(client)
+        log = _logged(w, "unanswered")
+        assert len(log) == 1 and log[0]["penalty"] is True
+        assert w.vassals["Switzerland"]["loyalty"] < loy0
+        assert _rel(w, "Switzerland", PLAYER) == rel0 - V.PETITION_RELATION_STEP
+
+    def test_d_lever_down_a_lord_who_cannot_pay_withdraws(self, http, monkeypatch):
+        """The False arm of `THE_LORD_PAYS_TO_GRANT` — the 7d10e20c
+        withdrawal, byte-for-byte on this surface."""
+        w, client = http
+        monkeypatch.setattr(V, "THE_LORD_PAYS_TO_GRANT", False, raising=False)
+        dlg = _deliver_seen(w, client, "Switzerland")
+        w.diplomatic_points = 0
+        loy0, rel0 = w.vassals["Switzerland"]["loyalty"], _rel(w, "Switzerland", PLAYER)
+        r = self._grant(client, dlg)
+        assert r.get("success") is False, r
+        assert "withdrawn" in str(r.get("message")) and "cannot spare the diplomatic point" in str(r.get("message"))
+        assert not _petitions(w)
+        assert not _logged(w)
+        assert w.vassals["Switzerland"]["loyalty"] == loy0
+        assert _rel(w, "Switzerland", PLAYER) == rel0
 
     def test_a_moot_refusal_is_not_a_penalty(self, http):
         w, client = http
@@ -936,6 +1176,59 @@ class TestT11ReValidationAtAnswer:
         assert _rel(w, "Switzerland", PLAYER) == rel0
         assert w.vassals["Switzerland"]["loyalty"] == V.TRANSFER_LOYALTY_RESET
         assert not _logged(w)
+
+    # ── IQ-7 review [41] (R11, Sept 18, 2026): release does not retire a
+    # pending petition, so `release switzerland` then `end turn` reaches
+    # `refuse_petition` with the ROW GONE — the one arm of its guard nothing
+    # covered (removing it dereferenced None and the turn never advanced).
+
+    def test_a_released_vassals_petition_is_refused_free_and_reported_withdrawn(self, http):
+        w, client = http
+        dlg = _deliver_seen(w, client, "Switzerland")
+        with _quiet():
+            assert V.release_vassal(w, "Switzerland")["success"]
+        assert "Switzerland" not in w.vassals
+        rel0 = _rel(w, "Switzerland", PLAYER)
+        r = _respond(client, "refuse the petition", dlg["dialogue_id"])
+        assert r.get("success") is False and "moot" in str(r.get("message"))
+        assert r["proposal_result"]["outcome"] == "WITHDRAWN"
+        assert not _petitions(w) and not _logged(w)
+        assert _rel(w, "Switzerland", PLAYER) == rel0
+
+    def test_a_released_vassals_petition_lapses_free_and_the_turn_advances(self, http):
+        w, client = http
+        _deliver(w, "Switzerland")
+        with _quiet():
+            assert V.release_vassal(w, "Switzerland")["success"]
+        assert "Switzerland" not in w.vassals and _petitions(w)
+        rel0 = _rel(w, "Switzerland", PLAYER)
+        r = _end_turn(client)                              # advances, or raises with its reason
+        assert not _logged(w) and not _petitions(w)
+        assert _rel(w, "Switzerland", PLAYER) == rel0
+        receipt = [e for e in r.get("events", []) if e.get("type") == "client_petition_answered"]
+        assert receipt and receipt[0]["outcome"] == "withdrawn" and receipt[0]["penalty"] is False
+
+    def test_sensitivity_the_gone_row_arm_is_what_keeps_the_turn_advancing(self, http, monkeypatch):
+        """The [41] mutation, applied at the seam: a `refuse_petition` that
+        reads the row before the guard (the Q-1 shape) makes `end turn` fail
+        after a release — proving the pin above is load-bearing."""
+        real = V.refuse_petition
+
+        def mutated(world, vassal_name, lord, petition, how):
+            world.vassals[vassal_name]["loyalty"]          # the guard removed: dereferences the gone row
+            return real(world, vassal_name, lord, petition, how=how)
+
+        monkeypatch.setattr(V, "refuse_petition", mutated)
+        w, client = http
+        _deliver(w, "Switzerland")
+        with _quiet():
+            assert V.release_vassal(w, "Switzerland")["success"]
+        before = int(w.current_turn)
+        try:
+            _cmd(client, "end turn")
+        except Exception:
+            pass
+        assert int(w.current_turn) == before
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1120,7 +1413,10 @@ class TestT14PayloadAndR7:
                             terms["refuse_line"], terms["vassal_display"]])
         assert "Kingdom of Italy" in prose
         assert RAW_TAG not in prose
-        assert "Petition from Kingdom of Italy" in _titles(w)
+        # PIN FLIPPED, IQ-7 review pass 3 (Sept 19, 2026, R3-8): the rail
+        # TITLE is a sentence fragment, so the court takes its article as the
+        # body always has — it was "Petition from Kingdom of Italy".
+        assert "Petition from the Kingdom of Italy" in _titles(w)
         # the authored envoy speaks for his court...
         assert payload["diplomat_name"] == w.diplomats[RAW_TAG].name == "Marescalchi"
         # ...and a court WITHOUT a diplomat record is named, never tagged
@@ -1128,14 +1424,15 @@ class TestT14PayloadAndR7:
         w.diplomats.pop(RAW_TAG)
         dlg2 = _deliver(w, RAW_TAG)
         payload2 = dlg2["popup_payload"]
-        assert payload2["diplomat_name"] == "the envoy of Kingdom of Italy"
+        # IQ-7 review R10 (Sept 18, 2026): the court carries its article.
+        assert payload2["diplomat_name"] == "the envoy of the Kingdom of Italy"
         # `from_nation` is the machine key the .gd humanizes at render; every
         # PROSE key of the payload must be clean
         for key in ("diplomat_name", "clauses", "talleyrand_assessment",
                     "proposal_type_display", "acceptance_hint", "rejection_hint",
                     "diplomat_line"):
             assert RAW_TAG not in json.dumps(payload2.get(key)), key
-        assert "the envoy of Kingdom of Italy brings a petition" in dlg2["talleyrand_text"]
+        assert "the envoy of the Kingdom of Italy brings a petition" in dlg2["talleyrand_text"]
         assert RAW_TAG not in dlg2["talleyrand_text"]
 
     def test_the_ledger_card_speaks_no_raw_tag(self):
@@ -1145,11 +1442,61 @@ class TestT14PayloadAndR7:
         # always carried it); every PROSE value must be clean.
         for key in ("bond", "standing", "recovery_hint", "autonomy_name", "capital"):
             assert RAW_TAG not in str(card.get(key, "")), key
-        assert card["standing"] == "may petition"
+        # IQ-7 review pass 2 P4-2 (Sept 18, 2026): CONSCIOUS FLIP — this
+        # fixture DELIVERS the Kingdom's petition, so the ask is ON THE DESK
+        # and the card says so: the gate copy below ("5 turns until it may
+        # ask") is true of the NEXT ask and read, beside an unanswered one in
+        # Envoys, as though none had come. `next_petition_in` keeps the
+        # gate's own count.
+        assert V.petition_on_the_desk(w, RAW_TAG, PLAYER) is True
+        assert card["standing"] == "petition on the desk"
+        assert card["standing_key"] == "pending"
+        assert card["next_petition_in"] == 5 - (w.current_turn - 1)   # the grace, turn 1
+        # ...and only for the client that asked: Switzerland's card is the gate's
+        swiss = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"]
+                     if r["name"] == "Switzerland")
+        assert swiss["standing_key"] == "grace"
+        # The ask answered (the dialogue gone), the gate copy returns.
+        assert w.dialogue_manager.remove_matching(V.is_client_petition) == 1
+        assert V.petition_on_the_desk(w, RAW_TAG, PLAYER) is False
+        card = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"] if r["name"] == RAW_TAG)
+        # IQ-7 review R7 ([08]/[20], Sept 18, 2026): CONSCIOUS FLIP — the card
+        # reads "may petition" ONLY when every gate passes at the next advance;
+        # at turn 1 the grace (b) blocks, so the standing IS the blocking
+        # reason and its countdown; and the relation term is the BOND, never
+        # a second "standing" on the same card.
+        assert card["standing"] == "5 turns until it may ask"
+        assert card["standing_key"] == "grace"
         assert card["relation"] == -60 and card["relation_modifier"] == -3
-        assert card["bond"] == "-3/turn — standing spent (-60)"
+        assert card["bond"] == "-3/turn — bond spent (-60)"
         assert card["remission_left"] == 0
         assert card["next_petition_in"] == 5 - (w.current_turn - 1)   # the grace, turn 1
+
+    def test_the_cadence_arm_and_the_positive_bond_copy(self):
+        """IQ-7 review [42] (R11, Sept 18, 2026): the pins above read only
+        the grace arm of `next_petition_in` and the NEGATIVE bond copy."""
+        w = _europe()
+        w.current_turn = 20
+        w.vassals["Switzerland"]["created_turn"] = 1
+        w.vassals["Switzerland"]["petitioned_turn"] = 20            # stamped this turn
+        card = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"] if r["name"] == "Switzerland")
+        assert card["next_petition_in"] == V.PETITION_INTERVAL_TURNS
+        assert card["standing"] == f"{V.PETITION_INTERVAL_TURNS} turns until it may ask"
+        assert card["standing_key"] == "cadence"
+        w.vassals["Switzerland"]["petitioned_turn"] = 20 - V.PETITION_INTERVAL_TURNS + 2
+        card = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"] if r["name"] == "Switzerland")
+        assert card["next_petition_in"] == 2 and card["standing"] == "2 turns until it may ask"
+        # one turn out the NEXT advance clears it: eligible, countdown 1
+        w.vassals["Switzerland"]["petitioned_turn"] = 20 - V.PETITION_INTERVAL_TURNS + 1
+        card = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"] if r["name"] == "Switzerland")
+        assert card["next_petition_in"] == 1 and card["standing"] == "may petition"
+        _set_rel(w, "Switzerland", PLAYER, 20)
+        card = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"] if r["name"] == "Switzerland")
+        assert card["bond"] == "+1/turn — a bond worth one honoured petition (bond 20)"
+        _set_rel(w, "Switzerland", PLAYER, 40)
+        card = next(r for r in build_diplomatic_ledger(w)["vassals"]["rows"] if r["name"] == "Switzerland")
+        assert card["bond"] == "+2/turn — a bond worth two honoured petitions (bond 40)"
+        assert card["relation"] == 40 and card["relation_modifier"] == 2
 
     def test_the_clauses_state_every_price_and_equal_the_single_source(self):
         w, dlg, terms = self._koi_petition()
@@ -1167,7 +1514,15 @@ class TestT14PayloadAndR7:
         assert f"{terms['tribute_per_turn']}g a turn" in grant
         assert f"{terms['standing_after_grant']:+d} a turn" in grant
         refuse = terms["refuse_line"]
-        assert f"loses {terms['refusal_loyalty']} loyalty and {terms['relation_refusal_step']} standing" in refuse
+        # IQ-7 review R6/R7 ([05]/[19]/[20], Sept 18, 2026): CONSCIOUS FLIP —
+        # the refuse line prices the APPLIED loss and names the relation term
+        # the client's bond, never "standing" (the standing to petition) and
+        # never "drift" (the −2 autonomy term).
+        assert (f"loses {terms['refusal_loyalty_applied']} loyalty and its bond with us "
+                f"falls {terms['relation_refusal_step_applied']}") in refuse
+        assert terms["refusal_loyalty_applied"] == terms["refusal_loyalty"] == 10
+        assert terms["relation_refusal_step_applied"] == terms["relation_refusal_step"] == 20
+        assert "drift" not in refuse and "standing" not in refuse
         assert f"{terms['standing_after_refusal']:+d} a turn" in refuse
         assert "nothing is charged" in refuse
         assert terms["lapse_line"].endswith("a lapse is a refusal.")
@@ -1185,7 +1540,7 @@ class TestT14PayloadAndR7:
             decision_reason="client_petition")
         assert rebuilt["is_petition"] is True
         assert rebuilt["clauses"] == dlg["popup_payload"]["clauses"]
-        assert rebuilt["proposal_type_display"] == "A Client's Petition"
+        assert rebuilt["proposal_type_display"] == "Client's Petition"
 
     def test_r7_the_rail_notices_name_the_court(self):
         """The fix in passing: the rebellion / defection / broke-free rail
@@ -1267,8 +1622,8 @@ class TestT14PayloadAndR7:
 
     def test_the_display_name_row_exists(self):
         from backend.display_names import PROPOSAL_TYPE_DISPLAY, proposal_display_name
-        assert PROPOSAL_TYPE_DISPLAY[V.CLIENT_PETITION_TYPE] == "A Client's Petition"
-        assert proposal_display_name(V.CLIENT_PETITION_TYPE) == "A Client's Petition"
+        assert PROPOSAL_TYPE_DISPLAY[V.CLIENT_PETITION_TYPE] == "Client's Petition"
+        assert proposal_display_name(V.CLIENT_PETITION_TYPE) == "Client's Petition"
         assert V.CLIENT_PETITION_TYPE == "client_petition"     # never the Jealousy channel's word
 
 
@@ -1279,11 +1634,20 @@ class TestT14PayloadAndR7:
 class TestT15R1TheWaveringLineTellsTheTruth:
     def test_the_honest_line_without_regiments(self):
         w = _europe()
+        # IQ-7 review [22] (Sept 18, 2026): CONSCIOUS FLIP — the crossing names
+        # the COST only ("only coin, a garrison or a province" was false:
+        # autonomy mends it, +10) and leaves the remedy to the event's own
+        # grip-aware recovery hint; with no hint on the event the line
+        # appends that hint itself, so a cost is never told without a lever.
         line = V.tier_crossing_line(RAW_TAG, 61, 59, world=w, lord=PLAYER)
         assert line == ("Kingdom of Italy is no longer a willing ally, Sire — it has lost "
-                        "the standing to petition you, and only coin, a garrison or a "
-                        "province will mend it now.")
+                        "the standing to petition you until its loyalty is mended.")
         assert "regiments" not in line and RAW_TAG not in line
+        assert "only coin" not in line
+        no_hint = V.tier_crossing_line(RAW_TAG, 61, 59, world=w, lord=PLAYER,
+                                       remedy_present=False)
+        assert no_hint.startswith(line)
+        assert no_hint.endswith(V.recovery_hint_for_grip(V.get_imperial_grip(w, PLAYER)))
 
     def test_the_regiments_clause_when_the_lord_fields_the_vassals_marshal(self):
         w = _europe()
@@ -1497,6 +1861,7 @@ def _load_driver(name):
 
 
 pdriver = _load_driver("playtest_driver_iq7")
+_DRIVE_SANDBOX: dict = {}       # run name -> where that driven run autosaved
 
 
 def _drive(name, turns, *, diplomacy="accept", client_petition="", levers=()):
@@ -1512,6 +1877,16 @@ def _drive(name, turns, *, diplomacy="accept", client_petition="", levers=()):
     drv = _load_driver(f"playtest_driver_iq7_{name}")
     prior_levers = [(module, attr, getattr(module, attr)) for module, attr, _ in levers]
     tmp = tempfile.mkdtemp(prefix=f"iq7_{name}_")
+    # IQ-7 review, SWEEP 2 (measured): `INK_IRON_SAVE_DIR` below is read ONCE, at
+    # `backend.save_manager` import, and the MODULE-scoped `driven_grant` is built
+    # BEFORE conftest's function-scoped `_isolate_save_dir` — so the driver's boot and
+    # its seven end turns autosaved into the developer's own `saves/autosave.json`
+    # (its mtime moved on every run of this file). The module attribute is what
+    # `autosave` reads; it is restored below.
+    import backend.save_manager as _save_manager
+    prior_save_dir = _save_manager.SAVE_DIR
+    _DRIVE_SANDBOX[name] = Path(tmp) / "saves"
+    _save_manager.SAVE_DIR = _DRIVE_SANDBOX[name]
     try:
         for module, attr, value in levers:
             setattr(module, attr, value)
@@ -1536,6 +1911,7 @@ def _drive(name, turns, *, diplomacy="accept", client_petition="", levers=()):
         assert rc == 0, rc
         world = M.world
     finally:
+        _save_manager.SAVE_DIR = prior_save_dir
         for module, attr, value in prior_levers:
             setattr(module, attr, value)
         M.world, M.parser = prior_main[0], prior_main[2]
@@ -1559,6 +1935,13 @@ POPUP_LINE = re.compile(r"POPUP diplomatic_dialogue: (\w[\w ]*?), client_petitio
 @pytest.fixture(scope="module")
 def driven_grant():
     return _drive("grant", 7)
+
+
+def test_the_driven_run_autosaves_into_its_own_sandbox(driven_grant):
+    """IQ-7 review, SWEEP 2: the suite must never write the developer's `saves/`
+    (conftest's own rule) — the module-scoped run autosaves into its sandbox."""
+    import backend.save_manager as save_manager
+    assert (Path(_DRIVE_SANDBOX["grant"]) / save_manager.AUTOSAVE_FILENAME).is_file()
 
 
 class TestT20TheDriver:
@@ -1767,7 +2150,7 @@ class TestThePL14SafetyNetKeepsADeliveredResult:
         dlg = _deliver_seen(w, client, "Switzerland")
         r = _respond(client, "grant the petition", dlg["dialogue_id"])
         assert r.get("success") is True, r.get("message")
-        assert r["proposal_result"]["proposal_type"] == "A Client's Petition", r["proposal_result"]
+        assert r["proposal_result"]["proposal_type"] == "Client's Petition", r["proposal_result"]
         assert r["proposal_result"]["outcome"] == "ACCEPT"
 
     def test_the_guard_reads_the_delivered_result(self):

@@ -3645,8 +3645,16 @@ class DiplomaticExecutor:
         # The sibling of the W6-0 check above, for the surface that has no
         # dialogue id. Runs before any choice parsing, for the same reason.
         if raw_text:
-            from backend.commands.dialogue_routing import court_mismatch_refusal
+            from backend.commands.dialogue_routing import (
+                court_mismatch_refusal, matter_mismatch_refusal,
+            )
             _mismatch = court_mismatch_refusal(world, dialogue, raw_text)
+            if _mismatch is not None:
+                return _mismatch
+            # IQ-7 review R9 ([09]): the matter noun is an addressee too —
+            # `accept the petition` typed while Portugal's letter is on top
+            # and the petition waits behind it signed Portugal's treaty.
+            _mismatch = matter_mismatch_refusal(world, dialogue, raw_text)
             if _mismatch is not None:
                 return _mismatch
         options = dialogue.get("options", [])
@@ -3807,6 +3815,52 @@ class DiplomaticExecutor:
             # ══════════════════════════════════════════════════════════
             if not selected and _MACHINE_ACTION_ID_RE.match(choice.strip()):
                 return _unresolved_choice_failure(_enumerated_choice_prompt())
+            # ══════════════════════════════════════════════════════════
+            # IQ-7 review pass 2 (P2-1) — THE THIRD COPY, for a CLIENT
+            # petition. `POST /respond_to_diplomatic_dialogue` accepts free
+            # text, and the arms below match a label by bare containment in
+            # both directions — so `grant the petition later` GRANTED here
+            # exactly as it did on the typed route (1 DP, the tribute
+            # forgone), and `refuse the petition later` REFUSED at the
+            # -10 / -20 price. One rule, one function: the free text must
+            # be an answer `match_dialogue_answer` itself would claim — a
+            # question, a deferral, a condition, a negation or a line that
+            # names both answers claims nothing — and the token it returns
+            # is what the arms below resolve. `/command` hands this
+            # function that token already, so the typed route is unchanged.
+            # ══════════════════════════════════════════════════════════
+            if not selected:
+                from backend.commands import dialogue_routing as _routing
+                if (_routing.A_PETITION_IS_ANSWERED_PLAINLY
+                        and _routing._is_client_petition_dialogue(dialogue)):
+                    _token = _routing.match_dialogue_answer(
+                        dialogue, choice.lower())
+                    if not _token:
+                        # Pass 3: ONE sentence, shared with the `/command`
+                        # router seam's in-place re-prompt (R3-2).
+                        return _unresolved_choice_failure(
+                            _routing.petition_reprompt_message(dialogue))
+                    choice = str(_token)
+                    for opt in options:
+                        if str(opt.get("action") or "") == choice:
+                            selected = opt
+                            break
+            # ══════════════════════════════════════════════════════════
+            # IQ-7 review pass 3 (R3-9) — A QUESTION IS NEVER AN ANSWER,
+            # the third copy. `should i accept?` sent here as free text
+            # signed the treaty exactly as it did on the typed route: the
+            # arms below read `accept` out of the question. An exact option
+            # id, a digit and an exact label are exempt (a label that ends
+            # in `?` still resolves — and they were resolved above anyway).
+            # ══════════════════════════════════════════════════════════
+            if not selected:
+                from backend.commands import dialogue_routing as _routing
+                if (_routing.A_QUESTION_NEVER_ANSWERS
+                        and _routing.line_asks_a_question(choice, options)):
+                    return _unresolved_choice_failure(
+                        "A question is not an answer, Sire — nothing was "
+                        "relayed. Answer with one of: "
+                        f"{_routing.format_numbered_options(dialogue)}.")
             # Keyword matching
             if not selected:
                 # FA-N2: the THIRD copy of this scan. `POST
@@ -5892,12 +5946,20 @@ class DiplomaticExecutor:
                 world.dialogue_manager.pop()
                 world.vassal_rebellion_imminent_popup = None
                 return {"success": False, "message": f"{vassal_name} is no longer a vassal."}
-            # Deploy garrison: +10 loyalty, costs 2 AP
+            # Show the flag: +10 loyalty, costs 2 AP — NO corps moves.
+            # IQ-7 review [21] (R3's sibling): the option's copy said "No
+            # corps moves" while the result said "Imperial garrison
+            # deployed" — the handler says what happened, and names the
+            # standing garrison lever only where it is still open.
+            from backend.display_names import display_nation
+            from backend.game_logic.vassal import lord_garrison_present
+            _court = display_nation(vassal_name)
             if world.actions_remaining < 2:
                 world.dialogue_manager.pop()
                 return {
                     "success": False,
-                    "message": f"Insufficient AP. Garrison deployment costs 2 AP, you have {int(world.actions_remaining)}.",
+                    "message": (f"Insufficient AP. Showing the flag in {_court} "
+                                f"costs 2 AP, you have {int(world.actions_remaining)}."),
                 }
             world.actions_remaining -= 2
             vassal_state = world.vassals.get(vassal_name, {})
@@ -5908,11 +5970,19 @@ class DiplomaticExecutor:
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
             world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
+            _capital = str(world.get_nation_capital(vassal_name) or "their capital")
+            if lord_garrison_present(world, world.player_nation, _capital):
+                _tail = (f"No corps moves — ours already stands in {_capital}, "
+                         f"worth +2 a turn.")
+            else:
+                _tail = (f"No corps moves — station one in {_capital} for a "
+                         f"standing +2 a turn.")
             return {
                 "success": True,
                 "message": (
-                    f"Imperial garrison deployed to {vassal_name}. "
-                    f"Loyalty: {int(old_loyalty)} → {int(vassal_state['loyalty'])}. (2 AP spent)"
+                    f"The flag is shown in {_court}: loyalty "
+                    f"{int(old_loyalty)} → {int(vassal_state['loyalty'])} "
+                    f"(2 AP spent). {_tail}"
                 ),
             }
 
@@ -6562,6 +6632,46 @@ class DiplomaticExecutor:
     # AI PROPOSAL RESPONSE HANDLERS (Phase 8 Session 4)
     # ═══════════════════════════════════════════════════════════
 
+    def _petition_stands(self, dialogue: Dict, reason: str, world,
+                         vassal: str, lord: str, petition: Dict) -> Dict:
+        """IQ-7 review R2: a Grant the lord cannot pay for is REFUSED without
+        consuming the petition. The dialogue is not popped, the rail notice
+        is not dismissed, nothing is charged; the response re-carries the
+        question (slice-6 rule: a response that carries a question never
+        carries a popped popup) with the re-priced popup payload, so the
+        client re-mounts it with Grant honestly disabled. Only Refuse or
+        the lapse can end the petition now — the price quoted for both
+        still applies."""
+        from backend.game_logic.mailbox_payloads import (
+            refresh_client_petition_dialogue,
+        )
+        from backend.game_logic.vassal import PETITION_DP_COST
+        reason = str(reason or "").strip().rstrip(".")
+        if "stands until" in reason:
+            message = reason + "."
+        else:
+            from backend.display_names import with_definite_article
+            from backend.game_logic.formations import formed_display_name
+            lord_display = with_definite_article(
+                formed_display_name(world, lord), capitalize=True)
+            if not reason:
+                reason = f"{lord_display} cannot spare the diplomatic point"
+            message = (f"{reason} — the petition stands until the turn ends; "
+                       f"keep {int(PETITION_DP_COST)} DP to grant it, or "
+                       f"refuse it.")
+        popup = refresh_client_petition_dialogue(world, dialogue)
+        result = {
+            "success": False,
+            "message": message,
+            "decision_reason": "stands",
+            "petition_stands": True,
+            "diplomatic_dialogue": dialogue,
+            "awaiting_diplomatic_response": True,
+        }
+        if isinstance(popup, dict) and popup:
+            result["incoming_proposal"] = popup
+        return result
+
     def _handle_accept_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Accept an incoming AI proposal. Executes the state transition."""
         from backend.game_logic.ai_diplomacy import check_alliance_conflict
@@ -6692,20 +6802,46 @@ class DiplomaticExecutor:
         # (the PL-14 rule).
         from backend.game_logic.vassal import is_client_petition
         if is_client_petition(dialogue):
-            world.dialogue_manager.pop()
-            from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             from backend.display_names import proposal_display_name
+            from backend.game_logic.mailbox_payloads import (
+                refresh_client_petition_dialogue,
+            )
             from backend.game_logic.vassal import (
                 CLIENT_PETITION_TYPE, grant_petition,
             )
             lord = str(terms.get("target_nation") or world.player_nation)
             vassal = str(terms.get("proposer_nation") or source_nation)
-            outcome = grant_petition(
-                world, vassal, lord,
-                terms.get("petition") if isinstance(terms.get("petition"), dict) else {},
-            )
-            granted = bool(outcome.get("success"))
+            # IQ-7 review R4: re-price the STORED subject from live state
+            # immediately before the grant, written back into the
+            # dialogue, so the typed route, the popup and the result
+            # message all read ONE dict (quote == applied).
+            refresh_client_petition_dialogue(world, dialogue)
+            terms = context.get("proposal", {}) or terms
+            petition = (terms.get("petition")
+                        if isinstance(terms.get("petition"), dict) else {})
+            # IQ-7 review R2 ([03]/[35]/[12]): the grant runs BEFORE the pop
+            # and BEFORE the notification dismiss, and its RETURNED outcome
+            # decides what is consumed. `stands` (the lord cannot pay, or
+            # gave the province elsewhere by his own hand — vassal's one
+            # verdict seam, lever `THE_LORD_PAYS_TO_GRANT`) is refused
+            # WITHOUT consuming the petition: the response re-carries the
+            # question (slice-6 rule) so the client re-mounts it, and only
+            # Refuse or the lapse can end it now. The lever's False arm
+            # answers `withdrawn` from the same seam — the 7d10e20c exit.
+            outcome = grant_petition(world, vassal, lord, petition)
+            verdict = str(outcome.get("outcome") or "")
+            if verdict == "stands":
+                return self._petition_stands(
+                    dialogue, str(outcome.get("message") or ""), world,
+                    vassal, lord, petition)
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            # R1: `fulfilled` (the deed already ceded the province) is an
+            # honoured petition; `granted` the ordinary one; anything else
+            # the executor reports by its RETURNED outcome, never a
+            # hard-coded REJECT.
+            granted = bool(outcome.get("success")) or verdict in ("granted", "fulfilled")
             message = str(outcome.get("message") or "")
             if not message:
                 from backend.game_logic.formations import formed_display_name
@@ -6715,15 +6851,18 @@ class DiplomaticExecutor:
             world.proposal_result_popup = {
                 "target_nation": source_nation,
                 "proposal_type": proposal_display_name(CLIENT_PETITION_TYPE),
-                "outcome": "ACCEPT" if granted else "REJECT",
+                "outcome": ("ACCEPT" if granted
+                            else "WITHDRAWN" if verdict == "withdrawn"
+                            else "REJECT"),
                 "message": message,
                 "feedback": str(outcome.get("feedback") or ""),
             }
             return {
                 "success": granted,
                 "message": message,
-                # "granted" or "withdrawn" — the executor's own word.
-                "decision_reason": str(outcome.get("outcome") or ""),
+                # "granted" / "fulfilled" / "withdrawn" — the executor's
+                # own word.
+                "decision_reason": verdict,
                 # The result popup above is THIS handler's. Without the flag
                 # the PL-14 safety net in `_respond_to_dialogue_sync`, seeing
                 # the popup already delivered, mints its generic fallback
@@ -6886,29 +7025,40 @@ class DiplomaticExecutor:
         if is_client_petition(dialogue):
             terms = context.get("proposal", {}) or {}
             source_nation = context.get("source_nation", "")
-            world.dialogue_manager.pop()
-            from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             from backend.display_names import proposal_display_name
+            from backend.game_logic.mailbox_payloads import (
+                refresh_client_petition_dialogue,
+            )
             from backend.game_logic.vassal import (
                 CLIENT_PETITION_TYPE, refuse_petition,
             )
             lord = str(terms.get("target_nation") or world.player_nation)
             vassal = str(terms.get("proposer_nation") or source_nation)
-            outcome = refuse_petition(
-                world, vassal, lord,
-                terms.get("petition") if isinstance(terms.get("petition"), dict) else {},
-                how="refused",
-            )
+            # IQ-7 review R4: the refusal reads the same re-priced dict the
+            # popup quoted (the standing/relation lines are live).
+            refresh_client_petition_dialogue(world, dialogue)
+            terms = context.get("proposal", {}) or terms
+            petition = (terms.get("petition")
+                        if isinstance(terms.get("petition"), dict) else {})
+            outcome = refuse_petition(world, vassal, lord, petition, how="refused")
+            verdict = str(outcome.get("outcome") or "")
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             message = str(outcome.get("message") or "")
             if not message:
                 from backend.game_logic.formations import formed_display_name
                 message = (f"{formed_display_name(world, vassal)}'s petition "
                            f"is refused, Sire. Its court will remember.")
+            # R1 / R10: the popup reports the RETURNED outcome — `fulfilled`
+            # (the deed already honoured it) is an acceptance, `withdrawn`
+            # (moot) is neither, only a refusal is "Rejected".
             world.proposal_result_popup = {
                 "target_nation": source_nation,
                 "proposal_type": proposal_display_name(CLIENT_PETITION_TYPE),
-                "outcome": "REJECT",
+                "outcome": ("ACCEPT" if verdict == "fulfilled"
+                            else "WITHDRAWN" if verdict == "withdrawn"
+                            else "REJECT"),
                 "message": message,
                 "feedback": str(outcome.get("feedback") or ""),
             }
@@ -6916,7 +7066,7 @@ class DiplomaticExecutor:
             # now) comes back `success False` — mirror it, never mint one.
             return {"success": bool(outcome.get("success", True)),
                     "message": message,
-                    "decision_reason": str(outcome.get("outcome") or ""),
+                    "decision_reason": verdict,
                     # This handler's own popup stands (see the grant arm).
                     "suppress_proposal_result_popup": True}
 

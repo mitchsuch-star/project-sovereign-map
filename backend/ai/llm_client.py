@@ -2136,6 +2136,10 @@ class LLMClient:
                 "invest in saxony", "invest in prussia", "invest in austria", "invest in britain",
             ]
             + [f"invest in {n}" for n in known_nations_lower]
+            # IQ-7 review round (Sept 18, 2026): a court that takes the article
+            # ("invest in the Kingdom of Italy") got Berthier's shrug while the
+            # article-less form executed; `cede ... to the ...` already parsed.
+            + [f"invest in the {n}" for n in known_nations_lower]
         )):
             action = "invest_vassal"
         elif (
@@ -2155,6 +2159,7 @@ class LLMClient:
                 "release saxony", "release prussia", "release austria", "release britain",
             ]
             + [f"release {n}" for n in known_nations_lower]
+            + [f"release the {n}" for n in known_nations_lower]
         )):
             action = "release_vassal"
         elif any(kw in command_lower for kw in [

@@ -6,6 +6,15 @@ Extracted from executor.py: invest_vassal, change_autonomy, make_vassal, release
 from typing import Dict
 
 
+def _court(world, target: str, *, capitalize: bool = False) -> str:
+    """IQ-7 review pass 4 (R4-5, R7, September 18, 2026): the court a vassal
+    verb names, by its DISPLAY name with its article — never the raw tag
+    (measured on the typed road: "KingdomOfItaly is already at maximum
+    autonomy."). `vassal._court_name` is the one composer."""
+    from backend.game_logic.vassal import _court_name
+    return _court_name(world, target, article=True, capitalize=capitalize)
+
+
 class VassalExecutor:
     """Handles vassal management commands."""
 
@@ -85,7 +94,9 @@ class VassalExecutor:
             v = vassals.get(target, {})
             current = v.get("autonomy", AUTONOMY_SATELLITE)
             if current >= AUTONOMY_AUTONOMOUS:
-                return {"success": False, "message": f"{target} is already at maximum autonomy."}
+                return {"success": False,
+                        "message": (f"{_court(world, target, capitalize=True)} "
+                                    f"is already at maximum autonomy.")}
             new_level = current + 1
         elif any(w in raw_text for w in ("decrease", "less autonomy", "tighten", "reduce")):
             # Direction-based: one level LESS autonomy
@@ -93,7 +104,9 @@ class VassalExecutor:
             v = vassals.get(target, {})
             current = v.get("autonomy", AUTONOMY_SATELLITE)
             if current <= AUTONOMY_PUPPET:
-                return {"success": False, "message": f"{target} is already at minimum autonomy."}
+                return {"success": False,
+                        "message": (f"{_court(world, target, capitalize=True)} "
+                                    f"is already at minimum autonomy.")}
             new_level = current - 1
         else:
             return {
@@ -206,7 +219,8 @@ class VassalExecutor:
                 return {
                     "success": False,
                     "message": (
-                        f"No province is eligible to cede to {target} — it must "
+                        f"No province is eligible to cede to "
+                        f"{_court(world, target)} — it must "
                         f"be conquered land (not your homeland, not a capital, "
                         f"not a marshal's estate) adjoining their territory."
                     ),
@@ -218,7 +232,8 @@ class VassalExecutor:
             return {
                 "success": False,
                 "message": (
-                    f"Specify which province to cede to {target} "
+                    f"Specify which province to cede to "
+                    f"{_court(world, target)} "
                     f"(costs {GRANT_DP_COST} DP). Eligible: {options}."
                 ),
             }
@@ -241,7 +256,9 @@ class VassalExecutor:
 
         vassals = getattr(world, 'vassals', {})
         if target not in vassals:
-            return {"success": False, "message": f"{target} is not a vassal."}
+            return {"success": False,
+                    "message": (f"{_court(world, target, capitalize=True)} "
+                                f"is not a vassal.")}
 
         if world.diplomatic_points < 1:
             return {"success": False, "message": "Insufficient Diplomatic Points. Releasing a vassal costs 1 DP."}

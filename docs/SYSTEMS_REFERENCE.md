@@ -5491,9 +5491,25 @@ rebellion modal 0–2 turns before the break.
   (`AN_UNANSWERED_PETITION_IS_REFUSED`) — `PETITION_REFUSAL_LOYALTY` −10
   (never blunted) and −20 relation; no DP; never an AI-3 ladder refusal
   (`diplomatic_refusals`, the rejection cooldowns and the schemer record are
-  untouched). A petition whose row is gone, whose lord changed, whose province
-  is no longer grantable or whose lord cannot pay is WITHDRAWN at answer time:
-  no charge, no penalty (both arms).
+  untouched). *(Amended by the review round, September 18, 2026.)* Every answer
+  runs ONE re-validation ladder, `_grant_verdict`: row → lord → THE DEED →
+  the fixed subject → DP. A petition whose row is gone or whose lord changed is
+  WITHDRAWN on both arms (no charge, no penalty); a province petition whose
+  region the vassal ALREADY holds from the lord's own `granted_regions` (the
+  typed `cede` or the wizard) is **FULFILLED** on both arms — the capped bond
+  step once, no DP, no second loyalty gain, never a refusal
+  (`petition_is_fulfilled`, lever `THE_DEED_HONOURS_THE_PETITION`); a province
+  lost OUTSIDE the lord's hands (fallen in war, not to his marshal's estate or
+  another of his vassals) is withdrawn on the refuse arm; a lord who cannot pay
+  1 DP, or whose own doing made the province ungrantable (an estate, a cooldown
+  from ceding another province, ceded to another client), has NOT answered (a
+  province the WORLD made ungrantable — lost contiguity — is withdrawn free) —
+  the Grant press **STANDS** (`THE_LORD_PAYS_TO_GRANT`): the petition stays
+  pending with the question re-carried and Grant disabled with its reason, so
+  only Refuse or the lapse can end it (an AI lord's `stands` is a refusal at the
+  same price, GR5); a relief whose live tribute is 0 is withdrawn on the grant
+  arm only (`A_RELIEF_OF_NOTHING_IS_WITHDRAWN`). Endowing a marshal with the
+  petitioned province and letting it lapse is a refusal.
 - **GR5.** `process_vassal_petitions` walks every lord; a player lord gets
   the letter through `deliver_ai_proposal`; an AI lord resolves in place —
   grants when it can pay and (for a province) the region is not in its own
@@ -5562,6 +5578,79 @@ success; the "−20 loyalty" there was wrong.
 **Routed (Golden Rule 9):** VD-C "The Contingent" (`VASSAL_DEEPENING_SPEC.md`
 §9), IQ7-D2 the Suitor (declined, re-open condition), IQ7-D3 Holland's
 unpayable design, IQ7-X1..X3, IQ7-X5 (`BUG_FIXES.md` §IQ-7).
+
+**The review round (September 18, 2026) — the rules that changed.**
+- **Shown = applied at every read.** The subject and region are frozen at issue; ONE
+  arithmetic (`_price_petition`, behind `petition_terms` and `reprice_petition`) re-prices
+  the FIXED subject from live state at `/pending_envoy`, `/mailbox/activate`, the safety
+  valve, the delivery passthrough and inside the answer handler immediately before the
+  grant — never the ladder, so the subject can never change under the player. The loyalty
+  gain is clamped to the ceiling in the copy ("+6 (to the 100 ceiling)").
+- **The province price names its parts, with its sign** (`province_grant_price` /
+  `province_price_line`): income forfeited, tribute returned at today's rate, the ES-2
+  occupation cost relieved, the ES-3 surcharge delta — the net is drift-pinned against the
+  ledger's applied net (stability 25 / 40 / 60 / 80 / 100 = +63 / +30 / −10 / −35 / −35). A
+  freshly conquered province is a GAIN to grant and the line says so.
+- **Vocabulary.** The vassal→lord relation term is the **bond** on every surface (never
+  "drift", which is the −2 satellite term, never "standing", which is eligibility only);
+  refusal and lapse lines quote the APPLIED, clamped figures.
+- **The card's verdict** is the producer's own gate ladder (`petition_gate_verdict`):
+  "may petition" only when every gate passes, else the blocking reason; the remission
+  countdown counts the collection the card's turn has not yet taken.
+- **The transfer sheds the remission.** `transfer_vassal` (VS-5 / VS-6) pops
+  `remission_left` and `petitioned_turn` (`THE_TRANSFER_SHEDS_THE_REMISSION`); the new
+  lord's next collection is paid in full; `created_turn` is not reset.
+- **The lapse is priced aloud — display only** (DECIDED: no mount over a settlement offer
+  or an ultimatum, no delivery re-ordering): the rail body, the end-turn receipt, the
+  `vassal_loyalty` event ("−13: refused petition, satellite drift, …"), LAPSED ENVOYS,
+  the end-turn gate's `pending_lapsing_petitions`, the campaign-log tails.
+- **The matter noun is an addressee** (`dialogue_routing.MATTER_NOUN_FAMILIES`,
+  `matter_mismatch_refusal`, both seams): a typed line naming a petition / ultimatum /
+  settlement while such a dialogue is QUEUED and the active one is not of that family is
+  refused, naming the court and Envoys; the petition's own vocabulary
+  (`PETITION_ANSWER_KEYWORDS`) answers it when it is current; a negated or deferred answer
+  never grants.
+- **The School of War issues no petitions** (`petitions_live`, ONE predicate read by the
+  producer, the card keys and the ledger gate). **A dead id-bound popup is never
+  delivered** with no dialogue pending (`main._popup_dialogue_is_current`, IQ7-X5).
+- **Passes 2 and 3 — the typed answer to a client petition is a CLOSED grammar that FAILS
+  CLOSED** (`dialogue_routing.petition_plain_answer`, lever
+  `A_PETITION_IS_ANSWERED_PLAINLY`). A typed line answers a CLIENT petition only if every
+  token is in a literal allowlist written beside the function: the address (`sire`,
+  `please`, the diplomat words — `Talleyrand, grant the petition` answers), the petition
+  nouns, the petition's OWN court forms, the petition's OWN subject (province: `province` +
+  the region; relief: `relief`, `remission`, never `tribute`), seventeen function words,
+  seven emphasis phrases, and answer words that all name ONE action; the auxiliaries
+  answer in STATEMENT order only (`shall` / `will` after `we` / `i`; `do` after `we` / `i` or
+  before an answer word), so no question can be built from the list. It is never derived
+  from `_ANSWER_FILLER_WORDS`. A line that is answer-led or diplomat-addressed but not plain
+  — or comma-addressed to a non-marshal, or a diplomat-addressed `no` — is re-prompted IN
+  PLACE (`petition_line_reprompt`) — nothing is ever mounted over a
+  current petition by a line that was trying to answer it. An unaccepted phrasing is a
+  re-prompt by design; the only defects this surface can have are an execution the line
+  does not plainly give, a displaced petition, or a regression of a pinned positive.
+- **A question is never an answer, for any dialogue** (`A_QUESTION_NEVER_ANSWERS`): a line
+  with `?`, one `is_question` flags, or one carrying a subject-auxiliary inversion anywhere
+  (`then shall we ratify`) resolves nothing at `match_dialogue_answer` or the free-text
+  button route; exact ids, digits, exact labels and a line carrying every word of a
+  question-shaped LABEL are exempt. The DEFERRAL half
+  for non-petition families (`accept the offer later` still signs) is `BUG_FIXES.md`
+  IQ7-X7, owned by CR-6 proper and pinned as current behaviour.
+- **The matter guard reads the table** (`THE_MATTER_GUARD_READS_THE_TABLE`): at the
+  `/command` router seam it fires only for an ANSWER-SHAPED line, so a typed order that
+  merely contains the noun (`send ultimatum to Austria`) reaches the executor; a verb the
+  ACTIVE dialogue offers is never claimed for a queued petition; with a client petition
+  current the COURT guard speaks first. **The button route reads the court**
+  (`THE_BUTTON_ROUTE_READS_THE_COURT`) when — and only when — it is sent free text.
+- **A change in the world withdraws; the lord's own doing stands.** `_grant_region_refusal`
+  classifies the refusal: an estate (the lord's doing) → `stands`, priced at the lapse;
+  lost contiguity → `withdrawn`, free on Grant, Refuse and the lapse. A moot petition quotes
+  no price it will not charge (`lapse_forecast` decides the popup's lines). The Vassals
+  card reads "petition on the desk" (`standing_key = "pending"`) while the ask is pending.
+- **The suite's save floor.** `tests/conftest.py` sets `INK_IRON_SAVE_DIR` at import, so a
+  module-scoped fixture or a child process can never write the developer's `saves/`.
+- **⚠ FOR USER CONFIRMATION:** the seven-seed ambient re-read breaches the contract's ±1
+  passive-France band on eylau (3 against 6 at turn 40; memo §3).
 
 ## 47. The harness tells the truth (IQ-8, landed September 18, 2026)
 

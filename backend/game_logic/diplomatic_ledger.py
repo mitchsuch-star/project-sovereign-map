@@ -785,9 +785,27 @@ def _build_vassals(world) -> Dict[str, Any]:
         # the standing to petition, the turns until the next ask, and the
         # bond the step-6 relation term is worth (shown nowhere before).
         # Gated on the lever read at CALL time, so a flipped lever hides
-        # the keys and the pre-slice card is byte-identical.
-        if _vassal.THE_CLIENT_PETITIONS:
-            row.update(petition_standing_keys(world, name))
+        # the keys and the pre-slice card is byte-identical. IQ-7 review
+        # [36] (Sept 18, 2026): the gate is `petitions_live` — the lever AND
+        # the School of War's dormancy — the SAME predicate the producer
+        # reads, so the card can never forecast a petition the producer will
+        # not issue (a bare-lever read left the lesson's card promising
+        # "may petition now" for a petition that could never come).
+        # (Sept 18, 2026, the final sweep: the gate lives in the single source —
+        # `petition_standing_keys` returns {} when `petitions_live` is False. A
+        # second copy of it here made BOTH guards invisible to a one-line
+        # mutation, so this call is unconditional and the source's gate is swept.)
+        row.update(petition_standing_keys(world, name))
+        # IQ-7 review [22] (R1's card sibling): the card's "Wavering — their
+        # marshals drag their feet" promises regiments VS-4 Rule 1b can only
+        # withhold when the lord actually fields a corps of the vassal's own
+        # colours. The dispatch line was made honest by R1; the card kept
+        # the claim. Display-only (GR6), keyed on the same lever, and the
+        # key is ABSENT with the lever down so an old payload or a
+        # lever-down game renders the card unchanged.
+        if _vassal.THE_WAVERING_LINE_IS_HONEST:
+            row["wavering_regiments"] = bool(
+                _vassal.lord_fields_the_vassals_regiments(world, player, name))
         rows.append(row)
 
     return {

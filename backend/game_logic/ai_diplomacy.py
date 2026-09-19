@@ -2016,11 +2016,18 @@ def _build_client_petition_dialogue(proposal: Dict, world) -> Dict:
     )
     from backend.game_logic.vassal import CLIENT_PETITION_TYPE
 
+    from backend.display_names import with_definite_article
+
     nation = proposal["source"]
     terms = proposal["terms"]
     petition = terms.get("petition") if isinstance(terms.get("petition"), dict) else {}
     decision_reason = proposal.get("decision_reason", "")
-    court = formed_display_name(world, nation)
+    # IQ-7 review [23]/[31] (R10): the court reads with its article where
+    # English wants one — "from the Kingdom of Italy", "The Kingdom of
+    # Italy petitions…"; "Switzerland" takes none.
+    court = with_definite_article(formed_display_name(world, nation))
+    court_cap = with_definite_article(formed_display_name(world, nation),
+                                      capitalize=True)
 
     diplomats = getattr(world, 'diplomats', {})
     diplomat = diplomats.get(nation)
@@ -2038,11 +2045,20 @@ def _build_client_petition_dialogue(proposal: Dict, world) -> Dict:
     assessment = client_petition_assessment(terms)
     subject = str(petition.get("subject") or "")
     if subject == "province":
-        ask = f"{court} petitions the Emperor for a province."
+        ask = f"{court_cap} petitions the Emperor for a province."
     elif subject == "relief":
-        ask = f"{court} petitions the Emperor for relief from its tribute."
+        ask = f"{court_cap} petitions the Emperor for relief from its tribute."
     else:
-        ask = f"{court} petitions the Emperor."
+        ask = f"{court_cap} petitions the Emperor."
+
+    # IQ-7 review R2: the Grant option carries honest availability from
+    # the ONE availability function, derived at delivery — and re-derived
+    # at every later read (`mailbox_payloads.refresh_client_petition_
+    # dialogue`), never trusted as baked: the petition is issued right
+    # after `_process_dp_regen`, so a flag stamped here always reads
+    # available (the IGR-2 pattern) until a read re-derives it.
+    grant_enabled = bool(popup_payload.get("grant_enabled", True))
+    grant_reason = str(popup_payload.get("grant_reason") or "")
 
     return {
         "type": "incoming_proposal",
@@ -2058,12 +2074,16 @@ def _build_client_petition_dialogue(proposal: Dict, world) -> Dict:
                 "description": (str(petition.get("grant_line") or "")
                                 or f"Grant what {court} asks."),
                 "action": "accept_ai_proposal",
+                "enabled": grant_enabled,
+                "reason": grant_reason,
             },
             {
                 "label": "Refuse the petition",
                 "description": (str(petition.get("refuse_line") or "")
                                 or f"Refuse {court}. It will remember."),
                 "action": "reject_ai_proposal",
+                "enabled": True,
+                "reason": "",
             },
         ],
         "context": {
@@ -2199,9 +2219,14 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     })
 
     # Dispatch event (Session 8D)
+    # IQ-7 review [14] (R10): the template arm reads `proposal_type`, so a
+    # petition's dispatch line says "petition", not "proposal" — same event
+    # type, same priority row, no new census entry.
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "diplomatic_ai_proposal",
-                        {"nation": nation}, "always")
+                        {"nation": nation,
+                         "proposal_type": str(proposal.get("proposal_type") or "")},
+                        "always")
 
     # Notification: AI proposal arrived (Session 8C)
     from backend.notifications import (
@@ -2212,7 +2237,9 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     # key failing _is_prose_safe_nation_key, which names "Holland" outright.
     from backend.game_logic.formations import formed_display_name
     sender = formed_display_name(world, nation)
-    from backend.game_logic.vassal import CLIENT_PETITION_TYPE
+    from backend.game_logic.vassal import (
+        AN_UNANSWERED_PETITION_IS_REFUSED, CLIENT_PETITION_TYPE,
+    )
     if proposal.get("proposal_type") == "ultimatum":
         # NA-5 §8: an ultimatum announces itself as one.
         world.notifications.add(create_notification(
@@ -2226,12 +2253,37 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     elif proposal.get("proposal_type") == CLIENT_PETITION_TYPE:
         # IQ-7: a client's petition announces itself as one — it is an ask
         # from a court that answers to Paris, not an envoy bearing terms.
+        #
+        # IQ-7 review R8(a): the rail is the ONE surface every player sees
+        # on arrival (on the shipped board the petition queues behind the
+        # settlement offer and never mounts on its own), so it states the
+        # rule and the price the lapse applies — from the petition's own
+        # terms (the SAME figures `refuse_petition` charges), gated on the
+        # lever so the lever-down copy stays honest ("costs nothing").
+        _petition = (proposal.get("terms") or {}).get("petition")
+        _petition = _petition if isinstance(_petition, dict) else {}
+        _dp = int(_petition.get("dp_cost", 1) or 1)
+        if bool(_petition.get("lapse_counts_as_refusal",
+                              AN_UNANSWERED_PETITION_IS_REFUSED)):
+            _loy = int(_petition.get("refusal_loyalty", 10) or 10)
+            _rel = int(_petition.get("relation_refusal_step", 20) or 20)
+            _lapse = (f"Left unanswered it counts as a refusal: −{_loy} "
+                      f"loyalty, −{_rel} bond.")
+        else:
+            _lapse = (str(_petition.get("lapse_line") or "").strip()
+                      or "Left unanswered it lapses at the end of the turn.")
+        from backend.display_names import with_definite_article
+        # IQ-7 review pass 3 (R3-8): the rail / mailbox TITLE is a sentence
+        # fragment, so the court takes its article as the body always has —
+        # "Petition from the Kingdom of Italy". (The mailbox HEADING form,
+        # "Kingdom of Italy — Client's Petition", is a label and stays bare.)
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
-            f"Petition from {sender}",
-            f"An envoy from {sender} has arrived with a petition. "
-            f"Grant it, or refuse it — it lapses at the end of the turn.",
+            f"Petition from {with_definite_article(sender)}",
+            f"An envoy from {with_definite_article(sender)} has arrived with "
+            f"a petition. Grant it (keep {_dp} DP in hand), or refuse it — "
+            f"it lapses at the end of the turn. {_lapse}",
             int(world.current_turn),
         ))
     else:

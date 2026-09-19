@@ -2675,6 +2675,28 @@ def _join_marshal_names(names) -> str:
     return f"{', '.join(clean[:-1])} and {clean[-1]}"
 
 
+def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
+    """One LAPSED ENVOYS row. IQ-7 review R8(b): a client's petition that
+    lapsed carries the priced result the lapse hook now keeps
+    (`turn_manager` stamps `petition` on the lapse info from
+    `refuse_petition`'s own return), so both renderers print the applied
+    figures — never "Client petition offer lapsed unanswered". A withdrawn
+    petition (moot before the lapse) carries its own line and no price."""
+    row: Dict[str, Any] = {
+        "nation": offer["nation"],
+        "proposal_type": (offer.get("proposal_type") or "proposal").replace("_", " "),
+    }
+    petition = offer.get("petition")
+    if isinstance(petition, dict) and petition:
+        row["is_petition"] = True
+        row["outcome"] = str(petition.get("outcome") or "")
+        row["penalty"] = bool(petition.get("penalty"))
+        line = str(petition.get("message") or "").strip()
+        if line:
+            row["line"] = line
+    return row
+
+
 def build_morning_dispatch(world, tactical_events: Optional[List] = None,
                            lapsed_offers: Optional[List] = None) -> Dict[str, Any]:
     """
@@ -2815,11 +2837,7 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     # Lapsed offers from previous turn-end
     if lapsed_offers:
         dispatch["lapsed_offers"] = [
-            {
-                "nation": offer["nation"],
-                "proposal_type": (offer.get("proposal_type") or "proposal").replace("_", " "),
-            }
-            for offer in lapsed_offers
+            _lapsed_offer_row(offer) for offer in lapsed_offers
         ]
 
     pending_envoys = [
@@ -3462,6 +3480,13 @@ _DISPATCH_EVENT_TYPES = {
     # is TOLD — the shadow_petition entry above records what happens when
     # a new beat is appended to the turn events but never added HERE.
     "strategic_objection_lapsed",
+    # IQ-7 review R8(b): a client's petition that LAPSED — the lapse hook
+    # used to throw `refuse_petition`'s priced message away, so a −10
+    # loyalty / −20 standing charge reached no end-turn surface. The
+    # receipt rides the turn events under the lord's `nation`, so an AI
+    # lord's in-place answers (same type, `nation` = that lord) are
+    # filtered out by the relevance gate below exactly as before.
+    "client_petition_answered",
 }
 
 
@@ -3541,6 +3566,10 @@ def _build_turn_events(
         elif event_type == "vassal_loyalty":
             # W6-3: falling loyalty is a warning; rising is mere info.
             severity = "warning" if int(event.get("delta", 0)) < 0 else "info"
+        elif event_type == "client_petition_answered":
+            # IQ-7 review R8(b): a lapse that charged the refusal price is a
+            # warning; a lever-down lapse (nothing charged) is mere info.
+            severity = "warning" if bool(event.get("penalty")) else "info"
 
         result.append({"message": msg, "severity": severity,
                        "type": event_type, "_source": event})
@@ -5131,6 +5160,17 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     # arms that sat below (diplomatic_treaty_broken, both
     # hard_reject_posture_* types) were removed; format_commitments_notice
     # owns their copy.
+
+    if (event_type == "diplomatic_ai_proposal"
+            and str(template_vars.get("proposal_type") or "") == "client_petition"):
+        # IQ-7 review [14] (R10): a client's petition announces itself as
+        # one on the dispatch too — the rail beside it already did, and the
+        # two contradicted each other on the same screen. Same event type
+        # and priority row; only the sentence branches.
+        from backend.display_names import display_nation, with_definite_article
+        nation = with_definite_article(
+            display_nation(str(template_vars.get("nation") or "a client court")))
+        return f"An envoy from {nation} has arrived with a petition."
 
     if event_type == "diplomatic_vassal_unrest":
         # FA-65: the remedy rides this beat, and it is OPTIONAL — the event

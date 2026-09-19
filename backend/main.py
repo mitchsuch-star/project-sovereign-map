@@ -535,6 +535,8 @@ def build_base_response(world, success: bool = True, message: str = "",
         # including it made the warning claim a loss that could not happen
         # — and, when it was the only item, a warning nothing could clear.
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+        # IQ-7 review R8(d): the priced petitions among them.
+        "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
         # IGR-F: the letter-book. Derived fresh from the dialogue manager on
         # every response so it can never go stale against the queue it
@@ -694,10 +696,22 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     can show the end-turn report first. Start from build_base_response() and
     layer only that specialized post-processing afterward.
     """
+    # IQ-7 review pass 3 (R3-7): PF-1 / D2, on the TYPED road. Settlement
+    # failure arms speak through `talleyrand_text` (in character) and
+    # `error_display` (the humanized reason) and may omit `message`; the
+    # button route has passed them through since PF-1, this builder never
+    # did. Measured: `grant the claim` typed at Spain's ally petition with
+    # the settlement table not open in authoring came back success=False,
+    # message="Command executed" — a refusal wearing the success voice, its
+    # stated reason ("The settlement table for this war is not open in
+    # authoring, Sire…") discarded.
+    _stated = (_message_with_suggestion(result)
+               or str(result.get("talleyrand_text") or "")
+               or str(result.get("error_display") or ""))
     response = build_base_response(
         world,
         success=result.get("success", False),
-        message=_message_with_suggestion(result) or "Command executed",
+        message=_stated or "Command executed",
         events=result.get("events", []),
         include_popup_passthroughs=False,
         queue_informational_notices=False,
@@ -778,6 +792,39 @@ def _pending_marshal_decisions(world) -> list:
         return list(pending_marshal_decisions(world))
     except Exception:
         return []
+
+
+def _pending_lapsing_petitions(world) -> list:
+    """IQ-7 review R8(d): the client PETITIONS that would lapse if the turn
+    ended now, beside `pending_lapsing_count` on every response that
+    carries it, each with its price — so the client's end-turn gate can name
+    them ("1 petition will be REFUSED if you end the turn: Switzerland —
+    −10 loyalty / −20 standing") instead of counting them among the free
+    envoys. Derived from the live dialogue manager on every response, never
+    cached (a value stamped at delivery goes stale after a mailbox answer,
+    a save/load or the lapse itself). `refused` follows the lever, so the
+    lever-down copy says "lapse", never "REFUSED"."""
+    from backend.game_logic import vassal as _vassal
+    from backend.game_logic.mailbox_payloads import lapsing_petitions
+    try:
+        rows = lapsing_petitions(world, str(getattr(world, "player_nation", "France")))
+    except Exception:
+        return []
+    lever = bool(getattr(_vassal, "AN_UNANSWERED_PETITION_IS_REFUSED", True))
+    out = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        # `penalised` is the forecast's own verdict for THIS petition (a
+        # moot or already-honoured one lapses free even with the lever up).
+        refused = bool(row["penalised"]) if "penalised" in row else lever
+        out.append({
+            "vassal": str(row.get("vassal") or ""),
+            "court": str(row.get("court") or row.get("vassal") or ""),
+            "price_line": str(row.get("price_line") or ""),
+            "refused": refused,
+        })
+    return out
 
 
 def _copy_truthy_result_fields(
@@ -1698,6 +1745,11 @@ def _derive_proposal_result_outcome(result: dict) -> str:
     raw_outcome = result.get("outcome", result.get("result", ""))
     if raw_outcome is not None:
         normalized = str(raw_outcome).strip().upper()
+        # IQ-7 review [12]/[23] (R10): a WITHDRAWN answer (the petition
+        # was moot — nothing charged, nothing granted) is neither accepted
+        # nor rejected; the fallback titled it "Rejected".
+        if "WITHDRAW" in normalized:
+            return "WITHDRAWN"
         if "REJECT" in normalized or "DECLIN" in normalized or "COUNTER" in normalized:
             return "REJECT"
         if "ACCEPT" in normalized or "APPROV" in normalized or "SUCCESS" in normalized:
@@ -1707,6 +1759,8 @@ def _derive_proposal_result_outcome(result: dict) -> str:
         return "ACCEPT" if bool(result.get("accepted")) else "REJECT"
 
     message = str(result.get("message", "")).lower()
+    if "withdrawn" in message:
+        return "WITHDRAWN"
     if ("reject" in message or "declin" in message or "empty-handed" in message
             or "not agree" in message or "unacceptable" in message):
         return "REJECT"
@@ -1744,6 +1798,8 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
     outcome_word = {
         "ACCEPT": "Accepted",
         "PENDING": "Dispatched",
+        # IQ-7 review [12]/[23] (R10): never "Rejected" for a withdrawal.
+        "WITHDRAWN": "Withdrawn",
     }.get(outcome, "Rejected")
     # PF-5: at most one proposal-result notice per counterparty on the rail —
     # each diplomatic command otherwise appended a fresh "Action Accepted/
@@ -1952,8 +2008,17 @@ def _popup_dialogue_is_current(world, popup) -> bool:
         return True
     current = getattr(world, "pending_diplomatic_dialogue", None)
     if not isinstance(current, dict):
-        # No dialogue at all: nothing can be mis-answered.
-        return True
+        # IQ7-X5 (IQ-7 review [37], September 18, 2026): "no dialogue at
+        # all" used to answer True — nothing can be mis-answered — and so a
+        # dialogue-bound popup whose dialogue had already been ANSWERED won
+        # `pop_highest` on the answer's own response: a typed `reject` of a
+        # petition came back re-offering it ("Grant it … for 1 DP"), the
+        # real result was pushed a response later, and the cache survived a
+        # /load. With no dialogue pending, an id-bound popup is deliverable
+        # only while its dialogue still EXISTS; a dead one is reaped by
+        # `_pop_deliverable_popup`. Covers the typed route, `/load`,
+        # `/mailbox/activate`, `/pending_envoy` and every id-bound producer.
+        return not _popup_dialogue_is_dead(world, popup)
     current_id = current.get("dialogue_id")
     if current_id is None:
         return True
@@ -2058,6 +2123,23 @@ def _include_popup_passthroughs(response: dict, world) -> None:
             )
 
             popup = winner_value.copy()
+            # IQ-7 review R4 / R2: the delivery-time cache of a client's
+            # petition is re-derived at the moment it is handed over — the
+            # same refresh every other read seam runs — so a same-turn
+            # lever or a DP spent before the first response never serves a
+            # stale price or a baked-available Grant. Bound to the CURRENT
+            # dialogue (the gate above already guarantees it is).
+            if popup.get("is_petition"):
+                _current = getattr(world, "pending_diplomatic_dialogue", None)
+                if (isinstance(_current, dict)
+                        and _current.get("dialogue_id") is not None
+                        and popup.get("dialogue_id") == _current.get("dialogue_id")):
+                    from backend.game_logic.mailbox_payloads import (
+                        refresh_client_petition_dialogue,
+                    )
+                    _fresh = refresh_client_petition_dialogue(world, _current)
+                    if isinstance(_fresh, dict) and _fresh:
+                        popup.update(_fresh)
             if "proposal_type" in popup and "proposal_type_display" not in popup:
                 popup["proposal_type_display"] = proposal_display_name(popup.get("proposal_type"))
             if popup.get("decision_reason") and "decision_reason_display" not in popup:
@@ -2529,6 +2611,7 @@ def test_connection():
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+        "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
     }
     # War status panel data (N4f) — for HUD initialization on page load
@@ -2943,6 +3026,17 @@ def execute_command(request: CommandRequest):
                     world.pending_diplomatic_dialogue, command_text.lower(),
                     _player_marshal_names(world),
                     world_regions=list(world.regions.keys())))
+                # IQ-7 review pass 3 (R3-2): a line the router will re-prompt
+                # IN PLACE at the current client petition was aimed at the
+                # petition, not at the field — never a phantom order in the
+                # history, never a delegation.
+                if not _consumed_as_dialogue_answer:
+                    from backend.commands.dialogue_routing import (
+                        petition_line_reprompt as _petition_line_reprompt,
+                    )
+                    _consumed_as_dialogue_answer = _petition_line_reprompt(
+                        world.pending_diplomatic_dialogue, command_text,
+                        _player_marshal_names(world), world=world) is not None
         if parsed.get("success") and not _consumed_as_dialogue_answer:
             _parsed_command = parsed.get("command", {})
             world.add_to_command_history({
@@ -3169,11 +3263,67 @@ def execute_command(request: CommandRequest):
                     "diplomatic_dialogue": _dlg,
                 }
             else:
-                # PL-27: Soft-stop — no dialogue keyword match. WO-7: the
-                # line falls through to the ORDINARY road below (recovery
-                # arms, marshal-choice question, then the executor) instead
-                # of a bare `executor.execute`.
-                print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
+                # IQ-7 review R9 ([09]/[13]): the matter noun is an
+                # addressee. A line that names a family noun ("the
+                # petition", "grant it") the ACTIVE letter does not speak
+                # of, while a dialogue of that family waits in the queue,
+                # is refused here — naming the court and where it waits —
+                # rather than falling to Berthier's shrug. The seam the
+                # court guard sits at inside the handler is the sibling
+                # for the lines the active letter DID claim.
+                #
+                # Pass 2 (P3-3): `answers_only` — at THIS seam no answer
+                # keyword matched the letter on top, so what arrives is
+                # either a stray answer or an ORDER that merely carries a
+                # family noun. Measured: with a Prussian ultimatum queued,
+                # `send ultimatum to Austria` was refused as "Prussia's
+                # ultimatum waits in Envoys" and never reached the
+                # executor's own ultimatum route. Only an ANSWER-SHAPED
+                # line is refused here; an order takes the ordinary road.
+                #
+                # Pass 3, with a CLIENT petition current (it is answered by
+                # the closed plain grammar, so far more lines arrive here):
+                #   * R3-3 — the COURT guard speaks first. Measured:
+                #     `accept portugal's offer` / `grant the kingdom of
+                #     italy's petition` got Berthier's shrug, because the
+                #     court guard sits at the handler seam and the plain
+                #     router never hands such a line on;
+                #   * R3-2 — a line that was TRYING to answer the petition
+                #     (`accept, they have earned it`; `Talleyrand, grant the
+                #     petition later`) is re-prompted IN PLACE. The ordinary
+                #     road mounted a marshal-choice question or the diplomat
+                #     route's nation picker OVER the petition, and the next
+                #     plain answer was refused.
+                from backend.commands.dialogue_routing import (
+                    court_mismatch_refusal_for_a_petition,
+                    matter_mismatch_refusal,
+                    petition_line_reprompt,
+                )
+                _matter = matter_mismatch_refusal(
+                    world, world.pending_diplomatic_dialogue, command_text,
+                    answers_only=True)
+                # (All three reads are pure; the court guard's refusal
+                # OUTRANKS the matter guard's, which outranks the re-prompt.)
+                _court = court_mismatch_refusal_for_a_petition(
+                    world, world.pending_diplomatic_dialogue, command_text)
+                if _court is not None:
+                    _matter = _court
+                elif _matter is None:
+                    # Pass 4 (R4-4): `world` lets shape (c) tell the player's
+                    # own ORDER about another court from a stray answer.
+                    _matter = petition_line_reprompt(
+                        world.pending_diplomatic_dialogue, command_text,
+                        _player_marshal_names(world), world=world)
+                if _matter is not None:
+                    print(f"[DIPLOMATIC] Matter-noun refusal: {raw_lower}")
+                    _dialogue_took_the_line = True
+                    result = _matter
+                else:
+                    # PL-27: Soft-stop — no dialogue keyword match. WO-7:
+                    # the line falls through to the ORDINARY road below
+                    # (recovery arms, marshal-choice question, then the
+                    # executor) instead of a bare `executor.execute`.
+                    print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
         if not _dialogue_took_the_line:
             # m1: Dialogue keywords typed with no active dialogue — clear
             # message. WO-7: only when NO dialogue is pending — with a
@@ -3918,12 +4068,28 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
     """
     try:
         dialogue_before = world.pending_diplomatic_dialogue or {}
+        # IQ-7 review pass 3 (R3-10): the button route reads the court. A
+        # choice that is FREE TEXT — not a digit, not an exact option id, not
+        # an exact label — names courts and matters as a typed line does, so
+        # it rides on as `raw_text` and the handler seam's court guard and
+        # matter guard read it. Measured: `accept Switzerland's petition`
+        # sent here with Portugal's letter current SIGNED PORTUGAL'S TREATY.
+        # (No shipped caller sends free text: the Godot client sends 1-based
+        # indexes, exact action ids and the bare words accept / reject /
+        # counter; the playtest driver sends exact action ids.)
+        from backend.commands.dialogue_routing import free_text_of_choice
+        _free_text = (free_text_of_choice(dialogue_before, choice)
+                      if action_params is None else None)
+        # A BUTTON's call is byte-identical to the pre-pass-3 one: the
+        # keyword rides only when there is free text to read.
+        _read_the_court = ({"raw_text": _free_text}
+                           if _free_text is not None else {})
         # Re-front Slice 2: structured settlement Tier-2 affordances (dials /
         # coverage edits / focus) ride on per-court rows + rail buttons and
         # carry `scope` / `nation` params the keyword path cannot express.
         result = executor.handle_diplomatic_dialogue_response(
             choice, game_state, action_params=action_params,
-            dialogue_id=dialogue_id,
+            dialogue_id=dialogue_id, **_read_the_court,
         )
 
         # PF-1 / D2: pass the handler's own text through instead of swallowing
@@ -3950,9 +4116,12 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
         # reason on a re-mounted dialogue instead of a silent no-op.
         # W6-0: `stale_dialogue` rides along so the client knows its rendered
         # dialogue was superseded (the current one is re-attached below).
+        # Pass 3 (R3-10): the court / matter guards now speak on this route
+        # too, so their flags ride along exactly as `/command` carries them.
         for failure_key in ("error", "error_display", "validation_error",
                             "validation_detail", "validation_error_index",
-                            "stale_dialogue"):
+                            "stale_dialogue", "court_mismatch",
+                            "matter_mismatch", "matter_family"):
             if result.get(failure_key) is not None:
                 response[failure_key] = result[failure_key]
 
@@ -4991,6 +5160,23 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
 
     context = dialogue.get("context", {})
     terms = context.get("counter_terms") or context.get("proposal") or {}
+    # IQ-7 review R4 / R2 ([11]/[34]/[16]/[12]): a client's petition is
+    # RE-PRICED on every read — `/pending_envoy`, `/mailbox/activate`, the
+    # PL-14 safety valve — from the ONE re-pricer on its STORED subject,
+    # and the result is written back into the dialogue (its stored
+    # petition, popup payload, option descriptions, Talleyrand text), so
+    # the price on the button is the price `grant_petition` applies. The
+    # Grant option's availability is derived here too, never served from
+    # the payload cached at delivery (the IGR-2 baked-flag pattern).
+    from backend.game_logic.mailbox_payloads import refresh_client_petition_dialogue
+    refreshed = refresh_client_petition_dialogue(world, dialogue)
+    if isinstance(refreshed, dict) and refreshed:
+        refreshed["is_counter_offer"] = False
+        if "proposal_type_display" not in refreshed:
+            proposal_type = refreshed.get("proposal_type", terms.get("type"))
+            if proposal_type is not None:
+                refreshed["proposal_type_display"] = proposal_display_name(proposal_type)
+        return _stamp_dialogue_id(refreshed)
     popup_payload = dialogue.get("popup_payload") or context.get("popup_payload")
     if isinstance(popup_payload, dict) and popup_payload:
         popup = popup_payload.copy()
@@ -5061,6 +5247,7 @@ def get_pending_envoy():
         "has_pending": False,
         "pending_envoy_count": int(dm.get_mailbox_count()),
         "pending_lapsing_count": int(dm.get_lapsing_count()),
+        "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
     }
 
@@ -5429,6 +5616,7 @@ def get_diplomatic_preview_endpoint(
                 "dialogue_pending": dialogue_pending,
                 "pending_envoy_count": int(dm.get_mailbox_count()),
                 "pending_lapsing_count": int(dm.get_lapsing_count()),
+                "pending_lapsing_petitions": _pending_lapsing_petitions(world),
                 "pending_marshal_decisions": _pending_marshal_decisions(world),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
@@ -5457,6 +5645,7 @@ def get_diplomatic_preview_endpoint(
             ),
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
             "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+            "pending_lapsing_petitions": _pending_lapsing_petitions(world),
             "pending_marshal_decisions": _pending_marshal_decisions(world),
             **preview,
         }

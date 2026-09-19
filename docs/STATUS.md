@@ -53,7 +53,7 @@
 > | 4 | ~~**IQ-4 THE CABINET IS VISIBLE**~~ | missions are mechanically live and invisible | PR-D2, PR-D3 | ✅ **CLOSED September 14, 2026**. One source for every mission surface (Cabinet, rail, log, help, tutorial). "The Court's Favour" ⚠ FOR USER CONFIRMATION. The counsel arm ticks **3 / 3 / 4** types on three seeds, the control 0. A P1 closed underneath (Talleyrand stranded IN_TRANSIT). Record `IMPROVEMENT_QUEUE_SPEC.md` §1.3 |
 > | 5 | ~~**IQ-5 BOTH SIDES OF THE BUTCHER'S BILL**~~ | the defender's casualty figure is unlabelled; FA-D23 has no copy | PR-X2, PR-X3 | ✅ **CLOSED September 14, 2026**. Both sides report their scope on every surface: the enemy-phase dialog, campaign log and dispatch were wrong too. Trust is named where it is paid, on both sides. IQ5-R1 routed. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.4 |
 > | 6 | ~~**IQ-6 EUROPE SPEAKS ITS MIND**~~ | Stage-F intent narration fires zero times | PR-X4; `volte_face` 0 in twelve runs | ✅ **CLOSED September 16, 2026** (built September 14). The narration's zero was the INSTRUMENT (the digest dropped every MEDIUM/LOW row; the producer fires 8 lines on the ambient run); the volte-face's was real — the 15-turn window could not fit the game's own courtship, and a bilateral peace never counted as a defeat. Window 15 → 20, the separate peace counts, the courier skips the routine cooldown, the exhaustion arm retired under GR9, and Talleyrand names the open door. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.5 |
-> | 7 | ~~**IQ-7 THE SATELLITES HAVE A POSITION**~~ | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ✅ **CLOSED September 16, 2026**. The premise had FLIPPED: after IQ-3 a commanded France at peace lost **2 / 3 / 3** satellites to the −2 drift. "The Client's Petition": a loyal satellite petitions for a province or tribute relief while it is still loyal; granting binds it, refusing spends its standing. GRANT holds **3 / 3 / 3** at turn 40 with 0 rebellion modals, REFUSE **0 / 0 / 0** by turns 21–23. Pillar vassals 6.5 → 7.0 ⚠ FOR USER CONFIRMATION. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.6 |
+> | 7 | ~~**IQ-7 THE SATELLITES HAVE A POSITION**~~ | vassals are invisible to good play and only ever rebel | 10 rebellions on five unattended arms, **0** on three commanded | ✅ **CLOSED September 16, 2026**. The premise had FLIPPED: after IQ-3 a commanded France at peace lost **2 / 3 / 3** satellites to the −2 drift. "The Client's Petition": a loyal satellite petitions for a province or tribute relief while it is still loyal; granting binds it, refusing spends its standing. GRANT holds **3 / 3 / 3** at turn 40 with 0 rebellion modals, REFUSE **0 / 0 / 0** by turns 21–23. Pillar vassals 6.5 → 7.0 ⚠ FOR USER CONFIRMATION. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.6. **Review round Sept 18: 39 of 43 findings survived, ALL FIXED or RECORDED over four passes (IQ7-RV1..RV33; IQ7-X7 routed to CR-6)** — the game's own `cede` verb was charged as a refusal; a typed `accept the petition` signed the letter ahead of it; the contract's DP-0 withdrawal was a dodge; quote ≠ applied at every read. ⚠ the seven-seed ambient re-read breaches the ±1 band on eylau (3 vs 6) FOR USER CONFIRMATION |
 > | 8 | ~~**IQ-8 THE HARNESS TELLS THE TRUTH**~~ | the instrument mis-records its own board | PR-X5, PR-D4 | ✅ **CLOSED September 18, 2026.** The hash seed does NOT move the board (the one order-dependent site was a naval display walk, now sorted — two processes at hash seeds 0 and 1 write byte-identical jsonl); PR-D4 closes as cause unrecoverable, its 20 / 24 / 22 row UNCITABLE under the new table rule; PR-X5 closed behind five driver levers — `meta.json` names what was REQUESTED and what was RESOLVED (seed, dice, scenario, map, env after import, platform, git commit + dirty + an LF-normalised content hash) and counts AP: **85 / 80 / 76 of 160 spent, France 28 / 28 / 29** on the IQ-8 archives. IQ6-X1 (the rotation resets at the world's creation) and IQ6-D4 (the `france_soil` arm restores the scene-4 positive) closed here. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.7; rules `SYSTEMS_REFERENCE.md` §47 |
 > | — | **VD-C THE CONTINGENT** (`VASSAL_DEEPENING_SPEC.md` §9) | a loyal satellite fields no men; VS-4's "its regiments hold back" has nothing to withhold | IQ-7's design 2, routed | the first vassal slice after row IQ closes — taken at the IQ exit review |
 > | 9 | ~~**IQ-9 THE KEYLESS PARSER GATE**~~ | the escalation path has no regression gate that runs without a key | the `--llm anthropic` arm could not run this session | ✅ **CLOSED September 18, 2026.** ONE seam (`AnthropicProvider.bind_sdk_client`), seventeen authored cassettes replayed at `messages.create`, the T0 floor (module-level `LLM_MODE=mock` + the loopback-only network guard — three test ids had been escalating to the REAL API on an anthropic `.env`), 112 keyless pins that each count live calls, `parser_eval --replay`. Routed IQ9-X1..X3 to CR-6 proper. Record `IMPROVEMENT_QUEUE_SPEC.md` §1.8; rules `SYSTEMS_REFERENCE.md` §48 |
@@ -285,6 +285,71 @@
 > one — and carries every open visual sign-off with it. **Completion:** a Mode
 > C pass on `SOVEREIGN_PORT=8006` with its own `INK_IRON_SAVE_DIR`, screenshots
 > archived, and UI/UX re-scored on named evidence.
+
+> ## ▶ THE IQ-7 REVIEW ROUND — LANDED September 18, 2026.
+>
+> Landing record = `BUG_FIXES.md` §The Satellites Have a Position (IQ-7), the review-round
+> block + rows **IQ7-RV1..RV33 + IQ7-X7**; the rules that changed = `SYSTEMS_REFERENCE.md` §46
+> (amended in place + the dated addendum); the spec's §1.6 carries the summary. A 73-agent
+> review on a snapshot of `7d10e20c` — six lenses, two refuters per P1/P2 told to attack
+> the FIX — filed 43 and killed 4; **every survivor is built or recorded.**
+>
+> **The two P1s were the ordinary route the builder had not walked.** (1) A player who
+> honoured the exact ask by the game's own `cede` verb — the route the recovery hint
+> teaches — was charged the REFUSAL at the lapse: 40 relation points and 12 loyalty worse
+> than pressing Grant. Now ONE re-validation ladder on both arms; the deed FULFILS the
+> petition (`petition_is_fulfilled` reads VS-3's own `granted_regions`, never the bare
+> controller — a settlement or a formation could hand the province over). (2) With a
+> routine letter current and the petition queued last (always, by producer order), a
+> typed `accept the petition` signed Portugal's treaty and `decline the petition` wrote an
+> AI-3 refusal — and the petition then lapsed as a refusal. The matter noun is an
+> addressee now at both routing seams (`MATTER_NOUN_FAMILIES`), keyed on the FAMILY so the
+> ally petition's own answer still works — the filed predicate would have refused it.
+>
+> **The P2s.** The contract's own T11(d) — "DP 0 at answer → withdrawn, no penalty" —
+> was a dodge (spend the DP, press Grant, escape the price); a DP-short Grant now STANDS
+> with honest availability derived at every read and the question re-carried
+> (`THE_LORD_PAYS_TO_GRANT`; the pin flipped consciously). A relief rode into the next
+> lord's ledger on a VS-5/VS-6 transfer (`THE_TRANSFER_SHEDS_THE_REMISSION`; measured
+> organically on friedland). The popup re-served the price frozen at ISSUE while the grant
+> applied the LIVE one — accept 1,800g forgone, pay 2,400 — fixed as ONE re-pricer on the
+> FIXED subject at every read and before the grant (re-quoting from the ladder would have
+> swapped the subject). The province price was ~4× too high and, on a freshly conquered
+> province, had the wrong SIGN (a +63g/turn gain called a cost): the parts with the sign,
+> drift-pinned to the ledger's net at five stabilities. The refuse line called the bond
+> "its drift"; the card said "may petition now" off three of seven gates and counted one
+> turn short; and the lapse's −10 / −20 reached NO surface the player was on — priced aloud
+> now on the rail, the end-turn receipt, the `vassal_loyalty` event, LAPSED ENVOYS and
+> the end-turn gate (display only: DECIDED, no mount over a settlement offer).
+>
+> **Also:** the School of War issued petitions (dormant now, ONE predicate); a typed
+> answer re-served the dead popup — IQ7-X5 closed here, not in IQ-10; the Garrison and
+> wavering copy; the article and label copy; six pins that could not fail. **⚠ FOR USER
+> CONFIRMATION:** the seven-seed ambient re-read breaches the contract's ±1
+> passive-France band on eylau (3 against 6 at turn 40; the refused petition breaks
+> Switzerland 3–12 turns earlier on every seed). Four levers, each measured 12/12 against
+> the committed module; `BASELINE_SERIES` + M1–M7 byte-identical; sweep `tools/_sweep_iq7_review.json` (312 rows) + `tools/_sweep_iq7.json` (55), swept WHOLE on a private copy of the final code: 365 killed and 2 INERT on the first run — both original IQ-7 rows that a second guard added by this round had made invisible (the ledger duplicated `petition_standing_keys`' own gate; pass 2's classified refusal withdrew a war-lost province without the arm the row mutates) — repaired (the duplicate guard removed, the pin re-pointed at the case only that arm decides) and re-run: **367 of 367 killed, 0 INERT, 0 BROKEN**; tests 476 new + the IQ-7 file at 95.
+>
+> **PASSES 2, 3 AND 4.** Pass 1's verifiers filed twelve residual defects, all built
+> (IQ7-RV17..RV23). A second verifier then showed **pass 2 had created a P2 of its own**:
+> its whole-line rule STRIPPED recognised filler, the subject words were subject-agnostic
+> and `instead` is general filler, so `grant them relief instead` typed at a PROVINCE
+> petition ceded Tyrol for 1 DP. ⛔ **The ruling that ended the loop:** the typed answer to a
+> client petition is now a CLOSED literal allowlist keyed to the petition's own subject
+> that FAILS CLOSED (`dialogue_routing.petition_plain_answer`) — an unaccepted phrasing is
+> a re-prompt by design, and a line that was trying to answer is re-prompted IN PLACE so
+> nothing is mounted over the petition (the diplomat address and the chatty yes, RV24;
+> `hmm, grant it` and `Talleyrand, no`, RV33). Pass 3's own verifiers found the ONE hole the
+> closed grammar admitted — `then shall we grant it`, a question with no `?` made only of
+> allowlist words, granted at price — closed by STATEMENT ORDER for the auxiliaries (RV30).
+> Closed on the way: **a QUESTION signed a treaty, on every family** (`should i accept?` at
+> Portugal's letter; `then shall we ratify` RATIFIED a settlement on the hard stop —
+> `A_QUESTION_NEVER_ANSWERS`, RV25 + RV32); the button route never read the
+> court (RV26, no shipped caller sends it free text); **the suite had been overwriting the
+> developer's own Continue slot** (module-scoped fixtures and child processes escape the
+> per-test sandbox — `tests/conftest.py` now sets `INK_IRON_SAVE_DIR` at import, RV29).
+> **Routed: IQ7-X7** — a deferred answer (`accept the offer later`) still signs an ORDINARY
+> letter; owner CR-6 proper; pinned as current behaviour and written to flip.
 
 > ## ▶ IQ-9 "THE KEYLESS PARSER GATE" — LANDED September 18, 2026. **ROW IQ-9 IS CLOSED.**
 >

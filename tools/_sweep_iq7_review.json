@@ -1,0 +1,2186 @@
+[
+ {
+  "id": "IQ7R-L1 THE_DEED_HONOURS_THE_PETITION down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "THE_DEED_HONOURS_THE_PETITION = True\n",
+  "new": "THE_DEED_HONOURS_THE_PETITION = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition"
+ },
+ {
+  "id": "IQ7R-L2 THE_LORD_PAYS_TO_GRANT down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "THE_LORD_PAYS_TO_GRANT = True\n",
+  "new": "THE_LORD_PAYS_TO_GRANT = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_d_a_lord_who_can_no_longer_pay"
+ },
+ {
+  "id": "IQ7R-L3 THE_TRANSFER_SHEDS_THE_REMISSION down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "THE_TRANSFER_SHEDS_THE_REMISSION = True\n",
+  "new": "THE_TRANSFER_SHEDS_THE_REMISSION = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR3TheTransferShedsTheRemission"
+ },
+ {
+  "id": "IQ7R-L4 A_RELIEF_OF_NOTHING_IS_WITHDRAWN down",
+  "file": "backend/game_logic/vassal.py",
+  "old": "A_RELIEF_OF_NOTHING_IS_WITHDRAWN = True\n",
+  "new": "A_RELIEF_OF_NOTHING_IS_WITHDRAWN = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_a_relief_of_nothing_is_withdrawn_and_the_lever_restores_the_old_grant"
+ },
+ {
+  "id": "IQ7R-R1a fulfilled ignores VS-3 provenance",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not region or region not in (row.get(\"granted_regions\") or []):\n        return False\n",
+  "new": "    if not region:\n        return False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_fulfilled_predicate_needs_vs3s_own_provenance"
+ },
+ {
+  "id": "IQ7R-R1b fulfilled ignores the controller",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return region_obj is not None and getattr(region_obj, \"controller\", \"\") == vassal_tag\n",
+  "new": "    return region_obj is not None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_fulfilled_predicate_needs_vs3s_own_provenance"
+ },
+ {
+  "id": "IQ7R-R1c fulfilled ignores a changed lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not row or str(row.get(\"lord\") or \"\") != lord:\n        return False\n    if str(petition.get(\"subject\") or \"\") != \"province\":\n",
+  "new": "    if not row:\n        return False\n    if str(petition.get(\"subject\") or \"\") != \"province\":\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_fulfilled_predicate_needs_vs3s_own_provenance"
+ },
+ {
+  "id": "IQ7R-R1d the grant verdict never consults the deed",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if petition_is_fulfilled(world, vassal_name, lord, petition):\n            return (\"fulfilled\",\n",
+  "new": "        if False:\n            return (\"fulfilled\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_cede_then_grant_charges_no_second_dp_and_no_second_gain"
+ },
+ {
+  "id": "IQ7R-R1e the refuse arm never consults the deed",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if petition_is_fulfilled(world, vassal_name, lord, petition):\n        return _honour_fulfilled(world, vassal_name, lord, petition, how=how)\n",
+  "new": "    if False:\n        return _honour_fulfilled(world, vassal_name, lord, petition, how=how)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_cede_then_refuse_is_honoured_and_reported_as_accepted"
+ },
+ {
+  "id": "IQ7R-R1f the waiver forgets another client of the lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    other = (getattr(world, \"vassals\", {}) or {}).get(controller) or {}\n    if other and str(other.get(\"lord\") or \"\") == lord:\n        return False\n",
+  "new": "    other = (getattr(world, \"vassals\", {}) or {}).get(controller) or {}\n    if False:\n        return False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_province_given_elsewhere_by_our_own_hand_stands_and_still_prices_the_refusal"
+ },
+ {
+  "id": "IQ7R-R1g the waiver forgets a marshal's estate abroad",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    for marshal in getattr(world, \"marshals\", {}).values():\n        if (getattr(marshal, \"nation\", \"\") == lord\n                and region in (getattr(marshal, \"dotation_regions\", []) or [])):\n            return False\n    return True\n",
+  "new": "    return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_marshals_estate_abroad_is_not_a_loss_in_war"
+ },
+ {
+  "id": "IQ7R-R1h a province lost in war is not withdrawn at the grant",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                if _province_lost_outside_the_lords_hands(world, lord, vassal_name, region):\n                    return (\"withdrawn\",\n",
+  "new": "                if False:\n                    return (\"withdrawn\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_province_lost_in_war_withdraws_both_arms_free"
+ },
+ {
+  "id": "IQ7R-R1i a province lost in war is charged at the refusal",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if region_obj is not None and controller != lord and \\\n                _province_lost_outside_the_lords_hands(world, lord, vassal_name, region):\n            return _withdrawn(",
+  "new": "        if False:\n            return _withdrawn(",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_province_lost_in_war_withdraws_both_arms_free"
+ },
+ {
+  "id": "IQ7R-R1j a province the client already holds is charged at the refusal",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if region_obj is not None and controller == vassal_name:\n            return _withdrawn(f\"{vd_cap} already holds {region} — the petition is \"\n",
+  "new": "        if False:\n            return _withdrawn(f\"{vd_cap} already holds {region} — the petition is \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_fulfilled_predicate_needs_vs3s_own_provenance"
+ },
+ {
+  "id": "IQ7R-R1k honouring the deed skips the bond step",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if step > 0:\n        world.modify_nation_relation(vassal_name, lord, step)\n    relation_after = _lord_relation(world, vassal_name, lord)\n    vd = _court_name(world, vassal_name, article=True)\n    message = (f\"{region} has already passed to {vd} by our own hand — the \"\n",
+  "new": "    relation_after = _lord_relation(world, vassal_name, lord)\n    vd = _court_name(world, vassal_name, article=True)\n    message = (f\"{region} has already passed to {vd} by our own hand — the \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once"
+ },
+ {
+  "id": "IQ7R-R1l the honoured deed is logged as a refusal",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        region=region, outcome=\"fulfilled\", penalty=False,\n        loyalty_before=loyalty, loyalty_after=loyalty,\n",
+  "new": "        region=region, outcome=\"refused\", penalty=False,\n        loyalty_before=loyalty, loyalty_after=loyalty,\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once"
+ },
+ {
+  "id": "IQ7R-R1m the lapse forecast never sees the deed",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if petition_is_fulfilled(world, vassal_name, lord, petition):\n        return {**base, \"outcome\": \"fulfilled\",\n",
+  "new": "    if False:\n        return {**base, \"outcome\": \"fulfilled\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once"
+ },
+ {
+  "id": "IQ7R-R2a a DP-short grant withdraws instead of standing",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if kind == \"stands\":\n        return _stands(verdict_message)\n",
+  "new": "    if kind == \"stands\":\n        return _withdrawn(verdict_message)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_verdict_seam_is_one_function tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_a_dp_short_grant_stands_and_the_lapse_then_charges_the_refusal"
+ },
+ {
+  "id": "IQ7R-R2b the verdict's DP arm ignores the lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if _dp_available(world, lord) < PETITION_DP_COST:\n        if THE_LORD_PAYS_TO_GRANT:\n            return (\"stands\",\n",
+  "new": "    if _dp_available(world, lord) < PETITION_DP_COST:\n        if False:\n            return (\"stands\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_verdict_seam_is_one_function"
+ },
+ {
+  "id": "IQ7R-R2c availability is always enabled",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if kind == \"ok\":\n        return (True, \"\")\n    return (kind != \"stands\", message)\n",
+  "new": "    if kind == \"ok\":\n        return (True, \"\")\n    return (True, message)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_availability_is_derived_at_every_read_never_baked tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_province_given_elsewhere_by_our_own_hand_stands_and_still_prices_the_refusal"
+ },
+ {
+  "id": "IQ7R-R2d availability disables a moot petition's Grant",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return (kind != \"stands\", message)\n",
+  "new": "    return (False, message)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_province_lost_in_war_withdraws_both_arms_free"
+ },
+ {
+  "id": "IQ7R-R2e the AI lord lets a petition stand (GR5)",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            if str(result.get(\"outcome\") or \"\") == \"stands\":\n                result = refuse_petition(world, vassal_name, lord, terms,\n                                         how=\"refused\")\n",
+  "new": "            if False:\n                result = refuse_petition(world, vassal_name, lord, terms,\n                                         how=\"refused\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_gr5_the_ai_lord_maps_stands_to_a_refusal_at_the_same_price"
+ },
+ {
+  "id": "IQ7R-R2f the answer handler pops before the grant",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            outcome = grant_petition(world, vassal, lord, petition)\n            verdict = str(outcome.get(\"outcome\") or \"\")\n            if verdict == \"stands\":\n                return self._petition_stands(\n                    dialogue, str(outcome.get(\"message\") or \"\"), world,\n                    vassal, lord, petition)\n            world.dialogue_manager.pop()\n",
+  "new": "            world.dialogue_manager.pop()\n            outcome = grant_petition(world, vassal, lord, petition)\n            verdict = str(outcome.get(\"outcome\") or \"\")\n            if verdict == \"stands\":\n                return self._petition_stands(\n                    dialogue, str(outcome.get(\"message\") or \"\"), world,\n                    vassal, lord, petition)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_a_dp_short_grant_stands_and_the_lapse_then_charges_the_refusal"
+ },
+ {
+  "id": "IQ7R-R2g the answer handler consumes a standing petition",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            if verdict == \"stands\":\n                return self._petition_stands(\n",
+  "new": "            if False:\n                return self._petition_stands(\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_a_dp_short_grant_stands_and_the_lapse_then_charges_the_refusal"
+ },
+ {
+  "id": "IQ7R-R2h the rail notice is dismissed before the grant",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            outcome = grant_petition(world, vassal, lord, petition)\n            verdict = str(outcome.get(\"outcome\") or \"\")\n",
+  "new": "            from backend.notifications import DIPLOMATIC_PROPOSAL as _DP_EARLY\n            world.notifications.dismiss_by_type(_DP_EARLY)\n            outcome = grant_petition(world, vassal, lord, petition)\n            verdict = str(outcome.get(\"outcome\") or \"\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_a_dp_short_grant_stands_and_the_lapse_then_charges_the_refusal"
+ },
+ {
+  "id": "IQ7R-R2j a standing petition's response drops the question",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            \"diplomatic_dialogue\": dialogue,\n            \"awaiting_diplomatic_response\": True,\n        }\n        if isinstance(popup, dict) and popup:\n",
+  "new": "            \"awaiting_diplomatic_response\": True,\n        }\n        if isinstance(popup, dict) and popup:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_a_dp_short_grant_stands_and_the_lapse_then_charges_the_refusal"
+ },
+ {
+  "id": "IQ7R-R2k the payload's availability keys are not written at the read",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "    payload[\"clauses\"] = list(lines)\n    payload[\"talleyrand_assessment\"] = assessment\n    payload.update(availability)\n",
+  "new": "    payload[\"clauses\"] = list(lines)\n    payload[\"talleyrand_assessment\"] = assessment\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_availability_is_derived_at_every_read_never_baked"
+ },
+ {
+  "id": "IQ7R-R2l the dialogue's own option keeps a baked enabled",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "            option[\"enabled\"] = availability[\"grant_enabled\"]\n            option[\"reason\"] = availability[\"grant_reason\"]\n        elif action == \"reject_ai_proposal\":\n",
+  "new": "            option[\"enabled\"] = True\n            option[\"reason\"] = \"\"\n        elif action == \"reject_ai_proposal\":\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_availability_is_derived_at_every_read_never_baked"
+ },
+ {
+  "id": "IQ7R-R2m availability is not derived at the payload build",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "        # R2: the Grant option's honest availability, derived at THIS read.\n        payload.update(petition_availability_keys(world, terms))\n",
+  "new": "        # R2: the Grant option's honest availability, derived at THIS read.\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_availability_is_derived_at_every_read_never_baked tests/test_iq7_review_round.py::TestR10Copy::test_the_payload_blanks_the_petitions_reason_and_carries_no_article"
+ },
+ {
+  "id": "IQ7R-R2n the delivered options bake Grant as enabled",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "                \"enabled\": grant_enabled,\n                \"reason\": grant_reason,\n",
+  "new": "                \"enabled\": True,\n                \"reason\": \"\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_delivered_options_carry_the_availability_at_delivery"
+ },
+ {
+  "id": "IQ7R-R3a the transfer keeps the remission",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        state.pop(\"remission_left\", None)\n        state.pop(\"petitioned_turn\", None)\n",
+  "new": "        state.pop(\"petitioned_turn\", None)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR3TheTransferShedsTheRemission"
+ },
+ {
+  "id": "IQ7R-R3b the transfer keeps the cadence stamp",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        state.pop(\"remission_left\", None)\n        state.pop(\"petitioned_turn\", None)\n",
+  "new": "        state.pop(\"remission_left\", None)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR3TheTransferShedsTheRemission::test_vs6_the_bribed_away_client_pays_its_new_lord_in_full tests/test_iq7_review_round.py::TestR3TheTransferShedsTheRemission::test_the_vs3_interlock_is_untouched_beside_the_new_pops"
+ },
+ {
+  "id": "IQ7R-R4a the re-pricer never returns None",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    kind, message = _grant_verdict(world, lord, vassal_tag, petition)\n    if kind == \"withdrawn\":\n        return None\n",
+  "new": "    kind, message = _grant_verdict(world, lord, vassal_tag, petition)\n    if False:\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_a_province_lost_in_war_withdraws_both_arms_free tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_a_relief_of_nothing_is_withdrawn_and_the_lever_restores_the_old_grant"
+ },
+ {
+  "id": "IQ7R-R4b the re-pricer re-runs the ladder",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    terms = _price_petition(world, lord, vassal_tag, subject,\n                            fulfilled=(kind == \"fulfilled\"))\n",
+  "new": "    terms = _price_petition(world, lord, vassal_tag, petition_subject(world, vassal_tag) or subject,\n                            fulfilled=(kind == \"fulfilled\"))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_stored_subject_is_never_re_decided"
+ },
+ {
+  "id": "IQ7R-R4c the re-pricer's cap is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    gain = max(0, min(gain_raw, LOYALTY_MAX - loyalty))\n",
+  "new": "    gain = int(gain_raw)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_clamped_gain_is_quoted_and_applied"
+ },
+ {
+  "id": "IQ7R-R4d the relief re-quote keeps the issue-time tribute",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        tribute = int(vassal_tribute_owed(world, vassal_name))\n        terms[\"tribute_per_turn\"] = tribute\n",
+  "new": "        tribute = int(subject.get(\"tribute_per_turn\") or vassal_tribute_owed(world, vassal_name))\n        terms[\"tribute_per_turn\"] = tribute\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_every_read_quotes_the_live_price_and_the_grant_applies_it"
+ },
+ {
+  "id": "IQ7R-R4e the grant reports the raw gain, not the realised one",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    gain = int(loyalty_after - loyalty_before)\n    bond_line = _bond_line(relation_before, relation_after)\n",
+  "new": "    gain = int(PETITION_RELIEF_LOYALTY)\n    bond_line = _bond_line(relation_before, relation_after)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_clamped_gain_is_quoted_and_applied"
+ },
+ {
+  "id": "IQ7R-R4f the full-loyalty result copy is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if gain <= 0 and loyalty_before >= LOYALTY_MAX:\n        loyalty_line = f\"Loyalty +0 ({loyalty_before} → {loyalty_after}, already full)\"\n",
+  "new": "    if False:\n        loyalty_line = f\"Loyalty +0 ({loyalty_before} → {loyalty_after}, already full)\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_clamped_gain_is_quoted_and_applied"
+ },
+ {
+  "id": "IQ7R-R4g the ceiling clause is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    elif gain < gain_raw:\n        loyalty_clause = f\"loyalty +{gain} (to the 100 ceiling)\"\n",
+  "new": "    elif False:\n        loyalty_clause = f\"loyalty +{gain} (to the 100 ceiling)\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_clamped_gain_is_quoted_and_applied"
+ },
+ {
+  "id": "IQ7R-R4h the fulfilled re-quote prints the ordinary grant line",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if fulfilled:\n        region_name = str(terms.get(\"region\") or \"\")\n        terms[\"grant_line\"] = (\n",
+  "new": "    if False:\n        region_name = str(terms.get(\"region\") or \"\")\n        terms[\"grant_line\"] = (\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once"
+ },
+ {
+  "id": "IQ7R-R4i the refresh never writes the re-priced petition back",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "    if isinstance(repriced, dict) and repriced:\n        petition = dict(repriced)\n        terms[\"petition\"] = petition\n",
+  "new": "    if False:\n        petition = dict(repriced)\n        terms[\"petition\"] = petition\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_every_read_quotes_the_live_price_and_the_grant_applies_it"
+ },
+ {
+  "id": "IQ7R-R4j the option description keeps the issue-time line",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "        if action == \"accept_ai_proposal\":\n            if grant_line:\n                option[\"description\"] = grant_line\n            option[\"enabled\"] = availability[\"grant_enabled\"]\n",
+  "new": "        if action == \"accept_ai_proposal\":\n            option[\"enabled\"] = availability[\"grant_enabled\"]\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_every_read_quotes_the_live_price_and_the_grant_applies_it"
+ },
+ {
+  "id": "IQ7R-R4k the refresh runs on an ordinary letter too",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "    if not isinstance(dialogue, dict) or not V.is_client_petition(dialogue):\n        return None\n",
+  "new": "    if not isinstance(dialogue, dict):\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_refresh_leaves_an_ordinary_letter_alone"
+ },
+ {
+  "id": "IQ7R-R4l the pending-envoy rebuild serves the delivery-time price",
+  "file": "backend/main.py",
+  "old": "    refreshed = refresh_client_petition_dialogue(world, dialogue)\n    if isinstance(refreshed, dict) and refreshed:\n        refreshed[\"is_counter_offer\"] = False\n",
+  "new": "    refreshed = None\n    if isinstance(refreshed, dict) and refreshed:\n        refreshed[\"is_counter_offer\"] = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_every_read_quotes_the_live_price_and_the_grant_applies_it tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_availability_is_derived_at_every_read_never_baked"
+ },
+ {
+  "id": "IQ7R-R4m the passthrough hands over the delivery-time cache",
+  "file": "backend/main.py",
+  "old": "            if popup.get(\"is_petition\"):\n                _current = getattr(world, \"pending_diplomatic_dialogue\", None)\n",
+  "new": "            if False:\n                _current = getattr(world, \"pending_diplomatic_dialogue\", None)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_delivery_response_re_derives_the_cached_popup"
+ },
+ {
+  "id": "IQ7R-R4n the answer handler grants without re-pricing",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            refresh_client_petition_dialogue(world, dialogue)\n            terms = context.get(\"proposal\", {}) or terms\n            petition = (terms.get(\"petition\")\n                        if isinstance(terms.get(\"petition\"), dict) else {})\n            # IQ-7 review R2 ([03]/[35]/[12]): the grant runs BEFORE the pop\n",
+  "new": "            terms = context.get(\"proposal\", {}) or terms\n            petition = (terms.get(\"petition\")\n                        if isinstance(terms.get(\"petition\"), dict) else {})\n            # IQ-7 review R2 ([03]/[35]/[12]): the grant runs BEFORE the pop\n",
+  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_handler_writes_the_live_price_back_with_no_response_in_between tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_the_answer_handler_reprices_immediately_before_the_grant"
+ },
+ {
+  "id": "IQ7R-R5a the price drops the occupation relief",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        + parts[\"occupation_relieved\"] + parts[\"infrastructure_relieved\"]\n",
+  "new": "        + parts[\"infrastructure_relieved\"]\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_the_quoted_net_equals_the_ledgers_applied_net"
+ },
+ {
+  "id": "IQ7R-R5b the tribute part is per-province, not with/without",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        parts[\"tribute_gained\"] = int((base + added) * rate) - int(base * rate)\n",
+  "new": "        parts[\"tribute_gained\"] = int(added * rate)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_the_tribute_part_is_the_floor_of_the_sum_never_per_province tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_the_quoted_net_equals_the_ledgers_applied_net"
+ },
+ {
+  "id": "IQ7R-R5c a standing remission still counts tribute",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not parts[\"remission_standing\"]:\n        rate = float(row.get(\"tribute_rate\", 0.5))\n",
+  "new": "    if True:\n        rate = float(row.get(\"tribute_rate\", 0.5))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_a_standing_remission_names_no_tribute_returned"
+ },
+ {
+  "id": "IQ7R-R5d a rising net is called a fall",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if net > 0:\n        head = f\"Our net rises by {net}g a turn\"\n",
+  "new": "    if net > 0:\n        head = f\"Our net falls by {net}g a turn\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_the_grant_line_and_the_result_print_the_signed_net_and_the_parts"
+ },
+ {
+  "id": "IQ7R-R5e a disrupted province's suspended income is not credited",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    parts[\"contributions_relief\"] = effective if is_disrupted else 0\n",
+  "new": "    parts[\"contributions_relief\"] = 0\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_a_disrupted_province_forfeits_nothing_it_was_not_collecting"
+ },
+ {
+  "id": "IQ7R-R5f the remission clause is gone",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if parts.get(\"remission_standing\"):\n        bits.append(f\"no tribute returned while {vassal_the}'s remission stands\")\n",
+  "new": "    if False:\n        bits.append(f\"no tribute returned while {vassal_the}'s remission stands\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_a_standing_remission_names_no_tribute_returned"
+ },
+ {
+  "id": "IQ7R-R5g the grant result calls the province's income a cost",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                   f\"{province_price_line(priced['price_parts'], vd)}\")\n",
+  "new": "                   f\"Cost: the province's income.\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR5TheProvincePriceNamesItsParts::test_the_grant_line_and_the_result_print_the_signed_net_and_the_parts"
+ },
+ {
+  "id": "IQ7R-R6a the refusal step ignores the relation floor",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    refusal_step_applied = relation - relation_after_refusal\n",
+  "new": "    refusal_step_applied = int(PETITION_RELATION_STEP)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR6TheRefuseLineQuotesTheAppliedFigures::test_at_the_relation_floor_the_step_and_the_after_figure_are_the_clamped_ones"
+ },
+ {
+  "id": "IQ7R-R6b the refusal loyalty ignores the loyalty floor",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    refusal_loyalty_applied = loyalty - max(LOYALTY_MIN, loyalty - PETITION_REFUSAL_LOYALTY)\n",
+  "new": "    refusal_loyalty_applied = int(PETITION_REFUSAL_LOYALTY)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR6TheRefuseLineQuotesTheAppliedFigures::test_at_the_loyalty_floor_the_loss_is_what_is_left"
+ },
+ {
+  "id": "IQ7R-R6c the refuse clause calls the bond a drift",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    bond_refuse = (f\"its bond with us falls {refusal_step_applied} \"\n",
+  "new": "    bond_refuse = (f\"its drift with us falls {refusal_step_applied} \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR6TheRefuseLineQuotesTheAppliedFigures::test_the_grant_and_refuse_clauses_name_the_bond_in_the_same_terms tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_the_clauses_state_every_price_and_equal_the_single_source"
+ },
+ {
+  "id": "IQ7R-R6d the refusal message prints the constant, not the delta",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                   f\"−{loyalty_before - loyalty_after} ({loyalty_before} → \"\n",
+  "new": "                   f\"−{PETITION_REFUSAL_LOYALTY} ({loyalty_before} → \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR6TheRefuseLineQuotesTheAppliedFigures::test_at_the_loyalty_floor_the_loss_is_what_is_left"
+ },
+ {
+  "id": "IQ7R-G1 the quote is never grip-blunted",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        gain_raw = int(PETITION_RELIEF_LOYALTY * get_authority_lever_multiplier(world, lord))\n",
+  "new": "        gain_raw = int(PETITION_RELIEF_LOYALTY)\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_the_blunting_binds_at_a_spiral_grip_in_quote_and_grant_and_never_on_refusal"
+ },
+ {
+  "id": "IQ7R-G2 the grant is never grip-blunted",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        gain_raw = int(PETITION_RELIEF_LOYALTY\n                       * get_authority_lever_multiplier(world, lord))\n        row[\"loyalty\"] = int(min(LOYALTY_MAX, loyalty_before + gain_raw))\n",
+  "new": "        gain_raw = int(PETITION_RELIEF_LOYALTY)\n        row[\"loyalty\"] = int(min(LOYALTY_MAX, loyalty_before + gain_raw))\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_the_blunting_binds_at_a_spiral_grip_in_quote_and_grant_and_never_on_refusal"
+ },
+ {
+  "id": "IQ7R-Q1 the refuse arm forgets the gone row",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not row or str(row.get(\"lord\") or \"\") != lord:\n        return _withdrawn(f\"{vd_cap}'s petition is moot — it no longer answers \"\n",
+  "new": "    if row and str(row.get(\"lord\") or \"\") != lord:\n        return _withdrawn(f\"{vd_cap}'s petition is moot — it no longer answers \"\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_a_released_vassals_petition_lapses_free_and_the_turn_advances tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_a_released_vassals_petition_is_refused_free_and_reported_withdrawn"
+ },
+ {
+  "id": "IQ7R-R7a the gate verdict is always eligible",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return (key == \"eligible\", key, int(turns))\n",
+  "new": "    return (True, key, int(turns))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_card_skips_the_dp_gate_the_producer_reads_live tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_producer_and_the_card_read_one_gate"
+ },
+ {
+  "id": "IQ7R-R7b the remission countdown is one turn short again",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    remission_n = 0 if remission <= 0 else (remission + 1 if projected else remission)\n",
+  "new": "    remission_n = 0 if remission <= 0 else remission\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_countdown_and_may_petition_are_kept_through_real_end_turns tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_standing_names_the_blocking_gate_and_never_a_second_standing"
+ },
+ {
+  "id": "IQ7R-R7c the card does not project the next advance",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    threshold = 1 if projected else 0\n",
+  "new": "    threshold = 0\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_countdown_and_may_petition_are_kept_through_real_end_turns"
+ },
+ {
+  "id": "IQ7R-R7d the card reads today's spent DP",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not projected and _dp_available(world, lord) < PETITION_DP_COST:\n        return (\"dp\", timed, None)\n",
+  "new": "    if _dp_available(world, lord) < PETITION_DP_COST:\n        return (\"dp\", timed, None)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_card_skips_the_dp_gate_the_producer_reads_live"
+ },
+ {
+  "id": "IQ7R-R7e the standing reads loyalty alone again",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        \"standing\": _gate_copy(key, turns, remission),\n",
+  "new": "        \"standing\": (\"may petition\" if key != \"loyalty\" else \"no standing to petition\"),\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_standing_names_the_blocking_gate_and_never_a_second_standing"
+ },
+ {
+  "id": "IQ7R-R7f bonded reads as nothing to ask for",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        return (\"bonded\" if relation >= PETITION_BOND_CAP else \"no_subject\", timed, None)\n",
+  "new": "        return (\"no_subject\", timed, None)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_standing_names_the_blocking_gate_and_never_a_second_standing"
+ },
+ {
+  "id": "IQ7R-R7g the bond clause says standing",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                f\"(bond {relation})\")\n",
+  "new": "                f\"(standing {relation})\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_standing_names_the_blocking_gate_and_never_a_second_standing tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_the_cadence_arm_and_the_positive_bond_copy"
+ },
+ {
+  "id": "IQ7R-R7h the spent bond says standing",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        bond = f\"{modifier:+d}/turn — bond spent ({relation})\"\n",
+  "new": "        bond = f\"{modifier:+d}/turn — standing spent ({relation})\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_standing_names_the_blocking_gate_and_never_a_second_standing tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_the_ledger_card_speaks_no_raw_tag"
+ },
+ {
+  "id": "IQ7R-R7i the eligible copy says now",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    \"eligible\": \"may petition\",\n",
+  "new": "    \"eligible\": \"may petition now\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_standing_names_the_blocking_gate_and_never_a_second_standing tests/test_iq7_review_round.py::TestClientSourcePins::test_the_vassals_card_renders_the_petition_keys"
+ },
+ {
+  "id": "IQ7R-S1 petitions are live on the tutorial world",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return not is_tutorial_world(world)\n",
+  "new": "    return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_school_of_war_issues_no_petition_and_its_card_forecasts_none"
+ },
+ {
+  "id": "IQ7R-S2 petitions_live ignores the lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not THE_CLIENT_PETITIONS:\n        return False\n    from backend.game_logic.tutorial_state import is_tutorial_world\n",
+  "new": "    from backend.game_logic.tutorial_state import is_tutorial_world\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_card_is_empty_where_petitions_are_not_live tests/test_iq7_satellites_have_a_position.py::TestT1LeverDownSilence"
+ },
+ {
+  "id": "IQ7R-S3 the producer reads the bare lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not petitions_live(world):\n        return []\n    vassals = getattr(world, \"vassals\", None) or {}\n",
+  "new": "    if not THE_CLIENT_PETITIONS:\n        return []\n    vassals = getattr(world, \"vassals\", None) or {}\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_school_of_war_issues_no_petition_and_its_card_forecasts_none"
+ },
+ {
+  "id": "IQ7R-S4 the card keys are built where petitions are not live",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not petitions_live(world):\n        return {}\n",
+  "new": "    if False:\n        return {}\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_card_is_empty_where_petitions_are_not_live tests/test_iq7_review_round.py::TestR10Copy::test_the_school_of_war_issues_no_petition_and_its_card_forecasts_none"
+ },
+ {
+  "id": "IQ7R-S5 the gate verdict ignores dormancy",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not petitions_live(world):\n        return (False, \"dormant\", 0)\n",
+  "new": "    if False:\n        return (False, \"dormant\", 0)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_card_is_empty_where_petitions_are_not_live"
+ },
+ {
+  "id": "IQ7R-R8a the lapse forecast is never penalised",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    return {**base, \"outcome\": \"refused\", \"penalised\": True,\n",
+  "new": "    return {**base, \"outcome\": \"refused\", \"penalised\": False,\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_end_turn_gate_names_the_priced_petition_and_forgets_an_answered_one"
+ },
+ {
+  "id": "IQ7R-R8b the lapse forecast ignores the lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not AN_UNANSWERED_PETITION_IS_REFUSED:\n        return {**base, \"outcome\": \"free\",\n",
+  "new": "    if False:\n        return {**base, \"outcome\": \"free\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_lever_down_the_gate_says_lapse_not_refused"
+ },
+ {
+  "id": "IQ7R-R8c the forecast's price line calls the lapse free",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            \"price_line\": (f\"{vd_cap} — −{loyalty_loss} loyalty / −{bond_loss} bond \"\n                           f\"(a lapse is a refusal)\")}\n",
+  "new": "            \"price_line\": (f\"{vd_cap} — −{loyalty_loss} loyalty / −{bond_loss} bond \"\n                           f\"(a lapse is free)\")}\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_end_turn_gate_names_the_priced_petition_and_forgets_an_answered_one"
+ },
+ {
+  "id": "IQ7R-R8d lapsing_petitions reads the current dialogue only",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    for d in [dm.peek()] + list(dm.iter_queue()):\n        if not isinstance(d, dict) or not is_client_petition(d):\n",
+  "new": "    for d in [dm.peek()]:\n        if not isinstance(d, dict) or not is_client_petition(d):\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_end_turn_gate_names_the_priced_petition_and_forgets_an_answered_one"
+ },
+ {
+  "id": "IQ7R-R8e the base response carries no priced petitions",
+  "file": "backend/main.py",
+  "old": "        # IQ-7 review R8(d): the priced petitions among them.\n        \"pending_lapsing_petitions\": _pending_lapsing_petitions(world),\n",
+  "new": "        # IQ-7 review R8(d): the priced petitions among them.\n        \"pending_lapsing_petitions\": [],\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_end_turn_gate_names_the_priced_petition_and_forgets_an_answered_one"
+ },
+ {
+  "id": "IQ7R-R8f refused follows the lever, not the forecast",
+  "file": "backend/main.py",
+  "old": "        refused = bool(row[\"penalised\"]) if \"penalised\" in row else lever\n",
+  "new": "        refused = lever\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once"
+ },
+ {
+  "id": "IQ7R-R8g the rail promises no price",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            _lapse = (f\"Left unanswered it counts as a refusal: −{_loy} \"\n                      f\"loyalty, −{_rel} bond.\")\n",
+  "new": "            _lapse = \"\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_rail_states_the_rule_and_the_price_on_arrival"
+ },
+ {
+  "id": "IQ7R-R8h the rail prices a lapse with the lever down",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        if bool(_petition.get(\"lapse_counts_as_refusal\",\n                              AN_UNANSWERED_PETITION_IS_REFUSED)):\n",
+  "new": "        if True:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_lever_down_the_rail_promises_no_price"
+ },
+ {
+  "id": "IQ7R-R8i the rail drops the keep-DP clause",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            f\"a petition. Grant it (keep {_dp} DP in hand), or refuse it — \"\n",
+  "new": "            f\"a petition. Grant it, or refuse it — \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_rail_states_the_rule_and_the_price_on_arrival"
+ },
+ {
+  "id": "IQ7R-R8j the lapse hook throws the result away",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                if isinstance(_result, dict):\n                    petition_lapses.append({\n",
+  "new": "                if False:\n                    petition_lapses.append({\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8k the lapse row is not stamped",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                if _pl is not None:\n                    _r = _pl[\"result\"]\n                    lapse[\"petition\"] = {\n",
+  "new": "                if False:\n                    _r = _pl[\"result\"]\n                    lapse[\"petition\"] = {\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8l the offer_lapsed log row is not stamped",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                if isinstance(lapse.get(\"petition\"), dict):\n                    # R8(e): the one-liner quotes the applied price.\n                    _lapse_row[\"petition\"] = dict(lapse[\"petition\"])\n",
+  "new": "                if False:\n                    # R8(e): the one-liner quotes the applied price.\n                    _lapse_row[\"petition\"] = dict(lapse[\"petition\"])\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8m the tick's reason forgets the refusal",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                    reason = (\"refused petition\" + (f\", {reason}\" if reason else \"\"))\n",
+  "new": "                    reason = reason\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8n the tick's delta is the tick's alone",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                    total = new_loyalty - before\n",
+  "new": "                    total = int(event.get(\"delta\", 0) or 0)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8o the receipt trails the tick",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        insert_at = tick_index if tick_index is not None else len(events)\n        events.insert(insert_at, receipt)\n",
+  "new": "        events.append(receipt)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8p the receipt is never inserted",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        events.insert(insert_at, receipt)\n    return events\n",
+  "new": "    return events\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8q the ordinary end turn never threads the lapse",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        # IQ-7 review R8(b)/(c): the lapsed petition's receipt joins the\n        # turn events (after the advance, which replaced them wholesale).\n        tactical_events = _thread_petition_lapses(\n            self.world, tactical_events, petition_lapses)\n",
+  "new": "        # IQ-7 review R8(b)/(c): the lapsed petition's receipt joins the\n        # turn events (after the advance, which replaced them wholesale).\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8r no tick event, no line",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "            if tick_index is None:\n                # No tick event this turn (the drift fell under the ≥2\n",
+  "new": "            if False:\n                # No tick event this turn (the drift fell under the ≥2\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud"
+ },
+ {
+  "id": "IQ7R-R8s the LAPSED ENVOYS row drops the priced line",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        line = str(petition.get(\"message\") or \"\").strip()\n        if line:\n            row[\"line\"] = line\n",
+  "new": "        line = str(petition.get(\"message\") or \"\").strip()\n        if False:\n            row[\"line\"] = line\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8t the LAPSED ENVOYS row calls the lapse free",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        row[\"is_petition\"] = True\n        row[\"outcome\"] = str(petition.get(\"outcome\") or \"\")\n        row[\"penalty\"] = bool(petition.get(\"penalty\"))\n",
+  "new": "        row[\"is_petition\"] = True\n        row[\"outcome\"] = str(petition.get(\"outcome\") or \"\")\n        row[\"penalty\"] = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8u the receipt is not a dispatch event type",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"client_petition_answered\",\n}\n",
+  "new": "}\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8v the receipt's severity is always info",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            severity = \"warning\" if bool(event.get(\"penalty\")) else \"info\"\n",
+  "new": "            severity = \"info\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8w the answered one-liner drops the price tail",
+  "file": "backend/campaign_log.py",
+  "old": "        if (event.get(\"penalty\") and verdict.endswith(\"refused\")\n                and event.get(\"loyalty_before\") is not None):\n",
+  "new": "        if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8x the lapsed one-liner drops the price",
+  "file": "backend/campaign_log.py",
+  "old": "            if petition.get(\"penalty\"):\n                return (f\"{court}'s petition lapsed unanswered — refused: \"\n",
+  "new": "            if False:\n                return (f\"{court}'s petition lapsed unanswered — refused: \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_queued_lapse_reaches_every_end_turn_surface"
+ },
+ {
+  "id": "IQ7R-R8y the lapsed one-liner never says moot",
+  "file": "backend/campaign_log.py",
+  "old": "            if outcome == \"withdrawn\":\n                return f\"{court}'s petition lapsed unanswered — moot, nothing charged\"\n",
+  "new": "            if False:\n                return f\"{court}'s petition lapsed unanswered — moot, nothing charged\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_a_petition_made_moot_before_the_lapse_carries_no_price"
+ },
+ {
+  "id": "IQ7R-R8z the lapsed one-liner has no petition arm",
+  "file": "backend/campaign_log.py",
+  "old": "        if str(event.get(\"proposal_type\") or \"\") == \"client_petition\":\n            court = with_definite_article(display_nation(str(nation)), capitalize=True)\n",
+  "new": "        if False:\n            court = with_definite_article(display_nation(str(nation)), capitalize=True)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival"
+ },
+ {
+  "id": "IQ7R-R9a the noun guard never refuses",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if not named:\n            continue\n        same_family = bool(predicate(dialogue))\n",
+  "new": "        if True:\n            continue\n        same_family = bool(predicate(dialogue))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_typed_petition_answer_never_answers_the_letter_on_top"
+ },
+ {
+  "id": "IQ7R-R9b the noun guard refuses the active family too",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        same_family = bool(predicate(dialogue))\n",
+  "new": "        same_family = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_family_rules_at_the_guard"
+ },
+ {
+  "id": "IQ7R-R9c naming the active court no longer proceeds",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if active and active in addressed:\n        return None\n\n    from backend.display_names import display_nation, with_definite_article\n",
+  "new": "    from backend.display_names import display_nation, with_definite_article\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_line_that_also_names_the_active_court_proceeds"
+ },
+ {
+  "id": "IQ7R-R9d the noun guard fires with nothing queued",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        waiting = _queued_matter_dialogues(world, predicate)\n        if not waiting:\n            continue\n",
+  "new": "        waiting = _queued_matter_dialogues(world, predicate)\n        if False:\n            continue\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_family_rules_at_the_guard"
+ },
+ {
+  "id": "IQ7R-R9e the petition vocabulary matches by containment",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if len(kept) != 1:\n        return None\n    return _PETITION_VERB_ACTIONS.get(kept[0])\n",
+  "new": "    for word in kept:\n        if word in _PETITION_VERB_ACTIONS:\n            return _PETITION_VERB_ACTIONS[word]\n    return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_vocabulary_is_whole_line_only tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_negated_or_deferred_answer_never_grants"
+ },
+ {
+  "id": "IQ7R-R9f the petition's own words answer nothing",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    \"grant\": _PLAIN_GRANTS, \"accept\": _PLAIN_GRANTS, \"agree\": _PLAIN_GRANTS,\n",
+  "new": "    \"accept\": _PLAIN_GRANTS, \"agree\": _PLAIN_GRANTS,\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_petitions_own_words_answer_it_when_it_is_current"
+ },
+ {
+  "id": "IQ7R-R9g a bare grant it is not a petition-family line",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if (not named and family == \"petition\"\n                and petition_vocabulary_answer(typed) is not None):\n            named = True\n",
+  "new": "        if False:\n            named = True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_typed_petition_answer_never_answers_the_letter_on_top"
+ },
+ {
+  "id": "IQ7R-R9h the refusal points at the letter-book",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                f\"{named_courts[1:]}'s {noun}{plural} {verb} in Envoys — open \"\n                f\"Envoys and answer it there.\"\n",
+  "new": "                f\"{named_courts[1:]}'s {noun}{plural} {verb} in the letter-book — open \"\n                f\"the letter-book and answer it there.\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_typed_petition_answer_never_answers_the_letter_on_top"
+ },
+ {
+  "id": "IQ7R-R9i the waiting court loses its article",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        named_courts = \" and \".join(\n            with_definite_article(display_nation(c)) for c in courts) or \"a court\"\n",
+  "new": "        named_courts = \" and \".join(display_nation(c) for c in courts) or \"a court\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_family_rules_at_the_guard"
+ },
+ {
+  "id": "IQ7R-R9j the ally petition is not petition-family",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if str(dialogue.get(\"type\") or \"\") == \"ally_settlement_petition\":\n        return True\n    from backend.game_logic.vassal import is_client_petition\n",
+  "new": "    from backend.game_logic.vassal import is_client_petition\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_family_rules_at_the_guard"
+ },
+ {
+  "id": "IQ7R-R9k the ultimatum family is empty",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if str(dialogue.get(\"type\") or \"\") == \"incoming_ultimatum\":\n        return True\n",
+  "new": "    if False:\n        return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_family_rules_at_the_guard"
+ },
+ {
+  "id": "IQ7R-R9l the /command router skips the noun guard",
+  "file": "backend/main.py",
+  "old": "                _matter = matter_mismatch_refusal(\n                    world, world.pending_diplomatic_dialogue, command_text,\n                    answers_only=True)\n",
+  "new": "                _matter = None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_typed_petition_answer_never_answers_the_letter_on_top"
+ },
+ {
+  "id": "IQ7R-R9m the handler seam skips the noun guard",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            _mismatch = matter_mismatch_refusal(world, dialogue, raw_text)\n            if _mismatch is not None:\n                return _mismatch\n        options = dialogue.get(\"options\", [])\n",
+  "new": "        options = dialogue.get(\"options\", [])\n",
+  "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_the_handler_seam_refuses_the_same_line"
+ },
+ {
+  "id": "IQ7R-C1 _court_name ignores the article",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    name = formed_display_name(world, nation)\n    if not article:\n        return name\n    return with_definite_article(name, capitalize=capitalize)\n",
+  "new": "    name = formed_display_name(world, nation)\n    return name\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_court_name_composes_its_article_at_the_sentence tests/test_iq7_satellites_have_a_position.py::TestT4TheProvinceSubject::test_the_petition_names_tyrol_and_the_grant_cedes_it"
+ },
+ {
+  "id": "IQ7R-C2 the display row carries its article again",
+  "file": "backend/display_names.py",
+  "old": "    \"client_petition\": \"Client's Petition\",\n",
+  "new": "    \"client_petition\": \"A Client's Petition\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_payload_blanks_the_petitions_reason_and_carries_no_article tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_the_display_name_row_exists"
+ },
+ {
+  "id": "IQ7R-C3 the decision-reason rows are gone",
+  "file": "backend/display_names.py",
+  "old": "    \"fulfilled\": \"already honoured\",\n    \"withdrawn\": \"withdrawn\",\n    \"stands\": \"the petition stands\",\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_payload_blanks_the_petitions_reason_and_carries_no_article"
+ },
+ {
+  "id": "IQ7R-C4 the payload keeps the raw decision reason",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "        payload[\"decision_reason\"] = \"\"\n        payload[\"decision_reason_display\"] = \"\"\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_payload_blanks_the_petitions_reason_and_carries_no_article"
+ },
+ {
+  "id": "IQ7R-C5 the fallback envoy loses its article",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "            payload[\"diplomat_name\"] = (\n                f\"the envoy of \"\n                f\"{with_definite_article(formed_display_name(world, nation))}\")\n",
+  "new": "            payload[\"diplomat_name\"] = (\n                f\"the envoy of {formed_display_name(world, nation)}\")\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_no_raw_tag_reaches_the_popup_or_the_dialogue"
+ },
+ {
+  "id": "IQ7R-C6 the dialogue text loses the court's article",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    court = with_definite_article(formed_display_name(world, nation))\n    court_cap = with_definite_article(formed_display_name(world, nation),\n                                      capitalize=True)\n",
+  "new": "    court = formed_display_name(world, nation)\n    court_cap = court\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT14PayloadAndR7::test_no_raw_tag_reaches_the_popup_or_the_dialogue"
+ },
+ {
+  "id": "IQ7R-C7 the rail notice loses the court's article",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            f\"An envoy from {with_definite_article(sender)} has arrived with \"\n",
+  "new": "            f\"An envoy from {sender} has arrived with \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_rail_names_the_court_with_its_article tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_rail_states_the_rule_and_the_price_on_arrival"
+ },
+ {
+  "id": "IQ7R-C8 the dispatch event carries no proposal_type",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "                        {\"nation\": nation,\n                         \"proposal_type\": str(proposal.get(\"proposal_type\") or \"\")},\n                        \"always\")\n",
+  "new": "                        {\"nation\": nation},\n                        \"always\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_arrival_row_on_the_board_reads_petition"
+ },
+ {
+  "id": "IQ7R-C9 the dispatch calls a petition a proposal",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if (event_type == \"diplomatic_ai_proposal\"\n            and str(template_vars.get(\"proposal_type\") or \"\") == \"client_petition\"):\n",
+  "new": "    if (event_type == \"diplomatic_ai_proposal\"\n            and str(template_vars.get(\"proposal_type\") or \"\") == \"never_client_petition\"):\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival tests/test_iq7_review_round.py::TestR10Copy::test_the_arrival_row_on_the_board_reads_petition"
+ },
+ {
+  "id": "IQ7R-C10 the dispatch arrival loses the court's article",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        nation = with_definite_article(\n            display_nation(str(template_vars.get(\"nation\") or \"a client court\")))\n",
+  "new": "        nation = display_nation(str(template_vars.get(\"nation\") or \"a client court\"))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival"
+ },
+ {
+  "id": "IQ7R-C11 the arrival one-liner has no petition arm",
+  "file": "backend/campaign_log.py",
+  "old": "        if str(event.get(\"proposal_type\") or \"\") == \"client_petition\":\n            court = with_definite_article(display_nation(str(source)))\n            return f\"An envoy from {court} has arrived with a petition\"\n",
+  "new": "        if False:\n            court = with_definite_article(display_nation(str(source)))\n            return f\"An envoy from {court} has arrived with a petition\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival tests/test_iq7_review_round.py::TestR10Copy::test_the_arrival_row_on_the_board_reads_petition"
+ },
+ {
+  "id": "IQ7R-C12 the fulfilled one-liner reads as refused",
+  "file": "backend/campaign_log.py",
+  "old": "        elif outcome == \"fulfilled\":\n",
+  "new": "        elif outcome == \"never_fulfilled\":\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_the_typed_cede_then_the_lapse_honours_the_petition_once"
+ },
+ {
+  "id": "IQ7R-C13 the withdrawn one-liner reads as refused",
+  "file": "backend/campaign_log.py",
+  "old": "        elif outcome == \"withdrawn\":\n            return f\"{vassal}'s petition {ask} — withdrawn, nothing charged.\"\n",
+  "new": "        elif outcome == \"never_withdrawn\":\n            return f\"{vassal}'s petition {ask} — withdrawn, nothing charged.\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_one_liners_and_the_dispatch_arrival"
+ },
+ {
+  "id": "IQ7R-C14 a withdrawal derives as REJECT",
+  "file": "backend/main.py",
+  "old": "        if \"WITHDRAW\" in normalized:\n            return \"WITHDRAWN\"\n",
+  "new": "        if \"WITHDRAW\" in normalized:\n            return \"REJECT\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_a_withdrawn_answer_is_never_titled_rejected tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_lever_down_a_dp_short_grant_withdraws_like_7d10e20c"
+ },
+ {
+  "id": "IQ7R-C15 a withdrawal is titled Rejected",
+  "file": "backend/main.py",
+  "old": "        \"WITHDRAWN\": \"Withdrawn\",\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_a_withdrawn_answer_is_never_titled_rejected"
+ },
+ {
+  "id": "IQ7R-C16 the accept arm reports a withdrawal as REJECT",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                \"outcome\": (\"ACCEPT\" if granted\n                            else \"WITHDRAWN\" if verdict == \"withdrawn\"\n                            else \"REJECT\"),\n",
+  "new": "                \"outcome\": (\"ACCEPT\" if granted else \"REJECT\"),\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_a_withdrawn_answer_is_never_titled_rejected tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_lever_down_a_dp_short_grant_withdraws_like_7d10e20c"
+ },
+ {
+  "id": "IQ7R-C17 the reject arm hard-codes REJECT",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                \"outcome\": (\"ACCEPT\" if verdict == \"fulfilled\"\n                            else \"WITHDRAWN\" if verdict == \"withdrawn\"\n                            else \"REJECT\"),\n",
+  "new": "                \"outcome\": \"REJECT\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_cede_then_refuse_is_honoured_and_reported_as_accepted tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_a_released_vassals_petition_is_refused_free_and_reported_withdrawn"
+ },
+ {
+  "id": "IQ7R-C18 the accept arm counts only granted as a success",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            granted = bool(outcome.get(\"success\")) or verdict in (\"granted\", \"fulfilled\")\n",
+  "new": "            granted = verdict == \"granted\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition::test_cede_then_grant_charges_no_second_dp_and_no_second_gain"
+ },
+ {
+  "id": "IQ7R-C19 the garrison option never sees the standing corps",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if capital != \"their capital\" and lord and lord_garrison_present(world, lord, capital):\n        return (f\"{_GARRISON_AP_COST} AP → Loyalty +{_GARRISON_LOYALTY} now. No corps \"\n",
+  "new": "    if False:\n        return (f\"{_GARRISON_AP_COST} AP → Loyalty +{_GARRISON_LOYALTY} now. No corps \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_garrison_option_says_what_it_does_on_both_boards"
+ },
+ {
+  "id": "IQ7R-C20 the garrison result line never sees the standing corps",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if capital != \"their capital\" and lord and lord_garrison_present(world, lord, capital):\n        return (f\"{head} No corps moves — our corps already standing in {capital} \"\n",
+  "new": "    if False:\n        return (f\"{head} No corps moves — our corps already standing in {capital} \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_garrison_option_says_what_it_does_on_both_boards"
+ },
+ {
+  "id": "IQ7R-C21 the rebellion producer writes its own garrison copy",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            _garrison_copy = garrison_option_copy(world, vassal_name, lord)\n",
+  "new": "            _garrison_copy = \"2 AP → Loyalty +10 now. A corps is sent.\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_garrison_handler_reports_the_flag_not_a_corps tests/test_iq7_satellites_have_a_position.py::TestT17R3TheGarrisonOptionSaysWhatItDoes"
+ },
+ {
+  "id": "IQ7R-C22 the garrison handler never sees the standing corps",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            if lord_garrison_present(world, world.player_nation, _capital):\n                _tail = (f\"No corps moves — ours already stands in {_capital}, \"\n",
+  "new": "            if False:\n                _tail = (f\"No corps moves — ours already stands in {_capital}, \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_garrison_handler_reports_the_flag_not_a_corps"
+ },
+ {
+  "id": "IQ7R-C23 the garrison handler deploys a corps again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    f\"The flag is shown in {_court}: loyalty \"\n",
+  "new": "                    f\"Imperial garrison deployed to {_court}: loyalty \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_garrison_handler_reports_the_flag_not_a_corps"
+ },
+ {
+  "id": "IQ7R-C24 the garrison refusal speaks the old voice",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    \"message\": (f\"Insufficient AP. Showing the flag in {_court} \"\n",
+  "new": "                    \"message\": (f\"Insufficient AP. Garrison deployment in {_court} \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_garrison_handler_reports_the_flag_not_a_corps"
+ },
+ {
+  "id": "IQ7R-C25 the wavering line names the false three levers again",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    \"to petition you until its loyalty is mended.\")\n",
+  "new": "    \"to petition you, and only coin, a garrison or a province will mend it now.\")\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_honest_line_without_regiments"
+ },
+ {
+  "id": "IQ7R-C26 the crossing never appends the remedy",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if not remedy_present:\n            lord_name = lord\n",
+  "new": "        if False:\n            lord_name = lord\n",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_honest_line_without_regiments"
+ },
+ {
+  "id": "IQ7R-C28 the wavering card key is gone",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "        if _vassal.THE_WAVERING_LINE_IS_HONEST:\n            row[\"wavering_regiments\"] = bool(\n",
+  "new": "        if False:\n            row[\"wavering_regiments\"] = bool(\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_wavering_card_key_follows_the_regiments_and_the_lever"
+ },
+ {
+  "id": "IQ7R-C29 the wavering card key is always true",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "            row[\"wavering_regiments\"] = bool(\n                _vassal.lord_fields_the_vassals_regiments(world, player, name))\n",
+  "new": "            row[\"wavering_regiments\"] = True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_wavering_card_key_follows_the_regiments_and_the_lever"
+ },
+ {
+  "id": "IQ7R-X5 no dialogue pending answers True again",
+  "file": "backend/main.py",
+  "old": "        return not _popup_dialogue_is_dead(world, popup)\n    current_id = current.get(\"dialogue_id\")\n",
+  "new": "        return True\n    current_id = current.get(\"dialogue_id\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestX5TheDeadPopupIsReaped"
+ },
+ {
+  "id": "IQ7R-GD1 the Grant button is never disabled",
+  "file": "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd",
+  "old": "\taccept_btn.disabled = is_petition and not grant_enabled\n",
+  "new": "\taccept_btn.disabled = false\n",
+  "tests": "tests/test_iq7_review_round.py::TestClientSourcePins::test_the_grant_button_reads_the_backends_enabled"
+ },
+ {
+  "id": "IQ7R-GD2 the card always reads may petition",
+  "file": "godot-client/project-sovereign/scripts/diplomatic_ledger.gd",
+  "old": "\t\tvar may_petition = standing == \"may petition\"\n",
+  "new": "\t\tvar may_petition = true\n",
+  "tests": "tests/test_iq7_review_round.py::TestClientSourcePins::test_the_vassals_card_renders_the_petition_keys"
+ },
+ {
+  "id": "IQ7R-GD3 the end-turn gate never says REFUSED",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\tvar verb = \"REFUSED\" if refused else \"left unanswered\"\n",
+  "new": "\t\t\tvar verb = \"left unanswered\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestClientSourcePins::test_the_end_turn_gate_and_lapsed_envoys_read_the_priced_rows"
+ },
+ {
+  "id": "IQ7R-GD4 the dispatch view drops the priced lapse line",
+  "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+  "old": "\t\t\tif bool(lapse.get(\"is_petition\", false)) and l_line != \"\":\n",
+  "new": "\t\t\tif false:\n",
+  "tests": "tests/test_iq7_review_round.py::TestClientSourcePins::test_the_end_turn_gate_and_lapsed_envoys_read_the_priced_rows"
+ },
+ {
+  "id": "IQ7R-GD5 the rebellion modal sends a garrison again",
+  "file": "godot-client/project-sovereign/scenes/vassal_rebellion_popup.tscn",
+  "old": "text = \"Show the Flag\"\n",
+  "new": "text = \"Send Garrison\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestClientSourcePins::test_the_rebellion_modal_shows_the_flag"
+ },
+ {
+  "id": "IQ7R-L5 A_PETITION_IS_ANSWERED_PLAINLY down",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "A_PETITION_IS_ANSWERED_PLAINLY = True\n",
+  "new": "A_PETITION_IS_ANSWERED_PLAINLY = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_deferred_conditional_or_interrogative_line_never_answers"
+ },
+ {
+  "id": "IQ7R-L6 THE_MATTER_GUARD_READS_THE_TABLE down",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "THE_MATTER_GUARD_READS_THE_TABLE = True\n",
+  "new": "THE_MATTER_GUARD_READS_THE_TABLE = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_players_own_ultimatum_order_reaches_the_executor tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_bare_verb_defies_the_ultimatum_while_a_petition_waits tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_the_client_petitions_words_get_the_waits_line_never_a_shrug"
+ },
+ {
+  "id": "IQ7R-P21a the deferred-answer yield removed (the label arms claim the line again)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return petition_plain_answer(dialogue, typed)\n",
+  "new": "    if False:\n        return petition_plain_answer(dialogue, typed)\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_deferred_conditional_or_interrogative_line_never_answers"
+ },
+ {
+  "id": "IQ7R-P21b a question answers the petition",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if line_asks_a_question(text, options):\n        return None\n    # FA-N2's markers are phrases",
+  "new": "    if False:\n        return None\n    # FA-N2's markers are phrases",
+  "tests": "tests/test_iq7_review_round.py::TestR41AQuestionMadeOfTheGrammarNeverAnswers::test_the_petition_asks_the_one_question_test"
+ },
+ {
+  "id": "IQ7R-P21c a negation marker made of answer words answers",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if negation_marker_spans(text):\n        return None\n    answer_words",
+  "new": "    if False:\n        return None\n    answer_words",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_deferred_conditional_or_interrogative_line_never_answers"
+ },
+ {
+  "id": "IQ7R-P21d a word that is no answer word is ignored (containment again)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                or token in letter_nouns):\n            continue\n        return None\n",
+  "new": "                or token in letter_nouns):\n            continue\n        continue\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_deferred_conditional_or_interrogative_line_never_answers"
+ },
+ {
+  "id": "IQ7R-P21e a line naming BOTH answers claims one",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if len(actions_named) != 1:\n        return None\n",
+  "new": "    if False:\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_every_answer_word_on_the_line_must_mean_the_same_answer"
+ },
+ {
+  "id": "IQ7R-P21f a spelled-out machine token is read as a sentence",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if action and text.strip() == action.lower():",
+  "new": "        if False:",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_plain_answer_is_the_client_petitions_whole_router"
+ },
+ {
+  "id": "IQ7R-P21g the petition's own court is not part of a plain answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if court:\n        names.extend(_plain_normalised(f) for f in _addressee_forms(court))\n",
+  "new": "    if False:\n        names.extend(_plain_normalised(f) for f in _addressee_forms(court))\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_plain_answer_still_answers_at_the_quoted_price tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_petitions_own_subject_is_part_of_a_plain_answer"
+ },
+ {
+  "id": "IQ7R-P21h the petitioned province is not part of a plain answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if region:\n            names.append(region)\n",
+  "new": "        if False:\n            names.append(region)\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_petitions_own_subject_is_part_of_a_plain_answer"
+ },
+ {
+  "id": "IQ7R-P21i the plain router widens to Slice H's ally petition",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return bool(is_client_petition(dialogue))",
+  "new": "    return _dialogue_is_petition_family(dialogue)",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_plain_answer_is_the_client_petitions_whole_router tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_the_ally_petitions_own_word_still_answers_it"
+ },
+ {
+  "id": "IQ7R-P21j plain emphasis (`at once`) stops a yes",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    for phrase in _PLAIN_EMPHASIS_PHRASES:\n        text = re.sub(",
+  "new": "    for phrase in ():\n        text = re.sub(",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_plain_answer_still_answers_at_the_quoted_price"
+ },
+ {
+  "id": "IQ7R-P21k `grant their petition` stops answering",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                or token in _PLAIN_PRONOUNS\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_plain_answer_still_answers_at_the_quoted_price"
+ },
+ {
+  "id": "IQ7R-P21l `the petition for relief` stops answering",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                or token in subject_words\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_plain_answer_still_answers_at_the_quoted_price"
+ },
+ {
+  "id": "IQ7R-P21m the button route's free text skips the plain rule (the third copy)",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if (_routing.A_PETITION_IS_ANSWERED_PLAINLY\n                        and _routing._is_client_petition_dialogue(dialogue)):",
+  "new": "                if False:",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_button_routes_free_text_obeys_the_same_rule"
+ },
+ {
+  "id": "IQ7R-P21n the button route relays a line that claimed nothing",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    if not _token:\n",
+  "new": "                    if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_button_routes_free_text_obeys_the_same_rule"
+ },
+ {
+  "id": "IQ7R-P21o the plain router ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return petition_plain_answer(dialogue, typed)\n",
+  "new": "    if (_is_client_petition_dialogue(dialogue)):\n        return petition_plain_answer(dialogue, typed)\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_lever_down_the_pass_1_router_answers_the_deferred_line_at_price"
+ },
+ {
+  "id": "IQ7R-P21p the button route's third copy ignores its lever",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if (_routing.A_PETITION_IS_ANSWERED_PLAINLY\n                        and _routing._is_client_petition_dialogue(dialogue)):",
+  "new": "                if (_routing._is_client_petition_dialogue(dialogue)):",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_lever_down_the_button_route_keeps_its_own_pass_1_scan"
+ },
+ {
+  "id": "IQ7R-P21q lever down, the petition's own words answer nothing (arm 3b, the pass-1 road)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if _dialogue_is_petition_family(dialogue):\n        petition_action = petition_vocabulary_answer(raw_lower)\n",
+  "new": "    if False:\n        petition_action = petition_vocabulary_answer(raw_lower)\n",
+  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_lever_down_the_petitions_own_words_still_answer_on_the_pass_1_road"
+ },
+ {
+  "id": "IQ7R-P31a the contiguity classification inverted (the lord's doing)",
+  "file": "backend/game_logic/vassal.py",
+  "old": "_GRANT_REFUSAL_LORDS_DOING = frozenset({\"estate\"})",
+  "new": "_GRANT_REFUSAL_LORDS_DOING = frozenset({\"estate\", \"contiguity\"})",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_read_and_the_grant_press_withdraw_it_free"
+ },
+ {
+  "id": "IQ7R-P31b an estate the lord endowed is the world's doing",
+  "file": "backend/game_logic/vassal.py",
+  "old": "_GRANT_REFUSAL_LORDS_DOING = frozenset({\"estate\"})",
+  "new": "_GRANT_REFUSAL_LORDS_DOING = frozenset()",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_grant_forecast_and_lapse_agree_on_every_arm"
+ },
+ {
+  "id": "IQ7R-P31c the refuse arm never mirrors the verdict",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if voided:\n            return _withdrawn(",
+  "new": "        if False:\n            return _withdrawn(",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_refuse_press_is_free_too"
+ },
+ {
+  "id": "IQ7R-P31d the lapse forecast never mirrors the verdict",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if voided:\n            return {**base, \"outcome\": \"withdrawn\",",
+  "new": "        if False:\n            return {**base, \"outcome\": \"withdrawn\",",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_real_end_turn_lapse_is_free_and_forecast_as_free"
+ },
+ {
+  "id": "IQ7R-P31e the contiguity sentence prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            court = _court_name(world, vassal_name, article=True)\n            return (\"contiguity\",",
+  "new": "            court = vassal_name\n            return (\"contiguity\",",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_classified_read_and_the_executors_read_are_one_rule_set"
+ },
+ {
+  "id": "IQ7R-P31f the void cause prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    vd = _court_name(world, vassal_name, article=True)\n    if key == \"contiguity\":",
+  "new": "    vd = vassal_name\n    if key == \"contiguity\":",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_read_and_the_grant_press_withdraw_it_free"
+ },
+ {
+  "id": "IQ7R-P31g the GRANT verdict leaves a world-voided petition standing",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            if key and key not in _GRANT_REFUSAL_LORDS_DOING:\n                cause =",
+  "new": "            if False:\n                cause =",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_read_and_the_grant_press_withdraw_it_free"
+ },
+ {
+  "id": "IQ7R-P31h the cooldown is read before the world's break",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            if key and key not in _GRANT_REFUSAL_LORDS_DOING:\n                cause =",
+  "new": "            if key and key not in _GRANT_REFUSAL_LORDS_DOING and cooldown <= 0:\n                cause =",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_grant_forecast_and_lapse_agree_on_every_arm"
+ },
+ {
+  "id": "IQ7R-P31i the mirror voids the lord's own estate too",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if not key or key in _GRANT_REFUSAL_LORDS_DOING:\n        return \"\"\n",
+  "new": "    if not key:\n        return \"\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_grant_forecast_and_lapse_agree_on_every_arm"
+ },
+ {
+  "id": "IQ7R-P31j the contiguity break gets the generic cause",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if key == \"contiguity\":\n        return (f\"{region} no longer adjoins",
+  "new": "    if False:\n        return (f\"{region} no longer adjoins",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_refuse_press_is_free_too"
+ },
+ {
+  "id": "IQ7R-P31k the verdict's classification ignores its lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if THE_DEED_HONOURS_THE_PETITION:\n            region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n",
+  "new": "        if True:\n            region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_lever_down_the_7d10e20c_arms_return"
+ },
+ {
+  "id": "IQ7R-P31l the lapse forecast's mirror ignores its lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if THE_DEED_HONOURS_THE_PETITION and subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and (\n",
+  "new": "    if subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and (\n",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_lever_down_the_7d10e20c_arms_return"
+ },
+ {
+  "id": "IQ7R-P31m the refuse arm's mirror ignores its lever",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if THE_DEED_HONOURS_THE_PETITION and subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and controller == vassal_name:\n",
+  "new": "    if subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and controller == vassal_name:\n",
+  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_lever_down_the_7d10e20c_arms_return"
+ },
+ {
+  "id": "IQ7R-P32a the article dropped from `from {court}` and the envoy fallback",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    court = _court_name(world, vassal_name, article=True)\n    court_cap",
+  "new": "    court = _court_name(world, vassal_name)\n    court_cap",
+  "tests": "tests/test_iq7_review_round.py::TestP32TheRepricerKeepsTheArticle::test_every_read_seam_rewrites_the_delivered_text_byte_for_byte"
+ },
+ {
+  "id": "IQ7R-P32b the article dropped from the sentence-initial ask",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    court_cap = _court_name(world, vassal_name, article=True, capitalize=True)\n    diplomats",
+  "new": "    court_cap = _court_name(world, vassal_name, capitalize=True)\n    diplomats",
+  "tests": "tests/test_iq7_review_round.py::TestP32TheRepricerKeepsTheArticle::test_every_read_seam_rewrites_the_delivered_text_byte_for_byte"
+ },
+ {
+  "id": "IQ7R-P33a the answer-shaped gate removed (the noun alone eats the order)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if (answers_only and reads_the_table\n            and not _line_is_answer_shaped(typed, world)):\n        return None\n",
+  "new": "    if False:\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_players_own_ultimatum_order_reaches_the_executor"
+ },
+ {
+  "id": "IQ7R-P33b the /command router seam drops answers_only",
+  "file": "backend/main.py",
+  "old": "                    world, world.pending_diplomatic_dialogue, command_text,\n                    answers_only=True)\n",
+  "new": "                    world, world.pending_diplomatic_dialogue, command_text)\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_players_own_ultimatum_order_reaches_the_executor"
+ },
+ {
+  "id": "IQ7R-P33c every line is answer-shaped",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return len(kept) == 1 and kept[0] in _MATTER_ANSWER_VERBS",
+  "new": "    return True",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_players_own_ultimatum_order_reaches_the_executor tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_answer_shape_reads_the_whole_line"
+ },
+ {
+  "id": "IQ7R-P33d no line is answer-shaped (a stray answer takes the ordinary road)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return len(kept) == 1 and kept[0] in _MATTER_ANSWER_VERBS",
+  "new": "    return False",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_an_answer_shaped_line_stays_refused_as_waiting"
+ },
+ {
+  "id": "IQ7R-P33e a bare negation word un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            and w not in _BARE_NEGATION_WORDS\n            and w not in _POSSESSIVE_PRONOUNS\n            and not w.endswith",
+  "new": "            and w not in _POSSESSIVE_PRONOUNS\n            and not w.endswith",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_an_answer_shaped_line_stays_refused_as_waiting"
+ },
+ {
+  "id": "IQ7R-P33f the verbs as stated done are not answers",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    \"accepted\", \"agreed\", \"rejected\", \"declined\", \"refused\", \"granted\",\n",
+  "new": "\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_answer_shape_reads_the_whole_line tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee::test_a_typed_petition_answer_never_answers_the_letter_on_top"
+ },
+ {
+  "id": "IQ7R-P33g the handler seam narrows to answer-shaped lines too",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if (answers_only and reads_the_table\n",
+  "new": "    if (reads_the_table\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_handler_seam_keeps_the_broad_noun_rule"
+ },
+ {
+  "id": "IQ7R-P33h a court named on the line un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    for nation in nations:\n        for form in sorted(_addressee_forms(nation), key=len, reverse=True):\n            text = re.sub(",
+  "new": "    for nation in []:\n        for form in sorted(_addressee_forms(nation), key=len, reverse=True):\n            text = re.sub(",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_the_kingdom_carries_its_article"
+ },
+ {
+  "id": "IQ7R-P33i a possessive pronoun un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            and w not in _POSSESSIVE_PRONOUNS\n            and not w.endswith(\"'s\")\n",
+  "new": "            and not w.endswith(\"'s\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_answer_shape_reads_the_whole_line"
+ },
+ {
+  "id": "IQ7R-P33j a negation MARKER made of an answer verb un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    for start, end in negation_marker_spans(text):\n        for i in range(start, end):\n            chars[i] = \" \"\n    text = \"\".join(chars)\n    get_nations",
+  "new": "    for start, end in []:\n        for i in range(start, end):\n            chars[i] = \" \"\n    text = \"\".join(chars)\n    get_nations",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_answer_shape_reads_the_whole_line tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_an_answer_shaped_line_stays_refused_as_waiting"
+ },
+ {
+  "id": "IQ7R-P33k a possessive that names no court un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            and not w.endswith(\"'s\")\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_answer_shape_reads_the_whole_line tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_an_answer_shaped_line_stays_refused_as_waiting"
+ },
+ {
+  "id": "IQ7R-P34a the offered-action skip removed (a bare `refuse` is the petition's)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if (named and not by_noun and reads_the_table\n                and _active_dialogue_claims_the_verb(dialogue, typed)):\n",
+  "new": "        if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_bare_verb_defies_the_ultimatum_while_a_petition_waits"
+ },
+ {
+  "id": "IQ7R-P34b no dialogue ever claims the verb",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return any(a in offered\n               for a in DIALOGUE_ACTION_KEYWORDS.get(kept[0], []))",
+  "new": "    return False",
+  "tests": "tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_bare_verb_defies_the_ultimatum_while_a_petition_waits"
+ },
+ {
+  "id": "IQ7R-P34c every dialogue claims the verb",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return any(a in offered\n               for a in DIALOGUE_ACTION_KEYWORDS.get(kept[0], []))",
+  "new": "    return True",
+  "tests": "tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_petitions_own_words_are_still_pointed_at_envoys tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_verb_is_claimed_only_by_a_dialogue_that_offers_it"
+ },
+ {
+  "id": "IQ7R-P34d the skip reads a line that NAMES the petition too",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if (named and not by_noun and reads_the_table\n",
+  "new": "        if (named and reads_the_table\n",
+  "tests": "tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_petitions_own_words_are_still_pointed_at_envoys"
+ },
+ {
+  "id": "IQ7R-P41a the stored-override guard removed (the last read's dict wins)",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "    if fresh and isinstance(stored, dict) and \"enabled\" in stored:",
+  "new": "    if isinstance(stored, dict) and \"enabled\" in stored:",
+  "tests": "tests/test_iq7_review_round.py::TestP41TheMootPetitionSaysSoFirst::test_the_players_own_release_with_the_petition_on_the_desk"
+ },
+ {
+  "id": "IQ7R-P41b the stale grant quote stays under the verdict",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "                if line != moot_line and line != stale_grant]",
+  "new": "                if line != moot_line]",
+  "tests": "tests/test_iq7_review_round.py::TestP41TheMootPetitionSaysSoFirst::test_the_players_own_release_with_the_petition_on_the_desk"
+ },
+ {
+  "id": "IQ7R-P41c the Grant option keeps the stale description",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "        grant_line = moot_line\n",
+  "new": "        pass\n",
+  "tests": "tests/test_iq7_review_round.py::TestP41TheMootPetitionSaysSoFirst::test_the_players_own_release_with_the_petition_on_the_desk"
+ },
+ {
+  "id": "IQ7R-P41d the terminal text is not rebuilt on the moot arm",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "                     if not moot_line else \"\")",
+  "new": "                     if True else \"\")",
+  "tests": "tests/test_iq7_review_round.py::TestP41TheMootPetitionSaysSoFirst::test_the_players_own_release_with_the_petition_on_the_desk"
+ },
+ {
+  "id": "IQ7R-P41e the verdict's line does not lead the clauses",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "            lines = [moot_line] + [\n",
+  "new": "            lines = [\n",
+  "tests": "tests/test_iq7_review_round.py::TestP41TheMootPetitionSaysSoFirst::test_a_prior_read_and_no_prior_read_say_the_same_thing"
+ },
+ {
+  "id": "IQ7R-P41f the moot arm is never taken",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "    if not fresh and petition:\n",
+  "new": "    if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestP41TheMootPetitionSaysSoFirst::test_a_prior_read_and_no_prior_read_say_the_same_thing"
+ },
+ {
+  "id": "IQ7R-P42a the pending arm removed",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        key = \"pending\"\n",
+  "new": "        pass\n",
+  "tests": "tests/test_iq7_review_round.py::TestP42TheCardSeesThePetitionOnTheDesk::test_queued_then_current_then_answered_over_the_ledger_endpoint"
+ },
+ {
+  "id": "IQ7R-P42b the desk read sees the current dialogue only",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    on_the_desk = [dm.peek(), *dm.iter_queue()]",
+  "new": "    on_the_desk = [dm.peek()]",
+  "tests": "tests/test_iq7_review_round.py::TestP42TheCardSeesThePetitionOnTheDesk::test_queued_then_current_then_answered_over_the_ledger_endpoint"
+ },
+ {
+  "id": "IQ7R-P42c the desk read sees the queue only",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    on_the_desk = [dm.peek(), *dm.iter_queue()]",
+  "new": "    on_the_desk = [*dm.iter_queue()]",
+  "tests": "tests/test_iq7_review_round.py::TestP42TheCardSeesThePetitionOnTheDesk::test_queued_then_current_then_answered_over_the_ledger_endpoint"
+ },
+ {
+  "id": "IQ7R-P42d the desk read ignores the lord",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if vassal == vassal_name and (lord is None or petition_lord == lord):",
+  "new": "        if vassal == vassal_name:",
+  "tests": "tests/test_iq7_review_round.py::TestP42TheCardSeesThePetitionOnTheDesk::test_the_desk_read_names_the_vassal_and_its_lord"
+ },
+ {
+  "id": "IQ7R-P42e any client's petition marks every card",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        if vassal == vassal_name and (lord is None or petition_lord == lord):",
+  "new": "        if (lord is None or petition_lord == lord):",
+  "tests": "tests/test_iq7_review_round.py::TestP42TheCardSeesThePetitionOnTheDesk::test_queued_then_current_then_answered_over_the_ledger_endpoint"
+ },
+ {
+  "id": "IQ7R-P42f the pending arm keeps the cadence copy",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    \"pending\": \"petition on the desk\",",
+  "new": "    \"pending\": \"{n} turn{s} until it may ask\",",
+  "tests": "tests/test_iq7_review_round.py::TestP42TheCardSeesThePetitionOnTheDesk::test_queued_then_current_then_answered_over_the_ledger_endpoint"
+ },
+ {
+  "id": "IQ7R-P43a the letter-noun rule removed (offer / terms are petition filler)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "_LETTER_NOUN_WORDS = frozenset({\"offer\", \"terms\", \"proposal\", \"letter\"})",
+  "new": "_LETTER_NOUN_WORDS = frozenset()",
+  "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_the_line_is_never_pointed_at_the_queued_petition"
+ },
+ {
+  "id": "IQ7R-P43b the petition's verb answers beside a letter noun",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    letter_nouns = (frozenset() if set(answers) & _PLAIN_PETITION_VERBS\n                    else _LETTER_NOUN_WORDS)\n",
+  "new": "    letter_nouns = _LETTER_NOUN_WORDS\n",
+  "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_with_the_petition_current_its_own_verb_never_answers_beside_a_letter_noun"
+ },
+ {
+  "id": "IQ7R-P43c the vocabulary drops the letter noun as filler",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                 or (THE_MATTER_GUARD_READS_THE_TABLE\n                     and w in _LETTER_NOUN_WORDS))]",
+  "new": "                 or False)]",
+  "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_the_vocabulary_keeps_the_letter_noun"
+ },
+ {
+  "id": "IQ7R-P43d the letter-noun rule ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                 or (THE_MATTER_GUARD_READS_THE_TABLE\n                     and w in _LETTER_NOUN_WORDS))]",
+  "new": "                 or (w in _LETTER_NOUN_WORDS))]",
+  "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_lever_down_the_letter_noun_is_filler_again"
+ },
+ {
+  "id": "IQ7R-P44a the courtless arm removed",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        elif active:\n            head = (f\"Sire — that answer would be delivered to \"",
+  "new": "        elif True:\n            head = (f\"Sire — that answer would be delivered to \"",
+  "tests": "tests/test_iq7_review_round.py::TestP44ACourtlessMatterIsNamedOnce::test_the_advisory_current_and_the_petition_queued"
+ },
+ {
+  "id": "IQ7R-P44b the article keeps its capital after the semicolon",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            waits = waits[:1].lower() + waits[1:] if _starts_with_article(waits) else waits",
+  "new": "            pass",
+  "tests": "tests/test_iq7_review_round.py::TestP44ACourtlessMatterIsNamedOnce::test_the_article_is_lower_case_after_the_semicolon"
+ },
+ {
+  "id": "IQ7R-P44c every waiting court is lower-cased after the semicolon",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return str(sentence or \"\").startswith(\"The \")",
+  "new": "    return True",
+  "tests": "tests/test_iq7_review_round.py::TestP44ACourtlessMatterIsNamedOnce::test_the_advisory_current_and_the_petition_queued"
+ },
+ {
+  "id": "IQ7R-P45a the court-summary copy reverted (a petition waits in the letter-book)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        place = \"Envoys\"\n    if several:",
+  "new": "        place = \"the letter-book\"\n    if several:",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_a_court_named_petition_line_is_pointed_at_envoys"
+ },
+ {
+  "id": "IQ7R-P45b the court summary never names the family",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        noun = nouns.pop() if len(nouns) == 1 else \"matter\"",
+  "new": "        noun = \"matter\"",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_a_court_named_petition_line_is_pointed_at_envoys"
+ },
+ {
+  "id": "IQ7R-P45c the court summary loses the article",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    names = sorted({with_definite_article(display_nation(str(h.get(\"source_nation\"))))",
+  "new": "    names = sorted({(display_nation(str(h.get(\"source_nation\"))))",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_the_kingdom_carries_its_article"
+ },
+ {
+  "id": "IQ7R-P45d a queued ultimatum is an unnamed matter",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if item_type == \"incoming_ultimatum\" or proposal_type == \"ultimatum\":\n        return \"ultimatum\"",
+  "new": "    if item_type == \"incoming_ultimatum\" or proposal_type == \"ultimatum\":\n        return \"\"",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_every_family_is_named_and_an_ordinary_letter_keeps_the_letter_book"
+ },
+ {
+  "id": "IQ7R-P45e a queued settlement offer is an unnamed matter",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        return \"settlement offer\"\n    return \"\"",
+  "new": "        return \"\"\n    return \"\"",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_every_family_is_named_and_an_ordinary_letter_keeps_the_letter_book"
+ },
+ {
+  "id": "IQ7R-P45f a queued client petition is an unnamed matter",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            or proposal_type == CLIENT_PETITION_TYPE):\n        return \"petition\"",
+  "new": "            or proposal_type == CLIENT_PETITION_TYPE):\n        return \"\"",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_a_court_named_petition_line_is_pointed_at_envoys"
+ },
+ {
+  "id": "IQ7R-P45g a queued ally petition is an unnamed matter",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if (item_type == \"ally_settlement_petition\"\n            or proposal_type == CLIENT_PETITION_TYPE):",
+  "new": "    if (proposal_type == CLIENT_PETITION_TYPE):",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_a_queued_ally_petition_is_a_petition_too"
+ },
+ {
+  "id": "IQ7R-P45h several waiting matters are an `it`",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            \"them\" if several else \"it\")",
+  "new": "            \"it\")",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_the_kingdom_carries_its_article"
+ },
+ {
+  "id": "IQ7R-P45i several waiting matters `waits`",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    verb = \"wait\" if several else \"waits\"\n    nouns",
+  "new": "    verb = \"waits\"\n    nouns",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_the_kingdom_carries_its_article"
+ },
+ {
+  "id": "IQ7R-P45j several waiting matters keep the singular noun",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if several:\n        noun += \"s\"\n",
+  "new": "    if False:\n        noun += \"s\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_the_kingdom_carries_its_article"
+ },
+ {
+  "id": "IQ7R-P45k the court guard points at the letter-book whatever the summary says",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            f\" {waiting} — open {place} and answer {it} there.\"",
+  "new": "            f\" {waiting} — open the letter-book and answer {it} there.\"",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_a_court_named_petition_line_is_pointed_at_envoys"
+ },
+ {
+  "id": "IQ7R-P46a the offer check removed (the active petition family owns every petition line)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            if resolved is None or resolved in offered_actions(",
+  "new": "            if True or resolved in offered_actions(",
+  "tests": "tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_the_client_petitions_words_get_the_waits_line_never_a_shrug"
+ },
+ {
+  "id": "IQ7R-P46b the refusal never names the words the ally petition takes",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            takes = f\", and it takes {own_words}\" if own_words else \"\"",
+  "new": "            takes = \"\"",
+  "tests": "tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_the_client_petitions_words_get_the_waits_line_never_a_shrug"
+ },
+ {
+  "id": "IQ7R-P46c several waiting petitions are answered as `it`",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            waits = waits.replace(\"answer it there.\", \"answer them there.\")",
+  "new": "            pass",
+  "tests": "tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_several_waiting_petitions_are_named_together"
+ },
+ {
+  "id": "IQ7R-P46d the refusal never narrows to the waiting court the line names",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if narrowed:\n            courts = narrowed",
+  "new": "        if False:\n            courts = narrowed",
+  "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace::test_the_kingdom_carries_its_article"
+ },
+ {
+  "id": "IQ7R-P46e the offer check ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                        if family == \"petition\" and reads_the_table else None)",
+  "new": "                        if family == \"petition\" else None)",
+  "tests": "tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_lever_down_the_line_falls_to_berthiers_shrug"
+ },
+ {
+  "id": "IQ7R-P46f the matter guard's table-reading ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    reads_the_table = bool(THE_MATTER_GUARD_READS_THE_TABLE)\n",
+  "new": "    reads_the_table = True\n",
+  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_lever_down_the_noun_alone_eats_the_order tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_lever_down_the_bare_refuse_is_refused tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_lever_down_the_line_falls_to_berthiers_shrug"
+ },
+ {
+  "id": "IQ7R-SW2a the board fixture's five end turns autosave into the repo's saves/",
+  "file": "tests/test_iq7_review_round.py",
+  "old": "    save_manager.SAVE_DIR = Path(tmp)\n    _SNAPSHOT_SANDBOX[\"dir\"] = tmp\n",
+  "new": "    _SNAPSHOT_SANDBOX[\"dir\"] = tmp\n",
+  "tests": "tests/test_iq7_review_round.py::test_the_board_fixture_autosaves_into_its_own_sandbox"
+ },
+ {
+  "id": "IQ7R-SW2b the driven run's boot and end turns autosave into the repo's saves/",
+  "file": "tests/test_iq7_satellites_have_a_position.py",
+  "old": "    _save_manager.SAVE_DIR = _DRIVE_SANDBOX[name]\n",
+  "new": "",
+  "tests": "tests/test_iq7_satellites_have_a_position.py::test_the_driven_run_autosaves_into_its_own_sandbox"
+ },
+ {
+  "id": "IQ7R-R31a the subject words are subject-agnostic again (V2-1)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    subject_words = (_PLAIN_PROVINCE_SUBJECT_WORDS if subject == \"province\"\n                     else _PLAIN_RELIEF_SUBJECT_WORDS if subject == \"relief\"\n                     else frozenset())\n",
+  "new": "    subject_words = _PLAIN_PROVINCE_SUBJECT_WORDS | _PLAIN_RELIEF_SUBJECT_WORDS\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_a_province_petition_is_never_answered_in_the_other_subjects_name tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_a_relief_petition_is_never_answered_in_the_other_subjects_name"
+ },
+ {
+  "id": "IQ7R-R31b `tribute` is a relief word again (`accept their tribute` remits it)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "_PLAIN_RELIEF_SUBJECT_WORDS = frozenset({\"relief\", \"remission\"})\n",
+  "new": "_PLAIN_RELIEF_SUBJECT_WORDS = frozenset({\"relief\", \"remission\", \"tribute\"})\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_a_relief_petition_is_never_answered_in_the_other_subjects_name"
+ },
+ {
+  "id": "IQ7R-R31c `if` / `or` / `instead` are function words (V2-3)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    \"do\", \"so\", \"be\", \"very\", \"well\", \"then\",\n})\n",
+  "new": "    \"do\", \"so\", \"be\", \"very\", \"well\", \"then\", \"if\", \"or\", \"instead\", \"is\", \"that\",\n})\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_a_conditional_made_only_of_filler_claims_nothing"
+ },
+ {
+  "id": "IQ7R-R31d the grammar is derived from the general filler again",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                or token in _PLAIN_FUNCTION_WORDS\n",
+  "new": "                or token in _ANSWER_FILLER_WORDS\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_a_conditional_made_only_of_filler_claims_nothing tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_widening_the_general_filler_never_widens_the_grammar"
+ },
+ {
+  "id": "IQ7R-R31e the diplomat address is no word of the grammar (V2-2)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "_PLAIN_ADDRESS_WORDS = frozenset({\"sire\", \"please\"}) | _PLAIN_DIPLOMAT_WORDS\n",
+  "new": "_PLAIN_ADDRESS_WORDS = frozenset({\"sire\", \"please\"})\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_the_measured_positives_still_answer_at_the_quoted_price"
+ },
+ {
+  "id": "IQ7R-R31f emphasis is read as loose words (`at`, `once`) not phrases",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    \"immediately\", \"of course\", \"at once\", \"for now\", \"gladly\", \"today\",\n",
+  "new": "    \"immediately\", \"of course\", \"at once\", \"at\", \"once\", \"for now\", \"gladly\", \"today\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_anything_that_is_not_a_word_of_the_grammar_fails_closed"
+ },
+ {
+  "id": "IQ7R-R31g what is not a word is dropped, not refused (the grammar fails OPEN)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return text.split()\n",
+  "new": "    return re.findall(r\"[a-z']+\", text)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_anything_that_is_not_a_word_of_the_grammar_fails_closed"
+ },
+ {
+  "id": "IQ7R-R31h a line with no answer word at all answers",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not answers:\n        return None\n",
+  "new": "    if not answers:\n        return _PLAIN_GRANTS\n",
+  "tests": "tests/test_iq7_review_round.py::TestR31ThePlainAnswerIsAClosedGrammar::test_anything_that_is_not_a_word_of_the_grammar_fails_closed tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_it_is_the_client_petitions_rule_and_the_levers"
+ },
+ {
+  "id": "IQ7R-R32a the router seam never re-prompts (V2-7)",
+  "file": "backend/main.py",
+  "old": "                elif _matter is None:\n                    # Pass 4 (R4-4): `world` lets shape (c) tell the player's\n",
+  "new": "                elif False:\n                    # Pass 4 (R4-4): `world` lets shape (c) tell the player's\n",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_a_line_that_was_trying_to_answer_is_reprompted_in_place tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_the_next_plain_answer_then_answers_it"
+ },
+ {
+  "id": "IQ7R-R32b shape (b) removed — the chatty yes takes the ordinary road",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    leads_with_answer = bool(lead) and lead.group(1) in answer_words\n",
+  "new": "    leads_with_answer = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_a_line_that_was_trying_to_answer_is_reprompted_in_place"
+ },
+ {
+  "id": "IQ7R-R32c shape (c) removed — the diplomat-addressed line mounts the nation picker",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not (leads_with_answer or diplomat_shape or stray_address):\n        return None\n",
+  "new": "    if not (leads_with_answer or stray_address):\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_a_line_that_was_trying_to_answer_is_reprompted_in_place"
+ },
+ {
+  "id": "IQ7R-R32d an order that names a marshal is re-prompted",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if addresses_a_marshal(text, marshal_names):\n        return None\n    answer_words = _plain_answer_words(dialogue)\n",
+  "new": "    answer_words = _plain_answer_words(dialogue)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_it_is_the_client_petitions_rule_and_the_levers"
+ },
+ {
+  "id": "IQ7R-R32e a question in shape (b) keeps the ordinary road (and mounts over the petition)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if asks and not (leads_with_answer or stray_address):\n        return None\n",
+  "new": "    if asks:\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_a_line_that_was_trying_to_answer_is_reprompted_in_place"
+ },
+ {
+  "id": "IQ7R-R32f the re-prompt ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    text = str(typed or \"\").lower()",
+  "new": "    if not _is_client_petition_dialogue(dialogue):\n        return None\n    text = str(typed or \"\").lower()",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_it_is_the_client_petitions_rule_and_the_levers"
+ },
+ {
+  "id": "IQ7R-R32g the re-prompt fires on an ordinary letter too",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    text = str(typed or \"\").lower()",
+  "new": "    if not A_PETITION_IS_ANSWERED_PLAINLY:\n        return None\n    text = str(typed or \"\").lower()",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_it_is_the_client_petitions_rule_and_the_levers"
+ },
+ {
+  "id": "IQ7R-R32h a re-prompted line is recorded as a phantom order",
+  "file": "backend/main.py",
+  "old": "                if not _consumed_as_dialogue_answer:\n                    from backend.commands.dialogue_routing import (\n",
+  "new": "                if False:\n                    from backend.commands.dialogue_routing import (\n",
+  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_a_line_that_was_trying_to_answer_is_reprompted_in_place"
+ },
+ {
+  "id": "IQ7R-R33a the court guard does not speak at the router seam (V2-4)",
+  "file": "backend/main.py",
+  "old": "                if _court is not None:\n                    _matter = _court\n",
+  "new": "                if False:\n                    _matter = _court\n",
+  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_a_line_that_names_a_waiting_letters_court tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_a_line_that_names_the_other_waiting_petition"
+ },
+ {
+  "id": "IQ7R-R33b the router-seam court guard reads ORDERS too",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not _line_is_answer_shaped(str(raw_text or \"\"), world):\n        return None\n    return court_mismatch_refusal(world, dialogue, raw_text)\n",
+  "new": "    return court_mismatch_refusal(world, dialogue, raw_text)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_only_an_answer_shaped_line_and_only_a_client_petition"
+ },
+ {
+  "id": "IQ7R-R33c `from <court>` un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    introduced = r\"(?:from\\s+)?(?:the\\s+)?\" if plain else \"\"\n",
+  "new": "    introduced = \"\"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_a_line_that_names_a_waiting_letters_court"
+ },
+ {
+  "id": "IQ7R-R33d the court guard's head loses the active court's article (NOTED c)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    active_display = with_definite_article(display_nation(active))\n",
+  "new": "    active_display = display_nation(active)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_the_head_carries_the_active_courts_article"
+ },
+ {
+  "id": "IQ7R-R33e the router-seam court guard ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    if not _line_is_answer_shaped(",
+  "new": "    if not _is_client_petition_dialogue(dialogue):\n        return None\n    if not _line_is_answer_shaped(",
+  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_only_an_answer_shaped_line_and_only_a_client_petition"
+ },
+ {
+  "id": "IQ7R-R33f the router-seam court guard speaks for every dialogue",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    if not _line_is_answer_shaped(",
+  "new": "    if not A_PETITION_IS_ANSWERED_PLAINLY:\n        return None\n    if not _line_is_answer_shaped(",
+  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_only_an_answer_shaped_line_and_only_a_client_petition"
+ },
+ {
+  "id": "IQ7R-R34a the moot arm keeps the stored refuse and lapse lines (V2-5)",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "            refusal_is_free = not bool(forecast.get(\"penalised\"))\n",
+  "new": "            refusal_is_free = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_milan_falls_after_a_prior_read tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_the_players_own_release_with_the_petition_on_the_desk tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_the_same_across_a_save_and_a_load"
+ },
+ {
+  "id": "IQ7R-R34b the moot arm drops the priced lines even when the forecast says refused",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "            refusal_is_free = not bool(forecast.get(\"penalised\"))\n",
+  "new": "            refusal_is_free = True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_the_priced_lines_stay_when_the_forecast_says_refused"
+ },
+ {
+  "id": "IQ7R-R34c the Refuse option keeps the last read's priced description",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "            refuse_line = (str(forecast.get(\"price_line\") or \"\").strip()\n                           or moot_line)\n",
+  "new": "            pass\n",
+  "tests": "tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_milan_falls_after_a_prior_read tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_the_players_own_release_with_the_petition_on_the_desk"
+ },
+ {
+  "id": "IQ7R-R34d the forecast's own price line is not appended",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "                if free_clause:\n                    lines.append(free_clause)\n",
+  "new": "                if False:\n                    lines.append(free_clause)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_milan_falls_after_a_prior_read tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_the_players_own_release_with_the_petition_on_the_desk"
+ },
+ {
+  "id": "IQ7R-R34e the clause repeats the cause the verdict line already named",
+  "file": "backend/game_logic/mailbox_payloads.py",
+  "old": "                if cause and free_line.startswith(f\"{cause} — \"):\n",
+  "new": "                if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR34AMootPetitionQuotesNoPriceItWillNotCharge::test_milan_falls_after_a_prior_read"
+ },
+ {
+  "id": "IQ7R-R35a the shape gate does not know the emphasis phrases (V2-6)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if plain:\n        for emphasis in _PLAIN_EMPHASIS_PHRASES:\n",
+  "new": "    if False:\n        for emphasis in _PLAIN_EMPHASIS_PHRASES:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR35TheShapeGateKnowsTheEmphasis::test_the_petition_queued_keeps_its_envoys_pointer"
+ },
+ {
+  "id": "IQ7R-R35b the diplomat address un-shapes the answer",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            and not (plain and w in _PLAIN_DIPLOMAT_WORDS)\n",
+  "new": "",
+  "tests": "tests/test_iq7_review_round.py::TestR35TheShapeGateKnowsTheEmphasis::test_the_petition_queued_keeps_its_envoys_pointer"
+ },
+ {
+  "id": "IQ7R-R35c the shape gate's pass-3 vocabulary ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    plain = bool(A_PETITION_IS_ANSWERED_PLAINLY)\n",
+  "new": "    plain = True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR35TheShapeGateKnowsTheEmphasis::test_the_shape_reads_the_phrases_and_the_lever"
+ },
+ {
+  "id": "IQ7R-R36a a court-named line is owned by the active petition again (V2-8)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                if not (reads_the_table and _names_a_waiting_court(\n                        world, predicate, addressed)):\n                    continue\n",
+  "new": "                continue\n",
+  "tests": "tests/test_iq7_review_round.py::TestR36ACourtNamedLineIsNotOwnedByTheActivePetition::test_the_explicit_line_gets_the_pointer_the_bare_verb_gets"
+ },
+ {
+  "id": "IQ7R-R36b the court-named rule ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "                if not (reads_the_table and _names_a_waiting_court(\n",
+  "new": "                if not (_names_a_waiting_court(\n",
+  "tests": "tests/test_iq7_review_round.py::TestR36ACourtNamedLineIsNotOwnedByTheActivePetition::test_lever_down_the_explicit_line_is_shrugged_at"
+ },
+ {
+  "id": "IQ7R-R36c every named court counts as waiting",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return any(court in queued_courts for court in addressed)\n",
+  "new": "    return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR36ACourtNamedLineIsNotOwnedByTheActivePetition::test_a_line_that_names_no_waiting_court_is_still_the_active_petitions"
+ },
+ {
+  "id": "IQ7R-R37a the typed road drops `error_display` again (`Command executed`)",
+  "file": "backend/main.py",
+  "old": "               or str(result.get(\"error_display\") or \"\"))\n",
+  "new": "               )\n",
+  "tests": "tests/test_iq7_review_round.py::TestR37ATypedGrantStatesItsReason"
+ },
+ {
+  "id": "IQ7R-R38a the rail title loses the court's article",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            f\"Petition from {with_definite_article(sender)}\",\n",
+  "new": "            f\"Petition from {sender}\",\n",
+  "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_the_rail_title_takes_the_article_and_the_heading_stays_bare"
+ },
+ {
+  "id": "IQ7R-R38b the cede message prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            f\"{region_name} is ceded to {client}. \"\n",
+  "new": "            f\"{region_name} is ceded to {vassal_name}. \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_the_typed_cede_names_the_court"
+ },
+ {
+  "id": "IQ7R-R38c the cede message's tribute clause prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            f\"{client} now remits {tribute_pct}% of it as tribute. \"\n",
+  "new": "            f\"{vassal_name} now remits {tribute_pct}% of it as tribute. \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_the_typed_cede_names_the_court"
+ },
+ {
+  "id": "IQ7R-R38d the cooldown refusal prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            \"message\": (f\"A grant to {client} is still being settled \"\n",
+  "new": "            \"message\": (f\"A grant to {vassal_name} is still being settled \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_the_typed_cede_names_the_court"
+ },
+ {
+  "id": "IQ7R-R38e the not-your-vassal refusal prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                \"message\": f\"Cannot cede territory to {client}: not your vassal.\"}\n",
+  "new": "                \"message\": f\"Cannot cede territory to {vassal_name}: not your vassal.\"}\n",
+  "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_every_sentence_of_the_verb"
+ },
+ {
+  "id": "IQ7R-R38f the cede copy loses the court's article",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    # refusal \"A grant to KingdomOfItaly is still being settled\".\n    client = _court_name(world, vassal_name, article=True)\n",
+  "new": "    # refusal \"A grant to KingdomOfItaly is still being settled\".\n    client = _court_name(world, vassal_name)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_the_typed_cede_names_the_court tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_every_sentence_of_the_verb"
+ },
+ {
+  "id": "IQ7R-L7 A_QUESTION_NEVER_ANSWERS down",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "A_QUESTION_NEVER_ANSWERS = True\n",
+  "new": "A_QUESTION_NEVER_ANSWERS = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_a_question_at_an_ordinary_letter_signs_nothing tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_the_button_routes_free_text"
+ },
+ {
+  "id": "IQ7R-R39a the typed router's question rule removed (`should i accept?` signs)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(typed, options):\n        return None\n",
+  "new": "    if False:\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_a_question_at_an_ordinary_letter_signs_nothing"
+ },
+ {
+  "id": "IQ7R-R39b the third copy's question rule removed",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if (_routing.A_QUESTION_NEVER_ANSWERS\n                        and _routing.line_asks_a_question(choice, options)):\n",
+  "new": "                if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_the_button_routes_free_text"
+ },
+ {
+  "id": "IQ7R-R39c an exact LABEL that ends in `?` no longer resolves",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if label_key and _label_key(token, question_label) == label_key:\n            return True\n",
+  "new": "        if False:\n            return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR42AQuestionShapedLabelStillResolves::test_the_label_is_compared_modulo_its_terminal_punctuation tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_a_button_token_carries_no_raw_text"
+ },
+ {
+  "id": "IQ7R-R39d only a `?` makes a question (`can we accept` signs)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if \"?\" in text or bool(is_question(text)):\n        return True\n",
+  "new": "    if \"?\" in text:\n        return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_the_rule_reads_whole_words_and_statement_order"
+ },
+ {
+  "id": "IQ7R-R39e only `is_question` makes a question (`accept?` signs)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if \"?\" in text or bool(is_question(text)):\n        return True\n",
+  "new": "    if bool(is_question(text)):\n        return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_a_question_at_an_ordinary_letter_signs_nothing"
+ },
+ {
+  "id": "IQ7R-R39f the typed router's question rule ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(typed, options):\n",
+  "new": "    if line_asks_a_question(typed, options):\n",
+  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_lever_down_the_question_signs_the_treaty"
+ },
+ {
+  "id": "IQ7R-R39g the third copy's question rule ignores its lever",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if (_routing.A_QUESTION_NEVER_ANSWERS\n                        and _routing.line_asks_a_question(choice, options)):\n",
+  "new": "                if (_routing.line_asks_a_question(choice, options)):\n",
+  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_the_button_routes_free_text"
+ },
+ {
+  "id": "IQ7R-L8 THE_BUTTON_ROUTE_READS_THE_COURT down",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "THE_BUTTON_ROUTE_READS_THE_COURT = True\n",
+  "new": "THE_BUTTON_ROUTE_READS_THE_COURT = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_free_text_that_names_another_court_signs_nothing"
+ },
+ {
+  "id": "IQ7R-R310a the endpoint never hands the handler its free text",
+  "file": "backend/main.py",
+  "old": "        _read_the_court = ({\"raw_text\": _free_text}\n                           if _free_text is not None else {})\n",
+  "new": "        _read_the_court = {}\n",
+  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_free_text_that_names_another_court_signs_nothing"
+ },
+ {
+  "id": "IQ7R-R310b a button token is read as free text",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if token.isdigit() or _MACHINE_TOKEN_RE.match(token):\n        return True\n",
+  "new": "    if False:\n        return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_a_button_token_carries_no_raw_text"
+ },
+ {
+  "id": "IQ7R-R310c the guards' flags do not ride the button route's response",
+  "file": "backend/main.py",
+  "old": "                            \"stale_dialogue\", \"court_mismatch\",\n                            \"matter_mismatch\", \"matter_family\"):\n",
+  "new": "                            \"stale_dialogue\"):\n",
+  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_free_text_that_names_another_court_signs_nothing"
+ },
+ {
+  "id": "IQ7R-R310d the free-text read ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if not THE_BUTTON_ROUTE_READS_THE_COURT or not isinstance(choice, str):\n",
+  "new": "    if not isinstance(choice, str):\n",
+  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_lever_down_the_free_text_signs_portugals_letter"
+ },
+ {
+  "id": "IQ7R-R311a the hard-stop endpoint pins push onto whatever world was left behind",
+  "file": "tests/test_pt_a_regressions.py",
+  "old": "        monkeypatch.setattr(M, \"world\", fresh)\n        monkeypatch.setitem(M.game_state, \"world\", fresh)\n",
+  "new": "        fresh = M.world\n",
+  "tests": "tests/test_iq7_review_round.py::TestR311TheHardStopPinsBuildTheirOwnWorld"
+ },
+ {
+  "id": "IQ7R-R41a `they` is back in the allowlist (`they refuse` REFUSES)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "_PLAIN_PRONOUNS = frozenset({\"it\", \"its\", \"them\", \"their\", \"this\"})\n",
+  "new": "_PLAIN_PRONOUNS = frozenset({\"it\", \"its\", \"them\", \"their\", \"they\", \"this\"})\n",
+  "tests": "tests/test_iq7_review_round.py::TestR41AQuestionMadeOfTheGrammarNeverAnswers::test_they_is_not_a_word_of_the_grammar"
+ },
+ {
+  "id": "IQ7R-R41b `shall` / `will` answer out of statement order",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if token in _PLAIN_MODAL_AUXILIARIES and not after_subject:\n            return None\n",
+  "new": "        if False:\n            return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR41AQuestionMadeOfTheGrammarNeverAnswers::test_the_auxiliaries_answer_in_statement_order_only"
+ },
+ {
+  "id": "IQ7R-R41c `do` answers out of statement order (`do the swiss accept` GRANTS)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if token == _PLAIN_DO_AUXILIARY and not after_subject:\n",
+  "new": "        if False:\n",
+  "tests": "tests/test_iq7_review_round.py::TestR41AQuestionMadeOfTheGrammarNeverAnswers::test_it_logs_nothing_and_moves_no_state"
+ },
+ {
+  "id": "IQ7R-R41d `do` before an answer word no longer answers (`do grant it`)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            before_answer = (index + 1 < len(tokens)\n                             and tokens[index + 1] in answer_words)\n",
+  "new": "            before_answer = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR41AQuestionMadeOfTheGrammarNeverAnswers::test_a_statement_still_answers_at_the_quoted_price"
+ },
+ {
+  "id": "IQ7R-R41e an auxiliary after its subject no longer answers (`we shall grant it`)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        after_subject = index > 0 and tokens[index - 1] in _PLAIN_SUBJECTS\n",
+  "new": "        after_subject = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR41AQuestionMadeOfTheGrammarNeverAnswers::test_a_statement_still_answers_at_the_quoted_price"
+ },
+ {
+  "id": "IQ7R-R42a a lead-in around a question-shaped label is a question again",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if _carries_a_question_label(text, options):\n        return False\n",
+  "new": "    if False:\n        return False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR42AQuestionShapedLabelStillResolves::test_the_advisorys_own_label_expands tests/test_iq7_review_round.py::TestR42AQuestionShapedLabelStillResolves::test_a_lead_in_on_the_typed_road"
+ },
+ {
+  "id": "IQ7R-R42b a PLAIN label is exempted too (`should i accept?` signs)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if \"?\" not in label:\n            continue\n        label_words = set(re.findall(r\"[a-z]+\", label.lower()))\n        if label_words and label_words <= words:\n            return True\n",
+  "new": "        label_words = set(re.findall(r\"[a-z]+\", label.lower()))\n        if label_words and label_words <= words:\n            return True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR42AQuestionShapedLabelStillResolves::test_a_plain_label_is_not_exempted"
+ },
+ {
+  "id": "IQ7R-R42c every label drops a typed `?` (`accept?` is the label `Accept`)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        question_label = \"?\" in label\n",
+  "new": "        question_label = True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR42AQuestionShapedLabelStillResolves::test_a_plain_label_is_not_exempted"
+ },
+ {
+  "id": "IQ7R-R43a an inversion is no question (`then shall we ratify` RATIFIES)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return bool(A_QUESTION_NEVER_ANSWERS\n                and _SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))\n",
+  "new": "    return False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_a_hard_stop_ratifies_nothing tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_portugals_treaty_is_not_signed"
+ },
+ {
+  "id": "IQ7R-R43b the inversion arm ignores its lever",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    return bool(A_QUESTION_NEVER_ANSWERS\n                and _SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))\n",
+  "new": "    return bool(_SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_lever_down_the_inversion_signs_as_it_always_did"
+ },
+ {
+  "id": "IQ7R-R43c the inversion reads `we` only (`and must i yield` is a statement)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    r\"|do|does|did)\\s+(?:we|i)(?![a-z'])\")\n",
+  "new": "    r\"|do|does|did)\\s+(?:we)(?![a-z'])\")\n",
+  "tests": "tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_the_rule_reads_whole_words_and_statement_order"
+ },
+ {
+  "id": "IQ7R-R44a shape (d) removed — `hmm, grant it` mounts a marshal question",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        stray_address = (\n            any(t in answer_words or t in done_forms for t in rest_tokens)\n            or petition_plain_answer(dialogue, rest) is not None)\n",
+  "new": "        stray_address = False\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_line_is_reprompted_and_refuse_then_answers"
+ },
+ {
+  "id": "IQ7R-R44b shape (d) forgets the DONE forms (`switzerland, granted`)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "            any(t in answer_words or t in done_forms for t in rest_tokens)\n",
+  "new": "            any(t in answer_words for t in rest_tokens)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_line_is_reprompted_and_refuse_then_answers"
+ },
+ {
+  "id": "IQ7R-R44c shape (c) forgets the bare negation (`Talleyrand, no`)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        or (carries_negation and not other_courts))\n",
+  "new": "        or False)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_line_is_reprompted_and_refuse_then_answers"
+ },
+ {
+  "id": "IQ7R-R44d shape (c) is not narrowed — the player's own peace order is eaten",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "         and not (other_courts and not _line_is_answer_shaped(text, world)))\n",
+  "new": "         and True)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_players_own_order_about_another_court_reaches_the_proposal_road tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_narrowing_is_the_other_court_and_the_shape"
+ },
+ {
+  "id": "IQ7R-R44e a question in shape (d) keeps the ordinary road",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    if asks and not (leads_with_answer or stray_address):\n        return None\n",
+  "new": "    if asks and not leads_with_answer:\n        return None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_line_is_reprompted_and_refuse_then_answers"
+ },
+ {
+  "id": "IQ7R-R44f the router seam hands the re-prompt no world (no narrowing)",
+  "file": "backend/main.py",
+  "old": "                    _matter = petition_line_reprompt(\n                        world.pending_diplomatic_dialogue, command_text,\n                        _player_marshal_names(world), world=world)\n",
+  "new": "                    _matter = petition_line_reprompt(\n                        world.pending_diplomatic_dialogue, command_text,\n                        _player_marshal_names(world))\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_players_own_order_about_another_court_reaches_the_proposal_road"
+ },
+ {
+  "id": "IQ7R-R44g the history seam hands the re-prompt no world (the order is never recorded)",
+  "file": "backend/main.py",
+  "old": "                        _player_marshal_names(world), world=world) is not None\n",
+  "new": "                        _player_marshal_names(world)) is not None\n",
+  "tests": "tests/test_iq7_review_round.py::TestR44TwoMoreShapesRepromptInPlace::test_the_players_own_order_about_another_court_reaches_the_proposal_road"
+ },
+ {
+  "id": "IQ7R-R45a the invest copy loses the court's article",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    # in pass 3.\n    client = _court_name(world, vassal_name, article=True)\n",
+  "new": "    # in pass 3.\n    client = vassal_name\n",
+  "tests": "tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_typed_road_on_the_kingdom_of_italy"
+ },
+ {
+  "id": "IQ7R-R45b the autonomy copy prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    # Autonomous…\" on all three arms.\n    client = _court_name(world, vassal_name, article=True)\n    client_cap = _court_name(world, vassal_name, article=True, capitalize=True)\n",
+  "new": "    # Autonomous…\" on all three arms.\n    client = _court_name(world, vassal_name, article=True)\n    client_cap = vassal_name\n",
+  "tests": "tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_typed_road_on_the_kingdom_of_italy"
+ },
+ {
+  "id": "IQ7R-R45c the executor's own refusals print the raw tag",
+  "file": "backend/commands/vassal_executor.py",
+  "old": "    return _court_name(world, target, article=True, capitalize=capitalize)\n",
+  "new": "    return target\n",
+  "tests": "tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_typed_road_on_the_kingdom_of_italy"
+ },
+ {
+  "id": "IQ7R-R45d the release report loses the article",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    name = _court_name(world, vassal_name, article=True, capitalize=True)\n",
+  "new": "    name = display_nation(vassal_name)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_typed_road_on_the_kingdom_of_italy"
+ },
+ {
+  "id": "IQ7R-R45e the court guard's tail loses the article",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        with_definite_article(display_nation(n)) for n in addressed)\n",
+  "new": "        display_nation(n) for n in addressed)\n",
+  "tests": "tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_court_guards_tail_carries_the_article"
+ },
+ {
+  "id": "IQ7R-R45f the transfer copy prints the raw tag",
+  "file": "backend/game_logic/vassal.py",
+  "old": "            f\"{client_cap} passes from \"\n",
+  "new": "            f\"{vassal_name} passes from \"\n",
+  "tests": "tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_verbs_no_typed_line_reaches tests/test_iq7_review_round.py::TestR45NoRawTagInAVassalSentence::test_the_source_census"
+ }
+]

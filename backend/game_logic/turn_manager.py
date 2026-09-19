@@ -113,6 +113,105 @@ def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
 LAPSED_COUNTER_COSTS_A_COOLDOWN = True
 
 
+def _thread_petition_lapses(world, tactical_events, petition_lapses) -> list:
+    """IQ-7 review R8(b)/(c): the lapsed petition reaches the turn's own
+    surfaces.
+
+    (b) A `client_petition_answered` receipt — `refuse_petition`'s OWN
+        priced message, never re-derived — is inserted into the turn events
+        beside the vassal's loyalty tick, under the lord's `nation` so the
+        dispatch relevance gate keeps it (the AI lord's in-place answers
+        carry their own lord and are filtered as before). A withdrawn
+        (moot) result carries no price and is reported as moot; with the
+        lever down the "costs nothing" message rides as info.
+    (c) The `vassal_loyalty` tick event for that vassal reports the WHOLE
+        turn's move: the lapse hook charged −10 BEFORE `advance_turn` ran
+        the tick, so the tick alone read "(−3): satellite drift" for a
+        satellite that fell 13. The event's `old_loyalty`/`delta`/`reason`
+        are re-based on the refusal's own `loyalty_before`, with "refused
+        petition" named first among the causes, and the sentence rebuilt
+        from the event's structured fields. Display-only: the row's loyalty
+        was already applied by both producers.
+    """
+    if not petition_lapses:
+        return tactical_events
+    events = list(tactical_events or [])
+    for lapse in petition_lapses:
+        result = lapse.get("result") or {}
+        vassal = str(lapse.get("vassal") or "")
+        lord = str(lapse.get("lord") or "")
+        if not vassal or not lord:
+            continue
+        outcome = str(result.get("outcome") or "")
+        penalty = bool(result.get("penalty"))
+        receipt = {
+            "type": "client_petition_answered",
+            "vassal": vassal,
+            "lord": lord,
+            "nation": lord,
+            "subject": str(lapse.get("subject") or ""),
+            "region": lapse.get("region"),
+            "outcome": outcome,
+            "penalty": penalty,
+            "loyalty_before": result.get("loyalty_before"),
+            "loyalty_after": result.get("loyalty_after"),
+            "relation_before": result.get("relation_before"),
+            "relation_after": result.get("relation_after"),
+            "message": str(result.get("message") or ""),
+        }
+        # (c) — only a lapse that actually charged re-bases the tick.
+        tick_index = None
+        if penalty and result.get("loyalty_before") is not None:
+            before = int(result.get("loyalty_before") or 0)
+            for i, event in enumerate(events):
+                if (isinstance(event, dict)
+                        and event.get("type") == "vassal_loyalty"
+                        and str(event.get("vassal") or "") == vassal):
+                    tick_index = i
+                    new_loyalty = int(event.get("new_loyalty", 0) or 0)
+                    total = new_loyalty - before
+                    reason = str(event.get("reason") or "")
+                    reason = ("refused petition" + (f", {reason}" if reason else ""))
+                    hint = str(event.get("recovery_hint") or "")
+                    crossing = str(event.get("tier_crossing") or "")
+                    delta_str = f"+{total}" if total >= 0 else str(total)
+                    event["old_loyalty"] = int(before)
+                    event["delta"] = int(total)
+                    event["reason"] = reason
+                    event["petition_refused"] = True
+                    event["message"] = (
+                        f"{vassal} loyalty {new_loyalty} ({delta_str}): {reason}"
+                        + (f" — {hint}" if hint else "")
+                        + (f" {crossing}" if crossing else ""))
+                    break
+            if tick_index is None:
+                # No tick event this turn (the drift fell under the ≥2
+                # gate): the refusal is the whole move, so it gets the line.
+                row = (getattr(world, "vassals", {}) or {}).get(vassal) or {}
+                current = int(row.get("loyalty", result.get("loyalty_after") or 0) or 0)
+                total = current - before
+                delta_str = f"+{total}" if total >= 0 else str(total)
+                events.append({
+                    "type": "vassal_loyalty",
+                    "vassal": vassal,
+                    "lord": lord,
+                    "nation": lord,
+                    "old_loyalty": int(before),
+                    "new_loyalty": int(current),
+                    "delta": int(total),
+                    "reason": "refused petition",
+                    "recovery_hint": "",
+                    "tier_crossing": "",
+                    "petition_refused": True,
+                    "message": f"{vassal} loyalty {current} ({delta_str}): refused petition",
+                })
+                tick_index = len(events) - 1
+        # (b) — the receipt stands BEFORE the tick line it explains.
+        insert_at = tick_index if tick_index is not None else len(events)
+        events.insert(insert_at, receipt)
+    return events
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -191,6 +290,15 @@ class TurnManager:
             if isinstance(d, dict) and is_client_petition(d)
         ]
         lapsed_offers = self.world.dialogue_manager.lapse_pending_offers()
+        # IQ-7 review R8(b): the lapse hook KEEPS each `refuse_petition`
+        # result — the message already holds the lever-aware applied figures
+        # ("…lapses as a refusal: loyalty −10 (84 → 74); standing 0 → -20…")
+        # and used to be thrown away, so the price reached no end-turn
+        # surface. Threaded three ways below: onto the matching lapse row
+        # (LAPSED ENVOYS), onto the `offer_lapsed` log row (the campaign
+        # log), and — after `advance_turn`, which replaces the tactical
+        # events wholesale — into the turn events beside the loyalty tick.
+        petition_lapses = []
         if pending_petitions:
             # An unanswered petition is a refusal (`AN_UNANSWERED_PETITION_IS_
             # REFUSED`, read inside `refuse_petition`). The generic lapse
@@ -213,12 +321,20 @@ class TurnManager:
                             or self.world.player_nation)
                 if not _vassal:
                     continue
-                refuse_petition(
-                    self.world, _vassal, _lord,
-                    _terms.get("petition")
-                    if isinstance(_terms.get("petition"), dict) else {},
-                    how="unanswered",
+                _petition = (_terms.get("petition")
+                             if isinstance(_terms.get("petition"), dict) else {})
+                _result = refuse_petition(
+                    self.world, _vassal, _lord, _petition, how="unanswered",
                 )
+                if isinstance(_result, dict):
+                    petition_lapses.append({
+                        "vassal": _vassal,
+                        "lord": _lord,
+                        "subject": str(_petition.get("subject") or ""),
+                        "region": _petition.get("region"),
+                        "result": _result,
+                    })
+        _petition_lapse_by_vassal = {p["vassal"]: p for p in petition_lapses}
         if lapsed_offers:
             self.world.incoming_proposal_popup = None  # Clear paired popup cache
             from backend.notifications import DIPLOMATIC_PROPOSAL
@@ -227,8 +343,31 @@ class TurnManager:
             )
             self.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             lapsed_nations = set()
+            from backend.game_logic.vassal import CLIENT_PETITION_TYPE
             for lapse in lapsed_offers:
                 nation = lapse["nation"]
+                # IQ-7 review R8(b)/(e): the petition's priced result rides
+                # its own lapse row (display) and its `offer_lapsed` log row
+                # (the one-liner carries the price); nothing mechanical
+                # reads either key. The cooldown loop below is untouched —
+                # removing the petition from this list would change what
+                # `apply_lapse_type_cooldown` sees and move the series.
+                _pl = (_petition_lapse_by_vassal.get(nation)
+                       if lapse.get("proposal_type") == CLIENT_PETITION_TYPE
+                       else None)
+                if _pl is not None:
+                    _r = _pl["result"]
+                    lapse["petition"] = {
+                        "outcome": str(_r.get("outcome") or ""),
+                        "penalty": bool(_r.get("penalty")),
+                        "message": str(_r.get("message") or ""),
+                        "loyalty_before": _r.get("loyalty_before"),
+                        "loyalty_after": _r.get("loyalty_after"),
+                        "relation_before": _r.get("relation_before"),
+                        "relation_after": _r.get("relation_after"),
+                        "subject": _pl.get("subject"),
+                        "region": _pl.get("region"),
+                    }
                 if nation and nation not in lapsed_nations:
                     # Treat unanswered offers like a soft deferral so the same
                     # nation cannot immediately resend during this end-turn.
@@ -255,13 +394,17 @@ class TurnManager:
                     if _lapsed_ptype:
                         self.world.player_proposal_cooldowns[
                             f"{nation}_{_lapsed_ptype}"] = 5
-                self.world.log_event({
+                _lapse_row = {
                     "type": "offer_lapsed",
                     "nation": nation,
                     "offer_type": lapse["offer_type"],
                     "proposal_type": lapse["proposal_type"],
                     "turn": int(self.world.current_turn),
-                })
+                }
+                if isinstance(lapse.get("petition"), dict):
+                    # R8(e): the one-liner quotes the applied price.
+                    _lapse_row["petition"] = dict(lapse["petition"])
+                self.world.log_event(_lapse_row)
 
         # ════════════════════════════════════════════════════════════
         # JEALOUSY v3.2 — AUTONOMOUS GLORY ATTACKS (spec §7, §0.2 item 7)
@@ -291,7 +434,8 @@ class TurnManager:
             # Skip to turn advancement without enemy phase
             self.world.advance_turn()
             _advanced = True
-            tactical_events = self.world.get_last_tactical_events()
+            tactical_events = _thread_petition_lapses(
+                self.world, self.world.get_last_tactical_events(), petition_lapses)
             result = {
                 "turn_ended": old_turn,
                 "next_turn": self.world.current_turn,
@@ -320,7 +464,8 @@ class TurnManager:
                 if not _advanced:
                     self.world.advance_turn()
                     _advanced = True
-                tactical_events = self.world.get_last_tactical_events()
+                tactical_events = _thread_petition_lapses(
+                    self.world, self.world.get_last_tactical_events(), petition_lapses)
                 result = {
                     "turn_ended": old_turn,
                     "next_turn": self.world.current_turn,
@@ -392,6 +537,10 @@ class TurnManager:
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()
         debug_print(f"[TURN_MANAGER DEBUG] Retrieved {len(tactical_events)} tactical events")
+        # IQ-7 review R8(b)/(c): the lapsed petition's receipt joins the
+        # turn events (after the advance, which replaced them wholesale).
+        tactical_events = _thread_petition_lapses(
+            self.world, tactical_events, petition_lapses)
 
         # ════════════════════════════════════════════════════════════
         # CAPITAL PROXIMITY ALERT: Warn when enemy enters capital-adjacent region

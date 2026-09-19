@@ -121,6 +121,25 @@ func show_proposal(data: Dictionary):
 	if reject_hint:
 		bbcode += "\n[color=red]Key obstacle: %s[/color]" % reject_hint
 
+	# IQ-7 review R2 (honest availability): the Grant option's `enabled` /
+	# `reason` are DERIVED by the backend at every read (never baked at
+	# issue), and the popup reads them — it used to hard-set Grant live, so a
+	# lord with no DP pressed "Grant … for 1 DP" and got a free withdrawal.
+	var grant_enabled := true
+	var grant_reason := ""
+	if is_petition:
+		grant_enabled = bool(data.get("grant_enabled", true))
+		grant_reason = str(data.get("grant_reason", ""))
+		var opts = data.get("options", [])
+		if opts is Array:
+			for opt in opts:
+				if opt is Dictionary and str(opt.get("action", "")) == "accept_ai_proposal":
+					grant_enabled = bool(opt.get("enabled", grant_enabled))
+					if str(opt.get("reason", "")) != "":
+						grant_reason = str(opt.get("reason", ""))
+		if not grant_enabled and grant_reason != "":
+			bbcode += "\n[color=#" + Utils.COLOR_ERROR + "]Grant unavailable: %s.[/color]" % grant_reason
+
 	# Lapse warning
 	if is_ultimatum:
 		bbcode += "\n[color=#e0c060][i]This demand will lapse at end of turn.[/i][/color]"
@@ -141,7 +160,10 @@ func show_proposal(data: Dictionary):
 	# Enable buttons — hide Counter for counter-offers (no counter-counter),
 	# for ultimatums (an ultimatum is not a negotiation — NA-5 §8) and for a
 	# client's petition (granted or refused, never bargained — IQ-7)
-	accept_btn.disabled = false
+	# IQ-7 review R2: a petition's Grant follows the backend's `enabled`
+	# (see above); every other register keeps Accept live as before.
+	accept_btn.disabled = is_petition and not grant_enabled
+	accept_btn.tooltip_text = grant_reason if (is_petition and not grant_enabled) else ""
 	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition
 	counter_btn.disabled = is_counter or is_ultimatum or is_petition
 	reject_btn.disabled = false

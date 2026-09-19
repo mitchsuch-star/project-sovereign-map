@@ -2624,12 +2624,27 @@ def format_event_oneliner(event: dict) -> str:
                else "for relief from tribute")
         if outcome == "granted":
             verdict = "granted"
+        elif outcome == "fulfilled":
+            # IQ-7 review R1 (Sept 18, 2026): the deed was done by the lord's
+            # own cede before the answer — honoured, never "refused".
+            return (f"{vassal}'s petition {ask} — already ceded by our own "
+                    f"hand; honoured.")
+        elif outcome == "withdrawn":
+            return f"{vassal}'s petition {ask} — withdrawn, nothing charged."
         elif outcome == "unanswered":
             verdict = ("left unanswered, refused"
                        if event.get("penalty", True) else "left unanswered")
         else:
             verdict = "refused"
-        return f"{vassal}'s petition {ask} — {verdict}."
+        # IQ-7 review R8(e): a refusal (spoken or by silence) quotes the
+        # applied price its own event already carries.
+        tail = ""
+        if (event.get("penalty") and verdict.endswith("refused")
+                and event.get("loyalty_before") is not None):
+            tail = (f": loyalty {event.get('loyalty_before')} → "
+                    f"{event.get('loyalty_after')}, bond "
+                    f"{event.get('relation_before')} → {event.get('relation_after')}")
+        return f"{vassal}'s petition {ask} — {verdict}{tail}."
 
     if event_type == "coalition_member_left":
         nation = event.get("nation", "Unknown")
@@ -2757,6 +2772,11 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "proposal_arrived":
         from backend.display_names import with_indefinite_article
         source = event.get("source", "Unknown")
+        # IQ-7 review [14]/[31] (R10): a client's petition is a petition,
+        # not "an a client's petition proposal (Client Petition)".
+        if str(event.get("proposal_type") or "") == "client_petition":
+            court = with_definite_article(display_nation(str(source)))
+            return f"An envoy from {court} has arrived with a petition"
         proposal_type = _proposal_label(event)
         return (f"An envoy from {source} has arrived with "
                 f"{with_indefinite_article(proposal_type)} proposal{_decision_reason_suffix(event)}")
@@ -2791,6 +2811,24 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "offer_lapsed":
         nation = event.get("nation", "Unknown")
+        # IQ-7 review R8(e)/[31]: a lapsed petition carries the price the
+        # lapse hook stamped on this row (`turn_manager`), never the generic
+        # "offer lapsed unanswered" that every free lapse gets.
+        if str(event.get("proposal_type") or "") == "client_petition":
+            court = with_definite_article(display_nation(str(nation)), capitalize=True)
+            petition = event.get("petition") if isinstance(event.get("petition"), dict) else {}
+            outcome = str(petition.get("outcome") or "")
+            if outcome == "withdrawn":
+                return f"{court}'s petition lapsed unanswered — moot, nothing charged"
+            if petition.get("penalty"):
+                return (f"{court}'s petition lapsed unanswered — refused: "
+                        f"loyalty {petition.get('loyalty_before')} → "
+                        f"{petition.get('loyalty_after')}, bond "
+                        f"{petition.get('relation_before')} → "
+                        f"{petition.get('relation_after')}")
+            if petition:
+                return f"{court}'s petition lapsed unanswered — nothing charged"
+            return f"{court}'s petition lapsed unanswered"
         proposal_type = _proposal_label(event)
         return f"{nation}'s {proposal_type} offer lapsed unanswered"
 

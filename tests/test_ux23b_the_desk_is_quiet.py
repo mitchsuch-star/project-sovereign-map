@@ -557,9 +557,20 @@ class TestAnOrderIsNotAnAnswer:
                      encoding="utf-8") as fh:
             src = fh.read()
         assert "def _player_marshal_names(world) -> list:" in src
-        calls = src.count("_player_marshal_names(world)") - 1  # minus the def
-        assert calls == 2, (
-            f"both matcher call sites must pass the roster; found {calls}")
+        # RE-ANCHORED, IQ-7 review pass 3 (Sept 19, 2026): this was a bare
+        # count of the helper's name (== 2), which is only a proxy for what
+        # the docstring says. Pass 3 gave the roster two more readers — the
+        # in-place re-prompt at a current client petition
+        # (`petition_line_reprompt`, so an order that names a marshal is
+        # never re-prompted) — and the proxy read 4. The pin now counts what
+        # it means: MATCHER call sites that pass the roster.
+        matcher_calls = re.findall(
+            r"match_dialogue_answer\((?:(?!match_dialogue_answer\().){0,240}?"
+            r"_player_marshal_names\(world\)", src, re.S)
+        assert len(matcher_calls) == 2, (
+            f"both matcher call sites must pass the roster; found "
+            f"{len(matcher_calls)}")
+        assert src.count("match_dialogue_answer(\n") == 2   # …and there are two
 
     def test_a_captured_marshal_does_not_block_an_answer(self):
         """A name the player can no longer order is not an order, and letting

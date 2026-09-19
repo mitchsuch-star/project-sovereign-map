@@ -928,7 +928,12 @@ def test_slice8_hot_paths_ride_cached_region_index():
         # it. The pin follows the derivation (the WO slice-6 lesson below:
         # left on the consumer it would have kept the NAME green while
         # binding nothing), and the consumer is pinned to CALL the source.
-        (vassal.vassal_tribute_owed, "get_nation_regions", ".regions.items()"),
+        # IQ-7 review round (Sept 18, 2026): the region walk moved one level
+        # down again, into `_vassal_tributable_income` (the province-grant
+        # price reads the same sum), so the pin follows it and the source is
+        # pinned to CALL the helper.
+        (vassal._vassal_tributable_income, "get_nation_regions", ".regions.items()"),
+        (vassal.vassal_tribute_owed, "_vassal_tributable_income(", ".regions.items()"),
         (vassal.process_vassal_tribute, "vassal_tribute_owed(", ".regions.items()"),
         (war_status.build_active_wars, "get_nation_regions(opponent)", None),
         (EnemyAI._get_strategic_enemy_regions, "get_active_nations", ".regions.items()"),
@@ -969,7 +974,11 @@ def test_s3_ledger_tribute_rides_cached_region_index():
     # `vassal_tribute_owed`, which is where the cached-index routing lives —
     # so the source carries the GR8 pin and each consumer is pinned to CALL
     # it (a consumer that re-inlined a raw scan would red both halves).
-    source_src = inspect.getsource(vassal.vassal_tribute_owed)
+    # IQ-7 review round (Sept 18, 2026): the walk itself now lives in
+    # `_vassal_tributable_income` (shared with the province-grant price);
+    # the source must CALL it and the helper carries the GR8 pin.
+    assert "_vassal_tributable_income(" in inspect.getsource(vassal.vassal_tribute_owed)
+    source_src = inspect.getsource(vassal._vassal_tributable_income)
     assert "get_nation_regions(vassal_name)" in source_src, (
         "vassal_tribute_owed lost its cached-index tribute derivation"
     )

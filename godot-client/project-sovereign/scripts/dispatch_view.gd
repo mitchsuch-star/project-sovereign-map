@@ -305,6 +305,12 @@ func _on_dispatch_received(response):
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]LAPSED ENVOYS[/color]\n"
 		for lapse in lapsed_offers:
 			var l_nation = str(lapse.get("nation", "?"))
+			# IQ-7 review R8(b): a lapsed PETITION prints the priced line the
+			# lapse hook kept (shown = applied), never "offer lapsed".
+			var l_line = str(lapse.get("line", ""))
+			if bool(lapse.get("is_petition", false)) and l_line != "":
+				bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]\n"
+				continue
 			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
 			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + Utils.display_nation_name(l_nation) + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"
 		bbcode += "\n"

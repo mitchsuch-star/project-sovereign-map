@@ -4,7 +4,9 @@ extends CanvasLayer
 # PROJECT SOVEREIGN - Vassal Rebellion Imminent Popup (Session 8C)
 # =============================================================================
 # Displays when a vassal's loyalty drops critically low.
-# Three buttons: Invest / Send Garrison / Accept Risk
+# Three buttons: Invest / Show the Flag / Accept Risk
+# (IQ-7 review [21]: "Send Garrison" promised a corps; none moves. The
+# choice id stays "garrison" -> garrison_vassal_rebellion.)
 # =============================================================================
 
 signal choice_made(choice: String, data: Dictionary)
@@ -30,16 +32,18 @@ func show_rebellion(data: Dictionary):
 	var nation = data.get("nation", "Unknown")
 	var loyalty = data.get("loyalty", 0)
 	var invest_cost = data.get("invest_cost_dp", 1)
-	var garrison_cost = data.get("garrison_ap_cost", 2)
 	var invest_effect = data.get("invest_effect", "Loyalty +15")
-	var garrison_effect = data.get("garrison_effect", "Loyalty +10")
+	var garrison_effect = data.get("garrison_effect", "%d AP → Loyalty +10 now. No corps moves." % int(data.get("garrison_ap_cost", 2)))
 	var accept_effect = data.get("accept_effect", "Rebellion may occur")
 
 	var bbcode = ""
 	bbcode += "[b]REBELLION IMMINENT[/b]\n"
 	bbcode += "[color=red]%s loyalty: %d/100[/color]\n\n" % [Utils.display_nation_name(str(nation)), loyalty]
 	bbcode += "[b]Invest (%d DP)[/b] — %s\n" % [invest_cost, invest_effect]
-	bbcode += "[b]Send Garrison (costs %d AP)[/b] — %s\n" % [garrison_cost, garrison_effect]
+	# IQ-7 review [21]: the option says what it does — no corps moves (the
+	# backend's own copy, which already names the AP cost; the header used
+	# to double it and the button used to promise a garrison).
+	bbcode += "[b]Show the Flag[/b] — %s\n" % garrison_effect
 	bbcode += "[b]Accept the Risk[/b] — %s" % accept_effect
 
 	content_label.text = ""
