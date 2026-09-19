@@ -533,6 +533,32 @@ def _game_state_dict(game_state: Optional[Dict], key: str) -> Dict:
     return value if isinstance(value, dict) else {}
 
 
+def _question_subjects(game_state: Optional[Dict]) -> list:
+    """CX — the roster `clause_guards.is_question` reads to tell a question
+    about a THIRD PARTY from a polite order to the person addressed.
+
+    "can Ney attack Mack" asks; "can you attack Mack" commands. Both the
+    player's marshals and every enemy commander the player can NAME count as
+    third parties — `_askable_enemy_names`, the same list the question desk
+    reads, which is deliberately omniscient about NAMES because naming a
+    commander was never the fogged half (his POSITION is, and the desk
+    answers that honestly: "no word of Kutuzov's whereabouts"). No fog is
+    leaked: the roster only decides whether a sentence is a QUESTION, and a
+    boolean prints nothing. Using the wider list is also the safer direction —
+    "can Kutuzov take Vienna" reads as a question whether or not we can see
+    him.
+    """
+    names = list(_game_state_dict(game_state, "marshals"))
+    try:
+        names += list(_askable_enemy_names(game_state) or [])
+    except Exception:
+        pass
+    # Provinces are subjects too — "can Vienna be taken", "could Swabia hold".
+    # The map already paints every province name, so this is public by the
+    # same rule the question desk states for a province's holder.
+    names += list(_game_state_dict(game_state, "map_data"))
+    return names
+
 def _extract_known_nations(game_state: Optional[Dict]) -> Dict[str, str]:
     """Map of lowercase typed forms -> canonical nation key, from the LLM
     game_state (enemy marshal nations + region controllers). Includes
@@ -1350,7 +1376,8 @@ class LLMClient:
         # request) down to a bare address and a marshal-typo error.
         if not (command_lower.startswith(("/debug", "debug ", "save"))
                 or command_lower.strip() == "load"
-                or is_question(command_text)):
+                or is_question(command_text,
+                               _question_subjects(game_state))):
             stand_down = mentions_stand_down(command_lower)
             guarded, negation_applied = strip_negated_clauses(command_text)
             guarded, condition_refuses = strip_condition_clauses(guarded)
@@ -1598,7 +1625,7 @@ class LLMClient:
         # ════════════════════════════════════════════════════════════
         # Read the ORIGINAL: the clause guards above may have blanked the very
         # question mark or subject the test keys on ("why can't I move?").
-        if is_question(original_text):
+        if is_question(original_text, _question_subjects(game_state)):
             # FA slice 7 (FA-D25's cheap join): a FACT question the intel
             # report already answers ("where is Mack?", "who holds Swabia?",
             # "what is Davout doing?", "how many men does Ney have?") routes

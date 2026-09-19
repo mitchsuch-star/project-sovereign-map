@@ -49,7 +49,7 @@ existing keyword chain reads, and whether the caller should refuse.
 """
 
 import re
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Clause terminators
@@ -556,7 +556,10 @@ _INTERROGATIVE_LEAD_SRC = (
     # still counts as the LEAD.
     r"(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*,\s*)?"
     r"(?P<lead>how|what|why|who|whom|whose|where|when|which|"
-    r"can|could|should|is|are|was|were|do|does|did|am|may|might%s)\b"
+    # CX: `has`/`had` join the leads — "has Ney taken Vienna" asks, and no
+    # English imperative can open with either. `have` is DELIBERATELY absent:
+    # "have Ney attack Mack" is the causative imperative and a real order.
+    r"can|could|should|is|are|was|were|do|does|did|am|may|might|has|had%s)\b"
 )
 _MODAL_LEADS = frozenset({"will", "would", "shall"})
 _SECOND_PERSON_AFTER_LEAD_RE = re.compile(r"\s*you\b", re.IGNORECASE)
@@ -575,17 +578,138 @@ _AUXILIARY_RE = re.compile(
     r"\b(?:do|does|did|is|are|was|were|am|can|could|should|would|will|shall"
     r"|may|might|must|have|has|had)\b", re.IGNORECASE)
 
+# ───────────────────────────────────────────────────────────────────────────
+# CX slice 1 — "A QUESTION NEVER ORDERS"
+# ───────────────────────────────────────────────────────────────────────────
+# The auxiliary requirement above is what a WH-lead needed to count as a
+# question without a "?" — and it left two holes that EXECUTED. Measured on
+# the 1805 boot board through `POST /command`:
+#
+#   "why not attack Mack"  → AP 4→3 and a REAL BATTLE. Six French corps bled
+#                            (Ney −946, Davout −1,025, Soult −1,980, Lannes
+#                            −709, Murat −867, and the Emperor's Guard −394).
+#   "why not retreat"      → a GENERAL RETREAT of the whole army: all eight
+#                            marshals fell back, Massena losing 2,100 men to
+#                            movement attrition.
+#   "who holds Swabia"     → "Which marshal shall hold Swabia, Sire?" — the
+#                            question desk's OWN advertised kind, shadowed by
+#                            the HOLD verb and one answer from an order.
+#
+# Neither sentence carries an auxiliary, so `is_question` returned False and
+# the verb chain read the imperative inside the question. The narrow, provable
+# rule: **no English imperative begins with `who`, `whom`, `whose` or `why`**,
+# so those four leads are a question on their own.
+#
+# It is exactly four words and not "every WH-lead", because the corpus itself
+# refutes the wider rule: `cr2-when-ready-then-retreat-not-split` pins
+# "when ready then retreat" as a RETREAT, and "what"/"where"/"how"/"which"
+# all begin real phrasings the game already accepts. Measured against all 447
+# corpus entries, the four-word rule moves 0 rows.
+#
+# Flip lever: False restores the pre-CX lead rule byte-for-byte.
+A_QUESTION_NEVER_ORDERS = True
 
-def is_question(command_text: str) -> bool:
+# The four leads that cannot open an imperative.
+_SUBJECT_WH_WORDS = frozenset({"who", "whom", "whose", "why"})
+
+# "where's Ney" is "where is Ney" with the auxiliary contracted onto the lead,
+# so the auxiliary scan could never see it: measured, `where is Ney` answered
+# from the desk while `where's Ney` fell through to Berthier's shrug.
+_CONTRACTED_AUX_RE = re.compile(r"^\s*['’]s\b", re.IGNORECASE)
+
+# THE DELIBERATIVE OPENERS. A 373-case sweep of (question lead x order verb)
+# through `POST /command` on a fresh 1805 board found thirteen more that
+# EXECUTED, and they are three phrasings, not thirteen:
+#
+#   "what about attack Mack"          → a real battle, AP 4→3, seven corps moved
+#   "how about retreat"               → a GENERAL RETREAT of the whole army
+#   "is it time to build a depot in Paris" → 300 gold and an admin AP spent
+#
+# Each carries a WH or `is` lead whose extra-signal test fails: "about" is not
+# an auxiliary, and "it" is not a first person. They are the way a person MUSES
+# — the single most natural thing to type at a war table — and every one of
+# them committed the deed.
+_DELIBERATIVE_OPENER_RE = re.compile(
+    r"^(?:what|how)\s+about\b"
+    r"|^is\s+it\s+(?:time|wise|worth|right|prudent|safe|sensible|best)\b"
+    r"|^(?:what|how)\s+say\b",
+    re.IGNORECASE)
+
+# THE SUBJECT DECIDES — the rule FA slice 7's review round already wrote for
+# will/would/shall, extended to the rest of the modal leads.
+#
+# The modal leads require a "?" or a first person because "can you attack
+# Mack" is a polite ORDER. But `can NEY attack Mack` names a THIRD PARTY, and
+# nobody orders Ney by asking whether Ney can. Measured on the 1805 boot, all
+# four fought a real battle and spent an action point:
+#
+#     can Ney attack Mack · may Ney attack Mack
+#     does Ney attack Mack · is Ney attacking Mack
+#
+# The lead cannot tell them apart from "can you attack Mack" on its own — only
+# the SUBJECT can — so `is_question` takes an optional roster and asks whether
+# the word after the lead names somebody other than the person addressed.
+# Omitted (the default, and every caller outside the parse chain) the arm is
+# dormant and the function is byte-identical to before.
+_SUBJECT_AFTER_LEAD_RE = re.compile(
+    r"\s*(?:the\s+)?(?:" + HONORIFIC + r")?(?P<subj>[A-Za-z][\w'’-]*)",
+    re.IGNORECASE)
+# Third-person pronouns need no roster: "is he attacking", "do they hold".
+_THIRD_PERSON_SUBJECTS = frozenset({"he", "she", "they", "it", "him", "her"})
+
+# ⚠ The subject rule is only NEEDED where the lead has an imperative form.
+# `can/could/may/might/will/would/shall/do/should` all do — "can you attack
+# Mack" is a polite order, "do attack Mack" an emphatic one — so for those the
+# subject decides. The copular and perfect leads have NO imperative form in
+# English at all: there is no order that begins "is …", "was …", "does …" or
+# "had …". Those are a question whatever follows, and that is what closes the
+# case the fast parser was measured executing at confidence 0.90 with a
+# PROVINCE as its subject, which no roster of commanders could have reached:
+#
+#     "is Swabia defended"  → a whole-army DEFEND, 1 AP spent.
+_NEVER_IMPERATIVE_LEADS = frozenset({
+    "is", "are", "was", "were", "am", "does", "did", "has", "had"})
+
+# A BARE ORDER THAT ASKS. `retreat?` ordered a GENERAL RETREAT of all eight
+# corps and `attack?` armed the bare-attack clarification — neither carries an
+# interrogative lead, so the lead rule above can never see them. An order
+# addressed to a marshal keeps its question mark by design ("Ney, attack
+# Mack?" is a hesitant order, and the docstring has said so since FA slice 7);
+# an UNADDRESSED line that ends in a question mark is a question.
+#
+# `end turn?` is NOT in this family: `is_bare_end_turn` strips trailing "?" on
+# purpose (FA-R4), because the old behaviour — where a question mark saved you
+# from an accidental turn advance and its absence did not — was itself the
+# defect that rule was written to kill. It is left exactly as it is.
+_ADDRESSED_LINE_RE = re.compile(
+    r"^\s*(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*[,:]", re.IGNORECASE)
+# ", <at least one more word>" — the tail of an inverted conditional.
+_TRAILING_CLAUSE_RE = re.compile(r",\s*\S")
+
+
+def is_question(command_text: str,
+                subjects: Optional[Iterable[str]] = None) -> bool:
     """True for "how do I attack?" — a request for guidance, not an order.
 
-    Requires an interrogative LEAD, so an order that merely ends in a question
-    mark ("Ney, attack Mack?") stays an order. Beyond the lead it needs one
-    more signal — a question mark, a first-person subject, or (for a WH-lead
-    only) an auxiliary verb — so that "can you attack Mack", a polite order
-    typed without punctuation, still marches.
+    Requires an interrogative LEAD, so an order ADDRESSED to a marshal that
+    merely ends in a question mark ("Ney, attack Mack?") stays an order.
+    Beyond the lead it needs one more signal — a question mark, a first-person
+    subject, or (for a WH-lead only) an auxiliary verb — so that "can you
+    attack Mack", a polite order typed without punctuation, still marches.
+
+    `subjects` (CX) is the live roster — marshals and known commanders. When
+    it is given, a modal lead followed by one of those names is a question
+    about a third party rather than an order to the person addressed:
+    "can Ney attack Mack" asks; "can you attack Mack" commands. Omitted, the
+    arm is dormant.
     """
     text = (command_text or "").strip()
+    # CX: an UNADDRESSED line ending in a question mark is a question.
+    # `retreat?` marched eight corps; `Ney, attack Mack?` keeps its order.
+    if (A_QUESTION_NEVER_ORDERS and text.endswith("?")
+            and not _ADDRESSED_LINE_RE.match(text)
+            and not is_bare_end_turn(text)):
+        return True
     _lead_re = (_INTERROGATIVE_LEAD_RE if MODAL_LEADS_ARE_QUESTIONS
                 else _INTERROGATIVE_LEAD_RE_LEGACY)
     lead = _lead_re.match(text)
@@ -603,10 +727,42 @@ def is_question(command_text: str) -> bool:
         # would you scout Swabia?" to the COMMAND REFERENCE and let "would
         # Ney attack Mack" (no "?") fight.
         return not _SECOND_PERSON_AFTER_LEAD_RE.match(text[lead.end("lead"):])
+    # CX: the four leads no imperative can open are a question on their own.
+    if A_QUESTION_NEVER_ORDERS and lead_word in _SUBJECT_WH_WORDS:
+        return True
+    # CX: "what about …", "how about …", "is it time to …" — the deliberative
+    # openers, read from the LEAD onward so an address never hides them.
+    if A_QUESTION_NEVER_ORDERS and _DELIBERATIVE_OPENER_RE.match(
+            text[lead.start("lead"):]):
+        return True
     if text.endswith("?") or _FIRST_PERSON_RE.search(text):
         return True
-    return (lead_word in _WH_WORDS
-            and bool(_AUXILIARY_RE.search(text[lead.end("lead"):])))
+    rest = text[lead.end("lead"):]
+    # CX: the subject decides. A modal lead naming a THIRD PARTY asks about
+    # him; only the second person is a polite imperative.
+    #
+    # ⚠ The arm stands down when a COMMA and a further clause follow, because
+    # that is the INVERTED CONDITIONAL and not a question: "Ney, should Mack
+    # advance, fortify" means "if Mack advances, fortify" and must reach the
+    # condition guard's refusal, which `test_parse_negation` pins. A question
+    # of this shape does not carry a trailing main clause.
+    if (A_QUESTION_NEVER_ORDERS and lead_word in _NEVER_IMPERATIVE_LEADS
+            and not _TRAILING_CLAUSE_RE.search(rest)):
+        return True
+    if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS
+            and not _TRAILING_CLAUSE_RE.search(rest)):
+        subj = _SUBJECT_AFTER_LEAD_RE.match(rest)
+        if subj:
+            word = subj.group("subj").lower()
+            if word in _THIRD_PERSON_SUBJECTS:
+                return True
+            if subjects and word in {str(s).lower() for s in subjects}:
+                return True
+    if A_QUESTION_NEVER_ORDERS and lead_word in _WH_WORDS:
+        # "where's Ney" — the auxiliary is contracted onto the lead.
+        if _CONTRACTED_AUX_RE.match(rest):
+            return True
+    return lead_word in _WH_WORDS and bool(_AUXILIARY_RE.search(rest))
 
 
 # ---------------------------------------------------------------------------

@@ -3756,10 +3756,35 @@ class TestIQ7X7TheDeferralLimitOnOtherFamilies:
                           {"label": "Counter-offer", "action": "counter_ai_proposal"}]}
 
     @pytest.mark.parametrize("line", [
-        "accept the offer later", "accept it next turn", "is that a yes", "yes, later",
+        "accept the offer later", "accept it next turn", "yes, later",
         "if we accept", "accept the offer, but not now", "maybe accept"])
     def test_a_deferred_answer_still_answers_an_ordinary_letter(self, line):
         assert DR.match_dialogue_answer(self.LETTER, line) is not None
+
+    def test_is_that_a_yes_is_closed_by_cx_slice_1(self):
+        """⚠ CONSCIOUS PIN FLIP, on this class's own instruction ("when that
+        row lands these lines must resolve to None and this pin FLIPS").
+
+        `is that a yes` was in the deferral list above and signed the treaty.
+        It is not a deferral at all — it is a QUESTION, and CX slice 1 gave
+        `is` / `are` / `was` / `does` / `has` … the reading they always had in
+        English: no imperative opens with them, so they lead a question
+        whatever follows. Pass 3's `A_QUESTION_NEVER_ANSWERS` then does the
+        rest, with no change to the dialogue layer at all.
+
+        ⚠ IQ7-X7 is only PARTLY closed by this. The six lines above are real
+        deferrals ("accept it next turn"), carry no interrogative lead, and
+        stay CR-6 proper's.
+        """
+        assert DR.match_dialogue_answer(self.LETTER, "is that a yes") is None
+        from backend.ai import clause_guards as _CG
+        original = _CG.A_QUESTION_NEVER_ORDERS
+        try:
+            _CG.A_QUESTION_NEVER_ORDERS = False
+            assert DR.match_dialogue_answer(
+                self.LETTER, "is that a yes") is not None, "lever off = the old reading"
+        finally:
+            _CG.A_QUESTION_NEVER_ORDERS = original
 
     def test_the_question_half_is_closed_for_every_family(self):
         assert DR.match_dialogue_answer(self.LETTER, "should i accept?") is None

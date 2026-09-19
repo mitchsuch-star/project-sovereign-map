@@ -57,6 +57,9 @@ LEVERS = [
     (L, "SUPPORT_SPEAKS_PLAINLY"), (L, "VERB_TYPO_PASS_ACTIVE"),
     (L, "QUESTION_DESK_ACTIVE"), (L, "BERTHIER_NAMES_AN_ENEMY"),
     (CG, "MODAL_LEADS_ARE_QUESTIONS"), (QD, "QUESTION_DESK_ACTIVE"),
+    # CX slice 1: the file now flips this one too, so it must be
+    # restored with the rest or it leaks into the next test.
+    (CG, "A_QUESTION_NEVER_ORDERS"),
     (PM, "ADMIN_VERBS_NEVER_MARCH"), (PM, "A_BARE_RETREAT_IS_A_RETREAT"),
     (PM, "ADMIRAL_IS_AN_ADDRESSEE"), (SP, "GUARDING_A_MARSHAL_IS_SUPPORT"),
     (NE, "ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL"), (PR, "PRISONERS_ARE_NAMED"),
@@ -645,13 +648,29 @@ class TestTheQuestionDesk:
         assert CG.is_question("will Ney attack Mack?")
         assert CG.is_question("would Ney beat Mack?")
         CG.MODAL_LEADS_ARE_QUESTIONS = False
+        # CX slice 1 gave this sentence a SECOND road to `question` (an
+        # unaddressed line ending in "?"), so the FA lever no longer decides
+        # it alone. The isolation is preserved by DARKENING the newer road
+        # rather than weakening the assertion — the project's own slice-9
+        # lesson. Both levers off must reproduce the pre-FA-slice-7 reading.
+        CG.A_QUESTION_NEVER_ORDERS = False
         assert not CG.is_question("will Ney attack Mack?"), "lever off = the pre-slice lead set"
 
     def test_the_polite_order_stays_an_order(self):
-        """Recorded, not changed: an unpunctuated modal lead is a polite ORDER
-        ('would you have Ney attack Mack', 'can Ney attack Mack')."""
+        """Recorded, not changed: an unpunctuated modal lead with a SECOND
+        PERSON subject is a polite ORDER ('would you have Ney attack Mack').
+
+        ⚠ CX slice 1 amends the second case CONSCIOUSLY. `can Ney attack
+        Mack` was recorded here as a polite order; measured on the 1805 boot
+        it FOUGHT A BATTLE and spent an action point, and nobody orders Ney by
+        asking whether Ney can. The subject now decides — the rule FA slice
+        7's own review round wrote for will/would/shall — so a modal lead
+        naming a THIRD PARTY asks. Without the roster the arm is dormant and
+        the original reading stands, which is what the first assertion pins.
+        """
         assert not CG.is_question("would you have Ney attack Mack")
-        assert not CG.is_question("can Ney attack Mack")
+        assert not CG.is_question("can Ney attack Mack")          # no roster
+        assert CG.is_question("can Ney attack Mack", ["Ney"])     # CX
         assert CG.is_question("can Ney attack Mack?")
 
     def test_the_desk_lever(self, board, client):

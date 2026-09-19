@@ -955,13 +955,65 @@ class CommandExecutor:
         from backend.commands.strategic import standing_last_stand_refusal
         return standing_last_stand_refusal(marshal, action)
 
+    # ───────────────────────────────────────────────────────────────────
+    # CX slice 1 — AN ADDRESS NEEDS NO COMMA
+    # ───────────────────────────────────────────────────────────────────
+    # `_unbound_addressee` keyed the whole rule on `raw.partition(",")` and
+    # returned None when there was no comma, on the reasoning that a bare
+    # order has no addressee. True of `attack Mack`; false of the same
+    # sentence with a name in front of it, and the difference is one
+    # keystroke. Measured on the 1805 boot through POST /command:
+    #
+    #   "Nay, attack Mack"   → refused free: "There is no 'Nay' in the order
+    #                          of battle, Sire. Whom did you intend?"
+    #   "Nay attack Mack"    → SOULT — a marshal the player never named —
+    #                          fought a real battle. 1 AP, 265 gold, five
+    #                          corps relocated, no question asked.
+    #
+    # And it is far wider than a typo: `Grouchy attack Mack` (a commission
+    # candidate on the bench), `Berthier attack Mack` (the chief of staff),
+    # `Wellington attack Mack` and `Blucher attack Mack` (foreign marshals)
+    # and even `Zorglub attack Mack` all sent Soult in. `Wellington retreat`
+    # marched the ENTIRE ARMY back.
+    #
+    # With no comma the addressee is the leading run of words BEFORE the
+    # first order verb — empty for a genuinely bare order, so `attack Mack`
+    # is untouched by construction.
+    #
+    # Flip lever: False restores the comma-only rule byte-for-byte.
+    AN_ADDRESS_NEEDS_NO_COMMA = True
+
+    # A leading run that contains any of these is NOT somebody's name, so the
+    # comma-less arm stands down and the sentence keeps whatever reading it
+    # had. Two groups, and both were found by the arm's own first draft
+    # eating them:
+    #
+    #   the COLLECTIVE address — "all marshals attack", "everyone hold" —
+    #     which addresses the army and must keep reaching the marshal-less arm;
+    #   the FUNCTION words — "can you attack Mack" (the polite imperative),
+    #     "do attack Mack" (the emphatic one), "please attack" — where the
+    #     leading run is grammar, not a name. The first cut of this rule
+    #     refused both as an unknown marshal called "can you" and "do".
+    _NOT_AN_ADDRESS_RE = re.compile(
+        r"\b(?:all|every|everyone|everybody|each|both|any|army|armies|corps"
+        r"|marshals|generals|commanders|men|troops|soldiers|forces|everything"
+        r"|the"
+        # function words — a leading run containing one of these is grammar
+        r"|can|could|may|might|will|would|shall|should|must|do|does|did"
+        r"|let|lets|please|kindly|you|your|we|our|us|i|my|me|he|she|they"
+        r"|them|his|her|their|it|its|now|then|and|but|so|if|when|while"
+        r"|first|next|also|just|still|again)\b",
+        re.IGNORECASE,
+    )
+
     def _unbound_addressee(self, command: Dict, parsed_command: Dict,
                            world) -> Optional[str]:
         """The phrase the player addressed, when the roster cannot bind it.
 
         Returns None for every command that is not of the marshal-less
-        family, for a BARE order (no comma), and whenever the pre-comma
-        phrase names a live player marshal or is itself an order.
+        family, for a genuinely BARE order, and whenever the addressed
+        phrase names a live player marshal, addresses the army as a whole,
+        or is itself an order.
         """
         if command.get("type") not in self._MARSHAL_LESS_TYPES:
             return None
@@ -971,7 +1023,16 @@ class CommandExecutor:
                   or command.get("raw_input") or "")
         head, sep, _tail = raw.partition(",")
         if not sep:
-            return None
+            if not self.AN_ADDRESS_NEEDS_NO_COMMA:
+                return None
+            verb = self._ADDRESSEE_IS_AN_ORDER_RE.search(raw)
+            if not verb:
+                return None
+            head = raw[:verb.start()]
+            if not head.strip():
+                return None          # a genuinely bare order — untouched
+            if self._NOT_AN_ADDRESS_RE.search(head):
+                return None          # a collective, or grammar — not a name
         phrase = head.strip().strip("'\"").strip()
         if phrase.lower().startswith("the "):
             phrase = phrase[4:].strip()
