@@ -923,6 +923,24 @@ reverted**. The stub records that call and never answers it now, which is the
 real client's timing, and the pin asserts the flag is still false when the
 handler runs. *A harness that is convenient is not a harness that is faithful.*
 
+### §8.10 The re-score, re-visited
+
+§2's gate ruling is untouched. **Command & parsing stays at 8.0** — re-anchored
+on evidence that did not exist when §7 wrote it, because §7's figures were all
+about the road OPENING and none was about it not closing behind you
+(221 of 261 → 9; 86 of 128 → 0; the typed-road archive's wrong refusals 12 → 0;
+completer offers reachable 1 of 3 → 3 of 3; the completer live on the default
+boot road at all). ⚠ **And 8.0 is now a CEILING rather than a floor**: this row
+shipped two P-level regressions behind green pins and a green 23,000-test
+suite, so the evidence that the road stays open is one review round old. The
+re-open condition gains an arm — *if a second review of this row's own code
+finds a third shipped regression on the typed road, 8.0 comes down*, because
+the score would then be measuring the fixes rather than the road. Memo §9.8.
+
+**UI/UX still NOT re-scored** (IQ-10's 7.5 stands; four predictor defects and
+ten re-shot frames are one surface of eighty), and **CX-D3 is unchanged and
+still owed** — no human has played a campaign with the completer on.
+
 ### §8.8 Claims corrected in place
 
 A review that measures its subject's prose is worth as much as one that

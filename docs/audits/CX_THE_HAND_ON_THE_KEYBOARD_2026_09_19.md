@@ -578,3 +578,39 @@ silently dropped hesitant ones — and both shipped behind green pins, a green
 23,000-test suite, and a memo that measured the right things in the wrong
 places. The row's ruling was that typing wins the turn; **a row that makes
 typing win the turn owes its regressions a harder look than its features.**
+
+### 9.8 THE RE-SCORE, RE-VISITED
+
+§7 raised **command & parsing 7.5 → 8.0**. The review round found six defects
+in this row's own work, two of which made the typed road **worse than it had
+been the day before**. So the honest question is whether 8.0 survives.
+
+**It does, and it is re-anchored on evidence that did not exist when it was
+written.** §7's figures were all about the road *opening*; none of them was
+about the road *not closing behind you*. These are:
+
+| | before | after | evidence |
+|---|---|---|---|
+| ordinary orders refused as unknown officers | **221 of 261** | **9 of 261** | the refuter's own grid, both lever arms, `POST /command` per cell |
+| comma-free addressed orders swallowed as questions | **86 of 128** | **0** | the effect sweep, joined across two real trees |
+| unbound refusals on the typed-road archive | 15, **12 of them wrong** | 5, **0 wrong** | `cx7-{before,after}/typed-road/` |
+| completer offers reachable | 1 of 3 | **3 of 3** | the driven harness, real keys |
+| completer live on the DEFAULT boot road | **no** | yes | same |
+
+⚠ **And 8.0 is now a CEILING rather than a floor**, for a reason §7 could not
+have stated: this row shipped two P-level regressions behind green pins, a
+green 23,000-test suite and a memo that measured the right things in the
+wrong places. A road only scores well if it stays open, and the evidence that
+it stays open is one review round old. **The re-open condition is unchanged
+and one arm is added to it:** if a second review of this row's own code finds
+a third shipped regression on the typed road, 8.0 comes down, because the
+score would then be measuring the fixes rather than the road.
+
+**UI/UX still NOT re-scored.** IQ-10's 7.5 stands. Four predictor defects
+were closed and the row's frames were re-shot at both Interface Scales, but
+that is one surface of eighty.
+
+**CX-D3 is unchanged and still owed.** No human has played a campaign with
+the completer on. The review round measured what a harness can measure and
+found four things a harness *could* have measured all along — which is an
+argument for the instrument, not a substitute for the session.
