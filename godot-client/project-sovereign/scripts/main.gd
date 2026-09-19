@@ -347,7 +347,17 @@ var pending_redemption = false  # True when awaiting redemption choice
 # Command history (up/down arrow navigation)
 var command_history: Array = []
 var history_index: int = -1  # -1 means "new command mode"
-const MAX_HISTORY = 10
+# CX-3: what the player had typed before reaching into history, so
+# walking back off the end gives the prefix back instead of a blank line.
+var _history_anchor: String = ""
+# CX-3: raised from 10 BECAUSE the walk is prefix-filtered now. Measured,
+# lengthening an UNFILTERED walk makes the feature worse (16.3% at 50
+# against 14.8% at 10, because each Up press costs a keystroke); filtered,
+# the same change is worth 12.6% -> 21.4%. Session-only and never written
+# to `user://` — a persisted history would carry a marshal's name into a
+# campaign that never saw him, which is a fog leak on a surface with no
+# filter (4.7% of the archived commands name a fogged marshal).
+const MAX_HISTORY = 50
 
 # Message history limit (prevents infinite growth)
 const MAX_MESSAGES = 100
@@ -643,6 +653,13 @@ func _ready():
 	if not command_input.gui_input.is_connected(_on_command_input_gui_input):
 		command_input.gui_input.connect(_on_command_input_gui_input)
 
+	# CX-3: the completion row and its one signal. `text_changed` was
+	# connected nowhere before this — a census of every .gd returned empty —
+	# so the completer costs no existing behaviour.
+	_install_suggestion_row()
+	if not command_input.text_changed.is_connected(_on_command_text_changed):
+		command_input.text_changed.connect(_on_command_text_changed)
+
 	# Minimize/Restore terminal panel
 	if not minimize_button.pressed.is_connected(_minimize_terminal):
 		minimize_button.pressed.connect(_minimize_terminal)
@@ -847,9 +864,23 @@ func _on_map_topology_received(response):
 	_try_finalize_initial_map_bootstrap()
 
 
+func _remember_game_state(game_state: Dictionary) -> void:
+	"""CX-3: the completer's only board source.
+
+	Everything it needs already rides every `/command` response —
+	`marshals`, a FOG-FILTERED `enemies`, and `map_data` — so the predictor
+	needs no endpoint of its own and cannot name a corps the player has not
+	seen. Copied rather than referenced so a later response cannot mutate the
+	list under the player's fingers mid-keystroke.
+	"""
+	if game_state is Dictionary:
+		_last_game_state = game_state.duplicate(true)
+
+
 func _update_map_from_game_state(game_state: Dictionary) -> void:
 	# One seam for every map refresh: regions + the DEF-5 naval overlay
 	# (sea-link verdict tint + port blockade glyphs, NAVAL_SPEC section 9).
+	_remember_game_state(game_state)
 	map_area.update_all_regions(game_state.map_data)
 	if map_area.has_method("update_naval_overlay"):
 		map_area.update_naval_overlay(game_state.get("naval_overlay", {}))
@@ -882,6 +913,14 @@ func _try_finalize_initial_map_bootstrap() -> void:
 func _on_send_button_pressed():
 	"""Handle send button click."""
 	_execute_command()
+
+func _on_command_text_changed(_text: String) -> void:
+	"""CX-3: re-derive the completion list as the player types. Reaching
+	into history leaves `history_index` set, and a walk must not re-open the
+	list under the line it just filled."""
+	if history_index == -1:
+		_refresh_suggestions()
+
 
 func _on_command_submitted(_text: String):
 	"""Handle enter key in command input."""
@@ -926,6 +965,11 @@ func _on_command_input_gui_input(event):
 			# The boot help advertises M, +/- and Home four lines before
 			# `set_input_enabled(true)` kills them.
 			command_input.accept_event()
+		elif event.keycode == KEY_TAB and _accept_suggestion():
+			# CX-3: Tab takes the highlighted completion, and Tab again walks
+			# the list. It never SENDS — the player still presses Enter, the
+			# same rule the tutorial's suggest chip obeys.
+			command_input.accept_event()
 		elif event.keycode == KEY_UP:
 			_history_previous()
 			command_input.accept_event()  # Consume event, prevent camera movement
@@ -933,7 +977,12 @@ func _on_command_input_gui_input(event):
 			_history_next()
 			command_input.accept_event()  # Consume event, prevent camera movement
 		elif event.keycode == KEY_ESCAPE:
-			command_input.release_focus()  # Unfocus to allow camera controls
+			# CX-3: the completion list goes first, so Escape does not throw
+			# focus away from a player who only wanted the list gone.
+			if not _suggestions.is_empty():
+				_clear_suggestions()
+			else:
+				command_input.release_focus()  # Unfocus to allow camera controls
 			command_input.accept_event()
 
 func _alt_game_key(keycode: int) -> bool:
@@ -1002,37 +1051,72 @@ func _map_keys_live() -> bool:
 			and not _is_screen_open())
 
 
+func _history_pool() -> Array:
+	"""The history entries that begin with what is typed, oldest first.
+
+	An empty (or whitespace) line yields the whole history, so the walk is
+	byte-for-byte the old one until the player has typed something.
+	"""
+	var prefix: String = command_input.text if history_index == -1 else _history_anchor
+	prefix = prefix.strip_edges()
+	if prefix == "":
+		return command_history
+	var out := []
+	for past in command_history:
+		if str(past).to_lower().begins_with(prefix.to_lower()):
+			out.append(past)
+	return out
+
+
 func _history_previous():
-	"""Navigate to previous command in history (up arrow)."""
+	"""Navigate to previous command in history (up arrow).
+
+	CX-3: the walk is PREFIX-FILTERED. Type `ney` and Up walks only the
+	commands that begin `ney` — the standard shell idiom, and the thing that
+	makes a longer window pay instead of cost (see MAX_HISTORY). With an
+	empty line it is the old whole-history walk, byte-for-byte.
+	"""
 	if command_history.is_empty():
+		return
+	var pool := _history_pool()
+	if pool.is_empty():
 		return
 
 	if history_index == -1:
-		# Start from most recent
-		history_index = command_history.size() - 1
+		# Remember what the player had typed, so Down can give it back.
+		_history_anchor = command_input.text
+		history_index = pool.size() - 1
 	elif history_index > 0:
-		# Go further back
 		history_index -= 1
 	# else: already at oldest, stay there
 
-	command_input.text = command_history[history_index]
+	command_input.text = str(pool[history_index])
 	command_input.caret_column = command_input.text.length()
+	_clear_suggestions()
 
 func _history_next():
-	"""Navigate to next command in history (down arrow)."""
+	"""Navigate to next command in history (down arrow).
+
+	CX-3: walks the same filtered pool, and coming off the end restores what
+	the player had TYPED rather than blanking the line — a filtered walk that
+	threw the prefix away would cost the keystrokes it just saved.
+	"""
 	if history_index == -1:
 		# Already in new command mode
 		return
+	var pool := _history_pool()
 
-	if history_index < command_history.size() - 1:
+	if history_index < pool.size() - 1:
 		# Go forward in history
 		history_index += 1
-		command_input.text = command_history[history_index]
+		command_input.text = str(pool[history_index])
 		command_input.caret_column = command_input.text.length()
 	else:
-		# At newest, return to new command mode (clear)
+		# At newest, return to new command mode
 		history_index = -1
-		command_input.text = ""
+		command_input.text = _history_anchor
+		command_input.caret_column = command_input.text.length()
+		_history_anchor = ""
 
 func _add_to_history(command: String):
 	"""Add command to history if valid."""
@@ -1051,6 +1135,8 @@ func _add_to_history(command: String):
 
 	# Reset to new command mode
 	history_index = -1
+	_history_anchor = ""
+	_clear_suggestions()
 
 func _on_end_turn_pressed():
 	"""Handle End Turn button click."""
@@ -6738,3 +6824,318 @@ func _on_new_game_result(response):
 		add_output("[color=#" + Utils.COLOR_ERROR + "]New campaign failed: " + str(response.get("message", "Unknown error")) + "[/color]")
 		add_output("")
 		command_input.grab_focus()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CX-3 — THE PREDICTOR
+# ═══════════════════════════════════════════════════════════════════════════
+# The user asked for "a text predictor, or a way to make it more efficient".
+# Row CX measured four shapes over the 1,416 archived commands before picking
+# one, and two of the measurements overturned the obvious instinct:
+#
+#   * INLINE GHOST TEXT LOSES ON ITS OWN NUMBERS. After three characters the
+#     top-ranked proposal is the intended command 29.1% of the time and
+#     something else 63.4% of the time. Ghost text that is wrong two times in
+#     three is noise on the one surface the player is concentrating on. The
+#     shape that works here is a short RANKED LIST.
+#   * RAISING `MAX_HISTORY` ALONE MAKES THE FEATURE WORSE — each Up press
+#     costs a keystroke, so walking forty entries costs more than typing
+#     twenty characters. That is only true of an UNFILTERED walk. Measured
+#     against `_add_to_history`'s real semantics (consecutive-repeat dedupe,
+#     front trim):
+#
+#         window   plain walk   prefix-filtered (type 3, then reach up)
+#           10        14.8%                 12.6%
+#           50        16.3%                 21.4%
+#
+#     Filtering is what makes lengthening pay, and lengthening is what makes
+#     filtering worth more than three points. The two findings are only
+#     inconsistent if you change one at a time, so this changes both.
+#
+# HISTORY IS SESSION-ONLY, AND DELIBERATELY NOT PERSISTED. 4.7% of the
+# archived commands name a marshal who is FOGGED on the 1805 boot board
+# (`ArchdukeCharles` 37 times, `Kutuzov` 28), and `Ney, attack Archduke
+# Charles` parses at 0.95 and executes. A history written to `user://` would
+# carry those names into a campaign that never saw them — a fog leak on a
+# surface with no filter. The completer's OTHER source is `game_state`, whose
+# `enemies` dict the backend has already fog-filtered, so nothing generated
+# here can name a hidden corps.
+#
+# IT COMPLETES THE SLOT THE PLAYER IS IN, not the whole line. The grammar is
+# `<Marshal>, <verb> <target>`, so there are only three slots and the prefix
+# says which one you are in. That is why it can offer five accurate lines
+# instead of five guesses: `Ney, ma` proposes marches, `Ney, attack M`
+# proposes visible enemies whose name starts with M, and it never proposes a
+# province where an enemy belongs.
+const COMPLETIONS_ACTIVE := true
+const MAX_SUGGESTIONS := 5
+
+# The verbs the completer offers, with the slot each one takes.
+#   "" = no target · "E" = a VISIBLE enemy · "R" = a province ·
+#   "M" = another of our marshals
+# ⚠ THIS TABLE IS PINNED FROM PYTHON (`tests/test_cx3_the_predictor.py`):
+# every line it can produce is filled with real names from the shipped 1805
+# board and run through the REAL parser, and must resolve to the action named
+# here. That is the IQ10-6 rule generalised — *the game must not offer a
+# sentence it cannot read* — and it is what stops this table rotting the way
+# the help text's `halt Ney` did.
+const _MARSHAL_VERBS := [
+	["attack", "E", "attack"],
+	["march to", "R", "move"],
+	["move to", "R", "move"],
+	["scout", "R", "scout"],
+	["fortify", "", "fortify"],
+	["unfortify", "", "unfortify"],
+	["drill", "", "drill"],
+	["defend", "", "defend"],
+	["hold", "", "hold"],
+	["retreat", "", "retreat"],
+	["support", "M", "move"],
+	["garrison", "R", "garrison"],
+]
+# Whole commands with no addressee.
+const _BARE_COMMANDS := [
+	["status", "status"],
+	["end turn", "end_turn"],
+	["economy", "economy"],
+	["help", "help"],
+	["what can I do", "status"],
+]
+
+var _suggestion_row: RichTextLabel = null
+var _suggestions: Array = []
+var _suggestion_index := 0
+var _last_game_state: Dictionary = {}
+
+
+func _install_suggestion_row() -> void:
+	"""One RichTextLabel, inside the terminal's OWN VBox, above the input.
+
+	NOT a CanvasLayer. `BottomLeftUI` is a plain PanelContainer at the scene
+	root, so every CanvasLayer >= 25 (war HUD 25, region panel 26, screens 50,
+	top bar 75) would draw over a popup placed here — and a surface authored
+	at a fixed size is exactly what IQ-10 found breaking at Interface Scale
+	2.0. A child of the terminal's own layout reflows with the panel the
+	player can already resize, and inherits `content_scale_factor` by
+	construction rather than by a clamp.
+	"""
+	if _suggestion_row != null or not COMPLETIONS_ACTIVE:
+		return
+	var input_row := command_input.get_parent()
+	if input_row == null:
+		return
+	var layout := input_row.get_parent()
+	if layout == null:
+		return
+	_suggestion_row = RichTextLabel.new()
+	_suggestion_row.name = "CompletionRow"
+	_suggestion_row.bbcode_enabled = true
+	_suggestion_row.fit_content = true
+	_suggestion_row.scroll_active = false
+	_suggestion_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_suggestion_row.visible = false
+	layout.add_child(_suggestion_row)
+	layout.move_child(_suggestion_row, input_row.get_index())
+
+
+func _own_marshal_names() -> Array:
+	var out := []
+	var marshals = _last_game_state.get("marshals", {})
+	if marshals is Dictionary:
+		for name in marshals.keys():
+			out.append(Utils.humanize_entity_name(str(name)))
+	out.sort()
+	return out
+
+
+func _visible_enemy_names() -> Array:
+	"""Fog-honest by construction: `game_state.enemies` is built by
+	`get_llm_game_state`, which filters to PARTIAL-or-better visibility. The
+	completer keeps no roster of its own."""
+	var out := []
+	var enemies = _last_game_state.get("enemies", {})
+	if enemies is Dictionary:
+		for name in enemies.keys():
+			out.append(Utils.humanize_entity_name(str(name)))
+	out.sort()
+	return out
+
+
+func _region_names() -> Array:
+	"""Every province NAME. Public by the same rule the question desk states
+	for a province's holder — the map already paints all 126 of them. What is
+	never offered here is who stands in one."""
+	var out := []
+	var map_data = _last_game_state.get("map_data", {})
+	if map_data is Dictionary:
+		for name in map_data.keys():
+			out.append(str(name))
+	out.sort()
+	return out
+
+
+func _starts_with_ci(text: String, prefix: String) -> bool:
+	return text.to_lower().begins_with(prefix.to_lower())
+
+
+func _build_completions(typed: String) -> Array:
+	"""History first, then the slot the prefix says the player is in."""
+	if not COMPLETIONS_ACTIVE:
+		return []
+	var prefix := typed
+	if prefix.strip_edges() == "":
+		return []
+	var out := []
+	var seen := {}
+
+	# 1. What this player has already sent — 86% of the archive is exact
+	#    repeats, so a past command is the likeliest next one, and it costs
+	#    nothing to keep.
+	for i in range(command_history.size() - 1, -1, -1):
+		var past := str(command_history[i])
+		if _starts_with_ci(past, prefix) and not seen.has(past.to_lower()):
+			seen[past.to_lower()] = true
+			out.append(past)
+			if out.size() >= MAX_SUGGESTIONS:
+				return out
+
+	# 2. The grammar. `<Marshal>, <verb> <target>` — find which slot we are
+	#    in and complete only that one.
+	var comma := prefix.find(",")
+	if comma < 0:
+		_add_addressee_or_bare(prefix, out, seen)
+	else:
+		var who := prefix.substr(0, comma).strip_edges()
+		var rest := prefix.substr(comma + 1).strip_edges()
+		var marshals := _own_marshal_names()
+		var matched := ""
+		for name in marshals:
+			if str(name).to_lower() == who.to_lower():
+				matched = str(name)
+				break
+		if matched == "":
+			_add_addressee_or_bare(prefix, out, seen)
+		else:
+			_add_verb_or_target(matched, rest, prefix, out, seen)
+	return out
+
+
+func _add_addressee_or_bare(prefix: String, out: Array, seen: Dictionary) -> void:
+	for name in _own_marshal_names():
+		var line := str(name) + ", "
+		if _starts_with_ci(line, prefix) and not seen.has(line.to_lower()):
+			seen[line.to_lower()] = true
+			out.append(line)
+			if out.size() >= MAX_SUGGESTIONS:
+				return
+	for entry in _BARE_COMMANDS:
+		var bare := str(entry[0])
+		if _starts_with_ci(bare, prefix) and not seen.has(bare.to_lower()):
+			seen[bare.to_lower()] = true
+			out.append(bare)
+			if out.size() >= MAX_SUGGESTIONS:
+				return
+
+
+func _add_verb_or_target(marshal: String, rest: String, prefix: String,
+		out: Array, seen: Dictionary) -> void:
+	for entry in _MARSHAL_VERBS:
+		var verb := str(entry[0])
+		var slot := str(entry[1])
+		if not _starts_with_ci(rest, verb):
+			# Still typing the verb.
+			if _starts_with_ci(verb, rest):
+				var line := marshal + ", " + verb + ("" if slot == "" else " ")
+				if not seen.has(line.to_lower()):
+					seen[line.to_lower()] = true
+					out.append(line)
+					if out.size() >= MAX_SUGGESTIONS:
+						return
+			continue
+		if slot == "":
+			continue
+		# The verb is typed — complete its TARGET, from the right roster.
+		var tail := rest.substr(verb.length()).strip_edges()
+		var pool: Array = []
+		if slot == "E":
+			pool = _visible_enemy_names()
+		elif slot == "R":
+			pool = _region_names()
+		else:
+			pool = _own_marshal_names()
+		for candidate in pool:
+			if slot == "M" and str(candidate) == marshal:
+				continue
+			if tail != "" and not _starts_with_ci(str(candidate), tail):
+				continue
+			var full := marshal + ", " + verb + " " + str(candidate)
+			if seen.has(full.to_lower()):
+				continue
+			seen[full.to_lower()] = true
+			out.append(full)
+			if out.size() >= MAX_SUGGESTIONS:
+				return
+
+
+func _refresh_suggestions() -> void:
+	if not COMPLETIONS_ACTIVE or _suggestion_row == null:
+		return
+	_suggestions = _build_completions(command_input.text)
+	_suggestion_index = 0
+	_render_suggestions()
+
+
+func _render_suggestions() -> void:
+	if _suggestion_row == null:
+		return
+	if _suggestions.is_empty():
+		_suggestion_row.visible = false
+		_suggestion_row.text = ""
+		return
+	var parts := []
+	for i in range(_suggestions.size()):
+		var line := str(_suggestions[i]).strip_edges()
+		if i == _suggestion_index:
+			parts.append(Utils.bbcode_color("[" + line + "]", Utils.COLOR_GOLD))
+		else:
+			parts.append(Utils.bbcode_color(line, Utils.COLOR_DIMMED))
+	_suggestion_row.text = ("  " + "   ".join(parts) + "  "
+		+ Utils.bbcode_color("(Tab)", Utils.COLOR_DIMMED))
+	_suggestion_row.visible = true
+
+
+func _accept_suggestion() -> bool:
+	"""Tab takes the highlighted line; Tab again walks the list.
+
+	It NEVER sends. The player still presses Enter, so a completion can no
+	more issue an order by itself than the tutorial's suggest chip can — the
+	same rule, for the same reason (`tutorial_overlay.gd`: "NEVER sends a
+	command … muscle memory for a typed-command game").
+	"""
+	if not COMPLETIONS_ACTIVE or _suggestions.is_empty():
+		return false
+	if command_input.text == str(_suggestions[_suggestion_index]):
+		_suggestion_index = (_suggestion_index + 1) % _suggestions.size()
+	command_input.text = str(_suggestions[_suggestion_index])
+	command_input.caret_column = command_input.text.length()
+	_refresh_after_accept()
+	return true
+
+
+func _refresh_after_accept() -> void:
+	"""Re-derive from the newly filled line so the NEXT slot is offered
+	immediately — type `ne`, Tab, and the verbs are already there."""
+	var kept: String = str(_suggestions[_suggestion_index]) if not _suggestions.is_empty() else ""
+	_suggestions = _build_completions(command_input.text)
+	_suggestion_index = 0
+	for i in range(_suggestions.size()):
+		if str(_suggestions[i]) == str(kept):
+			_suggestion_index = i
+			break
+	_render_suggestions()
+
+
+func _clear_suggestions() -> void:
+	_suggestions = []
+	_suggestion_index = 0
+	_render_suggestions()

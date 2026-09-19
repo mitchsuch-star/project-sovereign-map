@@ -159,5 +159,61 @@
   "old": "    return (f\"recruit infantry in {region} — {price:,}g for \"\n            f\"{amount:,} men\")",
   "new": "    return f\"recruit infantry in {region}\"",
   "tests": "tests/test_cx2_berthier_answers_the_board.py::TestTheGuardsWhereTheyBite::test_the_levy_line_is_PRICED_where_the_levy_is_open"
+ },
+ {
+  "id": "CX3-1 llm_client: `halt ` removed from the cancel keywords",
+  "file": "backend/ai/llm_client.py",
+  "old": "            \"halt \",\n",
+  "new": "",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheGameCanReadWhatItPrints::test_every_quoted_phrasing_the_manual_teaches_is_typable"
+ },
+ {
+  "id": "CX3-2 meta_executor: the help teaches a province the map does not have",
+  "file": "backend/commands/meta_executor.py",
+  "old": "  hold       - \"Davout, hold Swabia\" - hold ground (artillery auto-fires)",
+  "new": "  hold       - \"Davout, hold Ulm\" - hold ground (artillery auto-fires)",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheGameCanReadWhatItPrints::test_every_quoted_phrasing_survives_the_EXECUTOR"
+ },
+ {
+  "id": "CX3-3 main.gd: the completer offers a verb the parser cannot read",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t[\"garrison\", \"R\", \"garrison\"],",
+  "new": "\t[\"besiege\", \"R\", \"attack\"],",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheCompleterOffersNothingItCannotRead::test_every_marshal_verb_parses_to_the_action_it_claims"
+ },
+ {
+  "id": "CX3-4 main.gd: the history walk stops filtering",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\tif str(past).to_lower().begins_with(prefix.to_lower()):",
+  "new": "\t\tif true:",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheHistoryWalk::test_the_walk_is_filtered"
+ },
+ {
+  "id": "CX3-5 main.gd: walking off the end blanks the line again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\tcommand_input.text = _history_anchor",
+  "new": "\t\tcommand_input.text = \"\"",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheHistoryWalk::test_walking_off_the_end_gives_the_typed_prefix_back"
+ },
+ {
+  "id": "CX3-6 main.gd: the addressee completion loses its comma",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\tvar line := str(name) + \", \"",
+  "new": "\t\tvar line := str(name) + \" \"",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheCompleterOffersNothingItCannotRead::test_the_marshal_slot_is_offered_with_the_comma_the_parser_wants"
+ },
+ {
+  "id": "CX3-7 main.gd: the completer sends instead of filling",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tcommand_input.caret_column = command_input.text.length()\n\t_refresh_after_accept()\n\treturn true",
+  "new": "\tcommand_input.caret_column = command_input.text.length()\n\t_execute_command()\n\treturn true",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheCompletionSurface::test_accepting_a_completion_never_sends_it"
+ },
+ {
+  "id": "CX3-8 main.gd: the window goes back to 10",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "const MAX_HISTORY = 50",
+  "new": "const MAX_HISTORY = 10",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheHistoryWalk::test_the_window_was_raised_with_its_reason"
  }
 ]

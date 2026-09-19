@@ -320,6 +320,70 @@ says so, says why, and says what is still CR-8's.
 
 Tests: `tests/test_cx2_berthier_answers_the_board.py`.
 
+### §3.3 CX-3 — "THE PREDICTOR" ✅ LANDED September 19, 2026
+
+The user's second ask: *"a text predictor would be great, or a way to make it
+more efficient."* Four shapes were measured over the 1,416 archived commands
+**before** anything was written, and two of the measurements overturned the
+obvious instinct (§5 carries the table).
+
+**What landed, in the client only — no new endpoint, no new fog surface:**
+
+* **A grammar-aware completion list** above the command line. The grammar is
+  `<Marshal>, <verb> <target>`, the prefix says which slot the player is in,
+  and the target roster is chosen BY THE VERB — so `Ney, attack M` offers
+  visible enemies and `Ney, march to S` offers provinces, and neither offers
+  the other. That is why five accurate lines are possible where five guesses
+  were not. **Tab** accepts; Tab again walks the list. It **never sends** —
+  the tutorial's own rule ("NEVER sends a command … muscle memory for a
+  typed-command game"), applied to the completer.
+* **A prefix-filtered history**, and `MAX_HISTORY` raised 10 → 50 *because*
+  the walk is filtered. Walking off the end now restores what the player had
+  TYPED rather than blanking the line — a filtered walk that throws the prefix
+  away costs the keystrokes it just saved.
+* **The row draws inside the terminal's own VBox**, not on a CanvasLayer.
+  `BottomLeftUI` is a plain PanelContainer at the scene root, so every
+  CanvasLayer ≥ 25 would draw over a popup placed there — and a surface
+  authored at a fixed size is exactly what IQ-10 found breaking at Interface
+  Scale 2.0. A child of the terminal's layout inherits `content_scale_factor`
+  by construction rather than by a clamp. **Proven on screen at both scales**
+  (`docs/audits/CX3_*_2026_09_19.png`, capture scene
+  `tools/cx3_completer_screenshot.gd`, committed).
+
+**Fog.** The completer's only board source is the `/command` response's own
+`game_state`, whose `enemies` dict the backend has already fog-filtered.
+History is **session-only and deliberately never persisted**: 4.7% of the
+archived commands name a marshal fogged on the 1805 boot board, and
+`Ney, attack Archduke Charles` parses at 0.95 and *executes*, so a history
+written to `user://` would carry those names into a campaign that never saw
+them — a fog leak on a surface with no filter.
+
+#### And the rule that makes it safe: THE GAME MUST NOT OFFER A SENTENCE IT CANNOT READ
+
+IQ10-6 was one instance of a family. This slice turns it into a **census**:
+every command-shaped string the game offers — the completer's own verb table,
+read out of the `.gd`, and every phrasing quoted in the COMMAND REFERENCE — is
+filled with real names from the shipped board and driven through the real
+parser **and the real executor**. It found two more on its first run:
+
+| what the game printed | what happened |
+|---|---|
+| `cancel — "cancel Ney" / "halt Ney" (1 AP)` | the cancel keyword list held `"cancel "`, `"halt order"`, `"halt orders"`, `" halt"` and `", halt"` — **every form except the one the manual prints.** `halt Ney` got Berthier's shrug. |
+| `hold — "Davout, hold Ulm"` | **parses perfectly** and the executor answers *"Region 'Ulm' not found."* The 126-province map has Swabia; Ulm is a town inside it. |
+
+The second is why the census runs at the EXECUTOR and not at the parser — a
+parser-level census calls it green. `halt Ney` is fixed at the keyword list;
+the help text now teaches `"Davout, hold Swabia"`.
+
+⚠ **Routed, not fixed: CX3-X1 — the game's own scenario text says Mack sits at
+Ulm, and the map has no Ulm.** The historic town names the campaign narrates
+in (Ulm, Austerlitz, Jena) are not typable. Fixing that is a region-vocabulary
+decision with its own blast radius, and it belongs to CR-6 proper beside
+IQ9-X2. Landing slice: CR-6. Completion: `Ney, march to Ulm` reaches Swabia,
+or refuses by naming it.
+
+Tests: `tests/test_cx3_the_predictor.py`.
+
 ---
 
 ## §4 THE MODEL — RULED (CX's second question)

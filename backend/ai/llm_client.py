@@ -1934,6 +1934,15 @@ class LLMClient:
             "abort order", "abort orders", "abort mission",
             "belay that", "belay",
             " halt", ", halt",
+            # CX-3: `halt Ney` — the help text's OWN example for cancel
+            # ("cancel Ney" / "halt Ney") and the one phrasing of the fifty it
+            # quotes that the parser could not read. `cancel ` was here and
+            # its documented twin was not: the list held "halt order", "halt
+            # orders", " halt" and ", halt", every form EXCEPT the one the
+            # manual prints. The IQ10-6 rule — the game must not print a
+            # sentence it cannot read — now has a drift pin over every quoted
+            # phrasing in that body (`tests/test_cx3_the_predictor.py`).
+            "halt ",
         ]):
             action = "cancel"
         elif command_lower.strip() in ("halt", "stop", "cancel", "abort"):

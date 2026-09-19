@@ -789,7 +789,7 @@ STRATEGIC COMMANDS (2 AP, multi-turn):
   march      - "Ney, march to Vienna" - travels over several turns
   pursue     - "Murat, pursue Kutuzov" - chase across the map
   support    - "Lannes, support Ney" - march to an ally's battles
-  hold       - "Davout, hold Ulm" - hold ground (artillery auto-fires)
+  hold       - "Davout, hold Swabia" - hold ground (artillery auto-fires)
   cancel     - "cancel Ney" / "halt Ney" (1 AP)
 
 ECONOMY (Admin AP - the new imperial economy):
