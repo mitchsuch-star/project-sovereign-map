@@ -667,9 +667,13 @@ the six real deferrals of IQ7-X7 (its question half closed here).
 DESK-1..12, CX3-R1..R12, CX5-L5-F1..F7 and the CX-CLAIM rows. CX-7 fixes what
 row CX **shipped** — CXR1-1, L2-5 and the three defects the fix for those two
 exposed — and corrects in place the four claims the refuters CONFIRMED. The
-rest are filed as found in `BUG_FIXES.md` §Row CX with the owners above;
+rest are routed **with their refuter's own verdict and a named owner** in
+the ALL 57 REVIEW VERDICTS table in `BUG_FIXES.md` §Row CX, and the reports
+themselves are committed at `docs/audits/cx_review_2026_09_19/` — a finding
+carried only in a scratch directory is a finding that will be lost.
 **CX5-L5-F6 was measured NOT player-reachable** and is recorded rather than
-built.
+built. A REFUTED row is kept too: the measurement that killed a finding is
+worth as much as the one that confirmed it.
 
 ---
 
@@ -900,6 +904,16 @@ is why each assertion is also a row's completion definition.
 
 **Every pin was seen RED**, one fix reverted at a time on a private tree, and
 each revert moves exactly its own measurement and no other.
+
+**The frames.** `docs/audits/CX7_{NEY,VERBS,ENEMY,REGION,HISTORY}_2026_09_19.png`
+and their `_X2` pairs, re-shot on the real scene through
+`tools/cx3_completer_screenshot.gd` at BOTH Interface Scales, because CX3-R8
+gives the row an AUTHORED font size and the house rule is that a client
+surface authored at a fixed size gets checked at 2.0 before it is called
+done. At 2.0 the row now carries the same weight as the command line beneath
+it, fits the terminal's width, and shows the new `(Tab · ↓)` hint. ⚠ The
+engine must render WINDOWED for this — `--headless` hands `save_png` a null
+texture — which is IQ-10's own invocation.
 
 ⛔ **And the harness's own first cut was wrong in the way this row keeps
 meeting.** Its stub answered the topology request *synchronously*, which

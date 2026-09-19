@@ -12900,6 +12900,79 @@ be bundled with anything.
 | **CX3-R8** | P3 | **The suggestion row was the largest text in the terminal** — it took no font override, so it inherited the theme's RichTextLabel 16 while the game's prose is 11 and the line it completes is 12. Measured off the live nodes: capitals 21px against 14px and 16px | **FIXED** — it matches the line it completes |
 | **CX3-CLAIM** | — | **`test_cx3_the_predictor.py` justified its source censuses with *"there is no headless way to press Up in this project, and the alternative is no pin at all"*.** False — and **four confirmed defects were living behind it**, the four above, with both censuses on that very function green about every one | **CORRECTED IN PLACE**, and answered: `tools/cx7_predictor_harness.gd` drives the real `main.tscn` with real keys, read by `tests/test_cx7_predictor_driven.py`, which SKIPS without the engine. The censuses stay — cheap, engine-free, and they pin the INTENT |
 
+
+**ALL 57 REVIEW VERDICTS — routed, with owners (GR9).**
+
+The 63-agent round produced 57 verdict files. Six are marked ✅ below and
+are closed in the tables above, because row CX SHIPPED them; the other 51
+are recorded here so that nothing the round found is carried only in a
+scratch directory. **Every one keeps its refuter's own
+verdict**, including the ones that killed their finding — a REFUTED row
+is evidence too, and deleting it would lose the measurement that killed
+it. Reports: `docs/audits/cx_review_2026_09_19/`.
+
+| id | refuter's verdict | owner |
+|---|---|---|
+| `CX-BEHAV-1` | CONFIRMED | **CR-6 proper** |
+| `CX-CLAIM-1` | REFUTED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-11` | NARROWED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-12` | NARROWED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-2` | REFUTED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-3` | CONFIRMED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-4` | REFUTED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-5` | CONFIRMED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-6` | NARROWED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-7` | CONFIRMED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-8` | CONFIRMED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX-CLAIM-9` | NARROWED | **closed here** — the four CONFIRMED are corrected in place (§8.8); the REFUTED stand as written |
+| `CX3-R1` | CONFIRMED ✅ closed above | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R10` | CONFIRMED · pre-existing | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R11` | FILED | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R12` | CONFIRMED | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R2` | NARROWED · pre-existing | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R3` | CONFIRMED ✅ closed above | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R4` | NARROWED | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R5` | NARROWED · pre-existing | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R6` | NARROWED | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R7` | CONFIRMED ✅ closed above | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R8` | NARROWED ✅ closed above | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX3-R9` | NARROWED | **the next UI slice** — predictor polish; the four this row closed are above |
+| `CX5-L5-F1` | NARROWED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F2` | CONFIRMED · pre-existing | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F3` | NARROWED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F4` | NARROWED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F5` | NARROWED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F6` | FILED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F7` | NARROWED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CX5-L5-F8` | FILED | **CR-6 proper** — the retreat-noun family; F6 measured NOT player-reachable |
+| `CXR1-1` | CONFIRMED ✅ closed above | **CR-6 proper** — the question guard's remaining arms; all four measured PRE-EXISTING |
+| `CXR1-2` | REFUTED · pre-existing | **CR-6 proper** — the question guard's remaining arms; all four measured PRE-EXISTING |
+| `CXR1-3` | FILED · pre-existing | **CR-6 proper** — the question guard's remaining arms; all four measured PRE-EXISTING |
+| `CXR1-4` | NARROWED · pre-existing | **CR-6 proper** — the question guard's remaining arms; all four measured PRE-EXISTING |
+| `CXR1-5` | NARROWED · pre-existing | **CR-6 proper** — the question guard's remaining arms; all four measured PRE-EXISTING |
+| `CXR1-6` | REFUTED | **CR-6 proper** — the question guard's remaining arms; all four measured PRE-EXISTING |
+| `DESK-1` | CONFIRMED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-10` | NARROWED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-11` | CONFIRMED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-12` | NARROWED · pre-existing | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-2` | CONFIRMED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-3` | CONFIRMED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-4` | NARROWED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-5` | NARROWED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-6` | REFUTED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-7` | CONFIRMED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-8` | NARROWED | **CR-6 proper** — the question desk's kinds and copy |
+| `DESK-9` | CONFIRMED | **CR-6 proper** — the question desk's kinds and copy |
+| `L2-1` | FILED | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+| `L2-2` | NARROWED | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+| `L2-3` | FILED | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+| `L2-4` | FILED | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+| `L2-5` | CONFIRMED ✅ closed above | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+| `L2-6` | NARROWED · pre-existing | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+| `L2-7` | CONFIRMED · pre-existing | **CR-6 proper** — the addressee/verb-list family (L2-1 is the 27-of-40 gap; the durable fix derives the list from the parser's routing table) |
+
+**Done when:** CR-6 proper opens with this table as its intake and disposes every row, closed or struck with its reason; the predictor rows ride the next UI slice and are re-measured by `tests/test_cx7_predictor_driven.py`, which is the instrument they need and which now exists. **STATUS tracking line:** the CX-7 entry in `docs/STATUS.md`.
+
 **Method note, recorded because it keeps earning its keep.** The mutation
 sweep ran three rounds and returned **six INERT results, every one real**: two
 mutations that could not bite (one sited below the check it meant to delete;
