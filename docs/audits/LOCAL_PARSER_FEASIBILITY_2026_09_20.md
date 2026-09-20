@@ -222,3 +222,198 @@ Not here. The nine cells above — compound, conditional inversion, multi-marsha
 **The determinism argument cuts against the status quo too.** A local model at greedy sampling with a fixed seed would be *more* reproducible than the current cloud path, which sets temperature 0 but carries no bitwise guarantee. "The model tier is a nondeterministic front door" indicts the existing BYOK arm as much as a hypothetical local one. The anti-build case rests on the unreachability measurement, not on determinism rhetoric — quote the former when this is revisited.
 
 **Latency remains unmeasured by everyone, including me.** No llama.cpp toolchain exists in the venv and standing one up was outside this read-only pass. It is the acceptance criterion all three analyses agree is most likely to fail, which is why L-2 measures the clock before accuracy. Do not read this verdict as evidence the clock can be met.
+
+---
+
+## 6. ⚠ AMENDED RECOMMENDATION — September 20, 2026, same day
+
+> **This section supersedes §4's build order and is the recommendation of record.**
+> It was written after the memo above, when the user asked for a plain-English
+> explanation and the act of writing one surfaced a question nobody in the fleet
+> had asked: *if the personality split is decided by a **boolean**, does anything
+> other than the model have to supply it?*
+>
+> **The answer is no, and it was measured.** Everything below marked **measured**
+> was run in-process at HEAD `5b5dd038`, `LLM_MODE=mock`, on an unmodified
+> `europe_1805.json` boot. Probes are in the session scratchpad; no repo file was
+> modified.
+
+### 6.1 The finding: the delegation feature is ALREADY deterministic, except one gate
+
+§2 above says CR-5 delegation is "100% dead for keyless players" and treats that
+as the local model's one real justification. That is true. **What is new is
+*why*, and it is not what §3.1 assumed.**
+
+Every input the feature needs is already computed deterministically in mock:
+
+| input | who supplies it | works in mock? |
+|---|---|---|
+| *is this a delegation?* | `delegation.detect_delegation` — a 7-verb table (`do something about`, `take care of`, `deal with`, `attend to`, `sort out`, `see to`, `handle`) | **YES — 7 of 7 rows matched, exercising 5 of the 7 verbs** *(`do something about` and `attend to` untested — test them in L-D)* |
+| *which marshal?* | the same function's address recovery, validated against the live roster | **YES** |
+| *which target?* | the same function — and `main.py`'s own comment calls it **authoritative over the LLM's** (*"this also corrects the live LLM's unreliable target resolution — playtest: 'deal with Kutuzov' mis-scouted Algarve"*) | **YES** |
+| *which personality?* | the world | **YES** |
+| *what the arm then does* | a deterministic re-issue — `f"{marshal} scout {scout_target}"` — re-parsed with **no LLM**, GR6 (`main.py`, the cautious arm) | **YES** |
+
+`detect_delegation`'s own docstring says so in writing:
+
+> *"Deterministic and LLM-free. Works whether the upstream parse succeeded
+> (live: resolved to some action) or failed (mock: action unknown) — **the
+> delegation verb in the raw text is the authority, not the parse.**"*
+
+**Measured, mock, 1805 boot — all seven verbs, one per row:**
+
+```
+utterance                    personality target  match  resolved  arm    ARM IF BOOLEAN WERE TRUE
+Ney, deal with Mack          aggressive  Mack    YES    False     ask -> aggressive
+Davout, deal with Mack       cautious    Mack    YES    False     ask -> cautious
+Soult, deal with Mack        literal     Mack    YES    False     ask -> ask          (correct either way)
+Murat, take care of Mack     aggressive  Mack    YES    False     ask -> aggressive
+Lannes, see to Mack          aggressive  Mack    YES    False     ask -> aggressive
+Bernadotte, sort out Mack    cautious    Mack    YES    False     ask -> cautious
+Massena, handle Mack         aggressive  Mack    YES    False     ask -> aggressive
+```
+
+Read the last two columns: **every row is `ask` today**, and every row would be
+the marshal's own authored arm if the boolean were true. Soult is the control —
+`literal` maps to `ask` in both, so a correct fix must leave him exactly where he
+is.
+
+And `classify_arm` is **personality × boolean and nothing else** — the parsed
+verb never reaches it:
+
+```
+aggressive   False -> ask     True -> aggressive
+cautious     False -> ask     True -> cautious
+literal      False -> ask     True -> ask
+sovereign    False -> ask     True -> ask
+```
+
+**So the entire three-way split that no keyless player has ever seen is gated on
+one boolean**, `parse_resolved_to_action(parsed)`, which is documented as a
+**mode** gate (guardrail (e), CR-5 §6.7 "live-only exposure").
+
+### 6.2 ⛔ The obvious fix is a NO-OP — measured
+
+My first instinct in conversation — *"delete the `mode == 'mock'` clause"* — is
+**wrong, and would change nothing.** The predicate has three clauses, and for a
+delegation in mock the parse is rejected at **clause 1 and clause 3**, never
+reaching the mode check at all:
+
+```
+Ney, deal with Mack    success=False  mode=None   action=None    -> clauses 1 + 3 reject
+Davout, deal with Mack success=False  mode=None   action=None    -> clauses 1 + 3 reject
+Ney, attack Mack       success=True   mode='mock' action='attack' -> clause 2 rejects
+```
+
+The fast parser does not know `deal with` is a verb, so the parse **legitimately
+fails**. Deleting the mode clause changes the ORDINARY order's verdict and leaves
+every delegation exactly as dead as it is today. *(A second correction to the
+record: the docstring's "the fast parser stamps `mock`" is true for a successful
+parse and **not** for a failed one — `mode` is `None` there.)*
+
+**The correct shape: the arm's gate must read the `DelegationMatch`, not the
+parse.** The DelegationMatch *is* the deliberate evidence — the player used a
+delegation verb, at a resolvable target, addressed to a real marshal. And that is
+precisely the distinction the guardrail's own docstring draws, one step short of
+the conclusion:
+
+> *"The mock/fast parser can **incidentally** resolve a delegation to a real
+> action when the remainder carries an action keyword (`deal with the attack on
+> Wellington` -> attack) … In BOTH cases the LLM never applied the §6.2 table, so
+> there is no bias to act on."*
+
+The guard exists to reject an **incidental** resolution. A DelegationMatch is not
+incidental. The guard was written against the wrong witness.
+
+### 6.3 ⚠ THIS NEEDS THE USER'S WORD — it is not a builder's call
+
+**Do not build L-D on this memo alone.** Guardrail (e) is part of CR-5's
+**blessed scope** (`COMMAND_ROBUSTNESS_SPEC.md` §6.3, blessed July 5, 2026), whose
+own language is *"the bias is live-only"*. Flipping it changes what was blessed,
+in a way a player can see. It is small, it is well-argued, and it is still the
+user's ruling. Put the question as: *may the deterministic delegation arms fire
+for a keyless player, or is the three-way split deliberately a live-mode feature?*
+
+Three things the gate question must carry:
+
+1. **What keyless players gain:** the mechanical three-way split — Ney charges,
+   Davout scouts, Soult asks — on 7 verbs × the whole roster.
+2. **What stays live-only regardless:** the **CR-5b flavor line**. The LLM
+   composes that; keyless players get the deterministic floor, which already
+   exists and is already register-gated. Nobody gets silence.
+3. **What it costs the BYOK pitch:** if delegation works keyless, *"Smarter
+   Parsing (optional)"* has one fewer thing to offer. Arguably that makes the
+   store copy **more** honest, but it is a product decision and position 14 owns
+   the disclosure.
+
+### 6.4 The amended build order
+
+| | slice | effort | condition |
+|---|---|---|---|
+| **1** | **L-1 — the prompt turns around** (§4) | 0.5 | **UNCONDITIONAL.** It cheapens the existing BYOK road on every escalated call whether or not any model ever ships, and it is the only realistic route to the latency bar if one does. Do it regardless of everything below. |
+| **2** | **L-D — "The Boolean Road"** *(NEW)* | ~0.5 | **Behind the §6.3 user gate.** Re-key the arm's gate from the parse to the `DelegationMatch`. If this lands, **the local model's single justification is closed for a tenth of the cost and with no download, no latency, no licence question and no packaging risk.** |
+| **3** | **L-0 + L-2 — the instrument and the ceiling probe** (§4) | 1.0 | **Only if L-D proves too narrow in play.** The 7-verb table covers what it covers; a player who writes *"Ney, do what you think best"* still falls through. Measure that gap in a played session before spending a session on the probe. |
+| **4** | L-3..L-6, the build half (§4) | 4.0 | Only on a passing probe. Unchanged. |
+
+**L-D's `done_when`** (falsifiable, and RED today on all four):
+
+1. Under `LLM_MODE=mock` on the 1805 boot, the seven measured rows produce
+   **aggressive / cautious / ask** per the marshal's authored personality — not
+   `ask` for all seven.
+2. `Soult, deal with Mack` still **asks** (the literal arm is correct in both
+   modes and must not move), and `Ney, attack Mack` is **byte-identical** — an
+   ordinary order must not acquire a bias.
+3. The **incidental** case the guardrail was written against still degrades to
+   ASK: a sentence with no delegation verb whose remainder carries an action
+   keyword must not fire an arm. Pin it with the docstring's own example.
+4. Every flipped pin is flipped **consciously** and named in the commit.
+
+**The pin survey is already done — measured, so the 0.5-session estimate is not a
+guess.** 49 references across 4 test files; 103 test functions in the two
+delegation files. **The function signatures do not change** — only the *witness*
+the call site passes — so every unit-level `classify_arm(p, False)` /
+`route_arm(p, False)` pin stays green by construction.
+
+**Expected to FLIP (≈4–6), all end-to-end mock-delegation assertions:**
+`test_aggressive_and_cautious_ask_only_when_unresolved_mock` ·
+`test_mock_delegation_degrades_to_ask_for_every_personality` ·
+`test_nation_delegation_asks_for_every_personality` ·
+`test_router_and_guardrail_e_untouched` · and possibly
+`test_mock_mode_parse_is_never_resolved` (it pins the predicate itself, which L-D
+need not change — if it stays green, that is evidence the fix went in at the
+right seam).
+
+**Must STAY GREEN — these are the controls, and they are the whole safety
+argument:** `test_literal_always_asks_even_when_llm_resolved` ·
+`test_neutral_and_unset_always_ask` · `test_literal_delegation_asks_not_attacks` ·
+`test_literal_and_neutral_route_to_ask` · and above all
+**`test_keyword_bearing_delegation_still_degrades_to_ask_in_mock`**, which is
+*precisely* the incidental case §6.2 says the guardrail was written for. **If that
+one goes red, the fix is wrong and reading the DelegationMatch was the wrong
+witness after all — stop.** It is the single most informative test in the slice.
+
+### 6.5 The prediction, labelled as a prediction
+
+**On the probe: leaning negative, on the clock, not on the task.** Emitting any
+valid action for a named marshal is well within a 1.5B model — that half I would
+bet on. The problem is that the CPU must chew ~5,000 tokens before answering,
+every command, and on a mid-range laptop that is plausibly ten seconds or worse
+cold. With L-1's reorder the static prefix caches and the board state amortises
+across the ~4 commands in a turn, which *might* bring the first command of a turn
+to a few seconds and later ones under one — **but nobody has measured it, and
+"might" is doing real work in that sentence.** That is exactly why L-2 measures
+latency before accuracy and why the row dies cheap if it dies.
+
+**On L-D: high confidence it works, because every input is already computed and
+measured.** The uncertainty is not technical, it is the §6.3 ruling and the pin
+count in (4).
+
+### 6.6 What has NOT changed
+
+Everything in §1–§5 above stands, including the three findings that make §7b
+unrunnable as written, the licence table, and the headline that decides the row:
+**9 of 9 measured "the game acts on an order you did not give" cells parse at
+0.90–1.00 against a 0.70 gate and never reach any model tier.** A local model
+was never the answer to *"make the game just work"* — the Command-Road Queue's
+first four slices are. This section only makes the row's one real prize
+reachable without it.

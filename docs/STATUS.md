@@ -64,7 +64,7 @@
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
 > | **5** | **CR-7-2 … CR-7-8** | CR-7 | 4.5 | The rest of compound + conditional, in spec order, with the kill gates. Honest stopping points after CR-7-3 and CR-7-4. |
 > | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8.** Not "someday". |
-> | **7** | **HC-L L-0 / L-1 / L-2** | HC-L | 1.5 | The local-model decision package. **L-1 is unconditional and may ride any earlier session.** |
+> | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. |
 >
 > **Recorded dissent on the order:** a build in a tester's hands surfaces defects a
 > fleet cannot, so there is a real case for shipping position 10 first. It is
@@ -140,6 +140,50 @@
 > cheapens the existing BYOK road whether or not a model ever ships. **§7b is
 > amended in place now** (see below) because its contract cannot be executed as
 > written.
+>
+> **⚠ D6 IS AMENDED THE SAME DAY — read `LOCAL_PARSER_FEASIBILITY_2026_09_20.md`
+> §6 before building ANY part of row HC-L; it supersedes that memo's own §4 build
+> order.** Writing the plain-English explanation surfaced a question the fleet had
+> not asked — *if the personality split is decided by a **boolean**, must a model
+> supply it?* — and the answer, **measured at HEAD `5b5dd038` in mock**, is no.
+> `detect_delegation` is already deterministic and LLM-free (its own docstring says
+> so); it matched **7 of 7** rows on the 1805 boot, recovering the marshal, the
+> personality and the target, and `main.py`'s own comment calls that target
+> **authoritative over the LLM's**. The arm's action is then a deterministic
+> re-issue with no LLM. **Every input the feature needs already exists in mock.**
+> `classify_arm` is personality × boolean and nothing else — measured, all seven
+> rows read `ask` today and would read the marshal's own authored arm if the
+> boolean were true.
+>
+> ⛔ **And the obvious fix is a NO-OP, measured** — deleting the `mode == "mock"`
+> clause changes nothing, because a delegation parse in mock fails at clauses 1
+> and 3 (`success=False`, `action=None`) and never reaches the mode check. **The
+> gate must read the `DelegationMatch`, not the parse** — which is the very
+> distinction the guardrail's own docstring draws (it was written against an
+> *incidental* mock resolution; a DelegationMatch is deliberate evidence).
+>
+> **New slice L-D "The Boolean Road" (~0.5 session), and the order becomes
+> L-1 → L-D → (only if L-D proves too narrow) L-0 + L-2 → the build half.** If L-D
+> lands, the local model's single justification is closed for a tenth of the cost,
+> with no download, no latency, no licence question and no packaging risk.
+>
+> ⚠ **L-D NEEDS THE USER'S WORD AND IS NOT A BUILDER'S CALL.** Guardrail (e) is
+> part of CR-5's blessed scope (`COMMAND_ROBUSTNESS_SPEC.md` §6.3, July 5, 2026),
+> whose language is *"the bias is live-only"*. The question to put: *may the
+> deterministic delegation arms fire for a keyless player, or is the three-way
+> split deliberately a live-mode feature?* Carry three things into it — what
+> keyless players gain (the mechanical split on 7 verbs × the roster); what stays
+> live-only regardless (**the CR-5b flavor line**, whose deterministic floor
+> already exists, so nobody gets silence); and what it costs the BYOK pitch at
+> position 14 (*"Smarter Parsing (optional)"* has one fewer thing to offer —
+> arguably more honest, but a product decision).
+>
+> **The pin survey is done, so the estimate is measured not guessed:** signatures
+> do not change, only the witness, so every unit-level pin stays green; **≈4–6
+> end-to-end pins flip** and five are controls that must stay green — above all
+> **`test_keyword_bearing_delegation_still_degrades_to_ask_in_mock`**, which is
+> exactly the incidental case the guardrail exists for. **If that one reds, the
+> fix is wrong — stop.**
 >
 > ### ▶ §7b IS AMENDED — do not follow the old contract
 >

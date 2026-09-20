@@ -384,6 +384,22 @@ campaign (queue position 8) evaluates it.
 > tier.** What it *would* close is real but narrow — **CR-5 delegation is 100%
 > dead for keyless players** (`delegation.py:398` denylists `mode == "mock"`), so
 > the marquee three-way personality split sits behind a credit card.
+>
+> **⚠ AND THAT JUSTIFICATION MAY BE CLOSEABLE WITHOUT A MODEL — amended the same
+> day, see the memo's §6.** Measured in mock at HEAD `5b5dd038`:
+> `delegation.detect_delegation` is **already deterministic and LLM-free** (its own
+> docstring: *"the delegation verb in the raw text is the authority, not the
+> parse"*), matching **7 of 7** rows on the 1805 boot and recovering the marshal,
+> the personality and the target — which `main.py`'s own comment calls
+> **authoritative over the LLM's**. `classify_arm` is personality × boolean and
+> nothing else. So the whole feature is gated on ONE boolean. New slice **L-D
+> "The Boolean Road"** (~0.5 session, **behind a user gate** — guardrail (e) is
+> part of CR-5's blessed scope) re-keys that gate from the parse to the
+> `DelegationMatch`. **The amended order is L-1 → L-D → (only if L-D proves too
+> narrow) L-0 + L-2 → the build half.** ⛔ Note the trap: deleting the
+> `mode == "mock"` clause is a **measured NO-OP** — a mock delegation parse fails
+> at clauses 1 and 3 (`success=False`, `action=None`) and never reaches the mode
+> check at all.
 
 
 **User direction (Aug 14, third session): "slot this after all fixes and
