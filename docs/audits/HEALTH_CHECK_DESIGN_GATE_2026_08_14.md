@@ -328,6 +328,64 @@ campaign (queue position 8) evaluates it.
 
 ## §7b HC-L — "Smart Parsing — Offline" (the local model, slotted by user direction)
 
+> **⚠ AMENDED September 20, 2026 — DO NOT FOLLOW THE CONTRACT BELOW AS WRITTEN.**
+> Superseding memo = **`docs/audits/LOCAL_PARSER_FEASIBILITY_2026_09_20.md`**
+> (authoritative where it amends this section); routing = `docs/STATUS.md`
+> ▶ NEXT UP, ruling **D6**. Three instructions here are **measured wrong**, and a
+> builder following them ships a worse parser:
+>
+> 1. **The acceptance gate cannot be run.** *"corpus green under `LLM_MODE=local`
+>    … ship/no-ship is that number"* — the golden corpus is **688/688 passed, 0
+>    failed, under mock**. There is **zero headroom**: not one row a better parser
+>    could fix. And there is no baseline on the other side either — **19 cassettes
+>    / 34 provenance entries, ALL `"authored"`, ZERO `"recorded"`.** The gate can
+>    neither pass nor fail upward; it is a **regression floor**, not a capability
+>    gate. The held-out set that *does* exist, and that nobody has used: **9
+>    archives carrying `"llm": "anthropic"`, 334 `- CMD` lines** — partition it by
+>    re-driving each utterance through mock **at HEAD**, never by reading the
+>    archived outcome (those archives predate WO 11–12, the FA slices and row CX).
+> 2. **The grammar instruction is a trap.** *"a grammar constrained from the
+>    existing `PARSE_TOOL` schema"* — measured, **`PARSE_TOOL` has 0 enums** and
+>    **`'unknown' in VALID_ACTIONS` is False** (`len(VALID_ACTIONS) == 56`).
+>    Deriving the action terminal from the obvious source makes **refusal
+>    ungrammatical**, and **41 of ~50** corpus cells on the LLM road expect a
+>    refusal. The terminal must be `VALID_ACTIONS ∪ {"unknown"}`, and `target` must
+>    stay a free string or `validation.py`'s deliberate passthrough dies with it.
+> 3. **A named candidate is licence-blocked.** **Qwen2.5-3B is Qwen Research
+>    License — not shippable commercially.** Clean: Qwen2.5-0.5B/1.5B (Apache-2.0),
+>    Llama-3.2-1B/3B (Community — *"Built with Llama"* attribution mandatory),
+>    Gemma-2-2B (pass-through terms obligation).
+>
+> **Four hidden gates a builder hits regardless, all measured:**
+> `get_provider('local')` **raises `ValueError`**; `LLM_MODE=local` prints a
+> warning and **silently resolves to mock**; `llm_client.py:1062`
+> (`if not self.api_key: return False`) means a keyless local provider would be
+> **loaded, packaged, shipped and never consulted** — no error, no log line; and
+> `parse_resolved_to_action` denylists exactly `"mock"`, so `mode='local'` →
+> **True** and a local provider **inherits the CR-5 personality arms on day one**,
+> the opposite of this section's own stated default.
+>
+> **The latency bar is 3 seconds, not 30** (`providers.py`
+> `REQUEST_TIMEOUT_SECONDS = 5.0`, `MAX_RETRIES = 1`, cloud documented at 1–3s;
+> the Godot client's 30.0s is not the bar). And the prompt is built backwards for
+> it: `## Command to Parse` sits at **75.7%** of a 19,616-char (≈5,449-token)
+> payload with 1,118 tokens of static text **after** it, so two calls with the
+> same utterance one battle apart share **95 characters** of prefix — KV reuse is
+> structurally zero.
+>
+> **Ruling D6 (September 20, 2026, under the user's delegated grant): run a dated
+> 1.5-session decision package** — **L-0** the instrument, **L-1** the prompt
+> reorder (**UNCONDITIONAL** — it cheapens the existing BYOK road either way),
+> **L-2** the ceiling probe on a 7–8B model — **not the 8.5-session build.** Kill
+> at **p50 > 3.0s**, or headroom < 8/11, or **one** refusal failure emitting a
+> state-mutating verb. The reason the row is narrow and is **not** the answer to
+> *"make the game just work"*: **9 of 9 measured “the game acts on an order you did
+> not give” cells parse at 0.90–1.00 against a 0.70 gate and never reach any model
+> tier.** What it *would* close is real but narrow — **CR-5 delegation is 100%
+> dead for keyless players** (`delegation.py:398` denylists `mode == "mock"`), so
+> the marquee three-way personality split sits behind a credit card.
+
+
 **User direction (Aug 14, third session): "slot this after all fixes and
 weather."** This PROMOTES the monetization memo's §5-v2.1 flagship
 (`docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`, incl. the

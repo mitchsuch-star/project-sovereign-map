@@ -4,6 +4,200 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ THE COMMAND-ROAD QUEUE — OPENED September 20, 2026. THIS BLOCK IS THE
+> ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
+>
+> **User direction (September 20, 2026):** *"examine feasibility for local llm for
+> parser making the game 'just work'… lay out plan for multi step or conditional
+> commands and assure the parser and autofill are in good form and sensical…
+> i noticed you can click recruit cavalry etc for every general — the generals and
+> units are mutually exclusive correct?"* — then, on the findings: ***"make
+> decisions and assure build order is documented, you make decisions here. please
+> make sure a fresh session knows what is next and knows to update status and
+> progress when next commit and push."***
+>
+> **The rulings below were taken under that delegated grant.** They are recorded,
+> not gated; each carries its argument and its re-open condition. The user has NOT
+> separately confirmed any of them.
+>
+> ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
+>
+> 1. **What is next** = slice **1** of the numbered queue below. Take it. Do not
+>    re-plan it — the build contract is the memo named on its row, and the memos
+>    are already sliced with falsifiable `done_when` clauses.
+> 2. **Reproduce before fixing.** Every figure below was measured at HEAD
+>    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
+>    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
+> 3. **WHEN YOU COMMIT AND PUSH, the same commit must also carry:**
+>    - **this block**, updated — strike the slice you landed, name the next one;
+>    - the **landing record** appended to the memo named on that row;
+>    - **`CLAUDE.md`** §Active work items ▶ LIVE STATE, updated;
+>    - **`docs/BUG_FIXES.md`** §Command-Road Queue, with the row's disposition.
+>
+>    **A slice is not landed until those four are in the commit.** The pre-commit
+>    hook runs `ruff check backend/` + the full pytest suite (~5.5 min) — pass
+>    `timeout: 600000` and never `--no-verify`.
+>
+> ### The four memos of record (authoritative)
+>
+> Produced September 20, 2026 by a 53-agent read-only fleet — 18 recon → 18
+> adversarial refuters (default REFUTED, each writing its own probes) → 7 competing
+> plans → 6 judges → 4 syntheses — driving the real `POST /command` and the real
+> `CommandParser.parse` against an unmodified `europe_1805.json` boot at HEAD
+> `15c498cb`, `LLM_MODE=mock`, seed `historical`. Nothing was built.
+>
+> | Memo | Owns |
+> |---|---|
+> | `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` | **row CN** — the recruit-arm defect + the chip-honesty class |
+> | `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md` | **row CR-7** — compound & conditional orders (8 slices, 5.0 sessions) |
+> | `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md` | **row CX-R** — the assurance verdict + the completer's gaps |
+> | `docs/audits/LOCAL_PARSER_FEASIBILITY_2026_09_20.md` | **row HC-L** — the local model; amends `HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7b |
+>
+> ### ▶ THE BUILD ORDER (decided — take these in order)
+>
+> | # | Slice | Row | Effort | Why here |
+> |---|---|---|---|---|
+> | **1** | **CR-7-1 "The tail stops eating the head"** | CR-7 | 0.5 | **P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes. Cheapest P1 in the queue, widest blast radius, zero dependencies. |
+> | **2** | **CX-R1 "The unbound name spends nothing"** | CX-R | 0.5 | **P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**. (`Zorglub, build ships` — with the comma — correctly refuses.) This is L2-1 + CX-X3 pulled out of the CR-6 pile because its members are state-mutating. **Derive the verb set from the parser's routing table — do not widen the hand-written list a third time** (the CX-7 lesson). |
+> | **3** | **CN-1 … CN-4 "The Chip Names the Man"** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). |
+> | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
+> | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
+> | **5** | **CR-7-2 … CR-7-8** | CR-7 | 4.5 | The rest of compound + conditional, in spec order, with the kill gates. Honest stopping points after CR-7-3 and CR-7-4. |
+> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8.** Not "someday". |
+> | **7** | **HC-L L-0 / L-1 / L-2** | HC-L | 1.5 | The local-model decision package. **L-1 is unconditional and may ride any earlier session.** |
+>
+> **Recorded dissent on the order:** a build in a tester's hands surfaces defects a
+> fleet cannot, so there is a real case for shipping position 10 first. It is
+> overruled because slices 1–4 are 3.5 sessions and make the build a *better test
+> artifact* — two state-mutating P1s that fire on ordinary typing, the user's own
+> reported wrong-purchase bug, and the surface a new player meets first. **If that
+> trade is ever re-taken, slices 1 and 2 alone are one session and must still
+> precede the build.**
+>
+> ### ▶ THE RULINGS (decided September 20, 2026 under the delegated grant)
+>
+> **D1 — Which surface the user clicked: MOOT BY CONSTRUCTION, not asked.**
+> `grep -rn 'do:recruit' godot-client/**/*.gd` returns **exactly one** producer —
+> `region_panel.gd:272`, the *province* row, which sits directly under the
+> per-marshal order chips (which is almost certainly why it reads as per-general).
+> But the typed per-general form has the **identical** defect, with the player
+> having named both the general and the arm: `Murat, recruit infantry` → **cavalry
+> at 1,504g**; `Davout, recruit cavalry` → **infantry**. CN-1/CN-2 are backend
+> slices and close **both roads**, and the commission-bench arm tagging (the other
+> candidate surface) rides CN-3 as a client-only rider. **So the question does not
+> need answering and is not a blocker.** If the user later says "the Generals
+> screen", nothing in the plan changes — only the order of CN-3's two riders.
+>
+> **D2 — Build order: DECIDED, above.**
+>
+> **D3 — "CR-6 proper" is RETIRED as a routing destination.** It carries **47
+> routed rows** (`grep -c "CR-6 proper" docs/BUG_FIXES.md`) with no spec section,
+> no gate and no build contract — an unowned dumping ground, which is exactly what
+> Golden Rule 9 forbids. From today:
+> - compound/conditional members → **CR-7**, which the spec's own §2 table already
+>   names as their owner;
+> - state-mutating members → **CX-R1**, built at slice 2;
+> - the remainder is triaged into a real row in the session **immediately after
+>   CR-7-8** (dated, not deferred);
+> - **nothing new routes to "CR-6 proper".** A new row names CR-7, CX-R, or files
+>   its own. `CR-6` the *feature* (Conversational Objection Negotiation) keeps its
+>   standing USER DESIGN GATE and is untouched by this.
+>
+> **D4 — No artillery marshal is authored onto the 1805 board.** There are **zero
+> artillery marshals for any nation**, so the 10,000-man artillery pool is
+> unreachable by recruit and the three-arm combined-arms tier is reached by nobody.
+> Authoring one is a balance change to a blessed scenario (it would move
+> `BASELINE_SERIES`) and this row is a UX fix. The remedy already exists and is
+> historically right — artillery commanders were *commissioned*: France's bench
+> holds **Marmont and Sénarmont**, and commissioning Marmont both unlocks artillery
+> **and un-deadens Paris** (measured: `commission Marmont` → 3,000 artillery at
+> Paris, 4,500g, selector at Paris then resolves to him). So the artillery chip
+> becomes an **honest refusal that names its remedy**, and the scenario is not
+> touched. **Re-open condition:** if a played campaign shows the combined-arms tier
+> is never reached and that reads as a dead mechanic, re-open at the next
+> scenario-balance gate — not inside row CN.
+>
+> **D5 — Recruiting does NOT open on ally soil.** Six chips at Franconia (Bavaria)
+> and Milan (Kingdom of Italy) render enabled and refuse permanently, because the
+> row is gated on a **substitute-market** signal (`substitute_price_here > 0`) while
+> the executor gates on **control**. The executor is right: IQ1-3 deliberately
+> opened the *granary* to `ALLY_SUPPLY_STATES`, and raising your own nation's
+> conscripts from your own manpower pool is a different thing. The fix is CN-3's
+> first edit — **gate the recruit row on the recruit gate**. The substitute chip
+> keeps rendering there, correctly. This is IQ-10's H1 finding one verb over, and
+> it is resolved in the opposite direction, deliberately.
+>
+> **D6 — The local model gets a dated 1.5-session decision package, not the
+> 8.5-session build.** Ruling and reasons in the memo; the short form is that **9
+> of 9 measured "the game acts on an order you did not give" cells parse at
+> 0.90–1.00 against a 0.70 gate and never reach any model tier**, so a local model
+> cannot be what makes the game "just work" — slices 1–4 are. What it *would* close
+> is real but narrow: **CR-5 delegation is 100% dead for keyless players**
+> (`delegation.py:398` denylists `mode == "mock"`), so the marquee three-way
+> personality split sits behind a credit card. **L-1 (the prompt reorder) is
+> unconditional** — the command sits at **75.7%** of a 19,616-char payload, so two
+> calls one battle apart share **95 characters** of prefix, and fixing that
+> cheapens the existing BYOK road whether or not a model ever ships. **§7b is
+> amended in place now** (see below) because its contract cannot be executed as
+> written.
+>
+> ### ▶ §7b IS AMENDED — do not follow the old contract
+>
+> `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7b carries three
+> instructions that are **measured wrong**, and a builder following them ships a
+> worse parser:
+>
+> 1. **Its acceptance gate cannot be run.** "Corpus green under `LLM_MODE=local`,
+>    ship/no-ship is that number" — the corpus is **688/688 under mock, 0 failed**.
+>    Zero headroom; not one row a better parser could fix. And there is no baseline
+>    on the other side either: **19 cassettes / 34 provenance entries, ALL
+>    `"authored"`, ZERO `"recorded"`.** The gate can neither pass nor fail upward.
+>    The held-out set that *does* exist, and that nobody has used: **9 archives
+>    carrying `"llm": "anthropic"`, 334 `- CMD` lines.**
+> 2. **Its grammar instruction is a trap.** "Constrain from the existing
+>    `PARSE_TOOL` schema" — measured, `PARSE_TOOL` has **0 enums** and
+>    `'unknown' in VALID_ACTIONS` is **False**. Deriving the action terminal from
+>    the obvious source makes **refusal ungrammatical**, and 41 of ~50 corpus cells
+>    on the LLM road expect a refusal.
+> 3. **One named candidate is licence-blocked.** **Qwen2.5-3B is Qwen Research
+>    License — not shippable commercially.** Qwen2.5-0.5B/1.5B (Apache-2.0),
+>    Llama-3.2-1B/3B (Community, *"Built with Llama"* attribution mandatory) and
+>    Gemma-2-2B (pass-through terms) are clean.
+>
+> Four hidden gates a builder hits regardless, all measured:
+> `get_provider('local')` **raises**; `LLM_MODE=local` silently **resolves to
+> mock**; `llm_client.py:1062` returns False with no API key, so a keyless local
+> provider would be **loaded, packaged, shipped and never consulted**; and
+> `parse_resolved_to_action` denylists exactly `"mock"`, so `mode='local'` → True
+> and a local provider **inherits the CR-5 personality arms on day one** — the
+> opposite of §7b's own stated default.
+>
+> ### ▶ The assurance answer, for the record
+>
+> **The parser is in good form; the autofill is correctly built but unaware of the
+> board.** Measured at HEAD `15c498cb`: golden corpus **688/688** (mock) and
+> **6/6** keyless replay with **zero drift**; **1,850** parser-family tests green
+> across 20 files; predictor pins **32**. The completer's founding rule — *the game
+> must not offer a sentence it cannot read* — **genuinely holds at the parser**:
+> **280/280** offered lines resolve to the action its table claims. It fails one
+> layer out: at the executor, **80 execute (28.6%) / 34 stage a question (12.1%) /
+> 166 refused (59.3%)**, because `_region_names` and `_visible_enemy_names` both end
+> in `out.sort()` — a marshal at Rhineland is offered *Albania, Alentejo, Algiers,
+> Amsterdam, Anatolia*. `garrison` is **0/40** (France boots at the 3-garrison cap),
+> `unfortify` **0/8**, and `attack` offers courts at PEACE **including France's own
+> ally**. Every verb with no target slot or a friendly slot is near-perfect.
+> **Corrections carried forward** (do not re-file these): `Ney, garrison Bohemia`
+> does **not** reproduce as a success — the cap refuses first at 0 AP, so the
+> region substitution is **latent, not live**, and fixing the cap without fixing the
+> slot **ships** it; `Ney and Davout, attack Mack` does not "drop Davout" — four
+> byte-identical muster heads show naming him is **causally inert**, and
+> `parse_multiple` has **zero production callers**.
+>
+> **⚠ Standing, not re-scored here:** *Command & parsing 7.5 → 8.0* remains **FOR
+> USER CONFIRMATION** from row CX. This queue does not re-score any pillar — the
+> completer's **feel** is still the one thing a harness cannot measure and a played
+> session is still owed on it.
+
 > **▶ CX-7 SLICE 3 — "THE PREDICTOR, DRIVEN" — LANDED September 19, 2026**
 > (landing record = `COMMAND_EXPERIENCE_SPEC.md` §8.9; rows = `BUG_FIXES.md`
 > §Row CX; rules = `SYSTEMS_REFERENCE.md` §50.14). CX-3 pinned its own client
