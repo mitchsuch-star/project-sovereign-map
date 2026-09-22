@@ -1,0 +1,100 @@
+[
+ {
+  "id": "CR71-1 the predicate reverts to the stand-still enumeration",
+  "file": "backend/commands/parser.py",
+  "old": "    if not TAIL_FUSES_ONLY_ONTO_A_MARCH:\n        return not (_STAND_FAST_FIRST_CLAUSE_RE.search(first)",
+  "new": "    if True:\n        return not (_STAND_FAST_FIRST_CLAUSE_RE.search(first)",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-2 PURSUE dropped from the carrying set",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "ARRIVAL_CARRYING_TYPES = frozenset({\"MOVE_TO\", \"PURSUE\"})",
+  "new": "ARRIVAL_CARRYING_TYPES = frozenset({\"MOVE_TO\"})",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-3 the destination requirement dropped",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    return bool(_extract_target_text(lowered, strategic_type))",
+  "new": "    return True",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-4 the sequel boundary leaves the and on the head",
+  "file": "backend/commands/parser.py",
+  "old": "_SEQUEL_SPLIT_RE = re.compile(r'[,;]?\\s+(?:and\\s+)?then\\b\\s+', re.IGNORECASE)",
+  "new": "_SEQUEL_SPLIT_RE = re.compile(r'[,;]?\\s+then\\b\\s+', re.IGNORECASE)",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-5 strip_conditions cuts at the then again",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    text = re.sub(r'\\s+(?:and\\s+then|and|then)\\s+(?:attack|engage|assault)\\b.*$',\n                  '', text)",
+  "new": "    text = re.sub(r'\\s+(and|then)\\s+attack.*$', '', text)",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-6 the dangling-conjunction trim removed",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    text = re.sub(r'\\s+(?:and|then|or)\\s*$', '', text, flags=re.IGNORECASE)\n",
+  "new": "",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-7 the arrival hint loses the semicolon",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    r'(?:\\b(?:and\\s+)?then\\b|\\band\\b|;)\\s*(?:attack|engage|assault)\\b')",
+  "new": "    r'(?:\\b(?:and\\s+)?then\\b|\\band\\b)\\s*(?:attack|engage|assault)\\b')",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-8 the tactical-move promotion never fires",
+  "file": "backend/commands/parser.py",
+  "old": "    tail = _ARRIVAL_TAIL_RE.search(command_text)\n    if not tail:\n        return command_text",
+  "new": "    return command_text",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-9 the promotion ignores a head that is already an order",
+  "file": "backend/commands/parser.py",
+  "old": "    if not verb or clause_is_a_standing_order(head):",
+  "new": "    if not verb:",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-10 the and arm loses its exemption",
+  "file": "backend/commands/parser.py",
+  "old": "        if (TAIL_FUSES_ONLY_ONTO_A_MARCH\n                and _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail)\n                and _head_can_carry_arrival(first)):\n            return None\n        head_parse = self.llm.fast_parse(first, game_state)",
+  "new": "        head_parse = self.llm.fast_parse(first, game_state)",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-11 the until arm rides any head",
+  "file": "backend/commands/parser.py",
+  "old": "    return bool(_ENGINE_CONDITION_RE.search(first)\n                and clause_is_a_standing_order(first))",
+  "new": "    return bool(_ENGINE_CONDITION_RE.search(first))",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-12 the typed text is not restored after a promotion",
+  "file": "backend/commands/parser.py",
+  "old": "        if (typo_note or promoted) and isinstance(result, dict):",
+  "new": "        if typo_note and isinstance(result, dict):",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-13 the promotion ignores the lever",
+  "file": "backend/commands/parser.py",
+  "old": "        if TAIL_FUSES_ONLY_ONTO_A_MARCH:\n            promoted_text = promote_tactical_move_with_arrival_tail(command_text)",
+  "new": "        if True:\n            promoted_text = promote_tactical_move_with_arrival_tail(command_text)",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ },
+ {
+  "id": "CR71-14 the split gate ignores the predicate",
+  "file": "backend/commands/parser.py",
+  "old": "    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):\n        return None\n    return (first, tail)",
+  "new": "    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail):\n        return None\n    return (first, tail)",
+  "tests": "tests/test_cr7_1_the_tail_stops_eating_the_head.py"
+ }
+]

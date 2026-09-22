@@ -582,8 +582,15 @@ def _strip_conditions(text: str) -> str:
     text = re.sub(r'\s+until\s+.*$', '', text)
     # Remove "for N turns" clauses
     text = re.sub(r'\s+for\s+\d+\s+turns?', '', text)
-    # Remove "and attack" / "then attack" suffixes
-    text = re.sub(r'\s+(and|then)\s+attack.*$', '', text)
+    # Remove "and attack" / "then attack" / "and then attack" suffixes.
+    # CR-7-1: the old `(and|then)\s+attack` cut "march to Vienna and then
+    # attack" at the `then`, leaving "vienna and" — title-cased into the
+    # phantom destination "Vienna And" (`in world.regions` → False), on the
+    # exact sentence the CR-2 split pin used. The conjunction pair is
+    # consumed whole, and the tail verbs are the three the split gate and
+    # the arrival hint already agree on.
+    text = re.sub(r'\s+(?:and\s+then|and|then)\s+(?:attack|engage|assault)\b.*$',
+                  '', text)
     return text.strip()
 
 
@@ -616,6 +623,10 @@ def _clean_target_text(text: str) -> Optional[str]:
     # Take first word or two (target name)
     # "belgium and attack" → "belgium"
     text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)
+    # CR-7-1: a region name never ENDS in a conjunction. When an upstream
+    # cut lands between "and" and "then" ("vienna and then attack" cut at
+    # the `then`), the dangling word must not ride into the target.
+    text = re.sub(r'\s+(?:and|then|or)\s*$', '', text, flags=re.IGNORECASE)
     # PARSE-NEG: a target never spans a sentence boundary. "Ney, hold your
     # position, do not attack" produced the HOLD target "your position, do not
     # attack" and "Ney, hold. Do not attack." produced ". Do Not Attack." —
@@ -837,13 +848,56 @@ def _parse_condition(command_lower: str, target: str) -> Optional[Dict]:
     return condition if condition else None
 
 
+# CR-7-1: the arrival hint is read at a clause BOUNDARY — `then`, `and then`,
+# `and`, or a semicolon — followed by one of the three tail verbs the split
+# gate (`parser._ATTACK_ON_ARRIVAL_TAIL_RE`) exempts. The old substring list
+# knew no `;`, so `march to Swabia; attack Mack` fused as a plain MOVE_TO with
+# the attack silently gone — the semicolon downgraded the engine's one
+# supported two-step order to a march. `\b` keeps "Holland and attack" from
+# reading its own last syllable as the conjunction.
+_ATTACK_ON_ARRIVAL_HINT_RE = re.compile(
+    r'(?:\b(?:and\s+)?then\b|\band\b|;)\s*(?:attack|engage|assault)\b')
+
+
 def _detect_attack_on_arrival(command_lower: str) -> bool:
     """Detect if the player wants to attack on arrival."""
-    attack_hints = [
-        "and attack", "then attack", "and engage",
-        "and assault", "then engage",
-    ]
-    return any(hint in command_lower for hint in attack_hints)
+    return bool(_ATTACK_ON_ARRIVAL_HINT_RE.search(command_lower))
+
+
+# ── CR-7-1: which clauses can CARRY an arrival ──────────────────────────────
+# The order types whose executor READS `StrategicOrder.attack_on_arrival`:
+# `strategic._handle_move_to_arrival` and the PURSUE contact arms
+# (`strategic.py` / `strategic_executor.py`, `personality == "aggressive" or
+# attack_on_arrival`). HOLD and SUPPORT never read the flag, so an attack
+# tail fused onto either is stamped and then lost — the tail vanishes one
+# stage later than the swallow this slice closes. Derived from the ONE
+# strategic routing table (`STRATEGIC_KEYWORDS`), never a second hand list.
+ARRIVAL_CARRYING_TYPES = frozenset({"MOVE_TO", "PURSUE"})
+
+
+def clause_can_carry_an_arrival(clause: str) -> bool:
+    """CR-7-1 — can this clause, on its own, carry an attack-on-arrival
+    tail?  True only for a marching order WITH a destination: a MOVE_TO or
+    PURSUE keyword from `STRATEGIC_KEYWORDS` followed by a target. A bare
+    "withdraw" (generic MOVE_TO, no destination) cannot arrive anywhere, and
+    a fortify / scout / drill / defend / retreat / unfortify / form square /
+    garrison / bombard / recruit head is not a march at all.
+    """
+    lowered = clause.lower()
+    strategic_type = _detect_strategic_type(lowered)
+    if strategic_type not in ARRIVAL_CARRYING_TYPES:
+        return False
+    return bool(_extract_target_text(lowered, strategic_type))
+
+
+def clause_is_a_standing_order(clause: str) -> bool:
+    """CR-7-1 — does this clause carry ANY strategic keyword (MOVE_TO /
+    PURSUE / HOLD / SUPPORT)?  The `until` arm of the split gate rides a
+    standing order only: `hold until Davout arrives then attack` is the
+    engine's one implemented condition and a pinned corpus row, while
+    `fortify until Davout arrives then attack Mack` is a tactical fortify
+    with a tail that must be reported, not a fused attack."""
+    return _detect_strategic_type(clause.lower()) is not None
 
 
 def _add_interpretation(result: Dict, marshal_name: Optional[str], world) -> Dict:

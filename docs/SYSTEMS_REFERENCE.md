@@ -1253,6 +1253,36 @@ Player Input ("Ney, march to Belgium")
   - `result["attack_on_arrival"]` (bool)
   - `result["command"]["target_type"]` (str)
 
+### Stage 2a: Compound orders — the tail never eats the head (CR-7-1, September 22, 2026)
+
+**File:** `backend/commands/parser.py` — `_split_sequential_orders` (the `then` /
+`and then` / `;` / `and <Marshal>` boundaries) and `_and_clause_is_a_second_order`
+(FA-50's bare `and <verb>` arm). A compound order executes its **HEAD** and reports
+the tail in `dropped_sequel` + the "One order at a time" warning. The one exemption
+is **positive**: a tail beginning with `attack|engage|assault` fuses onto the head
+ONLY when the head can **carry an arrival** —
+
+- `strategic_parser.clause_can_carry_an_arrival(head)`: a MOVE_TO or PURSUE keyword
+  from `STRATEGIC_KEYWORDS` (the ONE routing table — never a second hand list)
+  **with a destination**; `ARRIVAL_CARRYING_TYPES = {MOVE_TO, PURSUE}` are the two
+  order types whose executor reads `attack_on_arrival` (HOLD / SUPPORT never do, so
+  a tail fused onto them is stamped and lost);
+- or a standing order carrying `until` (`clause_is_a_standing_order`), the engine's
+  one implemented condition — `hold until Davout arrives then attack` stays one parse.
+
+Everything else — fortify, scout, drill, defend, retreat, unfortify, form square,
+garrison, bombard, recruit, wait — keeps its own order. Before this rule the
+exemption enumerated FA-7's stand-still vocabulary, so 40 of 40 other heads had the
+tail **replace** the head (`Ney, fortify then attack Mack` marched and fought).
+Riders: `_strip_conditions` consumes `and then` whole (no more "Vienna And");
+`_detect_attack_on_arrival` reads a boundary (`then` / `and then` / `and` / `;`);
+a tactical `move to` / `go to` head with an arrival tail is promoted to `march to`
+before any reader (`promote_tactical_move_with_arrival_tail`) while bare `move to`
+stays the 1-AP tactical move by design. Flip lever `parser.TAIL_FUSES_ONLY_ONTO_A_MARCH`.
+Tests: `tests/test_cr7_1_the_tail_stops_eating_the_head.py`. ⚠ The golden corpus is
+688/688 in BOTH arms of this rule — pins for compound orders must drive
+`CommandParser.parse` or `POST /command`, never the corpus alone.
+
 ### Stage 3: Validation
 
 **File:** `backend/ai/validation.py`

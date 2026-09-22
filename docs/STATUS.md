@@ -20,11 +20,35 @@
 > not gated; each carries its argument and its re-open condition. The user has NOT
 > separately confirmed any of them.
 >
+> **✅ SLICE 1 — CR-7-1 "The tail stops eating the head" — LANDED September 22,
+> 2026.** Landing record = `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md`
+> §CR-7-1 LANDING RECORD (authoritative); rows **CQ-1** and **CQ-9** disposed in
+> `BUG_FIXES.md` §Command-Road Queue, **CQ-10** filed there. Re-measured first on
+> this HEAD (40 of 40 SWALLOWED; `Ney, fortify then attack Mack` marched, fought,
+> 24,000 → 21,720, not fortified, no warning), then built as the memo's positive
+> rule: a tail fuses onto a head ONLY if the head can carry an arrival — a
+> MOVE_TO / PURSUE with a destination, DERIVED from `STRATEGIC_KEYWORDS`
+> (`strategic_parser.clause_can_carry_an_arrival`), or a standing order carrying
+> `until`. **40 → 0**; every other head keeps its order and the tail rides the
+> existing `dropped_sequel` note. Riders: `and then` names the province (the CR-2
+> pin's own sentence had read "Vienna And"), `;` keeps the arrival, FA-50's bare
+> `and` arm obeys the same rule (`march to X and attack Y` had been split into a
+> march plus a note — found here, closed here), and `move to` / `go to` are
+> promoted to the march idiom **only in a compound** (bare `move to` is the
+> documented 1-AP tactical move, measured 1 AP vs `march to` 2 AP — pinned).
+> `test_cr7_1_the_tail_stops_eating_the_head.py` **106**; sweep 14/14;
+> `BASELINE_SERIES` + M1–M7 byte-identical without re-record; corpus 688/688 in
+> BOTH arms (not evidence — the sensitivity arm is). ⚠ the user's note, carried to
+> CR-7-3: *"fortify and attack is a contradiction"* — a contradictory pair's drop
+> note must not invite the tail to be re-sent as-is.
+>
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = slice **1** of the numbered queue below. Take it. Do not
->    re-plan it — the build contract is the memo named on its row, and the memos
->    are already sliced with falsifiable `done_when` clauses.
+> 1. **What is next** = slice **2** of the numbered queue below, **CX-R1 "The
+>    unbound name spends nothing"** (slice 1 landed September 22, 2026 — above).
+>    Take it. Do not re-plan it — the build contract is the memo named on its row
+>    (`PARSER_AUTOFILL_ASSURANCE_2026_09_20.md`), and the memos are already sliced
+>    with falsifiable `done_when` clauses.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -57,8 +81,8 @@
 >
 > | # | Slice | Row | Effort | Why here |
 > |---|---|---|---|---|
-> | **1** | **CR-7-1 "The tail stops eating the head"** | CR-7 | 0.5 | **P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes. Cheapest P1 in the queue, widest blast radius, zero dependencies. |
-> | **2** | **CX-R1 "The unbound name spends nothing"** | CX-R | 0.5 | **P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**. (`Zorglub, build ships` — with the comma — correctly refuses.) This is L2-1 + CX-X3 pulled out of the CR-6 pile because its members are state-mutating. **Derive the verb set from the parser's routing table — do not widen the hand-written list a third time** (the CX-7 lesson). |
+> | ~~**1**~~ | ~~**CR-7-1 "The tail stops eating the head"**~~ ✅ **LANDED Sept 22, 2026** | CR-7 | 0.5 | ~~**P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes.~~ **40 → 0.** Landing record in the memo. |
+> | **▶ 2** | **CX-R1 "The unbound name spends nothing"** | CX-R | 0.5 | **P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**. (`Zorglub, build ships` — with the comma — correctly refuses.) This is L2-1 + CX-X3 pulled out of the CR-6 pile because its members are state-mutating. **Derive the verb set from the parser's routing table — do not widen the hand-written list a third time** (the CX-7 lesson). |
 > | **3** | **CN-1 … CN-4 "The Chip Names the Man"** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). |
 > | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |

@@ -434,3 +434,125 @@ Three things keep this from overturning the plan, and all three are measured:
 | `Marshal` has `personality_type` | it is `personality`; `personality_type` raises `AttributeError` (the IGR-E family — worth an AST census if any new code reads it) |
 
 All figures above are **measured** this session at `CommandParser.parse` or `POST /command` on `europe_1805.json`, seed `historical`, `LLM_MODE=mock`, except where marked *read*. No repo file was modified; probes live in the session scratchpad.
+
+---
+
+## CR-7-1 — LANDING RECORD (September 22, 2026)
+
+**Landed on master; the HEAD the slice was measured and built against is
+`a6661032`.** `tests/test_cr7_1_the_tail_stops_eating_the_head.py` (**106**) ·
+`tools/_sweep_cr7_1.json` **14 mutations / 14 killed / 0 INERT** · `BASELINE_SERIES`
++ M1–M7 **byte-identical without re-record** (63 pins) · golden corpus **688/688 in
+BOTH arms**, as this contract predicted — not evidence · ruff clean · zero `.gd`,
+zero new serialized fields · files touched: `backend/commands/parser.py`,
+`backend/ai/strategic_parser.py`.
+
+### Re-measured first, on the landing HEAD
+
+- **40 of 40 SWALLOWED** at `CommandParser.parse` (`action=attack`, no strategic
+  order, no `dropped_sequel`, no warning) — the table in §1 reproduces exactly.
+- `POST /command`: `Ney, fortify then attack Mack` → success, AP 4→3,
+  Rhineland→Swabia, **24,000 → 21,720**, `fortified` False, a battle report,
+  `warning=None`. (§1's 22,050 is the same defect at a different combat roll.)
+- **Also measured, not in the contract:** `Ney, march to Swabia and attack Mack`
+  → **SPLIT** (`action=move`, `dropped_sequel="attack Mack"`). FA-50's bare-`and`
+  arm (`_and_clause_is_a_second_order`) had no arrival exemption, so the `and`
+  form of the engine's one two-step order — `_detect_attack_on_arrival`'s own
+  "and attack" hint — was degraded to a march plus a "One order at a time" note
+  while the `then` form fused. `Ney, support Davout then attack Mack` → fused
+  SUPPORT with `attack_on_arrival=True`, a flag SUPPORT's executor never reads
+  (the tail lost one stage later). `Ney, march to Swabia, attack Mack` → MOVE_TO
+  with `attack_on_arrival=False` (the comma sibling of the `;` degradation).
+
+### What was built
+
+1. **The positive rule** — `parser._head_can_carry_arrival`, behind the flip lever
+   `TAIL_FUSES_ONLY_ONTO_A_MARCH` (False reproduces the pre-slice predicate
+   byte-for-byte). A tail beginning `attack|engage|assault` fuses onto the head
+   ONLY when `strategic_parser.clause_can_carry_an_arrival(head)` — the head's
+   `_detect_strategic_type` is in `ARRIVAL_CARRYING_TYPES = {MOVE_TO, PURSUE}`
+   AND `_extract_target_text` names a destination — or when the head is a
+   standing order (`clause_is_a_standing_order`) carrying `until`. Measured
+   while building: a bare `until` arm re-opened the swallow on `fortify until
+   Davout arrives then attack Mack`, hence the standing-order guard.
+   - **Why the set is DERIVED, not the contract's six verbs.** §CR-7-1 named
+     `march|move|advance|proceed|head|go`. `advance on`, `fall back to`,
+     `withdraw to`, `push to`, `make for`, `retire to`, `march north` are all
+     MOVE_TO heads the six would have split, and `move`/`go` are the tactical
+     forms (rider, below). The routing table is the one source — the CX-7 lesson
+     the queue's own D-block states for CX-R1 applies here too.
+   - **Why PURSUE is in and HOLD / SUPPORT are out.** The executor reads
+     `order.attack_on_arrival` in `strategic._handle_move_to_arrival` and the
+     PURSUE contact arms only. A tail fused onto SUPPORT is stamped and lost —
+     the same defect in a different coat. It is reported now.
+2. **The same rule at FA-50's `and` arm**, closing the `and attack` degradation
+   found above; `fortify and attack Mack` still splits (control pinned).
+3. **`and then` consumed whole.** `_SEQUEL_SPLIT_RE` takes the optional `and`;
+   `_strip_conditions` cuts `and then|and|then` + `attack|engage|assault`;
+   `_clean_target_text` drops a dangling conjunction (a region name never ends
+   in one). The CR-2 pin `test_split_helper_attack_on_arrival_not_split` asserted
+   the helper's verdict on "march to Vienna and then attack" and never read the
+   destination it produced — **"Vienna And"**. The three unit seams are pinned
+   separately so belt and braces cannot mask each other in the sweep.
+4. **`;` keeps the arrival.** `_detect_attack_on_arrival` is a boundary regex
+   (`then` / `and then` / `and` / `;` + the three tail verbs, word-bounded so
+   "Holland" is not a conjunction; `then assault` joins the hint set the split
+   gate already exempted).
+5. **The rider, scoped** — `parser.promote_tactical_move_with_arrival_tail`,
+   applied in `parse()` after the typo repair and under the same lever: a
+   `move to` / `go to` head with an arrival tail becomes `march to` before any
+   reader, so the fast parser, the split gate and `detect_strategic_command`
+   agree by construction (the CR-4 / NP-1 raw-string precedent). The typed text
+   stays `raw_input` / `raw_command` (R1-11) — their readers (save/load, the
+   interrupt's `original_command`, the diplomatic verbs, the bombard-verb check)
+   never re-derive the march. A head that is already a standing order (`move to
+   reinforce Ney` = SUPPORT) is left alone. **Bare `move to` is NOT unified** —
+   see the correction below.
+
+### `done_when`, disposed
+
+- **(a)** 40 → **0** ✅ — each row's action and target equal the bare head's own
+  parse (so the pin binds to the rule, not to a hand-typed action list), and
+  `dropped_sequel == "attack Mack"` on all 40.
+- **(b)** ✅ `march to` / `advance to Swabia then attack Mack` → MOVE_TO,
+  `aoa=True`, no split; `hold until Davout arrives then attack Mack` one parse
+  with `{until_marshal_arrives: Davout}`; `wait for Davout then attack Mack`
+  splits; the CR-2 helper pins hold unedited.
+- **(c)** ✅ `and then` → a real province on 3 of 3 and the CR-2 sentence now
+  reads "Vienna"; `;` → `aoa=True`.
+- **(d)** ✅ the nine named corpus rows green on every world they name, their
+  `expected` blocks frozen inline in the test and compared — unedited by
+  construction.
+- **(e)** ✅ lever DOWN → **40 of 40** SWALLOWED again (≥30 required); the lever
+  also governs the rider and the `and` arm, so the arm proves what it claims.
+- **(f)** ✅ series + M1–M7 byte-identical; structurally,
+  `detect_strategic_command` has one production caller (pinned by census).
+
+### Corrections to this contract, carried forward
+
+| Claim in §CR-7-1 | Measured |
+|---|---|
+| "Unify `move to` with `march to`" | **Compound half built. The bare half is design, not defect.** `strategic_parser`'s header documents the split, `test_strategic_parser::test_move_is_not_strategic` pins it, the executor auto-upgrades a DISTANT tactical move (`Ney, move to Bohemia` → a MOVE_TO order, measured), and on the 1805 boot an adjacent `Ney, move to Lorraine` costs **1 AP** while `Ney, march to Lorraine` costs **2 AP**. Unifying the bare forms at the parse layer would double the price of the game's most basic order — a balance ruling, not a UX row's; pinned as the reason (`test_the_adjacent_costs_that_keep_the_rider_compound_only`). Re-open at a scenario-balance gate. |
+| the six-verb head set | derived from `STRATEGIC_KEYWORDS` instead (see 1). |
+| "No `clause_guards` change. No queue." | Held. |
+| the headline after the fix: Ney "fortifies" | For **Ney** (aggressive) the head now reaches the objection system and he objects to sitting idle — to the FORTIFY, the order he was given: no battle, no movement, AP unchanged, the tail still reported. For cautious **Davout** the fortify executes and he keeps his ground. Both pinned. CR-7-3's objection-arm finding (the note does not re-surface after insist/trust/compromise) is visible here and stays CR-7-3's. |
+
+### Filed, not built
+
+- **CQ-10** (`BUG_FIXES.md` §Command-Road Queue) — **the bare comma is not a
+  boundary**: `march to Swabia, attack Mack` loses the arrival; `fortify, attack
+  Mack` is a FIFTH tail form on which the swallow survives. Needs the FA-50 shape
+  (a verb lookahead plus the caller's `fast_parse` head gate, which refuses a
+  bare name) and its own negative controls — a comma split must never fire on
+  the address comma. Owner: CR-7-3's boundary re-scan.
+- **The user's note, September 22: "fortify and attack is a contradiction."**
+  Carried to CR-7-3: for a contradictory pair the drop note must not invite the
+  tail to be re-sent as-is (attacking abandons the works); the relay copy should
+  say what the head did to the tail, and the multi-turn-head mitigation in §5
+  already binds.
+
+### The §Open questions row, answered
+
+"`move to Swabia` produces NO strategic order while `march to Swabia` does…
+fold it into CR-7-1 or file it separately?" — **folded, compound-only**, with
+the bare form recorded as design and the AP price on the record (above).

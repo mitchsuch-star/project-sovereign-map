@@ -32,6 +32,7 @@ from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.nation_names import resolve_typed_nation
 from backend.ai.strategic_parser import (
     detect_strategic_command, _nation_demonyms, demonym_to_nation,
+    clause_can_carry_an_arrival, clause_is_a_standing_order,
 )
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
@@ -61,7 +62,11 @@ _NAVAL_META_VERBS = frozenset({"build_fleet", "set_fleet_posture", "naval_divers
 # CR-2: sequential compound orders — "attack Bern, then hold your positions".
 # The second clause used to leak into target extraction and strategic
 # detection (phantom region "Your Positions" + a stray HOLD upgrade).
-_SEQUEL_SPLIT_RE = re.compile(r'[,;]?\s+then\b\s+', re.IGNORECASE)
+# CR-7-1: the boundary consumes an optional leading "and". It used to stay on
+# the head ("Ney, scout Swabia and"), and when the tail was an attack verb the
+# arrival exemption then parsed the whole sentence and read the phantom
+# destination "Swabia And" (`in world.regions` → False).
+_SEQUEL_SPLIT_RE = re.compile(r'[,;]?\s+(?:and\s+)?then\b\s+', re.IGNORECASE)
 # A tail that STARTS with an attack verb is the long-standing
 # attack-on-arrival hint ("march to Vienna then attack" / "... then attack
 # Mack" / "... then engage the Austrians") — never split those.
@@ -88,6 +93,79 @@ _ATTACK_ON_ARRIVAL_TAIL_RE = re.compile(
 _STAND_FAST_FIRST_CLAUSE_RE = re.compile(
     r'\b(?:' + STAND_STILL_ALTERNATION + r')\b', re.IGNORECASE)
 _ENGINE_CONDITION_RE = re.compile(r'\buntil\b', re.IGNORECASE)
+
+# ── CR-7-1: the tail stops eating the head ──────────────────────────────────
+# FA-7's exemption above answered "which heads were REPORTED" (the stand-still
+# vocabulary) instead of "can this head carry the tail". Every head outside
+# that list was still eaten — and the tail does not get DROPPED, it REPLACES
+# the head: measured at POST /command on the 1805 boot, `Ney, fortify then
+# attack Mack` marched Rhineland→Swabia, fought, lost 1,950 men, was not
+# fortified, spent 1 AP and said nothing, at confidence 0.95 (no model is
+# ever consulted). 40 of 40 non-movement shapes (10 heads × 4 tail forms).
+#
+# The rule is inverted from a negative enumeration to a positive one: a tail
+# may fuse onto a head ONLY IF that head can CARRY an arrival. attack-on-
+# arrival is a MOVEMENT idiom ("march there and hit whatever you find"), so
+# the exemption survives when clause 1 is a marching order with a destination
+# — a MOVE_TO / PURSUE keyword from the ONE strategic routing table
+# (`strategic_parser.clause_can_carry_an_arrival`, the two order types whose
+# executor reads the flag) — or when it is a standing order carrying `until`,
+# the one condition the engine implements. Everything else keeps its own
+# order and the tail lands in the existing `dropped_sequel` note.
+#
+# Flip lever: False reproduces the pre-slice predicate byte-for-byte (the
+# sensitivity arm in test_cr7_1_the_tail_stops_eating_the_head.py).
+TAIL_FUSES_ONLY_ONTO_A_MARCH = True
+
+
+def _head_can_carry_arrival(first: str) -> bool:
+    """CR-7-1 — may an attack tail fuse onto this head?  See the rule above."""
+    if not TAIL_FUSES_ONLY_ONTO_A_MARCH:
+        return not (_STAND_FAST_FIRST_CLAUSE_RE.search(first)
+                    and not _ENGINE_CONDITION_RE.search(first))
+    if clause_can_carry_an_arrival(first):
+        return True
+    # `until` rides a STANDING order only — "fortify until Davout arrives
+    # then attack Mack" is a tactical fortify and a reported tail, not a
+    # fused attack (measured: a bare `until` arm re-opened the swallow there).
+    return bool(_ENGINE_CONDITION_RE.search(first)
+                and clause_is_a_standing_order(first))
+
+
+# CR-7-1 rider (CQ-9): "move to" / "go to" are the TACTICAL move by design
+# (strategic_parser's header; `test_strategic_parser::test_move_is_not_
+# strategic`), and the executor already auto-upgrades a distant one to a
+# standing MOVE_TO (`movement_executor._execute_move`). Bare, they stay so —
+# pricing every adjacent `move to` at a standing order's 2 AP is not this
+# row's to decide. But a tactical move cannot carry an arrival: `Ney, move
+# to Swabia then attack Mack` had the tail replace the head and FIGHT from
+# Rhineland, while the same sentence with `march to` is the engine's one
+# supported two-step order. An attack tail is what makes the sentence a
+# march, so the head is promoted to the march idiom before any reader sees
+# it — the CR-4 / NP-1 raw-string precedent: the fast parser, the split gate
+# and detect_strategic_command then agree by construction. A head that is
+# already a standing order ("move to reinforce Ney" = SUPPORT) is left alone.
+_ARRIVAL_TAIL_RE = re.compile(
+    r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|;\s*)(?:attack|engage|assault)\b',
+    re.IGNORECASE)
+_TACTICAL_MOVE_HEAD_RE = re.compile(r'\b(?:move|go)\s+to\b', re.IGNORECASE)
+
+
+def promote_tactical_move_with_arrival_tail(command_text: str) -> str:
+    """CR-7-1 rider — `move to X <boundary> attack Y` → `march to X …`.
+
+    Returns the text unchanged unless BOTH hold: the sentence carries an
+    attack-on-arrival tail, and the head before that tail is a tactical
+    `move to` / `go to` that is not already a standing order.
+    """
+    tail = _ARRIVAL_TAIL_RE.search(command_text)
+    if not tail:
+        return command_text
+    head = command_text[:tail.start()]
+    verb = _TACTICAL_MOVE_HEAD_RE.search(head)
+    if not verb or clause_is_a_standing_order(head):
+        return command_text
+    return command_text[:verb.start()] + "march to" + command_text[verb.end():]
 
 
 # ── FA-50: the compound shapes `then` never covered ─────────────────────────
@@ -157,9 +235,9 @@ def _split_sequential_orders(command_text: str, game_state=None):
     tail = command_text[match.end():].strip()
     if not first or not tail:
         return None
-    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and not (
-            _STAND_FAST_FIRST_CLAUSE_RE.search(first)
-            and not _ENGINE_CONDITION_RE.search(first)):
+    # CR-7-1: an attack tail fuses onto a head that can carry an arrival,
+    # and onto nothing else (`_head_can_carry_arrival`, the positive rule).
+    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):
         return None
     return (first, tail)
 
@@ -1580,6 +1658,17 @@ class CommandParser:
         tail = command_text[match.end():].strip()
         if not first or not tail:
             return None
+        # CR-7-1: the SAME rule as `_split_sequential_orders`. "march to
+        # Swabia and attack Mack" is the arrival idiom — `_detect_attack_on_
+        # arrival`'s own "and attack" hint — and FA-50's arm had no
+        # exemption, so the `and` form of the engine's one two-step order was
+        # split into a march plus a "One order at a time" note while the
+        # `then` form fused. A head that cannot carry an arrival ("fortify
+        # and attack Mack") still splits, as before.
+        if (TAIL_FUSES_ONLY_ONTO_A_MARCH
+                and _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail)
+                and _head_can_carry_arrival(first)):
+            return None
         head_parse = self.llm.fast_parse(first, game_state)
         if head_parse.action == "unknown":
             return None
@@ -1610,12 +1699,25 @@ class CommandParser:
                 command_text = repaired
             else:
                 typo_note = None
+        # CR-7-1 rider (CQ-9): a tactical "move to" / "go to" head with an
+        # attack-on-arrival tail is the march idiom — promoted here, after
+        # the typo repair and before any reader, so every downstream layer
+        # sees `march to` by construction. The typed text stays the record
+        # (R1-11): `raw_input` / `raw_command` carry what the player wrote,
+        # and none of their readers re-derive the march from them.
+        promoted = False
+        if TAIL_FUSES_ONLY_ONTO_A_MARCH:
+            promoted_text = promote_tactical_move_with_arrival_tail(command_text)
+            if promoted_text != command_text:
+                command_text = promoted_text
+                promoted = True
         result = self._parse_text(command_text, game_state, world)
-        if typo_note and isinstance(result, dict):
+        if (typo_note or promoted) and isinstance(result, dict):
             result["raw_input"] = typed_text
             command = result.get("command")
             if isinstance(command, dict):
                 command["raw_command"] = typed_text
+        if typo_note and isinstance(result, dict):
             result["typo_note"] = typo_note
             if result.get("success"):
                 result["warning"] = (f"{result['warning']} {typo_note}"
